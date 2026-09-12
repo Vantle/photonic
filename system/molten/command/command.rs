@@ -18,6 +18,11 @@ fn main() -> miette::Result<()> {
     match Argument::parse().operation {
         Operation::Parse { path } => parse(path),
         Operation::Run { path, execution } => run(path, execution),
+        Operation::Obsidian {
+            path,
+            target,
+            execution,
+        } => obsidian(path, target, execution),
     }
 }
 
@@ -64,17 +69,7 @@ fn program(path: &Path, format: Option<Format>) -> miette::Result<Program> {
 fn run(path: PathBuf, execution: Execution) -> miette::Result<()> {
     let executor = molten::executor::Executor::new(execution.worker).into_diagnostic()?;
     let mut runtime = Runtime::new(program(&path, execution.format)?);
-    runtime.parallel(
-        &executor,
-        execution.step,
-        Some(Limit {
-            state: execution.state,
-            record: execution.record,
-            world: execution.coherence,
-            cell: execution.cell,
-            frame: execution.frame,
-        }),
-    );
+    runtime.parallel(&executor, execution.step, Some(limit(&execution)));
     let snapshot = runtime.snapshot();
     let mut output = std::io::stdout().lock();
     if execution.json {
@@ -103,6 +98,62 @@ fn run(path: PathBuf, execution: Execution) -> miette::Result<()> {
         .into_diagnostic()?;
     }
     Ok(())
+}
+
+fn limit(execution: &Execution) -> Limit {
+    Limit {
+        state: execution.state,
+        record: execution.record,
+        world: execution.coherence,
+        cell: execution.cell,
+        frame: execution.frame,
+    }
+}
+
+fn obsidian(path: PathBuf, target: PathBuf, execution: Execution) -> miette::Result<()> {
+    let executor = molten::executor::Executor::new(execution.worker).into_diagnostic()?;
+    let mut search = molten::obsidian::Search::new(
+        program(&path, execution.format)?,
+        program(&target, execution.format)?,
+    )?;
+    search.parallel(&executor, execution.step, Some(limit(&execution)));
+    let report = search.report();
+    let mut output = std::io::stdout().lock();
+    if execution.json {
+        serde_json::to_writer_pretty(&mut output, &report).into_diagnostic()?;
+        return writeln!(output).into_diagnostic();
+    }
+    let outcome = match report.outcome {
+        molten::obsidian::Outcome::Reached => "Reached",
+        molten::obsidian::Outcome::Unreachable => "Unreachable",
+        molten::obsidian::Outcome::Unknown => "Unknown",
+    };
+    writeln!(
+        output,
+        "{outcome}: exact target configuration under the supplied program"
+    )
+    .into_diagnostic()?;
+    if let Some(witness) = report.witness {
+        writeln!(
+            output,
+            "Witness s{witness}: {}",
+            display(&report.execution.state[witness])
+        )
+        .into_diagnostic()?;
+    }
+    writeln!(
+        output,
+        "{} configurations; {} queued, {} deferred; exploration {}",
+        report.execution.state.len(),
+        report.execution.queued,
+        report.execution.deferred,
+        if report.execution.closed {
+            "closed"
+        } else {
+            "unfinished"
+        },
+    )
+    .into_diagnostic()
 }
 
 fn status(value: Status) -> &'static str {

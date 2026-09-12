@@ -9,6 +9,7 @@ pub mod hygiene;
 pub mod lowering;
 pub mod matching;
 pub mod measure;
+pub mod obsidian;
 pub mod ordering;
 pub mod parser;
 pub mod particle;

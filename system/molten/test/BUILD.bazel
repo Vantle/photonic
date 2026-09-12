@@ -8,6 +8,8 @@ rust_test(
     compile_data = [
         "//:example/conjunction.lava",
         "//:example/reference.json",
+        "//:mathematics/natural/addition.lava",
+        "//:mathematics/natural/result.lava",
     ],
     data = ["//system/molten/command"],
     env = {"MOLTEN_COMMAND": "$(rootpath //system/molten/command)"},

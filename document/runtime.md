@@ -56,3 +56,7 @@ A paused report retains conditional obligations; exhausting a budget does not es
 Keep named crate roots, explicit modules, structured diagnostics, and the hermetic Bazel build. Measure matching visits, allocations, canonicalization, support growth, and event throughput before choosing production storage and indexing strategies.
 
 Finite checks are acceptance evidence, not a proof of universal soundness or completeness. The accepted finite ground core is implemented. Rust extends the core with [structural matching and construction](structure.md). Particle-rest capture, binder-syntax editing, hard resource isolation, live program edits, and unrestricted absence guarantees remain outside its scope. [Platform verification](../platform/README.md) distinguishes configured native CI from completed host and cross-build checks.
+
+## Obsidian
+
+[Obsidian](../mathematics/obsidian.md) checks exact concrete configuration reachability through the existing Rust evaluator. It distinguishes supported witnesses, finite closed unreachability, and unknown results from unfinished or conditional exploration. JSON reports retain the supplied program, target, and execution evidence. They are not yet portable proof certificates.

@@ -2,6 +2,8 @@
 
 Computational expression over hypergraphs, with a native Rust frontend and runtime. The hermetic build follows [Vantle Registry](https://github.com/Vantle/registry).
 
+The [mathematics library](mathematics/README.md) begins with natural-number computation and [Obsidian](mathematics/obsidian.md), which checks concrete state reachability. Explicit mathematical proof checking, equality, and induction are planned.
+
 A **rule** describes computation, including abstraction derivations; an **event** records one application. Types are computation in the same iterative model. A **coherence** is an independently evolving parallel context. **Divergence** creates several coherences; **decoherence** combines compatible coherences.
 
 ```text
@@ -42,7 +44,7 @@ The accepted core and structural-value extension are implemented. Execution limi
 
 The named crate root [molten.rs](system/molten/molten.rs) exposes focused modules directly, without `lib.rs` or re-exports. `lowering` handles executable syntax; `program` interns it; `state`, `refinement`, `canonical`, `matching`, `search`, `flow`, `support`, and `runtime` implement evaluation; `executor` supplies ordered parallel work; `snapshot` supplies inspectable reports. The structural `parser` API and generic `particle` / `rule` multiset kernel remain independent tools. Structural `parse` success alone does not establish executability.
 
-Rust conformance checks cover all 26 programs exported from the JavaScript reference: full canonical configuration, application-edge, and support comparisons for 24 closed cases, plus suspension for two growing cases. The 75 Rust tests also cover matching/canonicalization suspension, graph refinement, fair progress, support components, and identical full reports across 1/2/4 workers and different pause sizes. Support is compared against an independent whole-graph oracle over more than 35,000 clause programs.
+Rust conformance checks cover all 26 programs exported from the JavaScript reference: full canonical configuration, application-edge, and support comparisons for 24 closed cases, plus suspension for two growing cases. The 81 Rust tests also cover matching/canonicalization suspension, graph refinement, fair progress, support components, and identical full reports across 1/2/4 workers and different pause sizes. Support is compared against an independent whole-graph oracle over more than 35,000 clause programs.
 
 The [interactive runtime plan](document/plan.html) runs the ground reference examples offline and displays native Rust traces for structural metaprogramming. The [semantic contract](document/semantics.md), [implementation plan](document/plan.md), and [terminology](document/terminology.md) describe the accepted model. Earlier HTML laboratories are marked historical.
 

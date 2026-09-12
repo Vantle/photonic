@@ -20,4 +20,4 @@ launcher_binary(
     tags = ["manual"],
 )
 
-exports_files(glob(["example/*.lava", "example/*.json"]))
+exports_files(glob(["example/*.lava", "example/*.json", "mathematics/natural/*.lava"]))

@@ -170,3 +170,44 @@ fn worker() {
     assert!(!invalid.status.success());
     assert!(String::from_utf8_lossy(&invalid.stderr).contains("at least one worker"));
 }
+
+#[test]
+fn obsidian() {
+    let fixture = Fixture::new();
+    let path = fixture.write("program.lava", "A; [A] -> B;");
+    let target = fixture.write("target.lava", "B;");
+    let result = report(&execute(
+        "obsidian",
+        &path,
+        &["--target", target.to_str().unwrap(), "--json"],
+    ));
+    assert_eq!(result["outcome"], "reached");
+    assert!(result["witness"].is_u64());
+    assert_eq!(result["program"]["initial"][0][0], "A");
+    assert_eq!(result["target"][0][0], "B");
+    let result = report(&execute(
+        "obsidian",
+        &path,
+        &[
+            "--target",
+            target.to_str().unwrap(),
+            "--json",
+            "--steps",
+            "0",
+        ],
+    ));
+    assert_eq!(result["outcome"], "unknown");
+    let invalid = fixture.write("invalid.lava", "B; [B] -> A;");
+    assert!(
+        !execute("obsidian", &path, &["--target", invalid.to_str().unwrap()])
+            .status
+            .success()
+    );
+    let output = execute("obsidian", &path, &["--target", target.to_str().unwrap()]);
+    assert!(output.status.success());
+    assert!(
+        String::from_utf8(output.stdout)
+            .unwrap()
+            .starts_with("Reached:")
+    );
+}

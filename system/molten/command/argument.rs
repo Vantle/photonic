@@ -19,6 +19,17 @@ pub enum Operation {
         #[command(flatten)]
         execution: Execution,
     },
+    #[command(about = "Check exact configuration reachability with Obsidian")]
+    Obsidian {
+        path: PathBuf,
+        #[arg(
+            long,
+            help = "Target configuration file, without additional declarations"
+        )]
+        target: PathBuf,
+        #[command(flatten)]
+        execution: Execution,
+    },
 }
 
 #[derive(Args)]

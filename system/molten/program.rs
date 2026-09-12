@@ -394,7 +394,7 @@ impl Program {
         result
     }
 
-    fn input(&mut self, value: &[Vec<source::Value>]) -> Vec<Vec<Symbol>> {
+    pub(crate) fn input(&mut self, value: &[Vec<source::Value>]) -> Vec<Vec<Symbol>> {
         let mut result = value
             .iter()
             .map(|value| self.particle(value))

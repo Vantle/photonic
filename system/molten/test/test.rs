@@ -10,3 +10,5 @@ mod support;
 
 mod hygiene;
 mod metaprogramming;
+
+mod obsidian;

@@ -13,6 +13,7 @@ rust_library(
         "matching.rs",
         "measure.rs",
         "molten.rs",
+        "obsidian.rs",
         "ordering.rs",
         "parser.rs",
         "particle.rs",
