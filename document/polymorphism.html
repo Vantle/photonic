@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Derivation and matching in Molten</title>
+<style>
+:root { color-scheme: light; --ink:#242421; --muted:#62625c; --line:#d9d9d0; --paper:#fff; --accent:#a44125; --good:#266342; --bad:#a23434; }
+* { box-sizing:border-box; }
+body { margin:0; color:var(--ink); background:var(--paper); font:18px/1.65 Georgia,serif; }
+a { color:var(--accent); text-underline-offset:3px; }
+a:hover { color:#642312; }
+nav { position:fixed; inset:0 auto 0 0; width:220px; padding:38px 25px; border-right:1px solid var(--line); font:13px/1.6 system-ui,sans-serif; overflow:auto; }
+nav a { display:block; margin:0 0 14px; color:var(--muted); text-decoration:none; }
+nav a:hover { text-decoration:underline; }
+main { max-width:1170px; margin-left:220px; padding:54px 68px 100px; }
+h1 { font-size:clamp(32px,4vw,52px); line-height:1.13; font-weight:normal; margin:0 0 30px; letter-spacing:-1.3px; }
+h2 { font-size:29px; line-height:1.3; font-weight:normal; margin:64px 0 22px; padding-top:20px; border-top:1px solid var(--line); scroll-margin-top:20px; }
+h3 { font:600 18px/1.4 system-ui,sans-serif; margin:30px 0 14px; }
+p { max-width:78ch; margin:0 0 19px; }
+strong { font-weight:600; }
+code,pre,.mono { font:14px/1.65 ui-monospace,SFMono-Regular,Consolas,monospace; }
+code { background:#f4f4ef; padding:1px 4px; }
+pre { overflow:auto; padding:18px 20px; background:#f6f6f2; border-left:2px solid var(--line); }
+table { width:100%; border-collapse:collapse; font:14px/1.55 system-ui,sans-serif; margin:22px 0; }
+th,td { padding:13px 11px; text-align:left; border-bottom:1px solid var(--line); vertical-align:top; }
+th { border-top:1px solid var(--line); font-weight:600; }
+caption { text-align:left; font-weight:600; padding:0 0 12px; }
+ul,ol { padding-left:24px; }
+li { margin-bottom:10px; }
+.small { color:var(--muted); font:13px/1.6 system-ui,sans-serif; }
+.experiment { border-top:1px solid var(--line); border-bottom:1px solid var(--line); padding:22px 0; margin:28px 0; font:14px/1.5 system-ui,sans-serif; }
+.toolbar { display:flex; align-items:end; flex-wrap:wrap; gap:12px; margin:0 0 18px; }
+label { display:flex; flex-direction:column; gap:6px; font-size:13px; }
+button,select,input { font:inherit; }
+button,select { min-height:40px; border:1px solid #a3a39a; background:#fff; color:var(--ink); padding:8px 12px; border-radius:0; }
+button { cursor:pointer; }
+button:hover { background:#f4f4ef; }
+button:disabled { opacity:.4; cursor:default; }
+button[aria-pressed="true"] { background:var(--ink); color:white; }
+:focus-visible { outline:3px solid var(--accent); outline-offset:3px; }
+input[type=range] { accent-color:var(--accent); width:160px; }
+.graph { width:100%; height:auto; display:block; background:#fafaf7; border:1px solid var(--line); }
+.graph text { font:14px system-ui,sans-serif; fill:var(--ink); text-anchor:middle; }
+.graph .label { font-size:12px; fill:var(--muted); }
+.graph .edge { fill:none; stroke:#97978e; stroke-width:1.6; }
+.graph .conflict { fill:none; stroke:var(--bad); stroke-width:1.6; stroke-dasharray:5 5; }
+.graph .particle { fill:white; stroke:#78786e; stroke-width:1.5; }
+.graph .event { fill:#e8e8df; stroke:#85857c; }
+.graph .selected .particle { fill:#f9e6dc; stroke:var(--accent); stroke-width:3; }
+.graph .candidate { cursor:pointer; }
+.graph .ghost { opacity:.17; }
+.selection { display:flex; gap:8px; flex-wrap:wrap; margin:14px 0; }
+.result { border-top:1px solid var(--line); padding:15px 0 0; min-height:100px; }
+.result strong { display:block; margin-bottom:7px; font-size:17px; }
+.good { color:var(--good); }
+.bad { color:var(--bad); }
+.meter { font:38px/1.2 Georgia,serif; margin:16px 0; }
+.comparison { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; padding:18px 0; }
+.comparison > div { border-top:2px solid var(--ink); padding-top:14px; }
+.comparison p { margin:12px 0 0; }
+.comparison .meter { display:block; }
+.scroll { overflow:auto; }
+summary { cursor:pointer; font:600 15px/1.5 system-ui,sans-serif; }
+details { border-bottom:1px solid var(--line); padding:14px 0; }
+details p { margin-top:16px; }
+.reference { font:14px/1.6 system-ui,sans-serif; }
+@media(max-width:1000px) { nav { width:180px; padding:25px 18px; } main { margin-left:180px; padding:40px 32px 80px; } }
+@media(max-width:720px) { nav { position:static; width:auto; display:flex; flex-wrap:wrap; gap:8px 18px; padding:18px 22px; border-right:0; border-bottom:1px solid var(--line); } nav a { margin:0; } main { margin:0; padding:30px 22px 70px; } body { font-size:17px; } h2 { margin-top:45px; } .comparison { grid-template-columns:1fr; gap:10px; } .comparison .meter { font-size:30px; } .toolbar label { max-width:100%; } select { max-width:100%; } }
+@media print { nav,.toolbar,.selection { display:none; } main { margin:0; padding:0; max-width:none; } body { font-size:11pt; } h1 { font-size:28pt; } h2 { break-after:avoid; font-size:19pt; margin-top:28px; } .experiment,table { break-inside:avoid; } a { color:inherit; } }
+
+main { margin:auto; max-width:1100px; }
+.trace { display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:20px; background:#fafaf7; border:1px solid var(--line); }
+.trace button { min-width:110px; }
+.trace button span { display:block; font-size:12px; color:var(--muted); }
+.trace button[aria-pressed="true"] span { color:inherit; }
+.panel { display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+.panel > div { min-width:0; }
+@media(max-width:720px) { .panel { grid-template-columns:1fr; } }
+</style>
+<link rel="stylesheet" href="style.css">
+<main>
+<p class="archive"><strong>Earlier research experiment.</strong> Its historical proposals are not the current contract. Read the <a href="plan.html">runtime plan and integrated JavaScript laboratory</a> for accepted semantics, implementation status, and remaining decisions.</p>
+
+<p><strong>This earlier staged matching experiment has been superseded.</strong> Open <a href="program.html">Types are computation</a> for the current one-process model and concrete programs. These controls remain a comparison, not the accepted runtime semantics.</p>
+<p class="small"><a href="research.html#proof">← Causality and resources report</a></p>
+<h1>One matching mechanism,<br>from direct to derived</h1>
+<p><strong>A direct match is a derivation with zero steps.</strong> A derived match follows rules to the required concept while retaining the concrete information that justified it. This is the candidate unification explored here; the examples do not introduce a separate type-rule syntax.</p>
+<p>Physics motivates the questions about causality, retained information, and compatible histories. These experiments make the proposed computational answers explicit so we can test where the analogy fits.</p>
+<div class="experiment">
+<div class="toolbar">
+<label>Example<select id="example"></select></label>
+<label>Information passed to the body<select id="policy"><option value="retain">Retain concrete witness — proposal</option><option value="replace">Replace with abstract label — comparison</option></select></label>
+</div>
+<p id="question"></p>
+<div class="panel"><div><h3>Available information</h3><pre id="input"></pre></div><div><h3>Rules and requested match</h3><pre id="rule"></pre></div></div>
+<label>Derivation<select id="path"></select></label>
+<p class="small">Every path is computed from the displayed rules. Alternative paths are evidence choices; they are not extra particles.</p>
+<div class="toolbar"><button id="reset">Reset</button><button id="previous">Previous</button><button id="next">Next</button><button id="play" aria-pressed="false">Play</button><span id="progress" aria-live="polite"></span></div>
+<div id="trace" class="trace" role="group" aria-label="Derivation stages"></div>
+<div id="result" class="result" aria-live="polite"></div>
+<div class="panel"><div><h3>Concrete binding</h3><pre id="binding"></pre></div><div><h3>Continuation</h3><pre id="continuation"></pre></div></div>
+<p id="boundary" class="small"></p>
+</div>
+<h2>What these examples narrow down</h2>
+<ol>
+<li><strong>Direct and derived matches share one definition.</strong> Find a rule path from supplied information to the requested pattern. Exact matching is the empty path.</li>
+<li><strong>Matching preserves its evidence.</strong> Not.True can satisfy Not.Boolean and still supply True to the nested body. A second derivation does not mint a second witness.</li>
+<li><strong>Continuation uses the concrete binding.</strong> The selected body performs the change. Whether and how intermediate rule applications can also be committed as ordinary flat computation remains to be specified.</li>
+<li><strong>Context must have an explicit scope.</strong> The examples pass unmatched Extra into the body and carry it to the result. This is a proposed behavior, not an accepted general scope law.</li>
+<li><strong>Matching needs compatible, distinct witnesses.</strong> Two independent Boolean inputs need two eligible occurrences; two proof paths about one occurrence are insufficient.</li>
+</ol>
+<p>The laboratory deliberately implements a finite fragment: label-to-label rules, preserved context, simple derivation paths, and a supplied continuation. The body is shown as a dispatch table to test the intended example; this does not settle the meaning of brackets, nested rule installation, or rule selection in Molten.</p>
+<p>The two-input example assumes distinct compatible coherences and shows separate input slots. A dotted particle containing two concepts is a different structure and is not modeled as two coherence inputs.</p>
+<h2>The next semantic questions</h2>
+<div class="scroll"><table><thead><tr><th>Question</th><th>Candidate answer</th><th>What would challenge it?</th></tr></thead><tbody>
+<tr><td>What does the outer pattern consume?</td><td>Not selects the outer rule; the concrete True or False enters its body.</td><td>A body needing both the matched marker and its witness.</td></tr>
+<tr><td>Can any ordinary rule justify a match?</td><td>Try one derivation mechanism, without a separate type-rule category.</td><td>A derivation that requires another resource, produces several outputs, or executes an external action.</td></tr>
+<tr><td>Do proofs affect the result?</td><td>Equal bindings share an event even if their evidence differs.</td><td>A rule body explicitly inspecting the derivation.</td></tr>
+<tr><td>How do recursive rules behave?</td><td>Revisiting a label adds no new answer in this finite fragment.</td><td>Rules that change context, create occurrences, or recursively introduce structure.</td></tr>
+</tbody></table></div>
+<p><strong>Most important next case:</strong> if proving Boolean from True requires another live particle, that particle must remain part of the evidence and availability check. It cannot be silently borrowed, consumed, or duplicated by proof search. That example determines whether the simple model generalizes to resource-sensitive rules.</p>
+<p id="verification" class="small"></p>
+</main>
+<script>
+'use strict';
+const fixture=[
+{name:'Direct match · zero steps', input:[{id:'p₀',label:'True',context:['Not']}], target:'True', rule:[], body:{True:'False'}, question:'Can direct matching use exactly the same mechanism as abstraction?', boundary:'The outer pattern is Not.True. No deduction is needed; the same binding and continuation machinery applies.'},
+{name:'Not.True · one derivation', input:[{id:'p₀',label:'True',context:['Not']}], target:'Boolean', rule:[['True','Boolean'],['False','Boolean']], body:{True:'False',False:'True'}, question:'Can Not.True enter Not.Boolean without losing the True needed by its body?', boundary:'Interpret the requested nested body as True → False and False → True. This tests intended behavior without defining bracket syntax.'},
+{name:'Not.False · symmetric case', input:[{id:'p₀',label:'False',context:['Not']}], target:'Boolean', rule:[['True','Boolean'],['False','Boolean']], body:{True:'False',False:'True'}, question:'Does the same abstraction preserve the other concrete case?', boundary:'The derivation establishes Boolean; its concrete witness still selects False → True.'},
+{name:'Chained abstraction · preserved context', input:[{id:'p₀',label:'True',context:['Not','Extra']}], target:'Value', rule:[['True','Boolean'],['Boolean','Value']], body:{True:'False',False:'True'}, question:'Does a longer derivation preserve both the concrete case and unmatched Extra?', boundary:'Extra is carried through the body in this proposal. General remainder and nested-scope semantics still need agreement.'},
+{name:'Two derivations · one witness', input:[{id:'p₀',label:'True',context:['Not']}], target:'Boolean', rule:[['True','Boolean'],['True','Truth'],['Truth','Boolean']], body:{True:'False',False:'True'}, question:'Should two proofs of Boolean produce two events?', boundary:'Select either derivation. The binding key stays the same. Evidence multiplicity does not imply resource or event multiplicity.'},
+{name:'Two required inputs · one witness', input:[{id:'p₀',label:'True',context:[]}], target:'Boolean', count:2, rule:[['True','Boolean'],['True','Truth'],['Truth','Boolean']], question:'Can two proofs about one True fill two independent Boolean input slots?', boundary:'No under the proposed resource model. This is a two-coherence input requirement, not Boolean.Boolean inside one particle.'},
+{name:'Two required inputs · two witnesses', input:[{id:'p₀',label:'True',context:[]},{id:'p₁',label:'False',context:[]}], target:'Boolean', count:2, rule:[['True','Boolean'],['False','Boolean']], question:'Can distinct eligible occurrences satisfy the same abstract requirement?', boundary:'The fixture assumes the two coherences are compatible. A runtime must also check their histories before commitment.'},
+{name:'Cycle · no supporting path', input:[{id:'p₀',label:'True',context:['Not']}], target:'Boolean', rule:[['Boolean','Value'],['Value','Boolean']], body:{True:'False',False:'True'}, question:'Does a cycle establish Boolean without a path from the actual input?', boundary:'No. Exhausting this finite label graph demonstrates no match here; a budget-limited general search must instead report incomplete search.'},
+{name:'Cycle · grounded path', input:[{id:'p₀',label:'True',context:['Not']}], target:'Value', rule:[['True','Boolean'],['Boolean','Value'],['Value','Boolean']], body:{True:'False',False:'True'}, question:'Can recursion coexist with a supported abstract match?', boundary:'Simple paths suffice for reachability in this finite fragment. This is not a termination argument for arbitrary Molten derivations.'}
+];
+function derive(start,target,rule) {
+    const pending=[[start]], answer=[];
+    for(let position=0;position<pending.length;position++) {
+        const path=pending[position], last=path[path.length-1];
+        if(last===target) {answer.push(path);continue;}
+        for(const [input,output] of rule) if(input===last&&!path.includes(output)) pending.push([...path,output]);
+    }
+    return answer;
+}
+function solve(example) {
+    const candidate=example.input.map(value=>({witness:value,path:derive(value.label,example.target,example.rule)})).filter(value=>value.path.length);
+    return {candidate,allowed:candidate.length>=(example.count||1)};
+}
+function outcome(example,policy) {
+    const result=solve(example);
+    if(!result.allowed) return null;
+    if(example.count) return 'Two concrete inputs bound';
+    const witness=result.candidate[0].witness, label=policy==='retain'?witness.label:example.target;
+    if(!Object.hasOwn(example.body,label)) return null;
+    return [example.body[label],...witness.context.filter(value=>value!=='Not')].join('.');
+}
+function verify() {
+    const expected=['False','False','True','False.Extra','False',null,'Two concrete inputs bound',null,'False'];
+    const failure=[];
+    fixture.forEach((value,index)=>{if(outcome(value,'retain')!==expected[index])failure.push(value.name);});
+    if(derive('True','Boolean',fixture[4].rule).length!==2)failure.push('Alternative proof enumeration');
+    if(outcome(fixture[1],'replace')!==null)failure.push('Abstract replacement loses dispatch');
+    if(derive('True','True',[])[0].length!==1)failure.push('Direct identity path');
+    return {checked:12,failure};
+}
+const find=id=>document.getElementById(id);
+let index=1, step=0, choice=0, timer=null;
+function stop() {clearInterval(timer);timer=null;find('play').textContent='Play';find('play').setAttribute('aria-pressed','false');}
+function path() {const result=solve(fixture[index]);return result.candidate[0]?.path[choice]||[];}
+function limit() {return Math.max(1,path().length)+1;}
+function render() {
+    const example=fixture[index], result=solve(example), route=path(), maximum=limit(), complete=step===maximum;
+    find('question').textContent=example.question;
+    find('input').textContent=example.input.map(value=>value.id+' · '+[...value.context,value.label].join('.')).join('\n');
+    find('rule').textContent=example.rule.map(value=>value.join(' → ')).join('\n')+'\n\nMatch: '+(example.count?'[Boolean, Boolean]':'Not.'+example.target)+(example.body?'\n\nBody:\n'+Object.entries(example.body).map(value=>value.join(' → ')).join('\n'):'');
+    find('path').replaceChildren();
+    for(const [position,value] of (result.candidate[0]?.path||[]).entries()) {const option=document.createElement('option');option.value=position;option.textContent=value.join(' → ');find('path').append(option);}
+    find('path').value=choice;find('path').disabled=!route.length;
+    find('trace').replaceChildren();
+    const stage=['Input',...route.slice(1),'Bind', 'Continue'];
+    if(!route.length)stage.splice(1,stage.length-1,'No match','Stop');
+    stage.forEach((value,position)=>{const button=document.createElement('button');button.textContent=value;button.setAttribute('aria-pressed',String(position===step));const detail=document.createElement('span');detail.textContent=position===0?'concrete occurrence':position<stage.length-2?'derived view':position===stage.length-2?'check witnesses':'proposed body';button.append(detail);button.onclick=()=>{stop();step=position;render();};find('trace').append(button);if(position<stage.length-1){const arrow=document.createElement('span');arrow.textContent='→';arrow.setAttribute('aria-hidden','true');find('trace').append(arrow);}});
+    find('progress').textContent='Stage '+(step+1)+' of '+(maximum+1);
+    find('previous').disabled=step===0;find('next').disabled=complete;
+    const binding=result.candidate.slice(0,example.count||1);
+    find('binding').textContent=step<maximum-1?'Pending':binding.map(value=>value.witness.id+' : '+value.witness.label+' satisfies '+example.target+'\n  '+value.path.map(item=>item.join(' → ')).join('\n  ')).join('\n')||'No concrete witness';
+    const output=outcome(example,find('policy').value);
+    find('continuation').textContent=!complete?'Pending':!result.allowed?'No event: insufficient distinct witnesses':output===null?'No body rule matches the abstract label':example.count?output+'\nNo body specified':output+'\nEvent binding: outer / '+binding.map(value=>value.witness.id).join(' / ');
+    find('result').textContent=step===0?'Begin with the concrete input.':!complete?(step<maximum-1?'Deduction adds a view; it does not create a particle.':'Check that each required input has a distinct concrete witness.') :!result.allowed?'Rejected: the available evidence cannot supply the required inputs.':output===null?'Replacing the witness loses the information required by the continuation.':'The match succeeds using the concrete binding.';
+    find('boundary').textContent=example.boundary;
+}
+fixture.forEach((value,index)=>{const option=document.createElement('option');option.value=index;option.textContent=value.name;find('example').append(option);});
+find('example').value=index;
+find('example').onchange=()=>{stop();index=Number(find('example').value);step=0;choice=0;render();};
+find('path').onchange=()=>{stop();choice=Number(find('path').value);step=0;render();};
+find('policy').onchange=render;
+find('reset').onclick=()=>{stop();step=0;render();};
+find('previous').onclick=()=>{stop();step=Math.max(0,step-1);render();};
+find('next').onclick=()=>{stop();step=Math.min(limit(),step+1);render();};
+find('play').onclick=()=>{if(timer!==null){stop();return;}if(step===limit())step=0;find('play').textContent='Pause';find('play').setAttribute('aria-pressed','true');render();timer=setInterval(()=>{step++;render();if(step===limit())stop();},900);};
+window.polymorphism={fixture,derive,solve,outcome,verify};
+render();
+const verification=verify();find('verification').textContent=verification.failure.length?'Checks failed: '+verification.failure.join(', '):'12 finite model checks pass. These check the displayed fragment, not general polymorphism soundness.';
+</script>
+</html>

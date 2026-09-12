@@ -1,0 +1,25 @@
+load("@rules_rs//rs:rust_test.bzl", "rust_test")
+
+rust_test(
+    name = "parser",
+    size = "small",
+    srcs = ["parser.rs"],
+    crate_root = "parser.rs",
+    deps = ["//system/molten"],
+)
+
+rust_test(
+    name = "particle",
+    size = "small",
+    srcs = ["particle.rs"],
+    crate_root = "particle.rs",
+    deps = ["//system/molten"],
+)
+
+rust_test(
+    name = "rule",
+    size = "small",
+    srcs = ["rule.rs"],
+    crate_root = "rule.rs",
+    deps = ["//system/molten"],
+)

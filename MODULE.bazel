@@ -1,0 +1,49 @@
+module(
+    name = "molten",
+    version = "0.0.0",
+    bazel_compatibility = [">=9.2.0"],
+)
+
+bazel_dep(name = "hermetic_launcher", version = "0.0.15")
+bazel_dep(name = "llvm", version = "0.8.19")
+bazel_dep(name = "platforms", version = "1.1.0")
+bazel_dep(name = "rules_rs", version = "0.0.110")
+
+toolchain = use_extension("@rules_rs//rs/toolchains:module_extension.bzl", "toolchains")
+
+determinism = {
+    target: ["-Clink-arg=-Wl,--no-insert-timestamp"]
+    for target in [
+        "aarch64-pc-windows-gnullvm",
+        "x86_64-pc-windows-gnullvm",
+    ]
+}
+
+toolchain.toolchain(
+    edition = "2024",
+    extra_exec_rustc_flags = determinism,
+    extra_rustc_flags = determinism,
+    version = "1.98.1",
+)
+use_repo(toolchain, "default_rust_toolchains")
+
+register_toolchains(
+    "@default_rust_toolchains//...",
+    "@llvm//toolchain:all",
+)
+
+crate = use_extension("@rules_rs//rs:extensions.bzl", "crate")
+crate.from_cargo(
+    name = "crate",
+    cargo_lock = "//:Cargo.lock",
+    cargo_toml = "//:Cargo.toml",
+    platform_triples = [
+        "aarch64-apple-darwin",
+        "aarch64-pc-windows-gnullvm",
+        "aarch64-unknown-linux-gnu",
+        "x86_64-apple-darwin",
+        "x86_64-pc-windows-gnullvm",
+        "x86_64-unknown-linux-gnu",
+    ],
+)
+use_repo(crate, "crate")

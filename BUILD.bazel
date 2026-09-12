@@ -1,0 +1,23 @@
+load("@default_rust_toolchains//rustc:component_labels.bzl", "rust_toolchain_component_label")
+load("@hermetic_launcher//launcher:launcher_binary.bzl", "launcher_binary")
+
+launcher_binary(
+    name = "format",
+    embedded_args = [
+        "--edition=2024",
+        "system/molten/molten.rs",
+        "system/molten/test/parser.rs",
+        "system/molten/test/particle.rs",
+        "system/molten/test/rule.rs",
+        "system/molten/command/command.rs",
+    ],
+    entrypoint = rust_toolchain_component_label("@rules_rust//tools/upstream_wrapper:rustfmt"),
+    tags = ["manual"],
+)
+
+launcher_binary(
+    name = "update",
+    embedded_args = ["update"],
+    entrypoint = rust_toolchain_component_label("@rules_rust//tools/upstream_wrapper:cargo"),
+    tags = ["manual"],
+)

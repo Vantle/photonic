@@ -1,0 +1,21 @@
+load("@rules_rs//rs:rust_library.bzl", "rust_library")
+
+rust_library(
+    name = "molten",
+    srcs = [
+        "failure.rs",
+        "molten.rs",
+        "parser.rs",
+        "particle.rs",
+        "rule.rs",
+        "syntax.rs",
+    ],
+    crate_root = "molten.rs",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@crate//:miette",
+        "@crate//:pest",
+        "@crate//:thiserror",
+    ],
+    proc_macro_deps = ["@crate//:pest_derive"],
+)

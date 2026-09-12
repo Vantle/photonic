@@ -1,0 +1,16 @@
+load("@rules_rs//rs:rust_binary.bzl", "rust_binary")
+
+rust_binary(
+    name = "command",
+    srcs = [
+        "argument.rs",
+        "command.rs",
+    ],
+    crate_root = "command.rs",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//system/molten",
+        "@crate//:clap",
+        "@crate//:miette",
+    ],
+)

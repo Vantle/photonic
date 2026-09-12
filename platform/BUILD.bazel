@@ -1,0 +1,8 @@
+platform(
+    name = "windows",
+    constraint_values = [
+        "@llvm//constraints/windows/abi:gnullvm",
+        "@llvm//constraints/windows/crt:msvcrt",
+    ],
+    parents = ["@platforms//host"],
+)
