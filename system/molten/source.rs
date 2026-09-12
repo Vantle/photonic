@@ -12,7 +12,16 @@ pub struct Program {
 #[serde(untagged)]
 pub enum Value {
     Atom(String),
-    Rule { rule: Box<Definition> },
+    Rule {
+        rule: Box<Definition>,
+    },
+    Variable {
+        variable: String,
+    },
+    Structure {
+        structure: String,
+        particle: Vec<Value>,
+    },
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
@@ -40,6 +49,16 @@ impl Definition {
                 .iter()
                 .map(|value| match value {
                     Value::Atom(atom) => Value::Atom(atom.clone()),
+                    Value::Variable { variable } => Value::Variable {
+                        variable: variable.clone(),
+                    },
+                    Value::Structure {
+                        structure,
+                        particle: content,
+                    } => Value::Structure {
+                        structure: structure.clone(),
+                        particle: particle(content),
+                    },
                     Value::Rule { rule } => Value::Rule {
                         rule: Box::new(rule.canonical()),
                     },

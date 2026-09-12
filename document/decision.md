@@ -1,6 +1,6 @@
 # Closing the runtime design
 
-This records the accepted resolution of the remaining decisions in the [runtime plan](plan.html). The finite ground Rust runtime and JavaScript reference now implement these core decisions: generated activation, read/consume projection, whole-rule replacement, capture, and conditional availability. Native lowering, CLI execution, resumable searches, refined canonicalization, component-local support, and deterministic workers are implemented. Arbitrary structural operations are outside the accepted core; strict resource isolation remains a future boundary. Tests are not a proof of unrestricted correctness. The [configuration contract](semantics.md) continues to describe the tested finite evaluator.
+This records the accepted resolution of the remaining decisions in the [runtime plan](plan.html). The finite ground Rust runtime and JavaScript reference now implement these core decisions: generated activation, read/consume projection, whole-rule replacement, capture, and conditional availability. Native lowering, CLI execution, resumable searches, refined canonicalization, component-local support, and deterministic workers are implemented. The accepted follow-on [structural-value extension](structure.md) generalizes matching and construction in Rust; particle-rest capture, binder-syntax editing, and strict resource isolation remain future boundaries. Tests are not a proof of unrestricted correctness. The [configuration contract](semantics.md) continues to describe the tested finite evaluator.
 
 ## Rule availability and consumption
 
@@ -47,7 +47,7 @@ Keep exact matching as the primitive. A rule containing another rule occupies on
 
 Continue to express abstractions as ordinary derivations. A program can derive a description of a whole rule and match that description at its concrete source, just as True derives Boolean. The concrete remainder/body convention provides the witness. No mandatory structural wildcard or second type matcher is needed for this core.
 
-This does not prove that every desired structural transformation can already be expressed. A transformation that extracts an arbitrary unknown input or body needs an explicit program-expressible representation and operations for those components. Before adding native capture variables, construct representative map, composition, and recursive abstraction examples in the structural value model. If those require new structure access, define it as ordinary value operations with exact contracts, not an implicit evaluator escape hatch.
+This does not prove that every desired structural transformation can already be expressed. A transformation that extracts an arbitrary unknown input or body needs an explicit program-expressible representation and operations for those components. The [structural-value extension](structure.md) now supplies explicit constructor patterns and complete-value variables. Capturing an arbitrary particle or body remainder, or editing a local binder, still needs a separate structural representation; neither is silently inferred from a value variable.
 
 ## Absence and changing rules
 
@@ -65,7 +65,7 @@ The executable [native grammar](syntax.md) lowers into explicit atoms, whole rul
 
 `@([A] -> B)` returns or matches a whole rule value. `{ ... }` enters a body containing an optional initial particle and local definitions. `()` denotes one empty particle; `[]` denotes zero input or output coherences. The distinctions are represented explicitly in `source::Program` and covered by lowering and CLI tests.
 
-The abbreviation `[[A,B]] ([B])` remains structurally parseable but is not executable native syntax. Its omitted outputs and value/body ambiguity do not acquire meaning from the structural parser. Use complete rule constructors for exact whole-value replacement. This settles the first executable syntax without claiming arbitrary unknown-subterm extraction.
+The abbreviation `[[A,B]] ([B])` remains structurally parseable but is not executable native syntax. Its omitted outputs and value/body ambiguity do not acquire meaning from the structural parser. Use complete rule constructors for exact whole-value replacement. The structural-value extension adds `$name` capture inside explicit constructors without assigning meaning to this abbreviated syntax.
 
 ## Gates, scheduling, and state sharing
 
@@ -79,7 +79,7 @@ Canonicalization refines graph colors using sharing, capture, parent, and lexica
 
 ## Closure criteria
 
-The accepted core implementation satisfies the following finite acceptance matrix. Arbitrary structural metaprogramming is outside this milestone. Broader claims of completeness or bounded resource usage still require their own argument and measurements.
+The accepted core implementation satisfies the following finite acceptance matrix. Structural metaprogramming over complete values is covered separately by the [extension contract](structure.md). Broader claims of completeness or bounded resource usage still require their own argument and measurements.
 
 | Obligation | Required observation |
 | --- | --- |
@@ -95,4 +95,4 @@ The accepted core implementation satisfies the following finite acceptance matri
 | Fair gates | Arrival order and duplicate reports do not change the enabled event set |
 | Source grammar | Returned rule values and invoked bodies have unambiguous lowering |
 
-The dynamic examples cover these core interactions in the JavaScript reference and Rust runtime. Native lowering and CLI tests cover explicit rule values, bodies, multiple coherences, absence, and diagnostics. Unrestricted structural operations and strict resource isolation remain outside this finite implementation. Retained-record accounting is a soft batch-boundary limit, not a byte cap; graph setup and closure normalization remain non-preemptible. This supplies a concrete path to closing the gaps without claiming that a test matrix, physical analogy, or design preference proves a universally error-free language.
+The dynamic examples cover these core interactions in the JavaScript reference and Rust runtime. Native lowering and CLI tests cover explicit rule values, bodies, multiple coherences, absence, and diagnostics. Particle-rest capture, binder-syntax editing, and strict resource isolation remain outside this implementation. Retained-record accounting is a soft batch-boundary limit, not a byte cap; graph setup and closure normalization remain non-preemptible. This supplies a concrete path to closing the gaps without claiming that a test matrix, physical analogy, or design preference proves a universally error-free language.

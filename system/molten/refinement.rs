@@ -1,11 +1,12 @@
-use crate::program::Symbol;
+use crate::program::{Scope, Symbol};
 use crate::state::State;
 use std::collections::BTreeMap;
+use std::sync::Arc;
 
 #[derive(Clone, Eq, Ord, PartialEq, PartialOrd)]
 enum Label {
     World,
-    Frame(usize, bool),
+    Frame(Arc<Scope>, bool, Option<usize>),
     Resource(Symbol),
 }
 
@@ -33,12 +34,20 @@ fn connect(edge: &mut [Vec<(u8, usize)>], source: usize, target: usize, kind: u8
 
 impl Refinement {
     pub fn new(state: &State) -> Self {
+        Self::anchored(state, &[])
+    }
+
+    pub fn anchored(state: &State, anchor: &[Option<usize>]) -> Self {
         let retained = state.reachable();
         let mut label = vec![Label::World; state.world.len()];
         let mut frame = vec![0; state.frame.len()];
         for &index in &retained {
             frame[index] = label.len();
-            label.push(Label::Frame(state.frame[index].scope, index == 0));
+            label.push(Label::Frame(
+                Arc::new(state.frame[index].scope.rename(&mut |_| 0)),
+                index == 0,
+                anchor.get(index).copied().flatten(),
+            ));
         }
         let mut resource = BTreeMap::new();
         for token in state
@@ -49,7 +58,7 @@ impl Refinement {
         {
             resource.entry(token.id).or_insert_with(|| {
                 let index = label.len();
-                label.push(Label::Resource(token.value));
+                label.push(Label::Resource(token.value.rename(&mut |_| 0)));
                 index
             });
         }
@@ -79,12 +88,19 @@ impl Refinement {
             .flat_map(|world| &world.particle)
             .chain(retained.iter().flat_map(|&index| &state.frame[index].held))
         {
-            if let Some(frame) = token.capture {
-                capture.insert(token.id, frame);
-            }
+            capture
+                .entry(token.id)
+                .or_insert_with(|| token.value.capture());
         }
         for (id, captured) in capture {
-            connect(&mut edge, resource[&id], frame[captured], 10);
+            for captured in captured {
+                connect(&mut edge, resource[&id], frame[captured], 10);
+            }
+        }
+        for &index in &retained {
+            for capture in state.frame[index].scope.capture() {
+                connect(&mut edge, frame[index], frame[capture], 12);
+            }
         }
         let mut color = classify(&label);
         loop {

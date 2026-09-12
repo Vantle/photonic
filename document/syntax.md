@@ -28,6 +28,8 @@ The body receives concrete operands through the [binding contract](binding.md). 
 | Empty output | `[A] -> [];` | No output coherences |
 | Empty output particle | `[A] -> ();` | One output coherence, retaining unmatched remainder |
 | Negative premise | `[Start] unless [Q] -> P;` | Conditional application depending on absence evidence |
+| Named structure | `Box(A.B)` | One value containing an orderless particle |
+| Complete-value variable | `[Box($value)] -> Wrapped($value);` | Extract and construct through ordinary matching |
 | Whole rule value | `@([A] -> B)` | One value, capturing its lexical environment when created |
 | Nested body | `[Enter] -> { Make; [Make] -> Result; };` | Enter a body with explicit Make and local definitions |
 
@@ -38,9 +40,9 @@ An empty program has no execution site. To explore a zero-input rule, provide an
 [@([A] -> B)] -> @([A] -> C);
 ```
 
-`[[A,B]] ([B])` is not executable native syntax. Input-only brackets do not construct a complete rule value. The native grammar distinguishes returned code from entered bodies explicitly; it does not implement wildcard substitution or extraction from unknown rule subterms.
+`[[A,B]] ([B])` is not executable native syntax. Input-only brackets do not construct a complete rule value. The native grammar distinguishes returned code from entered bodies explicitly; `$name` captures one complete value, and `Box(A.B)` constructs a named orderless structure. These forms also work inside rule patterns and constructors; see [structural values](structure.md).
 
-Atoms preserve Unicode and exclude ASCII whitespace, syntax delimiters, `@`, semicolons, and `->`. There is no comment, quoting, or string-literal syntax. Whitespace between grammar tokens is ignored. Native nesting is limited to 128 levels before recursive parsing; this is an implementation limit. Malformed syntax, excessive nesting, and unsupported body initialization have distinct diagnostic variants.
+Atoms preserve Unicode and exclude ASCII whitespace, syntax delimiters, `@`, semicolons, and `->`. `$` is reserved for variable names. A bare `$` is invalid. `Box()` is an empty named structure; `Box(A.B)` contains two orderless members. There is no comment, quoting, or string-literal syntax. Whitespace between grammar tokens is ignored. Native nesting is limited to 128 levels before recursive parsing; this is an implementation limit. Malformed syntax, excessive nesting, and unsupported body initialization have distinct diagnostic variants.
 
 ## Running source
 
@@ -58,9 +60,9 @@ bazel test //system/molten/test
 
 ## Structured executable representation
 
-`source::Program` holds initial particles and definitions. Values are atoms or `{rule: {input, output, negative?}}` constructors. Output `{particle: [...]}` returns values; `{body: [...]}` enters a body, optionally with explicit particle values. Native lowering produces this representation, and the CLI can also deserialize it from JSON. The JavaScript plan accepts the corresponding structured form.
+`source::Program` holds initial particles and definitions. Values are atoms, `{variable: "name"}` patterns, `{structure: "Box", particle: [...]}` structures, or `{rule: {input, output, negative?}}` constructors. Output `{particle: [...]}` returns values; `{body: [...]}` enters a body, optionally with explicit particle values. Native lowering produces this representation, and the CLI can also deserialize it from JSON. The JavaScript kernel accepts the earlier ground subset; native structural traces appear alongside it in the plan.
 
-The constructors describe finite ground code. Code structure is interned; live rule values additionally retain lexical capture identity. Native source and JSON use the same Rust runtime without a separate type evaluator.
+Constructors can build code from bound complete values. Instantiated content and nested captures participate in identity; generated code is not limited to a precompiled catalog. Native source and JSON use the same Rust runtime without a separate type evaluator.
 
 ## Structural representation
 

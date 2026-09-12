@@ -1,0 +1,2 @@
+Box(A);
+[Box($value)] -> Box(Wrap($value));

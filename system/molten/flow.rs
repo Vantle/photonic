@@ -23,12 +23,13 @@ pub struct Binding {
     pub footprint: BTreeSet<Place>,
     pub exact: BTreeSet<Place>,
     pub read: BTreeSet<Place>,
+    pub value: BTreeMap<String, Symbol>,
 }
 
 pub struct Closure<'state> {
     pub state: &'state State,
     pub flow: &'state Flow,
-    pub capture: usize,
+    pub capture: Option<usize>,
 }
 
 pub struct Applied {
@@ -119,9 +120,10 @@ impl Flow {
                 if let Some(&Place::World(index, id)) = basis.first() {
                     if source.world[index].particle.iter().any(|value| {
                         value.id == id
-                            && value.value == token.value
-                            && value.capture
-                                == token.capture.and_then(|capture| self.frame[capture])
+                            && value.value
+                                == token.value.rename(&mut |capture| {
+                                    self.frame[capture].unwrap_or(usize::MAX)
+                                })
                     }) {
                         exact.insert(Place::World(index, id));
                     }
@@ -147,6 +149,7 @@ impl Flow {
             footprint,
             exact,
             read: BTreeSet::new(),
+            value: BTreeMap::new(),
         })
     }
 }
@@ -170,7 +173,7 @@ impl Import<'_> {
         self.frame.insert(index, position);
         let original = self.closure.state.frame[index].clone();
         state.frame.push(Frame {
-            scope: original.scope,
+            scope: original.scope.clone(),
             parent: None,
             lexical: None,
             held: Vec::new(),
@@ -189,19 +192,21 @@ impl Import<'_> {
                 self.next += 1;
                 next
             });
-            let capture = token.capture.map(|index| self.include(index, state, flow));
-            held.push(Token {
-                id,
-                value: token.value,
-                capture,
-            });
+            let value = token
+                .value
+                .rename(&mut |index| self.include(index, state, flow));
+            held.push(Token { id, value });
             flow.resource.insert(
                 Place::Held(position, id),
                 self.closure.flow.resource[&Place::Held(index, token.id)].clone(),
             );
         }
         state.frame[position] = Frame {
-            scope: original.scope,
+            scope: std::sync::Arc::new(
+                original
+                    .scope
+                    .rename(&mut |index| self.include(index, state, flow)),
+            ),
             parent,
             lexical,
             held,
@@ -217,7 +222,7 @@ pub fn apply(
     rule: &Instruction,
     binding: &Binding,
     closure: Option<Closure<'_>>,
-) -> Applied {
+) -> Option<Applied> {
     let mut state = State {
         world: Vec::new(),
         frame: source.frame.clone(),
@@ -234,19 +239,35 @@ pub fn apply(
         .map(|token| token.id)
         .max()
         .map_or(0, |id| id + 1);
-    let owner = if let Some(closure) = closure {
+    let (owner, rule) = if let Some(closure) = closure {
         let mut resource = HashMap::new();
         for (index, frame) in closure.state.frame.iter().enumerate() {
-            let Some(mapped) = closure.flow.frame[index] else {
-                continue;
-            };
             for token in &frame.held {
                 let basis = &closure.flow.resource[&Place::Held(index, token.id)];
-                if basis.len() == 1 {
-                    if let Some(&Place::Held(frame, id)) = basis.first() {
-                        if frame == mapped {
-                            resource.insert(token.id, id);
-                        }
+                if basis.len() != 1
+                    || token
+                        .value
+                        .capture()
+                        .iter()
+                        .any(|&frame| closure.flow.frame[frame].is_none())
+                {
+                    continue;
+                }
+                let original = match *basis.first().unwrap() {
+                    Place::World(index, id) => source.world[index]
+                        .particle
+                        .iter()
+                        .find(|token| token.id == id),
+                    Place::Held(index, id) => {
+                        source.frame[index].held.iter().find(|token| token.id == id)
+                    }
+                };
+                if let Some(original) = original {
+                    let projected = token
+                        .value
+                        .rename(&mut |frame| closure.flow.frame[frame].unwrap());
+                    if original.value == projected {
+                        resource.insert(token.id, original.id);
                     }
                 }
             }
@@ -258,12 +279,37 @@ pub fn apply(
             resource,
             next,
         };
-        let owner = import.include(capture, &mut state, &mut flow);
+        let owner = capture.map_or_else(
+            || owner.expect("lexical rule has an owner"),
+            |capture| import.include(capture, &mut state, &mut flow),
+        );
+        let rule = if capture.is_some() {
+            rule.rename(&mut |index| import.include(index, &mut state, &mut flow))
+        } else {
+            rule.clone()
+        };
+        let value = binding
+            .value
+            .iter()
+            .map(|(name, value)| {
+                (
+                    name.clone(),
+                    value.rename(&mut |index| import.include(index, &mut state, &mut flow)),
+                )
+            })
+            .collect();
+        let rule = rule.substitute(&value);
         next = import.next;
-        owner
+        (owner, rule)
     } else {
-        owner.expect("lexical rule has an owner")
+        (
+            owner.expect("lexical rule has an owner"),
+            rule.substitute(&binding.value),
+        )
     };
+    if !rule.ready() {
+        return None;
+    }
     let returning = owner == frame && frame != 0;
     let parent = if returning {
         source.frame[frame].parent.unwrap()
@@ -323,7 +369,7 @@ pub fn apply(
                     .insert(Place::World(index, token.id));
             }
         }
-        let target = if let Some(scope) = output.body {
+        let target = if let Some(scope) = &output.body {
             let target = state.frame.len();
             let mut reserve = BTreeMap::<usize, (Token, BTreeSet<Place>)>::new();
             for &place in binding.exact.union(&consumed) {
@@ -344,7 +390,7 @@ pub fn apply(
                     .insert(place);
             }
             state.frame.push(Frame {
-                scope,
+                scope: scope.clone(),
                 parent: Some(parent),
                 lexical: Some(owner),
                 held: reserve.values().map(|(token, _)| token.clone()).collect(),
@@ -363,11 +409,10 @@ pub fn apply(
             flow.resource.insert(Place::World(index, token.id), basis);
             particle.push(token);
         }
-        for &value in &output.particle {
+        for value in &output.particle {
             let token = Token {
                 id: next,
-                value,
-                capture: matches!(value, Symbol::Rule(_)).then_some(owner),
+                value: value.close(owner),
             };
             next += 1;
             flow.resource
@@ -380,7 +425,7 @@ pub fn apply(
         });
         flow.context.push(binding.world.clone());
     }
-    Applied { state, flow }
+    Some(Applied { state, flow })
 }
 
 impl Applied {

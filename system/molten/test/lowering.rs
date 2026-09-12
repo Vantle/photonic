@@ -151,3 +151,131 @@ fn depth() {
     let source = format!("A; {}", "[A] -> A; ".repeat(10_000));
     assert_eq!(lowering::parse(&source).unwrap().rule.len(), 10_000);
 }
+
+#[test]
+fn variable() {
+    let source =
+        lowering::parse("[$value] unless [Blocked($value)] -> @([$input] -> Pair($value.$input));")
+            .unwrap();
+    assert_eq!(
+        source.rule[0].input,
+        [vec![Value::Variable {
+            variable: "value".into()
+        }]]
+    );
+    let Value::Rule { rule } = &source.rule[0].output[0].particle[0] else {
+        panic!("expected a rule value");
+    };
+    assert_eq!(
+        rule.input,
+        [vec![Value::Variable {
+            variable: "input".into()
+        }]]
+    );
+    assert_eq!(
+        rule.output[0].particle,
+        [Value::Structure {
+            structure: "Pair".into(),
+            particle: vec![
+                Value::Variable {
+                    variable: "value".into()
+                },
+                Value::Variable {
+                    variable: "input".into()
+                }
+            ],
+        }]
+    );
+    assert!(lowering::parse("$free; [A] -> $unbound;").is_ok());
+    for source in ["$;", "$ name;", "A$value;", "$Box(A);", "Box(A,B);"] {
+        assert!(
+            matches!(lowering::parse(source), Err(Failure::Syntax { .. })),
+            "{source}"
+        );
+    }
+}
+
+#[test]
+fn structure() {
+    let source =
+        lowering::parse("Box(A.B).Empty().Outer(Inner(C).@([D] -> E)); [Box($value)] -> $value;")
+            .unwrap();
+    assert_eq!(
+        source.initial[0][0],
+        Value::Structure {
+            structure: "Box".into(),
+            particle: atom(&["A", "B"])
+        }
+    );
+    assert_eq!(
+        source.initial[0][1],
+        Value::Structure {
+            structure: "Empty".into(),
+            particle: Vec::new()
+        }
+    );
+    let Value::Structure {
+        structure,
+        particle,
+    } = &source.initial[0][2]
+    else {
+        panic!("expected a nested structure");
+    };
+    assert_eq!(structure, "Outer");
+    assert_eq!(
+        particle[0],
+        Value::Structure {
+            structure: "Inner".into(),
+            particle: atom(&["C"])
+        }
+    );
+    assert!(matches!(particle[1], Value::Rule { .. }));
+}
+
+#[test]
+fn canonical() {
+    let first = lowering::parse("[Box(Inner(B.A).$value.A)] -> Box(B.A.$value);").unwrap();
+    let second = lowering::parse("[Box(A.$value.Inner(A.B))] -> Box($value.A.B);").unwrap();
+    assert_eq!(first.rule[0].canonical(), second.rule[0].canonical());
+    let distinct = lowering::parse("[Box(Inner(A.B).$value.A.A)] -> Box($value.A.B);").unwrap();
+    assert_ne!(first.rule[0].canonical(), distinct.rule[0].canonical());
+    let distinct = lowering::parse("[Box(Inner(A.B).$other.A)] -> Box($other.A.B);").unwrap();
+    assert_ne!(first.rule[0].canonical(), distinct.rule[0].canonical());
+}
+
+#[test]
+fn spelling() {
+    let source = lowering::parse("箱(人.$名前); [箱($名前)] -> 世界($名前);").unwrap();
+    assert_eq!(
+        source.initial[0],
+        [Value::Structure {
+            structure: "箱".into(),
+            particle: vec![
+                Value::Atom("人".into()),
+                Value::Variable {
+                    variable: "名前".into()
+                }
+            ],
+        }]
+    );
+    let source = "箱($名前]";
+    let Failure::Syntax { span, .. } = lowering::parse(source).unwrap_err() else {
+        panic!("expected a structure diagnostic");
+    };
+    assert!(source.is_char_boundary(span.offset()));
+    assert!(source.is_char_boundary(span.offset() + span.len()));
+    assert_eq!(&source[span.offset()..span.offset() + span.len()], "]");
+}
+
+#[test]
+fn nesting() {
+    let source = format!("{}A{};", "Box(".repeat(128), ")".repeat(128));
+    assert!(lowering::parse(&source).is_ok());
+    let source = format!("{}$名前{};", "箱(".repeat(129), ")".repeat(129));
+    let Failure::Depth { limit, span } = lowering::parse(&source).unwrap_err() else {
+        panic!("expected a nesting diagnostic");
+    };
+    assert_eq!(limit, 128);
+    assert_eq!(span.offset(), "箱(".len() * 128 + "箱".len());
+    assert_eq!(span.len(), 1);
+}

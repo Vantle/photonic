@@ -1,5 +1,28 @@
 use molten::runtime::{Limit, Runtime};
 
+fn declaration(ordinal: usize) -> std::sync::Arc<molten::program::Scope> {
+    std::sync::Arc::new(molten::program::Scope {
+        name: ordinal.to_string(),
+        rule: vec![std::sync::Arc::new(molten::program::Instruction {
+            input: vec![vec![molten::program::Symbol::Atom(ordinal)]],
+            ..Default::default()
+        })],
+    })
+}
+
+fn captured(value: molten::program::Symbol, capture: Option<usize>) -> molten::program::Symbol {
+    match capture {
+        None => value,
+        Some(frame) => molten::program::Symbol::Rule(
+            std::sync::Arc::new(molten::program::Instruction {
+                input: vec![vec![value]],
+                ..Default::default()
+            }),
+            Some(frame),
+        ),
+    }
+}
+
 #[test]
 fn conjunction() {
     let program =
@@ -42,8 +65,10 @@ fn normalize(
                             .parse()
                             .unwrap()
                     }),
-                value: Symbol::Atom(symbol[token["label"].as_str().unwrap()]),
-                capture: optional(&token["capture"]),
+                value: captured(
+                    Symbol::Atom(symbol[token["label"].as_str().unwrap()]),
+                    optional(&token["capture"]),
+                ),
             })
             .collect()
     };
@@ -62,7 +87,7 @@ fn normalize(
             .unwrap()
             .iter()
             .map(|frame| Frame {
-                scope: scope[frame["scope"].as_str().unwrap()],
+                scope: declaration(scope[frame["scope"].as_str().unwrap()]),
                 parent: optional(&frame["parent"]),
                 lexical: optional(&frame["lexical"]),
                 held: particle(&frame["held"]),
@@ -210,19 +235,19 @@ fn gate() {
     let mut gate = Gate::new(vec![
         vec![Term {
             value: Symbol::Atom(0),
-            capture: None,
         }],
         vec![Term {
             value: Symbol::Atom(1),
-            capture: None,
         }],
     ]);
     let first = Slot {
+        binding: Default::default(),
         world: 0,
         token: vec![0],
         position: 0,
     };
     let second = Slot {
+        binding: Default::default(),
         world: 1,
         token: vec![1],
         position: 1,
@@ -240,7 +265,7 @@ fn capture() {
     use molten::state::{Frame, State, Token, World};
     use std::collections::{BTreeMap, BTreeSet};
     let root = Frame {
-        scope: 0,
+        scope: declaration(0),
         parent: None,
         lexical: None,
         held: Vec::new(),
@@ -248,20 +273,19 @@ fn capture() {
     let seed = Token {
         id: 0,
         value: Symbol::Atom(0),
-        capture: None,
     };
     let witness = State {
         world: Vec::new(),
         frame: vec![
             root.clone(),
             Frame {
-                scope: 1,
+                scope: declaration(1),
                 parent: Some(0),
                 lexical: Some(0),
                 held: vec![seed.clone()],
             },
             Frame {
-                scope: 2,
+                scope: declaration(2),
                 parent: Some(0),
                 lexical: Some(1),
                 held: vec![seed.clone()],
@@ -274,8 +298,10 @@ fn capture() {
                 frame: 0,
                 particle: vec![Token {
                     id: 1,
-                    value: Symbol::Atom(1),
-                    capture: mapped.then_some(1),
+                    value: Symbol::Structure(
+                        1,
+                        vec![captured(Symbol::Atom(1), mapped.then_some(1))],
+                    ),
                 }],
             }],
             frame: if mapped {
@@ -299,12 +325,16 @@ fn capture() {
         };
         let rule = Instruction {
             output: vec![Output {
-                particle: vec![Symbol::Rule(0)],
+                particle: vec![Symbol::Rule(
+                    std::sync::Arc::new(Instruction::default()),
+                    None,
+                )],
                 body: None,
             }],
             ..Instruction::default()
         };
         let binding = Binding {
+            value: BTreeMap::new(),
             world: BTreeSet::from([0]),
             footprint: BTreeSet::new(),
             exact: BTreeSet::new(),
@@ -319,16 +349,21 @@ fn capture() {
             Some(Closure {
                 state: &witness,
                 flow: &flow,
-                capture: 2,
+                capture: Some(2),
             }),
         )
+        .unwrap()
         .canonical();
         let capture = output.state.world[0]
             .particle
             .iter()
-            .find(|token| matches!(token.value, Symbol::Rule(_)))
-            .unwrap()
-            .capture
+            .find_map(|token| {
+                if let Symbol::Rule(_, capture) = &token.value {
+                    *capture
+                } else {
+                    None
+                }
+            })
             .unwrap();
         assert_eq!(output.state.environment(capture), witness.environment(2));
         assert_eq!(
@@ -349,7 +384,7 @@ fn permutation() {
     use molten::program::Symbol;
     use molten::state::{Frame, State, Token, World};
     let root = Frame {
-        scope: 0,
+        scope: declaration(0),
         parent: None,
         lexical: None,
         held: Vec::new(),
@@ -371,7 +406,6 @@ fn permutation() {
                         .map(|&id| Token {
                             id,
                             value: Symbol::Atom(0),
-                            capture: None,
                         })
                         .collect(),
                 })
@@ -405,5 +439,112 @@ fn determinism() {
     let expected = execute();
     for _ in 0..64 {
         assert_eq!(execute(), expected);
+    }
+}
+
+#[test]
+fn inheritance() {
+    use molten::flow::{self, Binding, Closure, Flow, Place};
+    use molten::program::{Instruction, Output, Symbol};
+    use molten::state::{Frame, State, Token, World};
+    use std::collections::{BTreeMap, BTreeSet};
+    use std::sync::Arc;
+
+    for held in [false, true] {
+        for transformed in [false, true] {
+            for fragment in [false, true] {
+                let value = if fragment {
+                    captured(Symbol::Atom(0), Some(0))
+                } else {
+                    Symbol::Atom(0)
+                };
+                let original = Token { id: 5, value };
+                let root = Frame {
+                    scope: declaration(0),
+                    parent: None,
+                    lexical: None,
+                    held: if held {
+                        vec![original.clone()]
+                    } else {
+                        Vec::new()
+                    },
+                };
+                let source = State {
+                    world: vec![World {
+                        frame: 0,
+                        particle: vec![original.clone()],
+                    }],
+                    frame: vec![root.clone()],
+                };
+                let witness = State {
+                    world: Vec::new(),
+                    frame: vec![
+                        root,
+                        Frame {
+                            scope: declaration(1),
+                            parent: Some(0),
+                            lexical: Some(0),
+                            held: vec![Token {
+                                id: 9,
+                                value: if transformed {
+                                    Symbol::Atom(1)
+                                } else {
+                                    original.value
+                                },
+                            }],
+                        },
+                    ],
+                };
+                let basis = if held {
+                    Place::Held(0, 5)
+                } else {
+                    Place::World(0, 5)
+                };
+                let mut flow = Flow::identity(&source);
+                flow.context.clear();
+                flow.frame.push(None);
+                flow.resource
+                    .insert(Place::Held(1, 9), BTreeSet::from([basis]));
+                let rule = Instruction {
+                    output: vec![Output {
+                        particle: vec![Symbol::Rule(Arc::new(Instruction::default()), None)],
+                        body: None,
+                    }],
+                    ..Instruction::default()
+                };
+                let binding = Binding {
+                    world: BTreeSet::new(),
+                    footprint: BTreeSet::new(),
+                    exact: BTreeSet::new(),
+                    read: BTreeSet::from([basis]),
+                    value: BTreeMap::new(),
+                };
+                let result = flow::apply(
+                    &source,
+                    0,
+                    None,
+                    &rule,
+                    &binding,
+                    Some(Closure {
+                        state: &witness,
+                        flow: &flow,
+                        capture: Some(1),
+                    }),
+                )
+                .unwrap();
+                assert_eq!(result.state.frame[1].held[0].id == 5, !transformed);
+                let expected = if transformed { 3 } else { 2 };
+                let result = result.canonical();
+                let identity = result
+                    .state
+                    .world
+                    .iter()
+                    .flat_map(|world| &world.particle)
+                    .chain(result.state.frame.iter().flat_map(|frame| &frame.held))
+                    .map(|token| token.id)
+                    .collect::<BTreeSet<_>>();
+                assert_eq!(identity.len(), expected);
+            }
+        }
     }
 }

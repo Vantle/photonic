@@ -12,7 +12,7 @@ fn root(world: Vec<World>) -> State {
     State {
         world,
         frame: vec![Frame {
-            scope: 0,
+            scope: Arc::new(molten::program::Scope::default()),
             parent: None,
             lexical: None,
             held: Vec::new(),
@@ -24,7 +24,6 @@ fn token(id: usize) -> Token {
     Token {
         id,
         value: Symbol::Atom(0),
-        capture: None,
     }
 }
 
@@ -37,7 +36,6 @@ fn matching() {
     let pattern = vec![vec![
         Term {
             value: Symbol::Atom(0),
-            capture: None
         };
         15
     ]];
@@ -88,7 +86,6 @@ fn refinement() {
     state.world[0].particle.push(Token {
         id: 20,
         value: Symbol::Atom(1),
-        capture: None,
     });
     let mut search = canonical::Search::new(Arc::new(state.clone()));
     let steps = (0..10).find(|_| search.step());

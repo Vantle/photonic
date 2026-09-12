@@ -46,9 +46,12 @@ destination = _{ body | particle }
 body = { "{" ~ sequence ~ "}" }
 particle = { empty | value ~ ("." ~ value)* }
 empty = { "(" ~ ")" }
-value = _{ closure | atom }
+value = _{ closure | variable | structure | atom }
+variable = @{ "$" ~ atom }
+structure = { atom ~ "(" ~ particle? ~ closing }
+closing = { ")" }
 closure = { "@" ~ "(" ~ definition ~ ")" }
-atom = @{ (!("->" | "." | "," | "[" | "]" | "(" | ")" | "{" | "}" | "@" | ";" | WHITESPACE) ~ ANY)+ }
+atom = @{ (!("->" | "." | "," | "[" | "]" | "(" | ")" | "{" | "}" | "@" | "$" | ";" | WHITESPACE) ~ ANY)+ }
 "#]
 struct Grammar;
 
@@ -136,6 +139,20 @@ fn particle(parsed: Pair<'_, Rule>) -> Result<Vec<Value>, Failure> {
 fn value(parsed: Pair<'_, Rule>) -> Result<Value, Failure> {
     match parsed.as_rule() {
         Rule::atom => Ok(Value::Atom(parsed.as_str().to_owned())),
+        Rule::variable => Ok(Value::Variable {
+            variable: parsed.as_str()[1..].to_owned(),
+        }),
+        Rule::structure => {
+            let mut child = parsed.into_inner();
+            let structure = child.next().expect("structure name").as_str().to_owned();
+            let particle = child
+                .find(|item| item.as_rule() == Rule::particle)
+                .map_or_else(|| Ok(Vec::new()), particle)?;
+            Ok(Value::Structure {
+                structure,
+                particle,
+            })
+        }
         Rule::closure => Ok(Value::Rule {
             rule: Box::new(definition(parsed.into_inner().next().expect("rule value"))?),
         }),

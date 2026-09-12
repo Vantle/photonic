@@ -1,6 +1,6 @@
 use crate::flow::{self, Binding, Closure, Flow, Place};
-use crate::matching::{self, Capture, Slot, Term};
-use crate::program::{Program, Symbol};
+use crate::matching::{self, Slot, Term};
+use crate::program::{Instruction, Program, Symbol};
 use crate::source;
 use crate::state::State;
 use crate::support::{Atom, Clause, Support};
@@ -41,7 +41,7 @@ struct Application {
     view: usize,
     frame: usize,
     owner: Option<usize>,
-    rule: usize,
+    rule: Arc<Instruction>,
     binding: Binding,
     capture: Option<usize>,
 }
@@ -50,9 +50,9 @@ struct Identity {
     source: usize,
     frame: usize,
     owner: Option<usize>,
-    rule: usize,
+    rule: Arc<Instruction>,
     binding: Binding,
-    environment: Option<State>,
+    environment: Option<crate::constraint::Environment>,
 }
 struct Event {
     identity: Identity,
@@ -65,10 +65,11 @@ struct Query {
     source: usize,
     frame: usize,
     pattern: Vec<Vec<Term>>,
-    closed: bool,
+    constraint: Option<crate::constraint::Constraint>,
 }
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 struct Match {
+    constraint: Option<crate::constraint::Constraint>,
     target: usize,
     frame: usize,
     pattern: Vec<Vec<Term>>,
@@ -77,7 +78,7 @@ struct Match {
 enum Operation {
     Invoke {
         owner: Option<usize>,
-        rule: usize,
+        rule: Arc<Instruction>,
         capture: Option<usize>,
         read: Option<Place>,
     },
@@ -146,6 +147,7 @@ pub struct Runtime {
     work: usize,
     peak: usize,
     flying: usize,
+    volume: usize,
 }
 
 impl Runtime {
@@ -181,6 +183,7 @@ impl Runtime {
             work: 0,
             peak: 0,
             flying: 0,
+            volume: 0,
         };
         runtime.intern(initial);
         runtime.support(Atom::State(0), [], []);
@@ -206,6 +209,9 @@ impl Runtime {
         if !fresh {
             return index;
         }
+        self.volume = self
+            .volume
+            .saturating_add(crate::measure::state(&self.state[index], usize::MAX));
         self.outgoing.push(Vec::new());
         self.incoming.push(Vec::new());
         self.origin.push(Vec::new());
@@ -247,8 +253,10 @@ impl Runtime {
         frame: usize,
         pattern: Vec<Vec<Term>>,
         consumer: Consumer,
+        constraint: Option<crate::constraint::Constraint>,
     ) {
         let key = Match {
+            constraint,
             target,
             frame,
             pattern,
@@ -258,11 +266,14 @@ impl Runtime {
         } else {
             let cache = self.cache.len();
             self.cache.push(Cache {
-                search: Some(crate::search::Search::new(
-                    key.pattern.clone(),
-                    self.state[target].clone(),
-                    frame,
-                )),
+                search: Some(
+                    crate::search::Search::new(
+                        key.pattern.clone(),
+                        self.state[target].clone(),
+                        frame,
+                    )
+                    .constrain(key.constraint.clone()),
+                ),
                 binding: Vec::new(),
                 listener: Vec::new(),
                 retained: 0,
@@ -339,6 +350,10 @@ impl Runtime {
         ) else {
             return;
         };
+        binding.value = selection
+            .iter()
+            .flat_map(|slot| slot.binding.clone())
+            .collect();
         match consumer.operation {
             Operation::Invoke {
                 owner,
@@ -374,19 +389,19 @@ impl Runtime {
             }
             let mut owner = Some(frame);
             while let Some(current) = owner {
-                let rule = self.program.scope[source.frame[current].scope].rule.clone();
+                let rule = source.frame[current].scope.rule.clone();
                 for rule in rule {
-                    let input = if self.program.rule[rule].input.is_empty() {
+                    let input = if rule.input.is_empty() {
                         vec![Vec::new()]
                     } else {
-                        self.program.rule[rule].input.clone()
+                        rule.input.clone()
                     };
                     let capture = view
                         .flow
                         .frame
                         .iter()
                         .position(|&value| value == Some(current));
-                    let pattern = matching::pattern(&input, capture, None);
+                    let pattern = matching::pattern(&input, capture);
                     for destination in 0..target.frame.len() {
                         if view.flow.frame[destination] != Some(frame) {
                             continue;
@@ -400,11 +415,12 @@ impl Runtime {
                                 frame,
                                 operation: Operation::Invoke {
                                     owner: Some(current),
-                                    rule,
+                                    rule: rule.clone(),
                                     capture: None,
                                     read: None,
                                 },
                             },
+                            None,
                         );
                     }
                 }
@@ -416,15 +432,15 @@ impl Runtime {
                 continue;
             };
             for token in &world.particle {
-                let Symbol::Rule(rule) = token.value else {
+                let Symbol::Rule(rule, capture) = &token.value else {
                     continue;
                 };
-                let input = if self.program.rule[rule].input.is_empty() {
+                let input = if rule.input.is_empty() {
                     vec![Vec::new()]
                 } else {
-                    self.program.rule[rule].input.clone()
+                    rule.input.clone()
                 };
-                let pattern = matching::pattern(&input, token.capture, None);
+                let pattern = matching::pattern(&input, *capture);
                 self.matching(
                     view.target,
                     world.frame,
@@ -433,12 +449,13 @@ impl Runtime {
                         view: index,
                         frame,
                         operation: Operation::Invoke {
-                            owner: token.capture.and_then(|capture| view.flow.frame[capture]),
-                            rule,
-                            capture: token.capture,
+                            owner: capture.and_then(|capture| view.flow.frame[capture]),
+                            rule: rule.clone(),
+                            capture: *capture,
                             read: Some(Place::World(site, token.id)),
                         },
                     },
+                    None,
                 );
             }
         }
@@ -447,51 +464,18 @@ impl Runtime {
         }
     }
 
-    fn impossible(&self, source: usize, pattern: &[Vec<Term>]) -> bool {
-        if !self.program.code.is_empty() {
-            return false;
-        }
-        let state = &self.state[source];
-        let mut possible = state
-            .world
-            .iter()
-            .flat_map(|world| &world.particle)
-            .chain(state.frame.iter().flat_map(|frame| &frame.held))
-            .map(|token| token.value)
-            .collect::<BTreeSet<_>>();
-        loop {
-            let before = possible.len();
-            for rule in &self.program.rule {
-                if rule
-                    .input
-                    .iter()
-                    .flatten()
-                    .all(|value| possible.contains(value))
-                {
-                    possible.extend(
-                        rule.output
-                            .iter()
-                            .flat_map(|output| output.particle.iter().copied()),
-                    );
-                }
-            }
-            if possible.len() == before {
-                break;
-            }
-        }
-        pattern
-            .iter()
-            .flatten()
-            .any(|term| !possible.contains(&term.value))
-    }
-
-    fn obligation(&mut self, source: usize, frame: usize, pattern: Vec<Vec<Term>>) -> usize {
-        let closed = self.impossible(source, &pattern);
+    fn obligation(
+        &mut self,
+        source: usize,
+        frame: usize,
+        pattern: Vec<Vec<Term>>,
+        constraint: Option<crate::constraint::Constraint>,
+    ) -> usize {
         let (index, fresh) = self.query.insert_full(Query {
             source,
             frame,
             pattern,
-            closed,
+            constraint,
         });
         if fresh {
             self.subscription[source].push(index);
@@ -505,17 +489,7 @@ impl Runtime {
     fn answer(&mut self, index: usize, query: usize) {
         let view = self.view[index].clone();
         let obligation = self.query[query].clone();
-        let mut pattern = obligation.pattern;
-        for term in pattern.iter_mut().flatten() {
-            if let Some(Capture::Frame(capture)) = &mut term.capture {
-                *capture = capture.and_then(|capture| {
-                    view.flow
-                        .frame
-                        .iter()
-                        .position(|&value| value == Some(capture))
-                });
-            }
-        }
+        let pattern = obligation.pattern;
         for frame in 0..self.state[view.target].frame.len() {
             if view.flow.frame[frame] != Some(obligation.frame) {
                 continue;
@@ -529,21 +503,73 @@ impl Runtime {
                     frame: obligation.frame,
                     operation: Operation::Answer(query),
                 },
+                obligation
+                    .constraint
+                    .as_ref()
+                    .map(|constraint| constraint.project(&view.flow.frame)),
             );
         }
     }
 
     fn apply(&mut self, application: Application) {
         let view = self.view[application.view].clone();
-        let environment = application
-            .capture
-            .map(|capture| self.state[view.target].environment(capture));
+        let environment = if application.capture.is_some() || !application.binding.value.is_empty()
+        {
+            let mut particle = application
+                .binding
+                .value
+                .values()
+                .cloned()
+                .enumerate()
+                .map(|(id, value)| crate::state::Token {
+                    id: id + 1,
+                    value: Symbol::Structure(id, vec![value]),
+                })
+                .collect::<Vec<_>>();
+            if application.capture.is_some() {
+                particle.push(crate::state::Token {
+                    id: 0,
+                    value: Symbol::Rule(application.rule.clone(), application.capture),
+                });
+            }
+            Some(crate::constraint::normalize(
+                State {
+                    world: vec![crate::state::World {
+                        frame: application.capture.unwrap_or(0),
+                        particle,
+                    }],
+                    frame: self.state[view.target].frame.clone(),
+                },
+                &view.flow.frame,
+            ))
+        } else {
+            None
+        };
+        let mut binding = application.binding.clone();
+        binding.value = binding
+            .value
+            .iter()
+            .map(|(name, value)| {
+                (
+                    name.clone(),
+                    value.rename(&mut |frame| view.flow.frame[frame].unwrap_or(usize::MAX)),
+                )
+            })
+            .collect();
         let key = Identity {
             source: view.source,
             frame: application.frame,
             owner: application.owner,
-            rule: application.rule,
-            binding: application.binding.clone(),
+            rule: if application.capture.is_some() {
+                Arc::new(
+                    application
+                        .rule
+                        .rename(&mut |frame| view.flow.frame[frame].unwrap_or(usize::MAX)),
+                )
+            } else {
+                application.rule.clone()
+            },
+            binding,
             environment: environment.clone(),
         };
         if let Some(&event) = self.identity.get(&key) {
@@ -558,22 +584,25 @@ impl Runtime {
                 .push(application);
             return;
         }
-        let closure = application.capture.map(|capture| Closure {
+        let closure = Some(Closure {
             state: &self.state[view.target],
             flow: &view.flow,
-            capture,
+            capture: application.capture,
         });
-        let result = flow::apply(
+        let Some(result) = flow::apply(
             &self.state[view.source],
             application.frame,
             application.owner,
-            &self.program.rule[application.rule],
+            &application.rule,
             &application.binding,
             closure,
-        );
+        ) else {
+            return;
+        };
         if result.state.world.len() > self.limit.world
             || result.state.cells() > self.limit.cell
             || result.state.reachable().len() > self.limit.frame
+            || crate::measure::state(&result.state, self.limit.record) > self.limit.record
         {
             self.pending.insert(application);
             return;
@@ -631,22 +660,33 @@ impl Runtime {
 
     fn justify(&mut self, event: usize, application: Application) {
         let source = self.event[event].identity.source;
-        let environment = self.event[event].identity.environment.clone();
         self.event[event].evidence.insert(application.view);
-        let negative = if let Some(pattern) = self.program.rule[application.rule].negative.clone() {
-            let pattern = matching::pattern(
-                &pattern,
-                application.owner,
-                if application.owner.is_none() {
-                    environment.as_ref()
-                } else {
-                    None
-                },
-            );
+        let negative = if let Some(pattern) = application.rule.negative.clone() {
+            let binding = application
+                .binding
+                .value
+                .iter()
+                .filter(|(key, _)| {
+                    pattern
+                        .iter()
+                        .flatten()
+                        .any(|value| crate::constraint::contains(value, key))
+                })
+                .map(|(key, value)| (key.clone(), value.clone()))
+                .collect::<std::collections::BTreeMap<_, _>>();
+            let constraint = (!binding.is_empty()).then(|| {
+                crate::constraint::Constraint::new(
+                    &self.state[self.view[application.view].target],
+                    binding,
+                    &self.view[application.view].flow.frame,
+                )
+            });
+            let pattern = matching::pattern(&pattern, application.owner);
             vec![Atom::Query(self.obligation(
                 source,
                 application.frame,
                 pattern,
+                constraint,
             ))]
         } else {
             Vec::new()
@@ -761,7 +801,8 @@ impl Runtime {
     }
 
     pub fn record(&self) -> usize {
-        self.state.len()
+        self.volume
+            + self.state.len()
             + self.event.len()
             + self.view.len()
             + self.query.len()
@@ -785,9 +826,7 @@ impl Runtime {
         let support = self.evaluation.get_or_init(|| {
             Support::new(
                 self.clause.iter().cloned(),
-                self.query.iter().enumerate().filter_map(|(index, query)| {
-                    (!self.closed() && !query.closed).then_some(index)
-                }),
+                (0..self.query.len()).filter(|_| !self.closed()),
             )
         });
         crate::snapshot::Snapshot {
@@ -819,7 +858,7 @@ impl Runtime {
                     id,
                     source: event.identity.source,
                     target: event.target,
-                    rule: self.program.rule[event.identity.rule].name.clone(),
+                    rule: event.identity.rule.name.clone(),
                     status: support.status(Atom::Event(id)),
                     footprint: event.identity.binding.footprint.iter().copied().collect(),
                     exact: event.identity.binding.exact.iter().copied().collect(),

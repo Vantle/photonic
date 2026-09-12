@@ -4,7 +4,7 @@ Rules describe computation, including abstraction derivations. Events record app
 
 | Term | Meaning |
 | --- | --- |
-| Concept | A value carried by an occurrence, including an atom such as `Ready` or a whole ground rule value. |
+| Concept | A value carried by an occurrence, including an atom such as `Ready` or a named structure or a complete captured rule value. |
 | Particle | A multiset of live occurrences within one coherence. Independent equal values retain multiplicity. |
 | Coherence | An independently evolving parallel context. |
 | Configuration | Jointly available coherences with their reachable lexical environments and continuations. |
@@ -29,7 +29,7 @@ Use **input**, **output**, and **apply** for rule operations. **Divergence** cre
 
 A **rule-value rewrite** consumes the matched whole value and produces its replacement. It does not assert behavioral equivalence or globally alias two names. The Rust runtime and JavaScript reference activate produced ground rule values locally, preserving lexical capture and read dependence. Exact whole-value matching and ordinary derivations can describe rules without decomposing their internal fields. `[[A,B]] ([B])` parses structurally, but that abbreviation is not executable native syntax. Use an explicit `@([A] -> B)` constructor; see [frontend contract](syntax.md).
 
-The Rust `rule::Rule::apply` implements generic literal multiset replacement, including exact whole nested rule values. It is separate from `runtime::Runtime`. That runtime and the JavaScript reference integrate joint inference, allocation, nested frames, dynamic activation of finite ground rule constructors, and conditional support. The compiled code universe is fixed within each model instance; visible rule occurrences can change through ordinary events.
+The Rust `rule::Rule::apply` implements generic literal multiset replacement, including exact whole nested rule values. It is separate from `runtime::Runtime`. That runtime and the JavaScript reference integrate joint inference, allocation, nested frames, dynamic activation of finite ground rule constructors, and conditional support. The JavaScript reference fixes its ground code catalog. Rust also [constructs new structures and rule content](structure.md) from bound values through ordinary events.
 
 Source grammar rules and mathematical relations retain their conventional meanings. Earlier Molten documents used relation for rule, world/partition for coherence, and join for decoherence. Preserve historical or scientific terms when describing their original subjects.
 

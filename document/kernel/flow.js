@@ -37,10 +37,14 @@ window.kernel.flow=(()=>{
         if(definition?.closure){
             const {state,view,capture}=definition.closure,imported=new Map(),resource=new Map();
             state.frame.forEach((item,index)=>{
-                if(view.frame[index]===null)return;
                 for(const token of item.held){
                     const basis=view.flow[held(index,token)];
-                    if(basis.length===1&&basis[0].startsWith('f'+view.frame[index]+'/'))resource.set(token.id,basis[0].slice(basis[0].indexOf('/')+1));
+                    if(basis.length!==1)continue;
+                    if(token.capture!==undefined&&view.frame[token.capture]===null)continue;
+                    const [place,id]=basis[0].split('/'),position=Number(place.slice(1));
+                    const original=(place[0]==='w'?source.world[position].particle:source.frame[position].held).find(value=>value.id===id);
+                    const capture=token.capture===undefined?undefined:view.frame[token.capture];
+                    if(original&&original.label===token.label&&original.capture===capture)resource.set(token.id,id);
                 }
             });
             function include(index){

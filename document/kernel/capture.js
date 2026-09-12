@@ -52,6 +52,19 @@ window.kernel.capture=(()=>{
             const support=result?Object.entries(result.flow).filter(([key])=>key.startsWith('f')).map(([,value])=>value):[];
             check(support.length===2&&support.every(value=>value.length===1&&value[0]===basis),name+' preserves source support for both held occurrences');
         }
+        for(const reserved of [false,true])for(const transformed of [false,true])for(const code of [false,true]){
+            const original=token('original',code?'Code':'A',code?0:undefined);
+            const source={world:[{frame:0,particle:reserved?[]:[original]}],frame:[root()]};
+            if(reserved)source.frame[0].held.push(original);
+            const copied=token('witness',transformed?'Changed':original.label,code?0:undefined);
+            const captured={world:[],frame:[source.frame[0],frame([copied])]};
+            const basis=(reserved?'f':'w')+'0/original';
+            const view={frame:[0,null],flow:{'f1/witness':[basis],...(reserved?{'f0/original':[basis]}:{})}};
+            const result=kernel.flow.apply(source,0,null,{output:[{particle:['Produced']}]},{world:[0],footprint:[],exact:[]},{},{code:new Map([['Produced',{}]]),closure:{state:captured,view,capture:1}});
+            const imported=result.state.frame.find(frame=>frame.scope==='body').held[0];
+            const retained=reserved?result.state.frame[0].held[0]:result.state.world[0].particle.find(value=>value.label===original.label);
+            check((imported.id===retained.id)===!transformed,'Imported held identity preserves exact '+(reserved?'held':'live')+' '+(code?'code':'atom')+' source; transformed='+transformed);
+        }
         const literal=(name,input,particle,negative)=>({name,input:[input],output:[{particle}],...(negative?{negative:[negative]}:{})});
         const absent={rule:literal('Absent closure',['Never'],['Unused'])};
         const guarded={rule:literal('Guarded closure',['A'],['B'],[absent])};

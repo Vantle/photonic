@@ -1,0 +1,2 @@
+Box(A.B);
+[Box($left.$right)] -> Pair(Left($left).Right($right));

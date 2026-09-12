@@ -1,6 +1,6 @@
 # Runtime implementation plan
 
-The [interactive JavaScript plan](plan.html) is the main research document. The [semantic contract](semantics.md) defines the integrated reference behavior. The accepted finite ground core is implemented end to end: native source, generated rule values, captured bodies, conditional support, resumable exploration, deterministic worker execution, and resource accounting. Arbitrary structural metaprogramming is outside the agreed milestone. This closes the core implementation plan without claiming universal correctness, termination, or unlimited scalability.
+The [interactive JavaScript plan](plan.html) is the main research document. The [semantic contract](semantics.md) defines the integrated reference behavior. The accepted finite ground core is implemented end to end: native source, generated rule values, captured bodies, conditional support, resumable exploration, deterministic worker execution, and resource accounting. The accepted follow-on [structural-value extension](structure.md) is implemented in Rust; the JavaScript kernel remains the ground reference. This closes the core implementation plan without claiming universal correctness, termination, or unlimited scalability.
 
 ## Accepted direction
 
@@ -30,7 +30,7 @@ The integrated reference suite checks gates against exhaustive binding enumerati
 
 Each gate belongs to one joint witness configuration and frame. Matching provides slot candidates containing actual coherence and occurrence identities. The gate stores candidates by slot and compatible prefixes; a later slot can arrive before an earlier one. A prefix advances only when coherence positions are distinct and repeated equal patterns have a canonical assignment.
 
-Completion emits a binding to the same source-projection and application operation used by direct matches. Rediscovered arrivals do not emit duplicate bindings. Event identity and support remain separate: another justification can support an existing application without producing another result. An incompatible history has a different gate and cannot contribute its arrivals.
+Repeated variables must agree across every slot, including captured value identity. Completion emits a binding to the same source-projection and application operation used by direct matches. Rediscovered arrivals do not emit duplicate bindings. Event identity and support remain separate: another justification can support an existing application without producing another result. An incompatible history has a different gate and cannot contribute its arrivals.
 
 This implements the useful part of the semaphore intuition. A scalar count cannot replace the binding record. The JavaScript reference is single-threaded. Rust retains resumable particle and gate enumeration, delivers cached bindings incrementally to subscribers, and releases completed candidate state. Adjacency indexes wake relevant paths. Independent search steps can run on workers while the coordinator preserves queue order. Synchronization primitives are implementation choices, not language semantics.
 
@@ -42,7 +42,7 @@ The structured representation distinguishes returning a whole rule value from en
 
 ## Future boundaries
 
-The implemented native grammar and runtime cover the accepted finite ground constructors. Arbitrary extraction and code construction from unknown subterms would require additional ordinary value operations; they are not a missing requirement of this milestone.
+The native runtime now binds complete values inside named structures and rule fields, then constructs data and executable code with the same operation. Particle-rest capture and binder-syntax editing remain explicit future features. See [structural values](structure.md) for the exact boundary.
 
 Graph refinement and resumable ordering reduce avoidable work, but exact canonicalization retains factorial worst cases. Source compilation, graph setup, and closure normalization are not strict preemption points. The retained-record budget can overshoot by a coordinator batch and is not a byte cap. Hard memory/time isolation and broader performance guarantees require further engineering and measurement.
 
@@ -60,6 +60,7 @@ Native CI is configured for all six platform triples. ARM64 macOS execution and 
 | 4. Indexed execution — implemented | Resumable matching, binding subscribers, graph refinement, streamed normalization, coordinator-ordered Rayon workers | Reference conformance, exact reports across worker/chunk choices, large-search suspension |
 | 5. Rust graph runtime — implemented | Separate source, compilation, state, matching, flow, support, and execution modules | End-to-end And, nested meta replacement and activation, many-to-many decoherence, scope, invalidation, and budget resumption |
 | 6. Resource accounting and portability — implemented within stated bounds | Soft retained-record accounting, temporary-state cleanup, [benchmarks](performance.md), six native CI jobs, cross-builds | Report current/peak records; native ARM64 macOS and Linux/Windows x86-64 cross-link checks; remaining native execution explicitly unverified |
+| 7. Structural values — implemented | Shared data/code constructors, complete-value bindings, nested captures, alpha identity, seeded absence, resumable structural search | Native extraction, dynamic construction, scope preservation, source inference, and multi-coherence binding regressions |
 
 Use external crates for established infrastructure where they fit. Keep Molten's binding, source projection, and support contracts explicit; do not delegate language semantics to a library whose behavior differs. IndexMap supplies stable indexed interning, Serde supplies data interchange, Rayon supplies worker scheduling, and the language-specific matching and projection remain explicit.
 

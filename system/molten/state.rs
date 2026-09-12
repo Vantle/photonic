@@ -1,11 +1,11 @@
-use crate::program::{Program, Symbol};
+use crate::program::{Program, Scope, Symbol};
 use std::collections::{BTreeSet, HashMap};
+use std::sync::Arc;
 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct Token {
     pub id: usize,
     pub value: Symbol,
-    pub capture: Option<usize>,
 }
 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -16,7 +16,7 @@ pub struct World {
 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct Frame {
-    pub scope: usize,
+    pub scope: Arc<Scope>,
     pub parent: Option<usize>,
     pub lexical: Option<usize>,
     pub held: Vec<Token>,
@@ -46,11 +46,10 @@ impl State {
                     frame: 0,
                     particle: particle
                         .iter()
-                        .map(|&value| {
+                        .map(|value| {
                             let token = Token {
                                 id,
-                                value,
-                                capture: matches!(value, Symbol::Rule(_)).then_some(0),
+                                value: value.close(0),
                             };
                             id += 1;
                             token
@@ -59,7 +58,7 @@ impl State {
                 })
                 .collect(),
             frame: vec![Frame {
-                scope: 0,
+                scope: program.scope[0].clone(),
                 parent: None,
                 lexical: None,
                 held: Vec::new(),
@@ -70,7 +69,7 @@ impl State {
             let mut particle = state.world[index]
                 .particle
                 .iter()
-                .map(|token| token.value)
+                .map(|token| token.value.rename(&mut |_| 0))
                 .collect::<Vec<_>>();
             particle.sort();
             particle
@@ -83,7 +82,12 @@ impl State {
         let mut pending = vec![0];
         for world in &self.world {
             pending.push(world.frame);
-            pending.extend(world.particle.iter().filter_map(|token| token.capture));
+            pending.extend(
+                world
+                    .particle
+                    .iter()
+                    .flat_map(|token| token.value.capture()),
+            );
         }
         while let Some(index) = pending.pop() {
             if !selected.insert(index) {
@@ -92,12 +96,13 @@ impl State {
             let frame = &self.frame[index];
             pending.extend(frame.parent);
             pending.extend(frame.lexical);
-            pending.extend(frame.held.iter().filter_map(|token| token.capture));
+            pending.extend(frame.held.iter().flat_map(|token| token.value.capture()));
+            pending.extend(frame.scope.capture());
         }
         selected
     }
 
-    pub(crate) fn chain(&self, frame: usize) -> Vec<(usize, Vec<Symbol>)> {
+    pub(crate) fn chain(&self, frame: usize) -> Vec<(Arc<Scope>, Vec<Symbol>)> {
         let mut chain = Vec::new();
         let mut cursor = Some(frame);
         while let Some(index) = cursor {
@@ -105,10 +110,10 @@ impl State {
             let mut held = frame
                 .held
                 .iter()
-                .map(|token| token.value)
+                .map(|token| token.value.rename(&mut |_| 0))
                 .collect::<Vec<_>>();
             held.sort();
-            chain.push((frame.scope, held));
+            chain.push((Arc::new(frame.scope.rename(&mut |_| 0)), held));
             cursor = frame.parent;
         }
         chain.reverse();
@@ -128,19 +133,18 @@ impl State {
         for (position, &index) in frame.iter().enumerate() {
             mapping[index] = Some(position);
         }
-        let mut incidence = HashMap::<usize, (Symbol, Option<usize>, Vec<(bool, usize)>)>::new();
+        let mut incidence = HashMap::<usize, (Symbol, Vec<(bool, usize)>)>::new();
         for (position, &index) in world.iter().enumerate() {
             for token in &self.world[index].particle {
                 incidence
                     .entry(token.id)
                     .or_insert_with(|| {
                         (
-                            token.value,
-                            token.capture.and_then(|index| mapping[index]),
+                            token.value.rename(&mut |index| mapping[index].unwrap()),
                             Vec::new(),
                         )
                     })
-                    .2
+                    .1
                     .push((false, position));
             }
         }
@@ -150,12 +154,11 @@ impl State {
                     .entry(token.id)
                     .or_insert_with(|| {
                         (
-                            token.value,
-                            token.capture.and_then(|index| mapping[index]),
+                            token.value.rename(&mut |index| mapping[index].unwrap()),
                             Vec::new(),
                         )
                     })
-                    .2
+                    .1
                     .push((true, position));
             }
         }
@@ -171,8 +174,7 @@ impl State {
                 .iter()
                 .map(|token| Token {
                     id: resource[&token.id],
-                    value: token.value,
-                    capture: token.capture.and_then(|index| mapping[index]),
+                    value: token.value.rename(&mut |index| mapping[index].unwrap()),
                 })
                 .collect::<Vec<_>>();
             value.sort_by_key(|token| token.id);
@@ -191,7 +193,7 @@ impl State {
                 .map(|&index| {
                     let value = &self.frame[index];
                     Frame {
-                        scope: value.scope,
+                        scope: Arc::new(value.scope.rename(&mut |index| mapping[index].unwrap())),
                         parent: value.parent.and_then(|index| mapping[index]),
                         lexical: value.lexical.and_then(|index| mapping[index]),
                         held: particle(&value.held),

@@ -8,7 +8,7 @@ The [configuration semantics](semantics.md) defines the current bounded referenc
 | --- | --- | --- |
 | Rust frontend | Pest-backed native lowering and lossless structural parsing, source spans, diagnostics | Recovery, incremental editing, input-size budgets |
 | Rust rule primitive | Literal multiset replacement and remainder broadcasting; exact whole nested values | Deliberately independent of configuration identity |
-| Rust configuration runtime | Joint source projection, introduction reconciliation, nested captures, generated activation, canonical states, conditional support, bounded CLI | Hard byte/time limits, arbitrary structure operations |
+| Rust configuration runtime | Joint source projection, introduction reconciliation, nested captures, generated activation, canonical states, conditional support, bounded CLI | Hard byte/time limits, particle-rest capture, binder-syntax editing |
 | JavaScript configuration reference | Joint evidence, source projection, multiple outputs, fresh introductions, nested frames, captured rule values and local activation, canonical configurations, conditional support | Production execution, arbitrary partial structural matching |
 
 The current laboratory is [plan.html](plan.html). The separate components in [program.html](program.html) and the [causality report](research.html) preserve earlier experiments; their former integration limits do not describe the current reference.
@@ -55,4 +55,4 @@ A paused report retains conditional obligations; exhausting a budget does not es
 
 Keep named crate roots, explicit modules, structured diagnostics, and the hermetic Bazel build. Measure matching visits, allocations, canonicalization, support growth, and event throughput before choosing production storage and indexing strategies.
 
-Finite checks are acceptance evidence, not a proof of universal soundness or completeness. The accepted finite ground core is implemented. Arbitrary partial structural operations, hard resource isolation, live program edits, and unrestricted absence guarantees remain outside its scope. [Platform verification](../platform/README.md) distinguishes configured native CI from completed host and cross-build checks.
+Finite checks are acceptance evidence, not a proof of universal soundness or completeness. The accepted finite ground core is implemented. Rust extends the core with [structural matching and construction](structure.md). Particle-rest capture, binder-syntax editing, hard resource isolation, live program edits, and unrestricted absence guarantees remain outside its scope. [Platform verification](../platform/README.md) distinguishes configured native CI from completed host and cross-build checks.

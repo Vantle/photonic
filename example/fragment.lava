@@ -1,0 +1,5 @@
+Enter.Make.Invoke.Call;
+[Enter] -> {
+    [Make] -> Box(@([Call] -> Local));
+};
+[Box($rule)] -> @([Invoke] -> $rule);
