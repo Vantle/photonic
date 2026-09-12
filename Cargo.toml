@@ -16,28 +16,8 @@ name = "benchmark"
 path = "system/molten/benchmark/benchmark.rs"
 
 [[test]]
-name = "parser"
-path = "system/molten/test/parser.rs"
-
-[[test]]
-name = "particle"
-path = "system/molten/test/particle.rs"
-
-[[test]]
-name = "rule"
-path = "system/molten/test/rule.rs"
-
-[[test]]
-name = "lowering"
-path = "system/molten/test/lowering.rs"
-
-[[test]]
-name = "runtime"
-path = "system/molten/test/runtime.rs"
-
-[[test]]
-name = "command"
-path = "system/molten/test/command.rs"
+name = "test"
+path = "system/molten/test/test.rs"
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
@@ -45,6 +25,7 @@ indexmap = "2"
 miette = { version = "7", features = ["fancy-no-backtrace"] }
 pest = "2.9"
 pest_derive = "2.9"
+rayon = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"

@@ -8,6 +8,7 @@ rust_binary(
     tags = ["manual"],
     deps = [
         "//system/molten",
+        "@crate//:clap",
         "@crate//:serde",
         "@crate//:serde_json",
     ],

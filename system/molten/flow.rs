@@ -386,6 +386,10 @@ pub fn apply(
 impl Applied {
     pub fn canonical(self) -> Self {
         let canonical = self.state.canonical();
+        self.rename(canonical)
+    }
+
+    pub(crate) fn rename(self, canonical: crate::state::Canonical) -> Self {
         let resource = self
             .flow
             .resource

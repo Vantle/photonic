@@ -1,58 +1,18 @@
 load("@rules_rs//rs:rust_test.bzl", "rust_test")
 
 rust_test(
-    name = "parser",
+    name = "test",
     size = "small",
-    srcs = ["parser.rs"],
-    crate_root = "parser.rs",
-    deps = ["//system/molten"],
-)
-
-rust_test(
-    name = "particle",
-    size = "small",
-    srcs = ["particle.rs"],
-    crate_root = "particle.rs",
-    deps = ["//system/molten"],
-)
-
-rust_test(
-    name = "rule",
-    size = "small",
-    srcs = ["rule.rs"],
-    crate_root = "rule.rs",
-    deps = ["//system/molten"],
-)
-
-rust_test(
-    name = "lowering",
-    size = "small",
-    srcs = ["lowering.rs"],
-    crate_root = "lowering.rs",
-    deps = ["//system/molten"],
-)
-
-rust_test(
-    name = "runtime",
-    size = "small",
-    srcs = ["runtime.rs"],
-    crate_root = "runtime.rs",
+    srcs = glob(["*.rs"]),
+    crate_root = "test.rs",
     compile_data = [
         "//:example/conjunction.lava",
         "//:example/reference.json",
     ],
+    data = ["//system/molten/command"],
+    env = {"MOLTEN_COMMAND": "$(rootpath //system/molten/command)"},
     deps = [
         "//system/molten",
         "@crate//:serde_json",
     ],
-)
-
-rust_test(
-    name = "command",
-    size = "small",
-    srcs = ["command.rs"],
-    crate_root = "command.rs",
-    data = ["//system/molten/command"],
-    env = {"MOLTEN_COMMAND": "$(rootpath //system/molten/command)"},
-    deps = ["@crate//:serde_json"],
 )

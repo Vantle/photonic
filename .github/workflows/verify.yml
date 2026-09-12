@@ -1,0 +1,55 @@
+name: Verify
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native:
+    name: ${{ matrix.platform }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            platform: aarch64-apple-darwin
+          - runner: macos-15-intel
+            platform: x86_64-apple-darwin
+          - runner: ubuntu-24.04-arm
+            platform: aarch64-unknown-linux-gnu
+          - runner: ubuntu-24.04
+            platform: x86_64-unknown-linux-gnu
+          - runner: windows-11-arm
+            platform: aarch64-pc-windows-gnullvm
+          - runner: windows-2025
+            platform: x86_64-pc-windows-gnullvm
+    env:
+      USE_BAZEL_VERSION: 9.2.0
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+      - name: Bazel
+        uses: bazel-contrib/setup-bazel@c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86
+        with:
+          bazelisk-version: 1.28.1
+          bazelisk-cache: true
+          repository-cache: true
+          cache-save: ${{ github.event_name != 'pull_request' }}
+      - name: Build
+        run: bazel build //... --platforms=//platform:${{ matrix.platform }}
+      - name: Test
+        run: bazel test //... --platforms=//platform:${{ matrix.platform }}
+      - name: Format
+        run: bazel run //:format -- --check

@@ -8,6 +8,8 @@ use serde::Serialize;
 #[derive(Debug, Serialize)]
 pub struct Snapshot {
     pub closed: bool,
+    pub record: usize,
+    pub peak: usize,
     pub queued: usize,
     pub deferred: usize,
     pub work: usize,

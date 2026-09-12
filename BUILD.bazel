@@ -5,12 +5,7 @@ launcher_binary(
     name = "format",
     embedded_args = [
         "system/molten/molten.rs",
-        "system/molten/test/parser.rs",
-        "system/molten/test/particle.rs",
-        "system/molten/test/rule.rs",
-        "system/molten/test/lowering.rs",
-        "system/molten/test/runtime.rs",
-        "system/molten/test/command.rs",
+        "system/molten/test/test.rs",
         "system/molten/command/command.rs",
         "system/molten/benchmark/benchmark.rs",
     ],

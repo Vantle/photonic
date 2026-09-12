@@ -1,6 +1,7 @@
 use crate::program::Symbol;
-use crate::state::{State, Token};
-use std::collections::HashSet;
+use crate::state::State;
+use std::collections::{HashSet, VecDeque};
+use std::sync::Arc;
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum Capture {
@@ -44,68 +45,94 @@ pub fn pattern(
         .collect()
 }
 
-fn particle(
-    pattern: &[Term],
-    value: &[Token],
-    state: &State,
-    selected: &mut Vec<usize>,
-    result: &mut Vec<Vec<usize>>,
-) {
-    let Some((head, tail)) = pattern.split_first() else {
-        result.push(selected.clone());
-        return;
-    };
-    let matches = |token: &Token| {
-        token.value == head.value
-            && match &head.capture {
-                None => true,
-                Some(Capture::Frame(capture)) => token.capture == *capture,
-                Some(Capture::Environment(environment)) => token
-                    .capture
-                    .is_some_and(|capture| state.environment(capture) == **environment),
-            }
-    };
-    let previous = selected
-        .iter()
-        .rev()
-        .find(|&&id| value.iter().any(|token| token.id == id && matches(token)))
-        .copied();
-    for token in value {
-        if !matches(token)
-            || selected.contains(&token.id)
-            || previous.is_some_and(|id| id >= token.id)
-        {
-            continue;
-        }
-        selected.push(token.id);
-        particle(tail, value, state, selected, result);
-        selected.pop();
-    }
+enum Task {
+    Arrival {
+        slot: Slot,
+        cursor: usize,
+        end: usize,
+    },
+    Follow {
+        binding: Arc<Vec<Slot>>,
+        position: usize,
+        cursor: usize,
+        end: usize,
+    },
 }
 
 pub struct Gate {
     pattern: Vec<Vec<Term>>,
     candidate: Vec<Vec<Slot>>,
-    prefix: Vec<Vec<Vec<Slot>>>,
+    prefix: Vec<Vec<Arc<Vec<Slot>>>>,
     seen: Vec<HashSet<Vec<Slot>>>,
+    agenda: VecDeque<Task>,
 }
 
 impl Gate {
     pub fn new(pattern: Vec<Vec<Term>>) -> Self {
         let count = pattern.len();
         let mut prefix = vec![Vec::new(); count + 1];
-        prefix[0].push(Vec::new());
+        prefix[0].push(Arc::new(Vec::new()));
         Self {
             pattern,
             candidate: vec![Vec::new(); count],
             prefix,
             seen: vec![HashSet::new(); count + 1],
+            agenda: VecDeque::new(),
         }
     }
 
-    fn extend(&mut self, binding: &[Slot], slot: Slot, result: &mut Vec<Vec<Slot>>) {
-        if binding.iter().any(|item| item.world == slot.world) {
+    pub(crate) fn enqueue(&mut self, slot: Slot) {
+        let position = slot.position;
+        if self.candidate[position].contains(&slot) {
             return;
+        }
+        self.candidate[position].push(slot.clone());
+        self.agenda.push_back(Task::Arrival {
+            slot,
+            cursor: 0,
+            end: self.prefix[position].len(),
+        });
+    }
+
+    pub(crate) fn pending(&self) -> bool {
+        !self.agenda.is_empty()
+    }
+
+    pub(crate) fn step(&mut self) -> Option<Vec<Slot>> {
+        let (binding, slot) = match self.agenda.pop_front()? {
+            Task::Arrival { slot, cursor, end } => {
+                if cursor == end {
+                    return None;
+                }
+                let binding = self.prefix[slot.position][cursor].clone();
+                self.agenda.push_back(Task::Arrival {
+                    slot: slot.clone(),
+                    cursor: cursor + 1,
+                    end,
+                });
+                (binding, slot)
+            }
+            Task::Follow {
+                binding,
+                position,
+                cursor,
+                end,
+            } => {
+                if cursor == end {
+                    return None;
+                }
+                let slot = self.candidate[position][cursor].clone();
+                self.agenda.push_back(Task::Follow {
+                    binding: binding.clone(),
+                    position,
+                    cursor: cursor + 1,
+                    end,
+                });
+                (binding, slot)
+            }
+        };
+        if binding.iter().any(|item| item.world == slot.world) {
+            return None;
         }
         if binding
             .iter()
@@ -113,65 +140,52 @@ impl Gate {
             .find(|item| self.pattern[item.position] == self.pattern[slot.position])
             .is_some_and(|item| item.world >= slot.world)
         {
-            return;
+            return None;
         }
         let next = slot.position + 1;
-        let mut binding = binding.to_vec();
-        binding.push(slot);
-        if !self.seen[next].insert(binding.clone()) {
-            return;
+        let mut value = (*binding).clone();
+        value.push(slot);
+        if !self.seen[next].insert(value.clone()) {
+            return None;
         }
+        let binding = Arc::new(value);
         self.prefix[next].push(binding.clone());
         if next == self.pattern.len() {
-            result.push(binding);
-            return;
+            return Some((*binding).clone());
         }
-        for slot in self.candidate[next].clone() {
-            self.extend(&binding, slot, result);
-        }
+        self.agenda.push_back(Task::Follow {
+            binding,
+            position: next,
+            cursor: 0,
+            end: self.candidate[next].len(),
+        });
+        None
+    }
+
+    pub(crate) fn retained(&self) -> usize {
+        self.candidate.iter().map(Vec::len).sum::<usize>()
+            + self.prefix.iter().map(Vec::len).sum::<usize>()
+            + self.agenda.len()
     }
 
     pub fn arrive(&mut self, slot: Slot) -> Vec<Vec<Slot>> {
-        let position = slot.position;
-        if self.candidate[position].contains(&slot) {
-            return Vec::new();
-        }
-        self.candidate[position].push(slot.clone());
+        self.enqueue(slot);
         let mut result = Vec::new();
-        for prefix in self.prefix[position].clone() {
-            self.extend(&prefix, slot.clone(), &mut result);
+        while self.pending() {
+            result.extend(self.step());
         }
         result
     }
 }
 
 pub fn world(pattern: &[Vec<Term>], state: &State, frame: usize) -> Vec<Vec<Slot>> {
-    if pattern.is_empty() {
-        return vec![Vec::new()];
-    }
-    let mut gate = Gate::new(pattern.to_vec());
+    let mut search = crate::search::Search::new(pattern.to_vec(), Arc::new(state.clone()), frame);
     let mut result = Vec::new();
-    for (index, world) in state.world.iter().enumerate() {
-        if world.frame != frame {
-            continue;
-        }
-        for (position, pattern) in pattern.iter().enumerate() {
-            let mut candidate = Vec::new();
-            particle(
-                pattern,
-                &world.particle,
-                state,
-                &mut Vec::new(),
-                &mut candidate,
-            );
-            for token in candidate {
-                result.extend(gate.arrive(Slot {
-                    world: index,
-                    token,
-                    position,
-                }));
-            }
+    loop {
+        match search.step() {
+            std::task::Poll::Pending => {}
+            std::task::Poll::Ready(Some(binding)) => result.push(binding),
+            std::task::Poll::Ready(None) => return result,
         }
     }
-    result
 }

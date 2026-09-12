@@ -46,6 +46,6 @@ The rule and its arguments must coexist in one witness. Alternative histories su
 
 A body retains the invoked definition's lexical capture without materializing a new rule operand. Captured environments can escape their defining body, and imports preserve introductions shared by their held occurrences. Read support must not enter the body's held consuming footprint.
 
-The implemented higher-order representation uses finite ground constructors and exact whole values. Abstract descriptions can be reached through ordinary derivations. The [native frontend](syntax.md) lowers explicit whole-rule constructors and bodies. Arbitrary partial structural matching and behavioral equivalence are not implemented.
+The implemented higher-order representation uses finite ground constructors and exact whole values. Abstract descriptions can be reached through ordinary derivations. The [native frontend](syntax.md) lowers explicit whole-rule constructors and bodies. Arbitrary partial structural matching and behavioral equivalence are outside the accepted core.
 
-See [configuration semantics](semantics.md) for the normative reference details and [implementation plan](plan.md) for outstanding work.
+See [configuration semantics](semantics.md) for the normative reference details and [implementation plan](plan.md) for accepted scope and future boundaries.

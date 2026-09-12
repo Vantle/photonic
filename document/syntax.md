@@ -48,10 +48,10 @@ From the repository root:
 
 ```sh
 bazel run //system/molten/command -- run "$PWD/example/conjunction.lava"
-bazel run //system/molten/command -- run "$PWD/example/capture.lava" --json
+bazel run //system/molten/command -- run "$PWD/example/capture.lava" --workers 4 --records 1000000 --json
 bazel run //system/molten/command -- run "$PWD/example/reference.json" --format json --json
 bazel run //system/molten/command -- parse "$PWD/example/decoherence.lava"
-bazel test //system/molten/test:lowering //system/molten/test:command
+bazel test //system/molten/test
 ```
 
 `run` infers JSON input from a `.json` extension; `--format molten` or `--format json` overrides that choice. `--json` selects the output report format independently. The older `decoherence.lava` fixture exercises structural parsing; use the native examples for execution. See [runtime](runtime.md) for exploration budgets and library resumption.

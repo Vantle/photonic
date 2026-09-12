@@ -19,6 +19,8 @@ Rules describe computation, including abstraction derivations. Events record app
 | Remainder | Unmatched concrete source resources carried to an application's outputs. |
 | Frame | A lexical environment and continuation record with separate definition and return links. |
 | Support | Conditions establishing a state, event, view, or absence query; classified as supported, conditional, or unsupported. |
+| Record | A retained runtime entry counted by the soft exploration budget; it is not an exact byte measure. |
+| Executor | An optional worker pool for independent implementation steps; the coordinator merges their results in deterministic queue order. |
 | Gate | Compatible partial slot bindings within one joint configuration and frame. Cached match enumeration can reuse them across relative views. |
 
 Use **input**, **output**, and **apply** for rule operations. **Divergence** creates several coherences; **decoherence** combines compatible coherences. These describe ordinary rule behavior. Multiset union remains **merge**.

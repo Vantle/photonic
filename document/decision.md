@@ -1,6 +1,6 @@
 # Closing the runtime design
 
-This records the accepted resolution of the remaining decisions in the [runtime plan](plan.html). The finite ground Rust runtime and JavaScript reference now implement these core decisions: generated activation, read/consume projection, whole-rule replacement, capture, and conditional availability. Native lowering and CLI execution are implemented; production optimization and arbitrary structural operations remain explicit boundaries. Tests are not a proof of unrestricted correctness. The [configuration contract](semantics.md) continues to describe the tested finite evaluator.
+This records the accepted resolution of the remaining decisions in the [runtime plan](plan.html). The finite ground Rust runtime and JavaScript reference now implement these core decisions: generated activation, read/consume projection, whole-rule replacement, capture, and conditional availability. Native lowering, CLI execution, resumable searches, refined canonicalization, component-local support, and deterministic workers are implemented. Arbitrary structural operations are outside the accepted core; strict resource isolation remains a future boundary. Tests are not a proof of unrestricted correctness. The [configuration contract](semantics.md) continues to describe the tested finite evaluator.
 
 ## Rule availability and consumption
 
@@ -57,7 +57,7 @@ A closure certificate is valid only for the dependencies under which it was esta
 
 Track certificates by dependency components, with conservative invalidation when dependencies cannot yet be bounded precisely. Over-invalidation costs work; failing to invalidate changes meaning. A component can close when its relevant rule/value generators and agenda obligations are complete, or when a sound invariant excludes the query. Unbounded generation may leave it open forever while unrelated work continues.
 
-The fixed compiled-rule label closure is disabled whenever rule values occur in the reference program. Dynamic queries conservatively remain open until supported evidence or finite completion resolves them. Early component-local certificates remain an optimization to implement. Keep negative cycles conditional rather than selecting a stable interpretation by evaluation order. SWI-Prolog's [well-founded semantics](https://www.swi-prolog.org/pldoc/man?section=WFS) and [incremental tabling](https://www.swi-prolog.org/pldoc/man?section=tabling-incremental) provide useful precedents; Molten still needs its own resource and source-projection contract.
+The fixed compiled-rule label closure is disabled whenever rule values occur in the reference program. Dynamic queries conservatively remain open until supported evidence or finite completion resolves them. Early component-local certificates remain an optimization to implement. Keep negative cycles conditional rather than selecting a stable interpretation by evaluation order. SWI-Prolog's [well-founded semantics](https://www.swi-prolog.org/pldoc/man?section=WFS) and [incremental tabling](https://www.swi-prolog.org/pldoc/man?section=tabling-incremental) provide useful precedents; Molten uses its own resource and source-projection contract.
 
 ## Surface syntax
 
@@ -71,15 +71,15 @@ The abbreviation `[[A,B]] ([B])` remains structurally parseable but is not execu
 
 Retain incremental binding gates as an implementation of ordinary matching. Each gate belongs to a compatible joint witness and records concrete slot assignments. Use one agenda for new values, rule availability, completed bindings, view composition, and support changes. Gate completion interns an event; it does not destructively remove facts from a shared global database.
 
-The JavaScript reference retains a lazy binding cache per target configuration/frame/pattern; Rust caches completed binding vectors. Both index incoming/outgoing dependencies. Production gates should additionally subscribe through indexes keyed by structural rule and pattern, scope, and source/view identity. Persist them across relevant updates rather than rebuilding them for every inspected view. Distinct justifications update support for one binding. Retraction of support must not erase another justification. The completed-binding cache is not itself the support engine.
+Both evaluators cache matching per target configuration/frame/pattern and index incoming/outgoing dependencies. Rust retains resumable candidate searches and incrementally delivers completed bindings to subscribed views, releasing temporary search state at completion. Distinct justifications update support for one binding. Retraction of support must not erase another justification. The completed-binding cache is not itself the support engine.
 
-Start with a deterministic single-threaded scheduler as the reference. Parallel workers can compute candidate deltas against immutable snapshots; merge them through idempotent state/event/support interning. Use semantic identities, not completion order, for deduplication. Fairly interleave resumable candidate enumeration and support tasks, including under repeated resource-budget suspension. Parallelization is an optimization after differential conformance tests pass.
+The deterministic coordinator optionally batches independent matching and normalization steps onto a Rayon pool. It merges results in queue order through idempotent state/event/support interning. Exact report comparisons across worker counts and continuation chunks cover the closed fixtures. Component-local well-founded support settles existing dependency SCCs, and unchanged snapshots reuse that result. This does not introduce early dynamic absence certificates or incremental program edits.
 
-Canonicalization may use hashing and graph refinement to find candidates efficiently, but confirm equality with the exact canonical structure. Hash collisions must never merge different states. Include live rule environments, sharing, multiplicity, and continuations. Retain evidence separately so newly discovered support can awaken an existing state.
+Canonicalization refines graph colors using sharing, capture, parent, and lexical links, then resumes exact candidate enumeration. Hash collisions must never merge different states. Include live rule environments, sharing, multiplicity, and continuations. Retain evidence separately so newly discovered support can awaken an existing state.
 
 ## Closure criteria
 
-A written recommendation closes an architectural question only provisionally. Mark it implemented when executable examples pass, and mark its broader properties established only with the corresponding argument or proof. Use the following acceptance matrix for the dynamic extension.
+The accepted core implementation satisfies the following finite acceptance matrix. Arbitrary structural metaprogramming is outside this milestone. Broader claims of completeness or bounded resource usage still require their own argument and measurements.
 
 | Obligation | Required observation |
 | --- | --- |
@@ -95,4 +95,4 @@ A written recommendation closes an architectural question only provisionally. Ma
 | Fair gates | Arrival order and duplicate reports do not change the enabled event set |
 | Source grammar | Returned rule values and invoked bodies have unambiguous lowering |
 
-The dynamic examples cover these core interactions in the JavaScript reference and Rust runtime. Native lowering and CLI tests cover explicit rule values, bodies, multiple coherences, absence, and diagnostics. Unrestricted structural operations and production scaling remain outside that finite implementation. This supplies a concrete path to closing the gaps without claiming that a test matrix, physical analogy, or design preference proves a universally error-free language.
+The dynamic examples cover these core interactions in the JavaScript reference and Rust runtime. Native lowering and CLI tests cover explicit rule values, bodies, multiple coherences, absence, and diagnostics. Unrestricted structural operations and strict resource isolation remain outside this finite implementation. Retained-record accounting is a soft batch-boundary limit, not a byte cap; graph setup and closure normalization remain non-preemptible. This supplies a concrete path to closing the gaps without claiming that a test matrix, physical analogy, or design preference proves a universally error-free language.

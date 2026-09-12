@@ -6,12 +6,14 @@ use crate::state::State;
 use crate::support::{Atom, Clause, Support};
 use indexmap::IndexSet;
 use serde::Serialize;
-use std::collections::{BTreeSet, HashMap, VecDeque};
-use std::sync::Arc;
+use std::collections::{BTreeSet, HashMap, HashSet, VecDeque};
+use std::sync::{Arc, OnceLock};
+use std::task::Poll;
 
 #[derive(Clone, Copy, Debug, Serialize)]
 pub struct Limit {
     pub state: usize,
+    pub record: usize,
     pub world: usize,
     pub cell: usize,
     pub frame: usize,
@@ -20,6 +22,7 @@ impl Default for Limit {
     fn default() -> Self {
         Self {
             state: 80,
+            record: 1_000_000,
             world: 4,
             cell: 12,
             frame: 10,
@@ -70,9 +73,45 @@ struct Match {
     frame: usize,
     pattern: Vec<Vec<Term>>,
 }
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+enum Operation {
+    Invoke {
+        owner: Option<usize>,
+        rule: usize,
+        capture: Option<usize>,
+        read: Option<Place>,
+    },
+    Answer(usize),
+}
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+struct Consumer {
+    view: usize,
+    frame: usize,
+    operation: Operation,
+}
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+struct Request {
+    cache: usize,
+    consumer: Consumer,
+}
+struct Cache {
+    search: Option<crate::search::Search>,
+    binding: Vec<Arc<Vec<Slot>>>,
+    listener: Vec<usize>,
+    retained: usize,
+}
+struct Normalization {
+    identity: Identity,
+    application: Vec<Application>,
+    result: flow::Applied,
+    search: Option<crate::canonical::Search>,
+}
 #[derive(Clone)]
 enum Task {
     Inspect(usize),
+    Search(usize),
+    Normalize(usize),
+    Deliver(usize),
     Compose(usize, usize),
     Apply(Application),
     Answer(usize, usize),
@@ -84,9 +123,19 @@ pub struct Runtime {
     view: IndexSet<Arc<View>>,
     event: Vec<Event>,
     identity: HashMap<Identity, usize>,
+    normalizing: HashMap<Identity, usize>,
+    normalization: Vec<Option<Normalization>>,
+    vacant: Vec<usize>,
+    retained: usize,
+    binding: usize,
     query: IndexSet<Query>,
     clause: IndexSet<Clause>,
-    cache: HashMap<Match, Arc<Vec<Vec<Slot>>>>,
+    evaluation: OnceLock<Support>,
+    matching: HashMap<Match, usize>,
+    cache: Vec<Cache>,
+    request: IndexSet<Request>,
+    cursor: Vec<usize>,
+    active: HashSet<usize>,
     outgoing: Vec<Vec<usize>>,
     incoming: Vec<Vec<usize>>,
     origin: Vec<Vec<usize>>,
@@ -95,6 +144,8 @@ pub struct Runtime {
     pending: IndexSet<Application>,
     limit: Limit,
     work: usize,
+    peak: usize,
+    flying: usize,
 }
 
 impl Runtime {
@@ -107,9 +158,19 @@ impl Runtime {
             view: IndexSet::new(),
             event: Vec::new(),
             identity: HashMap::new(),
+            normalizing: HashMap::new(),
+            normalization: Vec::new(),
+            vacant: Vec::new(),
+            retained: 0,
+            binding: 0,
             query: IndexSet::new(),
             clause: IndexSet::new(),
-            cache: HashMap::new(),
+            evaluation: OnceLock::new(),
+            matching: HashMap::new(),
+            cache: Vec::new(),
+            request: IndexSet::new(),
+            cursor: Vec::new(),
+            active: HashSet::new(),
             outgoing: Vec::new(),
             incoming: Vec::new(),
             origin: Vec::new(),
@@ -118,9 +179,12 @@ impl Runtime {
             pending: IndexSet::new(),
             limit: Limit::default(),
             work: 0,
+            peak: 0,
+            flying: 0,
         };
         runtime.intern(initial);
         runtime.support(Atom::State(0), [], []);
+        runtime.peak = runtime.record();
         runtime
     }
 
@@ -171,21 +235,133 @@ impl Runtime {
         index
     }
 
+    fn wake(&mut self, request: usize) {
+        if self.active.insert(request) {
+            self.agenda.push_back(Task::Deliver(request));
+        }
+    }
+
     fn matching(
         &mut self,
         target: usize,
         frame: usize,
         pattern: Vec<Vec<Term>>,
-    ) -> Arc<Vec<Vec<Slot>>> {
+        consumer: Consumer,
+    ) {
         let key = Match {
             target,
             frame,
             pattern,
         };
-        self.cache
-            .entry(key.clone())
-            .or_insert_with(|| Arc::new(matching::world(&key.pattern, &self.state[target], frame)))
-            .clone()
+        let cache = if let Some(&cache) = self.matching.get(&key) {
+            cache
+        } else {
+            let cache = self.cache.len();
+            self.cache.push(Cache {
+                search: Some(crate::search::Search::new(
+                    key.pattern.clone(),
+                    self.state[target].clone(),
+                    frame,
+                )),
+                binding: Vec::new(),
+                listener: Vec::new(),
+                retained: 0,
+            });
+            self.matching.insert(key, cache);
+            self.agenda.push_back(Task::Search(cache));
+            cache
+        };
+        let (index, fresh) = self.request.insert_full(Request { cache, consumer });
+        if !fresh {
+            return;
+        }
+        self.cursor.push(0);
+        self.cache[cache].listener.push(index);
+        if !self.cache[cache].binding.is_empty() {
+            self.wake(index);
+        }
+    }
+
+    fn search(&mut self, cache: usize, progress: Poll<Option<Vec<Slot>>>) {
+        let retained = self.cache[cache].search.as_ref().unwrap().retained();
+        self.retained = self.retained - self.cache[cache].retained + retained;
+        self.cache[cache].retained = retained;
+        match progress {
+            Poll::Ready(None) => {
+                self.retained -= self.cache[cache].retained;
+                self.cache[cache].retained = 0;
+                self.cache[cache].search = None;
+                return;
+            }
+            Poll::Ready(Some(binding)) => {
+                self.binding += 1;
+                self.cache[cache].binding.push(Arc::new(binding));
+                for index in self.cache[cache].listener.clone() {
+                    self.wake(index);
+                }
+            }
+            Poll::Pending => {}
+        }
+        self.agenda.push_back(Task::Search(cache));
+    }
+
+    fn deliver(&mut self, index: usize) {
+        self.active.remove(&index);
+        let request = self.request[index].clone();
+        let cache = &self.cache[request.cache];
+        let Some(selection) = cache.binding.get(self.cursor[index]).cloned() else {
+            return;
+        };
+        self.cursor[index] += 1;
+        if self.cursor[index] < cache.binding.len() {
+            self.wake(index);
+        }
+        let consumer = request.consumer;
+        let view = self.view[consumer.view].clone();
+        if let Operation::Invoke {
+            read: Some(Place::World(site, _)),
+            ..
+        } = consumer.operation
+        {
+            if !selection.iter().any(|slot| slot.world == site) {
+                return;
+            }
+        }
+        let selected = selection
+            .iter()
+            .map(|slot| (slot.world, slot.token.clone()))
+            .collect::<Vec<_>>();
+        let Some(mut binding) = view.flow.project(
+            &self.state[view.source],
+            &self.state[view.target],
+            &selected,
+            consumer.frame,
+        ) else {
+            return;
+        };
+        match consumer.operation {
+            Operation::Invoke {
+                owner,
+                rule,
+                capture,
+                read,
+            } => {
+                if let Some(read) = read {
+                    binding.read = view.flow.resource[&read].clone();
+                }
+                self.agenda.push_back(Task::Apply(Application {
+                    view: consumer.view,
+                    frame: consumer.frame,
+                    owner,
+                    rule,
+                    binding,
+                    capture,
+                }));
+            }
+            Operation::Answer(query) => {
+                self.support(Atom::Query(query), [Atom::View(consumer.view)], [])
+            }
+        }
     }
 
     fn inspect(&mut self, index: usize) {
@@ -215,25 +391,21 @@ impl Runtime {
                         if view.flow.frame[destination] != Some(frame) {
                             continue;
                         }
-                        let selection = self.matching(view.target, destination, pattern.clone());
-                        for selection in selection.iter() {
-                            let selected = selection
-                                .iter()
-                                .map(|slot| (slot.world, slot.token.clone()))
-                                .collect::<Vec<_>>();
-                            if let Some(binding) =
-                                view.flow.project(&source, &target, &selected, frame)
-                            {
-                                self.agenda.push_back(Task::Apply(Application {
-                                    view: index,
-                                    frame,
+                        self.matching(
+                            view.target,
+                            destination,
+                            pattern.clone(),
+                            Consumer {
+                                view: index,
+                                frame,
+                                operation: Operation::Invoke {
                                     owner: Some(current),
                                     rule,
-                                    binding,
                                     capture: None,
-                                }));
-                            }
-                        }
+                                    read: None,
+                                },
+                            },
+                        );
                     }
                 }
                 owner = source.frame[current].lexical;
@@ -253,28 +425,21 @@ impl Runtime {
                     self.program.rule[rule].input.clone()
                 };
                 let pattern = matching::pattern(&input, token.capture, None);
-                let selection = self.matching(view.target, world.frame, pattern);
-                for selection in selection.iter() {
-                    if !selection.iter().any(|slot| slot.world == site) {
-                        continue;
-                    }
-                    let selected = selection
-                        .iter()
-                        .map(|slot| (slot.world, slot.token.clone()))
-                        .collect::<Vec<_>>();
-                    if let Some(mut binding) = view.flow.project(&source, &target, &selected, frame)
-                    {
-                        binding.read = view.flow.resource[&Place::World(site, token.id)].clone();
-                        self.agenda.push_back(Task::Apply(Application {
-                            view: index,
-                            frame,
+                self.matching(
+                    view.target,
+                    world.frame,
+                    pattern,
+                    Consumer {
+                        view: index,
+                        frame,
+                        operation: Operation::Invoke {
                             owner: token.capture.and_then(|capture| view.flow.frame[capture]),
                             rule,
-                            binding,
                             capture: token.capture,
-                        }));
-                    }
-                }
+                            read: Some(Place::World(site, token.id)),
+                        },
+                    },
+                );
             }
         }
         for &query in &self.subscription[view.source] {
@@ -355,26 +520,16 @@ impl Runtime {
             if view.flow.frame[frame] != Some(obligation.frame) {
                 continue;
             }
-            let selection = self.matching(view.target, frame, pattern.clone());
-            for selection in selection.iter() {
-                let selected = selection
-                    .iter()
-                    .map(|slot| (slot.world, slot.token.clone()))
-                    .collect::<Vec<_>>();
-                if view
-                    .flow
-                    .project(
-                        &self.state[view.source],
-                        &self.state[view.target],
-                        &selected,
-                        obligation.frame,
-                    )
-                    .is_some()
-                {
-                    self.support(Atom::Query(query), [Atom::View(index)], []);
-                    return;
-                }
-            }
+            self.matching(
+                view.target,
+                frame,
+                pattern.clone(),
+                Consumer {
+                    view: index,
+                    frame: obligation.frame,
+                    operation: Operation::Answer(query),
+                },
+            );
         }
     }
 
@@ -391,50 +546,92 @@ impl Runtime {
             binding: application.binding.clone(),
             environment: environment.clone(),
         };
-        let event = if let Some(&event) = self.identity.get(&key) {
-            event
-        } else {
-            let closure = application.capture.map(|capture| Closure {
-                state: &self.state[view.target],
-                flow: &view.flow,
-                capture,
-            });
-            let result = flow::apply(
-                &self.state[view.source],
-                application.frame,
-                application.owner,
-                &self.program.rule[application.rule],
-                &application.binding,
-                closure,
-            );
-            if result.state.world.len() > self.limit.world
-                || result.state.cells() > self.limit.cell
-                || result.state.reachable().len() > self.limit.frame
-            {
-                self.pending.insert(application);
-                return;
-            }
-            let result = result.canonical();
-            if self.state.len() >= self.limit.state && !self.state.contains(&result.state) {
-                self.pending.insert(application);
-                return;
-            }
-            let target = self.intern(result.state);
-            let event = self.event.len();
-            self.identity.insert(key.clone(), event);
-            self.event.push(Event {
-                identity: key,
-                target,
-                flow: result.flow,
-                evidence: BTreeSet::new(),
-            });
-            self.outgoing[view.source].push(event);
-            for &previous in &self.incoming[view.source] {
-                self.agenda.push_back(Task::Compose(previous, event));
-            }
-            self.support(Atom::State(target), [Atom::Event(event)], []);
-            event
-        };
+        if let Some(&event) = self.identity.get(&key) {
+            self.justify(event, application);
+            return;
+        }
+        if let Some(&index) = self.normalizing.get(&key) {
+            self.normalization[index]
+                .as_mut()
+                .unwrap()
+                .application
+                .push(application);
+            return;
+        }
+        let closure = application.capture.map(|capture| Closure {
+            state: &self.state[view.target],
+            flow: &view.flow,
+            capture,
+        });
+        let result = flow::apply(
+            &self.state[view.source],
+            application.frame,
+            application.owner,
+            &self.program.rule[application.rule],
+            &application.binding,
+            closure,
+        );
+        if result.state.world.len() > self.limit.world
+            || result.state.cells() > self.limit.cell
+            || result.state.reachable().len() > self.limit.frame
+        {
+            self.pending.insert(application);
+            return;
+        }
+        let search = crate::canonical::Search::new(Arc::new(result.state.clone()));
+        let index = self.vacant.pop().unwrap_or_else(|| {
+            let index = self.normalization.len();
+            self.normalization.push(None);
+            index
+        });
+        self.normalizing.insert(key.clone(), index);
+        self.normalization[index] = Some(Normalization {
+            identity: key,
+            application: vec![application],
+            result,
+            search: Some(search),
+        });
+        self.agenda.push_back(Task::Normalize(index));
+    }
+
+    fn normalize(&mut self, index: usize, complete: bool) {
+        if !complete {
+            self.agenda.push_back(Task::Normalize(index));
+            return;
+        }
+        let normalization = self.normalization[index].take().unwrap();
+        self.vacant.push(index);
+        self.normalizing.remove(&normalization.identity);
+        let result = normalization
+            .result
+            .rename(normalization.search.unwrap().finish().unwrap());
+        if self.state.len() >= self.limit.state && !self.state.contains(&result.state) {
+            self.pending.extend(normalization.application);
+            return;
+        }
+        let source = normalization.identity.source;
+        let target = self.intern(result.state);
+        let event = self.event.len();
+        self.identity.insert(normalization.identity.clone(), event);
+        self.event.push(Event {
+            identity: normalization.identity,
+            target,
+            flow: result.flow,
+            evidence: BTreeSet::new(),
+        });
+        self.outgoing[source].push(event);
+        for &previous in &self.incoming[source] {
+            self.agenda.push_back(Task::Compose(previous, event));
+        }
+        self.support(Atom::State(target), [Atom::Event(event)], []);
+        for application in normalization.application {
+            self.justify(event, application);
+        }
+    }
+
+    fn justify(&mut self, event: usize, application: Application) {
+        let source = self.event[event].identity.source;
+        let environment = self.event[event].identity.environment.clone();
         self.event[event].evidence.insert(application.view);
         let negative = if let Some(pattern) = self.program.rule[application.rule].negative.clone() {
             let pattern = matching::pattern(
@@ -447,7 +644,7 @@ impl Runtime {
                 },
             );
             vec![Atom::Query(self.obligation(
-                view.source,
+                source,
                 application.frame,
                 pattern,
             ))]
@@ -456,23 +653,90 @@ impl Runtime {
         };
         self.support(
             Atom::Event(event),
-            [Atom::State(view.source), Atom::View(application.view)],
+            [Atom::State(source), Atom::View(application.view)],
             negative,
         );
     }
 
     pub fn run(&mut self, steps: usize, limit: Option<Limit>) {
+        self.execute(steps, limit, None);
+    }
+
+    pub fn parallel(
+        &mut self,
+        executor: &crate::executor::Executor,
+        steps: usize,
+        limit: Option<Limit>,
+    ) {
+        self.execute(steps, limit, Some(executor));
+    }
+
+    fn execute(
+        &mut self,
+        steps: usize,
+        limit: Option<Limit>,
+        executor: Option<&crate::executor::Executor>,
+    ) {
+        self.evaluation.take();
         if let Some(limit) = limit {
             self.limit = limit;
             self.agenda.extend(self.pending.drain(..).map(Task::Apply));
         }
-        for _ in 0..steps {
+        let mut remaining = steps;
+        while remaining > 0 && self.record() < self.limit.record {
+            let mut batch = Vec::new();
+            while batch.len() < remaining.min(32) {
+                match self.agenda.front() {
+                    Some(Task::Search(index)) => batch.push(crate::work::Work::Search(
+                        *index,
+                        self.cache[*index].search.take().unwrap(),
+                    )),
+                    Some(Task::Normalize(index)) => batch.push(crate::work::Work::Normalize(
+                        *index,
+                        self.normalization[*index]
+                            .as_mut()
+                            .unwrap()
+                            .search
+                            .take()
+                            .unwrap(),
+                    )),
+                    _ => break,
+                }
+                self.agenda.pop_front();
+            }
+            if !batch.is_empty() {
+                self.flying = batch.len();
+                remaining -= batch.len();
+                self.work += batch.len();
+                let result = if let Some(executor) = executor {
+                    executor.map(batch, crate::work::Work::advance)
+                } else {
+                    batch.into_iter().map(crate::work::Work::advance).collect()
+                };
+                for result in result {
+                    self.flying -= 1;
+                    match result {
+                        crate::work::Result::Search(index, search, progress) => {
+                            self.cache[index].search = Some(search);
+                            self.search(index, progress);
+                        }
+                        crate::work::Result::Normalize(index, search, complete) => {
+                            self.normalization[index].as_mut().unwrap().search = Some(search);
+                            self.normalize(index, complete);
+                        }
+                    }
+                    self.peak = self.peak.max(self.record());
+                }
+                continue;
+            }
             let Some(task) = self.agenda.pop_front() else {
                 break;
             };
+            remaining -= 1;
             self.work += 1;
             match task {
                 Task::Inspect(view) => self.inspect(view),
+                Task::Deliver(request) => self.deliver(request),
                 Task::Apply(application) => self.apply(application),
                 Task::Answer(view, query) => self.answer(view, query),
                 Task::Compose(previous, event) => {
@@ -490,8 +754,27 @@ impl Runtime {
                         [],
                     );
                 }
+                Task::Search(_) | Task::Normalize(_) => unreachable!(),
             }
+            self.peak = self.peak.max(self.record());
         }
+    }
+
+    pub fn record(&self) -> usize {
+        self.state.len()
+            + self.event.len()
+            + self.view.len()
+            + self.query.len()
+            + self.clause.len()
+            + self.request.len()
+            + self.cache.len()
+            + self.binding
+            + self.retained
+            + self.flying
+            + self.normalization.len()
+            + self.vacant.len()
+            + self.agenda.len()
+            + self.pending.len()
     }
 
     pub fn closed(&self) -> bool {
@@ -499,15 +782,18 @@ impl Runtime {
     }
 
     pub fn snapshot(&self) -> crate::snapshot::Snapshot {
-        let support = Support::new(
-            self.clause.iter().cloned(),
-            self.query
-                .iter()
-                .enumerate()
-                .filter_map(|(index, query)| (!self.closed() && !query.closed).then_some(index)),
-        );
+        let support = self.evaluation.get_or_init(|| {
+            Support::new(
+                self.clause.iter().cloned(),
+                self.query.iter().enumerate().filter_map(|(index, query)| {
+                    (!self.closed() && !query.closed).then_some(index)
+                }),
+            )
+        });
         crate::snapshot::Snapshot {
             closed: self.closed(),
+            record: self.record(),
+            peak: self.peak,
             queued: self.agenda.len(),
             deferred: self.pending.len(),
             work: self.work,

@@ -155,3 +155,18 @@ fn diagnostic() {
     assert!(!output.status.success());
     assert!(String::from_utf8_lossy(&output.stderr).contains("could not read"));
 }
+
+#[test]
+fn worker() {
+    let fixture = Fixture::new();
+    let path = fixture.write("program.lava", "Seed.A; [Seed] -> @([A] -> B);");
+    let sequential = report(&execute("run", &path, &["--json"]));
+    let parallel = report(&execute("run", &path, &["--json", "--workers", "4"]));
+    assert_eq!(sequential, parallel);
+    let paused = report(&execute("run", &path, &["--json", "--records", "1"]));
+    assert_eq!(paused["closed"], false);
+    assert_eq!(paused["work"], 0);
+    let invalid = execute("run", &path, &["--workers", "0"]);
+    assert!(!invalid.status.success());
+    assert!(String::from_utf8_lossy(&invalid.stderr).contains("at least one worker"));
+}

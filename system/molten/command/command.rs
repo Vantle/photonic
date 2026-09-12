@@ -62,11 +62,14 @@ fn program(path: &Path, format: Option<Format>) -> miette::Result<Program> {
 }
 
 fn run(path: PathBuf, execution: Execution) -> miette::Result<()> {
+    let executor = molten::executor::Executor::new(execution.worker).into_diagnostic()?;
     let mut runtime = Runtime::new(program(&path, execution.format)?);
-    runtime.run(
+    runtime.parallel(
+        &executor,
         execution.step,
         Some(Limit {
             state: execution.state,
+            record: execution.record,
             world: execution.coherence,
             cell: execution.cell,
             frame: execution.frame,

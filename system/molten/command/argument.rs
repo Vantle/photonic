@@ -25,6 +25,10 @@ pub enum Operation {
 pub struct Execution {
     #[arg(long = "steps", default_value_t = 12_000)]
     pub step: usize,
+    #[arg(long = "workers", default_value_t = 1)]
+    pub worker: usize,
+    #[arg(long = "records", default_value_t = 1_000_000)]
+    pub record: usize,
     #[arg(long = "states", default_value_t = 80)]
     pub state: usize,
     #[arg(long = "cells", default_value_t = 12)]
