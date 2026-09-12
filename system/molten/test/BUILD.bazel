@@ -10,6 +10,7 @@ rust_test(
         "//:example/reference.json",
         "//:mathematics/natural/addition.lava",
         "//:mathematics/natural/result.lava",
+        "//:mathematics/natural/membership.lava",
     ],
     data = ["//system/molten/command"],
     env = {"MOLTEN_COMMAND": "$(rootpath //system/molten/command)"},

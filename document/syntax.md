@@ -1,98 +1,67 @@
 # Frontend contract
 
-Molten has two pest-backed frontends. `lowering::parse(&str)` produces an executable `source::Program`; `parser::parse(&str)` preserves source structure for inspection. Structural acceptance does not promise execution. Both report byte spans through structured diagnostics.
+Molten has one grammar. The pest-backed `parser::parse` preserves the original source tree; `lowering::parse` interprets that same tree as an executable program. Lowering does not maintain another grammar or reserve additional characters or keywords.
 
-## Executable native syntax
+The boundary follows the [original language document](https://github.com/Vantle/Vantle/blob/0b693aa583e71c60a225cbb3b4cd53ecfbbaf9fb/Molten/document/molten.page.rs): concepts, dots, commas, source contexts, groups, and ASCII whitespace. The interpretation of nested rules below makes the previously incomplete executable boundary explicit; it is not a claim that the historical constructor already executed every form.
 
-A program starts with an optional initial configuration, followed by rule definitions. Each initial configuration and definition ends with a semicolon. Dots combine values within a particle; commas separate coherences. Every rule has bracketed input coherences and an explicit `->` output.
+## Expressions
 
-```text
-And.True.False.Extra;
-[True] -> Boolean;
-[False] -> Boolean;
-[And.Boolean.Boolean] -> {
-    [True.True] -> True;
-    [True.False] -> False;
-    [False.False] -> False;
-};
-```
-
-The body receives concrete operands through the [binding contract](binding.md). It can also specify one initial particle before its local definitions. Multiple explicit initial coherences inside one body are rejected by the current representation; multiple output bodies remain supported.
-
-| Form | Native example | Meaning |
+| Form | Example | Meaning |
 | --- | --- | --- |
-| Initial configuration | `A.X, B.Y;` | Two independently evolving coherences |
-| Many-to-many rule | `[A, B] -> C, D;` | Two input positions and two output coherences |
-| Empty particle | `();` | One empty initial coherence |
-| Empty input | `[] -> A;` | No operand positions; application still needs an execution site |
-| Empty output | `[A] -> [];` | No output coherences |
-| Empty output particle | `[A] -> ();` | One output coherence, retaining unmatched remainder |
-| Negative premise | `[Start] unless [Q] -> P;` | Conditional application depending on absence evidence |
-| Named structure | `Box(A.B)` | One value containing an orderless particle |
-| Complete-value variable | `[Box($value)] -> Wrapped($value);` | Extract and construct through ordinary matching |
-| Whole rule value | `@([A] -> B)` | One value, capturing its lexical environment when created |
-| Nested body | `[Enter] -> { Make; [Make] -> Result; };` | Enter a body with explicit Make and local definitions |
-
-An empty program has no execution site. To explore a zero-input rule, provide an initial coherence such as `();`. Whole-rule constructors require complete definitions, without a semicolon inside `@(...)`. For example:
+| Concept | `True` | One atom |
+| Particle | `A.B` | Orderless occurrences in one coherence |
+| Coherences | `A, B` | Independent initial coherences |
+| Rule | `[A] B` | Consume a matching source and produce B |
+| Joint rule | `[A, B] (C, D)` | Join two inputs and produce two coherences |
+| Scope | `[Enter] ([Payload] Result)` | Enter a body with a local rule |
+| Produced rule | `[Seed] [A] B` | Produce the rule from A to B as one live value |
+| Rule operand | `[[A] B] C` | Match a whole rule value and replace it with C |
+| Initial rule value | `([A] B).A` | A live rule and an A occurrence |
+| Empty particle | `()` | One empty coherence |
+| Empty source | `[] A` | Zero operand positions, requiring an execution site |
+| No result | `[A]` | No output coherences |
+| Empty result | `[A] ()` | One output coherence, retaining unmatched remainder |
 
 ```text
-@([A] -> B).A;
-[@([A] -> B)] -> @([A] -> C);
+And.True.False.Extra
+[True] Boolean,
+[False] Boolean,
+[And.Boolean.Boolean] (
+    [True.True] True,
+    [True.False] False,
+    [False.False] False,
+)
 ```
 
-`[[A,B]] ([B])` is not executable native syntax. Input-only brackets do not construct a complete rule value. The native grammar distinguishes returned code from entered bodies explicitly; `$name` captures one complete value, and `Box(A.B)` constructs a named orderless structure. These forms also work inside rule patterns and constructors; see [structural values](structure.md).
+Dots combine particle members; commas separate coherences. At module or body level, a source context starts a declaration. Commas before another declaration or at the end of a scope delimit declarations without creating an empty initial coherence. Explicit `()` creates an empty coherence. Whitespace separates expressions; it does not replace a dot inside an input particle.
 
-Atoms preserve Unicode and exclude ASCII whitespace, syntax delimiters, `@`, semicolons, and `->`. `$` is reserved for variable names. A bare `$` is invalid. `Box()` is an empty named structure; `Box(A.B)` contains two orderless members. There is no comment, quoting, or string-literal syntax. Whitespace between grammar tokens is ignored. Native nesting is limited to 128 levels before recursive parsing; this is an implementation limit. Malformed syntax, excessive nesting, and unsupported body initialization have distinct diagnostic variants.
+A rule's following expression supplies its output. A following source context is itself a rule value: `[Seed] [A] B` constructs code. After a completed output, a new source context starts the next declaration. Use commas to terminate a rule with no output before another declaration: `[A], [B] C`.
+
+An output group containing declarations enters their scope. A group of plain concepts only groups those concepts; it does not allocate a named record or introduce a frame. Multiple grouped destinations such as `[A] (B) (C)` produce separate coherences. A body can currently initialize at most one explicit coherence; this is a representation limitation diagnosed during lowering.
+
+A nested context in a particle is a complete rule value, including the empty-output case. Thus `[[A,B]] ([B])` consumes the rule whose two inputs are A and B and whose output is empty, then enters a body containing the consuming rule `[B]`. It is not an alias declaration. For ordinary whole-rule replacement, write `[[A] B] [A] C`. See [generalization](generalization.md).
+
+## No additional syntax
+
+There are no variable sigils, quote operators, named constructors, arrows, semicolon terminators, braces, or absence keywords. The characters in `$x`, `@`, `->`, `;`, `{`, `}`, and the word `unless` are ordinary concept text wherever the original delimiter rules permit them. They have no special execution behavior. Old extended programs must be migrated; they are not interpreted by a compatibility grammar.
+
+`Box(A.B)` groups A and B alongside Box; it does not construct one opaque Box value. `$x` matches the literal concept `$x`, not an arbitrary value. `@([A] B)` includes an ordinary @ concept. Parentheses and brackets retain their original delimiter roles.
 
 ## Running source
 
-From the repository root:
-
 ```sh
 bazel run //system/molten/command -- run "$PWD/example/conjunction.lava"
-bazel run //system/molten/command -- run "$PWD/example/capture.lava" --workers 4 --records 1000000 --json
-bazel run //system/molten/command -- run "$PWD/example/reference.json" --format json --json
+bazel run //system/molten/command -- run "$PWD/example/replacement.lava" --json
 bazel run //system/molten/command -- parse "$PWD/example/decoherence.lava"
 bazel test //system/molten/test
 ```
 
-`run` infers JSON input from a `.json` extension; `--format molten` or `--format json` overrides that choice. `--json` selects the output report format independently. The older `decoherence.lava` fixture exercises structural parsing; use the native examples for execution. See [runtime](runtime.md) for exploration budgets and library resumption.
+The CLI also accepts a structured JSON representation of the same positive program model. It has no negative-premise field, variable form, or named constructor form. Unknown fields are rejected rather than silently changing program meaning. `Not`, `True`, and `False` are ordinary concepts, not keywords or built-in logic.
 
-## Structured executable representation
+## Representation and diagnostics
 
-`source::Program` holds initial particles and definitions. Values are atoms, `{variable: "name"}` patterns, `{structure: "Box", particle: [...]}` structures, or `{rule: {input, output, negative?}}` constructors. Output `{particle: [...]}` returns values; `{body: [...]}` enters a body, optionally with explicit particle values. Native lowering produces this representation, and the CLI can also deserialize it from JSON. The JavaScript kernel accepts the earlier ground subset; native structural traces appear alongside it in the plan.
+The lossless tree borrows UTF-8 source and stores nodes in a flat vector with kinds, byte spans, and parent indices. Lowering builds child adjacency once and reads those nodes. Runtime values are atoms or complete rule values; there are no variable or named-structure variants, including through JSON.
 
-Constructors can build code from bound complete values. Instantiated content and nested captures participate in identity; generated code is not limited to a precompiled catalog. Native source and JSON use the same Rust runtime without a separate type evaluator.
+Structural parsing preserves empty groups, repeated dots, and empty coherence positions. Executable lowering additionally checks expression composition. For example, `A..B` is structurally representable but has a missing operand. Missing or mismatched delimiters, unsupported body initialization, and excessive nesting have structured diagnostics. Delimiter nesting and executable nesting are each limited to 128 levels. Executable nesting also counts consecutive rule contexts, even when their brackets are shallow. These are implementation resource bounds.
 
-## Structural representation
-
-`parser::parse(&str)` returns a tree borrowing the original UTF-8 source. Nodes occupy one flat vector in source preorder. Every node has a kind, a half-open byte range, and its parent's vector index. The root is a module spanning the entire input. The returned vector is read-only, and dropping a tree does not recursively drop nested children.
-
-Concepts retain their original spelling through source spans. No string is allocated per label. Whitespace, dots, commas, groups, and source contexts remain distinct. Group and context spans include their delimiters. Source order is preserved even though runtime particles are orderless.
-
-The library does not own the source or copy it on success. A command attaches the source to a diagnostic only on failure. Node indices belong to one tree and are not runtime identities.
-
-## Structural grammar boundary
-
-| Form | Syntax node |
-| --- | --- |
-| Nonempty run excluding delimiters, dot, comma, and ASCII whitespace | Concept |
-| `.` | Continuation |
-| `,` | Coherence |
-| `( ... )` | Group |
-| `[ ... ]` | Context |
-| ASCII space, tab, CR, LF, vertical tab, form feed | Space |
-
-Concepts preserve Unicode exactly; normalization and a stricter identifier alphabet are not introduced. Non-ASCII whitespace remains concept text, following the old ASCII whitespace boundary. There is no comment, string, keyword, or numeric-literal syntax at this layer.
-
-The parser consumes the entire source. Missing, extra, and mismatched delimiters produce errors, including zero-width spans at end of input. Empty modules and empty groups are structurally valid. Empty coherences and repeated continuation tokens are preserved: the old fixtures exercise empty coherences, and executable validity is checked by the separate native grammar. Consequently `A..B`, `[A,,]`, and a standalone context can parse without establishing that they are valid executable expressions.
-
-Whitespace is retained for source fidelity. Native lowering instead uses explicit semicolons to delimit initial configurations and definitions.
-
-A per-input scan rejects nesting beyond 128 levels before entering the generated recursive parser. This is an implementation resource limit, not a claim about the language's eventual limits. No global parser setting is changed. Large flat input is not constrained by this depth limit. Input-size and allocation budgets remain future work.
-
-## Verification
-
-Tests cover nesting and parentage, repeated concepts, Unicode spans, CRLF preservation, malformed delimiters, end-of-input diagnostics, the accepted depth boundary, rejected excessive depth, and wide flat input. Structural acceptance is intentionally tested separately from semantic execution.
-
-The executable grammar lowers directly into `source::Program`, independently of this lossless tree. A later editor frontend can add recovery or an incremental tree without coupling runtime state to parser-library types.
+Tests cover the original alphabet, Unicode spans, grouping, nested rule production and replacement, the historical bracket example, original-style Boolean declarations, empty results, malformed composition, and runtime reachability. They do not establish that every previously unresolved historical expression has a unique intended semantics.

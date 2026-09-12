@@ -12,7 +12,7 @@ fn root(world: Vec<World>) -> State {
     State {
         world,
         frame: vec![Frame {
-            scope: Arc::new(molten::program::Scope::default()),
+            scope: 0,
             parent: None,
             lexical: None,
             held: Vec::new(),
@@ -24,6 +24,7 @@ fn token(id: usize) -> Token {
     Token {
         id,
         value: Symbol::Atom(0),
+        capture: None,
     }
 }
 
@@ -36,6 +37,7 @@ fn matching() {
     let pattern = vec![vec![
         Term {
             value: Symbol::Atom(0),
+            capture: None
         };
         15
     ]];
@@ -86,6 +88,7 @@ fn refinement() {
     state.world[0].particle.push(Token {
         id: 20,
         value: Symbol::Atom(1),
+        capture: None,
     });
     let mut search = canonical::Search::new(Arc::new(state.clone()));
     let steps = (0..10).find(|_| search.step());
@@ -175,7 +178,7 @@ fn chunking() {
 #[test]
 fn fairness() {
     let source = format!(
-        "{},Start; [{}] -> Z; [Start] -> Done;",
+        "{},Start [{}] Z [Start] Done",
         vec!["A"; 25].join("."),
         vec!["A"; 12].join(".")
     );
@@ -197,7 +200,7 @@ fn fairness() {
 
 #[test]
 fn budget() {
-    let source = molten::lowering::parse("Seed.A; [Seed] -> @([A] -> B);").unwrap();
+    let source = molten::lowering::parse("Seed.A [Seed] [A] B").unwrap();
     let mut complete = Runtime::new(source.clone());
     complete.run(12000, None);
     let expected = serde_json::to_value(complete.snapshot()).unwrap();

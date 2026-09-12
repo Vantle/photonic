@@ -1,28 +1,5 @@
 use molten::runtime::{Limit, Runtime};
 
-fn declaration(ordinal: usize) -> std::sync::Arc<molten::program::Scope> {
-    std::sync::Arc::new(molten::program::Scope {
-        name: ordinal.to_string(),
-        rule: vec![std::sync::Arc::new(molten::program::Instruction {
-            input: vec![vec![molten::program::Symbol::Atom(ordinal)]],
-            ..Default::default()
-        })],
-    })
-}
-
-fn captured(value: molten::program::Symbol, capture: Option<usize>) -> molten::program::Symbol {
-    match capture {
-        None => value,
-        Some(frame) => molten::program::Symbol::Rule(
-            std::sync::Arc::new(molten::program::Instruction {
-                input: vec![vec![value]],
-                ..Default::default()
-            }),
-            Some(frame),
-        ),
-    }
-}
-
 #[test]
 fn conjunction() {
     let program =
@@ -65,10 +42,8 @@ fn normalize(
                             .parse()
                             .unwrap()
                     }),
-                value: captured(
-                    Symbol::Atom(symbol[token["label"].as_str().unwrap()]),
-                    optional(&token["capture"]),
-                ),
+                value: Symbol::Atom(symbol[token["label"].as_str().unwrap()]),
+                capture: optional(&token["capture"]),
             })
             .collect()
     };
@@ -87,7 +62,7 @@ fn normalize(
             .unwrap()
             .iter()
             .map(|frame| Frame {
-                scope: declaration(scope[frame["scope"].as_str().unwrap()]),
+                scope: scope[frame["scope"].as_str().unwrap()],
                 parent: optional(&frame["parent"]),
                 lexical: optional(&frame["lexical"]),
                 held: particle(&frame["held"]),
@@ -207,7 +182,7 @@ fn reference() {
 
 #[test]
 fn resume() {
-    let program = molten::lowering::parse("Seed.A; [Seed] -> @([A] -> B);").unwrap();
+    let program = molten::lowering::parse("Seed.A [Seed] [A] B").unwrap();
     let mut complete = Runtime::new(program.clone());
     complete.run(12000, None);
     let mut paused = Runtime::new(program);
@@ -235,19 +210,19 @@ fn gate() {
     let mut gate = Gate::new(vec![
         vec![Term {
             value: Symbol::Atom(0),
+            capture: None,
         }],
         vec![Term {
             value: Symbol::Atom(1),
+            capture: None,
         }],
     ]);
     let first = Slot {
-        binding: Default::default(),
         world: 0,
         token: vec![0],
         position: 0,
     };
     let second = Slot {
-        binding: Default::default(),
         world: 1,
         token: vec![1],
         position: 1,
@@ -265,7 +240,7 @@ fn capture() {
     use molten::state::{Frame, State, Token, World};
     use std::collections::{BTreeMap, BTreeSet};
     let root = Frame {
-        scope: declaration(0),
+        scope: 0,
         parent: None,
         lexical: None,
         held: Vec::new(),
@@ -273,19 +248,20 @@ fn capture() {
     let seed = Token {
         id: 0,
         value: Symbol::Atom(0),
+        capture: None,
     };
     let witness = State {
         world: Vec::new(),
         frame: vec![
             root.clone(),
             Frame {
-                scope: declaration(1),
+                scope: 1,
                 parent: Some(0),
                 lexical: Some(0),
                 held: vec![seed.clone()],
             },
             Frame {
-                scope: declaration(2),
+                scope: 2,
                 parent: Some(0),
                 lexical: Some(1),
                 held: vec![seed.clone()],
@@ -298,10 +274,8 @@ fn capture() {
                 frame: 0,
                 particle: vec![Token {
                     id: 1,
-                    value: Symbol::Structure(
-                        1,
-                        vec![captured(Symbol::Atom(1), mapped.then_some(1))],
-                    ),
+                    value: Symbol::Atom(1),
+                    capture: mapped.then_some(1),
                 }],
             }],
             frame: if mapped {
@@ -325,16 +299,12 @@ fn capture() {
         };
         let rule = Instruction {
             output: vec![Output {
-                particle: vec![Symbol::Rule(
-                    std::sync::Arc::new(Instruction::default()),
-                    None,
-                )],
+                particle: vec![Symbol::Rule(0)],
                 body: None,
             }],
             ..Instruction::default()
         };
         let binding = Binding {
-            value: BTreeMap::new(),
             world: BTreeSet::from([0]),
             footprint: BTreeSet::new(),
             exact: BTreeSet::new(),
@@ -349,21 +319,16 @@ fn capture() {
             Some(Closure {
                 state: &witness,
                 flow: &flow,
-                capture: Some(2),
+                capture: 2,
             }),
         )
-        .unwrap()
         .canonical();
         let capture = output.state.world[0]
             .particle
             .iter()
-            .find_map(|token| {
-                if let Symbol::Rule(_, capture) = &token.value {
-                    *capture
-                } else {
-                    None
-                }
-            })
+            .find(|token| matches!(token.value, Symbol::Rule(_)))
+            .unwrap()
+            .capture
             .unwrap();
         assert_eq!(output.state.environment(capture), witness.environment(2));
         assert_eq!(
@@ -384,7 +349,7 @@ fn permutation() {
     use molten::program::Symbol;
     use molten::state::{Frame, State, Token, World};
     let root = Frame {
-        scope: declaration(0),
+        scope: 0,
         parent: None,
         lexical: None,
         held: Vec::new(),
@@ -406,6 +371,7 @@ fn permutation() {
                         .map(|&id| Token {
                             id,
                             value: Symbol::Atom(0),
+                            capture: None,
                         })
                         .collect(),
                 })
@@ -429,7 +395,7 @@ fn permutation() {
 
 #[test]
 fn determinism() {
-    let program = molten::lowering::parse("A.A; [A] -> B;").unwrap();
+    let program = molten::lowering::parse("A.A [A] B").unwrap();
     let execute = || {
         let mut runtime = Runtime::new(program.clone());
         runtime.run(12_000, None);
@@ -447,20 +413,23 @@ fn inheritance() {
     use molten::flow::{self, Binding, Closure, Flow, Place};
     use molten::program::{Instruction, Output, Symbol};
     use molten::state::{Frame, State, Token, World};
-    use std::collections::{BTreeMap, BTreeSet};
-    use std::sync::Arc;
+    use std::collections::BTreeSet;
 
     for held in [false, true] {
         for transformed in [false, true] {
             for fragment in [false, true] {
                 let value = if fragment {
-                    captured(Symbol::Atom(0), Some(0))
+                    Symbol::Rule(0)
                 } else {
                     Symbol::Atom(0)
                 };
-                let original = Token { id: 5, value };
+                let original = Token {
+                    id: 5,
+                    value,
+                    capture: fragment.then_some(0),
+                };
                 let root = Frame {
-                    scope: declaration(0),
+                    scope: 0,
                     parent: None,
                     lexical: None,
                     held: if held {
@@ -481,7 +450,7 @@ fn inheritance() {
                     frame: vec![
                         root,
                         Frame {
-                            scope: declaration(1),
+                            scope: 1,
                             parent: Some(0),
                             lexical: Some(0),
                             held: vec![Token {
@@ -491,6 +460,7 @@ fn inheritance() {
                                 } else {
                                     original.value
                                 },
+                                capture: (!transformed).then_some(original.capture).flatten(),
                             }],
                         },
                     ],
@@ -507,7 +477,7 @@ fn inheritance() {
                     .insert(Place::Held(1, 9), BTreeSet::from([basis]));
                 let rule = Instruction {
                     output: vec![Output {
-                        particle: vec![Symbol::Rule(Arc::new(Instruction::default()), None)],
+                        particle: vec![Symbol::Rule(1)],
                         body: None,
                     }],
                     ..Instruction::default()
@@ -517,7 +487,6 @@ fn inheritance() {
                     footprint: BTreeSet::new(),
                     exact: BTreeSet::new(),
                     read: BTreeSet::from([basis]),
-                    value: BTreeMap::new(),
                 };
                 let result = flow::apply(
                     &source,
@@ -528,10 +497,9 @@ fn inheritance() {
                     Some(Closure {
                         state: &witness,
                         flow: &flow,
-                        capture: Some(1),
+                        capture: 1,
                     }),
-                )
-                .unwrap();
+                );
                 assert_eq!(result.state.frame[1].held[0].id == 5, !transformed);
                 let expected = if transformed { 3 } else { 2 };
                 let result = result.canonical();

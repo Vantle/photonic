@@ -1,32 +1,47 @@
 # Natural numbers
 
-The initial experiment represents naturals as `Zero` or a single `Successor(number)`. This describes the intended input domain; it is not yet an implemented membership checker.
+Use `Zero` with n occurrences of `Successor` to represent the numeral n. For example, two is `Zero.Successor.Successor`. The particle is orderless, but occurrences retain multiplicity. A numeral has exactly one Zero and no unrelated concepts.
 
-[addition.lava](addition.lava) computes two plus three using ordinary structural rules. Its recursion is:
+This replaces the constructor-based experiment. Parentheses do not construct nested numerical records, and the runtime has no numerical primitives.
+
+## Membership
+
+[membership.lava](membership.lava) is the first concrete proof program:
 
 ```text
-add(Zero, right) = right
-add(Successor(left), right) = add(left, Successor(right))
+Zero.Successor.Successor
+[Zero] Natural
+[Successor.Natural] Natural
 ```
 
-Each step transfers one successor from the left operand to the right. For finite well-formed numerals, the left operand decreases until it is zero. The resulting value is `Successor(Successor(Successor(Successor(Successor(Zero)))))`.
+A sequential path is `Zero.Successor.Successor` to `Natural.Successor.Successor` to `Natural.Successor` to `Natural`. Source inference can also establish direct applications at earlier configurations. These are alternative configurations, not accumulated numerical operands.
+
+The rules recognize any finite numeral of this representation by consuming one successor at a time. The example checks the particular numeral two. Reaching exact Natural leaves no unaccounted-for occurrences. An input with an unknown base cannot reach that target under these rules. This is not a protected certificate interface: supplying Natural itself already satisfies that reachability target. A future checker must specify its input boundary and keep candidate data from impersonating acceptance.
 
 ```sh
-bazel run -c opt //system/molten/command -- run "$PWD/mathematics/natural/addition.lava" --json
+bazel run -c opt //system/molten/command -- obsidian "$PWD/mathematics/natural/membership.lava" --target "$PWD/mathematics/natural/natural.lava" --json
 ```
 
-Run this command from the repository root. To check the exact result with [Obsidian](../obsidian.md):
+## Addition
+
+[addition.lava](addition.lava) uses independent coherences for the two operands:
+
+```text
+Left.Zero.Successor.Successor,
+Right.Zero.Successor.Successor.Successor
+[Left.Zero, Right.Zero] Zero
+```
+
+The joint rule consumes each operand's label and zero marker. Ordinary remainder reunion carries the two plus three independently introduced successor occurrences into the result. One fresh Zero marks the resulting numeral five.
 
 ```sh
 bazel run -c opt //system/molten/command -- obsidian "$PWD/mathematics/natural/addition.lava" --target "$PWD/mathematics/natural/result.lava" --json
 ```
 
-The execution report includes intermediate configurations and direct source-inferred applications, so its event graph can have edges that skip individual recursive steps. The arithmetic example has no negative premises or competing computational rules.
+The independence condition matters. If operands share an inherited successor introduction, reunion reconciles it once. Shared histories therefore do not represent two independently supplied quantities for this encoding. The library must record this precondition rather than change coherence semantics to force arithmetic behavior.
 
-The recursive call stays at the outermost value. Molten does not automatically apply arbitrary rules inside every constructor: writing an unevaluated addition inside `Successor(...)` would require explicit evaluation rules. This example needs no such contextual evaluation convention.
+Regression tests check exact numeral five and exclude four. Membership and addition are concrete reachability experiments relative to these fixed programs. They are not yet independently certified universal theorems, an equality calculus, or a formal induction principle.
 
-The base rule returns its bound right-hand value. Without membership evidence it would also return an arbitrary non-numeral there. We make no type-safety or natural-number recognition claim for this two-rule experiment.
+## Next
 
-The checked example reports `reached`, with witness `s3`, four configurations, and a closed exploration. A regression also checks that the same program cannot reach the numeral four as its complete target configuration. These are concrete reachability checks relative to the two supplied addition rules.
-
-Next, define membership evidence and equality checking, followed by quantification and induction. Associativity and commutativity remain theorem targets, not conclusions established by the example.
+Specify proof objects and reusable assumptions using the original rule expressions. Establish binding and induction encodings before claiming universally checked arithmetic laws. Unary occurrence counts make the first experiment small; efficient binary arithmetic and representation correspondence remain future work.

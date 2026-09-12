@@ -7,14 +7,14 @@ The [mathematics library](mathematics/README.md) begins with natural-number comp
 A **rule** describes computation, including abstraction derivations; an **event** records one application. Types are computation in the same iterative model. A **coherence** is an independently evolving parallel context. **Divergence** creates several coherences; **decoherence** combines compatible coherences.
 
 ```text
-And.True.False.Extra;
-[True] -> Boolean;
-[False] -> Boolean;
-[And.Boolean.Boolean] -> {
-    [True.True] -> True;
-    [True.False] -> False;
-    [False.False] -> False;
-};
+And.True.False.Extra
+[True] Boolean,
+[False] Boolean,
+[And.Boolean.Boolean] (
+    [True.True] True,
+    [True.False] False,
+    [False.False] False,
+)
 ```
 
 The Boolean derivations reveal an application at the concrete `And.True.False.Extra` source. Its body receives `True.False.Extra` and returns `False.Extra`. Intermediate descriptions justify applications; they do not accumulate as extra operands. The runtime explores alternative events and shares equivalent configurations.
@@ -30,9 +30,11 @@ bazel test //...
 bazel run //:format -- --check
 ```
 
-Native source supports joint inputs, multiple outputs, nested bodies, structural values, capture variables, rule construction, and absence premises. For example, `Seed.A; [Seed] -> @([A] -> B);` produces locally executable code. `run` also accepts the structured JSON program format; `--format molten|json` overrides extension detection. See the [frontend contract](document/syntax.md) and [examples](example).
+Native source uses only the original concepts, dots, commas, brackets, parentheses, and whitespace. `Seed.A [Seed] [A] B` produces locally executable code. No sigils, constructors, arrow operators, semicolon terminators, braces, or keywords are added. See the [frontend contract](document/syntax.md), [generalization](document/generalization.md), and [examples](example).
 
-The accepted core and structural-value extension are implemented. Execution limits suspend exploration. The report distinguishes a closed finite graph from queued or deferred work. Use `--steps`, `--states`, `--coherences`, `--cells`, `--frames`, and `--records` to adjust limits. `--workers 4` enables optional Rayon workers; the default is one. The record threshold is checked between coordinator batches and is not a byte cap. Embedded callers can resume the same `runtime::Runtime` through `run`. JSON reports include configurations, events, witness mappings, consuming footprints, read dependencies, and support status; they are inspection reports, not restorable checkpoints.
+The CLI also accepts JSON for the same positive rule model. There are no negative premises or built-in logical concepts. `Not`, `True`, and `False` acquire behavior only through user rules.
+
+The ground runtime and original-syntax lowering are implemented. Execution limits suspend exploration. The report distinguishes a closed finite graph from queued or deferred work. Use `--steps`, `--states`, `--coherences`, `--cells`, `--frames`, and `--records` to adjust limits. `--workers 4` enables optional Rayon workers; the default is one. The record threshold is checked between coordinator batches and is not a byte cap. Embedded callers can resume the same `runtime::Runtime` through `run`. JSON reports include configurations, events, witness mappings, consuming footprints, read dependencies, and support status; they are inspection reports, not restorable checkpoints.
 
 ## Core
 
@@ -40,15 +42,15 @@ The accepted core and structural-value extension are implemented. Execution limi
 - Interned atom names, recursive immutable rule values, shared configurations, exact canonical identity, and indexed dependency propagation implement the graph.
 - Resumable matching gates retain compatible assignments and suppress duplicate arrivals. Cached bindings reach subscribed views incrementally through one agenda.
 - Relative occurrence maps preserve inherited sharing, independent results, lexical captures, and return continuations.
-- Component-based well-founded support keeps negative cycles conditional and records defeated assumptions without rejecting logical programs.
+- Indexed positive evidence closure requires every premise and preserves established conclusions. Cycles cannot establish themselves without evidence.
 
 The named crate root [molten.rs](system/molten/molten.rs) exposes focused modules directly, without `lib.rs` or re-exports. `lowering` handles executable syntax; `program` interns it; `state`, `refinement`, `canonical`, `matching`, `search`, `flow`, `support`, and `runtime` implement evaluation; `executor` supplies ordered parallel work; `snapshot` supplies inspectable reports. The structural `parser` API and generic `particle` / `rule` multiset kernel remain independent tools. Structural `parse` success alone does not establish executability.
 
-Rust conformance checks cover all 26 programs exported from the JavaScript reference: full canonical configuration, application-edge, and support comparisons for 24 closed cases, plus suspension for two growing cases. The 81 Rust tests also cover matching/canonicalization suspension, graph refinement, fair progress, support components, and identical full reports across 1/2/4 workers and different pause sizes. Support is compared against an independent whole-graph oracle over more than 35,000 clause programs.
+Rust conformance checks cover all 20 programs exported from the JavaScript reference: full canonical configuration, application-edge, and support comparisons for 19 closed cases, plus suspension for one growing case. The Rust tests also cover matching/canonicalization suspension, graph refinement, fair progress, positive evidence closure, and identical full reports across 1/2/4 workers and different pause sizes. Positive support is compared against a simple fixed-point oracle over 14,425 clause programs.
 
-The [interactive runtime plan](document/plan.html) runs the ground reference examples offline and displays native Rust traces for structural metaprogramming. The [semantic contract](document/semantics.md), [implementation plan](document/plan.md), and [terminology](document/terminology.md) describe the accepted model. Earlier HTML laboratories are marked historical.
+The [interactive runtime plan](document/plan.html) runs the ground reference examples offline and displays native Rust traces for original-syntax programs. The [semantic contract](document/semantics.md), [implementation plan](document/plan.md), and [terminology](document/terminology.md) describe the accepted model. Earlier HTML laboratories are marked historical.
 
-Rust also implements [structural binding and construction](document/structure.md) for data and code: `Box(A); [Box($x)] -> Wrapped($x);`. Generated rules use the same matching, projection, activation, and support machinery. Particle-rest capture, binder-syntax editing, and restorable checkpoints remain future work. Graph refinement reduces symmetric work, but exact enumeration can still take factorial time. Matching and canonicalization are resumable; setup, closure normalization, and reporting are not strict real-time operations. State sharing prevents repeated equivalent configurations, not genuine fresh-state growth. See [performance](document/performance.md) for the reproducible benchmark and its limits.
+Whole-rule production and replacement use the same matching, projection, activation, and support machinery as ordinary concepts. Arbitrary structural extraction, binding encodings, induction, and restorable checkpoints remain research work. The former variable/constructor extension has been removed. Graph refinement reduces symmetric work, but exact enumeration can still take factorial time. State sharing prevents repeated equivalent configurations, not genuine fresh-state growth. See [performance](document/performance.md) for the reproducible benchmark and its limits.
 
 ## Build
 

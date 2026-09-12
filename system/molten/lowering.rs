@@ -1,19 +1,19 @@
 use miette::{Diagnostic, SourceSpan};
-use pest::{Parser, error::InputLocation, iterators::Pair};
 use thiserror::Error;
 
 use crate::source::{Definition, Output, Program, Value};
+use crate::syntax::{Kind, Tree};
 
 #[derive(Debug, Diagnostic, Error)]
 pub enum Failure {
-    #[error("invalid executable Molten syntax: {message}")]
+    #[error("invalid Molten expression: {message}")]
     #[diagnostic(code(molten::lowering))]
     Syntax {
         message: String,
         #[label("{message}")]
         span: SourceSpan,
     },
-    #[error("executable syntax nesting exceeds {limit} levels")]
+    #[error("Molten nesting exceeds {limit} levels")]
     #[diagnostic(code(molten::depth))]
     Depth {
         limit: usize,
@@ -29,184 +29,272 @@ pub enum Failure {
     },
 }
 
-#[derive(pest_derive::Parser)]
-#[grammar_inline = r#"
-WHITESPACE = _{ " " | "\t" | "\r" | "\n" | "\u{000B}" | "\u{000C}" }
-module = { SOI ~ sequence ~ EOI }
-sequence = _{ initial ~ (definition ~ ending)* | (definition ~ ending)+ | &("}" | EOI) }
-initial = { configuration ~ ending }
-ending = { ";" }
-configuration = { particle ~ ("," ~ particle)* }
-definition = { input ~ negative? ~ "->" ~ output }
-input = { "[" ~ configuration? ~ "]" }
-negative = { "unless" ~ input }
-output = { discard | destination ~ ("," ~ destination)* }
-discard = { "[" ~ "]" }
-destination = _{ body | particle }
-body = { "{" ~ sequence ~ "}" }
-particle = { empty | value ~ ("." ~ value)* }
-empty = { "(" ~ ")" }
-value = _{ closure | variable | structure | atom }
-variable = @{ "$" ~ atom }
-structure = { atom ~ "(" ~ particle? ~ closing }
-closing = { ")" }
-closure = { "@" ~ "(" ~ definition ~ ")" }
-atom = @{ (!("->" | "." | "," | "[" | "]" | "(" | ")" | "{" | "}" | "@" | "$" | ";" | WHITESPACE) ~ ANY)+ }
-"#]
-struct Grammar;
+struct Reader<'tree, 'source> {
+    tree: &'tree Tree<'source>,
+    index: &'tree [Vec<usize>],
+    child: &'tree [usize],
+    position: usize,
+    depth: usize,
+}
 
 pub fn parse(source: &str) -> Result<Program, Failure> {
-    depth(source)?;
-    let mut parsed = Grammar::parse(Rule::module, source).map_err(|error| {
-        let span = match error.location {
-            InputLocation::Pos(position) => {
-                let length = source[position..].chars().next().map_or(0, char::len_utf8);
-                (position, length).into()
-            }
-            InputLocation::Span((start, end)) => (start, end - start).into(),
-        };
-        Failure::Syntax {
-            message: error.variant.message().into_owned(),
-            span,
-        }
+    let tree = crate::parser::parse(source).map_err(|error| match error {
+        crate::failure::Failure::Syntax { message, span } => Failure::Syntax { message, span },
+        crate::failure::Failure::Depth { limit, span } => Failure::Depth { limit, span },
     })?;
-    program(parsed.next().expect("parsed module"))
-}
-
-fn program(parsed: Pair<'_, Rule>) -> Result<Program, Failure> {
-    let mut initial = Vec::new();
-    let mut rule = Vec::new();
-    for item in parsed.into_inner() {
-        match item.as_rule() {
-            Rule::initial => {
-                initial = configuration(item.into_inner().next().expect("initial configuration"))?;
-            }
-            Rule::definition => rule.push(definition(item)?),
-            Rule::EOI | Rule::ending => {}
-            _ => unreachable!(),
+    let mut index = vec![Vec::new(); tree.node().len()];
+    for (position, node) in tree.node().iter().enumerate() {
+        if let Some(parent) = node.parent {
+            index[parent].push(position);
         }
     }
-    Ok(Program { initial, rule })
+    Reader::new(&tree, &index, 0, 0).program()
 }
 
-fn definition(parsed: Pair<'_, Rule>) -> Result<Definition, Failure> {
-    let name = parsed.as_str().trim().to_owned();
-    let mut child = parsed.into_inner().peekable();
-    let input = pattern(child.next().expect("rule input"))?;
-    let negative = if child
-        .peek()
-        .is_some_and(|item| item.as_rule() == Rule::negative)
-    {
-        Some(pattern(
-            child
-                .next()
-                .expect("negative premise")
-                .into_inner()
-                .next()
-                .expect("negative input"),
-        )?)
-    } else {
-        None
-    };
-    let output = output(child.next().expect("rule output"))?;
-    Ok(Definition {
-        name,
-        input,
-        output,
-        negative,
-    })
-}
-
-fn pattern(parsed: Pair<'_, Rule>) -> Result<Vec<Vec<Value>>, Failure> {
-    parsed
-        .into_inner()
-        .next()
-        .map_or_else(|| Ok(Vec::new()), configuration)
-}
-
-fn configuration(parsed: Pair<'_, Rule>) -> Result<Vec<Vec<Value>>, Failure> {
-    parsed.into_inner().map(particle).collect()
-}
-
-fn particle(parsed: Pair<'_, Rule>) -> Result<Vec<Value>, Failure> {
-    parsed
-        .into_inner()
-        .filter(|item| item.as_rule() != Rule::empty)
-        .map(value)
-        .collect()
-}
-
-fn value(parsed: Pair<'_, Rule>) -> Result<Value, Failure> {
-    match parsed.as_rule() {
-        Rule::atom => Ok(Value::Atom(parsed.as_str().to_owned())),
-        Rule::variable => Ok(Value::Variable {
-            variable: parsed.as_str()[1..].to_owned(),
-        }),
-        Rule::structure => {
-            let mut child = parsed.into_inner();
-            let structure = child.next().expect("structure name").as_str().to_owned();
-            let particle = child
-                .find(|item| item.as_rule() == Rule::particle)
-                .map_or_else(|| Ok(Vec::new()), particle)?;
-            Ok(Value::Structure {
-                structure,
-                particle,
-            })
+impl<'tree, 'source> Reader<'tree, 'source> {
+    fn new(
+        tree: &'tree Tree<'source>,
+        index: &'tree [Vec<usize>],
+        parent: usize,
+        depth: usize,
+    ) -> Self {
+        Self {
+            tree,
+            index,
+            child: &index[parent],
+            position: 0,
+            depth,
         }
-        Rule::closure => Ok(Value::Rule {
-            rule: Box::new(definition(parsed.into_inner().next().expect("rule value"))?),
-        }),
-        _ => unreachable!(),
     }
-}
 
-fn output(parsed: Pair<'_, Rule>) -> Result<Vec<Output>, Failure> {
-    parsed
-        .into_inner()
-        .filter(|item| item.as_rule() != Rule::discard)
-        .map(|item| match item.as_rule() {
-            Rule::body => body(item),
-            Rule::particle => Ok(Output {
-                particle: particle(item)?,
-                body: None,
-            }),
-            _ => unreachable!(),
-        })
-        .collect()
-}
-
-fn body(parsed: Pair<'_, Rule>) -> Result<Output, Failure> {
-    let span = (parsed.as_span().start(), parsed.as_str().len()).into();
-    let source = program(parsed)?;
-    if source.initial.len() > 1 {
-        return Err(Failure::Body {
-            count: source.initial.len(),
-            span,
-        });
+    fn peek(&self) -> Option<Kind> {
+        self.child
+            .get(self.position)
+            .map(|&index| self.tree.node()[index].kind)
     }
-    Ok(Output {
-        particle: source.initial.into_iter().next().unwrap_or_default(),
-        body: Some(source.rule),
-    })
-}
 
-fn depth(source: &str) -> Result<(), Failure> {
-    let limit = 128;
-    let mut depth = 0usize;
-    for (position, byte) in source.bytes().enumerate() {
-        match byte {
-            b'(' | b'[' | b'{' => {
-                depth += 1;
-                if depth > limit {
-                    return Err(Failure::Depth {
-                        limit,
-                        span: (position, 1).into(),
-                    });
+    fn space(&mut self) {
+        while self.peek() == Some(Kind::Space) {
+            self.position += 1;
+        }
+    }
+
+    fn failure(&self, message: &str) -> Failure {
+        let span = self
+            .child
+            .get(self.position)
+            .map(|&index| self.tree.node()[index].span.clone())
+            .unwrap_or(self.tree.source().len()..self.tree.source().len());
+        Failure::Syntax {
+            message: message.into(),
+            span: (span.start, span.len()).into(),
+        }
+    }
+
+    fn program(&mut self) -> Result<Program, Failure> {
+        let mut program = Program::default();
+        let mut separate = true;
+        loop {
+            self.space();
+            match self.peek() {
+                None => return Ok(program),
+                Some(Kind::Coherence) => {
+                    self.position += 1;
+                    separate = true;
+                }
+                Some(Kind::Context) => program.rule.push(self.definition()?),
+                _ => {
+                    let particle = self.particle()?;
+                    if separate || program.initial.is_empty() {
+                        program.initial.push(particle);
+                    } else {
+                        program.initial.last_mut().unwrap().extend(particle);
+                    }
+                    separate = false;
                 }
             }
-            b')' | b']' | b'}' => depth = depth.saturating_sub(1),
-            _ => {}
         }
     }
-    Ok(())
+
+    fn configuration(&mut self) -> Result<Vec<Vec<Value>>, Failure> {
+        let mut result = Vec::new();
+        self.space();
+        if self.peek().is_none() {
+            return Ok(result);
+        }
+        loop {
+            result.push(
+                if self.peek() == Some(Kind::Coherence) || self.peek().is_none() {
+                    Vec::new()
+                } else {
+                    self.particle()?
+                },
+            );
+            self.space();
+            match self.peek() {
+                None => return Ok(result),
+                Some(Kind::Coherence) => {
+                    self.position += 1;
+                    self.space();
+                }
+                _ => {
+                    return Err(self
+                        .failure("combine values with a dot or separate coherences with a comma"));
+                }
+            }
+        }
+    }
+
+    fn bound(&self, index: usize) -> Result<(), Failure> {
+        if self.depth < 128 {
+            return Ok(());
+        }
+        Err(Failure::Depth {
+            limit: 128,
+            span: (self.tree.node()[index].span.start, 1).into(),
+        })
+    }
+
+    fn nested(&self, index: usize) -> Result<Self, Failure> {
+        self.bound(index)?;
+        Ok(Self::new(self.tree, self.index, index, self.depth + 1))
+    }
+
+    fn definition(&mut self) -> Result<Definition, Failure> {
+        self.bound(self.child[self.position])?;
+        self.depth += 1;
+        let result = self.rule();
+        self.depth -= 1;
+        result
+    }
+
+    fn rule(&mut self) -> Result<Definition, Failure> {
+        let index = self.child[self.position];
+        self.position += 1;
+        let input = Reader::new(self.tree, self.index, index, self.depth).configuration()?;
+        self.space();
+        let mut output = Vec::new();
+        if self.peek().is_some() && self.peek() != Some(Kind::Coherence) {
+            output.extend(self.destination()?);
+            loop {
+                self.space();
+                if self.peek() == Some(Kind::Group) {
+                    output.extend(self.destination()?);
+                    continue;
+                }
+                if self.peek() != Some(Kind::Coherence) {
+                    break;
+                }
+                let saved = self.position;
+                self.position += 1;
+                self.space();
+                if self.peek().is_none() || self.peek() == Some(Kind::Context) {
+                    self.position = saved;
+                    break;
+                }
+                output.extend(self.destination()?);
+            }
+        }
+        let start = self.tree.node()[index].span.start;
+        let end = self.tree.node()[self.child[self.position - 1]].span.end;
+        Ok(Definition {
+            name: self.tree.source()[start..end].trim().to_owned(),
+            input,
+            output,
+        })
+    }
+
+    fn destination(&mut self) -> Result<Vec<Output>, Failure> {
+        self.space();
+        if self.peek() != Some(Kind::Group) {
+            return Ok(vec![Output {
+                particle: self.particle()?,
+                body: None,
+            }]);
+        }
+        let index = self.child[self.position];
+        self.position += 1;
+        let program = self.nested(index)?.program()?;
+        if !program.rule.is_empty() {
+            if program.initial.len() > 1 {
+                let span = self.tree.node()[index].span.clone();
+                return Err(Failure::Body {
+                    count: program.initial.len(),
+                    span: (span.start, span.len()).into(),
+                });
+            }
+            return Ok(vec![Output {
+                particle: program.initial.into_iter().next().unwrap_or_default(),
+                body: Some(program.rule),
+            }]);
+        }
+        let mut output = program
+            .initial
+            .into_iter()
+            .map(|particle| Output {
+                particle,
+                body: None,
+            })
+            .collect::<Vec<_>>();
+        if output.is_empty() {
+            output.push(Output::default());
+        }
+        self.space();
+        if self.peek() == Some(Kind::Continuation) {
+            self.position += 1;
+            let particle = self.particle()?;
+            for item in &mut output {
+                item.particle.extend(particle.clone());
+            }
+        }
+        Ok(output)
+    }
+
+    fn particle(&mut self) -> Result<Vec<Value>, Failure> {
+        let mut particle = self.value()?;
+        loop {
+            let saved = self.position;
+            self.space();
+            if self.peek() == Some(Kind::Continuation) {
+                self.position += 1;
+                self.space();
+                particle.extend(self.value()?);
+            } else if saved == self.position && self.peek() == Some(Kind::Group) {
+                particle.extend(self.value()?);
+            } else {
+                break;
+            }
+        }
+        Ok(particle)
+    }
+
+    fn value(&mut self) -> Result<Vec<Value>, Failure> {
+        self.space();
+        match self.peek() {
+            Some(Kind::Concept) => {
+                let index = self.child[self.position];
+                self.position += 1;
+                Ok(vec![Value::Atom(
+                    self.tree.source()[self.tree.node()[index].span.clone()].into(),
+                )])
+            }
+            Some(Kind::Context) => Ok(vec![Value::Rule {
+                rule: Box::new(self.definition()?),
+            }]),
+            Some(Kind::Group) => {
+                let index = self.child[self.position];
+                self.position += 1;
+                let program = self.nested(index)?.program()?;
+                if program.initial.len() > 1 {
+                    return Err(self.failure("a particle group cannot combine separate coherences"));
+                }
+                let mut particle = program.initial.into_iter().next().unwrap_or_default();
+                particle.extend(program.rule.into_iter().map(|rule| Value::Rule {
+                    rule: Box::new(rule),
+                }));
+                Ok(particle)
+            }
+            _ => Err(self.failure("expected a concept, group, or source context")),
+        }
+    }
 }

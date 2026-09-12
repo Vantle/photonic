@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct Program {
     #[serde(default)]
     pub initial: Vec<Vec<Value>>,
@@ -9,32 +10,23 @@ pub struct Program {
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
-#[serde(untagged)]
+#[serde(untagged, deny_unknown_fields)]
 pub enum Value {
     Atom(String),
-    Rule {
-        rule: Box<Definition>,
-    },
-    Variable {
-        variable: String,
-    },
-    Structure {
-        structure: String,
-        particle: Vec<Value>,
-    },
+    Rule { rule: Box<Definition> },
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct Definition {
     #[serde(default)]
     pub name: String,
     pub input: Vec<Vec<Value>>,
     pub output: Vec<Output>,
-    #[serde(default)]
-    pub negative: Option<Vec<Vec<Value>>>,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct Output {
     #[serde(default)]
     pub particle: Vec<Value>,
@@ -49,16 +41,6 @@ impl Definition {
                 .iter()
                 .map(|value| match value {
                     Value::Atom(atom) => Value::Atom(atom.clone()),
-                    Value::Variable { variable } => Value::Variable {
-                        variable: variable.clone(),
-                    },
-                    Value::Structure {
-                        structure,
-                        particle: content,
-                    } => Value::Structure {
-                        structure: structure.clone(),
-                        particle: particle(content),
-                    },
                     Value::Rule { rule } => Value::Rule {
                         rule: Box::new(rule.canonical()),
                     },
@@ -92,7 +74,6 @@ impl Definition {
             name: String::new(),
             input: input(&self.input),
             output,
-            negative: self.negative.as_ref().map(|value| input(value)),
         }
     }
 }

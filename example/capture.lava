@@ -1,9 +1,9 @@
-Enter.Make.Call;
-[Enter] -> {
-    [A] -> Local;
-    [Make] -> @([Call] -> {
-        A;
-        [Local] -> Done;
-    });
-};
-[A] -> Global;
+Enter.Make.Call
+[Enter] (
+    [A] Local,
+    [Make] [Call] (
+        A
+        [Local] Done
+    ),
+)
+[A] Global

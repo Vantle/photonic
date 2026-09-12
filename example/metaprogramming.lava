@@ -1,2 +1,0 @@
-Box(@([A] -> Old)).A;
-[Box(@([$input] -> Old))] -> @([$input] -> New);

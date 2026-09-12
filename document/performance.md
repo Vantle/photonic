@@ -1,65 +1,54 @@
 # Performance
 
-The benchmark measures fresh runtime construction, compilation into recursive program values, graph exploration, well-founded support, and construction of the inspection snapshot. JSON fixture decoding, input cloning, and worker-pool creation happen before timing. Source parsing, JSON report encoding, process startup, and build time are excluded. Each program receives one warm-up and 25 measured runs. Minimum, median, maximum, work, current records, and observed peak records are recorded in [the raw report](performance.json); timings are microseconds.
+The benchmark measures runtime construction, ground code compilation, graph exploration, positive evidence closure, and snapshot construction. JSON decoding, input cloning, and worker-pool creation happen before timing. Source parsing, report encoding, process startup, and build time are excluded. Each program receives one warm-up and 25 measured runs. The [raw report](performance.json) records minimum, median, maximum, work, and retained records in microseconds.
 
 ```sh
 bazel run -c opt //system/molten/benchmark
 bazel run -c opt //system/molten/benchmark -- --workers 4
 ```
 
-Each run closes one of the 24 finite reference programs under a 12,000-step allowance and the default limits. Two intentionally growing programs are tested for suspension separately. The four-worker run must preserve the same semantic graph, work count, and record accounting. Runtime tests also compare full reports across one, two, and four workers, and across different pause sizes.
+Measured after restoring the original grammar and removing negative-premise machinery on 2026-09-12 with hermetic Rust 1.98.1, Bazel optimized mode, Apple M5 Max, ARM64 macOS 26.6.2. These are small-program latency measurements, not allocator bytes, resident memory, distributed throughput, or worst-case scalability.
 
-Re-measured after the structural-value extension on 2026-09-12 with hermetic Rust 1.98.1, Bazel optimized mode, Apple M5 Max, ARM64 macOS 26.6.2. This suite measures small-program latency and retained-record counts. It does not measure allocator bytes, resident memory, distributed throughput, or worst-case scalability.
-
-Four workers are slower on these small programs because scheduling costs outweigh the independent computation. One worker remains the default. Parallel execution is available for workloads that justify it; these measurements do not support a general speedup claim. Resumable bookkeeping and exact graph refinement also add costs to small programs while preventing a large combinatorial task from monopolizing exploration.
+Each of the 19 finite reference programs closes under 12,000 steps and the default limits. One growing reference program is tested for suspension separately. One and four workers produce identical graph sizes, work, and record counts. Runtime tests also compare complete reports across worker counts and pause sizes.
 
 | Program | States | Events | Work | Peak records | 1 worker µs | 4 workers µs |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Concrete And through two Boolean deductions | 14 | 17 | 1191 | 921 | 821.2 | 1672.6 |
-| Two inputs broadcast their leftovers | 3 | 3 | 223 | 90 | 99.2 | 749.3 |
-| One source supports a joint sibling match | 3 | 3 | 136 | 82 | 78.2 | 371.9 |
-| Competing histories cannot supply a joint match | 3 | 2 | 86 | 87 | 48.6 | 244.4 |
-| Explicit duplicate outputs remain distinct | 3 | 3 | 125 | 81 | 66.4 | 326.5 |
-| Evidence-only co-results are not source leftovers | 4 | 3 | 115 | 102 | 67.3 | 334.7 |
-| Independent branches compute independent equal results | 13 | 21 | 985 | 612 | 523.5 | 1544.0 |
-| Arbitrarily nested body expressions | 9 | 9 | 501 | 480 | 276.9 | 1052.7 |
-| A default defeated by another derivation | 2 | 1 | 43 | 42 | 20.7 | 105.8 |
-| Independent support survives a defeated default | 2 | 2 | 49 | 55 | 30.0 | 114.8 |
-| Self-dependent absence stays conditional | 2 | 1 | 48 | 44 | 20.2 | 105.1 |
-| Mutual absence preserves unresolved alternatives | 3 | 2 | 100 | 101 | 40.6 | 167.0 |
-| A finite cycle shares its configurations | 2 | 4 | 68 | 57 | 48.2 | 198.3 |
-| Generated rule reads its concrete source | 4 | 4 | 103 | 97 | 75.4 | 288.0 |
-| One source supplies rule and operand | 4 | 3 | 85 | 94 | 60.1 | 244.9 |
-| Competing code and data cannot interact | 3 | 2 | 49 | 73 | 34.5 | 117.2 |
-| A meta rule replaces a whole rule value | 6 | 6 | 284 | 214 | 138.5 | 709.2 |
-| Rule activation respects coherence locality | 2 | 1 | 54 | 41 | 27.7 | 59.8 |
-| A generated rule enables decoherence | 5 | 5 | 213 | 141 | 107.3 | 506.8 |
-| Generated rules can defeat an absence condition | 6 | 7 | 269 | 227 | 135.0 | 515.6 |
-| A whole rule acquires an abstraction | 8 | 8 | 336 | 329 | 181.2 | 760.6 |
-| A generated rule opens a nested body | 6 | 7 | 206 | 191 | 138.6 | 488.8 |
-| An escaped rule retains its local definition | 29 | 43 | 1952 | 2389 | 1308.7 | 2959.2 |
-| Consuming code later does not erase earlier results | 4 | 3 | 159 | 86 | 58.3 | 471.9 |
+| Concrete And through two Boolean deductions | 14 | 17 | 594 | 582 | 358.5 | 816.0 |
+| Two inputs broadcast their leftovers | 3 | 3 | 99 | 56 | 49.6 | 273.5 |
+| One source supports a joint sibling match | 3 | 3 | 76 | 56 | 42.2 | 190.9 |
+| Competing histories cannot supply a joint match | 3 | 2 | 59 | 63 | 25.1 | 152.8 |
+| Explicit duplicate outputs remain distinct | 3 | 3 | 89 | 59 | 35.3 | 189.5 |
+| Evidence-only co-results are not source leftovers | 4 | 3 | 67 | 72 | 35.1 | 170.1 |
+| Independent branches compute independent equal results | 13 | 21 | 585 | 451 | 290.8 | 886.6 |
+| Arbitrarily nested body expressions | 9 | 9 | 296 | 299 | 149.2 | 546.0 |
+| A finite cycle shares its configurations | 2 | 4 | 56 | 47 | 28.0 | 128.3 |
+| Generated rule reads its concrete source | 4 | 4 | 73 | 69 | 40.0 | 171.3 |
+| One source supplies rule and operand | 4 | 3 | 59 | 64 | 30.7 | 135.2 |
+| Competing code and data cannot interact | 3 | 2 | 37 | 50 | 18.4 | 74.7 |
+| A meta rule replaces a whole rule value | 6 | 6 | 125 | 117 | 58.8 | 252.4 |
+| Rule activation respects coherence locality | 2 | 1 | 38 | 31 | 15.5 | 44.1 |
+| A generated rule enables decoherence | 5 | 5 | 118 | 88 | 55.2 | 251.7 |
+| A whole rule acquires an abstraction | 8 | 8 | 200 | 206 | 89.8 | 390.9 |
+| A generated rule opens a nested body | 6 | 7 | 145 | 132 | 73.2 | 274.9 |
+| An escaped rule retains its local definition | 29 | 43 | 1334 | 1553 | 709.8 | 1559.0 |
+| Consuming code later does not erase earlier results | 4 | 3 | 69 | 60 | 26.5 | 143.4 |
 
-## Cost controls and acceptance evidence
+## Interpretation
 
-Symbols and structural rule code are interned. States and views use shared immutable allocations with exact equality and hash indexes. Matcher cursors generate particle assignments and gate extensions incrementally; target/frame/pattern caches deliver completed bindings to subscribed views. Completed search scratch storage is released. Normalization arena slots are reused.
+Scheduling overhead can outweigh independent computation on these small graphs. One worker remains the default; these measurements do not justify an unrestricted parallel speedup claim. Removing unnecessary language machinery simplifies this implementation, but the benchmark does not establish a universal performance bound.
 
-Canonicalization refines the graph through resource sharing, capture, lexical, and return edges before enumerating unresolved symmetries. The enumeration cursor is resumable. A regression distinguishes a twelve-coherence asymmetric sharing chain within ten cursor steps; another pauses a thirty-coherence symmetric case after one hundred steps. Independently introduced initial coherences can be sorted and renamed directly because they have no inherited sharing; a hundred-coherence initializer avoids factorial enumeration.
+Atoms and ground rule code are interned. States and views share immutable allocations, with hash indexes and exact comparison. Cached matcher cursors generate assignments incrementally; gates retain compatible prefixes and suppress duplicate arrivals. Completed search scratch storage is released and normalization slots are reused.
 
-A matcher regression pauses the selection of fifteen occurrences from thirty, a space of 155,117,520 combinations. A runtime regression lets an independent small rule produce its result while a large matching task remains open. These tests establish concrete progress and suspension behavior, not unrestricted real-time guarantees.
+Canonicalization refines sharing, capture, lexical, and return edges before enumerating unresolved symmetries. The cursor is resumable, but worst-case CPU cost remains factorial. Regressions cover a large paused matching problem, a symmetric paused normalization, and progress of an independent small rule alongside a large search.
 
-Support evaluation settles dependency components separately. More than 35,000 exhaustive/generated clause programs agree with the previous whole-graph alternating evaluator, including open queries and negative cycles. An unchanged runtime reuses the computed support report. A 20,000-node dependency chain tests iterative traversal without a recursive call stack.
+Positive evidence closure uses indexed premise counts. It agrees with a simple fixed-point oracle on 14,425 clause programs and traverses a 20,000-node chain without recursive dependency evaluation. An unchanged runtime reuses its support result.
 
-## Resource boundaries
+## Limits and reproduction
 
-The `--records` threshold counts stored value structure and retained graph, query, support-clause, binding, request, matcher, normalization, and queued-work records. Reports expose current counts and an observed high-water mark after coordinator steps. Records have variable sizes: these counts are not bytes or an allocator-memory cap. The threshold is checked between coordinator batches; a batch or one bookkeeping operation can overshoot it. A paused runtime preserves its work and can resume after raising the threshold.
+The soft record threshold counts retained graph, evidence, binding, request, matcher, normalization, and queued-work records. These records vary in size; the threshold is not a byte cap. The coordinator checks between batches, so a batch can overshoot. Paused work can resume with a larger budget.
 
-Canonicalization still has factorial worst-case CPU cost for unresolved symmetries. Initial program compilation, graph refinement setup, individual renamings, closure-environment normalization, and report construction are finite operations that are not strictly preemptible. Successor state/coherence/cell/frame limits do not reject the admitted initial program. Further optimization can improve these costs without adding language semantics.
+Compilation, graph setup, individual renamings, closure import, and report construction are not strictly preemptible. Successor limits do not reject an already admitted initial program. Exact state sharing cannot terminate genuinely growing distinct configurations.
 
-## Reproducing conformance fixtures
+The browser's **Export reference fixtures** control recomputes all 20 positive cases. Rust compares canonical states and application edges for the 19 closed graphs and verifies suspension for the growing case. Expected graph changes require review; fixture generation is not permission to replace a semantic expectation automatically.
 
-Open [the runtime plan](plan.html) and select **Export reference fixtures**. The download recomputes all 26 graphs using the checked-in JavaScript evaluator. Compare it with `example/reference.json` before replacing that file. Rust tests compare canonical configurations and application edges with support for each closed graph; growing cases must remain suspended. A changed reference is a semantic contract change, not an automatically updated test expectation.
-
-Native ARM64 macOS tests and x86-64 Linux/Windows cross-builds pass. [Six native CI jobs](../platform/README.md) are configured but have not run from this checkout. Platform configuration and cross-compilation alone do not establish native runtime support.
-
-Structural matching, recursive capture graphs, and fuller record accounting increase the work represented by this baseline. These measurements supersede the earlier ground-only timings; they do not establish a speedup. The structural examples have separate correctness and suspension tests, rather than an extrapolated throughput claim.
+[Platform verification](../platform/README.md) distinguishes native host testing, cross-compilation, and configured native CI jobs. Cross-build success alone does not prove native runtime behavior on another operating system.

@@ -1,2 +1,0 @@
-Box(A).Present(B);
-[Box($value)] unless [Present($value)] -> Missing($value);

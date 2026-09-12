@@ -1,6 +1,6 @@
 # Concrete-source remainders
 
-The [configuration semantics](semantics.md) defines the current remainder law. The Rust runtime and JavaScript [laboratory](plan.html) integrate it with joint source inference, multiple outputs, nested bodies, captured rule values, and conditional support. The earlier overlapping-description and single-result experiments are historical steps.
+The [configuration semantics](semantics.md) defines the current remainder law. The Rust runtime and JavaScript [laboratory](plan.html) integrate it with joint source inference, multiple outputs, nested bodies, captured rule values, and positive evidence. The earlier overlapping-description and single-result experiments are historical steps.
 
 A literal application replaces its concrete matched footprint and carries unmatched resources from the participating source coherences. `A → B` enables `B → C` at `A.Extra`, producing `C.Extra`. It does not retain A as another live operand.
 

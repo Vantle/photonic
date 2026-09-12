@@ -1,8 +1,8 @@
-And.True.False.Extra;
-[True] -> Boolean;
-[False] -> Boolean;
-[And.Boolean.Boolean] -> {
-    [True.True] -> True;
-    [True.False] -> False;
-    [False.False] -> False;
-};
+And.True.False.Extra
+[True] Boolean,
+[False] Boolean,
+[And.Boolean.Boolean] (
+    [True.True] True,
+    [True.False] False,
+    [False.False] False,
+)

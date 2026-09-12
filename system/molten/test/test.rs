@@ -8,7 +8,4 @@ mod runtime;
 mod scheduling;
 mod support;
 
-mod hygiene;
-mod metaprogramming;
-
 mod obsidian;

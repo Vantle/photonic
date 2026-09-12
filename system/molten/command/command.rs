@@ -159,7 +159,6 @@ fn obsidian(path: PathBuf, target: PathBuf, execution: Execution) -> miette::Res
 fn status(value: Status) -> &'static str {
     match value {
         Status::Supported => "supported",
-        Status::Conditional => "conditional",
         Status::Unsupported => "unsupported",
     }
 }

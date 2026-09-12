@@ -1,7 +1,7 @@
 'use strict';
 window.kernel.example=(()=>{
     const literal=particle=>({particle});
-    const rule=(name,input,output,negative)=>({name,input,output:output.map(literal),...(negative===undefined?{}:{negative})});
+    const rule=(name,input,output)=>({name,input,output:output.map(literal)});
     const boolean=[rule('True is Boolean',[['True']],[['Boolean']]),rule('False is Boolean',[['False']],[['Boolean']])];
     const body=(name,input,rule,particle=[])=>({name,input,output:[{body:rule,particle}]});
     const result=[
@@ -14,10 +14,6 @@ window.kernel.example=(()=>{
         {name:'Independent branches compute independent equal results',initial:[['A','X']],rule:[rule('Diverge',[['A']],[['B'],['C']]),rule('Compute from X',[['X']],[['Y']]),rule('Reunion',[['B'],['C']],[['D']])],text:'Both coherences inherit X. If each computes X → Y independently, reunion retains two independently produced Ys. Carrying unchanged X through both gives one X.'},
         {name:'Fresh production and direct consumption',initial:[[]],rule:[rule('Create A',[[]],[['A']]),rule('A to B',[['A']],[['B']])],text:'Creation gives A a fresh introduction identity. A → B consumes A correctly. Repeated creation can grow genuinely new states and pause at a budget.'},
         {name:'Arbitrarily nested body expressions',initial:[['Not','True','Extra']],rule:[...boolean,body('Outer Not',[['Not','Boolean']],[body('Concrete True branch',[['True']],[body('Return from another body',[['Step']],[rule('Final literal',[['Finish']],[['False']])],['Finish'])],['Step'])])],text:'Three nested expression bodies return False.Extra. Continuations and lexical scope are explicit graph structure; there is no hard-coded one-body shape.'},
-        {name:'A default defeated by another derivation',initial:[['Start']],rule:[rule('Default P',[['Start']],[['P']],[['Q']])],later:[rule('New route to Q',[['Start']],[['Q']])],text:'P is conditional while the absence query remains open. At a finite fixed point it is supported if Q has no supported derivation. A new revision adding a route to Q defeats that justification.'},
-        {name:'Independent support survives a defeated default',initial:[['Start']],rule:[rule('Unconditional P',[['Start']],[['P']]),rule('Default P',[['Start']],[['P']],[['Q']])],later:[rule('New route to Q',[['Start']],[['Q']])],text:'The P state has two incoming justifications. A later Q route defeats the default, but the unconditional application still supports P.'},
-        {name:'Self-dependent absence stays conditional',initial:[['Start']],rule:[rule('P unless P',[['Start']],[['P']],[['P']])],text:'The dependency equation is circular. The configuration and its conditional application remain represented; the evaluator does not declare a logical program error.'},
-        {name:'Mutual absence preserves unresolved alternatives',initial:[['Start']],rule:[rule('P unless Q',[['Start']],[['P']],[['Q']]),rule('Q unless P',[['Start']],[['Q']],[['P']])],text:'Neither alternative becomes unconditionally supported under the well-founded interpretation. They remain separate conditional paths; their particles are never pooled.'},
         {name:'A finite cycle shares its configurations',initial:[['A']],rule:[rule('Forward',[['A']],[['B']]),rule('Backward',[['B']],[['A']])],text:'A and B share a finite transition graph. Revisiting either state does not produce a fresh execution tree.'}
     ];
     return result;

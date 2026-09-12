@@ -10,57 +10,64 @@ fn atom(value: &[&str]) -> Vec<Value> {
 
 #[test]
 fn conjunction() {
-    let source = lowering::parse(
-        "And.True.False.Extra; [True] -> Boolean; [False] -> Boolean; [And.Boolean.Boolean] -> { [True.False] -> False; };",
-    )
-    .unwrap();
+    let source = lowering::parse(include_str!("../../../example/conjunction.lava")).unwrap();
     assert_eq!(source.initial, [atom(&["And", "True", "False", "Extra"])]);
     assert_eq!(source.rule.len(), 3);
     assert_eq!(source.rule[2].input, [atom(&["And", "Boolean", "Boolean"])]);
     let body = source.rule[2].output[0].body.as_ref().unwrap();
     assert!(source.rule[2].output[0].particle.is_empty());
-    assert_eq!(body[0].input, [atom(&["True", "False"])]);
-    assert_eq!(body[0].output[0].particle, atom(&["False"]));
+    assert_eq!(body[1].input, [atom(&["True", "False"])]);
+    assert_eq!(body[1].output[0].particle, atom(&["False"]));
 }
 
 #[test]
 fn coherence() {
-    let source = lowering::parse("A.X, B.Y; [A, B] -> C, D; [C, D] -> E;").unwrap();
+    let source = lowering::parse("A.X, B.Y [A, B] (C, D) [C, D] E").unwrap();
     assert_eq!(source.initial, [atom(&["A", "X"]), atom(&["B", "Y"])]);
     assert_eq!(source.rule[0].input, [atom(&["A"]), atom(&["B"])]);
     assert_eq!(source.rule[0].output.len(), 2);
     assert_eq!(source.rule[0].output[0].particle, atom(&["C"]));
     assert_eq!(source.rule[0].output[1].particle, atom(&["D"]));
+    assert_eq!(
+        lowering::parse("[A, B, C] (A) (B) (C),").unwrap().rule[0]
+            .output
+            .len(),
+        3
+    );
 }
 
 #[test]
 fn closure() {
-    let source = lowering::parse("@([A] -> B).A; [@([A] -> B)] -> @([A] -> C);").unwrap();
+    let source = lowering::parse("([A] B).A [[A] B] [A] C").unwrap();
     let Value::Rule { rule } = &source.initial[0][0] else {
-        panic!("expected a rule value");
+        panic!("expected rule");
     };
     assert_eq!(rule.input, [atom(&["A"])]);
     assert_eq!(rule.output[0].particle, atom(&["B"]));
     let Value::Rule { rule } = &source.rule[0].output[0].particle[0] else {
-        panic!("expected a replacement rule value");
+        panic!("expected rule");
     };
     assert_eq!(rule.output[0].particle, atom(&["C"]));
-    let recursive = lowering::parse("@([@([A] -> B)] -> @([A] -> C));").unwrap();
-    assert!(matches!(recursive.initial[0][0], Value::Rule { .. }));
+    let source = lowering::parse("[[A,B]] ([B])").unwrap();
+    let Value::Rule { rule } = &source.rule[0].input[0][0] else {
+        panic!("expected rule");
+    };
+    assert_eq!(rule.input, [atom(&["A"]), atom(&["B"])]);
+    assert!(rule.output.is_empty());
+    assert_eq!(
+        source.rule[0].output[0].body.as_ref().unwrap()[0].input,
+        [atom(&["B"])]
+    );
 }
 
 #[test]
 fn scope() {
-    let source = lowering::parse(
-        "Enter; [Enter] -> { Make; [Make] -> { Step; [Step] -> @([Call] -> { [Payload] -> Done; }); }; };",
-    )
-    .unwrap();
+    let source =
+        lowering::parse("Enter [Enter] (Make [Make] [Call] (Payload [Payload] Done))").unwrap();
     let outer = &source.rule[0].output[0];
     assert_eq!(outer.particle, atom(&["Make"]));
-    let inner = &outer.body.as_ref().unwrap()[0].output[0];
-    assert_eq!(inner.particle, atom(&["Step"]));
-    let Value::Rule { rule } = &inner.body.as_ref().unwrap()[0].output[0].particle[0] else {
-        panic!("expected an escaped closure");
+    let Value::Rule { rule } = &outer.body.as_ref().unwrap()[0].output[0].particle[0] else {
+        panic!("expected rule");
     };
     assert_eq!(
         rule.output[0].body.as_ref().unwrap()[0].input,
@@ -69,213 +76,94 @@ fn scope() {
 }
 
 #[test]
-fn absence() {
-    let source =
-        lowering::parse("Start; [Start] unless [Q] -> P; [P] unless [@([A] -> B), Q] -> R;")
-            .unwrap();
-    assert_eq!(source.rule[0].negative, Some(vec![atom(&["Q"])]));
-    let negative = source.rule[1].negative.as_ref().unwrap();
-    assert_eq!(negative.len(), 2);
-    assert!(matches!(negative[0][0], Value::Rule { .. }));
-    assert_eq!(negative[1], atom(&["Q"]));
-}
-
-#[test]
 fn empty() {
-    let source = lowering::parse("(); [()] -> A; [A] -> (); [A] -> []; [] -> A;").unwrap();
+    let source = lowering::parse("() [()] A, [A] (), [A], [] A").unwrap();
     assert_eq!(source.initial, [Vec::<Value>::new()]);
     assert_eq!(source.rule[0].input, [Vec::<Value>::new()]);
     assert_eq!(source.rule[1].output.len(), 1);
     assert!(source.rule[1].output[0].particle.is_empty());
     assert!(source.rule[2].output.is_empty());
     assert!(source.rule[3].input.is_empty());
-    let source = lowering::parse("[A] -> {};").unwrap();
-    assert!(source.initial.is_empty());
-    assert_eq!(source.rule[0].output[0].body.as_ref().unwrap().len(), 0);
     let source = lowering::parse("").unwrap();
     assert!(source.initial.is_empty() && source.rule.is_empty());
 }
 
 #[test]
+fn alphabet() {
+    let source = lowering::parse("$x.@.unless.->.;.{.}").unwrap();
+    assert_eq!(
+        source.initial,
+        [atom(&["$x", "@", "unless", "->", ";", "{", "}"])]
+    );
+    let source = lowering::parse("Box(A.B)").unwrap();
+    assert_eq!(source.initial, [atom(&["Box", "A", "B"])]);
+    let source = lowering::parse("[Box(A)] Box(B)").unwrap();
+    assert_eq!(source.rule[0].input, [atom(&["Box", "A"])]);
+    assert_eq!(source.rule[0].output[0].particle, atom(&["Box", "B"]));
+    assert!(serde_json::from_str::<Value>(r#"{"variable":"x"}"#).is_err());
+    assert!(serde_json::from_str::<Value>(r#"{"structure":"Box","particle":["A"]}"#).is_err());
+}
+
+#[test]
 fn unicode() {
-    let source = lowering::parse("人.世界; [人] -> 🌋;").unwrap();
+    let source = lowering::parse("人.世界 [人] 🌋").unwrap();
     assert_eq!(source.initial, [atom(&["人", "世界"])]);
     assert_eq!(source.rule[0].output[0].particle, atom(&["🌋"]));
     let Failure::Syntax { span, .. } = lowering::parse("人]").unwrap_err() else {
-        panic!("expected a syntax diagnostic");
+        panic!("expected diagnostic");
     };
     assert_eq!(span.offset(), 3);
     assert_eq!(span.len(), 1);
-    let Failure::Syntax { span, .. } = lowering::parse("[人] ->").unwrap_err() else {
-        panic!("expected an end-of-input diagnostic");
-    };
-    assert_eq!(span.offset(), "[人] ->".len());
-    assert_eq!(span.len(), 0);
 }
 
 #[test]
 fn malformed() {
-    for source in [
-        "A",
-        "A..B;",
-        "[A] ->;",
-        "[A] -> B",
-        "[A] unless -> B;",
-        "[A] -> { [B] -> C;",
-        "@([A] -> B;);",
-        "[A] -> [], B;",
-    ] {
-        assert!(
-            matches!(lowering::parse(source), Err(Failure::Syntax { .. })),
-            "{source}"
-        );
+    for source in ["A..B", ".A", "[A] B.", "[A B] C", "[A] (B,C [B] D)"] {
+        assert!(lowering::parse(source).is_err(), "{source}");
     }
-    let source = "[A] -> { X, Y; [X] -> Z; };";
-    let Failure::Body { count, span } = lowering::parse(source).unwrap_err() else {
-        panic!("expected a body initialization diagnostic");
-    };
-    assert_eq!(count, 2);
-    assert_eq!(
-        &source[span.offset()..span.offset() + span.len()],
-        "{ X, Y; [X] -> Z; }"
-    );
-}
-
-#[test]
-fn depth() {
-    let source = "{".repeat(129);
     assert!(matches!(
-        lowering::parse(&source),
+        lowering::parse(&"[".repeat(129)),
         Err(Failure::Depth { limit: 128, .. })
     ));
-    let source = format!("A; {}", "[A] -> A; ".repeat(10_000));
-    assert_eq!(lowering::parse(&source).unwrap().rule.len(), 10_000);
+    assert!(lowering::parse(&format!("{}A{}", "(".repeat(128), ")".repeat(128))).is_ok());
 }
 
 #[test]
-fn variable() {
-    let source =
-        lowering::parse("[$value] unless [Blocked($value)] -> @([$input] -> Pair($value.$input));")
-            .unwrap();
-    assert_eq!(
-        source.rule[0].input,
-        [vec![Value::Variable {
-            variable: "value".into()
-        }]]
-    );
-    let Value::Rule { rule } = &source.rule[0].output[0].particle[0] else {
-        panic!("expected a rule value");
-    };
-    assert_eq!(
-        rule.input,
-        [vec![Value::Variable {
-            variable: "input".into()
-        }]]
-    );
-    assert_eq!(
-        rule.output[0].particle,
-        [Value::Structure {
-            structure: "Pair".into(),
-            particle: vec![
-                Value::Variable {
-                    variable: "value".into()
-                },
-                Value::Variable {
-                    variable: "input".into()
-                }
-            ],
-        }]
-    );
-    assert!(lowering::parse("$free; [A] -> $unbound;").is_ok());
-    for source in ["$;", "$ name;", "A$value;", "$Box(A);", "Box(A,B);"] {
+fn grouping() {
+    let compact = lowering::parse("[A] (B).C").unwrap();
+    let spaced = lowering::parse("[A] (B) . C").unwrap();
+    assert_eq!(compact.rule[0].canonical(), spaced.rule[0].canonical());
+}
+
+#[test]
+fn schema() {
+    for source in [
+        r#"{"rule":[{"input":[["A"]],"output":[{"particle":["B"]}],"negative":[["C"]]}]}"#,
+        r#"{"initial":[[{"rule":{"input":[["A"]],"output":[]},"negative":[["C"]]}]]}"#,
+        r#"{"initial":[[{"rule":{"input":[["A"]],"output":[],"negative":[["C"]]}}]]}"#,
+    ] {
         assert!(
-            matches!(lowering::parse(source), Err(Failure::Syntax { .. })),
+            serde_json::from_str::<molten::source::Program>(source).is_err(),
             "{source}"
         );
     }
 }
 
 #[test]
-fn structure() {
-    let source =
-        lowering::parse("Box(A.B).Empty().Outer(Inner(C).@([D] -> E)); [Box($value)] -> $value;")
-            .unwrap();
-    assert_eq!(
-        source.initial[0][0],
-        Value::Structure {
-            structure: "Box".into(),
-            particle: atom(&["A", "B"])
-        }
-    );
-    assert_eq!(
-        source.initial[0][1],
-        Value::Structure {
-            structure: "Empty".into(),
-            particle: Vec::new()
-        }
-    );
-    let Value::Structure {
-        structure,
-        particle,
-    } = &source.initial[0][2]
-    else {
-        panic!("expected a nested structure");
-    };
-    assert_eq!(structure, "Outer");
-    assert_eq!(
-        particle[0],
-        Value::Structure {
-            structure: "Inner".into(),
-            particle: atom(&["C"])
-        }
-    );
-    assert!(matches!(particle[1], Value::Rule { .. }));
-}
-
-#[test]
-fn canonical() {
-    let first = lowering::parse("[Box(Inner(B.A).$value.A)] -> Box(B.A.$value);").unwrap();
-    let second = lowering::parse("[Box(A.$value.Inner(A.B))] -> Box($value.A.B);").unwrap();
-    assert_eq!(first.rule[0].canonical(), second.rule[0].canonical());
-    let distinct = lowering::parse("[Box(Inner(A.B).$value.A.A)] -> Box($value.A.B);").unwrap();
-    assert_ne!(first.rule[0].canonical(), distinct.rule[0].canonical());
-    let distinct = lowering::parse("[Box(Inner(A.B).$other.A)] -> Box($other.A.B);").unwrap();
-    assert_ne!(first.rule[0].canonical(), distinct.rule[0].canonical());
-}
-
-#[test]
-fn spelling() {
-    let source = lowering::parse("箱(人.$名前); [箱($名前)] -> 世界($名前);").unwrap();
-    assert_eq!(
-        source.initial[0],
-        [Value::Structure {
-            structure: "箱".into(),
-            particle: vec![
-                Value::Atom("人".into()),
-                Value::Variable {
-                    variable: "名前".into()
-                }
-            ],
-        }]
-    );
-    let source = "箱($名前]";
-    let Failure::Syntax { span, .. } = lowering::parse(source).unwrap_err() else {
-        panic!("expected a structure diagnostic");
-    };
-    assert!(source.is_char_boundary(span.offset()));
-    assert!(source.is_char_boundary(span.offset() + span.len()));
-    assert_eq!(&source[span.offset()..span.offset() + span.len()], "]");
-}
-
-#[test]
-fn nesting() {
-    let source = format!("{}A{};", "Box(".repeat(128), ")".repeat(128));
-    assert!(lowering::parse(&source).is_ok());
-    let source = format!("{}$名前{};", "箱(".repeat(129), ")".repeat(129));
-    let Failure::Depth { limit, span } = lowering::parse(&source).unwrap_err() else {
-        panic!("expected a nesting diagnostic");
-    };
-    assert_eq!(limit, 128);
-    assert_eq!(span.offset(), "箱(".len() * 128 + "箱".len());
-    assert_eq!(span.len(), 1);
+fn recursion() {
+    assert!(lowering::parse(&"[A] ".repeat(128)).is_ok());
+    for count in [129, 10_000] {
+        let error = lowering::parse(&"[A] ".repeat(count)).unwrap_err();
+        let Failure::Depth { limit, span } = error else {
+            panic!("expected depth diagnostic");
+        };
+        assert_eq!(limit, 128);
+        assert_eq!(span.offset(), 128 * 4);
+    }
+    let mixed = format!("{}({})", "[A] ".repeat(127), "[B] ".repeat(2));
+    assert!(matches!(
+        lowering::parse(&mixed),
+        Err(Failure::Depth { .. })
+    ));
+    assert!(lowering::parse(&"[A] B, ".repeat(10_000)).is_ok());
 }

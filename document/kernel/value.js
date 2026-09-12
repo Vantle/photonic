@@ -8,16 +8,30 @@ window.kernel.value=(()=>{
         return index.get(capture);
     }
     const order=value=>value.slice().sort((left,right)=>JSON.stringify(left).localeCompare(JSON.stringify(right)));
+    function validate(value,field){
+        if(value===null||typeof value!=='object'||Array.isArray(value))throw new TypeError('Expected an object');
+        for(const key of Object.keys(value))if(!field.includes(key))throw new TypeError('Unsupported field: '+key);
+    }
     function structure(rule){
-        const term=value=>typeof value==='string'?value:{rule:structure(value.rule)};
-        return {input:order(rule.input.map(particle=>order(particle.map(term)))),output:order(rule.output.map(value=>({particle:order((value.particle||[]).map(term)),...(value.body?{body:order(value.body.map(structure))}:{})}))),...(rule.negative===undefined?{}:{negative:order(rule.negative.map(particle=>order(particle.map(term))))})};
+        validate(rule,['name','input','output']);
+        const term=value=>{
+            if(typeof value==='string')return value;
+            validate(value,['rule']);
+            return {rule:structure(value.rule)};
+        };
+        return {input:order(rule.input.map(particle=>order(particle.map(term)))),output:order(rule.output.map(value=>{
+            validate(value,['particle','body']);
+            return {particle:order((value.particle||[]).map(term)),...(value.body?{body:order(value.body.map(structure))}:{})};
+        }))};
     }
     function compile(program){
+        validate(program,['name','text','initial','rule']);
         const scope={},code=new Map(),index=new Map(),name=new Map();
         const text=JSON.stringify(program);let prefix='§';
         while(text.includes(prefix))prefix+='§';
         function value(term){
             if(typeof term==='string')return term;
+            validate(term,['rule']);
             const canonical=structure(term.rule),key=JSON.stringify(canonical);
             if(index.has(key))return index.get(key);
             const label=prefix+index.size;index.set(key,label);name.set(label,term.rule.name||'Rule '+index.size);
@@ -25,7 +39,9 @@ window.kernel.value=(()=>{
             return label;
         }
         function rule(item,id){
-            return {...item,id,name:item.name||id,input:item.input.map(particle=>particle.map(value)),...(item.negative===undefined?{}:{negative:item.negative.map(particle=>particle.map(value))}),output:item.output.map((output,position)=>{
+            validate(item,['name','input','output']);
+            return {...item,id,name:item.name||id,input:item.input.map(particle=>particle.map(value)),output:item.output.map((output,position)=>{
+                validate(output,['particle','body']);
                 const result={...output,particle:(output.particle||[]).map(value)};
                 if(!output.body)return result;
                 const body=id+'/'+position;declare(output.body,body);return {...result,body};

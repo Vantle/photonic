@@ -2,6 +2,29 @@
 window.kernel.verify=()=>{
     let checked=0;const failure=[];
     const check=(condition,name)=>{checked++;if(!condition)failure.push(name);};
+    const evidence=kernel.support.evaluate({closed:false,clause:[{head:'start',premise:[]},{head:'next',premise:['start']},{head:'cycle',premise:['cycle']}]});
+    check(evidence.status('start')==='supported'&&evidence.status('next')==='supported','Positive evidence follows anchored dependencies');
+    check(evidence.status('cycle')==='unsupported','An unanchored cycle supplies no evidence');
+    for(const nested of [false,true]){
+        const rule={name:'Rejected',input:[['A']],output:[{particle:['B']}],negative:[['Q']]};
+        let rejected=false;
+        try{kernel.model.create(nested?{initial:[[{rule}]],rule:[]}:{initial:[['A']],rule:[rule]});}catch(error){rejected=error instanceof TypeError;}
+        check(rejected,'Unsupported rule fields are rejected '+(nested?'inside values':'in declarations'));
+    }
+    const declaration={input:[['A']],output:[{particle:['B']}]};
+    const invalid=[
+        {initial:[['A']],rule:[],negative:[]},
+        {initial:[[{rule:declaration,negative:[]}]],rule:[]},
+        {initial:[['A']],rule:[{input:[['A']],output:[{particle:['B'],negative:[]}]}]},
+        {initial:[[{rule:{input:[['A']],output:[{particle:['B'],negative:[]}]}}]],rule:[]},
+        {initial:[[{rule:{input:[[{rule:declaration,negative:[]}]],output:[]}}]],rule:[]},
+        {initial:[[{rule:{input:[],output:[{body:[{...declaration,negative:[]}]}]}}]],rule:[]}
+    ];
+    invalid.forEach((program,index)=>{
+        let rejected=false;
+        try{kernel.value.compile(program);}catch(error){rejected=error instanceof TypeError;}
+        check(rejected,'Unsupported fields cannot cross schema boundary '+index);
+    });
     const run=(example,limit={})=>kernel.model.create(example,limit).run(12000);
     const find=(model,text)=>model.node.find(value=>kernel.state.show(value.state)===text);
     const has=(model,text)=>Boolean(find(model,text));
@@ -37,7 +60,7 @@ window.kernel.verify=()=>{
             check(JSON.stringify(actual)===JSON.stringify(expected),'Incremental gate agrees with exhaustive binding '+mask+' '+JSON.stringify(pattern));
         }
     }
-    const models=kernel.example.slice(0,14).map((example,index)=>index===7?kernel.model.create(example,{cell:3,state:12}).run(2000):run(example));
+    const models=kernel.example.slice(0,10).map((example,index)=>index===7?kernel.model.create(example,{cell:3,state:12}).run(2000):run(example));
     models.forEach((model,index)=>{
         check(new Set(model.node.map(value=>JSON.stringify(value.state))).size===model.node.length,'Canonical states '+index);
         check(model.node.every(value=>value.state.world.every(world=>new Set(world.particle.map(token=>token.id)).size===world.particle.length)),'No duplicate local introductions '+index);
@@ -57,26 +80,11 @@ window.kernel.verify=()=>{
     check(!models[7].closed&&models[7].deferred>0&&has(models[7],'[B]@root'),'Fresh creation consumes correctly and bounded growth stays pending');
     check(has(models[8],'[Extra.False]@root')&&models[8].node.some(value=>value.state.frame.length>=4),'Three nested expression bodies execute');
     const status=(model,text)=>kernel.support.evaluate(model).status('s'+find(model,text).id);
-    check(status(models[9],'[P]@root')==='supported','Closed default is supported');
-    for(const index of [9,10]){
-        const example=kernel.example[index],revised=run({...example,rule:[...example.rule,...example.later]});
-        check(status(revised,'[P]@root')===(index===9?'unsupported':'supported'),'Revision and alternative support '+index);
-        check(status(models[index],'[P]@root')==='supported','Prior revision remains intact '+index);
-    }
-    check(status(models[11],'[P]@root')==='conditional','Self-negating support remains conditional');
-    check(kernel.support.interpretation(models[11]).value.length===0,'Self-negation has no stable interpretation but retains its state');
-    check(kernel.support.interpretation(models[12]).value.length===2,'Mutual absence retains two stable interpretations');
-    check(models[13].node.length===2&&models[13].closed,'Finite cycle reuses two configurations');
-    const paused=kernel.model.create(kernel.example[13],{state:1}).run(500);
+    check(models[9].node.length===2&&models[9].closed,'Finite cycle reuses two configurations');
+    const paused=kernel.model.create(kernel.example[9],{state:1}).run(500);
     check(!paused.closed&&paused.deferred>0,'State budget defers new configuration');
     paused.run(12000,{state:80});
-    check(paused.closed&&JSON.stringify(paused.node.map(value=>JSON.stringify(value.state)).sort())===JSON.stringify(models[13].node.map(value=>JSON.stringify(value.state)).sort()),'Resume reaches the unpaused fixed point');
-    const step=kernel.model.create(kernel.example[11]);
-    while(!step.query.length)step.run(1);
-    check(!step.closed&&status(step,'[P]@root')==='conditional','Open recursive absence is not mistaken for failure');
-    const early=kernel.model.create(kernel.example[9]);
-    while(!early.query.length)early.run(1);
-    check(!early.closed&&early.query[0].closed&&status(early,'[P]@root')==='supported','Finite label invariant closes a query without global completion');
+    check(paused.closed&&JSON.stringify(paused.node.map(value=>JSON.stringify(value.state)).sort())===JSON.stringify(models[9].node.map(value=>JSON.stringify(value.state)).sort()),'Resume reaches the unpaused fixed point');
     const root={scope:'root',parent:null,lexical:null,held:[]};
     const shared={world:[{frame:0,particle:[{id:'x',label:'X'}]},{frame:0,particle:[{id:'x',label:'X'}]}],frame:[root]};
     const independent={...shared,world:[shared.world[0],{frame:0,particle:[{id:'y',label:'X'}]}]};
@@ -98,12 +106,7 @@ window.kernel.verify=()=>{
     const body={world:[{frame:1,particle:[{id:'x',label:'X'}]}],frame:[root,{scope:'body',parent:0,lexical:0,held:[{id:'a',label:'A'}]}]};
     const returned=kernel.flow.apply(body,1,1,{output:[{particle:['Y','Z']}]},{world:[0],footprint:['w0/x'],exact:['w0/x']},{cell:2,frame:1,world:1});
     check(Boolean(returned)&&kernel.state.show(returned.state)==='[Y.Z]@root','Discarded continuation frames do not consume the target budget');
-    const literal=(name,input,output,negative)=>({name,input,output:output.map(particle=>({particle})),...(negative===undefined?{}:{negative})});
-    const derived=run({initial:[['Start']],rule:[literal('Default',[['Start']],[['P']],[['Q']]),literal('Consequence',[['P']],[['Q']])]});
-    check(status(derived,'[P]@root')==='conditional'&&status(derived,'[Q]@root')==='conditional','Derived negative cycle remains conditional across source projection');
-    const combined={initial:[['A','X']],rule:[literal('Conditional split',[['A']],[['B'],['C']],[['Q']]),literal('Joint result',[['B'],['C']],[['D']])]};
-    const before=run(combined),after=run({...combined,rule:[...combined.rule,literal('Later route',[['A']],[['Q']])]});
-    check(status(before,'[D.X]@root')==='supported'&&status(after,'[D.X]@root')==='unsupported','Conditional evidence propagates through decoherence and ancestor projection');
+    const literal=(name,input,output)=>({name,input,output:output.map(particle=>({particle}))});
     const allocation=run({initial:[['A','X'],['B','X']],rule:[literal('Broadcast',[['A'],['B']],[['C'],['D']]),literal('Reunion',[['C'],['D']],[['E']])]});
     check(has(allocation,'[E.X.X]@root'),'Independent initial leftovers retain multiplicity');
     const local={initial:[['Enter','Ready','Call','Payload']],rule:[
@@ -114,9 +117,9 @@ window.kernel.verify=()=>{
     check(lexical.node.some(value=>value.state.frame.some(frame=>frame.scope==='root/1/0'&&frame.parent!==frame.lexical)),'Lexical capture differs from the return continuation');
     check(!lexical.event.some(event=>event.name==='Local trap'&&event.binding.world.some(index=>lexical.node[event.source].state.frame[lexical.node[event.source].state.world[index].frame].scope==='root/1/0')),'Caller-local rules do not leak into a lexically defined body');
     if(kernel.dynamic){
-        const dynamic=kernel.dynamic.example.map((example,index)=>kernel.model.create(example,{state:80,cell:index===7?4:9,frame:10}).run(12000));
+        const dynamic=kernel.dynamic.example.map((example,index)=>kernel.model.create(example,{state:80,cell:9,frame:10}).run(12000));
         dynamic.forEach((model,index)=>{
-            if(index!==7)check(model.closed,'Dynamic example closes '+index);
+            check(model.closed,'Dynamic example closes '+index);
             check(new Set(model.node.map(value=>JSON.stringify(value.state))).size===model.node.length,'Dynamic state interning '+index);
             check(model.view.every(view=>Object.keys(view.flow).length===Object.keys(kernel.flow.identity(model.node[view.target].state).flow).length),'Dynamic views retain complete live and captured flow '+index);
             check(model.event.every(event=>event.binding.read===undefined||event.binding.read.every(key=>key.startsWith('w')||key.startsWith('f'))),'Explicit availability footprint '+index);
@@ -129,15 +132,11 @@ window.kernel.verify=()=>{
         check(replacement.event.some(event=>event.source===successor&&event.name==='A to C')&&!replacement.event.some(event=>event.source===successor&&event.name==='A to B'),'Replacement successor uses its own available rule');
         check(dynamic[4].node.every(node=>node.state.world.some(world=>world.particle.length===1&&world.particle[0].label==='A')),'Unrelated coherence cannot borrow local code');
         check(has(dynamic[5],'[C.Extra.Seed]@root'),'Dynamic decoherence preserves read-only source remainder');
-        const conditional=dynamic[6],unsupported=conditional.node.filter(node=>node.state.world.some(world=>world.particle.some(token=>token.label==='P')));
-        check(unsupported.length>0&&unsupported.every(node=>kernel.support.evaluate(conditional).status('s'+node.id)==='unsupported'),'Generated Q rule defeats dependent default');
-        check(conditional.query.every(query=>!query.closed),'Dynamic code disables fixed-rule absence certificates');
-        check(dynamic[7].node.some(node=>node.id!==0&&kernel.support.evaluate(dynamic[7]).status('s'+node.id)==='conditional'),'Conditional generated code retains conditional support');
-        check(has(dynamic[8],'[Done]@root'),'Whole-rule abstraction transfers its concrete witness');
-        check(has(dynamic[9],'[Done.Seed]@root'),'Nested dynamic return does not consume code read support');
-        check(dynamic[10].node.some(node=>node.state.world.some(world=>world.frame===0&&world.particle.some(token=>token.label==='Done'))),'Escaped closure uses its captured local definition');
-        check(dynamic[10].node.some(node=>node.state.frame.length>=3&&node.state.world.some(world=>world.particle.some(token=>token.capture!==undefined&&token.capture!==world.frame))),'Captured definition and invocation frames remain distinct');
-        check(has(dynamic[11],'[B]@root')&&status(dynamic[11],'[B]@root')==='supported','Later code consumption does not invalidate historical results');
+        check(has(dynamic[6],'[Done]@root'),'Whole-rule abstraction transfers its concrete witness');
+        check(has(dynamic[7],'[Done.Seed]@root'),'Nested dynamic return does not consume code read support');
+        check(dynamic[8].node.some(node=>node.state.world.some(world=>world.frame===0&&world.particle.some(token=>token.label==='Done'))),'Escaped closure uses its captured local definition');
+        check(dynamic[8].node.some(node=>node.state.frame.length>=3&&node.state.world.some(world=>world.particle.some(token=>token.capture!==undefined&&token.capture!==world.frame))),'Captured definition and invocation frames remain distinct');
+        check(has(dynamic[9],'[B]@root')&&status(dynamic[9],'[B]@root')==='supported','Later code consumption does not invalidate historical results');
         const revised=kernel.model.create(kernel.dynamic.example[0],{state:1}).run(1000);
         revised.run(12000,{state:80});
         check(revised.closed&&JSON.stringify(revised.node.map(node=>JSON.stringify(node.state)).sort())===JSON.stringify(dynamic[0].node.map(node=>JSON.stringify(node.state)).sort()),'Dynamic capture and read dependencies survive budget resumption');

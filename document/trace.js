@@ -1,13 +1,13 @@
 (() => {
-    const select = document.getElementById('structure-example');
-    const source = document.getElementById('structure-source');
-    const summary = document.getElementById('structure-summary');
-    const graph = document.getElementById('structure-graph');
-    const state = document.getElementById('structure-state');
-    const event = document.getElementById('structure-event');
-    const detail = document.getElementById('structure-detail');
-    const previous = document.getElementById('structure-back');
-    const reset = document.getElementById('structure-reset');
+    const select = document.getElementById('native-example');
+    const source = document.getElementById('native-source');
+    const summary = document.getElementById('native-summary');
+    const graph = document.getElementById('native-graph');
+    const state = document.getElementById('native-state');
+    const event = document.getElementById('native-event');
+    const detail = document.getElementById('native-detail');
+    const previous = document.getElementById('native-back');
+    const reset = document.getElementById('native-reset');
     let selected = 0;
     let history = [];
     const element = (tag, text) => {
@@ -35,7 +35,7 @@
         state.replaceChildren(element('h3', `Configuration ${selected} · ${report.state[selected].status}`));
         for (const [index, world] of report.state[selected].world.entries()) {
             const box = element('div', '');
-            box.className = 'structure-world';
+            box.className = 'native-world';
             box.append(element('strong', `Coherence ${index} · frame ${world.frame}`));
             box.append(element('pre', world.particle.map(token => `${token.display}  #${token.id}${token.capture === undefined ? '' : ` · capture ${token.capture}`}`).join('\n') || '()'));
             state.append(box);
@@ -74,7 +74,7 @@
         const height = Math.max(120, 30 + Math.max(...column.values()) * 70);
         const svg = drawing('svg', {viewBox: `0 0 ${width} ${height}`, width, height, role: 'group', 'aria-label': 'Rust configuration graph'});
         const defs = drawing('defs', {});
-        const marker = drawing('marker', {id: 'structure-arrow', viewBox: '0 0 10 10', refX: 8, refY: 5, markerWidth: 5, markerHeight: 5, orient: 'auto-start-reverse'});
+        const marker = drawing('marker', {id: 'native-arrow', viewBox: '0 0 10 10', refX: 8, refY: 5, markerWidth: 5, markerHeight: 5, orient: 'auto-start-reverse'});
         marker.append(drawing('path', {d: 'M 0 0 L 10 5 L 0 10 z', fill: '#a6a099'}));
         defs.append(marker);
         svg.append(defs);
@@ -82,7 +82,7 @@
             const [x, y] = position.get(value.source);
             const [target, row] = position.get(value.target);
             const path = value.source === value.target ? `M ${x - 10} ${y - 16} C ${x - 45} ${y - 60}, ${x + 45} ${y - 60}, ${x + 10} ${y - 16}` : `M ${x + 19} ${y} C ${(x + target) / 2} ${y}, ${(x + target) / 2} ${row}, ${target - 20} ${row}`;
-            const edge = drawing('path', {d: path, fill: 'none', stroke: '#bdb6ad', 'stroke-width': 1.2, 'marker-end': 'url(#structure-arrow)'});
+            const edge = drawing('path', {d: path, fill: 'none', stroke: '#bdb6ad', 'stroke-width': 1.2, 'marker-end': 'url(#native-arrow)'});
             edge.append(drawing('title', {}, `Event ${value.id}: ${value.rule} · ${value.status}`));
             svg.append(edge);
         }

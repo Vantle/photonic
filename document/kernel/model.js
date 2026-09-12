@@ -2,10 +2,10 @@
 window.kernel.model=(()=>{
     const signature=view=>JSON.stringify([view.source,view.target,Object.entries(view.flow).sort(([left],[right])=>left.localeCompare(right)),view.context,view.frame]);
     function create(program,option={}){
-        const compiled=kernel.value.compile(program),{scope,code,name}=compiled,node=[],event=[],view=[],query=[],clause=[],agenda=[],pending=new Map();
-        const index={node:new Map(),event:new Map(),view:new Map(),query:new Map(),clause:new Set()};
+        const compiled=kernel.value.compile(program),{scope,code,name}=compiled,node=[],event=[],view=[],clause=[],agenda=[],pending=new Map();
+        const index={node:new Map(),event:new Map(),view:new Map(),clause:new Set()};
         let cursor=0;
-        const cache=new Map(),outgoing=new Map(),incoming=new Map(),origin=new Map(),subscription=new Map();
+        const cache=new Map(),outgoing=new Map(),incoming=new Map();
         let limit={state:80,world:4,cell:12,frame:10,...option},work=0;
         const append=(index,key,value)=>{if(!index.has(key))index.set(key,[]);index.get(key).push(value);};
         function* match(pattern,target,frame){
@@ -20,8 +20,8 @@ window.kernel.model=(()=>{
                 entry.value.push(next.value);yield next.value;
             }
         }
-        function support(head,positive=[],negative=[]){
-            const rule={head,positive:[...new Set(positive)].sort(),negative:[...new Set(negative)].sort()},key=JSON.stringify(rule);
+        function support(head,premise=[]){
+            const rule={head,premise:[...new Set(premise)].sort()},key=JSON.stringify(rule);
             if(index.clause.has(key))return;
             index.clause.add(key);clause.push(rule);
         }
@@ -71,12 +71,11 @@ window.kernel.model=(()=>{
                     }
                 }
             }
-            for(const obligation of subscription.get(current.source)||[])yield ()=>answer(current,obligation);
         }
         function intern(value){
             const key=signature(value);
             if(index.view.has(key))return view[index.view.get(key)];
-            const result={...value,id:'v'+view.length};index.view.set(key,view.length);view.push(result);append(incoming,result.target,result);append(origin,result.source,result);
+            const result={...value,id:'v'+view.length};index.view.set(key,view.length);view.push(result);append(incoming,result.target,result);
             agenda.push(inspect(result),compose(result));return result;
         }
         function state(value,key=JSON.stringify(value)){
@@ -84,30 +83,6 @@ window.kernel.model=(()=>{
             const position=node.length;index.node.set(key,position);node.push({id:position,state:value});
             const current=intern({source:position,target:position,...kernel.flow.identity(value)});support(current.id);
             return position;
-        }
-        function answer(current,obligation){
-            const source=node[current.source].state,target=node[current.target].state;
-            for(let frame=0;frame<target.frame.length;frame++){
-                if(current.frame[frame]!==obligation.frame)continue;
-                for(const selection of match(obligation.pattern.map(particle=>particle.map(term=>typeof term==='string'||term.environment!==undefined?term:{...term,capture:current.frame.indexOf(term.capture)})),current.target,frame))if(kernel.flow.project(source,current,selection,obligation.frame)){support(obligation.id,[current.id]);return;}
-            }
-        }
-        function unavailable(source,pattern){
-            if(code.size)return [];
-            const possible=new Set([...node[source].state.world.flatMap(value=>value.particle.map(token=>token.label)),...node[source].state.frame.flatMap(value=>value.held.map(token=>token.label))]);
-            for(let changed=true;changed;){
-                changed=false;
-                for(const rule of Object.values(scope).flat())if(rule.input.flat().every(label=>possible.has(label)))for(const label of rule.output.flatMap(value=>value.particle||[]))if(!possible.has(label)){possible.add(label);changed=true;}
-            }
-            return [...new Set(pattern.flat().filter(label=>!possible.has(label)))];
-        }
-        function obligation(source,frame,pattern){
-            const key=JSON.stringify([source,frame,pattern]);
-            if(index.query.has(key))return query[index.query.get(key)];
-            const missing=unavailable(source,pattern);
-            const result={id:'q'+query.length,source,frame,pattern,closed:missing.length>0,missing};index.query.set(key,query.length);query.push(result);append(subscription,source,result);
-            for(const current of origin.get(source)||[])enqueue(()=>answer(current,result));
-            return result;
         }
         function apply(current,frame,owner,rule,binding,closure,identity){
             const source=current.source,key=JSON.stringify([source,frame,owner,rule.id,binding,identity]);
@@ -124,9 +99,7 @@ window.kernel.model=(()=>{
             }
             const value=event[step];
             if(!value.evidence.includes(current.id))value.evidence.push(current.id);
-            const pattern=rule.negative===undefined?null:kernel.value.pattern(rule.negative,owner,code).map(particle=>particle.map(term=>typeof term==='string'||owner!==null?term:{label:term.label,environment:identity.environment}));
-            const negative=pattern===null?[]:[obligation(source,frame,pattern).id];
-            support(value.id,['s'+source,current.id],negative);
+            support(value.id,['s'+source,current.id]);
         }
         state(kernel.state.initial(compiled.initial));support('s0');
         function run(budget=1000,setting){
@@ -139,7 +112,7 @@ window.kernel.model=(()=>{
             if(cursor>4096){agenda.splice(0,cursor);cursor=0;}
             return api;
         }
-        const api={node,event,view,query,clause,scope,code,name,run,get work(){return work;},get queued(){return agenda.length-cursor;},get deferred(){return pending.size;},get closed(){return cursor===agenda.length&&!pending.size;},get limit(){return {...limit};}};
+        const api={node,event,view,clause,scope,code,name,run,get work(){return work;},get queued(){return agenda.length-cursor;},get deferred(){return pending.size;},get closed(){return cursor===agenda.length&&!pending.size;},get limit(){return {...limit};}};
         return api;
     }
     return {create};

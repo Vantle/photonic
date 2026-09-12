@@ -1,6 +1,6 @@
 # Canonical states and coherence outputs
 
-The [configuration semantics](semantics.md) is the current contract. The Rust runtime and [JavaScript laboratory](plan.html) integrate configuration sharing, joint source projection, resource allocation, captured rule values, nested frames, and well-founded support. Earlier local-state and tuple experiments remain historical references.
+The [configuration semantics](semantics.md) is the current contract. The Rust runtime and [JavaScript laboratory](plan.html) integrate configuration sharing, joint source projection, resource allocation, captured rule values, nested frames, and positive evidence closure. Earlier local-state and tuple experiments remain historical references.
 
 ## Share computation, preserve structure
 
@@ -47,11 +47,11 @@ Source inference also preserves its own output law. With `A → B.C` and `B → 
 
 ## New evidence and matching gates
 
-Intern configurations, events, relative views, and support clauses independently. A new view can enable an application at an already known source. Equivalent evidence extends support for an existing application instead of allocating another result. Conditional and unsupported paths remain distinguishable from supported computation.
+Intern configurations, events, relative views, and support clauses independently. A new view can enable an application at an already known source. Equivalent evidence extends support for an existing application instead of allocating another result. Only positively established evidence enables computation; a cycle cannot establish its own missing premises.
 
 Both evaluators cache matching by target configuration, frame, and pattern. Both retain lazy enumeration progress; Rust incrementally delivers completed cached bindings to subscribers and releases the candidate search when finished. Compatible occurrence assignments retain their identities; repeated reports do not supply another operand. Different relative views can reuse those cached bindings while projecting their own source footprints. Adjacency indexes schedule related work without pooling incompatible configurations. Rust can advance independent search and normalization steps on a Rayon pool, then merge their results in coordinator queue order.
 
-Generated definitions activate locally and retain read support separately from consuming flow. A code-producing derivation can defeat an absence condition; Rust conservatively disables fixed-label closure for all programs now that extraction can reveal new values. The ground reference disables it for models containing rule values. Revision comparison still creates separate model snapshots rather than mutating arbitrary programs in place.
+Generated definitions activate locally and retain read support separately from consuming flow. Established historical evidence is preserved when later events consume or replace code. There is no absence-dependent invalidation.
 
 ## Growth and bounds
 
@@ -72,8 +72,10 @@ both Ys compute Y → X
 A.X.X
 ```
 
-The larger multiplicity is observable and cannot be erased by memoization. Writing rules in both directions does not make them inverses. Budgets suspend unfinished work; they do not establish logical absence or a semantic depth limit.
+The larger multiplicity is observable and cannot be erased by memoization. Writing rules in both directions does not make them inverses. Budgets suspend unfinished work; they do not establish a semantic depth limit.
 
-Initial configurations contain independently introduced occurrences, so Rust sorts their coherences and renames once without factorial initial-world enumeration. General configurations refine graph colors using sharing, capture, parent, and lexical edges before exact canonicalization. Its resumable search advances one ordering/candidate at a time and reuses completed normalization slots. Worst-case CPU work remains factorial. Matching caches and adjacency indexes reduce repeated work, but finite checks of identity, sharing, scope, projection, and support do not establish production performance or universal completeness. The Rust graph runtime additionally implements [structural values](structure.md), with nested capture edges and instantiated code in canonical identity. The accepted core includes resumable particle matching and candidate ordering. Particle-rest capture and binder-syntax editing remain outside this extension; graph setup, source compilation, and closure normalization are not strictly preemptible. The integrated suite exercises finite ground dynamic rules, capture identity, support, and cache behavior.
+Initial configurations contain independently introduced occurrences, so Rust sorts their coherences and renames once without factorial initial-world enumeration. General configurations refine graph colors using sharing, capture, parent, and lexical edges before exact canonicalization. Its resumable search advances one ordering/candidate at a time and reuses completed normalization slots. Worst-case CPU work remains factorial. Matching caches and adjacency indexes reduce repeated work, but finite checks of identity, sharing, scope, projection, and support do not establish production performance or universal completeness. The Rust graph runtime and executable textual lowering are implemented for this finite ground fragment. The accepted core includes resumable particle matching and candidate ordering. Arbitrary partial structural operations are outside this milestone; graph setup, source compilation, and closure normalization are not strictly preemptible. The integrated suite exercises finite ground dynamic rules, capture identity, support, and cache behavior.
 
 The soft retained-record budget is checked between coordinator batches and can overshoot within a batch. Snapshots report current and peak counts; they do not measure exact bytes or provide reloadable checkpoints. Support is solved by dependency component and cached for unchanged snapshots. See [runtime](runtime.md) for the execution controls.
+
+Native execution uses the [original grammar](syntax.md). Whole-rule generalization is documented [here](generalization.md); arbitrary structural substitution is not implemented. The language has no negative premises.

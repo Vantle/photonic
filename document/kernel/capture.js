@@ -65,19 +65,6 @@ window.kernel.capture=(()=>{
             const retained=reserved?result.state.frame[0].held[0]:result.state.world[0].particle.find(value=>value.label===original.label);
             check((imported.id===retained.id)===!transformed,'Imported held identity preserves exact '+(reserved?'held':'live')+' '+(code?'code':'atom')+' source; transformed='+transformed);
         }
-        const literal=(name,input,particle,negative)=>({name,input:[input],output:[{particle}],...(negative?{negative:[negative]}:{})});
-        const absent={rule:literal('Absent closure',['Never'],['Unused'])};
-        const guarded={rule:literal('Guarded closure',['A'],['B'],[absent])};
-        const inner={name:'Inner capture',input:[['Make']],output:[{particle:['Step'],body:[literal('Return closure pair',['Step'],[guarded,absent,'A'])]}]};
-        const outer={name:'Outer capture',input:[['Enter']],output:[{body:[inner]}]};
-        const model=kernel.model.create({initial:[['Enter','Make']],rule:[outer]},{state:60,frame:10,cell:18}).run(20000);
-        const support=kernel.support.evaluate(model);
-        const application=model.event.filter(event=>event.name==='Guarded closure');
-        check(model.closed,'Escaped negative capture example reaches a finite fixed point');
-        check(application.some(event=>event.owner!==null)&&application.some(event=>event.owner===null),'Escaped negative capture exercises direct and imported rule availability');
-        check(application.length>0&&application.every(event=>support.status(event.id)==='unsupported'),'A present captured closure defeats both direct and inferred absence applications');
-        check(model.query.some(query=>query.pattern.flat().some(value=>typeof value!=='string'&&value.environment!==undefined)),'Imported absence matching records the captured environment');
-        check(model.node.every(node=>!node.state.world.some(world=>world.particle.some(token=>token.label==='B'))||support.status('s'+node.id)==='unsupported'),'Escaped closure absence cannot establish B through a wrong capture');
         return {checked,failure};
     }
     return {verify};

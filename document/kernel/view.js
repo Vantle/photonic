@@ -5,7 +5,7 @@
     kernel.example.forEach((value,index)=>example.add(new Option(value.name,String(index))));
     const requested=new URLSearchParams(location.search).get('example');
     if(requested!==null&&/^\d+$/.test(requested)&&Number(requested)<kernel.example.length)example.value=requested;
-    let model,selected=0,previous=null;
+    let model,selected=0;
     const button=(text,action)=>{const value=document.createElement('button');value.textContent=text;value.addEventListener('click',action);return value;};
     const describe=state=>kernel.state.show(state,label=>model.name.has(label)?'⟨'+model.name.get(label)+'⟩':label);
     function draw(event){
@@ -50,16 +50,13 @@
             row.append(button(`${event.id}: ${event.name} → state ${event.target}`,()=>inspect(event)),button('Follow',()=>{selected=event.target;render();inspect(event);}));
             element('event').append(row);
         }
-        element('query').textContent=JSON.stringify(model.query.map(value=>({...value,status:support.status(value.id)})),null,2);
         element('advance').disabled=model.closed;element('explore').disabled=model.closed;
         element('expand').disabled=model.closed;
-        element('revision').disabled=!kernel.example[Number(example.value)].later||previous!==null;
-        element('comparison').textContent=previous?`Previous snapshot: ${previous.node.length} configurations, ${previous.event.length} events. Current snapshot adds a rule. The previous graph is retained unchanged in memory; Reset restores its program.`:'';
         element('detail').textContent='Select an outgoing event to inspect its witness and footprint.';draw();
     }
     function reset(){
         const value=kernel.example[Number(example.value)];
-        model=kernel.model.create(value,{state:40,world:4,cell:7,frame:10});selected=0;previous=null;
+        model=kernel.model.create(value,{state:40,world:4,cell:7,frame:10});selected=0;
         element('description').textContent=value.text;element('program').textContent=JSON.stringify(value,null,2);render();
     }
     example.addEventListener('change',reset);element('reset').addEventListener('click',reset);
@@ -78,10 +75,5 @@
     element('advance').addEventListener('click',()=>{model.run(100);render();});
     element('explore').addEventListener('click',()=>{model.run(2000);render();});
     element('expand').addEventListener('click',()=>{const limit=model.limit;model.run(2000,{state:limit.state+20,cell:limit.cell+2,frame:limit.frame+2});render();});
-    element('revision').addEventListener('click',()=>{
-        const value=kernel.example[Number(example.value)];previous=model;
-        const revised={...value,rule:[...value.rule,...value.later]};
-        model=kernel.model.create(revised).run(2000);selected=0;element('program').textContent=JSON.stringify(revised,null,2);render();
-    });
     reset();clear();
 })();

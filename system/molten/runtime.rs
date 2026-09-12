@@ -1,6 +1,6 @@
 use crate::flow::{self, Binding, Closure, Flow, Place};
 use crate::matching::{self, Slot, Term};
-use crate::program::{Instruction, Program, Symbol};
+use crate::program::{Program, Symbol};
 use crate::source;
 use crate::state::State;
 use crate::support::{Atom, Clause, Support};
@@ -41,7 +41,7 @@ struct Application {
     view: usize,
     frame: usize,
     owner: Option<usize>,
-    rule: Arc<Instruction>,
+    rule: usize,
     binding: Binding,
     capture: Option<usize>,
 }
@@ -50,9 +50,9 @@ struct Identity {
     source: usize,
     frame: usize,
     owner: Option<usize>,
-    rule: Arc<Instruction>,
+    rule: usize,
     binding: Binding,
-    environment: Option<crate::constraint::Environment>,
+    environment: Option<State>,
 }
 struct Event {
     identity: Identity,
@@ -61,34 +61,19 @@ struct Event {
     evidence: BTreeSet<usize>,
 }
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
-struct Query {
-    source: usize,
-    frame: usize,
-    pattern: Vec<Vec<Term>>,
-    constraint: Option<crate::constraint::Constraint>,
-}
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 struct Match {
-    constraint: Option<crate::constraint::Constraint>,
     target: usize,
     frame: usize,
     pattern: Vec<Vec<Term>>,
 }
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
-enum Operation {
-    Invoke {
-        owner: Option<usize>,
-        rule: Arc<Instruction>,
-        capture: Option<usize>,
-        read: Option<Place>,
-    },
-    Answer(usize),
-}
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 struct Consumer {
     view: usize,
     frame: usize,
-    operation: Operation,
+    owner: Option<usize>,
+    rule: usize,
+    capture: Option<usize>,
+    read: Option<Place>,
 }
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 struct Request {
@@ -115,7 +100,6 @@ enum Task {
     Deliver(usize),
     Compose(usize, usize),
     Apply(Application),
-    Answer(usize, usize),
 }
 
 pub struct Runtime {
@@ -129,7 +113,6 @@ pub struct Runtime {
     vacant: Vec<usize>,
     retained: usize,
     binding: usize,
-    query: IndexSet<Query>,
     clause: IndexSet<Clause>,
     evaluation: OnceLock<Support>,
     matching: HashMap<Match, usize>,
@@ -139,15 +122,12 @@ pub struct Runtime {
     active: HashSet<usize>,
     outgoing: Vec<Vec<usize>>,
     incoming: Vec<Vec<usize>>,
-    origin: Vec<Vec<usize>>,
-    subscription: Vec<Vec<usize>>,
     agenda: VecDeque<Task>,
     pending: IndexSet<Application>,
     limit: Limit,
     work: usize,
     peak: usize,
     flying: usize,
-    volume: usize,
 }
 
 impl Runtime {
@@ -165,7 +145,6 @@ impl Runtime {
             vacant: Vec::new(),
             retained: 0,
             binding: 0,
-            query: IndexSet::new(),
             clause: IndexSet::new(),
             evaluation: OnceLock::new(),
             matching: HashMap::new(),
@@ -175,32 +154,23 @@ impl Runtime {
             active: HashSet::new(),
             outgoing: Vec::new(),
             incoming: Vec::new(),
-            origin: Vec::new(),
-            subscription: Vec::new(),
             agenda: VecDeque::new(),
             pending: IndexSet::new(),
             limit: Limit::default(),
             work: 0,
             peak: 0,
             flying: 0,
-            volume: 0,
         };
         runtime.intern(initial);
-        runtime.support(Atom::State(0), [], []);
+        runtime.support(Atom::State(0), []);
         runtime.peak = runtime.record();
         runtime
     }
 
-    fn support(
-        &mut self,
-        head: Atom,
-        positive: impl IntoIterator<Item = Atom>,
-        negative: impl IntoIterator<Item = Atom>,
-    ) {
+    fn support(&mut self, head: Atom, premise: impl IntoIterator<Item = Atom>) {
         self.clause.insert(Clause {
             head,
-            positive: positive.into_iter().collect(),
-            negative: negative.into_iter().collect(),
+            premise: premise.into_iter().collect(),
         });
     }
 
@@ -209,31 +179,24 @@ impl Runtime {
         if !fresh {
             return index;
         }
-        self.volume = self
-            .volume
-            .saturating_add(crate::measure::state(&self.state[index], usize::MAX));
         self.outgoing.push(Vec::new());
         self.incoming.push(Vec::new());
-        self.origin.push(Vec::new());
-        self.subscription.push(Vec::new());
         let view = self.witness(View {
             source: index,
             target: index,
             flow: Flow::identity(&self.state[index]),
         });
-        self.support(Atom::View(view), [], []);
+        self.support(Atom::View(view), []);
         index
     }
 
     fn witness(&mut self, view: View) -> usize {
-        let source = view.source;
         let target = view.target;
         let (index, fresh) = self.view.insert_full(Arc::new(view));
         if !fresh {
             return index;
         }
         self.incoming[target].push(index);
-        self.origin[source].push(index);
         self.agenda.push_back(Task::Inspect(index));
         for &event in &self.outgoing[target] {
             self.agenda.push_back(Task::Compose(index, event));
@@ -253,10 +216,8 @@ impl Runtime {
         frame: usize,
         pattern: Vec<Vec<Term>>,
         consumer: Consumer,
-        constraint: Option<crate::constraint::Constraint>,
     ) {
         let key = Match {
-            constraint,
             target,
             frame,
             pattern,
@@ -266,14 +227,11 @@ impl Runtime {
         } else {
             let cache = self.cache.len();
             self.cache.push(Cache {
-                search: Some(
-                    crate::search::Search::new(
-                        key.pattern.clone(),
-                        self.state[target].clone(),
-                        frame,
-                    )
-                    .constrain(key.constraint.clone()),
-                ),
+                search: Some(crate::search::Search::new(
+                    key.pattern.clone(),
+                    self.state[target].clone(),
+                    frame,
+                )),
                 binding: Vec::new(),
                 listener: Vec::new(),
                 retained: 0,
@@ -329,11 +287,7 @@ impl Runtime {
         }
         let consumer = request.consumer;
         let view = self.view[consumer.view].clone();
-        if let Operation::Invoke {
-            read: Some(Place::World(site, _)),
-            ..
-        } = consumer.operation
-        {
+        if let Some(Place::World(site, _)) = consumer.read {
             if !selection.iter().any(|slot| slot.world == site) {
                 return;
             }
@@ -350,33 +304,17 @@ impl Runtime {
         ) else {
             return;
         };
-        binding.value = selection
-            .iter()
-            .flat_map(|slot| slot.binding.clone())
-            .collect();
-        match consumer.operation {
-            Operation::Invoke {
-                owner,
-                rule,
-                capture,
-                read,
-            } => {
-                if let Some(read) = read {
-                    binding.read = view.flow.resource[&read].clone();
-                }
-                self.agenda.push_back(Task::Apply(Application {
-                    view: consumer.view,
-                    frame: consumer.frame,
-                    owner,
-                    rule,
-                    binding,
-                    capture,
-                }));
-            }
-            Operation::Answer(query) => {
-                self.support(Atom::Query(query), [Atom::View(consumer.view)], [])
-            }
+        if let Some(read) = consumer.read {
+            binding.read = view.flow.resource[&read].clone();
         }
+        self.agenda.push_back(Task::Apply(Application {
+            view: consumer.view,
+            frame: consumer.frame,
+            owner: consumer.owner,
+            rule: consumer.rule,
+            binding,
+            capture: consumer.capture,
+        }));
     }
 
     fn inspect(&mut self, index: usize) {
@@ -389,12 +327,12 @@ impl Runtime {
             }
             let mut owner = Some(frame);
             while let Some(current) = owner {
-                let rule = source.frame[current].scope.rule.clone();
+                let rule = self.program.scope[source.frame[current].scope].rule.clone();
                 for rule in rule {
-                    let input = if rule.input.is_empty() {
+                    let input = if self.program.rule[rule].input.is_empty() {
                         vec![Vec::new()]
                     } else {
-                        rule.input.clone()
+                        self.program.rule[rule].input.clone()
                     };
                     let capture = view
                         .flow
@@ -413,14 +351,11 @@ impl Runtime {
                             Consumer {
                                 view: index,
                                 frame,
-                                operation: Operation::Invoke {
-                                    owner: Some(current),
-                                    rule: rule.clone(),
-                                    capture: None,
-                                    read: None,
-                                },
+                                owner: Some(current),
+                                rule,
+                                capture: None,
+                                read: None,
                             },
-                            None,
                         );
                     }
                 }
@@ -432,15 +367,15 @@ impl Runtime {
                 continue;
             };
             for token in &world.particle {
-                let Symbol::Rule(rule, capture) = &token.value else {
+                let Symbol::Rule(rule) = token.value else {
                     continue;
                 };
-                let input = if rule.input.is_empty() {
+                let input = if self.program.rule[rule].input.is_empty() {
                     vec![Vec::new()]
                 } else {
-                    rule.input.clone()
+                    self.program.rule[rule].input.clone()
                 };
-                let pattern = matching::pattern(&input, *capture);
+                let pattern = matching::pattern(&input, token.capture);
                 self.matching(
                     view.target,
                     world.frame,
@@ -448,128 +383,27 @@ impl Runtime {
                     Consumer {
                         view: index,
                         frame,
-                        operation: Operation::Invoke {
-                            owner: capture.and_then(|capture| view.flow.frame[capture]),
-                            rule: rule.clone(),
-                            capture: *capture,
-                            read: Some(Place::World(site, token.id)),
-                        },
+                        owner: token.capture.and_then(|capture| view.flow.frame[capture]),
+                        rule,
+                        capture: token.capture,
+                        read: Some(Place::World(site, token.id)),
                     },
-                    None,
                 );
             }
-        }
-        for &query in &self.subscription[view.source] {
-            self.agenda.push_back(Task::Answer(index, query));
-        }
-    }
-
-    fn obligation(
-        &mut self,
-        source: usize,
-        frame: usize,
-        pattern: Vec<Vec<Term>>,
-        constraint: Option<crate::constraint::Constraint>,
-    ) -> usize {
-        let (index, fresh) = self.query.insert_full(Query {
-            source,
-            frame,
-            pattern,
-            constraint,
-        });
-        if fresh {
-            self.subscription[source].push(index);
-            for &view in &self.origin[source] {
-                self.agenda.push_back(Task::Answer(view, index));
-            }
-        }
-        index
-    }
-
-    fn answer(&mut self, index: usize, query: usize) {
-        let view = self.view[index].clone();
-        let obligation = self.query[query].clone();
-        let pattern = obligation.pattern;
-        for frame in 0..self.state[view.target].frame.len() {
-            if view.flow.frame[frame] != Some(obligation.frame) {
-                continue;
-            }
-            self.matching(
-                view.target,
-                frame,
-                pattern.clone(),
-                Consumer {
-                    view: index,
-                    frame: obligation.frame,
-                    operation: Operation::Answer(query),
-                },
-                obligation
-                    .constraint
-                    .as_ref()
-                    .map(|constraint| constraint.project(&view.flow.frame)),
-            );
         }
     }
 
     fn apply(&mut self, application: Application) {
         let view = self.view[application.view].clone();
-        let environment = if application.capture.is_some() || !application.binding.value.is_empty()
-        {
-            let mut particle = application
-                .binding
-                .value
-                .values()
-                .cloned()
-                .enumerate()
-                .map(|(id, value)| crate::state::Token {
-                    id: id + 1,
-                    value: Symbol::Structure(id, vec![value]),
-                })
-                .collect::<Vec<_>>();
-            if application.capture.is_some() {
-                particle.push(crate::state::Token {
-                    id: 0,
-                    value: Symbol::Rule(application.rule.clone(), application.capture),
-                });
-            }
-            Some(crate::constraint::normalize(
-                State {
-                    world: vec![crate::state::World {
-                        frame: application.capture.unwrap_or(0),
-                        particle,
-                    }],
-                    frame: self.state[view.target].frame.clone(),
-                },
-                &view.flow.frame,
-            ))
-        } else {
-            None
-        };
-        let mut binding = application.binding.clone();
-        binding.value = binding
-            .value
-            .iter()
-            .map(|(name, value)| {
-                (
-                    name.clone(),
-                    value.rename(&mut |frame| view.flow.frame[frame].unwrap_or(usize::MAX)),
-                )
-            })
-            .collect();
+        let environment = application
+            .capture
+            .map(|capture| self.state[view.target].environment(capture));
         let key = Identity {
             source: view.source,
             frame: application.frame,
             owner: application.owner,
-            rule: if application.capture.is_some() {
-                Arc::new(
-                    application
-                        .rule
-                        .rename(&mut |frame| view.flow.frame[frame].unwrap_or(usize::MAX)),
-                )
-            } else {
-                application.rule.clone()
-            },
-            binding,
+            rule: application.rule,
+            binding: application.binding.clone(),
             environment: environment.clone(),
         };
         if let Some(&event) = self.identity.get(&key) {
@@ -584,25 +418,22 @@ impl Runtime {
                 .push(application);
             return;
         }
-        let closure = Some(Closure {
+        let closure = application.capture.map(|capture| Closure {
             state: &self.state[view.target],
             flow: &view.flow,
-            capture: application.capture,
+            capture,
         });
-        let Some(result) = flow::apply(
+        let result = flow::apply(
             &self.state[view.source],
             application.frame,
             application.owner,
-            &application.rule,
+            &self.program.rule[application.rule],
             &application.binding,
             closure,
-        ) else {
-            return;
-        };
+        );
         if result.state.world.len() > self.limit.world
             || result.state.cells() > self.limit.cell
             || result.state.reachable().len() > self.limit.frame
-            || crate::measure::state(&result.state, self.limit.record) > self.limit.record
         {
             self.pending.insert(application);
             return;
@@ -652,7 +483,7 @@ impl Runtime {
         for &previous in &self.incoming[source] {
             self.agenda.push_back(Task::Compose(previous, event));
         }
-        self.support(Atom::State(target), [Atom::Event(event)], []);
+        self.support(Atom::State(target), [Atom::Event(event)]);
         for application in normalization.application {
             self.justify(event, application);
         }
@@ -661,40 +492,9 @@ impl Runtime {
     fn justify(&mut self, event: usize, application: Application) {
         let source = self.event[event].identity.source;
         self.event[event].evidence.insert(application.view);
-        let negative = if let Some(pattern) = application.rule.negative.clone() {
-            let binding = application
-                .binding
-                .value
-                .iter()
-                .filter(|(key, _)| {
-                    pattern
-                        .iter()
-                        .flatten()
-                        .any(|value| crate::constraint::contains(value, key))
-                })
-                .map(|(key, value)| (key.clone(), value.clone()))
-                .collect::<std::collections::BTreeMap<_, _>>();
-            let constraint = (!binding.is_empty()).then(|| {
-                crate::constraint::Constraint::new(
-                    &self.state[self.view[application.view].target],
-                    binding,
-                    &self.view[application.view].flow.frame,
-                )
-            });
-            let pattern = matching::pattern(&pattern, application.owner);
-            vec![Atom::Query(self.obligation(
-                source,
-                application.frame,
-                pattern,
-                constraint,
-            ))]
-        } else {
-            Vec::new()
-        };
         self.support(
             Atom::Event(event),
             [Atom::State(source), Atom::View(application.view)],
-            negative,
         );
     }
 
@@ -778,7 +578,6 @@ impl Runtime {
                 Task::Inspect(view) => self.inspect(view),
                 Task::Deliver(request) => self.deliver(request),
                 Task::Apply(application) => self.apply(application),
-                Task::Answer(view, query) => self.answer(view, query),
                 Task::Compose(previous, event) => {
                     let source = self.view[previous].source;
                     let target = self.event[event].target;
@@ -788,11 +587,7 @@ impl Runtime {
                         target,
                         flow,
                     });
-                    self.support(
-                        Atom::View(view),
-                        [Atom::View(previous), Atom::Event(event)],
-                        [],
-                    );
+                    self.support(Atom::View(view), [Atom::View(previous), Atom::Event(event)]);
                 }
                 Task::Search(_) | Task::Normalize(_) => unreachable!(),
             }
@@ -801,11 +596,9 @@ impl Runtime {
     }
 
     pub fn record(&self) -> usize {
-        self.volume
-            + self.state.len()
+        self.state.len()
             + self.event.len()
             + self.view.len()
-            + self.query.len()
             + self.clause.len()
             + self.request.len()
             + self.cache.len()
@@ -823,12 +616,9 @@ impl Runtime {
     }
 
     pub fn snapshot(&self) -> crate::snapshot::Snapshot {
-        let support = self.evaluation.get_or_init(|| {
-            Support::new(
-                self.clause.iter().cloned(),
-                (0..self.query.len()).filter(|_| !self.closed()),
-            )
-        });
+        let support = self
+            .evaluation
+            .get_or_init(|| Support::new(self.clause.iter().cloned()));
         crate::snapshot::Snapshot {
             closed: self.closed(),
             record: self.record(),
@@ -858,7 +648,7 @@ impl Runtime {
                     id,
                     source: event.identity.source,
                     target: event.target,
-                    rule: event.identity.rule.name.clone(),
+                    rule: self.program.rule[event.identity.rule].name.clone(),
                     status: support.status(Atom::Event(id)),
                     footprint: event.identity.binding.footprint.iter().copied().collect(),
                     exact: event.identity.binding.exact.iter().copied().collect(),
@@ -891,17 +681,6 @@ impl Runtime {
                         .map(|value| value.iter().copied().collect())
                         .collect(),
                     frame: view.flow.frame.clone(),
-                })
-                .collect(),
-            query: self
-                .query
-                .iter()
-                .enumerate()
-                .map(|(id, query)| crate::snapshot::Query {
-                    id,
-                    source: query.source,
-                    frame: query.frame,
-                    status: support.status(Atom::Query(id)),
                 })
                 .collect(),
         }

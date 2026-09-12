@@ -1,6 +1,6 @@
 # Replace or transfer the concrete binding
 
-The [configuration semantics](semantics.md) supersedes the earlier single-result ownership experiment. The Rust runtime and bounded JavaScript [reference](plan.html) integrate source projection with multiple coherences, multiple outputs, nested bodies, fresh introductions, captured rule values, and conditional support. This document summarizes their binding contract.
+The [configuration semantics](semantics.md) supersedes the earlier single-result ownership experiment. The Rust runtime and bounded JavaScript [reference](plan.html) integrate source projection with multiple coherences, multiple outputs, nested bodies, fresh introductions, captured rule values, and positive evidence. This document summarizes their binding contract.
 
 ## Concrete source projection
 
@@ -36,13 +36,13 @@ This explicitly replaces the earlier proposal that every sibling produced only i
 
 Two unchanged inherited X references reconcile once. Two independently produced Ys remain independently usable, including when their computations share causal ancestry. Source-flow dependencies therefore cannot serve as a global exclusive ownership key.
 
-Applications retain support for the source, witness, and absence conditions. Equal configurations share storage while incoming events and their conditions remain represented. A speculative witness does not become unconditional through canonicalization.
+Applications retain evidence for the source, witness, and rule availability. Equal configurations share storage while all distinct incoming evidence remains represented. Evidence is monotone: later consumption changes a successor state, not the validity of earlier events.
 
 Whole rule-value replacement follows ordinary consuming replacement in the Rust generic kernel, Rust runtime, and JavaScript reference. The two configuration evaluators also activate finite ground rule values present in participating coherences. A definition is read when invoked and consumed when explicitly matched as an operand.
 
 For generated code, read support and consumed operands are separate. If Seed produces `R: A → B`, sequential execution from Seed.A can reach R.B, while inferred application at Seed.A produces Seed.B. Seed supplied code; only A was consumed. If one Seed jointly produces R and A, the inferred application consumes that Seed through its operand projection and produces B.
 
-The rule and its arguments must coexist in one witness. Alternative histories supplying code and data cannot be combined. A read dependency enables an event at its source; later consumption of the code does not erase an already produced result. Absence-dependent support can still be revised independently.
+The rule and its arguments must coexist in one witness. Alternative histories supplying code and data cannot be combined. A read dependency enables an event at its source; later consumption of the code does not erase an already produced result.
 
 A body retains the invoked definition's lexical capture without materializing a new rule operand. Captured environments can escape their defining body, and imports preserve introductions shared by their held occurrences. Read support must not enter the body's held consuming footprint.
 

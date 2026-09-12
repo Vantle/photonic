@@ -2,6 +2,6 @@
 
 nav{position:static;inset:auto;width:auto;overflow:visible;border-right:0;align-items:center}nav a{display:inline;margin:0;color:var(--accent);font:14px/1.5 system-ui}main{margin:0 auto;max-width:1150px;padding:55px 35px 100px}h1{font-size:clamp(36px,4vw,48px);font-weight:400;line-height:1.15}h2{font-weight:400}button,select{border-radius:0}.archive{border-bottom:1px solid var(--line);padding-bottom:20px;font:14px/1.65 system-ui}@media(max-width:700px){main{margin:0;padding:30px 20px}nav{padding:20px}}
 
-#structure-event button { display: block; max-width: 100%; white-space: normal; text-align: left; margin: .5rem 0; }
-#structure-state details pre { max-height: 30rem; overflow: auto; }
-.structure-world { margin: 1rem 0; }
+#native-event button { display: block; max-width: 100%; white-space: normal; text-align: left; margin: .5rem 0; }
+#native-state details pre { max-height: 30rem; overflow: auto; }
+.native-world { margin: 1rem 0; }

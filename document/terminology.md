@@ -4,7 +4,7 @@ Rules describe computation, including abstraction derivations. Events record app
 
 | Term | Meaning |
 | --- | --- |
-| Concept | A value carried by an occurrence, including an atom such as `Ready` or a named structure or a complete captured rule value. |
+| Concept | A value carried by an occurrence, including an atom such as `Ready` or a whole ground rule value. |
 | Particle | A multiset of live occurrences within one coherence. Independent equal values retain multiplicity. |
 | Coherence | An independently evolving parallel context. |
 | Configuration | Jointly available coherences with their reachable lexical environments and continuations. |
@@ -18,7 +18,7 @@ Rules describe computation, including abstraction derivations. Events record app
 | Footprint | Concrete source occurrences selected by projecting a witness binding. |
 | Remainder | Unmatched concrete source resources carried to an application's outputs. |
 | Frame | A lexical environment and continuation record with separate definition and return links. |
-| Support | Conditions establishing a state, event, view, or absence query; classified as supported, conditional, or unsupported. |
+| Support | Positive evidence establishing a state, event, or view; conclusions require all their premises. |
 | Record | A retained runtime entry counted by the soft exploration budget; it is not an exact byte measure. |
 | Executor | An optional worker pool for independent implementation steps; the coordinator merges their results in deterministic queue order. |
 | Gate | Compatible partial slot bindings within one joint configuration and frame. Cached match enumeration can reuse them across relative views. |
@@ -27,10 +27,12 @@ Use **input**, **output**, and **apply** for rule operations. **Divergence** cre
 
 **Canonical state** means shared configuration content with anonymous identity normalized while preserving multiplicity and sharing. **History** means the event record; **version** may identify a historical coherence occurrence. A repeated canonical state is not a second live copy of its history. **Origin**, when used in older experiments, refers to introduction or dependency information; it is not a universal exclusive ownership law.
 
-A **rule-value rewrite** consumes the matched whole value and produces its replacement. It does not assert behavioral equivalence or globally alias two names. The Rust runtime and JavaScript reference activate produced ground rule values locally, preserving lexical capture and read dependence. Exact whole-value matching and ordinary derivations can describe rules without decomposing their internal fields. `[[A,B]] ([B])` parses structurally, but that abbreviation is not executable native syntax. Use an explicit `@([A] -> B)` constructor; see [frontend contract](syntax.md).
+A **rule-value rewrite** consumes the matched whole value and produces its replacement. It does not assert behavioral equivalence or globally alias two names. The Rust runtime and JavaScript reference activate produced ground rule values locally, preserving lexical capture and read dependence. Exact whole-value matching and ordinary derivations can describe rules without decomposing their internal fields. `[[A,B]] ([B])` now lowers as a nested empty-output rule match followed by a scope. Whole-rule replacement uses `[[A] B] [A] C`; see the [frontend contract](syntax.md).
 
-The Rust `rule::Rule::apply` implements generic literal multiset replacement, including exact whole nested rule values. It is separate from `runtime::Runtime`. That runtime and the JavaScript reference integrate joint inference, allocation, nested frames, dynamic activation of finite ground rule constructors, and conditional support. The JavaScript reference fixes its ground code catalog. Rust also [constructs new structures and rule content](structure.md) from bound values through ordinary events.
+The Rust `rule::Rule::apply` implements generic literal multiset replacement, including exact whole nested rule values. It is separate from `runtime::Runtime`. That runtime and the JavaScript reference integrate joint inference, allocation, nested frames, dynamic activation of finite ground rule constructors, and positive evidence closure. The compiled code universe is fixed within each model instance; visible rule occurrences can change through ordinary events.
 
 Source grammar rules and mathematical relations retain their conventional meanings. Earlier Molten documents used relation for rule, world/partition for coherence, and join for decoherence. Preserve historical or scientific terms when describing their original subjects.
 
 Molten's coherence and decoherence are language-specific names, not a claim to simulate quantum physics. The [research report](research.html) records the physical comparisons and sources.
+
+`Not`, `True`, and `False` are ordinary program-defined concepts. No label has built-in logical meaning, and there are no negative rule premises.

@@ -65,7 +65,7 @@ fn report(output: &Output) -> serde_json::Value {
 #[test]
 fn execution() {
     let fixture = Fixture::new();
-    let path = fixture.write("program.lava", "Seed.A; [Seed] -> @([A] -> B);");
+    let path = fixture.write("program.lava", "Seed.A [Seed] [A] B");
     let output = execute("run", &path, &["--json"]);
     let result = report(&output);
     assert_eq!(result["closed"], true);
@@ -128,7 +128,7 @@ fn format() {
     let explicit = report(&execute("run", &path, &["--format", "json", "--json"]));
     assert_eq!(inferred, explicit);
     assert_eq!(inferred["closed"], true);
-    let path = fixture.write("native.json", "A; [A] -> B;");
+    let path = fixture.write("native.json", "A [A] B");
     let native = report(&execute("run", &path, &["--format", "molten", "--json"]));
     assert_eq!(native["closed"], true);
     let path = fixture.write("broken.json", "{");
@@ -159,7 +159,7 @@ fn diagnostic() {
 #[test]
 fn worker() {
     let fixture = Fixture::new();
-    let path = fixture.write("program.lava", "Seed.A; [Seed] -> @([A] -> B);");
+    let path = fixture.write("program.lava", "Seed.A [Seed] [A] B");
     let sequential = report(&execute("run", &path, &["--json"]));
     let parallel = report(&execute("run", &path, &["--json", "--workers", "4"]));
     assert_eq!(sequential, parallel);
@@ -174,8 +174,8 @@ fn worker() {
 #[test]
 fn obsidian() {
     let fixture = Fixture::new();
-    let path = fixture.write("program.lava", "A; [A] -> B;");
-    let target = fixture.write("target.lava", "B;");
+    let path = fixture.write("program.lava", "A [A] B");
+    let target = fixture.write("target.lava", "B");
     let result = report(&execute(
         "obsidian",
         &path,
@@ -197,7 +197,7 @@ fn obsidian() {
         ],
     ));
     assert_eq!(result["outcome"], "unknown");
-    let invalid = fixture.write("invalid.lava", "B; [B] -> A;");
+    let invalid = fixture.write("invalid.lava", "B [B] A");
     assert!(
         !execute("obsidian", &path, &["--target", invalid.to_str().unwrap()])
             .status
@@ -210,4 +210,14 @@ fn obsidian() {
             .unwrap()
             .starts_with("Reached:")
     );
+}
+
+#[test]
+fn depth() {
+    let fixture = Fixture::new();
+    let path = fixture.write("deep.lava", &"[A] ".repeat(10_000));
+    let output = execute("run", &path, &["--steps", "0"]);
+    assert!(!output.status.success());
+    assert!(output.status.code().is_some());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("molten::depth"));
 }

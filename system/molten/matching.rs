@@ -1,11 +1,12 @@
 use crate::program::Symbol;
 use crate::state::State;
-use std::collections::{BTreeMap, HashSet, VecDeque};
+use std::collections::{HashSet, VecDeque};
 use std::sync::Arc;
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Term {
     pub value: Symbol,
+    pub capture: Option<usize>,
 }
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -13,7 +14,6 @@ pub struct Slot {
     pub world: usize,
     pub token: Vec<usize>,
     pub position: usize,
-    pub binding: BTreeMap<String, Symbol>,
 }
 
 pub fn pattern(input: &[Vec<Symbol>], capture: Option<usize>) -> Vec<Vec<Term>> {
@@ -22,8 +22,9 @@ pub fn pattern(input: &[Vec<Symbol>], capture: Option<usize>) -> Vec<Vec<Term>> 
         .map(|particle| {
             particle
                 .iter()
-                .map(|value| Term {
-                    value: capture.map_or_else(|| value.clone(), |frame| value.close(frame)),
+                .map(|&value| Term {
+                    value,
+                    capture: capture.filter(|_| matches!(value, Symbol::Rule(_))),
                 })
                 .collect()
         })
@@ -125,15 +126,6 @@ impl Gate {
             .find(|item| self.pattern[item.position] == self.pattern[slot.position])
             .is_some_and(|item| item.world >= slot.world)
         {
-            return None;
-        }
-        if binding.iter().any(|previous| {
-            previous.binding.iter().any(|(name, value)| {
-                slot.binding
-                    .get(name)
-                    .is_some_and(|candidate| candidate != value)
-            })
-        }) {
             return None;
         }
         let next = slot.position + 1;

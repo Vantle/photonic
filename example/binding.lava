@@ -1,2 +1,0 @@
-Left(A), Right(A);
-[Left($value), Right($value)] -> Together($value);
