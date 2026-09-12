@@ -1,0 +1,218 @@
+[
+  {
+    "name": "Concrete And through two Boolean deductions",
+    "sample": 25,
+    "state": 14,
+    "event": 17,
+    "minimum": 245.0,
+    "median": 326.25,
+    "maximum": 459.25
+  },
+  {
+    "name": "Two inputs broadcast their leftovers",
+    "sample": 25,
+    "state": 3,
+    "event": 3,
+    "minimum": 40.083000000000006,
+    "median": 40.625,
+    "maximum": 51.875
+  },
+  {
+    "name": "One source supports a joint sibling match",
+    "sample": 25,
+    "state": 3,
+    "event": 3,
+    "minimum": 28.625,
+    "median": 28.958,
+    "maximum": 32.875
+  },
+  {
+    "name": "Competing histories cannot supply a joint match",
+    "sample": 25,
+    "state": 3,
+    "event": 2,
+    "minimum": 23.208,
+    "median": 23.833000000000002,
+    "maximum": 25.208
+  },
+  {
+    "name": "Explicit duplicate outputs remain distinct",
+    "sample": 25,
+    "state": 3,
+    "event": 3,
+    "minimum": 32.375,
+    "median": 32.959,
+    "maximum": 37.333000000000006
+  },
+  {
+    "name": "Evidence-only co-results are not source leftovers",
+    "sample": 25,
+    "state": 4,
+    "event": 3,
+    "minimum": 23.75,
+    "median": 24.0,
+    "maximum": 38.541000000000004
+  },
+  {
+    "name": "Independent branches compute independent equal results",
+    "sample": 25,
+    "state": 13,
+    "event": 21,
+    "minimum": 250.375,
+    "median": 278.0,
+    "maximum": 383.125
+  },
+  {
+    "name": "Arbitrarily nested body expressions",
+    "sample": 25,
+    "state": 9,
+    "event": 9,
+    "minimum": 135.083,
+    "median": 141.292,
+    "maximum": 163.458
+  },
+  {
+    "name": "A default defeated by another derivation",
+    "sample": 25,
+    "state": 2,
+    "event": 1,
+    "minimum": 12.208,
+    "median": 12.709,
+    "maximum": 20.709
+  },
+  {
+    "name": "Independent support survives a defeated default",
+    "sample": 25,
+    "state": 2,
+    "event": 2,
+    "minimum": 18.333,
+    "median": 18.916999999999998,
+    "maximum": 22.042
+  },
+  {
+    "name": "Self-dependent absence stays conditional",
+    "sample": 25,
+    "state": 2,
+    "event": 1,
+    "minimum": 12.0,
+    "median": 12.208,
+    "maximum": 16.792
+  },
+  {
+    "name": "Mutual absence preserves unresolved alternatives",
+    "sample": 25,
+    "state": 3,
+    "event": 2,
+    "minimum": 21.166999999999998,
+    "median": 22.083,
+    "maximum": 54.166000000000004
+  },
+  {
+    "name": "A finite cycle shares its configurations",
+    "sample": 25,
+    "state": 2,
+    "event": 4,
+    "minimum": 26.916,
+    "median": 27.291999999999998,
+    "maximum": 28.833
+  },
+  {
+    "name": "Generated rule reads its concrete source",
+    "sample": 25,
+    "state": 4,
+    "event": 4,
+    "minimum": 36.25,
+    "median": 36.541000000000004,
+    "maximum": 41.583
+  },
+  {
+    "name": "One source supplies rule and operand",
+    "sample": 25,
+    "state": 4,
+    "event": 3,
+    "minimum": 27.75,
+    "median": 28.584,
+    "maximum": 33.916
+  },
+  {
+    "name": "Competing code and data cannot interact",
+    "sample": 25,
+    "state": 3,
+    "event": 2,
+    "minimum": 17.125,
+    "median": 17.333000000000002,
+    "maximum": 18.084000000000003
+  },
+  {
+    "name": "A meta rule replaces a whole rule value",
+    "sample": 25,
+    "state": 6,
+    "event": 6,
+    "minimum": 54.416000000000004,
+    "median": 55.25,
+    "maximum": 72.125
+  },
+  {
+    "name": "Rule activation respects coherence locality",
+    "sample": 25,
+    "state": 2,
+    "event": 1,
+    "minimum": 12.667,
+    "median": 13.291,
+    "maximum": 22.416
+  },
+  {
+    "name": "A generated rule enables decoherence",
+    "sample": 25,
+    "state": 5,
+    "event": 5,
+    "minimum": 48.666,
+    "median": 50.0,
+    "maximum": 66.084
+  },
+  {
+    "name": "Generated rules can defeat an absence condition",
+    "sample": 25,
+    "state": 6,
+    "event": 7,
+    "minimum": 63.541999999999994,
+    "median": 64.584,
+    "maximum": 68.625
+  },
+  {
+    "name": "A whole rule acquires an abstraction",
+    "sample": 25,
+    "state": 8,
+    "event": 8,
+    "minimum": 83.75,
+    "median": 88.75,
+    "maximum": 117.958
+  },
+  {
+    "name": "A generated rule opens a nested body",
+    "sample": 25,
+    "state": 6,
+    "event": 7,
+    "minimum": 68.416,
+    "median": 69.5,
+    "maximum": 78.792
+  },
+  {
+    "name": "An escaped rule retains its local definition",
+    "sample": 25,
+    "state": 29,
+    "event": 43,
+    "minimum": 601.292,
+    "median": 651.25,
+    "maximum": 743.7080000000001
+  },
+  {
+    "name": "Consuming code later does not erase earlier results",
+    "sample": 25,
+    "state": 4,
+    "event": 3,
+    "minimum": 24.75,
+    "median": 25.334,
+    "maximum": 29.541999999999998
+  }
+]

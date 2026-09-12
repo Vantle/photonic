@@ -1,6 +1,6 @@
 # Canonical states and coherence outputs
 
-The [configuration semantics](semantics.md) is the current contract. Its [JavaScript laboratory](plan.html) integrates configuration sharing, joint source projection, resource allocation, captured rule values, nested frames, and well-founded support. Earlier local-state and tuple experiments remain historical references.
+The [configuration semantics](semantics.md) is the current contract. The Rust runtime and [JavaScript laboratory](plan.html) integrate configuration sharing, joint source projection, resource allocation, captured rule values, nested frames, and well-founded support. Earlier local-state and tuple experiments remain historical references.
 
 ## Share computation, preserve structure
 
@@ -49,7 +49,7 @@ Source inference also preserves its own output law. With `A → B.C` and `B → 
 
 Intern configurations, events, relative views, and support clauses independently. A new view can enable an application at an already known source. Equivalent evidence extends support for an existing application instead of allocating another result. Conditional and unsupported paths remain distinguishable from supported computation.
 
-The reference keeps a resumable match cache keyed by target configuration, frame, and pattern. Its slot-binding gates record compatible occurrence assignments; repeated reports do not supply another operand. Different relative views can reuse those cached bindings while projecting their own source footprints. Adjacency indexes schedule related work without pooling incompatible configurations. No worker threads are implemented.
+Both evaluators cache matching by target configuration, frame, and pattern. The JavaScript reference keeps lazy slot-binding gates; the Rust runtime caches completed binding vectors. Compatible occurrence assignments retain their identities; repeated reports do not supply another operand. Different relative views can reuse those cached bindings while projecting their own source footprints. Adjacency indexes schedule related work without pooling incompatible configurations. No worker threads are implemented.
 
 Generated definitions activate locally and retain read support separately from consuming flow. A code-producing derivation can defeat an absence condition; the fixed-label closure optimization is therefore disabled for models containing rule values. Revision comparison still creates separate model snapshots rather than mutating arbitrary programs in place.
 
@@ -74,4 +74,4 @@ A.X.X
 
 The larger multiplicity is observable and cannot be erased by memoization. Writing rules in both directions does not make them inverses. Budgets suspend unfinished work; they do not establish logical absence or a semantic depth limit.
 
-Canonicalization in the reference still enumerates symmetric permutations. Matching caches and adjacency indexes reduce repeated work, but finite checks of identity, sharing, scope, projection, and support do not establish production performance or universal completeness. The Rust graph runtime, executable textual lowering, and arbitrary partial structural operations remain unimplemented. The integrated suite exercises finite ground dynamic rules, capture identity, support, and cache behavior.
+Exact canonicalization still enumerates symmetric permutations. Rust streams those permutations to avoid materializing every ordering, but worst-case CPU work remains factorial. Matching caches and adjacency indexes reduce repeated work, but finite checks of identity, sharing, scope, projection, and support do not establish production performance or universal completeness. The Rust graph runtime and executable textual lowering are implemented for this finite ground fragment. Arbitrary partial structural operations and fine-grained suspension within every matching or canonicalization task remain work to complete. The integrated suite exercises finite ground dynamic rules, capture identity, support, and cache behavior.

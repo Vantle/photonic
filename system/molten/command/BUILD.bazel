@@ -12,5 +12,6 @@ rust_binary(
         "//system/molten",
         "@crate//:clap",
         "@crate//:miette",
+        "@crate//:serde_json",
     ],
 )

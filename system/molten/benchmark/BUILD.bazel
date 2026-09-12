@@ -1,0 +1,14 @@
+load("@rules_rs//rs:rust_binary.bzl", "rust_binary")
+
+rust_binary(
+    name = "benchmark",
+    srcs = ["benchmark.rs"],
+    crate_root = "benchmark.rs",
+    compile_data = ["//:example/reference.json"],
+    tags = ["manual"],
+    deps = [
+        "//system/molten",
+        "@crate//:serde",
+        "@crate//:serde_json",
+    ],
+)

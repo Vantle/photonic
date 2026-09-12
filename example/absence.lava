@@ -1,0 +1,3 @@
+Start;
+[Start] unless [Q] -> P;
+[Start] -> Q;

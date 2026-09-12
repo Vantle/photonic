@@ -1,6 +1,6 @@
 # Runtime implementation plan
 
-The [interactive JavaScript plan](plan.html) is the main research document. The [semantic contract](semantics.md) defines the integrated reference behavior. This implementation sequence distinguishes tested behavior, accepted direction, and unresolved contracts. The finite dynamic JavaScript reference milestone is implemented. The production runtime is not yet complete or proven error-free.
+The [interactive JavaScript plan](plan.html) is the main research document. The [semantic contract](semantics.md) defines the integrated reference behavior. This implementation sequence distinguishes tested behavior, accepted direction, and unresolved contracts. The finite dynamic JavaScript reference and native Rust execution milestone are implemented. The production runtime is not yet complete or proven error-free.
 
 ## Accepted direction
 
@@ -14,14 +14,16 @@ A repeated canonical state shares computation. New evidence can add support and 
 
 | Component | Implemented | Boundary |
 | --- | --- | --- |
-| Rust frontend | Lossless structural parser, diagnostics, hermetic build | Executable source lowering is absent |
-| Rust rule kernel | Generic exact multiset replacement; nested rule values use the same matcher | Literal broadcast remains provisional; no graph executor or dynamic activation |
+| Rust frontend | Pest-backed native lowering, lossless structural parser, diagnostics, hermetic build | Incremental editing, recovery, input-size budgets |
+| Rust rule primitive | Generic exact multiset replacement; nested rule values use the same matcher | Independent of configuration identity |
+| Rust configuration runtime | Joint inference, dynamic activation, captures, canonical state/event sharing, well-founded support, resumable agenda | Bounded single-threaded exploration; completed-binding cache |
+| Rust CLI | Native or JSON program input; human or JSON execution report; explicit budgets | In-memory library resumption; no persisted checkpoint restore |
 | JavaScript configuration model | Source inference, joint decoherence, explicit outputs, remainder sharing, recursive body frames | Finite ground constructors, including generated executable rule values and captures |
 | JavaScript matching gates | Incremental slot arrivals, retained compatible prefixes, duplicate suppression, out-of-order completion | Coherence slots with persistent per-target matching caches; no worker threads |
 | JavaScript support | Conditional dependencies, negative cycles, independent justification, finite absence certificates | Immutable lexical declarations; generated local rule availability tracked through support |
 | JavaScript canonicalization | Coherence order, anonymous identities, sharing, frame and continuation structure | Exhaustive symmetry enumeration; production optimization pending |
 
-The reference passes 955 integrated checks, including 448 comparisons between incremental gates and exhaustive binding enumeration. The browser plan exposes the actual evaluator and a gate experiment. These checks support its finite contracts, not unrestricted language completeness.
+The integrated reference suite includes comparisons between incremental gates and exhaustive binding enumeration. The 32 Rust tests cover native lowering, runtime behavior, reference conformance, deterministic provenance, and CLI diagnostics. The JavaScript suite passes 955 checks. The browser plan exposes the actual evaluator and a gate experiment. These checks support its finite contracts, not unrestricted language completeness.
 
 ## Matching gates
 
@@ -39,7 +41,7 @@ The structured representation distinguishes returning a whole rule value from en
 
 ## Remaining production work
 
-Textual source lowering must map brackets and groups unambiguously to the executable structured representation. The Rust graph runtime must then implement the reference contract. Arbitrary structural extraction and code construction from unknown subterms require explicit operations beyond the current finite ground constructors. Production canonicalization, component-local absence certificates, parallel workers, resource accounting, and portability need conformance tests and measurement.
+The [native grammar](syntax.md) now maps explicit rule constructors and bodies into the executable representation, and the Rust graph runtime implements the finite reference contract. Arbitrary structural extraction and code construction from unknown subterms require explicit operations beyond the current finite ground constructors. Production canonicalization, component-local absence certificates, parallel workers, resource accounting, and portability need conformance tests and measurement.
 
 These boundaries limit implementation coverage; they do not justify adding a separate type engine or rejecting logically circular programs.
 
@@ -48,13 +50,24 @@ These boundaries limit implementation coverage; they do not justify adding a sep
 | Step | Work | Acceptance |
 | --- | --- | --- |
 | 1. Dynamic rule reference — implemented | Local activation, read support, captures, replacement | A produced rule fires locally; replacement affects only its successor; competing rule/data histories cannot combine |
-| 2. Rule identity and lowering | Ground value identity implemented; textual mapping remains | Whole nested values match without decomposition; different captures remain distinct; source reorderings follow the chosen semantics |
+| 2. Rule identity and lowering — implemented | Ground value identity; explicit native code/body syntax | Whole nested values match without decomposition; different captures remain distinct; source reorderings follow the chosen semantics |
 | 3. Dynamic support — conservative reference implemented | Keep dynamic queries open until evidence or finite closure; optimize certificates later | Generated rules invalidate dependent defaults; independent support survives; negative cycles remain conditional |
 | 4. Indexed execution | Per-target binding cache and adjacency indexes implemented; scalable canonicalization and fine-grained suspension remain | Differential results match the finite reference; repeated evidence does not multiply events; finite work is not starved by growing alternatives |
-| 5. Rust graph runtime | Port the settled reference contract into separate value, state, binding, event, and support concerns | End-to-end And, nested meta replacement and activation, many-to-many decoherence, scope, invalidation, and budget resumption |
-| 6. Performance and portability | Benchmark representative programs and run native platform checks | Evidence for throughput, memory use, deterministic semantic results, and supported platforms |
+| 5. Rust graph runtime — implemented | Separate source, compilation, state, matching, flow, support, and execution modules | End-to-end And, nested meta replacement and activation, many-to-many decoherence, scope, invalidation, and budget resumption |
+| 6. Performance and portability | [Reproducible finite-program benchmark](performance.md) and ARM64 macOS checks implemented; further platform checks remain | Evidence for throughput, memory use, deterministic semantic results, and supported platforms |
 
-Use external crates for established infrastructure where they fit. Keep Molten's binding, source projection, and support contracts explicit; do not delegate language semantics to a library whose behavior differs. Select runtime storage and matching dependencies after their required identities and update model are settled.
+Use external crates for established infrastructure where they fit. Keep Molten's binding, source projection, and support contracts explicit; do not delegate language semantics to a library whose behavior differs. IndexMap supplies stable indexed interning, Serde supplies data interchange, and the language-specific matching and projection remain explicit.
+
+## Running and checking
+
+```sh
+bazel run //system/molten/command -- run "$PWD/example/conjunction.lava"
+bazel run //system/molten/command -- run "$PWD/example/dynamic.lava" --json
+bazel test //...
+bazel run //:format -- --check
+```
+
+Run from the repository root. Bazel supplies the Rust toolchain and external crates. [Frontend syntax](syntax.md) documents native input and the separate structural parser; [runtime](runtime.md) documents budgets and report semantics.
 
 ## Research documents
 

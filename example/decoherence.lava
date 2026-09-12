@@ -1,3 +1,2 @@
-Human.Male,
-Earth.Location.America,
-[Human.Male, Earth.Location.America] American.Citizen.Male
+Human.Male, Earth.Location.America;
+[Human.Male, Earth.Location.America] -> American.Citizen.Male;

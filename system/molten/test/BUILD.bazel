@@ -23,3 +23,36 @@ rust_test(
     crate_root = "rule.rs",
     deps = ["//system/molten"],
 )
+
+rust_test(
+    name = "lowering",
+    size = "small",
+    srcs = ["lowering.rs"],
+    crate_root = "lowering.rs",
+    deps = ["//system/molten"],
+)
+
+rust_test(
+    name = "runtime",
+    size = "small",
+    srcs = ["runtime.rs"],
+    crate_root = "runtime.rs",
+    compile_data = [
+        "//:example/conjunction.lava",
+        "//:example/reference.json",
+    ],
+    deps = [
+        "//system/molten",
+        "@crate//:serde_json",
+    ],
+)
+
+rust_test(
+    name = "command",
+    size = "small",
+    srcs = ["command.rs"],
+    crate_root = "command.rs",
+    data = ["//system/molten/command"],
+    env = {"MOLTEN_COMMAND": "$(rootpath //system/molten/command)"},
+    deps = ["@crate//:serde_json"],
+)

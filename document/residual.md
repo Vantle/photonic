@@ -1,6 +1,6 @@
 # Concrete-source remainders
 
-The [configuration semantics](semantics.md) defines the current remainder law. The JavaScript [laboratory](plan.html) integrates it with joint source inference, multiple outputs, nested bodies, captured rule values, and conditional support. The earlier overlapping-description and single-result experiments are historical steps.
+The [configuration semantics](semantics.md) defines the current remainder law. The Rust runtime and JavaScript [laboratory](plan.html) integrate it with joint source inference, multiple outputs, nested bodies, captured rule values, and conditional support. The earlier overlapping-description and single-result experiments are historical steps.
 
 A literal application replaces its concrete matched footprint and carries unmatched resources from the participating source coherences. `A → B` enables `B → C` at `A.Extra`, producing `C.Extra`. It does not retain A as another live operand.
 
@@ -12,4 +12,4 @@ Evidence-only results are not source remainder. From `A → B.C` and `B → D`, 
 
 Invoking a generated rule reads its availability. Its read-only source support remains outside the consumed operand footprint: a rule derived from Seed can turn Seed.A into Seed.B through source inference. Explicitly matching the whole rule value instead consumes it. Code and arguments must have one joint witness.
 
-See the [binding contract](binding.md) for worked cases. Rust's `rule::Rule::apply` remains a literal multiset primitive: it broadcasts counted leftovers without introduction reconciliation or graph execution.
+See the [binding contract](binding.md) for worked cases. Rust's `rule::Rule::apply` remains a literal multiset primitive: it broadcasts counted leftovers without introduction reconciliation or graph execution. `runtime::Runtime` implements those configuration-level responsibilities separately.

@@ -1,52 +1,69 @@
 # Molten
 
-Computational expression over hypergraphs. This repository starts the standalone language core, using the build conventions from [Vantle Registry](https://github.com/Vantle/registry).
+Computational expression over hypergraphs, with a native Rust frontend and runtime. The hermetic build follows [Vantle Registry](https://github.com/Vantle/registry).
 
-A **rule** describes computation, including abstraction derivations; an **event** records one application. Types are computation in the same iterative model. A **coherence** is an independently evolving parallel context. **Divergence** creates several coherences; **decoherence** combines compatible coherences. See the [core design](document/core.md) and [terminology](document/terminology.md) for the distinction between these language concepts and ordinary data operations.
+A **rule** describes computation, including abstraction derivations; an **event** records one application. Types are computation in the same iterative model. A **coherence** is an independently evolving parallel context. **Divergence** creates several coherences; **decoherence** combines compatible coherences.
 
-Implemented:
+```text
+And.True.False.Extra;
+[True] -> Boolean;
+[False] -> Boolean;
+[And.Boolean.Boolean] -> {
+    [True.True] -> True;
+    [True.False] -> False;
+    [False.False] -> False;
+};
+```
 
-- A generated parser with lossless source structure, UTF-8 byte spans, and diagnostic errors.
-- Canonical particles with multiplicity-preserving matching and union.
-- Pure rule application to an explicit binding, broadcasting the unmatched context to every output.
+The Boolean derivations reveal an application at the concrete `And.True.False.Extra` source. Its body receives `True.False.Extra` and returns `False.Extra`. Intermediate descriptions justify applications; they do not accumulate as extra operands. The runtime explores alternative events and shares equivalent configurations.
 
-The parser and rule kernel are separate APIs. `parser::parse` produces `syntax::Tree` and structured `failure::Failure` diagnostics. `particle::Particle` and `rule::Rule` form the independent rewrite kernel. The named crate root, `system/molten/molten.rs`, exposes these modules directly without re-exports. CLI argument handling and execution live in `system/molten/command`; parser, particle, and rule checks run as separate integration test targets. Source lowering, graph storage, inference, polymorphism, and execution are not implemented yet. The [runtime proposal](document/runtime.md) records the unresolved semantics and the next implementation slice. The [interactive research report](document/research.html) compares causal interaction models and exposes a duplication counterexample in the old broadcasting algebra. The [interactive runtime plan](document/plan.html) executes joint source inference, generated rule values, lexical captures, whole-rule abstractions, nested bodies, and conditional support in a finite JavaScript reference. It includes 26 programs and an interactive matching gate. The [earlier program laboratory](document/program.html) preserves the separate experiments, and the [implementation sequence](document/plan.md) records the remaining decisions and work. These are offline design experiments, separate from the language implementation.
-
-## Build
+## Run
 
 Install **Bazel 9.2.0**. No separately installed Rust, Cargo, or native compiler is required.
 
 ```sh
-bazel build //...
+bazel run -c opt //system/molten/command -- run "$PWD/example/conjunction.lava"
+bazel run -c opt //system/molten/command -- run "$PWD/example/capture.lava" --json
 bazel test //...
 bazel run //:format -- --check
-bazel run //system/molten/command -- parse "$PWD/example/decoherence.lava"
 ```
 
-The `parse` command prints the concrete syntax tree; success establishes structural validity, not executability. Both `.lava` and `.magma` use the same parser. See the [frontend contract](document/syntax.md).
+Native source supports joint inputs, multiple outputs, nested bodies, whole rule values, and absence premises. For example, `Seed.A; [Seed] -> @([A] -> B);` produces locally executable code. `run` also accepts the structured JSON program format; `--format molten|json` overrides extension detection. See the [frontend contract](document/syntax.md) and [examples](example).
 
-Bazel downloads Rust 1.98.1, hermetic LLVM, platform SDKs, and crates. Initial fetching needs network access. Compilation runs without network access. Cargo describes dependencies; Bazel owns compilation and testing. Both lockfiles are checked in, and normal commands reject stale Bazel resolution data.
+Execution limits suspend exploration. The report distinguishes a closed finite graph from queued or deferred work. Use `--steps`, `--states`, `--coherences`, `--cells`, and `--frames` to adjust limits. Embedded callers can resume the same `runtime::Runtime` through `run`. JSON reports include configurations, events, witness mappings, consuming footprints, read dependencies, and support status; they are inspection reports, not restorable checkpoints.
+
+## Core
+
+- Crate-backed parsing and diagnostics lower native source into typed program values.
+- Interned symbols and rule code, immutable shared configurations, exact canonical identity, and indexed dependency propagation implement the graph.
+- Matching gates retain compatible assignments and suppress duplicate arrivals. Cached bindings feed concrete-source inference and application through one agenda.
+- Relative occurrence maps preserve inherited sharing, independent results, lexical captures, and return continuations.
+- Well-founded support keeps negative cycles conditional and records defeated assumptions without rejecting logical programs.
+
+The named crate root [molten.rs](system/molten/molten.rs) exposes focused modules directly, without `lib.rs` or re-exports. `lowering` handles executable syntax; `program` interns it; `state`, `matching`, `flow`, `support`, and `runtime` implement evaluation; `snapshot` supplies inspectable reports. The structural `parser` API and generic `particle` / `rule` multiset kernel remain independent tools. Structural `parse` success alone does not establish executability.
+
+Rust conformance checks cover all 26 programs exported from the JavaScript reference: full canonical configuration, application-edge, and support comparisons for 24 closed cases, plus suspension for two growing cases. Separate regression tests cover identity permutations, capture sharing, matching gates, budget resumption, native lowering, and the CLI.
+
+The [interactive runtime plan](document/plan.html) runs the reference examples offline. The [semantic contract](document/semantics.md), [implementation plan](document/plan.md), and [terminology](document/terminology.md) describe the accepted model. Earlier HTML laboratories are marked historical.
+
+This milestone executes finite ground rule constructors, including higher-order whole-rule replacement and activation. Arbitrary structural extraction, parallel workers, and restorable checkpoints remain future work. Exact symmetry enumeration can take factorial time; matching candidates and support clauses can grow substantially. State sharing prevents repeated equivalent configurations, not genuine fresh-state growth. See [performance](document/performance.md) for the reproducible benchmark and its limits.
+
+## Build
+
+Bazel downloads Rust 1.98.1, hermetic LLVM, platform SDKs, and crates. Initial fetching needs network access; compilation runs without it. Cargo describes dependencies; Bazel owns compilation and testing. Both lockfiles are checked in, and ordinary commands reject stale Bazel resolution data.
 
 ```sh
+bazel build //...
 bazel run //:format
 bazel run //:update --config=refresh
 bazel mod deps --config=refresh
 bazel test //... --config=refresh
 bazel test //...
+bazel run -c opt //system/molten/benchmark
 ```
 
-Review both lockfiles after updates. Developer commands use the downloaded Rust tools. Bazel creates no convenience symlinks in the checkout; use `bazel info bazel-bin` to locate outputs.
+Review both lockfiles after dependency updates. Developer commands use the downloaded Rust tools. Bazel creates no convenience symlinks in the checkout; use `bazel info bazel-bin` to locate outputs.
 
-The toolchain configuration targets ARM64 and x86-64 macOS, GNU Linux, and GNULLVM Windows. Platform support requires native runtime tests, not just successful cross-compilation. The Windows host override and optional remote execution configuration follow Registry. Put local executor settings in ignored `user.bazelrc`.
+The toolchain targets ARM64 and x86-64 macOS, GNU Linux, and GNULLVM Windows. Runtime verification in this checkout used ARM64 macOS; cross-platform configuration alone does not prove native runtime support. Optional remote execution follows Registry; local executor settings belong in ignored `user.bazelrc`.
 
-## Rule kernel
-
-`particle::Particle<Concept>` stores an immutable, sorted multiset. `Concept` can be a borrowed label today and a compact interned symbol during lowering. Construction sorts once; remainder and union use linear merges. Duplicate concepts remain significant.
-
-`rule::Rule::apply` accepts one particle per input pattern, already arranged in pattern order. It returns `None` if the arity or any multiset match fails. On success it returns every output with the concatenated remainder added. It preserves duplicate outputs and does not mutate its input. An empty result is a successful rule with no outputs.
-
-This is a provisional implementation of the old documented rewrite algebra. Literal broadcasting can multiply carried context across divergence/decoherence cycles; its final resource semantics remains under discussion. The caller must eventually establish distinct occurrence identities, coherence compatibility, and lineage eligibility before invoking it; it does not select graph nodes or authorize their interaction.
-
-Rules themselves implement structural equality, ordering, and hashing, so the same generic `Rule::apply` can replace whole nested rule values. The JavaScript reference additionally activates produced rule values locally and tracks their capture and read support. The Rust kernel does not execute the graph, and nested source syntax still needs lowering.
-
-The crates supply parsing ([pest](https://docs.rs/pest/2.9.1/pest/)), error derivation ([thiserror](https://docs.rs/thiserror/)), diagnostics ([miette](https://docs.rs/miette/)), and argument handling ([clap](https://docs.rs/clap/)). Molten implements its own multiset rewrite semantics. Runtime storage dependencies will be selected with the identity model.
+The crates supply parsing ([pest](https://docs.rs/pest/)), error derivation ([thiserror](https://docs.rs/thiserror/)), diagnostics ([miette](https://docs.rs/miette/)), arguments ([clap](https://docs.rs/clap/)), serialization ([Serde](https://serde.rs/)), and stable indexed interning ([IndexMap](https://docs.rs/indexmap/)). Molten owns the rewrite, identity, projection, and support semantics.

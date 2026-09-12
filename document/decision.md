@@ -1,6 +1,6 @@
 # Closing the runtime design
 
-This records the accepted resolution of the remaining decisions in the [runtime plan](plan.html). The finite ground dynamic JavaScript reference now implements these core decisions: generated activation, read/consume projection, whole-rule replacement, capture, and conditional availability. Production optimizations and textual lowering remain explicit boundaries. Tests are not a proof of unrestricted correctness. The [configuration contract](semantics.md) continues to describe the tested finite evaluator.
+This records the accepted resolution of the remaining decisions in the [runtime plan](plan.html). The finite ground Rust runtime and JavaScript reference now implement these core decisions: generated activation, read/consume projection, whole-rule replacement, capture, and conditional availability. Native lowering and CLI execution are implemented; production optimization and arbitrary structural operations remain explicit boundaries. Tests are not a proof of unrestricted correctness. The [configuration contract](semantics.md) continues to describe the tested finite evaluator.
 
 ## Rule availability and consumption
 
@@ -61,19 +61,17 @@ The fixed compiled-rule label closure is disabled whenever rule values occur in 
 
 ## Surface syntax
 
-Do not let parser convenience decide value semantics. Lower source into explicit atom, rule value, particle, coherence, and body forms. The existing punctuation should retain its purpose: dots combine within a particle, commas separate coherences, a bracketed input followed by an output forms a rule, and groups delimit expressions. Spaces distinguish expression boundaries where required; they are not runtime state.
+The executable [native grammar](syntax.md) lowers into explicit atoms, whole rule values, particles, coherences, and bodies. Dots combine particle values; commas separate coherences; semicolons terminate initial configurations and definitions. A rule has bracketed inputs and an explicit `->` output.
 
-There is a real ambiguity to resolve before freezing source lowering: an input-only bracket such as [B] does not yet specify whether it is a complete rule value with an empty result or merely a pattern expression, and a group of rules can denote a body rather than a returned code value. Consequently [[A,B]] ([B]) cannot be assigned executable behavior just from successful structural parsing.
+`@([A] -> B)` returns or matches a whole rule value. `{ ... }` enters a body containing an optional initial particle and local definitions. `()` denotes one empty particle; `[]` denotes zero input or output coherences. The distinctions are represented explicitly in `source::Program` and covered by lowering and CLI tests.
 
-Recommendation: require a complete rule value to carry an explicit output in the first executable source grammar. Reserve input-only brackets for pattern structure until an unambiguous constructor form is specified. Use a structured program representation in the reference to test whole-value replacement and activation first. Then choose the smallest surface notation that distinguishes returning a rule value from entering a body. No new runtime semantics is needed for that syntactic distinction.
-
-This deliberately declines to bless the abbreviated example as executable code prematurely. The exact whole-value matching decision is settled; the printed abbreviation is not. A source specification must include positive and negative parsing/lowering examples for standalone brackets, nested rules, empty outputs, grouped bodies, and source whitespace before the frontend can promise execution.
+The abbreviation `[[A,B]] ([B])` remains structurally parseable but is not executable native syntax. Its omitted outputs and value/body ambiguity do not acquire meaning from the structural parser. Use complete rule constructors for exact whole-value replacement. This settles the first executable syntax without claiming arbitrary unknown-subterm extraction.
 
 ## Gates, scheduling, and state sharing
 
 Retain incremental binding gates as an implementation of ordinary matching. Each gate belongs to a compatible joint witness and records concrete slot assignments. Use one agenda for new values, rule availability, completed bindings, view composition, and support changes. Gate completion interns an event; it does not destructively remove facts from a shared global database.
 
-The reference now retains a lazy binding cache per target configuration/frame/pattern and indexes incoming/outgoing dependencies. Production gates should additionally subscribe through indexes keyed by structural rule and pattern, scope, and source/view identity. Persist them across relevant updates rather than rebuilding them for every inspected view. Distinct justifications update support for one binding. Retraction of support must not erase another justification. The completed-binding cache is not itself the support engine.
+The JavaScript reference retains a lazy binding cache per target configuration/frame/pattern; Rust caches completed binding vectors. Both index incoming/outgoing dependencies. Production gates should additionally subscribe through indexes keyed by structural rule and pattern, scope, and source/view identity. Persist them across relevant updates rather than rebuilding them for every inspected view. Distinct justifications update support for one binding. Retraction of support must not erase another justification. The completed-binding cache is not itself the support engine.
 
 Start with a deterministic single-threaded scheduler as the reference. Parallel workers can compute candidate deltas against immutable snapshots; merge them through idempotent state/event/support interning. Use semantic identities, not completion order, for deduplication. Fairly interleave resumable candidate enumeration and support tasks, including under repeated resource-budget suspension. Parallelization is an optimization after differential conformance tests pass.
 
@@ -97,4 +95,4 @@ A written recommendation closes an architectural question only provisionally. Ma
 | Fair gates | Arrival order and duplicate reports do not change the enabled event set |
 | Source grammar | Returned rule values and invoked bodies have unambiguous lowering |
 
-The dynamic examples now cover these core interactions together in the JavaScript reference. Textual grammar acceptance and unrestricted structural operations remain outside that finite representation; the Rust port remains the next implementation layer. This supplies a concrete path to closing the gaps without claiming that a test matrix, physical analogy, or design preference proves a universally error-free language.
+The dynamic examples cover these core interactions in the JavaScript reference and Rust runtime. Native lowering and CLI tests cover explicit rule values, bodies, multiple coherences, absence, and diagnostics. Unrestricted structural operations and production scaling remain outside that finite implementation. This supplies a concrete path to closing the gaps without claiming that a test matrix, physical analogy, or design preference proves a universally error-free language.
