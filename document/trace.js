@@ -47,7 +47,7 @@
         event.replaceChildren(element('h3', 'Available events'));
         const outgoing = report.event.filter(value => value.source === selected);
         for (const value of outgoing) {
-            const button = element('button', `${value.rule} → configuration ${value.target} · ${value.status}`);
+            const button = element('button', `Event ${value.id}: ${value.rule} → configuration ${value.target} · ${value.status}`);
             button.addEventListener('click', () => move(value.target, value));
             event.append(button);
         }

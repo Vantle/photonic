@@ -8,6 +8,7 @@ launcher_binary(
         "system/molten/test/test.rs",
         "system/molten/command/command.rs",
         "system/molten/benchmark/benchmark.rs",
+        "mathematics/natural/record.rs",
     ],
     entrypoint = rust_toolchain_component_label("@rules_rust//tools/upstream_wrapper:rustfmt"),
     tags = ["manual"],
@@ -20,4 +21,4 @@ launcher_binary(
     tags = ["manual"],
 )
 
-exports_files(glob(["example/*.lava", "example/*.json", "mathematics/natural/*.lava"]))
+exports_files(glob(["example/*.lava", "example/*.json"]))

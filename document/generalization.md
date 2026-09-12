@@ -46,4 +46,4 @@ Establish encodings of binding, reusable hypotheses, and induction using rule co
 
 All rules require positive evidence. Negative premises are not a missing feature or a future encoding target: the language does not define them. A user-defined concept named Not is allowed, with exactly the behavior its program supplies. Meta rules and abstractions can compress explicit definitions; they do not create default behavior from missing evidence.
 
-The [natural-number examples](../mathematics/natural/README.md) demonstrate a useful immediate simplification: unary quantities and addition can use occurrence multiplicity and ordinary coherence reunion. They require no record constructors or pattern variables.
+The [natural-number examples](../mathematics/natural/README.md) demonstrate a useful immediate simplification: unary quantities use only Unit multiplicity, with empty as zero; addition uses ordinary coherence reunion. They require no record constructors or pattern variables.

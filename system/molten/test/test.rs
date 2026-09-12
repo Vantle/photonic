@@ -9,3 +9,5 @@ mod scheduling;
 mod support;
 
 mod obsidian;
+
+mod natural;

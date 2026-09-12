@@ -1,47 +1,60 @@
 # Natural numbers
 
-Use `Zero` with n occurrences of `Successor` to represent the numeral n. For example, two is `Zero.Successor.Successor`. The particle is orderless, but occurrences retain multiplicity. A numeral has exactly one Zero and no unrelated concepts.
+A numeral is one coherence containing only repeated `Unit` occurrences. Zero is the existing empty coherence `()`. Successor adds one fresh Unit. This replaces the earlier Zero-marker encoding and uses no new grammar or runtime primitives.
 
-This replaces the constructor-based experiment. Parentheses do not construct nested numerical records, and the runtime has no numerical primitives.
+Read the [formal definition](definition.md) or open the [interactive walkthrough](index.html). The walkthrough distinguishes mathematical construction from recorded Rust execution and from future universal proof checking.
 
-## Membership
+## Check two
 
-[membership.lava](membership.lava) is the first concrete proof program:
+[membership.lava](membership.lava):
 
 ```text
-Zero.Successor.Successor
-[Zero] Natural
-[Successor.Natural] Natural
+Check.Unit.Unit
+[Check] Natural
+[Natural.Unit] Natural
 ```
 
-A sequential path is `Zero.Successor.Successor` to `Natural.Successor.Successor` to `Natural.Successor` to `Natural`. Source inference can also establish direct applications at earlier configurations. These are alternative configurations, not accumulated numerical operands.
-
-The rules recognize any finite numeral of this representation by consuming one successor at a time. The example checks the particular numeral two. Reaching exact Natural leaves no unaccounted-for occurrences. An input with an unknown base cannot reach that target under these rules. This is not a protected certificate interface: supplying Natural itself already satisfies that reachability target. A future checker must specify its input boundary and keep candidate data from impersonating acceptance.
+The interface prefixes exactly one Check to an atom-only candidate and queries exact Natural under these fixed rules. Check and Natural are ordinary control labels outside the numeral. Candidate rules are outside this interface. The definition gives the recognition argument and its trust boundary.
 
 ```sh
 bazel run -c opt //system/molten/command -- obsidian "$PWD/mathematics/natural/membership.lava" --target "$PWD/mathematics/natural/natural.lava" --json
 ```
 
-## Addition
+## Compute successor
 
-[addition.lava](addition.lava) uses independent coherences for the two operands:
+[successor.lava](successor.lava) turns two into three:
 
 ```text
-Left.Zero.Successor.Successor,
-Right.Zero.Successor.Successor.Successor
-[Left.Zero, Right.Zero] Zero
+Step.Unit.Unit
+[Step] Unit
 ```
 
-The joint rule consumes each operand's label and zero marker. Ordinary remainder reunion carries the two plus three independently introduced successor occurrences into the result. One fresh Zero marks the resulting numeral five.
+```sh
+bazel run -c opt //system/molten/command -- obsidian "$PWD/mathematics/natural/successor.lava" --target "$PWD/mathematics/natural/three.lava" --json
+```
+
+[zero.lava](zero.lava) contains `()`. An empty file represents no coherence, which is different from numeral zero.
+
+## Existing addition example
+
+[addition.lava](addition.lava) independently introduces two operands and rejoins their numerical remainders:
+
+```text
+Left.Unit.Unit,
+Right.Unit.Unit.Unit
+[Left, Right] ()
+```
 
 ```sh
 bazel run -c opt //system/molten/command -- obsidian "$PWD/mathematics/natural/addition.lava" --target "$PWD/mathematics/natural/result.lava" --json
 ```
 
-The independence condition matters. If operands share an inherited successor introduction, reunion reconciles it once. Shared histories therefore do not represent two independently supplied quantities for this encoding. The library must record this precondition rather than change coherence semantics to force arithmetic behavior.
+Its target is five Units. Independence is a precondition: inherited shared Units reconcile once, as usual. General arithmetic laws and an object-language induction proof remain future work. The current formalization covers only natural numbers, with this existing calculation as a compatibility check.
 
-Regression tests check exact numeral five and exclude four. Membership and addition are concrete reachability experiments relative to these fixed programs. They are not yet independently certified universal theorems, an equality calculus, or a formal induction principle.
+## Reproduce the walkthrough evidence
 
-## Next
+```sh
+bazel run -c opt //mathematics/natural:record > "$PWD/mathematics/natural/evidence.js"
+```
 
-Specify proof objects and reusable assumptions using the original rule expressions. Establish binding and induction encodings before claiming universally checked arithmetic laws. Unary occurrence counts make the first experiment small; efficient binary arithmetic and representation correspondence remain future work.
+The hermetic recorder calls the ordinary parser and Obsidian runtime for every displayed case. Its assertions check the expected verdicts before writing the artifact. It introduces no language functionality.

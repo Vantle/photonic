@@ -2,7 +2,7 @@
 
 Computational expression over hypergraphs, with a native Rust frontend and runtime. The hermetic build follows [Vantle Registry](https://github.com/Vantle/registry).
 
-The [mathematics library](mathematics/README.md) begins with natural-number computation and [Obsidian](mathematics/obsidian.md), which checks concrete state reachability. Explicit mathematical proof checking, equality, and induction are planned.
+The [mathematics library](mathematics/README.md) begins with a [natural-number walkthrough](mathematics/natural/index.html), a written formal definition and [Obsidian](mathematics/obsidian.md), which checks concrete state reachability. Explicit mathematical proof checking, equality, and induction are planned.
 
 A **rule** describes computation, including abstraction derivations; an **event** records one application. Types are computation in the same iterative model. A **coherence** is an independently evolving parallel context. **Divergence** creates several coherences; **decoherence** combines compatible coherences.
 

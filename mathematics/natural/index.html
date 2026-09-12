@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Natural numbers · Molten</title>
+<link rel="stylesheet" href="../../document/style.css">
+<link rel="stylesheet" href="walkthrough.css">
+<nav aria-label="Main"><a href="../../document/plan.html">Molten</a><a href="#construction">Construction</a><a href="#induction">Induction</a><a href="#execution">Execution</a><a href="definition.md">Formal definition</a></nav>
+<main>
+<header>
+<p class="eyebrow">Mathematics / 01</p>
+<h1>Nothing, then one more.</h1>
+<p class="lead">A natural number is a finite quantity of indistinguishable units. Molten already has everything needed to represent one: an empty coherence, an ordinary concept, and orderless occurrences.</p>
+<p class="status">Formal specification · written mathematical arguments · recorded Rust checks</p>
+</header>
+<section id="construction">
+<h2>One atom is enough</h2>
+<p>Choose the ordinary concept <code>Unit</code>. A numeral occupies one root coherence containing only Units. Begin empty; add one fresh Unit at a time. Include exactly the presentations obtainable by finitely many such steps.</p>
+<div class="panel definition">
+<div><h3>Zero</h3><pre>()</pre><p>The empty particle in one coherence. An empty file has no coherence and is a different configuration.</p></div>
+<div><h3>Successor</h3><pre>Step.Unit.Unit
+[Step] Unit</pre><p>Consume the program-defined Step marker, preserve the two Units, and produce one fresh Unit. The result is three.</p></div>
+</div>
+<p>Step is a control label outside the numeral. There is no Zero token to carry, no record constructor, no variable sigil, and no arithmetic primitive.</p>
+<div class="experiment" aria-labelledby="construction-label">
+<h3 id="construction-label">Build a numeral</h3>
+<p class="small">Mathematical construction illustration. The controls show 0–6; the definition has no upper bound.</p>
+<div class="toolbar"><label for="quantity">Quantity <output id="quantity-label" for="quantity">2</output><input id="quantity" type="range" min="0" max="6" value="2"></label><button id="successor" type="button">Add one Unit</button><button id="zero" type="button">Return to zero</button><button id="rename" type="button">Rename occurrences</button></div>
+<div class="coherence" aria-label="One numeral coherence"><div id="particle" class="particle"></div></div>
+<pre id="numeral" aria-live="polite">Unit.Unit</pre>
+<p id="identity" class="small" aria-live="polite"></p>
+</div>
+</section>
+<section id="equality">
+<h2>Names disappear. Quantity remains.</h2>
+<p>Occurrence identifiers help the runtime track resources. They are not part of a number. Reordering or consistently renaming occurrences preserves a numeral; changing its multiplicity changes the numeral.</p>
+<div class="equation" role="img" aria-label="Two renamed units represent the same number; three units represent another number"><span>Unitₐ · Unitᵦ</span><strong>≡</strong><span>Unitᵧ · Unitₓ</span><strong>≠</strong><span>Unitₐ · Unitᵦ · Unit𝒸</span></div>
+<p class="small">Subscripts above illustrate occurrence identity. They are not extra Molten syntax.</p>
+<p>Formally, identify finite Unit particles under permutation and anonymous renaming, with no additional identifications. Zero is the empty class. The mathematical operation S adjoins one fresh Unit to a class. S is explanatory notation, not a language operator.</p>
+</section>
+<section id="induction">
+<h2>The crucial word is “exactly.”</h2>
+<p>A zero and a successor operation alone need not describe only the natural numbers: an arbitrary structure could contain unrelated extra elements. Our carrier is the <em>least</em> collection containing empty and closed under adjoining a Unit.</p>
+<table><thead><tr><th>Property</th><th>Why it follows</th></tr></thead><tbody>
+<tr><td>Zero belongs</td><td>The empty construction is admitted.</td></tr>
+<tr><td>Successor stays inside</td><td>One more step extends a finite construction.</td></tr>
+<tr><td>Zero and successor are distinct</td><td>A successor contains a fresh occurrence; empty contains zero occurrences.</td></tr>
+<tr><td>Successor is injective</td><td>Remove one indistinguishable Unit from equal successor presentations. Their predecessor classes agree.</td></tr>
+<tr><td>Induction covers every numeral</td><td>A property containing empty and preserved by adding a Unit contains every admitted construction.</td></tr>
+</tbody></table>
+<details><summary>Why recursion is determined too</summary><p>Choose an element z of any set X and an operation f on X. Send empty to z; send each successor to f of the preceding result. Every numeral has a finite construction, and every nonempty numeral has a unique predecessor class. This determines a map on all numerals. Induction proves that any map satisfying those equations agrees with it.</p></details>
+<p>These are mathematical arguments about the specified carrier, using ordinary reasoning about finite constructions. They are not claims that Molten has checked a universal induction proof. The <a href="definition.md">formal definition</a> records the assumptions and boundaries.</p>
+<p class="small">The standard zero/successor interface and its induction and recursion principles are described in the <a href="https://lean-lang.org/doc/reference/latest/Basic-Types/Natural-Numbers/#logical-model">Lean language reference</a>. Here we realize numerical content with ordinary Molten particles.</p>
+</section>
+<section id="recognition">
+<h2>Checking needs evidence, not a special type engine.</h2>
+<p>Prefix a candidate atom particle with one <code>Check</code> occurrence and use these two ordinary rules. Ask Obsidian whether the exact result <code>Natural</code> can be reached.</p>
+<pre>Check.Unit.Unit
+[Check] Natural
+[Natural.Unit] Natural</pre>
+<ol class="reasoning"><li><strong>Start checking.</strong> Check becomes Natural; the candidate Units remain.</li><li><strong>Discharge a unit.</strong> Each Natural.Unit interaction returns Natural.</li><li><strong>Establish the exact target.</strong> Natural alone leaves no numerical or unrelated remainder.</li></ol>
+<p>For zero, the first rule already reaches Natural. For any finite numeral, repeated unit discharge supplies a path. An unknown atom remains unmatched. Extra Check or Natural labels preserve too many control markers to equal the singleton target.</p>
+<p>Source inference can also apply a later rule at an earlier concrete source. Such an edge may consume several source Units at once. It adds another justified event; it does not carry the intermediate Natural descriptions forward as extra operands. Distinct events can select different Unit occurrences and arrive at the same canonical state. Their event identifiers and inspected footprints distinguish those choices.</p>
+<details><summary>The input boundary matters</summary><p>This protocol checks a flat atom particle under exactly these fixed rules, in one root coherence, with one Check added by the caller. Natural and Check are outside the numerical carrier. Supplying executable rule values or additional declarations changes the program and is outside this recognition interface. All these names remain ordinary user-defined concepts.</p><p>Obsidian's report is a reachability witness relative to that program. It is not an independently replayable certificate or a protected theorem-checking interface. An external “unreachable” report does not create a negative premise inside Molten.</p></details>
+</section>
+<section id="execution">
+<h2>Walk the actual execution.</h2>
+<p>These graphs are recorded from the Rust runtime through Obsidian. Choose a case, then follow an event or click a state. The exact target is Natural. The source and complete report are preserved in <a href="evidence.js">the evidence artifact</a>.</p>
+<div class="toolbar"><label for="native-example">Case<select id="native-example"></select></label><button id="native-back" type="button">Back</button><button id="native-reset" type="button">Initial state</button></div>
+<pre id="native-source"></pre>
+<p id="native-summary" class="status" aria-live="polite"></p>
+<div id="native-graph" class="graph"></div>
+<div class="panel"><div id="native-state"></div><div id="native-event"></div></div>
+<details><summary>Inspect the selected event</summary><pre id="native-detail" aria-live="polite"></pre></details>
+<p class="small">The paused case has a zero-step budget and reports unknown. The closed malformed cases cannot reach the exact target under this program. Neither result is a built-in logical operation.</p>
+</section>
+<section id="ownership">
+<h2>A number is a quantity. A runtime state also has ownership.</h2>
+<p>One numeral forgets the names of its Units. Between coherences, shared introductions still matter. Two independently introduced Units reunite as two; one Unit inherited by two coherences reunites once.</p>
+<p>The existing <a href="addition.lava">two-plus-three example</a> uses independently introduced Left and Right coherences. <code>[Left, Right] ()</code> consumes their control labels and rejoins five unmatched Units. Its independence precondition preserves the coherence contract. General arithmetic laws are outside this first formalization.</p>
+</section>
+<section id="status">
+<h2>What we have, and what comes next.</h2>
+<table><thead><tr><th>Layer</th><th>Current result</th></tr></thead><tbody>
+<tr><td>Definition</td><td>A one-atom carrier, zero, successor, numerical equality, and least closure.</td></tr>
+<tr><td>Mathematical argument</td><td>Constructor properties, induction, recursion, and recognition for the stated atom interface.</td></tr>
+<tr><td>Executable evidence</td><td>Zero, equality comparisons, successor and membership for 0–6, malformed atom checks, and the existing 2 + 3 calculation.</td></tr>
+<tr><td>Next proof layer</td><td>Encode propositions, reusable hypotheses, and proof objects through ordinary rules. Then independently check universal proofs.</td></tr>
+</tbody></table>
+<p>A finite demonstration is not an unbounded theorem. This page starts the natural-number library with an explicit model and inspectable behavior. It does not add language syntax or pretend that a proof calculus is already complete.</p>
+<pre>bazel run -c opt //system/molten/command -- obsidian \
+  "$PWD/mathematics/natural/membership.lava" \
+  --target "$PWD/mathematics/natural/natural.lava" --json</pre>
+<p><a href="README.md">Runnable examples</a> · <a href="definition.md">Full specification</a> · <a href="../plan.md">Mathematics roadmap</a></p>
+</section>
+</main>
+<script src="walkthrough.js"></script>
+<script src="evidence.js"></script>
+<script src="../../document/trace.js"></script>
+</html>

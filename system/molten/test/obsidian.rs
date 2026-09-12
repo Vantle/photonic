@@ -78,13 +78,13 @@ fn arithmetic() {
     let target = include_str!("../../../mathematics/natural/result.lava");
     assert_eq!(outcome(program, target), Outcome::Reached);
     assert_eq!(
-        outcome(program, "Zero.Successor.Successor.Successor.Successor"),
+        outcome(program, "Unit.Unit.Unit.Unit"),
         Outcome::Unreachable
     );
     let program = include_str!("../../../mathematics/natural/membership.lava");
     assert_eq!(outcome(program, "Natural"), Outcome::Reached);
     assert_eq!(
-        outcome(&program.replacen("Zero", "Unknown", 1), "Natural"),
+        outcome(&program.replacen("Check", "Unknown", 1), "Natural"),
         Outcome::Unreachable
     );
 }

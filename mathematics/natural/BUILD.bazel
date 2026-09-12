@@ -1,0 +1,16 @@
+load("@rules_rs//rs:rust_binary.bzl", "rust_binary")
+
+exports_files(glob(["*.lava"]))
+
+rust_binary(
+    name = "record",
+    srcs = ["record.rs"],
+    crate_root = "record.rs",
+    compile_data = ["membership.lava", "natural.lava"],
+    tags = ["manual"],
+    deps = [
+        "//system/molten",
+        "@crate//:serde",
+        "@crate//:serde_json",
+    ],
+)

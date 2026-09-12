@@ -17,7 +17,7 @@ Inductive natural numbers supply a useful precedent for the future proof calculu
 | Stage | Deliverable | Acceptance |
 | --- | --- | --- |
 | 0. Obsidian | Exact concrete reachability with an inspectable witness report | Exact identity, consuming/source-inferred events, positive evidence, and budget uncertainty are preserved; no independent certificate claim |
-| 1. Concrete naturals | `Zero` plus successor occurrences, membership rules, and an ordinary join for addition | Concrete sums reach the expected numeral; inputs remain intact in historical configurations; no extra numerical operands are invented |
+| 1. Concrete naturals | One Unit atom, empty zero, successor, least closure, and ordinary membership rules | Concrete sums reach the expected numeral; inputs remain intact in historical configurations; no extra numerical operands are invented |
 | 2. Judgments and evidence | A library encoding of objects, propositions, assumptions, and proof objects using existing syntax | Every proposed proof rule has explicit premises and conclusion; discovery alone is never an acceptance criterion |
 | 3. Natural membership and equality | Evidence for numeral membership; reflexivity, symmetry, transitivity, and constructor congruence | A designated checker accepts valid finite certificates and fails to establish malformed ones; malformed objects are not silently classified as naturals |
 | 4. Binding and induction | Object-level variable representation, capture-avoiding substitution, quantification, and a natural induction rule | One checked certificate establishes a statement for arbitrary naturals; a finite enumeration of examples cannot stand in for induction |
@@ -39,9 +39,11 @@ A small trusted checker is an established architecture: Lean distinguishes elabo
 
 ## The first numerical representation
 
-Represent n by one Zero and n distinct Successor occurrences in an orderless particle. Membership uses `[Zero] Natural` and `[Successor.Natural] Natural`. The checked example recognizes two without constructors or variables.
+The [formal definition](natural/definition.md) uses one empty root coherence as zero and repeated Unit occurrences as numerals. Successor adds one fresh Unit. Least closure excludes extra elements and supplies the mathematical induction argument. These written arguments are not yet universally quantified proofs checked inside Molten. The [walkthrough](natural/index.html) explains the construction and shows recorded Obsidian graphs.
 
-Addition uses independent Left and Right coherences. `[Left.Zero, Right.Zero] Zero` retains their unmatched successor occurrences through ordinary remainder reunion. Shared introductions reconcile once, so independently introduced operands are an explicit precondition. See the [executable examples](natural/README.md).
+Membership prefixes an atom-only candidate with Check and uses `[Check] Natural` and `[Natural.Unit] Natural`, querying exact Natural under that fixed program. Tests exercise zero through six and malformed atom candidates.
+
+Addition uses independent Left and Right coherences. `[Left, Right] ()` retains their unmatched Unit occurrences through ordinary remainder reunion. Shared introductions reconcile once, so independently introduced operands are an explicit precondition. See the [executable examples](natural/README.md).
 
 Unary multiplicity is transparent but inefficient for large numbers. Binary representation and a verified correspondence remain future library work, not permission to add native arithmetic syntax.
 
