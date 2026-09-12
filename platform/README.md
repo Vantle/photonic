@@ -16,8 +16,8 @@ The [verification workflow](../.github/workflows/verify.yml) builds, tests, and 
 From the repository root, cross-compile the CLI without attempting to execute the target binary:
 
 ```sh
-bazel build //system/molten/command --platforms=//platform:x86_64-unknown-linux-gnu
-bazel build //system/molten/command --platforms=//platform:x86_64-pc-windows-gnullvm
+bazel build //system:command --platforms=//platform:x86_64-unknown-linux-gnu
+bazel build //system:command --platforms=//platform:x86_64-pc-windows-gnullvm
 ```
 
 To verify on a matching native host:

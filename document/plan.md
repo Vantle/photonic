@@ -32,8 +32,8 @@ Rust checks exact reports across worker counts and pause sizes, large matching/c
 ```sh
 bazel test //...
 bazel run //:format -- --check
-bazel run -c opt //system/molten/command -- run "$PWD/example/conjunction.lava"
-bazel run -c opt //system/molten/command -- obsidian "$PWD/mathematics/natural/addition.lava" --target "$PWD/mathematics/natural/result.lava" --json
+bazel run -c opt //system:command -- run "$PWD/example/conjunction.wave"
+bazel run -c opt //system:command -- obsidian "$PWD/mathematics/natural/addition.wave" --target "$PWD/mathematics/natural/result.particle" --json
 ```
 
 The [performance report](performance.md) records measured small-program costs. [Platform verification](../platform/README.md) separates completed native/cross-build checks from configured CI jobs.

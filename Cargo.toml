@@ -1,23 +1,23 @@
 [package]
-name = "molten"
+name = "photonic"
 version = "0.0.0"
 edition = "2024"
 publish = false
 
 [lib]
-path = "system/molten/molten.rs"
+path = "system/photonic.rs"
 
 [[bin]]
-name = "molten"
-path = "system/molten/command/command.rs"
+name = "photonic"
+path = "system/command.rs"
 
 [[bin]]
 name = "benchmark"
-path = "system/molten/benchmark/benchmark.rs"
+path = "system/benchmark.rs"
 
 [[test]]
 name = "test"
-path = "system/molten/test/test.rs"
+path = "system/test.rs"
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }

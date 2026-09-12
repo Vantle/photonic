@@ -42,9 +42,9 @@ Both evaluators require explicit positive premises. There are no default rules, 
 The CLI accepts [native source](syntax.md) or a structured JSON program. Run these commands from the repository root; Bazel supplies the toolchain and external crates:
 
 ```sh
-bazel run //system/molten/command -- run "$PWD/example/conjunction.lava"
-bazel run //system/molten/command -- run "$PWD/example/dynamic.lava" --json
-bazel run //system/molten/command -- run "$PWD/example/coherence.lava" --workers 4 --steps 12000 --records 1000000 --states 80 --cells 12 --frames 10 --coherences 4
+bazel run //system:command -- run "$PWD/example/conjunction.wave"
+bazel run //system:command -- run "$PWD/example/dynamic.wave" --json
+bazel run //system:command -- run "$PWD/example/coherence.wave" --workers 4 --steps 12000 --records 1000000 --states 80 --cells 12 --frames 10 --coherences 4
 bazel test //...
 bazel run //:format -- --check
 ```

@@ -2,11 +2,11 @@
 <html lang="en">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Molten runtime plan</title>
+<title>Photonic runtime plan</title>
 <link rel="stylesheet" href="style.css">
 <nav><a href="#model">Model</a><a href="#laboratory">Programs</a><a href="#gate">Matching gates</a><a href="#reflection">Rules as values</a><a href="#decision">Decisions</a><a href="#readiness">Closure</a><a href="#boundary">Boundaries</a><a href="#source">Sources</a></nav>
 <main>
-<h1>Molten runtime plan</h1>
+<h1>Photonic runtime plan</h1>
 <p>Rules transform concrete information. A derivation can reveal that a rule applies at an earlier source. That source gains an alternative outgoing event; intermediate descriptions do not become extra operands. Coherences evolve independently, and only a joint derivation can justify bringing them together.</p>
 <p><strong>The accepted core plan is complete.</strong> The Rust runtime executes this model end to end from native source, with resumable matching and canonicalization, optional deterministic workers, and explicit resource accounting. This laboratory remains its independent JavaScript reference: all 20 examples cover concrete-source inference, joint inputs, multiple outputs, nested bodies, positive evidence, generated rule values, whole-rule abstractions, and lexical captures. Rust conformance tests compare the complete configuration and application-edge sets with support status for the 19 closed programs; one growing program remains suspended.</p>
 <p><a href="semantics.md">Detailed semantic contract</a> · <a href="plan.md">Implementation sequence</a> · <a href="syntax.md">Frontend contract</a></p>
@@ -48,8 +48,8 @@
 <h2 id="reflection">Rules as values</h2>
 <p><strong>Exact matching needs no decomposition.</strong> A complete nested rule can occupy one ordinary pattern position. Match the whole value, consume that occurrence, and produce the output by the same operation used for any other concept. Accessing a rule’s internal fields is needed only for a pattern that explicitly asks to match those fields. Being internally structured does not make a value multiple operands.</p>
 <p><strong>Implemented reference contract:</strong> represent a rule as an immutable structural value with its lexical bindings. Ordinary rules may match such values and produce new ones. The active rule index is derived from the rules visible in the current configuration; it is an optimization, not a separate global mutable program.</p>
-<p>The chemical abstract machine gives a precedent for unordered reaction-based computation and a higher-order calculus. The join-calculus tutorial develops reaction definitions and lexical scope in a precise concurrent model. These are useful precedents for a small operational core, not evidence that Molten’s proposed source-inference semantics already follows from either calculus. <a href="https://courses.grainger.illinois.edu/cs522/sp2016/TheChemicalAbstractMachine.pdf">Berry and Boudol (1992)</a>; <a href="https://www.microsoft.com/en-us/research/wp-content/uploads/2017/01/join-tutorial.pdf">Fournet and Gonthier (2001 draft)</a>.</p>
-<p>The notation below is explanatory, not Molten surface syntax. <code>rule(P,Q)</code> denotes a whole rule value. In native source, <code>[[A,B]] ([B])</code> consumes the rule with inputs A and B and no output, then enters a body containing the consuming rule <code>[B]</code>. It does not declare an alias.</p>
+<p>The chemical abstract machine gives a precedent for unordered reaction-based computation and a higher-order calculus. The join-calculus tutorial develops reaction definitions and lexical scope in a precise concurrent model. These are useful precedents for a small operational core, not evidence that Photonic’s proposed source-inference semantics already follows from either calculus. <a href="https://courses.grainger.illinois.edu/cs522/sp2016/TheChemicalAbstractMachine.pdf">Berry and Boudol (1992)</a>; <a href="https://www.microsoft.com/en-us/research/wp-content/uploads/2017/01/join-tutorial.pdf">Fournet and Gonthier (2001 draft)</a>.</p>
+<p>The notation below is explanatory, not Photonic surface syntax. <code>rule(P,Q)</code> denotes a whole rule value. In native source, <code>[[A,B]] ([B])</code> consumes the rule with inputs A and B and no output, then enters a body containing the consuming rule <code>[B]</code>. It does not declare an alias.</p>
 <pre>R = rule(A, B)
 M = rule(R, rule(A, C))
 
@@ -97,9 +97,9 @@ apply:     { C, rule(A, C), M }</pre>
     [True.False] False,
     [False.False] False,
 )</pre>
-<pre>bazel run -c opt //system/molten/command -- run "$PWD/example/conjunction.lava"
-bazel run -c opt //system/molten/command -- run "$PWD/example/capture.lava" --json
-bazel run -c opt //system/molten/command -- run "$PWD/example/conjunction.lava" --workers 4 --records 1000000
+<pre>bazel run -c opt //system:command -- run "$PWD/example/conjunction.wave"
+bazel run -c opt //system:command -- run "$PWD/example/capture.wave" --json
+bazel run -c opt //system:command -- run "$PWD/example/conjunction.wave" --workers 4 --records 1000000
 bazel test //...</pre>
 <p>The JSON report exposes states, events, witness mappings, consuming footprints, read support, and evidence status. Limits suspend work; embedded callers resume the same runtime. Reports are inspection snapshots, not restorable checkpoints.</p>
 <h2 id="native">Programs in the original grammar</h2>
@@ -133,7 +133,7 @@ bazel test //...</pre>
 <p>The runtime computes positive evidence only. An unfinished exploration can leave a reachability question unknown. An external checker may report a target unreachable after finite closure, but that report is never a premise for a rule.</p>
 <p>The intended completeness claim is fair discovery of every finite enabled derivation with sufficient resources. It does not guarantee termination. The laboratory limits state count, coherence count, live resources, frame count, and scheduled work; reaching a limit leaves deferred work available for resumption.</p>
 <p>Both implementations deliberately preserve exact finite behavior. Rust uses interned atom names, recursive captured values, shared immutable states and views, binding caches, and adjacency indexes. Canonicalization visits symmetric permutations incrementally to avoid storing the entire permutation space, but worst-case time remains factorial. Rust refines the graph using resource sharing, captures, lexical links, and return links before enumerating unresolved symmetries. Matching and canonical ordering advance in resumable steps. Positive evidence is closed over recorded dependencies and cached until execution changes the graph. Parsing, graph setup, closure-environment normalization, and reporting are not strictly preemptible; record accounting is not a byte cap. Any such optimization must preserve the reference’s observable events and support, including alternative paths that source inference makes distinct.</p>
-<p>Physics motivates locality and explicit causal accounting. It does not uniquely select this rewrite algebra, determine whether rules are persistent, or prove the source-projection convention. “Coherence” and “decoherence” are Molten terms; the model does not implement a quantum state space or physical quantum decoherence. Configuration and event-structure research supplies the more direct mathematical comparison for joint availability and causal alternatives. <a href="https://arxiv.org/abs/0912.4023">van Glabbeek and Plotkin (2009)</a>.</p>
+<p>Physics motivates locality and explicit causal accounting. It does not uniquely select this rewrite algebra, determine whether rules are persistent, or prove the source-projection convention. “Coherence” and “decoherence” are Photonic terms; the model does not implement a quantum state space or physical quantum decoherence. Configuration and event-structure research supplies the more direct mathematical comparison for joint availability and causal alternatives. <a href="https://arxiv.org/abs/0912.4023">van Glabbeek and Plotkin (2009)</a>.</p>
 <p>Rust now provides the executable native frontend and integrated graph runtime, alongside the independent structural parser and generic multiset kernel. The runtime matches and produces whole rule values, preserves lexical captures, and applies abstractions at concrete sources. Arbitrary structural extraction, binding encodings, induction, behavioral equivalence, persisted checkpoints, and incremental program edits remain research work. The <a href="performance.md">reproducible benchmark</a> measures 19 finite programs; small-case timings do not establish unrestricted scalability. This configuration model supersedes the earlier single-result ownership experiments.</p>
 <h2 id="source">Sources</h2>
 <ol class="small">

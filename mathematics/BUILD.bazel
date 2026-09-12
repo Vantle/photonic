@@ -1,0 +1,9 @@
+load("@rules_rs//rs:rust_library.bzl", "rust_library")
+
+rust_library(
+    name = "arithmetic",
+    srcs = ["arithmetic.rs", "//mathematics/arithmetic:circuit.rs", "//mathematics/arithmetic:encoding.rs", "//mathematics/arithmetic:gate.rs", "//mathematics/arithmetic:numeral.rs", "//mathematics/arithmetic:power.rs"],
+    crate_root = "arithmetic.rs",
+    visibility = ["//visibility:public"],
+    deps = ["@crate//:thiserror"],
+)

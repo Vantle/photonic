@@ -1,13 +1,13 @@
 # Obsidian
 
-Obsidian checks a concrete reachability claim: under the supplied Molten program, can the initial configuration reach this exact target configuration with supported evidence?
+Obsidian checks a concrete reachability claim: under the supplied Photonic program, can the initial configuration reach this exact target configuration with supported evidence?
 
 Write this schematically as `program ⊢ initial ↝* target`. The star permits zero or more applications, so an initial configuration proves its own reachability. The program includes its declared rules and any code those rules legitimately expose. This is a statement relative to that program, not an assertion that its rules are mathematically valid axioms.
 
 ## Run the first claim
 
 ```sh
-bazel run -c opt //system/molten/command -- obsidian "$PWD/mathematics/natural/addition.lava" --target "$PWD/mathematics/natural/result.lava" --json
+bazel run -c opt //system:command -- obsidian "$PWD/mathematics/natural/addition.wave" --target "$PWD/mathematics/natural/result.particle" --json
 ```
 
 The initial configuration encodes two plus three. The target is the numeral five. The target file contains only a configuration in the original grammar. It introduces no additional declarations. Native and structured JSON files are supported with the same format selection as `run`.
@@ -34,7 +34,7 @@ Target compilation uses an isolated clone of the program interner and does not i
 
 ## What is proved today
 
-The trusted Molten evaluator establishes the reachability verdict. The JSON report includes the complete source program, target values, witness identifier when reached, and the ordinary execution report: configurations, events, evidence views, read/consume footprints and support status.
+The trusted Photonic evaluator establishes the reachability verdict. The JSON report includes the complete source program, target values, witness identifier when reached, and the ordinary execution report: configurations, events, evidence views, read/consume footprints and support status.
 
 This is an inspectable witness report, not yet an independently replayable proof certificate. Source-inferred events may rely on auxiliary derivations; selecting a visually short path is not sufficient to discard their evidence. A portable checker must account for all those dependencies.
 
@@ -48,6 +48,6 @@ The runtime already allows arbitrary rules and circular reasoning. Obsidian does
 4. Design a versioned certificate carrying the necessary event, witness, scope, and support evidence, and an independently testable replay procedure. Every certified inference must carry its positive premises.
 5. Add quantification and induction to the mathematical calculus. Proving one target for each of several tested numerals does not prove a theorem for every numeral.
 
-Reachability is the first proof judgment. Equality, implication, and induction will be encoded and justified explicitly rather than inferred from arbitrary rewrite edges. Evidence search and checking can both remain ordinary Molten computation; their different trust roles do not require a separate runtime evaluator.
+Reachability is the first proof judgment. Equality, implication, and induction will be encoded and justified explicitly rather than inferred from arbitrary rewrite edges. Evidence search and checking can both remain ordinary Photonic computation; their different trust roles do not require a separate runtime evaluator.
 
 An Obsidian `unreachable` report describes exhaustive finite exploration from outside the evaluated program. It is not a negative premise, does not produce a language concept, and cannot enable a rule.

@@ -36,7 +36,7 @@ For `And.True.False.Extra`, deriving the witness `And.Boolean.Boolean.Extra` ena
 
 Source inference is not observational shortcut elimination. With `A → B.C` and `B → D`, applying the latter at concrete A produces D. Sequentially executing both produces C.D. Keep both alternatives. Evidence-only co-results are not concrete source remainder.
 
-Likewise, source inference can change the number of coherences relative to actually executing an evidence path. The joint footprint, concrete remainder, and final rule output determine the inferred result; the intermediate witness configuration is not copied forward. This is a Molten semantic choice, not a theorem of resource conservation or physics.
+Likewise, source inference can change the number of coherences relative to actually executing an evidence path. The joint footprint, concrete remainder, and final rule output determine the inferred result; the intermediate witness configuration is not copied forward. This is a Photonic semantic choice, not a theorem of resource conservation or physics.
 
 Every new explicit output gets an introduction distinct from sibling outputs. Independently computing inherited X to Y in two coherences yields two Y introductions. Computing Y once before divergence shares one Y introduction. Reunion must distinguish these cases even if their displayed labels agree.
 
@@ -48,7 +48,7 @@ Support is represented by positive clauses over states, events, and views. The i
 
 Evidence closure starts from facts and adds a conclusion only when all its premises are established. Cycles without a base fact do not prove themselves. Duplicate arrivals cannot fill additional premise positions. Once established, evidence is never invalidated by later computation. There are no negative premises, absence queries, defaults, or conditional truth statuses.
 
-`Not`, `True`, and `False` have no built-in meaning. A program may define `[True] False`, `[False] True`, or any other relation between its concepts. Molten does not judge those labels as logical assertions. The absence of an event never supplies a rule operand.
+`Not`, `True`, and `False` have no built-in meaning. A program may define `[True] False`, `[False] True`, or any other relation between its concepts. Photonic does not judge those labels as logical assertions. The absence of an event never supplies a rule operand.
 
 ## Iteration and bounds
 

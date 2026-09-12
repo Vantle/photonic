@@ -1,0 +1,3 @@
+First(A, B), Second(C, D)
+[First, First] Result
+[Second, Second] Result

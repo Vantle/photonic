@@ -1,0 +1,13 @@
+Read
+[Read] (
+    One
+    [Next] (
+        Zero
+        [Next] (
+            One
+            [Next] End
+        )
+    )
+)
+[Zero] Next
+[One] Next

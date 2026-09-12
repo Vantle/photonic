@@ -1,0 +1,158 @@
+load("@rules_rs//rs:rust_binary.bzl", "rust_binary")
+load("@rules_rs//rs:rust_library.bzl", "rust_library")
+load("@rules_rs//rs:rust_test.bzl", "rust_test")
+
+rust_library(
+    name = "photonic",
+    srcs = [
+        "agenda.rs",
+        "canonical.rs",
+        "executor.rs",
+        "expansion.rs",
+        "failure.rs",
+        "flow.rs",
+        "lowering.rs",
+        "matching.rs",
+        "photonic.rs",
+        "obsidian.rs",
+        "ordering.rs",
+        "parser.rs",
+        "particle.rs",
+        "path.rs",
+        "program.rs",
+        "refinement.rs",
+        "rule.rs",
+        "runtime.rs",
+        "search.rs",
+        "snapshot.rs",
+        "source.rs",
+        "state.rs",
+        "support.rs",
+        "symmetry.rs",
+        "syntax.rs",
+        "work.rs",
+    ],
+    crate_root = "photonic.rs",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@crate//:indexmap",
+        "@crate//:miette",
+        "@crate//:pest",
+        "@crate//:rayon",
+        "@crate//:serde",
+        "@crate//:thiserror",
+    ],
+    proc_macro_deps = ["@crate//:pest_derive"],
+)
+
+rust_test(
+    name = "ordering",
+    size = "small",
+    srcs = ["ordering.rs", "test/ordering.rs"],
+    crate_root = "ordering.rs",
+)
+
+rust_test(
+    name = "agenda",
+    size = "small",
+    srcs = ["agenda.rs", "test/agenda.rs"],
+    crate_root = "agenda.rs",
+)
+
+rust_binary(
+    name = "command",
+    srcs = [
+        "command.rs",
+        "command/argument.rs",
+    ],
+    crate_root = "command.rs",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//system:photonic",
+        "@crate//:clap",
+        "@crate//:miette",
+        "@crate//:serde_json",
+    ],
+)
+
+rust_test(
+    name = "test",
+    size = "small",
+    srcs = ["test.rs"] + glob(["test/*.rs"]),
+    crate_root = "test.rs",
+    compile_data = [
+        "//:example/conjunction.wave",
+        "//:example/reference.json",
+        "//example/group:abstraction.wave",
+        "//example/group:addition.wave",
+        "//example/group:broadcast.wave",
+        "//example/group:concrete.particle",
+        "//example/group:crossed.particle",
+        "//example/group:double.particle",
+        "//example/group:extra.wave",
+        "//example/group:independent.wave",
+        "//example/group:isolated.wave",
+        "//example/group:natural.wave",
+        "//example/group:number.particle",
+        "//example/group:pair.wave",
+        "//example/group:selected.particle",
+        "//example/group:separate.particle",
+        "//example/group:shared.particle",
+        "//example/group:ten.particle",
+        "//mathematics/binary:adder.particle",
+        "//mathematics/binary:addition.wave",
+        "//mathematics/binary:carry.particle",
+        "//mathematics/binary:multiply.particle",
+        "//mathematics/binary:product.particle",
+        "//mathematics/binary:result.particle",
+        "//mathematics/decimal:addition.wave",
+        "//mathematics/decimal:result.particle",
+        "//mathematics/natural:action.wave",
+        "//mathematics/natural:addition.wave",
+        "//mathematics/natural:archive.particle",
+        "//mathematics/natural:composition.wave",
+        "//mathematics/natural:membership.wave",
+        "//mathematics/natural:multiplication.wave",
+        "//mathematics/natural:product.wave",
+        "//mathematics/natural:result.particle",
+        "//mathematics/natural:retained.wave",
+        "//mathematics/natural:seven.particle",
+        "//mathematics/natural:six.particle",
+        "//mathematics/natural:successor.wave",
+        "//mathematics/natural:sum.wave",
+        "//mathematics/natural:ten.particle",
+        "//mathematics/natural:zero.particle",
+    ],
+    data = ["//system:command"],
+    env = {"PHOTONIC_COMMAND": "$(rootpath //system:command)"},
+    deps = [
+        "//system:photonic",
+        "@crate//:serde_json",
+    ],
+)
+
+rust_binary(
+    name = "benchmark",
+    srcs = ["benchmark.rs"],
+    crate_root = "benchmark.rs",
+    compile_data = ["//:example/reference.json"],
+    tags = ["manual"],
+    deps = [
+        "//system:photonic",
+        "@crate//:clap",
+        "@crate//:serde",
+        "@crate//:serde_json",
+    ],
+)
+
+rust_binary(
+    name = "symmetry",
+    srcs = ["benchmark/symmetry.rs"],
+    crate_root = "benchmark/symmetry.rs",
+    tags = ["manual"],
+    deps = [
+        "//system:photonic",
+        "@crate//:serde",
+        "@crate//:serde_json",
+    ],
+)

@@ -1,6 +1,6 @@
 # Natural numbers
 
-This is a mathematical specification of the first Molten number representation, with written arguments and executable finite checks. The ambient reasoning assumes finite constructions, equality, and induction over those constructions. It is not yet a foundational calculus or a universally quantified proof checked inside Molten.
+This is a mathematical specification of the first Photonic number representation, with written arguments and executable finite checks. The ambient reasoning assumes finite constructions, equality, and induction over those constructions. It is not yet a foundational calculus or a universally quantified proof checked inside Photonic.
 
 ## Carrier
 
@@ -10,14 +10,14 @@ Start with the empty particle. Repeatedly add one fresh Unit, finitely many time
 
 This is a least-closure definition: it admits no extra elements beyond those generated from the empty particle. Merely declaring an arbitrary zero and a successor operation would not exclude additional elements unrelated to zero.
 
-| Mathematical notation | Molten representation |
+| Mathematical notation | Photonic representation |
 | --- | --- |
 | 0 | `()` |
 | S(0) | `Unit` |
 | S(S(0)) | `Unit.Unit` |
 | S(S(S(0))) | `Unit.Unit.Unit` |
 
-The notation S and the decimal labels are explanatory mathematics, not Molten syntax. `()` is one empty coherence. An empty file has no coherence and does not represent zero. Parentheses do not box numerals: `(Unit.Unit)` is the same particle as `Unit.Unit`.
+The notation S and the decimal labels are explanatory mathematics, not Photonic syntax. `()` is one empty coherence. An empty file has no coherence and does not represent zero. Parentheses do not box numerals: `(Unit.Unit)` is the same particle as `Unit.Unit`.
 
 This uses one atom for numerical content. There is no extra Zero occurrence, nested record, variable syntax, integer primitive, or numeral-specific runtime behavior. It is minimal within the existing flat, atom-based particle representation, not a claim that every possible encoding has been compared.
 
@@ -31,15 +31,15 @@ Let N denote the carrier above. Define zero as the class of the empty particle. 
 
 **Injectivity.** If S(a) and S(b) have equal presentations, remove one Unit from each. Units are indistinguishable in this carrier, so the resulting class is independent of which occurrence is removed. The remaining presentations are a and b; therefore a = b.
 
-**Induction.** Suppose a property holds of zero and is preserved by S. The presentations satisfying it contain the empty construction and are closed under adding one Unit. Least closure therefore includes every numeral in that property. This is a mathematical argument about the specified carrier, not an implemented Molten quantifier or induction tactic.
+**Induction.** Suppose a property holds of zero and is preserved by S. The presentations satisfying it contain the empty construction and are closed under adding one Unit. Least closure therefore includes every numeral in that property. This is a mathematical argument about the specified carrier, not an implemented Photonic quantifier or induction tactic.
 
 **Recursion.** Given an arbitrary set X, an element z of X, and an operation f from X to X, send empty to z and each successor to f of the previous result. Finite construction defines this map everywhere. Removal of one indistinguishable Unit determines a unique predecessor class, so the result is independent of presentation. Induction establishes uniqueness of the map satisfying those two equations.
 
-Zero, successor, their disjointness and injectivity, and the least-closure induction principle give the usual inductive natural-number structure. Lean's reference documents the same mathematical interface for its inductive Nat and its recursion principle. Molten's representation and execution remain different: the ordinary particle machinery implements our examples, with no arithmetic special cases. [Lean: logical model and Peano axioms](https://lean-lang.org/doc/reference/latest/Basic-Types/Natural-Numbers/#logical-model).
+Zero, successor, their disjointness and injectivity, and the least-closure induction principle give the usual inductive natural-number structure. Lean's reference documents the same mathematical interface for its inductive Nat and its recursion principle. Photonic's representation and execution remain different: the ordinary particle machinery implements our examples, with no arithmetic special cases. [Lean: logical model and Peano axioms](https://lean-lang.org/doc/reference/latest/Basic-Types/Natural-Numbers/#logical-model).
 
 ## Executing successor
 
-[successor.lava](successor.lava) supplies a control occurrence alongside the numeral two:
+[successor.wave](successor.wave) supplies a control occurrence alongside the numeral two:
 
 ```text
 Step.Unit.Unit
@@ -67,7 +67,7 @@ Ask Obsidian for the exact target `Natural`. Check and Natural are control label
 
 This reasoning also respects source inference: every derived Natural has exactly one marker ancestor and zero or more Unit ancestors; Unit itself is never produced by these rules. Projecting an application back to its source can consume several Units at once but cannot consume unknown atoms or combine distinct marker ancestries. It may shorten a path without broadening the accepted atom inputs.
 
-[Membership of two](membership.lava) is a complete runnable instance:
+[Membership of two](membership.wave) is a complete runnable instance:
 
 ```text
 Check.Unit.Unit
@@ -81,9 +81,9 @@ Obsidian checks reachability under the supplied program. Supplying the target it
 
 Numerical equality forgets occurrence spelling inside one numeral. Runtime identity also tracks sharing between coherences and retained environments. Those are different levels of information. The mathematical carrier restricts to plain root particles; it does not erase resource ownership throughout the runtime.
 
-For the existing addition example, independently introduce the operands in separate Left and Right coherences. `[Left, Right] ()` consumes their labels and reunites their unmatched Units. Because the introductions are disjoint, the result has the sum of their multiplicities. If both worlds inherited the same Unit introduction, reunion keeps it once. Such a shared pair is not two independently supplied operands for this addition protocol.
+For the existing addition example, independently introduce the operands in separate Add coherences. `[Add, Add] ()` consumes their labels and reunites their unmatched Units. Because the introductions are disjoint, the result has the sum of their multiplicities. If both worlds inherited the same Unit introduction, reunion keeps it once. Such a shared pair is not two independently supplied operands for this addition protocol.
 
-This is the one-generator commutative-monoid view of the representation: empty is the identity and disjoint multiset union combines quantities. It is a mathematical description of the encoding, not a replacement for coherence semantics. General arithmetic proofs remain later work.
+This is the one-generator commutative-monoid view of the representation: empty is the identity and disjoint multiset union combines quantities. It is a mathematical description of the encoding, not a replacement for coherence semantics. [Addition laws](law.md) have written proofs and bounded runtime checks. Universal certificates and further arithmetic remain later work.
 
 ## Evidence status
 
@@ -95,4 +95,4 @@ This is the one-generator commutative-monoid view of the representation: empty i
 | Browser | Interactive construction explanation and recorded Rust Obsidian execution graphs |
 | Still absent | Object-language universal proofs, a fixed proof-object calculus, independent certificate replay, efficient binary representation |
 
-No finite slider or test collection proves an unbounded theorem. The written specification is the proposed mathematical model; the executable checks test its correspondence with the current runtime. Future work must encode reusable assumptions and proof objects through the original rule model before claiming that Molten itself has checked these universal arguments.
+No finite slider or test collection proves an unbounded theorem. The written specification is the proposed mathematical model; the executable checks test its correspondence with the current runtime. Future work must encode reusable assumptions and proof objects through the original rule model before claiming that Photonic itself has checked these universal arguments.

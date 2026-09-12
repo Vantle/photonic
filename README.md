@@ -1,4 +1,6 @@
-# Molten
+# Photonic
+
+Both `.particle` and `.wave` contain the same Photonic source syntax. By convention, `.particle` holds reusable rules or data and `.wave` holds a runnable script. The extension does not change evaluation. Structured programs and execution reports remain JSON.
 
 Computational expression over hypergraphs, with a native Rust frontend and runtime. The hermetic build follows [Vantle Registry](https://github.com/Vantle/registry).
 
@@ -24,8 +26,8 @@ The Boolean derivations reveal an application at the concrete `And.True.False.Ex
 Install **Bazel 9.2.0**. No separately installed Rust, Cargo, or native compiler is required.
 
 ```sh
-bazel run -c opt //system/molten/command -- run "$PWD/example/conjunction.lava"
-bazel run -c opt //system/molten/command -- run "$PWD/example/capture.lava" --json
+bazel run -c opt //system:command -- run "$PWD/example/conjunction.wave"
+bazel run -c opt //system:command -- run "$PWD/example/capture.wave" --json
 bazel test //...
 bazel run //:format -- --check
 ```
@@ -44,7 +46,7 @@ The ground runtime and original-syntax lowering are implemented. Execution limit
 - Relative occurrence maps preserve inherited sharing, independent results, lexical captures, and return continuations.
 - Indexed positive evidence closure requires every premise and preserves established conclusions. Cycles cannot establish themselves without evidence.
 
-The named crate root [molten.rs](system/molten/molten.rs) exposes focused modules directly, without `lib.rs` or re-exports. `lowering` handles executable syntax; `program` interns it; `state`, `refinement`, `canonical`, `matching`, `search`, `flow`, `support`, and `runtime` implement evaluation; `executor` supplies ordered parallel work; `snapshot` supplies inspectable reports. The structural `parser` API and generic `particle` / `rule` multiset kernel remain independent tools. Structural `parse` success alone does not establish executability.
+The named crate root [photonic.rs](system/photonic.rs) exposes focused modules directly, without `lib.rs` or re-exports. `lowering` handles executable syntax; `program` interns it; `state`, `refinement`, `canonical`, `matching`, `search`, `flow`, `support`, and `runtime` implement evaluation; `executor` supplies ordered parallel work; `snapshot` supplies inspectable reports. The structural `parser` API and generic `particle` / `rule` multiset kernel remain independent tools. Structural `parse` success alone does not establish executability.
 
 Rust conformance checks cover all 20 programs exported from the JavaScript reference: full canonical configuration, application-edge, and support comparisons for 19 closed cases, plus suspension for one growing case. The Rust tests also cover matching/canonicalization suspension, graph refinement, fair progress, positive evidence closure, and identical full reports across 1/2/4 workers and different pause sizes. Positive support is compared against a simple fixed-point oracle over 14,425 clause programs.
 
@@ -63,11 +65,23 @@ bazel run //:update --config=refresh
 bazel mod deps --config=refresh
 bazel test //... --config=refresh
 bazel test //...
-bazel run -c opt //system/molten/benchmark
+bazel run -c opt //system:benchmark
 ```
 
 Review both lockfiles after dependency updates. Developer commands use the downloaded Rust tools. Bazel creates no convenience symlinks in the checkout; use `bazel info bazel-bin` to locate outputs.
 
 The toolchain targets ARM64 and x86-64 macOS, GNU Linux, and GNULLVM Windows. Native tests passed on ARM64 macOS; Linux and Windows x86-64 CLI cross-builds passed. [CI](.github/workflows/verify.yml) is configured for all six native platforms but has not yet run; see [platform verification](platform/README.md). Optional remote execution follows Registry; local executor settings belong in ignored `user.bazelrc`.
 
-The crates supply parsing ([pest](https://docs.rs/pest/)), error derivation ([thiserror](https://docs.rs/thiserror/)), diagnostics ([miette](https://docs.rs/miette/)), arguments ([clap](https://docs.rs/clap/)), serialization ([Serde](https://serde.rs/)), stable indexed interning ([IndexMap](https://docs.rs/indexmap/)), and worker pools ([Rayon](https://docs.rs/rayon/)). Molten owns the rewrite, identity, projection, and support semantics.
+The crates supply parsing ([pest](https://docs.rs/pest/)), error derivation ([thiserror](https://docs.rs/thiserror/)), diagnostics ([miette](https://docs.rs/miette/)), arguments ([clap](https://docs.rs/clap/)), serialization ([Serde](https://serde.rs/)), stable indexed interning ([IndexMap](https://docs.rs/indexmap/)), and worker pools ([Rayon](https://docs.rs/rayon/)). Photonic owns the rewrite, identity, projection, and support semantics.
+
+
+## Source layout
+
+- `system/photonic.rs`: language library, with focused modules directly in `system/`.
+- `system/command.rs` and `system/command/`: CLI and arguments.
+- `system/test.rs` and `system/test/`: integration suite.
+- `system/benchmark.rs` and `system/benchmark/`: runtime measurements.
+- `mathematics/arithmetic.rs` and `mathematics/arithmetic/`: shared digit circuits, numeral encoding, CLI, and tests.
+- `mathematics/ternary/`: ordinary-rule digit library and runnable arithmetic examples.
+
+Entry points sit beside their supporting folders. Rust modules are exposed directly, without forwarding re-exports. Bazel targets are `//system:command`, `//system:test`, and `//mathematics/arithmetic:word`; run all tests with `bazel test -c opt //...`.

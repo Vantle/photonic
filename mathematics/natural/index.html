@@ -2,15 +2,15 @@
 <html lang="en">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Natural numbers · Molten</title>
+<title>Natural numbers · Photonic</title>
 <link rel="stylesheet" href="../../document/style.css">
 <link rel="stylesheet" href="walkthrough.css">
-<nav aria-label="Main"><a href="../../document/plan.html">Molten</a><a href="#construction">Construction</a><a href="#induction">Induction</a><a href="#execution">Execution</a><a href="definition.md">Formal definition</a></nav>
+<nav aria-label="Main"><a href="../../document/plan.html">Photonic</a><a href="#construction">Construction</a><a href="#induction">Induction</a><a href="#execution">Execution</a><a href="definition.md">Formal definition</a></nav>
 <main>
 <header>
 <p class="eyebrow">Mathematics / 01</p>
 <h1>Nothing, then one more.</h1>
-<p class="lead">A natural number is a finite quantity of indistinguishable units. Molten already has everything needed to represent one: an empty coherence, an ordinary concept, and orderless occurrences.</p>
+<p class="lead">A natural number is a finite quantity of indistinguishable units. Photonic already has everything needed to represent one: an empty coherence, an ordinary concept, and orderless occurrences.</p>
 <p class="status">Formal specification · written mathematical arguments · recorded Rust checks</p>
 </header>
 <section id="construction">
@@ -35,7 +35,7 @@
 <h2>Names disappear. Quantity remains.</h2>
 <p>Occurrence identifiers help the runtime track resources. They are not part of a number. Reordering or consistently renaming occurrences preserves a numeral; changing its multiplicity changes the numeral.</p>
 <div class="equation" role="img" aria-label="Two renamed units represent the same number; three units represent another number"><span>Unitₐ · Unitᵦ</span><strong>≡</strong><span>Unitᵧ · Unitₓ</span><strong>≠</strong><span>Unitₐ · Unitᵦ · Unit𝒸</span></div>
-<p class="small">Subscripts above illustrate occurrence identity. They are not extra Molten syntax.</p>
+<p class="small">Subscripts above illustrate occurrence identity. They are not extra Photonic syntax.</p>
 <p>Formally, identify finite Unit particles under permutation and anonymous renaming, with no additional identifications. Zero is the empty class. The mathematical operation S adjoins one fresh Unit to a class. S is explanatory notation, not a language operator.</p>
 </section>
 <section id="induction">
@@ -49,8 +49,8 @@
 <tr><td>Induction covers every numeral</td><td>A property containing empty and preserved by adding a Unit contains every admitted construction.</td></tr>
 </tbody></table>
 <details><summary>Why recursion is determined too</summary><p>Choose an element z of any set X and an operation f on X. Send empty to z; send each successor to f of the preceding result. Every numeral has a finite construction, and every nonempty numeral has a unique predecessor class. This determines a map on all numerals. Induction proves that any map satisfying those equations agrees with it.</p></details>
-<p>These are mathematical arguments about the specified carrier, using ordinary reasoning about finite constructions. They are not claims that Molten has checked a universal induction proof. The <a href="definition.md">formal definition</a> records the assumptions and boundaries.</p>
-<p class="small">The standard zero/successor interface and its induction and recursion principles are described in the <a href="https://lean-lang.org/doc/reference/latest/Basic-Types/Natural-Numbers/#logical-model">Lean language reference</a>. Here we realize numerical content with ordinary Molten particles.</p>
+<p>These are mathematical arguments about the specified carrier, using ordinary reasoning about finite constructions. They are not claims that Photonic has checked a universal induction proof. The <a href="definition.md">formal definition</a> records the assumptions and boundaries.</p>
+<p class="small">The standard zero/successor interface and its induction and recursion principles are described in the <a href="https://lean-lang.org/doc/reference/latest/Basic-Types/Natural-Numbers/#logical-model">Lean language reference</a>. Here we realize numerical content with ordinary Photonic particles.</p>
 </section>
 <section id="recognition">
 <h2>Checking needs evidence, not a special type engine.</h2>
@@ -61,7 +61,7 @@
 <ol class="reasoning"><li><strong>Start checking.</strong> Check becomes Natural; the candidate Units remain.</li><li><strong>Discharge a unit.</strong> Each Natural.Unit interaction returns Natural.</li><li><strong>Establish the exact target.</strong> Natural alone leaves no numerical or unrelated remainder.</li></ol>
 <p>For zero, the first rule already reaches Natural. For any finite numeral, repeated unit discharge supplies a path. An unknown atom remains unmatched. Extra Check or Natural labels preserve too many control markers to equal the singleton target.</p>
 <p>Source inference can also apply a later rule at an earlier concrete source. Such an edge may consume several source Units at once. It adds another justified event; it does not carry the intermediate Natural descriptions forward as extra operands. Distinct events can select different Unit occurrences and arrive at the same canonical state. Their event identifiers and inspected footprints distinguish those choices.</p>
-<details><summary>The input boundary matters</summary><p>This protocol checks a flat atom particle under exactly these fixed rules, in one root coherence, with one Check added by the caller. Natural and Check are outside the numerical carrier. Supplying executable rule values or additional declarations changes the program and is outside this recognition interface. All these names remain ordinary user-defined concepts.</p><p>Obsidian's report is a reachability witness relative to that program. It is not an independently replayable certificate or a protected theorem-checking interface. An external “unreachable” report does not create a negative premise inside Molten.</p></details>
+<details><summary>The input boundary matters</summary><p>This protocol checks a flat atom particle under exactly these fixed rules, in one root coherence, with one Check added by the caller. Natural and Check are outside the numerical carrier. Supplying executable rule values or additional declarations changes the program and is outside this recognition interface. All these names remain ordinary user-defined concepts.</p><p>Obsidian's report is a reachability witness relative to that program. It is not an independently replayable certificate or a protected theorem-checking interface. An external “unreachable” report does not create a negative premise inside Photonic.</p></details>
 </section>
 <section id="execution">
 <h2>Walk the actual execution.</h2>
@@ -77,7 +77,28 @@
 <section id="ownership">
 <h2>A number is a quantity. A runtime state also has ownership.</h2>
 <p>One numeral forgets the names of its Units. Between coherences, shared introductions still matter. Two independently introduced Units reunite as two; one Unit inherited by two coherences reunites once.</p>
-<p>The existing <a href="addition.lava">two-plus-three example</a> uses independently introduced Left and Right coherences. <code>[Left, Right] ()</code> consumes their control labels and rejoins five unmatched Units. Its independence precondition preserves the coherence contract. General arithmetic laws are outside this first formalization.</p>
+<p>The existing <a href="addition.wave">two-plus-three example</a> uses independently introduced Add coherences. <code>[Add, Add] ()</code> consumes their control labels and rejoins five unmatched Units. Its independence precondition preserves the coherence contract. The <a href="law.md">addition laws</a> now have written proofs and bounded runtime checks; universal proof certificates remain future work.</p>
+</section>
+<section id="addition">
+<h2>Addition, then finite decimals.</h2>
+<p>Disjoint union gives zero identity, successor compatibility, associativity, and commutativity. Successor injectivity gives cancellation; a sum is zero exactly when both operands are zero. Define order positively: a is at most b when some numeral c satisfies a + c = b. The <a href="law.md">law document</a> gives each statement, assumptions, and proof.</p>
+<pre>Add.Unit.Unit.Unit,
+Add.Unit.Unit.Unit.Unit.Unit.Unit.Unit
+[Add, Add] ()</pre>
+<p>This <a href="sum.wave">3 + 7 program</a> reaches ten Units. Check it from the repository root:</p>
+<pre>bazel run -c opt //system:command -- obsidian \
+  "$PWD/mathematics/natural/sum.wave" \
+  --target "$PWD/mathematics/natural/ten.particle"</pre>
+<p><a href="../decimal/README.md">Finite nonnegative decimals</a> use a coefficient n and scale k, representing n / 10<sup>k</sup>. At one shared scale, the same reunion adds coefficients: three Units plus seven Units at scale one represents 1.0. Equivalent decimals can have different runtime states; scale alignment, normalization, and decimal equality need explicit library programs. No decimal syntax or arithmetic primitive has been added.</p>
+</section>
+<section id="multiplication">
+<h2>Stack an action, then add.</h2>
+<pre>Add.Repeat.Repeat.Repeat,
+Add.Unit
+[Repeat] Unit.Unit
+[Add, Add] ()</pre>
+<p>Three repetitions emit two fresh Units each. Reunion adds the independently supplied Unit, reaching seven. Multiplication can run before or after the addition event. The <a href="multiplication.md">multiplication specification</a> gives the invariant, runnable commands, and written identity, commutativity, distributivity, and associativity proofs.</p>
+<p>This interface supplies one operand as an action rule and the other as repetition occurrences. It does not yet convert two arbitrary Unit particles into a multiplication computation. The <a href="action.wave">same action as a rule value</a> is reusable and remains alongside its result. There is no arithmetic primitive or new syntax.</p>
 </section>
 <section id="status">
 <h2>What we have, and what comes next.</h2>
@@ -88,9 +109,9 @@
 <tr><td>Next proof layer</td><td>Encode propositions, reusable hypotheses, and proof objects through ordinary rules. Then independently check universal proofs.</td></tr>
 </tbody></table>
 <p>A finite demonstration is not an unbounded theorem. This page starts the natural-number library with an explicit model and inspectable behavior. It does not add language syntax or pretend that a proof calculus is already complete.</p>
-<pre>bazel run -c opt //system/molten/command -- obsidian \
-  "$PWD/mathematics/natural/membership.lava" \
-  --target "$PWD/mathematics/natural/natural.lava" --json</pre>
+<pre>bazel run -c opt //system:command -- obsidian \
+  "$PWD/mathematics/natural/membership.wave" \
+  --target "$PWD/mathematics/natural/natural.particle" --json</pre>
 <p><a href="README.md">Runnable examples</a> · <a href="definition.md">Full specification</a> · <a href="../plan.md">Mathematics roadmap</a></p>
 </section>
 </main>

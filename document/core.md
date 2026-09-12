@@ -1,6 +1,6 @@
 # Core design
 
-Types are computation. Molten uses one rule-application mechanism for direct matches, abstraction derivations, and inferred applications at concrete sources. Existing evidence enables additional outgoing applications; it does not rewrite a source's history.
+Types are computation. Photonic uses one rule-application mechanism for direct matches, abstraction derivations, and inferred applications at concrete sources. Existing evidence enables additional outgoing applications; it does not rewrite a source's history.
 
 Coherences are independently evolving parallel contexts. An interaction requires one joint witness configuration. Joint siblings may project back to their common source once; results from competing histories cannot be pooled into a witness.
 

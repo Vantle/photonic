@@ -1,7 +1,7 @@
-use molten::lowering::parse;
-use molten::obsidian::{Outcome, Search};
-use molten::snapshot::Snapshot;
-use molten::source::{Program, Value};
+use photonic::lowering::parse;
+use photonic::obsidian::{Outcome, Search};
+use photonic::snapshot::Snapshot;
+use photonic::source::{Program, Value};
 use serde::Serialize;
 use std::io::{self, Write};
 
@@ -23,7 +23,7 @@ fn record(
     step: usize,
     expected: Outcome,
 ) -> Result<Case, Box<dyn std::error::Error>> {
-    let template = parse(include_str!("membership.lava"))?;
+    let template = parse(include_str!("membership.wave"))?;
     let declaration = template
         .rule
         .iter()
@@ -32,7 +32,7 @@ fn record(
         .join("\n");
     let source = format!("{initial}\n{declaration}\n");
     let program = parse(&source)?;
-    let mut search = Search::new(program, parse(include_str!("natural.lava"))?)?;
+    let mut search = Search::new(program, parse(include_str!("natural.particle"))?)?;
     search.run(step, None);
     let result = search.report();
     assert_eq!(result.outcome, expected, "{title}");

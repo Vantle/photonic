@@ -4,10 +4,11 @@ load("@hermetic_launcher//launcher:launcher_binary.bzl", "launcher_binary")
 launcher_binary(
     name = "format",
     embedded_args = [
-        "system/molten/molten.rs",
-        "system/molten/test/test.rs",
-        "system/molten/command/command.rs",
-        "system/molten/benchmark/benchmark.rs",
+        "system/photonic.rs",
+        "system/test.rs",
+        "system/command.rs",
+        "system/benchmark.rs",
+        "system/benchmark/symmetry.rs",
         "mathematics/natural/record.rs",
     ],
     entrypoint = rust_toolchain_component_label("@rules_rust//tools/upstream_wrapper:rustfmt"),
@@ -21,4 +22,4 @@ launcher_binary(
     tags = ["manual"],
 )
 
-exports_files(glob(["example/*.lava", "example/*.json"]))
+exports_files(glob(["example/*.wave", "example/*.json"]))

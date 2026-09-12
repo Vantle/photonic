@@ -1,5 +1,5 @@
 module(
-    name = "molten",
+    name = "photonic",
     version = "0.0.0",
     bazel_compatibility = [">=9.2.0"],
 )

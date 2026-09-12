@@ -3,8 +3,8 @@
 The benchmark measures runtime construction, ground code compilation, graph exploration, positive evidence closure, and snapshot construction. JSON decoding, input cloning, and worker-pool creation happen before timing. Source parsing, report encoding, process startup, and build time are excluded. Each program receives one warm-up and 25 measured runs. The [raw report](performance.json) records minimum, median, maximum, work, and retained records in microseconds.
 
 ```sh
-bazel run -c opt //system/molten/benchmark
-bazel run -c opt //system/molten/benchmark -- --workers 4
+bazel run -c opt //system:benchmark
+bazel run -c opt //system:benchmark -- --workers 4
 ```
 
 Measured after restoring the original grammar and removing negative-premise machinery on 2026-09-12 with hermetic Rust 1.98.1, Bazel optimized mode, Apple M5 Max, ARM64 macOS 26.6.2. These are small-program latency measurements, not allocator bytes, resident memory, distributed throughput, or worst-case scalability.
@@ -52,3 +52,21 @@ Compilation, graph setup, individual renamings, closure import, and report const
 The browser's **Export reference fixtures** control recomputes all 20 positive cases. Rust compares canonical states and application edges for the 19 closed graphs and verifies suspension for the growing case. Expected graph changes require review; fixture generation is not permission to replace a semantic expectation automatically.
 
 [Platform verification](../platform/README.md) distinguishes native host testing, cross-compilation, and configured native CI jobs. Cross-build success alone does not prove native runtime behavior on another operating system.
+
+## Symmetry reduction follow-up
+
+The [coherence symmetry optimization](symmetry.md) now removes certified redundant world orderings while preserving resources, captures, and complete states. The earlier table above predates this change. A dedicated benchmark includes both improved interchangeable-world cases and unresolved sharing rings; the general worst case remains factorial.
+
+## Matching and composition scheduling
+
+The coordinator uses two FIFO queues. Matching, delivery, and application work can advance for at most 4096 removals before one pending transitive view-composition task runs. This changes exploration order without discarding inferred applications. Dedicated queue tests establish service under continuous foreground arrivals; the runtime suite checks chunking, record-budget resumption, parallel determinism, and semantic reference results. Small arithmetic remains expensive: the [retained-input product](../mathematics/natural/product.md) reports its actual search size and unfinished exploration.
+
+## Immutable programs and necessary-symbol indexing
+
+Runtime instances share the compiled Program through Arc. A direct-path successor reuses the same compiled code instead of cloning its complete catalog. The program is immutable during execution; target compilation uses a separate mutable copy.
+
+Each lexical scope indexes declarations by one required symbol, preferring the least frequent symbol in that scope. Empty-input patterns remain unconditional candidates. At inspection time, collect symbols from particles in the derived view's target, obtain candidate rule IDs, and sort them back into declaration order. A further check requires every pattern symbol to be present somewhere in that target before allocating a matching request. Live rule values receive the same presence filter.
+
+Presence is only a necessary condition: full matching still checks multiplicity, distinct coherences, frame eligibility, and rule captures. No match can exist when a required symbol is absent from all target particles. Held frame resources are not pattern candidates in the matcher, so they are not included. Using the view target rather than its source preserves rule-derived abstraction. This optimization is internal to positive matching; it adds no absence premise to the language.
+
+The indexed order is deterministic despite hash-set iteration. Scoped declarations, live code, empty patterns, inference, resumption, scheduling, and the semantic reference suite remain covered. An added regression verifies that 1000 irrelevant declarations do not change a source-inferred proof's reached states. The [arithmetic benchmark](../mathematics/arithmetic/README.md) records current measurements separately from earlier runtime versions.

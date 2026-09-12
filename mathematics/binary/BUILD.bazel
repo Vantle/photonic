@@ -1,0 +1,23 @@
+load("@default_rust_toolchains//rustc:component_labels.bzl", "rust_toolchain_component_label")
+load("@hermetic_launcher//launcher:launcher_binary.bzl", "launcher_binary")
+load("@rules_rs//rs:rust_binary.bzl", "rust_binary")
+
+exports_files(glob(["*.particle", "*.wave"]))
+
+rust_binary(
+    name = "benchmark",
+    srcs = ["benchmark.rs"],
+    crate_root = "benchmark.rs",
+    tags = ["manual"],
+    deps = ["//mathematics:arithmetic", "//system:photonic"],
+)
+
+
+launcher_binary(
+    name = "format",
+    embedded_args = [
+        "mathematics/binary/benchmark.rs",
+    ],
+    entrypoint = rust_toolchain_component_label("@rules_rust//tools/upstream_wrapper:rustfmt"),
+    tags = ["manual"],
+)

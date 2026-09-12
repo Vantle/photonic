@@ -31,8 +31,8 @@ A **rule-value rewrite** consumes the matched whole value and produces its repla
 
 The Rust `rule::Rule::apply` implements generic literal multiset replacement, including exact whole nested rule values. It is separate from `runtime::Runtime`. That runtime and the JavaScript reference integrate joint inference, allocation, nested frames, dynamic activation of finite ground rule constructors, and positive evidence closure. The compiled code universe is fixed within each model instance; visible rule occurrences can change through ordinary events.
 
-Source grammar rules and mathematical relations retain their conventional meanings. Earlier Molten documents used relation for rule, world/partition for coherence, and join for decoherence. Preserve historical or scientific terms when describing their original subjects.
+Source grammar rules and mathematical relations retain their conventional meanings. Earlier Photonic documents used relation for rule, world/partition for coherence, and join for decoherence. Preserve historical or scientific terms when describing their original subjects.
 
-Molten's coherence and decoherence are language-specific names, not a claim to simulate quantum physics. The [research report](research.html) records the physical comparisons and sources.
+Photonic's coherence and decoherence are language-specific names, not a claim to simulate quantum physics. The [research report](research.html) records the physical comparisons and sources.
 
 `Not`, `True`, and `False` are ordinary program-defined concepts. No label has built-in logical meaning, and there are no negative rule premises.

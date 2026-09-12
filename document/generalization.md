@@ -16,6 +16,23 @@ Not.True
 
 The derivation of Boolean enables the Not rule at the concrete source. Its body receives True, and its local rule returns False. Boolean is evidence for this application, not an extra operand carried alongside True. The same mechanism applies when the concrete witness is a whole rule value.
 
+## Repeated abstractions accept different concrete operands
+
+```text
+Pair.Seed,
+Pair.Other
+[Seed] Intermediate
+[Intermediate] Kind
+[Other] Kind
+[Pair.Kind, Pair.Kind] ([] Result)
+```
+
+This executable example reaches Result.Seed.Other. The two Kind occurrences are ordinary literal patterns, enabled by the program's derivations. Seed and Other need not be equal. Their evidence can require different numbers of steps. The joint application can open its body at the concrete source, preserving Seed and Other; the local rule adds Result and returns. Removing Other's derivation prevents this application. Putting both operands in one coherence also prevents this two-coherence match.
+
+`system/test/obsidian.rs` checks these claims, including operand permutation. This example demonstrates abstraction and concrete witness preservation across flat coherences. It does not implement nested groups, copy either operand, or compute multiplication.
+
+The intended `Multiply(Number,Number)` abbreviates `Multiply.Number, Multiply.Number`; it does not introduce a private operand container. There are no implicit variables, no requirement that both numbers be equal, and no builtin numerical type. The distinction between partial pattern matching and evidence for a complete operand is recorded in [shared-prefix groups](group.md).
+
 ## Code is another value
 
 ```text
@@ -42,8 +59,12 @@ The finite ground code shapes come from the program. Runtime activation, replace
 
 ## Remaining research
 
+Operand abstraction must come from ordinary rule derivations. The user clarified that extending general rule semantics does not authorize explicit capture forms, variable conventions, or a new binding meaning for existing punctuation. The experimental capture matcher was removed. `Multiply(Number,Number)` is intended as shared-prefix shorthand whose Number occurrences require rule-derived evidence, not implicit variables.
+
 Establish encodings of binding, reusable hypotheses, and induction using rule composition before claiming a universal mathematical foundation. If an operation cannot yet be encoded, record that gap. Do not introduce an implicit wildcard convention, a reserved concept masquerading as an ordinary label, or a theorem-specific evaluator.
 
 All rules require positive evidence. Negative premises are not a missing feature or a future encoding target: the language does not define them. A user-defined concept named Not is allowed, with exactly the behavior its program supplies. Meta rules and abstractions can compress explicit definitions; they do not create default behavior from missing evidence.
 
 The [natural-number examples](../mathematics/natural/README.md) demonstrate a useful immediate simplification: unary quantities use only Unit multiplicity, with empty as zero; addition uses ordinary coherence reunion. They require no record constructors or pattern variables.
+
+The [shared-prefix investigation](group.md) records the implemented elaboration of original expressions such as `A(B,C)` into flat coherences. It supersedes the earlier nested-container proposal. Whole-operand guards within ordinary rules remain unresolved; a [retained-input multiplication construction](../mathematics/natural/product.md) now supplies both counts as data, with bounded validation and explicit remaining proof obligations; shared spelling alone supplies neither.

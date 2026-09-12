@@ -1,0 +1,96 @@
+(
+    [Multiply] (Archive) (
+        Prepare
+        [Unit] X
+        [Prepare] (
+            Finish
+            [Finish] Factor
+        )
+    )
+).Multiply.Unit.Unit,
+(
+    [Multiply] (Archive) (
+        Prepare
+        [Unit] Y
+        [Prepare] (
+            Finish
+            [Finish] Count
+        )
+    )
+).Multiply.Unit.Unit
+
+[
+    (
+        [Multiply] (Archive) (
+            Prepare
+            [Unit] X
+            [Prepare] (
+                Finish
+                [Finish] Factor
+            )
+        )
+    ).Factor,
+    (
+        [Multiply] (Archive) (
+            Prepare
+            [Unit] Y
+            [Prepare] (
+                Finish
+                [Finish] Count
+            )
+        )
+    ).Count
+] (
+    Begin
+    [Begin] (
+        Phase
+        [Done] Product
+    )
+    [Phase.Y] (
+        Phase
+        [Done] Done
+    ) (
+        Map
+        [Map] (
+            Finish
+            [Finish] Done
+        )
+        [X] Unit
+        [Y] ()
+    )
+    [Phase] (
+        Clear
+        [Clear] (
+            Finish
+            [Finish] Done
+        )
+        [X] ()
+    )
+    [Done, Done] Done
+)
+
+[
+    (
+        [Multiply] (Archive) (
+            Prepare
+            [Unit] X
+            [Prepare] (
+                Finish
+                [Finish] Factor
+            )
+        )
+    ).Archive
+] Archive
+
+[
+    (
+        [Multiply] (Archive) (
+            Prepare
+            [Unit] Y
+            [Prepare] (
+                Finish
+                [Finish] Count
+            )
+        )
+    ).Archive
+] Archive

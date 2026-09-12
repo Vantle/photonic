@@ -1,0 +1,33 @@
+Multiply.Unit, Multiply.Unit
+[Multiply] (
+ Prepare
+ [Unit] X
+ [Prepare] (Finish [Finish] Factor)
+)
+[Multiply] (
+ Prepare
+ [Unit] Y
+ [Prepare] (Finish [Finish] Count)
+)
+[Factor, Count] (
+ Begin
+ [Begin] (
+  Phase
+  [Done] ()
+ )
+ [Phase.Y] (
+  Phase
+  [Done] Done
+ ) (
+  Map
+  [Map] (Finish [Finish] Done)
+  [X] Unit
+  [Y] ()
+ )
+ [Phase] (
+  Clear
+  [Clear] (Finish [Finish] Done)
+  [X] ()
+ )
+ [Done, Done] Done
+)

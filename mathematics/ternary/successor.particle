@@ -1,0 +1,12 @@
+[Carry.Zero] Copy.([Write] One)
+[Carry.One] Copy.([Write] Two)
+[Carry.Two] Carry.([Write] Zero)
+[Copy.Zero] Copy.([Write] Zero)
+[Copy.One] Copy.([Write] One)
+[Copy.Two] Copy.([Write] Two)
+[Carry.End] Finish.([Write] One)
+[Copy.End] Done
+[([Write] Zero)] Next
+[([Write] One)] Next
+[([Write] Two)] Next
+[Next.Finish] Done
