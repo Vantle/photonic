@@ -77,7 +77,7 @@ rust_binary(
 
 rust_test(
     name = "test",
-    size = "small",
+    size = "medium",
     srcs = ["test.rs"] + glob(["test/*.rs"]),
     crate_root = "test.rs",
     compile_data = [

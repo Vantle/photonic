@@ -1,7 +1,6 @@
 common --lockfile_mode=error
 common --registry=https://bcr.bazel.build
 common --enable_platform_specific_config
-common:windows --host_platform=//platform:windows
 
 build --incompatible_strict_action_env
 build --sandbox_default_allow_network=false
@@ -10,6 +9,8 @@ build --symlink_prefix=/
 build --repo_env=BAZEL_DO_NOT_DETECT_CPP_TOOLCHAIN=1
 
 test --test_output=errors
+
+build:native --use_target_platform_for_tests
 
 common:refresh --lockfile_mode=update
 

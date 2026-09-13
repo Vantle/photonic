@@ -13,10 +13,33 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  format:
+    name: Format
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+      - name: Bazel
+        uses: bazel-contrib/setup-bazel@c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86
+        with:
+          bazelisk-version: 1.28.1
+          bazelisk-cache: true
+          repository-cache: true
+          cache-save: ${{ github.event_name != 'pull_request' }}
+      - name: Runtime
+        run: bazel run //:format -- --check
+      - name: Arithmetic
+        run: bazel run //mathematics/arithmetic:format -- --check
+      - name: Binary
+        run: bazel run //mathematics/binary:format -- --check
+
   native:
     name: ${{ matrix.platform }}
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 45
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -33,8 +56,6 @@ jobs:
             platform: aarch64-pc-windows-gnullvm
           - runner: windows-2025
             platform: x86_64-pc-windows-gnullvm
-    env:
-      USE_BAZEL_VERSION: 9.2.0
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -45,11 +66,9 @@ jobs:
         with:
           bazelisk-version: 1.28.1
           bazelisk-cache: true
-          repository-cache: true
+          repository-cache: ${{ runner.os != 'Windows' }}
           cache-save: ${{ github.event_name != 'pull_request' }}
       - name: Build
-        run: bazel build //... --platforms=//platform:${{ matrix.platform }}
+        run: bazel build -c opt --config=native //... --platforms=//platform:${{ matrix.platform }}
       - name: Test
-        run: bazel test //... --platforms=//platform:${{ matrix.platform }}
-      - name: Format
-        run: bazel run //:format -- --check
+        run: bazel test -c opt --config=native //... --platforms=//platform:${{ matrix.platform }}

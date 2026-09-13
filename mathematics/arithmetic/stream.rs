@@ -119,6 +119,8 @@ fn library() {
     assert!(report.work < 1000);
     assert_eq!(
         report.target,
-        parse(include_str!("../ternary/done.particle")).unwrap().initial
+        parse(include_str!("../ternary/done.particle"))
+            .unwrap()
+            .initial
     );
 }
