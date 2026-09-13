@@ -37,17 +37,17 @@ Leading zeros reflect the complete output width. These displayed digit strings a
 
 | Operation | Ordinary Photonic source | Exact target |
 | --- | --- | --- |
-| Add | [program](../ternary/add/program.wave) | [target](../ternary/add/target.particle) |
-| Subtract | [program](../ternary/subtract/program.wave) | [target](../ternary/subtract/target.particle) |
-| Multiply | [program](../ternary/multiply/program.wave) | [target](../ternary/multiply/target.particle) |
-| Divide | [program](../ternary/divide/program.wave) | [target](../ternary/divide/target.particle) |
+| Add | [program](../ternary/add.wave) | [target](../ternary/add.particle) |
+| Subtract | [program](../ternary/subtract.wave) | [target](../ternary/subtract.particle) |
+| Multiply | [program](../ternary/multiply.wave) | [target](../ternary/multiply.particle) |
+| Divide | [program](../ternary/divide.wave) | [target](../ternary/divide.particle) |
 
 For example, execute the saved multiplication program directly, without the generator:
 
 ```sh
 bazel run -c opt //system:command -- obsidian \
-  "$PWD/mathematics/ternary/multiply/program.wave" \
-  --target "$PWD/mathematics/ternary/multiply/target.particle" \
+  "$PWD/mathematics/ternary/multiply.wave" \
+  --target "$PWD/mathematics/ternary/multiply.particle" \
   --path --steps 20000000 --states 4096 --records 1000000 --cells 4096
 ```
 
@@ -58,10 +58,10 @@ Add `--directory "$PWD/mathematics/ternary/example"` to a generator command to e
 The [small digit library](../ternary/digit.particle) makes the arithmetic cases inspectable. Representative complete rules are:
 
 ```text
-[Add.Zero.One.Two] TritZero.CarryOne
-[Multiply.Two.Two] TritOne.CarryOne
-[Subtract.LeftZero.RightTwo.BorrowOne] TritZero.BorrowOne
-[Select.LeftOne.RightTwo.ChoiceOne] TritTwo
+[Add.Zero.One.Two] DigitZero.CarryOne
+[Multiply.Two.Two] DigitOne.CarryOne
+[Subtract.LeftZero.RightTwo.BorrowOne] DigitZero.BorrowOne
+[Select.LeftOne.RightTwo.ChoiceOne] DigitTwo
 ```
 
 Three contributions 0 + 1 + 2 give digit zero and carry one. Two times two gives digit one and carry one: 1 + 3 = 4. Subtraction computes a digit and an outgoing borrow; selection chooses a digit from positive choice data. These examples can run independently under the digit library. Their tests cover all input values and permutations of the commutative operations.
@@ -91,7 +91,7 @@ bazel run -c opt //mathematics/arithmetic:word -- \
 
 ## Notation and limits
 
-Photonic's grammar is unchanged. A complete ternary word contains one ordinary TritNZero, TritNOne, or TritNTwo concept at each position. Quotients and remainders use separate prefixes. Explicit zero values are necessary: an omitted output is not accepted as a computed zero. Exact targets include all digits and applicable sign/definedness flags.
+Photonic's grammar is unchanged. A complete ternary word contains one ordinary DigitNZero, DigitNOne, or DigitNTwo concept at each position. Quotients and remainders use separate prefixes. Explicit zero values are necessary: an omitted output is not accepted as a computed zero. Exact targets include all digits and applicable sign/definedness flags.
 
 The sparse carry library also supports `3^0.3^1.3^1`, representing seven. Each power spelling is an ordinary atom name with meaning supplied by library rules. The caret is not an exponent operator. `Power(3,1)` continues to expand into two coherences; it is not an ordered base/exponent constructor.
 

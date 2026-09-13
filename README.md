@@ -1,10 +1,12 @@
 # Photonic
 
+**[Read the interactive webbook](index.html)** — philosophy, grammar, features, the Rust runtime, and mathematics in one page. Open `index.html` locally to use its illustrations and recorded execution explorers offline.
+
 Both `.particle` and `.wave` contain the same Photonic source syntax. By convention, `.particle` holds reusable rules or data and `.wave` holds a runnable script. The extension does not change evaluation. Structured programs and execution reports remain JSON.
 
 Computational expression over hypergraphs, with a native Rust frontend and runtime. The hermetic build follows [Vantle Registry](https://github.com/Vantle/registry).
 
-The [mathematics library](mathematics/README.md) begins with a [natural-number walkthrough](mathematics/natural/index.html), a written formal definition and [Obsidian](mathematics/obsidian.md), which checks concrete state reachability. Explicit mathematical proof checking, equality, and induction are planned.
+The [mathematics library](mathematics/README.md) begins with a [natural-number chapter](index.html#natural), a written formal definition and [Obsidian](mathematics/obsidian.md), which checks concrete state reachability. Explicit mathematical proof checking, equality, and induction are planned.
 
 A **rule** describes computation, including abstraction derivations; an **event** records one application. Types are computation in the same iterative model. A **coherence** is an independently evolving parallel context. **Divergence** creates several coherences; **decoherence** combines compatible coherences.
 
@@ -50,7 +52,7 @@ The named crate root [photonic.rs](system/photonic.rs) exposes focused modules d
 
 Rust conformance checks cover all 20 programs exported from the JavaScript reference: full canonical configuration, application-edge, and support comparisons for 19 closed cases, plus suspension for one growing case. The Rust tests also cover matching/canonicalization suspension, graph refinement, fair progress, positive evidence closure, and identical full reports across 1/2/4 workers and different pause sizes. Positive support is compared against a simple fixed-point oracle over 14,425 clause programs.
 
-The [interactive runtime plan](document/plan.html) runs the ground reference examples offline and displays native Rust traces for original-syntax programs. The [semantic contract](document/semantics.md), [implementation plan](document/plan.md), and [terminology](document/terminology.md) describe the accepted model. Earlier HTML laboratories are marked historical.
+The [runtime chapter](index.html#runtime) explains the implementation and lets you follow native Rust events. The [reference laboratory](document/plan.html) retains the independent ground evaluator. The [semantic contract](document/semantics.md), [implementation plan](document/plan.md), and [terminology](document/terminology.md) describe the accepted model. Earlier HTML laboratories are marked historical.
 
 Whole-rule production and replacement use the same matching, projection, activation, and support machinery as ordinary concepts. Arbitrary structural extraction, binding encodings, induction, and restorable checkpoints remain research work. The former variable/constructor extension has been removed. Graph refinement reduces symmetric work, but exact enumeration can still take factorial time. State sharing prevents repeated equivalent configurations, not genuine fresh-state growth. See [performance](document/performance.md) for the reproducible benchmark and its limits.
 

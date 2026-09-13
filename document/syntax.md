@@ -4,7 +4,7 @@ Photonic source uses `.particle` for reusable rules and data, and `.wave` for sc
 
 Photonic has one grammar. The pest-backed `parser::parse` preserves the original source tree; `lowering::parse` interprets that same tree as an executable program. Lowering does not maintain another grammar or reserve additional characters or keywords.
 
-The boundary follows the [original language document](https://github.com/Vantle/Vantle/blob/0b693aa583e71c60a225cbb3b4cd53ecfbbaf9fb/Photonic/document/photonic.page.rs): concepts, dots, commas, source contexts, groups, and ASCII whitespace. The interpretation of nested rules below makes the previously incomplete executable boundary explicit; it is not a claim that the historical constructor already executed every form.
+The boundary follows the [original language document](https://github.com/Vantle/Vantle/blob/0b693aa583e71c60a225cbb3b4cd53ecfbbaf9fb/Molten/document/molten.page.rs): concepts, dots, commas, source contexts, groups, and ASCII whitespace. The interpretation of nested rules below makes the previously incomplete executable boundary explicit; it is not a claim that the historical constructor already executed every form.
 
 ## Expressions
 

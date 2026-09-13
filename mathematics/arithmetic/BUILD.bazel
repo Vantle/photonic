@@ -24,7 +24,7 @@ rust_test(
     size = "medium",
     srcs = ["test.rs", "argument.rs", "ternary.rs", "stream.rs"],
     crate_root = "test.rs",
-    compile_data = ["//mathematics/ternary:digit.particle", "//mathematics/ternary:successor.particle", "//mathematics/ternary:stream.wave", "//mathematics/ternary:done.particle"],
+    compile_data = ["//mathematics/ternary:numeral.particle", "//mathematics/ternary:word.particle", "//mathematics/ternary:carry.particle", "//mathematics/ternary:digit.particle", "//mathematics/ternary:successor.particle", "//mathematics/ternary:stream.wave", "//mathematics/ternary:done.particle"],
     data = [":word"],
     env = {"PHOTONIC_WORD": "$(rlocationpath :word)"},
     deps = ["//mathematics:arithmetic", "//system:photonic", "@crate//:clap", "@crate//:thiserror", "@rules_rust//rust/runfiles"],

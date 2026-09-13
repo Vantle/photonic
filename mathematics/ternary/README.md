@@ -1,27 +1,70 @@
-# Ternary programs
+# Ternary arithmetic
 
-The current [ternary arithmetic implementation](../arithmetic/README.md) supports all four word operations. Its runnable generated programs are in `add`, `subtract`, `multiply`, and `divide`; `digit.particle` exposes small digit rules. This page records the separate sparse carry construction and its historical radix comparison. Signed balanced-ternary arithmetic remains unimplemented.
+Ternary uses digits zero, one, and two. The [arithmetic implementation](../arithmetic/README.md) supplies addition, subtraction, multiplication, and division through ordinary Photonic rules.
 
-The library uses ordinary concept names for powers of three. For example, six is `3^1.3^1`; nine is `3^2`. The caret is part of an atom name, not an exponent operator. The parser does not calculate these values.
+## Write 47 directly
+
+47 is 1202 in base three: 1 × 27 + 2 × 9 + 0 × 3 + 2 × 1.
+
+For the sparse carry library, write [numeral.particle](numeral.particle):
 
 ```text
-Add(3^1, 3^1.3^1)
+3^3.3^2.3^2.3^0.3^0
+```
+
+Each occurrence contributes one power of three. The repeated powers encode coefficient two; no occurrence is needed for the zero coefficient. Ordering does not matter. These are ordinary concept names: the caret is part of each name, not an exponent operator. The carry library supplies their computational relationships.
+
+For a complete positional word, write [word.particle](word.particle):
+
+```text
+Digit3One.Digit2Two.Digit1Zero.Digit0Two
+```
+
+Each atom states both position and value. Position zero is the units column. Zero digits remain explicit in this representation. These labels describe a word; a generated circuit consumes its wired Input facts. The sparse carry and positional circuit interfaces are separate encodings.
+
+A bare `1202` or `47` is an ordinary atom, not a built-in numerical literal. If a particular program wants a short named numeral, it can define one explicitly:
+
+```text
+47
+[47] 3^3.3^2.3^2.3^0.3^0
+```
+
+That rule gives this one name a meaning. It does not add a decimal parser or automatically interpret other atom names.
+
+## A handwritten addition
+
+This complete source adds one to the sparse numeral 47:
+
+```text
+Add.3^3.3^2.3^2.3^0.3^0,
+Add.3^0
 [Add, Add] ()
-[3^1.3^1.3^1] 3^2
+[3^0.3^0.3^0] 3^1
 ```
 
-This example adds three and six. A carry consumes three equal contributions and produces one contribution at the next position. Binary uses the same construction with two equal contributions. Both preserve their mathematical weighted sum, and neither supplies a native arithmetic operation.
+The exact result is `3^3.3^2.3^2.3^1`, representing 48. The regression uses the shared carry library and checks both that result and rejection of the unchanged 47 target after closed exploration.
 
-The saved [addition program](addition.wave) proves 1500 + 123 = 1623:
+## Files by purpose
 
-```sh
-bazel run -c opt //system:command -- obsidian \
-  "$PWD/mathematics/ternary/addition.wave" \
-  --target "$PWD/mathematics/ternary/result.particle" \
-  --steps 1000000 --states 2000 --cells 80
-```
+| File | Purpose |
+| --- | --- |
+| [carry.particle](carry.particle) | Sparse power carry rules, positions zero through 31 |
+| [digit.particle](digit.particle) | Standalone local digit operations |
+| [numeral.particle](numeral.particle) | Handwritten sparse numeral 47 |
+| [word.particle](word.particle) | Handwritten complete positional numeral 47 |
+| [sum.wave](sum.wave), [sum.particle](sum.particle) | Sparse 1500 + 123 example and target |
+| [add.wave](add.wave), [add.particle](add.particle) | Positional addition and target |
+| [subtract.wave](subtract.wave), [subtract.particle](subtract.particle) | Positional signed subtraction and target |
+| [multiply.wave](multiply.wave), [multiply.particle](multiply.particle) | Positional multiplication and target |
+| [divide.wave](divide.wave), [divide.particle](divide.particle) | Positional quotient/remainder division and target |
+| [successor.particle](successor.particle) | Reusable stream digit transformation rules |
+| [stream.wave](stream.wave), [done.particle](done.particle) | Input stream and completion target |
 
-There are 32 carry rules, from power zero through power 31. Unsupported higher positions are still ordinary concepts; the library does not automatically generate rules for them. This is sparse multiplicity: digit two occupies two occurrences, so fewer digit positions need not mean fewer total occurrences.
+`.wave` denotes runnable source by convention; `.particle` denotes reusable rules or data. They have identical grammar. Operations and targets sit together in this directory, without per-operation folders.
+
+`Digit` names output digits without repeating the radix in every atom. `Carry` and `Borrow` name local arithmetic information; `Input` and `Port` identify generated wiring. `Quotient`, `Remainder`, `Negative`, and `Undefined` identify result roles. These are library conventions, not reserved language words.
+
+The sparse representation uses multiplicity: a coefficient of two occupies two occurrences. A complete positional word uses one occurrence per digit, including zeros. Choose the representation expected by the program you are running.
 
 ## Measured comparison
 

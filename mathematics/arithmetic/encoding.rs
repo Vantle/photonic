@@ -10,7 +10,7 @@ pub fn digit(value: u8) -> &'static str {
 pub fn label(radix: u8) -> &'static str {
     match radix {
         2 => "Bit",
-        3 => "Trit",
+        3 => "Digit",
         _ => unreachable!("unsupported radix"),
     }
 }

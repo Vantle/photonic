@@ -213,7 +213,7 @@ fn digit() {
                 assert_eq!(
                     execute(
                         &format!("Add.{}.{}.{} {rule}", name[left], name[right], name[carry]),
-                        &format!("Trit{}.Carry{}", name[value % 3], name[value / 3])
+                        &format!("Digit{}.Carry{}", name[value % 3], name[value / 3])
                     ),
                     Outcome::Reached
                 );
@@ -222,7 +222,7 @@ fn digit() {
             assert_eq!(
                 execute(
                     &format!("Multiply.{}.{} {rule}", name[left], name[right]),
-                    &format!("Trit{}.Carry{}", name[value % 3], name[value / 3])
+                    &format!("Digit{}.Carry{}", name[value % 3], name[value / 3])
                 ),
                 Outcome::Reached
             );
@@ -235,7 +235,7 @@ fn digit() {
                             name[left], name[right], name[borrow]
                         ),
                         &format!(
-                            "Trit{}.Borrow{}",
+                            "Digit{}.Borrow{}",
                             name[value.rem_euclid(3) as usize],
                             name[usize::from(value < 0)]
                         )
@@ -248,7 +248,7 @@ fn digit() {
                             "Select.Left{}.Right{}.Choice{} {rule}",
                             name[left], name[right], name[borrow]
                         ),
-                        &format!("Trit{}", name[if borrow == 0 { left } else { right }])
+                        &format!("Digit{}", name[if borrow == 0 { left } else { right }])
                     ),
                     Outcome::Reached
                 );
@@ -256,7 +256,33 @@ fn digit() {
         }
     }
     assert_eq!(
-        execute(&circuit::subtract(3, 1, 2, 2), "Trit0Zero.NegativeOne"),
+        execute(&circuit::subtract(3, 1, 2, 2), "Digit0Zero.NegativeOne"),
         Outcome::Unknown
+    );
+}
+
+#[test]
+fn notation() {
+    let numeral = include_str!("../ternary/numeral.particle").trim();
+    let carry = include_str!("../ternary/carry.particle");
+    let source = format!("Add.{numeral}, Add.3^0 [Add, Add] () {carry}");
+    for (target, expected) in [
+        ("3^3.3^2.3^2.3^1", Outcome::Reached),
+        (numeral, Outcome::Unreachable),
+    ] {
+        let mut search =
+            photonic::obsidian::Search::new(parse(&source).unwrap(), parse(target).unwrap())
+                .unwrap();
+        search.run(100_000, None);
+        let report = search.report();
+        assert!(report.execution.closed);
+        assert_eq!(report.outcome, expected);
+    }
+    assert_eq!(
+        execute(
+            include_str!("../ternary/word.particle"),
+            &encoding::unsigned(3, 4, 47)
+        ),
+        Outcome::Reached
     );
 }

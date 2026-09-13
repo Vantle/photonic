@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="An interactive textbook of Photonic: rules, coherences, concrete-source inference, runtime execution, and ordinary-rule arithmetic.">
+<meta name="color-scheme" content="light dark">
+<title>Photonic — The Webbook</title>
+<link rel="stylesheet" href="document/book.css">
+<script defer src="document/native.js"></script>
+<script defer src="document/record.js"></script>
+<script defer src="document/book.js"></script>
+</head>
+<body>
+<a class="skip" href="#content">Skip to the book</a>
+<aside class="rail" aria-label="Book navigation">
+<a class="brand" href="#introduction"><span class="emblem" aria-hidden="true">✳</span> photonic<span class="edition">THE WEBBOOK · 01</span></a>
+<label class="search">Find a subject<input id="search" type="search" placeholder="Rules, numbers, inference…" autocomplete="off"></label>
+<nav id="contents" aria-label="Chapters">
+<a href="#philosophy"><span>01</span> A world of rules</a>
+<a href="#grammar"><span>02</span> Reading the language</a>
+<a href="#coherence"><span>03</span> Coherences &amp; identity</a>
+<a href="#abstraction"><span>04</span> Types are computation</a>
+<a href="#code"><span>05</span> Rules as values</a>
+<a href="#runtime"><span>06</span> Inside the runtime</a>
+<a href="#natural"><span>07</span> The natural numbers</a>
+<a href="#ternary"><span>08</span> Arithmetic in base three</a>
+<a href="#workshop"><span>09</span> The execution workshop</a>
+<a href="#reference"><span>10</span> Your working reference</a>
+</nav>
+<p id="search-status" role="status"></p>
+<div class="rail-bottom"><div class="progress"><span id="progress"></span></div><p id="position">Begin anywhere. Read in order.</p><div class="rail-action"><button id="theme" type="button" aria-label="Switch to dark appearance">◐ Appearance</button><button id="print" type="button">Print</button></div><a href="https://github.com/Vantle/photonic">Source on GitHub ↗</a></div>
+</aside>
+<main id="content">
+<header class="hero" id="introduction">
+<div class="eyebrow">A LANGUAGE OF EXPLICIT INTERACTION</div>
+<h1>Computation,<br>in a different <em>light.</em></h1>
+<p class="lede">Start with information. Describe how it can interact. Let rules reveal the next possibilities.</p>
+<p>Photonic expresses computation as transformations of orderless information. The same rules describe ordinary operations, abstractions, and executable code. This book takes you from your first rule to the Rust runtime and its working mathematics libraries.</p>
+<div class="hero-action"><a class="button primary" href="#philosophy">Start reading <span aria-hidden="true">↘</span></a><a class="button" href="#workshop">Try the workshop</a></div>
+<div class="hero-diagram" role="img" aria-label="Concrete source A and X transforms through rule A to B, preserving X">
+<div class="orb"><span class="micro">SOURCE</span><div><b>A</b><i>X</i></div></div><div class="connection"><code>[A] B</code><span aria-hidden="true">⟶</span><small>one possible event</small></div><div class="orb"><span class="micro">SUCCESSOR</span><div><b>B</b><i>X</i></div></div>
+</div>
+<div class="hero-caption"><span>Rules describe possibility.</span><span>Events record an application.</span><span>Remainders carry information forward.</span></div>
+</header>
+<noscript><p class="notice">The complete text is readable without JavaScript. Enable JavaScript to use the interactive illustrations and recorded execution explorer.</p></noscript>
+<section class="chapter" id="philosophy" data-title="Philosophy positive evidence rules computation">
+<div class="chapter-number">01 / PHILOSOPHY</div><h2>A world of <em>rules.</em></h2>
+<p class="lead">A program describes which interactions information can participate in.</p>
+<p>Think of a configuration as a complete scene: the coherences present together, the information within them, and the environments that make their rules meaningful. An applicable rule creates a successor scene. Several rules can describe different successors of the same scene.</p>
+<p>The physical intuition is explicit interaction and causal accounting. An interaction needs its participants; its consequences belong to a particular joint configuration. Photonic gives that intuition a computational definition through matching, occurrence identity, and recorded derivations.</p>
+<div class="principle"><span>THE CENTRAL IDEA</span><blockquote>Information can reveal how it may be used.<br>A rule turns that evidence into a next step.</blockquote></div>
+<div class="grid three"><article class="card"><span class="micro">01</span><h3>Positive evidence</h3><p>A rule applies because its inputs have support. <code>Not</code> can be an ordinary program-defined concept; the language gives it no intrinsic negation behavior.</p></article><article class="card"><span class="micro">02</span><h3>Orderless, with multiplicity</h3><p><code>A.B</code> and <code>B.A</code> describe the same arrangement of values. <code>A.A</code> still contains two independent occurrences.</p></article><article class="card"><span class="micro">03</span><h3>One model, many uses</h3><p>Rules express conversion, classification, synchronization, and code production. A type-like abstraction is established by computation.</p></article></div>
+<h3>Your first interaction</h3><div class="example"><div class="example-bar"><span>A complete source program</span><span class="tag">.wave</span></div><pre><code>A.X
+[A] B</code></pre></div>
+<p>The initial particle contains A and X. The rule consumes A and introduces B. X is unmatched, so it remains. The result is <code>B.X</code>.</p>
+<div class="lab" id="remainder-lab"><div class="lab-heading"><span class="tag">INTERACTIVE ILLUSTRATION</span><h3>The remainder is real information</h3></div><label>Unmatched X occurrences <input id="remainder" type="range" min="0" max="6" value="2"><output id="remainder-count">2</output></label><div class="transition"><div><span class="micro">BEFORE</span><div id="remainder-before" class="token-row"></div></div><div class="rule-arrow"><code>[A] B</code> →</div><div><span class="micro">AFTER</span><div id="remainder-after" class="token-row"></div></div></div><p class="caption">This illustration applies the literal remainder rule. Each X shown is an independent introduction.</p></div>
+<details class="exercise"><summary>Check your understanding: does [A] B remove X?</summary><p>No. The match selects A. Unmatched information follows the remainder law. To explicitly consume both, write <code>[A.X] B</code>.</p></details>
+</section>
+<section class="chapter" id="grammar" data-title="Grammar syntax particle wave brackets dots commas parentheses whitespace">
+<div class="chapter-number">02 / GRAMMAR</div><h2>A small vocabulary.<br><em>A precise grammar.</em></h2>
+<p class="lead">Names, separators, and two kinds of delimiters.</p>
+<p>The fundamental grammar recognizes concepts, dots, commas, parenthesized groups, bracketed source contexts, and whitespace. These describe source structure. Matching, execution, and lowering behavior are explained in the following chapters.</p>
+<p>Both <code>.particle</code> and <code>.wave</code> use this grammar. By convention, <code>.particle</code> holds reusable rules or data and <code>.wave</code> holds scripts.</p>
+<div class="table-scroll"><table><thead><tr><th>Form</th><th>Name</th><th>Syntactic role</th></tr></thead><tbody>
+<tr><td><code>A</code></td><td>Concept</td><td>Text delimited by punctuation or whitespace</td></tr>
+<tr><td><code>.</code></td><td>Dot</td><td>A continuation separator, as in <code>A.B</code></td></tr>
+<tr><td><code>,</code></td><td>Comma</td><td>A coherence separator, as in <code>A, B</code></td></tr>
+<tr><td><code>( … )</code></td><td>Group</td><td>Parentheses enclosing source items</td></tr>
+<tr><td><code>[ … ]</code></td><td>Source context</td><td>Brackets enclosing source items</td></tr>
+<tr><td>Space, tab, newline</td><td>Whitespace</td><td>Separates source items; ASCII whitespace is accepted</td></tr>
+</tbody></table></div>
+<h3>Read the structure before the behavior</h3>
+<div class="example"><pre><code>A.B
+[A] C</code></pre></div>
+<p>The first line contains two concepts separated by a dot. The second contains a bracketed A followed by C. The executable interpretation reads the second line as a rule; that interpretation builds on the parsed structure.</p>
+<div class="lab"><div class="lab-heading"><span class="tag">GRAMMAR LENS</span><h3>Recognize the source items</h3></div><label for="grammar-select">Expression</label><select id="grammar-select"><option>A</option><option>A.B</option><option>A, B</option><option>(A.B)</option><option>[A] B</option></select><div class="example"><pre id="grammar-output"></pre></div><p id="grammar-description" aria-live="polite"></p></div>
+<p>Groups and source contexts may nest, including empty <code>()</code> and <code>[]</code>. Their delimiters remain the same at every level. Rule production, scoped bodies, and the meaning of empty outputs belong to the executable interpretation.</p>
+<details class="exercise"><summary>Does whitespace replace a dot?</summary><p>No. Whitespace separates source items; a dot is its own grammatical item. The executable interpretation uses that distinction when reading particle composition.</p></details>
+<p class="source-link">Implementation: <a href="system/parser.rs">Structural parser</a> · <a href="#lowering">Implemented lowering behavior</a></p>
+</section>
+<section class="chapter" id="coherence" data-title="Coherences identity divergence decoherence remainder broadcast parallel worlds">
+<div class="chapter-number">03 / INTERACTION</div><h2>Separate contexts.<br><em>Joint consequences.</em></h2>
+<p class="lead">A coherence is an independently evolving context. A configuration tells you which coherences coexist.</p>
+<p><strong>Divergence</strong> creates multiple output coherences. <strong>Decoherence</strong> combines compatible input coherences through one joint match. Their participants must belong to one joint witness, rather than being collected from separate alternative histories.</p>
+<div class="example"><div class="example-bar"><span>A split followed by a reunion</span><span class="tag">ORDINARY RULES</span></div><pre><code>A.X
+[A] B, C
+[B, C] D</code></pre></div>
+<p>The first event creates <code>B.X</code> and <code>C.X</code>. The two X references share one inherited introduction. Reunion consumes B and C, reconciles the shared X once, and yields <code>D.X</code>.</p>
+<div class="lab"><div class="lab-heading"><span class="tag">IDENTITY ILLUSTRATION</span><h3>Equal labels or the same introduction?</h3></div><div class="segmented" role="group" aria-label="Introduction example"><button type="button" data-identity="shared" aria-pressed="true">Inherited X</button><button type="button" data-identity="independent" aria-pressed="false">Independent Xs</button><button type="button" data-identity="evolved" aria-pressed="false">Independent evolution</button></div><div id="identity-diagram" class="transition"></div><p id="identity-explanation" aria-live="polite"></p></div>
+<h3>Where do the leftovers go?</h3><p>For a joint rule such as <code>[A, B] C, D</code>, matching first collects the selected inputs’ unmatched remainder by introduction identity. Each output receives references to that combined remainder and fresh introductions for its explicit result. An inherited value carried to both outputs remains shared; freshly computed results remain independent.</p>
+<div class="grid two"><article class="card"><h3>Coexistence</h3><pre><code>[A] B, C
+[B, C] D</code></pre><p>B and C can appear together in one successor configuration. That joint availability can support the second rule.</p></article><article class="card"><h3>Alternatives</h3><pre><code>[A] B
+[A] C
+[B, C] D</code></pre><p>The first two rules offer competing successors. Their separate histories do not by themselves supply a configuration containing both B and C.</p></article></div>
+<p>With several identically labeled operands, every eligible pairing can be a possibility. Adjacency in source text does not pair two calculations. Contexts and ordinary program information establish the intended association.</p>
+<details class="exercise"><summary>Can four repeated Add labels determine two intended sums?</summary><p>No. They identify eligible operands, not an intended pairing. The runtime explores compatible matches. Use the language’s execution contexts or additional ordinary labels to distinguish the calculations.</p></details>
+</section>
+<section class="chapter" id="abstraction" data-title="Abstraction types polymorphism inference concrete source Boolean And Not">
+<div class="chapter-number">04 / ABSTRACTION</div><h2>Types are<br><em>computation.</em></h2>
+<p class="lead">An abstraction is a value reached through ordinary rules. Its derivation can reveal an application at the concrete source.</p>
+<div class="example"><div class="example-bar"><span>Boolean negation through a local body</span><span class="tag">ORDINARY RULES</span></div><pre><code>Not.True
+[True] Boolean
+[False] Boolean
+[Not.Boolean] (
+    [True] False,
+    [False] True,
+)</code></pre></div>
+<p>True can derive Boolean. That evidence lets the Not rule apply to the concrete <code>Not.True</code> source. The body receives True, and its local rule produces False. Boolean justifies the application; it is not an extra Boolean operand appended to True.</p>
+<div class="lab"><div class="lab-heading"><span class="tag">CONCEPTUAL WALKTHROUGH</span><h3>Follow evidence back to its source</h3></div><div class="stepper"><button id="inference-back" type="button">← Back</button><output id="inference-position"></output><button id="inference-next" type="button">Next →</button></div><div id="inference-view" class="inference-view" aria-live="polite"></div><p class="caption">This staged explanation separates what the derivation establishes from what the concrete body receives. Explore actual Rust event branches in chapter 6.</p></div>
+<h3>Two witnesses, one general pattern</h3><div class="example"><pre><code>Pair.Seed,
+Pair.Other
+[Seed] Intermediate
+[Intermediate] Kind
+[Other] Kind
+[Pair.Kind, Pair.Kind] ([] Result)</code></pre></div><p>Both operands establish Kind, through different derivations. The body can receive Seed and Other and introduce Result. Repeated Kind positions do not require the concrete witnesses to be equal. Two source positions still require two compatible witness coherences.</p>
+<h3>Conjunction</h3><div class="example"><pre><code>And.True.False.Extra
+[True] Boolean
+[False] Boolean
+[And.Boolean.Boolean] (
+    [True.True] True,
+    [True.False] False,
+    [False.False] False,
+)</code></pre></div><p>The body operates on the concrete True and False and preserves Extra as remainder. The result is <code>False.Extra</code>. <code>True.False</code> and <code>False.True</code> are the same particle pattern, so one rule covers both orders.</p>
+<p>Literal outputs and scoped bodies have different transfer behavior. A literal inferred output replaces the projected concrete footprint. A body consumes exact matches and receives the remaining concrete witness. For example, with <code>[A] B.C</code> and <code>[B] D</code>, sequential execution can produce C.D, while inference can enable a direct A-to-D alternative.</p>
+<p class="source-link">Read the implementation contract: <a href="document/binding.md">projection and binding</a> · <a href="document/generalization.md">generalization through rules</a></p>
+</section>
+<section class="chapter" id="code" data-title="Metaprogramming rules values code lexical capture scope replacement">
+<div class="chapter-number">05 / METAPROGRAMMING</div><h2>A rule can be<br><em>the information.</em></h2>
+<p class="lead">The language uses the same source expressions to describe rules and to manipulate whole rule values.</p>
+<div class="grid two"><article class="card"><h3>Produce code</h3><pre><code>Seed.A
+[Seed] [A] B</code></pre><p>Seed introduces the complete rule from A to B. Where that rule is live, it can act on A. Applying the rule reads its availability.</p></article><article class="card"><h3>Replace code</h3><pre><code>([A] B).A
+[[A] B] [A] C</code></pre><p>The outer rule consumes the complete A-to-B value and produces an A-to-C value. Explicitly matching code as an operand consumes it.</p></article></div>
+<p>Code production changes a successor configuration. It does not globally edit earlier configurations. A rule value carries its lexical capture, so moving it does not silently reinterpret it under unrelated definitions.</p>
+<h3>Local definitions and return</h3><p>A scoped body has a frame with a lexical link and a return link. The lexical link tells execution where a definition comes from; the return link tells it where a body result goes. A local rule returning from its own body and an inherited rule operating within that body use those links differently.</p>
+<div class="flowline"><div><small>01</small><strong>Match a value</strong><span>Atom or whole rule</span></div><div><small>02</small><strong>Preserve its context</strong><span>Capture and introduction</span></div><div><small>03</small><strong>Apply an ordinary rule</strong><span>Produce a successor</span></div></div>
+<details class="exercise"><summary>Is [[A] B] [A] C a global alias?</summary><p>No. It is a local consuming replacement of one rule value. The predecessor remains part of the execution graph, with its own applicable events.</p></details>
+<p class="source-link">Run <a href="example/replacement.wave">replacement.wave</a> or <a href="example/capture.wave">capture.wave</a>. Both are selectable in the recorded execution explorer below.</p>
+</section>
+<section class="chapter" id="runtime" data-title="Runtime Rust parser lowering matching gates semaphore support canonicalization workers execution graph">
+<div class="chapter-number">06 / RUNTIME</div><h2>From source<br>to an <em>execution graph.</em></h2>
+<p class="lead">The Rust runtime turns source into interned values, discovers compatible bindings, applies events, and shares equivalent configurations.</p>
+<div class="pipeline"><span>Source</span><b>→</b><span>Parse &amp; lower</span><b>→</b><span>Match</span><b>→</b><span>Project &amp; apply</span><b>→</b><span>Canonicalize</span></div>
+<div class="grid two"><article class="card"><h3>Parsing and lowering</h3><p>Pest supplies the structural parser. Lowering interprets expressions, expands shared prefixes, and produces typed atoms and rule values. Miette reports source spans; malformed composition and resource bounds receive structured diagnostics.</p></article><article class="card"><h3>Matching gates</h3><p>A partial match records its actual occurrences, coherence, and frame. Compatible assignments accumulate until every input position is filled. Duplicate arrivals do not fill another slot. A count alone could not preserve those distinctions.</p></article><article class="card"><h3>Projection and application</h3><p>A relative view connects a witness to its concrete source. Projection identifies the footprint; application transfers remainder, allocates explicit results, and records the event’s dependencies.</p></article><article class="card"><h3>Canonical identity</h3><p>The runtime normalizes anonymous introductions and frame names while preserving sharing, multiplicity, scope, and continuations. Encountering an equivalent configuration reuses the state; additional justifications can still add support.</p></article></div>
+<h3 id="lowering">From grammatical structure to executable forms</h3>
+<p>The lowering stage assigns executable meaning to parsed source. It currently expands <code>A(B,C)</code> into <code>A.B, A.C</code> and distributes dot composition across alternatives. This is built-in lowering behavior, not a fundamental grammar production or a transformation supplied by program rules.</p>
+<div class="lab"><div class="lab-heading"><span class="tag">LOWERING LENS</span><h3>Expand the shorthand</h3></div><label for="lowering-select">Expression</label><select id="lowering-select"><option>A(B,C)</option><option>(A,B).(C,D)</option><option>Multiply(Number,Number)</option><option>Power(3, Base.2).Coefficient(2)</option><option>()</option><option>[A]</option><option>[A] ()</option></select><div class="example"><pre id="lowering-output"></pre></div><p id="lowering-description" aria-live="polite"></p></div>
+<h3>Three different kinds of empty</h3><div class="grid three"><article class="card"><h4>Empty particle</h4><code>()</code><p>One coherence with no occurrences. This is the numeral zero in the Unit representation.</p></article><article class="card"><h4>No output</h4><code>[A]</code><p>A rule with no output coherences. Use a comma before a following declaration.</p></article><article class="card"><h4>Empty output particle</h4><code>[A] ()</code><p>One output coherence. Unmatched remainder still transfers into it.</p></article></div>
+<p>A group containing declarations establishes a local body during lowering. A plain group can participate in expansion. These executable interpretations use the same parenthesis tokens recognized by the structural parser.</p>
+<p>Scopes index candidates by a required symbol. Compiled programs are immutable and shared across direct-path steps. The agenda retains incremental work, and positive support follows recorded dependencies. Optional Rayon workers perform independent implementation work; a coordinator merges their results in deterministic order.</p>
+<div class="lab trace" id="trace-lab"><div class="lab-heading"><span class="tag verified">RECORDED RUST EXECUTION</span><h3>Choose an event. Follow its consequence.</h3></div><label for="trace-select">Source program</label><select id="trace-select"></select><p id="trace-description"></p><details><summary>Read the source</summary><pre id="trace-source"></pre></details><div class="stepper"><button id="trace-back" type="button">← Back</button><output id="trace-position"></output><button id="trace-reset" type="button">Reset</button></div><div id="trace-world" class="world-grid" aria-live="polite"></div><h4>Available events</h4><div id="trace-event" class="event-list"></div><details><summary>Inspect the selected event</summary><pre id="trace-detail">Select an event to inspect its binding and support.</pre></details><p class="caption">These are stored native Rust reports. Following an edge navigates a recorded event; it does not run a separate browser implementation of Photonic.</p></div>
+<h3>Running and resuming</h3><div class="example"><pre><code>bazel run -c opt //system:command -- run \
+  "$PWD/example/conjunction.wave" --workers 4 --json</code></pre></div><p>Work, states, records, coherences, cells, and frames have configurable limits. A paused runtime retains its queued and deferred work for resumption through the Rust API. JSON reports expose states, events, flow, and support.</p>
+<details class="exercise"><summary>Does reusing a state erase another proof of reaching it?</summary><p>No. Configuration identity and event support are separate. Equivalent states can be shared while additional derivations contribute evidence.</p></details>
+</section>
+<section class="chapter" id="natural" data-title="Mathematics natural numbers Unit zero successor membership addition laws induction">
+<div class="chapter-number">07 / MATHEMATICS</div><h2>Numbers, from<br><em>one concept.</em></h2>
+<p class="lead">A natural numeral is one coherence containing only independent Unit occurrences.</p>
+<p>Start with the empty particle. Add a fresh Unit finitely many times. Identify presentations that differ only by order or anonymous introduction names. The resulting mathematical carrier gives exactly one numeral for each finite Unit count.</p>
+<div class="numeral-row"><div><strong>0</strong><code>()</code></div><div><strong>1</strong><code>Unit</code></div><div><strong>2</strong><code>Unit.Unit</code></div><div><strong>3</strong><code>Unit.Unit.Unit</code></div></div>
+<h3>Successor adds one fresh occurrence</h3><div class="example"><pre><code>Step.Unit.Unit
+[Step] Unit</code></pre></div><p>Step is consumed, the existing two Units remain, and the rule introduces one more. The result is three. Zero is <code>()</code>, one empty coherence; an empty file has no coherence.</p>
+<h3>Membership is a derivation</h3><div class="example"><pre><code>Check.Unit.Unit
+[Check] Natural
+[Natural.Unit] Natural</code></pre></div><p>The first rule starts the recognition process. Each remaining Unit can participate in a rule with Natural. The exact target Natural contains no unprocessed Unit or extra information.</p>
+<h3>Addition is reunion</h3><p>Label two independent numeral coherences with Add. The rule consumes their labels and unites their disjoint numerical remainders.</p>
+<div class="lab"><div class="lab-heading"><span class="tag">NUMERAL ILLUSTRATION</span><h3>Build a sum</h3></div><div class="grid two"><label>First numeral <input id="natural-left" type="range" min="0" max="12" value="3"><output id="natural-left-value">3</output></label><label>Second numeral <input id="natural-right" type="range" min="0" max="12" value="7"><output id="natural-right-value">7</output></label></div><div id="natural-input" class="world-grid"></div><div class="rule-divider"><code>[Add, Add] ()</code><span>↓</span></div><div id="natural-output" class="token-row"></div><p id="natural-equation" class="equation" aria-live="polite"></p><details><summary>Read the generated example</summary><pre id="natural-source"></pre></details><p class="caption">An illustration of disjoint Unit union. Run the saved 3 + 7 source below to check its exact target with Rust.</p></div>
+<div class="example"><pre><code>bazel run -c opt //system:command -- obsidian \
+  "$PWD/mathematics/natural/sum.wave" \
+  --target "$PWD/mathematics/natural/ten.particle"</code></pre></div>
+<h3>Why the addition laws hold</h3><p>Define addition on numeral classes as disjoint union. Empty contributes no occurrences, exchanging operands changes only order, and regrouping three operands preserves all their occurrences. These give identity, commutativity, and associativity. Adding a fresh Unit commutes with that union, giving successor compatibility.</p><p>Cancellation follows by removing the same number of indistinguishable Units from equal finite counts. The carrier’s least-closure definition supplies the mathematical induction argument. The library pairs these written arguments with finite executable checks.</p>
+<div class="law-grid"><div><code>a + 0 = a</code><span>Identity</span></div><div><code>a + b = b + a</code><span>Commutativity</span></div><div><code>(a + b) + c = a + (b + c)</code><span>Associativity</span></div><div><code>a + S(b) = S(a + b)</code><span>Successor compatibility</span></div></div>
+<p class="source-link"><a href="mathematics/natural/definition.md">Carrier and written proofs</a> · <a href="mathematics/natural/law.md">Addition laws</a> · <a href="system/test/natural.rs">Executable checks</a></p>
+</section>
+<section class="chapter" id="ternary" data-title="Base three ternary compressed representation digits carry multiplication subtraction division">
+<div class="chapter-number">08 / COMPRESSED ARITHMETIC</div><h2>Keep the number.<br><em>Change the representation.</em></h2>
+<p class="lead">A positional ternary word uses digits Zero, One, and Two. Each position carries a power of three.</p>
+<p>The arithmetic implementation accepts natural operands up to twenty trits. A complete word includes an explicit digit at every position. Names such as Digit0Two are ordinary concepts whose numerical meaning comes from the library’s rules.</p>
+<div class="lab"><div class="lab-heading"><span class="tag">REPRESENTATION LENS</span><h3>Read a number in base three</h3></div><label for="numeral">Decimal numeral</label><input id="numeral" type="number" min="0" max="1000000" step="1" value="1500"><p id="numeral-error" class="error" role="status"></p><div id="trit-strip" class="trit-strip"></div><p id="numeral-expansion" class="equation"></p><p class="caption">A browser arithmetic illustration. The positional labels below correspond to the ordinary concepts used by the library, not built-in numerical literals.</p></div>
+<h3>Write a numeral by hand</h3>
+<p>Forty-seven is <code>1202</code> in base three: 27 + 18 + 2. In the sparse power library, its source is:</p>
+<div class="example"><div class="example-bar"><span>47 · sparse power representation</span><a href="mathematics/ternary/numeral.particle">numeral.particle ↗</a></div><pre><code>3^3.3^2.3^2.3^0.3^0</code></pre></div>
+<p>Each occurrence contributes one power. Repetition expresses the coefficient two; the zero column needs no occurrence. The caret belongs to an ordinary atom name. The carry rules establish relationships between those names.</p>
+<p>The complete positional representation of the same number is <code>Digit3One.Digit2Two.Digit1Zero.Digit0Two</code>. These two representations are used by different library interfaces. Neither requires a decimal converter to write, and neither gives a bare <code>1202</code> atom an automatic numerical meaning.</p>
+<h3>A carry is a local rewrite</h3><div class="example"><pre><code>[Add.Zero.One.Two] DigitZero.CarryOne
+[Multiply.Two.Two] DigitOne.CarryOne</code></pre></div><p>Zero plus One plus Two gives three: digit Zero, carry One. Two times Two gives four: digit One, carry One. The standalone digit library uses commutative patterns where the operation is commutative.</p>
+<div class="lab"><div class="lab-heading"><span class="tag">DIGIT LAB</span><h3>One multiplication, in every column</h3></div><div class="grid two"><label>First digit<select id="digit-left"><option>0</option><option>1</option><option selected>2</option></select></label><label>Second digit<select id="digit-right"><option>0</option><option>1</option><option selected>2</option></select></label></div><p id="digit-equation" class="equation"></p><pre id="digit-rule"></pre><p class="caption">The displayed rule is one of the library’s ordinary digit-product cases. No rule enumerates the answer to every whole-number pair.</p></div>
+<h3>Four operations, one circuit construction</h3><div class="grid two"><article class="card"><span class="micro">ADD</span><h3>Reduce columns</h3><p>Place both operands’ digit contributions in their columns. Combine two or three digits into one digit and a carry to the next column. The output has one extra trit.</p></article><article class="card"><span class="micro">SUBTRACT</span><h3>Borrow, then select</h3><p>Run borrow chains in both directions. The final borrow selects the magnitude. NegativeZero or NegativeOne records the sign; equal operands produce positive zero.</p></article><article class="card"><span class="micro">MULTIPLY</span><h3>Distribute and reduce</h3><p>Each pair of input digits produces a low digit in column i + j and a carry in column i + j + 1. The shared column reducer combines those contributions. Output width is twice input width.</p></article><article class="card"><span class="micro">DIVIDE</span><h3>Advance the remainder</h3><p>Read the dividend from its most significant digit. Form three times the remainder plus the next digit. Try up to two divisor subtractions; the number accepted gives the quotient digit.</p></article></div>
+<p>Finite digit tables are repeated at the required circuit sites, whose ports preserve operation association in an orderless state. At a fixed width and operation, the rule bodies are independent of operand values. Only initial digit facts change.</p>
+<p>The generator propagates possible digit domains, omits unnecessary zero carries, and removes gates with no path to the requested outputs. Column reduction is the default layout. All generated computation executes through ordinary Photonic rules.</p>
+<h3>A stream can reuse the same digit rules</h3>
+<p>The streaming successor reads least-significant digits first. Carry turns Zero into One or One into Two, then switches to copying the remaining digits. Two becomes Zero and carries onward. End is an explicit input value.</p>
+<div class="example"><pre><code>[Carry.Zero] Copy.([Write] One)
+[Carry.One] Copy.([Write] Two)
+[Carry.Two] Carry.([Write] Zero)</code></pre></div>
+<p>Output digits are whole rule values such as <code>[Write] Zero</code>. A meta rule consumes that message and produces Next. Twelve fixed declarations handle digit transformation, copying, acknowledgement, and completion; the input stream supplies its nested Read/Next definitions.</p>
+<div class="lab"><div class="lab-heading"><span class="tag verified">RECORDED STREAM TRANSFORMATION</span><h3>Twenty becomes twenty-one</h3></div><p>Input sequence, least significant first: <code>Two → Two → One → End</code>.</p><div class="stepper"><button id="stream-back" type="button">← Back</button><output id="stream-position"></output><button id="stream-next" type="button">Next event →</button></div><pre id="stream-rule"></pre><h4>Acknowledged output digits, in order</h4><div id="stream-output" class="token-row" aria-live="polite"></div><p class="caption">The recorded run has 11 events and 171 work steps. Its terminal configuration is Done; the digit sequence is read from the acknowledgement events. Order here belongs to the trace.</p><details><summary>Read the complete source</summary><pre id="stream-source"></pre></details></div>
+<p class="source-link"><a href="mathematics/ternary/successor.particle">The twelve reusable rules</a> · <a href="mathematics/ternary/stream.wave">Input stream</a></p>
+<h3>Division gives an explicit result shape</h3><p>For a nonzero divisor, the output includes quotient digits, remainder digits, and UndefinedZero. Division by zero produces quotient zero, the original dividend as remainder, and UndefinedOne. Those are library-defined output facts.</p>
+<p class="source-link"><a href="mathematics/ternary/digit.particle">Digit rules</a> · <a href="mathematics/arithmetic/circuit.rs">Shared circuit builder</a> · <a href="mathematics/arithmetic/encoding.rs">Output encoding</a></p>
+</section>
+<section class="chapter" id="workshop" data-title="Workshop Obsidian proof reachability arithmetic commands results run examples">
+<div class="chapter-number">09 / WORKSHOP</div><h2>Ask a concrete question.<br><em>Follow the witness.</em></h2>
+<p class="lead">Obsidian checks whether an exact target configuration can be reached from a supplied program.</p>
+<p>A target includes its complete particle contents, coherence arrangement, and sharing. This makes an arithmetic result a concrete configuration claim. The arithmetic command accepts the proposed answer and encodes it as that target.</p>
+<div class="status-grid"><div><strong>Reached</strong><p>A supported witness reaches the exact target.</p></div><div><strong>Unreachable</strong><p>Finite exhaustive exploration closed without that target.</p></div><div><strong>Unknown</strong><p>The exploration has not established a verdict. A failed direct path also reports Unknown.</p></div></div>
+<div class="lab workshop"><div class="lab-heading"><span class="tag verified">VERIFIED RUST WITNESSES</span><h3>1500 and 123, four ways</h3></div><label for="operation">Operation</label><select id="operation"><option value="add">Addition</option><option value="subtract">Subtraction</option><option value="multiply" selected>Multiplication</option><option value="divide">Division</option></select><div class="answer"><span id="operation-equation"></span><strong id="operation-result"></strong><small id="operation-remainder"></small></div><div class="metrics"><div><strong id="operation-event"></strong><span>events</span></div><div><strong id="operation-work"></strong><span>work steps</span></div><div><strong>Reached</strong><span>exact target</span></div></div><div class="example"><div class="example-bar"><span>Run this claim locally</span><button id="command-copy" type="button">Copy command</button></div><pre id="operation-command"></pre></div><p id="copy-status" role="status"></p><div class="stepper"><button id="operation-back" type="button">← Previous event</button><output id="operation-position"></output><button id="operation-next" type="button">Next event →</button></div><pre id="operation-rule" class="event-rule"></pre><details><summary>Inspect the complete target particle</summary><pre id="operation-target"></pre></details><a id="operation-source" href="mathematics/ternary/multiply.wave">Open the generated source ↗</a><p class="caption">Recorded by the Rust direct-path evaluator from the checked-in source programs. Counts describe these runs. The buttons navigate stored events, and the proposed arithmetic answer is supplied by the caller.</p></div>
+<h3>Use the same source directly</h3><div class="example"><pre><code>bazel run -c opt //system:command -- obsidian \
+  "$PWD/mathematics/ternary/multiply.wave" \
+  --target "$PWD/mathematics/ternary/multiply.particle" \
+  --path --steps 20000000 --states 4096 --cells 4096</code></pre></div>
+<p>The external arithmetic tool accepts decimal, binary, ternary, octal, and hexadecimal input spellings. For example, <code>--left 0t2001120</code> encodes 1500 into ternary circuit inputs. In a Photonic source file, that same spelling is simply an ordinary concept name.</p>
+<details class="exercise"><summary>Does the generated target influence the computation rules?</summary><p>No. The operation and operand width determine the circuit rules. Input values determine initial facts. The supplied expected result determines the separate proof target.</p></details>
+</section>
+<section class="chapter" id="reference" data-title="Reference glossary commands implementation source documentation build">
+<div class="chapter-number">10 / REFERENCE</div><h2>From reading<br>to <em>making.</em></h2>
+<p class="lead">Keep the language small in your head: values coexist, rules match, events transform, and evidence connects the steps.</p>
+<div class="example"><div class="example-bar"><span>From a checkout of Vantle/photonic</span><span class="tag">BAZEL</span></div><pre><code>bazel run -c opt //system:command -- parse "$PWD/example/conjunction.wave"
+bazel run -c opt //system:command -- run "$PWD/example/conjunction.wave"
+bazel test -c opt //...
+bazel run -c opt //mathematics/arithmetic:benchmark</code></pre></div>
+<p>The build uses Bazel to obtain its Rust compiler, LLVM toolchain, and external crates. The source checkout needs no separately installed Rust compiler. Open this HTML file directly to read and use the webbook offline; its scripts, styles, and execution records are local.</p>
+<h3>A compact glossary</h3><dl class="glossary"><div><dt>Concept</dt><dd>An atom name or a whole rule value carried by an occurrence.</dd></div><div><dt>Particle</dt><dd>An orderless multiset of occurrences within one coherence.</dd></div><div><dt>Coherence</dt><dd>An independently evolving execution context.</dd></div><div><dt>Configuration</dt><dd>Jointly present coherences and their reachable environments.</dd></div><div><dt>Rule</dt><dd>A description of input matching and output behavior.</dd></div><div><dt>Event</dt><dd>One application at a concrete configuration, with recorded support.</dd></div><div><dt>Introduction</dt><dd>The identity of an explicitly introduced result.</dd></div><div><dt>Remainder</dt><dd>Unmatched concrete information transferred to outputs.</dd></div><div><dt>View</dt><dd>A derivation connecting witness information to its source.</dd></div><div><dt>Frame</dt><dd>A lexical environment with continuation and return information.</dd></div></dl>
+<h3>The implementation, by concern</h3><div class="table-scroll"><table><thead><tr><th>Concern</th><th>Source</th><th>Read alongside</th></tr></thead><tbody><tr><td>Frontend</td><td><a href="system/parser.rs">parser.rs</a> · <a href="system/lowering.rs">lowering.rs</a></td><td><a href="document/syntax.md">Syntax contract</a></td></tr><tr><td>Matching and projection</td><td><a href="system/matching.rs">matching.rs</a> · <a href="system/flow.rs">flow.rs</a></td><td><a href="document/semantics.md">Configuration semantics</a></td></tr><tr><td>Execution and identity</td><td><a href="system/runtime.rs">runtime.rs</a> · <a href="system/canonical.rs">canonical.rs</a></td><td><a href="document/runtime.md">Runtime design</a></td></tr><tr><td>Reachability</td><td><a href="system/obsidian.rs">obsidian.rs</a> · <a href="system/path.rs">path.rs</a></td><td><a href="mathematics/obsidian.md">Obsidian contract</a></td></tr><tr><td>Natural numbers</td><td><a href="mathematics/natural/">Rules and targets</a></td><td><a href="mathematics/natural/definition.md">Definition</a> · <a href="mathematics/natural/law.md">Laws</a></td></tr><tr><td>Compressed arithmetic</td><td><a href="mathematics/arithmetic/circuit.rs">circuit.rs</a> · <a href="mathematics/ternary/">Ternary programs</a></td><td><a href="mathematics/arithmetic/README.md">Interface and algorithms</a></td></tr></tbody></table></div>
+<div class="closing"><span class="emblem" aria-hidden="true">✳</span><h3>One language.<br>Many possible next steps.</h3><a class="button primary" href="#workshop">Return to the workshop ↑</a></div>
+</section>
+<footer><span>PHOTONIC · THE WEBBOOK</span><a href="https://github.com/Vantle/photonic">Read the source ↗</a><a href="#introduction">Back to the beginning ↑</a></footer>
+</main>
+</body>
+</html>
