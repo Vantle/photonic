@@ -1,6 +1,7 @@
 load("@bazel_skylib//rules:native_binary.bzl", "native_test")
 load("@buildifier_prebuilt//:rules.bzl", "buildifier_test")
 load("@rules_rs//rs:rust_binary.bzl", "rust_binary")
+load("@rules_rs//rs:rust_test.bzl", "rust_test")
 load(":node.bzl", "node")
 
 buildifier_test(
@@ -78,4 +79,22 @@ native_test(
         "@platforms//os:macos",
         "@platforms//cpu:aarch64",
     ],
+)
+
+rust_test(
+    name = "runner",
+    size = "small",
+    srcs = ["test.rs"],
+    crate_root = "test.rs",
+    data = [
+        "exit.mjs",
+        ":execute",
+        ":node",
+    ],
+    env = {
+        "PHOTONIC_EXECUTE": "$(rlocationpath :execute)",
+        "PHOTONIC_NODE": "$(rlocationpath :node)",
+        "PHOTONIC_SCRIPT": "$(rlocationpath exit.mjs)",
+    },
+    deps = ["@rules_rust//rust/runfiles"],
 )

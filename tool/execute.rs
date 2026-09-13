@@ -16,7 +16,14 @@ fn main() -> Result<ExitCode, Error> {
         .take_while(|name| name != "--")
         .map(resolve)
         .collect::<Result<Vec<_>, _>>()?;
-    let status = Command::new(program).args(file).args(argument).status()?;
+    let mut command = Command::new(program);
+    if std::env::var_os("RUNFILES_MANIFEST_FILE").is_none_or(|value| value.is_empty()) {
+        command.env(
+            "RUNFILES_DIR",
+            runfiles::find_runfiles_dir().map_err(Error::other)?,
+        );
+    }
+    let status = command.args(file).args(argument).status()?;
     Ok(ExitCode::from(
         status
             .code()

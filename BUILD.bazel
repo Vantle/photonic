@@ -14,6 +14,7 @@ native_binary(
         "system/benchmark/symmetry.rs",
         "mathematics/natural/record.rs",
         "tool/execute.rs",
+        "tool/test.rs",
     ],
     data = [rust_toolchain_component_label("@rules_rust//tools/upstream_wrapper:rustfmt")],
     tags = ["manual"],
