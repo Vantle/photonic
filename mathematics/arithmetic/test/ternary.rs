@@ -197,7 +197,7 @@ fn exhaustive() {
 
 #[test]
 fn digit() {
-    let rule = include_str!("../ternary/digit.particle");
+    let rule = include_str!("../../ternary/digit.particle");
     let name = ["Zero", "One", "Two"];
     for left in 0..3 {
         for right in 0..3 {
@@ -259,8 +259,8 @@ fn digit() {
 
 #[test]
 fn notation() {
-    let numeral = include_str!("../ternary/numeral.particle").trim();
-    let carry = include_str!("../ternary/carry.particle");
+    let numeral = include_str!("../../ternary/numeral.particle").trim();
+    let carry = include_str!("../../ternary/carry.particle");
     let source = format!("Add.{numeral}, Add.3^0 [Add, Add] () {carry}");
     for (target, expected) in [
         ("3^3.3^2.3^2.3^1", Outcome::Reached),
@@ -276,7 +276,7 @@ fn notation() {
     }
     assert_eq!(
         execute(
-            include_str!("../ternary/word.particle"),
+            include_str!("../../ternary/word.particle"),
             &encoding::unsigned(3, 4, 47).unwrap()
         ),
         Outcome::Reached
@@ -287,23 +287,23 @@ fn notation() {
 fn example() {
     for (source, target, expected) in [
         (
-            include_str!("../ternary/add.wave"),
-            include_str!("../ternary/add.particle"),
+            include_str!("../../ternary/add.wave"),
+            include_str!("../../ternary/add.particle"),
             encoding::unsigned(3, 8, 1623).unwrap(),
         ),
         (
-            include_str!("../ternary/multiply.wave"),
-            include_str!("../ternary/multiply.particle"),
+            include_str!("../../ternary/multiply.wave"),
+            include_str!("../../ternary/multiply.particle"),
             encoding::unsigned(3, 14, 184_500).unwrap(),
         ),
         (
-            include_str!("../ternary/subtract.wave"),
-            include_str!("../ternary/subtract.particle"),
+            include_str!("../../ternary/subtract.wave"),
+            include_str!("../../ternary/subtract.particle"),
             encoding::difference(3, 7, 1377).unwrap(),
         ),
         (
-            include_str!("../ternary/divide.wave"),
-            include_str!("../ternary/divide.particle"),
+            include_str!("../../ternary/divide.wave"),
+            include_str!("../../ternary/divide.particle"),
             encoding::quotient(3, 7, 12, 24, false).unwrap(),
         ),
     ] {

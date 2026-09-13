@@ -3,7 +3,7 @@ use photonic::obsidian::Outcome;
 use photonic::path::{Report, Search};
 use photonic::runtime::Limit;
 
-const RULE: &str = include_str!("../ternary/successor.particle");
+const RULE: &str = include_str!("../../ternary/successor.particle");
 
 fn digit(mut value: u128) -> Vec<usize> {
     let mut result = Vec::new();
@@ -112,14 +112,14 @@ fn library() {
     let report = execute(&format!(
         "{}
 {RULE}",
-        include_str!("../ternary/stream.wave")
+        include_str!("../../ternary/stream.wave")
     ));
     assert_eq!(written(&report), [0, 0, 2]);
     assert_eq!(report.event.len(), 11);
     assert!(report.work < 1000);
     assert_eq!(
         report.target,
-        parse(include_str!("../ternary/done.particle"))
+        parse(include_str!("../../ternary/done.particle"))
             .unwrap()
             .initial
     );

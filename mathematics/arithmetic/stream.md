@@ -75,7 +75,7 @@ The JSON event list includes acknowledgements for Zero, Zero, Two in that order.
 
 ## Validation and cost
 
-The [regression suite](stream.rs) checks every input from zero through 242, unchanged suffixes, leading zeros, carries through one to forty Two digits, and the successor of the largest unsigned 64-bit integer. It checks the actual acknowledgement sequence against an independent numerical oracle. It also verifies that the twelve arithmetic declarations are unchanged across different input widths and values.
+The [regression suite](test/stream.rs) checks every input from zero through 242, unchanged suffixes, leading zeros, carries through one to forty Two digits, and the successor of the largest unsigned 64-bit integer. It checks the actual acknowledgement sequence against an independent numerical oracle. It also verifies that the twelve arithmetic declarations are unchanged across different input widths and values.
 
 On the tested direct paths, a numeral with n digits takes 3n + 2 events, or 3n + 4 when a final carry appends One. The twenty-to-twenty-one example takes 11 events and 171 work steps. Forty Two digits take 124 events and 4934 work steps in the recorded run.
 

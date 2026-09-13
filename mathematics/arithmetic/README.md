@@ -145,3 +145,9 @@ The [stream investigation](stream.md) now includes a twelve-rule ternary success
 Circuit and encoding functions return `Result<String, failure::Failure>`. Invalid bases, widths, and values produce structured errors before generation. Circuit operands support binary widths 1–32 and ternary widths 1–20; output encodings support binary widths 1–64 and ternary widths 1–40. Power notation supports bases 2–16 and normalization widths 0–64. Gate tables and representation validation remain private.
 
 These checks validate representation only. Rust emits the program and target description; ordinary rules still perform arithmetic inside the Photonic runtime. The saved program fixtures and execution tests protect that behavior.
+
+## Source organization
+
+`circuit.rs` assembles the arithmetic graph. Its private `circuit/reduce.rs` module reduces digit columns, and `circuit/emit.rs` removes unused gates and writes ordinary Photonic rules. Wire identity comes from the graph’s domain table, so allocation has one source of truth. `encoding.rs` describes targets independently of graph construction.
+
+`test/` holds arithmetic conformance, boundary, and stream checks; `gate/test.rs` checks private truth tables. The private `circuit` and `conformance` filegroups list their inputs explicitly. Adding an implementation or test file requires declaring its build membership.

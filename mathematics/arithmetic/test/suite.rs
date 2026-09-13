@@ -1,4 +1,5 @@
 use arithmetic::{circuit, encoding, numeral};
+#[path = "../argument.rs"]
 mod argument;
 
 use photonic::lowering::parse;

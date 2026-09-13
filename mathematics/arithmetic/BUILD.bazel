@@ -36,7 +36,7 @@ native_binary(
         "--",
         "mathematics/arithmetic/library.rs",
         "mathematics/arithmetic/word.rs",
-        "mathematics/arithmetic/test.rs",
+        "mathematics/arithmetic/test/suite.rs",
         "mathematics/arithmetic/benchmark.rs",
     ],
     data = [rust_toolchain_component_label("@rules_rust//tools/upstream_wrapper:rustfmt")],
@@ -48,13 +48,10 @@ rust_test(
     size = "medium",
     srcs = [
         "argument.rs",
-        "boundary.rs",
-        "stream.rs",
-        "ternary.rs",
-        "test.rs",
+        ":conformance",
     ],
     compile_data = ["//mathematics/ternary:fixture"],
-    crate_root = "test.rs",
+    crate_root = "test/suite.rs",
     data = [":word"],
     env = {"PHOTONIC_WORD": "$(rlocationpath :word)"},
     deps = [
@@ -79,7 +76,6 @@ rust_binary(
 filegroup(
     name = "source",
     srcs = [
-        "circuit.rs",
         "encoding.rs",
         "failure.rs",
         "format.rs",
@@ -87,6 +83,7 @@ filegroup(
         "library.rs",
         "numeral.rs",
         "power.rs",
+        ":circuit",
     ],
 )
 
@@ -106,4 +103,23 @@ rust_test(
         "gate/test.rs",
     ],
     crate_root = "gate.rs",
+)
+
+filegroup(
+    name = "circuit",
+    srcs = [
+        "circuit.rs",
+        "circuit/emit.rs",
+        "circuit/reduce.rs",
+    ],
+)
+
+filegroup(
+    name = "conformance",
+    srcs = [
+        "test/boundary.rs",
+        "test/stream.rs",
+        "test/suite.rs",
+        "test/ternary.rs",
+    ],
 )
