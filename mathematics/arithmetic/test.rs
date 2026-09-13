@@ -78,7 +78,7 @@ fn exhaustive() {
                         circuit::Layout::Column,
                     ))
                     .unwrap(),
-                    parse(&encoding::unsigned(2, 1 * 2, expected)).unwrap(),
+                    parse(&encoding::unsigned(2, 2, expected)).unwrap(),
                 )
                 .unwrap();
                 search.run(100_000, None);
@@ -133,11 +133,8 @@ fn division() {
     for left in 0..4 {
         for right in 0..4 {
             let source = circuit::divide(2, 2, left, right);
-            let (expected, remainder) = if right == 0 {
-                (0, left)
-            } else {
-                (left / right, left % right)
-            };
+            let (expected, remainder) = u64::checked_div(left, right)
+                .map_or((0, left), |quotient| (quotient, left % right));
             assert_eq!(
                 execute(
                     &source,
@@ -170,11 +167,8 @@ fn division() {
         }
     }
     for (left, right) in [(1500, 123), (123, 1500), (2047, 1), (2047, 2047), (2047, 0)] {
-        let (expected, remainder) = if right == 0 {
-            (0, left)
-        } else {
-            (left / right, left % right)
-        };
+        let (expected, remainder) =
+            u64::checked_div(left, right).map_or((0, left), |quotient| (quotient, left % right));
         assert_eq!(
             execute(
                 &circuit::divide(2, 11, left, right),
@@ -207,9 +201,9 @@ fn borrow() {
                 ((mask >> 2) & 1) as u8,
             ],
         );
-        let left = (mask & 1) as i32;
-        let right = ((mask >> 1) & 1) as i32;
-        let incoming = ((mask >> 2) & 1) as i32;
+        let left = mask & 1;
+        let right = (mask >> 1) & 1;
+        let incoming = (mask >> 2) & 1;
         assert_eq!(
             left - right - incoming,
             output[0] as i32 - 2 * output[1] as i32

@@ -61,18 +61,17 @@ Whole-rule production and replacement use the same matching, projection, activat
 Bazel downloads Rust 1.98.1, hermetic LLVM, platform SDKs, and crates. Initial fetching needs network access; compilation runs without it. Cargo describes dependencies; Bazel owns compilation and testing. Both lockfiles are checked in, and ordinary commands reject stale Bazel resolution data.
 
 ```sh
-bazel build //...
-bazel run //:format
-bazel run //:update --config=refresh
-bazel mod deps --config=refresh
-bazel test //... --config=refresh
-bazel test //...
+bazel build -c opt //...
+bazel test -c opt //...
+bazel test //:check
+bazel build --config=format //...
+bazel build --config=lint //...
 bazel run -c opt //system:benchmark
 ```
 
-Review both lockfiles after dependency updates. Developer commands use the downloaded Rust tools. Bazel creates no convenience symlinks in the checkout; use `bazel info bazel-bin` to locate outputs.
+To update dependencies, run `bazel run //:update --config=refresh`, then `bazel mod deps --config=refresh`. Review both lockfiles and repeat the checks above. Developer commands use the downloaded Rust tools. Bazel creates no convenience symlinks in the checkout; use `bazel info bazel-bin` to locate outputs.
 
-The toolchain targets ARM64 and x86-64 macOS, GNU Linux, and GNULLVM Windows. [CI](.github/workflows/verify.yml) builds and tests optimized binaries on all six native platforms and checks Rust formatting in a separate job; see [platform verification](platform/README.md) for host toolchain configuration and matching local commands. Optional remote execution follows Registry; local executor settings belong in ignored `user.bazelrc`.
+The toolchain targets ARM64 and x86-64 macOS, GNU Linux, and GNULLVM Windows. [CI](.github/workflows/verify.yml) builds and tests optimized binaries on all six native platforms and checks Bazel formatting, Rust formatting, and Clippy in a separate job; see [platform verification](platform/README.md) for host toolchain configuration and matching local commands. Optional remote execution follows Registry; local executor settings belong in ignored `user.bazelrc`.
 
 The crates supply parsing ([pest](https://docs.rs/pest/)), error derivation ([thiserror](https://docs.rs/thiserror/)), diagnostics ([miette](https://docs.rs/miette/)), arguments ([clap](https://docs.rs/clap/)), serialization ([Serde](https://serde.rs/)), stable indexed interning ([IndexMap](https://docs.rs/indexmap/)), and worker pools ([Rayon](https://docs.rs/rayon/)). Photonic owns the rewrite, identity, projection, and support semantics.
 
@@ -81,9 +80,11 @@ The crates supply parsing ([pest](https://docs.rs/pest/)), error derivation ([th
 
 - `system/photonic.rs`: language library, with focused modules directly in `system/`.
 - `system/command.rs` and `system/command/`: CLI and arguments.
-- `system/test.rs` and `system/test/`: integration suite.
+- `system/test/`: integration suite and focused test modules.
 - `system/benchmark.rs` and `system/benchmark/`: runtime measurements.
-- `mathematics/arithmetic.rs` and `mathematics/arithmetic/`: shared digit circuits, numeral encoding, CLI, and tests.
+- `mathematics/arithmetic/`: shared digit circuits, numeral encoding, CLI, and tests; `library.rs` is the crate root.
 - `mathematics/ternary/`: ordinary-rule digit library and runnable arithmetic examples.
 
-Entry points sit beside their supporting folders. Rust modules are exposed directly, without forwarding re-exports. Bazel targets are `//system:command`, `//system:test`, and `//mathematics/arithmetic:word`; run all tests with `bazel test -c opt //...`.
+Library modules live beside their crate root. Tests and reporting have separate files. Rust modules are exposed directly, without forwarding re-exports. Bazel targets are `//system:command`, `//system:test`, and `//mathematics/arithmetic:word`; run all tests with `bazel test -c opt //...`.
+
+Build membership is explicit: packages own their source and fixture filegroups, and shared inputs grant visibility only to their consumers. Every maintained Rust executable builds in `//...`; only development tools are manual. The [contribution guide](document/contribution.md) describes package boundaries, naming, and the verification workflow.

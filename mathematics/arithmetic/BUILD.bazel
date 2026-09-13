@@ -1,20 +1,41 @@
-load("@rules_rs//rs:rust_test.bzl", "rust_test")
 load("@default_rust_toolchains//rustc:component_labels.bzl", "rust_toolchain_component_label")
 load("@hermetic_launcher//launcher:launcher_binary.bzl", "launcher_binary")
 load("@rules_rs//rs:rust_binary.bzl", "rust_binary")
+load("@rules_rs//rs:rust_library.bzl", "rust_library")
+load("@rules_rs//rs:rust_test.bzl", "rust_test")
+
+rust_library(
+    name = "library",
+    srcs = [":source"],
+    crate_name = "arithmetic",
+    crate_root = "library.rs",
+    visibility = ["//mathematics:__subpackages__"],
+    deps = ["@crate//:thiserror"],
+)
 
 rust_binary(
     name = "word",
-    srcs = ["word.rs", "argument.rs"],
+    srcs = [
+        "argument.rs",
+        "word.rs",
+    ],
     crate_root = "word.rs",
-    visibility = ["//visibility:public"],
-    tags = ["manual"],
-    deps = ["//mathematics:arithmetic", "//system:photonic", "@crate//:clap", "@crate//:thiserror"],
+    deps = [
+        ":library",
+        "//system:photonic",
+        "@crate//:clap",
+        "@crate//:thiserror",
+    ],
 )
 
 launcher_binary(
     name = "format",
-    embedded_args = ["mathematics/arithmetic.rs", "mathematics/arithmetic/word.rs", "mathematics/arithmetic/test.rs", "mathematics/arithmetic/benchmark.rs"],
+    embedded_args = [
+        "mathematics/arithmetic/library.rs",
+        "mathematics/arithmetic/word.rs",
+        "mathematics/arithmetic/test.rs",
+        "mathematics/arithmetic/benchmark.rs",
+    ],
     entrypoint = rust_toolchain_component_label("@rules_rust//tools/upstream_wrapper:rustfmt"),
     tags = ["manual"],
 )
@@ -22,20 +43,51 @@ launcher_binary(
 rust_test(
     name = "test",
     size = "medium",
-    srcs = ["test.rs", "argument.rs", "ternary.rs", "stream.rs"],
+    srcs = [
+        "argument.rs",
+        "stream.rs",
+        "ternary.rs",
+        "test.rs",
+    ],
+    compile_data = ["//mathematics/ternary:fixture"],
     crate_root = "test.rs",
-    compile_data = ["//mathematics/ternary:numeral.particle", "//mathematics/ternary:word.particle", "//mathematics/ternary:carry.particle", "//mathematics/ternary:digit.particle", "//mathematics/ternary:successor.particle", "//mathematics/ternary:stream.wave", "//mathematics/ternary:done.particle"],
     data = [":word"],
     env = {"PHOTONIC_WORD": "$(rlocationpath :word)"},
-    deps = ["//mathematics:arithmetic", "//system:photonic", "@crate//:clap", "@crate//:thiserror", "@rules_rust//rust/runfiles"],
+    deps = [
+        ":library",
+        "//system:photonic",
+        "@crate//:clap",
+        "@crate//:thiserror",
+        "@rules_rust//rust/runfiles",
+    ],
 )
 
 rust_binary(
     name = "benchmark",
     srcs = ["benchmark.rs"],
     crate_root = "benchmark.rs",
-    tags = ["manual"],
-    deps = ["//mathematics:arithmetic", "//system:photonic"],
+    deps = [
+        ":library",
+        "//system:photonic",
+    ],
 )
 
-exports_files(["circuit.rs", "encoding.rs", "gate.rs", "numeral.rs", "power.rs"], visibility = ["//mathematics:__pkg__"])
+filegroup(
+    name = "source",
+    srcs = [
+        "circuit.rs",
+        "encoding.rs",
+        "gate.rs",
+        "library.rs",
+        "numeral.rs",
+        "power.rs",
+    ],
+)
+
+filegroup(
+    name = "build",
+    srcs = [
+        "BUILD.bazel",
+    ],
+    visibility = ["//:__pkg__"],
+)

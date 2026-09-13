@@ -56,12 +56,12 @@ impl Search {
         })
     }
 
-    pub fn run(&mut self, steps: usize, limit: Option<Limit>) {
-        self.runtime.run(steps, limit);
+    pub fn run(&mut self, budget: usize, limit: Option<Limit>) {
+        self.runtime.run(budget, limit);
     }
 
-    pub fn parallel(&mut self, executor: &Executor, steps: usize, limit: Option<Limit>) {
-        self.runtime.parallel(executor, steps, limit);
+    pub fn parallel(&mut self, executor: &Executor, budget: usize, limit: Option<Limit>) {
+        self.runtime.parallel(executor, budget, limit);
     }
 
     pub fn report(&self) -> Report {

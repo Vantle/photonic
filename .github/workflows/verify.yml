@@ -13,28 +13,29 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  format:
-    name: Format
+  check:
+    name: Check
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
           persist-credentials: false
       - name: Bazel
+        id: bazel
         uses: bazel-contrib/setup-bazel@c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86
         with:
           bazelisk-version: 1.28.1
           bazelisk-cache: true
           repository-cache: true
           cache-save: ${{ github.event_name != 'pull_request' }}
-      - name: Runtime
-        run: bazel run //:format -- --check
-      - name: Arithmetic
-        run: bazel run //mathematics/arithmetic:format -- --check
-      - name: Binary
-        run: bazel run //mathematics/binary:format -- --check
+      - name: Build format
+        run: bazel test //:check
+      - name: Rust format
+        run: bazel build --config=format //...
+      - name: Rust lint
+        run: bazel build --config=lint //...
 
   native:
     name: ${{ matrix.platform }}
@@ -62,13 +63,18 @@ jobs:
         with:
           persist-credentials: false
       - name: Bazel
+        id: bazel
         uses: bazel-contrib/setup-bazel@c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86
         with:
           bazelisk-version: 1.28.1
           bazelisk-cache: true
-          repository-cache: ${{ runner.os != 'Windows' }}
+          repository-cache: true
+          bazelrc: ${{ runner.os == 'Windows' && 'common --repo_contents_cache=' || '' }}
           cache-save: ${{ github.event_name != 'pull_request' }}
       - name: Build
         run: bazel build -c opt //... --host_platform=//platform:${{ matrix.platform }} --platforms=//platform:${{ matrix.platform }}
       - name: Test
         run: bazel test -c opt //... --host_platform=//platform:${{ matrix.platform }} --platforms=//platform:${{ matrix.platform }}
+      - name: Shutdown
+        if: always() && steps.bazel.outcome == 'success'
+        run: bazel shutdown

@@ -17,7 +17,7 @@ path = "system/benchmark.rs"
 
 [[test]]
 name = "test"
-path = "system/test.rs"
+path = "system/test/suite.rs"
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }

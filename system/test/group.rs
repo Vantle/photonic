@@ -13,12 +13,12 @@ fn check(source: &str, target: &str, expected: Outcome) {
 fn addition() {
     check(
         "Add(Unit.Unit.Unit,Unit.Unit.Unit.Unit.Unit.Unit.Unit) [Add,Add] ()",
-        &vec!["Unit"; 10].join("."),
+        &["Unit"; 10].join("."),
         Outcome::Reached,
     );
     check(
         "Add(Unit.Unit.Unit,Unit.Unit.Unit.Unit.Unit.Unit.Unit.Unit) [Add,Add] ()",
-        &vec!["Unit"; 9].join("."),
+        &["Unit"; 9].join("."),
         Outcome::Unreachable,
     );
 }

@@ -94,7 +94,7 @@ fn nested() {
     };
     let binding = Particle::new([original.clone(), unrelated.clone()]);
     assert_eq!(
-        rule.apply(&[binding.clone()]),
+        rule.apply(std::slice::from_ref(&binding)),
         Some(vec![Particle::new([
             replacement.clone(),
             unrelated.clone()

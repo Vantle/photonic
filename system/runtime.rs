@@ -1,3 +1,5 @@
+mod report;
+
 use crate::flow::{self, Binding, Closure, Flow, Place};
 use crate::matching::{self, Slot, Term};
 use crate::program::{Program, Symbol};
@@ -295,10 +297,10 @@ impl Runtime {
         }
         let consumer = request.consumer;
         let view = self.view[consumer.view].clone();
-        if let Some(Place::World(site, _)) = consumer.read {
-            if !selection.iter().any(|slot| slot.world == site) {
-                return;
-            }
+        if let Some(Place::World(site, _)) = consumer.read
+            && !selection.iter().any(|slot| slot.world == site)
+        {
+            return;
         }
         let selected = selection
             .iter()
@@ -461,7 +463,7 @@ impl Runtime {
             closure,
         );
         if result.state.world.len() > self.limit.world
-            || result.state.cells() > self.limit.cell
+            || result.state.size() > self.limit.cell
             || result.state.reachable().len() > self.limit.frame
         {
             self.pending.insert(application);
@@ -527,22 +529,22 @@ impl Runtime {
         );
     }
 
-    pub fn run(&mut self, steps: usize, limit: Option<Limit>) {
-        self.execute(steps, limit, None);
+    pub fn run(&mut self, budget: usize, limit: Option<Limit>) {
+        self.execute(budget, limit, None);
     }
 
     pub fn parallel(
         &mut self,
         executor: &crate::executor::Executor,
-        steps: usize,
+        budget: usize,
         limit: Option<Limit>,
     ) {
-        self.execute(steps, limit, Some(executor));
+        self.execute(budget, limit, Some(executor));
     }
 
     fn execute(
         &mut self,
-        steps: usize,
+        budget: usize,
         limit: Option<Limit>,
         executor: Option<&crate::executor::Executor>,
     ) {
@@ -551,7 +553,7 @@ impl Runtime {
             self.limit = limit;
             self.agenda.extend(self.pending.drain(..).map(Task::Apply));
         }
-        let mut remaining = steps;
+        let mut remaining = budget;
         while remaining > 0 && self.record() < self.limit.record {
             let mut batch = Vec::new();
             while batch.len() < remaining.min(32) {
@@ -642,76 +644,5 @@ impl Runtime {
 
     pub fn closed(&self) -> bool {
         self.agenda.is_empty() && self.pending.is_empty()
-    }
-
-    pub fn snapshot(&self) -> crate::snapshot::Snapshot {
-        let support = self
-            .evaluation
-            .get_or_init(|| Support::new(self.clause.iter().cloned()));
-        crate::snapshot::Snapshot {
-            closed: self.closed(),
-            record: self.record(),
-            peak: self.peak,
-            queued: self.agenda.len(),
-            deferred: self.pending.len(),
-            work: self.work,
-            limit: self.limit,
-            state: self
-                .state
-                .iter()
-                .enumerate()
-                .map(|(id, state)| {
-                    crate::snapshot::Node::new(
-                        id,
-                        state,
-                        &self.program,
-                        support.status(Atom::State(id)),
-                    )
-                })
-                .collect(),
-            event: self
-                .event
-                .iter()
-                .enumerate()
-                .map(|(id, event)| crate::snapshot::Event {
-                    id,
-                    source: event.identity.source,
-                    target: event.target,
-                    rule: self.program.rule[event.identity.rule].name.clone(),
-                    status: support.status(Atom::Event(id)),
-                    footprint: event.identity.binding.footprint.iter().copied().collect(),
-                    exact: event.identity.binding.exact.iter().copied().collect(),
-                    read: event.identity.binding.read.iter().copied().collect(),
-                    evidence: event.evidence.iter().copied().collect(),
-                })
-                .collect(),
-            view: self
-                .view
-                .iter()
-                .enumerate()
-                .map(|(id, view)| crate::snapshot::View {
-                    id,
-                    source: view.source,
-                    target: view.target,
-                    status: support.status(Atom::View(id)),
-                    resource: view
-                        .flow
-                        .resource
-                        .iter()
-                        .map(|(&target, source)| crate::snapshot::Link {
-                            target,
-                            source: source.iter().copied().collect(),
-                        })
-                        .collect(),
-                    context: view
-                        .flow
-                        .context
-                        .iter()
-                        .map(|value| value.iter().copied().collect())
-                        .collect(),
-                    frame: view.flow.frame.clone(),
-                })
-                .collect(),
-        }
     }
 }

@@ -1,1 +1,29 @@
-exports_files(glob(["*.particle", "*.wave"]))
+filegroup(
+    name = "fixture",
+    srcs = [
+        "add.particle",
+        "add.wave",
+        "carry.particle",
+        "digit.particle",
+        "divide.particle",
+        "divide.wave",
+        "done.particle",
+        "multiply.particle",
+        "multiply.wave",
+        "numeral.particle",
+        "stream.wave",
+        "subtract.particle",
+        "subtract.wave",
+        "successor.particle",
+        "word.particle",
+    ],
+    visibility = ["//mathematics/arithmetic:__pkg__"],
+)
+
+filegroup(
+    name = "build",
+    srcs = [
+        "BUILD.bazel",
+    ],
+    visibility = ["//:__pkg__"],
+)

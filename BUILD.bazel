@@ -1,3 +1,4 @@
+load("@buildifier_prebuilt//:rules.bzl", "buildifier_test")
 load("@default_rust_toolchains//rustc:component_labels.bzl", "rust_toolchain_component_label")
 load("@hermetic_launcher//launcher:launcher_binary.bzl", "launcher_binary")
 
@@ -5,7 +6,7 @@ launcher_binary(
     name = "format",
     embedded_args = [
         "system/photonic.rs",
-        "system/test.rs",
+        "system/test/suite.rs",
         "system/command.rs",
         "system/benchmark.rs",
         "system/benchmark/symmetry.rs",
@@ -22,4 +23,28 @@ launcher_binary(
     tags = ["manual"],
 )
 
-exports_files(glob(["example/*.wave", "example/*.json"]))
+filegroup(
+    name = "build",
+    srcs = [
+        "BUILD.bazel",
+        "MODULE.bazel",
+        "//example:build",
+        "//example/group:build",
+        "//mathematics/arithmetic:build",
+        "//mathematics/binary:build",
+        "//mathematics/decimal:build",
+        "//mathematics/natural:build",
+        "//mathematics/ternary:build",
+        "//platform:build",
+        "//system:build",
+    ],
+)
+
+buildifier_test(
+    name = "check",
+    size = "small",
+    srcs = [":build"],
+    lint_mode = "warn",
+    mode = "check",
+    tags = ["manual"],
+)

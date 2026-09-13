@@ -42,11 +42,8 @@ fn operation() {
                 Outcome::Unknown
             );
             let source = circuit::divide(3, 2, left, right);
-            let (quotient, remainder) = if right == 0 {
-                (0, left)
-            } else {
-                (left / right, left % right)
-            };
+            let (quotient, remainder) = u64::checked_div(left, right)
+                .map_or((0, left), |quotient| (quotient, left % right));
             assert_eq!(
                 execute(
                     &source,
@@ -111,11 +108,8 @@ fn boundary() {
             ),
             Outcome::Reached
         );
-        let (quotient, remainder) = if right == 0 {
-            (0, left)
-        } else {
-            (left / right, left % right)
-        };
+        let (quotient, remainder) =
+            u64::checked_div(left, right).map_or((0, left), |quotient| (quotient, left % right));
         assert_eq!(
             execute(
                 &circuit::divide(3, 7, left, right),
@@ -285,4 +279,33 @@ fn notation() {
         ),
         Outcome::Reached
     );
+}
+
+#[test]
+fn example() {
+    for (source, target, expected) in [
+        (
+            include_str!("../ternary/add.wave"),
+            include_str!("../ternary/add.particle"),
+            encoding::unsigned(3, 8, 1623),
+        ),
+        (
+            include_str!("../ternary/multiply.wave"),
+            include_str!("../ternary/multiply.particle"),
+            encoding::unsigned(3, 14, 184_500),
+        ),
+        (
+            include_str!("../ternary/subtract.wave"),
+            include_str!("../ternary/subtract.particle"),
+            encoding::difference(3, 7, 1377),
+        ),
+        (
+            include_str!("../ternary/divide.wave"),
+            include_str!("../ternary/divide.particle"),
+            encoding::quotient(3, 7, 12, 24, false),
+        ),
+    ] {
+        assert_eq!(target, expected);
+        assert_eq!(execute(source, target), Outcome::Reached);
+    }
 }

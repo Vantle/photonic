@@ -1,8 +1,8 @@
 filegroup(
     name = "fixture",
     srcs = [
-        "addition.wave",
-        "result.particle",
+        "conjunction.wave",
+        "reference.json",
     ],
     visibility = ["//system:__pkg__"],
 )

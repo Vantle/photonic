@@ -211,7 +211,7 @@ impl State {
         }
     }
 
-    pub fn cells(&self) -> usize {
+    pub fn size(&self) -> usize {
         self.world
             .iter()
             .map(|world| world.particle.len())

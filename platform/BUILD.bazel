@@ -1,6 +1,9 @@
 package(default_visibility = ["//visibility:public"])
 
-exports_files(["rust.patch"])
+exports_files(
+    ["rust.patch"],
+    visibility = ["//:__pkg__"],
+)
 
 platform(
     name = "windows",
@@ -63,4 +66,12 @@ platform(
         "@llvm//constraints/windows/abi:gnullvm",
         "@llvm//constraints/windows/crt:msvcrt",
     ],
+)
+
+filegroup(
+    name = "build",
+    srcs = [
+        "BUILD.bazel",
+    ],
+    visibility = ["//:__pkg__"],
 )

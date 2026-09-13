@@ -36,27 +36,6 @@ pub struct Output {
 
 impl Definition {
     pub fn canonical(&self) -> Self {
-        fn particle(value: &[Value]) -> Vec<Value> {
-            let mut result = value
-                .iter()
-                .map(|value| match value {
-                    Value::Atom(atom) => Value::Atom(atom.clone()),
-                    Value::Rule { rule } => Value::Rule {
-                        rule: Box::new(rule.canonical()),
-                    },
-                })
-                .collect::<Vec<_>>();
-            result.sort();
-            result
-        }
-        fn input(value: &[Vec<Value>]) -> Vec<Vec<Value>> {
-            let mut result = value
-                .iter()
-                .map(|value| particle(value))
-                .collect::<Vec<_>>();
-            result.sort();
-            result
-        }
         let mut output = self
             .output
             .iter()
@@ -76,4 +55,26 @@ impl Definition {
             output,
         }
     }
+}
+
+fn particle(value: &[Value]) -> Vec<Value> {
+    let mut result = value
+        .iter()
+        .map(|value| match value {
+            Value::Atom(atom) => Value::Atom(atom.clone()),
+            Value::Rule { rule } => Value::Rule {
+                rule: Box::new(rule.canonical()),
+            },
+        })
+        .collect::<Vec<_>>();
+    result.sort();
+    result
+}
+fn input(value: &[Vec<Value>]) -> Vec<Vec<Value>> {
+    let mut result = value
+        .iter()
+        .map(|value| particle(value))
+        .collect::<Vec<_>>();
+    result.sort();
+    result
 }

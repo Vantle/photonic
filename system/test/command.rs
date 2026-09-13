@@ -230,7 +230,7 @@ fn group() {
         "group.wave",
         "Add(Unit.Unit.Unit,Unit.Unit.Unit.Unit.Unit.Unit.Unit) [Add,Add] ()",
     );
-    let target = fixture.write("target.particle", &vec!["Unit"; 10].join("."));
+    let target = fixture.write("target.particle", &["Unit"; 10].join("."));
     let argument = ["--target", target.to_str().unwrap(), "--json"];
     let result = report(&execute("obsidian", &path, &argument));
     assert_eq!(result["outcome"], "reached");

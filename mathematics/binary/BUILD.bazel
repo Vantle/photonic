@@ -2,16 +2,15 @@ load("@default_rust_toolchains//rustc:component_labels.bzl", "rust_toolchain_com
 load("@hermetic_launcher//launcher:launcher_binary.bzl", "launcher_binary")
 load("@rules_rs//rs:rust_binary.bzl", "rust_binary")
 
-exports_files(glob(["*.particle", "*.wave"]))
-
 rust_binary(
     name = "benchmark",
     srcs = ["benchmark.rs"],
     crate_root = "benchmark.rs",
-    tags = ["manual"],
-    deps = ["//mathematics:arithmetic", "//system:photonic"],
+    deps = [
+        "//mathematics/arithmetic:library",
+        "//system:photonic",
+    ],
 )
-
 
 launcher_binary(
     name = "format",
@@ -20,4 +19,25 @@ launcher_binary(
     ],
     entrypoint = rust_toolchain_component_label("@rules_rust//tools/upstream_wrapper:rustfmt"),
     tags = ["manual"],
+)
+
+filegroup(
+    name = "fixture",
+    srcs = [
+        "adder.particle",
+        "addition.wave",
+        "carry.particle",
+        "multiply.particle",
+        "product.particle",
+        "result.particle",
+    ],
+    visibility = ["//system:__pkg__"],
+)
+
+filegroup(
+    name = "build",
+    srcs = [
+        "BUILD.bazel",
+    ],
+    visibility = ["//:__pkg__"],
 )

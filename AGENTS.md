@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Use one-word identifiers, never abbreviating. Always avoid plural identifiers. Prefer namespaces over identifier mashing.
+Use one-word identifiers, never abbreviating. Always avoid plural identifiers. Prefer namespaces over identifier mashing. Use familiar human names; let the structure supply context.
 
 Avoid duplicate identifiers. Refactor instead of repeating a word to describe a namespace.
 
@@ -32,7 +32,7 @@ Unless stated otherwise, delete dead code.
 
 Ensure multiplatform hermetic builds with only Bazel as the system dependency.
 
-Prefer explicit build and configuration instructions.
+Prefer explicit build and configuration instructions. Never use globs in build rules. Group related files explicitly by responsibility. Keep package visibility private and grant only the access each consumer needs.
 
 Fantastic software is built with robust, composable layers.
 

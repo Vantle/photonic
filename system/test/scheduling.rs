@@ -91,9 +91,9 @@ fn refinement() {
         capture: None,
     });
     let mut search = canonical::Search::new(Arc::new(state.clone()));
-    let steps = (0..10).find(|_| search.step());
+    let progress = (0..10).find(|_| search.step());
     assert!(
-        steps.is_some(),
+        progress.is_some(),
         "asymmetric sharing should distinguish every coherence"
     );
     let expected = search.finish().unwrap().state;
@@ -180,7 +180,7 @@ fn fairness() {
     let source = format!(
         "{},Start [{}] Z [Start] Done",
         vec!["A"; 25].join("."),
-        vec!["A"; 12].join(".")
+        ["A"; 12].join(".")
     );
     let mut runtime = Runtime::new(photonic::lowering::parse(&source).unwrap());
     runtime.run(

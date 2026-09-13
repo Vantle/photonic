@@ -143,7 +143,7 @@ fn reference() {
             .iter()
             .map(|node| normalize(node, &symbol, &scope))
             .collect::<Vec<_>>();
-        let states = |value: &serde_json::Value, state: &[photonic::state::State]| {
+        let state = |value: &serde_json::Value, state: &[photonic::state::State]| {
             value["state"]
                 .as_array()
                 .unwrap()
@@ -153,11 +153,11 @@ fn reference() {
                 .collect::<BTreeMap<_, _>>()
         };
         assert_eq!(
-            states(&actual, &observed),
-            states(case, &expected),
+            state(&actual, &observed),
+            state(case, &expected),
             "configuration/support mismatch: {name}"
         );
-        let events = |value: &serde_json::Value, state: &[photonic::state::State]| {
+        let event = |value: &serde_json::Value, state: &[photonic::state::State]| {
             value["event"]
                 .as_array()
                 .unwrap()
@@ -173,8 +173,8 @@ fn reference() {
                 .collect::<BTreeSet<_>>()
         };
         assert_eq!(
-            events(&actual, &observed),
-            events(case, &expected),
+            event(&actual, &observed),
+            event(case, &expected),
             "event/support mismatch: {name}"
         );
     }

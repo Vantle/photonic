@@ -116,15 +116,15 @@ impl Flow {
                 if basis.len() != 1 {
                     continue;
                 }
-                if let Some(&Place::World(index, id)) = basis.first() {
-                    if source.world[index].particle.iter().any(|value| {
+                if let Some(&Place::World(index, id)) = basis.first()
+                    && source.world[index].particle.iter().any(|value| {
                         value.id == id
                             && value.value == token.value
                             && value.capture
                                 == token.capture.and_then(|capture| self.frame[capture])
-                    }) {
-                        exact.insert(Place::World(index, id));
-                    }
+                    })
+                {
+                    exact.insert(Place::World(index, id));
                 }
             }
         }
