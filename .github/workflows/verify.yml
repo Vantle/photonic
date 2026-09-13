@@ -69,6 +69,6 @@ jobs:
           repository-cache: ${{ runner.os != 'Windows' }}
           cache-save: ${{ github.event_name != 'pull_request' }}
       - name: Build
-        run: bazel build -c opt --config=native //... --platforms=//platform:${{ matrix.platform }}
+        run: bazel build -c opt //... --host_platform=//platform:${{ matrix.platform }} --platforms=//platform:${{ matrix.platform }}
       - name: Test
-        run: bazel test -c opt --config=native //... --platforms=//platform:${{ matrix.platform }}
+        run: bazel test -c opt //... --host_platform=//platform:${{ matrix.platform }} --platforms=//platform:${{ matrix.platform }}

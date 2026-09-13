@@ -1,5 +1,16 @@
 package(default_visibility = ["//visibility:public"])
 
+exports_files(["rust.patch"])
+
+platform(
+    name = "windows",
+    constraint_values = [
+        "@llvm//constraints/windows/abi:gnullvm",
+        "@llvm//constraints/windows/crt:msvcrt",
+    ],
+    parents = ["@platforms//host"],
+)
+
 platform(
     name = "aarch64-apple-darwin",
     constraint_values = [

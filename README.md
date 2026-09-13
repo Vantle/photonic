@@ -70,7 +70,7 @@ bazel run -c opt //system:benchmark
 
 Review both lockfiles after dependency updates. Developer commands use the downloaded Rust tools. Bazel creates no convenience symlinks in the checkout; use `bazel info bazel-bin` to locate outputs.
 
-The toolchain targets ARM64 and x86-64 macOS, GNU Linux, and GNULLVM Windows. Native tests passed on ARM64 macOS; Linux and Windows x86-64 CLI cross-builds passed. [CI](.github/workflows/verify.yml) is configured for all six native platforms but has not yet run; see [platform verification](platform/README.md). Optional remote execution follows Registry; local executor settings belong in ignored `user.bazelrc`.
+The toolchain targets ARM64 and x86-64 macOS, GNU Linux, and GNULLVM Windows. [CI](.github/workflows/verify.yml) builds and tests optimized binaries on all six native platforms and checks Rust formatting in a separate job; see [platform verification](platform/README.md) for host toolchain configuration and matching local commands. Optional remote execution follows Registry; local executor settings belong in ignored `user.bazelrc`.
 
 The crates supply parsing ([pest](https://docs.rs/pest/)), error derivation ([thiserror](https://docs.rs/thiserror/)), diagnostics ([miette](https://docs.rs/miette/)), arguments ([clap](https://docs.rs/clap/)), serialization ([Serde](https://serde.rs/)), stable indexed interning ([IndexMap](https://docs.rs/indexmap/)), and worker pools ([Rayon](https://docs.rs/rayon/)). Photonic owns the rewrite, identity, projection, and support semantics.
 
