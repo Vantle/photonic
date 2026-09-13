@@ -10,6 +10,7 @@ launcher_binary(
         "system/benchmark.rs",
         "system/benchmark/symmetry.rs",
         "mathematics/natural/record.rs",
+        "tool/execute.rs",
     ],
     entrypoint = rust_toolchain_component_label("@rules_rust//tools/upstream_wrapper:rustfmt"),
     tags = ["manual"],

@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const missing = [];
-const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css' };
+const type = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css' };
 const server = createServer(async (request, response) => {
     const path = resolve(root, `.${new URL(request.url, 'http://localhost').pathname}`);
     if (!path.startsWith(root + sep)) {
@@ -18,7 +18,7 @@ const server = createServer(async (request, response) => {
     }
     try {
         const content = await readFile(path);
-        response.writeHead(200, { 'Content-Type': mime[extname(path)] ?? 'text/plain' }).end(content);
+        response.writeHead(200, { 'Content-Type': type[extname(path)] ?? 'text/plain' }).end(content);
     } catch {
         missing.push(request.url);
         response.writeHead(404).end();

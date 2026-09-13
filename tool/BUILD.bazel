@@ -1,6 +1,6 @@
 load("@bazel_skylib//rules:native_binary.bzl", "native_test")
 load("@buildifier_prebuilt//:rules.bzl", "buildifier_test")
-load("@hermetic_launcher//launcher:launcher_binary.bzl", "launcher_binary")
+load("@rules_rs//rs:rust_binary.bzl", "rust_binary")
 load(":node.bzl", "node")
 
 buildifier_test(
@@ -23,27 +23,42 @@ filegroup(
 
 node(name = "node")
 
-launcher_binary(
-    name = "reference",
-    data = [
-        "reference.mjs",
-        "//document/kernel:source",
-        "//example:fixture",
-    ],
-    embedded_args = ["$(rlocationpath reference.mjs)"],
-    entrypoint = ":node",
+rust_binary(
+    name = "execute",
+    srcs = ["execute.rs"],
+    crate_root = "execute.rs",
+    deps = ["@rules_rust//rust/runfiles"],
 )
 
 native_test(
     name = "test",
     size = "small",
-    src = ":reference",
+    src = ":execute",
+    args = [
+        "$(rlocationpath :node)",
+        "$(rlocationpath reference.mjs)",
+    ],
+    data = [
+        "reference.mjs",
+        ":node",
+        "//document/kernel:source",
+        "//example:fixture",
+    ],
 )
 
-launcher_binary(
-    name = "page",
+native_test(
+    name = "browser",
+    size = "small",
+    src = ":execute",
+    args = [
+        "$(rlocationpath :node)",
+        "$(rlocationpath browser.mjs)",
+        "$(rlocationpath @rules_browsers_chrome_mac_arm//:chrome-headless-shell-mac-arm64/chrome-headless-shell)",
+        "$(rlocationpath @rules_browsers_chromedriver_mac_arm//:chromedriver-mac-arm64/chromedriver)",
+    ],
     data = [
         "browser.mjs",
+        ":node",
         "//:page",
         "//document:source",
         "@rules_browsers_chrome_mac_arm//:chrome-headless-shell-mac-arm64/chrome-headless-shell",
@@ -51,23 +66,6 @@ launcher_binary(
         "@rules_browsers_chromedriver_mac_arm//:chromedriver-mac-arm64/chromedriver",
         "@rules_browsers_chromedriver_mac_arm//:info",
     ],
-    embedded_args = [
-        "$(rlocationpath browser.mjs)",
-        "$(rlocationpath @rules_browsers_chrome_mac_arm//:chrome-headless-shell-mac-arm64/chrome-headless-shell)",
-        "$(rlocationpath @rules_browsers_chromedriver_mac_arm//:chromedriver-mac-arm64/chromedriver)",
-    ],
-    entrypoint = ":node",
-    tags = ["manual"],
-    target_compatible_with = [
-        "@platforms//os:macos",
-        "@platforms//cpu:aarch64",
-    ],
-)
-
-native_test(
-    name = "browser",
-    size = "small",
-    src = ":page",
     tags = [
         "manual",
         "requires-network",
