@@ -27,6 +27,10 @@ rust_binary(
     name = "execute",
     srcs = ["execute.rs"],
     crate_root = "execute.rs",
+    visibility = [
+        "//:__pkg__",
+        "//mathematics:__subpackages__",
+    ],
     deps = ["@rules_rust//rust/runfiles"],
 )
 

@@ -61,7 +61,9 @@ use_repo(rust, "rules_rust")
 
 bazel_dep(name = "rules_browsers", version = "0.4.0", dev_dependency = True)
 bazel_dep(name = "rules_nodejs", version = "6.7.5", dev_dependency = True)
-bazel_dep(name = "bazel_skylib", version = "1.9.0", dev_dependency = True)
+
+bazel_dep(name = "bazel_skylib", version = "1.9.0")
+
 bazel_dep(name = "aspect_bazel_lib", version = "2.22.5", dev_dependency = True)
 
 node = use_extension("@rules_nodejs//nodejs:extensions.bzl", "node", dev_dependency = True)

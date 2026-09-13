@@ -16,7 +16,7 @@ Every build input is listed explicitly. Do not use `glob`, recursive source disc
 
 Packages default to private visibility. A shared filegroup grants access only to its consuming package. The runtime library is public; the arithmetic library is available within mathematics. Platform definitions are public configuration inputs, while the toolchain patch is visible only to the root module.
 
-Keep maintained executables in ordinary `//...` builds. Reserve `manual` for development tools and checks that need a specific platform. The browser check runs explicitly in its ARM64 macOS CI job. The native matrix compiles and executes on ARM64 and x86-64 macOS, Linux, and Windows. See [platform verification](../platform/README.md) for native and cross-compilation commands.
+Keep maintained executables in ordinary `//...` builds. Reserve `manual` for development tools and checks that need a specific platform. The browser check runs explicitly in its ARM64 macOS CI job. The native matrix compiles and executes on ARM64 and x86-64 macOS, Linux, and Windows. It also runs the formatter and checks the dependency command on every platform. These commands use the shared Rust runner, so they require no shell launcher. See [platform verification](../platform/README.md) for native and cross-compilation commands.
 
 Declare files read during compilation in `compile_data`. Declare executables and files read at runtime in `data`. Pass executable locations with `rlocationpath` and resolve them through the standard runfiles library; paths relative to the working directory do not provide a portable executable location.
 

@@ -1,5 +1,5 @@
+load("@bazel_skylib//rules:native_binary.bzl", "native_binary")
 load("@default_rust_toolchains//rustc:component_labels.bzl", "rust_toolchain_component_label")
-load("@hermetic_launcher//launcher:launcher_binary.bzl", "launcher_binary")
 load("@rules_rs//rs:rust_binary.bzl", "rust_binary")
 load("@rules_rs//rs:rust_library.bzl", "rust_library")
 load("@rules_rs//rs:rust_test.bzl", "rust_test")
@@ -28,15 +28,18 @@ rust_binary(
     ],
 )
 
-launcher_binary(
+native_binary(
     name = "format",
-    embedded_args = [
+    src = "//tool:execute",
+    args = [
+        "$(rlocationpath {})".format(rust_toolchain_component_label("@rules_rust//tools/upstream_wrapper:rustfmt")),
+        "--",
         "mathematics/arithmetic/library.rs",
         "mathematics/arithmetic/word.rs",
         "mathematics/arithmetic/test.rs",
         "mathematics/arithmetic/benchmark.rs",
     ],
-    entrypoint = rust_toolchain_component_label("@rules_rust//tools/upstream_wrapper:rustfmt"),
+    data = [rust_toolchain_component_label("@rules_rust//tools/upstream_wrapper:rustfmt")],
     tags = ["manual"],
 )
 

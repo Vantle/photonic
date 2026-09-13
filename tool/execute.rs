@@ -3,16 +3,20 @@ use std::process::{Command, ExitCode};
 
 fn main() -> Result<ExitCode, Error> {
     let runfile = runfiles::Runfiles::create().map_err(Error::other)?;
-    let mut argument = std::env::args().skip(1).map(|name| {
+    let resolve = |name: String| {
         runfiles::rlocation!(runfile, &name)
             .ok_or_else(|| Error::new(ErrorKind::NotFound, format!("missing runfile: {name}")))
-    });
-    let program = argument.next().ok_or_else(|| {
+    };
+    let mut argument = std::env::args().skip(1);
+    let program = resolve(argument.next().ok_or_else(|| {
         Error::new(ErrorKind::InvalidInput, "an executable runfile is required")
-    })??;
-    let status = Command::new(program)
-        .args(argument.collect::<Result<Vec<_>, _>>()?)
-        .status()?;
+    })?)?;
+    let file = argument
+        .by_ref()
+        .take_while(|name| name != "--")
+        .map(resolve)
+        .collect::<Result<Vec<_>, _>>()?;
+    let status = Command::new(program).args(file).args(argument).status()?;
     Ok(ExitCode::from(
         status
             .code()

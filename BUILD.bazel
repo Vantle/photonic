@@ -1,9 +1,12 @@
+load("@bazel_skylib//rules:native_binary.bzl", "native_binary")
 load("@default_rust_toolchains//rustc:component_labels.bzl", "rust_toolchain_component_label")
-load("@hermetic_launcher//launcher:launcher_binary.bzl", "launcher_binary")
 
-launcher_binary(
+native_binary(
     name = "format",
-    embedded_args = [
+    src = "//tool:execute",
+    args = [
+        "$(rlocationpath {})".format(rust_toolchain_component_label("@rules_rust//tools/upstream_wrapper:rustfmt")),
+        "--",
         "system/photonic.rs",
         "system/test/suite.rs",
         "system/command.rs",
@@ -12,14 +15,19 @@ launcher_binary(
         "mathematics/natural/record.rs",
         "tool/execute.rs",
     ],
-    entrypoint = rust_toolchain_component_label("@rules_rust//tools/upstream_wrapper:rustfmt"),
+    data = [rust_toolchain_component_label("@rules_rust//tools/upstream_wrapper:rustfmt")],
     tags = ["manual"],
 )
 
-launcher_binary(
+native_binary(
     name = "update",
-    embedded_args = ["update"],
-    entrypoint = rust_toolchain_component_label("@rules_rust//tools/upstream_wrapper:cargo"),
+    src = "//tool:execute",
+    args = [
+        "$(rlocationpath {})".format(rust_toolchain_component_label("@rules_rust//tools/upstream_wrapper:cargo")),
+        "--",
+        "update",
+    ],
+    data = [rust_toolchain_component_label("@rules_rust//tools/upstream_wrapper:cargo")],
     tags = ["manual"],
 )
 

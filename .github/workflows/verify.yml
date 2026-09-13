@@ -97,6 +97,10 @@ jobs:
           cache-save: ${{ github.event_name != 'pull_request' }}
       - name: Build
         run: bazel build -c opt //... --host_platform=//platform:${{ matrix.platform }} --platforms=//platform:${{ matrix.platform }}
+      - name: Formatter
+        run: bazel run //:format --host_platform=//platform:${{ matrix.platform }} --platforms=//platform:${{ matrix.platform }} -- --check
+      - name: Dependency command
+        run: bazel run //:update --host_platform=//platform:${{ matrix.platform }} --platforms=//platform:${{ matrix.platform }} -- --help
       - name: Test
         run: bazel test -c opt //... --host_platform=//platform:${{ matrix.platform }} --platforms=//platform:${{ matrix.platform }}
       - name: Shutdown
