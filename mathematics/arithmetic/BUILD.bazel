@@ -26,8 +26,8 @@ rust_test(
     crate_root = "test.rs",
     compile_data = ["//mathematics/ternary:digit.particle", "//mathematics/ternary:successor.particle", "//mathematics/ternary:stream.wave", "//mathematics/ternary:done.particle"],
     data = [":word"],
-    env = {"PHOTONIC_WORD": "$(rootpath :word)"},
-    deps = ["//mathematics:arithmetic", "//system:photonic", "@crate//:clap", "@crate//:thiserror"],
+    env = {"PHOTONIC_WORD": "$(rlocationpath :word)"},
+    deps = ["//mathematics:arithmetic", "//system:photonic", "@crate//:clap", "@crate//:thiserror", "@rules_rust//rust/runfiles"],
 )
 
 rust_binary(

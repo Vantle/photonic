@@ -54,3 +54,6 @@ crate.from_cargo(
     ],
 )
 use_repo(crate, "crate")
+
+rust = use_extension("@rules_rs//rs:rules_rust.bzl", "rules_rust")
+use_repo(rust, "rules_rust")

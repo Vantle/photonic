@@ -124,10 +124,11 @@ rust_test(
         "//mathematics/natural:zero.particle",
     ],
     data = ["//system:command"],
-    env = {"PHOTONIC_COMMAND": "$(rootpath //system:command)"},
+    env = {"PHOTONIC_COMMAND": "$(rlocationpath //system:command)"},
     deps = [
         "//system:photonic",
         "@crate//:serde_json",
+        "@rules_rust//rust/runfiles",
     ],
 )
 

@@ -13,14 +13,18 @@ diff --git a/rs/private/cargo_repository.bzl b/rs/private/cargo_repository.bzl
 +++ b/rs/private/cargo_repository.bzl
 @@ -8,2 +8,3 @@
      srcs = ["bin/cargo{binary_ext}"],
-+    data = glob(["bin/*.dll"], allow_empty = True),
++    data = {runtime},
      visibility = ["//visibility:public"],
-@@ -14,2 +15,4 @@
+@@ -14,2 +15,7 @@
      download_and_extract(rctx, "cargo", "cargo", exec_triple)
+-    rctx.file("BUILD.bazel", _build_file_tmpl.format(binary_ext = system_to_binary_ext(exec_triple.system)))
 +    if rctx.attr.triple.endswith("-windows-gnullvm"):
 +        download_and_extract(rctx, "rustc", "rustc", exec_triple, sha256 = rctx.attr.rustc_sha256)
-     rctx.file("BUILD.bazel", _build_file_tmpl.format(binary_ext = system_to_binary_ext(exec_triple.system)))
-@@ -20,3 +23,5 @@
++    rctx.file("BUILD.bazel", _build_file_tmpl.format(
++        binary_ext = system_to_binary_ext(exec_triple.system),
++        runtime = repr(["bin/libunwind.dll"] if rctx.attr.triple.endswith("-windows-gnullvm") else []),
++    ))
+@@ -20,3 +26,5 @@
      implementation = _cargo_repository_impl,
 -    attrs = RUST_REPOSITORY_COMMON_ATTR,
 +    attrs = {

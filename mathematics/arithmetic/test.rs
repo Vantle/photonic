@@ -455,7 +455,11 @@ fn stream() {
 
 #[test]
 fn command() {
-    let command = std::env::var_os("PHOTONIC_WORD").unwrap();
+    let path = std::env::var_os("PHOTONIC_WORD").expect("Arithmetic runfile path");
+    let command = runfiles::Runfiles::create()
+        .expect("Bazel runfiles")
+        .rlocation_from(path, "")
+        .expect("Arithmetic executable");
     let output = std::process::Command::new(command)
         .args([
             "--operation",

@@ -41,10 +41,11 @@ impl Drop for Fixture {
 }
 
 fn execute(operation: &str, path: &Path, argument: &[&str]) -> Output {
-    let binary = std::env::var_os("PHOTONIC_COMMAND")
-        .map(PathBuf::from)
-        .or_else(|| option_env!("CARGO_BIN_EXE_photonic").map(PathBuf::from))
-        .expect("PHOTONIC_COMMAND or Cargo binary path");
+    let binary = std::env::var_os("PHOTONIC_COMMAND").expect("Photonic runfile path");
+    let binary = runfiles::Runfiles::create()
+        .expect("Bazel runfiles")
+        .rlocation_from(binary, "")
+        .expect("Photonic executable");
     Command::new(binary)
         .arg(operation)
         .arg(path)
