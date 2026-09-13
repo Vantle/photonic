@@ -20,7 +20,7 @@ Keep maintained executables in ordinary `//...` builds. Reserve `manual` for dev
 
 Declare files read during compilation in `compile_data`. Declare executables and files read at runtime in `data`. Pass executable locations with `rlocationpath` and resolve them through the standard runfiles library; paths relative to the working directory do not provide a portable executable location.
 
-Each package exposes its `BUILD.bazel` through a private-to-root `build` filegroup. Add that group to the root `build` list when introducing a package. This list supplies the Bazel formatting check. Rust formatting and linting follow the build graph, so an ordinary Rust target participates automatically.
+Each package exposes its `BUILD.bazel` through a private-to-root `build` filegroup. Add that group to the root `build` list when introducing a package. This list supplies the Bazel formatting check in `tool/`. Development-only dependencies stay in that package so loading the library does not require them. Rust formatting and linting follow the build graph, so an ordinary Rust target participates automatically.
 
 ## Verification
 
@@ -29,7 +29,7 @@ Run these commands from the repository root:
 ```sh
 bazel build -c opt //...
 bazel test -c opt //...
-bazel test //:check
+bazel test //tool:check
 bazel build --config=format //...
 bazel build --config=lint //...
 ```

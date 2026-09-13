@@ -1,4 +1,3 @@
-load("@buildifier_prebuilt//:rules.bzl", "buildifier_test")
 load("@default_rust_toolchains//rustc:component_labels.bzl", "rust_toolchain_component_label")
 load("@hermetic_launcher//launcher:launcher_binary.bzl", "launcher_binary")
 
@@ -37,14 +36,7 @@ filegroup(
         "//mathematics/ternary:build",
         "//platform:build",
         "//system:build",
+        "//tool:build",
     ],
-)
-
-buildifier_test(
-    name = "check",
-    size = "small",
-    srcs = [":build"],
-    lint_mode = "warn",
-    mode = "check",
-    tags = ["manual"],
+    visibility = ["//tool:__pkg__"],
 )

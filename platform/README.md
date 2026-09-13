@@ -33,7 +33,7 @@ To verify on a matching native host:
 ```sh
 bazel build -c opt //... --host_platform=//platform:aarch64-apple-darwin --platforms=//platform:aarch64-apple-darwin
 bazel test -c opt //... --host_platform=//platform:aarch64-apple-darwin --platforms=//platform:aarch64-apple-darwin
-bazel test //:check
+bazel test //tool:check
 bazel build --config=format //...
 bazel build --config=lint //...
 ```

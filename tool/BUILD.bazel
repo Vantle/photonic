@@ -1,0 +1,16 @@
+load("@buildifier_prebuilt//:rules.bzl", "buildifier_test")
+
+buildifier_test(
+    name = "check",
+    size = "small",
+    srcs = ["//:build"],
+    lint_mode = "warn",
+    mode = "check",
+    tags = ["manual"],
+)
+
+filegroup(
+    name = "build",
+    srcs = ["BUILD.bazel"],
+    visibility = ["//:__pkg__"],
+)

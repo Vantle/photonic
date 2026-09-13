@@ -31,7 +31,7 @@ jobs:
           repository-cache: true
           cache-save: ${{ github.event_name != 'pull_request' }}
       - name: Build format
-        run: bazel test //:check
+        run: bazel test //tool:check
       - name: Rust format
         run: bazel build --config=format //...
       - name: Rust lint
