@@ -57,6 +57,7 @@ jobs:
       - name: Browser
         run: bazel test //tool:browser
       - name: Shutdown
+        timeout-minutes: 2
         if: always() && steps.bazel.outcome == 'success'
         run: bazel shutdown
 
@@ -99,5 +100,6 @@ jobs:
       - name: Test
         run: bazel test -c opt //... --host_platform=//platform:${{ matrix.platform }} --platforms=//platform:${{ matrix.platform }}
       - name: Shutdown
+        timeout-minutes: 2
         if: always() && steps.bazel.outcome == 'success'
         run: bazel shutdown
