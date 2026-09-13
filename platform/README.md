@@ -4,6 +4,8 @@ Bazel target platforms specify both architecture and operating system. Linux use
 
 [rust.patch](rust.patch) selects the upstream GNULLVM Rust host distributions in the pinned `rules_rs` dependency. Its default MSVC compiler cannot load GNULLVM procedural macros, while the hermetic LLVM C/C++ toolchain supports the MinGW ABI. Selecting matching compiler distributions keeps the entire Windows build hermetic. The toolchain uses upstream Rust archives because the redistributed archive set omits these Windows host distributions. Compiler archive hashes are recorded in `MODULE.bazel.lock`.
 
+The patch also bundles the compiler distribution's DLLs beside Windows Cargo and declares them as runtime data. The GNULLVM Cargo archive omits `libunwind.dll`, which it needs even for dependency metadata; no runner-installed DLL or compiler is required.
+
 | Target | Native CI runner |
 | --- | --- |
 | `//platform:aarch64-apple-darwin` | `macos-15` |

@@ -1,7 +1,36 @@
+diff --git a/rs/platforms/triples.bzl b/rs/platforms/triples.bzl
 --- a/rs/platforms/triples.bzl
 +++ b/rs/platforms/triples.bzl
-@@ -65,2 +65,2 @@
+@@ -64,4 +64,4 @@
+     "aarch64-unknown-linux-gnu",
 -    "x86_64-pc-windows-msvc",
 -    "aarch64-pc-windows-msvc",
 +    "x86_64-pc-windows-gnullvm",
 +    "aarch64-pc-windows-gnullvm",
+     "x86_64-apple-darwin",
+diff --git a/rs/private/cargo_repository.bzl b/rs/private/cargo_repository.bzl
+--- a/rs/private/cargo_repository.bzl
++++ b/rs/private/cargo_repository.bzl
+@@ -8,2 +8,3 @@
+     srcs = ["bin/cargo{binary_ext}"],
++    data = glob(["bin/*.dll"], allow_empty = True),
+     visibility = ["//visibility:public"],
+@@ -14,2 +15,4 @@
+     download_and_extract(rctx, "cargo", "cargo", exec_triple)
++    if rctx.attr.triple.endswith("-windows-gnullvm"):
++        download_and_extract(rctx, "rustc", "rustc", exec_triple, sha256 = rctx.attr.rustc_sha256)
+     rctx.file("BUILD.bazel", _build_file_tmpl.format(binary_ext = system_to_binary_ext(exec_triple.system)))
+@@ -20,3 +23,5 @@
+     implementation = _cargo_repository_impl,
+-    attrs = RUST_REPOSITORY_COMMON_ATTR,
++    attrs = {
++        "rustc_sha256": attr.string(mandatory = True),
++    } | RUST_REPOSITORY_COMMON_ATTR,
+ )
+diff --git a/rs/toolchains/module_extension.bzl b/rs/toolchains/module_extension.bzl
+--- a/rs/toolchains/module_extension.bzl
++++ b/rs/toolchains/module_extension.bzl
+@@ -412,2 +412,3 @@
+                     sha256 = _sha_for("cargo", base_version, iso_date, exec_triple),
++                    rustc_sha256 = _sha_for("rustc", base_version, iso_date, exec_triple),
+                     urls = urls,
