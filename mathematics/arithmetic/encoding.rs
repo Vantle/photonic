@@ -1,4 +1,7 @@
-pub fn digit(value: u8) -> &'static str {
+use crate::failure::Failure;
+use crate::format::Format;
+
+pub(crate) fn digit(value: u8) -> &'static str {
     match value {
         0 => "Zero",
         1 => "One",
@@ -7,7 +10,7 @@ pub fn digit(value: u8) -> &'static str {
     }
 }
 
-pub fn label(radix: u8) -> &'static str {
+pub(crate) fn label(radix: u8) -> &'static str {
     match radix {
         2 => "Bit",
         3 => "Digit",
@@ -15,14 +18,16 @@ pub fn label(radix: u8) -> &'static str {
     }
 }
 
-pub fn unsigned(radix: u8, width: usize, value: u64) -> String {
-    word(radix, label(radix), width, value) + "\n"
+pub fn unsigned(radix: u8, width: usize, value: u64) -> Result<String, Failure> {
+    let format = Format::new(radix, width)?;
+    Ok(word(format, label(radix), value)? + "\n")
 }
 
-fn word(radix: u8, label: &str, width: usize, value: u64) -> String {
-    assert!((2..=3).contains(&radix) && width >= 1 && width <= if radix == 2 { 64 } else { 40 });
-    assert!((value as u128) < (radix as u128).pow(width as u32));
-    (0..width)
+fn word(format: Format, label: &str, value: u64) -> Result<String, Failure> {
+    format.check(value)?;
+    let radix = format.base();
+    let width = format.width();
+    Ok((0..width)
         .map(|index| {
             format!(
                 "{label}{index}{}",
@@ -30,23 +35,31 @@ fn word(radix: u8, label: &str, width: usize, value: u64) -> String {
             )
         })
         .collect::<Vec<_>>()
-        .join(".")
+        .join("."))
 }
 
-pub fn difference(radix: u8, width: usize, value: i128) -> String {
-    assert!(value.unsigned_abs() <= u64::MAX as u128);
-    format!(
+pub fn difference(radix: u8, width: usize, value: i128) -> Result<String, Failure> {
+    let format = Format::new(radix, width)?;
+    let magnitude = u64::try_from(value.unsigned_abs()).map_err(|_| Failure::Capacity)?;
+    Ok(format!(
         "{}.Negative{}\n",
-        word(radix, label(radix), width, value.unsigned_abs() as u64),
+        word(format, label(radix), magnitude)?,
         digit(u8::from(value < 0))
-    )
+    ))
 }
 
-pub fn quotient(radix: u8, width: usize, value: u64, remainder: u64, undefined: bool) -> String {
-    format!(
+pub fn quotient(
+    radix: u8,
+    width: usize,
+    value: u64,
+    remainder: u64,
+    undefined: bool,
+) -> Result<String, Failure> {
+    let format = Format::new(radix, width)?;
+    Ok(format!(
         "{}.{}.Undefined{}\n",
-        word(radix, "Quotient", width, value),
-        word(radix, "Remainder", width, remainder),
+        word(format, "Quotient", value)?,
+        word(format, "Remainder", remainder)?,
         digit(u8::from(undefined))
-    )
+    ))
 }

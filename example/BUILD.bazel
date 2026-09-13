@@ -4,7 +4,10 @@ filegroup(
         "conjunction.wave",
         "reference.json",
     ],
-    visibility = ["//system:__pkg__"],
+    visibility = [
+        "//system:__pkg__",
+        "//tool:__pkg__",
+    ],
 )
 
 filegroup(

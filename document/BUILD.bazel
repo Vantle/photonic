@@ -1,0 +1,23 @@
+filegroup(
+    name = "source",
+    srcs = [
+        "book.css",
+        "book.js",
+        "native.js",
+        "plan.html",
+        "record.js",
+        "style.css",
+        "trace.js",
+        "//document/kernel:source",
+    ],
+    visibility = ["//tool:__pkg__"],
+)
+
+filegroup(
+    name = "build",
+    srcs = [
+        "BUILD.bazel",
+        "//document/kernel:build",
+    ],
+    visibility = ["//:__pkg__"],
+)

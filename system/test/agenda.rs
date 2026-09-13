@@ -1,4 +1,4 @@
-use crate::Queue;
+use crate::agenda::Queue;
 
 #[test]
 fn fairness() {

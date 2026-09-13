@@ -5,24 +5,31 @@ mod expansion;
 mod symmetry;
 mod work;
 
-pub mod canonical;
+mod canonical;
 pub mod executor;
 pub mod failure;
 pub mod flow;
 pub mod lowering;
-pub mod matching;
+mod matching;
 pub mod obsidian;
-pub mod ordering;
+mod ordering;
 pub mod parser;
 pub mod particle;
 pub mod path;
-pub mod program;
-pub mod refinement;
+mod program;
+mod refinement;
 pub mod rule;
 pub mod runtime;
-pub mod search;
+mod search;
 pub mod snapshot;
 pub mod source;
-pub mod state;
+mod state;
 pub mod support;
 pub mod syntax;
+
+#[cfg(test)]
+#[path = "test/suite.rs"]
+mod test;
+
+#[cfg(feature = "measurement")]
+pub mod measurement;

@@ -1,5 +1,5 @@
 'use strict';
-window.kernel.flow=(()=>{
+globalThis.kernel.flow=(()=>{
     const unique=value=>[...new Set(value)].sort();
     const cell=(world,token)=>'w'+world+'/'+token.id;
     const held=(frame,token)=>'f'+frame+'/'+token.id;

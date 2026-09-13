@@ -1,5 +1,5 @@
 'use strict';
-window.kernel.support=(()=>{
+globalThis.kernel.support=(()=>{
     function consequence(rule){
         const remaining=rule.map(value=>value.premise.length),dependency=new Map(),answer=new Set(),pending=[];
         rule.forEach((value,index)=>{

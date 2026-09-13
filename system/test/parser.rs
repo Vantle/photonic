@@ -1,6 +1,6 @@
-use photonic::failure::Failure;
-use photonic::parser;
-use photonic::syntax::Kind;
+use crate::failure::Failure;
+use crate::parser;
+use crate::syntax::Kind;
 
 #[test]
 fn structure() {

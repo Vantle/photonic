@@ -1,6 +1,6 @@
-use photonic::lowering::parse;
-use photonic::obsidian::{Outcome, Search};
-use photonic::source::{Program, Value};
+use crate::lowering::parse;
+use crate::obsidian::{Outcome, Search};
+use crate::source::{Program, Value};
 
 fn numeral(count: usize) -> Vec<Value> {
     vec![Value::Atom("Unit".into()); count]

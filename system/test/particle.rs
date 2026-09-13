@@ -1,4 +1,4 @@
-use photonic::particle::Particle;
+use crate::particle::Particle;
 
 #[test]
 fn multiplicity() {

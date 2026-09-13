@@ -48,6 +48,8 @@ pub struct Argument {
 
 #[derive(Debug, thiserror::Error)]
 pub enum Failure {
+    #[error(transparent)]
+    Representation(#[from] arithmetic::failure::Failure),
     #[error("width must be 1 through 20, and both operands must fit")]
     Width,
     #[error("the proposed result must fit the output width")]
@@ -101,8 +103,8 @@ impl Argument {
         }
         Ok(match self.operation {
             Operation::Add => (
-                arithmetic::circuit::add(3, width, self.left, self.right),
-                arithmetic::encoding::unsigned(3, width + 1, self.expected as u64),
+                arithmetic::circuit::add(3, width, self.left, self.right)?,
+                arithmetic::encoding::unsigned(3, width + 1, self.expected as u64)?,
             ),
             Operation::Multiply => (
                 arithmetic::circuit::multiply(
@@ -111,22 +113,22 @@ impl Argument {
                     self.left,
                     self.right,
                     arithmetic::circuit::Layout::Column,
-                ),
-                arithmetic::encoding::unsigned(3, width * 2, self.expected as u64),
+                )?,
+                arithmetic::encoding::unsigned(3, width * 2, self.expected as u64)?,
             ),
             Operation::Subtract => (
-                arithmetic::circuit::subtract(3, width, self.left, self.right),
-                arithmetic::encoding::difference(3, width, self.expected),
+                arithmetic::circuit::subtract(3, width, self.left, self.right)?,
+                arithmetic::encoding::difference(3, width, self.expected)?,
             ),
             Operation::Divide => (
-                arithmetic::circuit::divide(3, width, self.left, self.right),
+                arithmetic::circuit::divide(3, width, self.left, self.right)?,
                 arithmetic::encoding::quotient(
                     3,
                     width,
                     self.expected as u64,
                     self.remainder,
                     self.undefined,
-                ),
+                )?,
             ),
         })
     }

@@ -139,3 +139,9 @@ All pairs of two-trit operands are tested for all four operations, including wro
 These are concrete checks plus written invariants, not universally quantified arithmetic certificates. Path success proves a witness; a failed path remains Unknown and other paths are not exhausted. Reports are inspection artifacts, not independently replayable certificates.
 
 The [stream investigation](stream.md) now includes a twelve-rule ternary successor, validated through ordered direct execution traces. Arithmetic over arbitrary unknown stream tails and the construction of functional result numerals are still unresolved. There is no hidden wildcard, structural binder, or native number handler filling that gap. The current deliverable is a working, measured ternary word implementation with ordinary-rule semantics.
+
+## Library boundary
+
+Circuit and encoding functions return `Result<String, failure::Failure>`. Invalid bases, widths, and values produce structured errors before generation. Circuit operands support binary widths 1–32 and ternary widths 1–20; output encodings support binary widths 1–64 and ternary widths 1–40. Power notation supports bases 2–16 and normalization widths 0–64. Gate tables and representation validation remain private.
+
+These checks validate representation only. Rust emits the program and target description; ordinary rules still perform arithmetic inside the Photonic runtime. The saved program fixtures and execution tests protect that behavior.

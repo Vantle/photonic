@@ -1,4 +1,6 @@
 use crate::encoding::{digit, label};
+use crate::failure::Failure;
+use crate::format::Format;
 use crate::gate::assignment;
 use crate::gate::{Gate, Kind};
 
@@ -43,8 +45,14 @@ pub enum Layout {
     Balanced,
 }
 
-pub fn multiply(radix: u8, width: usize, left: u64, right: u64, layout: Layout) -> String {
-    let mut circuit = Circuit::new(radix, width, left, right);
+pub fn multiply(
+    radix: u8,
+    width: usize,
+    left: u64,
+    right: u64,
+    layout: Layout,
+) -> Result<String, Failure> {
+    let mut circuit = Circuit::new(radix, width, left, right)?;
     let mut column = vec![Vec::new(); width * 2 + 1];
     for left in 0..width {
         for right in 0..width {
@@ -55,16 +63,16 @@ pub fn multiply(radix: u8, width: usize, left: u64, right: u64, layout: Layout) 
             }
         }
     }
-    circuit.reduce(column, layout)
+    Ok(circuit.reduce(column, layout))
 }
 
-pub fn add(radix: u8, width: usize, left: u64, right: u64) -> String {
-    let circuit = Circuit::new(radix, width, left, right);
+pub fn add(radix: u8, width: usize, left: u64, right: u64) -> Result<String, Failure> {
+    let circuit = Circuit::new(radix, width, left, right)?;
     let mut column = vec![Vec::new(); width + 2];
     for (index, column) in column.iter_mut().enumerate().take(width) {
         column.extend([index, width + index]);
     }
-    circuit.reduce(column, Layout::Column)
+    Ok(circuit.reduce(column, Layout::Column))
 }
 
 impl Circuit {
@@ -108,14 +116,11 @@ impl Circuit {
         self.emit(result)
     }
 
-    fn new(radix: u8, width: usize, left: u64, right: u64) -> Self {
-        assert!((2..=3).contains(&radix));
-        assert!(width >= 1 && width <= if radix == 2 { 32 } else { 20 });
-        assert!(
-            (left as u128) < (radix as u128).pow(width as u32)
-                && (right as u128) < (radix as u128).pow(width as u32)
-        );
-        Self {
+    fn new(radix: u8, width: usize, left: u64, right: u64) -> Result<Self, Failure> {
+        let format = Format::operand(radix, width)?;
+        format.check(left)?;
+        format.check(right)?;
+        Ok(Self {
             radix,
             domain: vec![(0..radix).collect(); width * 2],
             wire: width * 2,
@@ -132,7 +137,7 @@ impl Circuit {
                     })
                 })
                 .collect(),
-        }
+        })
     }
 
     fn constant(&mut self, value: u8) -> usize {
@@ -254,8 +259,8 @@ fn particle(value: Vec<String>) -> String {
     }
 }
 
-pub fn subtract(radix: u8, width: usize, left: u64, right: u64) -> String {
-    let mut circuit = Circuit::new(radix, width, left, right);
+pub fn subtract(radix: u8, width: usize, left: u64, right: u64) -> Result<String, Failure> {
+    let mut circuit = Circuit::new(radix, width, left, right)?;
     let zero = circuit.constant(0);
     let left = (0..width).collect::<Vec<_>>();
     let right = (width..width * 2).collect::<Vec<_>>();
@@ -268,11 +273,11 @@ pub fn subtract(radix: u8, width: usize, left: u64, right: u64) -> String {
         .map(|(index, wire)| (format!("{}{index}", label(radix)), wire))
         .collect::<Vec<_>>();
     result.push(("Negative".into(), negative));
-    circuit.emit(result)
+    Ok(circuit.emit(result))
 }
 
-pub fn divide(radix: u8, width: usize, left: u64, right: u64) -> String {
-    let mut circuit = Circuit::new(radix, width, left, right);
+pub fn divide(radix: u8, width: usize, left: u64, right: u64) -> Result<String, Failure> {
+    let mut circuit = Circuit::new(radix, width, left, right)?;
     let zero = circuit.constant(0);
     let divisor = (width..width * 2).chain([zero]).collect::<Vec<_>>();
     let mut remainder = vec![zero; width];
@@ -312,5 +317,5 @@ pub fn divide(radix: u8, width: usize, left: u64, right: u64) -> String {
             .map(|(index, wire)| (format!("Remainder{index}"), wire)),
     );
     result.push(("Undefined".into(), undefined));
-    circuit.emit(result)
+    Ok(circuit.emit(result))
 }

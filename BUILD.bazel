@@ -27,6 +27,7 @@ filegroup(
     srcs = [
         "BUILD.bazel",
         "MODULE.bazel",
+        "//document:build",
         "//example:build",
         "//example/group:build",
         "//mathematics/arithmetic:build",
@@ -38,5 +39,11 @@ filegroup(
         "//system:build",
         "//tool:build",
     ],
+    visibility = ["//tool:__pkg__"],
+)
+
+filegroup(
+    name = "page",
+    srcs = ["index.html"],
     visibility = ["//tool:__pkg__"],
 )

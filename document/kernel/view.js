@@ -77,3 +77,9 @@
     element('expand').addEventListener('click',()=>{const limit=model.limit;model.run(2000,{state:limit.state+20,cell:limit.cell+2,frame:limit.frame+2});render();});
     reset();clear();
 })();
+
+document.getElementById('fixture')?.addEventListener('click',()=>{
+    const url=URL.createObjectURL(new Blob([JSON.stringify(kernel.fixture())+'\n'],{type:'application/json'}));
+    const link=document.createElement('a');link.href=url;link.download='reference.json';link.click();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+});

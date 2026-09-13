@@ -11,33 +11,33 @@ pub enum Place {
 }
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub struct Flow {
+pub(crate) struct Flow {
     pub resource: BTreeMap<Place, BTreeSet<Place>>,
     pub context: Vec<BTreeSet<usize>>,
     pub frame: Vec<Option<usize>>,
 }
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub struct Binding {
+pub(crate) struct Binding {
     pub world: BTreeSet<usize>,
     pub footprint: BTreeSet<Place>,
     pub exact: BTreeSet<Place>,
     pub read: BTreeSet<Place>,
 }
 
-pub struct Closure<'state> {
+pub(crate) struct Closure<'state> {
     pub state: &'state State,
     pub flow: &'state Flow,
     pub capture: usize,
 }
 
-pub struct Applied {
+pub(crate) struct Applied {
     pub state: State,
     pub flow: Flow,
 }
 
 impl Flow {
-    pub fn identity(state: &State) -> Self {
+    pub(crate) fn identity(state: &State) -> Self {
         let mut resource = BTreeMap::new();
         for (world, value) in state.world.iter().enumerate() {
             for token in &value.particle {
@@ -60,7 +60,7 @@ impl Flow {
         }
     }
 
-    pub fn compose(&self, event: &Flow) -> Self {
+    pub(crate) fn compose(&self, event: &Flow) -> Self {
         Self {
             resource: event
                 .resource
@@ -93,7 +93,7 @@ impl Flow {
         }
     }
 
-    pub fn project(
+    pub(crate) fn project(
         &self,
         source: &State,
         target: &State,
@@ -210,7 +210,7 @@ impl Import<'_> {
     }
 }
 
-pub fn apply(
+pub(crate) fn apply(
     source: &State,
     frame: usize,
     owner: Option<usize>,
@@ -396,7 +396,8 @@ pub fn apply(
 }
 
 impl Applied {
-    pub fn canonical(self) -> Self {
+    #[cfg(test)]
+    pub(crate) fn canonical(self) -> Self {
         let canonical = self.state.canonical();
         self.rename(canonical)
     }

@@ -1,5 +1,5 @@
 'use strict';
-window.kernel.binding=(()=>{
+globalThis.kernel.binding=(()=>{
     function* particle(pattern,value,selected=[],state){
         if(!pattern.length){yield selected;return;}
         const expected=pattern[0],label=typeof expected==='string'?expected:expected.label;

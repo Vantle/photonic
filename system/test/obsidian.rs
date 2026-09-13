@@ -1,6 +1,6 @@
-use photonic::lowering::parse;
-use photonic::obsidian::{Failure, Outcome, Search};
-use photonic::runtime::Limit;
+use crate::lowering::parse;
+use crate::obsidian::{Failure, Outcome, Search};
+use crate::runtime::Limit;
 
 fn search(program: &str, target: &str) -> Search {
     Search::new(parse(program).unwrap(), parse(target).unwrap()).unwrap()

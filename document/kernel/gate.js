@@ -1,5 +1,5 @@
 'use strict';
-window.kernel.gate=(()=>{
+globalThis.kernel.gate=(()=>{
     function create(pattern){
         const candidate=pattern.map(()=>new Map());
         const prefix=Array.from({length:pattern.length+1},()=>new Map());

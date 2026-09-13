@@ -1,7 +1,7 @@
-use photonic::lowering::parse;
-use photonic::obsidian::Outcome;
-use photonic::path::Search;
-use photonic::runtime::Limit;
+use crate::lowering::parse;
+use crate::obsidian::Outcome;
+use crate::path::Search;
+use crate::runtime::Limit;
 
 fn search(source: &str, target: &str) -> Search {
     Search::new(parse(source).unwrap(), parse(target).unwrap()).unwrap()
@@ -19,8 +19,7 @@ fn execution() {
         path.run(100_000, Limit::default());
         assert_eq!(path.report().outcome, Outcome::Reached, "{source}");
         let mut exhaustive =
-            photonic::obsidian::Search::new(parse(source).unwrap(), parse(target).unwrap())
-                .unwrap();
+            crate::obsidian::Search::new(parse(source).unwrap(), parse(target).unwrap()).unwrap();
         exhaustive.run(100_000, None);
         assert_eq!(exhaustive.report().outcome, Outcome::Reached);
     }
@@ -78,7 +77,7 @@ fn inference() {
     path.run(100_000, Limit::default());
     assert_eq!(path.report().outcome, Outcome::Unknown);
     let mut exhaustive =
-        photonic::obsidian::Search::new(parse(source).unwrap(), parse("Seed.B").unwrap()).unwrap();
+        crate::obsidian::Search::new(parse(source).unwrap(), parse("Seed.B").unwrap()).unwrap();
     exhaustive.run(100_000, None);
     assert_eq!(exhaustive.report().outcome, Outcome::Reached);
 }

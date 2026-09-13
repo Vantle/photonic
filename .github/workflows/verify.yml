@@ -37,6 +37,29 @@ jobs:
       - name: Rust lint
         run: bazel build --config=lint //...
 
+  browser:
+    name: Browser
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+      - name: Bazel
+        id: bazel
+        uses: bazel-contrib/setup-bazel@c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86
+        with:
+          bazelisk-version: 1.28.1
+          bazelisk-cache: true
+          repository-cache: true
+          cache-save: ${{ github.event_name != 'pull_request' }}
+      - name: Browser
+        run: bazel test //tool:browser
+      - name: Shutdown
+        if: always() && steps.bazel.outcome == 'success'
+        run: bazel shutdown
+
   native:
     name: ${{ matrix.platform }}
     runs-on: ${{ matrix.runner }}

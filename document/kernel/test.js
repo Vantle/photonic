@@ -1,5 +1,5 @@
 'use strict';
-window.kernel.verify=()=>{
+globalThis.kernel.verify=()=>{
     let checked=0;const failure=[];
     const check=(condition,name)=>{checked++;if(!condition)failure.push(name);};
     const evidence=kernel.support.evaluate({closed:false,clause:[{head:'start',premise:[]},{head:'next',premise:['start']},{head:'cycle',premise:['cycle']}]});

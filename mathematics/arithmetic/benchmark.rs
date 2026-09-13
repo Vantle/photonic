@@ -47,32 +47,32 @@ fn main() {
         measure(
             radix,
             "add",
-            circuit::add(radix, width, 1500, 123),
-            encoding::unsigned(radix, width + 1, 1623),
+            circuit::add(radix, width, 1500, 123).unwrap(),
+            encoding::unsigned(radix, width + 1, 1623).unwrap(),
         );
         measure(
             radix,
             "subtract",
-            circuit::subtract(radix, width, 1500, 123),
-            encoding::difference(radix, width, 1377),
+            circuit::subtract(radix, width, 1500, 123).unwrap(),
+            encoding::difference(radix, width, 1377).unwrap(),
         );
         measure(
             radix,
             "multiply",
-            circuit::multiply(radix, width, 1500, 123, circuit::Layout::Column),
-            encoding::unsigned(radix, width * 2, 184500),
+            circuit::multiply(radix, width, 1500, 123, circuit::Layout::Column).unwrap(),
+            encoding::unsigned(radix, width * 2, 184500).unwrap(),
         );
         measure(
             radix,
             "balanced",
-            circuit::multiply(radix, width, 1500, 123, circuit::Layout::Balanced),
-            encoding::unsigned(radix, width * 2, 184500),
+            circuit::multiply(radix, width, 1500, 123, circuit::Layout::Balanced).unwrap(),
+            encoding::unsigned(radix, width * 2, 184500).unwrap(),
         );
         measure(
             radix,
             "divide",
-            circuit::divide(radix, width, 1500, 123),
-            encoding::quotient(radix, width, 12, 24, false),
+            circuit::divide(radix, width, 1500, 123).unwrap(),
+            encoding::quotient(radix, width, 12, 24, false).unwrap(),
         );
     }
 }

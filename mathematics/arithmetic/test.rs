@@ -1,4 +1,4 @@
-use arithmetic::{circuit, encoding, gate, numeral};
+use arithmetic::{circuit, encoding, numeral};
 mod argument;
 
 use photonic::lowering::parse;
@@ -8,8 +8,8 @@ use photonic::runtime::Limit;
 
 fn check(width: usize, left: u64, right: u64, expected: u64) -> Outcome {
     execute(
-        &circuit::multiply(2, width, left, right, circuit::Layout::Column),
-        &encoding::unsigned(2, width * 2, expected),
+        &circuit::multiply(2, width, left, right, circuit::Layout::Column).unwrap(),
+        &encoding::unsigned(2, width * 2, expected).unwrap(),
     )
 }
 
@@ -52,11 +52,11 @@ fn product() {
 
 #[test]
 fn topology() {
-    let first = parse(&circuit::multiply(2, 3, 0, 0, circuit::Layout::Column)).unwrap();
-    let second = parse(&circuit::multiply(2, 3, 7, 5, circuit::Layout::Column)).unwrap();
+    let first = parse(&circuit::multiply(2, 3, 0, 0, circuit::Layout::Column).unwrap()).unwrap();
+    let second = parse(&circuit::multiply(2, 3, 7, 5, circuit::Layout::Column).unwrap()).unwrap();
     assert_eq!(first.rule, second.rule);
     assert_eq!(
-        parse(&encoding::unsigned(2, 32 * 2, u64::MAX))
+        parse(&encoding::unsigned(2, 32 * 2, u64::MAX).unwrap())
             .unwrap()
             .initial[0]
             .len(),
@@ -70,15 +70,9 @@ fn exhaustive() {
         for right in 0..2 {
             for expected in 0..2 {
                 let mut search = photonic::obsidian::Search::new(
-                    parse(&circuit::multiply(
-                        2,
-                        1,
-                        left,
-                        right,
-                        circuit::Layout::Column,
-                    ))
-                    .unwrap(),
-                    parse(&encoding::unsigned(2, 2, expected)).unwrap(),
+                    parse(&circuit::multiply(2, 1, left, right, circuit::Layout::Column).unwrap())
+                        .unwrap(),
+                    parse(&encoding::unsigned(2, 2, expected).unwrap()).unwrap(),
                 )
                 .unwrap();
                 search.run(100_000, None);
@@ -101,17 +95,17 @@ fn exhaustive() {
 fn subtraction() {
     for left in 0..4 {
         for right in 0..4 {
-            let source = circuit::subtract(2, 2, left, right);
+            let source = circuit::subtract(2, 2, left, right).unwrap();
             let expected = left as i128 - right as i128;
             assert_eq!(
-                execute(&source, &encoding::difference(2, 2, expected)),
+                execute(&source, &encoding::difference(2, 2, expected).unwrap()),
                 Outcome::Reached,
                 "{left} - {right}"
             );
             assert_eq!(
                 execute(
                     &source,
-                    &encoding::difference(2, 2, if expected == 0 { 1 } else { 0 })
+                    &encoding::difference(2, 2, if expected == 0 { 1 } else { 0 }).unwrap()
                 ),
                 Outcome::Unknown
             );
@@ -120,8 +114,8 @@ fn subtraction() {
     for (left, right) in [(1500, 123), (123, 1500), (2047, 2047), (0, 2047)] {
         assert_eq!(
             execute(
-                &circuit::subtract(2, 11, left, right),
-                &encoding::difference(2, 11, left as i128 - right as i128)
+                &circuit::subtract(2, 11, left, right).unwrap(),
+                &encoding::difference(2, 11, left as i128 - right as i128).unwrap()
             ),
             Outcome::Reached
         );
@@ -132,13 +126,13 @@ fn subtraction() {
 fn division() {
     for left in 0..4 {
         for right in 0..4 {
-            let source = circuit::divide(2, 2, left, right);
+            let source = circuit::divide(2, 2, left, right).unwrap();
             let (expected, remainder) = u64::checked_div(left, right)
                 .map_or((0, left), |quotient| (quotient, left % right));
             assert_eq!(
                 execute(
                     &source,
-                    &encoding::quotient(2, 2, expected, remainder, right == 0)
+                    &encoding::quotient(2, 2, expected, remainder, right == 0).unwrap()
                 ),
                 Outcome::Reached,
                 "{left} / {right}"
@@ -146,21 +140,21 @@ fn division() {
             assert_eq!(
                 execute(
                     &source,
-                    &encoding::quotient(2, 2, expected, remainder, right != 0)
+                    &encoding::quotient(2, 2, expected, remainder, right != 0).unwrap()
                 ),
                 Outcome::Unknown
             );
             assert_eq!(
                 execute(
                     &source,
-                    &encoding::quotient(2, 2, expected ^ 1, remainder, right == 0)
+                    &encoding::quotient(2, 2, expected ^ 1, remainder, right == 0).unwrap()
                 ),
                 Outcome::Unknown
             );
             assert_eq!(
                 execute(
                     &source,
-                    &encoding::quotient(2, 2, expected, remainder ^ 1, right == 0)
+                    &encoding::quotient(2, 2, expected, remainder ^ 1, right == 0).unwrap()
                 ),
                 Outcome::Unknown
             );
@@ -171,8 +165,8 @@ fn division() {
             u64::checked_div(left, right).map_or((0, left), |quotient| (quotient, left % right));
         assert_eq!(
             execute(
-                &circuit::divide(2, 11, left, right),
-                &encoding::quotient(2, 11, expected, remainder, right == 0)
+                &circuit::divide(2, 11, left, right).unwrap(),
+                &encoding::quotient(2, 11, expected, remainder, right == 0).unwrap()
             ),
             Outcome::Reached,
             "{left} / {right}"
@@ -184,32 +178,15 @@ fn division() {
 fn structure() {
     for program in [circuit::subtract, circuit::divide] {
         assert_eq!(
-            parse(&program(2, 3, 0, 0)).unwrap().rule,
-            parse(&program(2, 3, 7, 5)).unwrap().rule
+            parse(&program(2, 3, 0, 0).unwrap()).unwrap().rule,
+            parse(&program(2, 3, 7, 5).unwrap()).unwrap().rule
         );
     }
 }
 
 #[test]
 fn borrow() {
-    for mask in 0..8 {
-        let output = gate::Kind::Difference.evaluate(
-            2,
-            &[
-                (mask & 1) as u8,
-                ((mask >> 1) & 1) as u8,
-                ((mask >> 2) & 1) as u8,
-            ],
-        );
-        let left = mask & 1;
-        let right = (mask >> 1) & 1;
-        let incoming = (mask >> 2) & 1;
-        assert_eq!(
-            left - right - incoming,
-            output[0] as i32 - 2 * output[1] as i32
-        );
-    }
-    let source = circuit::subtract(2, 2, 3, 3);
+    let source = circuit::subtract(2, 2, 3, 3).unwrap();
     assert_eq!(
         execute(&source, "Bit0Zero.Bit1Zero.NegativeOne"),
         Outcome::Unknown
@@ -223,15 +200,15 @@ fn range() {
         let right = (index * 43 + 3) % 256;
         assert_eq!(
             execute(
-                &circuit::subtract(2, 8, left, right),
-                &encoding::difference(2, 8, left as i128 - right as i128)
+                &circuit::subtract(2, 8, left, right).unwrap(),
+                &encoding::difference(2, 8, left as i128 - right as i128).unwrap()
             ),
             Outcome::Reached
         );
         assert_eq!(
             execute(
-                &circuit::divide(2, 8, left, right),
-                &encoding::quotient(2, 8, left / right, left % right, false)
+                &circuit::divide(2, 8, left, right).unwrap(),
+                &encoding::quotient(2, 8, left / right, left % right, false).unwrap()
             ),
             Outcome::Reached
         );
@@ -335,21 +312,27 @@ fn interface() {
 fn balanced() {
     for left in 0..4 {
         for right in 0..4 {
-            let source = circuit::multiply(2, 2, left, right, circuit::Layout::Balanced);
+            let source = circuit::multiply(2, 2, left, right, circuit::Layout::Balanced).unwrap();
             assert_eq!(
-                execute(&source, &encoding::unsigned(2, 2 * 2, left * right)),
+                execute(
+                    &source,
+                    &encoding::unsigned(2, 2 * 2, left * right).unwrap()
+                ),
                 Outcome::Reached
             );
             assert_eq!(
-                execute(&source, &encoding::unsigned(2, 2 * 2, left * right + 1)),
+                execute(
+                    &source,
+                    &encoding::unsigned(2, 2 * 2, left * right + 1).unwrap()
+                ),
                 Outcome::Unknown
             );
         }
     }
     assert_eq!(
         execute(
-            &circuit::multiply(2, 11, 1500, 123, circuit::Layout::Balanced),
-            &encoding::unsigned(2, 11 * 2, 184500)
+            &circuit::multiply(2, 11, 1500, 123, circuit::Layout::Balanced).unwrap(),
+            &encoding::unsigned(2, 11 * 2, 184500).unwrap()
         ),
         Outcome::Reached
     );
@@ -360,15 +343,15 @@ fn addition() {
     for (left, right) in [(0, 0), (3, 7), (1500, 123), (2047, 2047)] {
         assert_eq!(
             execute(
-                &circuit::add(2, 11, left, right),
-                &encoding::unsigned(2, 12, left + right)
+                &circuit::add(2, 11, left, right).unwrap(),
+                &encoding::unsigned(2, 12, left + right).unwrap()
             ),
             Outcome::Reached
         );
         assert_eq!(
             execute(
-                &circuit::add(2, 11, left, right),
-                &encoding::unsigned(2, 12, left + right + 1)
+                &circuit::add(2, 11, left, right).unwrap(),
+                &encoding::unsigned(2, 12, left + right + 1).unwrap()
             ),
             Outcome::Unknown
         );
@@ -378,17 +361,17 @@ fn addition() {
 #[test]
 fn radix() {
     for radix in [2, 3] {
-        let rule = arithmetic::power::rule(radix, 8);
+        let rule = arithmetic::power::rule(radix, 8).unwrap();
         for left in 0..5 {
             for right in 0..5 {
                 let source = format!(
                     "Add({},{}) [Add,Add] () {rule}",
-                    arithmetic::power::numeral(left, radix),
-                    arithmetic::power::numeral(right, radix)
+                    arithmetic::power::numeral(left, radix).unwrap(),
+                    arithmetic::power::numeral(right, radix).unwrap()
                 );
                 let mut search = photonic::obsidian::Search::new(
                     parse(&source).unwrap(),
-                    parse(&arithmetic::power::numeral(left + right, radix)).unwrap(),
+                    parse(&arithmetic::power::numeral(left + right, radix).unwrap()).unwrap(),
                 )
                 .unwrap();
                 search.run(100_000, None);
@@ -499,10 +482,12 @@ fn capacity() {
     for (radix, width) in [(2u8, 32), (3, 20)] {
         let maximum = (radix as u64).pow(width as u32) - 1;
         for layout in [circuit::Layout::Column, circuit::Layout::Balanced] {
-            let source = circuit::multiply(radix, width, maximum, maximum, layout);
+            let source = circuit::multiply(radix, width, maximum, maximum, layout).unwrap();
             assert!(parse(&source).is_ok());
         }
     }
 }
 
 mod stream;
+
+mod boundary;

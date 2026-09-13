@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "gate/test.rs"]
+mod test;
+
 #[derive(Clone, Copy)]
 pub enum Kind {
     Product,

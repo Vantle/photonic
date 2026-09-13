@@ -75,7 +75,7 @@ pub struct Link {
 }
 
 impl Node {
-    pub fn new(id: usize, state: &State, program: &Program, status: Status) -> Self {
+    pub(crate) fn new(id: usize, state: &State, program: &Program, status: Status) -> Self {
         let particle = |value: &[crate::state::Token]| {
             value
                 .iter()

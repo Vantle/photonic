@@ -1,5 +1,5 @@
-use photonic::lowering::{self, Failure};
-use photonic::source::Value;
+use crate::lowering::{self, Failure};
+use crate::source::Value;
 
 fn atom(value: &[&str]) -> Vec<Value> {
     value
@@ -143,7 +143,7 @@ fn schema() {
         r#"{"initial":[[{"rule":{"input":[["A"]],"output":[],"negative":[["C"]]}}]]}"#,
     ] {
         assert!(
-            serde_json::from_str::<photonic::source::Program>(source).is_err(),
+            serde_json::from_str::<crate::source::Program>(source).is_err(),
             "{source}"
         );
     }

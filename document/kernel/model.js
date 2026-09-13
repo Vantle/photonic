@@ -1,5 +1,5 @@
 'use strict';
-window.kernel.model=(()=>{
+globalThis.kernel.model=(()=>{
     const signature=view=>JSON.stringify([view.source,view.target,Object.entries(view.flow).sort(([left],[right])=>left.localeCompare(right)),view.context,view.frame]);
     function create(program,option={}){
         const compiled=kernel.value.compile(program),{scope,code,name}=compiled,node=[],event=[],view=[],clause=[],agenda=[],pending=new Map();

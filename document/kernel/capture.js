@@ -1,5 +1,5 @@
 'use strict';
-window.kernel.capture=(()=>{
+globalThis.kernel.capture=(()=>{
     const frame=(held=[])=>({scope:'body',parent:0,lexical:0,held});
     const root=()=>({scope:'root',parent:null,lexical:null,held:[]});
     const token=(id,label,capture)=>({id,label,...(capture===undefined?{}:{capture})});

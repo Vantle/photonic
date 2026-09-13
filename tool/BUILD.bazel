@@ -1,4 +1,7 @@
+load("@bazel_skylib//rules:native_binary.bzl", "native_test")
 load("@buildifier_prebuilt//:rules.bzl", "buildifier_test")
+load("@hermetic_launcher//launcher:launcher_binary.bzl", "launcher_binary")
+load(":node.bzl", "node")
 
 buildifier_test(
     name = "check",
@@ -11,6 +14,66 @@ buildifier_test(
 
 filegroup(
     name = "build",
-    srcs = ["BUILD.bazel"],
+    srcs = [
+        "BUILD.bazel",
+        "node.bzl",
+    ],
     visibility = ["//:__pkg__"],
+)
+
+node(name = "node")
+
+launcher_binary(
+    name = "reference",
+    data = [
+        "reference.mjs",
+        "//document/kernel:source",
+        "//example:fixture",
+    ],
+    embedded_args = ["$(rlocationpath reference.mjs)"],
+    entrypoint = ":node",
+)
+
+native_test(
+    name = "test",
+    size = "small",
+    src = ":reference",
+)
+
+launcher_binary(
+    name = "page",
+    data = [
+        "browser.mjs",
+        "//:page",
+        "//document:source",
+        "@rules_browsers_chrome_mac_arm//:chrome-headless-shell-mac-arm64/chrome-headless-shell",
+        "@rules_browsers_chrome_mac_arm//:info",
+        "@rules_browsers_chromedriver_mac_arm//:chromedriver-mac-arm64/chromedriver",
+        "@rules_browsers_chromedriver_mac_arm//:info",
+    ],
+    embedded_args = [
+        "$(rlocationpath browser.mjs)",
+        "$(rlocationpath @rules_browsers_chrome_mac_arm//:chrome-headless-shell-mac-arm64/chrome-headless-shell)",
+        "$(rlocationpath @rules_browsers_chromedriver_mac_arm//:chromedriver-mac-arm64/chromedriver)",
+    ],
+    entrypoint = ":node",
+    tags = ["manual"],
+    target_compatible_with = [
+        "@platforms//os:macos",
+        "@platforms//cpu:aarch64",
+    ],
+)
+
+native_test(
+    name = "browser",
+    size = "small",
+    src = ":page",
+    tags = [
+        "manual",
+        "requires-network",
+    ],
+    target_compatible_with = [
+        "@platforms//os:macos",
+        "@platforms//cpu:aarch64",
+    ],
 )

@@ -1,5 +1,5 @@
 'use strict';
-window.kernel.dynamic=(()=>{
+globalThis.kernel.dynamic=(()=>{
     const literal=(name,input,output)=>({name,input,output:output.map(particle=>({particle}))});
     const value=rule=>({rule});
     const rule=value(literal('A to B',[['A']],[['B']]));
@@ -19,4 +19,4 @@ window.kernel.dynamic=(()=>{
     ];
     return {example};
 })();
-window.kernel.example.push(...window.kernel.dynamic.example);
+globalThis.kernel.example.push(...globalThis.kernel.dynamic.example);

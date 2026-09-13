@@ -15,9 +15,8 @@ path = "system/command.rs"
 name = "benchmark"
 path = "system/benchmark.rs"
 
-[[test]]
-name = "test"
-path = "system/test/suite.rs"
+[features]
+measurement = []
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }

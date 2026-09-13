@@ -1,4 +1,4 @@
-use photonic::executor::{Executor, Failure};
+use crate::executor::{Executor, Failure};
 
 #[test]
 fn order() {

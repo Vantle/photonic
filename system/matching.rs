@@ -1,5 +1,4 @@
 use crate::program::Symbol;
-use crate::state::State;
 use std::collections::{HashSet, VecDeque};
 use std::sync::Arc;
 
@@ -154,6 +153,7 @@ impl Gate {
             + self.agenda.len()
     }
 
+    #[cfg(test)]
     pub fn arrive(&mut self, slot: Slot) -> Vec<Vec<Slot>> {
         self.enqueue(slot);
         let mut result = Vec::new();
@@ -161,17 +161,5 @@ impl Gate {
             result.extend(self.step());
         }
         result
-    }
-}
-
-pub fn world(pattern: &[Vec<Term>], state: &State, frame: usize) -> Vec<Vec<Slot>> {
-    let mut search = crate::search::Search::new(pattern.to_vec(), Arc::new(state.clone()), frame);
-    let mut result = Vec::new();
-    loop {
-        match search.step() {
-            std::task::Poll::Pending => {}
-            std::task::Poll::Ready(Some(binding)) => result.push(binding),
-            std::task::Poll::Ready(None) => return result,
-        }
     }
 }

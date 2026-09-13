@@ -1,5 +1,5 @@
 'use strict';
-window.kernel.example=(()=>{
+globalThis.kernel.example=(()=>{
     const literal=particle=>({particle});
     const rule=(name,input,output)=>({name,input,output:output.map(literal)});
     const boolean=[rule('True is Boolean',[['True']],[['Boolean']]),rule('False is Boolean',[['False']],[['Boolean']])];

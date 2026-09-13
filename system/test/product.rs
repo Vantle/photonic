@@ -1,7 +1,7 @@
-use photonic::lowering::parse;
-use photonic::obsidian::{Outcome, Search};
-use photonic::runtime::Limit;
-use photonic::source::{Program, Value};
+use crate::lowering::parse;
+use crate::obsidian::{Outcome, Search};
+use crate::runtime::Limit;
+use crate::source::{Program, Value};
 
 fn program(left: usize, right: usize) -> Program {
     let mut program = parse(include_str!("../../mathematics/natural/product.wave")).unwrap();

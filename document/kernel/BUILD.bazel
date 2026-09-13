@@ -1,0 +1,28 @@
+filegroup(
+    name = "source",
+    srcs = [
+        "binding.js",
+        "capture.js",
+        "dynamic.js",
+        "example.js",
+        "fixture.js",
+        "flow.js",
+        "gate.js",
+        "model.js",
+        "state.js",
+        "support.js",
+        "test.js",
+        "value.js",
+        "view.js",
+    ],
+    visibility = [
+        "//document:__pkg__",
+        "//tool:__pkg__",
+    ],
+)
+
+filegroup(
+    name = "build",
+    srcs = ["BUILD.bazel"],
+    visibility = ["//document:__pkg__"],
+)

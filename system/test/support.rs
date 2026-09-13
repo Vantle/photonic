@@ -1,4 +1,4 @@
-use photonic::support::{Atom, Clause, Status, Support};
+use crate::support::{Atom, Clause, Status, Support};
 use std::collections::{BTreeSet, HashSet};
 
 fn verify(clause: Vec<Clause>) {

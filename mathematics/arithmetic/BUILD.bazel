@@ -45,6 +45,7 @@ rust_test(
     size = "medium",
     srcs = [
         "argument.rs",
+        "boundary.rs",
         "stream.rs",
         "ternary.rs",
         "test.rs",
@@ -77,6 +78,8 @@ filegroup(
     srcs = [
         "circuit.rs",
         "encoding.rs",
+        "failure.rs",
+        "format.rs",
         "gate.rs",
         "library.rs",
         "numeral.rs",
@@ -90,4 +93,14 @@ filegroup(
         "BUILD.bazel",
     ],
     visibility = ["//:__pkg__"],
+)
+
+rust_test(
+    name = "gate",
+    size = "small",
+    srcs = [
+        "gate.rs",
+        "gate/test.rs",
+    ],
+    crate_root = "gate.rs",
 )

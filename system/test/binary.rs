@@ -1,6 +1,6 @@
-use photonic::lowering::parse;
-use photonic::obsidian::{Outcome, Search};
-use photonic::runtime::Limit;
+use crate::lowering::parse;
+use crate::obsidian::{Outcome, Search};
+use crate::runtime::Limit;
 
 fn numeral(value: u64) -> String {
     let result = (0..64)

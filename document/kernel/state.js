@@ -1,6 +1,6 @@
 'use strict';
-window.kernel={};
-window.kernel.state=(()=>{
+globalThis.kernel={};
+globalThis.kernel.state=(()=>{
     function* permutation(value){
         if(!value.length){yield [];return;}
         for(let index=0;index<value.length;index++)for(const tail of permutation(value.filter((_,position)=>position!==index)))yield [value[index],...tail];

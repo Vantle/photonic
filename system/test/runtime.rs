@@ -1,9 +1,8 @@
-use photonic::runtime::{Limit, Runtime};
+use crate::runtime::{Limit, Runtime};
 
 #[test]
 fn conjunction() {
-    let program =
-        photonic::lowering::parse(include_str!("../../example/conjunction.wave")).unwrap();
+    let program = crate::lowering::parse(include_str!("../../example/conjunction.wave")).unwrap();
     let mut runtime = Runtime::new(program);
     runtime.run(12000, Some(Limit::default()));
     let result = runtime.snapshot();
@@ -21,9 +20,9 @@ fn normalize(
     node: &serde_json::Value,
     symbol: &std::collections::BTreeMap<String, usize>,
     scope: &std::collections::BTreeMap<String, usize>,
-) -> photonic::state::State {
-    use photonic::program::Symbol;
-    use photonic::state::{Frame, State, Token, World};
+) -> crate::state::State {
+    use crate::program::Symbol;
+    use crate::state::{Frame, State, Token, World};
     let optional = |value: &serde_json::Value| value.as_u64().map(|value| value as usize);
     let particle = |value: &serde_json::Value| {
         value
@@ -143,7 +142,7 @@ fn reference() {
             .iter()
             .map(|node| normalize(node, &symbol, &scope))
             .collect::<Vec<_>>();
-        let state = |value: &serde_json::Value, state: &[photonic::state::State]| {
+        let state = |value: &serde_json::Value, state: &[crate::state::State]| {
             value["state"]
                 .as_array()
                 .unwrap()
@@ -157,7 +156,7 @@ fn reference() {
             state(case, &expected),
             "configuration/support mismatch: {name}"
         );
-        let event = |value: &serde_json::Value, state: &[photonic::state::State]| {
+        let event = |value: &serde_json::Value, state: &[crate::state::State]| {
             value["event"]
                 .as_array()
                 .unwrap()
@@ -182,7 +181,7 @@ fn reference() {
 
 #[test]
 fn resume() {
-    let program = photonic::lowering::parse("Seed.A [Seed] [A] B").unwrap();
+    let program = crate::lowering::parse("Seed.A [Seed] [A] B").unwrap();
     let mut complete = Runtime::new(program.clone());
     complete.run(12000, None);
     let mut paused = Runtime::new(program);
@@ -205,8 +204,8 @@ fn resume() {
 
 #[test]
 fn gate() {
-    use photonic::matching::{Gate, Slot, Term};
-    use photonic::program::Symbol;
+    use crate::matching::{Gate, Slot, Term};
+    use crate::program::Symbol;
     let mut gate = Gate::new(vec![
         vec![Term {
             value: Symbol::Atom(0),
@@ -235,9 +234,9 @@ fn gate() {
 
 #[test]
 fn capture() {
-    use photonic::flow::{self, Binding, Closure, Flow, Place};
-    use photonic::program::{Instruction, Output, Symbol};
-    use photonic::state::{Frame, State, Token, World};
+    use crate::flow::{self, Binding, Closure, Flow, Place};
+    use crate::program::{Instruction, Output, Symbol};
+    use crate::state::{Frame, State, Token, World};
     use std::collections::{BTreeMap, BTreeSet};
     let root = Frame {
         scope: 0,
@@ -346,8 +345,8 @@ fn capture() {
 
 #[test]
 fn permutation() {
-    use photonic::program::Symbol;
-    use photonic::state::{Frame, State, Token, World};
+    use crate::program::Symbol;
+    use crate::state::{Frame, State, Token, World};
     let root = Frame {
         scope: 0,
         parent: None,
@@ -395,7 +394,7 @@ fn permutation() {
 
 #[test]
 fn determinism() {
-    let program = photonic::lowering::parse("A.A [A] B").unwrap();
+    let program = crate::lowering::parse("A.A [A] B").unwrap();
     let execute = || {
         let mut runtime = Runtime::new(program.clone());
         runtime.run(12_000, None);
@@ -410,9 +409,9 @@ fn determinism() {
 
 #[test]
 fn inheritance() {
-    use photonic::flow::{self, Binding, Closure, Flow, Place};
-    use photonic::program::{Instruction, Output, Symbol};
-    use photonic::state::{Frame, State, Token, World};
+    use crate::flow::{self, Binding, Closure, Flow, Place};
+    use crate::program::{Instruction, Output, Symbol};
+    use crate::state::{Frame, State, Token, World};
     use std::collections::BTreeSet;
 
     for held in [false, true] {

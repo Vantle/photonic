@@ -5,7 +5,7 @@ use std::time::Instant;
 
 fn numeral(value: u64, radix: u32) -> String {
     if radix != 1 {
-        return arithmetic::power::numeral(value, radix);
+        return arithmetic::power::numeral(value, radix).unwrap();
     }
     if value == 0 {
         "()".into()
@@ -20,7 +20,7 @@ fn main() {
             let rule = if radix == 1 {
                 String::new()
             } else {
-                arithmetic::power::rule(radix, 32)
+                arithmetic::power::rule(radix, 32).unwrap()
             };
             let source = format!(
                 "Add({},{}) [Add,Add] () {rule}",

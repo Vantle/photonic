@@ -1,5 +1,5 @@
 'use strict';
-window.kernel.value=(()=>{
+globalThis.kernel.value=(()=>{
     const cache=new WeakMap();
     function environment(state,capture){
         if(!cache.has(state))cache.set(state,new Map());

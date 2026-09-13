@@ -1,5 +1,5 @@
-use photonic::particle::Particle;
-use photonic::rule::Rule;
+use crate::particle::Particle;
+use crate::rule::Rule;
 
 #[test]
 fn broadcast() {

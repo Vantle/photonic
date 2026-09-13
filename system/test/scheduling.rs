@@ -1,10 +1,10 @@
-use photonic::canonical;
-use photonic::executor::Executor;
-use photonic::matching::Term;
-use photonic::program::Symbol;
-use photonic::runtime::{Limit, Runtime};
-use photonic::search::Search;
-use photonic::state::{Frame, State, Token, World};
+use crate::canonical;
+use crate::executor::Executor;
+use crate::matching::Term;
+use crate::program::Symbol;
+use crate::runtime::{Limit, Runtime};
+use crate::search::Search;
+use crate::state::{Frame, State, Token, World};
 use std::sync::Arc;
 use std::task::Poll;
 
@@ -122,7 +122,7 @@ fn parallel() {
         .iter()
         .filter(|case| case["closed"] == true)
     {
-        let program: photonic::source::Program =
+        let program: crate::source::Program =
             serde_json::from_value(case["program"].clone()).unwrap();
         let mut runtime = Runtime::new(program.clone());
         runtime.run(12000, None);
@@ -151,7 +151,7 @@ fn chunking() {
         .iter()
         .filter(|case| case["closed"] == true)
     {
-        let program: photonic::source::Program =
+        let program: crate::source::Program =
             serde_json::from_value(case["program"].clone()).unwrap();
         let mut complete = Runtime::new(program.clone());
         complete.run(12000, None);
@@ -182,7 +182,7 @@ fn fairness() {
         vec!["A"; 25].join("."),
         ["A"; 12].join(".")
     );
-    let mut runtime = Runtime::new(photonic::lowering::parse(&source).unwrap());
+    let mut runtime = Runtime::new(crate::lowering::parse(&source).unwrap());
     runtime.run(
         1000,
         Some(Limit {
@@ -200,7 +200,7 @@ fn fairness() {
 
 #[test]
 fn budget() {
-    let source = photonic::lowering::parse("Seed.A [Seed] [A] B").unwrap();
+    let source = crate::lowering::parse("Seed.A [Seed] [A] B").unwrap();
     let mut complete = Runtime::new(source.clone());
     complete.run(12000, None);
     let expected = serde_json::to_value(complete.snapshot()).unwrap();
@@ -226,8 +226,8 @@ fn budget() {
 
 #[test]
 fn initialization() {
-    let source = photonic::source::Program {
-        initial: vec![vec![photonic::source::Value::Atom("A".into())]; 100],
+    let source = crate::source::Program {
+        initial: vec![vec![crate::source::Value::Atom("A".into())]; 100],
         rule: Vec::new(),
     };
     let runtime = Runtime::new(source);
@@ -237,11 +237,11 @@ fn initialization() {
             .map(|world| {
                 (0..2)
                     .filter(|index| mask & (1 << (world * 2 + index)) != 0)
-                    .map(|index| photonic::source::Value::Atom(index.to_string()))
+                    .map(|index| crate::source::Value::Atom(index.to_string()))
                     .collect()
             })
             .collect();
-        let program = photonic::program::Program::new(photonic::source::Program {
+        let program = crate::program::Program::new(crate::source::Program {
             initial,
             rule: Vec::new(),
         });

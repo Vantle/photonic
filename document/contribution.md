@@ -16,7 +16,7 @@ Every build input is listed explicitly. Do not use `glob`, recursive source disc
 
 Packages default to private visibility. A shared filegroup grants access only to its consuming package. The runtime library is public; the arithmetic library is available within mathematics. Platform definitions are public configuration inputs, while the toolchain patch is visible only to the root module.
 
-Keep maintained executables in ordinary `//...` builds. Reserve `manual` for development tools, such as dependency updates and formatters. The native matrix compiles and executes on ARM64 and x86-64 macOS, Linux, and Windows. See [platform verification](../platform/README.md) for native and cross-compilation commands.
+Keep maintained executables in ordinary `//...` builds. Reserve `manual` for development tools and checks that need a specific platform. The browser check runs explicitly in its ARM64 macOS CI job. The native matrix compiles and executes on ARM64 and x86-64 macOS, Linux, and Windows. See [platform verification](../platform/README.md) for native and cross-compilation commands.
 
 Declare files read during compilation in `compile_data`. Declare executables and files read at runtime in `data`. Pass executable locations with `rlocationpath` and resolve them through the standard runfiles library; paths relative to the working directory do not provide a portable executable location.
 
@@ -34,7 +34,7 @@ bazel build --config=format //...
 bazel build --config=lint //...
 ```
 
-Clippy warnings fail verification. Fix the underlying issue instead of suppressing a diagnostic globally. Preserve independent test oracles: native runtime reports are compared with reference fixtures, support propagation is compared with a fixed-point implementation, and arithmetic results are checked through runtime execution.
+Clippy warnings fail verification. Fix the underlying issue instead of suppressing a diagnostic globally. Preserve independent test oracles: native runtime reports are compared with reference fixtures, support propagation is compared with a fixed-point implementation, and arithmetic results are checked through runtime execution. `//tool:test` executes the independent JavaScript reference and compares regenerated fixtures to the Rust oracle. `//tool:browser` checks theme persistence, all four recorded arithmetic results, event navigation, reference exploration, binding deduplication, and asset loading in pinned headless Chrome. Run that target on ARM64 macOS; no host Node, browser, package manager, or shell launcher is needed.
 
 Format Rust with the package's formatter:
 
