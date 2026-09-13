@@ -8,17 +8,14 @@ pub(crate) struct Format {
 
 impl Format {
     pub(crate) fn new(base: u8, width: usize) -> Result<Self, Failure> {
-        let maximum = match base {
-            2 => 64,
-            3 => 40,
-            _ => {
-                return Err(Failure::Base {
-                    value: base.into(),
-                    minimum: 2,
-                    maximum: 3,
-                });
-            }
-        };
+        Self::bounded(base, width, capacity(base)?)
+    }
+
+    pub(crate) fn operand(base: u8, width: usize) -> Result<Self, Failure> {
+        Self::bounded(base, width, capacity(base)? / 2)
+    }
+
+    fn bounded(base: u8, width: usize, maximum: usize) -> Result<Self, Failure> {
         if !(1..=maximum).contains(&width) {
             return Err(Failure::Width {
                 value: width,
@@ -27,19 +24,6 @@ impl Format {
             });
         }
         Ok(Self { base, width })
-    }
-
-    pub(crate) fn operand(base: u8, width: usize) -> Result<Self, Failure> {
-        let format = Self::new(base, width)?;
-        let maximum = if base == 2 { 32 } else { 20 };
-        if width > maximum {
-            return Err(Failure::Width {
-                value: width,
-                minimum: 1,
-                maximum,
-            });
-        }
-        Ok(format)
     }
 
     pub(crate) fn base(self) -> u8 {
@@ -54,5 +38,17 @@ impl Format {
             return Err(Failure::Capacity);
         }
         Ok(())
+    }
+}
+
+fn capacity(base: u8) -> Result<usize, Failure> {
+    match base {
+        2 => Ok(64),
+        3 => Ok(40),
+        _ => Err(Failure::Base {
+            value: base.into(),
+            minimum: 2,
+            maximum: 3,
+        }),
     }
 }

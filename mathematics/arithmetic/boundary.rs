@@ -8,10 +8,14 @@ fn circuit() {
         }
         for (base, maximum) in [(2, 32), (3, 20)] {
             for width in [0, maximum + 1, usize::MAX] {
-                assert!(matches!(
+                assert_eq!(
                     generate(base, width, 0, 0),
-                    Err(Failure::Width { .. })
-                ));
+                    Err(Failure::Width {
+                        value: width,
+                        minimum: 1,
+                        maximum
+                    })
+                );
             }
             assert_eq!(generate(base, 1, base.into(), 0), Err(Failure::Capacity));
             assert_eq!(generate(base, 1, 0, base.into()), Err(Failure::Capacity));
