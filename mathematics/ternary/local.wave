@@ -1,2 +1,2 @@
-First.Apply.Sum.2.2.1,
-Second.Apply.Subtract.([Left] 0).([Right] 2).([Borrow] 1)
+First.Invoke.Sum.2.2.1,
+Second.Invoke.Subtract.([Left] 0).([Right] 2).([Borrow] 1)

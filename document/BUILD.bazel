@@ -6,6 +6,7 @@ filegroup(
         "evaluation.js",
         "graph.js",
         "native.js",
+        "product.js",
         "record.js",
         "reference.html",
         "style.css",

@@ -37,8 +37,8 @@ photonic_binary(
 
 photonic_test(
     name = "negation",
-    source = "Apply.Not.True",
-    targets = ["Apply.Not.True", "False"],
+    source = "Invoke.Not.True",
+    targets = ["Invoke.Not.True", "False"],
     deps = [":logic"],
 )
 ```

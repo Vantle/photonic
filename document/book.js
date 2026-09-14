@@ -74,7 +74,7 @@
         ['A.B, A.C', 'Parentheses share the A prefix across two alternatives. They introduce no private container.'],
         ['A.C, A.D, B.C, B.D', 'Dot composition distributes across the alternatives. The expanded initial configuration contains four coherences.'],
         ['Pack.Position.0, Pack.Value.2', 'This is only flat expansion into two coherences. It does not invoke the library packing protocol or preserve position and value as fields.'],
-        ['Apply.Pack.([Position] 0).([Value] 2)', 'Lowering preserves this request. Load the position library and its application dependency first; ordinary runtime rules can then produce ([0] 2). This display does not execute those rules.'],
+        ['Invoke.Pack.([Position] 0).([Value] 2)', 'Lowering preserves this request. Load the position library and its application dependency first; ordinary runtime rules can then produce ([0] 2). This display does not execute those rules.'],
         ['One empty coherence', 'The empty particle is present. It differs from an empty configuration with no coherence.'],
         ['Consume A; produce no coherences', 'There is no output particle to receive a remainder. Before another declaration, write a comma to end this empty-output rule.'],
         ['Consume A; produce one empty output particle', 'An output coherence exists, and unmatched remainder transfers into it. A.X can therefore become X.']
@@ -210,7 +210,7 @@
         const value = left * right;
         find('digit-equation').textContent = `${left} × ${right} = ${value % 3} + 3 × ${Math.floor(value / 3)}`;
         const ordered = [left, right].sort((a, b) => a - b);
-        find('digit-rule').textContent = `[Call.Multiply.${names[ordered[0]]}.${names[ordered[1]]}] Return.([Digit] ${names[value % 3]}).([Carry] ${names[Math.floor(value / 3)]})`;
+        find('digit-rule').textContent = `[Function.Multiply.${names[ordered[0]]}.${names[ordered[1]]}] Return.([Digit] ${names[value % 3]}).([Carry] ${names[Math.floor(value / 3)]})`;
     };
     ['digit-left', 'digit-right'].forEach(id => find(id).addEventListener('change', digit));
     digit();

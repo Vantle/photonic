@@ -3,6 +3,7 @@
 [Webbook](../index.html) · [Repository guide](../README.md)
 
 - [Photonic standard library](#library)
+- [Generic invocation and composition](#function)
 - [Atomic fields and explicit order](#structure)
 - [Correctness and parallel structure](#proof)
 - [Dependency structure and remaining work](#remaining)
@@ -23,8 +24,8 @@ The library supports scalar functions and finite pairs. Arbitrary runtime collec
 [pipeline.wave](../example/library/pipeline.wave) runs two independent invocations:
 
 ```text
-First.Apply.Copy.Pair.([Value] True).Map.([Function] Not).Reduce.([Operation] And),
-Second.Apply.Copy.Pair.([Value] False).Map.([Function] Not).Reduce.([Operation] And)
+First.Invoke.Copy.Pair.([Value] True).Map.([Each] Not).Reduce.([Operation] And),
+Second.Invoke.Copy.Pair.([Value] False).Map.([Each] Not).Reduce.([Operation] And)
 ```
 
 Each invocation produces two fresh scalar values in separate coherences, maps Not over both, and reduces the completed results with And. The target is `First.False, Second.True`.
@@ -37,7 +38,7 @@ bazel run -c opt //example/library:pipeline -- obsidian \
   --path --steps 2000000 --states 4096 --cells 256 --frames 64 --coherences 64
 ```
 
-The checked local execution reaches the target in 40 events and 4210 work steps. This is a serial direct-path witness through a program containing parallel coherences, not a measurement of parallel speedup. Full exploration and worker execution remain available through the existing command options; a suspended search reports Unknown.
+The direct-path check reaches this target through a program containing parallel coherences. It demonstrates an execution, not a measurement of parallel speedup. Full exploration and worker execution remain available through the existing command options; a suspended search reports Unknown.
 
 `--library` loads declaration-only Photonic files into the same program. It preserves source-file diagnostics and introduces no namespace, import grammar, computation, or initial data. Repeat the option for each dependency. Dependencies are explicit: collection uses application plus the selected function implementation, and production supplies the producer implementation.
 
@@ -49,9 +50,9 @@ See [atomic fields and explicit order](#structure) for the numeral convention an
 
 | Source | Contract |
 | --- | --- |
-| [application.particle](../library/application.particle) | Apply creates Call inside an invocation scope; Return delivers the result. Identity preserves the remainder. |
+| [application.particle](../library/application.particle) | Invoke activates named operations or supplied Function rules in a scope. Return delivers the result. Identity preserves the remainder. |
 | [boolean.particle](../library/boolean.particle) | Not, And, Or, and Equal over explicit True/False inputs. |
-| [composition.particle](../library/composition.particle) | Sequential composition of Not and Identity through First/Second descriptors; reuse the same function rules. |
+| [composition.particle](../library/composition.particle) | Generic sequencing through First and Second callable rules; preserve their code and lexical captures. |
 | [production.particle](../library/production.particle) | Produce from a supported Value descriptor; Copy.Pair uses two producer scopes; Repeat.Pair invokes two supplied functions; Broadcast shares the inherited payload. |
 | [collection.particle](../library/collection.particle) | Independent left/right mapping, explicit finite gathers, and pair reduction through the selected operation. Empty gather and Boolean empty reductions are explicit. |
 | [pair.particle](../library/pair.particle) | Unpack a Boolean pair into independent left/right coherences; Choose uses explicit argument roles. |
@@ -67,10 +68,10 @@ Every module has a matching `photonic_library` target. Dependencies supplying fu
 
 ### Values and application
 
-`Apply.Not.True` evaluates to False. A callable rule value also works:
+`Invoke.Not.True` evaluates to False. A callable rule value also works:
 
 ```text
-Apply.True.([Call.True] Return.False)
+Invoke.True.([Function.True] Return.False)
 ```
 
 The function value is retained, and the result is False alongside that value. Invocation reads executable code; it does not silently consume an arbitrary function or clone its captures.
@@ -79,19 +80,80 @@ Argument fields use ordinary whole rule values. `([Left] True).([Right] False)` 
 
 The implementation uses single-word concepts composed with dots. `Copy.Pair`, `Carry.Compose`, and `([Value] True)` expose their structure. Parentheses in `Function(A,B)` retain their existing shared-prefix meaning and do not become an argument constructor.
 
-Function descriptors currently have explicit implementations, such as:
+<a id="function"></a>
+
+### Generic invocation and composition
+
+Invoke opens a scope and activates the Function interface. There is no list of supported function names, argument atoms, or result shapes in this adapter:
 
 ```text
-[Transform.([Function] Not)] Call.Not
+[Invoke] (
+    Function
+    [Return] ()
+)
 ```
 
-An additional function can supply its own ordinary rule implementation and dispatch rule. This is an extensible finite protocol, not a generic structural binder or a compiler-enforced trait. Its behavioral obligations include argument shape, result shape, effects, and ownership.
+For example, supply one callable rule as a value:
+
+```text
+Invoke.Seed.([Function.Seed] Return.Flower)
+```
+
+The complete result is `Flower.([Function.Seed] Return.Flower)`. Invocation reads the function, so its rule value remains available. The caller supplies a rule value directly. It takes three direct-path events: enter the scope, apply the function, and deliver the result.
+
+A named implementation can own its descriptor and consume it when invoked:
+
+```text
+Invoke.([Function] Decorate).Envelope
+[Decorate.([Function] Decorate).Envelope] Return.([Result] 11)
+```
+
+This returns just `([Result] 11)`. The Function field is itself a rule: activating Function produces Decorate. The implementation then consumes the descriptor along with its argument. Decorate, Envelope, and Result are user-defined concepts; the application library contains none of them. Load the defining rules alongside `//library:application`.
+
+Map dispatches through Each; Reduce dispatches through Operation. Separate role labels prevent a pending map callback from consuming an outer Function activation. A named implementation owns the rule that accepts and consumes its descriptor; adding a function does not require changing collection dispatch. The existing pair collection still checks its documented finite payload shapes before reduction. Generic function dispatch does not turn that pair carrier into an arbitrary collection.
+
+Compose sequences two callable rules. First and Second specify the order:
+
+```text
+Invoke.Compose.Seed.
+    ([First.Seed] Return.Middle).
+    ([Second.Middle] Return.Flower)
+```
+
+The resulting payload is Flower. Both supplied rule values remain in the complete result. They can contain arbitrary argument particles, result particles, or scoped implementations; Compose never decomposes them or looks up a function name. Its implementation uses three rules and depends only on application, not Boolean arithmetic.
+
+```mermaid
+flowchart LR
+    request[Compose request] --> first[Activate First]
+    first --> finish[First supplies Return and its result]
+    finish --> second[Activate Second with that result]
+    second --> result[Second supplies Return and the final result]
+```
+
+The [nested example](../example/library/function.wave) runs two independent compositions from Seed. One reaches Flower; the other invokes another Compose inside its first stage and reaches Grove. Its [complete target](../example/library/function.particle) includes all retained code. The tests reject swapped results and check the nested example through closed exploration.
+
+```sh
+bazel run -c opt //example/library:function
+bazel test -c opt //example/library:function.check //library:test
+```
+
+The interface contract is explicit:
+
+- A Function, Each, Operation, First, or Second implementation consumes its activation and required inputs, then supplies Return together with its result. Omitting Return leaves that invocation incomplete.
+- These adapters deliver completed result coherences. A function that produces several results needs its own explicit completion and collection contract.
+- Unmatched data follows the ordinary remainder law. The library does not impose exact arity or reject extra operands.
+- Inline callable values are read capabilities. They remain in the result unless a rule explicitly consumes them. Moving a function preserves its lexical capture; caller-local declarations are not dynamically imported into a library scope.
+- A Return marker alone is not evidence that every intended payload was preserved. The [completion counterexample](#proof-the-completion-counterexample) remains a regression test.
+
+This is generic protocol dispatch within the existing semantics. It does not automatically wrap arbitrary unannotated `[input] output` rules. Function implementations supply the completion contract; an interface compiler can emit that protocol in ordinary Photonic. No runtime, grammar, or host library implementation changes are involved.
+
+The composition interface replaces the finite Not/Identity selector. To reuse a named operation, write `([First] Function.Not)` and `([Second] Function.Identity)` instead of `([First] Not)` and `([Second] Identity)`. The callable values are retained in the target. Named operations use `Invoke.Not.True`. Map and Repeat use `([Each] Not)` or another Each implementation. The former Apply and Call interfaces are removed; no compatibility aliases remain.
 
 <a id="library-ownership-and-completion"></a>
 
 ### Ownership and completion
 
-Produce supports True, False, 0, 1, and 2 descriptors and emits fresh scalar occurrences. Copy.Pair repeats that construction in independent scopes. Repeat.Pair accepts the supported Function descriptors; freshness depends on the supplied function, and Produce supplies the fresh-result behavior. A single producer invocation uses Apply.Produce; Repeat.Empty requests no work and needs no producer argument.
+Produce supports True, False, 0, 1, and 2 descriptors and emits fresh scalar occurrences. Copy.Pair repeats that construction in independent scopes. Repeat.Pair accepts the supported Each descriptors; freshness depends on the supplied function, and Produce supplies the fresh-result behavior. A single producer invocation uses Invoke.Produce; Repeat.Empty requests no work and needs no producer argument.
 
 Broadcast preserves inherited resource identity. It is not scalar copying. Gather constructs a new Boolean pair of Left/Right field values; it does not promise to preserve arbitrary resource identity. Copy and Broadcast therefore have separate provenance checks.
 
@@ -148,13 +210,13 @@ The [position library](../library/position.particle) implements Pack and Unpack 
 With the dependencies loaded:
 
 ```text
-Apply.Unpack.([Position] 0).([0] 2)
+Invoke.Unpack.([Position] 0).([0] 2)
 ```
 
 returns `([Value] 2)`. Its inverse:
 
 ```text
-Apply.Pack.([Position] 0).([Value] 2)
+Invoke.Pack.([Position] 0).([Value] 2)
 ```
 
 returns `([0] 2)`. These are finite ordinary-rule implementations. They neither parse arbitrary integer positions nor bind an unknown field. They consume the selected field and preserve unrelated remainder; they do not validate a whole numeral or reject arbitrary extra fields. Tests cover every supported position and value, wrong values, missing positions, and field permutations.
@@ -194,13 +256,13 @@ The implementation is ordinary Photonic source. The Rust conformance harness con
 2. A successful direct path establishes one execution. It does not rule out other results, prove universal termination, or guarantee a particular event order.
 3. The mathematical arguments below describe intended contracts and local laws. They are not universally quantified Photonic proof certificates.
 
-Scalar functions, argument order, the small composition family, supplied code values, carry composition, and elementary sharing cases have closed finite checks. Larger paired pipelines currently have direct-path checks. Full exploration of scoped producer/map combinations can exceed the retained-record budget even for small inputs. Unknown remains Unknown.
+Scalar functions, argument order, generic composition, supplied code values, carry composition, and elementary sharing cases have closed finite checks. Larger paired pipelines currently have direct-path checks. Full exploration of scoped producer/map combinations can exceed the retained-record budget even for small inputs. Unknown remains Unknown.
 
 <a id="proof-invocation"></a>
 
 ### Invocation
 
-Apply introduces Call inside its body. Initial public requests need not expose Call outside the invocation scope. The body has a local Return rule which releases its result. 2 Not invocations are checked both for the expected pair of results and for incorrect equal-result targets.
+Invoke introduces Function inside its body. Initial public requests need not expose Function outside the invocation scope. The body has a local Return rule which releases its result. 2 Not invocations are checked both for the expected pair of results and for incorrect equal-result targets.
 
 Arguments and result payloads still obey open matching and remainder transfer. An arbitrary extra concept is not rejected automatically. A Return marker alone is not a complete-operand certificate. Supplying arbitrary additional executable rules changes the proof assumptions.
 
@@ -214,7 +276,7 @@ Boolean operations enumerate every unordered Boolean input multiset appropriate 
 
 Directional comparison and selection use complete Left and Right rule values. Swapping the roles changes the input structure; merely permuting particle occurrences does not. Choose is checked against every Boolean condition and both operand values, including incorrect targets.
 
-Composed Not/Identity functions reuse the original Boolean and application rules. The four combinations have closed correct/incorrect checks. This demonstrates the supported continuation pattern; it does not establish arbitrary structural substitution of unknown functions.
+Composition checks cover the four Not/Identity combinations, functions over previously unknown atom names, repeated numeric inputs, structured rule values, nested compositions, and concurrent implementations sharing the same input name. These are concrete positive and negative reachability checks; genericity comes from passing the code intact through the protocol, not from structural substitution.
 
 <a id="proof-production-and-sharing"></a>
 
@@ -233,8 +295,8 @@ Gather constructs a new pair value with explicit Left and Right fields. Its iden
 The following query reaches a single True even though two independent producers can produce two True values:
 
 ```text
-Call.Produce.([Value] True),
-Call.Produce.([Value] True)
+Function.Produce.([Value] True),
+Function.Produce.([Value] True)
 [Return, Return] ()
 ```
 
@@ -243,7 +305,7 @@ Load production.particle as well. Source inference can justify a Return at a pro
 The corrected finite Gather and Reduce rules match both the routing/completion information and the payload values. Their outputs explicitly reconstruct the agreed scalar arguments or pair fields. For example:
 
 ```text
-[Reduce.Done.Left.True, Reduce.Done.Right.False] Combine.True.False
+[Reduce.Done.Left.True, Reduce.Done.Right.False] Operation.True.False
 ```
 
 The combination function then uses its own truth table. Filter results use a distinct wrapped representation so the Boolean rule above cannot accidentally treat Keep's payload as an untagged operand.
@@ -289,7 +351,7 @@ flowchart TD
     application --> carry[Carry]
     application --> binary[Binary]
     carry --> ternary[Ternary]
-    boolean --> composition[Composition]
+    application --> composition[Composition]
     collection --> selection[Selection]
     boolean --> pipeline[Pipeline example]
     production --> pipeline
@@ -310,7 +372,8 @@ Retained atoms have separate protocol obligations:
 
 | Role | Why it remains |
 | --- | --- |
-| Apply, Call, Return | Invocation boundaries and scoped result delivery. |
+| Invoke, Function, Return | Named or supplied-function activation, invocation scopes, and explicit result delivery. |
+| Each, Operation | Map and reduction callbacks, isolated from the enclosing Function activation. |
 | Left, Right, First, Second, Position | Argument association or explicit sequence position. |
 | Ready, Done, End, Empty | Stage or shape evidence; absence is not completion. |
 | Value, Digit, Carry, Borrow, Base | Payload association and representation. |

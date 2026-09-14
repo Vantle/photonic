@@ -1,14 +1,19 @@
-[Call.Not.True] Return.False
-[Call.Not.False] Return.True
+[Function.Not.True] Return.False
+[Function.Not.False] Return.True
 
-[Call.And.True.True] Return.True
-[Call.And.True.False] Return.False
-[Call.And.False.False] Return.False
+[Function.And.True.True] Return.True
+[Function.And.True.False] Return.False
+[Function.And.False.False] Return.False
 
-[Call.Or.True.True] Return.True
-[Call.Or.True.False] Return.True
-[Call.Or.False.False] Return.False
+[Function.Or.True.True] Return.True
+[Function.Or.True.False] Return.True
+[Function.Or.False.False] Return.False
 
-[Call.Equal.True.True] Return.True
-[Call.Equal.True.False] Return.False
-[Call.Equal.False.False] Return.True
+[Function.Equal.True.True] Return.True
+[Function.Equal.True.False] Return.False
+[Function.Equal.False.False] Return.True
+
+[Not.([Each] Not)] Function.Not
+[And.([Operation] And)] Function.And
+[Or.([Operation] Or)] Function.Or
+[Equal.([Operation] Equal)] Function.Equal

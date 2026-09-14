@@ -72,20 +72,20 @@ fn application() {
     for value in ["True", "False"] {
         let expected = if value == "True" { "False" } else { "True" };
         check(
-            &format!("Apply.Not.{value}"),
+            &format!("Invoke.Not.{value}"),
             expected,
             &[APPLICATION, BOOLEAN],
             Outcome::Reached,
         );
         check(
-            &format!("Apply.Not.{value}"),
+            &format!("Invoke.Not.{value}"),
             value,
             &[APPLICATION, BOOLEAN],
             Outcome::Unreachable,
         );
     }
     check(
-        "Apply.Identity.Payload",
+        "Invoke.Identity.Payload",
         "Payload",
         &[APPLICATION],
         Outcome::Reached,
@@ -105,19 +105,19 @@ fn pipeline() {
 #[test]
 fn isolation() {
     check(
-        "Apply.Not.True, Apply.Not.False",
+        "Invoke.Not.True, Invoke.Not.False",
         "False,True",
         &[APPLICATION, BOOLEAN],
         Outcome::Reached,
     );
     check(
-        "Apply.Not.True, Apply.Not.False",
+        "Invoke.Not.True, Invoke.Not.False",
         "False,False",
         &[APPLICATION, BOOLEAN],
         Outcome::Unreachable,
     );
     check(
-        "Apply.Not.True, Apply.Not.False",
+        "Invoke.Not.True, Invoke.Not.False",
         "True,True",
         &[APPLICATION, BOOLEAN],
         Outcome::Unreachable,
@@ -127,31 +127,31 @@ fn isolation() {
 #[test]
 fn freshness() {
     check(
-        "Call.Produce.([Value] True), Call.Produce.([Value] True)",
+        "Function.Produce.([Value] True), Function.Produce.([Value] True)",
         "True.True",
         &[PRODUCTION, "[Return.True, Return.True] True.True"],
         Outcome::Reached,
     );
     check(
-        "Call.Produce.([Value] True), Call.Produce.([Value] True)",
+        "Function.Produce.([Value] True), Function.Produce.([Value] True)",
         "True",
         &[PRODUCTION, "[Return.True, Return.True] True.True"],
         Outcome::Unreachable,
     );
     check(
-        "Call.Broadcast.True",
+        "Function.Broadcast.True",
         "True",
         &[PRODUCTION, "[Ready.Left, Ready.Right] ()"],
         Outcome::Reached,
     );
     check(
-        "Call.Broadcast.True",
+        "Function.Broadcast.True",
         "True.True",
         &[PRODUCTION, "[Ready.Left, Ready.Right] ()"],
         Outcome::Unreachable,
     );
     witness(
-        "Apply.Copy.Pair.([Value] True).Map.([Function] Identity).Gather",
+        "Invoke.Copy.Pair.([Value] True).Map.([Each] Identity).Gather",
         "([Left] True).([Right] True)",
         &[APPLICATION, PRODUCTION, COLLECTION],
     );
@@ -159,7 +159,7 @@ fn freshness() {
 
 #[test]
 fn repetition() {
-    let source = "Apply.Repeat.Pair.([Value] 1).([Function] Produce).Reduce.([Operation] Add)";
+    let source = "Invoke.Repeat.Pair.([Value] 1).([Each] Produce).Reduce.([Operation] Add)";
     let library = [APPLICATION, PRODUCTION, COLLECTION, TERNARY];
     witness(source, "([Digit] 2).([Carry] 0)", &library);
 }
@@ -168,7 +168,7 @@ fn repetition() {
 fn selection() {
     for (value, expected) in [("True", "2"), ("False", "0")] {
         let source = format!(
-            "Apply.Copy.Pair.([Value] {value}).Map.([Function] Filter).Reduce.([Operation] Count)"
+            "Invoke.Copy.Pair.([Value] {value}).Map.([Each] Filter).Reduce.([Operation] Count)"
         );
         witness(
             &source,
@@ -183,7 +183,7 @@ fn order() {
     for left in ["True", "False"] {
         for right in ["True", "False"] {
             for condition in ["True", "False"] {
-                let source = format!("Apply.Choose.{condition}.([Left] {left}).([Right] {right})");
+                let source = format!("Invoke.Choose.{condition}.([Left] {left}).([Right] {right})");
                 let expected = if condition == "True" { left } else { right };
                 check(&source, expected, &[APPLICATION, PAIR], Outcome::Reached);
                 check(
@@ -203,7 +203,7 @@ fn arithmetic() {
     for (left, first) in digit.iter().enumerate() {
         for (right, second) in digit.iter().enumerate() {
             for (operation, value) in [("Add", left + right), ("Multiply", left * right)] {
-                let source = format!("Apply.{operation}.{first}.{second}");
+                let source = format!("Invoke.{operation}.{first}.{second}");
                 let target = format!(
                     "([Digit] {}).([Carry] {})",
                     digit[value % 3],
@@ -211,7 +211,7 @@ fn arithmetic() {
                 );
                 check(&source, &target, &[APPLICATION, TERNARY], Outcome::Reached);
             }
-            let source = format!("Apply.Compare.([Left] {first}).([Right] {second})");
+            let source = format!("Invoke.Compare.([Left] {first}).([Right] {second})");
             let expected = if left < right {
                 "Less"
             } else if left == right {
@@ -230,7 +230,7 @@ fn carry() {
     for left in 0..3 {
         for right in 0..3 {
             let source = format!(
-                "Apply.Carry.Compose.([Left] {}).([Right] {})",
+                "Invoke.Carry.Compose.([Left] {}).([Right] {})",
                 state[left], state[right]
             );
             let expected = if right == 1 { left } else { right };
@@ -254,7 +254,8 @@ fn carry() {
 fn composition() {
     for first in ["Not", "Identity"] {
         for second in ["Not", "Identity"] {
-            let source = format!("Apply.Compose.([First] {first}).([Second] {second}).True");
+            let descriptor = format!("([First] Function.{first}).([Second] Function.{second})");
+            let source = format!("Invoke.Compose.{descriptor}.True");
             let expected = if (first == "Not") == (second == "Not") {
                 "True"
             } else {
@@ -262,7 +263,7 @@ fn composition() {
             };
             check(
                 &source,
-                expected,
+                &format!("{expected}.{descriptor}"),
                 &[APPLICATION, BOOLEAN, COMPOSITION],
                 Outcome::Reached,
             );
@@ -273,14 +274,14 @@ fn composition() {
 #[test]
 fn function() {
     check(
-        "Apply.True.([Call.True] Return.False)",
-        "False.([Call.True] Return.False)",
+        "Invoke.True.([Function.True] Return.False)",
+        "False.([Function.True] Return.False)",
         &[APPLICATION],
         Outcome::Reached,
     );
     check(
-        "Apply.True.([Call.True] Return.False)",
-        "True.([Call.True] Return.False)",
+        "Invoke.True.([Function.True] Return.False)",
+        "True.([Function.True] Return.False)",
         &[APPLICATION],
         Outcome::Unreachable,
     );
@@ -289,13 +290,13 @@ fn function() {
 #[test]
 fn completion() {
     check(
-        "Apply.Gather.Done.Left.True",
+        "Invoke.Gather.Done.Left.True",
         "([Left] True).([Right] True)",
         &[APPLICATION, COLLECTION],
         Outcome::Unreachable,
     );
     check(
-        "Apply.Gather.Done.Left.True, Apply.Gather.Done.Right.True",
+        "Invoke.Gather.Done.Left.True, Invoke.Gather.Done.Right.True",
         "([Left] True).([Right] True)",
         &[APPLICATION, COLLECTION],
         Outcome::Unreachable,
@@ -303,14 +304,14 @@ fn completion() {
     for left in ["True", "False"] {
         for right in ["True", "False"] {
             let source = format!(
-                "Apply.Unpack.([Left] {left}).([Right] {right}).Map.([Function] Identity).Gather"
+                "Invoke.Unpack.([Left] {left}).([Right] {right}).Map.([Each] Identity).Gather"
             );
             let target = format!("([Left] {left}).([Right] {right})");
             witness(&source, &target, &[APPLICATION, COLLECTION, PAIR]);
         }
     }
     check(
-        "Call.Produce.([Value] True), Call.Produce.([Value] True)",
+        "Function.Produce.([Value] True), Function.Produce.([Value] True)",
         "True",
         &[PRODUCTION, "[Return, Return] ()"],
         Outcome::Reached,
@@ -319,7 +320,7 @@ fn completion() {
 
 #[test]
 fn scheduling() {
-    let source = "Apply.Not.True, Apply.Not.False";
+    let source = "Invoke.Not.True, Invoke.Not.False";
     let mut baseline = None;
     for worker in [1, 2, 4] {
         let executor = photonic::executor::Executor::new(worker).unwrap();
@@ -346,7 +347,8 @@ fn scheduling() {
 fn rejection() {
     for first in ["Not", "Identity"] {
         for second in ["Not", "Identity"] {
-            let source = format!("Apply.Compose.([First] {first}).([Second] {second}).True");
+            let descriptor = format!("([First] Function.{first}).([Second] Function.{second})");
+            let source = format!("Invoke.Compose.{descriptor}.True");
             let wrong = if (first == "Not") == (second == "Not") {
                 "False"
             } else {
@@ -354,7 +356,7 @@ fn rejection() {
             };
             check(
                 &source,
-                wrong,
+                &format!("{wrong}.{descriptor}"),
                 &[APPLICATION, BOOLEAN, COMPOSITION],
                 Outcome::Unreachable,
             );
@@ -423,25 +425,25 @@ fn declaration() {
 #[test]
 fn empty() {
     check(
-        "Apply.Repeat.Empty",
+        "Invoke.Repeat.Empty",
         "()",
         &[APPLICATION, PRODUCTION],
         Outcome::Reached,
     );
     check(
-        "Apply.Gather.Empty",
+        "Invoke.Gather.Empty",
         "()",
         &[APPLICATION, COLLECTION],
         Outcome::Reached,
     );
     check(
-        "Apply.Reduce.Empty.([Operation] And)",
+        "Invoke.Reduce.Empty.([Operation] And)",
         "True",
         &[APPLICATION, COLLECTION],
         Outcome::Reached,
     );
     check(
-        "Apply.Reduce.Empty.([Operation] Or)",
+        "Invoke.Reduce.Empty.([Operation] Or)",
         "False",
         &[APPLICATION, COLLECTION],
         Outcome::Reached,
@@ -450,12 +452,12 @@ fn empty() {
 
 #[test]
 fn association() {
-    let source = "Apply.Pair.True.([Operation] And), Apply.Pair.False.([Operation] And)";
+    let source = "Invoke.Pair.True.([Operation] And), Invoke.Pair.False.([Operation] And)";
     let library = [
         APPLICATION,
         BOOLEAN,
         COLLECTION,
-        "[Call.Pair.True] (Reduce.Done.Left.True, Reduce.Done.Right.True) [Call.Pair.False] (Reduce.Done.Left.False, Reduce.Done.Right.False)",
+        "[Function.Pair.True] (Reduce.Done.Left.True, Reduce.Done.Right.True) [Function.Pair.False] (Reduce.Done.Left.False, Reduce.Done.Right.False)",
     ];
     check(source, "True,False", &library, Outcome::Reached);
     check(source, "True,True", &library, Outcome::Unreachable);
@@ -472,7 +474,7 @@ fn boolean() {
                 ("Or", left == 1 || right == 1),
                 ("Equal", left == right),
             ] {
-                let source = format!("Apply.{operation}.{}.{}", value[left], value[right]);
+                let source = format!("Invoke.{operation}.{}.{}", value[left], value[right]);
                 for (index, &target) in value.iter().enumerate() {
                     check(
                         &source,
@@ -496,7 +498,7 @@ fn digit() {
     for (left, first) in digit.iter().enumerate() {
         for (right, second) in digit.iter().enumerate() {
             for (operation, expected) in [("Add", left + right), ("Multiply", left * right)] {
-                let source = format!("Apply.{operation}.{first}.{second}");
+                let source = format!("Invoke.{operation}.{first}.{second}");
                 for value in 0..9 {
                     let target = format!(
                         "([Digit] {}).([Carry] {})",
@@ -516,7 +518,7 @@ fn digit() {
                 }
             }
         }
-        let source = format!("Apply.Successor.{first}");
+        let source = format!("Invoke.Successor.{first}");
         let value = left + 1;
         let target = format!(
             "([Digit] {}).([Carry] {})",
@@ -531,7 +533,7 @@ fn digit() {
 fn evaluation() {
     for state in ["Kill", "Propagate", "Generate"] {
         for input in ["0", "1"] {
-            let source = format!("Apply.Carry.Evaluate.{state}.{input}");
+            let source = format!("Invoke.Carry.Evaluate.{state}.{input}");
             let expected = match state {
                 "Kill" => "0",
                 "Generate" => "1",
@@ -558,7 +560,7 @@ fn position() {
     let position = include_str!("../position.particle");
     for library in [&[][..], &[APPLICATION][..], &[position][..]] {
         check(
-            "Apply.Pack.([Position] 0).([Value] 2)",
+            "Invoke.Pack.([Position] 0).([Value] 2)",
             "([0] 2)",
             library,
             Outcome::Unreachable,
@@ -571,9 +573,9 @@ fn position() {
         Outcome::Unreachable,
     );
     for source in [
-        "Apply.Pack.([Position] 4).([Value] 2)",
-        "Apply.Pack.([Position] 0).([Value] 3)",
-        "Apply.Pack.([Value] 2)",
+        "Invoke.Pack.([Position] 4).([Value] 2)",
+        "Invoke.Pack.([Position] 0).([Value] 3)",
+        "Invoke.Pack.([Value] 2)",
     ] {
         check(
             source,
@@ -583,14 +585,14 @@ fn position() {
         );
     }
     check(
-        "Apply.Pack.([Position] 0).([Value] 2).Extra",
+        "Invoke.Pack.([Position] 0).([Value] 2).Extra",
         "([0] 2).Extra",
         &[APPLICATION, position],
         Outcome::Reached,
     );
     for index in 0..4 {
         for value in 0..3 {
-            let source = format!("Apply.Unpack.([Position] {index}).([{index}] {value})");
+            let source = format!("Invoke.Unpack.([Position] {index}).([{index}] {value})");
             for expected in 0..3 {
                 check(
                     &source,
@@ -605,7 +607,7 @@ fn position() {
             }
             for expected in 0..3 {
                 check(
-                    &format!("Apply.Pack.([Position] {index}).([Value] {value})"),
+                    &format!("Invoke.Pack.([Position] {index}).([Value] {value})"),
                     &format!("([{index}] {expected})"),
                     &[APPLICATION, position],
                     if expected == value {
@@ -630,9 +632,220 @@ fn position() {
         Outcome::Unreachable,
     );
     check(
-        "Apply.Unpack.([Position] 0).([1] 2)",
+        "Invoke.Unpack.([Position] 0).([1] 2)",
         "([Value] 2)",
         &[APPLICATION, position],
+        Outcome::Unreachable,
+    );
+}
+
+#[test]
+fn generic() {
+    for (input, output) in [
+        ("Seed", "Flower"),
+        ("7.7", "8.([Branch] Leaf)"),
+        ("([Record] Item)", "([Result] ([Nested] Value))"),
+    ] {
+        let first = format!("([First.{input}] Return.Middle)");
+        let second = format!("([Second.Middle] Return.{output})");
+        let source = format!("Invoke.Compose.{input}.{first}.{second}");
+        let target = format!("{output}.{first}.{second}");
+        check(
+            &source,
+            &target,
+            &[APPLICATION, COMPOSITION],
+            Outcome::Reached,
+        );
+        check(
+            &source,
+            &format!("Wrong.{first}.{second}"),
+            &[APPLICATION, COMPOSITION],
+            Outcome::Unreachable,
+        );
+    }
+}
+
+#[test]
+fn conflict() {
+    let first = "([First.Seed] Return.Middle).([Second.Middle] Return.Flower)";
+    let second = "([First.Seed] Return.Other).([Second.Other] Return.Tree)";
+    let source = format!("Left.Invoke.Compose.Seed.{first}, Right.Invoke.Compose.Seed.{second}");
+    check(
+        &source,
+        &format!("Left.Flower.{first}, Right.Tree.{second}"),
+        &[APPLICATION, COMPOSITION],
+        Outcome::Reached,
+    );
+    check(
+        &source,
+        &format!("Left.Tree.{first}, Right.Flower.{second}"),
+        &[APPLICATION, COMPOSITION],
+        Outcome::Unreachable,
+    );
+    check(
+        &source,
+        &format!("Left.Flower.{first}, Right.Flower.{second}"),
+        &[APPLICATION, COMPOSITION],
+        Outcome::Unreachable,
+    );
+}
+
+#[test]
+fn nested() {
+    let source = include_str!("../../example/library/function.wave");
+    let target = include_str!("../../example/library/function.particle");
+    check(
+        source,
+        target,
+        &[APPLICATION, COMPOSITION],
+        Outcome::Reached,
+    );
+    for wrong in [
+        target.replace("Left.Flower", "Left.Grove"),
+        target.replace("Right.Grove", "Right.Flower"),
+    ] {
+        check(
+            source,
+            &wrong,
+            &[APPLICATION, COMPOSITION],
+            Outcome::Unreachable,
+        );
+    }
+}
+
+#[test]
+fn extension() {
+    let implementation = "[Decorate.([Function] Decorate).Envelope] Return.([Result] 11)";
+    check(
+        "Invoke.([Function] Decorate).Envelope",
+        "([Result] 11)",
+        &[APPLICATION, implementation],
+        Outcome::Reached,
+    );
+    check(
+        "Invoke.([Function] Decorate).Envelope",
+        "Envelope",
+        &[APPLICATION, implementation],
+        Outcome::Unreachable,
+    );
+    check(
+        "Invoke.([Function] Missing).Envelope",
+        "([Result] 11)",
+        &[APPLICATION],
+        Outcome::Unreachable,
+    );
+    let implementation = "[Invert.([Each] Invert).True] Return.False [Invert.([Each] Invert).False] Return.True [Agree.([Operation] Agree).True.True] Return.True [Agree.([Operation] Agree).True.False] Return.False [Agree.([Operation] Agree).False.False] Return.False";
+    witness(
+        "Invoke.Copy.Pair.([Value] False).Map.([Each] Invert).Reduce.([Operation] Agree)",
+        "True",
+        &[APPLICATION, PRODUCTION, COLLECTION, implementation],
+    );
+}
+
+#[test]
+fn invocation() {
+    let definition = "([Function.Seed] Return.Flower)";
+    let source = format!("Invoke.Seed.{definition}");
+    let target = format!("Flower.{definition}");
+    check(&source, &target, &[APPLICATION], Outcome::Reached);
+    check(
+        &source,
+        &format!("Seed.{definition}"),
+        &[APPLICATION],
+        Outcome::Unreachable,
+    );
+    let mut search =
+        photonic::path::Search::new(program(&source, &[APPLICATION]), parse(&target).unwrap())
+            .unwrap();
+    search.run(
+        100_000,
+        Limit {
+            state: 128,
+            record: 100_000,
+            cell: 128,
+            world: 16,
+            frame: 16,
+        },
+    );
+    let report = search.report();
+    assert_eq!(report.outcome, Outcome::Reached);
+    assert_eq!(report.event.len(), 3);
+}
+
+#[test]
+fn incomplete() {
+    let definition = "([Function.Seed] Flower)";
+    check(
+        &format!("Invoke.Seed.{definition}"),
+        &format!("Flower.{definition}"),
+        &[APPLICATION],
+        Outcome::Unreachable,
+    );
+    let first = "([First.Seed] Return.Middle)";
+    check(
+        &format!("Invoke.Compose.Seed.{first}"),
+        &format!("Middle.{first}"),
+        &[APPLICATION, COMPOSITION],
+        Outcome::Unreachable,
+    );
+    let first = "([First.Seed] Middle)";
+    let second = "([Second.Middle] Return.Flower)";
+    check(
+        &format!("Invoke.Compose.Seed.{first}.{second}"),
+        &format!("Flower.{first}.{second}"),
+        &[APPLICATION, COMPOSITION],
+        Outcome::Unreachable,
+    );
+}
+
+#[test]
+fn continuation() {
+    let definition = "([Function.Seed] Return.Flower)";
+    let source = format!("Left.Invoke.Seed.{definition}, Right.Invoke.Seed.{definition}");
+    let target = format!("Left.Flower.{definition}, Right.Flower.{definition}");
+    let mut baseline = None;
+    for worker in [1, 2, 4] {
+        let executor = photonic::executor::Executor::new(worker).unwrap();
+        let mut search =
+            Search::new(program(&source, &[APPLICATION]), parse(&target).unwrap()).unwrap();
+        search.parallel(&executor, 1, None);
+        assert!(!search.report().execution.closed);
+        search.parallel(
+            &executor,
+            2_000_000,
+            Some(Limit {
+                state: 20000,
+                record: 2_000_000,
+                cell: 128,
+                world: 32,
+                frame: 32,
+            }),
+        );
+        let report = search.report();
+        assert!(report.execution.closed);
+        assert_eq!(report.outcome, Outcome::Reached);
+        let actual = format!("{:?}", report.execution);
+        if let Some(expected) = &baseline {
+            assert_eq!(&actual, expected);
+        }
+        baseline = Some(actual);
+    }
+}
+
+#[test]
+fn obsolete() {
+    for source in ["Apply.Not.True", "Call.Not.True"] {
+        check(
+            source,
+            "False",
+            &[APPLICATION, BOOLEAN],
+            Outcome::Unreachable,
+        );
+    }
+    check(
+        "Map.Ready.Left.True.([Function] Not)",
+        "Done.Left.False",
+        &[APPLICATION, BOOLEAN, COLLECTION],
         Outcome::Unreachable,
     );
 }

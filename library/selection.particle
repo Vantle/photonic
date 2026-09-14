@@ -1,18 +1,18 @@
-[Call.Filter.True] Return.Keep.([Value] True)
-[Call.Filter.False] Return.Discard
+[Function.Filter.True] Return.Keep.([Value] True)
+[Function.Filter.False] Return.Discard
 
-[Call.Check.True] Return.Success
-[Call.Check.False] Return.Failure
+[Function.Check.True] Return.Success
+[Function.Check.False] Return.Failure
 
-[Call.Count.False.False] Return.0
-[Call.Count.True.False] Return.1
-[Call.Count.True.True] Return.2
+[Function.Count.False.False] Return.0
+[Function.Count.True.False] Return.1
+[Function.Count.True.True] Return.2
 
-[Transform.([Function] Filter)] Call.Filter
-[Transform.([Function] Check)] Call.Check
-[Combine.([Operation] Count)] Call.Count
+[Filter.([Each] Filter)] Function.Filter
+[Check.([Each] Check)] Function.Check
+[Count.([Operation] Count)] Function.Count
 
-[Reduce.Done.Left.Keep.([Value] True), Reduce.Done.Right.Keep.([Value] True)] Combine.True.True
-[Reduce.Done.Left.Keep.([Value] True), Reduce.Done.Right.Discard] Combine.True.False
-[Reduce.Done.Left.Discard, Reduce.Done.Right.Keep.([Value] True)] Combine.False.True
-[Reduce.Done.Left.Discard, Reduce.Done.Right.Discard] Combine.False.False
+[Reduce.Done.Left.Keep.([Value] True), Reduce.Done.Right.Keep.([Value] True)] Operation.True.True
+[Reduce.Done.Left.Keep.([Value] True), Reduce.Done.Right.Discard] Operation.True.False
+[Reduce.Done.Left.Discard, Reduce.Done.Right.Keep.([Value] True)] Operation.False.True
+[Reduce.Done.Left.Discard, Reduce.Done.Right.Discard] Operation.False.False

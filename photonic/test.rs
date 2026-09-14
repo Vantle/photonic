@@ -105,7 +105,7 @@ fn binary() {
 fn diamond() {
     let program = std::fs::read(executable("PIPELINE")).unwrap();
     let program: photonic::source::Program = serde_json::from_slice(&program).unwrap();
-    let entry = photonic::lowering::parse("[Apply] (Call [Return] ())")
+    let entry = photonic::lowering::parse("[Invoke] (Function [Return] ())")
         .unwrap()
         .rule
         .remove(0)

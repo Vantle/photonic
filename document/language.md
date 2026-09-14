@@ -68,7 +68,7 @@ There are no variable sigils, quote operators, named constructors, arrows, semic
 
 `A(B,C)` expands to `A.B,A.C` in initial states, rule patterns, plain outputs, and proof targets. Dot composition distributes: `(A,B).(C,D)` expands to four coherences. Repeated alternatives retain multiplicity. Initial occurrences are independent introductions, while inherited output remainders retain their shared identity. This spelling supplies no container, pairing identity, or whole-operand matching guard.
 
-Packing is a separate [standard-library operation](library.md#structure). Load `//library:position` (including its application dependency) before invoking `Apply.Pack.([Position] 0).([Value] 2)` to construct `([0] 2)`. The frontend does not perform this computation. `Pack(Position.0, Value.2)` instead expands into two flat coherences and is not this operation. Literal fields may be written directly without invoking Pack.
+Packing is a separate [standard-library operation](library.md#structure). Load `//library:position` (including its application dependency) before invoking `Invoke.Pack.([Position] 0).([Value] 2)` to construct `([0] 2)`. The frontend does not perform this computation. `Pack(Position.0, Value.2)` instead expands into two flat coherences and is not this operation. Literal fields may be written directly without invoking Pack.
 
 `Box(A.B)` groups A and B alongside Box; it does not construct one opaque Box value. `$x` matches the literal concept `$x`, not an arbitrary value. `@([A] B)` includes an ordinary @ concept. Parentheses and brackets retain their original delimiter roles.
 

@@ -95,7 +95,8 @@ photonic_library(
 photonic_library(
     name = "composition",
     srcs = ["composition.particle"],
-    deps = [":boolean"],
+    visibility = ["//example/library:__pkg__"],
+    deps = [":application"],
 )
 
 photonic_library(
@@ -112,7 +113,7 @@ photonic_library(
 
 photonic_test(
     name = "boolean.check",
-    source = "Apply.Not.True",
+    source = "Invoke.Not.True",
     targets = ["False"],
     deps = [":boolean"],
 )
@@ -120,7 +121,7 @@ photonic_test(
 photonic_test(
     name = "boolean.reject",
     expect = "unreachable",
-    source = "Apply.Not.True",
+    source = "Invoke.Not.True",
     targets = ["True"],
     deps = [":boolean"],
 )
@@ -128,7 +129,7 @@ photonic_test(
 photonic_test(
     name = "boolean.alternative",
     match = "any",
-    source = "Apply.Not.True",
+    source = "Invoke.Not.True",
     targets = [
         "True",
         "False",
@@ -138,9 +139,9 @@ photonic_test(
 
 photonic_test(
     name = "boolean.history",
-    source = "Apply.Not.True",
+    source = "Invoke.Not.True",
     targets = [
-        "Apply.Not.True",
+        "Invoke.Not.True",
         "False",
     ],
     deps = [":boolean"],
@@ -155,7 +156,7 @@ photonic_library(
 
 photonic_test(
     name = "binary.check",
-    source = "Apply.Binary.Sum.1.1.0",
+    source = "Invoke.Binary.Sum.1.1.0",
     targets = ["([Digit] 0).([Carry] 1)"],
     deps = [":binary"],
 )

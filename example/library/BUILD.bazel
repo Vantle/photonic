@@ -27,6 +27,8 @@ photonic_test(
 filegroup(
     name = "fixture",
     srcs = [
+        "function.particle",
+        "function.wave",
         "pipeline.particle",
         "pipeline.wave",
     ],
@@ -37,4 +39,23 @@ filegroup(
     name = "build",
     srcs = ["BUILD.bazel"],
     visibility = ["//:__pkg__"],
+)
+
+photonic_binary(
+    name = "function",
+    srcs = ["function.wave"],
+    deps = ["//library:composition"],
+)
+
+photonic_test(
+    name = "function.check",
+    srcs = ["function.wave"],
+    source = "",
+    targets = ["""Left.Flower.([First.Seed] Return.Bud).([Second.Bud] Return.Flower),
+Right.Grove.([First.Seed] (
+    Function.Compose.Sapling.([First.Sapling] Return.Trunk).([Second.Trunk] Return.Tree)
+    [Return] Return
+)).([Second.Tree] Return.Grove).([First.Sapling] Return.Trunk).([Second.Trunk] Return.Tree)
+"""],
+    deps = ["//library:composition"],
 )

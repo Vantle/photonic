@@ -1372,3 +1372,14 @@ footer {
 #evaluation-detail { max-height:22rem; overflow:auto; }
 @media (max-width:650px) { .graph-inspector { grid-template-columns:1fr; } }
 @media print { .graph-editor, .graph-action { display:none; } .graph-panel { break-inside:avoid; box-shadow:none; } }
+
+.product-graph { overflow-x: auto; }
+.product-graph svg { display: block; width: 100%; min-width: 580px; }
+.product-graph rect { fill: var(--surface, #18252b); stroke: currentColor; stroke-opacity: .35; }
+.product-graph text { fill: currentColor; text-anchor: middle; font: 14px system-ui, sans-serif; }
+.product-graph path { fill: none; stroke: currentColor; stroke-width: 2; opacity: .5; }
+.product-graph .product-carry { stroke-dasharray: 5 5; }
+.product-table { overflow-x: auto; }
+.product-table table { width: 100%; border-collapse: collapse; }
+.product-table th, .product-table td { padding: .65rem; text-align: left; border-bottom: 1px solid currentColor; }
+.product-formula { line-height: 1.6; }

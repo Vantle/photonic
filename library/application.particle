@@ -1,6 +1,7 @@
-[Apply] (
-    Call
+[Invoke] (
+    Function
     [Return] ()
 )
 
-[Call.Identity] Return
+[Function.Identity] Return
+[Identity.([Each] Identity)] Function.Identity

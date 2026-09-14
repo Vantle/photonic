@@ -26,8 +26,8 @@ photonic_binary(
 
 photonic_test(
     name = "negation",
-    source = "Apply.Not.True",
-    targets = ["Apply.Not.True", "False"],
+    source = "Invoke.Not.True",
+    targets = ["Invoke.Not.True", "False"],
     deps = [":logic"],
 )
 ```
@@ -253,3 +253,7 @@ The [upstream rule reference](https://bazelbuild.github.io/rules_rust/rust_wasm_
 The worker accepts `{ "version": 1, "source": "A [A] B", "targets": ["B"] }`. Responses contain `version`, a complete `execution` snapshot, and a `verdict` array in target order; validation failures contain `version` and an `error` object with `code` and human-readable `message`. Stable engine error codes are `request`, `version`, `size`, `source`, and `target`; the worker can also report `worker` for loading or execution failures. Message wording is diagnostic text, not an API identifier. Empty target lists request a graph without queries. Requests are limited to 32 KiB and 16 targets. Execution uses 20,000 work steps, 128 states and cells, 16 frames and coherences, and 100,000 records. These are exploration thresholds, not a byte-perfect memory cap. The UI terminates the worker after five seconds or when Stop is pressed. Cancellation establishes no verdict.
 
 Native/WebAssembly tests compare complete reports for ordinary rewriting, source inference, local generated code, coherence reunion, and suspended growth. Browser tests cover graph selection, live positive and negative queries, reset, and cancellation. The browser runs the serial Rust evaluator; cheap Photonic coherences remain language-level parallel structure, not a claim of browser thread-level speedup.
+
+The [generic invocation contract](library.md#function) uses Function callbacks with explicit Return evidence. Compose accepts First/Second callable rules and retains their code. Its former finite name descriptors must migrate to callable descriptors, such as `([First] Function.Not)`. No runtime or source grammar change accompanies this library interface change.
+
+The library now has one invocation entry point, Invoke, which activates Function. Apply and Call are removed. Migrate named calls to `Invoke.Not.True`, implementation patterns to `[Function.Not.True]`, and Map/Repeat callback descriptors to `([Each] Not)`. Each and Operation identify pending collection callbacks without competing for the enclosing invocation activation.

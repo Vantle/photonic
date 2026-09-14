@@ -210,7 +210,7 @@ fn digit() {
                 assert_eq!(
                     execute(
                         &format!(
-                            "Apply.Sum.{}.{}.{}
+                            "Invoke.Sum.{}.{}.{}
 {rule}",
                             name[left], name[right], name[carry]
                         ),
@@ -227,7 +227,7 @@ fn digit() {
             assert_eq!(
                 execute(
                     &format!(
-                        "Apply.Multiply.{}.{}
+                        "Invoke.Multiply.{}.{}
 {rule}",
                         name[left], name[right]
                     ),
@@ -244,7 +244,7 @@ fn digit() {
                 assert_eq!(
                     execute(
                         &format!(
-                            "Apply.Subtract.([Left] {}).([Right] {}).([Borrow] {})
+                            "Invoke.Subtract.([Left] {}).([Right] {}).([Borrow] {})
 {rule}",
                             name[left], name[right], name[borrow]
                         ),
@@ -259,7 +259,7 @@ fn digit() {
                 assert_eq!(
                     execute(
                         &format!(
-                            "Apply.Select.([Left] {}).([Right] {}).([Choice] {})
+                            "Invoke.Select.([Left] {}).([Right] {}).([Choice] {})
 {rule}",
                             name[left], name[right], name[borrow]
                         ),

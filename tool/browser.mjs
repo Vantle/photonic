@@ -73,11 +73,12 @@ try {
     assert.equal(await evaluate("return document.getElementById('operation-result').textContent.replaceAll(',', '')"), '184500');
     assert.ok(await evaluate("return document.getElementById('library').textContent.includes('photonic_test')"));
     assert.match(await evaluate("return document.getElementById('test-contract').textContent"), /Unknown never satisfies/);
+    assert.match(await evaluate("return document.getElementById('function-interface').textContent"), /Invoke activates the supplied Function rule/);
     assert.match(await evaluate("return document.getElementById('packing').textContent"), /Without the library rules/);
     await evaluate("const select = document.getElementById('lowering-select'); select.selectedIndex = 2; select.dispatchEvent(new Event('change'));");
     assert.equal(await evaluate("return document.getElementById('lowering-output').textContent"), 'Pack.Position.0, Pack.Value.2');
     await evaluate("const select = document.getElementById('lowering-select'); select.selectedIndex = 3; select.dispatchEvent(new Event('change'));");
-    assert.equal(await evaluate("return document.getElementById('lowering-output').textContent"), 'Apply.Pack.([Position] 0).([Value] 2)');
+    assert.equal(await evaluate("return document.getElementById('lowering-output').textContent"), 'Invoke.Pack.([Position] 0).([Value] 2)');
     assert.match(await evaluate("return document.getElementById('lowering-description').textContent"), /does not execute/);
     await evaluate("document.getElementById('theme').click()");
     assert.equal(await evaluate('return document.documentElement.dataset.theme'), 'dark');
@@ -117,6 +118,30 @@ try {
     if (process.env.TEST_UNDECLARED_OUTPUTS_DIR) {
         const screenshot = await command(`/session/${session}/screenshot`);
         await writeFile(resolve(process.env.TEST_UNDECLARED_OUTPUTS_DIR, 'graph.png'), Buffer.from(screenshot, 'base64'));
+    }
+    assert.equal(await evaluate("return document.getElementById('product-equation').textContent"), '12₃ × 21₃ = 1022₃ · 5 × 7 = 35');
+    assert.equal(await evaluate("return document.querySelectorAll('#product-graph path').length"), 8);
+    assert.equal(await evaluate("return document.querySelectorAll('#product-column tr').length"), 4);
+    assert.deepEqual(await evaluate(`
+        const failure = [];
+        for (let left = 0; left < 9; left++) for (let right = 0; right < 9; right++) {
+            document.getElementById('product-left').value = left;
+            const select = document.getElementById('product-right');
+            select.value = right;
+            select.dispatchEvent(new Event('change'));
+            const row = [...document.querySelectorAll('#product-column tr')].map(row => [...row.cells].slice(1).map(cell => Number(cell.textContent)));
+            const value = row.reduce((sum, cell, position) => sum + cell[2] * 3 ** position, 0);
+            if (value !== left * right || row.some(cell => cell[0] + cell[1] !== cell[2] + 3 * cell[3])) failure.push([left, right]);
+        }
+        document.getElementById('product-left').value = 5;
+        document.getElementById('product-right').value = 7;
+        document.getElementById('product-right').dispatchEvent(new Event('change'));
+        return failure;
+    `), []);
+    await evaluate("document.getElementById('product').scrollIntoView({block: 'start', behavior: 'instant'})");
+    if (process.env.TEST_UNDECLARED_OUTPUTS_DIR) {
+        const screenshot = await command(`/session/${session}/screenshot`);
+        await writeFile(resolve(process.env.TEST_UNDECLARED_OUTPUTS_DIR, 'product.png'), Buffer.from(screenshot, 'base64'));
     }
     await navigate('/document/reference.html', "return document.getElementById('state')?.children.length > 0");
     assert.ok(await evaluate("return document.getElementById('example').options.length > 0"), JSON.stringify(await command(`/session/${session}/log`, { type: 'browser' })));

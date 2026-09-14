@@ -1,13 +1,13 @@
-[Call.Unpack.([Left] True).([Right] True)] (Ready.Left.True, Ready.Right.True)
-[Call.Unpack.([Left] True).([Right] False)] (Ready.Left.True, Ready.Right.False)
-[Call.Unpack.([Left] False).([Right] True)] (Ready.Left.False, Ready.Right.True)
-[Call.Unpack.([Left] False).([Right] False)] (Ready.Left.False, Ready.Right.False)
+[Function.Unpack.([Left] True).([Right] True)] (Ready.Left.True, Ready.Right.True)
+[Function.Unpack.([Left] True).([Right] False)] (Ready.Left.True, Ready.Right.False)
+[Function.Unpack.([Left] False).([Right] True)] (Ready.Left.False, Ready.Right.True)
+[Function.Unpack.([Left] False).([Right] False)] (Ready.Left.False, Ready.Right.False)
 
-[Call.Choose.True.([Left] True).([Right] True)] Return.True
-[Call.Choose.True.([Left] True).([Right] False)] Return.True
-[Call.Choose.True.([Left] False).([Right] True)] Return.False
-[Call.Choose.True.([Left] False).([Right] False)] Return.False
-[Call.Choose.False.([Left] True).([Right] True)] Return.True
-[Call.Choose.False.([Left] True).([Right] False)] Return.False
-[Call.Choose.False.([Left] False).([Right] True)] Return.True
-[Call.Choose.False.([Left] False).([Right] False)] Return.False
+[Function.Choose.True.([Left] True).([Right] True)] Return.True
+[Function.Choose.True.([Left] True).([Right] False)] Return.True
+[Function.Choose.True.([Left] False).([Right] True)] Return.False
+[Function.Choose.True.([Left] False).([Right] False)] Return.False
+[Function.Choose.False.([Left] True).([Right] True)] Return.True
+[Function.Choose.False.([Left] True).([Right] False)] Return.False
+[Function.Choose.False.([Left] False).([Right] True)] Return.True
+[Function.Choose.False.([Left] False).([Right] False)] Return.False

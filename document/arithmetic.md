@@ -543,9 +543,9 @@ Add `--directory "$PWD/mathematics/ternary/example"` to a generator command to e
 The [small digit library](../library/ternary.particle) makes the arithmetic cases inspectable. Representative complete rules are:
 
 ```text
-[Call.Sum.0.1.2] Return.([Digit] 0).([Carry] 1)
-[Call.Multiply.2.2] Return.([Digit] 1).([Carry] 1)
-[Call.Subtract.([Left] 0).([Right] 2).([Borrow] 1)] Return.([Digit] 0).([Borrow] 1)
+[Function.Sum.0.1.2] Return.([Digit] 0).([Carry] 1)
+[Function.Multiply.2.2] Return.([Digit] 1).([Carry] 1)
+[Function.Subtract.([Left] 0).([Right] 2).([Borrow] 1)] Return.([Digit] 0).([Borrow] 1)
 [Select.LeftOne.RightTwo.ChoiceOne] DigitTwo
 ```
 

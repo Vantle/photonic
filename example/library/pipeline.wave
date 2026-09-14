@@ -1,2 +1,2 @@
-First.Apply.Copy.Pair.([Value] True).Map.([Function] Not).Reduce.([Operation] And),
-Second.Apply.Copy.Pair.([Value] False).Map.([Function] Not).Reduce.([Operation] And)
+First.Invoke.Copy.Pair.([Value] True).Map.([Each] Not).Reduce.([Operation] And),
+Second.Invoke.Copy.Pair.([Value] False).Map.([Each] Not).Reduce.([Operation] And)

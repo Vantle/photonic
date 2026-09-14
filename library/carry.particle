@@ -1,16 +1,16 @@
-[Call.Carry.Compose.([Left] Kill).([Right] Kill)] Return.Kill
-[Call.Carry.Compose.([Left] Kill).([Right] Propagate)] Return.Kill
-[Call.Carry.Compose.([Left] Kill).([Right] Generate)] Return.Generate
-[Call.Carry.Compose.([Left] Propagate).([Right] Kill)] Return.Kill
-[Call.Carry.Compose.([Left] Propagate).([Right] Propagate)] Return.Propagate
-[Call.Carry.Compose.([Left] Propagate).([Right] Generate)] Return.Generate
-[Call.Carry.Compose.([Left] Generate).([Right] Kill)] Return.Kill
-[Call.Carry.Compose.([Left] Generate).([Right] Propagate)] Return.Generate
-[Call.Carry.Compose.([Left] Generate).([Right] Generate)] Return.Generate
+[Function.Carry.Compose.([Left] Kill).([Right] Kill)] Return.Kill
+[Function.Carry.Compose.([Left] Kill).([Right] Propagate)] Return.Kill
+[Function.Carry.Compose.([Left] Kill).([Right] Generate)] Return.Generate
+[Function.Carry.Compose.([Left] Propagate).([Right] Kill)] Return.Kill
+[Function.Carry.Compose.([Left] Propagate).([Right] Propagate)] Return.Propagate
+[Function.Carry.Compose.([Left] Propagate).([Right] Generate)] Return.Generate
+[Function.Carry.Compose.([Left] Generate).([Right] Kill)] Return.Kill
+[Function.Carry.Compose.([Left] Generate).([Right] Propagate)] Return.Generate
+[Function.Carry.Compose.([Left] Generate).([Right] Generate)] Return.Generate
 
-[Call.Carry.Evaluate.Kill.0] Return.0
-[Call.Carry.Evaluate.Kill.1] Return.0
-[Call.Carry.Evaluate.Propagate.0] Return.0
-[Call.Carry.Evaluate.Propagate.1] Return.1
-[Call.Carry.Evaluate.Generate.0] Return.1
-[Call.Carry.Evaluate.Generate.1] Return.1
+[Function.Carry.Evaluate.Kill.0] Return.0
+[Function.Carry.Evaluate.Kill.1] Return.0
+[Function.Carry.Evaluate.Propagate.0] Return.0
+[Function.Carry.Evaluate.Propagate.1] Return.1
+[Function.Carry.Evaluate.Generate.0] Return.1
+[Function.Carry.Evaluate.Generate.1] Return.1

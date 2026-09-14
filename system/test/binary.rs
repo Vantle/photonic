@@ -95,7 +95,7 @@ fn gate() {
         let sum = if count % 2 == 0 { "0" } else { "1" };
         let carry = if count < 2 { "0" } else { "1" };
         check(
-            &format!("Apply.Binary.Sum.{source}\n{rule}"),
+            &format!("Invoke.Binary.Sum.{source}\n{rule}"),
             &format!("([Digit] {sum}).([Carry] {carry})"),
         );
     }
@@ -107,7 +107,7 @@ fn gate() {
     for left in ["0", "1"] {
         for right in ["0", "1"] {
             check(
-                &format!("Apply.Binary.Multiply.{left}.{right}\n{rule}"),
+                &format!("Invoke.Binary.Multiply.{left}.{right}\n{rule}"),
                 if left == "1" && right == "1" {
                     "1"
                 } else {
@@ -149,7 +149,7 @@ fn conservation() {
         include_str!("../../library/binary.particle")
     );
     let mut search = Search::new(
-        parse(&format!("Apply.Binary.Sum.1.1.0\n{rule}")).unwrap(),
+        parse(&format!("Invoke.Binary.Sum.1.1.0\n{rule}")).unwrap(),
         parse("([Digit] 1).([Carry] 1)").unwrap(),
     )
     .unwrap();

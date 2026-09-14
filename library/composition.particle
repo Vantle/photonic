@@ -1,17 +1,11 @@
-[Call.Compose] (
-    Enter
+[Function.Compose] (
+    Compose.Enter
     [Return] Return
 )
 
-[Enter.([First] Not)] (
-    Call.Not
-    [Return] Next
+[Compose.Enter] (
+    First
+    [Return] Compose.Next
 )
 
-[Enter.([First] Identity)] (
-    Call.Identity
-    [Return] Next
-)
-
-[Next.([Second] Not)] Call.Not
-[Next.([Second] Identity)] Call.Identity
+[Compose.Next] Second

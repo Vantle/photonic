@@ -12,6 +12,7 @@
 <script defer src="document/book.js"></script>
 <script defer src="document/evaluation.js"></script>
 <script defer src="document/graph.js"></script>
+<script defer src="document/product.js"></script>
 </head>
 <body>
 <a class="skip" href="#content">Skip to the book</a>
@@ -147,11 +148,11 @@ Pair.Other
 <div class="grid two"><article class="card"><h3>Parsing and lowering</h3><p>Pest supplies the structural parser. Lowering interprets expressions, expands shared prefixes, and produces typed atoms and rule values. Miette reports source spans; malformed composition and resource bounds receive structured diagnostics.</p></article><article class="card"><h3>Matching gates</h3><p>A partial match records its actual occurrences, coherence, and frame. Compatible assignments accumulate until every input position is filled. Duplicate arrivals do not fill another slot. The gate tracks which positions are filled, not just how many arrivals it has received.</p></article><article class="card"><h3>Projection and application</h3><p>A relative view connects a witness to its concrete source. Projection identifies the footprint; application transfers remainder, allocates explicit results, and records the event’s dependencies.</p></article><article class="card"><h3>Canonical identity</h3><p>The runtime normalizes anonymous introductions and frame names while preserving sharing, multiplicity, scope, and continuations. Encountering an equivalent configuration reuses the state; additional justifications can still add support.</p></article></div>
 <h3 id="lowering">Pack fields with ordinary library rules</h3>
 <p>To construct an indexed field from a position and value, first load <code>//library:position</code>, which brings in <code>//library:application</code>. Then invoke its <code>Pack</code> operation. Packing is a standard-library computation, not a fundamental language feature or an automatic interpretation of parentheses.</p>
-<div class="example" id="packing"><div class="example-bar"><span>With the position library loaded</span><span class="tag">ORDINARY RULES</span></div><pre><code>Apply.Pack.([Position] 0).([Value] 2)</code></pre><p>This request can reach <code>([0] 2)</code>: one complete rule value associating position 0 with value 2. Without the library rules, the request has no built-in behavior. Pack currently supports positions 0 through 3 and values 0 through 2. It packs one field; it does not construct or validate a whole number.</p></div>
+<div class="example" id="packing"><div class="example-bar"><span>With the position library loaded</span><span class="tag">ORDINARY RULES</span></div><pre><code>Invoke.Pack.([Position] 0).([Value] 2)</code></pre><p>This request can reach <code>([0] 2)</code>: one complete rule value associating position 0 with value 2. Without the library rules, the request has no built-in behavior. Pack currently supports positions 0 through 3 and values 0 through 2. It packs one field; it does not construct or validate a whole number.</p></div>
 <p>You may also write <code>([0] 2)</code> directly when the field is known in source. Use Pack when a computation supplies the tagged position and value. Load both <a href="library/application.particle">application.particle</a> and <a href="library/position.particle">position.particle</a> with the CLI’s <code>--library</code> option, or declare the Bazel dependency as shown in the <a href="mathematics/ternary/BUILD.bazel">position example</a>. See the <a href="document/library.md#structure">packing contract</a>.</p>
 <h3>How the frontend expands shorthand</h3>
 <p>The lowering stage assigns executable meaning to parsed source. It currently expands <code>A(B,C)</code> into <code>A.B, A.C</code> and distributes dot composition across alternatives. This is built-in lowering behavior, not a fundamental grammar production or a transformation supplied by program rules.</p>
-<div class="lab"><div class="lab-heading"><span class="tag">FRONTEND BEHAVIOR</span><h3>Inspect flat expansion</h3></div><label for="lowering-select">Expression</label><select id="lowering-select"><option>A(B,C)</option><option>(A,B).(C,D)</option><option>Pack(Position.0, Value.2)</option><option>Apply.Pack.([Position] 0).([Value] 2)</option><option>()</option><option>[A]</option><option>[A] ()</option></select><div class="example"><pre id="lowering-output"></pre></div><p id="lowering-description" aria-live="polite"></p></div>
+<div class="lab"><div class="lab-heading"><span class="tag">FRONTEND BEHAVIOR</span><h3>Inspect flat expansion</h3></div><label for="lowering-select">Expression</label><select id="lowering-select"><option>A(B,C)</option><option>(A,B).(C,D)</option><option>Pack(Position.0, Value.2)</option><option>Invoke.Pack.([Position] 0).([Value] 2)</option><option>()</option><option>[A]</option><option>[A] ()</option></select><div class="example"><pre id="lowering-output"></pre></div><p id="lowering-description" aria-live="polite"></p></div>
 <h3>Three different kinds of empty</h3><div class="grid three"><article class="card"><h4>Empty particle</h4><code>()</code><p>One coherence with no occurrences. This is the numeral zero in the Unit representation.</p></article><article class="card"><h4>No output</h4><code>[A]</code><p>A rule with no output coherences. Use a comma before a following declaration.</p></article><article class="card"><h4>Empty output particle</h4><code>[A] ()</code><p>One output coherence. Unmatched remainder still transfers into it.</p></article></div>
 <p>A group containing declarations establishes a local body during lowering. A plain group can participate in expansion. These executable interpretations use the same parenthesis tokens recognized by the structural parser.</p>
 <p>Scopes index candidates by a required symbol. Compiled programs are immutable and shared across direct-path steps. The agenda retains incremental work, and positive support follows recorded dependencies. Optional Rayon workers perform independent implementation work; a coordinator merges their results in deterministic order.</p>
@@ -226,9 +227,37 @@ Pair.Other
 <div class="example"><div class="example-bar"><span>47 · sparse power representation</span><a href="mathematics/ternary/numeral.particle">numeral.particle ↗</a></div><pre><code>3^3.3^2.3^2.3^0.3^0</code></pre></div>
 <p>Each occurrence contributes one power. Repetition expresses the coefficient two; the zero column needs no occurrence. The caret belongs to an ordinary atom name. The carry rules establish relationships between those names.</p>
 <p>The complete positional representation of the same number is <code>Number.([Base] 3).([0] 2).([1] 0).([2] 2).([3] 1)</code>. These two representations are used by different library interfaces. Neither requires a decimal converter to write, and neither gives a bare <code>1202</code> atom an automatic numerical meaning.</p>
-<h3>A carry is a local rewrite</h3><div class="example"><pre><code>[Call.Sum.0.1.2] Return.([Digit] 0).([Carry] 1)
-[Call.Multiply.2.2] Return.([Digit] 1).([Carry] 1)</code></pre></div><p>0 + 1 + 2 gives three: digit 0, carry 1. 2 × 2 gives four: digit 1, carry 1. The standalone digit library uses commutative patterns where the operation is commutative.</p>
+<h3>A carry is a local rewrite</h3><div class="example"><pre><code>[Function.Sum.0.1.2] Return.([Digit] 0).([Carry] 1)
+[Function.Multiply.2.2] Return.([Digit] 1).([Carry] 1)</code></pre></div><p>0 + 1 + 2 gives three: digit 0, carry 1. 2 × 2 gives four: digit 1, carry 1. The standalone digit library uses commutative patterns where the operation is commutative.</p>
 <div class="lab"><div class="lab-heading"><span class="tag">DIGIT LAB</span><h3>One multiplication, in every column</h3></div><div class="grid two"><label>First digit<select id="digit-left"><option>0</option><option>1</option><option selected>2</option></select></label><label>Second digit<select id="digit-right"><option>0</option><option>1</option><option selected>2</option></select></label></div><p id="digit-equation" class="equation"></p><pre id="digit-rule"></pre><p class="caption">The displayed rule is one of the library’s ordinary digit-product cases. No rule enumerates the answer to every whole-number pair.</p></div>
+<div class="lab" id="product">
+<div class="lab-heading"><span class="tag">MULTIPLICATION GRAPH</span><h3>Small products, shared columns</h3></div>
+<p>Write each input as digits with explicit positions. Position 0 has weight 1; position 1 has weight 3. Every pair of digits can multiply independently.</p>
+<details open><summary>The general rule graph</summary>
+<pre class="product-formula">aᵢ at position i     bⱼ at position j
+          ↘         ↙
+          digit multiply
+          ↙         ↘
+   low digit         carry
+ position i + j   position i + j + 1
+          ↘         ↙
+     combine each column
+          ↓
+     normalize carries → result digits</pre>
+<p>For n digits and m digits there are n × m local products before pruning. Each satisfies aᵢ × bⱼ = digit + 3 × carry. Multiplying by 3ⁱ⁺ʲ explains both destination positions. Column addition preserves the same weighted total.</p>
+</details>
+<div class="grid two"><label>Left operand<select id="product-left"></select></label><label>Right operand<select id="product-right"></select></label></div>
+<p class="equation" id="product-equation" aria-live="polite"></p>
+<p class="caption">All four boxes in the top row are independent. Solid lines carry low digits; dashed lines carry the next-position contribution, including zero.</p>
+<div id="product-graph" class="product-graph"></div>
+<h4>Normalize the columns, from low to high</h4>
+<p>The table shows a simple carry walkthrough. Each row adds its incoming carry to its collected contributions, keeps the remainder modulo three, and sends the quotient onward.</p>
+<div class="product-table"><table><thead><tr><th>Position</th><th>Collected</th><th>Incoming carry</th><th>Result digit</th><th>Outgoing carry</th></tr></thead><tbody id="product-column"></tbody></table></div>
+<p id="product-result"></p>
+<p class="caption">Interactive arithmetic schematic, not an execution trace. The generated Photonic circuit uses local column reducers and prunes unnecessary gates. The drawing includes every digit pair so the positional structure stays visible. Independent work may proceed together; carry dependencies still require their inputs.</p>
+<details><summary>Run this example through Photonic</summary><pre><code>bazel run -c opt //mathematics/arithmetic:word -- \
+  --operation multiply --left 5 --right 7 --expected 35</code></pre><p>The host constructs the circuit; ordinary Photonic rules perform its arithmetic. This fixed example corresponds to 12₃ × 21₃ = 1022₃.</p></details>
+</div>
 <h3>Four operations, one circuit construction</h3><div class="grid two"><article class="card"><span class="micro">ADD</span><h3>Reduce columns</h3><p>Place both operands’ digit contributions in their columns. Combine two or three digits into one digit and a carry to the next column. The output has one extra trit.</p></article><article class="card"><span class="micro">SUBTRACT</span><h3>Borrow, then select</h3><p>Run borrow chains in both directions. The final borrow selects the magnitude. ([Negative] 0) or ([Negative] 1) records the sign; equal operands produce positive zero.</p></article><article class="card"><span class="micro">MULTIPLY</span><h3>Distribute and reduce</h3><p>Each pair of input digits produces a low digit in column i + j and a carry in column i + j + 1. The shared column reducer combines those contributions. Output width is twice input width.</p></article><article class="card"><span class="micro">DIVIDE</span><h3>Advance the remainder</h3><p>Read the dividend from its most significant digit. Form three times the remainder plus the next digit. Try up to two divisor subtractions; the number accepted gives the quotient digit.</p></article></div>
 <p>Finite digit tables are repeated at the required circuit sites, whose ports preserve operation association in an orderless state. At a fixed width and operation, the rule bodies are independent of operand values. Only initial digit facts change.</p>
 <p>The generator propagates possible digit domains, omits unnecessary zero carries, and removes gates with no path to the requested outputs. Column reduction is the default layout. All generated computation executes through ordinary Photonic rules.</p>
@@ -249,6 +278,9 @@ Pair.Other
 <h3>Keep roles separate from values</h3>
 <div class="example"><pre><code>Number.([Base] 3).([0] 2).([1] 0).([2] 2).([3] 1)</code></pre></div>
 <p>This is 47. Position 0 contributes 2, position 2 contributes 18, and position 3 contributes 27. Numeric atoms are literal names. The position field establishes order; source order does not. For a local arithmetic result, <code>([Digit] 2).([Carry] 1)</code> keeps each role attached to its value.</p>
+<h3>Invoke a supplied function</h3>
+<div class="example" id="function-interface"><pre><code>Invoke.Seed.([Function.Seed] Return.Flower)</code></pre><p>Invoke activates the supplied Function rule inside a scope. Its result is Flower alongside the retained callable value. Return is the implementation’s explicit completion contract.</p></div>
+<p>The adapter accepts user-defined inputs and results without a function registry. Compose similarly activates supplied First and Second rules in order. The <a href="example/library/function.wave">nested concurrent example</a> checks that two computations starting from Seed keep their results separate. Read the <a href="document/library.md#function">interface contract and complete examples</a> before choosing how your functions retain or consume their code.</p>
 <h3>Declare the dependency once</h3>
 <div class="example"><pre><code>load("//photonic:defs.bzl", "photonic_library", "photonic_binary", "photonic_test")
 
@@ -265,8 +297,8 @@ photonic_binary(
 
 photonic_test(
     name = "negation",
-    source = "Apply.Not.True",
-    targets = ["Apply.Not.True", "False"],
+    source = "Invoke.Not.True",
+    targets = ["Invoke.Not.True", "False"],
     deps = [":logic"],
 )</code></pre></div>
 <p>Libraries contain declarations only. Binaries combine initial coherences from their sources and load transitive libraries once per file. Tests accept literal source, file sources, or both. These mechanisms add no new language syntax or host implementation of library operations.</p>
