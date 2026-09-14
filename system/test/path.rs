@@ -81,3 +81,39 @@ fn inference() {
     exhaustive.run(100_000, None);
     assert_eq!(exhaustive.report().outcome, Outcome::Reached);
 }
+
+#[test]
+fn metadata() {
+    for source in [
+        "A [A] B",
+        "A.X,B.X [A,B] C",
+        "Seed.A [Seed] [A] B",
+        "A [A] (B [B] C)",
+    ] {
+        let mut runtime = crate::runtime::Runtime::new(parse(source).unwrap());
+        for _ in 0..10 {
+            runtime.run(100_000, None);
+            let Some(event) = runtime.first() else {
+                break;
+            };
+            let snapshot = runtime.snapshot();
+            let expected = &snapshot.event[0];
+            assert_eq!(event.target, expected.target);
+            assert_eq!(event.rule, expected.rule);
+            assert_eq!(
+                event.binding.footprint.iter().copied().collect::<Vec<_>>(),
+                expected.footprint
+            );
+            assert_eq!(
+                event.binding.exact.iter().copied().collect::<Vec<_>>(),
+                expected.exact
+            );
+            assert_eq!(
+                event.binding.read.iter().copied().collect::<Vec<_>>(),
+                expected.read
+            );
+            let next = runtime.state[event.target].as_ref().clone();
+            runtime = crate::runtime::Runtime::seed(runtime.program.clone(), next);
+        }
+    }
+}

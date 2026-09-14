@@ -26,12 +26,13 @@ impl Particle {
                     .map(|token| token.id)
                     .collect()
             })
-            .collect();
+            .collect::<Vec<Vec<_>>>();
+        let complete = candidate.iter().any(Vec::is_empty);
         Self {
             candidate,
             selected: Vec::new(),
             cursor: vec![0; pattern.len()],
-            complete: false,
+            complete,
         }
     }
 

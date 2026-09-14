@@ -8,7 +8,7 @@ const report = JSON.parse(execFileSync(command, [
     '--frames', '2048', '--coherences', '1024', '--records', '100000000',
 ], { encoding: 'utf8', maxBuffer: 536870912 }));
 assert.equal(report.outcome, 'reached');
-assert.ok(report.work <= 3500000, `Expression work regressed: ${report.work}`);
+assert.ok(report.work <= 3000000, `Expression work regressed: ${report.work}`);
 assert.ok(report.event.length <= 10200, `Expression event count regressed: ${report.event.length}`);
 
 const contains = (world, label) => world.particle.some(value => value.display === label);

@@ -56,6 +56,12 @@ struct Identity {
     binding: Binding,
     environment: Option<State>,
 }
+pub(crate) struct Transition<'a> {
+    pub target: usize,
+    pub rule: &'a str,
+    pub binding: &'a Binding,
+}
+
 struct Event {
     identity: Identity,
     target: usize,
@@ -173,8 +179,12 @@ impl Runtime {
         runtime
     }
 
-    pub(crate) fn first(&self) -> Option<usize> {
-        self.event.first().map(|event| event.target)
+    pub(crate) fn first(&self) -> Option<Transition<'_>> {
+        self.event.first().map(|event| Transition {
+            target: event.target,
+            rule: &self.program.rule[event.identity.rule].name,
+            binding: &event.identity.binding,
+        })
     }
 
     fn support(&mut self, head: Atom, premise: impl IntoIterator<Item = Atom>) {

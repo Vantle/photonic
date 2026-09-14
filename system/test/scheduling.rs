@@ -319,3 +319,98 @@ fn incidence() {
         );
     }
 }
+
+#[test]
+fn enumeration() {
+    let alphabet = [
+        Term {
+            value: Symbol::Atom(0),
+            capture: None,
+        },
+        Term {
+            value: Symbol::Atom(1),
+            capture: None,
+        },
+        Term {
+            value: Symbol::Rule(0),
+            capture: Some(0),
+        },
+        Term {
+            value: Symbol::Rule(0),
+            capture: Some(1),
+        },
+    ];
+    for encoding in 0..64usize {
+        let particle = (0..3)
+            .map(|id| {
+                let term = &alphabet[(encoding >> (id * 2)) & 3];
+                Token {
+                    id,
+                    value: term.value,
+                    capture: term.capture,
+                }
+            })
+            .collect::<Vec<_>>();
+        for count in 0..=3 {
+            for code in 0..4usize.pow(count) {
+                let pattern = (0..count)
+                    .map(|index| alphabet[(code >> (index * 2)) & 3].clone())
+                    .collect::<Vec<_>>();
+                let mut expected = std::collections::BTreeSet::new();
+                for mask in 0..8usize {
+                    if mask.count_ones() != count {
+                        continue;
+                    }
+                    let mut available = particle
+                        .iter()
+                        .filter(|token| mask & (1 << token.id) != 0)
+                        .collect::<Vec<_>>();
+                    let matched = pattern.iter().all(|term| {
+                        let Some(index) = available.iter().position(|token| {
+                            token.value == term.value
+                                && (matches!(term.value, Symbol::Atom(_))
+                                    || token.capture == term.capture)
+                        }) else {
+                            return false;
+                        };
+                        available.remove(index);
+                        true
+                    });
+                    if matched {
+                        expected.insert(
+                            (0..3)
+                                .filter(|id| mask & (1 << id) != 0)
+                                .collect::<Vec<_>>(),
+                        );
+                    }
+                }
+                let state = root(vec![World {
+                    frame: 0,
+                    particle: particle.clone(),
+                }]);
+                let mut search = Search::new(vec![pattern], Arc::new(state), 0);
+                let mut actual = std::collections::BTreeSet::new();
+                let mut complete = false;
+                for _ in 0..1000 {
+                    match search.step() {
+                        Poll::Ready(Some(binding)) => {
+                            let mut token = binding[0].token.clone();
+                            token.sort_unstable();
+                            assert!(actual.insert(token));
+                        }
+                        Poll::Ready(None) => {
+                            complete = true;
+                            break;
+                        }
+                        Poll::Pending => {}
+                    }
+                }
+                assert!(complete);
+                assert_eq!(
+                    actual, expected,
+                    "particle {encoding}, pattern {code}, length {count}"
+                );
+            }
+        }
+    }
+}

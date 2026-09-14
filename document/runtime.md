@@ -137,6 +137,8 @@ Parallel worlds remain distinct execution contexts. The existing worker executor
 
 ## Performance
 
+The [runtime optimization investigation](investigation.md) profiles the native expression workload, records general improvements, and evaluates indexing and incremental matching against the research literature.
+
 The benchmark measures runtime construction, ground code compilation, graph exploration, positive evidence closure, and snapshot construction. JSON decoding, input cloning, and worker-pool creation happen before timing. Source parsing, report encoding, process startup, and build time are excluded. Each program receives one warm-up and 25 measured runs. The [raw report](performance.json) records minimum, median, maximum, work, and retained records in microseconds.
 
 ```sh

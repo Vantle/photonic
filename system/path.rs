@@ -73,8 +73,8 @@ impl Search {
             if self.state[self.cursor].as_ref() == &self.goal || self.cycle {
                 return;
             }
-            if let Some(index) = self.runtime.first() {
-                let next = self.runtime.state[index].clone();
+            if let Some(event) = self.runtime.first() {
+                let next = self.runtime.state[event.target].clone();
                 let known = self.state.get_index_of(&next);
                 if known.is_none() && self.state.len() >= limit.state {
                     return;
@@ -82,16 +82,14 @@ impl Search {
                 if self.state.len() + self.event.len() + self.runtime.record() >= limit.record {
                     return;
                 }
-                let mut snapshot = self.runtime.snapshot();
-                let event = snapshot.event.remove(0);
                 let target = self.state.insert_full(next.clone()).0;
                 self.event.push(Event {
                     source: self.cursor,
                     target,
-                    rule: event.rule,
-                    footprint: event.footprint,
-                    exact: event.exact,
-                    read: event.read,
+                    rule: event.rule.to_owned(),
+                    footprint: event.binding.footprint.iter().copied().collect(),
+                    exact: event.binding.exact.iter().copied().collect(),
+                    read: event.binding.read.iter().copied().collect(),
                 });
                 self.cursor = target;
                 self.cycle = known.is_some();
