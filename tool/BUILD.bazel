@@ -43,22 +43,6 @@ rust_binary(
 )
 
 native_test(
-    name = "test",
-    size = "small",
-    src = ":execute",
-    args = [
-        "$(rlocationpath :node)",
-        "$(rlocationpath reference.mjs)",
-    ],
-    data = [
-        "reference.mjs",
-        ":node",
-        "//document/kernel:source",
-        "//example:fixture",
-    ],
-)
-
-native_test(
     name = "browser",
     size = "small",
     src = ":execute",

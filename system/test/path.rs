@@ -1,6 +1,6 @@
 use crate::lowering::parse;
-use crate::obsidian::Outcome;
 use crate::path::Search;
+use crate::prism::Outcome;
 use crate::runtime::Limit;
 
 fn search(source: &str, target: &str) -> Search {
@@ -19,7 +19,7 @@ fn execution() {
         path.run(100_000, Limit::default());
         assert_eq!(path.report().outcome, Outcome::Reached, "{source}");
         let mut exhaustive =
-            crate::obsidian::Search::new(parse(source).unwrap(), parse(target).unwrap()).unwrap();
+            crate::prism::Search::new(parse(source).unwrap(), parse(target).unwrap()).unwrap();
         exhaustive.run(100_000, None);
         assert_eq!(exhaustive.report().outcome, Outcome::Reached);
     }
@@ -77,7 +77,7 @@ fn inference() {
     path.run(100_000, Limit::default());
     assert_eq!(path.report().outcome, Outcome::Unknown);
     let mut exhaustive =
-        crate::obsidian::Search::new(parse(source).unwrap(), parse("Seed.B").unwrap()).unwrap();
+        crate::prism::Search::new(parse(source).unwrap(), parse("Seed.B").unwrap()).unwrap();
     exhaustive.run(100_000, None);
     assert_eq!(exhaustive.report().outcome, Outcome::Reached);
 }
@@ -133,4 +133,39 @@ fn summary() {
             serde_json::to_value(report.witness.map(|index| &report.state[index])).unwrap()
         );
     }
+}
+
+#[test]
+fn current() {
+    let mut path = search("A [A] B", "Missing");
+    assert_eq!(path.current().world[0].particle[0].display, "A");
+    path.run(10000, Limit::default());
+    assert_eq!(path.summary().outcome, Outcome::Unknown);
+    assert!(path.summary().witness.is_none());
+    assert_eq!(path.current().world[0].particle[0].display, "B");
+    assert_eq!(
+        serde_json::to_value(path.current()).unwrap(),
+        serde_json::to_value(path.report().state.last()).unwrap()
+    );
+}
+
+#[test]
+fn inspection() {
+    let mut path = search("A [A] B [B] A", "Missing");
+    path.run(10000, Limit::default());
+    let report = path.report();
+    for state in &report.state {
+        assert_eq!(
+            serde_json::to_value(path.inspect(state.id)).unwrap(),
+            serde_json::to_value(state).unwrap()
+        );
+    }
+    for (index, event) in report.event.iter().enumerate() {
+        assert_eq!(
+            serde_json::to_value(path.transition(index)).unwrap(),
+            serde_json::to_value(event).unwrap()
+        );
+    }
+    assert!(path.inspect(report.state.len()).is_none());
+    assert!(path.transition(report.event.len()).is_none());
 }

@@ -33,7 +33,7 @@ const decode = (state, head) => {
 
 export const record = (command, program, target) => {
     const report = JSON.parse(execFileSync(command, [
-        'obsidian', program, '--target', target, '--path', '--json',
+        'prism', program, '--target', target, '--path', '--json',
         '--steps', '100000000', '--states', '65536', '--cells', '16384',
         '--frames', '2048', '--coherences', '1024', '--records', '100000000',
     ], { encoding: 'utf8', maxBuffer: 536870912 }));

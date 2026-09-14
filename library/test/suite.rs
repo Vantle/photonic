@@ -1,5 +1,5 @@
 use photonic::lowering::parse;
-use photonic::obsidian::{Outcome, Search};
+use photonic::prism::{Outcome, Search};
 use photonic::runtime::Limit;
 
 const APPLICATION: &str = include_str!("../application.particle");

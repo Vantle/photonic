@@ -1,5 +1,5 @@
 use crate::lowering::parse;
-use crate::obsidian::{Outcome, Search};
+use crate::prism::{Outcome, Search};
 
 fn check(source: &str, target: &str, expected: Outcome) {
     let mut search = Search::new(parse(source).unwrap(), parse(target).unwrap()).unwrap();

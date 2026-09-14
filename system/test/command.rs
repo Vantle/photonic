@@ -173,12 +173,12 @@ fn worker() {
 }
 
 #[test]
-fn obsidian() {
+fn prism() {
     let fixture = Fixture::new();
     let path = fixture.write("program.wave", "A [A] B");
     let target = fixture.write("target.particle", "B");
     let result = report(&execute(
-        "obsidian",
+        "prism",
         &path,
         &["--target", target.to_str().unwrap(), "--json"],
     ));
@@ -187,7 +187,7 @@ fn obsidian() {
     assert_eq!(result["program"]["initial"][0][0], "A");
     assert_eq!(result["target"][0][0], "B");
     let result = report(&execute(
-        "obsidian",
+        "prism",
         &path,
         &[
             "--target",
@@ -200,11 +200,11 @@ fn obsidian() {
     assert_eq!(result["outcome"], "unknown");
     let invalid = fixture.write("invalid.wave", "B [B] A");
     assert!(
-        !execute("obsidian", &path, &["--target", invalid.to_str().unwrap()])
+        !execute("prism", &path, &["--target", invalid.to_str().unwrap()])
             .status
             .success()
     );
-    let output = execute("obsidian", &path, &["--target", target.to_str().unwrap()]);
+    let output = execute("prism", &path, &["--target", target.to_str().unwrap()]);
     assert!(output.status.success());
     assert!(
         String::from_utf8(output.stdout)
@@ -232,10 +232,10 @@ fn group() {
     );
     let target = fixture.write("target.particle", &["Unit"; 10].join("."));
     let argument = ["--target", target.to_str().unwrap(), "--json"];
-    let result = report(&execute("obsidian", &path, &argument));
+    let result = report(&execute("prism", &path, &argument));
     assert_eq!(result["outcome"], "reached");
     let parallel = report(&execute(
-        "obsidian",
+        "prism",
         &path,
         &[
             "--target",
@@ -259,14 +259,14 @@ fn path() {
     let source = fixture.write("program.wave", "A [A] B [B] C");
     let target = fixture.write("target.particle", "C");
     let result = report(&execute(
-        "obsidian",
+        "prism",
         &source,
         &["--target", target.to_str().unwrap(), "--path", "--json"],
     ));
     assert_eq!(result["outcome"], "reached");
     assert_eq!(result["event"].as_array().unwrap().len(), 2);
     let result = report(&execute(
-        "obsidian",
+        "prism",
         &source,
         &[
             "--target",
@@ -296,7 +296,7 @@ fn extension() {
             expected = Some(actual);
         }
         let proof = report(&execute(
-            "obsidian",
+            "prism",
             &path,
             &["--target", target.to_str().unwrap(), "--json"],
         ));
@@ -312,7 +312,7 @@ fn library() {
     let library = fixture.write("boolean.particle", "[Call.Not.True] Return.False");
     let completion = fixture.write("completion.particle", "[Return] ()");
     let output = execute(
-        "obsidian",
+        "prism",
         &path,
         &[
             "--target",
@@ -328,7 +328,7 @@ fn library() {
     assert_eq!(result["outcome"], "reached");
     assert_eq!(result["execution"]["closed"], true);
     let output = execute(
-        "obsidian",
+        "prism",
         &path,
         &[
             "--target",

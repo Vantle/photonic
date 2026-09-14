@@ -1388,3 +1388,38 @@ footer {
 .trit-card { display: grid; gap: .5rem; padding: .8rem 1rem; border: 1px solid currentColor; border-radius: .65rem; text-align: center; }
 .trit-card strong { font-size: 1.8rem; }
 .trit-card span { font: .8rem var(--mono, monospace); }
+
+#sandbox-input { width: 100%; box-sizing: border-box; font: 1.25rem monospace; padding: .8rem; }
+#sandbox-result { overflow-wrap: anywhere; }
+
+.guide { margin-block: 1rem; }
+.guide > summary { font-size: 1.2rem; cursor: pointer; }
+.guide p, .guide li, .guide td { overflow-wrap: anywhere; }
+.table-scroll { overflow-x: auto; max-width: 100%; }
+.guide pre { white-space: pre; overflow-x: auto; }
+
+.syntax-concept { color: var(--ink); }
+.syntax-group { color: var(--accent); font-weight: 700; }
+.syntax-separator { color: var(--muted); }
+.syntax-number, .syntax-operator { color: var(--gold); font-weight: 650; }
+.sandbox-preview { font-size: 1.2rem; }
+.sandbox-path { display: flex; flex-wrap: wrap; gap: .4rem; margin-block: 1rem; }
+.sandbox-path button[aria-pressed="true"] { background: var(--accent); color: var(--paper); }
+.sandbox-transition { padding: .8rem; border-block: 1px solid var(--line); text-align: center; font-weight: 650; }
+.sandbox-comparison { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.sandbox-comparison > div { min-width: 0; }
+.inspection-world { border: 1px solid var(--line); border-radius: .6rem; padding: .7rem; margin-block: .6rem; background: var(--surface); }
+.inspection-world h5 { margin: 0 0 .6rem; color: var(--muted); }
+.inspection-token { display: flex; flex-wrap: wrap; gap: .4rem; align-items: start; }
+.inspection-rule { min-width: 0; width: 100%; margin: 0; font-size: .8rem; }
+.inspection-rule summary { cursor: pointer; overflow-wrap: anywhere; }
+.inspection-rule pre, #sandbox-source, #sandbox-rule { white-space: pre-wrap; overflow-wrap: anywhere; }
+.inspection-key { padding: .1rem .3rem; }
+.inspection-token .consumed, .inspection-key.consumed { border: 2px solid var(--gold); }
+.inspection-token .bound, .inspection-key.bound { border: 2px dashed var(--accent); }
+.inspection-token .read, .inspection-key.read { border: 2px dotted var(--accent); }
+#sandbox-step { max-width: 9rem; }
+@media (max-width: 700px) { .sandbox-comparison { grid-template-columns: 1fr; } }
+
+#sandbox-rule { max-height: 20rem; overflow: auto; }
+#sandbox-before, #sandbox-after { max-height: 38rem; overflow: auto; }

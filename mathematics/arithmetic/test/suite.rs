@@ -3,8 +3,8 @@ use arithmetic::{circuit, encoding, numeral};
 mod argument;
 
 use photonic::lowering::parse;
-use photonic::obsidian::Outcome;
 use photonic::path::Search;
+use photonic::prism::Outcome;
 use photonic::runtime::Limit;
 
 fn check(width: usize, left: u64, right: u64, expected: u64) -> Outcome {
@@ -70,7 +70,7 @@ fn exhaustive() {
     for left in 0..2 {
         for right in 0..2 {
             for expected in 0..2 {
-                let mut search = photonic::obsidian::Search::new(
+                let mut search = photonic::prism::Search::new(
                     parse(&circuit::multiply(2, 1, left, right, circuit::Layout::Column).unwrap())
                         .unwrap(),
                     parse(&encoding::unsigned(2, 2, expected).unwrap()).unwrap(),
@@ -370,7 +370,7 @@ fn radix() {
                     arithmetic::power::numeral(left, radix).unwrap(),
                     arithmetic::power::numeral(right, radix).unwrap()
                 );
-                let mut search = photonic::obsidian::Search::new(
+                let mut search = photonic::prism::Search::new(
                     parse(&source).unwrap(),
                     parse(&arithmetic::power::numeral(left + right, radix).unwrap()).unwrap(),
                 )

@@ -19,8 +19,8 @@ pub enum Operation {
         #[command(flatten)]
         execution: Execution,
     },
-    #[command(about = "Check exact configuration reachability with Obsidian")]
-    Obsidian {
+    #[command(about = "Check exact configuration reachability with Prism")]
+    Prism {
         path: PathBuf,
         #[arg(
             long,

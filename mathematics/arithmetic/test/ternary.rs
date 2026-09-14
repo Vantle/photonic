@@ -1,7 +1,7 @@
 use super::execute;
 use arithmetic::{circuit, encoding};
 use photonic::lowering::parse;
-use photonic::obsidian::Outcome;
+use photonic::prism::Outcome;
 
 #[test]
 fn operation() {
@@ -173,7 +173,7 @@ fn exhaustive() {
                         left * right,
                     ),
                 ] {
-                    let mut search = photonic::obsidian::Search::new(
+                    let mut search = photonic::prism::Search::new(
                         parse(&source).unwrap(),
                         parse(&encoding::unsigned(3, 2, expected).unwrap()).unwrap(),
                     )
@@ -289,8 +289,7 @@ fn notation() {
         (numeral, Outcome::Unreachable),
     ] {
         let mut search =
-            photonic::obsidian::Search::new(parse(&source).unwrap(), parse(target).unwrap())
-                .unwrap();
+            photonic::prism::Search::new(parse(&source).unwrap(), parse(target).unwrap()).unwrap();
         search.run(100_000, None);
         let report = search.report();
         assert!(report.execution.closed);

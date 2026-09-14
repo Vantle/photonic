@@ -346,6 +346,7 @@ photonic_library(
 photonic_library(
     name = "formula",
     srcs = ["expression.particle"],
+    visibility = ["//browser:__pkg__"],
     deps = [
         ":convert",
         ":evaluate",
@@ -1372,4 +1373,25 @@ native_test(
         "//system:command",
         "//tool:node",
     ],
+)
+
+photonic_test(
+    name = "case.repeated",
+    srcs = ["case/repeated.wave"],
+    cells = 8192,
+    coherences = 512,
+    frames = 1024,
+    path = True,
+    records = 2000000,
+    source = "",
+    states = 32768,
+    steps = 1000000,
+    targets = ["Done.Zero"],
+    deps = [":formula"],
+)
+
+photonic_binary(
+    name = "repeated",
+    srcs = ["case/repeated.wave"],
+    deps = [":formula"],
 )

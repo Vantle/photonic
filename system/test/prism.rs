@@ -1,5 +1,5 @@
 use crate::lowering::parse;
-use crate::obsidian::{Failure, Outcome, Search};
+use crate::prism::{Failure, Outcome, Search};
 use crate::runtime::Limit;
 
 fn search(program: &str, target: &str) -> Search {

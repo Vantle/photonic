@@ -1,7 +1,10 @@
+mod expression;
 mod failure;
+mod product;
+mod session;
 
 use failure::{Code, Failure};
-use photonic::obsidian::Search;
+use photonic::prism::Search;
 use photonic::runtime::Limit;
 use serde::Deserialize;
 use wasm_bindgen::prelude::wasm_bindgen;
@@ -67,16 +70,29 @@ fn evaluate(input: &[u8]) -> Result<serde_json::Value, Failure> {
     Ok(serde_json::json!({"version": 1, "execution": execution, "verdict": verdict}))
 }
 
-#[wasm_bindgen]
-pub fn execute(input: &str) -> String {
-    let result = if input.len() > 32768 {
-        Err(Failure::new(Code::Size, "keep the request below 32 KiB"))
-    } else {
-        evaluate(input.as_bytes())
-    };
+fn respond(result: Result<serde_json::Value, Failure>) -> String {
     let response = match result {
         Ok(value) => value,
         Err(error) => serde_json::json!({"version": 1, "error": error}),
     };
     serde_json::to_string(&response).unwrap()
+}
+
+#[wasm_bindgen]
+pub fn execute(input: &str) -> String {
+    respond(if input.len() > 32768 {
+        Err(Failure::new(Code::Size, "keep the request below 32 KiB"))
+    } else {
+        evaluate(input.as_bytes())
+    })
+}
+
+#[wasm_bindgen]
+pub fn calculate(input: &str) -> String {
+    respond(expression::run(input))
+}
+
+#[wasm_bindgen]
+pub fn multiply(left: u8, right: u8) -> String {
+    respond(product::run(left, right))
 }

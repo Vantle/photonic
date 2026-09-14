@@ -10,7 +10,7 @@ pub fn run(executable: &str, source: &str) -> Result<ExitCode, Error> {
     };
     let argument = std::env::args_os().skip(1).collect::<Vec<_>>();
     let operation = argument.first().and_then(|value| value.to_str());
-    let explicit = matches!(operation, Some("run" | "obsidian"));
+    let explicit = matches!(operation, Some("run" | "prism"));
     let mut command = Command::new(resolve(executable)?);
     command
         .arg(if explicit { operation.unwrap() } else { "run" })

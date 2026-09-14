@@ -1,4 +1,4 @@
-use photonic::obsidian::{Outcome, Search};
+use photonic::prism::{Outcome, Search};
 use photonic::runtime::Limit;
 use photonic::source::Program;
 use serde::Deserialize;
@@ -108,10 +108,7 @@ fn main() -> Result<ExitCode, Box<dyn std::error::Error>> {
                 &report,
             )?;
         }
-        println!(
-            "Obsidian target {index}: {result:?}; {}",
-            case.targets[index]
-        );
+        println!("Prism target {index}: {result:?}; {}", case.targets[index]);
         let matched = result == expected;
         success = if every {
             success && matched
@@ -123,7 +120,7 @@ fn main() -> Result<ExitCode, Box<dyn std::error::Error>> {
         }
     }
     println!(
-        "Obsidian: match {}; expected {expected:?}; {}",
+        "Prism: match {}; expected {expected:?}; {}",
         case.mode,
         if success { "passed" } else { "failed" }
     );

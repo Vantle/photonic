@@ -1,6 +1,6 @@
 use photonic::lowering::parse;
-use photonic::obsidian::Outcome;
 use photonic::path::{Report, Search};
+use photonic::prism::Outcome;
 use photonic::runtime::Limit;
 
 const RULE: &str = include_str!("../../../library/stream.particle");

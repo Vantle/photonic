@@ -160,3 +160,9 @@ photonic_test(
     targets = ["([Digit] 0).([Carry] 1)"],
     deps = [":binary"],
 )
+
+filegroup(
+    name = "digit",
+    srcs = ["ternary.particle"],
+    visibility = ["//browser:__pkg__"],
+)

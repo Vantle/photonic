@@ -1,5 +1,5 @@
 use crate::flow::Place;
-use crate::obsidian::{Failure, Outcome};
+use crate::prism::{Failure, Outcome};
 use crate::program::Program;
 use crate::runtime::{Limit, Runtime};
 use crate::snapshot::Node;
@@ -126,6 +126,20 @@ impl Search {
         }
     }
 
+    pub fn inspect(&self, index: usize) -> Option<Node> {
+        self.state
+            .get_index(index)
+            .map(|state| Node::new(index, state, &self.runtime.program, Status::Supported))
+    }
+
+    pub fn transition(&self, index: usize) -> Option<&Event> {
+        self.event.get(index)
+    }
+
+    pub fn current(&self) -> Node {
+        self.inspect(self.cursor).unwrap()
+    }
+
     pub fn summary(&self) -> Summary {
         let reached = self.state[self.cursor].as_ref() == &self.goal;
         Summary {
@@ -134,14 +148,7 @@ impl Search {
             } else {
                 Outcome::Unknown
             },
-            witness: reached.then(|| {
-                Node::new(
-                    self.cursor,
-                    &self.state[self.cursor],
-                    &self.runtime.program,
-                    Status::Supported,
-                )
-            }),
+            witness: reached.then(|| self.current()),
             event: self.event.len(),
             work: self.work,
         }

@@ -1,6 +1,6 @@
 use clap::Parser;
-use photonic::obsidian::Outcome;
 use photonic::path::Search;
+use photonic::prism::Outcome;
 use photonic::runtime::Limit;
 use photonic::source::Program;
 use serde::Serialize;

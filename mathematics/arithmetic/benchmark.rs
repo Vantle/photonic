@@ -1,7 +1,7 @@
 use arithmetic::{circuit, encoding};
 use photonic::lowering::parse;
-use photonic::obsidian::Outcome;
 use photonic::path::Search;
+use photonic::prism::Outcome;
 use photonic::runtime::Limit;
 use std::time::Instant;
 

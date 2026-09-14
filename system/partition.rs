@@ -26,6 +26,11 @@ pub(crate) fn refine(edge: &crate::graph::Graph, mut color: Vec<usize>) -> Vec<u
     if start < order.len() {
         partition.push(start..order.len());
     }
+    for group in &partition {
+        for &index in &order[group.clone()] {
+            color[index] = group.start;
+        }
+    }
     let mut length = 0;
     let range = edge
         .iter()
@@ -36,11 +41,29 @@ pub(crate) fn refine(edge: &crate::graph::Graph, mut color: Vec<usize>) -> Vec<u
         })
         .collect::<Vec<_>>();
     let mut signature = vec![(0, 0); length];
-    let mut next = vec![0; color.len()];
+    let incoming = crate::graph::Graph::new(
+        color.len(),
+        edge.iter()
+            .enumerate()
+            .flat_map(|(source, adjacent)| {
+                adjacent
+                    .iter()
+                    .map(move |&(kind, target)| (target, source, kind))
+            })
+            .collect(),
+    );
+    let mut affected = vec![true; color.len()];
+    let mut changed = Vec::new();
     let mut boundary = Vec::new();
     loop {
         boundary.clear();
+        changed.clear();
         for group in &partition {
+            if !order[group.clone()].iter().any(|&index| affected[index]) {
+                boundary.push(group.clone());
+                continue;
+            }
+            let begin = boundary.len();
             if group.len() > 1 {
                 for &index in &order[group.clone()] {
                     let signature = &mut signature[range[index].clone()];
@@ -62,15 +85,34 @@ pub(crate) fn refine(edge: &crate::graph::Graph, mut color: Vec<usize>) -> Vec<u
                     boundary.push(start..position);
                     start = position;
                 }
-                next[order[position]] = boundary.len();
             }
             boundary.push(start..group.end);
+            if boundary.len() > begin + 1 {
+                for part in &boundary[begin..] {
+                    for &index in &order[part.clone()] {
+                        if color[index] != part.start {
+                            changed.push((index, part.start));
+                        }
+                    }
+                }
+            }
         }
         if boundary.len() == partition.len() {
-            return next;
+            for (ordinal, group) in boundary.iter().enumerate() {
+                for &index in &order[group.clone()] {
+                    color[index] = ordinal;
+                }
+            }
+            return color;
+        }
+        affected.fill(false);
+        for &(index, value) in &changed {
+            color[index] = value;
+            for &(_, source) in &incoming[index] {
+                affected[source] = true;
+            }
         }
         std::mem::swap(&mut partition, &mut boundary);
-        std::mem::swap(&mut color, &mut next);
     }
 }
 

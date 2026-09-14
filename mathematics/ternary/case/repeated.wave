@@ -1,0 +1,54 @@
+Push.([Digit] 2).Zero, Stage.1
+[Built,Stage.1] (Push.Multiply) (Forget.Stage.2)
+[Clean.Stage.2] Stage.2
+[Built,Stage.2] (Push.([Digit] 2)) (Forget.Stage.3)
+[Clean.Stage.3] Stage.3
+[Built,Stage.3] (Push.Multiply) (Forget.Stage.4)
+[Clean.Stage.4] Stage.4
+[Built,Stage.4] (Push.([Digit] 2)) (Forget.Stage.5)
+[Clean.Stage.5] Stage.5
+[Built,Stage.5] (Push.Multiply) (Forget.Stage.6)
+[Clean.Stage.6] Stage.6
+[Built,Stage.6] (Push.([Digit] 2)) (Forget.Stage.7)
+[Clean.Stage.7] Stage.7
+[Built,Stage.7] (Push.Multiply) (Forget.Stage.8)
+[Clean.Stage.8] Stage.8
+[Built,Stage.8] (Push.([Digit] 2)) (Forget.Stage.9)
+[Clean.Stage.9] Stage.9
+[Built,Stage.9] (Push.Multiply) (Forget.Stage.10)
+[Clean.Stage.10] Stage.10
+[Built,Stage.10] (Push.([Digit] 2)) (Forget.Stage.11)
+[Clean.Stage.11] Stage.11
+[Built,Stage.11] (Push.Multiply) (Forget.Stage.12)
+[Clean.Stage.12] Stage.12
+[Built,Stage.12] (Push.([Digit] 2)) (Forget.Stage.13)
+[Clean.Stage.13] Stage.13
+[Built,Stage.13] (Push.Multiply) (Forget.Stage.14)
+[Clean.Stage.14] Stage.14
+[Built,Stage.14] (Push.([Digit] 2)) (Forget.Stage.15)
+[Clean.Stage.15] Stage.15
+[Built,Stage.15] (Push.Multiply) (Forget.Stage.16)
+[Clean.Stage.16] Stage.16
+[Built,Stage.16] (Push.([Digit] 2)) (Forget.Stage.17)
+[Clean.Stage.17] Stage.17
+[Built,Stage.17] (Push.Multiply) (Forget.Stage.18)
+[Clean.Stage.18] Stage.18
+[Built,Stage.18] (Push.([Digit] 2)) (Forget.Stage.19)
+[Clean.Stage.19] Stage.19
+[Built,Stage.19] (Function.Expression) (Forget.Inspect.0)
+[Clean.Inspect.0] Inspect.0
+[Return.Expression.Number.Positive,Inspect.0] (Read) (Forget.Inspect.1)
+[Clean.Inspect.1] Inspect.1
+[Yield.([Digit] 1),Inspect.1] (Read) (Forget.Inspect.2)
+[Clean.Inspect.2] Inspect.2
+[Yield.([Digit] 2),Inspect.2] (Read) (Forget.Inspect.3)
+[Clean.Inspect.3] Inspect.3
+[Yield.([Digit] 2),Inspect.3] (Read) (Forget.Inspect.4)
+[Clean.Inspect.4] Inspect.4
+[Yield.([Digit] 1),Inspect.4] (Read) (Forget.Inspect.5)
+[Clean.Inspect.5] Inspect.5
+[Yield.([Digit] 0),Inspect.5] (Read) (Forget.Inspect.6)
+[Clean.Inspect.6] Inspect.6
+[Yield.([Digit] 1),Inspect.6] (Read) (Forget.Inspect.7)
+[Clean.Inspect.7] Inspect.7
+[Yield.([Digit] 1).Zero,Inspect.7] Done.Zero

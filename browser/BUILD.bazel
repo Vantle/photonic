@@ -8,9 +8,20 @@ rust_shared_library(
     name = "engine",
     srcs = [
         "engine.rs",
+        "expression.rs",
         "failure.rs",
+        "product.rs",
+        "session.rs",
+    ],
+    compile_data = [
+        "//mathematics/ternary:formula",
+        "//library:digit",
     ],
     crate_root = "engine.rs",
+    rustc_env = {
+        "FORMULA": "$(execpath //mathematics/ternary:formula)",
+        "DIGIT": "$(execpath //library:digit)",
+    },
     target_compatible_with = ["@platforms//cpu:wasm32"],
     deps = [
         "//system:photonic",
@@ -80,11 +91,13 @@ native_test(
         "$(rlocationpath :webassembly)",
         "$(rlocationpath :javascript)",
         "$(rlocationpath //system:command)",
+        "$(rlocationpath //document:numeral)",
     ],
     data = [
         "test.mjs",
         ":javascript",
         ":webassembly",
+        "//document:numeral",
         "//system:command",
         "//tool:node",
     ],

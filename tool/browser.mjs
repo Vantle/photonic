@@ -119,7 +119,7 @@ try {
         const screenshot = await command(`/session/${session}/screenshot`);
         await writeFile(resolve(process.env.TEST_UNDECLARED_OUTPUTS_DIR, 'graph.png'), Buffer.from(screenshot, 'base64'));
     }
-    assert.equal(await evaluate("return document.getElementById('product-equation').textContent"), '12₃ × 21₃ = 1022₃ · 5 × 7 = 35');
+    assert.equal(await evaluate("return document.getElementById('product-equation').textContent"), '12 (base 3) × 21 (base 3) = 1022 (base 3) · 5 × 7 = 35');
     assert.equal(await evaluate("return document.querySelectorAll('#product-graph path').length"), 8);
     assert.equal(await evaluate("return document.querySelectorAll('#product-column tr').length"), 4);
     assert.deepEqual(await evaluate(`
@@ -143,18 +143,19 @@ try {
         const screenshot = await command(`/session/${session}/screenshot`);
         await writeFile(resolve(process.env.TEST_UNDECLARED_OUTPUTS_DIR, 'product.png'), Buffer.from(screenshot, 'base64'));
     }
-    assert.equal(await evaluate("return document.getElementById('expression-result').textContent"), '12120₃ = 150₁₀');
+    assert.deepEqual(await evaluate("return [...document.querySelectorAll('#ternary h3[id]')].map(value => value.id)"), ['ternary-addition', 'ternary-subtraction', 'ternary-multiplication', 'ternary-division', 'expression']);
+    assert.equal(await evaluate("return document.getElementById('expression-result').textContent"), '12120 (base 3) = 150 (decimal)');
     assert.equal(await evaluate("return document.getElementById('expression-back').disabled"), true);
-    for (const expected of ['2210₃ = 75₁₀', '2221₃ = 79₁₀', '2220₃ = 78₁₀']) {
+    for (const expected of ['2210 (base 3) = 75 (decimal)', '2221 (base 3) = 79 (decimal)', '2220 (base 3) = 78 (decimal)']) {
         await evaluate("document.getElementById('expression-next').click()");
         assert.equal(await evaluate("return document.getElementById('expression-result').textContent"), expected);
     }
     assert.equal(await evaluate("return document.getElementById('expression-next').disabled"), true);
     assert.match(await evaluate("return document.getElementById('expression-rule').textContent"), /Evaluate.Pending.Subtract/);
     await evaluate("document.getElementById('expression-back').click()");
-    assert.equal(await evaluate("return document.getElementById('expression-result').textContent"), '2221₃ = 79₁₀');
+    assert.equal(await evaluate("return document.getElementById('expression-result').textContent"), '2221 (base 3) = 79 (decimal)');
     assert.equal(await evaluate("return document.getElementById('expression-select').options.length"), 4);
-    for (const [selection, expected, count] of [[1, '21₃ = 7₁₀', 2], [2, '101₃ = 10₁₀', 3], [3, '10₃ = 3₁₀', 2]]) {
+    for (const [selection, expected, count] of [[1, '21 (base 3) = 7 (decimal)', 2], [2, '101 (base 3) = 10 (decimal)', 3], [3, '10 (base 3) = 3 (decimal)', 2]]) {
         await evaluate(`const select = document.getElementById('expression-select'); select.value = ${selection}; select.dispatchEvent(new Event('change'));`);
         assert.equal(await evaluate("return document.getElementById('expression-result').textContent"), expected);
         assert.equal(await evaluate("return document.querySelectorAll('#expression-trit .trit-card').length"), count);
@@ -166,11 +167,11 @@ try {
     assert.match(await evaluate("return document.getElementById('expression-note').textContent"), /truncates toward zero/);
     assert.deepEqual(await evaluate("return [...document.querySelectorAll('#expression-tape .token')].map(value => value.textContent)"), ['2', '1', 'Divide', '2', 'Subtract', '1']);
     await evaluate("document.getElementById('expression-next').click()");
-    assert.equal(await evaluate("return document.getElementById('expression-result').textContent"), '2₃ = 2₁₀');
+    assert.equal(await evaluate("return document.getElementById('expression-result').textContent"), '2 (base 3) = 2 (decimal)');
     assert.equal(await evaluate("return document.getElementById('expression-next').disabled"), true);
     await evaluate("const select = document.getElementById('expression-select'); select.value = 0; select.dispatchEvent(new Event('change'));");
     assert.equal(await evaluate("return document.getElementById('expression-source-panel').hidden"), true);
-    assert.equal(await evaluate("return document.getElementById('expression-result').textContent"), '12120₃ = 150₁₀');
+    assert.equal(await evaluate("return document.getElementById('expression-result').textContent"), '12120 (base 3) = 150 (decimal)');
     await evaluate("document.getElementById('expression-lab').scrollIntoView({block: 'start', behavior: 'instant'})");
     if (process.env.TEST_UNDECLARED_OUTPUTS_DIR) {
         const screenshot = await command(`/session/${session}/screenshot`);
@@ -179,16 +180,81 @@ try {
     await command(`/session/${session}/window/rect`, { width: 390, height: 844 });
     assert.ok(await evaluate("return document.documentElement.scrollWidth <= window.innerWidth + 1"));
     await evaluate("const select = document.getElementById('expression-select'); select.value = 3; select.dispatchEvent(new Event('change')); document.getElementById('expression-lab').scrollIntoView({block: 'start', behavior: 'instant'});");
-    assert.equal(await evaluate("return document.getElementById('expression-result').textContent"), '10₃ = 3₁₀');
+    assert.equal(await evaluate("return document.getElementById('expression-result').textContent"), '10 (base 3) = 3 (decimal)');
     await command(`/session/${session}/window/rect`, { width: 1440, height: 1000 });
-    await navigate('/document/reference.html', "return document.getElementById('state')?.children.length > 0");
-    assert.ok(await evaluate("return document.getElementById('example').options.length > 0"), JSON.stringify(await command(`/session/${session}/log`, { type: 'browser' })));
-    await evaluate("document.getElementById('explore').click()");
-    assert.ok(await evaluate("return document.getElementById('event').children.length > 0"));
-    await evaluate("document.getElementById('arrival').click(); document.getElementById('second').click(); document.getElementById('second').click()");
-    assert.match(await evaluate("return document.getElementById('pulse').textContent"), /3 arrivals · 1 completed bindings/);
-    await evaluate("document.getElementById('clear').click()");
-    assert.match(await evaluate("return document.getElementById('pulse').textContent"), /0 arrivals · 0 completed bindings/);
+    for (const [input, expected] of [['12 + 2', '21 (base 3) = 7 (decimal)'], ['-(12 + 2) * 10', '-210 (base 3) = -21 (decimal)'], ['1212 * 10 / 2 + 11 - 1', '2220 (base 3) = 78 (decimal)'], ['2*2*2*2*2*2*2*2*2*2', '1101221 (base 3) = 1024 (decimal)']]) {
+        await evaluate(`document.getElementById('sandbox-input').value = ${JSON.stringify(input)}; document.getElementById('sandbox-run').click();`);
+        for (let attempt = 0; attempt < 450; attempt++) {
+            if (await evaluate("return !document.getElementById('sandbox-run').disabled")) break;
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
+        assert.equal(await evaluate("return document.getElementById('sandbox-result').textContent"), expected);
+        assert.match(await evaluate("return document.getElementById('sandbox-status').textContent"), /Executed here in WebAssembly/);
+        for (let attempt = 0; attempt < 100; attempt++) {
+            if (await evaluate("return /^Event 1 of/.test(document.getElementById('sandbox-position').textContent)")) break;
+            await new Promise(resolve => setTimeout(resolve, 20));
+        }
+        assert.equal(await evaluate("return document.getElementById('sandbox-trace').hidden"), false);
+        assert.match(await evaluate("return document.getElementById('sandbox-before').textContent"), /Configuration 0/);
+        assert.ok(await evaluate("return document.querySelectorAll('#sandbox-rule .syntax-group').length > 0"));
+        assert.ok(await evaluate("return document.querySelectorAll('#sandbox-source .syntax-number').length > 0"));
+        await evaluate("document.getElementById('sandbox-last').click()");
+        for (let attempt = 0; attempt < 100; attempt++) {
+            if (await evaluate("return document.getElementById('sandbox-next').disabled")) break;
+            await new Promise(resolve => setTimeout(resolve, 20));
+        }
+        assert.match(await evaluate("return document.getElementById('sandbox-after').textContent"), /Expression/);
+        assert.equal(await evaluate("return document.getElementById('sandbox-next').disabled"), true);
+        await evaluate("document.getElementById('sandbox-step').value = 2; document.getElementById('sandbox-step').dispatchEvent(new Event('change'))");
+        for (let attempt = 0; attempt < 100; attempt++) {
+            if (await evaluate("return /^Event 2 of/.test(document.getElementById('sandbox-position').textContent)")) break;
+            await new Promise(resolve => setTimeout(resolve, 20));
+        }
+        assert.match(await evaluate("return document.getElementById('sandbox-position').textContent"), /^Event 2 of/);
+    }
+    await command(`/session/${session}/window/rect`, { width: 390, height: 844 });
+    await evaluate("document.querySelector('#sandbox-before details').open = true");
+    assert.ok(await evaluate("return document.documentElement.scrollWidth <= window.innerWidth + 1"));
+    await command(`/session/${session}/window/rect`, { width: 1440, height: 1000 });
+    await evaluate("document.getElementById('sandbox-trace').scrollIntoView({block: 'start', behavior: 'instant'})");
+    if (process.env.TEST_UNDECLARED_OUTPUTS_DIR) {
+        const screenshot = await command(`/session/${session}/screenshot`);
+        await writeFile(resolve(process.env.TEST_UNDECLARED_OUTPUTS_DIR, 'sandbox.png'), Buffer.from(screenshot, 'base64'));
+    }
+    assert.deepEqual(await evaluate(`
+        const target = document.createElement('pre');
+        const source = '<img src=x onerror=alert(1)> [A] B';
+        globalThis.syntax.highlight(target, source);
+        return [target.textContent === source, target.querySelector('img') === null];
+    `), [true, true]);
+    await evaluate("document.getElementById('sandbox-input').value = '1/0'; document.getElementById('sandbox-run').click()");
+    for (let attempt = 0; attempt < 450; attempt++) {
+        if (await evaluate("return !document.getElementById('sandbox-run').disabled")) break;
+        await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    assert.match(await evaluate("return document.getElementById('sandbox-status').textContent"), /Division by zero/);
+    assert.equal(await evaluate("return document.getElementById('sandbox-trace').hidden"), false);
+    assert.equal(await evaluate("return document.getElementById('sandbox-result').textContent"), '');
+    await evaluate("document.getElementById('sandbox-run').click(); document.getElementById('sandbox-stop').click()");
+    assert.match(await evaluate("return document.getElementById('sandbox-status').textContent"), /^Stopped/);
+    await command(`/session/${session}/window/rect`, { width: 390, height: 844 });
+    assert.ok(await evaluate("return document.documentElement.scrollWidth <= window.innerWidth + 1"));
+    await command(`/session/${session}/window/rect`, { width: 1440, height: 1000 });
+    assert.deepEqual(await evaluate(`
+        const identity = [...document.querySelectorAll('[id]')].map(value => value.id);
+        return identity.filter((value, index) => identity.indexOf(value) !== index);
+    `), []);
+    assert.deepEqual(await evaluate(`return [...document.querySelectorAll('a[href^="#"]')].filter(link => link.hash.length > 1 && !document.getElementById(decodeURIComponent(link.hash.slice(1)))).map(link => link.hash)`), []);
+    assert.equal(await evaluate("return document.querySelectorAll('#contents a').length === document.querySelectorAll('.chapter').length"), true);
+    await evaluate("location.hash = 'guide-language-syntax'");
+    for (let attempt = 0; attempt < 20; attempt++) {
+        if (await evaluate("return document.getElementById('guide-language').open")) break;
+        await new Promise(resolve => setTimeout(resolve, 20));
+    }
+    assert.equal(await evaluate("return document.getElementById('guide-language').open"), true);
+    await command(`/session/${session}/window/rect`, { width: 390, height: 844 });
+    await evaluate("document.querySelectorAll('.guide').forEach(value => { value.open = true; })");
+    assert.ok(await evaluate("return document.documentElement.scrollWidth <= window.innerWidth + 1"));
     const message = await command(`/session/${session}/log`, { type: 'browser' });
     assert.deepEqual(message.filter(value => value.level === 'SEVERE'), []);
     assert.deepEqual(missing, []);

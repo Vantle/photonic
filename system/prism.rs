@@ -10,8 +10,8 @@ use thiserror::Error;
 
 #[derive(Debug, Diagnostic, Error)]
 pub enum Failure {
-    #[error("an Obsidian target contains a configuration, without additional declarations")]
-    #[diagnostic(code(photonic::obsidian::declaration))]
+    #[error("an Prism target contains a configuration, without additional declarations")]
+    #[diagnostic(code(photonic::prism::declaration))]
     Declaration,
 }
 

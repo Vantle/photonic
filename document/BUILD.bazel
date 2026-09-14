@@ -3,19 +3,20 @@ filegroup(
     srcs = [
         "book.css",
         "book.js",
+        "calculation.js",
         "demo.record.js",
         "evaluation.js",
         "expression.js",
         "expression.record.js",
         "graph.js",
+        "inspection.js",
         "native.js",
+        "numeral.js",
         "product.js",
         "record.js",
-        "reference.html",
-        "style.css",
-        "trace.js",
+        "sandbox.js",
+        "syntax.js",
         "worker.js",
-        "//document/kernel:source",
     ],
     visibility = ["//tool:__pkg__"],
 )
@@ -24,7 +25,6 @@ filegroup(
     name = "build",
     srcs = [
         "BUILD.bazel",
-        "//document/kernel:build",
     ],
     visibility = ["//:__pkg__"],
 )
@@ -39,4 +39,10 @@ filegroup(
     name = "expression",
     srcs = ["expression.record.js"],
     visibility = ["//mathematics/ternary:__pkg__"],
+)
+
+filegroup(
+    name = "numeral",
+    srcs = ["numeral.js"],
+    visibility = ["//browser:__pkg__"],
 )

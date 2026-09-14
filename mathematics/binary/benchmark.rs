@@ -1,5 +1,5 @@
 use photonic::lowering::parse;
-use photonic::obsidian::{Outcome, Search};
+use photonic::prism::{Outcome, Search};
 use photonic::runtime::Limit;
 use std::time::Instant;
 

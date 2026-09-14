@@ -17,7 +17,7 @@ bazel build --config=lint //...
 
 Open http://127.0.0.1:8080 after starting the preview. The live examples run the Rust evaluator compiled to WebAssembly; Bazel builds the module and its wasm-bindgen bindings. Recorded diagrams remain available when opening the HTML file directly.
 
-Use `bazel test //tool:browser` on ARM64 macOS for the webbook and independent reference laboratory.
+Use `bazel test //tool:browser` on ARM64 macOS for the webbook and its Wasm sandbox.
 
 ## Build native programs
 
@@ -59,9 +59,9 @@ A test accepts literal `source`, file `srcs`, and library `deps`. `targets` is a
 | [mathematics/binary/](mathematics/binary/), [decimal/](mathematics/decimal/) | Sparse numeral examples. |
 | [mathematics/arithmetic/](mathematics/arithmetic/) | Host circuit construction and conformance checks; generated Photonic examples live in `fixture/ternary/`. |
 | [browser/](browser/) | WebAssembly bindings, live preview, and native/Wasm conformance tests. |
-| [photonic/](photonic/) | Bazel rules, source assembly, portable launcher, and Obsidian test runner. |
-| [system/](system/) | Frontend, runtime, Obsidian, command, benchmarks, and conformance tests. |
-| [document/](document/) | Canonical guides and webbook assets. |
+| [photonic/](photonic/) | Bazel rules, source assembly, portable launcher, and Prism test runner. |
+| [system/](system/) | Frontend, runtime, Prism, command, benchmarks, and conformance tests. |
+| [document/](document/) | Webbook assets and raw benchmark evidence. |
 
 Every runnable `.wave` has a `photonic_binary` target. Discover programs and tests with:
 
@@ -75,13 +75,11 @@ rg --files library example mathematics photonic
 
 | Guide | Contents |
 | --- | --- |
-| [Language](document/language.md) | Syntax, configuration semantics, identity, binding, and terminology. |
-| [Native library](document/library.md) | Protocols, atomic fields, dependency layers, evidence, and remaining work. |
-| [Arithmetic](document/arithmetic.md) | Number representations, written arguments, algorithms, and host circuit interface. |
-| [Verification](document/verification.md) | Obsidian, exact configurations, and retained counterexamples. |
-| [Runtime](document/runtime.md) | Implementation and reproducible performance measurements. |
-| [Build and development](document/build.md) | Bazel interfaces, contributions, and platform verification. |
+| [Language](index.html#guide-language) | Syntax, configuration semantics, identity, binding, and terminology. |
+| [Native library](index.html#guide-library) | Protocols, atomic fields, dependency layers, evidence, and remaining work. |
+| [Arithmetic](index.html#guide-arithmetic) | Number representations, written arguments, algorithms, and host circuit interface. |
+| [Verification](index.html#guide-verification) | Prism, exact configurations, and retained counterexamples. |
+| [Runtime](index.html#guide-runtime) | Implementation and reproducible performance measurements. |
+| [Build and development](index.html#guide-build) | Bazel interfaces, contributions, and platform verification. |
 
-The [reference laboratory](document/reference.html) remains an independent executable model used for conformance. The [physical research report](document/research.html) records the physical motivation and sources. Neither is a replacement implementation of the native library.
-
-Current native collection protocols cover finite pairs; general recursive argument binding, arbitrary repeat counts, and arbitrary-width native word arithmetic remain unfinished. Written arguments and finite reachability checks are distinguished from universal machine-checked proofs throughout the guides.
+The webbook is the single maintained guide. Its technical reference includes the full contracts, written arithmetic arguments, current limitations, and reproducible benchmark evidence. Prism checks concrete reachability; it does not provide universal mathematical certificates. Native linked ternary expressions support arbitrary finite widths with sufficient execution budgets.

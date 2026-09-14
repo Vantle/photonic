@@ -19,12 +19,12 @@ fn main() -> miette::Result<()> {
     match Argument::parse().operation {
         Operation::Parse { path } => parse(path),
         Operation::Run { path, execution } => run(path, execution),
-        Operation::Obsidian {
+        Operation::Prism {
             path,
             target,
             walk,
             execution,
-        } => obsidian(path, target, execution, walk),
+        } => prism(path, target, execution, walk),
     }
 }
 
@@ -128,17 +128,12 @@ fn limit(execution: &Execution) -> Limit {
     }
 }
 
-fn obsidian(
-    path: PathBuf,
-    target: PathBuf,
-    execution: Execution,
-    walk: bool,
-) -> miette::Result<()> {
+fn prism(path: PathBuf, target: PathBuf, execution: Execution, walk: bool) -> miette::Result<()> {
     let executor = photonic::executor::Executor::new(execution.worker).into_diagnostic()?;
     if walk {
         return trace(path, target, execution);
     }
-    let mut search = photonic::obsidian::Search::new(
+    let mut search = photonic::prism::Search::new(
         load(&path, &execution)?,
         program(&target, execution.format)?,
     )?;
@@ -150,9 +145,9 @@ fn obsidian(
         return writeln!(output).into_diagnostic();
     }
     let outcome = match report.outcome {
-        photonic::obsidian::Outcome::Reached => "Reached",
-        photonic::obsidian::Outcome::Unreachable => "Unreachable",
-        photonic::obsidian::Outcome::Unknown => "Unknown",
+        photonic::prism::Outcome::Reached => "Reached",
+        photonic::prism::Outcome::Unreachable => "Unreachable",
+        photonic::prism::Outcome::Unknown => "Unknown",
     };
     writeln!(
         output,

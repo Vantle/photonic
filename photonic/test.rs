@@ -72,7 +72,7 @@ fn binary() {
     .unwrap();
     let output = Command::new(executable("LOCAL"))
         .current_dir(&root)
-        .args(["obsidian", "--target"])
+        .args(["prism", "--target"])
         .arg(&target)
         .args([
             "--json", "--path", "--steps", "100000", "--cells", "128", "--states", "1024",

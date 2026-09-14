@@ -1,5 +1,5 @@
 use crate::lowering::parse;
-use crate::obsidian::{Outcome, Search};
+use crate::prism::{Outcome, Search};
 use crate::runtime::Limit;
 
 fn numeral(value: u64) -> String {

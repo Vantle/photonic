@@ -21,6 +21,26 @@
         try { localStorage.setItem('photonic-book-theme', dark ? 'dark' : 'light'); } catch {}
     });
     find('print').addEventListener('click', () => window.print());
+    const reveal = () => {
+        const target = document.getElementById(decodeURIComponent(location.hash.slice(1)));
+        if (!target) return;
+        for (let parent = target; parent; parent = parent.parentElement) {
+            if (parent.tagName === 'DETAILS') parent.open = true;
+        }
+        target.scrollIntoView();
+    };
+    window.addEventListener('hashchange', reveal);
+    if (location.hash) reveal();
+    let folded = [];
+    window.addEventListener('beforeprint', () => {
+        folded = [...document.querySelectorAll('details:not([open])')];
+        folded.forEach(value => { value.open = true; });
+    });
+    window.addEventListener('afterprint', () => {
+        folded.forEach(value => { value.open = false; });
+        folded = [];
+    });
+
     const chapter = [...document.querySelectorAll('.chapter')];
     const link = [...find('contents').querySelectorAll('a')];
     const position = () => {

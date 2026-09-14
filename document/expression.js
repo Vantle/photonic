@@ -21,7 +21,7 @@
         const event = record.event[index];
         find('expression-input').textContent = record.expression;
         find('expression-operation').textContent = event.operation;
-        find('expression-result').textContent = `${event.ternary}₃ = ${event.decimal}₁₀`;
+        find('expression-result').textContent = `${event.ternary} (base 3) = ${event.decimal} (decimal)`;
         find('expression-position').textContent = `${index + 1} / ${record.event.length}`;
         find('expression-rule').textContent = event.rule;
         find('expression-state').textContent = `Recorded configuration ${event.source} → ${event.target}`;
@@ -47,7 +47,7 @@
             const value = document.createElement('strong');
             value.textContent = digit;
             const label = document.createElement('span');
-            label.textContent = `${digit} × 3^${power} = ${BigInt(digit) * weight}₁₀`;
+            label.textContent = `${digit} × 3^${power} = ${BigInt(digit) * weight} (decimal)`;
             tile.append(value, label);
             return tile;
         }));

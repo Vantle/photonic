@@ -151,7 +151,7 @@ _case = rule(
 )
 
 def photonic_test(name, source, targets, srcs = [], deps = [], match = "all", expect = "reached", path = False, steps = 2000000, states = 4096, cells = 256, frames = 64, coherences = 64, records = 2000000, size = "small", visibility = None, tags = []):
-    """Check an exact configuration with Obsidian; Unknown always fails.
+    """Check an exact configuration with Prism; Unknown always fails.
 
     Args:
         name: Test target name.
