@@ -2,6 +2,12 @@ load("@bazel_skylib//rules:native_binary.bzl", "native_binary")
 load("@default_rust_toolchains//rustc:component_labels.bzl", "rust_toolchain_component_label")
 
 native_binary(
+    name = "analyze.rust",
+    src = "@rules_rs//tools/rust_analyzer:gen_rust_project",
+    tags = ["manual"],
+)
+
+native_binary(
     name = "format",
     src = "//tool:execute",
     args = [

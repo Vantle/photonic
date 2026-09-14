@@ -1748,6 +1748,16 @@ photonic_test(
 <p>Declare files read during compilation in <code>compile_data</code>. Declare executables and files read at runtime in <code>data</code>. Pass executable locations with <code>rlocationpath</code> and resolve them through the standard runfiles library; paths relative to the working directory do not provide a portable executable location. The shared runner resolves file arguments before <code>--</code>, forwards subsequent arguments literally, and propagates runfile lookup to child tools. <code>//tool:runner</code> covers nested manifest lookup and exit codes without relying on a physical symlink tree.</p>
 <p>Each package exposes its <code>BUILD.bazel</code> through a private-to-root <code>build</code> filegroup. Add that group to the root <code>build</code> list when introducing a package. This list supplies the Bazel formatting check in <code>tool/</code>. Development-only dependencies stay in that package so loading the library does not require them. Rust formatting and linting follow the build graph, so an ordinary Rust target participates automatically.</p>
 <a id="guide-build-contribution-verification"></a>
+<h4 id="guide-build-editor">Rust editor indexing</h4>
+<pre><code>bazel build //...
+bazel run //:analyze.rust</code></pre>
+<p>This runs the pinned <code>@rules_rs//tools/rust_analyzer:gen_rust_project</code> generator and writes <code>rust-project.json</code> in the repository root. The generated file describes the Bazel crate graph for rust-analyzer and is ignored by Git. Regenerate it after changing targets, dependencies, or the toolchain. Bazel supplies the generator and Rust toolchain; no system Cargo installation is needed.</p>
+<p>The initial build materializes generated crate sources; the project generator can reference outputs that have not been built yet. For VS Code with the rust-analyzer extension, select the generated project explicitly:</p>
+<pre><code>{
+  "rust-analyzer.linkedProjects": ["./rust-project.json"],
+  "rust-analyzer.checkOnSave": false
+}</code></pre>
+<p>Use the Bazel verification commands below for compiler and lint checks. The generated project provides editor indexing; it does not turn this repository into a Cargo workspace.</p>
 <h4 id="guide-build-verification">Verification</h4>
 <p>Run these commands from the repository root:</p>
 <pre><code>bazel build -c opt //...
