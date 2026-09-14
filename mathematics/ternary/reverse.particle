@@ -1,0 +1,36 @@
+[Function.Reverse] (Reverse.Left) (Forget.Reverse.Begin)
+[Clean.Reverse.Begin] (Reverse.Right.Zero) (Reverse.Step)
+[Reverse.Step,Reverse.Left] Read.Reverse.Wait
+[Yield.End.Reverse.Wait.Zero,Reverse.Right] Return.Reverse
+[Built,Reverse.Await] (Reverse.Right) (Forget.Reverse.Step)
+[Clean.Reverse.Step] Reverse.Step
+[Clean.Reverse.Await] Reverse.Await
+
+[Yield.([Digit] 0).Reverse.Wait] (Reverse.Left) (Forget.Reverse.Write.([Digit] 0))
+[Clean.Reverse.Write.([Digit] 0),Reverse.Right] (Push.([Digit] 0)) (Forget.Reverse.Await)
+
+[Yield.([Digit] 1).Reverse.Wait] (Reverse.Left) (Forget.Reverse.Write.([Digit] 1))
+[Clean.Reverse.Write.([Digit] 1),Reverse.Right] (Push.([Digit] 1)) (Forget.Reverse.Await)
+
+[Yield.([Digit] 2).Reverse.Wait] (Reverse.Left) (Forget.Reverse.Write.([Digit] 2))
+[Clean.Reverse.Write.([Digit] 2),Reverse.Right] (Push.([Digit] 2)) (Forget.Reverse.Await)
+[Yield.Mark.Reverse.Wait] (Reverse.Left) (Forget.Reverse.Write.Mark)
+[Clean.Reverse.Write.Mark,Reverse.Right] (Push.Mark) (Forget.Reverse.Await)
+[Yield.Literal.Reverse.Wait] (Reverse.Left) (Forget.Reverse.Write.Literal)
+[Clean.Reverse.Write.Literal,Reverse.Right] (Push.Literal) (Forget.Reverse.Await)
+[Yield.Add.Reverse.Wait] (Reverse.Left) (Forget.Reverse.Write.Add)
+[Clean.Reverse.Write.Add,Reverse.Right] (Push.Add) (Forget.Reverse.Await)
+[Yield.Subtract.Reverse.Wait] (Reverse.Left) (Forget.Reverse.Write.Subtract)
+[Clean.Reverse.Write.Subtract,Reverse.Right] (Push.Subtract) (Forget.Reverse.Await)
+[Yield.Multiply.Reverse.Wait] (Reverse.Left) (Forget.Reverse.Write.Multiply)
+[Clean.Reverse.Write.Multiply,Reverse.Right] (Push.Multiply) (Forget.Reverse.Await)
+[Yield.Divide.Reverse.Wait] (Reverse.Left) (Forget.Reverse.Write.Divide)
+[Clean.Reverse.Write.Divide,Reverse.Right] (Push.Divide) (Forget.Reverse.Await)
+[Yield.Open.Reverse.Wait] (Reverse.Left) (Forget.Reverse.Write.Open)
+[Clean.Reverse.Write.Open,Reverse.Right] (Push.Open) (Forget.Reverse.Await)
+[Yield.Close.Reverse.Wait] (Reverse.Left) (Forget.Reverse.Write.Close)
+[Clean.Reverse.Write.Close,Reverse.Right] (Push.Close) (Forget.Reverse.Await)
+[Yield.Negative.Reverse.Wait] (Reverse.Left) (Forget.Reverse.Write.Negative)
+[Clean.Reverse.Write.Negative,Reverse.Right] (Push.Negative) (Forget.Reverse.Await)
+[Yield.Negate.Reverse.Wait] (Reverse.Left) (Forget.Reverse.Write.Negate)
+[Clean.Reverse.Write.Negate,Reverse.Right] (Push.Negate) (Forget.Reverse.Await)

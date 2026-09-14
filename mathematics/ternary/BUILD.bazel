@@ -1,4 +1,84 @@
-load("//photonic:defs.bzl", "photonic_binary", "photonic_test")
+load("@bazel_skylib//rules:native_binary.bzl", "native_binary", "native_test")
+load("//photonic:defs.bzl", "photonic_binary", "photonic_library", "photonic_test")
+
+photonic_library(
+    name = "successor",
+    srcs = ["successor.particle"],
+    deps = [":chain"],
+)
+
+photonic_test(
+    name = "carry.check",
+    srcs = ["carry.wave"],
+    cells = 8192,
+    coherences = 512,
+    frames = 1024,
+    path = True,
+    records = 10000000,
+    source = "",
+    steps = 10000000,
+    targets = ["Done.Zero"],
+    deps = [":successor"],
+)
+
+photonic_library(
+    name = "chain",
+    srcs = ["chain.particle"],
+)
+
+photonic_library(
+    name = "reverse",
+    srcs = ["reverse.particle"],
+    deps = [":chain"],
+)
+
+photonic_binary(
+    name = "reversal",
+    srcs = ["reversal.wave"],
+    deps = [":reverse"],
+)
+
+photonic_test(
+    name = "reversal.check",
+    srcs = ["reversal.wave"],
+    cells = 1024,
+    coherences = 128,
+    frames = 128,
+    path = True,
+    source = "",
+    targets = ["Done.Zero"],
+    deps = [":reverse"],
+)
+
+photonic_test(
+    name = "reverse.zero",
+    path = True,
+    source = "Function.Reverse.Zero",
+    targets = ["Return.Reverse.Zero"],
+    deps = [":reverse"],
+)
+
+photonic_binary(
+    name = "wide",
+    srcs = ["wide.wave"],
+    deps = [":reverse"],
+)
+
+photonic_test(
+    name = "wide.check",
+    size = "medium",
+    srcs = ["wide.wave"],
+    cells = 4096,
+    coherences = 256,
+    frames = 512,
+    path = True,
+    records = 5000000,
+    source = "",
+    states = 8192,
+    steps = 5000000,
+    targets = ["Done.Zero"],
+    deps = [":reverse"],
+)
 
 filegroup(
     name = "fixture",
@@ -72,4 +152,1066 @@ photonic_test(
     srcs = ["sum.wave"],
     source = "",
     targets = ["3^1.3^4.3^4.3^6.3^6"],
+)
+
+photonic_library(
+    name = "erase",
+    srcs = ["erase.particle"],
+    deps = [":chain"],
+)
+
+photonic_library(
+    name = "add",
+    srcs = ["add.particle"],
+    deps = [":column"],
+)
+
+photonic_library(
+    name = "subtract",
+    srcs = ["subtract.particle"],
+    deps = [
+        ":borrow",
+        ":erase",
+    ],
+)
+
+photonic_test(
+    name = "addition.check",
+    srcs = ["addition.wave"],
+    cells = 4096,
+    coherences = 256,
+    frames = 512,
+    path = True,
+    records = 10000000,
+    source = "",
+    steps = 10000000,
+    targets = ["Done.Zero"],
+    deps = [":add"],
+)
+
+photonic_test(
+    name = "subtraction.check",
+    srcs = ["subtraction.wave"],
+    cells = 4096,
+    coherences = 256,
+    frames = 512,
+    path = True,
+    records = 10000000,
+    source = "",
+    steps = 10000000,
+    targets = ["Done.Zero"],
+    deps = [":subtract"],
+)
+
+photonic_library(
+    name = "trim",
+    srcs = ["trim.particle"],
+    deps = [":reverse"],
+)
+
+photonic_library(
+    name = "normalize",
+    srcs = ["normalize.particle"],
+    deps = [":trim"],
+)
+
+photonic_library(
+    name = "copy",
+    srcs = ["copy.particle"],
+    deps = [":reverse"],
+)
+
+photonic_library(
+    name = "multiply",
+    srcs = ["multiply.particle"],
+    deps = [
+        ":add",
+        ":copy",
+        ":erase",
+        ":normalize",
+    ],
+)
+
+photonic_test(
+    name = "multiplication.check",
+    srcs = ["multiplication.wave"],
+    cells = 8192,
+    coherences = 512,
+    frames = 1024,
+    path = True,
+    records = 20000000,
+    source = "",
+    states = 16384,
+    steps = 20000000,
+    targets = ["Done.Zero"],
+    deps = [":multiply"],
+)
+
+photonic_library(
+    name = "divide",
+    srcs = ["divide.particle"],
+    deps = [
+        ":copy",
+        ":erase",
+        ":normalize",
+        ":subtract",
+    ],
+)
+
+photonic_test(
+    name = "division.check",
+    srcs = ["division.wave"],
+    cells = 8192,
+    coherences = 512,
+    frames = 1024,
+    path = True,
+    records = 50000000,
+    source = "",
+    states = 32768,
+    steps = 50000000,
+    targets = ["Done.Zero, Remainder"],
+    deps = [":divide"],
+)
+
+photonic_library(
+    name = "split",
+    srcs = ["split.particle"],
+    deps = [
+        ":erase",
+        ":reverse",
+    ],
+)
+
+photonic_library(
+    name = "join",
+    srcs = ["join.particle"],
+    deps = [":reverse"],
+)
+
+photonic_library(
+    name = "evaluate",
+    srcs = ["evaluate.particle"],
+    deps = [
+        ":integer",
+        ":join",
+        ":split",
+    ],
+)
+
+photonic_test(
+    name = "expression.check",
+    srcs = ["expression.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Done.Zero"],
+    deps = [":evaluate"],
+)
+
+photonic_test(
+    name = "composition.check",
+    srcs = ["composition.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Done.Zero"],
+    deps = [":evaluate"],
+)
+
+photonic_binary(
+    name = "expression",
+    srcs = ["expression.wave"],
+    deps = [":evaluate"],
+)
+
+photonic_library(
+    name = "convert",
+    srcs = ["convert.particle"],
+    deps = [
+        ":erase",
+        ":reverse",
+    ],
+)
+
+photonic_library(
+    name = "formula",
+    srcs = ["expression.particle"],
+    deps = [
+        ":convert",
+        ":evaluate",
+    ],
+)
+
+photonic_test(
+    name = "infix.check",
+    srcs = ["infix.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Done.Zero"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "parenthesis.check",
+    srcs = ["parenthesis.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Done.Zero"],
+    deps = [":formula"],
+)
+
+photonic_binary(
+    name = "infix",
+    srcs = ["infix.wave"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "case.precedence",
+    srcs = ["case/precedence.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Done.Zero"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "case.association",
+    srcs = ["case/association.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Done.Zero"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "case.borrow",
+    srcs = ["case/borrow.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Done.Zero"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "case.product",
+    srcs = ["case/product.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Done.Zero"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "case.remainder",
+    srcs = ["case/remainder.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Done.Zero"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "case.equal",
+    srcs = ["case/equal.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Done.Zero"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "case.empty",
+    srcs = ["case/empty.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Done.Zero"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "case.leading",
+    srcs = ["case/leading.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Done.Zero"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "case.short",
+    srcs = ["case/short.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Done.Zero"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "case.depth",
+    srcs = ["case/depth.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Done.Zero"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "case.width",
+    srcs = ["case/width.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Done.Zero"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "case.divisor",
+    srcs = ["case/divisor.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Return.Expression.Error.Divisor"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "case.opening",
+    srcs = ["case/opening.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Return.Expression.Error.Syntax"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "case.closing",
+    srcs = ["case/closing.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Return.Expression.Error.Syntax"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "case.trailing",
+    srcs = ["case/trailing.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Return.Expression.Error.Syntax"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "case.consecutive",
+    srcs = ["case/consecutive.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Return.Expression.Error.Syntax"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "case.missing",
+    srcs = ["case/missing.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Return.Expression.Error.Syntax"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "case.stack",
+    srcs = ["case/stack.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Return.Evaluate.Error.Stack"],
+    deps = [":evaluate"],
+)
+
+photonic_test(
+    name = "case.extra",
+    srcs = ["case/extra.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Return.Evaluate.Error.Stack"],
+    deps = [":evaluate"],
+)
+
+photonic_test(
+    name = "case.operand",
+    srcs = ["case/operand.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Return.Evaluate.Error.Stack"],
+    deps = [":evaluate"],
+)
+
+photonic_library(
+    name = "difference",
+    srcs = ["difference.particle"],
+    deps = [
+        ":borrow",
+        ":complement",
+    ],
+)
+
+photonic_library(
+    name = "integer",
+    srcs = ["integer.particle"],
+    deps = [
+        ":add",
+        ":difference",
+        ":divide",
+        ":multiply",
+    ],
+)
+
+photonic_test(
+    name = "case.negative",
+    srcs = ["case/negative.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Done.Zero"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "case.unary",
+    srcs = ["case/unary.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Done.Zero"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "case.difference",
+    srcs = ["case/difference.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Done.Zero"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "case.sign",
+    srcs = ["case/sign.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Done.Zero"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "case.quotient",
+    srcs = ["case/quotient.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Done.Zero"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "case.double",
+    srcs = ["case/double.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Done.Zero"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "case.cancel",
+    srcs = ["case/cancel.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Done.Zero"],
+    deps = [":formula"],
+)
+
+native_binary(
+    name = "record",
+    src = "//tool:execute",
+    args = [
+        "$(rlocationpath //tool:node)",
+        "$(rlocationpath record.mjs)",
+        "$(rlocationpath //system:command)",
+        "$(rlocationpath :infix.program)",
+        "$(rlocationpath result.particle)",
+    ],
+    data = [
+        "record.mjs",
+        "result.particle",
+        ":infix.program",
+        "//system:command",
+        "//tool:node",
+    ],
+)
+
+photonic_test(
+    name = "case.polarity.0",
+    srcs = ["case/polarity.0.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Done.Zero"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "case.polarity.1",
+    srcs = ["case/polarity.1.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Done.Zero"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "case.polarity.2",
+    srcs = ["case/polarity.2.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Done.Zero"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "case.polarity.3",
+    srcs = ["case/polarity.3.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Done.Zero"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "case.polarity.4",
+    srcs = ["case/polarity.4.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Done.Zero"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "case.polarity.5",
+    srcs = ["case/polarity.5.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Done.Zero"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "case.polarity.6",
+    srcs = ["case/polarity.6.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Done.Zero"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "case.polarity.7",
+    srcs = ["case/polarity.7.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Done.Zero"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "case.polarity.8",
+    srcs = ["case/polarity.8.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Done.Zero"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "case.polarity.9",
+    srcs = ["case/polarity.9.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Done.Zero"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "case.polarity.10",
+    srcs = ["case/polarity.10.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Done.Zero"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "case.polarity.11",
+    srcs = ["case/polarity.11.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Done.Zero"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "case.polarity.12",
+    srcs = ["case/polarity.12.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Done.Zero"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "case.polarity.13",
+    srcs = ["case/polarity.13.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Done.Zero"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "case.polarity.14",
+    srcs = ["case/polarity.14.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Done.Zero"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "case.polarity.15",
+    srcs = ["case/polarity.15.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Done.Zero"],
+    deps = [":formula"],
+)
+
+photonic_library(
+    name = "borrow",
+    srcs = ["borrow.particle"],
+    deps = [":column"],
+)
+
+photonic_library(
+    name = "complement",
+    srcs = ["complement.particle"],
+    deps = [
+        ":normalize",
+        ":successor",
+    ],
+)
+
+photonic_library(
+    name = "column",
+    srcs = ["column.particle"],
+    deps = [":trim"],
+)
+
+photonic_test(
+    name = "case.complement",
+    srcs = ["case/complement.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Done.Zero"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "case.padding",
+    srcs = ["case/padding.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Done.Zero"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "case.opposite",
+    srcs = ["case/opposite.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Done.Zero"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "column.fork",
+    source = "Column.Step",
+    targets = ["Column.Request.([Side] Left), Column.Request.([Side] Right)"],
+    deps = [":column"],
+)
+
+photonic_test(
+    name = "column.read",
+    source = "Read.Zero.Column.Reader.([Side] Left), Read.Zero.Column.Reader.([Side] Right)",
+    targets = ["Column.Left.Zero, Column.Right.Zero, Clean.Column.Value.([First] End), Clean.Column.Value.([Second] End)"],
+    deps = [":column"],
+)
+
+photonic_test(
+    name = "column.association",
+    source = "Yield.([Digit] 1).Zero.Column.Reader.([Side] Left), Yield.([Digit] 2).Zero.Column.Reader.([Side] Right)",
+    targets = ["Column.Left.Zero, Column.Right.Zero, Clean.Column.Value.([First] 1), Clean.Column.Value.([Second] 2)"],
+    deps = [":column"],
+)
+
+photonic_test(
+    name = "column.exchange",
+    expect = "unreachable",
+    source = "Yield.([Digit] 1).Zero.Column.Reader.([Side] Left), Yield.([Digit] 2).Zero.Column.Reader.([Side] Right)",
+    targets = ["Column.Left.Zero, Column.Right.Zero, Clean.Column.Value.([First] 2), Clean.Column.Value.([Second] 1)"],
+    deps = [":column"],
+)
+
+native_test(
+    name = "performance",
+    size = "medium",
+    src = "//tool:execute",
+    args = [
+        "$(rlocationpath //tool:node)",
+        "$(rlocationpath record.mjs)",
+        "$(rlocationpath //system:command)",
+        "$(rlocationpath :infix.program)",
+        "$(rlocationpath result.particle)",
+    ],
+    data = [
+        "record.mjs",
+        "result.particle",
+        ":infix.program",
+        "//system:command",
+        "//tool:node",
+    ],
+)
+
+photonic_test(
+    name = "column.completion",
+    expect = "unreachable",
+    source = "Return.Column.Positive.Zero, Evaluate.Pending.Add",
+    targets = ["Return.Add.Zero.Evaluate"],
+    deps = [":add"],
+)
+
+photonic_test(
+    name = "column.begin",
+    source = "Function.Column, Operand.Left.Zero, Operand.Right.Zero",
+    targets = ["Column.Left.Zero, Column.Right.Zero, Clean.Column.Value.([First] End), Clean.Column.Value.([Second] End), Column.Output.Zero, Column.Carry.0"],
+    deps = [":column"],
+)
+
+photonic_test(
+    name = "copy.left",
+    source = "Yield.End.Copy.Wait.Zero, Copy.Left.Zero",
+    targets = ["Return.Copy.Left.Zero, Copy.End.([Side] Right)"],
+    deps = [":copy"],
+)
+
+photonic_test(
+    name = "copy.right",
+    source = "Yield.End.Copy.Wait.Zero, Copy.Right.Zero",
+    targets = ["Copy.End.([Side] Left), Return.Copy.Right.Zero"],
+    deps = [":copy"],
 )

@@ -1,0 +1,41 @@
+[Function.Multiply,Operand.Left] (Multiply.Factor) (Forget.Multiply.Begin)
+[Clean.Multiply.Begin,Operand.Right] (Function.Reverse) (Forget.Multiply.Prepare)
+[Clean.Multiply.Prepare] Multiply.Prepare
+[Return.Reverse,Multiply.Prepare] (Multiply.Input) (Forget.Multiply.Start)
+[Clean.Multiply.Start] (Multiply.Output.Zero) (Multiply.Step)
+[Multiply.Step,Multiply.Input] Read.Multiply.Wait
+[Yield.([Digit] 0).Multiply.Wait] (Multiply.Input) (Forget.Multiply.Shift.0)
+[Clean.Multiply.Shift.0,Multiply.Output] (Push.([Digit] 0)) (Forget.Multiply.Await.0)
+[Clean.Multiply.Await.0] Multiply.Await.0
+[Built,Multiply.Await.0] (Multiply.Output) (Forget.Multiply.Repeat.0)
+[Yield.([Digit] 1).Multiply.Wait] (Multiply.Input) (Forget.Multiply.Shift.1)
+[Clean.Multiply.Shift.1,Multiply.Output] (Push.([Digit] 0)) (Forget.Multiply.Await.1)
+[Clean.Multiply.Await.1] Multiply.Await.1
+[Built,Multiply.Await.1] (Multiply.Output) (Forget.Multiply.Repeat.1)
+[Yield.([Digit] 2).Multiply.Wait] (Multiply.Input) (Forget.Multiply.Shift.2)
+[Clean.Multiply.Shift.2,Multiply.Output] (Push.([Digit] 0)) (Forget.Multiply.Await.2)
+[Clean.Multiply.Await.2] Multiply.Await.2
+[Built,Multiply.Await.2] (Multiply.Output) (Forget.Multiply.Repeat.2)
+[Clean.Multiply.Repeat.0] Multiply.Step
+[Clean.Multiply.Repeat.1,Multiply.Factor] (Function.Copy) (Forget.Multiply.Copy.1)
+[Clean.Multiply.Copy.1] Multiply.Copy.1
+[Return.Copy.Left,Multiply.Copy.1] (Multiply.Factor) (Forget.Multiply.Second.1)
+[Clean.Multiply.Second.1] Multiply.Second.1
+[Return.Copy.Right,Multiply.Second.1] (Operand.Right) (Forget.Multiply.First.1)
+[Clean.Multiply.First.1,Multiply.Output] (Operand.Left) (Forget.Multiply.Invoke.1)
+[Clean.Multiply.Invoke.1] (Function.Add) (Multiply.Pending.1)
+[Return.Add,Multiply.Pending.1] (Multiply.Output) (Forget.Multiply.Repeat.0)
+[Clean.Multiply.Repeat.2,Multiply.Factor] (Function.Copy) (Forget.Multiply.Copy.2)
+[Clean.Multiply.Copy.2] Multiply.Copy.2
+[Return.Copy.Left,Multiply.Copy.2] (Multiply.Factor) (Forget.Multiply.Second.2)
+[Clean.Multiply.Second.2] Multiply.Second.2
+[Return.Copy.Right,Multiply.Second.2] (Operand.Right) (Forget.Multiply.First.2)
+[Clean.Multiply.First.2,Multiply.Output] (Operand.Left) (Forget.Multiply.Invoke.2)
+[Clean.Multiply.Invoke.2] (Function.Add) (Multiply.Pending.2)
+[Return.Add,Multiply.Pending.2] (Multiply.Output) (Forget.Multiply.Repeat.1)
+[Yield.End.Multiply.Wait.Zero] Clean.Multiply.End
+[Clean.Multiply.End,Multiply.Factor] (Function.Erase) (Forget.Multiply.Erase)
+[Clean.Multiply.Erase] Multiply.Erase
+[Return.Erase,Multiply.Erase,Multiply.Output] (Function.Normalize) (Forget.Multiply.Finish)
+[Clean.Multiply.Finish] Multiply.Finish
+[Return.Normalize,Multiply.Finish] Return.Multiply

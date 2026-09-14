@@ -4,6 +4,8 @@ filegroup(
         "book.css",
         "book.js",
         "evaluation.js",
+        "expression.js",
+        "expression.record.js",
         "graph.js",
         "native.js",
         "product.js",

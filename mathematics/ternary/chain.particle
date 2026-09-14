@@ -1,0 +1,96 @@
+[Forget.Zero] Clean
+[Read.Zero] Yield.End.Zero
+[Push.([Digit] 0)] (
+    Build
+    [Build] (Prepare.Head.([Seal] ()).([Request] ()).([Handle] ()).([Prepare.Head.([Seal] ()).([Request] ())] (Forget [Clean] Restore)).([Restore.([Handle] ())] Built.Head.([Seal] ())).([Forget.Head.([Seal] ())] (Discard [Return] Clean)).([Read.Head.([Seal] ()),Cell.([Seal] ())] (Discard [Return] Emit.0))) (
+        Cell.([Seal] ())
+    )
+    [Discard.([Prepare.Head.([Seal] ()).([Request] ())] (Forget [Clean] Restore)).([Restore.([Handle] ())] Built.Head.([Seal] ())).([Forget.Head.([Seal] ())] (Discard [Return] Clean)).([Read.Head.([Seal] ()),Cell.([Seal] ())] (Discard [Return] Emit.0))] Return
+)
+[Emit.0] Yield.([Digit] 0)
+[Push.([Digit] 1)] (
+    Build
+    [Build] (Prepare.Head.([Seal] ()).([Request] ()).([Handle] ()).([Prepare.Head.([Seal] ()).([Request] ())] (Forget [Clean] Restore)).([Restore.([Handle] ())] Built.Head.([Seal] ())).([Forget.Head.([Seal] ())] (Discard [Return] Clean)).([Read.Head.([Seal] ()),Cell.([Seal] ())] (Discard [Return] Emit.1))) (
+        Cell.([Seal] ())
+    )
+    [Discard.([Prepare.Head.([Seal] ()).([Request] ())] (Forget [Clean] Restore)).([Restore.([Handle] ())] Built.Head.([Seal] ())).([Forget.Head.([Seal] ())] (Discard [Return] Clean)).([Read.Head.([Seal] ()),Cell.([Seal] ())] (Discard [Return] Emit.1))] Return
+)
+[Emit.1] Yield.([Digit] 1)
+[Push.([Digit] 2)] (
+    Build
+    [Build] (Prepare.Head.([Seal] ()).([Request] ()).([Handle] ()).([Prepare.Head.([Seal] ()).([Request] ())] (Forget [Clean] Restore)).([Restore.([Handle] ())] Built.Head.([Seal] ())).([Forget.Head.([Seal] ())] (Discard [Return] Clean)).([Read.Head.([Seal] ()),Cell.([Seal] ())] (Discard [Return] Emit.2))) (
+        Cell.([Seal] ())
+    )
+    [Discard.([Prepare.Head.([Seal] ()).([Request] ())] (Forget [Clean] Restore)).([Restore.([Handle] ())] Built.Head.([Seal] ())).([Forget.Head.([Seal] ())] (Discard [Return] Clean)).([Read.Head.([Seal] ()),Cell.([Seal] ())] (Discard [Return] Emit.2))] Return
+)
+[Emit.2] Yield.([Digit] 2)
+[Push.Mark] (
+    Build
+    [Build] (Prepare.Head.([Seal] ()).([Request] ()).([Handle] ()).([Prepare.Head.([Seal] ()).([Request] ())] (Forget [Clean] Restore)).([Restore.([Handle] ())] Built.Head.([Seal] ())).([Forget.Head.([Seal] ())] (Discard [Return] Clean)).([Read.Head.([Seal] ()),Cell.([Seal] ())] (Discard [Return] Yield.Mark))) (
+        Cell.([Seal] ())
+    )
+    [Discard.([Prepare.Head.([Seal] ()).([Request] ())] (Forget [Clean] Restore)).([Restore.([Handle] ())] Built.Head.([Seal] ())).([Forget.Head.([Seal] ())] (Discard [Return] Clean)).([Read.Head.([Seal] ()),Cell.([Seal] ())] (Discard [Return] Yield.Mark))] Return
+)
+[Push.Literal] (
+    Build
+    [Build] (Prepare.Head.([Seal] ()).([Request] ()).([Handle] ()).([Prepare.Head.([Seal] ()).([Request] ())] (Forget [Clean] Restore)).([Restore.([Handle] ())] Built.Head.([Seal] ())).([Forget.Head.([Seal] ())] (Discard [Return] Clean)).([Read.Head.([Seal] ()),Cell.([Seal] ())] (Discard [Return] Yield.Literal))) (
+        Cell.([Seal] ())
+    )
+    [Discard.([Prepare.Head.([Seal] ()).([Request] ())] (Forget [Clean] Restore)).([Restore.([Handle] ())] Built.Head.([Seal] ())).([Forget.Head.([Seal] ())] (Discard [Return] Clean)).([Read.Head.([Seal] ()),Cell.([Seal] ())] (Discard [Return] Yield.Literal))] Return
+)
+[Push.Add] (
+    Build
+    [Build] (Prepare.Head.([Seal] ()).([Request] ()).([Handle] ()).([Prepare.Head.([Seal] ()).([Request] ())] (Forget [Clean] Restore)).([Restore.([Handle] ())] Built.Head.([Seal] ())).([Forget.Head.([Seal] ())] (Discard [Return] Clean)).([Read.Head.([Seal] ()),Cell.([Seal] ())] (Discard [Return] Yield.Add))) (
+        Cell.([Seal] ())
+    )
+    [Discard.([Prepare.Head.([Seal] ()).([Request] ())] (Forget [Clean] Restore)).([Restore.([Handle] ())] Built.Head.([Seal] ())).([Forget.Head.([Seal] ())] (Discard [Return] Clean)).([Read.Head.([Seal] ()),Cell.([Seal] ())] (Discard [Return] Yield.Add))] Return
+)
+[Push.Subtract] (
+    Build
+    [Build] (Prepare.Head.([Seal] ()).([Request] ()).([Handle] ()).([Prepare.Head.([Seal] ()).([Request] ())] (Forget [Clean] Restore)).([Restore.([Handle] ())] Built.Head.([Seal] ())).([Forget.Head.([Seal] ())] (Discard [Return] Clean)).([Read.Head.([Seal] ()),Cell.([Seal] ())] (Discard [Return] Yield.Subtract))) (
+        Cell.([Seal] ())
+    )
+    [Discard.([Prepare.Head.([Seal] ()).([Request] ())] (Forget [Clean] Restore)).([Restore.([Handle] ())] Built.Head.([Seal] ())).([Forget.Head.([Seal] ())] (Discard [Return] Clean)).([Read.Head.([Seal] ()),Cell.([Seal] ())] (Discard [Return] Yield.Subtract))] Return
+)
+[Push.Multiply] (
+    Build
+    [Build] (Prepare.Head.([Seal] ()).([Request] ()).([Handle] ()).([Prepare.Head.([Seal] ()).([Request] ())] (Forget [Clean] Restore)).([Restore.([Handle] ())] Built.Head.([Seal] ())).([Forget.Head.([Seal] ())] (Discard [Return] Clean)).([Read.Head.([Seal] ()),Cell.([Seal] ())] (Discard [Return] Yield.Multiply))) (
+        Cell.([Seal] ())
+    )
+    [Discard.([Prepare.Head.([Seal] ()).([Request] ())] (Forget [Clean] Restore)).([Restore.([Handle] ())] Built.Head.([Seal] ())).([Forget.Head.([Seal] ())] (Discard [Return] Clean)).([Read.Head.([Seal] ()),Cell.([Seal] ())] (Discard [Return] Yield.Multiply))] Return
+)
+[Push.Divide] (
+    Build
+    [Build] (Prepare.Head.([Seal] ()).([Request] ()).([Handle] ()).([Prepare.Head.([Seal] ()).([Request] ())] (Forget [Clean] Restore)).([Restore.([Handle] ())] Built.Head.([Seal] ())).([Forget.Head.([Seal] ())] (Discard [Return] Clean)).([Read.Head.([Seal] ()),Cell.([Seal] ())] (Discard [Return] Yield.Divide))) (
+        Cell.([Seal] ())
+    )
+    [Discard.([Prepare.Head.([Seal] ()).([Request] ())] (Forget [Clean] Restore)).([Restore.([Handle] ())] Built.Head.([Seal] ())).([Forget.Head.([Seal] ())] (Discard [Return] Clean)).([Read.Head.([Seal] ()),Cell.([Seal] ())] (Discard [Return] Yield.Divide))] Return
+)
+[Push.Open] (
+    Build
+    [Build] (Prepare.Head.([Seal] ()).([Request] ()).([Handle] ()).([Prepare.Head.([Seal] ()).([Request] ())] (Forget [Clean] Restore)).([Restore.([Handle] ())] Built.Head.([Seal] ())).([Forget.Head.([Seal] ())] (Discard [Return] Clean)).([Read.Head.([Seal] ()),Cell.([Seal] ())] (Discard [Return] Yield.Open))) (
+        Cell.([Seal] ())
+    )
+    [Discard.([Prepare.Head.([Seal] ()).([Request] ())] (Forget [Clean] Restore)).([Restore.([Handle] ())] Built.Head.([Seal] ())).([Forget.Head.([Seal] ())] (Discard [Return] Clean)).([Read.Head.([Seal] ()),Cell.([Seal] ())] (Discard [Return] Yield.Open))] Return
+)
+[Push.Close] (
+    Build
+    [Build] (Prepare.Head.([Seal] ()).([Request] ()).([Handle] ()).([Prepare.Head.([Seal] ()).([Request] ())] (Forget [Clean] Restore)).([Restore.([Handle] ())] Built.Head.([Seal] ())).([Forget.Head.([Seal] ())] (Discard [Return] Clean)).([Read.Head.([Seal] ()),Cell.([Seal] ())] (Discard [Return] Yield.Close))) (
+        Cell.([Seal] ())
+    )
+    [Discard.([Prepare.Head.([Seal] ()).([Request] ())] (Forget [Clean] Restore)).([Restore.([Handle] ())] Built.Head.([Seal] ())).([Forget.Head.([Seal] ())] (Discard [Return] Clean)).([Read.Head.([Seal] ()),Cell.([Seal] ())] (Discard [Return] Yield.Close))] Return
+)
+[Push.Negative] (
+    Build
+    [Build] (Prepare.Head.([Seal] ()).([Request] ()).([Handle] ()).([Prepare.Head.([Seal] ()).([Request] ())] (Forget [Clean] Restore)).([Restore.([Handle] ())] Built.Head.([Seal] ())).([Forget.Head.([Seal] ())] (Discard [Return] Clean)).([Read.Head.([Seal] ()),Cell.([Seal] ())] (Discard [Return] Yield.Negative))) (
+        Cell.([Seal] ())
+    )
+    [Discard.([Prepare.Head.([Seal] ()).([Request] ())] (Forget [Clean] Restore)).([Restore.([Handle] ())] Built.Head.([Seal] ())).([Forget.Head.([Seal] ())] (Discard [Return] Clean)).([Read.Head.([Seal] ()),Cell.([Seal] ())] (Discard [Return] Yield.Negative))] Return
+)
+[Push.Negate] (
+    Build
+    [Build] (Prepare.Head.([Seal] ()).([Request] ()).([Handle] ()).([Prepare.Head.([Seal] ()).([Request] ())] (Forget [Clean] Restore)).([Restore.([Handle] ())] Built.Head.([Seal] ())).([Forget.Head.([Seal] ())] (Discard [Return] Clean)).([Read.Head.([Seal] ()),Cell.([Seal] ())] (Discard [Return] Yield.Negate))) (
+        Cell.([Seal] ())
+    )
+    [Discard.([Prepare.Head.([Seal] ()).([Request] ())] (Forget [Clean] Restore)).([Restore.([Handle] ())] Built.Head.([Seal] ())).([Forget.Head.([Seal] ())] (Discard [Return] Clean)).([Read.Head.([Seal] ()),Cell.([Seal] ())] (Discard [Return] Yield.Negate))] Return
+)

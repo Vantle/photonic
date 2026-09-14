@@ -1,0 +1,9 @@
+[Function.Expression] (Function.Convert) (Forget.Expression.Wait)
+[Clean.Expression.Wait] Expression.Wait
+[Return.Convert.Program,Expression.Wait] (Function.Evaluate) (Forget.Expression.Finish)
+[Clean.Expression.Finish] Expression.Finish
+[Return.Evaluate.Number,Expression.Finish] Return.Expression.Number
+[Return.Convert.Error.Syntax,Expression.Wait] Return.Expression.Error.Syntax
+[Return.Evaluate.Error.Syntax,Expression.Finish] Return.Expression.Error.Syntax
+[Return.Evaluate.Error.Stack,Expression.Finish] Return.Expression.Error.Stack
+[Return.Evaluate.Error.Divisor,Expression.Finish] Return.Expression.Error.Divisor

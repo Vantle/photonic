@@ -1,0 +1,9 @@
+[Function.Trim] Read.Trim.Wait
+[Yield.([Digit] 0).Trim.Wait] Read.Trim.Wait
+[Yield.End.Trim.Wait] Return.Trim
+[Yield.([Digit] 1).Trim.Wait] (Push.([Digit] 1)) (Forget.Trim.Await)
+[Yield.([Digit] 2).Trim.Wait] (Push.([Digit] 2)) (Forget.Trim.Await)
+[Clean.Trim.Await] Trim.Await
+[Built,Trim.Await] (Function.Reverse) (Forget.Trim.Finish)
+[Clean.Trim.Finish] Trim.Finish
+[Return.Reverse,Trim.Finish] Return.Trim

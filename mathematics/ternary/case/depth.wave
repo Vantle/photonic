@@ -1,0 +1,89 @@
+Push.Close.Zero, Stage.1
+[Built,Stage.1] (Push.Close) (Forget.Stage.2)
+[Clean.Stage.2] Stage.2
+[Built,Stage.2] (Push.Close) (Forget.Stage.3)
+[Clean.Stage.3] Stage.3
+[Built,Stage.3] (Push.Close) (Forget.Stage.4)
+[Clean.Stage.4] Stage.4
+[Built,Stage.4] (Push.Close) (Forget.Stage.5)
+[Clean.Stage.5] Stage.5
+[Built,Stage.5] (Push.Close) (Forget.Stage.6)
+[Clean.Stage.6] Stage.6
+[Built,Stage.6] (Push.Close) (Forget.Stage.7)
+[Clean.Stage.7] Stage.7
+[Built,Stage.7] (Push.Close) (Forget.Stage.8)
+[Clean.Stage.8] Stage.8
+[Built,Stage.8] (Push.Close) (Forget.Stage.9)
+[Clean.Stage.9] Stage.9
+[Built,Stage.9] (Push.Close) (Forget.Stage.10)
+[Clean.Stage.10] Stage.10
+[Built,Stage.10] (Push.Close) (Forget.Stage.11)
+[Clean.Stage.11] Stage.11
+[Built,Stage.11] (Push.Close) (Forget.Stage.12)
+[Clean.Stage.12] Stage.12
+[Built,Stage.12] (Push.Close) (Forget.Stage.13)
+[Clean.Stage.13] Stage.13
+[Built,Stage.13] (Push.Close) (Forget.Stage.14)
+[Clean.Stage.14] Stage.14
+[Built,Stage.14] (Push.Close) (Forget.Stage.15)
+[Clean.Stage.15] Stage.15
+[Built,Stage.15] (Push.Close) (Forget.Stage.16)
+[Clean.Stage.16] Stage.16
+[Built,Stage.16] (Push.Close) (Forget.Stage.17)
+[Clean.Stage.17] Stage.17
+[Built,Stage.17] (Push.Close) (Forget.Stage.18)
+[Clean.Stage.18] Stage.18
+[Built,Stage.18] (Push.Close) (Forget.Stage.19)
+[Clean.Stage.19] Stage.19
+[Built,Stage.19] (Push.Close) (Forget.Stage.20)
+[Clean.Stage.20] Stage.20
+[Built,Stage.20] (Push.Close) (Forget.Stage.21)
+[Clean.Stage.21] Stage.21
+[Built,Stage.21] (Push.([Digit] 2)) (Forget.Stage.22)
+[Clean.Stage.22] Stage.22
+[Built,Stage.22] (Push.Open) (Forget.Stage.23)
+[Clean.Stage.23] Stage.23
+[Built,Stage.23] (Push.Open) (Forget.Stage.24)
+[Clean.Stage.24] Stage.24
+[Built,Stage.24] (Push.Open) (Forget.Stage.25)
+[Clean.Stage.25] Stage.25
+[Built,Stage.25] (Push.Open) (Forget.Stage.26)
+[Clean.Stage.26] Stage.26
+[Built,Stage.26] (Push.Open) (Forget.Stage.27)
+[Clean.Stage.27] Stage.27
+[Built,Stage.27] (Push.Open) (Forget.Stage.28)
+[Clean.Stage.28] Stage.28
+[Built,Stage.28] (Push.Open) (Forget.Stage.29)
+[Clean.Stage.29] Stage.29
+[Built,Stage.29] (Push.Open) (Forget.Stage.30)
+[Clean.Stage.30] Stage.30
+[Built,Stage.30] (Push.Open) (Forget.Stage.31)
+[Clean.Stage.31] Stage.31
+[Built,Stage.31] (Push.Open) (Forget.Stage.32)
+[Clean.Stage.32] Stage.32
+[Built,Stage.32] (Push.Open) (Forget.Stage.33)
+[Clean.Stage.33] Stage.33
+[Built,Stage.33] (Push.Open) (Forget.Stage.34)
+[Clean.Stage.34] Stage.34
+[Built,Stage.34] (Push.Open) (Forget.Stage.35)
+[Clean.Stage.35] Stage.35
+[Built,Stage.35] (Push.Open) (Forget.Stage.36)
+[Clean.Stage.36] Stage.36
+[Built,Stage.36] (Push.Open) (Forget.Stage.37)
+[Clean.Stage.37] Stage.37
+[Built,Stage.37] (Push.Open) (Forget.Stage.38)
+[Clean.Stage.38] Stage.38
+[Built,Stage.38] (Push.Open) (Forget.Stage.39)
+[Clean.Stage.39] Stage.39
+[Built,Stage.39] (Push.Open) (Forget.Stage.40)
+[Clean.Stage.40] Stage.40
+[Built,Stage.40] (Push.Open) (Forget.Stage.41)
+[Clean.Stage.41] Stage.41
+[Built,Stage.41] (Push.Open) (Forget.Stage.42)
+[Clean.Stage.42] Stage.42
+[Built,Stage.42] (Push.Open) (Forget.Stage.43)
+[Clean.Stage.43] Stage.43
+[Built,Stage.43] Function.Expression
+[Return.Expression.Number.Positive] (Read) (Forget.Inspect.0)
+[Clean.Inspect.0] Inspect.0
+[Yield.([Digit] 2),Inspect.0] Done

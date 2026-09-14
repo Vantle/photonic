@@ -13,6 +13,8 @@
 <script defer src="document/evaluation.js"></script>
 <script defer src="document/graph.js"></script>
 <script defer src="document/product.js"></script>
+<script defer src="document/expression.record.js"></script>
+<script defer src="document/expression.js"></script>
 </head>
 <body>
 <a class="skip" href="#content">Skip to the book</a>
@@ -220,7 +222,7 @@ Pair.Other
 <section class="chapter" id="ternary" data-title="Base three ternary compressed representation digits carry multiplication subtraction division">
 <div class="chapter-number">08 / COMPRESSED ARITHMETIC</div><h2>Writing numbers<br><em>in base three.</em></h2>
 <p class="lead">A positional ternary word uses digits 0, 1, and 2. Each position carries a power of three.</p>
-<p>The arithmetic implementation accepts natural operands up to twenty trits. A complete word includes an explicit digit at every position. Fields such as ([Digit.0] 2) preserve role, position, and value as separate concepts.</p>
+<p>The circuit implementation accepts natural operands up to twenty trits. A complete word includes an explicit digit at every position. Fields such as ([Digit.0] 2) preserve role, position, and value as separate concepts. The <a href="#expression">native expression library below</a> uses linked trits and has no fixed digit width.</p>
 <div class="lab"><div class="lab-heading"><span class="tag">REPRESENTATION LENS</span><h3>Read a number in base three</h3></div><label for="numeral">Decimal numeral</label><input id="numeral" type="number" min="0" max="1000000" step="1" value="1500"><p id="numeral-error" class="error" role="status"></p><div id="trit-strip" class="trit-strip"></div><p id="numeral-expansion" class="equation"></p><p class="caption">A browser arithmetic illustration. The positional labels below correspond to the ordinary concepts used by the library, not built-in numerical literals.</p></div>
 <h3>Write a numeral by hand</h3>
 <p>Forty-seven is <code>1202</code> in base three: 27 + 18 + 2. In the sparse power library, its source is:</p>
@@ -271,6 +273,26 @@ Pair.Other
 <p class="source-link"><a href="library/stream.particle">The twelve reusable rules</a> · <a href="mathematics/ternary/stream.wave">Input stream</a></p>
 <h3>Division gives an explicit result shape</h3><p>For a nonzero divisor, the output includes quotient digits, remainder digits, and <code>([Undefined] 0)</code>. Division by zero produces quotient zero, the original dividend as remainder, and <code>([Undefined] 1)</code>. The arithmetic rules define this result format.</p>
 <p class="source-link"><a href="library/ternary.particle">Digit rules</a> · <a href="mathematics/arithmetic/circuit.rs">Shared circuit builder</a> · <a href="mathematics/arithmetic/encoding.rs">Output encoding</a></p>
+<h3 id="expression">A complete expression, entirely in Photonic</h3>
+<p>The native library parses precedence and parentheses, evaluates signed integer arithmetic, and feeds each result into the next operation. Numerals, the operator stack, and the value stack use linked cells whose identities come from captured scopes. The same finite library handles every finite digit width and nesting depth; execution still needs sufficient memory and work budgets.</p>
+<p>Multiplication and division bind before addition and subtraction. Binary operators associate left to right; unary minus binds first. Division truncates toward zero. The lower arithmetic layer also returns the remainder. Division by zero and malformed expressions return structured errors.</p>
+<p>Addition and subtraction share a column engine that starts left and right reads independently. Finished magnitude copies also return independently. Reads carry their continuations directly, and signed subtraction recovers negative magnitudes without copying both operands. Complete subexpressions still execute sequentially in the recorded path. <a href="document/expression.md#optimization-and-concurrency">Optimization measurements and concurrency boundaries</a> describe the tested improvements.</p>
+<div class="lab" id="expression-lab">
+<div class="lab-heading"><span class="tag verified">RECORDED NATIVE EXPRESSION</span><h3>50 × 3 ÷ 2 + 4 − 1</h3></div>
+<p class="equation">1212₃ × 10₃ ÷ 2₃ + 11₃ − 1₃ = 2220₃ = 78₁₀</p>
+<p>Follow the multiplication, division, addition, and subtraction in one execution. Each displayed value is decoded from the linked numeral produced by Photonic.</p>
+<div class="answer"><span id="expression-operation"></span><strong id="expression-result" aria-live="polite"></strong></div>
+<div class="stepper"><button id="expression-back" type="button">← Previous operation</button><output id="expression-position"></output><button id="expression-next" type="button">Next operation →</button></div>
+<pre id="expression-rule" class="event-rule"></pre>
+<p id="expression-state" class="caption"></p><p id="expression-count" class="caption"></p>
+<div class="example"><div class="example-bar"><span>Run the complete native expression</span><a href="mathematics/ternary/infix.wave">Input and result check ↗</a></div><pre><code>bazel test -c opt //mathematics/ternary:infix.check --test_output=all</code></pre></div>
+<details><summary>Inspect the full execution</summary><pre><code>bazel run -c opt //mathematics/ternary:infix -- obsidian \
+  --target "$PWD/mathematics/ternary/result.particle" --path \
+  --steps 100000000 --states 65536 --cells 16384 \
+  --frames 2048 --coherences 1024 --records 100000000 --json</code></pre><p>The fixture reads every result trit before accepting <code>Done.Zero</code>. This verifies the full linked result and its cleanup. Remove its inspection rules to retain <code>Return.Expression.Number.Positive</code> with the numeral head and cells for another native operation.</p></details>
+<p class="caption">This viewer navigates a saved native execution. The browser’s small live sandbox has lower budgets. The recorder runs the existing engine and formats its results; parsing, precedence, and arithmetic all execute in Photonic. A reached target proves this path, not that every possible path has been explored.</p>
+</div>
+<p class="source-link"><a href="document/expression.md">Representation, API, algorithms, and limits</a> · <a href="mathematics/ternary/expression.particle">Expression function</a> · <a href="mathematics/ternary/convert.particle">Native precedence parser</a> · <a href="mathematics/ternary/evaluate.particle">Reusable evaluator</a> · <a href="mathematics/ternary/parenthesis.wave">Parenthesized example</a></p>
 </section>
 <section class="chapter" id="library" data-title="Library build Bazel source targets test all any photonic_library photonic_binary photonic_test atomic numeral dependencies">
 <div class="chapter-number">09 / LIBRARY</div><h2>Build and test<br><em>a library.</em></h2>
@@ -308,7 +330,7 @@ photonic_test(
 <p>Use <code>path = True</code> for direct-path reachability witnesses. Each target then receives its own path search; unreachability requires full exploration. Bazel fails inconclusive or mismatched tests and retains JSON reports for inspection.</p>
 <div class="example"><pre><code>bazel test -c opt //example/library:pipeline.check
 bazel test -c opt //mathematics/ternary:position.check</code></pre></div>
-<p>The native pipeline forks two producer scopes, maps their results independently, and joins payloads with explicit completion evidence. Pair protocols and the finite position adapter are implemented. General Repeat, arbitrary-width native arithmetic, and generic recursive binding remain open work.</p>
+<p>The native pipeline forks two producer scopes, maps their results independently, and joins payloads with explicit completion evidence. Pair protocols and the finite position adapter are implemented. The linked expression library now supplies arbitrary-width native arithmetic and expression stacks. General Repeat and generic recursive binding remain separate work.</p>
 <p class="source-link"><a href="document/library.md">Library contracts and dependency graph</a> · <a href="document/build.md#test">Test interface</a> · <a href="README.md">Repository map</a></p>
 </section>
 <section class="chapter" id="workshop" data-title="Workshop Obsidian proof reachability arithmetic commands results run examples">

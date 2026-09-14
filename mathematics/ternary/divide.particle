@@ -1,0 +1,67 @@
+[Function.Divide,Operand.Right] (Function.Normalize) (Forget.Divide.Begin)
+[Clean.Divide.Begin] Divide.Begin
+[Return.Normalize.Zero,Divide.Begin,Operand.Left] (Function.Erase) (Forget.Divide.Failure)
+[Clean.Divide.Failure] Divide.Failure
+[Return.Erase,Divide.Failure] Return.Divide.Error.Divisor
+[Return.Normalize.Head,Divide.Begin] (Divide.Factor.Head) (Forget.Divide.Prepare.Head)
+[Clean.Divide.Prepare,Operand.Left] (Function.Reverse) (Forget.Divide.Start)
+[Clean.Divide.Start] Divide.Start
+[Return.Reverse,Divide.Start] (Divide.Input) (Forget.Divide.Beginning)
+[Clean.Divide.Beginning] (Divide.Remainder.Zero) (Divide.Output.Zero) (Divide.Step)
+[Divide.Step,Divide.Input] Read.Divide.Wait
+[Yield.([Digit] 0).Divide.Wait] (Divide.Input) (Forget.Divide.Shift.0)
+[Clean.Divide.Shift.0,Divide.Remainder] (Push.([Digit] 0)) (Forget.Divide.Await)
+[Yield.([Digit] 1).Divide.Wait] (Divide.Input) (Forget.Divide.Shift.1)
+[Clean.Divide.Shift.1,Divide.Remainder] (Push.([Digit] 1)) (Forget.Divide.Await)
+[Yield.([Digit] 2).Divide.Wait] (Divide.Input) (Forget.Divide.Shift.2)
+[Clean.Divide.Shift.2,Divide.Remainder] (Push.([Digit] 2)) (Forget.Divide.Await)
+[Clean.Divide.Await] Divide.Await
+[Built,Divide.Await] (Divide.Remainder) (Forget.Divide.Trial.0)
+[Clean.Divide.Trial.0] Divide.Trial.0
+[Divide.Trial.0,Divide.Remainder] (Function.Copy) (Forget.Divide.Copy.0)
+[Clean.Divide.Copy.0] Divide.Copy.0
+[Return.Copy.Left,Divide.Copy.0] (Divide.Backup) (Forget.Divide.Second.0)
+[Clean.Divide.Second.0] Divide.Second.0
+[Return.Copy.Right,Divide.Second.0] (Operand.Left) (Forget.Divide.Factor.0)
+[Clean.Divide.Factor.0,Divide.Factor] (Function.Copy) (Forget.Divide.Preserve.0)
+[Clean.Divide.Preserve.0] Divide.Preserve.0
+[Return.Copy.Left,Divide.Preserve.0] (Divide.Factor) (Forget.Divide.Last.0)
+[Clean.Divide.Last.0] Divide.Last.0
+[Return.Copy.Right,Divide.Last.0] (Operand.Right) (Forget.Divide.Invoke.0)
+[Clean.Divide.Invoke.0] (Function.Subtract) (Divide.Pending.0)
+[Return.Subtract.Error.Underflow,Divide.Pending.0,Divide.Backup] (Divide.Remainder) (Forget.Divide.Digit.0)
+[Return.Subtract.Number,Divide.Pending.0] (Divide.Remainder) (Forget.Divide.Accept.0)
+[Clean.Divide.Accept.0,Divide.Backup] (Function.Erase) (Forget.Divide.Next.0)
+[Clean.Divide.Next.0] Divide.Next.0
+[Divide.Trial.1,Divide.Remainder] (Function.Copy) (Forget.Divide.Copy.1)
+[Clean.Divide.Copy.1] Divide.Copy.1
+[Return.Copy.Left,Divide.Copy.1] (Divide.Backup) (Forget.Divide.Second.1)
+[Clean.Divide.Second.1] Divide.Second.1
+[Return.Copy.Right,Divide.Second.1] (Operand.Left) (Forget.Divide.Factor.1)
+[Clean.Divide.Factor.1,Divide.Factor] (Function.Copy) (Forget.Divide.Preserve.1)
+[Clean.Divide.Preserve.1] Divide.Preserve.1
+[Return.Copy.Left,Divide.Preserve.1] (Divide.Factor) (Forget.Divide.Last.1)
+[Clean.Divide.Last.1] Divide.Last.1
+[Return.Copy.Right,Divide.Last.1] (Operand.Right) (Forget.Divide.Invoke.1)
+[Clean.Divide.Invoke.1] (Function.Subtract) (Divide.Pending.1)
+[Return.Subtract.Error.Underflow,Divide.Pending.1,Divide.Backup] (Divide.Remainder) (Forget.Divide.Digit.1)
+[Return.Subtract.Number,Divide.Pending.1] (Divide.Remainder) (Forget.Divide.Accept.1)
+[Clean.Divide.Accept.1,Divide.Backup] (Function.Erase) (Forget.Divide.Next.1)
+[Clean.Divide.Next.1] Divide.Next.1
+[Return.Erase,Divide.Next.0] Divide.Trial.1
+[Return.Erase,Divide.Next.1] Clean.Divide.Digit.2
+[Clean.Divide.Digit.0,Divide.Output] (Push.([Digit] 0)) (Forget.Divide.Written)
+[Clean.Divide.Digit.1,Divide.Output] (Push.([Digit] 1)) (Forget.Divide.Written)
+[Clean.Divide.Digit.2,Divide.Output] (Push.([Digit] 2)) (Forget.Divide.Written)
+[Clean.Divide.Written] Divide.Written
+[Built,Divide.Written] (Divide.Output) (Forget.Divide.Step)
+[Clean.Divide.Step] Divide.Step
+[Yield.End.Divide.Wait.Zero] Clean.Divide.End
+[Clean.Divide.End,Divide.Factor] (Function.Erase) (Forget.Divide.Erase)
+[Clean.Divide.Erase] Divide.Erase
+[Return.Erase,Divide.Erase,Divide.Output] (Function.Normalize) (Forget.Divide.Finish)
+[Clean.Divide.Finish] Divide.Finish
+[Return.Normalize,Divide.Finish] (Return.Divide.Quotient) (Forget.Divide.Complete)
+[Clean.Divide.Complete,Divide.Remainder] (Function.Normalize) (Forget.Divide.Last)
+[Clean.Divide.Last] Divide.Last
+[Return.Normalize,Divide.Last] Return.Divide.Remainder

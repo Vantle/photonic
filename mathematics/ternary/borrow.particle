@@ -1,0 +1,3 @@
+[Function.Borrow] (Function.Column) (Column.Mode.([Operation] Borrow)) (Borrow.([Await] ()))
+[Return.Column.Positive,Borrow.([Await] ())] Return.Borrow.Positive
+[Return.Column.Negative,Borrow.([Await] ())] Return.Borrow.Negative

@@ -1,0 +1,26 @@
+[Function.Copy] (Function.Reverse) (Forget.Copy.Prepare)
+[Clean.Copy.Prepare] Copy.Prepare
+[Return.Reverse,Copy.Prepare] (Copy.Input) (Forget.Copy.Begin)
+[Clean.Copy.Begin] (Copy.Left.Zero) (Copy.Right.Zero) (Copy.Step)
+[Copy.Step,Copy.Input] Read.Copy.Wait
+[Yield.([Digit] 0).Copy.Wait] (Copy.Input) (Forget.Copy.First.0)
+[Clean.Copy.First.0,Copy.Left] (Push.([Digit] 0)) (Forget.Copy.Await.0)
+[Clean.Copy.Await.0] Copy.Await.0
+[Built,Copy.Await.0] (Copy.Left) (Forget.Copy.Second.0)
+[Clean.Copy.Second.0,Copy.Right] (Push.([Digit] 0)) (Forget.Copy.Finish)
+[Yield.([Digit] 1).Copy.Wait] (Copy.Input) (Forget.Copy.First.1)
+[Clean.Copy.First.1,Copy.Left] (Push.([Digit] 1)) (Forget.Copy.Await.1)
+[Clean.Copy.Await.1] Copy.Await.1
+[Built,Copy.Await.1] (Copy.Left) (Forget.Copy.Second.1)
+[Clean.Copy.Second.1,Copy.Right] (Push.([Digit] 1)) (Forget.Copy.Finish)
+[Yield.([Digit] 2).Copy.Wait] (Copy.Input) (Forget.Copy.First.2)
+[Clean.Copy.First.2,Copy.Left] (Push.([Digit] 2)) (Forget.Copy.Await.2)
+[Clean.Copy.Await.2] Copy.Await.2
+[Built,Copy.Await.2] (Copy.Left) (Forget.Copy.Second.2)
+[Clean.Copy.Second.2,Copy.Right] (Push.([Digit] 2)) (Forget.Copy.Finish)
+[Clean.Copy.Finish] Copy.Finish
+[Built,Copy.Finish] (Copy.Right) (Forget.Copy.Step)
+[Clean.Copy.Step] Copy.Step
+[Yield.End.Copy.Wait.Zero] (Copy.End.([Side] Left)) (Copy.End.([Side] Right))
+[Copy.End.([Side] Left),Copy.Left] Return.Copy.Left
+[Copy.End.([Side] Right),Copy.Right] Return.Copy.Right

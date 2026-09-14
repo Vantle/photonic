@@ -7,6 +7,7 @@
 - [Multiplication by repeated addition](#repetition)
 - [Multiplication from two runtime numerals](#product)
 - [Ternary arithmetic](#word)
+- [Native expressions](expression.md)
 - [Ternary streams](#stream)
 - [Arithmetic and parallel execution](#algorithm)
 - [Choosing a compact representation](#representation)
@@ -631,7 +632,7 @@ All pairs of two-trit operands are tested for all four operations, including wro
 
 These are concrete checks plus written invariants, not universally quantified arithmetic certificates. Path success proves a witness; a failed path remains Unknown and other paths are not exhausted. Reports are inspection artifacts, not independently replayable certificates.
 
-The [stream investigation](#stream) includes a twelve-rule ternary successor, validated through ordered direct execution traces. Arithmetic over arbitrary unknown stream tails and the construction of functional result numerals are still unresolved. There is no hidden wildcard, structural binder, or native number handler filling that gap. The current deliverable is a working, measured ternary word implementation with ordinary-rule semantics.
+The [stream investigation](#stream) includes a twelve-rule ternary successor, validated through ordered direct execution traces. The newer [native expression library](expression.md) constructs reusable linked numerals and evaluates signed integer expressions with no fixed digit width. It uses captured scope identities and ordinary declarations. The word implementation remains a separate circuit interface.
 
 <a id="word-library-boundary"></a>
 
@@ -661,7 +662,7 @@ Native local digit operations and stream successor are supplied by [the standard
 
 ## Ternary streams
 
-Status: a fixed-rule successor produces the correct digit sequence on the tested direct paths. It does not yet construct a reusable numeral value. The [word implementation](#word) remains the arithmetic implementation for exact numerical targets.
+Status of this earlier representation: a fixed-rule successor produces the correct digit sequence on the tested direct paths. It does not construct a reusable numeral value. The separate [linked representation](expression.md) now implements reusable numerals, arithmetic, and expression evaluation using existing Photonic semantics.
 
 <a id="stream-representation"></a>
 
@@ -827,7 +828,7 @@ These are unfinished milestones. The symmetry optimization is independently usef
 
 The [representation comparison](#representation) assesses higher radices, native limbs, redundant binary forms, and residue systems. The binary library also implements signed subtraction of unsigned operands and quotient/remainder division with an explicit zero-divisor result. These remain ordinary generated rules with no arithmetic runtime primitive.
 
-The current default is the shared [ternary arithmetic implementation](#word). It includes all four operations, domain-limited digit tables, dead-gate removal, immutable compiled-program sharing, and indexed matching. The recorded comparison favors column reduction over the balanced layout on the tested serial workload. This does not close the arbitrary-stream or universal-certificate milestones.
+The current default is the shared [ternary arithmetic implementation](#word). It includes all four operations, domain-limited digit tables, dead-gate removal, immutable compiled-program sharing, and indexed matching. The recorded comparison favors column reduction over the balanced layout on the tested serial workload. The separate [native expression library](expression.md) now supplies arbitrary finite linked numerals and expression stacks. Universal certificates remain open.
 
 <a id="representation"></a>
 
@@ -916,7 +917,7 @@ The balanced version was about 12% slower in this serial sample despite slightly
 bazel run -c opt //mathematics/arithmetic:benchmark
 ```
 
-The [ternary comparison](library.md#structure) records four sparse-addition cases, including a counterexample to a universal ternary speedup. The [functional investigation](#stream) separates genuine reusable stream traversal from the still-missing generic arithmetic composition.
+The [ternary comparison](library.md#structure) records four sparse-addition cases, including a counterexample to a universal ternary speedup. The [functional investigation](#stream) records the earlier stream protocol; [native expressions](expression.md) now implement generic arithmetic composition over linked trits.
 
 <a id="representation-next-experiment"></a>
 

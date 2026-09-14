@@ -143,6 +143,21 @@ try {
         const screenshot = await command(`/session/${session}/screenshot`);
         await writeFile(resolve(process.env.TEST_UNDECLARED_OUTPUTS_DIR, 'product.png'), Buffer.from(screenshot, 'base64'));
     }
+    assert.equal(await evaluate("return document.getElementById('expression-result').textContent"), '12120₃ = 150₁₀');
+    assert.equal(await evaluate("return document.getElementById('expression-back').disabled"), true);
+    for (const expected of ['2210₃ = 75₁₀', '2221₃ = 79₁₀', '2220₃ = 78₁₀']) {
+        await evaluate("document.getElementById('expression-next').click()");
+        assert.equal(await evaluate("return document.getElementById('expression-result').textContent"), expected);
+    }
+    assert.equal(await evaluate("return document.getElementById('expression-next').disabled"), true);
+    assert.match(await evaluate("return document.getElementById('expression-rule').textContent"), /Evaluate.Pending.Subtract/);
+    await evaluate("document.getElementById('expression-back').click()");
+    assert.equal(await evaluate("return document.getElementById('expression-result').textContent"), '2221₃ = 79₁₀');
+    await evaluate("document.getElementById('expression-lab').scrollIntoView({block: 'start', behavior: 'instant'})");
+    if (process.env.TEST_UNDECLARED_OUTPUTS_DIR) {
+        const screenshot = await command(`/session/${session}/screenshot`);
+        await writeFile(resolve(process.env.TEST_UNDECLARED_OUTPUTS_DIR, 'expression.png'), Buffer.from(screenshot, 'base64'));
+    }
     await navigate('/document/reference.html', "return document.getElementById('state')?.children.length > 0");
     assert.ok(await evaluate("return document.getElementById('example').options.length > 0"), JSON.stringify(await command(`/session/${session}/log`, { type: 'browser' })));
     await evaluate("document.getElementById('explore').click()");

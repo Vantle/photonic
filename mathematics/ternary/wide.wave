@@ -1,0 +1,86 @@
+Push.([Digit] 2).Zero, Stage.1
+[Built,Stage.1] (Push.([Digit] 0)) (Forget.Stage.2)
+[Clean.Stage.2] Stage.2
+[Built,Stage.2] (Push.([Digit] 1)) (Forget.Stage.3)
+[Clean.Stage.3] Stage.3
+[Built,Stage.3] (Push.([Digit] 2)) (Forget.Stage.4)
+[Clean.Stage.4] Stage.4
+[Built,Stage.4] (Push.([Digit] 0)) (Forget.Stage.5)
+[Clean.Stage.5] Stage.5
+[Built,Stage.5] (Push.([Digit] 1)) (Forget.Stage.6)
+[Clean.Stage.6] Stage.6
+[Built,Stage.6] (Push.([Digit] 2)) (Forget.Stage.7)
+[Clean.Stage.7] Stage.7
+[Built,Stage.7] (Push.([Digit] 0)) (Forget.Stage.8)
+[Clean.Stage.8] Stage.8
+[Built,Stage.8] (Push.([Digit] 1)) (Forget.Stage.9)
+[Clean.Stage.9] Stage.9
+[Built,Stage.9] (Push.([Digit] 2)) (Forget.Stage.10)
+[Clean.Stage.10] Stage.10
+[Built,Stage.10] (Push.([Digit] 0)) (Forget.Stage.11)
+[Clean.Stage.11] Stage.11
+[Built,Stage.11] (Push.([Digit] 1)) (Forget.Stage.12)
+[Clean.Stage.12] Stage.12
+[Built,Stage.12] (Push.([Digit] 2)) (Forget.Stage.13)
+[Clean.Stage.13] Stage.13
+[Built,Stage.13] (Push.([Digit] 0)) (Forget.Stage.14)
+[Clean.Stage.14] Stage.14
+[Built,Stage.14] (Push.([Digit] 1)) (Forget.Stage.15)
+[Clean.Stage.15] Stage.15
+[Built,Stage.15] (Push.([Digit] 2)) (Forget.Stage.16)
+[Clean.Stage.16] Stage.16
+[Built,Stage.16] (Push.([Digit] 0)) (Forget.Stage.17)
+[Clean.Stage.17] Stage.17
+[Built,Stage.17] (Push.([Digit] 1)) (Forget.Stage.18)
+[Clean.Stage.18] Stage.18
+[Built,Stage.18] (Push.([Digit] 2)) (Forget.Stage.19)
+[Clean.Stage.19] Stage.19
+[Built,Stage.19] (Push.([Digit] 0)) (Forget.Stage.20)
+[Clean.Stage.20] Stage.20
+[Built,Stage.20] (Push.([Digit] 1)) (Forget.Stage.21)
+[Clean.Stage.21] Stage.21
+[Built,Stage.21] (Function.Reverse) (Forget.Inspect.Start)
+[Clean.Inspect.Start] Inspect.Start
+[Return.Reverse,Inspect.Start] (Read) (Forget.Inspect.0)
+[Clean.Inspect.0] Inspect.0
+[Yield.([Digit] 2),Inspect.0] (Read) (Forget.Inspect.1)
+[Clean.Inspect.1] Inspect.1
+[Yield.([Digit] 0),Inspect.1] (Read) (Forget.Inspect.2)
+[Clean.Inspect.2] Inspect.2
+[Yield.([Digit] 1),Inspect.2] (Read) (Forget.Inspect.3)
+[Clean.Inspect.3] Inspect.3
+[Yield.([Digit] 2),Inspect.3] (Read) (Forget.Inspect.4)
+[Clean.Inspect.4] Inspect.4
+[Yield.([Digit] 0),Inspect.4] (Read) (Forget.Inspect.5)
+[Clean.Inspect.5] Inspect.5
+[Yield.([Digit] 1),Inspect.5] (Read) (Forget.Inspect.6)
+[Clean.Inspect.6] Inspect.6
+[Yield.([Digit] 2),Inspect.6] (Read) (Forget.Inspect.7)
+[Clean.Inspect.7] Inspect.7
+[Yield.([Digit] 0),Inspect.7] (Read) (Forget.Inspect.8)
+[Clean.Inspect.8] Inspect.8
+[Yield.([Digit] 1),Inspect.8] (Read) (Forget.Inspect.9)
+[Clean.Inspect.9] Inspect.9
+[Yield.([Digit] 2),Inspect.9] (Read) (Forget.Inspect.10)
+[Clean.Inspect.10] Inspect.10
+[Yield.([Digit] 0),Inspect.10] (Read) (Forget.Inspect.11)
+[Clean.Inspect.11] Inspect.11
+[Yield.([Digit] 1),Inspect.11] (Read) (Forget.Inspect.12)
+[Clean.Inspect.12] Inspect.12
+[Yield.([Digit] 2),Inspect.12] (Read) (Forget.Inspect.13)
+[Clean.Inspect.13] Inspect.13
+[Yield.([Digit] 0),Inspect.13] (Read) (Forget.Inspect.14)
+[Clean.Inspect.14] Inspect.14
+[Yield.([Digit] 1),Inspect.14] (Read) (Forget.Inspect.15)
+[Clean.Inspect.15] Inspect.15
+[Yield.([Digit] 2),Inspect.15] (Read) (Forget.Inspect.16)
+[Clean.Inspect.16] Inspect.16
+[Yield.([Digit] 0),Inspect.16] (Read) (Forget.Inspect.17)
+[Clean.Inspect.17] Inspect.17
+[Yield.([Digit] 1),Inspect.17] (Read) (Forget.Inspect.18)
+[Clean.Inspect.18] Inspect.18
+[Yield.([Digit] 2),Inspect.18] (Read) (Forget.Inspect.19)
+[Clean.Inspect.19] Inspect.19
+[Yield.([Digit] 0),Inspect.19] (Read) (Forget.Inspect.20)
+[Clean.Inspect.20] Inspect.20
+[Yield.([Digit] 1),Inspect.20] Done

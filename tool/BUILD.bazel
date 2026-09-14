@@ -24,7 +24,10 @@ filegroup(
 
 node(
     name = "node",
-    visibility = ["//browser:__pkg__"],
+    visibility = [
+        "//browser:__pkg__",
+        "//mathematics/ternary:__pkg__",
+    ],
 )
 
 rust_binary(

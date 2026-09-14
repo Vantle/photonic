@@ -1,0 +1,5 @@
+Push.([Digit] 0).Zero, Stage.1
+[Built,Stage.1] (Push.Subtract) (Forget.Stage.2)
+[Clean.Stage.2] Stage.2
+[Built,Stage.2] Function.Expression
+[Return.Expression.Number.Positive.Zero] Done.Zero
