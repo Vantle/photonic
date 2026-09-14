@@ -1,0 +1,91 @@
+load("@bazel_skylib//rules:native_binary.bzl", "native_test")
+load("@rules_rs//rs:rust_binary.bzl", "rust_binary")
+load("@rules_rs//rs:rust_shared_library.bzl", "rust_shared_library")
+load("@rules_rust_wasm_bindgen//:defs.bzl", "rust_wasm_bindgen")
+load(":defs.bzl", "asset")
+
+rust_shared_library(
+    name = "engine",
+    srcs = [
+        "engine.rs",
+        "failure.rs",
+    ],
+    crate_root = "engine.rs",
+    target_compatible_with = ["@platforms//cpu:wasm32"],
+    deps = [
+        "//system:photonic",
+        "@crate//:serde",
+        "@crate//:serde_json",
+        "@rules_rs//rs/private/wasm_bindgen",
+    ],
+)
+
+rust_wasm_bindgen(
+    name = "module",
+    out_name = "runtime",
+    target = "web",
+    wasm_file = ":engine",
+)
+
+asset(
+    name = "asset",
+    source = ":module",
+)
+
+filegroup(
+    name = "javascript",
+    srcs = [":asset"],
+    output_group = "javascript",
+    visibility = ["//tool:__pkg__"],
+)
+
+filegroup(
+    name = "webassembly",
+    srcs = [":asset"],
+    output_group = "webassembly",
+    visibility = ["//tool:__pkg__"],
+)
+
+filegroup(
+    name = "build",
+    srcs = [
+        "BUILD.bazel",
+        "defs.bzl",
+    ],
+    visibility = ["//:__pkg__"],
+)
+
+rust_binary(
+    name = "serve",
+    srcs = ["serve.rs"],
+    crate_root = "serve.rs",
+    data = [
+        ":javascript",
+        ":webassembly",
+    ],
+    env = {
+        "JAVASCRIPT": "$(rlocationpath :javascript)",
+        "WEBASSEMBLY": "$(rlocationpath :webassembly)",
+    },
+    deps = ["@rules_rust//rust/runfiles"],
+)
+
+native_test(
+    name = "test",
+    size = "small",
+    src = "//tool:execute",
+    args = [
+        "$(rlocationpath //tool:node)",
+        "$(rlocationpath test.mjs)",
+        "$(rlocationpath :webassembly)",
+        "$(rlocationpath :javascript)",
+        "$(rlocationpath //system:command)",
+    ],
+    data = [
+        "test.mjs",
+        ":javascript",
+        ":webassembly",
+        "//system:command",
+        "//tool:node",
+    ],
+)

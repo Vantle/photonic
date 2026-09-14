@@ -10,6 +10,8 @@
 <script defer src="document/native.js"></script>
 <script defer src="document/record.js"></script>
 <script defer src="document/book.js"></script>
+<script defer src="document/evaluation.js"></script>
+<script defer src="document/graph.js"></script>
 </head>
 <body>
 <a class="skip" href="#content">Skip to the book</a>
@@ -25,8 +27,9 @@
 <a href="#runtime"><span>06</span> Inside the runtime</a>
 <a href="#natural"><span>07</span> The natural numbers</a>
 <a href="#ternary"><span>08</span> Arithmetic in base three</a>
-<a href="#workshop"><span>09</span> The execution workshop</a>
-<a href="#reference"><span>10</span> Your working reference</a>
+<a href="#library"><span>09</span> Build and test libraries</a>
+<a href="#workshop"><span>10</span> The execution workshop</a>
+<a href="#reference"><span>11</span> Your working reference</a>
 </nav>
 <p id="search-status" role="status"></p>
 <div class="rail-bottom"><div class="progress"><span id="progress"></span></div><p id="position">Begin anywhere. Read in order.</p><div class="rail-action"><button id="theme" type="button" aria-label="Switch to dark appearance">◐ Appearance</button><button id="print" type="button">Print</button></div><a href="https://github.com/Vantle/photonic">Source on GitHub ↗</a></div>
@@ -123,7 +126,7 @@ Pair.Other
     [False.False] False,
 )</code></pre></div><p>The body operates on the concrete True and False and preserves Extra as remainder. The result is <code>False.Extra</code>. <code>True.False</code> and <code>False.True</code> are the same particle pattern, so one rule covers both orders.</p>
 <p>Literal outputs and scoped bodies have different transfer behavior. A literal inferred output replaces the projected concrete footprint. A body consumes exact matches and receives the remaining concrete witness. For example, with <code>[A] B.C</code> and <code>[B] D</code>, sequential execution can produce C.D, while inference can enable a direct A-to-D alternative.</p>
-<p class="source-link">Read the implementation contract: <a href="document/binding.md">projection and binding</a> · <a href="document/generalization.md">generalization through rules</a></p>
+<p class="source-link">Read the implementation contract: <a href="document/language.md#binding">projection and binding</a> · <a href="document/language.md#generalization">generalization through rules</a></p>
 </section>
 <section class="chapter" id="code" data-title="Metaprogramming rules values code lexical capture scope replacement">
 <div class="chapter-number">05 / METAPROGRAMMING</div><h2>A rule can be<br><em>the information.</em></h2>
@@ -152,6 +155,43 @@ Pair.Other
 <h3>Running and resuming</h3><div class="example"><pre><code>bazel run -c opt //system:command -- run \
   "$PWD/example/conjunction.wave" --workers 4 --json</code></pre></div><p>Work, states, records, coherences, cells, and frames have configurable limits. A paused runtime retains its queued and deferred work for resumption through the Rust API. JSON reports expose states, events, flow, and support.</p>
 <details class="exercise"><summary>Does reusing a state erase another proof of reaching it?</summary><p>No. Configuration identity and event support are separate. Equivalent states can be shared while additional derivations contribute evidence.</p></details>
+
+<div class="graph-panel">
+<span class="tag">TWO MAPS OF ONE PROGRAM</span>
+<h3>A rule says what can happen.<br>A graph shows what did happen.</h3>
+<p>Start with <code>A</code>. One rule turns it into <code>B.C</code>; another turns <code>B</code> into <code>D</code>. It is tempting to read this as a single chain. Photonic also lets the evidence for B justify an application at A, so there is more than one history to inspect.</p>
+<pre><code>A
+[A] B.C
+[B] D</code></pre>
+<h4>The rule graph</h4>
+<div class="graph-scroll"><svg class="rule-map" viewBox="0 0 740 230" role="img" aria-labelledby="rule-map-title rule-map-description">
+<title id="rule-map-title">Two rules connect four concepts</title>
+<desc id="rule-map-description">A is the input of the first rule, which produces B and C together. B is the input of the second rule, which produces D. This is a diagram of the declarations, not an execution trace.</desc>
+<defs><marker id="rule-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" style="fill:var(--muted);stroke:none"/></marker></defs>
+<path d="M 99 110 H 170" marker-end="url(#rule-arrow)"/><path d="M 310 110 C 345 110 345 65 380 65" marker-end="url(#rule-arrow)"/><path d="M 310 110 C 345 110 345 170 380 170" marker-end="url(#rule-arrow)"/><path d="M 450 65 H 495" marker-end="url(#rule-arrow)"/><path d="M 635 65 H 665" marker-end="url(#rule-arrow)"/>
+<rect x="29" y="82" width="70" height="56" rx="12"/><text x="64" y="116">A</text>
+<rect class="rule" x="170" y="82" width="140" height="56" rx="12"/><text class="rule-label" x="240" y="116">[A] B.C</text>
+<rect x="380" y="37" width="70" height="56" rx="12"/><text x="415" y="71">B</text>
+<rect x="380" y="142" width="70" height="56" rx="12"/><text x="415" y="176">C</text>
+<rect class="rule" x="495" y="37" width="140" height="56" rx="12"/><text class="rule-label" x="565" y="71">[B] D</text>
+<rect x="665" y="37" width="70" height="56" rx="12"/><text x="700" y="71">D</text>
+<text x="240" y="218">B and C are one output particle.</text>
+</svg></div>
+<p class="caption">This drawing connects declared inputs and outputs. Its arrows do not determine scheduling, preserve resource identity, or enumerate inferred events.</p>
+<h4>The evaluation graph</h4>
+<p>Each box below is a whole configuration. Each arrow is an event recorded by the Rust runtime. Follow an arrow to see a possible next step, or select a box to inspect its contents.</p>
+<p id="evaluation-summary" class="micro"></p><details><summary>Source used for this graph</summary><pre id="evaluation-used"></pre></details>
+<div class="graph-scroll"><svg id="evaluation-graph" role="group" aria-label="Interactive evaluation graph; select a configuration to inspect it"></svg></div>
+<div class="graph-inspector"><div><h4>Selected configuration</h4><pre id="evaluation-state"></pre><details><summary>Identity, scope, and support</summary><pre id="evaluation-detail"></pre></details></div><div><h4>Possible next events</h4><div id="evaluation-event"></div></div></div>
+<p>The path through B.C can retain C and reach C.D. Source inference can also reach D directly from A. Those are alternative results, not two contributions to combine. Cycles, when present, remain cycles in the drawing.</p>
+<div class="graph-editor"><h4>Try a different rule</h4><p>Change a concept, add a rule, or ask for a different target. The live version runs the Rust evaluator compiled to WebAssembly, with generated wasm-bindgen bindings, in a separate worker. It uses bounded exploration, just like the command-line tool.</p>
+<label for="evaluation-source">Photonic source</label><textarea id="evaluation-source" rows="5" spellcheck="false"></textarea>
+<label for="evaluation-target">Target configurations · JSON list</label><textarea id="evaluation-target" rows="2" spellcheck="false">["D", "C.D"]</textarea>
+<div class="graph-action"><button id="evaluation-run" type="button">Run in Rust</button><button id="evaluation-stop" type="button" disabled>Stop</button><button id="evaluation-reset" type="button">Restore example</button></div>
+<p id="evaluation-status" role="status">Recorded Rust execution. Run the source to explore it live.</p><ul id="evaluation-verdict"></ul>
+<details><summary>Run the live webbook locally</summary><pre><code>bazel run -c opt //browser:serve</code></pre><p>Open <a href="http://127.0.0.1:8080">http://127.0.0.1:8080</a>. The preview serves the compiled module alongside this book. Opening the HTML file directly keeps the recorded diagrams available offline.</p><p>The browser allows 20,000 work steps, 128 configurations and occurrences per runtime limit, 16 coherences and frames, and 100,000 records. A five-second watchdog or the Stop button terminates the worker. Stopping does not establish unreachability. The diagram shows at most 32 configurations; the inspector and target verdicts use the full recorded result.</p></details>
+</div>
+</div>
 </section>
 <section class="chapter" id="natural" data-title="Mathematics natural numbers Unit zero successor membership addition laws induction">
 <div class="chapter-number">07 / MATHEMATICS</div><h2>Numbers, from<br><em>one concept.</em></h2>
@@ -170,50 +210,86 @@ Pair.Other
   --target "$PWD/mathematics/natural/ten.particle"</code></pre></div>
 <h3>Why the addition laws hold</h3><p>Define addition on numeral classes as disjoint union. Empty contributes no occurrences, exchanging operands changes only order, and regrouping three operands preserves all their occurrences. These give identity, commutativity, and associativity. Adding a fresh Unit commutes with that union, giving successor compatibility.</p><p>Cancellation follows by removing the same number of indistinguishable Units from equal finite counts. The carrier’s least-closure definition supplies the mathematical induction argument. The library pairs these written arguments with finite executable checks.</p>
 <div class="law-grid"><div><code>a + 0 = a</code><span>Identity</span></div><div><code>a + b = b + a</code><span>Commutativity</span></div><div><code>(a + b) + c = a + (b + c)</code><span>Associativity</span></div><div><code>a + S(b) = S(a + b)</code><span>Successor compatibility</span></div></div>
-<p class="source-link"><a href="mathematics/natural/definition.md">Carrier and written proofs</a> · <a href="mathematics/natural/law.md">Addition laws</a> · <a href="system/test/natural.rs">Executable checks</a></p>
+<p class="source-link"><a href="document/arithmetic.md#natural">Carrier and written proofs</a> · <a href="document/arithmetic.md#addition">Addition laws</a> · <a href="system/test/natural.rs">Executable checks</a></p>
 </section>
 <section class="chapter" id="ternary" data-title="Base three ternary compressed representation digits carry multiplication subtraction division">
 <div class="chapter-number">08 / COMPRESSED ARITHMETIC</div><h2>Keep the number.<br><em>Change the representation.</em></h2>
-<p class="lead">A positional ternary word uses digits Zero, One, and Two. Each position carries a power of three.</p>
-<p>The arithmetic implementation accepts natural operands up to twenty trits. A complete word includes an explicit digit at every position. Names such as Digit0Two are ordinary concepts whose numerical meaning comes from the library’s rules.</p>
+<p class="lead">A positional ternary word uses digits 0, 1, and 2. Each position carries a power of three.</p>
+<p>The arithmetic implementation accepts natural operands up to twenty trits. A complete word includes an explicit digit at every position. Fields such as ([Digit.0] 2) preserve role, position, and value as separate concepts.</p>
 <div class="lab"><div class="lab-heading"><span class="tag">REPRESENTATION LENS</span><h3>Read a number in base three</h3></div><label for="numeral">Decimal numeral</label><input id="numeral" type="number" min="0" max="1000000" step="1" value="1500"><p id="numeral-error" class="error" role="status"></p><div id="trit-strip" class="trit-strip"></div><p id="numeral-expansion" class="equation"></p><p class="caption">A browser arithmetic illustration. The positional labels below correspond to the ordinary concepts used by the library, not built-in numerical literals.</p></div>
 <h3>Write a numeral by hand</h3>
 <p>Forty-seven is <code>1202</code> in base three: 27 + 18 + 2. In the sparse power library, its source is:</p>
 <div class="example"><div class="example-bar"><span>47 · sparse power representation</span><a href="mathematics/ternary/numeral.particle">numeral.particle ↗</a></div><pre><code>3^3.3^2.3^2.3^0.3^0</code></pre></div>
 <p>Each occurrence contributes one power. Repetition expresses the coefficient two; the zero column needs no occurrence. The caret belongs to an ordinary atom name. The carry rules establish relationships between those names.</p>
-<p>The complete positional representation of the same number is <code>Digit3One.Digit2Two.Digit1Zero.Digit0Two</code>. These two representations are used by different library interfaces. Neither requires a decimal converter to write, and neither gives a bare <code>1202</code> atom an automatic numerical meaning.</p>
-<h3>A carry is a local rewrite</h3><div class="example"><pre><code>[Add.Zero.One.Two] DigitZero.CarryOne
-[Multiply.Two.Two] DigitOne.CarryOne</code></pre></div><p>Zero plus One plus Two gives three: digit Zero, carry One. Two times Two gives four: digit One, carry One. The standalone digit library uses commutative patterns where the operation is commutative.</p>
+<p>The complete positional representation of the same number is <code>Number.([Base] 3).([0] 2).([1] 0).([2] 2).([3] 1)</code>. These two representations are used by different library interfaces. Neither requires a decimal converter to write, and neither gives a bare <code>1202</code> atom an automatic numerical meaning.</p>
+<h3>A carry is a local rewrite</h3><div class="example"><pre><code>[Call.Sum.0.1.2] Return.([Digit] 0).([Carry] 1)
+[Call.Multiply.2.2] Return.([Digit] 1).([Carry] 1)</code></pre></div><p>0 + 1 + 2 gives three: digit 0, carry 1. 2 × 2 gives four: digit 1, carry 1. The standalone digit library uses commutative patterns where the operation is commutative.</p>
 <div class="lab"><div class="lab-heading"><span class="tag">DIGIT LAB</span><h3>One multiplication, in every column</h3></div><div class="grid two"><label>First digit<select id="digit-left"><option>0</option><option>1</option><option selected>2</option></select></label><label>Second digit<select id="digit-right"><option>0</option><option>1</option><option selected>2</option></select></label></div><p id="digit-equation" class="equation"></p><pre id="digit-rule"></pre><p class="caption">The displayed rule is one of the library’s ordinary digit-product cases. No rule enumerates the answer to every whole-number pair.</p></div>
-<h3>Four operations, one circuit construction</h3><div class="grid two"><article class="card"><span class="micro">ADD</span><h3>Reduce columns</h3><p>Place both operands’ digit contributions in their columns. Combine two or three digits into one digit and a carry to the next column. The output has one extra trit.</p></article><article class="card"><span class="micro">SUBTRACT</span><h3>Borrow, then select</h3><p>Run borrow chains in both directions. The final borrow selects the magnitude. NegativeZero or NegativeOne records the sign; equal operands produce positive zero.</p></article><article class="card"><span class="micro">MULTIPLY</span><h3>Distribute and reduce</h3><p>Each pair of input digits produces a low digit in column i + j and a carry in column i + j + 1. The shared column reducer combines those contributions. Output width is twice input width.</p></article><article class="card"><span class="micro">DIVIDE</span><h3>Advance the remainder</h3><p>Read the dividend from its most significant digit. Form three times the remainder plus the next digit. Try up to two divisor subtractions; the number accepted gives the quotient digit.</p></article></div>
+<h3>Four operations, one circuit construction</h3><div class="grid two"><article class="card"><span class="micro">ADD</span><h3>Reduce columns</h3><p>Place both operands’ digit contributions in their columns. Combine two or three digits into one digit and a carry to the next column. The output has one extra trit.</p></article><article class="card"><span class="micro">SUBTRACT</span><h3>Borrow, then select</h3><p>Run borrow chains in both directions. The final borrow selects the magnitude. ([Negative] 0) or ([Negative] 1) records the sign; equal operands produce positive zero.</p></article><article class="card"><span class="micro">MULTIPLY</span><h3>Distribute and reduce</h3><p>Each pair of input digits produces a low digit in column i + j and a carry in column i + j + 1. The shared column reducer combines those contributions. Output width is twice input width.</p></article><article class="card"><span class="micro">DIVIDE</span><h3>Advance the remainder</h3><p>Read the dividend from its most significant digit. Form three times the remainder plus the next digit. Try up to two divisor subtractions; the number accepted gives the quotient digit.</p></article></div>
 <p>Finite digit tables are repeated at the required circuit sites, whose ports preserve operation association in an orderless state. At a fixed width and operation, the rule bodies are independent of operand values. Only initial digit facts change.</p>
 <p>The generator propagates possible digit domains, omits unnecessary zero carries, and removes gates with no path to the requested outputs. Column reduction is the default layout. All generated computation executes through ordinary Photonic rules.</p>
 <h3>A stream can reuse the same digit rules</h3>
-<p>The streaming successor reads least-significant digits first. Carry turns Zero into One or One into Two, then switches to copying the remaining digits. Two becomes Zero and carries onward. End is an explicit input value.</p>
-<div class="example"><pre><code>[Carry.Zero] Copy.([Write] One)
-[Carry.One] Copy.([Write] Two)
-[Carry.Two] Carry.([Write] Zero)</code></pre></div>
-<p>Output digits are whole rule values such as <code>[Write] Zero</code>. A meta rule consumes that message and produces Next. Twelve fixed declarations handle digit transformation, copying, acknowledgement, and completion; the input stream supplies its nested Read/Next definitions.</p>
-<div class="lab"><div class="lab-heading"><span class="tag verified">RECORDED STREAM TRANSFORMATION</span><h3>Twenty becomes twenty-one</h3></div><p>Input sequence, least significant first: <code>Two → Two → One → End</code>.</p><div class="stepper"><button id="stream-back" type="button">← Back</button><output id="stream-position"></output><button id="stream-next" type="button">Next event →</button></div><pre id="stream-rule"></pre><h4>Acknowledged output digits, in order</h4><div id="stream-output" class="token-row" aria-live="polite"></div><p class="caption">The recorded run has 11 events and 171 work steps. Its terminal configuration is Done; the digit sequence is read from the acknowledgement events. Order here belongs to the trace.</p><details><summary>Read the complete source</summary><pre id="stream-source"></pre></details></div>
-<p class="source-link"><a href="mathematics/ternary/successor.particle">The twelve reusable rules</a> · <a href="mathematics/ternary/stream.wave">Input stream</a></p>
+<p>The streaming successor reads least-significant digits first. Carry turns 0 into 1 or 1 into 2, then switches to copying the remaining digits. 2 becomes 0 and carries onward. End is an explicit input value.</p>
+<div class="example"><pre><code>[Carry.0] Copy.([Write] 1)
+[Carry.1] Copy.([Write] 2)
+[Carry.2] Carry.([Write] 0)</code></pre></div>
+<p>Output digits are whole rule values such as <code>[Write] 0</code>. A meta rule consumes that message and produces Next. Twelve fixed declarations handle digit transformation, copying, acknowledgement, and completion; the input stream supplies its nested Read/Next definitions.</p>
+<div class="lab"><div class="lab-heading"><span class="tag verified">RECORDED STREAM TRANSFORMATION</span><h3>Twenty becomes twenty-one</h3></div><p>Input sequence, least significant first: <code>2 → 2 → 1 → End</code>.</p><div class="stepper"><button id="stream-back" type="button">← Back</button><output id="stream-position"></output><button id="stream-next" type="button">Next event →</button></div><pre id="stream-rule"></pre><h4>Acknowledged output digits, in order</h4><div id="stream-output" class="token-row" aria-live="polite"></div><p class="caption">The recorded run has 11 events and 171 work steps. Its terminal configuration is Done; the digit sequence is read from the acknowledgement events. Order here belongs to the trace.</p><details><summary>Read the complete source</summary><pre id="stream-source"></pre></details></div>
+<p class="source-link"><a href="library/stream.particle">The twelve reusable rules</a> · <a href="mathematics/ternary/stream.wave">Input stream</a></p>
 <h3>Division gives an explicit result shape</h3><p>For a nonzero divisor, the output includes quotient digits, remainder digits, and UndefinedZero. Division by zero produces quotient zero, the original dividend as remainder, and UndefinedOne. Those are library-defined output facts.</p>
-<p class="source-link"><a href="mathematics/ternary/digit.particle">Digit rules</a> · <a href="mathematics/arithmetic/circuit.rs">Shared circuit builder</a> · <a href="mathematics/arithmetic/encoding.rs">Output encoding</a></p>
+<p class="source-link"><a href="library/ternary.particle">Digit rules</a> · <a href="mathematics/arithmetic/circuit.rs">Shared circuit builder</a> · <a href="mathematics/arithmetic/encoding.rs">Output encoding</a></p>
+</section>
+<section class="chapter" id="library" data-title="Library build Bazel source targets test all any photonic_library photonic_binary photonic_test atomic numeral dependencies">
+<div class="chapter-number">09 / LIBRARY</div><h2>Compose the program.<br><em>State the claim.</em></h2>
+<p class="lead">The standard library is Photonic source. Bazel assembles the files; Obsidian checks their behavior.</p>
+<h3>Keep roles separate from values</h3>
+<div class="example"><pre><code>Number.([Base] 3).([0] 2).([1] 0).([2] 2).([3] 1)</code></pre></div>
+<p>This is 47. Position 0 contributes 2, position 2 contributes 18, and position 3 contributes 27. Numeric atoms are literal names. The position field establishes order; source order does not. For a local arithmetic result, <code>([Digit] 2).([Carry] 1)</code> keeps each role attached to its value.</p>
+<h3>Declare the dependency once</h3>
+<div class="example"><pre><code>load("//photonic:defs.bzl", "photonic_library", "photonic_binary", "photonic_test")
+
+photonic_library(
+    name = "logic",
+    srcs = ["application.particle", "boolean.particle"],
+)
+
+photonic_binary(
+    name = "example",
+    srcs = ["request.wave", "value.particle"],
+    deps = [":logic"],
+)
+
+photonic_test(
+    name = "negation",
+    source = "Apply.Not.True",
+    targets = ["Apply.Not.True", "False"],
+    deps = [":logic"],
+)</code></pre></div>
+<p>Libraries contain declarations only. Binaries combine initial coherences from their sources and load transitive libraries once per file. Tests accept literal source, file sources, or both. These mechanisms add no new language syntax or host implementation of library operations.</p>
+<h3>Choose what the targets mean</h3>
+<div class="table-scroll"><table><thead><tr><th>Setting</th><th>Claim</th></tr></thead><tbody><tr><td><code>match = "all"</code></td><td>Every target satisfies the expectation. This is the default.</td></tr><tr><td><code>match = "any"</code></td><td>At least one target satisfies the expectation.</td></tr><tr><td><code>expect = "reached"</code></td><td>A supported state reaches the target. This is the default.</td></tr><tr><td><code>expect = "unreachable"</code></td><td>Exploration closes without the target.</td></tr></tbody></table></div>
+<p id="test-contract">Unknown never satisfies either expectation. Full exploration shares one graph across the target queries. Each string is a whole configuration: <code>"A, B"</code> requires two jointly present coherences; <code>["A", "B"]</code> asks two separate questions. Reaching every listed target does not assert that all targets coexist or that no other outcomes are possible.</p>
+<p>Use <code>path = True</code> for direct-path reachability witnesses. Each target then receives its own path search; unreachability requires full exploration. Bazel fails inconclusive or mismatched tests and retains JSON reports for inspection.</p>
+<div class="example"><pre><code>bazel test -c opt //example/library:pipeline.check
+bazel test -c opt //mathematics/ternary:position.check</code></pre></div>
+<p>The native pipeline forks two producer scopes, maps their results independently, and joins payloads with explicit completion evidence. Pair protocols and the finite position adapter are implemented. General Repeat, arbitrary-width native arithmetic, and generic recursive binding remain open work.</p>
+<p class="source-link"><a href="document/library.md">Library contracts and dependency graph</a> · <a href="document/build.md#test">Test interface</a> · <a href="README.md">Repository map</a></p>
 </section>
 <section class="chapter" id="workshop" data-title="Workshop Obsidian proof reachability arithmetic commands results run examples">
-<div class="chapter-number">09 / WORKSHOP</div><h2>Ask a concrete question.<br><em>Follow the witness.</em></h2>
+<div class="chapter-number">10 / WORKSHOP</div><h2>Ask a concrete question.<br><em>Follow the witness.</em></h2>
 <p class="lead">Obsidian checks whether an exact target configuration can be reached from a supplied program.</p>
 <p>A target includes its complete particle contents, coherence arrangement, and sharing. This makes an arithmetic result a concrete configuration claim. The arithmetic command accepts the proposed answer and encodes it as that target.</p>
 <div class="status-grid"><div><strong>Reached</strong><p>A supported witness reaches the exact target.</p></div><div><strong>Unreachable</strong><p>Finite exhaustive exploration closed without that target.</p></div><div><strong>Unknown</strong><p>The exploration has not established a verdict. A failed direct path also reports Unknown.</p></div></div>
-<div class="lab workshop"><div class="lab-heading"><span class="tag verified">VERIFIED RUST WITNESSES</span><h3>1500 and 123, four ways</h3></div><label for="operation">Operation</label><select id="operation"><option value="add">Addition</option><option value="subtract">Subtraction</option><option value="multiply" selected>Multiplication</option><option value="divide">Division</option></select><div class="answer"><span id="operation-equation"></span><strong id="operation-result"></strong><small id="operation-remainder"></small></div><div class="metrics"><div><strong id="operation-event"></strong><span>events</span></div><div><strong id="operation-work"></strong><span>work steps</span></div><div><strong>Reached</strong><span>exact target</span></div></div><div class="example"><div class="example-bar"><span>Run this claim locally</span><button id="command-copy" type="button">Copy command</button></div><pre id="operation-command"></pre></div><p id="copy-status" role="status"></p><div class="stepper"><button id="operation-back" type="button">← Previous event</button><output id="operation-position"></output><button id="operation-next" type="button">Next event →</button></div><pre id="operation-rule" class="event-rule"></pre><details><summary>Inspect the complete target particle</summary><pre id="operation-target"></pre></details><a id="operation-source" href="mathematics/ternary/multiply.wave">Open the generated source ↗</a><p class="caption">Recorded by the Rust direct-path evaluator from the checked-in source programs. Counts describe these runs. The buttons navigate stored events, and the proposed arithmetic answer is supplied by the caller.</p></div>
+<div class="lab workshop"><div class="lab-heading"><span class="tag verified">VERIFIED RUST WITNESSES</span><h3>1500 and 123, four ways</h3></div><label for="operation">Operation</label><select id="operation"><option value="add">Addition</option><option value="subtract">Subtraction</option><option value="multiply" selected>Multiplication</option><option value="divide">Division</option></select><div class="answer"><span id="operation-equation"></span><strong id="operation-result"></strong><small id="operation-remainder"></small></div><div class="metrics"><div><strong id="operation-event"></strong><span>events</span></div><div><strong id="operation-work"></strong><span>work steps</span></div><div><strong>Reached</strong><span>exact target</span></div></div><div class="example"><div class="example-bar"><span>Run this claim locally</span><button id="command-copy" type="button">Copy command</button></div><pre id="operation-command"></pre></div><p id="copy-status" role="status"></p><div class="stepper"><button id="operation-back" type="button">← Previous event</button><output id="operation-position"></output><button id="operation-next" type="button">Next event →</button></div><pre id="operation-rule" class="event-rule"></pre><details><summary>Inspect the complete target particle</summary><pre id="operation-target"></pre></details><a id="operation-source" href="mathematics/arithmetic/fixture/ternary/multiply.wave">Open the generated source ↗</a><p class="caption">Recorded by the Rust direct-path evaluator from the checked-in source programs. Counts describe these runs. The buttons navigate stored events, and the proposed arithmetic answer is supplied by the caller.</p></div>
 <h3>Use the same source directly</h3><div class="example"><pre><code>bazel run -c opt //system:command -- obsidian \
-  "$PWD/mathematics/ternary/multiply.wave" \
-  --target "$PWD/mathematics/ternary/multiply.particle" \
+  "$PWD/mathematics/arithmetic/fixture/ternary/multiply.wave" \
+  --target "$PWD/mathematics/arithmetic/fixture/ternary/multiply.particle" \
   --path --steps 20000000 --states 4096 --cells 4096</code></pre></div>
 <p>The external arithmetic tool accepts decimal, binary, ternary, octal, and hexadecimal input spellings. For example, <code>--left 0t2001120</code> encodes 1500 into ternary circuit inputs. In a Photonic source file, that same spelling is simply an ordinary concept name.</p>
 <details class="exercise"><summary>Does the generated target influence the computation rules?</summary><p>No. The operation and operand width determine the circuit rules. Input values determine initial facts. The supplied expected result determines the separate proof target.</p></details>
 </section>
 <section class="chapter" id="reference" data-title="Reference glossary commands implementation source documentation build">
-<div class="chapter-number">10 / REFERENCE</div><h2>From reading<br>to <em>making.</em></h2>
+<div class="chapter-number">11 / REFERENCE</div><h2>From reading<br>to <em>making.</em></h2>
 <p class="lead">Keep the language small in your head: values coexist, rules match, events transform, and evidence connects the steps.</p>
 <div class="example"><div class="example-bar"><span>From a checkout of Vantle/photonic</span><span class="tag">BAZEL</span></div><pre><code>bazel run -c opt //system:command -- parse "$PWD/example/conjunction.wave"
 bazel run -c opt //system:command -- run "$PWD/example/conjunction.wave"
@@ -221,7 +297,7 @@ bazel test -c opt //...
 bazel run -c opt //mathematics/arithmetic:benchmark</code></pre></div>
 <p>The build uses Bazel to obtain its Rust compiler, LLVM toolchain, and external crates. The source checkout needs no separately installed Rust compiler. Open this HTML file directly to read and use the webbook offline; its scripts, styles, and execution records are local.</p>
 <h3>A compact glossary</h3><dl class="glossary"><div><dt>Concept</dt><dd>An atom name or a whole rule value carried by an occurrence.</dd></div><div><dt>Particle</dt><dd>An orderless multiset of occurrences within one coherence.</dd></div><div><dt>Coherence</dt><dd>An independently evolving execution context.</dd></div><div><dt>Configuration</dt><dd>Jointly present coherences and their reachable environments.</dd></div><div><dt>Rule</dt><dd>A description of input matching and output behavior.</dd></div><div><dt>Event</dt><dd>One application at a concrete configuration, with recorded support.</dd></div><div><dt>Introduction</dt><dd>The identity of an explicitly introduced result.</dd></div><div><dt>Remainder</dt><dd>Unmatched concrete information transferred to outputs.</dd></div><div><dt>View</dt><dd>A derivation connecting witness information to its source.</dd></div><div><dt>Frame</dt><dd>A lexical environment with continuation and return information.</dd></div></dl>
-<h3>The implementation, by concern</h3><div class="table-scroll"><table><thead><tr><th>Concern</th><th>Source</th><th>Read alongside</th></tr></thead><tbody><tr><td>Frontend</td><td><a href="system/parser.rs">parser.rs</a> · <a href="system/lowering.rs">lowering.rs</a></td><td><a href="document/syntax.md">Syntax contract</a></td></tr><tr><td>Matching and projection</td><td><a href="system/matching.rs">matching.rs</a> · <a href="system/flow.rs">flow.rs</a></td><td><a href="document/semantics.md">Configuration semantics</a></td></tr><tr><td>Execution and identity</td><td><a href="system/runtime.rs">runtime.rs</a> · <a href="system/canonical.rs">canonical.rs</a></td><td><a href="document/runtime.md">Runtime design</a></td></tr><tr><td>Reachability</td><td><a href="system/obsidian.rs">obsidian.rs</a> · <a href="system/path.rs">path.rs</a></td><td><a href="mathematics/obsidian.md">Obsidian contract</a></td></tr><tr><td>Natural numbers</td><td><a href="mathematics/natural/">Rules and targets</a></td><td><a href="mathematics/natural/definition.md">Definition</a> · <a href="mathematics/natural/law.md">Laws</a></td></tr><tr><td>Compressed arithmetic</td><td><a href="mathematics/arithmetic/circuit.rs">circuit.rs</a> · <a href="mathematics/ternary/">Ternary programs</a></td><td><a href="mathematics/arithmetic/README.md">Interface and algorithms</a></td></tr></tbody></table></div>
+<h3>The implementation, by concern</h3><div class="table-scroll"><table><thead><tr><th>Concern</th><th>Source</th><th>Read alongside</th></tr></thead><tbody><tr><td>Frontend</td><td><a href="system/parser.rs">parser.rs</a> · <a href="system/lowering.rs">lowering.rs</a></td><td><a href="document/language.md#syntax">Syntax contract</a></td></tr><tr><td>Matching and projection</td><td><a href="system/matching.rs">matching.rs</a> · <a href="system/flow.rs">flow.rs</a></td><td><a href="document/language.md#semantics">Configuration semantics</a></td></tr><tr><td>Execution and identity</td><td><a href="system/runtime.rs">runtime.rs</a> · <a href="system/canonical.rs">canonical.rs</a></td><td><a href="document/runtime.md#runtime">Runtime design</a></td></tr><tr><td>Reachability</td><td><a href="system/obsidian.rs">obsidian.rs</a> · <a href="system/path.rs">path.rs</a></td><td><a href="document/verification.md#obsidian">Obsidian contract</a></td></tr><tr><td>Natural numbers</td><td><a href="mathematics/natural">Rules and targets</a></td><td><a href="document/arithmetic.md#natural">Definition</a> · <a href="document/arithmetic.md#addition">Laws</a></td></tr><tr><td>Compressed arithmetic</td><td><a href="mathematics/arithmetic/circuit.rs">circuit.rs</a> · <a href="mathematics/ternary">Ternary programs</a></td><td><a href="document/arithmetic.md#word">Interface and algorithms</a></td></tr></tbody></table></div>
 <div class="closing"><span class="emblem" aria-hidden="true">✳</span><h3>One language.<br>Many possible next steps.</h3><a class="button primary" href="#workshop">Return to the workshop ↑</a></div>
 </section>
 <footer><span>PHOTONIC · THE WEBBOOK</span><a href="https://github.com/Vantle/photonic">Read the source ↗</a><a href="#introduction">Back to the beginning ↑</a></footer>

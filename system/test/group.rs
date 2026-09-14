@@ -103,7 +103,7 @@ fn example() {
     for (source, target, expected) in [
         (
             include_str!("../../example/group/addition.wave"),
-            include_str!("../../example/group/ten.particle"),
+            include_str!("../../mathematics/natural/ten.particle"),
             Outcome::Reached,
         ),
         (

@@ -1,20 +1,12 @@
+load("//photonic:defs.bzl", "photonic_binary", "photonic_test")
+
 filegroup(
     name = "fixture",
     srcs = [
-        "add.particle",
-        "add.wave",
         "carry.particle",
-        "digit.particle",
-        "divide.particle",
-        "divide.wave",
         "done.particle",
-        "multiply.particle",
-        "multiply.wave",
         "numeral.particle",
         "stream.wave",
-        "subtract.particle",
-        "subtract.wave",
-        "successor.particle",
         "word.particle",
     ],
     visibility = ["//mathematics/arithmetic:__pkg__"],
@@ -26,4 +18,58 @@ filegroup(
         "BUILD.bazel",
     ],
     visibility = ["//:__pkg__"],
+)
+
+photonic_binary(
+    name = "local",
+    srcs = ["local.wave"],
+    visibility = ["//photonic:__pkg__"],
+    deps = ["//library:ternary"],
+)
+
+photonic_binary(
+    name = "position",
+    srcs = [
+        "position.wave",
+        "word.particle",
+    ],
+    deps = ["//library:position"],
+)
+
+photonic_binary(
+    name = "stream",
+    srcs = ["stream.wave"],
+    deps = ["//library:stream"],
+)
+
+photonic_test(
+    name = "local.check",
+    srcs = ["local.wave"],
+    path = True,
+    source = "",
+    targets = ["First.([Digit] 2).([Carry] 1), Second.([Digit] 0).([Borrow] 1)"],
+    deps = ["//library:ternary"],
+)
+
+photonic_test(
+    name = "position.check",
+    srcs = [
+        "position.wave",
+        "word.particle",
+    ],
+    source = "",
+    targets = ["([Base] 3).([Value] 2).([1] 0).([2] 2).([3] 1)"],
+    deps = ["//library:position"],
+)
+
+photonic_binary(
+    name = "sum",
+    srcs = ["sum.wave"],
+)
+
+photonic_test(
+    name = "sum.check",
+    srcs = ["sum.wave"],
+    source = "",
+    targets = ["3^1.3^4.3^4.3^6.3^6"],
 )

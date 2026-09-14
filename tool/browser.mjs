@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { dirname, extname, resolve, sep } from 'node:path';
 
@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const missing = [];
-const type = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css' };
+const type = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.wasm': 'application/wasm' };
 const server = createServer(async (request, response) => {
     const path = resolve(root, `.${new URL(request.url, 'http://localhost').pathname}`);
     if (!path.startsWith(root + sep)) {
@@ -17,7 +17,7 @@ const server = createServer(async (request, response) => {
         return;
     }
     try {
-        const content = await readFile(path);
+        const content = await readFile(path === resolve(root, "browser/module/runtime_bg.wasm") ? process.argv[4] : path === resolve(root, "browser/module/runtime.js") ? process.argv[5] : path);
         response.writeHead(200, { 'Content-Type': type[extname(path)] ?? 'text/plain' }).end(content);
     } catch {
         missing.push(request.url);
@@ -71,6 +71,8 @@ try {
     } } })).sessionId;
     await navigate('/index.html', "return document.getElementById('operation-result')?.textContent === '184,500'");
     assert.equal(await evaluate("return document.getElementById('operation-result').textContent.replaceAll(',', '')"), '184500');
+    assert.ok(await evaluate("return document.getElementById('library').textContent.includes('photonic_test')"));
+    assert.match(await evaluate("return document.getElementById('test-contract').textContent"), /Unknown never satisfies/);
     await evaluate("document.getElementById('theme').click()");
     assert.equal(await evaluate('return document.documentElement.dataset.theme'), 'dark');
     await navigate('/index.html', "return document.getElementById('operation-result')?.textContent === '184,500'");
@@ -85,7 +87,32 @@ try {
         await evaluate("document.getElementById('operation-back').click()");
         assert.equal(await evaluate("return document.getElementById('operation-back').disabled"), true);
     }
-    await navigate('/document/plan.html', "return document.getElementById('state')?.children.length > 0");
+    assert.equal(await evaluate("return document.querySelectorAll('#evaluation-graph [data-state]').length"), 4);
+    await evaluate("document.querySelector('#evaluation-graph [data-state=\"1\"]').dispatchEvent(new MouseEvent('click'))");
+    assert.ok(await evaluate("return document.getElementById('evaluation-state').textContent.length > 0"));
+    await evaluate("document.getElementById('evaluation-run').click()");
+    for (let attempt = 0; attempt < 200; attempt++) {
+        if (await evaluate("return !document.getElementById('evaluation-run').disabled")) break;
+        await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    assert.match(await evaluate("return document.getElementById('evaluation-status').textContent"), /Executed here/);
+    assert.match(await evaluate("return document.getElementById('evaluation-verdict').textContent"), /D: reached/);
+    assert.match(await evaluate("return document.getElementById('evaluation-verdict').textContent"), /C.D: reached/);
+    await evaluate("document.getElementById('evaluation-source').value = 'A [A] B'; document.getElementById('evaluation-target').value = '[\"B\", \"C\"]'; document.getElementById('evaluation-run').click()");
+    for (let attempt = 0; attempt < 200; attempt++) {
+        if (await evaluate("return !document.getElementById('evaluation-run').disabled")) break;
+        await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    assert.match(await evaluate("return document.getElementById('evaluation-verdict').textContent"), /B: reached.*C: unreachable/);
+    await evaluate("document.getElementById('evaluation-run').click(); document.getElementById('evaluation-stop').click()");
+    assert.match(await evaluate("return document.getElementById('evaluation-status').textContent"), /^Stopped/);
+    await command(`/session/${session}/window/rect`, { width: 1440, height: 1000 });
+    await evaluate("document.documentElement.style.scrollBehavior = 'auto'; document.getElementById('evaluation-reset').click(); document.getElementById('evaluation-graph').scrollIntoView({block: 'center', behavior: 'instant'})");
+    if (process.env.TEST_UNDECLARED_OUTPUTS_DIR) {
+        const screenshot = await command(`/session/${session}/screenshot`);
+        await writeFile(resolve(process.env.TEST_UNDECLARED_OUTPUTS_DIR, 'graph.png'), Buffer.from(screenshot, 'base64'));
+    }
+    await navigate('/document/reference.html', "return document.getElementById('state')?.children.length > 0");
     assert.ok(await evaluate("return document.getElementById('example').options.length > 0"), JSON.stringify(await command(`/session/${session}/log`, { type: 'browser' })));
     await evaluate("document.getElementById('explore').click()");
     assert.ok(await evaluate("return document.getElementById('event').children.length > 0"));

@@ -1,3 +1,5 @@
+load("//photonic:defs.bzl", "photonic_binary", "photonic_test")
+
 filegroup(
     name = "fixture",
     srcs = [
@@ -16,7 +18,6 @@ filegroup(
         "selected.particle",
         "separate.particle",
         "shared.particle",
-        "ten.particle",
     ],
     visibility = ["//system:__pkg__"],
 )
@@ -27,4 +28,51 @@ filegroup(
         "BUILD.bazel",
     ],
     visibility = ["//:__pkg__"],
+)
+
+photonic_binary(
+    name = "abstraction",
+    srcs = ["abstraction.wave"],
+)
+
+photonic_binary(
+    name = "addition",
+    srcs = ["addition.wave"],
+)
+
+photonic_binary(
+    name = "broadcast",
+    srcs = ["broadcast.wave"],
+)
+
+photonic_binary(
+    name = "extra",
+    srcs = ["extra.wave"],
+)
+
+photonic_binary(
+    name = "independent",
+    srcs = ["independent.wave"],
+)
+
+photonic_binary(
+    name = "isolated",
+    srcs = ["isolated.wave"],
+)
+
+photonic_binary(
+    name = "natural",
+    srcs = ["natural.wave"],
+)
+
+photonic_binary(
+    name = "pair",
+    srcs = ["pair.wave"],
+)
+
+photonic_test(
+    name = "addition.check",
+    srcs = ["addition.wave"],
+    source = "",
+    targets = ["Unit.Unit.Unit.Unit.Unit.Unit.Unit.Unit.Unit.Unit"],
 )

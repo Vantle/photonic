@@ -1,10 +1,10 @@
 Read.Carry
 [Read] (
-    Two
+    2
     [Next] (
-        Two
+        2
         [Next] (
-            One
+            1
             [Next] End
         )
     )

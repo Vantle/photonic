@@ -25,6 +25,7 @@ rust_binary(
         "command/argument.rs",
     ],
     crate_root = "command.rs",
+    visibility = ["//visibility:public"],
     deps = [
         ":photonic",
         "@crate//:clap",
@@ -63,6 +64,7 @@ rust_test(
         "//example:fixture",
         "//example/group:fixture",
         "//mathematics/binary:fixture",
+        "//library:source",
         "//mathematics/decimal:fixture",
         "//mathematics/natural:fixture",
     ],

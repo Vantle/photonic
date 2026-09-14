@@ -1,0 +1,21 @@
+[Call.Copy.Pair] (Build.Left, Build.Right)
+[Call.Repeat.Pair] (Map.Ready.Left, Map.Ready.Right)
+[Call.Broadcast] (Ready.Left, Ready.Right)
+
+[Build.Left] (
+    Call.Produce
+    [Return] Ready.Left
+)
+
+[Build.Right] (
+    Call.Produce
+    [Return] Ready.Right
+)
+
+[Call.Produce.([Value] True)] Return.True
+[Call.Produce.([Value] False)] Return.False
+[Call.Produce.([Value] 0)] Return.0
+[Call.Produce.([Value] 1)] Return.1
+[Call.Produce.([Value] 2)] Return.2
+
+[Call.Repeat.Empty] Return

@@ -1,0 +1,40 @@
+load("//photonic:defs.bzl", "photonic_binary", "photonic_test")
+
+photonic_binary(
+    name = "pipeline",
+    srcs = ["pipeline.wave"],
+    visibility = ["//photonic:__pkg__"],
+    deps = [
+        "//library:boolean",
+        "//library:collection",
+        "//library:production",
+    ],
+)
+
+photonic_test(
+    name = "pipeline.check",
+    srcs = ["pipeline.wave"],
+    path = True,
+    source = "",
+    targets = ["First.False, Second.True"],
+    deps = [
+        "//library:boolean",
+        "//library:collection",
+        "//library:production",
+    ],
+)
+
+filegroup(
+    name = "fixture",
+    srcs = [
+        "pipeline.particle",
+        "pipeline.wave",
+    ],
+    visibility = ["//library:__pkg__"],
+)
+
+filegroup(
+    name = "build",
+    srcs = ["BUILD.bazel"],
+    visibility = ["//:__pkg__"],
+)

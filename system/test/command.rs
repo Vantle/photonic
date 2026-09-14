@@ -303,3 +303,61 @@ fn extension() {
         assert_eq!(proof["outcome"], "reached");
     }
 }
+
+#[test]
+fn library() {
+    let fixture = Fixture::new();
+    let path = fixture.write("program.wave", "Call.Not.True");
+    let target = fixture.write("target.particle", "False");
+    let library = fixture.write("boolean.particle", "[Call.Not.True] Return.False");
+    let completion = fixture.write("completion.particle", "[Return] ()");
+    let output = execute(
+        "obsidian",
+        &path,
+        &[
+            "--target",
+            target.to_str().unwrap(),
+            "--library",
+            library.to_str().unwrap(),
+            "--library",
+            completion.to_str().unwrap(),
+            "--json",
+        ],
+    );
+    let result = report(&output);
+    assert_eq!(result["outcome"], "reached");
+    assert_eq!(result["execution"]["closed"], true);
+    let output = execute(
+        "obsidian",
+        &path,
+        &[
+            "--target",
+            target.to_str().unwrap(),
+            "--library",
+            library.to_str().unwrap(),
+            "--library",
+            completion.to_str().unwrap(),
+            "--path",
+            "--json",
+        ],
+    );
+    assert_eq!(report(&output)["outcome"], "reached");
+    let output = execute(
+        "run",
+        &path,
+        &["--library", library.to_str().unwrap(), "--json"],
+    );
+    assert_eq!(report(&output)["closed"], true);
+    let invalid = fixture.write("invalid.particle", "Unexpected");
+    let output = execute("run", &path, &["--library", invalid.to_str().unwrap()]);
+    assert!(!output.status.success());
+    assert!(
+        String::from_utf8_lossy(&output.stderr).contains("photonic::library"),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let malformed = fixture.write("malformed.particle", "[");
+    let output = execute("run", &path, &["--library", malformed.to_str().unwrap()]);
+    assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("malformed.particle"));
+}

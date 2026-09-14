@@ -81,35 +81,37 @@ fn example() {
 
 #[test]
 fn gate() {
-    let rule = include_str!("../../mathematics/binary/adder.particle");
+    let rule = concat!(
+        include_str!("../../library/application.particle"),
+        "\n",
+        include_str!("../../library/binary.particle")
+    );
     for mask in 0..8u8 {
         let source = (0..3)
-            .map(|bit| {
-                if mask & (1 << bit) == 0 {
-                    "Zero"
-                } else {
-                    "One"
-                }
-            })
+            .map(|bit| if mask & (1 << bit) == 0 { "0" } else { "1" })
             .collect::<Vec<_>>()
             .join(".");
         let count = mask.count_ones();
-        let sum = if count % 2 == 0 { "Zero" } else { "One" };
-        let carry = if count < 2 { "Zero" } else { "One" };
+        let sum = if count % 2 == 0 { "0" } else { "1" };
+        let carry = if count < 2 { "0" } else { "1" };
         check(
-            &format!("Add.{source} {rule}"),
-            &format!("Sum{sum}.Carry{carry}"),
+            &format!("Apply.Binary.Sum.{source}\n{rule}"),
+            &format!("([Digit] {sum}).([Carry] {carry})"),
         );
     }
-    let rule = include_str!("../../mathematics/binary/multiply.particle");
-    for left in ["Zero", "One"] {
-        for right in ["Zero", "One"] {
+    let rule = concat!(
+        include_str!("../../library/application.particle"),
+        "\n",
+        include_str!("../../library/binary.particle")
+    );
+    for left in ["0", "1"] {
+        for right in ["0", "1"] {
             check(
-                &format!("Multiply.{left}.{right} {rule}"),
-                if left == "One" && right == "One" {
-                    "One"
+                &format!("Apply.Binary.Multiply.{left}.{right}\n{rule}"),
+                if left == "1" && right == "1" {
+                    "1"
                 } else {
-                    "Zero"
+                    "0"
                 },
             );
         }
@@ -141,10 +143,14 @@ fn conservation() {
             .sum();
         assert_eq!(total, 1623);
     }
-    let rule = include_str!("../../mathematics/binary/adder.particle");
+    let rule = concat!(
+        include_str!("../../library/application.particle"),
+        "\n",
+        include_str!("../../library/binary.particle")
+    );
     let mut search = Search::new(
-        parse(&format!("Add.One.One.Zero {rule}")).unwrap(),
-        parse("SumOne.CarryOne").unwrap(),
+        parse(&format!("Apply.Binary.Sum.1.1.0\n{rule}")).unwrap(),
+        parse("([Digit] 1).([Carry] 1)").unwrap(),
     )
     .unwrap();
     search.run(12_000, None);

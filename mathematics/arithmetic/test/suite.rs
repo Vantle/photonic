@@ -189,7 +189,7 @@ fn structure() {
 fn borrow() {
     let source = circuit::subtract(2, 2, 3, 3).unwrap();
     assert_eq!(
-        execute(&source, "Bit0Zero.Bit1Zero.NegativeOne"),
+        execute(&source, "([Digit.0] 0).([Digit.1] 0).([Negative] 1)"),
         Outcome::Unknown
     );
 }
@@ -404,9 +404,9 @@ fn stream() {
     ] {
         let mut body = "End".to_owned();
         for value in digit.iter().rev() {
-            body = format!("({} [Next] {body})", if *value { "One" } else { "Zero" });
+            body = format!("({} [Next] {body})", if *value { "1" } else { "0" });
         }
-        let source = format!("Read [Read] {body} [Zero] Next [One] Next");
+        let source = format!("Read [Read] {body} [0] Next [1] Next");
         let mut search = Search::new(parse(&source).unwrap(), parse("End").unwrap()).unwrap();
         search.run(
             100_000,
@@ -422,8 +422,8 @@ fn stream() {
             .event
             .iter()
             .filter_map(|event| match event.rule.as_str() {
-                "[Zero] Next" => Some(false),
-                "[One] Next" => Some(true),
+                "[0] Next" => Some(false),
+                "[1] Next" => Some(true),
                 _ => None,
             })
             .collect::<Vec<_>>();

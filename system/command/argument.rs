@@ -39,6 +39,11 @@ pub enum Operation {
 
 #[derive(Args)]
 pub struct Execution {
+    #[arg(
+        long,
+        help = "Load a declaration-only Photonic library; repeat for each source file"
+    )]
+    pub library: Vec<PathBuf>,
     #[arg(long = "steps", default_value_t = 12_000)]
     pub step: usize,
     #[arg(long = "workers", default_value_t = 1)]

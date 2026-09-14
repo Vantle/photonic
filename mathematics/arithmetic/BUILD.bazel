@@ -3,6 +3,7 @@ load("@default_rust_toolchains//rustc:component_labels.bzl", "rust_toolchain_com
 load("@rules_rs//rs:rust_binary.bzl", "rust_binary")
 load("@rules_rs//rs:rust_library.bzl", "rust_library")
 load("@rules_rs//rs:rust_test.bzl", "rust_test")
+load("//photonic:defs.bzl", "photonic_binary", "photonic_test")
 
 rust_library(
     name = "library",
@@ -50,7 +51,11 @@ rust_test(
         "argument.rs",
         ":conformance",
     ],
-    compile_data = ["//mathematics/ternary:fixture"],
+    compile_data = [
+        "//mathematics/ternary:fixture",
+        ":fixture",
+        "//library:source",
+    ],
     crate_root = "test/suite.rs",
     data = [":word"],
     env = {"PHOTONIC_WORD": "$(rlocationpath :word)"},
@@ -76,6 +81,7 @@ rust_binary(
 filegroup(
     name = "source",
     srcs = [
+        "address.rs",
         "encoding.rs",
         "failure.rs",
         "format.rs",
@@ -122,4 +128,70 @@ filegroup(
         "test/suite.rs",
         "test/ternary.rs",
     ],
+)
+
+filegroup(
+    name = "fixture",
+    srcs = [
+        "fixture/ternary/add.particle",
+        "fixture/ternary/add.wave",
+        "fixture/ternary/divide.particle",
+        "fixture/ternary/divide.wave",
+        "fixture/ternary/multiply.particle",
+        "fixture/ternary/multiply.wave",
+        "fixture/ternary/subtract.particle",
+        "fixture/ternary/subtract.wave",
+    ],
+)
+
+photonic_binary(
+    name = "ternary.add",
+    srcs = ["fixture/ternary/add.wave"],
+)
+
+photonic_test(
+    name = "ternary.add.check",
+    srcs = ["fixture/ternary/add.wave"],
+    path = True,
+    source = "",
+    targets = ["([Digit.0] 0).([Digit.1] 1).([Digit.2] 0).([Digit.3] 0).([Digit.4] 2).([Digit.5] 0).([Digit.6] 2).([Digit.7] 0)"],
+)
+
+photonic_binary(
+    name = "ternary.subtract",
+    srcs = ["fixture/ternary/subtract.wave"],
+)
+
+photonic_test(
+    name = "ternary.subtract.check",
+    srcs = ["fixture/ternary/subtract.wave"],
+    path = True,
+    source = "",
+    targets = ["([Digit.0] 0).([Digit.1] 0).([Digit.2] 0).([Digit.3] 0).([Digit.4] 2).([Digit.5] 2).([Digit.6] 1).([Negative] 0)"],
+)
+
+photonic_binary(
+    name = "ternary.multiply",
+    srcs = ["fixture/ternary/multiply.wave"],
+)
+
+photonic_test(
+    name = "ternary.multiply.check",
+    srcs = ["fixture/ternary/multiply.wave"],
+    path = True,
+    source = "",
+    targets = ["([Digit.0] 0).([Digit.1] 0).([Digit.2] 1).([Digit.3] 2).([Digit.4] 0).([Digit.5] 0).([Digit.6] 1).([Digit.7] 0).([Digit.8] 1).([Digit.9] 0).([Digit.10] 0).([Digit.11] 1).([Digit.12] 0).([Digit.13] 0)"],
+)
+
+photonic_binary(
+    name = "ternary.divide",
+    srcs = ["fixture/ternary/divide.wave"],
+)
+
+photonic_test(
+    name = "ternary.divide.check",
+    srcs = ["fixture/ternary/divide.wave"],
+    path = True,
+    source = "",
+    targets = ["([Quotient.0] 0).([Quotient.1] 1).([Quotient.2] 1).([Quotient.3] 0).([Quotient.4] 0).([Quotient.5] 0).([Quotient.6] 0).([Remainder.0] 0).([Remainder.1] 2).([Remainder.2] 2).([Remainder.3] 0).([Remainder.4] 0).([Remainder.5] 0).([Remainder.6] 0).([Undefined] 0)"],
 )

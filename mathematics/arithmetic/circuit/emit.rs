@@ -1,9 +1,9 @@
 use super::Circuit;
-use crate::encoding::digit;
+use crate::address::Address;
 use crate::gate::assignment;
 
 impl Circuit {
-    pub(super) fn emit(self, result: Vec<(String, usize)>) -> String {
+    pub(super) fn emit(self, result: Vec<(Address, usize)>) -> String {
         let mut live = vec![false; self.domain.len()];
         for (_, wire) in &result {
             live[*wire] = true;
@@ -23,13 +23,13 @@ impl Circuit {
             .zip(retained)
             .filter_map(|(gate, live)| live.then_some(gate))
             .collect::<Vec<_>>();
-        let mut port = vec![Vec::<String>::new(); self.domain.len()];
+        let mut port = vec![Vec::<Address>::new(); self.domain.len()];
         let mut input = Vec::new();
         let mut ordinal = 0;
         for gate in &gate {
             let mut selected = Vec::new();
             for &wire in &gate.input {
-                let label = format!("Port{ordinal}");
+                let label = Address::at("Port", ordinal);
                 ordinal += 1;
                 port[wire].push(label.clone());
                 selected.push(label);
@@ -42,18 +42,18 @@ impl Circuit {
         let initial = self
             .initial
             .iter()
-            .map(|(wire, value)| format!("Input{wire}{}", digit(*value)))
+            .map(|(wire, value)| Address::at("Input", *wire).field(*value))
             .collect::<Vec<_>>();
         let mut source = initial.join(".") + "\n\n";
         for &(wire, _) in &self.initial {
             for &value in &self.domain[wire] {
                 let output = port[wire]
                     .iter()
-                    .map(|label| format!("{label}{}", digit(value)))
+                    .map(|label| label.field(value))
                     .collect::<Vec<_>>();
                 source.push_str(&format!(
-                    "[Input{wire}{}] {}\n",
-                    digit(value),
+                    "[{}] {}\n",
+                    Address::at("Input", wire).field(value),
                     particle(output)
                 ));
             }
@@ -68,7 +68,7 @@ impl Circuit {
                 let pattern = input
                     .iter()
                     .zip(&value)
-                    .map(|(label, &value)| format!("{label}{}", digit(value)))
+                    .map(|(label, &value)| label.field(value))
                     .collect::<Vec<_>>()
                     .join(".");
                 let output = gate
@@ -76,9 +76,7 @@ impl Circuit {
                     .iter()
                     .zip(gate.kind.evaluate(self.radix, &value))
                     .flat_map(|(&wire, value)| {
-                        port[wire]
-                            .iter()
-                            .map(move |label| format!("{label}{}", digit(value)))
+                        port[wire].iter().map(move |label| label.field(value))
                     })
                     .collect();
                 source.push_str(&format!("[{pattern}] {}\n", particle(output)));
@@ -92,6 +90,6 @@ fn particle(value: Vec<String>) -> String {
     if value.is_empty() {
         "()".into()
     } else {
-        value.join(".")
+        format!("({})", value.join("."))
     }
 }

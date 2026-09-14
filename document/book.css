@@ -1347,3 +1347,28 @@ footer {
         --code: #23362e;
     }
 }
+
+.graph-panel { margin:2rem 0; padding:clamp(1rem,3vw,2rem); border:1px solid var(--line); border-radius:20px; background:var(--surface); box-shadow:var(--shadow); }
+.graph-scroll { overflow-x:auto; margin:1.5rem 0; }
+.graph-scroll svg { display:block; width:100%; min-width:620px; max-height:700px; }
+.rule-map text, #evaluation-graph text { fill:var(--ink); text-anchor:middle; font-family:ui-monospace,monospace; font-size:14px; }
+.rule-map rect, .evaluation-node rect { fill:var(--wash); stroke:var(--line); stroke-width:1.5; }
+.rule-map .rule { fill:var(--accent); stroke:var(--accent); }
+.rule-map .rule-label { fill:var(--surface); }
+.rule-map path, .evaluation-edge { fill:none; stroke:var(--muted); stroke-width:1.5; }
+.rule-map .relation { stroke-dasharray:4 5; }
+#evaluation-graph .graph-caption { font-size:9px; letter-spacing:1px; fill:var(--muted); }
+.evaluation-edge.active { stroke:var(--accent); stroke-width:2.5; }
+.evaluation-node { cursor:pointer; outline:none; }
+.evaluation-node.selected rect, .evaluation-node:focus rect { stroke:var(--accent); stroke-width:3; }
+.graph-inspector { display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; border-top:1px solid var(--line); padding-top:1.5rem; }
+#evaluation-event { display:flex; flex-direction:column; gap:.5rem; }
+#evaluation-event button { text-align:left; white-space:normal; font-family:ui-monospace,monospace; font-size:.85rem; }
+.graph-editor label { display:block; margin:1rem 0 .5rem; font-weight:600; }
+.graph-editor textarea { box-sizing:border-box; width:100%; resize:vertical; min-height:7rem; padding:1rem; border:1px solid var(--line); border-radius:12px; background:var(--paper); color:var(--ink); font: .95rem/1.65 ui-monospace,monospace; }
+.graph-editor #evaluation-target { min-height:3rem; }
+.graph-action { display:flex; flex-wrap:wrap; gap:.6rem; margin:1rem 0; }
+#evaluation-status { min-height:3em; color:var(--muted); }
+#evaluation-detail { max-height:22rem; overflow:auto; }
+@media (max-width:650px) { .graph-inspector { grid-template-columns:1fr; } }
+@media print { .graph-editor, .graph-action { display:none; } .graph-panel { break-inside:avoid; box-shadow:none; } }

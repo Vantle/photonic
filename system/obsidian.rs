@@ -32,6 +32,12 @@ pub struct Report {
     pub execution: Snapshot,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+pub struct Verdict {
+    pub outcome: Outcome,
+    pub witness: Option<usize>,
+}
+
 pub struct Search {
     runtime: Runtime,
     target: State,
@@ -56,6 +62,17 @@ impl Search {
         })
     }
 
+    pub fn target(&mut self, target: source::Program) -> Result<(), Failure> {
+        if !target.rule.is_empty() {
+            return Err(Failure::Declaration);
+        }
+        let mut compiled = self.runtime.program.as_ref().clone();
+        compiled.initial = compiled.input(&target.initial);
+        self.target = State::initial(&compiled);
+        self.claim = target.initial;
+        Ok(())
+    }
+
     pub fn run(&mut self, budget: usize, limit: Option<Limit>) {
         self.runtime.run(budget, limit);
     }
@@ -64,25 +81,28 @@ impl Search {
         self.runtime.parallel(executor, budget, limit);
     }
 
-    pub fn report(&self) -> Report {
-        let execution = self.runtime.snapshot();
-        let candidate = self
-            .runtime
-            .state
-            .iter()
-            .position(|state| state.as_ref() == &self.target);
-        let status = candidate.map(|index| execution.state[index].status);
+    pub fn verdict(&self) -> Verdict {
+        let candidate = self.runtime.state.get_index_of(&self.target);
+        let status = candidate.map(|index| self.runtime.status(index));
         let outcome = match status {
             Some(Status::Supported) => Outcome::Reached,
-            _ if execution.closed => Outcome::Unreachable,
+            _ if self.runtime.closed() => Outcome::Unreachable,
             _ => Outcome::Unknown,
         };
-        Report {
+        Verdict {
             outcome,
             witness: candidate.filter(|_| outcome == Outcome::Reached),
+        }
+    }
+
+    pub fn report(&self) -> Report {
+        let verdict = self.verdict();
+        Report {
+            outcome: verdict.outcome,
+            witness: verdict.witness,
             program: self.program.clone(),
             target: self.claim.clone(),
-            execution,
+            execution: self.runtime.snapshot(),
         }
     }
 }

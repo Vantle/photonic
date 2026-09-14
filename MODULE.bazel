@@ -46,6 +46,7 @@ crate.from_cargo(
     cargo_lock = "//:Cargo.lock",
     cargo_toml = "//:Cargo.toml",
     platform_triples = [
+        "wasm32-unknown-unknown",
         "aarch64-apple-darwin",
         "aarch64-pc-windows-gnullvm",
         "aarch64-unknown-linux-gnu",
@@ -74,3 +75,8 @@ browser = use_extension("@rules_browsers//browsers:extensions.bzl", "browsers", 
 browser.chrome(version = "147.0.7687.0")
 browser.chromedriver(version = "147.0.7687.0")
 use_repo(browser, "rules_browsers_chrome_mac_arm", "rules_browsers_chromedriver_mac_arm")
+
+wasm = use_extension("@rules_rs//rs:rules_rust_wasm_bindgen.bzl", "rules_rust_wasm_bindgen")
+use_repo(wasm, "rules_rust_wasm_bindgen")
+
+register_toolchains("@rules_rust_wasm_bindgen//:default_wasm_bindgen_toolchain")

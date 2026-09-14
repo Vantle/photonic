@@ -1,8 +1,14 @@
 use super::Runtime;
 use crate::snapshot::{Event, Link, Node, Snapshot, View};
-use crate::support::{Atom, Support};
+use crate::support::{Atom, Status, Support};
 
 impl Runtime {
+    pub(crate) fn status(&self, index: usize) -> Status {
+        self.evaluation
+            .get_or_init(|| Support::new(self.clause.iter().cloned()))
+            .status(Atom::State(index))
+    }
+
     pub fn snapshot(&self) -> Snapshot {
         let support = self
             .evaluation

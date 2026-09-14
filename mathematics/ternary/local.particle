@@ -1,0 +1,2 @@
+First.([Digit] 2).([Carry] 1),
+Second.([Digit] 0).([Borrow] 1)

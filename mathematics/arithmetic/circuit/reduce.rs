@@ -1,5 +1,5 @@
 use super::{Circuit, Layout};
-use crate::encoding::label;
+use crate::address::Address;
 use crate::gate::Kind;
 
 impl Circuit {
@@ -37,7 +37,7 @@ impl Circuit {
             .enumerate()
             .map(|(index, wire)| {
                 let wire = wire.unwrap_or_else(|| self.constant(0));
-                (format!("{}{index}", label(self.radix)), wire)
+                (Address::at("Digit", index), wire)
             })
             .collect();
         self.emit(result)

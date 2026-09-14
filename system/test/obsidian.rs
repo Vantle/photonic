@@ -178,3 +178,27 @@ fn indexing() {
         Outcome::Reached
     );
 }
+
+#[test]
+fn verdict() {
+    let mut search = search("A [A] B [B] C", "C");
+    assert_eq!(search.verdict().outcome, Outcome::Unknown);
+    search.run(12000, None);
+    let report = search.report();
+    assert_eq!(search.verdict().outcome, report.outcome);
+    assert_eq!(search.verdict().witness, report.witness);
+    let work = report.execution.work;
+    for (target, expected) in [
+        ("A", Outcome::Reached),
+        ("D", Outcome::Unreachable),
+        ("B", Outcome::Reached),
+    ] {
+        search.target(parse(target).unwrap()).unwrap();
+        assert_eq!(search.verdict().outcome, expected);
+        assert_eq!(search.report().execution.work, work);
+    }
+    assert!(search.target(parse("B [B] C").unwrap()).is_err());
+    assert_eq!(search.verdict().outcome, Outcome::Reached);
+    search.target(parse("D").unwrap()).unwrap();
+    assert_eq!(search.verdict().witness, None);
+}

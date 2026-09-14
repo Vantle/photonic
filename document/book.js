@@ -8,7 +8,7 @@
         return node;
     };
     const token = (text, style = '') => element('span', text, `token ${style}`);
-    const names = ['Zero', 'One', 'Two'];
+    const names = ['0', '1', '2'];
     const theme = dark => {
         document.documentElement.dataset.theme = dark ? 'dark' : 'light';
         find('theme').setAttribute('aria-label', `Switch to ${dark ? 'light' : 'dark'} appearance`);
@@ -28,7 +28,7 @@
         find('progress').style.width = `${height > 0 ? Math.min(100, scrollY / height * 100) : 100}%`;
         const current = chapter.filter(node => node.getBoundingClientRect().top < innerHeight * .35).at(-1);
         link.forEach(node => current && node.hash === `#${current.id}` ? node.setAttribute('aria-current', 'location') : node.removeAttribute('aria-current'));
-        find('position').textContent = current ? `Chapter ${String(chapter.indexOf(current) + 1).padStart(2, '0')} of 10` : 'Begin anywhere. Read in order.';
+        find('position').textContent = current ? `Chapter ${String(chapter.indexOf(current) + 1).padStart(2, '0')} of ${chapter.length}` : 'Begin anywhere. Read in order.';
     };
     let scheduled = false;
     window.addEventListener('scroll', () => {
@@ -196,7 +196,7 @@
         find('trit-strip').replaceChildren();
         for (let index = digit.length - 1; index >= 0; index--) {
             const cell = element('div', undefined, 'trit');
-            cell.append(element('small', `3^${index}`), element('strong', digit[index]), element('small', `Digit${index}`));
+            cell.append(element('small', `3^${index}`), element('strong', digit[index]), element('small', `Position ${index}`));
             find('trit-strip').append(cell);
         }
         const term = digit.map((value, index) => Number(value) ? `${value} × 3^${index}` : '').filter(Boolean).reverse();
@@ -210,7 +210,7 @@
         const value = left * right;
         find('digit-equation').textContent = `${left} × ${right} = ${value % 3} + 3 × ${Math.floor(value / 3)}`;
         const ordered = [left, right].sort((a, b) => a - b);
-        find('digit-rule').textContent = `[Multiply.${names[ordered[0]]}.${names[ordered[1]]}] Digit${names[value % 3]}.Carry${names[Math.floor(value / 3)]}`;
+        find('digit-rule').textContent = `[Call.Multiply.${names[ordered[0]]}.${names[ordered[1]]}] Return.([Digit] ${names[value % 3]}).([Carry] ${names[Math.floor(value / 3)]})`;
     };
     ['digit-left', 'digit-right'].forEach(id => find(id).addEventListener('change', digit));
     digit();

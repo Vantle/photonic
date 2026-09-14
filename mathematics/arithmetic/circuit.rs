@@ -1,7 +1,7 @@
 mod emit;
 mod reduce;
 
-use crate::encoding::label;
+use crate::address::Address;
 use crate::failure::Failure;
 use crate::format::Format;
 use crate::gate::assignment;
@@ -138,9 +138,9 @@ pub fn subtract(radix: u8, width: usize, left: u64, right: u64) -> Result<String
     let mut result = magnitude
         .into_iter()
         .enumerate()
-        .map(|(index, wire)| (format!("{}{index}", label(radix)), wire))
+        .map(|(index, wire)| (Address::at("Digit", index), wire))
         .collect::<Vec<_>>();
-    result.push(("Negative".into(), negative));
+    result.push((Address::scalar("Negative"), negative));
     Ok(circuit.emit(result))
 }
 
@@ -176,14 +176,14 @@ pub fn divide(radix: u8, width: usize, left: u64, right: u64) -> Result<String, 
     let mut result = quotient
         .into_iter()
         .enumerate()
-        .map(|(index, wire)| (format!("Quotient{index}"), wire))
+        .map(|(index, wire)| (Address::at("Quotient", index), wire))
         .collect::<Vec<_>>();
     result.extend(
         remainder
             .into_iter()
             .enumerate()
-            .map(|(index, wire)| (format!("Remainder{index}"), wire)),
+            .map(|(index, wire)| (Address::at("Remainder", index), wire)),
     );
-    result.push(("Undefined".into(), undefined));
+    result.push((Address::scalar("Undefined"), undefined));
     Ok(circuit.emit(result))
 }

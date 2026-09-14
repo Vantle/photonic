@@ -1,0 +1,161 @@
+load("@rules_rs//rs:rust_test.bzl", "rust_test")
+load("//photonic:defs.bzl", "photonic_library", "photonic_test")
+
+rust_test(
+    name = "test",
+    srcs = ["test/suite.rs"],
+    compile_data = [
+        ":source",
+        "//example/library:fixture",
+    ],
+    crate_root = "test/suite.rs",
+    deps = ["//system:photonic"],
+)
+
+filegroup(
+    name = "source",
+    srcs = [
+        "application.particle",
+        "binary.particle",
+        "boolean.particle",
+        "carry.particle",
+        "collection.particle",
+        "composition.particle",
+        "pair.particle",
+        "position.particle",
+        "production.particle",
+        "selection.particle",
+        "stream.particle",
+        "ternary.particle",
+    ],
+    visibility = [
+        "//mathematics/arithmetic:__pkg__",
+        "//system:__pkg__",
+    ],
+)
+
+filegroup(
+    name = "build",
+    srcs = ["BUILD.bazel"],
+    visibility = ["//:__pkg__"],
+)
+
+photonic_library(
+    name = "application",
+    srcs = ["application.particle"],
+)
+
+photonic_library(
+    name = "boolean",
+    srcs = ["boolean.particle"],
+    visibility = ["//example/library:__pkg__"],
+    deps = [":application"],
+)
+
+photonic_library(
+    name = "production",
+    srcs = ["production.particle"],
+    visibility = ["//example/library:__pkg__"],
+    deps = [":application"],
+)
+
+photonic_library(
+    name = "collection",
+    srcs = ["collection.particle"],
+    visibility = ["//example/library:__pkg__"],
+    deps = [":application"],
+)
+
+photonic_library(
+    name = "ternary",
+    srcs = ["ternary.particle"],
+    visibility = ["//mathematics:__subpackages__"],
+    deps = [":carry"],
+)
+
+photonic_library(
+    name = "position",
+    srcs = ["position.particle"],
+    visibility = ["//mathematics:__subpackages__"],
+    deps = [":application"],
+)
+
+photonic_library(
+    name = "stream",
+    srcs = ["stream.particle"],
+    visibility = ["//mathematics:__subpackages__"],
+)
+
+photonic_library(
+    name = "carry",
+    srcs = ["carry.particle"],
+    deps = [":application"],
+)
+
+photonic_library(
+    name = "composition",
+    srcs = ["composition.particle"],
+    deps = [":boolean"],
+)
+
+photonic_library(
+    name = "pair",
+    srcs = ["pair.particle"],
+    deps = [":application"],
+)
+
+photonic_library(
+    name = "selection",
+    srcs = ["selection.particle"],
+    deps = [":collection"],
+)
+
+photonic_test(
+    name = "boolean.check",
+    source = "Apply.Not.True",
+    targets = ["False"],
+    deps = [":boolean"],
+)
+
+photonic_test(
+    name = "boolean.reject",
+    expect = "unreachable",
+    source = "Apply.Not.True",
+    targets = ["True"],
+    deps = [":boolean"],
+)
+
+photonic_test(
+    name = "boolean.alternative",
+    match = "any",
+    source = "Apply.Not.True",
+    targets = [
+        "True",
+        "False",
+    ],
+    deps = [":boolean"],
+)
+
+photonic_test(
+    name = "boolean.history",
+    source = "Apply.Not.True",
+    targets = [
+        "Apply.Not.True",
+        "False",
+    ],
+    deps = [":boolean"],
+)
+
+photonic_library(
+    name = "binary",
+    srcs = ["binary.particle"],
+    visibility = ["//mathematics/binary:__pkg__"],
+    deps = [":application"],
+)
+
+photonic_test(
+    name = "binary.check",
+    source = "Apply.Binary.Sum.1.1.0",
+    targets = ["([Digit] 0).([Carry] 1)"],
+    deps = [":binary"],
+)

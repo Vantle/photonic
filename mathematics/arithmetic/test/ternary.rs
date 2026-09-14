@@ -197,16 +197,28 @@ fn exhaustive() {
 
 #[test]
 fn digit() {
-    let rule = include_str!("../../ternary/digit.particle");
-    let name = ["Zero", "One", "Two"];
+    let rule = concat!(
+        include_str!("../../../library/application.particle"),
+        "\n",
+        include_str!("../../../library/ternary.particle")
+    );
+    let name = ["0", "1", "2"];
     for left in 0..3 {
         for right in 0..3 {
             for carry in 0..3 {
                 let value = left + right + carry;
                 assert_eq!(
                     execute(
-                        &format!("Add.{}.{}.{} {rule}", name[left], name[right], name[carry]),
-                        &format!("Digit{}.Carry{}", name[value % 3], name[value / 3])
+                        &format!(
+                            "Apply.Sum.{}.{}.{}
+{rule}",
+                            name[left], name[right], name[carry]
+                        ),
+                        &format!(
+                            "([Digit] {}).([Carry] {})",
+                            name[value % 3],
+                            name[value / 3]
+                        )
                     ),
                     Outcome::Reached
                 );
@@ -214,8 +226,16 @@ fn digit() {
             let value = left * right;
             assert_eq!(
                 execute(
-                    &format!("Multiply.{}.{} {rule}", name[left], name[right]),
-                    &format!("Digit{}.Carry{}", name[value % 3], name[value / 3])
+                    &format!(
+                        "Apply.Multiply.{}.{}
+{rule}",
+                        name[left], name[right]
+                    ),
+                    &format!(
+                        "([Digit] {}).([Carry] {})",
+                        name[value % 3],
+                        name[value / 3]
+                    )
                 ),
                 Outcome::Reached
             );
@@ -224,11 +244,12 @@ fn digit() {
                 assert_eq!(
                     execute(
                         &format!(
-                            "Subtract.Left{}.Right{}.Borrow{} {rule}",
+                            "Apply.Subtract.([Left] {}).([Right] {}).([Borrow] {})
+{rule}",
                             name[left], name[right], name[borrow]
                         ),
                         &format!(
-                            "Digit{}.Borrow{}",
+                            "([Digit] {}).([Borrow] {})",
                             name[value.rem_euclid(3) as usize],
                             name[usize::from(value < 0)]
                         )
@@ -238,10 +259,11 @@ fn digit() {
                 assert_eq!(
                     execute(
                         &format!(
-                            "Select.Left{}.Right{}.Choice{} {rule}",
+                            "Apply.Select.([Left] {}).([Right] {}).([Choice] {})
+{rule}",
                             name[left], name[right], name[borrow]
                         ),
-                        &format!("Digit{}", name[if borrow == 0 { left } else { right }])
+                        &format!("([Digit] {})", name[if borrow == 0 { left } else { right }])
                     ),
                     Outcome::Reached
                 );
@@ -251,7 +273,7 @@ fn digit() {
     assert_eq!(
         execute(
             &circuit::subtract(3, 1, 2, 2).unwrap(),
-            "Digit0Zero.NegativeOne"
+            "([Digit.0] 0).([Negative] 1)"
         ),
         Outcome::Unknown
     );
@@ -277,7 +299,7 @@ fn notation() {
     assert_eq!(
         execute(
             include_str!("../../ternary/word.particle"),
-            &encoding::unsigned(3, 4, 47).unwrap()
+            "Number.([Base] 3).([3] 1).([2] 2).([1] 0).([0] 2)"
         ),
         Outcome::Reached
     );
@@ -287,23 +309,23 @@ fn notation() {
 fn example() {
     for (source, target, expected) in [
         (
-            include_str!("../../ternary/add.wave"),
-            include_str!("../../ternary/add.particle"),
+            include_str!("../fixture/ternary/add.wave"),
+            include_str!("../fixture/ternary/add.particle"),
             encoding::unsigned(3, 8, 1623).unwrap(),
         ),
         (
-            include_str!("../../ternary/multiply.wave"),
-            include_str!("../../ternary/multiply.particle"),
+            include_str!("../fixture/ternary/multiply.wave"),
+            include_str!("../fixture/ternary/multiply.particle"),
             encoding::unsigned(3, 14, 184_500).unwrap(),
         ),
         (
-            include_str!("../../ternary/subtract.wave"),
-            include_str!("../../ternary/subtract.particle"),
+            include_str!("../fixture/ternary/subtract.wave"),
+            include_str!("../fixture/ternary/subtract.particle"),
             encoding::difference(3, 7, 1377).unwrap(),
         ),
         (
-            include_str!("../../ternary/divide.wave"),
-            include_str!("../../ternary/divide.particle"),
+            include_str!("../fixture/ternary/divide.wave"),
+            include_str!("../fixture/ternary/divide.particle"),
             encoding::quotient(3, 7, 12, 24, false).unwrap(),
         ),
     ] {

@@ -1,0 +1,44 @@
+[Map.Ready.Left] (
+    Transform
+    [Return] Done.Left
+)
+
+[Map.Ready.Right] (
+    Transform
+    [Return] Done.Right
+)
+
+[Gather.Done.Left.True, Gather.Done.Right.True] Return.([Left] True).([Right] True)
+[Gather.Done.Left.True, Gather.Done.Right.False] Return.([Left] True).([Right] False)
+[Gather.Done.Left.False, Gather.Done.Right.True] Return.([Left] False).([Right] True)
+[Gather.Done.Left.False, Gather.Done.Right.False] Return.([Left] False).([Right] False)
+
+[Reduce.Done.Left.True, Reduce.Done.Right.True] Combine.True.True
+[Reduce.Done.Left.True, Reduce.Done.Right.False] Combine.True.False
+[Reduce.Done.Left.False, Reduce.Done.Right.True] Combine.False.True
+[Reduce.Done.Left.False, Reduce.Done.Right.False] Combine.False.False
+
+[Reduce.Done.Left.0, Reduce.Done.Right.0] Combine.0.0
+[Reduce.Done.Left.0, Reduce.Done.Right.1] Combine.0.1
+[Reduce.Done.Left.0, Reduce.Done.Right.2] Combine.0.2
+[Reduce.Done.Left.1, Reduce.Done.Right.0] Combine.1.0
+[Reduce.Done.Left.1, Reduce.Done.Right.1] Combine.1.1
+[Reduce.Done.Left.1, Reduce.Done.Right.2] Combine.1.2
+[Reduce.Done.Left.2, Reduce.Done.Right.0] Combine.2.0
+[Reduce.Done.Left.2, Reduce.Done.Right.1] Combine.2.1
+[Reduce.Done.Left.2, Reduce.Done.Right.2] Combine.2.2
+
+[Transform.([Function] Not)] Call.Not
+[Transform.([Function] Identity)] Call.Identity
+
+[Combine.([Operation] And)] Call.And
+[Combine.([Operation] Or)] Call.Or
+[Combine.([Operation] Equal)] Call.Equal
+
+[Transform.([Function] Produce)] Call.Produce
+[Transform.([Function] Successor)] Call.Successor
+[Combine.([Operation] Add)] Call.Add
+
+[Call.Gather.Empty] Return
+[Call.Reduce.Empty.([Operation] And)] Return.True
+[Call.Reduce.Empty.([Operation] Or)] Return.False

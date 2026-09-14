@@ -1,0 +1,6 @@
+[Apply] (
+    Call
+    [Return] ()
+)
+
+[Call.Identity] Return

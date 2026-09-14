@@ -68,9 +68,25 @@ fn program(path: &Path, format: Option<Format>) -> miette::Result<Program> {
     }
 }
 
+fn load(path: &Path, execution: &Execution) -> miette::Result<Program> {
+    let mut source = program(path, execution.format)?;
+    for path in &execution.library {
+        let library = program(path, Some(Format::Photonic))?;
+        if !library.initial.is_empty() {
+            return Err(miette::miette!(
+                code = "photonic::library",
+                "library {} contains initial coherences; supply declarations only",
+                path.display()
+            ));
+        }
+        source.rule.extend(library.rule);
+    }
+    Ok(source)
+}
+
 fn run(path: PathBuf, execution: Execution) -> miette::Result<()> {
     let executor = photonic::executor::Executor::new(execution.worker).into_diagnostic()?;
-    let mut runtime = Runtime::new(program(&path, execution.format)?);
+    let mut runtime = Runtime::new(load(&path, &execution)?);
     runtime.parallel(&executor, execution.step, Some(limit(&execution)));
     let snapshot = runtime.snapshot();
     let mut output = std::io::stdout().lock();
@@ -123,7 +139,7 @@ fn obsidian(
         return trace(path, target, execution);
     }
     let mut search = photonic::obsidian::Search::new(
-        program(&path, execution.format)?,
+        load(&path, &execution)?,
         program(&target, execution.format)?,
     )?;
     search.parallel(&executor, execution.step, Some(limit(&execution)));
@@ -168,7 +184,7 @@ fn obsidian(
 
 fn trace(path: PathBuf, target: PathBuf, execution: Execution) -> miette::Result<()> {
     let mut search = photonic::path::Search::new(
-        program(&path, execution.format)?,
+        load(&path, &execution)?,
         program(&target, execution.format)?,
     )?;
     search.run(execution.step, limit(&execution));

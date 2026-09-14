@@ -79,7 +79,7 @@ fn example() {
         ),
         (
             include_str!("../../mathematics/natural/action.wave"),
-            include_str!("../../mathematics/natural/retained.wave"),
+            include_str!("../../mathematics/natural/retained.particle"),
         ),
     ] {
         assert_eq!(check(source, target), Outcome::Reached);

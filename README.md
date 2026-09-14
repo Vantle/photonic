@@ -1,90 +1,87 @@
 # Photonic
 
-**[Read the interactive webbook](index.html)** — philosophy, grammar, features, the Rust runtime, and mathematics in one page. Open `index.html` locally to use its illustrations and recorded execution explorers offline.
+[Read the interactive webbook](index.html). Photonic expresses computation through positive rules over independently evolving coherences. The native standard library is written in Photonic; Rust supplies the language runtime, build tooling, and verification harness.
 
-Both `.particle` and `.wave` contain the same Photonic source syntax. By convention, `.particle` holds reusable rules or data and `.wave` holds a runnable script. The extension does not change evaluation. Structured programs and execution reports remain JSON.
+## Run and test
 
-Computational expression over hypergraphs, with a native Rust frontend and runtime. The hermetic build follows [Vantle Registry](https://github.com/Vantle/registry).
-
-The [mathematics library](mathematics/README.md) begins with a [natural-number chapter](index.html#natural), a written formal definition and [Obsidian](mathematics/obsidian.md), which checks concrete state reachability. Explicit mathematical proof checking, equality, and induction are planned.
-
-A **rule** describes computation, including abstraction derivations; an **event** records one application. Types are computation in the same iterative model. A **coherence** is an independently evolving parallel context. **Divergence** creates several coherences; **decoherence** combines compatible coherences.
-
-```text
-And.True.False.Extra
-[True] Boolean,
-[False] Boolean,
-[And.Boolean.Boolean] (
-    [True.True] True,
-    [True.False] False,
-    [False.False] False,
-)
-```
-
-The Boolean derivations reveal an application at the concrete `And.True.False.Extra` source. Its body receives `True.False.Extra` and returns `False.Extra`. Intermediate descriptions justify applications; they do not accumulate as extra operands. The runtime explores alternative events and shares equivalent configurations.
-
-## Run
-
-Install **Bazel 9.2.0**. No separately installed Rust, Cargo, or native compiler is required.
+Bazel is the only required build tool. It downloads the pinned compiler and dependencies.
 
 ```sh
-bazel run -c opt //system:command -- run "$PWD/example/conjunction.wave"
-bazel run -c opt //system:command -- run "$PWD/example/capture.wave" --json
-bazel test //...
-bazel run //:format -- --check
-```
-
-Native source uses only the original concepts, dots, commas, brackets, parentheses, and whitespace. `Seed.A [Seed] [A] B` produces locally executable code. No sigils, constructors, arrow operators, semicolon terminators, braces, or keywords are added. See the [frontend contract](document/syntax.md), [generalization](document/generalization.md), and [examples](example).
-
-The CLI also accepts JSON for the same positive rule model. There are no negative premises or built-in logical concepts. `Not`, `True`, and `False` acquire behavior only through user rules.
-
-The ground runtime and original-syntax lowering are implemented. Execution limits suspend exploration. The report distinguishes a closed finite graph from queued or deferred work. Use `--steps`, `--states`, `--coherences`, `--cells`, `--frames`, and `--records` to adjust limits. `--workers 4` enables optional Rayon workers; the default is one. The record threshold is checked between coordinator batches and is not a byte cap. Embedded callers can resume the same `runtime::Runtime` through `run`. JSON reports include configurations, events, witness mappings, consuming footprints, read dependencies, and support status; they are inspection reports, not restorable checkpoints.
-
-## Core
-
-- Crate-backed parsing and diagnostics lower native source into typed program values.
-- Interned atom names, recursive immutable rule values, shared configurations, exact canonical identity, and indexed dependency propagation implement the graph.
-- Resumable matching gates retain compatible assignments and suppress duplicate arrivals. Cached bindings reach subscribed views incrementally through one agenda.
-- Relative occurrence maps preserve inherited sharing, independent results, lexical captures, and return continuations.
-- Indexed positive evidence closure requires every premise and preserves established conclusions. Cycles cannot establish themselves without evidence.
-
-The named crate root [photonic.rs](system/photonic.rs) declares focused modules directly, without `lib.rs` or re-exports. Public modules provide the language interface; private modules implement evaluation. `lowering` handles executable syntax; `program` interns it; `state`, `refinement`, `canonical`, `matching`, `search`, `flow`, `support`, and `runtime` implement evaluation; `executor` supplies ordered parallel work; `snapshot` supplies inspectable reports. The structural `parser` API and generic `particle` / `rule` multiset kernel remain independent tools. Structural `parse` success alone does not establish executability.
-
-Rust conformance checks cover all 20 programs exported from the JavaScript reference: full canonical configuration, application-edge, and support comparisons for 19 closed cases, plus suspension for one growing case. The Rust tests also cover matching/canonicalization suspension, graph refinement, fair progress, positive evidence closure, and identical full reports across 1/2/4 workers and different pause sizes. Positive support is compared against a simple fixed-point oracle over 14,425 clause programs.
-
-The [runtime chapter](index.html#runtime) explains the implementation and lets you follow native Rust events. The [reference laboratory](document/plan.html) retains the independent ground evaluator. The [semantic contract](document/semantics.md), [implementation plan](document/plan.md), and [terminology](document/terminology.md) describe the accepted model. Earlier HTML laboratories are marked historical.
-
-Whole-rule production and replacement use the same matching, projection, activation, and support machinery as ordinary concepts. Arbitrary structural extraction, binding encodings, induction, and restorable checkpoints remain research work. The former variable/constructor extension has been removed. Graph refinement reduces symmetric work, but exact enumeration can still take factorial time. State sharing prevents repeated equivalent configurations, not genuine fresh-state growth. See [performance](document/performance.md) for the reproducible benchmark and its limits.
-
-## Build
-
-Bazel downloads Rust 1.98.1, hermetic LLVM, platform SDKs, crates, and Node 22.18.0. The browser check also downloads pinned Chrome and ChromeDriver. Initial fetching needs network access; compilation runs without it. Cargo describes dependencies; Bazel owns compilation and testing. Both lockfiles are checked in, and ordinary commands reject stale Bazel resolution data.
-
-```sh
-bazel build -c opt //...
+bazel run -c opt //browser:serve
+bazel run -c opt //example/library:pipeline
 bazel test -c opt //...
 bazel test //tool:check
 bazel build --config=format //...
 bazel build --config=lint //...
-bazel run -c opt //system:benchmark
 ```
 
-To update dependencies, run `bazel run //:update --config=refresh`, then `bazel mod deps --config=refresh`. Review both lockfiles and repeat the checks above. Developer commands use the downloaded Rust tools. Bazel creates no convenience symlinks in the checkout; use `bazel info bazel-bin` to locate outputs.
+The live preview opens at http://127.0.0.1:8080 and runs the Rust evaluator through hermetic wasm-bindgen bindings. Recorded diagrams remain available when opening the HTML file directly.
 
-The toolchain targets ARM64 and x86-64 macOS, GNU Linux, and GNULLVM Windows. [CI](.github/workflows/verify.yml) builds and tests optimized binaries on all six native platforms and checks Bazel formatting, Rust formatting, and Clippy in a separate job. The native matrix also executes the JavaScript reference assertions and regenerates its fixtures for comparison; an eighth job exercises the webbook and reference laboratory in headless Chrome on ARM64 macOS; see [platform verification](platform/README.md) for host toolchain configuration and matching local commands. Optional remote execution follows Registry; local executor settings belong in ignored `user.bazelrc`.
+Use `bazel test //tool:browser` on ARM64 macOS for the webbook and independent reference laboratory.
 
-The crates supply parsing ([pest](https://docs.rs/pest/)), error derivation ([thiserror](https://docs.rs/thiserror/)), diagnostics ([miette](https://docs.rs/miette/)), arguments ([clap](https://docs.rs/clap/)), serialization ([Serde](https://serde.rs/)), stable indexed interning ([IndexMap](https://docs.rs/indexmap/)), and worker pools ([Rayon](https://docs.rs/rayon/)). Photonic owns the rewrite, identity, projection, and support semantics.
+## Build native programs
 
+```starlark
+load("//photonic:defs.bzl", "photonic_binary", "photonic_library", "photonic_test")
 
-## Source layout
+photonic_library(
+    name = "logic",
+    srcs = ["logic.particle"],
+)
 
-- `system/photonic.rs`: language library, with focused modules directly in `system/`.
-- `system/command.rs` and `system/command/`: CLI and arguments.
-- `system/test/`: internal conformance suite and command integration tests.
-- `system/benchmark.rs` and `system/benchmark/`: runtime measurements.
-- `mathematics/arithmetic/`: shared digit circuits, numeral encoding, CLI, and tests; `library.rs` is the crate root.
-- `mathematics/ternary/`: ordinary-rule digit library and runnable arithmetic examples.
+photonic_binary(
+    name = "example",
+    srcs = ["request.wave", "value.particle"],
+    deps = [":logic"],
+)
 
-Library modules live beside their crate root. Tests and reporting have separate files. Public modules describe source programs, execution, queries, and reports. Canonicalization, matching, scheduling, compiled programs, and mutable execution state stay private; benchmark access is isolated behind the `measurement` feature. Bazel targets are `//system:command`, `//system:test`, and `//mathematics/arithmetic:word`; run all tests with `bazel test -c opt //...`.
+photonic_test(
+    name = "negation",
+    source = "Apply.Not.True",
+    targets = ["Apply.Not.True", "False"],
+    deps = [":logic"],
+)
+```
 
-Build membership is explicit: packages own their source and fixture filegroups, and shared inputs grant visibility only to their consumers. Every maintained Rust executable builds in `//...`; development tools and the platform-specific browser check are manual. Run the browser check with `bazel test //tool:browser` on ARM64 macOS. The [contribution guide](document/contribution.md) describes package boundaries, naming, and the verification workflow.
+The example `logic.particle` must supply the application and Boolean rules. A library contains declarations only. A binary combines the initial configurations from its sources and loads each transitive dependency file once. Both `.particle` and `.wave` use the same grammar; the extensions distinguish reusable definitions/data from executable examples by convention.
+
+A test accepts literal `source`, file `srcs`, and library `deps`. `targets` is a list of complete configurations. The default `match = "all"` requires every target to be reachable; `match = "any"` accepts any one. `expect = "unreachable"` checks non-reachability instead. Unknown never satisfies either expectation. Full exploration shares one execution graph across the targets. Optional `path = True` follows direct paths and can only establish reachability. Reaching all targets does not claim they occur together or exhaust all possible outcomes.
+
+## Find the implementation
+
+| Directory | Responsibility |
+| --- | --- |
+| [library/](library/) | Native reusable Photonic declarations; one module per concern. |
+| [example/library/](example/library/) | Composed standard-library applications. |
+| [example/](example/) | Language examples, association cases in `group/`, rejected constructions in `counterexample/`. |
+| [mathematics/natural/](mathematics/natural/) | Unary mathematical constructions and retained proof fixtures. |
+| [mathematics/ternary/](mathematics/ternary/) | Native trit applications, indexed numerals, streams, and sparse powers. |
+| [mathematics/binary/](mathematics/binary/), [decimal/](mathematics/decimal/) | Sparse numeral examples. |
+| [mathematics/arithmetic/](mathematics/arithmetic/) | Host circuit construction and conformance checks; generated Photonic examples live in `fixture/ternary/`. |
+| [browser/](browser/) | WebAssembly bindings, live preview, and native/Wasm conformance tests. |
+| [photonic/](photonic/) | Bazel rules, source assembly, portable launcher, and Obsidian test runner. |
+| [system/](system/) | Frontend, runtime, Obsidian, command, benchmarks, and conformance tests. |
+| [document/](document/) | Canonical guides and webbook assets. |
+
+Every runnable `.wave` has a `photonic_binary` target. Discover programs and tests with:
+
+```sh
+bazel query 'kind(".*_test rule", //...)'
+bazel query 'kind("rust_binary rule", //...)'
+rg --files library example mathematics photonic
+```
+
+## Read by subject
+
+| Guide | Contents |
+| --- | --- |
+| [Language](document/language.md) | Syntax, configuration semantics, identity, binding, and terminology. |
+| [Native library](document/library.md) | Protocols, atomic fields, dependency layers, evidence, and remaining work. |
+| [Arithmetic](document/arithmetic.md) | Number representations, written arguments, algorithms, and host circuit interface. |
+| [Verification](document/verification.md) | Obsidian, exact configurations, and retained counterexamples. |
+| [Runtime](document/runtime.md) | Implementation and reproducible performance measurements. |
+| [Build and development](document/build.md) | Bazel interfaces, contributions, and platform verification. |
+
+The [reference laboratory](document/reference.html) remains an independent executable model used for conformance. The [physical research report](document/research.html) records the physical motivation and sources. Neither is a replacement implementation of the native library.
+
+Current native collection protocols cover finite pairs; general recursive argument binding, arbitrary repeat counts, and arbitrary-width native word arithmetic remain unfinished. Written arguments and finite reachability checks are distinguished from universal machine-checked proofs throughout the guides.

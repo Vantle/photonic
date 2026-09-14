@@ -1,0 +1,75 @@
+load("@rules_rs//rs:rust_binary.bzl", "rust_binary")
+load("@rules_rs//rs:rust_library.bzl", "rust_library")
+load("@rules_rs//rs:rust_test.bzl", "rust_test")
+
+exports_files(["defs.bzl"])
+
+rust_binary(
+    name = "assemble",
+    srcs = ["assemble.rs"],
+    crate_root = "assemble.rs",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//system:photonic",
+        "@crate//:clap",
+        "@crate//:serde_json",
+    ],
+)
+
+rust_library(
+    name = "launch",
+    srcs = ["launch.rs"],
+    crate_name = "launch",
+    crate_root = "launch.rs",
+    visibility = ["//visibility:public"],
+    deps = ["@rules_rust//rust/runfiles"],
+)
+
+filegroup(
+    name = "build",
+    srcs = [
+        "BUILD.bazel",
+        "defs.bzl",
+    ],
+    visibility = ["//:__pkg__"],
+)
+
+rust_test(
+    name = "test",
+    srcs = ["test.rs"],
+    crate_root = "test.rs",
+    data = [
+        ":assemble",
+        ":check",
+        "//example/library:pipeline.program",
+        "//mathematics/ternary:local",
+        "//mathematics/ternary:local.program",
+        "//system:command",
+    ],
+    env = {
+        "CHECK": "$(rlocationpath :check)",
+        "ASSEMBLE": "$(rlocationpath :assemble)",
+        "LOCAL": "$(rlocationpath //mathematics/ternary:local)",
+        "BUNDLE": "$(rlocationpath //mathematics/ternary:local.program)",
+        "COMMAND": "$(rlocationpath //system:command)",
+        "PIPELINE": "$(rlocationpath //example/library:pipeline.program)",
+    },
+    deps = [
+        "//system:photonic",
+        "@crate//:serde_json",
+        "@rules_rust//rust/runfiles",
+    ],
+)
+
+rust_binary(
+    name = "check",
+    srcs = ["check.rs"],
+    crate_root = "check.rs",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//system:photonic",
+        "@crate//:serde",
+        "@crate//:serde_json",
+        "@rules_rust//rust/runfiles",
+    ],
+)

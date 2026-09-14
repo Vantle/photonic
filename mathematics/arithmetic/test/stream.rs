@@ -3,7 +3,7 @@ use photonic::obsidian::Outcome;
 use photonic::path::{Report, Search};
 use photonic::runtime::Limit;
 
-const RULE: &str = include_str!("../../ternary/successor.particle");
+const RULE: &str = include_str!("../../../library/stream.particle");
 
 fn digit(mut value: u128) -> Vec<usize> {
     let mut result = Vec::new();
@@ -17,7 +17,7 @@ fn digit(mut value: u128) -> Vec<usize> {
 fn source(digit: &[usize]) -> String {
     let mut body = "End".to_owned();
     for &value in digit.iter().rev() {
-        let name = ["Zero", "One", "Two"][value];
+        let name = ["0", "1", "2"][value];
         body = format!("({name} [Next] {body})");
     }
     format!(
@@ -58,7 +58,7 @@ fn written(report: &Report) -> Vec<usize> {
         .event
         .iter()
         .filter_map(|event| {
-            ["Zero", "One", "Two"]
+            ["0", "1", "2"]
                 .iter()
                 .position(|name| event.rule == format!("[([Write] {name})] Next"))
         })

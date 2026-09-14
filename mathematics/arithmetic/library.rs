@@ -1,5 +1,7 @@
 #![forbid(unsafe_code)]
 
+mod address;
+
 pub mod circuit;
 pub mod encoding;
 pub mod failure;
