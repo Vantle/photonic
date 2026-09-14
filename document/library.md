@@ -12,9 +12,9 @@
 
 ## Photonic standard library
 
-The library is written entirely in Photonic. The `.particle` files contain the implementation; `.wave` files supply applications. Rust only loads source and checks execution. There is no standard-library generator, host function evaluator, new syntax, or operation-specific runtime primitive.
+The library is written entirely in Photonic. The `.particle` files contain the implementation; `.wave` files supply applications. Rust provides source loading, the general evaluator, and execution checks. Every standard-library operation runs through ordinary Photonic rules.
 
-This first implementation supports scalar functions and finite pairs. Arbitrary runtime collections, general repeat counts, generic recursive unpacking, and a general parallel prefix network remain unfinished. The [remaining work](#remaining) records those boundaries. The [proof notes](#proof) distinguish closed finite checks from execution witnesses.
+The library supports scalar functions and finite pairs. Arbitrary runtime collections, general repeat counts, generic recursive unpacking, and a general parallel prefix network remain unfinished. The [remaining work](#remaining) records those boundaries. The [proof notes](#proof) distinguish closed finite checks from execution witnesses.
 
 <a id="library-run-the-pipeline"></a>
 
@@ -119,7 +119,7 @@ Next: establish a retained recursive collection encoding and complete runtime ar
 
 ## Atomic fields and explicit order
 
-A particle is an unordered collection of occurrences. Labels such as DigitZero hide relationships inside an atom name. Flattening them to `Digit.0.Carry.1` loses which value belongs to which role. Preserve the relationship as a whole ordinary rule value:
+A particle is an unordered collection of occurrences. In `Digit.0.Carry.1`, nothing associates 0 with Digit or 1 with Carry. Keep each role and its value together in a complete rule value:
 
 ```text
 ([Digit] 0).([Carry] 1)
@@ -141,7 +141,11 @@ This numeral represents 47: position 0 contributes 2, position 1 contributes 0 Ã
 
 `Number` and `Base` describe the representation, not built-in number types. Numeric atoms do not acquire arithmetic behavior merely from their spelling. In particular, a missing position is not silently zero and the largest present position does not certify completion. Consumers needing a fixed width must require all positions they depend on. A future dynamic representation will need explicit shape/end evidence.
 
-The [position library](../library/position.particle) implements Pack and Unpack for positions 0 through 3 and payloads 0 through 2:
+The [position library](../library/position.particle) implements Pack and Unpack for positions 0 through 3 and payloads 0 through 2. First load `//library:position` through a Bazel dependency; it includes `//library:application`. With the CLI, supply both `--library "$PWD/library/application.particle"` and `--library "$PWD/library/position.particle"`. These names are ordinary concepts with no built-in invocation behavior.
+
+`Pack(Position.0, Value.2)` is not a constructor or a call to this protocol: frontend expansion produces `Pack.Position.0, Pack.Value.2`. To construct a field from tagged data, use the explicit Pack request below. A known field can also be written directly as `([0] 2)`; literal rule values do not require a library.
+
+With the dependencies loaded:
 
 ```text
 Apply.Unpack.([Position] 0).([0] 2)
@@ -294,7 +298,7 @@ flowchart TD
 
 These are build dependencies, not scheduling edges. Collection dispatches supplied operations; the application selects their implementations explicitly. Stream successor has a separate recursive protocol and no application dependency.
 
-The host circuit generator remains in `mathematics/arithmetic/`; its emitted fixtures are in `mathematics/arithmetic/fixture/ternary/`. It is not a native standard-library implementation. Binary and ternary circuits now use the same `Digit` role and literal field values. The native binary module uses `Binary.Sum` and `Binary.Multiply` to identify its radix-specific operations.
+The host circuit generator remains in `mathematics/arithmetic/`; its emitted fixtures are in `mathematics/arithmetic/fixture/ternary/`. It is not a native standard-library implementation. Binary and ternary circuits use the same `Digit` role and literal field values. The native binary module uses `Binary.Sum` and `Binary.Multiply` to identify its radix-specific operations.
 
 General runtime collections need retained structure, argument boundaries, and positive shape/completion evidence. Those contracts precede general Repeat, Map, Gather, Reduce, Scan, and arbitrary-width native arithmetic. Associative carry composition is established, but a generic native prefix network remains unfinished. Fold and Loop retain their causal dependencies; external capability protocols require effect-commitment rules before execution can explore alternatives safely.
 
@@ -314,4 +318,4 @@ Retained atoms have separate protocol obligations:
 | Copy, Broadcast | Fresh production versus inherited resource sharing. |
 | Sum, Add | Three-input versus two-input trit operations; open matching cannot safely infer exact arity from missing operands. |
 
-Removing a marker requires demonstrating that its information is already carried by structure. Matching only completion markers previously lost payloads; that counterexample remains checked. Retained-input multiplication also needs its archives to distinguish produced values from forwarded operands. Atom count alone is not an optimization criterion.
+Removing a marker requires demonstrating that its information is already carried by structure. Matching only completion markers can lose payloads; the suite checks a counterexample. Retained-input multiplication also needs its archives to distinguish produced values from forwarded operands. Atom count alone is not an optimization criterion.

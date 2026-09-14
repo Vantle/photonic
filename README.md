@@ -1,6 +1,6 @@
 # Photonic
 
-[Read the interactive webbook](index.html). Photonic expresses computation through positive rules over independently evolving coherences. The native standard library is written in Photonic; Rust supplies the language runtime, build tooling, and verification harness.
+[Read the interactive webbook](index.html). Photonic programs describe how data changes through rules. Data lives in coherences that can evolve independently or interact when a rule joins them. The native standard library is written in Photonic; Rust supplies the language runtime, build tooling, and verification harness.
 
 ## Run and test
 
@@ -15,7 +15,7 @@ bazel build --config=format //...
 bazel build --config=lint //...
 ```
 
-The live preview opens at http://127.0.0.1:8080 and runs the Rust evaluator through hermetic wasm-bindgen bindings. Recorded diagrams remain available when opening the HTML file directly.
+Open http://127.0.0.1:8080 after starting the preview. The live examples run the Rust evaluator compiled to WebAssembly; Bazel builds the module and its wasm-bindgen bindings. Recorded diagrams remain available when opening the HTML file directly.
 
 Use `bazel test //tool:browser` on ARM64 macOS for the webbook and independent reference laboratory.
 

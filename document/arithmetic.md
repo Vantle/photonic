@@ -119,7 +119,7 @@ This is the one-generator commutative-monoid view of the representation: empty i
 | --- | --- |
 | Specification | Carrier, equality, zero, successor, least closure, and input protocol |
 | Written mathematical argument | Constructor properties, induction, recursion, recognition soundness/completeness under the stated interface |
-| Runtime checks | Zero identity; different numeral sizes; successor and membership for 0–6; malformed atom candidates; concrete 2 + 3 |
+| Runtime checks | Zero identity; different numeral sizes; successor and membership for 0 through 6; malformed atom candidates; concrete 2 + 3 |
 | Browser | Interactive construction explanation and recorded Rust Obsidian execution graphs |
 | Still absent | Object-language universal proofs, a fixed proof-object calculus, independent certificate replay, efficient binary representation |
 
@@ -209,7 +209,7 @@ Translation preserves and reflects order: a ≤ b exactly when a + d ≤ b + d. 
 
 Rust tests execute all pairs from 0 through 4, both associations for triples from 0 through 2, successor compatibility on pairs from 0 through 3, and the 3 + 7 fixture. They also check a wrong target and the shared-introduction counterexample to unrestricted addition. These are finite regression checks, not universal proofs. Cancellation, order, and the monoid mapping property have written proofs here; object-language proof certificates remain future work.
 
-[Multiplication and distributivity](#repetition) now have written proofs and an action-based executable protocol. Signed integers and universal proof checking remain separate work. No arithmetic or logical primitive has been added to the runtime.
+[Multiplication and distributivity](#repetition) have written proofs and an action-based executable protocol. Signed integers and universal proof checking remain separate work. No arithmetic or logical primitive has been added to the runtime.
 
 <a id="repetition"></a>
 
@@ -465,7 +465,7 @@ It consumes the two control labels and reunites their numerical remainders, reta
 bazel test //...
 ```
 
-The runtime now gives pending matching and application work a bounded head start over transitive view composition. Both queues remain FIFO; at most 4096 foreground removals occur before a pending composition is serviced. No inference is discarded or given a language-level priority. Queue fairness, budget resumption, chunking, worker-count determinism, and existing semantic reference tests cover the scheduling change.
+The runtime gives pending matching and application work a bounded head start over transitive view composition. Both queues remain FIFO; at most 4096 foreground removals occur before a pending composition is serviced. No inference is discarded or given a language-level priority. Queue fairness, budget resumption, chunking, worker-count determinism, and existing semantic reference tests cover the scheduling change.
 
 <a id="product-larger-numbers"></a>
 
@@ -473,13 +473,13 @@ The runtime now gives pending matching and application work a bounded head start
 
 1500 × 123 is 184,500. A unary product would require 184,500 Unit occurrences before accounting for archived inputs, intermediate states, or derivation evidence. The current prototype is not practical at that size. The unresolved two-times-three search shows that proof exploration is the immediate bottleneck even before representation size dominates. Compact numeral encodings and a more effective general proof-search strategy are necessary engineering work; increasing limits alone is not an adequate solution.
 
-The [binary library](#representation) now demonstrates that alternative: ordinary fixed-width circuit rules and a generic direct-path proof strategy reach 1500 × 123 = 184500. This uses compact numeral data rather than expanding the unary protocol described here.
+The [binary library](#representation) demonstrates that alternative: ordinary fixed-width circuit rules and a generic direct-path proof strategy reach 1500 × 123 = 184500. This uses compact numeral data rather than expanding the unary protocol described here.
 
 <a id="word"></a>
 
 ## Ternary arithmetic
 
-The default arithmetic tool now uses base three for addition, signed subtraction of natural operands, multiplication, and quotient/remainder division. One shared circuit implementation supports ternary and the retained binary benchmark. All execution uses ordinary Photonic rules and the existing runtime.
+The default arithmetic tool uses base three for addition, signed subtraction of natural operands, multiplication, and quotient/remainder division. One shared circuit implementation supports ternary and the retained binary benchmark. All execution uses ordinary Photonic rules and the existing runtime.
 
 This is the best measured construction we currently have for the demonstrated workload. It is not a claim of globally optimal arithmetic, arbitrary precision, or a completed functional numeral calculus.
 
@@ -565,7 +565,7 @@ The word generator wires the same digit computations using distinct port names. 
 
 **Division:** process dividend digits from most to least significant. Form T = 3R + the next digit. Attempt subtraction of the divisor twice, keeping a subtraction only when its positive borrow result permits it. The number of successful subtractions is the next quotient digit. If R is initially below a positive divisor, T is below three times the divisor, so two attempts suffice. Intermediate subtraction uses one extra digit; truncation happens only after the quotient digit is resolved.
 
-For a zero divisor, explicit digit rules produce UndefinedOne, quotient zero, and the original dividend as remainder. That is a total error-payload convention, not a mathematical quotient. For a nonzero divisor the result carries UndefinedZero and satisfies left = quotient × right + remainder with remainder smaller than the divisor.
+For a zero divisor, explicit digit rules produce `([Undefined] 1)`, quotient zero, and the original dividend as remainder. That is a total error-payload convention, not a mathematical quotient. For a nonzero divisor the result carries `([Undefined] 0)` and satisfies left = quotient × right + remainder with remainder smaller than the divisor.
 
 ```sh
 bazel run -c opt //mathematics/arithmetic:word -- \
@@ -591,7 +591,7 @@ bazel run -c opt //mathematics/arithmetic:word -- \
   --operation multiply --left 0t2001120 --right 0t11120 --expected 184_500
 ```
 
-In a `.particle` file, `0t2001120` is just an ordinary concept name. No input-format prefix adds a language operation. The old `//mathematics/binary:word` command has moved to `//mathematics/arithmetic:word`; its width now counts ternary digits.
+In a `.particle` file, `0t2001120` is just an ordinary concept name. No input-format prefix adds a language operation. The `//mathematics/arithmetic:word` command measures width in ternary digits.
 
 Width is inferred from the largest operand, with a minimum of one, or set explicitly with `--width`. Supported input width is 1 through 20 trits, corresponding to values through 3486784400. Products use up to 40 trits. No output is silently wrapped to fit a smaller target. Larger programs may need more execution resources; this is a finite-width family, not arbitrary precision.
 
@@ -631,13 +631,13 @@ All pairs of two-trit operands are tested for all four operations, including wro
 
 These are concrete checks plus written invariants, not universally quantified arithmetic certificates. Path success proves a witness; a failed path remains Unknown and other paths are not exhausted. Reports are inspection artifacts, not independently replayable certificates.
 
-The [stream investigation](#stream) now includes a twelve-rule ternary successor, validated through ordered direct execution traces. Arithmetic over arbitrary unknown stream tails and the construction of functional result numerals are still unresolved. There is no hidden wildcard, structural binder, or native number handler filling that gap. The current deliverable is a working, measured ternary word implementation with ordinary-rule semantics.
+The [stream investigation](#stream) includes a twelve-rule ternary successor, validated through ordered direct execution traces. Arithmetic over arbitrary unknown stream tails and the construction of functional result numerals are still unresolved. There is no hidden wildcard, structural binder, or native number handler filling that gap. The current deliverable is a working, measured ternary word implementation with ordinary-rule semantics.
 
 <a id="word-library-boundary"></a>
 
 ### Library boundary
 
-Circuit and encoding functions return `Result<String, failure::Failure>`. Invalid bases, widths, and values produce structured errors before generation. Circuit operands support binary widths 1–32 and ternary widths 1–20; output encodings support binary widths 1–64 and ternary widths 1–40. Power notation supports bases 2–16 and normalization widths 0–64. Gate tables and representation validation remain private.
+Circuit and encoding functions return `Result<String, failure::Failure>`. Invalid bases, widths, and values produce structured errors before generation. Circuit operands support binary widths 1 through 32 and ternary widths 1 through 20; output encodings support binary widths 1 through 64 and ternary widths 1 through 40. Power notation supports bases 2 through 16 and normalization widths 0 through 64. Gate tables and representation validation remain private.
 
 These checks validate representation only. Rust emits the program and target description; ordinary rules still perform arithmetic inside the Photonic runtime. The saved program fixtures and execution tests protect that behavior.
 
@@ -653,7 +653,7 @@ These checks validate representation only. Rust emits the program and target des
 
 ### Atomic ternary fields
 
-Ternary source and targets now use ordinary whole rule values such as `([Port.0] 2)` and `([Digit.0] 2)`. Roles, positions, and payloads are separate concepts; literal numeric symbols replace fused digit names. The private address type stores those components separately. The pre-existing binary spelling is unchanged. Saved word fixtures and independent expected-value tests were migrated together. Earlier performance tables describe the previous atom encoding and need fresh measurements before comparing the new structural representation.
+Binary and ternary source and targets use ordinary whole rule values such as `([Port.0] 2)` and `([Digit.0] 2)`. Roles, positions, and payloads are separate concepts; literal numeric symbols replace fused digit names. The private address type stores those components separately. Saved word fixtures and independent expected-value tests use this encoding. Earlier performance tables describe the fused atom encoding; comparison with structural fields requires fresh measurements.
 
 Native local digit operations and stream successor are supplied by [the standard library](library.md#library), using [Photonic Bazel dependencies](build.md#rule). The finite word generator remains a separate host construction tool, not the implementation of that native library.
 
@@ -762,7 +762,7 @@ The next requirement is to retain an ordered result that another ordinary rule c
 
 ## Arithmetic and parallel execution
 
-Status: research direction, with one implemented general evaluator optimization. Shared-prefix grouping is implemented as flat elaboration. A [retained-input two-numeral construction](#product) now has bounded execution evidence. The [binary library](#representation) now implements compact carry addition and generated fixed-width multiplication; a generic direct-path strategy proves 1500 × 123. Complete-operand rule guards, arbitrary precision, and universal arithmetic certificates remain open. The older action representation remains a separate example.
+Status: research direction, with one implemented general evaluator optimization. Shared-prefix grouping is implemented as flat elaboration. A [retained-input two-numeral construction](#product) has bounded execution evidence. The [binary library](#representation) implements compact carry addition and generated fixed-width multiplication; a generic direct-path strategy proves 1500 × 123. Complete-operand rule guards, arbitrary precision, and universal arithmetic certificates remain open. The older action representation remains a separate example.
 
 <a id="algorithm-correctness-precedes-the-numeral-representation"></a>
 
@@ -798,7 +798,7 @@ Expose parallel tasks only when their work exceeds coordination cost. Worker cou
 
 ### Implemented: remove redundant symmetry orderings
 
-The evaluator now identifies a conservative class of interchangeable coherences from resource incidence, frame identity, and captures. Canonicalization enumerates one ordering per certified class arrangement while retaining every coherence and every distinct resource. It uses the same semantics for atoms and rule values, with no arithmetic labels involved. See the [proof, benchmark, and limitations](runtime.md#symmetry).
+The evaluator identifies a conservative class of interchangeable coherences from resource incidence, frame identity, and captures. Canonicalization enumerates one ordering per certified class arrangement while retaining every coherence and every distinct resource. It uses the same semantics for atoms and rule values, with no arithmetic labels involved. See the [proof, benchmark, and limitations](runtime.md#symmetry).
 
 This is an application of graph symmetry reduction. Canonical labeling and graph automorphism algorithms are established work; nauty and Traces are a useful reference point for assessing more general techniques. [Nauty and Traces](https://users.cecs.anu.edu.au/~bdm/nauty/). The implementation here is a small sufficient certificate for swaps, not a replacement for those general algorithms or a novelty claim.
 
@@ -817,7 +817,7 @@ The possible contribution is a general execution algorithm that combines Photoni
 ### Acceptance sequence
 
 1. Establish a correct fixed-program multiplier or explicitly propose the minimum general semantic extension it needs.
-2. Resolve how complete-operand evidence participates in ordinary open matching. Shared-prefix syntax now elaborates to flat coherences; it does not introduce recursive containers or exact-match guards.
+2. Resolve how complete-operand evidence participates in ordinary open matching. Shared-prefix syntax elaborates to flat coherences; it does not introduce recursive containers or exact-match guards.
 3. Extend the implemented compact addition and fixed-width multiplication with reusable conversion, arbitrary precision, and universally checked correspondence.
 4. Compare independent coherence execution with one-worker execution using equivalent programs and equal correctness checks.
 5. Compare known arithmetic algorithms across input sizes, including conversion and memory costs.
@@ -825,7 +825,7 @@ The possible contribution is a general execution algorithm that combines Photoni
 
 These are unfinished milestones. The symmetry optimization is independently useful; it does not complete the arithmetic foundation.
 
-The [representation comparison](#representation) now assesses higher radices, native limbs, redundant binary forms, and residue systems. The binary library also implements signed subtraction of unsigned operands and quotient/remainder division with an explicit zero-divisor result. These remain ordinary generated rules with no arithmetic runtime primitive.
+The [representation comparison](#representation) assesses higher radices, native limbs, redundant binary forms, and residue systems. The binary library also implements signed subtraction of unsigned operands and quotient/remainder division with an explicit zero-divisor result. These remain ordinary generated rules with no arithmetic runtime primitive.
 
 The current default is the shared [ternary arithmetic implementation](#word). It includes all four operations, domain-limited digit tables, dead-gate removal, immutable compiled-program sharing, and indexed matching. The recorded comparison favors column reduction over the balanced layout on the tested serial workload. This does not close the arbitrary-stream or universal-certificate milestones.
 
@@ -881,7 +881,7 @@ GMP stores integers as sign and magnitude with arrays of binary limbs. Its singl
 
 ### Why carry-save is promising
 
-Carry-save arithmetic retains a number as two contributions and uses independent full-adders to reduce three inputs to two; normalization eventually requires combining the retained contributions. This is an established representation, not a new algorithm. [Parhami, Computer Arithmetic, number representation, slides 47–52](https://web.ece.ucsb.edu/Faculty/Parhami/pres_folder/f31-book-arith-pres-pt1.pdf).
+Carry-save arithmetic retains a number as two contributions and uses independent full-adders to reduce three inputs to two; normalization eventually requires combining the retained contributions. This is an established representation, not a new algorithm. [Parhami, Computer Arithmetic, number representation, slides 47 through 52](https://web.ece.ucsb.edu/Faculty/Parhami/pres_folder/f31-book-arith-pres-pt1.pdf).
 
 Our multiplier already uses local full-adders to compress product columns, then fully resolves each column. A balanced reduction graph that retains two rows until the final boundary could shorten dependencies. Chained arithmetic could also avoid repeatedly normalizing intermediate words. Both changes require an explicit library protocol and measurements; the current serial path strategy may gain little from reduced dependency depth alone.
 
@@ -901,7 +901,7 @@ An exact residue library would also need an explicit range below the product of 
 
 ### Historical balanced comparison
 
-The circuit generator now supports both column and balanced reduction layouts, sharing all gate tables and emission logic. The balanced layout reduces triples across columns in rounds, then finishes with the same carry reducer. Both layouts pass arithmetic regressions.
+The circuit generator supports both column and balanced reduction layouts, sharing all gate tables and emission logic. The balanced layout reduces triples across columns in rounds, then finishes with the same carry reducer. Both layouts pass arithmetic regressions.
 
 For 1500 × 123 at eleven bits, a local optimized median of five samples measured:
 

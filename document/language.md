@@ -18,7 +18,7 @@ Photonic source uses `.particle` for reusable rules and data, and `.wave` for sc
 
 Photonic has one grammar. The pest-backed `parser::parse` preserves the original source tree; `lowering::parse` interprets that same tree as an executable program. Lowering does not maintain another grammar or reserve additional characters or keywords.
 
-The boundary follows the [original language document](https://github.com/Vantle/Vantle/blob/0b693aa583e71c60a225cbb3b4cd53ecfbbaf9fb/Molten/document/molten.page.rs): concepts, dots, commas, source contexts, groups, and ASCII whitespace. The interpretation of nested rules below makes the previously incomplete executable boundary explicit; it is not a claim that the historical constructor already executed every form.
+The boundary follows the [original language document](https://github.com/Vantle/Vantle/blob/0b693aa583e71c60a225cbb3b4cd53ecfbbaf9fb/Molten/document/molten.page.rs): concepts, dots, commas, source contexts, groups, and ASCII whitespace. The nested-rule behavior below describes the current runtime; the historical constructor did not establish execution behavior for every form.
 
 <a id="syntax-expressions"></a>
 
@@ -67,6 +67,8 @@ A nested context in a particle is a complete rule value, including the empty-out
 There are no variable sigils, quote operators, named constructors, arrows, semicolon terminators, braces, or absence keywords. The characters in `$x`, `@`, `->`, `;`, `{`, `}`, and the word `unless` are ordinary concept text wherever the original delimiter rules permit them. They have no special execution behavior. Old extended programs must be migrated; they are not interpreted by a compatibility grammar.
 
 `A(B,C)` expands to `A.B,A.C` in initial states, rule patterns, plain outputs, and proof targets. Dot composition distributes: `(A,B).(C,D)` expands to four coherences. Repeated alternatives retain multiplicity. Initial occurrences are independent introductions, while inherited output remainders retain their shared identity. This spelling supplies no container, pairing identity, or whole-operand matching guard.
+
+Packing is a separate [standard-library operation](library.md#structure). Load `//library:position` (including its application dependency) before invoking `Apply.Pack.([Position] 0).([Value] 2)` to construct `([0] 2)`. The frontend does not perform this computation. `Pack(Position.0, Value.2)` instead expands into two flat coherences and is not this operation. Literal fields may be written directly without invoking Pack.
 
 `Box(A.B)` groups A and B alongside Box; it does not construct one opaque Box value. `$x` matches the literal concept `$x`, not an arbitrary value. `@([A] B)` includes an ordinary @ concept. Parentheses and brackets retain their original delimiter roles.
 
@@ -163,7 +165,7 @@ Evidence closure starts from facts and adds a conclusion only when all its premi
 
 Use one fair agenda for candidate enumeration, view composition, and support propagation. These are implementation tasks within one iterative semantics, not language-level search and commitment phases. The JavaScript reference matcher retains compatible prefixes and per-slot candidates in an incremental gate for each joint witness configuration and frame. Out-of-order arrivals complete earlier prefixes; duplicate arrivals emit nothing. A persistent cache shares lazy binding enumeration across views of the same target, frame, and pattern. Rust retains resumable particle/gate searches under the same target/frame/pattern key and incrementally delivers cached bindings to subscribers. Optional Rayon workers advance independent search and canonicalization steps; the coordinator merges results in queue order. A gate counter is only a summary of its filled positions; duplicate reports cannot fill additional positions.
 
-Intern configurations, events, views, and support clauses independently. A previously seen state may acquire new evidence and wake dependent applications. Do not restart its entire execution tree, and do not ignore genuinely new support. Cycles without new semantic information reach a fixed point. Programs producing unbounded distinct information may run forever.
+Intern configurations, events, views, and support clauses independently. A previously seen state may acquire new evidence and wake dependent applications. Do not restart its entire execution tree, and retain each distinct supporting derivation. Cycles without new semantic information reach a fixed point. Programs producing unbounded distinct information may run forever.
 
 The reference uses finite budgets for stored states, coherences, cells, frames, and agenda work. Rust also has a soft retained-record budget checked between coordinator batches; it can overshoot within a batch and does not count exact bytes. Exhaustion defers candidates. Increasing a budget resumes pending work. The intended production guarantee is fairness for every finite enabled derivation given sufficient resources. There is no general termination guarantee.
 
@@ -195,7 +197,7 @@ A whole rule can derive Function or another program-defined abstraction. Matchin
 
 The integrated reference currently checks direct and inferred And, broadcast/reunion, sibling projection, incompatible alternatives, independent duplicate results, literal co-results, fresh production, three nested bodies, budget resumption, lexical capture, and canonical renaming invariance. These checks apply to its finite ground intermediate representation.
 
-The dynamic fixtures cover local generated-rule execution, consuming whole-rule replacement, separate and shared read/consume sources, incompatible rule/data histories, multi-coherence activation, whole-rule abstractions, nested bodies, escaped captures, and later rule consumption. The Rust runtime, native lowering, and CLI have regression coverage alongside the reference suite. Arbitrary structural extraction and unbounded dynamic code constructors are outside the accepted core. Tests additionally compare exact reports across worker counts and continuation chunks, positive evidence closure against a simple fixed-point oracle, and suspension of large searches.
+The dynamic fixtures cover local generated-rule execution, consuming whole-rule replacement, separate and shared read/consume sources, incompatible rule/data histories, multi-coherence activation, whole-rule abstractions, nested bodies, escaped captures, and later rule consumption. The Rust runtime, native lowering, and CLI have regression coverage alongside the reference suite. Arbitrary structural extraction and unbounded dynamic code constructors are outside the accepted core. Tests also compare exact reports across worker counts and continuation chunks, positive evidence closure against a simple fixed-point oracle, and suspension of large searches.
 
 The laboratory contains the research comparison and primary source links. These semantics define the accepted implemented core; neither the tests nor the physical analogies establish universal correctness or completeness.
 
@@ -203,7 +205,7 @@ The laboratory contains the research comparison and primary source links. These 
 
 ## Replace or transfer the concrete binding
 
-The [configuration semantics](#semantics) supersedes the earlier single-result ownership experiment. The Rust runtime and bounded JavaScript [reference](reference.html) integrate source projection with multiple coherences, multiple outputs, nested bodies, fresh introductions, captured rule values, and positive evidence. This document summarizes their binding contract.
+The [configuration semantics](#semantics) defines how bindings behave. The Rust runtime and bounded JavaScript [reference](reference.html) integrate source projection with multiple coherences, multiple outputs, nested bodies, fresh introductions, captured rule values, and positive evidence. This document summarizes their binding contract.
 
 <a id="binding-concrete-source-projection"></a>
 
@@ -239,7 +241,7 @@ For explicit And, the witness `And.Boolean.Boolean.Extra` enables a body at `And
 
 With `A → B.C` and `B → D`, source inference at A produces D. Executing the producer and then the second rule produces C.D. Both alternatives remain in the graph. Source inference is a semantic operation, not an optimization that may replace an equivalent sequence.
 
-This explicitly replaces the earlier proposal that every sibling produced only inside an evidence path must survive the inferred application. Concrete source remainder survives; evidence-only co-results do not automatically become that remainder. Unrelated intermediate computation also does not enlarge the consumed footprint merely because it appears along an evidence path.
+Concrete source remainder survives an inferred application. Results produced only along an evidence path do not automatically become that remainder. Unrelated intermediate computation also does not enlarge the consumed footprint merely because it appears along an evidence path.
 
 <a id="binding-identity-and-support"></a>
 
@@ -428,7 +430,7 @@ The finite ground code shapes come from the program. Runtime activation, replace
 
 ### Remaining research
 
-Operand abstraction must come from ordinary rule derivations. The user clarified that extending general rule semantics does not authorize explicit capture forms, variable conventions, or a new binding meaning for existing punctuation. The experimental capture matcher was removed. `Multiply(Number,Number)` is intended as shared-prefix shorthand whose Number occurrences require rule-derived evidence, not implicit variables.
+Operand abstraction comes from ordinary rule derivations. There are no explicit capture forms, variable conventions, or hidden binding operations in the punctuation. `Multiply(Number,Number)` abbreviates two flat coherences. Each Number occurrence requires evidence supplied by rules.
 
 Establish encodings of binding, reusable hypotheses, and induction using rule composition before claiming a universal mathematical foundation. If an operation cannot yet be encoded, record that gap. Do not introduce an implicit wildcard convention, a reserved concept masquerading as an ordinary label, or a theorem-specific evaluator.
 
@@ -436,13 +438,13 @@ All rules require positive evidence. Negative premises are not a missing feature
 
 The [natural-number examples](arithmetic.md#natural) demonstrate a useful immediate simplification: unary quantities use only Unit multiplicity, with empty as zero; addition uses ordinary coherence reunion. They require no record constructors or pattern variables.
 
-The [shared-prefix investigation](#group) records the implemented elaboration of original expressions such as `A(B,C)` into flat coherences. It supersedes the earlier nested-container proposal. Whole-operand guards within ordinary rules remain unresolved; a [retained-input multiplication construction](arithmetic.md#product) now supplies both counts as data, with bounded validation and explicit remaining proof obligations; shared spelling alone supplies neither.
+The [shared-prefix investigation](#group) records the implemented elaboration of original expressions such as `A(B,C)` into flat coherences. Whole-operand guards within ordinary rules remain unresolved; a [retained-input multiplication construction](arithmetic.md#product) supplies both counts as data, with bounded validation and explicit remaining proof obligations; shared spelling alone supplies neither.
 
 <a id="group"></a>
 
 ## Shared-prefix groups
 
-Shared-prefix lowering is implemented. The original grammar accepts `A(B,C)`, and executable lowering now expands it consistently. Its purpose is to avoid repeating A: `A(B,C)` abbreviates `A.B, A.C`. It does not establish a private container or a pairing identity. This clarification supersedes the earlier nested-configuration proposal.
+The frontend expands `A(B,C)` into `A.B, A.C`, saving you from writing the prefix twice. The result is flat: it has no private container or pairing identity. Use the [library packing protocol](library.md#structure) when a computation needs to construct an indexed field.
 
 <a id="group-one-flat-construction"></a>
 
@@ -482,7 +484,7 @@ A grouped spelling does not implement multiplication. A single rule `[Multiply.U
 
 Completion requires one fixed ordinary-rule program taking two runtime numerals, with zero, one, operand permutations, larger inputs, and incorrect pure-numeral targets checked. A coefficient embedded in an output action is still fixed-action scaling. The rejected preparation experiment in [multiplication](verification.md#counterexample) demonstrates why a completion marker cannot certify that all input units were processed.
 
-No arithmetic primitive, implicit capture, negative premise, or rule priority is part of this direction. A [retained-input two-numeral construction](arithmetic.md#product) now has executable evidence. It requires helper rule values and an exact independent-product target; the bare grouped multiplier and general whole-operand guard remain unfinished. See the [executable walkthrough](verification.md#group) for the implemented behavior and the precise remaining boundary.
+No arithmetic primitive, implicit capture, negative premise, or rule priority is part of this direction. A [retained-input two-numeral construction](arithmetic.md#product) has executable evidence. It requires helper rule values and an exact independent-product target; the bare grouped multiplier and general whole-operand guard remain unfinished. See the [executable walkthrough](verification.md#group) for the implemented behavior and the precise remaining boundary.
 
 <a id="terminology"></a>
 
@@ -515,7 +517,7 @@ Use **input**, **output**, and **apply** for rule operations. **Divergence** cre
 
 **Canonical state** means shared configuration content with anonymous identity normalized while preserving multiplicity and sharing. **History** means the event record; **version** may identify a historical coherence occurrence. A repeated canonical state is not a second live copy of its history. **Origin**, when used in older experiments, refers to introduction or dependency information; it is not a universal exclusive ownership law.
 
-A **rule-value rewrite** consumes the matched whole value and produces its replacement. It does not assert behavioral equivalence or globally alias two names. The Rust runtime and JavaScript reference activate produced ground rule values locally, preserving lexical capture and read dependence. Exact whole-value matching and ordinary derivations can describe rules without decomposing their internal fields. `[[A,B]] ([B])` now lowers as a nested empty-output rule match followed by a scope. Whole-rule replacement uses `[[A] B] [A] C`; see the [frontend contract](#syntax).
+A **rule-value rewrite** consumes the matched whole value and produces its replacement. It does not assert behavioral equivalence or globally alias two names. The Rust runtime and JavaScript reference activate produced ground rule values locally, preserving lexical capture and read dependence. Exact whole-value matching and ordinary derivations can describe rules without decomposing their internal fields. `[[A,B]] ([B])` lowers as a nested empty-output rule match followed by a scope. Whole-rule replacement uses `[[A] B] [A] C`; see the [frontend contract](#syntax).
 
 The Rust `rule::Rule::apply` implements generic literal multiset replacement, including exact whole nested rule values. It is separate from `runtime::Runtime`. That runtime and the JavaScript reference integrate joint inference, allocation, nested frames, dynamic activation of finite ground rule constructors, and positive evidence closure. The compiled code universe is fixed within each model instance; visible rule occurrences can change through ordinary events.
 

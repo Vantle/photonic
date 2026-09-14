@@ -10,7 +10,7 @@
 
 ## Runtime
 
-The [configuration semantics](language.md#semantics) defines the shared contract of the native runtime and the bounded reference evaluator. Both follow one iterative rule mechanism: types are computation, and a derived witness can enable an application at its concrete source.
+The [configuration semantics](language.md#semantics) defines the shared contract of the native runtime and the bounded reference evaluator. Both use the same rule mechanism. A value can reach an abstraction through rules, and that derivation can enable another rule at the original source.
 
 <a id="runtime-implementation-boundary"></a>
 
@@ -23,7 +23,7 @@ The [configuration semantics](language.md#semantics) defines the shared contract
 | Rust configuration runtime | Joint source projection, introduction reconciliation, nested captures, generated activation, canonical states, positive evidence closure, bounded CLI | Hard byte/time limits, arbitrary structure operations |
 | JavaScript configuration reference | Joint evidence, source projection, multiple outputs, fresh introductions, nested frames, captured rule values and local activation, canonical configurations, positive evidence closure | Production execution, arbitrary partial structural matching |
 
-The current laboratory is [reference.html](reference.html). The [causality report](research.html) preserves physical interpretation research. Retired executable laboratories link to the current plan.
+Use the [reference laboratory](reference.html) to explore the independent model. The [causality report](research.html) discusses the physical interpretation.
 
 <a id="runtime-rust-primitive"></a>
 
@@ -198,7 +198,7 @@ The browser's **Export reference fixtures** control recomputes all 20 positive c
 
 ### Symmetry reduction follow-up
 
-The [coherence symmetry optimization](#symmetry) now removes certified redundant world orderings while preserving resources, captures, and complete states. The earlier table above predates this change. A dedicated benchmark includes both improved interchangeable-world cases and unresolved sharing rings; the general worst case remains factorial.
+The [coherence symmetry optimization](#symmetry) removes certified redundant world orderings while preserving resources, captures, and complete states. The earlier table above predates this change. A dedicated benchmark includes both improved interchangeable-world cases and unresolved sharing rings; the general worst case remains factorial.
 
 <a id="performance-matching-and-composition-scheduling"></a>
 
@@ -222,4 +222,4 @@ The indexed order is deterministic despite hash-set iteration. Scoped declaratio
 
 Obsidian separates `verdict()` from `report()`. Verdict queries use the canonical state index and cached positive support; they do not allocate node labels, event lists, or a full snapshot. Retargeting a search preserves the existing exploration. Bazel tests write that graph once and store small per-target verdicts beside it.
 
-The webbook's evaluation diagram can now display either recorded native execution or a fresh run of this same Rust runtime compiled to WebAssembly. It draws configurations and runtime events directly, preserving alternative edges and cycles. The declaration diagram is a separate schematic; it does not pretend to determine an execution schedule. See the [browser and API contract](build.md#browser) for budgets, cancellation, generated bindings, and equivalence checks.
+The webbook's evaluation diagram displays either recorded native execution or a fresh run of this same Rust runtime compiled to WebAssembly. It draws configurations and runtime events directly, preserving alternative edges and cycles. The declaration diagram connects rule inputs and outputs. The execution diagram shows the events the runtime found. See the [browser and API contract](build.md#browser) for budgets, cancellation, generated bindings, and equivalence checks.

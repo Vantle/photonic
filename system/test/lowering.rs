@@ -172,6 +172,7 @@ fn recursion() {
 fn distribution() {
     for (compact, expanded) in [
         ("A(B,C)", "A.B,A.C"),
+        ("Pack(Position.0, Value.2)", "Pack.Position.0,Pack.Value.2"),
         ("A(B,C).D", "A.B.D,A.C.D"),
         ("(A,B).C(D,E)", "A.C.D,A.C.E,B.C.D,B.C.E"),
         ("(A,B).(C,D)", "A.C,A.D,B.C,B.D"),

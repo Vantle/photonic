@@ -44,7 +44,7 @@ The command currently explores the requested budget before reporting; it does no
 
 The target is a complete configuration, not a fragment to find somewhere in another configuration. `B.Extra` does not establish a target of just `B`. Particle and coherence order do not matter, but multiplicity, sharing, captured environments, and continuations do.
 
-The first textual target notation describes root coherences and independently introduced occurrences, using the supplied program's root declarations. A displayed `Goal` inside an unfinished body does not establish root-level `Goal`. Likewise, two independently specified target occurrences do not match one inherited occurrence shared across coherences. Textual targets cannot yet describe arbitrary captured-frame graphs or shared introductions; an encoding using the existing language remains future work.
+Textual targets describe root coherences and independently introduced occurrences, using the supplied program's root declarations. A displayed `Goal` inside an unfinished body does not establish root-level `Goal`. Likewise, two independently specified target occurrences do not match one inherited occurrence shared across coherences. Textual targets cannot yet describe arbitrary captured-frame graphs or shared introductions; an encoding using the existing language remains future work.
 
 Target compilation uses an isolated clone of the program interner and does not install declarations or alter execution. Targets are exact values, not wildcard patterns or quantified statements.
 
@@ -56,7 +56,7 @@ The trusted Photonic evaluator establishes the reachability verdict. The JSON re
 
 This is an inspectable witness report, not yet an independently replayable proof certificate. Source-inferred events may rely on auxiliary derivations; selecting a visually short path is not sufficient to discard their evidence. A portable checker must account for all those dependencies.
 
-The runtime already allows arbitrary rules and circular reasoning. Obsidian does not reject those programs as logically invalid. It reports reachability under their operational and support semantics. It accepts only supported targets as reached; an unfinished search remains unknown. A rule that directly produces a requested answer makes that answer reachable relative to that rule; it does not independently validate the rule as mathematics.
+Programs may contain arbitrary rules, including cycles. Obsidian checks which results their execution and support semantics permit; it does not certify those rules as valid mathematical reasoning. It accepts only supported targets as reached; an unfinished search remains unknown. A rule that directly produces a requested answer makes that answer reachable relative to that rule; it does not independently validate the rule as mathematics.
 
 <a id="obsidian-path-to-mathematical-proof"></a>
 
@@ -209,7 +209,7 @@ bazel test //system:test
 
 Tests cover source, pattern, output and target lowering; Cartesian distribution; nesting; empty and repeated alternatives; rule values; scoped-body diagnostics; bounded expansion; runtime provenance; all six pairings; exact evidence; and CLI execution with one or four workers.
 
-A newer [retained-input multiplier](arithmetic.md#product) now has a two-times-two witness and small closed checks. It requires explicit helper code and an independent-product target; a bare two-argument multiplication interface remains unfinished. Shared-prefix syntax does not turn remainder reunion into a Cartesian arithmetic product. The [design notes](language.md#group) retain this boundary rather than treating these successful frontend and evidence examples as a multiplication proof.
+The [retained-input multiplier](arithmetic.md#product) has a two-times-two witness and small closed checks. It requires explicit helper code and an independent-product target; a bare two-argument multiplication interface remains unfinished. Shared-prefix syntax does not turn remainder reunion into a Cartesian arithmetic product. The [design notes](language.md#group) explain what remains to be proved for multiplication.
 
 <a id="counterexample"></a>
 

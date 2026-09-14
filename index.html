@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="An interactive textbook of Photonic: rules, coherences, concrete-source inference, runtime execution, and ordinary-rule arithmetic.">
 <meta name="color-scheme" content="light dark">
-<title>Photonic — The Webbook</title>
+<title>Photonic: The Webbook</title>
 <link rel="stylesheet" href="document/book.css">
 <script defer src="document/native.js"></script>
 <script defer src="document/record.js"></script>
@@ -32,27 +32,27 @@
 <a href="#reference"><span>11</span> Your working reference</a>
 </nav>
 <p id="search-status" role="status"></p>
-<div class="rail-bottom"><div class="progress"><span id="progress"></span></div><p id="position">Begin anywhere. Read in order.</p><div class="rail-action"><button id="theme" type="button" aria-label="Switch to dark appearance">◐ Appearance</button><button id="print" type="button">Print</button></div><a href="https://github.com/Vantle/photonic">Source on GitHub ↗</a></div>
+<div class="rail-bottom"><div class="progress"><span id="progress"></span></div><p id="position">Choose a chapter, or start at the beginning.</p><div class="rail-action"><button id="theme" type="button" aria-label="Switch to dark appearance">◐ Appearance</button><button id="print" type="button">Print</button></div><a href="https://github.com/Vantle/photonic">Source on GitHub ↗</a></div>
 </aside>
 <main id="content">
 <header class="hero" id="introduction">
-<div class="eyebrow">A LANGUAGE OF EXPLICIT INTERACTION</div>
-<h1>Computation,<br>in a different <em>light.</em></h1>
-<p class="lede">Start with information. Describe how it can interact. Let rules reveal the next possibilities.</p>
-<p>Photonic expresses computation as transformations of orderless information. The same rules describe ordinary operations, abstractions, and executable code. This book takes you from your first rule to the Rust runtime and its working mathematics libraries.</p>
+<div class="eyebrow">THE PHOTONIC LANGUAGE</div>
+<h1>Write rules.<br>Explore their <em>consequences.</em></h1>
+<p class="lede">A Photonic program describes how information can change and which changes can happen together.</p>
+<p>You write the data and the rules that act on it. The runtime explores the possible results, keeping track of which information each step used. This book starts with a small program, then builds up to abstractions, arithmetic, and the Rust execution graph.</p>
 <div class="hero-action"><a class="button primary" href="#philosophy">Start reading <span aria-hidden="true">↘</span></a><a class="button" href="#workshop">Try the workshop</a></div>
 <div class="hero-diagram" role="img" aria-label="Concrete source A and X transforms through rule A to B, preserving X">
 <div class="orb"><span class="micro">SOURCE</span><div><b>A</b><i>X</i></div></div><div class="connection"><code>[A] B</code><span aria-hidden="true">⟶</span><small>one possible event</small></div><div class="orb"><span class="micro">SUCCESSOR</span><div><b>B</b><i>X</i></div></div>
 </div>
-<div class="hero-caption"><span>Rules describe possibility.</span><span>Events record an application.</span><span>Remainders carry information forward.</span></div>
+<div class="hero-caption"><span>The rule replaces A with B. X carries through unchanged.</span></div>
 </header>
 <noscript><p class="notice">The complete text is readable without JavaScript. Enable JavaScript to use the interactive illustrations and recorded execution explorer.</p></noscript>
 <section class="chapter" id="philosophy" data-title="Philosophy positive evidence rules computation">
 <div class="chapter-number">01 / PHILOSOPHY</div><h2>A world of <em>rules.</em></h2>
-<p class="lead">A program describes which interactions information can participate in.</p>
-<p>Think of a configuration as a complete scene: the coherences present together, the information within them, and the environments that make their rules meaningful. An applicable rule creates a successor scene. Several rules can describe different successors of the same scene.</p>
-<p>The physical intuition is explicit interaction and causal accounting. An interaction needs its participants; its consequences belong to a particular joint configuration. Photonic gives that intuition a computational definition through matching, occurrence identity, and recorded derivations.</p>
-<div class="principle"><span>THE CENTRAL IDEA</span><blockquote>Information can reveal how it may be used.<br>A rule turns that evidence into a next step.</blockquote></div>
+<p class="lead">A rule names the information it needs and describes what it produces.</p>
+<p>A configuration contains the coherences that exist together, their contents, and the environments in which their rules operate. Applying a rule produces a successor configuration. When several rules can apply, the same starting point may have several successors.</p>
+<p>Photonic takes its physical inspiration from interactions that require their participants to be present together. The runtime tracks those participants by identity and records the derivations that support each event.</p>
+<div class="principle"><span>EVIDENCE</span><blockquote>A value can reach an abstraction through rules.<br>That derivation can justify another rule at the original value.</blockquote></div>
 <div class="grid three"><article class="card"><span class="micro">01</span><h3>Positive evidence</h3><p>A rule applies because its inputs have support. <code>Not</code> can be an ordinary program-defined concept; the language gives it no intrinsic negation behavior.</p></article><article class="card"><span class="micro">02</span><h3>Orderless, with multiplicity</h3><p><code>A.B</code> and <code>B.A</code> describe the same arrangement of values. <code>A.A</code> still contains two independent occurrences.</p></article><article class="card"><span class="micro">03</span><h3>One model, many uses</h3><p>Rules express conversion, classification, synchronization, and code production. A type-like abstraction is established by computation.</p></article></div>
 <h3>Your first interaction</h3><div class="example"><div class="example-bar"><span>A complete source program</span><span class="tag">.wave</span></div><pre><code>A.X
 [A] B</code></pre></div>
@@ -61,8 +61,8 @@
 <details class="exercise"><summary>Check your understanding: does [A] B remove X?</summary><p>No. The match selects A. Unmatched information follows the remainder law. To explicitly consume both, write <code>[A.X] B</code>.</p></details>
 </section>
 <section class="chapter" id="grammar" data-title="Grammar syntax particle wave brackets dots commas parentheses whitespace">
-<div class="chapter-number">02 / GRAMMAR</div><h2>A small vocabulary.<br><em>A precise grammar.</em></h2>
-<p class="lead">Names, separators, and two kinds of delimiters.</p>
+<div class="chapter-number">02 / GRAMMAR</div><h2>Reading <em>Photonic source.</em></h2>
+<p class="lead">Dots join values in a particle. Commas separate coherences. Brackets introduce rule inputs.</p>
 <p>The fundamental grammar recognizes concepts, dots, commas, parenthesized groups, bracketed source contexts, and whitespace. These describe source structure. Matching, execution, and lowering behavior are explained in the following chapters.</p>
 <p>Both <code>.particle</code> and <code>.wave</code> use this grammar. By convention, <code>.particle</code> holds reusable rules or data and <code>.wave</code> holds scripts.</p>
 <div class="table-scroll"><table><thead><tr><th>Form</th><th>Name</th><th>Syntactic role</th></tr></thead><tbody>
@@ -76,14 +76,14 @@
 <h3>Read the structure before the behavior</h3>
 <div class="example"><pre><code>A.B
 [A] C</code></pre></div>
-<p>The first line contains two concepts separated by a dot. The second contains a bracketed A followed by C. The executable interpretation reads the second line as a rule; that interpretation builds on the parsed structure.</p>
+<p>The first line puts A and B in one particle. The second is a rule: consume A and produce C. Parsing records the written structure; lowering turns that structure into the values and rules the runtime uses.</p>
 <div class="lab"><div class="lab-heading"><span class="tag">GRAMMAR LENS</span><h3>Recognize the source items</h3></div><label for="grammar-select">Expression</label><select id="grammar-select"><option>A</option><option>A.B</option><option>A, B</option><option>(A.B)</option><option>[A] B</option></select><div class="example"><pre id="grammar-output"></pre></div><p id="grammar-description" aria-live="polite"></p></div>
 <p>Groups and source contexts may nest, including empty <code>()</code> and <code>[]</code>. Their delimiters remain the same at every level. Rule production, scoped bodies, and the meaning of empty outputs belong to the executable interpretation.</p>
 <details class="exercise"><summary>Does whitespace replace a dot?</summary><p>No. Whitespace separates source items; a dot is its own grammatical item. The executable interpretation uses that distinction when reading particle composition.</p></details>
 <p class="source-link">Implementation: <a href="system/parser.rs">Structural parser</a> · <a href="#lowering">Implemented lowering behavior</a></p>
 </section>
 <section class="chapter" id="coherence" data-title="Coherences identity divergence decoherence remainder broadcast parallel worlds">
-<div class="chapter-number">03 / INTERACTION</div><h2>Separate contexts.<br><em>Joint consequences.</em></h2>
+<div class="chapter-number">03 / INTERACTION</div><h2>How coherences<br><em>split and join.</em></h2>
 <p class="lead">A coherence is an independently evolving context. A configuration tells you which coherences coexist.</p>
 <p><strong>Divergence</strong> creates multiple output coherences. <strong>Decoherence</strong> combines compatible input coherences through one joint match. Their participants must belong to one joint witness, rather than being collected from separate alternative histories.</p>
 <div class="example"><div class="example-bar"><span>A split followed by a reunion</span><span class="tag">ORDINARY RULES</span></div><pre><code>A.X
@@ -129,7 +129,7 @@ Pair.Other
 <p class="source-link">Read the implementation contract: <a href="document/language.md#binding">projection and binding</a> · <a href="document/language.md#generalization">generalization through rules</a></p>
 </section>
 <section class="chapter" id="code" data-title="Metaprogramming rules values code lexical capture scope replacement">
-<div class="chapter-number">05 / METAPROGRAMMING</div><h2>A rule can be<br><em>the information.</em></h2>
+<div class="chapter-number">05 / METAPROGRAMMING</div><h2>Using rules<br><em>as values.</em></h2>
 <p class="lead">The language uses the same source expressions to describe rules and to manipulate whole rule values.</p>
 <div class="grid two"><article class="card"><h3>Produce code</h3><pre><code>Seed.A
 [Seed] [A] B</code></pre><p>Seed introduces the complete rule from A to B. Where that rule is live, it can act on A. Applying the rule reads its availability.</p></article><article class="card"><h3>Replace code</h3><pre><code>([A] B).A
@@ -142,24 +142,28 @@ Pair.Other
 </section>
 <section class="chapter" id="runtime" data-title="Runtime Rust parser lowering matching gates semaphore support canonicalization workers execution graph">
 <div class="chapter-number">06 / RUNTIME</div><h2>From source<br>to an <em>execution graph.</em></h2>
-<p class="lead">The Rust runtime turns source into interned values, discovers compatible bindings, applies events, and shares equivalent configurations.</p>
+<p class="lead">The Rust runtime parses your program and finds rules that can apply. It records each event in a graph and reuses configurations that are equivalent.</p>
 <div class="pipeline"><span>Source</span><b>→</b><span>Parse &amp; lower</span><b>→</b><span>Match</span><b>→</b><span>Project &amp; apply</span><b>→</b><span>Canonicalize</span></div>
-<div class="grid two"><article class="card"><h3>Parsing and lowering</h3><p>Pest supplies the structural parser. Lowering interprets expressions, expands shared prefixes, and produces typed atoms and rule values. Miette reports source spans; malformed composition and resource bounds receive structured diagnostics.</p></article><article class="card"><h3>Matching gates</h3><p>A partial match records its actual occurrences, coherence, and frame. Compatible assignments accumulate until every input position is filled. Duplicate arrivals do not fill another slot. A count alone could not preserve those distinctions.</p></article><article class="card"><h3>Projection and application</h3><p>A relative view connects a witness to its concrete source. Projection identifies the footprint; application transfers remainder, allocates explicit results, and records the event’s dependencies.</p></article><article class="card"><h3>Canonical identity</h3><p>The runtime normalizes anonymous introductions and frame names while preserving sharing, multiplicity, scope, and continuations. Encountering an equivalent configuration reuses the state; additional justifications can still add support.</p></article></div>
-<h3 id="lowering">From grammatical structure to executable forms</h3>
+<div class="grid two"><article class="card"><h3>Parsing and lowering</h3><p>Pest supplies the structural parser. Lowering interprets expressions, expands shared prefixes, and produces typed atoms and rule values. Miette reports source spans; malformed composition and resource bounds receive structured diagnostics.</p></article><article class="card"><h3>Matching gates</h3><p>A partial match records its actual occurrences, coherence, and frame. Compatible assignments accumulate until every input position is filled. Duplicate arrivals do not fill another slot. The gate tracks which positions are filled, not just how many arrivals it has received.</p></article><article class="card"><h3>Projection and application</h3><p>A relative view connects a witness to its concrete source. Projection identifies the footprint; application transfers remainder, allocates explicit results, and records the event’s dependencies.</p></article><article class="card"><h3>Canonical identity</h3><p>The runtime normalizes anonymous introductions and frame names while preserving sharing, multiplicity, scope, and continuations. Encountering an equivalent configuration reuses the state; additional justifications can still add support.</p></article></div>
+<h3 id="lowering">Pack fields with ordinary library rules</h3>
+<p>To construct an indexed field from a position and value, first load <code>//library:position</code>, which brings in <code>//library:application</code>. Then invoke its <code>Pack</code> operation. Packing is a standard-library computation, not a fundamental language feature or an automatic interpretation of parentheses.</p>
+<div class="example" id="packing"><div class="example-bar"><span>With the position library loaded</span><span class="tag">ORDINARY RULES</span></div><pre><code>Apply.Pack.([Position] 0).([Value] 2)</code></pre><p>This request can reach <code>([0] 2)</code>: one complete rule value associating position 0 with value 2. Without the library rules, the request has no built-in behavior. Pack currently supports positions 0 through 3 and values 0 through 2. It packs one field; it does not construct or validate a whole number.</p></div>
+<p>You may also write <code>([0] 2)</code> directly when the field is known in source. Use Pack when a computation supplies the tagged position and value. Load both <a href="library/application.particle">application.particle</a> and <a href="library/position.particle">position.particle</a> with the CLI’s <code>--library</code> option, or declare the Bazel dependency as shown in the <a href="mathematics/ternary/BUILD.bazel">position example</a>. See the <a href="document/library.md#structure">packing contract</a>.</p>
+<h3>How the frontend expands shorthand</h3>
 <p>The lowering stage assigns executable meaning to parsed source. It currently expands <code>A(B,C)</code> into <code>A.B, A.C</code> and distributes dot composition across alternatives. This is built-in lowering behavior, not a fundamental grammar production or a transformation supplied by program rules.</p>
-<div class="lab"><div class="lab-heading"><span class="tag">LOWERING LENS</span><h3>Expand the shorthand</h3></div><label for="lowering-select">Expression</label><select id="lowering-select"><option>A(B,C)</option><option>(A,B).(C,D)</option><option>Multiply(Number,Number)</option><option>Power(3, Base.2).Coefficient(2)</option><option>()</option><option>[A]</option><option>[A] ()</option></select><div class="example"><pre id="lowering-output"></pre></div><p id="lowering-description" aria-live="polite"></p></div>
+<div class="lab"><div class="lab-heading"><span class="tag">FRONTEND BEHAVIOR</span><h3>Inspect flat expansion</h3></div><label for="lowering-select">Expression</label><select id="lowering-select"><option>A(B,C)</option><option>(A,B).(C,D)</option><option>Pack(Position.0, Value.2)</option><option>Apply.Pack.([Position] 0).([Value] 2)</option><option>()</option><option>[A]</option><option>[A] ()</option></select><div class="example"><pre id="lowering-output"></pre></div><p id="lowering-description" aria-live="polite"></p></div>
 <h3>Three different kinds of empty</h3><div class="grid three"><article class="card"><h4>Empty particle</h4><code>()</code><p>One coherence with no occurrences. This is the numeral zero in the Unit representation.</p></article><article class="card"><h4>No output</h4><code>[A]</code><p>A rule with no output coherences. Use a comma before a following declaration.</p></article><article class="card"><h4>Empty output particle</h4><code>[A] ()</code><p>One output coherence. Unmatched remainder still transfers into it.</p></article></div>
 <p>A group containing declarations establishes a local body during lowering. A plain group can participate in expansion. These executable interpretations use the same parenthesis tokens recognized by the structural parser.</p>
 <p>Scopes index candidates by a required symbol. Compiled programs are immutable and shared across direct-path steps. The agenda retains incremental work, and positive support follows recorded dependencies. Optional Rayon workers perform independent implementation work; a coordinator merges their results in deterministic order.</p>
-<div class="lab trace" id="trace-lab"><div class="lab-heading"><span class="tag verified">RECORDED RUST EXECUTION</span><h3>Choose an event. Follow its consequence.</h3></div><label for="trace-select">Source program</label><select id="trace-select"></select><p id="trace-description"></p><details><summary>Read the source</summary><pre id="trace-source"></pre></details><div class="stepper"><button id="trace-back" type="button">← Back</button><output id="trace-position"></output><button id="trace-reset" type="button">Reset</button></div><div id="trace-world" class="world-grid" aria-live="polite"></div><h4>Available events</h4><div id="trace-event" class="event-list"></div><details><summary>Inspect the selected event</summary><pre id="trace-detail">Select an event to inspect its binding and support.</pre></details><p class="caption">These are stored native Rust reports. Following an edge navigates a recorded event; it does not run a separate browser implementation of Photonic.</p></div>
+<div class="lab trace" id="trace-lab"><div class="lab-heading"><span class="tag verified">RECORDED RUST EXECUTION</span><h3>Follow a recorded execution</h3></div><label for="trace-select">Source program</label><select id="trace-select"></select><p id="trace-description"></p><details><summary>Read the source</summary><pre id="trace-source"></pre></details><div class="stepper"><button id="trace-back" type="button">← Back</button><output id="trace-position"></output><button id="trace-reset" type="button">Reset</button></div><div id="trace-world" class="world-grid" aria-live="polite"></div><h4>Available events</h4><div id="trace-event" class="event-list"></div><details><summary>Inspect the selected event</summary><pre id="trace-detail">Select an event to inspect its binding and support.</pre></details><p class="caption">These are stored native Rust reports. Following an edge navigates a recorded event; it does not run a separate browser implementation of Photonic.</p></div>
 <h3>Running and resuming</h3><div class="example"><pre><code>bazel run -c opt //system:command -- run \
   "$PWD/example/conjunction.wave" --workers 4 --json</code></pre></div><p>Work, states, records, coherences, cells, and frames have configurable limits. A paused runtime retains its queued and deferred work for resumption through the Rust API. JSON reports expose states, events, flow, and support.</p>
 <details class="exercise"><summary>Does reusing a state erase another proof of reaching it?</summary><p>No. Configuration identity and event support are separate. Equivalent states can be shared while additional derivations contribute evidence.</p></details>
 
 <div class="graph-panel">
 <span class="tag">TWO MAPS OF ONE PROGRAM</span>
-<h3>A rule says what can happen.<br>A graph shows what did happen.</h3>
-<p>Start with <code>A</code>. One rule turns it into <code>B.C</code>; another turns <code>B</code> into <code>D</code>. It is tempting to read this as a single chain. Photonic also lets the evidence for B justify an application at A, so there is more than one history to inspect.</p>
+<h3>Compare the rules<br>with their execution graph.</h3>
+<p>Start with <code>A</code>. One rule turns it into <code>B.C</code>; another turns <code>B</code> into <code>D</code>. Besides the path through B.C, the evidence for B can justify an application at A. Both histories appear in the execution graph.</p>
 <pre><code>A
 [A] B.C
 [B] D</code></pre>
@@ -194,9 +198,9 @@ Pair.Other
 </div>
 </section>
 <section class="chapter" id="natural" data-title="Mathematics natural numbers Unit zero successor membership addition laws induction">
-<div class="chapter-number">07 / MATHEMATICS</div><h2>Numbers, from<br><em>one concept.</em></h2>
+<div class="chapter-number">07 / MATHEMATICS</div><h2>Counting with <em>Unit.</em></h2>
 <p class="lead">A natural numeral is one coherence containing only independent Unit occurrences.</p>
-<p>Start with the empty particle. Add a fresh Unit finitely many times. Identify presentations that differ only by order or anonymous introduction names. The resulting mathematical carrier gives exactly one numeral for each finite Unit count.</p>
+<p>Start with an empty particle and add one fresh Unit for each step in the count. Changing their order or renaming their anonymous introductions leaves the numeral unchanged. Each finite count therefore has one numeral class.</p>
 <div class="numeral-row"><div><strong>0</strong><code>()</code></div><div><strong>1</strong><code>Unit</code></div><div><strong>2</strong><code>Unit.Unit</code></div><div><strong>3</strong><code>Unit.Unit.Unit</code></div></div>
 <h3>Successor adds one fresh occurrence</h3><div class="example"><pre><code>Step.Unit.Unit
 [Step] Unit</code></pre></div><p>Step is consumed, the existing two Units remain, and the rule introduces one more. The result is three. Zero is <code>()</code>, one empty coherence; an empty file has no coherence.</p>
@@ -213,7 +217,7 @@ Pair.Other
 <p class="source-link"><a href="document/arithmetic.md#natural">Carrier and written proofs</a> · <a href="document/arithmetic.md#addition">Addition laws</a> · <a href="system/test/natural.rs">Executable checks</a></p>
 </section>
 <section class="chapter" id="ternary" data-title="Base three ternary compressed representation digits carry multiplication subtraction division">
-<div class="chapter-number">08 / COMPRESSED ARITHMETIC</div><h2>Keep the number.<br><em>Change the representation.</em></h2>
+<div class="chapter-number">08 / COMPRESSED ARITHMETIC</div><h2>Writing numbers<br><em>in base three.</em></h2>
 <p class="lead">A positional ternary word uses digits 0, 1, and 2. Each position carries a power of three.</p>
 <p>The arithmetic implementation accepts natural operands up to twenty trits. A complete word includes an explicit digit at every position. Fields such as ([Digit.0] 2) preserve role, position, and value as separate concepts.</p>
 <div class="lab"><div class="lab-heading"><span class="tag">REPRESENTATION LENS</span><h3>Read a number in base three</h3></div><label for="numeral">Decimal numeral</label><input id="numeral" type="number" min="0" max="1000000" step="1" value="1500"><p id="numeral-error" class="error" role="status"></p><div id="trit-strip" class="trit-strip"></div><p id="numeral-expansion" class="equation"></p><p class="caption">A browser arithmetic illustration. The positional labels below correspond to the ordinary concepts used by the library, not built-in numerical literals.</p></div>
@@ -236,11 +240,11 @@ Pair.Other
 <p>Output digits are whole rule values such as <code>[Write] 0</code>. A meta rule consumes that message and produces Next. Twelve fixed declarations handle digit transformation, copying, acknowledgement, and completion; the input stream supplies its nested Read/Next definitions.</p>
 <div class="lab"><div class="lab-heading"><span class="tag verified">RECORDED STREAM TRANSFORMATION</span><h3>Twenty becomes twenty-one</h3></div><p>Input sequence, least significant first: <code>2 → 2 → 1 → End</code>.</p><div class="stepper"><button id="stream-back" type="button">← Back</button><output id="stream-position"></output><button id="stream-next" type="button">Next event →</button></div><pre id="stream-rule"></pre><h4>Acknowledged output digits, in order</h4><div id="stream-output" class="token-row" aria-live="polite"></div><p class="caption">The recorded run has 11 events and 171 work steps. Its terminal configuration is Done; the digit sequence is read from the acknowledgement events. Order here belongs to the trace.</p><details><summary>Read the complete source</summary><pre id="stream-source"></pre></details></div>
 <p class="source-link"><a href="library/stream.particle">The twelve reusable rules</a> · <a href="mathematics/ternary/stream.wave">Input stream</a></p>
-<h3>Division gives an explicit result shape</h3><p>For a nonzero divisor, the output includes quotient digits, remainder digits, and UndefinedZero. Division by zero produces quotient zero, the original dividend as remainder, and UndefinedOne. Those are library-defined output facts.</p>
+<h3>Division gives an explicit result shape</h3><p>For a nonzero divisor, the output includes quotient digits, remainder digits, and <code>([Undefined] 0)</code>. Division by zero produces quotient zero, the original dividend as remainder, and <code>([Undefined] 1)</code>. The arithmetic rules define this result format.</p>
 <p class="source-link"><a href="library/ternary.particle">Digit rules</a> · <a href="mathematics/arithmetic/circuit.rs">Shared circuit builder</a> · <a href="mathematics/arithmetic/encoding.rs">Output encoding</a></p>
 </section>
 <section class="chapter" id="library" data-title="Library build Bazel source targets test all any photonic_library photonic_binary photonic_test atomic numeral dependencies">
-<div class="chapter-number">09 / LIBRARY</div><h2>Compose the program.<br><em>State the claim.</em></h2>
+<div class="chapter-number">09 / LIBRARY</div><h2>Build and test<br><em>a library.</em></h2>
 <p class="lead">The standard library is Photonic source. Bazel assembles the files; Obsidian checks their behavior.</p>
 <h3>Keep roles separate from values</h3>
 <div class="example"><pre><code>Number.([Base] 3).([0] 2).([1] 0).([2] 2).([3] 1)</code></pre></div>
@@ -276,7 +280,7 @@ bazel test -c opt //mathematics/ternary:position.check</code></pre></div>
 <p class="source-link"><a href="document/library.md">Library contracts and dependency graph</a> · <a href="document/build.md#test">Test interface</a> · <a href="README.md">Repository map</a></p>
 </section>
 <section class="chapter" id="workshop" data-title="Workshop Obsidian proof reachability arithmetic commands results run examples">
-<div class="chapter-number">10 / WORKSHOP</div><h2>Ask a concrete question.<br><em>Follow the witness.</em></h2>
+<div class="chapter-number">10 / WORKSHOP</div><h2>Checking a result<br><em>with Obsidian.</em></h2>
 <p class="lead">Obsidian checks whether an exact target configuration can be reached from a supplied program.</p>
 <p>A target includes its complete particle contents, coherence arrangement, and sharing. This makes an arithmetic result a concrete configuration claim. The arithmetic command accepts the proposed answer and encodes it as that target.</p>
 <div class="status-grid"><div><strong>Reached</strong><p>A supported witness reaches the exact target.</p></div><div><strong>Unreachable</strong><p>Finite exhaustive exploration closed without that target.</p></div><div><strong>Unknown</strong><p>The exploration has not established a verdict. A failed direct path also reports Unknown.</p></div></div>
@@ -289,8 +293,8 @@ bazel test -c opt //mathematics/ternary:position.check</code></pre></div>
 <details class="exercise"><summary>Does the generated target influence the computation rules?</summary><p>No. The operation and operand width determine the circuit rules. Input values determine initial facts. The supplied expected result determines the separate proof target.</p></details>
 </section>
 <section class="chapter" id="reference" data-title="Reference glossary commands implementation source documentation build">
-<div class="chapter-number">11 / REFERENCE</div><h2>From reading<br>to <em>making.</em></h2>
-<p class="lead">Keep the language small in your head: values coexist, rules match, events transform, and evidence connects the steps.</p>
+<div class="chapter-number">11 / REFERENCE</div><h2>Commands and <em>reference.</em></h2>
+<p class="lead">Use these commands to parse a program, inspect an execution, or run the tests. The glossary and source links below cover the terms used in this book.</p>
 <div class="example"><div class="example-bar"><span>From a checkout of Vantle/photonic</span><span class="tag">BAZEL</span></div><pre><code>bazel run -c opt //system:command -- parse "$PWD/example/conjunction.wave"
 bazel run -c opt //system:command -- run "$PWD/example/conjunction.wave"
 bazel test -c opt //...
@@ -298,7 +302,7 @@ bazel run -c opt //mathematics/arithmetic:benchmark</code></pre></div>
 <p>The build uses Bazel to obtain its Rust compiler, LLVM toolchain, and external crates. The source checkout needs no separately installed Rust compiler. Open this HTML file directly to read and use the webbook offline; its scripts, styles, and execution records are local.</p>
 <h3>A compact glossary</h3><dl class="glossary"><div><dt>Concept</dt><dd>An atom name or a whole rule value carried by an occurrence.</dd></div><div><dt>Particle</dt><dd>An orderless multiset of occurrences within one coherence.</dd></div><div><dt>Coherence</dt><dd>An independently evolving execution context.</dd></div><div><dt>Configuration</dt><dd>Jointly present coherences and their reachable environments.</dd></div><div><dt>Rule</dt><dd>A description of input matching and output behavior.</dd></div><div><dt>Event</dt><dd>One application at a concrete configuration, with recorded support.</dd></div><div><dt>Introduction</dt><dd>The identity of an explicitly introduced result.</dd></div><div><dt>Remainder</dt><dd>Unmatched concrete information transferred to outputs.</dd></div><div><dt>View</dt><dd>A derivation connecting witness information to its source.</dd></div><div><dt>Frame</dt><dd>A lexical environment with continuation and return information.</dd></div></dl>
 <h3>The implementation, by concern</h3><div class="table-scroll"><table><thead><tr><th>Concern</th><th>Source</th><th>Read alongside</th></tr></thead><tbody><tr><td>Frontend</td><td><a href="system/parser.rs">parser.rs</a> · <a href="system/lowering.rs">lowering.rs</a></td><td><a href="document/language.md#syntax">Syntax contract</a></td></tr><tr><td>Matching and projection</td><td><a href="system/matching.rs">matching.rs</a> · <a href="system/flow.rs">flow.rs</a></td><td><a href="document/language.md#semantics">Configuration semantics</a></td></tr><tr><td>Execution and identity</td><td><a href="system/runtime.rs">runtime.rs</a> · <a href="system/canonical.rs">canonical.rs</a></td><td><a href="document/runtime.md#runtime">Runtime design</a></td></tr><tr><td>Reachability</td><td><a href="system/obsidian.rs">obsidian.rs</a> · <a href="system/path.rs">path.rs</a></td><td><a href="document/verification.md#obsidian">Obsidian contract</a></td></tr><tr><td>Natural numbers</td><td><a href="mathematics/natural">Rules and targets</a></td><td><a href="document/arithmetic.md#natural">Definition</a> · <a href="document/arithmetic.md#addition">Laws</a></td></tr><tr><td>Compressed arithmetic</td><td><a href="mathematics/arithmetic/circuit.rs">circuit.rs</a> · <a href="mathematics/ternary">Ternary programs</a></td><td><a href="document/arithmetic.md#word">Interface and algorithms</a></td></tr></tbody></table></div>
-<div class="closing"><span class="emblem" aria-hidden="true">✳</span><h3>One language.<br>Many possible next steps.</h3><a class="button primary" href="#workshop">Return to the workshop ↑</a></div>
+<div class="closing"><span class="emblem" aria-hidden="true">✳</span><h3>Try a program of your own.</h3><a class="button primary" href="#workshop">Return to the workshop ↑</a></div>
 </section>
 <footer><span>PHOTONIC · THE WEBBOOK</span><a href="https://github.com/Vantle/photonic">Read the source ↗</a><a href="#introduction">Back to the beginning ↑</a></footer>
 </main>

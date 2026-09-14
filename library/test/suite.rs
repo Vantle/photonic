@@ -556,6 +556,38 @@ fn evaluation() {
 #[test]
 fn position() {
     let position = include_str!("../position.particle");
+    for library in [&[][..], &[APPLICATION][..], &[position][..]] {
+        check(
+            "Apply.Pack.([Position] 0).([Value] 2)",
+            "([0] 2)",
+            library,
+            Outcome::Unreachable,
+        );
+    }
+    check(
+        "Pack(Position.0, Value.2)",
+        "([0] 2)",
+        &[APPLICATION, position],
+        Outcome::Unreachable,
+    );
+    for source in [
+        "Apply.Pack.([Position] 4).([Value] 2)",
+        "Apply.Pack.([Position] 0).([Value] 3)",
+        "Apply.Pack.([Value] 2)",
+    ] {
+        check(
+            source,
+            "([0] 2)",
+            &[APPLICATION, position],
+            Outcome::Unreachable,
+        );
+    }
+    check(
+        "Apply.Pack.([Position] 0).([Value] 2).Extra",
+        "([0] 2).Extra",
+        &[APPLICATION, position],
+        Outcome::Reached,
+    );
     for index in 0..4 {
         for value in 0..3 {
             let source = format!("Apply.Unpack.([Position] {index}).([{index}] {value})");
@@ -571,12 +603,18 @@ fn position() {
                     },
                 );
             }
-            check(
-                &format!("Apply.Pack.([Position] {index}).([Value] {value})"),
-                &format!("([{index}] {value})"),
-                &[APPLICATION, position],
-                Outcome::Reached,
-            );
+            for expected in 0..3 {
+                check(
+                    &format!("Apply.Pack.([Position] {index}).([Value] {value})"),
+                    &format!("([{index}] {expected})"),
+                    &[APPLICATION, position],
+                    if expected == value {
+                        Outcome::Reached
+                    } else {
+                        Outcome::Unreachable
+                    },
+                );
+            }
         }
     }
     check(
