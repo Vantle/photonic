@@ -1,6 +1,6 @@
 mod report;
 
-use crate::flow::{self, Binding, Closure, Flow, Place};
+use crate::flow::{Binding, Closure, Flow, Place};
 use crate::matching::{self, Slot, Term};
 use crate::program::{Program, Symbol};
 use crate::source;
@@ -54,7 +54,7 @@ struct Identity {
     owner: Option<usize>,
     rule: usize,
     binding: Binding,
-    environment: Option<State>,
+    environment: Option<Arc<State>>,
 }
 pub(crate) struct Transition<'a> {
     pub target: usize,
@@ -97,7 +97,7 @@ struct Cache {
 struct Normalization {
     identity: Identity,
     application: Vec<Application>,
-    result: flow::Applied,
+    flow: Flow,
     search: Option<crate::canonical::Search>,
 }
 #[derive(Clone)]
@@ -113,6 +113,8 @@ enum Task {
 pub struct Runtime {
     pub(crate) program: Arc<Program>,
     pub(crate) state: IndexSet<Arc<State>>,
+    index: Vec<Option<Arc<crate::index::Index>>>,
+    indexed: usize,
     view: IndexSet<Arc<View>>,
     event: Vec<Event>,
     identity: HashMap<Identity, usize>,
@@ -142,13 +144,15 @@ impl Runtime {
     pub fn new(source: source::Program) -> Self {
         let program = Program::new(source);
         let initial = State::initial(&program);
-        Self::seed(Arc::new(program), initial)
+        Self::seed(Arc::new(program), Arc::new(initial))
     }
 
-    pub(crate) fn seed(program: Arc<Program>, initial: State) -> Self {
+    pub(crate) fn seed(program: Arc<Program>, initial: Arc<State>) -> Self {
         let mut runtime = Self {
             program,
             state: IndexSet::new(),
+            index: Vec::new(),
+            indexed: 0,
             view: IndexSet::new(),
             event: Vec::new(),
             identity: HashMap::new(),
@@ -194,11 +198,12 @@ impl Runtime {
         });
     }
 
-    fn intern(&mut self, state: State) -> usize {
-        let (index, fresh) = self.state.insert_full(Arc::new(state));
+    fn intern(&mut self, state: Arc<State>) -> usize {
+        let (index, fresh) = self.state.insert_full(state);
         if !fresh {
             return index;
         }
+        self.index.push(None);
         self.outgoing.push(Vec::new());
         self.incoming.push(Vec::new());
         let view = self.witness(View {
@@ -246,20 +251,32 @@ impl Runtime {
             cache
         } else {
             let cache = self.cache.len();
+            let index = self.index[target]
+                .get_or_insert_with(|| {
+                    let index = Arc::new(crate::index::Index::new(self.state[target].clone()));
+                    self.indexed += index.retained();
+                    index
+                })
+                .clone();
+            let search = crate::search::Search::new(key.pattern.clone(), index, frame);
+            let viable = search.viable();
+            let retained = if viable { search.retained() } else { 0 };
+            self.retained += retained;
             self.cache.push(Cache {
-                search: Some(crate::search::Search::new(
-                    key.pattern.clone(),
-                    self.state[target].clone(),
-                    frame,
-                )),
+                search: viable.then_some(search),
                 binding: Vec::new(),
                 listener: Vec::new(),
-                retained: 0,
+                retained,
             });
             self.matching.insert(key, cache);
-            self.agenda.push_back(Task::Search(cache));
+            if viable {
+                self.agenda.push_back(Task::Search(cache));
+            }
             cache
         };
+        if self.cache[cache].search.is_none() && self.cache[cache].binding.is_empty() {
+            return;
+        }
         let (index, fresh) = self.request.insert_full(Request { cache, consumer });
         if !fresh {
             return;
@@ -325,7 +342,7 @@ impl Runtime {
             return;
         };
         if let Some(read) = consumer.read {
-            binding.read = view.flow.resource[&read].clone();
+            binding.read = view.flow.resource[&read].iter().copied().collect();
         }
         self.agenda.push_back(Task::Apply(Application {
             view: consumer.view,
@@ -438,14 +455,14 @@ impl Runtime {
         let view = self.view[application.view].clone();
         let environment = application
             .capture
-            .map(|capture| self.state[view.target].environment(capture));
+            .map(|capture| Arc::new(self.state[view.target].environment(capture)));
         let key = Identity {
             source: view.source,
             frame: application.frame,
             owner: application.owner,
             rule: application.rule,
             binding: application.binding.clone(),
-            environment: environment.clone(),
+            environment,
         };
         if let Some(&event) = self.identity.get(&key) {
             self.justify(event, application);
@@ -464,7 +481,7 @@ impl Runtime {
             flow: &view.flow,
             capture,
         });
-        let result = flow::apply(
+        let result = crate::application::apply(
             &self.state[view.source],
             application.frame,
             application.owner,
@@ -479,7 +496,7 @@ impl Runtime {
             self.pending.insert(application);
             return;
         }
-        let search = crate::canonical::Search::new(Arc::new(result.state.clone()));
+        let search = crate::canonical::Search::new(Arc::new(result.state));
         let index = self.vacant.pop().unwrap_or_else(|| {
             let index = self.normalization.len();
             self.normalization.push(None);
@@ -489,7 +506,7 @@ impl Runtime {
         self.normalization[index] = Some(Normalization {
             identity: key,
             application: vec![application],
-            result,
+            flow: result.flow,
             search: Some(search),
         });
         self.agenda.push_back(Task::Normalize(index));
@@ -504,14 +521,14 @@ impl Runtime {
         self.vacant.push(index);
         self.normalizing.remove(&normalization.identity);
         let result = normalization
-            .result
+            .flow
             .rename(normalization.search.unwrap().finish().unwrap());
         if self.state.len() >= self.limit.state && !self.state.contains(&result.state) {
             self.pending.extend(normalization.application);
             return;
         }
         let source = normalization.identity.source;
-        let target = self.intern(result.state);
+        let target = self.intern(Arc::new(result.state));
         let event = self.event.len();
         self.identity.insert(normalization.identity.clone(), event);
         self.event.push(Event {
@@ -638,6 +655,8 @@ impl Runtime {
 
     pub fn record(&self) -> usize {
         self.state.len()
+            + self.index.len()
+            + self.indexed
             + self.event.len()
             + self.view.len()
             + self.clause.len()

@@ -1,5 +1,7 @@
 # Runtime optimization investigation
 
+This report records the first investigation at `e20ca7b`. The subsequent [indexed matching implementation and measurements](indexing.md) supersede its candidate-index proposal and current-work figures.
+
 The expression evaluator's main counted cost is matching, not arithmetic or canonicalization. The complete native example uses 10,017 rule applications but 3,411,783 internal work tasks at baseline commit `e03f978`. Temporary task instrumentation attributes 98.2% of those tasks to matching. This strongly supports investigating candidate selection and reuse before replacing canonicalization or increasing worker counts. It does not establish where 98.2% of CPU time goes: task durations differ, and substantial setup and reporting work occurs outside the counter.
 
 Two small, general improvements are implemented: reject a particle match when any required term has no candidate, and retrieve direct-path event metadata without building an entire diagnostic snapshot. Neither change recognizes arithmetic, rewrites Photonic programs, merges labels, equates resource identities, or bypasses evidence projection. The larger indexing and incremental designs below remain proposals with explicit correctness obligations.

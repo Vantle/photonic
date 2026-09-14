@@ -9,6 +9,8 @@ The expression library evaluates signed integer expressions using ordinary Photo
 
 ## Run
 
+For a smaller program exercising all four operators, see [three readable ternary examples](demo.md) and its [native source](../mathematics/ternary/demo.wave).
+
 From the repository root, with Bazel as the only required installed build tool:
 
 ```sh
@@ -126,14 +128,14 @@ Reads carry their continuation directly on the returned tail, avoiding a tempora
 
 The column engine starts its left and right operand reads independently, including the first column. Copy completion also returns its left and right results independently; neither completion waits for the other result to be consumed. This is protocol-level concurrency; the recorded direct-path executor still schedules individual events serially. Complete independent subexpressions are not yet scheduled concurrently, and calls sharing one frame remain serialized. No multicore speedup or globally optimal evaluator is claimed.
 
-The performance test runs the complete example, checks its decoded intermediate values, and rejects runs exceeding 10,200 events or 3,000,000 work steps. The initial implementation required 13,850 events and 5,741,452 work steps. These are reproducible engine counters for this workload, not universal complexity bounds or wall-clock speedups.
+The performance test runs the complete example, checks its decoded intermediate values, and rejects runs exceeding 10,200 events or 250,000 work steps. The initial implementation required 13,850 events and 5,741,452 work steps. These are reproducible engine counters for this workload, not universal complexity bounds or wall-clock speedups.
 
 | Complete example | Initial | Previous | Current |
 | --- | ---: | ---: | ---: |
 | Events | 13,850 | 10,686 | 10,017 |
-| Work steps | 5,741,452 | 3,843,442 | 2,875,589 |
+| Work steps | 5,741,452 | 3,843,442 | 215,876 |
 
-The library pass reduced events by 6.3% and work by 11.2% relative to the previous implementation, reaching 3,411,783 work steps. General runtime pruning subsequently reduced work to 2,875,589 without changing the event count; see the [runtime investigation](investigation.md). Constructors introduce the cell directly in its captured scope. Token reads return bare token values directly; digit reads retain the root conversion that preserves the digit field's capture. Empty-tail termination consumes `Zero` explicitly instead of passing it through head cleanup. Roles, fields, and function boundaries remain explicit.
+The library pass reduced events by 6.3% and work by 11.2% relative to the previous implementation, reaching 3,411,783 work steps. General runtime pruning subsequently reduced work to 2,875,589. Shared indexing and removal of known-empty matching work reduced it further to 215,876 without changing the event count; see the [runtime investigation](investigation.md) [indexed matching measurements](indexing.md), and subsequent [provenance measurements](provenance.md). Constructors introduce the cell directly in its captured scope. Token reads return bare token values directly; digit reads retain the root conversion that preserves the digit field's capture. Empty-tail termination consumes `Zero` explicitly instead of passing it through head cleanup. Roles, fields, and function boundaries remain explicit.
 
 A shared constructor that stored every token as cell data passed the functional checks but raised this example's work to 4,632,304. It was rejected. Fewer declarations alone do not imply less matching work.
 

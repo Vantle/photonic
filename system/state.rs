@@ -79,22 +79,38 @@ impl State {
     }
 
     pub fn reachable(&self) -> BTreeSet<usize> {
-        let mut selected = BTreeSet::new();
-        let mut pending = vec![0];
+        let mut selected = vec![false; self.frame.len()];
+        let mut pending = Vec::new();
+        let mut insert = |index| {
+            if !std::mem::replace(&mut selected[index], true) {
+                pending.push(index);
+            }
+        };
+        insert(0);
         for world in &self.world {
-            pending.push(world.frame);
-            pending.extend(world.particle.iter().filter_map(|token| token.capture));
+            insert(world.frame);
+            for capture in world.particle.iter().filter_map(|token| token.capture) {
+                insert(capture);
+            }
         }
         while let Some(index) = pending.pop() {
-            if !selected.insert(index) {
-                continue;
-            }
             let frame = &self.frame[index];
-            pending.extend(frame.parent);
-            pending.extend(frame.lexical);
-            pending.extend(frame.held.iter().filter_map(|token| token.capture));
+            for target in frame
+                .parent
+                .into_iter()
+                .chain(frame.lexical)
+                .chain(frame.held.iter().filter_map(|token| token.capture))
+            {
+                if !std::mem::replace(&mut selected[target], true) {
+                    pending.push(target);
+                }
+            }
         }
         selected
+            .into_iter()
+            .enumerate()
+            .filter_map(|(index, selected)| selected.then_some(index))
+            .collect()
     }
 
     pub(crate) fn chain(&self, frame: usize) -> Vec<(usize, Vec<Symbol>)> {

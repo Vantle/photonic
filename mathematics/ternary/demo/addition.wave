@@ -1,0 +1,14 @@
+Push.([Digit] 2).Zero, Stage.1
+[Built,Stage.1] (Push.Add) (Forget.Stage.2)
+[Clean.Stage.2] Stage.2
+[Built,Stage.2] (Push.([Digit] 2)) (Forget.Stage.3)
+[Clean.Stage.3] Stage.3
+[Built,Stage.3] (Push.([Digit] 1)) (Forget.Stage.4)
+[Clean.Stage.4] Stage.4
+[Built,Stage.4] (Function.Expression) (Forget.Inspect.0)
+[Clean.Inspect.0] Inspect.0
+[Return.Expression.Number.Positive,Inspect.0] (Read) (Forget.Inspect.1)
+[Clean.Inspect.1] Inspect.1
+[Yield.([Digit] 1),Inspect.1] (Read) (Forget.Inspect.2)
+[Clean.Inspect.2] Inspect.2
+[Yield.([Digit] 2).Zero,Inspect.2] Number.([Trit] 21)

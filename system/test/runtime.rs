@@ -234,10 +234,10 @@ fn gate() {
 
 #[test]
 fn capture() {
-    use crate::flow::{self, Binding, Closure, Flow, Place};
+    use crate::flow::{Binding, Closure, Flow, Place};
     use crate::program::{Instruction, Output, Symbol};
     use crate::state::{Frame, State, Token, World};
-    use std::collections::{BTreeMap, BTreeSet};
+    use std::collections::BTreeSet;
     let root = Frame {
         scope: 0,
         parent: None,
@@ -289,10 +289,12 @@ fn capture() {
             Place::World(0, 1)
         };
         let flow = Flow {
-            resource: BTreeMap::from([
-                (Place::Held(1, 0), BTreeSet::from([basis])),
-                (Place::Held(2, 0), BTreeSet::from([basis])),
-            ]),
+            resource: [
+                (Place::Held(1, 0), crate::basis::Set::single(basis)),
+                (Place::Held(2, 0), crate::basis::Set::single(basis)),
+            ]
+            .into_iter()
+            .collect(),
             frame: vec![Some(0), mapped.then_some(1), None],
             context: Vec::new(),
         };
@@ -309,7 +311,7 @@ fn capture() {
             exact: BTreeSet::new(),
             read: BTreeSet::from([basis]),
         };
-        let output = flow::apply(
+        let output = crate::application::apply(
             &state,
             0,
             None,
@@ -409,7 +411,7 @@ fn determinism() {
 
 #[test]
 fn inheritance() {
-    use crate::flow::{self, Binding, Closure, Flow, Place};
+    use crate::flow::{Binding, Closure, Flow, Place};
     use crate::program::{Instruction, Output, Symbol};
     use crate::state::{Frame, State, Token, World};
     use std::collections::BTreeSet;
@@ -472,8 +474,11 @@ fn inheritance() {
                 let mut flow = Flow::identity(&source);
                 flow.context.clear();
                 flow.frame.push(None);
-                flow.resource
-                    .insert(Place::Held(1, 9), BTreeSet::from([basis]));
+                flow.resource = flow
+                    .resource
+                    .into_iter()
+                    .chain([(Place::Held(1, 9), crate::basis::Set::single(basis))])
+                    .collect();
                 let rule = Instruction {
                     output: vec![Output {
                         particle: vec![Symbol::Rule(1)],
@@ -487,7 +492,7 @@ fn inheritance() {
                     exact: BTreeSet::new(),
                     read: BTreeSet::from([basis]),
                 };
-                let result = flow::apply(
+                let result = crate::application::apply(
                     &source,
                     0,
                     None,

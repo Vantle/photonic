@@ -1,6 +1,6 @@
 use crate::matching::{Gate, Slot, Term};
 use crate::program::Symbol;
-use crate::state::{State, Token};
+use crate::state::Token;
 use std::sync::Arc;
 use std::task::Poll;
 
@@ -73,8 +73,9 @@ impl Particle {
 
 pub struct Search {
     pattern: Vec<Vec<Term>>,
-    state: Arc<State>,
-    frame: usize,
+    index: Arc<crate::index::Index>,
+    candidate: Vec<Vec<usize>>,
+    cursor: Vec<usize>,
     world: usize,
     position: usize,
     particle: Option<Particle>,
@@ -83,12 +84,20 @@ pub struct Search {
 }
 
 impl Search {
-    pub fn new(pattern: Vec<Vec<Term>>, state: Arc<State>, frame: usize) -> Self {
+    pub fn new(pattern: Vec<Vec<Term>>, index: Arc<crate::index::Index>, frame: usize) -> Self {
+        let mut candidate = pattern
+            .iter()
+            .map(|pattern| index.candidate(pattern, frame))
+            .collect::<Vec<_>>();
+        if candidate.iter().any(Vec::is_empty) {
+            candidate.clear();
+        }
         Self {
             gate: Gate::new(pattern.clone()),
+            candidate,
+            cursor: vec![0; pattern.len()],
             pattern,
-            state,
-            frame,
+            index,
             world: 0,
             position: 0,
             particle: None,
@@ -96,8 +105,15 @@ impl Search {
         }
     }
 
+    pub(crate) fn viable(&self) -> bool {
+        self.pattern.is_empty() || !self.candidate.is_empty()
+    }
+
     pub(crate) fn retained(&self) -> usize {
-        self.gate.retained()
+        self.candidate.len()
+            + self.candidate.iter().map(Vec::len).sum::<usize>()
+            + self.cursor.len()
+            + self.gate.retained()
             + self.particle.as_ref().map_or(0, |particle| {
                 particle.candidate.iter().map(Vec::len).sum::<usize>()
                     + particle.selected.len()
@@ -119,17 +135,28 @@ impl Search {
                 .step()
                 .map_or(Poll::Pending, |value| Poll::Ready(Some(value)));
         }
-        let Some(world) = self.state.world.get(self.world) else {
-            return Poll::Ready(None);
-        };
-        if world.frame != self.frame || self.position == self.pattern.len() {
-            self.world += 1;
-            self.position = 0;
-            return Poll::Pending;
+        if self.particle.is_none() {
+            let next = self
+                .candidate
+                .iter()
+                .enumerate()
+                .filter_map(|(position, candidate)| {
+                    candidate
+                        .get(self.cursor[position])
+                        .map(|&world| (world, position))
+                })
+                .min();
+            let Some((world, position)) = next else {
+                return Poll::Ready(None);
+            };
+            self.world = world;
+            self.position = position;
+            self.particle = Some(Particle::new(
+                &self.pattern[position],
+                &self.index.state.world[world].particle,
+            ));
         }
-        let particle = self
-            .particle
-            .get_or_insert_with(|| Particle::new(&self.pattern[self.position], &world.particle));
+        let particle = self.particle.as_mut().unwrap();
         match particle.step() {
             Poll::Ready(Some(token)) => self.gate.enqueue(Slot {
                 world: self.world,
@@ -137,7 +164,7 @@ impl Search {
                 token,
             }),
             Poll::Ready(None) => {
-                self.position += 1;
+                self.cursor[self.position] += 1;
                 self.particle = None;
             }
             Poll::Pending => {}

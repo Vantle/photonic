@@ -31,6 +31,13 @@ pub struct Report {
     pub event: Vec<Event>,
 }
 
+pub struct Summary {
+    pub outcome: Outcome,
+    pub witness: Option<Node>,
+    pub event: usize,
+    pub work: usize,
+}
+
 pub struct Search {
     program: source::Program,
     claim: Vec<Vec<source::Value>>,
@@ -54,7 +61,8 @@ impl Search {
         goal.initial = goal.input(&target.initial);
         let goal = State::initial(&goal);
         let mut state = IndexSet::new();
-        state.insert(Arc::new(initial.clone()));
+        let initial = Arc::new(initial);
+        state.insert(initial.clone());
         Ok(Self {
             program,
             claim: target.initial,
@@ -93,7 +101,7 @@ impl Search {
                 });
                 self.cursor = target;
                 self.cycle = known.is_some();
-                self.runtime = Runtime::seed(self.runtime.program.clone(), next.as_ref().clone());
+                self.runtime = Runtime::seed(self.runtime.program.clone(), next);
                 continue;
             }
             let retained = self.state.len() + self.event.len();
@@ -115,6 +123,27 @@ impl Search {
             if self.runtime.work == step {
                 return;
             }
+        }
+    }
+
+    pub fn summary(&self) -> Summary {
+        let reached = self.state[self.cursor].as_ref() == &self.goal;
+        Summary {
+            outcome: if reached {
+                Outcome::Reached
+            } else {
+                Outcome::Unknown
+            },
+            witness: reached.then(|| {
+                Node::new(
+                    self.cursor,
+                    &self.state[self.cursor],
+                    &self.runtime.program,
+                    Status::Supported,
+                )
+            }),
+            event: self.event.len(),
+            work: self.work,
         }
     }
 

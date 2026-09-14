@@ -1,6 +1,6 @@
 use crate::program::Symbol;
 use crate::state::State;
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 
 #[derive(Clone, Eq, Ord, PartialEq, PartialOrd)]
 enum Label {
@@ -14,21 +14,9 @@ pub struct Refinement {
     pub frame: Vec<usize>,
 }
 
-fn classify<Key: Ord + Clone>(value: &[Key]) -> Vec<usize> {
-    let mut label = value
-        .iter()
-        .cloned()
-        .map(|value| (value, 0))
-        .collect::<BTreeMap<_, _>>();
-    for (index, ordinal) in label.values_mut().enumerate() {
-        *ordinal = index;
-    }
-    value.iter().map(|value| label[value]).collect()
-}
-
-fn connect(edge: &mut [Vec<(u8, usize)>], source: usize, target: usize, kind: u8) {
-    edge[source].push((kind, target));
-    edge[target].push((kind + 1, source));
+fn connect(edge: &mut Vec<(usize, usize, u8)>, source: usize, target: usize, kind: u8) {
+    edge.push((source, target, kind));
+    edge.push((target, source, kind + 1));
 }
 
 impl Refinement {
@@ -40,7 +28,7 @@ impl Refinement {
             frame[index] = label.len();
             label.push(Label::Frame(state.frame[index].scope, index == 0));
         }
-        let mut resource = BTreeMap::new();
+        let mut resource = HashMap::new();
         for token in state
             .world
             .iter()
@@ -53,7 +41,7 @@ impl Refinement {
                 index
             });
         }
-        let mut edge = vec![Vec::new(); label.len()];
+        let mut edge = Vec::new();
         for (index, world) in state.world.iter().enumerate() {
             connect(&mut edge, index, frame[world.frame], 0);
             for token in &world.particle {
@@ -72,7 +60,7 @@ impl Refinement {
                 connect(&mut edge, frame[index], resource[&token.id], 8);
             }
         }
-        let mut capture = BTreeMap::new();
+        let mut capture = HashMap::new();
         for token in state
             .world
             .iter()
@@ -86,26 +74,8 @@ impl Refinement {
         for (id, captured) in capture {
             connect(&mut edge, resource[&id], frame[captured], 10);
         }
-        let mut color = classify(&label);
-        loop {
-            let signature = edge
-                .iter()
-                .enumerate()
-                .map(|(index, edge)| {
-                    let mut adjacent = edge
-                        .iter()
-                        .map(|&(kind, target)| (kind, color[target]))
-                        .collect::<Vec<_>>();
-                    adjacent.sort();
-                    (color[index], adjacent)
-                })
-                .collect::<Vec<_>>();
-            let next = classify(&signature);
-            if next == color {
-                break;
-            }
-            color = next;
-        }
+        let edge = crate::graph::Graph::new(label.len(), edge);
+        let color = crate::partition::refine(&edge, crate::partition::classify(&label));
         Self {
             world: color[..state.world.len()].to_vec(),
             frame: frame.into_iter().map(|index| color[index]).collect(),

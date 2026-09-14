@@ -826,6 +826,7 @@ native_binary(
     data = [
         "record.mjs",
         "result.particle",
+        "trace.mjs",
         ":infix.program",
         "//system:command",
         "//tool:node",
@@ -1177,11 +1178,14 @@ native_test(
         "$(rlocationpath //system:command)",
         "$(rlocationpath :infix.program)",
         "$(rlocationpath result.particle)",
+        "$(rlocationpath //document:expression)",
     ],
     data = [
         "record.mjs",
         "result.particle",
+        "trace.mjs",
         ":infix.program",
+        "//document:expression",
         "//system:command",
         "//tool:node",
     ],
@@ -1214,4 +1218,158 @@ photonic_test(
     source = "Yield.End.Copy.Wait.Zero, Copy.Right.Zero",
     targets = ["Copy.End.([Side] Left), Return.Copy.Right.Zero"],
     deps = [":copy"],
+)
+
+photonic_binary(
+    name = "demo",
+    srcs = ["demo.wave"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "demo.check",
+    srcs = ["demo.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Addition.([Trit] 21), Multiplication.([Trit] 101), Division.([Trit] 2)"],
+    deps = [":formula"],
+)
+
+photonic_binary(
+    name = "demo.addition",
+    srcs = ["demo/addition.wave"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "demo.addition.check",
+    srcs = ["demo/addition.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Number.([Trit] 21)"],
+    deps = [":formula"],
+)
+
+photonic_binary(
+    name = "demo.multiplication",
+    srcs = ["demo/multiplication.wave"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "demo.multiplication.check",
+    srcs = ["demo/multiplication.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Number.([Trit] 101)"],
+    deps = [":formula"],
+)
+
+photonic_binary(
+    name = "demo.division",
+    srcs = ["demo/division.wave"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "demo.division.check",
+    srcs = ["demo/division.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Number.([Trit] 2)"],
+    deps = [":formula"],
+)
+
+native_binary(
+    name = "demo.record",
+    src = "//tool:execute",
+    args = [
+        "$(rlocationpath //tool:node)",
+        "$(rlocationpath demo.mjs)",
+        "$(rlocationpath //system:command)",
+        "$(rlocationpath :demo.addition.program)",
+        "$(rlocationpath demo/addition.particle)",
+        "$(rlocationpath demo/addition.wave)",
+        "$(rlocationpath :demo.multiplication.program)",
+        "$(rlocationpath demo/multiplication.particle)",
+        "$(rlocationpath demo/multiplication.wave)",
+        "$(rlocationpath :demo.division.program)",
+        "$(rlocationpath demo/division.particle)",
+        "$(rlocationpath demo/division.wave)",
+    ],
+    data = [
+        "demo.mjs",
+        "demo/addition.particle",
+        "demo/addition.wave",
+        "demo/division.particle",
+        "demo/division.wave",
+        "demo/multiplication.particle",
+        "demo/multiplication.wave",
+        "trace.mjs",
+        ":demo.addition.program",
+        ":demo.division.program",
+        ":demo.multiplication.program",
+        "//system:command",
+        "//tool:node",
+    ],
+)
+
+native_test(
+    name = "demo.record.check",
+    src = "//tool:execute",
+    args = [
+        "$(rlocationpath //tool:node)",
+        "$(rlocationpath demo.mjs)",
+        "$(rlocationpath //system:command)",
+        "$(rlocationpath :demo.addition.program)",
+        "$(rlocationpath demo/addition.particle)",
+        "$(rlocationpath demo/addition.wave)",
+        "$(rlocationpath :demo.multiplication.program)",
+        "$(rlocationpath demo/multiplication.particle)",
+        "$(rlocationpath demo/multiplication.wave)",
+        "$(rlocationpath :demo.division.program)",
+        "$(rlocationpath demo/division.particle)",
+        "$(rlocationpath demo/division.wave)",
+        "$(rlocationpath //document:demo)",
+    ],
+    data = [
+        "demo.mjs",
+        "demo/addition.particle",
+        "demo/addition.wave",
+        "demo/division.particle",
+        "demo/division.wave",
+        "demo/multiplication.particle",
+        "demo/multiplication.wave",
+        "trace.mjs",
+        ":demo.addition.program",
+        ":demo.division.program",
+        ":demo.multiplication.program",
+        "//document:demo",
+        "//system:command",
+        "//tool:node",
+    ],
 )

@@ -41,7 +41,7 @@ The generic concept parameter also permits `Rule<Rule<Concept>>`: exact matching
 
 Both configuration evaluators explore complete configurations and intern states, events, relative views, and support clauses. A new view can enable an application at an existing source. New evidence extends support without allocating a duplicate result.
 
-Rust's `search::Search` retains particle-enumeration and gate progress. Per-target/frame/pattern caches deliver completed bindings incrementally to subscribers and reuse them across relative views. Adjacency indexes wake related work. Completed candidate searches release their temporary state.
+Rust's `search::Search` retains particle-enumeration and gate progress. Each searched state supplies a shared immutable index by frame, value, and rule capture. Queries intersect posting lists starting from the smallest list; exact token enumeration still enforces multiplicity. Proven-empty searches and empty gate intervals do not enqueue tasks. Index entries and query candidates contribute to retained-record accounting. Per-target/frame/pattern caches deliver completed bindings incrementally to subscribers and reuse them across relative views. Adjacency indexes wake related work. Completed candidate searches release their temporary state.
 
 `canonical::Search` refines graph colors using introduction sharing, captures, parent links, and lexical links, then advances through exact candidate orderings one step at a time. Refinement reduces avoidable symmetry; worst-case enumeration remains factorial. Completed normalization slots are reused.
 
@@ -137,7 +137,7 @@ Parallel worlds remain distinct execution contexts. The existing worker executor
 
 ## Performance
 
-The [runtime optimization investigation](investigation.md) profiles the native expression workload, records general improvements, and evaluates indexing and incremental matching against the research literature.
+The [indexed matching measurements](indexing.md) record the latest work and latency results. The [runtime optimization investigation](investigation.md) profiles the native expression workload, records general improvements, and evaluates indexing and incremental matching against the research literature.
 
 The benchmark measures runtime construction, ground code compilation, graph exploration, positive evidence closure, and snapshot construction. JSON decoding, input cloning, and worker-pool creation happen before timing. Source parsing, report encoding, process startup, and build time are excluded. Each program receives one warm-up and 25 measured runs. The [raw report](performance.json) records minimum, median, maximum, work, and retained records in microseconds.
 
@@ -225,3 +225,7 @@ The indexed order is deterministic despite hash-set iteration. Scoped declaratio
 Obsidian separates `verdict()` from `report()`. Verdict queries use the canonical state index and cached positive support; they do not allocate node labels, event lists, or a full snapshot. Retargeting a search preserves the existing exploration. Bazel tests write that graph once and store small per-target verdicts beside it.
 
 The webbook's evaluation diagram displays either recorded native execution or a fresh run of this same Rust runtime compiled to WebAssembly. It draws configurations and runtime events directly, preserving alternative edges and cycles. The declaration diagram connects rule inputs and outputs. The execution diagram shows the events the runtime found. See the [browser and API contract](build.md#browser) for budgets, cancellation, generated bindings, and equivalence checks.
+
+The [canonical refinement measurements](refinement.md) describe the subsequent reduction in execution time and its correctness checks.
+
+The [compact provenance measurements](provenance.md) cover immutable provenance storage, shared captured environments, and contiguous refinement graphs.

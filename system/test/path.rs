@@ -112,8 +112,25 @@ fn metadata() {
                 event.binding.read.iter().copied().collect::<Vec<_>>(),
                 expected.read
             );
-            let next = runtime.state[event.target].as_ref().clone();
+            let next = runtime.state[event.target].clone();
             runtime = crate::runtime::Runtime::seed(runtime.program.clone(), next);
         }
+    }
+}
+
+#[test]
+fn summary() {
+    for (source, target) in [("A [A] B", "B"), ("A", "Missing"), ("A", "A")] {
+        let mut path = search(source, target);
+        path.run(100_000, Limit::default());
+        let summary = path.summary();
+        let report = path.report();
+        assert_eq!(summary.outcome, report.outcome);
+        assert_eq!(summary.event, report.event.len());
+        assert_eq!(summary.work, report.work);
+        assert_eq!(
+            serde_json::to_value(summary.witness).unwrap(),
+            serde_json::to_value(report.witness.map(|index| &report.state[index])).unwrap()
+        );
     }
 }

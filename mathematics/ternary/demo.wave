@@ -1,0 +1,50 @@
+Begin.Addition
+
+[Begin.Addition] (Push.([Digit] 2).Zero) (Addition.Stage.1)
+[Built,Addition.Stage.1] (Push.Add) (Forget.Addition.Stage.2)
+[Clean.Addition.Stage.2] Addition.Stage.2
+[Built,Addition.Stage.2] (Push.([Digit] 2)) (Forget.Addition.Stage.3)
+[Clean.Addition.Stage.3] Addition.Stage.3
+[Built,Addition.Stage.3] (Push.([Digit] 1)) (Forget.Addition.Stage.4)
+[Clean.Addition.Stage.4] Addition.Stage.4
+[Built,Addition.Stage.4] (Function.Expression) (Forget.Addition.Inspect.0)
+[Clean.Addition.Inspect.0] Addition.Inspect.0
+[Return.Expression.Number.Positive,Addition.Inspect.0] (Read) (Forget.Addition.Inspect.1)
+[Clean.Addition.Inspect.1] Addition.Inspect.1
+[Yield.([Digit] 1),Addition.Inspect.1] (Read) (Forget.Addition.Inspect.2)
+[Clean.Addition.Inspect.2] Addition.Inspect.2
+[Yield.([Digit] 2).Zero,Addition.Inspect.2] (Addition.([Trit] 21)) (Begin.Multiplication)
+
+[Begin.Multiplication] (Push.([Digit] 2).Zero) (Multiplication.Stage.1)
+[Built,Multiplication.Stage.1] (Push.Multiply) (Forget.Multiplication.Stage.2)
+[Clean.Multiplication.Stage.2] Multiplication.Stage.2
+[Built,Multiplication.Stage.2] (Push.([Digit] 2)) (Forget.Multiplication.Stage.3)
+[Clean.Multiplication.Stage.3] Multiplication.Stage.3
+[Built,Multiplication.Stage.3] (Push.([Digit] 1)) (Forget.Multiplication.Stage.4)
+[Clean.Multiplication.Stage.4] Multiplication.Stage.4
+[Built,Multiplication.Stage.4] (Function.Expression) (Forget.Multiplication.Inspect.0)
+[Clean.Multiplication.Inspect.0] Multiplication.Inspect.0
+[Return.Expression.Number.Positive,Multiplication.Inspect.0] (Read) (Forget.Multiplication.Inspect.1)
+[Clean.Multiplication.Inspect.1] Multiplication.Inspect.1
+[Yield.([Digit] 1),Multiplication.Inspect.1] (Read) (Forget.Multiplication.Inspect.2)
+[Clean.Multiplication.Inspect.2] Multiplication.Inspect.2
+[Yield.([Digit] 0),Multiplication.Inspect.2] (Read) (Forget.Multiplication.Inspect.3)
+[Clean.Multiplication.Inspect.3] Multiplication.Inspect.3
+[Yield.([Digit] 1).Zero,Multiplication.Inspect.3] (Multiplication.([Trit] 101)) (Begin.Division)
+
+[Begin.Division] (Push.([Digit] 1).Zero) (Division.Stage.1)
+[Built,Division.Stage.1] (Push.Subtract) (Forget.Division.Stage.2)
+[Clean.Division.Stage.2] Division.Stage.2
+[Built,Division.Stage.2] (Push.([Digit] 2)) (Forget.Division.Stage.3)
+[Clean.Division.Stage.3] Division.Stage.3
+[Built,Division.Stage.3] (Push.Divide) (Forget.Division.Stage.4)
+[Clean.Division.Stage.4] Division.Stage.4
+[Built,Division.Stage.4] (Push.([Digit] 1)) (Forget.Division.Stage.5)
+[Clean.Division.Stage.5] Division.Stage.5
+[Built,Division.Stage.5] (Push.([Digit] 2)) (Forget.Division.Stage.6)
+[Clean.Division.Stage.6] Division.Stage.6
+[Built,Division.Stage.6] (Function.Expression) (Forget.Division.Inspect.0)
+[Clean.Division.Inspect.0] Division.Inspect.0
+[Return.Expression.Number.Positive,Division.Inspect.0] (Read) (Forget.Division.Inspect.1)
+[Clean.Division.Inspect.1] Division.Inspect.1
+[Yield.([Digit] 2).Zero,Division.Inspect.1] Division.([Trit] 2)

@@ -3,6 +3,7 @@ filegroup(
     srcs = [
         "book.css",
         "book.js",
+        "demo.record.js",
         "evaluation.js",
         "expression.js",
         "expression.record.js",
@@ -26,4 +27,16 @@ filegroup(
         "//document/kernel:build",
     ],
     visibility = ["//:__pkg__"],
+)
+
+filegroup(
+    name = "demo",
+    srcs = ["demo.record.js"],
+    visibility = ["//mathematics/ternary:__pkg__"],
+)
+
+filegroup(
+    name = "expression",
+    srcs = ["expression.record.js"],
+    visibility = ["//mathematics/ternary:__pkg__"],
 )

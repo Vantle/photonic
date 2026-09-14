@@ -41,7 +41,11 @@ fn matching() {
         };
         15
     ]];
-    let mut search = Search::new(pattern, Arc::new(state), 0);
+    let mut search = Search::new(
+        pattern,
+        Arc::new(crate::index::Index::new(Arc::new(state))),
+        0,
+    );
     let mut found = 0;
     for _ in 0..1000 {
         match search.step() {
@@ -388,7 +392,11 @@ fn enumeration() {
                     frame: 0,
                     particle: particle.clone(),
                 }]);
-                let mut search = Search::new(vec![pattern], Arc::new(state), 0);
+                let mut search = Search::new(
+                    vec![pattern],
+                    Arc::new(crate::index::Index::new(Arc::new(state))),
+                    0,
+                );
                 let mut actual = std::collections::BTreeSet::new();
                 let mut complete = false;
                 for _ in 0..1000 {
@@ -411,6 +419,113 @@ fn enumeration() {
                     "particle {encoding}, pattern {code}, length {count}"
                 );
             }
+        }
+    }
+}
+
+#[test]
+fn indexing() {
+    let alphabet = [
+        Term {
+            value: Symbol::Atom(0),
+            capture: None,
+        },
+        Term {
+            value: Symbol::Atom(1),
+            capture: Some(1),
+        },
+        Term {
+            value: Symbol::Rule(0),
+            capture: Some(0),
+        },
+        Term {
+            value: Symbol::Rule(0),
+            capture: Some(1),
+        },
+    ];
+    for encoding in 0..256usize {
+        let mut state = root(
+            (0..4)
+                .map(|world| World {
+                    frame: world % 2,
+                    particle: (0..2)
+                        .map(|position| {
+                            let term = &alphabet[(encoding >> ((world + position) * 2 % 8)) & 3];
+                            Token {
+                                id: world * 2 + position,
+                                value: term.value,
+                                capture: term.capture,
+                            }
+                        })
+                        .collect(),
+                })
+                .collect(),
+        );
+        state.frame.push(state.frame[0].clone());
+        let index = crate::index::Index::new(Arc::new(state.clone()));
+        for count in 0..=3 {
+            for code in 0..4usize.pow(count) {
+                let pattern = (0..count)
+                    .map(|position| alphabet[(code >> (position * 2)) & 3].clone())
+                    .collect::<Vec<_>>();
+                for frame in 0..=2 {
+                    let expected = state
+                        .world
+                        .iter()
+                        .enumerate()
+                        .filter(|(_, world)| {
+                            world.frame == frame
+                                && pattern.iter().all(|term| {
+                                    world.particle.iter().any(|token| {
+                                        token.value == term.value
+                                            && (matches!(term.value, Symbol::Atom(_))
+                                                || token.capture == term.capture)
+                                    })
+                                })
+                        })
+                        .map(|(site, _)| site)
+                        .collect::<Vec<_>>();
+                    assert_eq!(index.candidate(&pattern, frame), expected);
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn joining() {
+    for equal in [false, true] {
+        let pattern = (0..2)
+            .map(|position| {
+                vec![Term {
+                    value: Symbol::Atom(if equal { 0 } else { position }),
+                    capture: None,
+                }]
+            })
+            .collect::<Vec<_>>();
+        for order in crate::ordering::Ordering::new(0..6, |_| 0) {
+            let mut gate = crate::matching::Gate::new(pattern.clone());
+            let mut actual = std::collections::BTreeSet::new();
+            for index in order {
+                let slot = crate::matching::Slot {
+                    world: index / 2,
+                    position: index % 2,
+                    token: vec![index / 2],
+                };
+                for binding in gate.arrive(slot) {
+                    assert!(
+                        actual.insert(binding.iter().map(|slot| slot.world).collect::<Vec<_>>())
+                    );
+                }
+            }
+            let expected = (0..3)
+                .flat_map(|left| {
+                    (0..3)
+                        .filter(move |&right| left != right && (!equal || left < right))
+                        .map(move |right| vec![left, right])
+                })
+                .collect::<std::collections::BTreeSet<_>>();
+            assert_eq!(actual, expected);
         }
     }
 }

@@ -15,7 +15,7 @@
 
 The library is written entirely in Photonic. The `.particle` files contain the implementation; `.wave` files supply applications. Rust provides source loading, the general evaluator, and execution checks. Every standard-library operation runs through ordinary Photonic rules.
 
-The library supports scalar functions and finite pairs. Arbitrary runtime collections, general repeat counts, generic recursive unpacking, and a general parallel prefix network remain unfinished. The [remaining work](#remaining) records those boundaries. The [proof notes](#proof) distinguish closed finite checks from execution witnesses.
+The library supports scalar functions and finite pairs. A general collection API, general repeat counts, generic recursive unpacking, and a general parallel prefix network remain unfinished. The separate native expression library implements arbitrary finite linked token tapes and numeral stacks; that does not supply all of those collection interfaces. The [remaining work](#remaining) records those boundaries. The [proof notes](#proof) distinguish closed finite checks from execution witnesses.
 
 <a id="library-run-the-pipeline"></a>
 

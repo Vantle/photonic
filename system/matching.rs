@@ -72,11 +72,14 @@ impl Gate {
             return;
         }
         self.candidate[position].push(slot.clone());
-        self.agenda.push_back(Task::Arrival {
-            slot,
-            cursor: 0,
-            end: self.prefix[position].len(),
-        });
+        let end = self.prefix[position].len();
+        if end > 0 {
+            self.agenda.push_back(Task::Arrival {
+                slot,
+                cursor: 0,
+                end,
+            });
+        }
     }
 
     pub(crate) fn pending(&self) -> bool {
@@ -86,15 +89,14 @@ impl Gate {
     pub(crate) fn step(&mut self) -> Option<Vec<Slot>> {
         let (binding, slot) = match self.agenda.pop_front()? {
             Task::Arrival { slot, cursor, end } => {
-                if cursor == end {
-                    return None;
-                }
                 let binding = self.prefix[slot.position][cursor].clone();
-                self.agenda.push_back(Task::Arrival {
-                    slot: slot.clone(),
-                    cursor: cursor + 1,
-                    end,
-                });
+                if cursor + 1 < end {
+                    self.agenda.push_back(Task::Arrival {
+                        slot: slot.clone(),
+                        cursor: cursor + 1,
+                        end,
+                    });
+                }
                 (binding, slot)
             }
             Task::Follow {
@@ -103,16 +105,15 @@ impl Gate {
                 cursor,
                 end,
             } => {
-                if cursor == end {
-                    return None;
-                }
                 let slot = self.candidate[position][cursor].clone();
-                self.agenda.push_back(Task::Follow {
-                    binding: binding.clone(),
-                    position,
-                    cursor: cursor + 1,
-                    end,
-                });
+                if cursor + 1 < end {
+                    self.agenda.push_back(Task::Follow {
+                        binding: binding.clone(),
+                        position,
+                        cursor: cursor + 1,
+                        end,
+                    });
+                }
                 (binding, slot)
             }
         };
@@ -138,12 +139,15 @@ impl Gate {
         if next == self.pattern.len() {
             return Some((*binding).clone());
         }
-        self.agenda.push_back(Task::Follow {
-            binding,
-            position: next,
-            cursor: 0,
-            end: self.candidate[next].len(),
-        });
+        let end = self.candidate[next].len();
+        if end > 0 {
+            self.agenda.push_back(Task::Follow {
+                binding,
+                position: next,
+                cursor: 0,
+                end,
+            });
+        }
         None
     }
 

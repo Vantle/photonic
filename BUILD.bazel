@@ -12,6 +12,7 @@ native_binary(
         "system/command.rs",
         "system/benchmark.rs",
         "system/benchmark/symmetry.rs",
+        "system/benchmark/trace.rs",
         "library/test/suite.rs",
         "photonic/assemble.rs",
         "photonic/check.rs",

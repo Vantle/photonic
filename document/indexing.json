@@ -1,0 +1,346 @@
+{
+  "baseline": "e20ca7b",
+  "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+  "program": "46d27e3b405df4165f4feead4b18313510df234893a130f11f5c6052873ae1ac",
+  "argument": [
+    "obsidian",
+    "/tmp/photonic-runtime/program.json",
+    "--target",
+    "/Users/robertvanderzee/vantle/photonic/mathematics/ternary/result.particle",
+    "--path",
+    "--steps",
+    "100000000",
+    "--states",
+    "65536",
+    "--cells",
+    "16384",
+    "--frames",
+    "2048",
+    "--coherences",
+    "1024",
+    "--records",
+    "100000000"
+  ],
+  "protocol": {
+    "warmup": 1,
+    "sample": 5,
+    "order": "alternating",
+    "unit": "second",
+    "output": "compact text"
+  },
+  "measurement": {
+    "baseline": {
+      "second": [
+        3.1146505829819944,
+        3.05028416600544,
+        3.0863962919975165,
+        3.0092984170187265,
+        3.011324749997584
+      ],
+      "output": "Reached: one direct execution path\nWitness s10017: [Zero.Done]@root\n10017 events; 2875589 work steps; alternative paths not exhausted\n",
+      "median": 3.05028416600544
+    },
+    "indexed": {
+      "second": [
+        2.3072224170027766,
+        2.353044458985096,
+        2.315232291992288,
+        2.2408155000011902,
+        2.3718494579952676
+      ],
+      "output": "Reached: one direct execution path\nWitness s10017: [Zero.Done]@root\n10017 events; 215876 work steps; alternative paths not exhausted\n",
+      "median": 2.315232291992288
+    }
+  },
+  "phase": [
+    {
+      "initialization": 0.001310625,
+      "execution": 2.199137042,
+      "summary": 8.75e-07,
+      "release": 0.007930417,
+      "event": 10017,
+      "work": 215876
+    },
+    {
+      "initialization": 0.00134075,
+      "execution": 2.203494416,
+      "summary": 9.17e-07,
+      "release": 0.005283,
+      "event": 10017,
+      "work": 215876
+    },
+    {
+      "initialization": 0.001237792,
+      "execution": 2.23156175,
+      "summary": 1.167e-06,
+      "release": 0.00805225,
+      "event": 10017,
+      "work": 215876
+    },
+    {
+      "initialization": 0.001319916,
+      "execution": 2.279356042,
+      "summary": 9.58e-07,
+      "release": 0.005241541,
+      "event": 10017,
+      "work": 215876
+    },
+    {
+      "initialization": 0.001296292,
+      "execution": 2.423590542,
+      "summary": 1.041e-06,
+      "release": 0.005230875,
+      "event": 10017,
+      "work": 215876
+    }
+  ],
+  "reference": [
+    {
+      "name": "Concrete And through two Boolean deductions",
+      "sample": 25,
+      "worker": 1,
+      "record": 350,
+      "peak": 351,
+      "work": 326,
+      "state": 14,
+      "event": 17,
+      "minimum": 209.708,
+      "median": 232.83399999999997,
+      "maximum": 314.83299999999997
+    },
+    {
+      "name": "Two inputs broadcast their leftovers",
+      "sample": 25,
+      "worker": 1,
+      "record": 62,
+      "peak": 63,
+      "work": 47,
+      "state": 3,
+      "event": 3,
+      "minimum": 34.625,
+      "median": 35.042,
+      "maximum": 41.75
+    },
+    {
+      "name": "One source supports a joint sibling match",
+      "sample": 25,
+      "worker": 1,
+      "record": 54,
+      "peak": 55,
+      "work": 42,
+      "state": 3,
+      "event": 3,
+      "minimum": 31.124999999999996,
+      "median": 31.875000000000004,
+      "maximum": 41.75
+    },
+    {
+      "name": "Competing histories cannot supply a joint match",
+      "sample": 25,
+      "worker": 1,
+      "record": 35,
+      "peak": 36,
+      "work": 23,
+      "state": 3,
+      "event": 2,
+      "minimum": 15.75,
+      "median": 16.166999999999998,
+      "maximum": 23.959
+    },
+    {
+      "name": "Explicit duplicate outputs remain distinct",
+      "sample": 25,
+      "worker": 1,
+      "record": 48,
+      "peak": 52,
+      "work": 56,
+      "state": 3,
+      "event": 3,
+      "minimum": 30.0,
+      "median": 30.791999999999998,
+      "maximum": 36.291000000000004
+    },
+    {
+      "name": "Evidence-only co-results are not source leftovers",
+      "sample": 25,
+      "worker": 1,
+      "record": 57,
+      "peak": 58,
+      "work": 39,
+      "state": 4,
+      "event": 3,
+      "minimum": 28.875,
+      "median": 30.125,
+      "maximum": 32.333
+    },
+    {
+      "name": "Independent branches compute independent equal results",
+      "sample": 25,
+      "worker": 1,
+      "record": 398,
+      "peak": 399,
+      "work": 379,
+      "state": 13,
+      "event": 21,
+      "minimum": 234.834,
+      "median": 244.37500000000003,
+      "maximum": 310.834
+    },
+    {
+      "name": "Arbitrarily nested body expressions",
+      "sample": 25,
+      "worker": 1,
+      "record": 180,
+      "peak": 181,
+      "work": 136,
+      "state": 9,
+      "event": 9,
+      "minimum": 100.292,
+      "median": 104.0,
+      "maximum": 117.625
+    },
+    {
+      "name": "A finite cycle shares its configurations",
+      "sample": 25,
+      "worker": 1,
+      "record": 49,
+      "peak": 49,
+      "work": 44,
+      "state": 2,
+      "event": 4,
+      "minimum": 24.791999999999998,
+      "median": 26.792,
+      "maximum": 71.166
+    },
+    {
+      "name": "Generated rule reads its concrete source",
+      "sample": 25,
+      "worker": 1,
+      "record": 72,
+      "peak": 73,
+      "work": 55,
+      "state": 4,
+      "event": 4,
+      "minimum": 34.167,
+      "median": 35.166999999999994,
+      "maximum": 39.875
+    },
+    {
+      "name": "One source supplies rule and operand",
+      "sample": 25,
+      "worker": 1,
+      "record": 53,
+      "peak": 54,
+      "work": 39,
+      "state": 4,
+      "event": 3,
+      "minimum": 24.958000000000002,
+      "median": 25.375,
+      "maximum": 27.915999999999997
+    },
+    {
+      "name": "Competing code and data cannot interact",
+      "sample": 25,
+      "worker": 1,
+      "record": 35,
+      "peak": 36,
+      "work": 23,
+      "state": 3,
+      "event": 2,
+      "minimum": 14.041,
+      "median": 14.333,
+      "maximum": 22.584
+    },
+    {
+      "name": "A meta rule replaces a whole rule value",
+      "sample": 25,
+      "worker": 1,
+      "record": 108,
+      "peak": 109,
+      "work": 87,
+      "state": 6,
+      "event": 6,
+      "minimum": 51.292,
+      "median": 52.375,
+      "maximum": 58.875
+    },
+    {
+      "name": "Rule activation respects coherence locality",
+      "sample": 25,
+      "worker": 1,
+      "record": 41,
+      "peak": 49,
+      "work": 29,
+      "state": 2,
+      "event": 1,
+      "minimum": 15.042,
+      "median": 15.458,
+      "maximum": 19.0
+    },
+    {
+      "name": "A generated rule enables decoherence",
+      "sample": 25,
+      "worker": 1,
+      "record": 104,
+      "peak": 116,
+      "work": 77,
+      "state": 5,
+      "event": 5,
+      "minimum": 50.667,
+      "median": 52.625,
+      "maximum": 57.042
+    },
+    {
+      "name": "A whole rule acquires an abstraction",
+      "sample": 25,
+      "worker": 1,
+      "record": 126,
+      "peak": 127,
+      "work": 100,
+      "state": 8,
+      "event": 8,
+      "minimum": 62.459,
+      "median": 63.5,
+      "maximum": 76.209
+    },
+    {
+      "name": "A generated rule opens a nested body",
+      "sample": 25,
+      "worker": 1,
+      "record": 138,
+      "peak": 139,
+      "work": 109,
+      "state": 6,
+      "event": 7,
+      "minimum": 63.584,
+      "median": 65.542,
+      "maximum": 75.458
+    },
+    {
+      "name": "An escaped rule retains its local definition",
+      "sample": 25,
+      "worker": 1,
+      "record": 919,
+      "peak": 920,
+      "work": 756,
+      "state": 29,
+      "event": 43,
+      "minimum": 488.416,
+      "median": 538.333,
+      "maximum": 652.833
+    },
+    {
+      "name": "Consuming code later does not erase earlier results",
+      "sample": 25,
+      "worker": 1,
+      "record": 65,
+      "peak": 66,
+      "work": 51,
+      "state": 4,
+      "event": 3,
+      "minimum": 23.375,
+      "median": 23.959,
+      "maximum": 31.041999999999998
+    }
+  ]
+}

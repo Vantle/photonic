@@ -188,26 +188,20 @@ fn trace(path: PathBuf, target: PathBuf, execution: Execution) -> miette::Result
         program(&target, execution.format)?,
     )?;
     search.run(execution.step, limit(&execution));
-    let report = search.report();
     let mut output = std::io::stdout().lock();
     if execution.json {
-        serde_json::to_writer_pretty(&mut output, &report).into_diagnostic()?;
+        serde_json::to_writer_pretty(&mut output, &search.report()).into_diagnostic()?;
         return writeln!(output).into_diagnostic();
     }
+    let report = search.summary();
     writeln!(output, "{:?}: one direct execution path", report.outcome).into_diagnostic()?;
-    if let Some(witness) = report.witness {
-        writeln!(
-            output,
-            "Witness s{witness}: {}",
-            display(&report.state[witness])
-        )
-        .into_diagnostic()?;
+    if let Some(witness) = &report.witness {
+        writeln!(output, "Witness s{}: {}", witness.id, display(witness)).into_diagnostic()?;
     }
     writeln!(
         output,
         "{} events; {} work steps; alternative paths not exhausted",
-        report.event.len(),
-        report.work
+        report.event, report.work
     )
     .into_diagnostic()
 }

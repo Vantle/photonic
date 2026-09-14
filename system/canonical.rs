@@ -73,35 +73,30 @@ impl Search {
             self.complete = true;
             return true;
         };
+        let mut occupied = vec![Vec::new(); self.state.frame.len()];
+        let mut capture = vec![Vec::new(); self.state.frame.len()];
+        for (position, &source) in world.iter().enumerate() {
+            let value = &self.state.world[source];
+            occupied[value.frame].push(position);
+            for token in &value.particle {
+                if let Some(frame) = token.capture {
+                    capture[frame].push((position, token.value));
+                }
+            }
+        }
+        for capture in &mut capture {
+            capture.sort_unstable();
+        }
         self.frame = Some(Ordering::new(
             self.state
                 .reachable()
                 .into_iter()
                 .filter(|&index| index != 0),
             |index| {
-                let occupied = world
-                    .iter()
-                    .enumerate()
-                    .filter_map(|(position, &source)| {
-                        (self.state.world[source].frame == index).then_some(position)
-                    })
-                    .collect::<Vec<_>>();
-                let mut capture = world
-                    .iter()
-                    .enumerate()
-                    .flat_map(|(position, &source)| {
-                        self.state.world[source]
-                            .particle
-                            .iter()
-                            .filter(move |token| token.capture == Some(index))
-                            .map(move |token| (position, token.value))
-                    })
-                    .collect::<Vec<_>>();
-                capture.sort();
                 (
                     self.state.chain(index),
-                    occupied,
-                    capture,
+                    &occupied[index],
+                    &capture[index],
                     self.refinement.frame[index],
                 )
             },

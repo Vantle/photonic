@@ -153,11 +153,34 @@ try {
     assert.match(await evaluate("return document.getElementById('expression-rule').textContent"), /Evaluate.Pending.Subtract/);
     await evaluate("document.getElementById('expression-back').click()");
     assert.equal(await evaluate("return document.getElementById('expression-result').textContent"), '2221₃ = 79₁₀');
+    assert.equal(await evaluate("return document.getElementById('expression-select').options.length"), 4);
+    for (const [selection, expected, count] of [[1, '21₃ = 7₁₀', 2], [2, '101₃ = 10₁₀', 3], [3, '10₃ = 3₁₀', 2]]) {
+        await evaluate(`const select = document.getElementById('expression-select'); select.value = ${selection}; select.dispatchEvent(new Event('change'));`);
+        assert.equal(await evaluate("return document.getElementById('expression-result').textContent"), expected);
+        assert.equal(await evaluate("return document.querySelectorAll('#expression-trit .trit-card').length"), count);
+        assert.equal(await evaluate("return document.getElementById('expression-back').disabled"), true);
+        assert.equal(await evaluate("return document.getElementById('expression-source-panel').hidden"), false);
+        assert.ok(await evaluate("return document.getElementById('expression-source').textContent.includes('[Built,Stage.')"));
+        assert.equal(await evaluate("return document.getElementById('expression-source').textContent.includes('Result.')"), false);
+    }
+    assert.match(await evaluate("return document.getElementById('expression-note').textContent"), /truncates toward zero/);
+    assert.deepEqual(await evaluate("return [...document.querySelectorAll('#expression-tape .token')].map(value => value.textContent)"), ['2', '1', 'Divide', '2', 'Subtract', '1']);
+    await evaluate("document.getElementById('expression-next').click()");
+    assert.equal(await evaluate("return document.getElementById('expression-result').textContent"), '2₃ = 2₁₀');
+    assert.equal(await evaluate("return document.getElementById('expression-next').disabled"), true);
+    await evaluate("const select = document.getElementById('expression-select'); select.value = 0; select.dispatchEvent(new Event('change'));");
+    assert.equal(await evaluate("return document.getElementById('expression-source-panel').hidden"), true);
+    assert.equal(await evaluate("return document.getElementById('expression-result').textContent"), '12120₃ = 150₁₀');
     await evaluate("document.getElementById('expression-lab').scrollIntoView({block: 'start', behavior: 'instant'})");
     if (process.env.TEST_UNDECLARED_OUTPUTS_DIR) {
         const screenshot = await command(`/session/${session}/screenshot`);
         await writeFile(resolve(process.env.TEST_UNDECLARED_OUTPUTS_DIR, 'expression.png'), Buffer.from(screenshot, 'base64'));
     }
+    await command(`/session/${session}/window/rect`, { width: 390, height: 844 });
+    assert.ok(await evaluate("return document.documentElement.scrollWidth <= window.innerWidth + 1"));
+    await evaluate("const select = document.getElementById('expression-select'); select.value = 3; select.dispatchEvent(new Event('change')); document.getElementById('expression-lab').scrollIntoView({block: 'start', behavior: 'instant'});");
+    assert.equal(await evaluate("return document.getElementById('expression-result').textContent"), '10₃ = 3₁₀');
+    await command(`/session/${session}/window/rect`, { width: 1440, height: 1000 });
     await navigate('/document/reference.html', "return document.getElementById('state')?.children.length > 0");
     assert.ok(await evaluate("return document.getElementById('example').options.length > 0"), JSON.stringify(await command(`/session/${session}/log`, { type: 'browser' })));
     await evaluate("document.getElementById('explore').click()");

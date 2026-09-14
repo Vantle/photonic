@@ -1383,3 +1383,8 @@ footer {
 .product-table table { width: 100%; border-collapse: collapse; }
 .product-table th, .product-table td { padding: .65rem; text-align: left; border-bottom: 1px solid currentColor; }
 .product-formula { line-height: 1.6; }
+
+.trit-grid { display: flex; flex-wrap: wrap; gap: .7rem; margin: 1rem 0; }
+.trit-card { display: grid; gap: .5rem; padding: .8rem 1rem; border: 1px solid currentColor; border-radius: .65rem; text-align: center; }
+.trit-card strong { font-size: 1.8rem; }
+.trit-card span { font: .8rem var(--mono, monospace); }

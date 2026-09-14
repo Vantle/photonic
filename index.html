@@ -14,6 +14,7 @@
 <script defer src="document/graph.js"></script>
 <script defer src="document/product.js"></script>
 <script defer src="document/expression.record.js"></script>
+<script defer src="document/demo.record.js"></script>
 <script defer src="document/expression.js"></script>
 </head>
 <body>
@@ -277,22 +278,28 @@ Pair.Other
 <p>The native library parses precedence and parentheses, evaluates signed integer arithmetic, and feeds each result into the next operation. Numerals, the operator stack, and the value stack use linked cells whose identities come from captured scopes. The same finite library handles every finite digit width and nesting depth; execution still needs sufficient memory and work budgets.</p>
 <p>Multiplication and division bind before addition and subtraction. Binary operators associate left to right; unary minus binds first. Division truncates toward zero. The lower arithmetic layer also returns the remainder. Division by zero and malformed expressions return structured errors.</p>
 <p>Addition and subtraction share a column engine that starts left and right reads independently. Finished magnitude copies also return independently. Reads carry their continuations directly, and signed subtraction recovers negative magnitudes without copying both operands. Complete subexpressions still execute sequentially in the recorded path. <a href="document/expression.md#optimization-and-concurrency">Optimization measurements and concurrency boundaries</a> describe the tested improvements.</p>
+<p>The smaller demos evaluate <code>12₃ + 2₃ = 21₃</code>, <code>12₃ × 2₃ = 101₃</code>, and <code>21₃ ÷ 2₃ − 1₃ = 2₃</code>. Their <a href="document/demo.md">self-contained input files</a> use local control names.</p>
 <div class="lab" id="expression-lab">
-<div class="lab-heading"><span class="tag verified">RECORDED NATIVE EXPRESSION</span><h3>50 × 3 ÷ 2 + 4 − 1</h3></div>
-<p class="equation">1212₃ × 10₃ ÷ 2₃ + 11₃ − 1₃ = 2220₃ = 78₁₀</p>
-<p>Follow the multiplication, division, addition, and subtraction in one execution. Each displayed value is decoded from the linked numeral produced by Photonic.</p>
+<div class="lab-heading"><span class="tag verified">RECORDED NATIVE EXPRESSION</span><h3>Explore a native expression</h3></div>
+<label for="expression-select">Recorded demo · all input numerals are base three</label><select id="expression-select"></select>
+<p id="expression-input" class="equation">1212 × 10 ÷ 2 + 11 − 1</p>
+<p class="caption">Input trits are written most significant first. Each tile below is one token from the recorded native input tape.</p><div id="expression-tape" class="token-row"></div>
+<p>Step through completed arithmetic operations. Each displayed value is decoded from the linked numeral produced by Photonic. This is recorded playback; selecting a demo does not run a new computation.</p>
 <div class="answer"><span id="expression-operation"></span><strong id="expression-result" aria-live="polite"></strong></div>
+<div id="expression-trit" class="trit-grid" aria-label="Result trits, most significant first"></div>
+<p class="caption">Each result tile shows a trit and its decimal contribution. Native result cells are read least significant first; this display reverses them for ordinary numeral notation.</p>
 <div class="stepper"><button id="expression-back" type="button">← Previous operation</button><output id="expression-position"></output><button id="expression-next" type="button">Next operation →</button></div>
-<pre id="expression-rule" class="event-rule"></pre>
+<p id="expression-note" class="caption"></p><pre id="expression-rule" class="event-rule"></pre>
 <p id="expression-state" class="caption"></p><p id="expression-count" class="caption"></p>
-<div class="example"><div class="example-bar"><span>Run the complete native expression</span><a href="mathematics/ternary/infix.wave">Input and result check ↗</a></div><pre><code>bazel test -c opt //mathematics/ternary:infix.check --test_output=all</code></pre></div>
-<details><summary>Inspect the full execution</summary><pre><code>bazel run -c opt //mathematics/ternary:infix -- obsidian \
+<div class="example"><div class="example-bar"><span>Run the complete native expression</span><a id="expression-link" href="mathematics/ternary/infix.wave">Input and result check ↗</a></div><pre><code id="expression-command">bazel test -c opt //mathematics/ternary:infix.check --test_output=all</code></pre></div>
+<details id="expression-source-panel"><summary>Read this localized native program</summary><pre id="expression-source"></pre></details>
+<details><summary>Inspect the full original 50 × 3 ÷ 2 + 4 − 1 execution</summary><pre><code>bazel run -c opt //mathematics/ternary:infix -- obsidian \
   --target "$PWD/mathematics/ternary/result.particle" --path \
   --steps 100000000 --states 65536 --cells 16384 \
   --frames 2048 --coherences 1024 --records 100000000 --json</code></pre><p>The fixture reads every result trit before accepting <code>Done.Zero</code>. This verifies the full linked result and its cleanup. Remove its inspection rules to retain <code>Return.Expression.Number.Positive</code> with the numeral head and cells for another native operation.</p></details>
 <p class="caption">This viewer navigates a saved native execution. The browser’s small live sandbox has lower budgets. The recorder runs the existing engine and formats its results; parsing, precedence, and arithmetic all execute in Photonic. A reached target proves this path, not that every possible path has been explored.</p>
 </div>
-<p class="source-link"><a href="document/expression.md">Representation, API, algorithms, and limits</a> · <a href="mathematics/ternary/expression.particle">Expression function</a> · <a href="mathematics/ternary/convert.particle">Native precedence parser</a> · <a href="mathematics/ternary/evaluate.particle">Reusable evaluator</a> · <a href="mathematics/ternary/parenthesis.wave">Parenthesized example</a></p>
+<p class="source-link"><a href="document/demo.md">Localized examples and calling convention</a> · <a href="document/expression.md">Representation, API, algorithms, and limits</a> · <a href="mathematics/ternary/expression.particle">Expression function</a> · <a href="mathematics/ternary/convert.particle">Native precedence parser</a> · <a href="mathematics/ternary/evaluate.particle">Reusable evaluator</a> · <a href="mathematics/ternary/parenthesis.wave">Parenthesized example</a></p>
 </section>
 <section class="chapter" id="library" data-title="Library build Bazel source targets test all any photonic_library photonic_binary photonic_test atomic numeral dependencies">
 <div class="chapter-number">09 / LIBRARY</div><h2>Build and test<br><em>a library.</em></h2>

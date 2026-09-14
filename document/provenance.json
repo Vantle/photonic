@@ -1,0 +1,107 @@
+{
+  "baseline": "organized refinement runtime, document/refinement.md",
+  "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+  "program": "46d27e3b405df4165f4feead4b18313510df234893a130f11f5c6052873ae1ac",
+  "protocol": {
+    "sample": 5,
+    "order": "alternating",
+    "warmup": "one unmeasured evaluation per invocation",
+    "unit": "second",
+    "output": "compact summary",
+    "measurement": "in-process execution; decoding and program clone excluded"
+  },
+  "phase": {
+    "baseline": [
+      {
+        "initialization": 0.001261917,
+        "execution": 1.655339042,
+        "summary": 7.91e-07,
+        "release": 0.00827925,
+        "event": 10017,
+        "work": 215876
+      },
+      {
+        "initialization": 0.001336958,
+        "execution": 1.662935667,
+        "summary": 9.58e-07,
+        "release": 0.008072958,
+        "event": 10017,
+        "work": 215876
+      },
+      {
+        "initialization": 0.001336959,
+        "execution": 1.669245583,
+        "summary": 9.17e-07,
+        "release": 0.007676333,
+        "event": 10017,
+        "work": 215876
+      },
+      {
+        "initialization": 0.001347,
+        "execution": 1.656066625,
+        "summary": 9.59e-07,
+        "release": 0.007741416,
+        "event": 10017,
+        "work": 215876
+      },
+      {
+        "initialization": 0.001610584,
+        "execution": 1.693583167,
+        "summary": 8.33e-07,
+        "release": 0.008680125,
+        "event": 10017,
+        "work": 215876
+      }
+    ],
+    "current": [
+      {
+        "initialization": 0.001344042,
+        "execution": 1.169073709,
+        "summary": 9.59e-07,
+        "release": 0.007988959,
+        "event": 10017,
+        "work": 215876
+      },
+      {
+        "initialization": 0.001334791,
+        "execution": 1.167727333,
+        "summary": 1e-06,
+        "release": 0.008214916,
+        "event": 10017,
+        "work": 215876
+      },
+      {
+        "initialization": 0.00136525,
+        "execution": 1.170694791,
+        "summary": 1.167e-06,
+        "release": 0.007974667,
+        "event": 10017,
+        "work": 215876
+      },
+      {
+        "initialization": 0.001348708,
+        "execution": 1.171231292,
+        "summary": 7.5e-07,
+        "release": 0.007820125,
+        "event": 10017,
+        "work": 215876
+      },
+      {
+        "initialization": 0.001328625,
+        "execution": 1.173569625,
+        "summary": 7.09e-07,
+        "release": 0.007843167,
+        "event": 10017,
+        "work": 215876
+      }
+    ]
+  },
+  "executable": {
+    "baseline": "759551cc6d7a01f87f4b9166df3a708db2fb5953342b9683ce161b1147dcc4f9",
+    "current": "3d8528ee609f114bf9bd446d33ffa6a573983b3c5628498528eb552e84a0d9ef"
+  },
+  "median": {
+    "baseline": 1.662935667,
+    "current": 1.170694791
+  }
+}

@@ -34,7 +34,7 @@ The initial configuration encodes two plus three. The target is the numeral five
 | `unreachable` | Exploration has completely closed and the exact target has no supported occurrence in the graph. |
 | `unknown` | Exploration is unfinished without a supported witness. |
 
-The command currently explores the requested budget before reporting; it does not yet stop immediately at the first witness. All three outcomes are successful query execution and use exit status zero. Syntax, target-shape, and I/O failures are command errors. Automation should inspect `outcome` in the JSON report.
+Ordinary graph exploration runs up to the requested budget or closure before reporting. With `--path`, direct execution stops when the current configuration equals the target, when it revisits a configuration, or when a budget prevents further progress. The direct-path mode reports `reached` or `unknown`; it does not establish unreachability of alternative paths. All three outcomes are successful query execution and use exit status zero. Syntax, target-shape, and I/O failures are command errors. Automation should inspect `outcome` in the JSON report.
 
 `--steps`, `--states`, `--records`, `--coherences`, `--cells`, `--frames`, and `--workers` retain their existing meanings. A limit is not a refutation. Library callers can resume an `obsidian::Search` with `run` or `parallel`, then inspect `report`.
 
