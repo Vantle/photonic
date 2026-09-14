@@ -1,0 +1,73 @@
+load("//photonic:defs.bzl", "photonic_binary", "photonic_test")
+
+filegroup(
+    name = "fixture",
+    srcs = [
+        "conjunction.wave",
+    ],
+    visibility = [
+        "//language:__pkg__",
+    ],
+)
+
+filegroup(
+    name = "build",
+    srcs = [
+        "BUILD.bazel",
+    ],
+    visibility = ["//:__pkg__"],
+)
+
+photonic_binary(
+    name = "capture",
+    srcs = ["capture.wave"],
+)
+
+photonic_binary(
+    name = "coherence",
+    srcs = ["coherence.wave"],
+)
+
+photonic_binary(
+    name = "conjunction",
+    srcs = ["conjunction.wave"],
+)
+
+photonic_binary(
+    name = "decoherence",
+    srcs = ["decoherence.wave"],
+)
+
+photonic_binary(
+    name = "dynamic",
+    srcs = ["dynamic.wave"],
+)
+
+photonic_binary(
+    name = "replacement",
+    srcs = ["replacement.wave"],
+)
+
+photonic_test(
+    name = "conjunction.check",
+    srcs = ["conjunction.wave"],
+    source = "",
+    targets = ["False.Extra"],
+)
+
+photonic_binary(
+    name = "inference",
+    srcs = ["inference.wave"],
+)
+
+photonic_test(
+    name = "inference.check",
+    srcs = ["inference.wave"],
+    source = "",
+    targets = [
+        "A",
+        "B.C",
+        "D",
+        "C.D",
+    ],
+)

@@ -1,0 +1,74 @@
+load("//photonic:defs.bzl", "photonic_binary", "photonic_test")
+
+filegroup(
+    name = "fixture",
+    srcs = [
+        "add.particle",
+        "add.wave",
+        "divide.particle",
+        "divide.wave",
+        "multiply.particle",
+        "multiply.wave",
+        "subtract.particle",
+        "subtract.wave",
+    ],
+    visibility = ["//arithmetic:__pkg__"],
+)
+
+photonic_binary(
+    name = "add",
+    srcs = ["add.wave"],
+)
+
+photonic_test(
+    name = "add.check",
+    srcs = ["add.wave"],
+    path = True,
+    source = "",
+    targets = ["([Digit.0] 0).([Digit.1] 1).([Digit.2] 0).([Digit.3] 0).([Digit.4] 2).([Digit.5] 0).([Digit.6] 2).([Digit.7] 0)"],
+)
+
+photonic_binary(
+    name = "subtract",
+    srcs = ["subtract.wave"],
+)
+
+photonic_test(
+    name = "subtract.check",
+    srcs = ["subtract.wave"],
+    path = True,
+    source = "",
+    targets = ["([Digit.0] 0).([Digit.1] 0).([Digit.2] 0).([Digit.3] 0).([Digit.4] 2).([Digit.5] 2).([Digit.6] 1).([Negative] 0)"],
+)
+
+photonic_binary(
+    name = "multiply",
+    srcs = ["multiply.wave"],
+)
+
+photonic_test(
+    name = "multiply.check",
+    srcs = ["multiply.wave"],
+    path = True,
+    source = "",
+    targets = ["([Digit.0] 0).([Digit.1] 0).([Digit.2] 1).([Digit.3] 2).([Digit.4] 0).([Digit.5] 0).([Digit.6] 1).([Digit.7] 0).([Digit.8] 1).([Digit.9] 0).([Digit.10] 0).([Digit.11] 1).([Digit.12] 0).([Digit.13] 0)"],
+)
+
+photonic_binary(
+    name = "divide",
+    srcs = ["divide.wave"],
+)
+
+photonic_test(
+    name = "divide.check",
+    srcs = ["divide.wave"],
+    path = True,
+    source = "",
+    targets = ["([Quotient.0] 0).([Quotient.1] 1).([Quotient.2] 1).([Quotient.3] 0).([Quotient.4] 0).([Quotient.5] 0).([Quotient.6] 0).([Remainder.0] 0).([Remainder.1] 2).([Remainder.2] 2).([Remainder.3] 0).([Remainder.4] 0).([Remainder.5] 0).([Remainder.6] 0).([Undefined] 0)"],
+)
+
+filegroup(
+    name = "build",
+    srcs = ["BUILD.bazel"],
+    visibility = ["//:__pkg__"],
+)

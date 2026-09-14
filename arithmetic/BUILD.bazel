@@ -1,0 +1,113 @@
+load("@rules_rs//rs:rust_binary.bzl", "rust_binary")
+load("@rules_rs//rs:rust_library.bzl", "rust_library")
+load("@rules_rs//rs:rust_test.bzl", "rust_test")
+
+rust_library(
+    name = "library",
+    srcs = [":source"],
+    crate_name = "arithmetic",
+    crate_root = "library.rs",
+    visibility = ["//program/binary:__pkg__"],
+    deps = ["@crate//:thiserror"],
+)
+
+rust_binary(
+    name = "word",
+    srcs = [
+        "argument.rs",
+        "word.rs",
+    ],
+    crate_root = "word.rs",
+    deps = [
+        ":library",
+        "//language:photonic",
+        "@crate//:clap",
+        "@crate//:thiserror",
+    ],
+)
+
+rust_test(
+    name = "test",
+    size = "medium",
+    srcs = [
+        "argument.rs",
+        ":conformance",
+    ],
+    compile_data = [
+        "//program/ternary:fixture",
+        "//program/circuit:fixture",
+        "//library:source",
+    ],
+    crate_root = "test/suite.rs",
+    data = [":word"],
+    env = {"PHOTONIC_WORD": "$(rlocationpath :word)"},
+    deps = [
+        ":library",
+        "//language:photonic",
+        "@crate//:clap",
+        "@crate//:thiserror",
+        "@rules_rust//rust/runfiles",
+    ],
+)
+
+rust_binary(
+    name = "benchmark",
+    srcs = ["benchmark.rs"],
+    crate_root = "benchmark.rs",
+    deps = [
+        ":library",
+        "//language:photonic",
+    ],
+)
+
+filegroup(
+    name = "source",
+    srcs = [
+        "address.rs",
+        "encoding.rs",
+        "failure.rs",
+        "format.rs",
+        "gate.rs",
+        "library.rs",
+        "numeral.rs",
+        "power.rs",
+        ":circuit",
+    ],
+)
+
+filegroup(
+    name = "build",
+    srcs = [
+        "BUILD.bazel",
+    ],
+    visibility = ["//:__pkg__"],
+)
+
+rust_test(
+    name = "gate",
+    size = "small",
+    srcs = [
+        "gate.rs",
+        "gate/test.rs",
+    ],
+    crate_root = "gate.rs",
+)
+
+filegroup(
+    name = "circuit",
+    srcs = [
+        "circuit.rs",
+        "circuit/emit.rs",
+        "circuit/reduce.rs",
+    ],
+)
+
+filegroup(
+    name = "conformance",
+    srcs = [
+        "test/boundary.rs",
+        "test/stream.rs",
+        "test/suite.rs",
+        "test/ternary.rs",
+    ],
+)

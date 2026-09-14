@@ -6,7 +6,7 @@
     "prism",
     "/tmp/photonic-runtime/program.json",
     "--target",
-    "/Users/robertvanderzee/vantle/photonic/mathematics/ternary/result.particle",
+    "/Users/robertvanderzee/vantle/photonic/program/ternary/result.particle",
     "--path",
     "--steps",
     "100000000",

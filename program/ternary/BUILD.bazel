@@ -1,0 +1,696 @@
+load("@bazel_skylib//rules:native_binary.bzl", "native_binary", "native_test")
+load("//photonic:defs.bzl", "photonic_binary", "photonic_library", "photonic_test")
+
+photonic_library(
+    name = "successor",
+    srcs = ["successor.particle"],
+    deps = [":chain"],
+)
+
+photonic_test(
+    name = "carry.check",
+    srcs = ["carry.wave"],
+    cells = 8192,
+    coherences = 512,
+    frames = 1024,
+    path = True,
+    records = 10000000,
+    source = "",
+    steps = 10000000,
+    targets = ["Done.Zero"],
+    deps = [":successor"],
+)
+
+photonic_library(
+    name = "chain",
+    srcs = ["chain.particle"],
+)
+
+photonic_library(
+    name = "reverse",
+    srcs = ["reverse.particle"],
+    deps = [":chain"],
+)
+
+photonic_binary(
+    name = "reversal",
+    srcs = ["reversal.wave"],
+    deps = [":reverse"],
+)
+
+photonic_test(
+    name = "reversal.check",
+    srcs = ["reversal.wave"],
+    cells = 1024,
+    coherences = 128,
+    frames = 128,
+    path = True,
+    source = "",
+    targets = ["Done.Zero"],
+    deps = [":reverse"],
+)
+
+photonic_test(
+    name = "reverse.zero",
+    path = True,
+    source = "Function.Reverse.Zero",
+    targets = ["Return.Reverse.Zero"],
+    deps = [":reverse"],
+)
+
+photonic_binary(
+    name = "wide",
+    srcs = ["wide.wave"],
+    deps = [":reverse"],
+)
+
+photonic_test(
+    name = "wide.check",
+    size = "medium",
+    srcs = ["wide.wave"],
+    cells = 4096,
+    coherences = 256,
+    frames = 512,
+    path = True,
+    records = 5000000,
+    source = "",
+    states = 8192,
+    steps = 5000000,
+    targets = ["Done.Zero"],
+    deps = [":reverse"],
+)
+
+filegroup(
+    name = "fixture",
+    srcs = [
+        "carry.particle",
+        "done.particle",
+        "numeral.particle",
+        "stream.wave",
+        "word.particle",
+    ],
+    visibility = ["//arithmetic:__pkg__"],
+)
+
+filegroup(
+    name = "build",
+    srcs = [
+        "BUILD.bazel",
+    ],
+    visibility = ["//:__pkg__"],
+)
+
+photonic_binary(
+    name = "local",
+    srcs = ["local.wave"],
+    visibility = ["//photonic:__pkg__"],
+    deps = ["//library:ternary"],
+)
+
+photonic_binary(
+    name = "position",
+    srcs = [
+        "position.wave",
+        "word.particle",
+    ],
+    deps = ["//library:position"],
+)
+
+photonic_binary(
+    name = "stream",
+    srcs = ["stream.wave"],
+    deps = ["//library:stream"],
+)
+
+photonic_test(
+    name = "local.check",
+    srcs = ["local.wave"],
+    path = True,
+    source = "",
+    targets = ["First.([Digit] 2).([Carry] 1), Second.([Digit] 0).([Borrow] 1)"],
+    deps = ["//library:ternary"],
+)
+
+photonic_test(
+    name = "position.check",
+    srcs = [
+        "position.wave",
+        "word.particle",
+    ],
+    source = "",
+    targets = ["([Base] 3).([Value] 2).([1] 0).([2] 2).([3] 1)"],
+    deps = ["//library:position"],
+)
+
+photonic_binary(
+    name = "sum",
+    srcs = ["sum.wave"],
+)
+
+photonic_test(
+    name = "sum.check",
+    srcs = ["sum.wave"],
+    source = "",
+    targets = ["3^1.3^4.3^4.3^6.3^6"],
+)
+
+photonic_library(
+    name = "erase",
+    srcs = ["erase.particle"],
+    deps = [":chain"],
+)
+
+photonic_library(
+    name = "add",
+    srcs = ["add.particle"],
+    deps = [":column"],
+)
+
+photonic_library(
+    name = "subtract",
+    srcs = ["subtract.particle"],
+    deps = [
+        ":borrow",
+        ":erase",
+    ],
+)
+
+photonic_test(
+    name = "addition.check",
+    srcs = ["addition.wave"],
+    cells = 4096,
+    coherences = 256,
+    frames = 512,
+    path = True,
+    records = 10000000,
+    source = "",
+    steps = 10000000,
+    targets = ["Done.Zero"],
+    deps = [":add"],
+)
+
+photonic_test(
+    name = "subtraction.check",
+    srcs = ["subtraction.wave"],
+    cells = 4096,
+    coherences = 256,
+    frames = 512,
+    path = True,
+    records = 10000000,
+    source = "",
+    steps = 10000000,
+    targets = ["Done.Zero"],
+    deps = [":subtract"],
+)
+
+photonic_library(
+    name = "trim",
+    srcs = ["trim.particle"],
+    deps = [":reverse"],
+)
+
+photonic_library(
+    name = "normalize",
+    srcs = ["normalize.particle"],
+    deps = [":trim"],
+)
+
+photonic_library(
+    name = "copy",
+    srcs = ["copy.particle"],
+    deps = [":reverse"],
+)
+
+photonic_library(
+    name = "multiply",
+    srcs = ["multiply.particle"],
+    deps = [
+        ":add",
+        ":copy",
+        ":erase",
+        ":normalize",
+    ],
+)
+
+photonic_test(
+    name = "multiplication.check",
+    srcs = ["multiplication.wave"],
+    cells = 8192,
+    coherences = 512,
+    frames = 1024,
+    path = True,
+    records = 20000000,
+    source = "",
+    states = 16384,
+    steps = 20000000,
+    targets = ["Done.Zero"],
+    deps = [":multiply"],
+)
+
+photonic_library(
+    name = "divide",
+    srcs = ["divide.particle"],
+    deps = [
+        ":copy",
+        ":erase",
+        ":normalize",
+        ":subtract",
+    ],
+)
+
+photonic_test(
+    name = "division.check",
+    srcs = ["division.wave"],
+    cells = 8192,
+    coherences = 512,
+    frames = 1024,
+    path = True,
+    records = 50000000,
+    source = "",
+    states = 32768,
+    steps = 50000000,
+    targets = ["Done.Zero, Remainder"],
+    deps = [":divide"],
+)
+
+photonic_library(
+    name = "split",
+    srcs = ["split.particle"],
+    deps = [
+        ":erase",
+        ":reverse",
+    ],
+)
+
+photonic_library(
+    name = "join",
+    srcs = ["join.particle"],
+    deps = [":reverse"],
+)
+
+photonic_library(
+    name = "evaluate",
+    srcs = ["evaluate.particle"],
+    visibility = ["//program/ternary/case:__pkg__"],
+    deps = [
+        ":integer",
+        ":join",
+        ":split",
+    ],
+)
+
+photonic_test(
+    name = "expression.check",
+    srcs = ["expression.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Done.Zero"],
+    deps = [":evaluate"],
+)
+
+photonic_test(
+    name = "composition.check",
+    srcs = ["composition.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Done.Zero"],
+    deps = [":evaluate"],
+)
+
+photonic_binary(
+    name = "expression",
+    srcs = ["expression.wave"],
+    deps = [":evaluate"],
+)
+
+photonic_library(
+    name = "convert",
+    srcs = ["convert.particle"],
+    deps = [
+        ":erase",
+        ":reverse",
+    ],
+)
+
+photonic_library(
+    name = "formula",
+    srcs = ["expression.particle"],
+    visibility = [
+        "//program/ternary/case:__pkg__",
+        "//toolchain/browser:__pkg__",
+    ],
+    deps = [
+        ":convert",
+        ":evaluate",
+    ],
+)
+
+photonic_test(
+    name = "infix.check",
+    srcs = ["infix.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Done.Zero"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "parenthesis.check",
+    srcs = ["parenthesis.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Done.Zero"],
+    deps = [":formula"],
+)
+
+photonic_binary(
+    name = "infix",
+    srcs = ["infix.wave"],
+    deps = [":formula"],
+)
+
+photonic_library(
+    name = "difference",
+    srcs = ["difference.particle"],
+    deps = [
+        ":borrow",
+        ":complement",
+    ],
+)
+
+photonic_library(
+    name = "integer",
+    srcs = ["integer.particle"],
+    deps = [
+        ":add",
+        ":difference",
+        ":divide",
+        ":multiply",
+    ],
+)
+
+native_binary(
+    name = "record",
+    src = "//toolchain:execute",
+    args = [
+        "$(rlocationpath //toolchain:node)",
+        "$(rlocationpath record.mjs)",
+        "$(rlocationpath //command:photonic)",
+        "$(rlocationpath :infix.program)",
+        "$(rlocationpath result.particle)",
+    ],
+    data = [
+        "record.mjs",
+        "result.particle",
+        "trace.mjs",
+        ":infix.program",
+        "//command:photonic",
+        "//toolchain:node",
+    ],
+)
+
+photonic_library(
+    name = "borrow",
+    srcs = ["borrow.particle"],
+    deps = [":column"],
+)
+
+photonic_library(
+    name = "complement",
+    srcs = ["complement.particle"],
+    deps = [
+        ":normalize",
+        ":successor",
+    ],
+)
+
+photonic_library(
+    name = "column",
+    srcs = ["column.particle"],
+    deps = [":trim"],
+)
+
+photonic_test(
+    name = "column.fork",
+    source = "Column.Step",
+    targets = ["Column.Request.([Side] Left), Column.Request.([Side] Right)"],
+    deps = [":column"],
+)
+
+photonic_test(
+    name = "column.read",
+    source = "Read.Zero.Column.Reader.([Side] Left), Read.Zero.Column.Reader.([Side] Right)",
+    targets = ["Column.Left.Zero, Column.Right.Zero, Clean.Column.Value.([First] End), Clean.Column.Value.([Second] End)"],
+    deps = [":column"],
+)
+
+photonic_test(
+    name = "column.association",
+    source = "Yield.([Digit] 1).Zero.Column.Reader.([Side] Left), Yield.([Digit] 2).Zero.Column.Reader.([Side] Right)",
+    targets = ["Column.Left.Zero, Column.Right.Zero, Clean.Column.Value.([First] 1), Clean.Column.Value.([Second] 2)"],
+    deps = [":column"],
+)
+
+photonic_test(
+    name = "column.exchange",
+    expect = "unreachable",
+    source = "Yield.([Digit] 1).Zero.Column.Reader.([Side] Left), Yield.([Digit] 2).Zero.Column.Reader.([Side] Right)",
+    targets = ["Column.Left.Zero, Column.Right.Zero, Clean.Column.Value.([First] 2), Clean.Column.Value.([Second] 1)"],
+    deps = [":column"],
+)
+
+native_test(
+    name = "performance",
+    size = "medium",
+    src = "//toolchain:execute",
+    args = [
+        "$(rlocationpath //toolchain:node)",
+        "$(rlocationpath record.mjs)",
+        "$(rlocationpath //command:photonic)",
+        "$(rlocationpath :infix.program)",
+        "$(rlocationpath result.particle)",
+        "$(rlocationpath //document:expression)",
+    ],
+    data = [
+        "record.mjs",
+        "result.particle",
+        "trace.mjs",
+        ":infix.program",
+        "//command:photonic",
+        "//document:expression",
+        "//toolchain:node",
+    ],
+)
+
+photonic_test(
+    name = "column.completion",
+    expect = "unreachable",
+    source = "Return.Column.Positive.Zero, Evaluate.Pending.Add",
+    targets = ["Return.Add.Zero.Evaluate"],
+    deps = [":add"],
+)
+
+photonic_test(
+    name = "column.begin",
+    source = "Function.Column, Operand.Left.Zero, Operand.Right.Zero",
+    targets = ["Column.Left.Zero, Column.Right.Zero, Clean.Column.Value.([First] End), Clean.Column.Value.([Second] End), Column.Output.Zero, Column.Carry.0"],
+    deps = [":column"],
+)
+
+photonic_test(
+    name = "copy.left",
+    source = "Yield.End.Copy.Wait.Zero, Copy.Left.Zero",
+    targets = ["Return.Copy.Left.Zero, Copy.End.([Side] Right)"],
+    deps = [":copy"],
+)
+
+photonic_test(
+    name = "copy.right",
+    source = "Yield.End.Copy.Wait.Zero, Copy.Right.Zero",
+    targets = ["Copy.End.([Side] Left), Return.Copy.Right.Zero"],
+    deps = [":copy"],
+)
+
+photonic_binary(
+    name = "demo",
+    srcs = ["demo.wave"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "demo.check",
+    srcs = ["demo.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Addition.([Trit] 21), Multiplication.([Trit] 101), Division.([Trit] 2)"],
+    deps = [":formula"],
+)
+
+photonic_binary(
+    name = "demo.addition",
+    srcs = ["demo/addition.wave"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "demo.addition.check",
+    srcs = ["demo/addition.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Number.([Trit] 21)"],
+    deps = [":formula"],
+)
+
+photonic_binary(
+    name = "demo.multiplication",
+    srcs = ["demo/multiplication.wave"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "demo.multiplication.check",
+    srcs = ["demo/multiplication.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Number.([Trit] 101)"],
+    deps = [":formula"],
+)
+
+photonic_binary(
+    name = "demo.division",
+    srcs = ["demo/division.wave"],
+    deps = [":formula"],
+)
+
+photonic_test(
+    name = "demo.division.check",
+    srcs = ["demo/division.wave"],
+    cells = 16384,
+    coherences = 1024,
+    frames = 2048,
+    path = True,
+    records = 100000000,
+    source = "",
+    states = 65536,
+    steps = 100000000,
+    targets = ["Number.([Trit] 2)"],
+    deps = [":formula"],
+)
+
+native_binary(
+    name = "demo.record",
+    src = "//toolchain:execute",
+    args = [
+        "$(rlocationpath //toolchain:node)",
+        "$(rlocationpath demo.mjs)",
+        "$(rlocationpath //command:photonic)",
+        "$(rlocationpath :demo.addition.program)",
+        "$(rlocationpath demo/addition.particle)",
+        "$(rlocationpath demo/addition.wave)",
+        "$(rlocationpath :demo.multiplication.program)",
+        "$(rlocationpath demo/multiplication.particle)",
+        "$(rlocationpath demo/multiplication.wave)",
+        "$(rlocationpath :demo.division.program)",
+        "$(rlocationpath demo/division.particle)",
+        "$(rlocationpath demo/division.wave)",
+    ],
+    data = [
+        "demo.mjs",
+        "demo/addition.particle",
+        "demo/addition.wave",
+        "demo/division.particle",
+        "demo/division.wave",
+        "demo/multiplication.particle",
+        "demo/multiplication.wave",
+        "trace.mjs",
+        ":demo.addition.program",
+        ":demo.division.program",
+        ":demo.multiplication.program",
+        "//command:photonic",
+        "//toolchain:node",
+    ],
+)
+
+native_test(
+    name = "demo.record.check",
+    src = "//toolchain:execute",
+    args = [
+        "$(rlocationpath //toolchain:node)",
+        "$(rlocationpath demo.mjs)",
+        "$(rlocationpath //command:photonic)",
+        "$(rlocationpath :demo.addition.program)",
+        "$(rlocationpath demo/addition.particle)",
+        "$(rlocationpath demo/addition.wave)",
+        "$(rlocationpath :demo.multiplication.program)",
+        "$(rlocationpath demo/multiplication.particle)",
+        "$(rlocationpath demo/multiplication.wave)",
+        "$(rlocationpath :demo.division.program)",
+        "$(rlocationpath demo/division.particle)",
+        "$(rlocationpath demo/division.wave)",
+        "$(rlocationpath //document:demo)",
+    ],
+    data = [
+        "demo.mjs",
+        "demo/addition.particle",
+        "demo/addition.wave",
+        "demo/division.particle",
+        "demo/division.wave",
+        "demo/multiplication.particle",
+        "demo/multiplication.wave",
+        "trace.mjs",
+        ":demo.addition.program",
+        ":demo.division.program",
+        ":demo.multiplication.program",
+        "//command:photonic",
+        "//document:demo",
+        "//toolchain:node",
+    ],
+)
+
+photonic_binary(
+    name = "repeated",
+    srcs = ["//program/ternary/case:repeated.wave"],
+    deps = [":formula"],
+)

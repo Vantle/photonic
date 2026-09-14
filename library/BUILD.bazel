@@ -6,10 +6,10 @@ rust_test(
     srcs = ["test/suite.rs"],
     compile_data = [
         ":source",
-        "//example/library:fixture",
+        "//program/composition:fixture",
     ],
     crate_root = "test/suite.rs",
-    deps = ["//system:photonic"],
+    deps = ["//language:photonic"],
 )
 
 filegroup(
@@ -29,8 +29,8 @@ filegroup(
         "ternary.particle",
     ],
     visibility = [
-        "//mathematics/arithmetic:__pkg__",
-        "//system:__pkg__",
+        "//arithmetic:__pkg__",
+        "//language:__pkg__",
     ],
 )
 
@@ -48,42 +48,42 @@ photonic_library(
 photonic_library(
     name = "boolean",
     srcs = ["boolean.particle"],
-    visibility = ["//example/library:__pkg__"],
+    visibility = ["//program/composition:__pkg__"],
     deps = [":application"],
 )
 
 photonic_library(
     name = "production",
     srcs = ["production.particle"],
-    visibility = ["//example/library:__pkg__"],
+    visibility = ["//program/composition:__pkg__"],
     deps = [":application"],
 )
 
 photonic_library(
     name = "collection",
     srcs = ["collection.particle"],
-    visibility = ["//example/library:__pkg__"],
+    visibility = ["//program/composition:__pkg__"],
     deps = [":application"],
 )
 
 photonic_library(
     name = "ternary",
     srcs = ["ternary.particle"],
-    visibility = ["//mathematics:__subpackages__"],
+    visibility = ["//program/ternary:__pkg__"],
     deps = [":carry"],
 )
 
 photonic_library(
     name = "position",
     srcs = ["position.particle"],
-    visibility = ["//mathematics:__subpackages__"],
+    visibility = ["//program/ternary:__pkg__"],
     deps = [":application"],
 )
 
 photonic_library(
     name = "stream",
     srcs = ["stream.particle"],
-    visibility = ["//mathematics:__subpackages__"],
+    visibility = ["//program/ternary:__pkg__"],
 )
 
 photonic_library(
@@ -95,7 +95,7 @@ photonic_library(
 photonic_library(
     name = "composition",
     srcs = ["composition.particle"],
-    visibility = ["//example/library:__pkg__"],
+    visibility = ["//program/composition:__pkg__"],
     deps = [":application"],
 )
 
@@ -150,7 +150,7 @@ photonic_test(
 photonic_library(
     name = "binary",
     srcs = ["binary.particle"],
-    visibility = ["//mathematics/binary:__pkg__"],
+    visibility = ["//program/binary:__pkg__"],
     deps = [":application"],
 )
 
@@ -164,5 +164,5 @@ photonic_test(
 filegroup(
     name = "digit",
     srcs = ["ternary.particle"],
-    visibility = ["//browser:__pkg__"],
+    visibility = ["//toolchain/browser:__pkg__"],
 )

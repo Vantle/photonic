@@ -1,0 +1,31 @@
+load("//photonic:defs.bzl", "photonic_binary", "photonic_test")
+
+filegroup(
+    name = "fixture",
+    srcs = [
+        "addition.wave",
+        "result.particle",
+    ],
+    visibility = ["//language:__pkg__"],
+)
+
+filegroup(
+    name = "build",
+    srcs = [
+        "BUILD.bazel",
+    ],
+    visibility = ["//:__pkg__"],
+)
+
+photonic_binary(
+    name = "addition",
+    srcs = ["addition.wave"],
+)
+
+photonic_test(
+    name = "addition.check",
+    srcs = ["addition.wave"],
+    source = "",
+    targets = ["""Coefficient.Unit.Unit.Unit.Unit.Unit.Unit.Unit.Unit.Unit.Unit,
+Scale.Place"""],
+)

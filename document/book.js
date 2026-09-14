@@ -258,7 +258,7 @@
         find('operation-remainder').textContent = fixture.remainder === null ? '' : `remainder ${fixture.remainder}`;
         find('operation-event').textContent = fixture.events;
         find('operation-work').textContent = fixture.work.toLocaleString();
-        find('operation-command').textContent = `bazel run -c opt //mathematics/arithmetic:word -- \\\n  --operation ${fixture.operation} --left 1500 --right 123 \\\n  --expected ${fixture.result}${fixture.remainder === null ? '' : ` --remainder ${fixture.remainder}`}`;
+        find('operation-command').textContent = `bazel run -c opt //arithmetic:word -- \\\n  --operation ${fixture.operation} --left 1500 --right 123 \\\n  --expected ${fixture.result}${fixture.remainder === null ? '' : ` --remainder ${fixture.remainder}`}`;
         const event = fixture.event[eventIndex];
         find('operation-position').textContent = `Event ${eventIndex + 1} / ${fixture.events}`;
         find('operation-rule').textContent = `Configuration ${event.source} → ${event.target}\n${event.rule}`;

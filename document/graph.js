@@ -97,7 +97,7 @@
     find('evaluation-run').addEventListener('click', () => {
         finish();
         if (location.protocol === 'file:') {
-            find('evaluation-status').textContent = 'For live Rust execution, run bazel run -c opt //browser:serve and open http://127.0.0.1:8080. The recorded graph works offline.';
+            find('evaluation-status').textContent = 'For live Rust execution, run bazel run -c opt //toolchain/browser:serve and open http://127.0.0.1:8080. The recorded graph works offline.';
             return;
         }
         let targets;
@@ -116,7 +116,7 @@
         find('evaluation-verdict').replaceChildren();
         find('evaluation-status').textContent = 'The Rust runtime is exploring this program…';
         timer = setTimeout(() => { finish(); find('evaluation-status').textContent = 'Stopped after five seconds. No verdict was established; the previous graph remains visible.'; }, 5000);
-        current.onerror = () => { finish(); find('evaluation-status').textContent = 'The worker could not run. Start the live book with bazel run -c opt //browser:serve.'; };
+        current.onerror = () => { finish(); find('evaluation-status').textContent = 'The worker could not run. Start the live book with bazel run -c opt //toolchain/browser:serve.'; };
         current.onmessage = ({ data }) => {
             if (worker !== current) return;
             finish();

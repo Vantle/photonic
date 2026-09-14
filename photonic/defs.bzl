@@ -77,7 +77,7 @@ _program = rule(
         "srcs": attr.label_list(allow_files = [".particle", ".wave"], mandatory = True),
         "deps": attr.label_list(providers = [Info]),
         "_assemble": attr.label(default = "//photonic:assemble", executable = True, cfg = "exec"),
-        "_command": attr.label(default = "//system:command", executable = True, cfg = "target"),
+        "_command": attr.label(default = "//command:photonic", executable = True, cfg = "target"),
     },
 )
 
@@ -101,7 +101,7 @@ def photonic_binary(name, srcs, deps = [], visibility = None, testonly = False, 
         crate_root = ":" + name + ".source",
         crate_name = "program",
         deps = ["//photonic:launch"],
-        data = [":" + name + ".program", "//system:command"],
+        data = [":" + name + ".program", "//command:photonic"],
         visibility = visibility,
         testonly = testonly,
         tags = tags,

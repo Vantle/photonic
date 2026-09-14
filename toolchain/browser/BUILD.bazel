@@ -1,0 +1,136 @@
+load("@bazel_skylib//rules:native_binary.bzl", "native_test")
+load("@rules_rs//rs:rust_binary.bzl", "rust_binary")
+load("@rules_rs//rs:rust_shared_library.bzl", "rust_shared_library")
+load("@rules_rust_wasm_bindgen//:defs.bzl", "rust_wasm_bindgen")
+load(":defs.bzl", "asset")
+
+rust_shared_library(
+    name = "engine",
+    srcs = [
+        "engine.rs",
+        "expression.rs",
+        "failure.rs",
+        "product.rs",
+        "session.rs",
+    ],
+    compile_data = [
+        "//program/ternary:formula",
+        "//library:digit",
+    ],
+    crate_root = "engine.rs",
+    rustc_env = {
+        "FORMULA": "$(execpath //program/ternary:formula)",
+        "DIGIT": "$(execpath //library:digit)",
+    },
+    target_compatible_with = ["@platforms//cpu:wasm32"],
+    deps = [
+        "//language:photonic",
+        "@crate//:serde",
+        "@crate//:serde_json",
+        "@rules_rs//rs/private/wasm_bindgen",
+    ],
+)
+
+rust_wasm_bindgen(
+    name = "module",
+    out_name = "runtime",
+    target = "web",
+    wasm_file = ":engine",
+)
+
+asset(
+    name = "asset",
+    source = ":module",
+)
+
+filegroup(
+    name = "javascript",
+    srcs = [":asset"],
+    output_group = "javascript",
+)
+
+filegroup(
+    name = "webassembly",
+    srcs = [":asset"],
+    output_group = "webassembly",
+)
+
+filegroup(
+    name = "build",
+    srcs = [
+        "BUILD.bazel",
+        "defs.bzl",
+    ],
+    visibility = ["//:__pkg__"],
+)
+
+rust_binary(
+    name = "serve",
+    srcs = ["serve.rs"],
+    crate_root = "serve.rs",
+    data = [
+        ":javascript",
+        ":webassembly",
+    ],
+    env = {
+        "JAVASCRIPT": "$(rlocationpath :javascript)",
+        "WEBASSEMBLY": "$(rlocationpath :webassembly)",
+    },
+    deps = ["@rules_rust//rust/runfiles"],
+)
+
+native_test(
+    name = "test",
+    size = "small",
+    src = "//toolchain:execute",
+    args = [
+        "$(rlocationpath //toolchain:node)",
+        "$(rlocationpath test.mjs)",
+        "$(rlocationpath :webassembly)",
+        "$(rlocationpath :javascript)",
+        "$(rlocationpath //command:photonic)",
+        "$(rlocationpath //document:numeral)",
+    ],
+    data = [
+        "test.mjs",
+        ":javascript",
+        ":webassembly",
+        "//command:photonic",
+        "//document:numeral",
+        "//toolchain:node",
+    ],
+)
+
+native_test(
+    name = "check",
+    size = "small",
+    src = "//toolchain:execute",
+    args = [
+        "$(rlocationpath //toolchain:node)",
+        "$(rlocationpath check.mjs)",
+        "$(rlocationpath @rules_browsers_chrome_mac_arm//:chrome-headless-shell-mac-arm64/chrome-headless-shell)",
+        "$(rlocationpath @rules_browsers_chromedriver_mac_arm//:chromedriver-mac-arm64/chromedriver)",
+        "$(rlocationpath :webassembly)",
+        "$(rlocationpath :javascript)",
+    ],
+    data = [
+        "check.mjs",
+        ":javascript",
+        ":webassembly",
+        "//:page",
+        "//document:source",
+        "//toolchain:node",
+        "@rules_browsers_chrome_mac_arm//:chrome-headless-shell-mac-arm64/chrome-headless-shell",
+        "@rules_browsers_chrome_mac_arm//:info",
+        "@rules_browsers_chromedriver_mac_arm//:chromedriver-mac-arm64/chromedriver",
+        "@rules_browsers_chromedriver_mac_arm//:info",
+    ],
+    tags = [
+        "manual",
+        "requires-network",
+    ],
+    target_compatible_with = [
+        "@platforms//os:macos",
+        "@platforms//cpu:aarch64",
+    ],
+)

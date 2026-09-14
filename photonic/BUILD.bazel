@@ -8,9 +8,12 @@ rust_binary(
     name = "assemble",
     srcs = ["assemble.rs"],
     crate_root = "assemble.rs",
-    visibility = ["//visibility:public"],
+    visibility = [
+        "//library:__pkg__",
+        "//program:__subpackages__",
+    ],
     deps = [
-        "//system:photonic",
+        "//language:photonic",
         "@crate//:clap",
         "@crate//:serde_json",
     ],
@@ -21,7 +24,10 @@ rust_library(
     srcs = ["launch.rs"],
     crate_name = "launch",
     crate_root = "launch.rs",
-    visibility = ["//visibility:public"],
+    visibility = [
+        "//library:__pkg__",
+        "//program:__subpackages__",
+    ],
     deps = ["@rules_rust//rust/runfiles"],
 )
 
@@ -41,21 +47,21 @@ rust_test(
     data = [
         ":assemble",
         ":check",
-        "//example/library:pipeline.program",
-        "//mathematics/ternary:local",
-        "//mathematics/ternary:local.program",
-        "//system:command",
+        "//command:photonic",
+        "//program/composition:pipeline.program",
+        "//program/ternary:local",
+        "//program/ternary:local.program",
     ],
     env = {
         "CHECK": "$(rlocationpath :check)",
         "ASSEMBLE": "$(rlocationpath :assemble)",
-        "LOCAL": "$(rlocationpath //mathematics/ternary:local)",
-        "BUNDLE": "$(rlocationpath //mathematics/ternary:local.program)",
-        "COMMAND": "$(rlocationpath //system:command)",
-        "PIPELINE": "$(rlocationpath //example/library:pipeline.program)",
+        "LOCAL": "$(rlocationpath //program/ternary:local)",
+        "BUNDLE": "$(rlocationpath //program/ternary:local.program)",
+        "COMMAND": "$(rlocationpath //command:photonic)",
+        "PIPELINE": "$(rlocationpath //program/composition:pipeline.program)",
     },
     deps = [
-        "//system:photonic",
+        "//language:photonic",
         "@crate//:serde_json",
         "@rules_rust//rust/runfiles",
     ],
@@ -65,9 +71,12 @@ rust_binary(
     name = "check",
     srcs = ["check.rs"],
     crate_root = "check.rs",
-    visibility = ["//visibility:public"],
+    visibility = [
+        "//library:__pkg__",
+        "//program:__subpackages__",
+    ],
     deps = [
-        "//system:photonic",
+        "//language:photonic",
         "@crate//:serde",
         "@crate//:serde_json",
         "@rules_rust//rust/runfiles",

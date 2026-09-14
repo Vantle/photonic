@@ -1,4 +1,4 @@
-import initialize, { Evaluation } from '../browser/module/runtime.js';
+import initialize, { Evaluation } from '../toolchain/browser/module/runtime.js';
 import { decode } from './numeral.js';
 let session;
 self.onmessage = async ({ data }) => {

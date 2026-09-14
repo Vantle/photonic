@@ -7,17 +7,17 @@
 Bazel is the only required build tool. It downloads the pinned compiler and dependencies.
 
 ```sh
-bazel run -c opt //browser:serve
-bazel run -c opt //example/library:pipeline
+bazel run -c opt //toolchain/browser:serve
+bazel run -c opt //program/composition:pipeline
 bazel test -c opt //...
-bazel test //tool:check
+bazel test //toolchain:check
 bazel build --config=format //...
 bazel build --config=lint //...
 ```
 
 Open http://127.0.0.1:8080 after starting the preview. The live examples run the Rust evaluator compiled to WebAssembly; Bazel builds the module and its wasm-bindgen bindings. Recorded diagrams remain available when opening the HTML file directly.
 
-Use `bazel test //tool:browser` on ARM64 macOS for the webbook and its Wasm sandbox.
+Use `bazel test //toolchain/browser:check` on ARM64 macOS for the webbook and its Wasm sandbox.
 
 ## Build native programs
 
@@ -51,24 +51,28 @@ A test accepts literal `source`, file `srcs`, and library `deps`. `targets` is a
 
 | Directory | Responsibility |
 | --- | --- |
-| [library/](library/) | Native reusable Photonic declarations; one module per concern. |
-| [example/library/](example/library/) | Composed standard-library applications. |
-| [example/](example/) | Language examples, association cases in `group/`, rejected constructions in `counterexample/`. |
-| [mathematics/natural/](mathematics/natural/) | Unary mathematical constructions and retained proof fixtures. |
-| [mathematics/ternary/](mathematics/ternary/) | Native trit applications, indexed numerals, streams, and sparse powers. |
-| [mathematics/binary/](mathematics/binary/), [decimal/](mathematics/decimal/) | Sparse numeral examples. |
-| [mathematics/arithmetic/](mathematics/arithmetic/) | Host circuit construction and conformance checks; generated Photonic examples live in `fixture/ternary/`. |
-| [browser/](browser/) | WebAssembly bindings, live preview, and native/Wasm conformance tests. |
+| [language/](language/) | Parsing, lowering, execution, Prism verification, and runtime conformance tests. |
+| [command/](command/) | Native command interface, diagnostics, and process integration tests. |
+| [library/](library/) | Reusable Photonic declarations, organized by protocol. |
+| [program/](program/) | Runnable Photonic programs, organized by subject. |
+| [arithmetic/](arithmetic/) | Host circuit construction and conformance checks. |
+| [benchmark/](benchmark/) | Runtime performance, symmetry, and execution measurements. |
 | [photonic/](photonic/) | Bazel rules, source assembly, portable launcher, and Prism test runner. |
-| [system/](system/) | Frontend, runtime, Prism, command, benchmarks, and conformance tests. |
-| [document/](document/) | Webbook assets and raw benchmark evidence. |
+| [toolchain/](toolchain/) | Pinned tool execution and build checks. |
+| [toolchain/browser/](toolchain/browser/) | WebAssembly adapter, preview server, and browser verification. |
+| [platform/](platform/) | Native platform definitions and toolchain patch. |
+| [document/](document/) | Webbook assets and benchmark evidence. |
+
+Programs belong to a subject: `language/`, `association/`, `composition/`, `natural/`, `binary/`, `decimal/`, `ternary/`, or `circuit/`. Keep a program's expected configurations and regression tests beside its source. A counterexample is a tested outcome, not a separate category of program: `program/natural/preparation.wave` retains the rejected multiplication construction and checks its incorrect result. Generated circuit programs live in `program/circuit/`; their Rust generator lives in `arithmetic/`.
+
+Use `library/` for reusable protocols and `program/` for executable applications. Local declarations that serve one subject stay with that subject. Test-only inputs live in `case/`; recorded demonstrations live in `demo/`. Runtime reference data stays in `language/test/`.
 
 Every runnable `.wave` has a `photonic_binary` target. Discover programs and tests with:
 
 ```sh
 bazel query 'kind(".*_test rule", //...)'
-bazel query 'kind("rust_binary rule", //...)'
-rg --files library example mathematics photonic
+bazel query 'kind("rust_binary rule", //program/...)'
+rg --files library program
 ```
 
 ## Read by subject
@@ -79,6 +83,7 @@ rg --files library example mathematics photonic
 | [Native library](index.html#guide-library) | Protocols, atomic fields, dependency layers, evidence, and remaining work. |
 | [Arithmetic](index.html#guide-arithmetic) | Number representations, written arguments, algorithms, and host circuit interface. |
 | [Verification](index.html#guide-verification) | Prism, exact configurations, and retained counterexamples. |
+| [Dynamic code proposal](document/dynamic.md) | Research, contextual rule construction, capture, recursive growth, and implementation gates. |
 | [Runtime](index.html#guide-runtime) | Implementation and reproducible performance measurements. |
 | [Build and development](index.html#guide-build) | Bazel interfaces, contributions, and platform verification. |
 

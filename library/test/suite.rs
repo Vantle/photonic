@@ -94,10 +94,10 @@ fn application() {
 
 #[test]
 fn pipeline() {
-    let source = include_str!("../../example/library/pipeline.wave");
+    let source = include_str!("../../program/composition/pipeline.wave");
     witness(
         source,
-        include_str!("../../example/library/pipeline.particle"),
+        include_str!("../../program/composition/pipeline.particle"),
         &[APPLICATION, BOOLEAN, PRODUCTION, COLLECTION],
     );
 }
@@ -692,8 +692,8 @@ fn conflict() {
 
 #[test]
 fn nested() {
-    let source = include_str!("../../example/library/function.wave");
-    let target = include_str!("../../example/library/function.particle");
+    let source = include_str!("../../program/composition/function.wave");
+    let target = include_str!("../../program/composition/function.particle");
     check(
         source,
         target,

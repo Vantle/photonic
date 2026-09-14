@@ -1,0 +1,43 @@
+load("@rules_rs//rs:rust_binary.bzl", "rust_binary")
+
+rust_binary(
+    name = "runtime",
+    srcs = ["runtime.rs"],
+    compile_data = ["//language:fixture"],
+    crate_root = "runtime.rs",
+    deps = [
+        "//language:photonic",
+        "@crate//:clap",
+        "@crate//:serde",
+        "@crate//:serde_json",
+    ],
+)
+
+rust_binary(
+    name = "symmetry",
+    srcs = ["symmetry.rs"],
+    crate_root = "symmetry.rs",
+    deps = [
+        "//language:measurement",
+        "@crate//:serde",
+        "@crate//:serde_json",
+    ],
+)
+
+rust_binary(
+    name = "trace",
+    srcs = ["trace.rs"],
+    crate_root = "trace.rs",
+    deps = [
+        "//language:photonic",
+        "@crate//:clap",
+        "@crate//:serde",
+        "@crate//:serde_json",
+    ],
+)
+
+filegroup(
+    name = "build",
+    srcs = ["BUILD.bazel"],
+    visibility = ["//:__pkg__"],
+)

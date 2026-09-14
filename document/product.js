@@ -1,4 +1,4 @@
-import initialize, { multiply } from '../browser/module/runtime.js';
+import initialize, { multiply } from '../toolchain/browser/module/runtime.js';
 
 (async () => {
     const root = document.getElementById('product');
@@ -38,7 +38,7 @@ import initialize, { multiply } from '../browser/module/runtime.js';
         find('result').textContent = `Read the result from position 3 down to 0: ${result.column.map(value => value.digit).reverse().join('')} (base 3). Leading zeroes may be omitted when displaying the number.`;
     };
     if (location.protocol === 'file:') {
-        find('equation').textContent = 'Run bazel run -c opt //browser:serve to load this Wasm diagram.';
+        find('equation').textContent = 'Run bazel run -c opt //toolchain/browser:serve to load this Wasm diagram.';
         return;
     }
     try { await initialize(); } catch {

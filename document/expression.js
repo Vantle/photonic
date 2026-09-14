@@ -4,8 +4,8 @@
     const demo = [{
         name: 'Four operations',
         expression: '1212 × 10 ÷ 2 + 11 − 1',
-        path: 'mathematics/ternary/infix.wave',
-        command: 'bazel test -c opt //mathematics/ternary:infix.check --test_output=all',
+        path: 'program/ternary/infix.wave',
+        command: 'bazel test -c opt //program/ternary:infix.check --test_output=all',
         ...globalThis.expression,
     }, ...globalThis.demo];
     const select = find('expression-select');

@@ -1,0 +1,60 @@
+load("@buildifier_prebuilt//:rules.bzl", "buildifier_test")
+load("@rules_rs//rs:rust_binary.bzl", "rust_binary")
+load("@rules_rs//rs:rust_test.bzl", "rust_test")
+load(":node.bzl", "node")
+
+buildifier_test(
+    name = "check",
+    size = "small",
+    srcs = ["//:build"],
+    lint_mode = "warn",
+    mode = "check",
+    tags = ["manual"],
+)
+
+filegroup(
+    name = "build",
+    srcs = [
+        "BUILD.bazel",
+        "node.bzl",
+    ],
+    visibility = ["//:__pkg__"],
+)
+
+node(
+    name = "node",
+    visibility = [
+        "//program/ternary:__pkg__",
+        "//toolchain/browser:__pkg__",
+    ],
+)
+
+rust_binary(
+    name = "execute",
+    srcs = ["execute.rs"],
+    crate_root = "execute.rs",
+    visibility = [
+        "//:__pkg__",
+        "//program/ternary:__pkg__",
+        "//toolchain/browser:__pkg__",
+    ],
+    deps = ["@rules_rust//rust/runfiles"],
+)
+
+rust_test(
+    name = "runner",
+    size = "small",
+    srcs = ["test.rs"],
+    crate_root = "test.rs",
+    data = [
+        "exit.mjs",
+        ":execute",
+        ":node",
+    ],
+    env = {
+        "PHOTONIC_EXECUTE": "$(rlocationpath :execute)",
+        "PHOTONIC_NODE": "$(rlocationpath :node)",
+        "PHOTONIC_SCRIPT": "$(rlocationpath exit.mjs)",
+    },
+    deps = ["@rules_rust//rust/runfiles"],
+)

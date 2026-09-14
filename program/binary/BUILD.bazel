@@ -1,0 +1,43 @@
+load("@rules_rs//rs:rust_binary.bzl", "rust_binary")
+load("//photonic:defs.bzl", "photonic_binary", "photonic_test")
+
+rust_binary(
+    name = "benchmark",
+    srcs = ["benchmark.rs"],
+    crate_root = "benchmark.rs",
+    deps = [
+        "//arithmetic:library",
+        "//language:photonic",
+    ],
+)
+
+filegroup(
+    name = "fixture",
+    srcs = [
+        "addition.wave",
+        "carry.particle",
+        "product.particle",
+        "result.particle",
+    ],
+    visibility = ["//language:__pkg__"],
+)
+
+filegroup(
+    name = "build",
+    srcs = [
+        "BUILD.bazel",
+    ],
+    visibility = ["//:__pkg__"],
+)
+
+photonic_binary(
+    name = "addition",
+    srcs = ["addition.wave"],
+)
+
+photonic_test(
+    name = "addition.check",
+    srcs = ["addition.wave"],
+    source = "",
+    targets = ["2^0.2^1.2^2.2^4.2^6.2^9.2^10"],
+)

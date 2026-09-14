@@ -1,0 +1,146 @@
+load("@rules_rs//rs:rust_library.bzl", "rust_library")
+load("@rules_rs//rs:rust_test.bzl", "rust_test")
+
+rust_library(
+    name = "photonic",
+    srcs = [":source"],
+    crate_root = "photonic.rs",
+    proc_macro_deps = ["@crate//:pest_derive"],
+    visibility = [
+        "//arithmetic:__pkg__",
+        "//benchmark:__pkg__",
+        "//command:__pkg__",
+        "//library:__pkg__",
+        "//photonic:__pkg__",
+        "//program/binary:__pkg__",
+        "//toolchain/browser:__pkg__",
+    ],
+    deps = [
+        "@crate//:indexmap",
+        "@crate//:miette",
+        "@crate//:pest",
+        "@crate//:rayon",
+        "@crate//:serde",
+        "@crate//:thiserror",
+    ],
+)
+
+rust_test(
+    name = "test",
+    size = "medium",
+    srcs = [
+        "test/addition.rs",
+        "test/agenda.rs",
+        "test/basis.rs",
+        "test/binary.rs",
+        "test/executor.rs",
+        "test/group.rs",
+        "test/lowering.rs",
+        "test/multiplication.rs",
+        "test/natural.rs",
+        "test/ordering.rs",
+        "test/parser.rs",
+        "test/partition.rs",
+        "test/path.rs",
+        "test/prism.rs",
+        "test/product.rs",
+        "test/relation.rs",
+        "test/runtime.rs",
+        "test/scheduling.rs",
+        "test/suite.rs",
+        "test/support.rs",
+        ":source",
+    ],
+    compile_data = [
+        ":fixture",
+        "//program/language:fixture",
+        "//program/association:fixture",
+        "//program/binary:fixture",
+        "//library:source",
+        "//program/decimal:fixture",
+        "//program/natural:fixture",
+    ],
+    crate_root = "photonic.rs",
+    proc_macro_deps = ["@crate//:pest_derive"],
+    deps = [
+        "@crate//:indexmap",
+        "@crate//:miette",
+        "@crate//:pest",
+        "@crate//:rayon",
+        "@crate//:serde",
+        "@crate//:serde_json",
+        "@crate//:thiserror",
+    ],
+)
+
+filegroup(
+    name = "build",
+    srcs = [
+        "BUILD.bazel",
+    ],
+    visibility = ["//:__pkg__"],
+)
+
+filegroup(
+    name = "source",
+    srcs = [
+        "agenda.rs",
+        "application.rs",
+        "basis.rs",
+        "canonical.rs",
+        "executor.rs",
+        "expansion.rs",
+        "failure.rs",
+        "flow.rs",
+        "graph.rs",
+        "index.rs",
+        "lowering.rs",
+        "matching.rs",
+        "ordering.rs",
+        "parser.rs",
+        "partition.rs",
+        "path.rs",
+        "photonic.rs",
+        "prism.rs",
+        "program.rs",
+        "refinement.rs",
+        "relation.rs",
+        "runtime.rs",
+        "runtime/report.rs",
+        "search.rs",
+        "snapshot.rs",
+        "source.rs",
+        "state.rs",
+        "support.rs",
+        "symmetry.rs",
+        "syntax.rs",
+        "work.rs",
+    ],
+)
+
+rust_library(
+    name = "measurement",
+    srcs = [
+        "measurement.rs",
+        ":source",
+    ],
+    crate_features = ["measurement"],
+    crate_name = "photonic",
+    crate_root = "photonic.rs",
+    proc_macro_deps = ["@crate//:pest_derive"],
+    visibility = ["//benchmark:__pkg__"],
+    deps = [
+        "@crate//:indexmap",
+        "@crate//:miette",
+        "@crate//:pest",
+        "@crate//:rayon",
+        "@crate//:serde",
+        "@crate//:thiserror",
+    ],
+)
+
+filegroup(
+    name = "fixture",
+    srcs = ["test/reference.json"],
+    visibility = ["//benchmark:__pkg__"],
+)

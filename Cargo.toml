@@ -5,15 +5,15 @@ edition = "2024"
 publish = false
 
 [lib]
-path = "system/photonic.rs"
+path = "language/photonic.rs"
 
 [[bin]]
 name = "photonic"
-path = "system/command.rs"
+path = "command/main.rs"
 
 [[bin]]
 name = "benchmark"
-path = "system/benchmark.rs"
+path = "benchmark/runtime.rs"
 
 [features]
 measurement = []

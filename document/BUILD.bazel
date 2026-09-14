@@ -18,7 +18,7 @@ filegroup(
         "syntax.js",
         "worker.js",
     ],
-    visibility = ["//tool:__pkg__"],
+    visibility = ["//toolchain/browser:__pkg__"],
 )
 
 filegroup(
@@ -32,17 +32,17 @@ filegroup(
 filegroup(
     name = "demo",
     srcs = ["demo.record.js"],
-    visibility = ["//mathematics/ternary:__pkg__"],
+    visibility = ["//program/ternary:__pkg__"],
 )
 
 filegroup(
     name = "expression",
     srcs = ["expression.record.js"],
-    visibility = ["//mathematics/ternary:__pkg__"],
+    visibility = ["//program/ternary:__pkg__"],
 )
 
 filegroup(
     name = "numeral",
     srcs = ["numeral.js"],
-    visibility = ["//browser:__pkg__"],
+    visibility = ["//toolchain/browser:__pkg__"],
 )

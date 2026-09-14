@@ -31,7 +31,7 @@ jobs:
           repository-cache: true
           cache-save: ${{ github.event_name != 'pull_request' }}
       - name: Build format
-        run: bazel test //tool:check
+        run: bazel test //toolchain:check
       - name: Rust format
         run: bazel build --config=format //...
       - name: Rust lint
@@ -55,7 +55,7 @@ jobs:
           repository-cache: true
           cache-save: ${{ github.event_name != 'pull_request' }}
       - name: Browser
-        run: bazel test //tool:browser
+        run: bazel test //toolchain/browser:check
       - name: Shutdown
         timeout-minutes: 2
         if: always() && steps.bazel.outcome == 'success'

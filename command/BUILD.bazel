@@ -1,0 +1,40 @@
+load("@rules_rs//rs:rust_binary.bzl", "rust_binary")
+load("@rules_rs//rs:rust_test.bzl", "rust_test")
+
+rust_binary(
+    name = "photonic",
+    srcs = [
+        "argument.rs",
+        "main.rs",
+    ],
+    crate_root = "main.rs",
+    visibility = [
+        "//photonic:__pkg__",
+        "//program:__subpackages__",
+        "//toolchain/browser:__pkg__",
+    ],
+    deps = [
+        "//language:photonic",
+        "@crate//:clap",
+        "@crate//:miette",
+        "@crate//:serde_json",
+    ],
+)
+
+rust_test(
+    name = "test",
+    srcs = ["test.rs"],
+    crate_root = "test.rs",
+    data = [":photonic"],
+    env = {"PHOTONIC_COMMAND": "$(rlocationpath :photonic)"},
+    deps = [
+        "@crate//:serde_json",
+        "@rules_rust//rust/runfiles",
+    ],
+)
+
+filegroup(
+    name = "build",
+    srcs = ["BUILD.bazel"],
+    visibility = ["//:__pkg__"],
+)

@@ -1,4 +1,4 @@
-import initialize, { execute } from '../browser/module/runtime.js';
+import initialize, { execute } from '../toolchain/browser/module/runtime.js';
 
 self.onmessage = async ({ data }) => {
     try {
