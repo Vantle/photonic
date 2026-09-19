@@ -1,4 +1,6 @@
-use crate::matching::{Gate, Slot, Term};
+use crate::gate::Gate;
+use crate::slot::Slot;
+use crate::term::Term;
 use std::sync::Arc;
 use std::task::Poll;
 

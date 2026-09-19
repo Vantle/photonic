@@ -1,4 +1,5 @@
 use crate::incidence::Label;
+use crate::link::Link;
 use crate::state::{State, Token};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
@@ -34,7 +35,9 @@ impl Structure {
         let capture = token
             .capture
             .map(|frame| self.frame[frame].as_ref().unwrap().vertex);
-        let previous = self.graph[vertex].iter().position(|&(kind, _)| kind == 10);
+        let previous = self.graph[vertex]
+            .iter()
+            .position(|&(kind, _)| kind == Link::Capture);
         if previous.map(|position| self.graph[vertex][position].1) == capture {
             return vertex;
         }
@@ -42,20 +45,12 @@ impl Structure {
             self.graph.disconnect(vertex, position);
         }
         if let Some(capture) = capture {
-            self.graph.connect(vertex, capture, 10);
+            self.graph.connect(vertex, capture, Link::Capture);
         }
         vertex
     }
 
-    pub fn advance(&mut self, state: &State) -> u64 {
-        let current = state
-            .world
-            .iter()
-            .map(|world| Arc::as_ptr(world) as usize)
-            .collect::<HashSet<_>>();
-        if current.len() != state.world.len() {
-            return crate::fingerprint::signature(state);
-        }
+    fn retain(&mut self, current: &HashSet<usize>) {
         let removal = self
             .world
             .keys()
@@ -66,73 +61,86 @@ impl Structure {
             let world = self.world.remove(&key).unwrap();
             self.graph.remove(world.vertex);
         }
-        let reachable = state.reachable();
-        self.frame
-            .resize_with(self.frame.len().max(state.frame.len()), || None);
-        let mut change = Vec::new();
-        for &index in &reachable {
-            let value = state.frame[index].clone();
-            if let Some(frame) = &self.frame[index] {
-                if Arc::ptr_eq(&frame.value, &value) {
-                    continue;
-                }
-                let vertex = frame.vertex;
-                while let Some(position) = self.graph[vertex]
-                    .iter()
-                    .position(|&(kind, _)| matches!(kind, 4 | 6 | 8))
-                {
-                    self.graph.disconnect(vertex, position);
-                }
-                self.graph
-                    .replace(vertex, Label::Frame(value.scope, index == 0));
-                self.frame[index] = Some(Frame { value, vertex });
-            } else {
-                let vertex = self.graph.insert(Label::Frame(value.scope, index == 0));
-                self.frame[index] = Some(Frame { value, vertex });
+    }
+
+    fn prepare(&mut self, index: usize, value: &Arc<crate::state::Frame>) -> bool {
+        let vertex = if let Some(frame) = &self.frame[index] {
+            if Arc::ptr_eq(&frame.value, value) {
+                return false;
             }
-            change.push(index);
-        }
-        for index in change {
-            let frame = self.frame[index].as_ref().unwrap();
             let vertex = frame.vertex;
-            let value = frame.value.clone();
-            if let Some(parent) = value.parent {
-                self.graph
-                    .connect(vertex, self.frame[parent].as_ref().unwrap().vertex, 4);
-            }
-            if let Some(lexical) = value.lexical {
-                self.graph
-                    .connect(vertex, self.frame[lexical].as_ref().unwrap().vertex, 6);
-            }
-            for token in &value.held {
-                let resource = self.token(token);
-                self.graph.connect(vertex, resource, 8);
-            }
-        }
-        for world in &state.world {
-            let key = Arc::as_ptr(world) as usize;
-            if self
-                .world
-                .get(&key)
-                .is_some_and(|previous| Arc::ptr_eq(&previous.value, world))
+            while let Some(position) = self.graph[vertex]
+                .iter()
+                .position(|&(kind, _)| matches!(kind, Link::Parent | Link::Lexical | Link::Held))
             {
-                continue;
+                self.graph.disconnect(vertex, position);
             }
-            let vertex = self.graph.insert(Label::World);
             self.graph
-                .connect(vertex, self.frame[world.frame].as_ref().unwrap().vertex, 0);
-            for token in &world.particle {
-                let resource = self.token(token);
-                self.graph.connect(vertex, resource, 2);
-            }
-            self.world.insert(
-                key,
-                World {
-                    value: world.clone(),
-                    vertex,
-                },
+                .replace(vertex, Label::Frame(value.scope, index == 0));
+            vertex
+        } else {
+            self.graph.insert(Label::Frame(value.scope, index == 0))
+        };
+        self.frame[index] = Some(Frame {
+            value: value.clone(),
+            vertex,
+        });
+        true
+    }
+
+    fn frame(&mut self, index: usize) {
+        let frame = self.frame[index].as_ref().unwrap();
+        let vertex = frame.vertex;
+        let value = frame.value.clone();
+        if let Some(parent) = value.parent {
+            self.graph.connect(
+                vertex,
+                self.frame[parent].as_ref().unwrap().vertex,
+                Link::Parent,
             );
         }
+        if let Some(lexical) = value.lexical {
+            self.graph.connect(
+                vertex,
+                self.frame[lexical].as_ref().unwrap().vertex,
+                Link::Lexical,
+            );
+        }
+        for token in &value.held {
+            let resource = self.token(token);
+            self.graph.connect(vertex, resource, Link::Held);
+        }
+    }
+
+    fn world(&mut self, value: &Arc<crate::state::World>) {
+        let key = Arc::as_ptr(value) as usize;
+        if self
+            .world
+            .get(&key)
+            .is_some_and(|previous| Arc::ptr_eq(&previous.value, value))
+        {
+            return;
+        }
+        let vertex = self.graph.insert(Label::World);
+        self.graph.connect(
+            vertex,
+            self.frame[value.frame].as_ref().unwrap().vertex,
+            Link::Context,
+        );
+        for token in &value.particle {
+            let resource = self.token(token);
+            self.graph.connect(vertex, resource, Link::Member);
+        }
+        self.world.insert(
+            key,
+            World {
+                value: value.clone(),
+                vertex,
+            },
+        );
+    }
+
+    fn reclaim(&mut self, reachable: &[usize]) {
         for index in 0..self.frame.len() {
             if reachable.binary_search(&index).is_err()
                 && let Some(frame) = self.frame[index].take()
@@ -146,7 +154,7 @@ impl Structure {
             .filter_map(|(&id, &vertex)| {
                 (!self.graph[vertex]
                     .iter()
-                    .any(|&(kind, _)| matches!(kind, 3 | 9)))
+                    .any(|&(kind, _)| matches!(kind, Link::Particle | Link::Holder)))
                 .then_some(id)
             })
             .collect::<Vec<_>>();
@@ -154,6 +162,33 @@ impl Structure {
             let vertex = self.resource.remove(&id).unwrap();
             self.graph.remove(vertex);
         }
+    }
+
+    pub fn advance(&mut self, state: &State) -> u64 {
+        let current = state
+            .world
+            .iter()
+            .map(|world| Arc::as_ptr(world) as usize)
+            .collect::<HashSet<_>>();
+        if current.len() != state.world.len() {
+            return crate::fingerprint::signature(state);
+        }
+        self.retain(&current);
+        let reachable = state.reachable();
+        self.frame
+            .resize_with(self.frame.len().max(state.frame.len()), || None);
+        let change = reachable
+            .iter()
+            .copied()
+            .filter(|&index| self.prepare(index, &state.frame[index]))
+            .collect::<Vec<_>>();
+        for index in change {
+            self.frame(index);
+        }
+        for world in &state.world {
+            self.world(world);
+        }
+        self.reclaim(&reachable);
         self.graph.advance()
     }
 

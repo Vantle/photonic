@@ -1,12 +1,12 @@
 use crate::accumulator::Accumulator;
-use crate::fingerprint::mix;
+use crate::hashing::{self, mix};
 use crate::incidence::Label;
-use std::hash::{Hash, Hasher};
+use crate::link::Link;
 
 #[derive(Default)]
 struct Vertex {
     active: bool,
-    edge: Vec<(u8, usize)>,
+    edge: Vec<(Link, usize)>,
     color: [u64; 5],
     summary: [Accumulator; 4],
     dirty: [bool; 4],
@@ -19,12 +19,6 @@ pub(crate) struct Network {
     pending: [Vec<usize>; 4],
     summary: Accumulator,
     edge: usize,
-}
-
-fn label(value: Label) -> u64 {
-    let mut hash = std::collections::hash_map::DefaultHasher::new();
-    value.hash(&mut hash);
-    hash.finish()
 }
 
 impl Network {
@@ -41,7 +35,7 @@ impl Network {
         });
         self.vertex[index] = Vertex {
             active: true,
-            color: [label(value), 0, 0, 0, 0],
+            color: [hashing::value(&value), 0, 0, 0, 0],
             ..Vertex::default()
         };
         self.summary.insert(0);
@@ -51,14 +45,13 @@ impl Network {
         index
     }
 
-    pub fn connect(&mut self, source: usize, target: usize, kind: u8) {
+    pub fn connect(&mut self, source: usize, target: usize, kind: Link) {
         self.vertex[source].edge.push((kind, target));
-        self.vertex[target].edge.push((kind + 1, source));
+        self.vertex[target].edge.push((kind.reverse(), source));
         self.edge += 2;
         for phase in 0..4 {
-            let forward = mix(self.vertex[target].color[phase].wrapping_add(mix(kind as u64)));
-            let backward =
-                mix(self.vertex[source].color[phase].wrapping_add(mix((kind + 1) as u64)));
+            let forward = hashing::edge(kind as u8, self.vertex[target].color[phase]);
+            let backward = hashing::edge(kind.reverse() as u8, self.vertex[source].color[phase]);
             self.vertex[source].summary[phase].insert(forward);
             self.vertex[target].summary[phase].insert(backward);
             self.mark(source, phase);
@@ -71,14 +64,13 @@ impl Network {
         let position = self.vertex[target]
             .edge
             .iter()
-            .position(|&edge| edge == (kind ^ 1, source))
+            .position(|&edge| edge == (kind.reverse(), source))
             .unwrap();
         self.vertex[target].edge.swap_remove(position);
         self.edge -= 2;
         for phase in 0..4 {
-            let forward = mix(self.vertex[target].color[phase].wrapping_add(mix(kind as u64)));
-            let backward =
-                mix(self.vertex[source].color[phase].wrapping_add(mix((kind ^ 1) as u64)));
+            let forward = hashing::edge(kind as u8, self.vertex[target].color[phase]);
+            let backward = hashing::edge(kind.reverse() as u8, self.vertex[source].color[phase]);
             self.vertex[source].summary[phase].remove(forward);
             self.vertex[target].summary[phase].remove(backward);
             self.mark(source, phase);
@@ -108,15 +100,15 @@ impl Network {
         self.mark(vertex, phase);
         for position in 0..self.vertex[vertex].edge.len() {
             let (kind, target) = self.vertex[vertex].edge[position];
-            let offset = mix((kind ^ 1) as u64);
-            self.vertex[target].summary[phase].remove(mix(previous.wrapping_add(offset)));
-            self.vertex[target].summary[phase].insert(mix(value.wrapping_add(offset)));
+            let kind = kind.reverse() as u8;
+            self.vertex[target].summary[phase].remove(hashing::edge(kind, previous));
+            self.vertex[target].summary[phase].insert(hashing::edge(kind, value));
             self.mark(target, phase);
         }
     }
 
     pub fn replace(&mut self, vertex: usize, value: Label) {
-        self.color(vertex, 0, label(value));
+        self.color(vertex, 0, hashing::value(&value));
     }
 
     fn rebuild(&mut self, phase: usize) {
@@ -141,8 +133,9 @@ impl Network {
             }
             let mut summary = Accumulator::default();
             for &(kind, target) in &self.vertex[index].edge {
-                summary.insert(mix(
-                    self.vertex[target].color[phase + 1].wrapping_add(mix(kind as u64))
+                summary.insert(hashing::edge(
+                    kind as u8,
+                    self.vertex[target].color[phase + 1],
                 ));
             }
             self.vertex[index].summary[phase + 1] = summary;
@@ -179,7 +172,7 @@ impl Network {
 }
 
 impl std::ops::Index<usize> for Network {
-    type Output = [(u8, usize)];
+    type Output = [(Link, usize)];
 
     fn index(&self, vertex: usize) -> &Self::Output {
         &self.vertex[vertex].edge

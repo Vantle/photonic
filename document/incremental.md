@@ -2,6 +2,29 @@
 
 The runtime maintains typed hypergraph structure and candidate membership directly in Rust. It uses delta maintenance and shared partial results without introducing a database server, query language, native arithmetic shortcuts, or an execution order for Photonic. The frontend and browser resource defaults remain unchanged.
 
+## Module boundaries
+
+The implementation separates immutable descriptions, mutable indexes, and search-local work. All modules below are private to the Rust library; the public runtime and frontend interfaces stay the same.
+
+| Responsibility | Module | Ownership |
+| --- | --- | --- |
+| Symbol and capture matching | [term.rs](../language/term.rs) | One predicate shared by particle enumeration and selection updates; atom captures are ignored, rule captures must agree. |
+| Input compilation | [plan.rs](../language/plan.rs) | Immutable normalized patterns and owner-dependent capture binding. |
+| Rule dependencies | [catalog.rs](../language/catalog.rs) | Interned input plans, rule-to-plan mapping, and revisions driven by changed symbols or occupancy. |
+| Candidate caching | [query.rs](../language/query.rs) | Selection lifetime, generation checks, and preparation/reuse accounting. |
+| Candidate membership | [selection.rs](../language/selection.rs), [index.rs](../language/index.rs) | Stable sites, candidate domains, and incremental insertion/retraction. |
+| Gate synchronization | [gate.rs](../language/gate.rs) | Candidate arrival and continuation scheduling, distinct-world constraints, and equivalent-pattern symmetry. |
+| Partial binding storage | [prefix.rs](../language/prefix.rs), [slot.rs](../language/slot.rs) | Arena allocation and ancestor traversal; complete bindings alone become flat vectors. |
+| Relationship vocabulary | [link.rs](../language/link.rs) | Explicit paired edge roles shared by full and incremental incidence construction. |
+| State graph lifecycle | [structure.rs](../language/structure.rs) | Vertex retention, frame preparation, relationship installation, and unreachable-vertex reclamation. |
+| Refinement updates | [propagation.rs](../language/propagation.rs) | Dirty propagation, per-round accumulators, and dense-pass fallback. |
+| Hash primitives | [hashing.rs](../language/hashing.rs), [accumulator.rs](../language/accumulator.rs) | Shared scalar mixing and unordered collection aggregation. |
+| State comparison | [fingerprint.rs](../language/fingerprint.rs), [canonical.rs](../language/canonical.rs) | Fingerprint filtering followed by exact comparison when required. |
+
+Graph updates prepare every changed frame vertex before installing frame relationships. That lifecycle order ensures every referenced vertex exists; it does not impose an execution order on Photonic states. Gate arrival order remains arbitrary. Candidate filtering is only a prefilter: token multiplicity, resource identity, and full gate constraints remain the responsibility of matching and execution.
+
+Hash aggregation intentionally forgets neighbor order, while retaining multiplicity through sum, squared sum, and count. Full and incremental refinement use the same contribution formula. Hash equality remains a filter, never a proof of semantic equality.
+
 ## Structural maintenance
 
 `language/structure.rs` maintains world, frame, and resource vertices across structural comparisons. Immutable world identity and resource identity identify retained vertices; frame changes replace the relevant relationships. These identifiers are internal index keys and never contribute to the fingerprint. Vertex labels and incidence types match `language/incidence.rs`.
@@ -59,3 +82,16 @@ bazel run -c opt //benchmark:arithmetic -- 1234567890 add 9876543210 --radix 10 
 bazel run -c opt //benchmark:arithmetic -- 12345 multiply 67890 --radix 10 --sample 3
 bazel run -c opt //benchmark:retention -- --width 200 --length 1000 --sample 3
 ```
+
+## Refactoring verification
+
+The module separation above was checked against `a7a5f62` with the same native Bazel harness. All 108 test targets, including browser conformance, pass; Rust formatting and lint checks pass. Successful transition counts, work counts, and every reported search statistic agree across the measured cases.
+
+| Program | Before | After |
+| --- | ---: | ---: |
+| Six factors of two | 0.0667 s | 0.0650 s |
+| Thirty factors of two | 2.9823 s | 3.0256 s |
+| Ten-digit decimal addition | 0.1885 s | 0.1906 s |
+| Preparation reuse workload | 0.01333 s | 0.01331 s |
+
+Values are median execution times. The first three rows use three measured samples after one warmup. The short reuse workload initially measured 0.0131 s versus 0.0152 s; repeating both revisions with fifteen samples produced the values shown. These measurements support comparable performance for this cleanup, rather than a speedup claim. Initial and repeated samples are retained in [refactoring.json](refactoring.json).

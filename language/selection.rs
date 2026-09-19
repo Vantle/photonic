@@ -1,4 +1,4 @@
-use crate::matching::Term;
+use crate::term::Term;
 use std::sync::Arc;
 
 pub(crate) struct Selection {
@@ -51,13 +51,9 @@ impl Selection {
                 .filter(|&site| {
                     let world = &index.state.world[index.world(site)];
                     world.frame == frame
-                        && pattern.iter().all(|term| {
-                            world.particle.iter().any(|token| {
-                                token.value == term.value
-                                    && (!matches!(term.value, crate::program::Symbol::Rule(_))
-                                        || token.capture == term.capture)
-                            })
-                        })
+                        && pattern
+                            .iter()
+                            .all(|term| world.particle.iter().any(|token| term.matches(token)))
                 })
                 .collect::<Vec<_>>();
             let removed = previous

@@ -1,8 +1,7 @@
 use crate::index::Index;
-use crate::matching;
-use crate::program::{Program, Symbol};
+use crate::program::Program;
 use crate::selection::Selection;
-use std::collections::{BTreeSet, HashMap};
+use std::collections::HashMap;
 use std::sync::Arc;
 
 #[derive(Eq, Hash, PartialEq)]
@@ -12,13 +11,6 @@ struct Key {
     owner: usize,
 }
 
-struct Plan {
-    input: Vec<Vec<Symbol>>,
-    revision: usize,
-    pattern: Arc<Vec<Vec<matching::Term>>>,
-    capture: bool,
-}
-
 struct Entry {
     selection: Arc<Selection>,
     generation: usize,
@@ -26,81 +18,21 @@ struct Entry {
 }
 
 pub(crate) struct Query {
-    plan: Vec<Plan>,
-    rule: Vec<usize>,
-    trigger: HashMap<Symbol, Vec<usize>>,
-    empty: Vec<usize>,
+    catalog: crate::catalog::Catalog,
     entry: HashMap<Key, Entry>,
     generation: usize,
     retained: usize,
-    base: usize,
     pub preparation: usize,
     pub reuse: usize,
 }
 
 impl Query {
     pub(crate) fn new(program: &Program) -> Self {
-        let mut catalog = HashMap::new();
-        let mut plan = Vec::new();
-        let rule = program
-            .rule
-            .iter()
-            .map(|rule| {
-                *catalog.entry(&rule.input).or_insert_with(|| {
-                    let index = plan.len();
-                    plan.push(Plan {
-                        input: rule.input.clone(),
-                        revision: 0,
-                        pattern: Arc::new(if rule.input.is_empty() {
-                            vec![Vec::new()]
-                        } else {
-                            matching::pattern(&rule.input, None)
-                        }),
-                        capture: rule
-                            .input
-                            .iter()
-                            .flatten()
-                            .any(|symbol| matches!(symbol, Symbol::Rule(_))),
-                    });
-                    index
-                })
-            })
-            .collect::<Vec<_>>();
-        let mut trigger: HashMap<_, Vec<_>> = HashMap::new();
-        let mut empty = Vec::new();
-        for (index, plan) in plan.iter().enumerate() {
-            if plan.input.is_empty() || plan.input.iter().any(Vec::is_empty) {
-                empty.push(index);
-            }
-            for symbol in plan
-                .input
-                .iter()
-                .flatten()
-                .copied()
-                .collect::<BTreeSet<_>>()
-            {
-                trigger.entry(symbol).or_default().push(index);
-            }
-        }
-        let base = plan
-            .iter()
-            .map(|plan| {
-                1 + plan.input.len() * 2 + plan.input.iter().map(Vec::len).sum::<usize>() * 2
-            })
-            .sum::<usize>()
-            + rule.len()
-            + empty.len()
-            + trigger.len()
-            + trigger.values().map(Vec::len).sum::<usize>();
         Self {
-            plan,
-            rule,
-            trigger,
-            empty,
+            catalog: crate::catalog::Catalog::new(program),
             entry: HashMap::new(),
             generation: 0,
             retained: 0,
-            base,
             preparation: 0,
             reuse: 0,
         }
@@ -113,14 +45,16 @@ impl Query {
         owner: usize,
         index: &Index,
     ) -> Arc<Selection> {
-        let plan = &self.plan[self.rule[rule]];
+        let pattern = self.catalog.rule(rule);
+        let plan = self.catalog.input(pattern);
+        let revision = self.catalog.revision(pattern);
         let key = Key {
-            pattern: self.rule[rule],
+            pattern,
             frame,
-            owner: if plan.capture { owner } else { 0 },
+            owner: plan.owner(owner),
         };
         if let Some(entry) = self.entry.get_mut(&key) {
-            let selection = if entry.revision == plan.revision {
+            let selection = if entry.revision == revision {
                 None
             } else if entry.generation + 1 == self.generation {
                 entry.selection.advance(index, frame)
@@ -138,22 +72,17 @@ impl Query {
                 self.reuse += 1;
             }
             entry.generation = self.generation;
-            entry.revision = plan.revision;
+            entry.revision = revision;
             return entry.selection.clone();
         }
         self.preparation += 1;
-        let pattern = if plan.capture {
-            Arc::new(matching::pattern(&plan.input, Some(owner)))
-        } else {
-            plan.pattern.clone()
-        };
-        let selection = Arc::new(Selection::new(pattern, index, frame));
+        let selection = Arc::new(Selection::new(plan.pattern(owner), index, frame));
         self.entry.insert(
             key,
             Entry {
                 selection: selection.clone(),
                 generation: self.generation,
-                revision: plan.revision,
+                revision,
             },
         );
         selection
@@ -161,16 +90,8 @@ impl Query {
 
     pub(crate) fn advance(&mut self, index: &Index) {
         self.generation += 1;
-        for symbol in &index.altered {
-            for &plan in self.trigger.get(symbol).into_iter().flatten() {
-                self.plan[plan].revision += 1;
-            }
-        }
-        if index.occupied {
-            for &plan in &self.empty {
-                self.plan[plan].revision += 1;
-            }
-        }
+        self.catalog
+            .advance(index.altered.iter().copied(), index.occupied);
     }
 
     pub(crate) fn finish(&mut self) {
@@ -184,7 +105,7 @@ impl Query {
     }
 
     pub(crate) fn retained(&self) -> usize {
-        self.base + self.retained
+        self.catalog.retained() + self.retained
     }
 }
 

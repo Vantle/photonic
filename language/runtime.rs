@@ -1,11 +1,13 @@
 mod report;
 
 use crate::flow::{Binding, Closure, Flow, Place};
-use crate::matching::{self, Slot, Term};
+use crate::plan;
 use crate::program::{Program, Symbol};
+use crate::slot::Slot;
 use crate::source;
 use crate::state::State;
 use crate::support::{Atom, Clause, Support};
+use crate::term::Term;
 use indexmap::IndexSet;
 use serde::Serialize;
 use std::collections::{BTreeSet, HashMap, HashSet};
@@ -408,7 +410,7 @@ impl Runtime {
                         .frame
                         .iter()
                         .position(|&value| value == Some(current));
-                    let pattern = matching::pattern(&input, capture);
+                    let pattern = plan::pattern(&input, capture);
                     for destination in 0..target.frame.len() {
                         if view.flow.frame[destination] != Some(frame) {
                             continue;
@@ -452,7 +454,7 @@ impl Runtime {
                 } else {
                     self.program.rule[rule].input.clone()
                 };
-                let pattern = matching::pattern(&input, token.capture);
+                let pattern = plan::pattern(&input, token.capture);
                 self.matching(
                     view.target,
                     world.frame,

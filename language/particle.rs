@@ -1,6 +1,5 @@
-use crate::matching::Term;
-use crate::program::Symbol;
 use crate::state::Token;
+use crate::term::Term;
 use std::task::Poll;
 
 struct Group {
@@ -42,10 +41,7 @@ impl Match {
         for (position, term) in pattern.iter().enumerate() {
             let mut candidate = particle
                 .iter()
-                .filter(|token| {
-                    token.value == term.value
-                        && (matches!(term.value, Symbol::Atom(_)) || token.capture == term.capture)
-                })
+                .filter(|token| term.matches(token))
                 .map(|token| token.id)
                 .collect::<Vec<_>>();
             candidate.sort_unstable();

@@ -210,8 +210,10 @@ fn resume() {
 
 #[test]
 fn gate() {
-    use crate::matching::{Gate, Slot, Term};
+    use crate::gate::Gate;
     use crate::program::Symbol;
+    use crate::slot::Slot;
+    use crate::term::Term;
     let mut gate = Gate::new(vec![
         vec![Term {
             value: Symbol::Atom(0),

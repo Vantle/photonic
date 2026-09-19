@@ -1,7 +1,7 @@
 use crate::basis::Set;
-use crate::matching::Term;
 use crate::program::Symbol;
 use crate::state::State;
+use crate::term::Term;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -75,15 +75,7 @@ impl Index {
                     .push((site, token.id, token.capture.unwrap()));
                 self.retained += 1;
             }
-            let key = (
-                value.frame,
-                Term {
-                    value: token.value,
-                    capture: token
-                        .capture
-                        .filter(|_| matches!(token.value, Symbol::Rule(_))),
-                },
-            );
+            let key = (value.frame, Term::new(token.value, token.capture));
             let posting = self.term.entry(key).or_default();
             if !posting.contains(&site) {
                 posting.push(site);
@@ -121,15 +113,7 @@ impl Index {
                         self.code.remove(&rule);
                     }
                 }
-                let key = (
-                    value.frame,
-                    Term {
-                        value: token.value,
-                        capture: token
-                            .capture
-                            .filter(|_| matches!(token.value, Symbol::Rule(_))),
-                    },
-                );
+                let key = (value.frame, Term::new(token.value, token.capture));
                 let Some(posting) = self.term.get_mut(&key) else {
                     continue;
                 };
@@ -165,15 +149,7 @@ impl Index {
         let posting = pattern
             .iter()
             .map(|term| {
-                let key = (
-                    frame,
-                    Term {
-                        value: term.value,
-                        capture: term
-                            .capture
-                            .filter(|_| matches!(term.value, Symbol::Rule(_))),
-                    },
-                );
+                let key = (frame, Term::new(term.value, term.capture));
                 self.term.get(&key)
             })
             .collect::<Option<Vec<_>>>();

@@ -6,6 +6,14 @@ pub(crate) struct Accumulator {
 }
 
 impl Accumulator {
+    pub fn collect(value: impl IntoIterator<Item = u64>) -> u64 {
+        let mut summary = Self::default();
+        for value in value {
+            summary.insert(value);
+        }
+        summary.value()
+    }
+
     pub fn insert(&mut self, value: u64) {
         self.sum = self.sum.wrapping_add(value);
         self.square = self.square.wrapping_add(value.wrapping_mul(value));
@@ -19,8 +27,8 @@ impl Accumulator {
     }
 
     pub fn value(&self) -> u64 {
-        crate::fingerprint::mix(self.sum)
-            .wrapping_add(crate::fingerprint::mix(self.square).rotate_left(21))
-            .wrapping_add(crate::fingerprint::mix(self.count).rotate_left(42))
+        crate::hashing::mix(self.sum)
+            .wrapping_add(crate::hashing::mix(self.square).rotate_left(21))
+            .wrapping_add(crate::hashing::mix(self.count).rotate_left(42))
     }
 }

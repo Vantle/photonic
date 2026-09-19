@@ -1,34 +1,7 @@
-use crate::program::Symbol;
+use crate::slot::Slot;
+use crate::term::Term;
 use indexmap::IndexSet;
 use std::collections::VecDeque;
-
-#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct Term {
-    pub value: Symbol,
-    pub capture: Option<usize>,
-}
-
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub struct Slot {
-    pub world: usize,
-    pub token: Vec<usize>,
-    pub position: usize,
-}
-
-pub fn pattern(input: &[Vec<Symbol>], capture: Option<usize>) -> Vec<Vec<Term>> {
-    input
-        .iter()
-        .map(|particle| {
-            particle
-                .iter()
-                .map(|&value| Term {
-                    value,
-                    capture: capture.filter(|_| matches!(value, Symbol::Rule(_))),
-                })
-                .collect()
-        })
-        .collect()
-}
 
 enum Task {
     Arrival {
@@ -48,7 +21,7 @@ pub struct Gate {
     pattern: Vec<Vec<Term>>,
     candidate: Vec<IndexSet<Slot>>,
     prefix: Vec<Vec<Option<usize>>>,
-    binding: Vec<crate::prefix::Prefix>,
+    binding: crate::prefix::Arena,
     agenda: VecDeque<Task>,
 }
 
@@ -61,7 +34,7 @@ impl Gate {
             pattern,
             candidate: vec![IndexSet::new(); count],
             prefix,
-            binding: Vec::new(),
+            binding: crate::prefix::Arena::default(),
             agenda: VecDeque::new(),
         }
     }
@@ -116,40 +89,23 @@ impl Gate {
                 (binding, slot)
             }
         };
-        let mut cursor = binding;
         let mut equivalent = false;
-        while let Some(index) = cursor {
-            let prefix = &self.binding[index];
-            if prefix.slot.world == slot.world {
+        for prefix in self.binding.iter(binding) {
+            if prefix.world == slot.world {
                 return None;
             }
-            if !equivalent && self.pattern[prefix.slot.position] == self.pattern[slot.position] {
-                if prefix.slot.world >= slot.world {
+            if !equivalent && self.pattern[prefix.position] == self.pattern[slot.position] {
+                if prefix.world >= slot.world {
                     return None;
                 }
                 equivalent = true;
             }
-            cursor = prefix.parent;
         }
         let next = slot.position + 1;
         if next == self.pattern.len() {
-            let mut value = Vec::with_capacity(next);
-            value.push(slot);
-            let mut cursor = binding;
-            while let Some(index) = cursor {
-                let prefix = &self.binding[index];
-                value.push(prefix.slot.clone());
-                cursor = prefix.parent;
-            }
-            value.reverse();
-            return Some(value);
+            return Some(self.binding.complete(binding, slot));
         }
-        let index = self.binding.len();
-        self.binding.push(crate::prefix::Prefix {
-            parent: binding,
-            slot,
-        });
-        let binding = Some(index);
+        let binding = Some(self.binding.push(binding, slot));
         self.prefix[next].push(binding);
         let end = self.candidate[next].len();
         if end > 0 {

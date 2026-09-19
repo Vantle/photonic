@@ -1,3 +1,4 @@
+use crate::link::Link;
 use crate::program::Symbol;
 use crate::state::State;
 use std::collections::HashMap;
@@ -15,9 +16,9 @@ pub(crate) struct Incidence {
     pub edge: crate::graph::Graph,
 }
 
-fn connect(edge: &mut Vec<(usize, usize, u8)>, source: usize, target: usize, kind: u8) {
-    edge.push((source, target, kind));
-    edge.push((target, source, kind + 1));
+fn connect(edge: &mut Vec<(usize, usize, u8)>, source: usize, target: usize, kind: Link) {
+    edge.push((source, target, kind as u8));
+    edge.push((target, source, kind.reverse() as u8));
 }
 
 impl Incidence {
@@ -44,21 +45,21 @@ impl Incidence {
         }
         let mut edge = Vec::new();
         for (index, world) in state.world.iter().enumerate() {
-            connect(&mut edge, index, frame[world.frame], 0);
+            connect(&mut edge, index, frame[world.frame], Link::Context);
             for token in &world.particle {
-                connect(&mut edge, index, resource[&token.id], 2);
+                connect(&mut edge, index, resource[&token.id], Link::Member);
             }
         }
         for &index in &retained {
             let value = &state.frame[index];
             if let Some(parent) = value.parent {
-                connect(&mut edge, frame[index], frame[parent], 4);
+                connect(&mut edge, frame[index], frame[parent], Link::Parent);
             }
             if let Some(lexical) = value.lexical {
-                connect(&mut edge, frame[index], frame[lexical], 6);
+                connect(&mut edge, frame[index], frame[lexical], Link::Lexical);
             }
             for token in &value.held {
-                connect(&mut edge, frame[index], resource[&token.id], 8);
+                connect(&mut edge, frame[index], resource[&token.id], Link::Held);
             }
         }
         let mut capture = HashMap::new();
@@ -73,7 +74,7 @@ impl Incidence {
             }
         }
         for (id, captured) in capture {
-            connect(&mut edge, resource[&id], frame[captured], 10);
+            connect(&mut edge, resource[&id], frame[captured], Link::Capture);
         }
         let edge = crate::graph::Graph::new(label.len(), edge);
         Self { label, frame, edge }

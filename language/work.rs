@@ -1,6 +1,6 @@
 use crate::canonical;
-use crate::matching::Slot;
 use crate::search;
+use crate::slot::Slot;
 use std::task::Poll;
 
 pub(crate) enum Work {

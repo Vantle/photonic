@@ -1,10 +1,10 @@
 use crate::canonical;
 use crate::executor::Executor;
-use crate::matching::Term;
 use crate::program::Symbol;
 use crate::runtime::{Limit, Runtime};
 use crate::search::Search;
 use crate::state::{Frame, State, Token, World};
+use crate::term::Term;
 use std::sync::Arc;
 use std::task::Poll;
 
@@ -509,10 +509,10 @@ fn joining() {
             })
             .collect::<Vec<_>>();
         for order in crate::ordering::Ordering::new(0..6, |_| 0) {
-            let mut gate = crate::matching::Gate::new(pattern.clone());
+            let mut gate = crate::gate::Gate::new(pattern.clone());
             let mut actual = std::collections::BTreeSet::new();
             for index in order {
-                let slot = crate::matching::Slot {
+                let slot = crate::slot::Slot {
                     world: index / 2,
                     position: index % 2,
                     token: vec![index / 2],
@@ -547,7 +547,7 @@ fn factorization() {
             })
             .collect::<Vec<_>>();
         for reverse in [false, true] {
-            let mut gate = crate::matching::Gate::new(pattern.clone());
+            let mut gate = crate::gate::Gate::new(pattern.clone());
             let mut actual = std::collections::BTreeSet::new();
             for arrival in 0..width * 2 {
                 let index = if reverse {
@@ -555,7 +555,7 @@ fn factorization() {
                 } else {
                     arrival
                 };
-                let slot = crate::matching::Slot {
+                let slot = crate::slot::Slot {
                     world: index,
                     position: index / 2,
                     token: vec![index],

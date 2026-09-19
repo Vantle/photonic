@@ -1,13 +1,9 @@
+use crate::accumulator::Accumulator;
 use crate::basis::Set;
+use crate::hashing::mix;
 use crate::program::Symbol;
 use crate::state::{State, Token};
 use std::sync::Arc;
-
-pub(crate) fn mix(mut value: u64) -> u64 {
-    value = (value ^ (value >> 30)).wrapping_mul(0xbf58476d1ce4e5b9);
-    value = (value ^ (value >> 27)).wrapping_mul(0x94d049bb133111eb);
-    value ^ (value >> 31)
-}
 
 fn symbol(value: Symbol) -> u64 {
     match value {
@@ -16,22 +12,8 @@ fn symbol(value: Symbol) -> u64 {
     }
 }
 
-fn collection(value: impl IntoIterator<Item = u64>) -> u64 {
-    let mut sum = 0u64;
-    let mut square = 0u64;
-    let mut count = 0u64;
-    for value in value {
-        sum = sum.wrapping_add(value);
-        square = square.wrapping_add(value.wrapping_mul(value));
-        count += 1;
-    }
-    mix(sum)
-        .wrapping_add(mix(square).rotate_left(21))
-        .wrapping_add(mix(count).rotate_left(42))
-}
-
 fn particle(value: &[Token], frame: &[u64]) -> u64 {
-    collection(value.iter().map(|token| {
+    Accumulator::collect(value.iter().map(|token| {
         mix(symbol(token.value).wrapping_add(
             token
                 .capture
@@ -115,7 +97,7 @@ impl Index {
             let hash = if stable[index] {
                 previous.unwrap().frame[0][index]
             } else {
-                mix(value.scope as u64).wrapping_add(collection(
+                mix(value.scope as u64).wrapping_add(Accumulator::collect(
                     value.held.iter().map(|token| symbol(token.value)),
                 ))
             };
@@ -174,8 +156,8 @@ impl Index {
         for value in &state.world[world.len()..] {
             world.push(Arc::new(World::new(value, &frame[2])));
         }
-        let value = mix(collection(world.iter().map(|world| world.value))).wrapping_add(
-            collection(reachable.iter().map(|&index| frame[2][index])).rotate_left(31),
+        let value = mix(Accumulator::collect(world.iter().map(|world| world.value))).wrapping_add(
+            Accumulator::collect(reachable.iter().map(|&index| frame[2][index])).rotate_left(31),
         );
         let layout = crate::layout::Layout::new(&state, reachable);
         let retained = layout.reachable.len()
@@ -214,16 +196,11 @@ pub(crate) fn resolution(state: &State) -> u64 {
 }
 
 fn refine(state: &State, depth: usize) -> u64 {
-    use std::hash::{Hash, Hasher};
     let incidence = crate::incidence::Incidence::new(state);
     let mut color = incidence
         .label
         .iter()
-        .map(|label| {
-            let mut hash = std::collections::hash_map::DefaultHasher::new();
-            label.hash(&mut hash);
-            hash.finish()
-        })
+        .map(crate::hashing::value)
         .collect::<Vec<_>>();
     for _ in 0..depth {
         color = incidence
@@ -231,12 +208,12 @@ fn refine(state: &State, depth: usize) -> u64 {
             .iter()
             .enumerate()
             .map(|(index, edge)| {
-                mix(color[index])
-                    .wrapping_add(collection(edge.iter().map(|&(kind, target)| {
-                        mix(color[target].wrapping_add(mix(kind as u64)))
-                    })))
+                mix(color[index]).wrapping_add(Accumulator::collect(
+                    edge.iter()
+                        .map(|&(kind, target)| crate::hashing::edge(kind, color[target])),
+                ))
             })
             .collect();
     }
-    collection(color)
+    Accumulator::collect(color)
 }
