@@ -16,7 +16,7 @@ A finite generator can describe indefinitely growing computations. This is a sem
 
 ## Current implementation
 
-The source model in [source.rs](../language/source.rs) has two value forms: atoms and complete rule definitions. Definitions preserve separate input particles and output entries. Output entries can carry local bodies. Parentheses alone do not create an opaque record, and grouping does not establish an operand boundary.
+The source model in [source.rs](../frontend/source.rs) has two value forms: atoms and complete rule definitions. Definitions preserve separate input particles and output entries. Output entries can carry local bodies. Parentheses alone do not create an opaque record, and grouping does not establish an operand boundary.
 
 The compiler in [program.rs](../language/program.rs) interns complete source definitions and converts them into instructions referenced by `Symbol::Rule`. Its rule and scope tables are populated during compilation. The runtime holds the compiled program through `Arc<Program>` and activates rule occurrences in participating coherences. This is a useful existing separation between storing code and having the right to execute it.
 
@@ -243,7 +243,7 @@ flowchart TD
 | Library | Implement field builders, code reconstruction, adapters, and recursive generators in Photonic | Unknown roles, nested payloads, and generated generators work without runtime special cases |
 | Optimization | Add indexes, sharing, parallel construction, and collection incrementally | Each optimization preserves the reference behavior and reports its costs |
 
-The likely native changes concentrate in [source.rs](../language/source.rs), [lowering.rs](../language/lowering.rs), [program.rs](../language/program.rs), [matching.rs](../language/matching.rs), [search.rs](../language/search.rs), [flow.rs](../language/flow.rs), [state.rs](../language/state.rs), [canonical.rs](../language/canonical.rs), [runtime.rs](../language/runtime.rs), and [snapshot.rs](../language/snapshot.rs). The browser uses the native engine, but its interface and independent [reference model](kernel/dynamic.js) still require conformance work. These paths describe responsibilities, not a mandate to introduce all changes at once.
+The likely native changes concentrate in [source.rs](../frontend/source.rs), [lowering.rs](../frontend/lowering.rs), [program.rs](../language/program.rs), [matching.rs](../language/matching.rs), [search.rs](../language/search.rs), [flow.rs](../language/flow.rs), [state.rs](../language/state.rs), [canonical.rs](../language/canonical.rs), [runtime.rs](../language/runtime.rs), and [snapshot.rs](../language/snapshot.rs). The browser uses the native engine, but its interface and independent [reference model](kernel/dynamic.js) still require conformance work. These paths describe responsibilities, not a mandate to introduce all changes at once.
 
 Keep the syntax decision bounded. Prefer explicit lexical binder declarations and references that lower to scoped structural slots. Their spelling must be unmistakably part of the language extension, with literal atoms remaining literal. Do not overload dots or parentheses, revive a hidden wildcard convention, or expose raw environment identifiers as public syntax. The precise delimiters remain open pending the reference semantics; the structural operations and their obligations do not.
 

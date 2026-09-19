@@ -6,6 +6,7 @@ filegroup(
         "conjunction.wave",
     ],
     visibility = [
+        "//frontend:__pkg__",
         "//language:__pkg__",
     ],
 )

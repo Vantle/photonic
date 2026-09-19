@@ -1,18 +1,19 @@
-load("@bazel_skylib//rules:native_binary.bzl", "native_binary")
 load("@default_rust_toolchains//rustc:component_labels.bzl", "rust_toolchain_component_label")
+load("//toolchain:defs.bzl", "hermetic_binary")
 
-native_binary(
+hermetic_binary(
     name = "analyze.rust",
-    src = "@rules_rs//tools/rust_analyzer:gen_rust_project",
+    entrypoint = "@rules_rs//tools/rust_analyzer:gen_rust_project",
     tags = ["manual"],
 )
 
-native_binary(
+hermetic_binary(
     name = "format",
-    src = "//toolchain:execute",
-    args = [
+    argument = [
         "$(rlocationpath {})".format(rust_toolchain_component_label("@rules_rust//tools/upstream_wrapper:rustfmt")),
         "--",
+        "frontend/frontend.rs",
+        "frontend/test/suite.rs",
         "language/photonic.rs",
         "language/test/suite.rs",
         "command/main.rs",
@@ -36,20 +37,23 @@ native_binary(
         "photonic/test.rs",
         "toolchain/execute.rs",
         "toolchain/test.rs",
+        "toolchain/probe.rs",
+        "toolchain/argument.rs",
     ],
     data = [rust_toolchain_component_label("@rules_rust//tools/upstream_wrapper:rustfmt")],
+    entrypoint = "//toolchain:execute",
     tags = ["manual"],
 )
 
-native_binary(
+hermetic_binary(
     name = "update",
-    src = "//toolchain:execute",
-    args = [
+    argument = [
         "$(rlocationpath {})".format(rust_toolchain_component_label("@rules_rust//tools/upstream_wrapper:cargo")),
         "--",
         "update",
     ],
     data = [rust_toolchain_component_label("@rules_rust//tools/upstream_wrapper:cargo")],
+    entrypoint = "//toolchain:execute",
     tags = ["manual"],
 )
 
@@ -62,6 +66,7 @@ filegroup(
         "//benchmark:build",
         "//command:build",
         "//document:build",
+        "//frontend:build",
         "//language:build",
         "//library:build",
         "//photonic:build",
@@ -77,6 +82,7 @@ filegroup(
         "//program/ternary/case:build",
         "//toolchain:build",
         "//toolchain/browser:build",
+        "//toolchain/wasm:build",
     ],
     visibility = ["//toolchain:__pkg__"],
 )

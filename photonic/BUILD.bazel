@@ -1,5 +1,4 @@
 load("@rules_rs//rs:rust_binary.bzl", "rust_binary")
-load("@rules_rs//rs:rust_library.bzl", "rust_library")
 load("@rules_rs//rs:rust_test.bzl", "rust_test")
 
 exports_files(["defs.bzl"])
@@ -13,13 +12,13 @@ rust_binary(
         "//program:__subpackages__",
     ],
     deps = [
-        "//language:photonic",
+        "//frontend",
         "@crate//:clap",
         "@crate//:serde_json",
     ],
 )
 
-rust_library(
+rust_binary(
     name = "launch",
     srcs = ["launch.rs"],
     crate_name = "launch",
@@ -47,6 +46,7 @@ rust_test(
     data = [
         ":assemble",
         ":check",
+        ":launch",
         "//command:photonic",
         "//program/composition:pipeline.program",
         "//program/ternary:local",
@@ -55,6 +55,7 @@ rust_test(
     env = {
         "CHECK": "$(rlocationpath :check)",
         "ASSEMBLE": "$(rlocationpath :assemble)",
+        "LAUNCH": "$(rlocationpath :launch)",
         "LOCAL": "$(rlocationpath //program/ternary:local)",
         "BUNDLE": "$(rlocationpath //program/ternary:local.program)",
         "COMMAND": "$(rlocationpath //command:photonic)",

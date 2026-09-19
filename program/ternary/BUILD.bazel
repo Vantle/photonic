@@ -1,5 +1,5 @@
-load("@bazel_skylib//rules:native_binary.bzl", "native_binary", "native_test")
 load("//photonic:defs.bzl", "photonic_binary", "photonic_library", "photonic_test")
+load("//toolchain:defs.bzl", "hermetic_binary", "hermetic_test")
 
 photonic_library(
     name = "successor",
@@ -414,10 +414,9 @@ photonic_library(
     ],
 )
 
-native_binary(
+hermetic_binary(
     name = "record",
-    src = "//toolchain:execute",
-    args = [
+    argument = [
         "$(rlocationpath //toolchain:node)",
         "$(rlocationpath record.mjs)",
         "$(rlocationpath //command:photonic)",
@@ -432,6 +431,7 @@ native_binary(
         "//command:photonic",
         "//toolchain:node",
     ],
+    entrypoint = "//toolchain:execute",
 )
 
 photonic_library(
@@ -484,11 +484,10 @@ photonic_test(
     deps = [":column"],
 )
 
-native_test(
+hermetic_test(
     name = "performance",
     size = "medium",
-    src = "//toolchain:execute",
-    args = [
+    argument = [
         "$(rlocationpath //toolchain:node)",
         "$(rlocationpath record.mjs)",
         "$(rlocationpath //command:photonic)",
@@ -505,6 +504,7 @@ native_test(
         "//document:expression",
         "//toolchain:node",
     ],
+    entrypoint = "//toolchain:execute",
 )
 
 photonic_test(
@@ -620,10 +620,9 @@ photonic_test(
     deps = [":formula"],
 )
 
-native_binary(
+hermetic_binary(
     name = "demo.record",
-    src = "//toolchain:execute",
-    args = [
+    argument = [
         "$(rlocationpath //toolchain:node)",
         "$(rlocationpath demo.mjs)",
         "$(rlocationpath //command:photonic)",
@@ -652,12 +651,12 @@ native_binary(
         "//command:photonic",
         "//toolchain:node",
     ],
+    entrypoint = "//toolchain:execute",
 )
 
-native_test(
+hermetic_test(
     name = "demo.record.check",
-    src = "//toolchain:execute",
-    args = [
+    argument = [
         "$(rlocationpath //toolchain:node)",
         "$(rlocationpath demo.mjs)",
         "$(rlocationpath //command:photonic)",
@@ -688,6 +687,7 @@ native_test(
         "//document:demo",
         "//toolchain:node",
     ],
+    entrypoint = "//toolchain:execute",
 )
 
 photonic_binary(

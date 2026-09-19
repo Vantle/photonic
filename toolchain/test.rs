@@ -35,3 +35,41 @@ fn manifest() -> Result<(), Box<dyn std::error::Error>> {
     }
     Ok(())
 }
+
+#[test]
+fn launcher() -> Result<(), Box<dyn std::error::Error>> {
+    let runfile = runfiles::Runfiles::create()?;
+    let sample = std::env::var("SAMPLE")?;
+    let executable = runfiles::rlocation!(runfile, &sample).unwrap();
+    let directory = PathBuf::from(std::env::var("TEST_TMPDIR")?).join("launcher space");
+    fs::create_dir_all(&directory)?;
+    let manifest = directory.join("MANIFEST");
+    let name = sample.strip_suffix(".exe").unwrap_or(&sample);
+    let content = [
+        std::env::var("PROBE")?,
+        std::env::var("ARGUMENT")?,
+        format!("{name}.json"),
+    ]
+    .map(|name| {
+        format!(
+            "{} {}\n",
+            name,
+            runfiles::rlocation!(runfile, &name).unwrap().display()
+        )
+    })
+    .concat();
+    fs::write(&manifest, content)?;
+    for isolated in [false, true] {
+        let mut command = Command::new(&executable);
+        command.current_dir(&directory).arg("tail");
+        if isolated {
+            command
+                .env("RUNFILES_MANIFEST_FILE", &manifest)
+                .env_remove("RUNFILES_DIR")
+                .env_remove("TEST_SRCDIR");
+        }
+        let output = command.output()?;
+        assert_eq!(output.status.code(), Some(7), "{output:?}");
+    }
+    Ok(())
+}

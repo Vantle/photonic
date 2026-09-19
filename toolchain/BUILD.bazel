@@ -1,7 +1,10 @@
 load("@buildifier_prebuilt//:rules.bzl", "buildifier_test")
 load("@rules_rs//rs:rust_binary.bzl", "rust_binary")
 load("@rules_rs//rs:rust_test.bzl", "rust_test")
+load(":defs.bzl", "hermetic_binary")
 load(":node.bzl", "node")
+
+exports_files(["defs.bzl"])
 
 buildifier_test(
     name = "check",
@@ -16,6 +19,7 @@ filegroup(
     name = "build",
     srcs = [
         "BUILD.bazel",
+        "defs.bzl",
         "node.bzl",
     ],
     visibility = ["//:__pkg__"],
@@ -50,13 +54,44 @@ rust_test(
     crate_root = "test.rs",
     data = [
         "exit.mjs",
+        ":argument",
         ":execute",
         ":node",
+        ":probe",
+        ":sample",
     ],
     env = {
+        "SAMPLE": "$(rlocationpath :sample)",
+        "ARGUMENT": "$(rlocationpath :argument)",
+        "PROBE": "$(rlocationpath :probe)",
         "PHOTONIC_EXECUTE": "$(rlocationpath :execute)",
         "PHOTONIC_NODE": "$(rlocationpath :node)",
         "PHOTONIC_SCRIPT": "$(rlocationpath exit.mjs)",
     },
     deps = ["@rules_rust//rust/runfiles"],
+)
+
+rust_binary(
+    name = "probe",
+    testonly = True,
+    srcs = ["probe.rs"],
+    crate_root = "probe.rs",
+)
+
+hermetic_binary(
+    name = "sample",
+    testonly = True,
+    argument = [str(value) for value in range(20)] + [
+        "",
+        "space value",
+        "雪",
+    ],
+    entrypoint = ":probe",
+)
+
+rust_binary(
+    name = "argument",
+    srcs = ["argument.rs"],
+    crate_root = "argument.rs",
+    deps = ["@crate//:serde_json"],
 )

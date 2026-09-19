@@ -1,6 +1,6 @@
-use crate::failure::Failure;
-use crate::parser;
-use crate::syntax::Kind;
+use frontend::failure::Failure;
+use frontend::parser;
+use frontend::syntax::Kind;
 
 #[test]
 fn structure() {

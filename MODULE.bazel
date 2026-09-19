@@ -4,9 +4,16 @@ module(
     bazel_compatibility = [">=9.2.0"],
 )
 
+bazel_dep(name = "aspect_bazel_lib", version = "2.22.5", dev_dependency = True)
 bazel_dep(name = "buildifier_prebuilt", version = "8.5.1.4", dev_dependency = True)
 
 bazel_dep(name = "hermetic_launcher", version = "0.0.15")
+single_version_override(
+    module_name = "hermetic_launcher",
+    patch_strip = 1,
+    patches = ["//platform:launcher.patch"],
+)
+
 bazel_dep(name = "llvm", version = "0.8.19")
 bazel_dep(name = "platforms", version = "1.1.0")
 bazel_dep(name = "rules_rs", version = "0.0.110")
@@ -63,10 +70,6 @@ use_repo(rust, "rules_rust")
 bazel_dep(name = "rules_browsers", version = "0.4.0", dev_dependency = True)
 bazel_dep(name = "rules_nodejs", version = "6.7.5", dev_dependency = True)
 
-bazel_dep(name = "bazel_skylib", version = "1.9.0")
-
-bazel_dep(name = "aspect_bazel_lib", version = "2.22.5", dev_dependency = True)
-
 node = use_extension("@rules_nodejs//nodejs:extensions.bzl", "node", dev_dependency = True)
 node.toolchain(node_version = "22.18.0")
 use_repo(node, "nodejs_toolchains")
@@ -79,4 +82,13 @@ use_repo(browser, "rules_browsers_chrome_mac_arm", "rules_browsers_chromedriver_
 wasm = use_extension("@rules_rs//rs:rules_rust_wasm_bindgen.bzl", "rules_rust_wasm_bindgen")
 use_repo(wasm, "rules_rust_wasm_bindgen")
 
-register_toolchains("@rules_rust_wasm_bindgen//:default_wasm_bindgen_toolchain")
+binding = use_extension("//toolchain/wasm:extension.bzl", "binding")
+use_repo(binding, "aarch64-apple-darwin", "aarch64-unknown-linux-musl", "x86_64-apple-darwin", "x86_64-unknown-linux-musl")
+
+register_toolchains(
+    "//toolchain/wasm:aarch64-apple-darwin",
+    "//toolchain/wasm:x86_64-apple-darwin",
+    "//toolchain/wasm:aarch64-unknown-linux-musl",
+    "//toolchain/wasm:x86_64-unknown-linux-musl",
+    "@rules_rust_wasm_bindgen//:default_wasm_bindgen_toolchain",
+)

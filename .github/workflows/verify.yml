@@ -29,6 +29,7 @@ jobs:
           bazelisk-version: 1.28.1
           bazelisk-cache: true
           repository-cache: true
+          disk-cache: ${{ github.job }}
           cache-save: ${{ github.event_name != 'pull_request' }}
       - name: Build format
         run: bazel test //toolchain:check
@@ -53,9 +54,10 @@ jobs:
           bazelisk-version: 1.28.1
           bazelisk-cache: true
           repository-cache: true
+          disk-cache: ${{ github.job }}
           cache-save: ${{ github.event_name != 'pull_request' }}
       - name: Browser
-        run: bazel test //toolchain/browser:check
+        run: bazel test --config=release //toolchain/browser:check
       - name: Shutdown
         timeout-minutes: 2
         if: always() && steps.bazel.outcome == 'success'
@@ -93,16 +95,17 @@ jobs:
           bazelisk-version: 1.28.1
           bazelisk-cache: true
           repository-cache: true
+          disk-cache: ${{ github.job }}
           bazelrc: ${{ runner.os == 'Windows' && 'common --repo_contents_cache=' || '' }}
           cache-save: ${{ github.event_name != 'pull_request' }}
       - name: Build
-        run: bazel build -c opt //... --host_platform=//platform:${{ matrix.platform }} --platforms=//platform:${{ matrix.platform }}
+        run: bazel build --config=release //... --host_platform=//platform:${{ matrix.platform }} --platforms=//platform:${{ matrix.platform }}
       - name: Formatter
-        run: bazel run -c opt //:format --host_platform=//platform:${{ matrix.platform }} --platforms=//platform:${{ matrix.platform }} -- --check
+        run: bazel run --config=release //:format --host_platform=//platform:${{ matrix.platform }} --platforms=//platform:${{ matrix.platform }} -- --check
       - name: Dependency command
-        run: bazel run -c opt //:update --host_platform=//platform:${{ matrix.platform }} --platforms=//platform:${{ matrix.platform }} -- --help
+        run: bazel run --config=release //:update --host_platform=//platform:${{ matrix.platform }} --platforms=//platform:${{ matrix.platform }} -- --help
       - name: Test
-        run: bazel test -c opt //... --host_platform=//platform:${{ matrix.platform }} --platforms=//platform:${{ matrix.platform }}
+        run: bazel test --config=release //... --host_platform=//platform:${{ matrix.platform }} --platforms=//platform:${{ matrix.platform }}
       - name: Shutdown
         timeout-minutes: 2
         if: always() && steps.bazel.outcome == 'success'

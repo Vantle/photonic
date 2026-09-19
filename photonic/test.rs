@@ -125,16 +125,17 @@ fn manifest() {
     let root = directory();
     let runfile = runfiles::Runfiles::create().unwrap();
     let executable = executable("LOCAL");
-    let source = std::env::var("BUNDLE").unwrap();
-    let command = std::env::var("COMMAND").unwrap();
     let manifest = root.join("MANIFEST");
-    let content = format!(
-        "{} {}\n{} {}\n",
-        source,
-        runfile.rlocation_from(&source, "").unwrap().display(),
-        command,
-        runfile.rlocation_from(&command, "").unwrap().display()
-    );
+    let content = ["BUNDLE", "COMMAND", "LAUNCH"]
+        .map(|name| {
+            let source = std::env::var(name).unwrap();
+            format!(
+                "{} {}\n",
+                source,
+                runfile.rlocation_from(&source, "").unwrap().display()
+            )
+        })
+        .concat();
     std::fs::write(&manifest, content).unwrap();
     let output = Command::new(executable)
         .current_dir(&root)

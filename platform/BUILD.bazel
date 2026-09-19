@@ -1,7 +1,10 @@
 package(default_visibility = ["//visibility:public"])
 
 exports_files(
-    ["rust.patch"],
+    [
+        "launcher.patch",
+        "rust.patch",
+    ],
     visibility = ["//:__pkg__"],
 )
 

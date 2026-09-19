@@ -1,5 +1,5 @@
-use crate::lowering::{self, Failure};
-use crate::source::Value;
+use frontend::lowering::{self, Failure};
+use frontend::source::Value;
 
 fn atom(value: &[&str]) -> Vec<Value> {
     value
@@ -143,7 +143,7 @@ fn schema() {
         r#"{"initial":[[{"rule":{"input":[["A"]],"output":[],"negative":[["C"]]}}]]}"#,
     ] {
         assert!(
-            serde_json::from_str::<crate::source::Program>(source).is_err(),
+            serde_json::from_str::<frontend::source::Program>(source).is_err(),
             "{source}"
         );
     }

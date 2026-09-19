@@ -10,14 +10,16 @@ Bazel is the only required build tool. It downloads the pinned compiler and depe
 bazel run -c opt //toolchain/browser:serve
 bazel run -c opt //program/composition:pipeline
 bazel test -c opt //...
-bazel test //toolchain:check
-bazel build --config=format //...
-bazel build --config=lint //...
+bazel test --config=release //toolchain:check
+bazel build --config=release --config=format //...
+bazel build --config=release --config=lint //...
 ```
 
 Open http://127.0.0.1:8080 after starting the preview. The live examples run the Rust evaluator compiled to WebAssembly; Bazel builds the module and its wasm-bindgen bindings. Recorded diagrams remain available when opening the HTML file directly.
 
-Use `bazel test //toolchain/browser:check` on ARM64 macOS for the webbook and its Wasm sandbox.
+Use `bazel test --config=release //toolchain/browser:check` on ARM64 macOS for the webbook and its Wasm sandbox.
+
+See [build organization and performance](document/build.md) for caching, toolchains, and incremental-build measurements.
 
 ## Build native programs
 
@@ -51,7 +53,8 @@ A test accepts literal `source`, file `srcs`, and library `deps`. `targets` is a
 
 | Directory | Responsibility |
 | --- | --- |
-| [language/](language/) | Parsing, lowering, execution, Prism verification, and runtime conformance tests. |
+| [frontend/](frontend/) | Syntax, parsing, lowering, source types, and frontend conformance tests. |
+| [language/](language/) | Execution, Prism verification, and runtime conformance tests. |
 | [command/](command/) | Native command interface, diagnostics, and process integration tests. |
 | [library/](library/) | Reusable Photonic declarations, organized by protocol. |
 | [program/](program/) | Runnable Photonic programs, organized by subject. |

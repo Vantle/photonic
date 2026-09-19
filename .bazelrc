@@ -3,11 +3,18 @@ common --registry=https://bcr.bazel.build
 common --enable_platform_specific_config
 common:windows --host_platform=//platform:windows
 
+build --host_compilation_mode=fastbuild
 build --incompatible_strict_action_env
 build --sandbox_default_allow_network=false
 build --nostamp
 build --symlink_prefix=/
 build --repo_env=BAZEL_DO_NOT_DETECT_CPP_TOOLCHAIN=1
+build --disk_cache=~/.cache/photonic/bazel
+build --experimental_disk_cache_gc_max_size=20G
+build --experimental_disk_cache_gc_max_age=14d
+build --guard_against_concurrent_changes
+
+build:release --compilation_mode=opt
 
 test --test_output=errors
 

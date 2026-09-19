@@ -1,0 +1,110 @@
+load("@rules_rust_wasm_bindgen//:defs.bzl", "rust_wasm_bindgen_toolchain")
+load(":binary.bzl", "binary")
+
+exports_files(["extension.bzl"])
+
+filegroup(
+    name = "build",
+    srcs = [
+        "BUILD.bazel",
+        "binary.bzl",
+        "extension.bzl",
+    ],
+    visibility = ["//:__pkg__"],
+)
+
+binary(
+    name = "aarch64-apple-darwin.binary",
+    source = "@aarch64-apple-darwin//:wasm-bindgen",
+    tags = ["manual"],
+)
+
+rust_wasm_bindgen_toolchain(
+    name = "aarch64-apple-darwin.implementation",
+    tags = ["manual"],
+    wasm_bindgen_cli = ":aarch64-apple-darwin.binary",
+)
+
+toolchain(
+    name = "aarch64-apple-darwin",
+    exec_compatible_with = [
+        "@platforms//cpu:aarch64",
+        "@platforms//os:macos",
+    ],
+    tags = ["manual"],
+    toolchain = ":aarch64-apple-darwin.implementation",
+    toolchain_type = "@rules_rust_wasm_bindgen//:toolchain_type",
+    visibility = ["//visibility:public"],
+)
+
+binary(
+    name = "x86_64-apple-darwin.binary",
+    source = "@x86_64-apple-darwin//:wasm-bindgen",
+    tags = ["manual"],
+)
+
+rust_wasm_bindgen_toolchain(
+    name = "x86_64-apple-darwin.implementation",
+    tags = ["manual"],
+    wasm_bindgen_cli = ":x86_64-apple-darwin.binary",
+)
+
+toolchain(
+    name = "x86_64-apple-darwin",
+    exec_compatible_with = [
+        "@platforms//cpu:x86_64",
+        "@platforms//os:macos",
+    ],
+    tags = ["manual"],
+    toolchain = ":x86_64-apple-darwin.implementation",
+    toolchain_type = "@rules_rust_wasm_bindgen//:toolchain_type",
+    visibility = ["//visibility:public"],
+)
+
+binary(
+    name = "aarch64-unknown-linux-musl.binary",
+    source = "@aarch64-unknown-linux-musl//:wasm-bindgen",
+    tags = ["manual"],
+)
+
+rust_wasm_bindgen_toolchain(
+    name = "aarch64-unknown-linux-musl.implementation",
+    tags = ["manual"],
+    wasm_bindgen_cli = ":aarch64-unknown-linux-musl.binary",
+)
+
+toolchain(
+    name = "aarch64-unknown-linux-musl",
+    exec_compatible_with = [
+        "@platforms//cpu:aarch64",
+        "@platforms//os:linux",
+    ],
+    tags = ["manual"],
+    toolchain = ":aarch64-unknown-linux-musl.implementation",
+    toolchain_type = "@rules_rust_wasm_bindgen//:toolchain_type",
+    visibility = ["//visibility:public"],
+)
+
+binary(
+    name = "x86_64-unknown-linux-musl.binary",
+    source = "@x86_64-unknown-linux-musl//:wasm-bindgen",
+    tags = ["manual"],
+)
+
+rust_wasm_bindgen_toolchain(
+    name = "x86_64-unknown-linux-musl.implementation",
+    tags = ["manual"],
+    wasm_bindgen_cli = ":x86_64-unknown-linux-musl.binary",
+)
+
+toolchain(
+    name = "x86_64-unknown-linux-musl",
+    exec_compatible_with = [
+        "@platforms//cpu:x86_64",
+        "@platforms//os:linux",
+    ],
+    tags = ["manual"],
+    toolchain = ":x86_64-unknown-linux-musl.implementation",
+    toolchain_type = "@rules_rust_wasm_bindgen//:toolchain_type",
+    visibility = ["//visibility:public"],
+)

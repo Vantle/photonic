@@ -1,17 +1,15 @@
 """Native Photonic source libraries and executable programs."""
 
-load("@bazel_skylib//rules:native_binary.bzl", "native_test")
-load("@rules_rs//rs:rust_binary.bzl", "rust_binary")
+load("//toolchain:defs.bzl", "hermetic_binary", "hermetic_test")
 
 Info = provider(
-    doc = "Transitive declaration sources and validated assembly artifacts.",
+    doc = "Transitive declaration sources.",
     fields = {
         "source": "A depset of native declaration files.",
-        "validation": "A depset of validated library artifacts.",
     },
 )
 
-def _assemble(ctx, source, library, validation):
+def _assemble(ctx, source, library):
     output = ctx.actions.declare_file(ctx.label.name + ".json")
     argument = ctx.actions.args()
     argument.add("--output", output)
@@ -20,7 +18,7 @@ def _assemble(ctx, source, library, validation):
     ctx.actions.run(
         executable = ctx.executable._assemble,
         arguments = [argument],
-        inputs = depset(source + library, transitive = [validation]),
+        inputs = depset(source + library),
         outputs = [output],
         mnemonic = "Photonic",
         progress_message = "Assembling Photonic %{label}",
@@ -29,10 +27,9 @@ def _assemble(ctx, source, library, validation):
 
 def _library(ctx):
     source = depset(ctx.files.srcs, transitive = [dep[Info].source for dep in ctx.attr.deps], order = "postorder")
-    validation = depset(transitive = [dep[Info].validation for dep in ctx.attr.deps])
-    output = _assemble(ctx, [], source.to_list(), validation)
+    output = _assemble(ctx, [], source.to_list())
     return [
-        Info(source = source, validation = depset([output], transitive = [validation])),
+        Info(source = source),
         DefaultInfo(files = depset([output])),
     ]
 
@@ -56,20 +53,11 @@ def _load(ctx):
     overlap = {file.path: True for file in library}
     if any([file.path in overlap for file in source]):
         fail("a source cannot also be supplied by a library dependency")
-    validation = depset(transitive = [dep[Info].validation for dep in ctx.attr.deps])
-    return _assemble(ctx, source, library, validation)
+    return _assemble(ctx, source, library)
 
 def _binary(ctx):
     output = _load(ctx)
-    launcher = ctx.actions.declare_file(ctx.label.name + ".rs")
-    ctx.actions.write(launcher, "const EXECUTABLE: &str = %s;\nconst SOURCE: &str = %s;\n\nfn main() -> Result<std::process::ExitCode, std::io::Error> {\n    launch::run(EXECUTABLE, SOURCE)\n}\n" % (
-        json.encode(_runfile(ctx, ctx.executable._command)),
-        json.encode(_runfile(ctx, output)),
-    ))
-    return [
-        DefaultInfo(files = depset([output, launcher])),
-        OutputGroupInfo(source = depset([launcher]), program = depset([output])),
-    ]
+    return [DefaultInfo(files = depset([output]))]
 
 _program = rule(
     implementation = _binary,
@@ -77,7 +65,6 @@ _program = rule(
         "srcs": attr.label_list(allow_files = [".particle", ".wave"], mandatory = True),
         "deps": attr.label_list(providers = [Info]),
         "_assemble": attr.label(default = "//photonic:assemble", executable = True, cfg = "exec"),
-        "_command": attr.label(default = "//command:photonic", executable = True, cfg = "target"),
     },
 )
 
@@ -93,14 +80,11 @@ def photonic_binary(name, srcs, deps = [], visibility = None, testonly = False, 
         tags: Bazel tags attached to the executable.
     """
     _program(name = name + ".assembly", srcs = srcs, deps = deps, visibility = ["//visibility:private"], testonly = testonly)
-    native.filegroup(name = name + ".source", srcs = [":" + name + ".assembly"], output_group = "source", visibility = ["//visibility:private"], testonly = testonly)
-    native.filegroup(name = name + ".program", srcs = [":" + name + ".assembly"], output_group = "program", visibility = visibility, testonly = testonly)
-    rust_binary(
+    native.filegroup(name = name + ".program", srcs = [":" + name + ".assembly"], visibility = visibility, testonly = testonly)
+    hermetic_binary(
         name = name,
-        srcs = [":" + name + ".source"],
-        crate_root = ":" + name + ".source",
-        crate_name = "program",
-        deps = ["//photonic:launch"],
+        entrypoint = "//photonic:launch",
+        argument = ["$(rlocationpath //command:photonic)", "$(rlocationpath :" + name + ".program)"],
         data = [":" + name + ".program", "//command:photonic"],
         visibility = visibility,
         testonly = testonly,
@@ -173,10 +157,10 @@ def photonic_test(name, source, targets, srcs = [], deps = [], match = "all", ex
         tags: Bazel test tags.
     """
     _case(name = name + ".case", source = source, targets = targets, srcs = srcs, deps = deps, match = match, expect = expect, path = path, steps = steps, states = states, cells = cells, frames = frames, coherences = coherences, records = records, visibility = ["//visibility:private"], testonly = True)
-    native_test(
+    hermetic_test(
         name = name,
-        src = "//photonic:check",
-        args = ["$(rlocationpath :" + name + ".case)"],
+        entrypoint = "//photonic:check",
+        argument = ["$(rlocationpath :" + name + ".case)"],
         data = [":" + name + ".case"],
         size = size,
         visibility = visibility,

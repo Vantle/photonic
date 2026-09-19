@@ -1,0 +1,48 @@
+load("@rules_rs//rs:rust_library.bzl", "rust_library")
+load("@rules_rs//rs:rust_test.bzl", "rust_test")
+
+rust_library(
+    name = "frontend",
+    srcs = [
+        "expansion.rs",
+        "failure.rs",
+        "frontend.rs",
+        "lowering.rs",
+        "parser.rs",
+        "source.rs",
+        "syntax.rs",
+    ],
+    crate_root = "frontend.rs",
+    proc_macro_deps = ["@crate//:pest_derive"],
+    visibility = [
+        "//language:__pkg__",
+        "//photonic:__pkg__",
+    ],
+    deps = [
+        "@crate//:miette",
+        "@crate//:pest",
+        "@crate//:serde",
+        "@crate//:thiserror",
+    ],
+)
+
+filegroup(
+    name = "build",
+    srcs = ["BUILD.bazel"],
+    visibility = ["//:__pkg__"],
+)
+
+rust_test(
+    name = "test",
+    srcs = [
+        "test/lowering.rs",
+        "test/parser.rs",
+        "test/suite.rs",
+    ],
+    compile_data = ["//program/language:fixture"],
+    crate_root = "test/suite.rs",
+    deps = [
+        ":frontend",
+        "@crate//:serde_json",
+    ],
+)

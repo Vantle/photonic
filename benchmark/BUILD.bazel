@@ -1,5 +1,5 @@
-load("@bazel_skylib//rules:native_binary.bzl", "native_binary")
 load("@rules_rs//rs:rust_binary.bzl", "rust_binary")
+load("//toolchain:defs.bzl", "hermetic_binary")
 
 rust_binary(
     name = "arithmetic",
@@ -15,10 +15,9 @@ rust_binary(
     ],
 )
 
-native_binary(
+hermetic_binary(
     name = "browser",
-    src = "//toolchain:execute",
-    args = [
+    argument = [
         "$(rlocationpath //toolchain:node)",
         "$(rlocationpath browser.mjs)",
         "$(rlocationpath //toolchain/browser:webassembly)",
@@ -32,6 +31,7 @@ native_binary(
         "//toolchain/browser:javascript",
         "//toolchain/browser:webassembly",
     ],
+    entrypoint = "//toolchain:execute",
 )
 
 rust_binary(

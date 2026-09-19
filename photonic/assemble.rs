@@ -1,5 +1,5 @@
 use clap::Parser;
-use photonic::source::Program;
+use frontend::source::Program;
 use std::path::PathBuf;
 
 #[derive(Parser)]
@@ -14,7 +14,7 @@ struct Argument {
 
 fn read(path: &PathBuf) -> Result<Program, Box<dyn std::error::Error>> {
     let source = std::fs::read_to_string(path)?;
-    photonic::lowering::parse(&source)
+    frontend::lowering::parse(&source)
         .map_err(|failure| format!("{}: {failure}", path.display()).into())
 }
 
