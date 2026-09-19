@@ -32,6 +32,8 @@ fn reference() {
         "A.A.A [A.A] B",
         "A.X,B.X [A,B] C,D",
         "A [A] B,C [B,C] D",
+        "A,A,B [A,B] C",
+        "A.X,A.Y,B [A,B] C,D",
         "Seed.A [Seed] [A] B",
         "A [A] (B [B] C)",
         "A.X [A] (B [B] C),D [C,D] E",
@@ -119,6 +121,7 @@ fn incremental() {
         "A [A] (B [B] C) [C] (D [D] A)",
         "A.([A] B),A.([A] C) [B,C] D",
         "A,A,A [A,A] B [B,A] C",
+        "A,A,B [A,B] C [A,C] D",
         "A [A] B [B] A [ ] Z",
     ] {
         let program = Arc::new(Program::new(crate::lowering::parse(source).unwrap()));

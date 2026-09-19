@@ -3,7 +3,7 @@ use crate::program::Symbol;
 use crate::state::{State, Token};
 use std::sync::Arc;
 
-fn mix(mut value: u64) -> u64 {
+pub(crate) fn mix(mut value: u64) -> u64 {
     value = (value ^ (value >> 30)).wrapping_mul(0xbf58476d1ce4e5b9);
     value = (value ^ (value >> 27)).wrapping_mul(0x94d049bb133111eb);
     value ^ (value >> 31)
@@ -67,19 +67,31 @@ pub(crate) struct Index {
     frame: [Vec<u64>; 3],
     world: Vec<Arc<World>>,
     pub value: u64,
+    pub layout: crate::layout::Layout,
     retained: usize,
 }
 
 impl Index {
     pub(crate) fn new(state: Arc<State>) -> Self {
-        Self::construct(state, None, &Set::default())
+        let reachable = state.reachable();
+        Self::construct(state, None, &Set::default(), reachable)
     }
 
-    pub(crate) fn advance(&self, state: Arc<State>, removed: &Set<usize>) -> Self {
-        Self::construct(state, Some(self), removed)
+    pub(crate) fn advance(
+        &self,
+        state: Arc<State>,
+        removed: &Set<usize>,
+        reachable: Vec<usize>,
+    ) -> Self {
+        Self::construct(state, Some(self), removed, reachable)
     }
 
-    fn construct(state: Arc<State>, previous: Option<&Self>, removed: &Set<usize>) -> Self {
+    fn construct(
+        state: Arc<State>,
+        previous: Option<&Self>,
+        removed: &Set<usize>,
+        reachable: Vec<usize>,
+    ) -> Self {
         let stable = state
             .frame
             .iter()
@@ -163,9 +175,12 @@ impl Index {
             world.push(Arc::new(World::new(value, &frame[2])));
         }
         let value = mix(collection(world.iter().map(|world| world.value))).wrapping_add(
-            collection(state.reachable().into_iter().map(|index| frame[2][index])).rotate_left(31),
+            collection(reachable.iter().map(|&index| frame[2][index])).rotate_left(31),
         );
-        let retained = frame.iter().map(Vec::len).sum::<usize>()
+        let layout = crate::layout::Layout::new(&state, reachable);
+        let retained = layout.reachable.len()
+            + 1
+            + frame.iter().map(Vec::len).sum::<usize>()
             + world.len()
             + world
                 .iter()
@@ -177,6 +192,7 @@ impl Index {
             world,
             value,
             retained,
+            layout,
         }
     }
 

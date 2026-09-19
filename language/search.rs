@@ -31,9 +31,10 @@ impl Search {
         index: Arc<crate::index::Index>,
     ) -> Self {
         let candidate = selection
-            .candidate
+            .order
             .iter()
-            .map(|candidate| {
+            .map(|&position| {
+                let candidate = &selection.candidate[position];
                 let mut candidate = candidate
                     .iter()
                     .map(|&site| index.world(site))
@@ -65,7 +66,7 @@ impl Search {
     }
 
     pub(crate) fn viable(&self) -> bool {
-        self.selection.pattern.is_empty() || !self.candidate.is_empty()
+        self.selection.viable
     }
 
     pub(crate) fn retained(&self) -> usize {
@@ -119,7 +120,7 @@ impl Search {
             self.world = world;
             self.position = position;
             self.particle = Some(crate::particle::Match::new(
-                &self.selection.pattern[position],
+                &self.selection.pattern[self.selection.order[position]],
                 &self.index.state.world[world].particle,
             ));
         }

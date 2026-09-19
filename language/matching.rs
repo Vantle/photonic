@@ -1,7 +1,6 @@
 use crate::program::Symbol;
 use indexmap::IndexSet;
 use std::collections::VecDeque;
-use std::sync::Arc;
 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct Term {
@@ -38,7 +37,7 @@ enum Task {
         end: usize,
     },
     Follow {
-        binding: Arc<Vec<Slot>>,
+        binding: Option<usize>,
         position: usize,
         cursor: usize,
         end: usize,
@@ -48,7 +47,8 @@ enum Task {
 pub struct Gate {
     pattern: Vec<Vec<Term>>,
     candidate: Vec<IndexSet<Slot>>,
-    prefix: Vec<Vec<Arc<Vec<Slot>>>>,
+    prefix: Vec<Vec<Option<usize>>>,
+    binding: Vec<crate::prefix::Prefix>,
     agenda: VecDeque<Task>,
 }
 
@@ -56,11 +56,12 @@ impl Gate {
     pub fn new(pattern: Vec<Vec<Term>>) -> Self {
         let count = pattern.len();
         let mut prefix = vec![Vec::new(); count + 1];
-        prefix[0].push(Arc::new(Vec::new()));
+        prefix[0].push(None);
         Self {
             pattern,
             candidate: vec![IndexSet::new(); count],
             prefix,
+            binding: Vec::new(),
             agenda: VecDeque::new(),
         }
     }
@@ -87,7 +88,7 @@ impl Gate {
     pub(crate) fn step(&mut self) -> Option<Vec<Slot>> {
         let (binding, slot) = match self.agenda.pop_front()? {
             Task::Arrival { slot, cursor, end } => {
-                let binding = self.prefix[slot.position][cursor].clone();
+                let binding = self.prefix[slot.position][cursor];
                 if cursor + 1 < end {
                     self.agenda.push_back(Task::Arrival {
                         slot: slot.clone(),
@@ -106,7 +107,7 @@ impl Gate {
                 let slot = self.candidate[position][cursor].clone();
                 if cursor + 1 < end {
                     self.agenda.push_back(Task::Follow {
-                        binding: binding.clone(),
+                        binding,
                         position,
                         cursor: cursor + 1,
                         end,
@@ -115,25 +116,41 @@ impl Gate {
                 (binding, slot)
             }
         };
-        if binding.iter().any(|item| item.world == slot.world) {
-            return None;
-        }
-        if binding
-            .iter()
-            .rev()
-            .find(|item| self.pattern[item.position] == self.pattern[slot.position])
-            .is_some_and(|item| item.world >= slot.world)
-        {
-            return None;
+        let mut cursor = binding;
+        let mut equivalent = false;
+        while let Some(index) = cursor {
+            let prefix = &self.binding[index];
+            if prefix.slot.world == slot.world {
+                return None;
+            }
+            if !equivalent && self.pattern[prefix.slot.position] == self.pattern[slot.position] {
+                if prefix.slot.world >= slot.world {
+                    return None;
+                }
+                equivalent = true;
+            }
+            cursor = prefix.parent;
         }
         let next = slot.position + 1;
-        let mut value = (*binding).clone();
-        value.push(slot);
         if next == self.pattern.len() {
+            let mut value = Vec::with_capacity(next);
+            value.push(slot);
+            let mut cursor = binding;
+            while let Some(index) = cursor {
+                let prefix = &self.binding[index];
+                value.push(prefix.slot.clone());
+                cursor = prefix.parent;
+            }
+            value.reverse();
             return Some(value);
         }
-        let binding = Arc::new(value);
-        self.prefix[next].push(binding.clone());
+        let index = self.binding.len();
+        self.binding.push(crate::prefix::Prefix {
+            parent: binding,
+            slot,
+        });
+        let binding = Some(index);
+        self.prefix[next].push(binding);
         let end = self.candidate[next].len();
         if end > 0 {
             self.agenda.push_back(Task::Follow {

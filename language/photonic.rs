@@ -6,6 +6,7 @@ mod agenda;
 mod symmetry;
 mod work;
 
+mod accumulator;
 mod activation;
 mod application;
 mod assignment;
@@ -17,13 +18,16 @@ pub mod flow;
 mod graph;
 mod incidence;
 mod index;
+mod layout;
 mod matching;
 mod ordering;
 mod particle;
 mod partition;
 pub mod path;
+mod prefix;
 pub mod prism;
 mod program;
+mod propagation;
 mod query;
 mod reduction;
 mod refinement;
@@ -33,6 +37,7 @@ mod search;
 mod selection;
 pub mod snapshot;
 mod state;
+mod structure;
 pub mod support;
 
 #[cfg(test)]

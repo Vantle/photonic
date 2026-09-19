@@ -1,5 +1,7 @@
 # Evaluation runtime
 
+The subsequent [incremental implementation](incremental.md) builds on this baseline and records its own measurements.
+
 Photonic evaluation has hypergraph structure: a particle groups resource occurrences, shared resource identity connects particles, and a synchronized firing consumes and produces groups together. Flattening those groups into pairwise adjacency would lose information. The implementation uses a typed incidence graph with explicit world, frame, and resource vertices. Distinct edge types preserve containment, holding, capture, parent, and lexical relationships. Repeated membership remains repeated incidence, and the root frame has a distinct label.
 
 `language/incidence.rs` supplies this representation to both exact canonicalization and structural filtering. An isomorphic renaming preserves every label and edge type. A hash match remains only a candidate for equality; the exact canonicalizer decides equality. Regression tests include shared versus independent resources, capture reassignment, reordered particles and frames, renamed resources, and a six-cycle versus two triangles that collide under neighborhood refinement but are not isomorphic.

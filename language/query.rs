@@ -15,6 +15,8 @@ struct Key {
 struct Plan {
     input: Vec<Vec<Symbol>>,
     revision: usize,
+    pattern: Arc<Vec<Vec<matching::Term>>>,
+    capture: bool,
 }
 
 struct Entry {
@@ -49,6 +51,16 @@ impl Query {
                     plan.push(Plan {
                         input: rule.input.clone(),
                         revision: 0,
+                        pattern: Arc::new(if rule.input.is_empty() {
+                            vec![Vec::new()]
+                        } else {
+                            matching::pattern(&rule.input, None)
+                        }),
+                        capture: rule
+                            .input
+                            .iter()
+                            .flatten()
+                            .any(|symbol| matches!(symbol, Symbol::Rule(_))),
                     });
                     index
                 })
@@ -72,7 +84,9 @@ impl Query {
         }
         let base = plan
             .iter()
-            .map(|plan| 1 + plan.input.len() + plan.input.iter().map(Vec::len).sum::<usize>())
+            .map(|plan| {
+                1 + plan.input.len() * 2 + plan.input.iter().map(Vec::len).sum::<usize>() * 2
+            })
             .sum::<usize>()
             + rule.len()
             + empty.len()
@@ -99,31 +113,41 @@ impl Query {
         owner: usize,
         index: &Index,
     ) -> Arc<Selection> {
+        let plan = &self.plan[self.rule[rule]];
         let key = Key {
             pattern: self.rule[rule],
             frame,
-            owner,
+            owner: if plan.capture { owner } else { 0 },
         };
-        let plan = &self.plan[key.pattern];
-        let previous = self.entry.get(&key);
-        let selection = if let Some(previous) =
-            previous.filter(|previous| previous.revision == plan.revision)
-        {
-            self.reuse += 1;
-            previous.selection.clone()
-        } else {
-            self.preparation += 1;
-            let pattern = if let Some(previous) = previous {
-                previous.selection.pattern.clone()
+        if let Some(entry) = self.entry.get_mut(&key) {
+            let selection = if entry.revision == plan.revision {
+                None
+            } else if entry.generation + 1 == self.generation {
+                entry.selection.advance(index, frame)
             } else {
-                Arc::new(if plan.input.is_empty() {
-                    vec![Vec::new()]
-                } else {
-                    matching::pattern(&plan.input, Some(owner))
-                })
+                Some(Selection::new(
+                    entry.selection.pattern.clone(),
+                    index,
+                    frame,
+                ))
             };
-            Arc::new(Selection::new(pattern, index, frame))
+            if let Some(selection) = selection {
+                self.preparation += 1;
+                entry.selection = Arc::new(selection);
+            } else {
+                self.reuse += 1;
+            }
+            entry.generation = self.generation;
+            entry.revision = plan.revision;
+            return entry.selection.clone();
+        }
+        self.preparation += 1;
+        let pattern = if plan.capture {
+            Arc::new(matching::pattern(&plan.input, Some(owner)))
+        } else {
+            plan.pattern.clone()
         };
+        let selection = Arc::new(Selection::new(pattern, index, frame));
         self.entry.insert(
             key,
             Entry {

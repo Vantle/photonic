@@ -1,0 +1,820 @@
+{
+  "baseline": "b8010d21b640729a2e8de16411c68da21e8df495",
+  "date": "2026-09-19",
+  "hardware": "Apple M5 Max",
+  "system": "macOS 26.6.2",
+  "build": "bazel run -c opt",
+  "sample": 3,
+  "warmup": 1,
+  "timing": "Execution only; parsing, compilation, initialization, reporting, and release excluded. Programs run sequentially without concurrent builds or tests.",
+  "case": [
+    {
+      "name": "Six factors of two",
+      "before": {
+        "expected": "2101",
+        "input": "2*2*2*2*2*2",
+        "measurement": [
+          {
+            "event": 10101,
+            "execution": 0.082729625,
+            "initialization": 0.001920209,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 93854,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 23458
+            },
+            "work": 29655
+          },
+          {
+            "event": 10101,
+            "execution": 0.080850625,
+            "initialization": 0.001744625,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 93854,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 23458
+            },
+            "work": 29655
+          },
+          {
+            "event": 10101,
+            "execution": 0.079177334,
+            "initialization": 0.001708708,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 93854,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 23458
+            },
+            "work": 29655
+          }
+        ]
+      },
+      "after": {
+        "expected": "2101",
+        "input": "2*2*2*2*2*2",
+        "measurement": [
+          {
+            "event": 10101,
+            "execution": 0.065968875,
+            "initialization": 0.001744875,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 73893,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 43419
+            },
+            "work": 29655
+          },
+          {
+            "event": 10101,
+            "execution": 0.064825625,
+            "initialization": 0.001686417,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 73893,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 43419
+            },
+            "work": 29655
+          },
+          {
+            "event": 10101,
+            "execution": 0.06403,
+            "initialization": 0.00166975,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 73893,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 43419
+            },
+            "work": 29655
+          }
+        ]
+      },
+      "speedup": 1.2472016274428515
+    },
+    {
+      "name": "Ten factors of two",
+      "before": {
+        "expected": "1101221",
+        "input": "2*2*2*2*2*2*2*2*2*2",
+        "measurement": [
+          {
+            "event": 22924,
+            "execution": 0.232418375,
+            "initialization": 0.001784833,
+            "statistic": {
+              "bucket": 2,
+              "normalization": 1,
+              "preparation": 292238,
+              "refinement": 417,
+              "resolution": 1,
+              "reuse": 76259
+            },
+            "work": 66714
+          },
+          {
+            "event": 22924,
+            "execution": 0.230795167,
+            "initialization": 0.001677125,
+            "statistic": {
+              "bucket": 2,
+              "normalization": 1,
+              "preparation": 292238,
+              "refinement": 417,
+              "resolution": 1,
+              "reuse": 76259
+            },
+            "work": 66714
+          },
+          {
+            "event": 22924,
+            "execution": 0.228661167,
+            "initialization": 0.001655875,
+            "statistic": {
+              "bucket": 2,
+              "normalization": 1,
+              "preparation": 292238,
+              "refinement": 417,
+              "resolution": 1,
+              "reuse": 76259
+            },
+            "work": 66714
+          }
+        ]
+      },
+      "after": {
+        "expected": "1101221",
+        "input": "2*2*2*2*2*2*2*2*2*2",
+        "measurement": [
+          {
+            "event": 22924,
+            "execution": 0.183342042,
+            "initialization": 0.001813584,
+            "statistic": {
+              "bucket": 2,
+              "normalization": 1,
+              "preparation": 218547,
+              "refinement": 417,
+              "resolution": 1,
+              "reuse": 149950
+            },
+            "work": 66714
+          },
+          {
+            "event": 22924,
+            "execution": 0.184976,
+            "initialization": 0.001711959,
+            "statistic": {
+              "bucket": 2,
+              "normalization": 1,
+              "preparation": 218547,
+              "refinement": 417,
+              "resolution": 1,
+              "reuse": 149950
+            },
+            "work": 66714
+          },
+          {
+            "event": 22924,
+            "execution": 0.185229417,
+            "initialization": 0.001775084,
+            "statistic": {
+              "bucket": 2,
+              "normalization": 1,
+              "preparation": 218547,
+              "refinement": 417,
+              "resolution": 1,
+              "reuse": 149950
+            },
+            "work": 66714
+          }
+        ]
+      },
+      "speedup": 1.2477033074561024
+    },
+    {
+      "name": "Twenty factors of two",
+      "before": {
+        "expected": "1222021101011",
+        "input": "2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2",
+        "measurement": [
+          {
+            "event": 73376,
+            "execution": 1.374592875,
+            "initialization": 0.001824334,
+            "statistic": {
+              "bucket": 4,
+              "normalization": 1,
+              "preparation": 1538849,
+              "refinement": 9821,
+              "resolution": 241,
+              "reuse": 422176
+            },
+            "work": 211344
+          },
+          {
+            "event": 73376,
+            "execution": 1.370172416,
+            "initialization": 0.001827625,
+            "statistic": {
+              "bucket": 4,
+              "normalization": 1,
+              "preparation": 1538849,
+              "refinement": 9821,
+              "resolution": 241,
+              "reuse": 422176
+            },
+            "work": 211344
+          },
+          {
+            "event": 73376,
+            "execution": 1.3757645,
+            "initialization": 0.001740292,
+            "statistic": {
+              "bucket": 4,
+              "normalization": 1,
+              "preparation": 1538849,
+              "refinement": 9821,
+              "resolution": 241,
+              "reuse": 422176
+            },
+            "work": 211344
+          }
+        ]
+      },
+      "after": {
+        "expected": "1222021101011",
+        "input": "2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2",
+        "measurement": [
+          {
+            "event": 73376,
+            "execution": 1.021320041,
+            "initialization": 0.00194325,
+            "statistic": {
+              "bucket": 4,
+              "normalization": 1,
+              "preparation": 1066572,
+              "refinement": 9821,
+              "resolution": 241,
+              "reuse": 894453
+            },
+            "work": 211344
+          },
+          {
+            "event": 73376,
+            "execution": 1.012743333,
+            "initialization": 0.002113041,
+            "statistic": {
+              "bucket": 4,
+              "normalization": 1,
+              "preparation": 1066572,
+              "refinement": 9821,
+              "resolution": 241,
+              "reuse": 894453
+            },
+            "work": 211344
+          },
+          {
+            "event": 73376,
+            "execution": 1.002773708,
+            "initialization": 0.001940458,
+            "statistic": {
+              "bucket": 4,
+              "normalization": 1,
+              "preparation": 1066572,
+              "refinement": 9821,
+              "resolution": 241,
+              "reuse": 894453
+            },
+            "work": 211344
+          }
+        ]
+      },
+      "speedup": 1.3572963950580754
+    },
+    {
+      "name": "Thirty factors of two",
+      "before": {
+        "expected": "2202211102201212201",
+        "input": "2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2",
+        "measurement": [
+          {
+            "event": 151476,
+            "execution": 4.339919834,
+            "initialization": 0.002138917,
+            "statistic": {
+              "bucket": 7,
+              "normalization": 1,
+              "preparation": 4387525,
+              "refinement": 30092,
+              "resolution": 961,
+              "reuse": 1231802
+            },
+            "work": 434054
+          },
+          {
+            "event": 151476,
+            "execution": 4.336512,
+            "initialization": 0.002144166,
+            "statistic": {
+              "bucket": 7,
+              "normalization": 1,
+              "preparation": 4387525,
+              "refinement": 30092,
+              "resolution": 961,
+              "reuse": 1231802
+            },
+            "work": 434054
+          },
+          {
+            "event": 151476,
+            "execution": 4.30593575,
+            "initialization": 0.002110833,
+            "statistic": {
+              "bucket": 7,
+              "normalization": 1,
+              "preparation": 4387525,
+              "refinement": 30092,
+              "resolution": 961,
+              "reuse": 1231802
+            },
+            "work": 434054
+          }
+        ]
+      },
+      "after": {
+        "expected": "2202211102201212201",
+        "input": "2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2",
+        "measurement": [
+          {
+            "event": 151476,
+            "execution": 3.034648458,
+            "initialization": 0.002145333,
+            "statistic": {
+              "bucket": 7,
+              "normalization": 1,
+              "preparation": 2913625,
+              "refinement": 30092,
+              "resolution": 961,
+              "reuse": 2705702
+            },
+            "work": 434054
+          },
+          {
+            "event": 151476,
+            "execution": 3.038708417,
+            "initialization": 0.002105042,
+            "statistic": {
+              "bucket": 7,
+              "normalization": 1,
+              "preparation": 2913625,
+              "refinement": 30092,
+              "resolution": 961,
+              "reuse": 2705702
+            },
+            "work": 434054
+          },
+          {
+            "event": 151476,
+            "execution": 3.047636458,
+            "initialization": 0.0020345,
+            "statistic": {
+              "bucket": 7,
+              "normalization": 1,
+              "preparation": 2913625,
+              "refinement": 30092,
+              "resolution": 961,
+              "reuse": 2705702
+            },
+            "work": 434054
+          }
+        ]
+      },
+      "speedup": 1.4270905282453101
+    },
+    {
+      "name": "Nested ternary expression",
+      "before": {
+        "expected": "2122",
+        "input": "(12+21)*(22-10)+102",
+        "measurement": [
+          {
+            "event": 7631,
+            "execution": 0.06412325,
+            "initialization": 0.001698041,
+            "statistic": {
+              "bucket": 2,
+              "normalization": 1,
+              "preparation": 73153,
+              "refinement": 127,
+              "resolution": 1,
+              "reuse": 19797
+            },
+            "work": 22232
+          },
+          {
+            "event": 7631,
+            "execution": 0.064113709,
+            "initialization": 0.001791125,
+            "statistic": {
+              "bucket": 2,
+              "normalization": 1,
+              "preparation": 73153,
+              "refinement": 127,
+              "resolution": 1,
+              "reuse": 19797
+            },
+            "work": 22232
+          },
+          {
+            "event": 7631,
+            "execution": 0.064714916,
+            "initialization": 0.00164875,
+            "statistic": {
+              "bucket": 2,
+              "normalization": 1,
+              "preparation": 73153,
+              "refinement": 127,
+              "resolution": 1,
+              "reuse": 19797
+            },
+            "work": 22232
+          }
+        ]
+      },
+      "after": {
+        "expected": "2122",
+        "input": "(12+21)*(22-10)+102",
+        "measurement": [
+          {
+            "event": 7631,
+            "execution": 0.053105041,
+            "initialization": 0.001832625,
+            "statistic": {
+              "bucket": 2,
+              "normalization": 1,
+              "preparation": 54557,
+              "refinement": 127,
+              "resolution": 1,
+              "reuse": 38393
+            },
+            "work": 22232
+          },
+          {
+            "event": 7631,
+            "execution": 0.051851458,
+            "initialization": 0.001776208,
+            "statistic": {
+              "bucket": 2,
+              "normalization": 1,
+              "preparation": 54557,
+              "refinement": 127,
+              "resolution": 1,
+              "reuse": 38393
+            },
+            "work": 22232
+          },
+          {
+            "event": 7631,
+            "execution": 0.052591416,
+            "initialization": 0.001741167,
+            "statistic": {
+              "bucket": 2,
+              "normalization": 1,
+              "preparation": 54557,
+              "refinement": 127,
+              "resolution": 1,
+              "reuse": 38393
+            },
+            "work": 22232
+          }
+        ]
+      },
+      "speedup": 1.2192721717171489
+    },
+    {
+      "name": "Ten-digit decimal addition",
+      "before": {
+        "decimal": "1234567890 + 9876543210 = 11111111100",
+        "input": "10012001001112202200+221111022110101020200",
+        "measurement": [
+          {
+            "event": 11839,
+            "execution": 0.280424958,
+            "initialization": 0.00177475,
+            "statistic": {
+              "bucket": 5,
+              "normalization": 1,
+              "preparation": 193062,
+              "refinement": 3910,
+              "resolution": 51,
+              "reuse": 56991
+            },
+            "work": 33168
+          },
+          {
+            "event": 11839,
+            "execution": 0.280292,
+            "initialization": 0.001792834,
+            "statistic": {
+              "bucket": 5,
+              "normalization": 1,
+              "preparation": 193062,
+              "refinement": 3910,
+              "resolution": 51,
+              "reuse": 56991
+            },
+            "work": 33168
+          },
+          {
+            "event": 11839,
+            "execution": 0.279672792,
+            "initialization": 0.001778208,
+            "statistic": {
+              "bucket": 5,
+              "normalization": 1,
+              "preparation": 193062,
+              "refinement": 3910,
+              "resolution": 51,
+              "reuse": 56991
+            },
+            "work": 33168
+          }
+        ],
+        "source": "Push.([Digit] 0).Zero, Stage.1\n[Built,Stage.1] (Push.([Digit] 0)) (Forget.Stage.2)\n[Clean.Stage.2] Stage.2\n[Built,Stage.2] (Push.([Digit] 2)) (Forget.Stage.3)\n[Clean.Stage.3] Stage.3\n[Built,Stage.3] (Push.([Digit] 0)) (Forget.Stage.4)\n[Clean.Stage.4] Stage.4\n[Built,Stage.4] (Push.([Digit] 2)) (Forget.Stage.5)\n[Clean.Stage.5] Stage.5\n[Built,Stage.5] (Push.([Digit] 0)) (Forget.Stage.6)\n[Clean.Stage.6] Stage.6\n[Built,Stage.6] (Push.([Digit] 1)) (Forget.Stage.7)\n[Clean.Stage.7] Stage.7\n[Built,Stage.7] (Push.([Digit] 0)) (Forget.Stage.8)\n[Clean.Stage.8] Stage.8\n[Built,Stage.8] (Push.([Digit] 1)) (Forget.Stage.9)\n[Clean.Stage.9] Stage.9\n[Built,Stage.9] (Push.([Digit] 0)) (Forget.Stage.10)\n[Clean.Stage.10] Stage.10\n[Built,Stage.10] (Push.([Digit] 1)) (Forget.Stage.11)\n[Clean.Stage.11] Stage.11\n[Built,Stage.11] (Push.([Digit] 1)) (Forget.Stage.12)\n[Clean.Stage.12] Stage.12\n[Built,Stage.12] (Push.([Digit] 2)) (Forget.Stage.13)\n[Clean.Stage.13] Stage.13\n[Built,Stage.13] (Push.([Digit] 2)) (Forget.Stage.14)\n[Clean.Stage.14] Stage.14\n[Built,Stage.14] (Push.([Digit] 0)) (Forget.Stage.15)\n[Clean.Stage.15] Stage.15\n[Built,Stage.15] (Push.([Digit] 1)) (Forget.Stage.16)\n[Clean.Stage.16] Stage.16\n[Built,Stage.16] (Push.([Digit] 1)) (Forget.Stage.17)\n[Clean.Stage.17] Stage.17\n[Built,Stage.17] (Push.([Digit] 1)) (Forget.Stage.18)\n[Clean.Stage.18] Stage.18\n[Built,Stage.18] (Push.([Digit] 1)) (Forget.Stage.19)\n[Clean.Stage.19] Stage.19\n[Built,Stage.19] (Push.([Digit] 2)) (Forget.Stage.20)\n[Clean.Stage.20] Stage.20\n[Built,Stage.20] (Push.([Digit] 2)) (Forget.Stage.21)\n[Clean.Stage.21] Stage.21\n[Built,Stage.21] (Push.Add) (Forget.Stage.22)\n[Clean.Stage.22] Stage.22\n[Built,Stage.22] (Push.([Digit] 0)) (Forget.Stage.23)\n[Clean.Stage.23] Stage.23\n[Built,Stage.23] (Push.([Digit] 0)) (Forget.Stage.24)\n[Clean.Stage.24] Stage.24\n[Built,Stage.24] (Push.([Digit] 2)) (Forget.Stage.25)\n[Clean.Stage.25] Stage.25\n[Built,Stage.25] (Push.([Digit] 2)) (Forget.Stage.26)\n[Clean.Stage.26] Stage.26\n[Built,Stage.26] (Push.([Digit] 0)) (Forget.Stage.27)\n[Clean.Stage.27] Stage.27\n[Built,Stage.27] (Push.([Digit] 2)) (Forget.Stage.28)\n[Clean.Stage.28] Stage.28\n[Built,Stage.28] (Push.([Digit] 2)) (Forget.Stage.29)\n[Clean.Stage.29] Stage.29\n[Built,Stage.29] (Push.([Digit] 1)) (Forget.Stage.30)\n[Clean.Stage.30] Stage.30\n[Built,Stage.30] (Push.([Digit] 1)) (Forget.Stage.31)\n[Clean.Stage.31] Stage.31\n[Built,Stage.31] (Push.([Digit] 1)) (Forget.Stage.32)\n[Clean.Stage.32] Stage.32\n[Built,Stage.32] (Push.([Digit] 0)) (Forget.Stage.33)\n[Clean.Stage.33] Stage.33\n[Built,Stage.33] (Push.([Digit] 0)) (Forget.Stage.34)\n[Clean.Stage.34] Stage.34\n[Built,Stage.34] (Push.([Digit] 1)) (Forget.Stage.35)\n[Clean.Stage.35] Stage.35\n[Built,Stage.35] (Push.([Digit] 0)) (Forget.Stage.36)\n[Clean.Stage.36] Stage.36\n[Built,Stage.36] (Push.([Digit] 0)) (Forget.Stage.37)\n[Clean.Stage.37] Stage.37\n[Built,Stage.37] (Push.([Digit] 2)) (Forget.Stage.38)\n[Clean.Stage.38] Stage.38\n[Built,Stage.38] (Push.([Digit] 1)) (Forget.Stage.39)\n[Clean.Stage.39] Stage.39\n[Built,Stage.39] (Push.([Digit] 0)) (Forget.Stage.40)\n[Clean.Stage.40] Stage.40\n[Built,Stage.40] (Push.([Digit] 0)) (Forget.Stage.41)\n[Clean.Stage.41] Stage.41\n[Built,Stage.41] (Push.([Digit] 1)) (Forget.Stage.42)\n[Clean.Stage.42] Stage.42\n[Built,Stage.42] (Function.Expression) (Forget.Inspect.0)\n[Clean.Inspect.0] Inspect.0\n[Return.Expression.Number.Positive,Inspect.0] (Read) (Forget.Inspect.1)\n[Clean.Inspect.1] Inspect.1\n[Yield.([Digit] 0),Inspect.1] (Read) (Forget.Inspect.2)\n[Clean.Inspect.2] Inspect.2\n[Yield.([Digit] 0),Inspect.2] (Read) (Forget.Inspect.3)\n[Clean.Inspect.3] Inspect.3\n[Yield.([Digit] 1),Inspect.3] (Read) (Forget.Inspect.4)\n[Clean.Inspect.4] Inspect.4\n[Yield.([Digit] 0),Inspect.4] (Read) (Forget.Inspect.5)\n[Clean.Inspect.5] Inspect.5\n[Yield.([Digit] 0),Inspect.5] (Read) (Forget.Inspect.6)\n[Clean.Inspect.6] Inspect.6\n[Yield.([Digit] 0),Inspect.6] (Read) (Forget.Inspect.7)\n[Clean.Inspect.7] Inspect.7\n[Yield.([Digit] 1),Inspect.7] (Read) (Forget.Inspect.8)\n[Clean.Inspect.8] Inspect.8\n[Yield.([Digit] 2),Inspect.8] (Read) (Forget.Inspect.9)\n[Clean.Inspect.9] Inspect.9\n[Yield.([Digit] 2),Inspect.9] (Read) (Forget.Inspect.10)\n[Clean.Inspect.10] Inspect.10\n[Yield.([Digit] 1),Inspect.10] (Read) (Forget.Inspect.11)\n[Clean.Inspect.11] Inspect.11\n[Yield.([Digit] 1),Inspect.11] (Read) (Forget.Inspect.12)\n[Clean.Inspect.12] Inspect.12\n[Yield.([Digit] 1),Inspect.12] (Read) (Forget.Inspect.13)\n[Clean.Inspect.13] Inspect.13\n[Yield.([Digit] 0),Inspect.13] (Read) (Forget.Inspect.14)\n[Clean.Inspect.14] Inspect.14\n[Yield.([Digit] 0),Inspect.14] (Read) (Forget.Inspect.15)\n[Clean.Inspect.15] Inspect.15\n[Yield.([Digit] 1),Inspect.15] (Read) (Forget.Inspect.16)\n[Clean.Inspect.16] Inspect.16\n[Yield.([Digit] 0),Inspect.16] (Read) (Forget.Inspect.17)\n[Clean.Inspect.17] Inspect.17\n[Yield.([Digit] 0),Inspect.17] (Read) (Forget.Inspect.18)\n[Clean.Inspect.18] Inspect.18\n[Yield.([Digit] 2),Inspect.18] (Read) (Forget.Inspect.19)\n[Clean.Inspect.19] Inspect.19\n[Yield.([Digit] 1),Inspect.19] (Read) (Forget.Inspect.20)\n[Clean.Inspect.20] Inspect.20\n[Yield.([Digit] 0),Inspect.20] (Read) (Forget.Inspect.21)\n[Clean.Inspect.21] Inspect.21\n[Yield.([Digit] 0),Inspect.21] (Read) (Forget.Inspect.22)\n[Clean.Inspect.22] Inspect.22\n[Yield.([Digit] 1).Zero,Inspect.22] Done.Zero\n",
+        "ternary": "1001200100111221000100"
+      },
+      "after": {
+        "decimal": "1234567890 + 9876543210 = 11111111100",
+        "input": "10012001001112202200+221111022110101020200",
+        "measurement": [
+          {
+            "event": 11839,
+            "execution": 0.191782,
+            "initialization": 0.001879375,
+            "statistic": {
+              "bucket": 5,
+              "normalization": 1,
+              "preparation": 127479,
+              "refinement": 3910,
+              "resolution": 51,
+              "reuse": 122574
+            },
+            "work": 33168
+          },
+          {
+            "event": 11839,
+            "execution": 0.190731291,
+            "initialization": 0.001705667,
+            "statistic": {
+              "bucket": 5,
+              "normalization": 1,
+              "preparation": 127479,
+              "refinement": 3910,
+              "resolution": 51,
+              "reuse": 122574
+            },
+            "work": 33168
+          },
+          {
+            "event": 11839,
+            "execution": 0.190916709,
+            "initialization": 0.001853584,
+            "statistic": {
+              "bucket": 5,
+              "normalization": 1,
+              "preparation": 127479,
+              "refinement": 3910,
+              "resolution": 51,
+              "reuse": 122574
+            },
+            "work": 33168
+          }
+        ],
+        "source": "Push.([Digit] 0).Zero, Stage.1\n[Built,Stage.1] (Push.([Digit] 0)) (Forget.Stage.2)\n[Clean.Stage.2] Stage.2\n[Built,Stage.2] (Push.([Digit] 2)) (Forget.Stage.3)\n[Clean.Stage.3] Stage.3\n[Built,Stage.3] (Push.([Digit] 0)) (Forget.Stage.4)\n[Clean.Stage.4] Stage.4\n[Built,Stage.4] (Push.([Digit] 2)) (Forget.Stage.5)\n[Clean.Stage.5] Stage.5\n[Built,Stage.5] (Push.([Digit] 0)) (Forget.Stage.6)\n[Clean.Stage.6] Stage.6\n[Built,Stage.6] (Push.([Digit] 1)) (Forget.Stage.7)\n[Clean.Stage.7] Stage.7\n[Built,Stage.7] (Push.([Digit] 0)) (Forget.Stage.8)\n[Clean.Stage.8] Stage.8\n[Built,Stage.8] (Push.([Digit] 1)) (Forget.Stage.9)\n[Clean.Stage.9] Stage.9\n[Built,Stage.9] (Push.([Digit] 0)) (Forget.Stage.10)\n[Clean.Stage.10] Stage.10\n[Built,Stage.10] (Push.([Digit] 1)) (Forget.Stage.11)\n[Clean.Stage.11] Stage.11\n[Built,Stage.11] (Push.([Digit] 1)) (Forget.Stage.12)\n[Clean.Stage.12] Stage.12\n[Built,Stage.12] (Push.([Digit] 2)) (Forget.Stage.13)\n[Clean.Stage.13] Stage.13\n[Built,Stage.13] (Push.([Digit] 2)) (Forget.Stage.14)\n[Clean.Stage.14] Stage.14\n[Built,Stage.14] (Push.([Digit] 0)) (Forget.Stage.15)\n[Clean.Stage.15] Stage.15\n[Built,Stage.15] (Push.([Digit] 1)) (Forget.Stage.16)\n[Clean.Stage.16] Stage.16\n[Built,Stage.16] (Push.([Digit] 1)) (Forget.Stage.17)\n[Clean.Stage.17] Stage.17\n[Built,Stage.17] (Push.([Digit] 1)) (Forget.Stage.18)\n[Clean.Stage.18] Stage.18\n[Built,Stage.18] (Push.([Digit] 1)) (Forget.Stage.19)\n[Clean.Stage.19] Stage.19\n[Built,Stage.19] (Push.([Digit] 2)) (Forget.Stage.20)\n[Clean.Stage.20] Stage.20\n[Built,Stage.20] (Push.([Digit] 2)) (Forget.Stage.21)\n[Clean.Stage.21] Stage.21\n[Built,Stage.21] (Push.Add) (Forget.Stage.22)\n[Clean.Stage.22] Stage.22\n[Built,Stage.22] (Push.([Digit] 0)) (Forget.Stage.23)\n[Clean.Stage.23] Stage.23\n[Built,Stage.23] (Push.([Digit] 0)) (Forget.Stage.24)\n[Clean.Stage.24] Stage.24\n[Built,Stage.24] (Push.([Digit] 2)) (Forget.Stage.25)\n[Clean.Stage.25] Stage.25\n[Built,Stage.25] (Push.([Digit] 2)) (Forget.Stage.26)\n[Clean.Stage.26] Stage.26\n[Built,Stage.26] (Push.([Digit] 0)) (Forget.Stage.27)\n[Clean.Stage.27] Stage.27\n[Built,Stage.27] (Push.([Digit] 2)) (Forget.Stage.28)\n[Clean.Stage.28] Stage.28\n[Built,Stage.28] (Push.([Digit] 2)) (Forget.Stage.29)\n[Clean.Stage.29] Stage.29\n[Built,Stage.29] (Push.([Digit] 1)) (Forget.Stage.30)\n[Clean.Stage.30] Stage.30\n[Built,Stage.30] (Push.([Digit] 1)) (Forget.Stage.31)\n[Clean.Stage.31] Stage.31\n[Built,Stage.31] (Push.([Digit] 1)) (Forget.Stage.32)\n[Clean.Stage.32] Stage.32\n[Built,Stage.32] (Push.([Digit] 0)) (Forget.Stage.33)\n[Clean.Stage.33] Stage.33\n[Built,Stage.33] (Push.([Digit] 0)) (Forget.Stage.34)\n[Clean.Stage.34] Stage.34\n[Built,Stage.34] (Push.([Digit] 1)) (Forget.Stage.35)\n[Clean.Stage.35] Stage.35\n[Built,Stage.35] (Push.([Digit] 0)) (Forget.Stage.36)\n[Clean.Stage.36] Stage.36\n[Built,Stage.36] (Push.([Digit] 0)) (Forget.Stage.37)\n[Clean.Stage.37] Stage.37\n[Built,Stage.37] (Push.([Digit] 2)) (Forget.Stage.38)\n[Clean.Stage.38] Stage.38\n[Built,Stage.38] (Push.([Digit] 1)) (Forget.Stage.39)\n[Clean.Stage.39] Stage.39\n[Built,Stage.39] (Push.([Digit] 0)) (Forget.Stage.40)\n[Clean.Stage.40] Stage.40\n[Built,Stage.40] (Push.([Digit] 0)) (Forget.Stage.41)\n[Clean.Stage.41] Stage.41\n[Built,Stage.41] (Push.([Digit] 1)) (Forget.Stage.42)\n[Clean.Stage.42] Stage.42\n[Built,Stage.42] (Function.Expression) (Forget.Inspect.0)\n[Clean.Inspect.0] Inspect.0\n[Return.Expression.Number.Positive,Inspect.0] (Read) (Forget.Inspect.1)\n[Clean.Inspect.1] Inspect.1\n[Yield.([Digit] 0),Inspect.1] (Read) (Forget.Inspect.2)\n[Clean.Inspect.2] Inspect.2\n[Yield.([Digit] 0),Inspect.2] (Read) (Forget.Inspect.3)\n[Clean.Inspect.3] Inspect.3\n[Yield.([Digit] 1),Inspect.3] (Read) (Forget.Inspect.4)\n[Clean.Inspect.4] Inspect.4\n[Yield.([Digit] 0),Inspect.4] (Read) (Forget.Inspect.5)\n[Clean.Inspect.5] Inspect.5\n[Yield.([Digit] 0),Inspect.5] (Read) (Forget.Inspect.6)\n[Clean.Inspect.6] Inspect.6\n[Yield.([Digit] 0),Inspect.6] (Read) (Forget.Inspect.7)\n[Clean.Inspect.7] Inspect.7\n[Yield.([Digit] 1),Inspect.7] (Read) (Forget.Inspect.8)\n[Clean.Inspect.8] Inspect.8\n[Yield.([Digit] 2),Inspect.8] (Read) (Forget.Inspect.9)\n[Clean.Inspect.9] Inspect.9\n[Yield.([Digit] 2),Inspect.9] (Read) (Forget.Inspect.10)\n[Clean.Inspect.10] Inspect.10\n[Yield.([Digit] 1),Inspect.10] (Read) (Forget.Inspect.11)\n[Clean.Inspect.11] Inspect.11\n[Yield.([Digit] 1),Inspect.11] (Read) (Forget.Inspect.12)\n[Clean.Inspect.12] Inspect.12\n[Yield.([Digit] 1),Inspect.12] (Read) (Forget.Inspect.13)\n[Clean.Inspect.13] Inspect.13\n[Yield.([Digit] 0),Inspect.13] (Read) (Forget.Inspect.14)\n[Clean.Inspect.14] Inspect.14\n[Yield.([Digit] 0),Inspect.14] (Read) (Forget.Inspect.15)\n[Clean.Inspect.15] Inspect.15\n[Yield.([Digit] 1),Inspect.15] (Read) (Forget.Inspect.16)\n[Clean.Inspect.16] Inspect.16\n[Yield.([Digit] 0),Inspect.16] (Read) (Forget.Inspect.17)\n[Clean.Inspect.17] Inspect.17\n[Yield.([Digit] 0),Inspect.17] (Read) (Forget.Inspect.18)\n[Clean.Inspect.18] Inspect.18\n[Yield.([Digit] 2),Inspect.18] (Read) (Forget.Inspect.19)\n[Clean.Inspect.19] Inspect.19\n[Yield.([Digit] 1),Inspect.19] (Read) (Forget.Inspect.20)\n[Clean.Inspect.20] Inspect.20\n[Yield.([Digit] 0),Inspect.20] (Read) (Forget.Inspect.21)\n[Clean.Inspect.21] Inspect.21\n[Yield.([Digit] 0),Inspect.21] (Read) (Forget.Inspect.22)\n[Clean.Inspect.22] Inspect.22\n[Yield.([Digit] 1).Zero,Inspect.22] Done.Zero\n",
+        "ternary": "1001200100111221000100"
+      },
+      "speedup": 1.468137605493713
+    },
+    {
+      "name": "Five-digit decimal multiplication",
+      "before": {
+        "decimal": "12345 * 67890 = 838102050",
+        "input": "121221020*10110010110",
+        "measurement": [
+          {
+            "event": 17806,
+            "execution": 0.290066625,
+            "initialization": 0.001804083,
+            "statistic": {
+              "bucket": 4,
+              "normalization": 1,
+              "preparation": 268337,
+              "refinement": 3760,
+              "resolution": 315,
+              "reuse": 74933
+            },
+            "work": 51172
+          },
+          {
+            "event": 17806,
+            "execution": 0.289984709,
+            "initialization": 0.001717917,
+            "statistic": {
+              "bucket": 4,
+              "normalization": 1,
+              "preparation": 268337,
+              "refinement": 3760,
+              "resolution": 315,
+              "reuse": 74933
+            },
+            "work": 51172
+          },
+          {
+            "event": 17806,
+            "execution": 0.291551916,
+            "initialization": 0.001702167,
+            "statistic": {
+              "bucket": 4,
+              "normalization": 1,
+              "preparation": 268337,
+              "refinement": 3760,
+              "resolution": 315,
+              "reuse": 74933
+            },
+            "work": 51172
+          }
+        ],
+        "source": "Push.([Digit] 0).Zero, Stage.1\n[Built,Stage.1] (Push.([Digit] 1)) (Forget.Stage.2)\n[Clean.Stage.2] Stage.2\n[Built,Stage.2] (Push.([Digit] 1)) (Forget.Stage.3)\n[Clean.Stage.3] Stage.3\n[Built,Stage.3] (Push.([Digit] 0)) (Forget.Stage.4)\n[Clean.Stage.4] Stage.4\n[Built,Stage.4] (Push.([Digit] 1)) (Forget.Stage.5)\n[Clean.Stage.5] Stage.5\n[Built,Stage.5] (Push.([Digit] 0)) (Forget.Stage.6)\n[Clean.Stage.6] Stage.6\n[Built,Stage.6] (Push.([Digit] 0)) (Forget.Stage.7)\n[Clean.Stage.7] Stage.7\n[Built,Stage.7] (Push.([Digit] 1)) (Forget.Stage.8)\n[Clean.Stage.8] Stage.8\n[Built,Stage.8] (Push.([Digit] 1)) (Forget.Stage.9)\n[Clean.Stage.9] Stage.9\n[Built,Stage.9] (Push.([Digit] 0)) (Forget.Stage.10)\n[Clean.Stage.10] Stage.10\n[Built,Stage.10] (Push.([Digit] 1)) (Forget.Stage.11)\n[Clean.Stage.11] Stage.11\n[Built,Stage.11] (Push.Multiply) (Forget.Stage.12)\n[Clean.Stage.12] Stage.12\n[Built,Stage.12] (Push.([Digit] 0)) (Forget.Stage.13)\n[Clean.Stage.13] Stage.13\n[Built,Stage.13] (Push.([Digit] 2)) (Forget.Stage.14)\n[Clean.Stage.14] Stage.14\n[Built,Stage.14] (Push.([Digit] 0)) (Forget.Stage.15)\n[Clean.Stage.15] Stage.15\n[Built,Stage.15] (Push.([Digit] 1)) (Forget.Stage.16)\n[Clean.Stage.16] Stage.16\n[Built,Stage.16] (Push.([Digit] 2)) (Forget.Stage.17)\n[Clean.Stage.17] Stage.17\n[Built,Stage.17] (Push.([Digit] 2)) (Forget.Stage.18)\n[Clean.Stage.18] Stage.18\n[Built,Stage.18] (Push.([Digit] 1)) (Forget.Stage.19)\n[Clean.Stage.19] Stage.19\n[Built,Stage.19] (Push.([Digit] 2)) (Forget.Stage.20)\n[Clean.Stage.20] Stage.20\n[Built,Stage.20] (Push.([Digit] 1)) (Forget.Stage.21)\n[Clean.Stage.21] Stage.21\n[Built,Stage.21] (Function.Expression) (Forget.Inspect.0)\n[Clean.Inspect.0] Inspect.0\n[Return.Expression.Number.Positive,Inspect.0] (Read) (Forget.Inspect.1)\n[Clean.Inspect.1] Inspect.1\n[Yield.([Digit] 0),Inspect.1] (Read) (Forget.Inspect.2)\n[Clean.Inspect.2] Inspect.2\n[Yield.([Digit] 0),Inspect.2] (Read) (Forget.Inspect.3)\n[Clean.Inspect.3] Inspect.3\n[Yield.([Digit] 2),Inspect.3] (Read) (Forget.Inspect.4)\n[Clean.Inspect.4] Inspect.4\n[Yield.([Digit] 2),Inspect.4] (Read) (Forget.Inspect.5)\n[Clean.Inspect.5] Inspect.5\n[Yield.([Digit] 1),Inspect.5] (Read) (Forget.Inspect.6)\n[Clean.Inspect.6] Inspect.6\n[Yield.([Digit] 2),Inspect.6] (Read) (Forget.Inspect.7)\n[Clean.Inspect.7] Inspect.7\n[Yield.([Digit] 2),Inspect.7] (Read) (Forget.Inspect.8)\n[Clean.Inspect.8] Inspect.8\n[Yield.([Digit] 2),Inspect.8] (Read) (Forget.Inspect.9)\n[Clean.Inspect.9] Inspect.9\n[Yield.([Digit] 2),Inspect.9] (Read) (Forget.Inspect.10)\n[Clean.Inspect.10] Inspect.10\n[Yield.([Digit] 0),Inspect.10] (Read) (Forget.Inspect.11)\n[Clean.Inspect.11] Inspect.11\n[Yield.([Digit] 0),Inspect.11] (Read) (Forget.Inspect.12)\n[Clean.Inspect.12] Inspect.12\n[Yield.([Digit] 0),Inspect.12] (Read) (Forget.Inspect.13)\n[Clean.Inspect.13] Inspect.13\n[Yield.([Digit] 2),Inspect.13] (Read) (Forget.Inspect.14)\n[Clean.Inspect.14] Inspect.14\n[Yield.([Digit] 0),Inspect.14] (Read) (Forget.Inspect.15)\n[Clean.Inspect.15] Inspect.15\n[Yield.([Digit] 1),Inspect.15] (Read) (Forget.Inspect.16)\n[Clean.Inspect.16] Inspect.16\n[Yield.([Digit] 1),Inspect.16] (Read) (Forget.Inspect.17)\n[Clean.Inspect.17] Inspect.17\n[Yield.([Digit] 1),Inspect.17] (Read) (Forget.Inspect.18)\n[Clean.Inspect.18] Inspect.18\n[Yield.([Digit] 0),Inspect.18] (Read) (Forget.Inspect.19)\n[Clean.Inspect.19] Inspect.19\n[Yield.([Digit] 2).Zero,Inspect.19] Done.Zero\n",
+        "ternary": "2011102000222212200"
+      },
+      "after": {
+        "decimal": "12345 * 67890 = 838102050",
+        "input": "121221020*10110010110",
+        "measurement": [
+          {
+            "event": 17806,
+            "execution": 0.220470709,
+            "initialization": 0.001837292,
+            "statistic": {
+              "bucket": 4,
+              "normalization": 1,
+              "preparation": 185877,
+              "refinement": 3760,
+              "resolution": 315,
+              "reuse": 157393
+            },
+            "work": 51172
+          },
+          {
+            "event": 17806,
+            "execution": 0.218467958,
+            "initialization": 0.001759167,
+            "statistic": {
+              "bucket": 4,
+              "normalization": 1,
+              "preparation": 185877,
+              "refinement": 3760,
+              "resolution": 315,
+              "reuse": 157393
+            },
+            "work": 51172
+          },
+          {
+            "event": 17806,
+            "execution": 0.2183085,
+            "initialization": 0.001811667,
+            "statistic": {
+              "bucket": 4,
+              "normalization": 1,
+              "preparation": 185877,
+              "refinement": 3760,
+              "resolution": 315,
+              "reuse": 157393
+            },
+            "work": 51172
+          }
+        ],
+        "source": "Push.([Digit] 0).Zero, Stage.1\n[Built,Stage.1] (Push.([Digit] 1)) (Forget.Stage.2)\n[Clean.Stage.2] Stage.2\n[Built,Stage.2] (Push.([Digit] 1)) (Forget.Stage.3)\n[Clean.Stage.3] Stage.3\n[Built,Stage.3] (Push.([Digit] 0)) (Forget.Stage.4)\n[Clean.Stage.4] Stage.4\n[Built,Stage.4] (Push.([Digit] 1)) (Forget.Stage.5)\n[Clean.Stage.5] Stage.5\n[Built,Stage.5] (Push.([Digit] 0)) (Forget.Stage.6)\n[Clean.Stage.6] Stage.6\n[Built,Stage.6] (Push.([Digit] 0)) (Forget.Stage.7)\n[Clean.Stage.7] Stage.7\n[Built,Stage.7] (Push.([Digit] 1)) (Forget.Stage.8)\n[Clean.Stage.8] Stage.8\n[Built,Stage.8] (Push.([Digit] 1)) (Forget.Stage.9)\n[Clean.Stage.9] Stage.9\n[Built,Stage.9] (Push.([Digit] 0)) (Forget.Stage.10)\n[Clean.Stage.10] Stage.10\n[Built,Stage.10] (Push.([Digit] 1)) (Forget.Stage.11)\n[Clean.Stage.11] Stage.11\n[Built,Stage.11] (Push.Multiply) (Forget.Stage.12)\n[Clean.Stage.12] Stage.12\n[Built,Stage.12] (Push.([Digit] 0)) (Forget.Stage.13)\n[Clean.Stage.13] Stage.13\n[Built,Stage.13] (Push.([Digit] 2)) (Forget.Stage.14)\n[Clean.Stage.14] Stage.14\n[Built,Stage.14] (Push.([Digit] 0)) (Forget.Stage.15)\n[Clean.Stage.15] Stage.15\n[Built,Stage.15] (Push.([Digit] 1)) (Forget.Stage.16)\n[Clean.Stage.16] Stage.16\n[Built,Stage.16] (Push.([Digit] 2)) (Forget.Stage.17)\n[Clean.Stage.17] Stage.17\n[Built,Stage.17] (Push.([Digit] 2)) (Forget.Stage.18)\n[Clean.Stage.18] Stage.18\n[Built,Stage.18] (Push.([Digit] 1)) (Forget.Stage.19)\n[Clean.Stage.19] Stage.19\n[Built,Stage.19] (Push.([Digit] 2)) (Forget.Stage.20)\n[Clean.Stage.20] Stage.20\n[Built,Stage.20] (Push.([Digit] 1)) (Forget.Stage.21)\n[Clean.Stage.21] Stage.21\n[Built,Stage.21] (Function.Expression) (Forget.Inspect.0)\n[Clean.Inspect.0] Inspect.0\n[Return.Expression.Number.Positive,Inspect.0] (Read) (Forget.Inspect.1)\n[Clean.Inspect.1] Inspect.1\n[Yield.([Digit] 0),Inspect.1] (Read) (Forget.Inspect.2)\n[Clean.Inspect.2] Inspect.2\n[Yield.([Digit] 0),Inspect.2] (Read) (Forget.Inspect.3)\n[Clean.Inspect.3] Inspect.3\n[Yield.([Digit] 2),Inspect.3] (Read) (Forget.Inspect.4)\n[Clean.Inspect.4] Inspect.4\n[Yield.([Digit] 2),Inspect.4] (Read) (Forget.Inspect.5)\n[Clean.Inspect.5] Inspect.5\n[Yield.([Digit] 1),Inspect.5] (Read) (Forget.Inspect.6)\n[Clean.Inspect.6] Inspect.6\n[Yield.([Digit] 2),Inspect.6] (Read) (Forget.Inspect.7)\n[Clean.Inspect.7] Inspect.7\n[Yield.([Digit] 2),Inspect.7] (Read) (Forget.Inspect.8)\n[Clean.Inspect.8] Inspect.8\n[Yield.([Digit] 2),Inspect.8] (Read) (Forget.Inspect.9)\n[Clean.Inspect.9] Inspect.9\n[Yield.([Digit] 2),Inspect.9] (Read) (Forget.Inspect.10)\n[Clean.Inspect.10] Inspect.10\n[Yield.([Digit] 0),Inspect.10] (Read) (Forget.Inspect.11)\n[Clean.Inspect.11] Inspect.11\n[Yield.([Digit] 0),Inspect.11] (Read) (Forget.Inspect.12)\n[Clean.Inspect.12] Inspect.12\n[Yield.([Digit] 0),Inspect.12] (Read) (Forget.Inspect.13)\n[Clean.Inspect.13] Inspect.13\n[Yield.([Digit] 2),Inspect.13] (Read) (Forget.Inspect.14)\n[Clean.Inspect.14] Inspect.14\n[Yield.([Digit] 0),Inspect.14] (Read) (Forget.Inspect.15)\n[Clean.Inspect.15] Inspect.15\n[Yield.([Digit] 1),Inspect.15] (Read) (Forget.Inspect.16)\n[Clean.Inspect.16] Inspect.16\n[Yield.([Digit] 1),Inspect.16] (Read) (Forget.Inspect.17)\n[Clean.Inspect.17] Inspect.17\n[Yield.([Digit] 1),Inspect.17] (Read) (Forget.Inspect.18)\n[Clean.Inspect.18] Inspect.18\n[Yield.([Digit] 0),Inspect.18] (Read) (Forget.Inspect.19)\n[Clean.Inspect.19] Inspect.19\n[Yield.([Digit] 2).Zero,Inspect.19] Done.Zero\n",
+        "ternary": "2011102000222212200"
+      },
+      "speedup": 1.3277307466754462
+    },
+    {
+      "name": "Preparation reuse workload",
+      "before": {
+        "length": 1000,
+        "measurement": [
+          {
+            "event": 1000,
+            "execution": 0.017598042,
+            "initialization": 0.000995708,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 199999
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.016177416,
+            "initialization": 0.000950625,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 199999
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.015855958,
+            "initialization": 0.000910792,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 199999
+            },
+            "work": 2006
+          }
+        ],
+        "width": 200
+      },
+      "after": {
+        "length": 1000,
+        "measurement": [
+          {
+            "event": 1000,
+            "execution": 0.016254708,
+            "initialization": 0.001213208,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 199999
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.0147815,
+            "initialization": 0.001047834,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 199999
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.014053,
+            "initialization": 0.000980917,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 199999
+            },
+            "work": 2006
+          }
+        ],
+        "width": 200
+      },
+      "speedup": 1.0944366945167947
+    }
+  ]
+}

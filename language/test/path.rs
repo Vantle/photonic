@@ -12,6 +12,7 @@ fn execution() {
     for (source, target) in [
         ("A [A] B [B] C", "C"),
         ("A,B [A,B] C", "C"),
+        ("A,A,B [A,B] C [A,C] D", "D"),
         ("Seed.A [Seed] [A] B", "B.([A] B)"),
         ("A [A] B,C [B,C] D", "D"),
     ] {

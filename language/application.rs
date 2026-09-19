@@ -81,7 +81,7 @@ pub(crate) fn apply(
     binding: &Binding,
     closure: Option<Closure<'_>>,
 ) -> Applied {
-    construct(source, frame, owner, rule, binding, closure, true)
+    construct(source, frame, owner, rule, binding, closure, None)
 }
 
 pub(crate) fn direct(
@@ -90,8 +90,18 @@ pub(crate) fn direct(
     owner: usize,
     rule: &Instruction,
     binding: &Binding,
+    layout: &crate::layout::Layout,
 ) -> State {
-    construct(source, frame, Some(owner), rule, binding, None, false).state
+    construct(
+        source,
+        frame,
+        Some(owner),
+        rule,
+        binding,
+        None,
+        Some(layout),
+    )
+    .state
 }
 
 fn construct(
@@ -101,8 +111,9 @@ fn construct(
     rule: &Instruction,
     binding: &Binding,
     closure: Option<Closure<'_>>,
-    evidence: bool,
+    layout: Option<&crate::layout::Layout>,
 ) -> Applied {
+    let evidence = layout.is_none();
     let mut state = State {
         world: Vec::new(),
         frame: source.frame.clone(),
@@ -126,14 +137,19 @@ fn construct(
             .map(Some)
             .collect(),
     };
-    let mut next = source
-        .world
-        .iter()
-        .flat_map(|world| &world.particle)
-        .chain(source.frame.iter().flat_map(|frame| &frame.held))
-        .map(|token| token.id)
-        .max()
-        .map_or(0, |id| id + 1);
+    let mut next = layout.map_or_else(
+        || {
+            source
+                .world
+                .iter()
+                .flat_map(|world| &world.particle)
+                .chain(source.frame.iter().flat_map(|frame| &frame.held))
+                .map(|token| token.id)
+                .max()
+                .map_or(0, |id| id + 1)
+        },
+        |layout| layout.resource,
+    );
     let owner = if let Some(closure) = closure {
         let mut resource = HashMap::new();
         for (index, frame) in closure.state.frame.iter().enumerate() {
@@ -214,10 +230,10 @@ fn construct(
         .copied()
         .filter(|_| evidence)
         .collect::<Set<_>>();
-    let mut vacant = if evidence {
+    let mut vacant = if evidence || !rule.output.iter().any(|output| output.body.is_some()) {
         Vec::new()
     } else {
-        let reachable = source.reachable();
+        let reachable = &layout.unwrap().reachable;
         (1..source.frame.len())
             .rev()
             .filter(|index| reachable.binary_search(index).is_err())

@@ -534,3 +534,46 @@ fn joining() {
         }
     }
 }
+
+#[test]
+fn factorization() {
+    for width in 2..=8 {
+        let pattern = (0..width)
+            .map(|position| {
+                vec![Term {
+                    value: Symbol::Atom(position),
+                    capture: None,
+                }]
+            })
+            .collect::<Vec<_>>();
+        for reverse in [false, true] {
+            let mut gate = crate::matching::Gate::new(pattern.clone());
+            let mut actual = std::collections::BTreeSet::new();
+            for arrival in 0..width * 2 {
+                let index = if reverse {
+                    width * 2 - arrival - 1
+                } else {
+                    arrival
+                };
+                let slot = crate::matching::Slot {
+                    world: index,
+                    position: index / 2,
+                    token: vec![index],
+                };
+                for binding in gate.arrive(slot) {
+                    assert!(
+                        actual.insert(binding.iter().map(|slot| slot.world).collect::<Vec<_>>())
+                    );
+                }
+            }
+            let expected = (0..1usize << width)
+                .map(|choice| {
+                    (0..width)
+                        .map(|position| position * 2 + ((choice >> position) & 1))
+                        .collect::<Vec<_>>()
+                })
+                .collect::<std::collections::BTreeSet<_>>();
+            assert_eq!(actual, expected);
+        }
+    }
+}

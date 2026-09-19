@@ -5,6 +5,7 @@ pub(crate) struct Selection {
     pub pattern: Arc<Vec<Vec<Term>>>,
     pub order: Vec<usize>,
     pub candidate: Vec<Vec<usize>>,
+    pub viable: bool,
 }
 
 impl Selection {
@@ -13,39 +14,64 @@ impl Selection {
         index: &crate::index::Index,
         frame: usize,
     ) -> Self {
-        let mut candidate = Vec::with_capacity(pattern.len());
-        for particle in pattern.iter() {
-            let selected = index.candidate(particle, frame);
-            if selected.is_empty() {
-                candidate.clear();
-                break;
-            }
-            candidate.push(selected);
-        }
-        if !crate::assignment::feasible(&candidate) {
-            candidate.clear();
-        }
+        let candidate = pattern
+            .iter()
+            .map(|particle| {
+                index
+                    .candidate(particle, frame)
+                    .into_iter()
+                    .map(|world| index.site(world))
+                    .collect()
+            })
+            .collect();
+        Self::construct(pattern, candidate)
+    }
+
+    fn construct(pattern: Arc<Vec<Vec<Term>>>, candidate: Vec<Vec<usize>>) -> Self {
+        let viable = candidate.iter().all(|candidate| !candidate.is_empty())
+            && crate::assignment::feasible(&candidate);
         let mut order = (0..pattern.len()).collect::<Vec<_>>();
-        if !candidate.is_empty() {
-            order.sort_by_key(|&position| candidate[position].len());
-            candidate = order
-                .iter()
-                .map(|&position| candidate[position].clone())
-                .collect();
-        }
+        order.sort_by_key(|&position| candidate[position].len());
         Self {
             pattern,
             order,
-            candidate: candidate
-                .into_iter()
-                .map(|candidate| {
-                    candidate
-                        .into_iter()
-                        .map(|world| index.site(world))
-                        .collect()
-                })
-                .collect(),
+            candidate,
+            viable,
         }
+    }
+
+    pub(crate) fn advance(&self, index: &crate::index::Index, frame: usize) -> Option<Self> {
+        let mut candidate = None;
+        for (position, pattern) in self.pattern.iter().enumerate() {
+            let previous = &self.candidate[position];
+            let insertion = index
+                .insertion
+                .iter()
+                .copied()
+                .filter(|&site| {
+                    let world = &index.state.world[index.world(site)];
+                    world.frame == frame
+                        && pattern.iter().all(|term| {
+                            world.particle.iter().any(|token| {
+                                token.value == term.value
+                                    && (!matches!(term.value, crate::program::Symbol::Rule(_))
+                                        || token.capture == term.capture)
+                            })
+                        })
+                })
+                .collect::<Vec<_>>();
+            let removed = previous
+                .iter()
+                .any(|site| index.removal.contains(site) && !insertion.contains(site));
+            let inserted = insertion.iter().any(|site| !previous.contains(site));
+            if !removed && !inserted {
+                continue;
+            }
+            let candidate = candidate.get_or_insert_with(|| self.candidate.clone());
+            candidate[position].retain(|site| !index.removal.contains(site));
+            candidate[position].extend(insertion);
+        }
+        candidate.map(|candidate| Self::construct(self.pattern.clone(), candidate))
     }
 
     pub(crate) fn retained(&self) -> usize {

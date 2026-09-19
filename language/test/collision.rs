@@ -159,3 +159,27 @@ fn capture() {
     );
     assert_ne!(left.canonical().state, right.canonical().state);
 }
+
+#[test]
+fn eviction() {
+    let mut search = Search::new(
+        crate::lowering::parse("A [A] B [B] C").unwrap(),
+        crate::lowering::parse("C").unwrap(),
+    )
+    .unwrap();
+    let graph = state(
+        &(0..100)
+            .map(|index| (index, (index + 1) % 100))
+            .collect::<Vec<_>>(),
+    );
+    search.structure.advance(&graph);
+    assert!(search.structure.retained() > 1000);
+    search.run(
+        10000,
+        crate::runtime::Limit {
+            record: 1000,
+            ..Default::default()
+        },
+    );
+    assert_eq!(search.summary().outcome, crate::prism::Outcome::Reached);
+}

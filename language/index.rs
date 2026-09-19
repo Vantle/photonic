@@ -18,6 +18,8 @@ pub(crate) struct Index {
     change: Vec<(Symbol, bool)>,
     pub altered: std::collections::HashSet<Symbol>,
     pub occupied: bool,
+    pub removal: Vec<usize>,
+    pub insertion: Vec<usize>,
 }
 
 impl Index {
@@ -35,6 +37,8 @@ impl Index {
             change: Vec::new(),
             altered: Default::default(),
             occupied: false,
+            removal: Vec::new(),
+            insertion: Vec::new(),
         };
         index.frame.resize(index.state.frame.len(), Vec::new());
         for world in 0..index.state.world.len() {
@@ -51,6 +55,7 @@ impl Index {
         });
         self.rank[site] = world;
         self.site.push(site);
+        self.insertion.push(site);
         let value = &self.state.world[world];
         self.occupied = true;
         self.altered
@@ -89,9 +94,12 @@ impl Index {
 
     pub(crate) fn advance(&mut self, state: Arc<State>, removed: &Set<usize>) {
         self.altered.clear();
+        self.removal.clear();
+        self.insertion.clear();
         self.occupied = false;
         for &world in removed {
             let site = self.site[world];
+            self.removal.push(site);
             let value = &self.state.world[world];
             self.occupied = true;
             self.altered
@@ -205,6 +213,8 @@ impl Index {
             + self.code.len()
             + self.change.len()
             + self.altered.len()
+            + self.removal.len()
+            + self.insertion.len()
     }
 
     pub(crate) fn change(&mut self) -> impl Iterator<Item = (Symbol, bool)> + '_ {

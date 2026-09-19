@@ -37,8 +37,7 @@ pub struct Canonical {
 }
 
 impl State {
-    pub(crate) fn reclaim(mut self) -> Self {
-        let reachable = self.reachable();
+    pub(crate) fn reclaim(mut self, reachable: &[usize]) -> Self {
         self.frame.truncate(reachable.last().unwrap() + 1);
         for (index, frame) in self.frame.iter_mut().enumerate() {
             if reachable.binary_search(&index).is_ok()

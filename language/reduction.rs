@@ -90,7 +90,7 @@ impl Search {
         }
         for (rule, frame, owner, read) in request {
             let selection = self.query.select(rule, frame, owner, &index);
-            if !selection.pattern.is_empty() && selection.candidate.is_empty() {
+            if !selection.viable {
                 continue;
             }
             let search = crate::search::Search::prepared(selection, index.clone());
@@ -156,8 +156,8 @@ impl Search {
     pub(crate) fn run(&mut self, limit: Limit) -> Option<Event> {
         if let Some(index) = self.pending.iter().position(|event| {
             event.state.world.len() <= limit.world
-                && event.state.size() <= limit.cell
-                && event.state.reachable().len() <= limit.frame
+                && event.fingerprint.layout.cell <= limit.cell
+                && event.fingerprint.layout.reachable.len() <= limit.frame
         }) {
             return Some(self.pending.remove(index));
         }
@@ -202,9 +202,13 @@ impl Search {
             candidate.owner,
             &self.program.rule[candidate.rule],
             &binding,
+            &self.fingerprint.layout,
         );
-        let state = Arc::new(result.reclaim());
-        let fingerprint = self.fingerprint.advance(state.clone(), &binding.world);
+        let reachable = result.reachable();
+        let state = Arc::new(result.reclaim(&reachable));
+        let fingerprint = self
+            .fingerprint
+            .advance(state.clone(), &binding.world, reachable);
         let event = Event {
             state,
             fingerprint,
@@ -213,8 +217,8 @@ impl Search {
         };
         self.agenda.push_back(candidate);
         if event.state.world.len() > limit.world
-            || event.state.size() > limit.cell
-            || event.state.reachable().len() > limit.frame
+            || event.fingerprint.layout.cell > limit.cell
+            || event.fingerprint.layout.reachable.len() > limit.frame
         {
             self.pending.push(event);
             return None;

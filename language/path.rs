@@ -113,6 +113,7 @@ pub struct Search {
     goal: Record,
     signature: u64,
     runtime: crate::reduction::Search,
+    structure: crate::structure::Structure,
     state: Vec<Record>,
     index: HashMap<u64, Vec<usize>>,
     event: Vec<Step>,
@@ -145,6 +146,7 @@ impl Search {
             goal: Record::new(Arc::new(goal)),
             signature,
             runtime: crate::reduction::Search::new(compiled.clone(), initial.clone()),
+            structure: crate::structure::Structure::default(),
             compiled,
             state: vec![Record::new(initial)],
             index: HashMap::from([(fingerprint, vec![0])]),
@@ -165,16 +167,21 @@ impl Search {
             if self.reached || self.cycle {
                 return;
             }
-            let retained = self.state.len()
+            let mut retained = self.state.len()
                 + self.event.len()
                 + self.runtime.record()
+                + self.structure.retained()
                 + self
                     .pending
                     .as_ref()
                     .map_or(0, |event| event.fingerprint.retained() + 1)
                 + usize::from(self.candidate.is_some());
             if retained >= limit.record {
-                return;
+                retained -= self.structure.retained();
+                self.structure = crate::structure::Structure::default();
+                if retained >= limit.record {
+                    return;
+                }
             }
             if self.initial {
                 if self.goal.canonical.get().is_none() {
@@ -210,6 +217,12 @@ impl Search {
                 .candidate
                 .take()
                 .unwrap_or_else(|| Record::new(event.state.clone()));
+            if record.signature.get().is_none()
+                && (self.signature == fingerprint || self.index.contains_key(&fingerprint))
+            {
+                let signature = self.structure.advance(&record.state);
+                record.signature.set(signature).unwrap();
+            }
             let goal = self.signature == fingerprint && record.compatible(&self.goal);
             let comparison = goal
                 || self.index.get(&fingerprint).is_some_and(|candidate| {
