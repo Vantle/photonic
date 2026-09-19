@@ -1,7 +1,7 @@
 use crate::basis::Set;
 use crate::state::State;
 use serde::Serialize;
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashMap};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -19,10 +19,10 @@ pub(crate) struct Flow {
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub(crate) struct Binding {
-    pub world: BTreeSet<usize>,
-    pub footprint: BTreeSet<Place>,
-    pub exact: BTreeSet<Place>,
-    pub read: BTreeSet<Place>,
+    pub world: Set<usize>,
+    pub footprint: Set<Place>,
+    pub exact: Set<Place>,
+    pub read: Set<Place>,
 }
 
 pub(crate) struct Closure<'state> {
@@ -59,17 +59,27 @@ impl Flow {
     }
 
     pub(crate) fn compose(&self, event: &Flow) -> Self {
+        let mut resource = HashMap::new();
+        let mut context = HashMap::new();
         Self {
             resource: event
                 .resource
                 .iter()
                 .map(|(&place, source)| {
+                    if source.len() == 1 {
+                        return (place, self.resource[source.first().unwrap()].clone());
+                    }
                     (
                         place,
-                        source
-                            .iter()
-                            .flat_map(|key| self.resource[key].iter().copied())
-                            .collect(),
+                        resource
+                            .entry(source.clone())
+                            .or_insert_with(|| {
+                                source
+                                    .iter()
+                                    .flat_map(|key| self.resource[key].iter().copied())
+                                    .collect::<Set<_>>()
+                            })
+                            .clone(),
                     )
                 })
                 .collect(),
@@ -77,10 +87,18 @@ impl Flow {
                 .context
                 .iter()
                 .map(|value| {
-                    value
-                        .iter()
-                        .flat_map(|&index| self.context[index].iter().copied())
-                        .collect()
+                    if value.len() == 1 {
+                        return self.context[*value.first().unwrap()].clone();
+                    }
+                    context
+                        .entry(value.clone())
+                        .or_insert_with(|| {
+                            value
+                                .iter()
+                                .flat_map(|&index| self.context[index].iter().copied())
+                                .collect::<Set<_>>()
+                        })
+                        .clone()
                 })
                 .collect(),
             frame: event
@@ -141,10 +159,10 @@ impl Flow {
             return None;
         }
         Some(Binding {
-            world,
-            footprint,
-            exact,
-            read: BTreeSet::new(),
+            world: world.into(),
+            footprint: footprint.into(),
+            exact: exact.into(),
+            read: Set::default(),
         })
     }
 }

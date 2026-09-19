@@ -32,21 +32,27 @@ fn state(count: usize, sharing: Sharing) -> State {
     };
     State {
         world: (0..count)
-            .map(|index| World {
-                frame: 0,
-                particle: match sharing {
-                    Sharing::Private => vec![token(index)],
-                    Sharing::Shared => vec![token(0)],
-                    Sharing::Ring => vec![token(index), token((index + 1) % count)],
-                },
+            .map(|index| {
+                World {
+                    frame: 0,
+                    particle: match sharing {
+                        Sharing::Private => vec![token(index)],
+                        Sharing::Shared => vec![token(0)],
+                        Sharing::Ring => vec![token(index), token((index + 1) % count)],
+                    },
+                }
+                .into()
             })
             .collect(),
-        frame: vec![Frame {
-            scope: 0,
-            parent: None,
-            lexical: None,
-            held: Vec::new(),
-        }],
+        frame: vec![
+            Frame {
+                scope: 0,
+                parent: None,
+                lexical: None,
+                held: Vec::new(),
+            }
+            .into(),
+        ],
     }
 }
 

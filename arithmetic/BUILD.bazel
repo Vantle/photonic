@@ -57,6 +57,7 @@ rust_binary(
     deps = [
         ":library",
         "//language:photonic",
+        "@crate//:clap",
     ],
 )
 

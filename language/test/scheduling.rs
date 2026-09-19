@@ -10,13 +10,16 @@ use std::task::Poll;
 
 fn root(world: Vec<World>) -> State {
     State {
-        world,
-        frame: vec![Frame {
-            scope: 0,
-            parent: None,
-            lexical: None,
-            held: Vec::new(),
-        }],
+        world: world.into_iter().map(Arc::new).collect(),
+        frame: vec![
+            Frame {
+                scope: 0,
+                parent: None,
+                lexical: None,
+                held: Vec::new(),
+            }
+            .into(),
+        ],
     }
 }
 
@@ -46,20 +49,21 @@ fn matching() {
         Arc::new(crate::index::Index::new(Arc::new(state))),
         0,
     );
-    let mut found = 0;
+    let mut found = std::collections::BTreeSet::new();
     for _ in 0..1000 {
         match search.step() {
             Poll::Pending => {}
             Poll::Ready(Some(binding)) => {
                 assert_eq!(binding[0].token.len(), 15);
-                found += 1;
+                assert!(found.insert(binding[0].token.clone()));
             }
             Poll::Ready(None) => {
                 panic!("155 million combinations cannot be exhausted in 1000 steps")
             }
         }
     }
-    assert!(found > 0 && found < 1000);
+    assert!(!found.is_empty());
+    assert!(!matches!(search.step(), Poll::Ready(None)));
 }
 
 #[test]
@@ -89,7 +93,7 @@ fn refinement() {
             })
             .collect(),
     );
-    state.world[0].particle.push(Token {
+    Arc::make_mut(&mut state.world[0]).particle.push(Token {
         id: 20,
         value: Symbol::Atom(1),
         capture: None,
@@ -103,6 +107,7 @@ fn refinement() {
     let expected = search.finish().unwrap().state;
     state.world.reverse();
     for world in &mut state.world {
+        let world = Arc::make_mut(world);
         world.particle.reverse();
         for token in &mut world.particle {
             token.id = 100 - token.id;
@@ -270,6 +275,7 @@ fn symmetry() {
     assert_eq!(result.world.iter().flatten().count(), 30);
     state.world.reverse();
     for world in &mut state.world {
+        let world = Arc::make_mut(world);
         for token in &mut world.particle {
             token.id += 100;
         }
@@ -309,6 +315,7 @@ fn incidence() {
         let expected = state.canonical().state;
         state.world.reverse();
         for world in &mut state.world {
+            let world = Arc::make_mut(world);
             world.particle.reverse();
             for token in &mut world.particle {
                 token.id = 100 - token.id;

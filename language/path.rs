@@ -1,14 +1,14 @@
 use crate::flow::Place;
 use crate::prism::{Failure, Outcome};
 use crate::program::Program;
-use crate::runtime::{Limit, Runtime};
+use crate::runtime::Limit;
 use crate::snapshot::Node;
 use crate::source;
-use crate::state::State;
+use crate::state::{Canonical, State};
 use crate::support::Status;
-use indexmap::IndexSet;
 use serde::Serialize;
-use std::sync::Arc;
+use std::collections::HashMap;
+use std::sync::{Arc, OnceLock};
 
 #[derive(Debug, Serialize)]
 pub struct Event {
@@ -38,16 +38,61 @@ pub struct Summary {
     pub work: usize,
 }
 
+struct Record {
+    state: Arc<State>,
+    canonical: OnceLock<Canonical>,
+    normalization: Option<crate::canonical::Search>,
+}
+
+impl Record {
+    fn new(state: Arc<State>) -> Self {
+        Self {
+            state,
+            canonical: OnceLock::new(),
+            normalization: None,
+        }
+    }
+
+    fn canonical(&self) -> &Canonical {
+        self.canonical.get_or_init(|| self.state.canonical())
+    }
+
+    fn advance(&mut self) {
+        let search = self
+            .normalization
+            .get_or_insert_with(|| crate::canonical::Search::new(self.state.clone()));
+        if search.step() {
+            let canonical = self.normalization.take().unwrap().finish().unwrap();
+            self.canonical.get_or_init(|| canonical);
+        }
+    }
+}
+
+struct Step {
+    source: usize,
+    target: usize,
+    rule: usize,
+    binding: crate::flow::Binding,
+    event: OnceLock<Event>,
+}
+
 pub struct Search {
     program: source::Program,
+    compiled: Arc<Program>,
     claim: Vec<Vec<source::Value>>,
-    goal: State,
-    runtime: Runtime,
-    state: IndexSet<Arc<State>>,
-    event: Vec<Event>,
+    goal: Record,
+    signature: u64,
+    runtime: crate::reduction::Search,
+    state: Vec<Record>,
+    index: HashMap<u64, Vec<usize>>,
+    event: Vec<Step>,
+    pending: Option<crate::reduction::Event>,
+    candidate: Option<Record>,
+    initial: bool,
     cursor: usize,
     work: usize,
     cycle: bool,
+    reached: bool,
 }
 
 impl Search {
@@ -56,84 +101,186 @@ impl Search {
             return Err(Failure::Declaration);
         }
         let compiled = Program::new(program.clone());
-        let initial = State::initial(&compiled);
+        let initial = Arc::new(State::initial(&compiled));
         let mut goal = compiled.clone();
         goal.initial = goal.input(&target.initial);
         let goal = State::initial(&goal);
-        let mut state = IndexSet::new();
-        let initial = Arc::new(initial);
-        state.insert(initial.clone());
+        let signature = crate::fingerprint::state(&goal);
+        let fingerprint = crate::fingerprint::state(&initial);
+        let reached = initial.as_ref() == &goal;
+        let compiled = Arc::new(compiled);
         Ok(Self {
             program,
             claim: target.initial,
-            goal,
-            runtime: Runtime::seed(Arc::new(compiled), initial),
-            state,
+            goal: Record::new(Arc::new(goal)),
+            signature,
+            runtime: crate::reduction::Search::new(compiled.clone(), initial.clone()),
+            compiled,
+            state: vec![Record::new(initial)],
+            index: HashMap::from([(fingerprint, vec![0])]),
             event: Vec::new(),
+            pending: None,
+            candidate: None,
+            initial: signature == fingerprint,
             cursor: 0,
             work: 0,
             cycle: false,
+            reached,
         })
     }
 
     pub fn run(&mut self, budget: usize, limit: Limit) {
         for _ in 0..budget {
-            if self.state[self.cursor].as_ref() == &self.goal || self.cycle {
+            let work = self.work;
+            if self.reached || self.cycle {
                 return;
             }
-            if let Some(event) = self.runtime.first() {
-                let next = self.runtime.state[event.target].clone();
-                let known = self.state.get_index_of(&next);
-                if known.is_none() && self.state.len() >= limit.state {
-                    return;
+            let retained = self.state.len()
+                + self.event.len()
+                + self.runtime.record()
+                + self
+                    .pending
+                    .as_ref()
+                    .map_or(0, |event| event.fingerprint.retained() + 1)
+                + usize::from(self.candidate.is_some());
+            if retained >= limit.record {
+                return;
+            }
+            if self.initial {
+                if self.goal.canonical.get().is_none() {
+                    self.goal.advance();
+                    self.work += 1;
+                    continue;
                 }
-                if self.state.len() + self.event.len() + self.runtime.record() >= limit.record {
-                    return;
+                if self.state[0].canonical.get().is_none() {
+                    self.state[0].advance();
+                    self.work += 1;
+                    continue;
                 }
-                let target = self.state.insert_full(next.clone()).0;
-                self.event.push(Event {
-                    source: self.cursor,
-                    target,
-                    rule: event.rule.to_owned(),
-                    footprint: event.binding.footprint.iter().copied().collect(),
-                    exact: event.binding.exact.iter().copied().collect(),
-                    read: event.binding.read.iter().copied().collect(),
-                });
-                self.cursor = target;
-                self.cycle = known.is_some();
-                self.runtime = Runtime::seed(self.runtime.program.clone(), next);
+                self.reached = self.goal.canonical().state == self.state[0].canonical().state;
+                self.initial = false;
                 continue;
             }
-            let retained = self.state.len() + self.event.len();
-            let available = limit.record.saturating_sub(retained);
-            let step = self.runtime.work;
-            self.runtime.run(
-                1,
-                Some(Limit {
-                    state: limit
-                        .state
-                        .saturating_sub(self.state.len())
-                        .saturating_add(1)
-                        .min(2),
-                    record: available,
-                    ..limit
-                }),
-            );
-            self.work += self.runtime.work - step;
-            if self.runtime.work == step {
+            let event = if let Some(event) = self.pending.take() {
+                event
+            } else {
+                let work = self.runtime.work;
+                let event = self.runtime.run(limit);
+                self.work += self.runtime.work - work;
+                let Some(event) = event else {
+                    if self.runtime.work == work {
+                        return;
+                    }
+                    continue;
+                };
+                event
+            };
+            let fingerprint = event.fingerprint.value;
+            let mut record = self
+                .candidate
+                .take()
+                .unwrap_or_else(|| Record::new(event.state.clone()));
+            let comparison = self.signature == fingerprint || self.index.contains_key(&fingerprint);
+            if comparison && self.work != work {
+                self.pending = Some(event);
+                self.candidate = Some(record);
+                continue;
+            }
+            if comparison && record.canonical.get().is_none() {
+                record.advance();
+                self.work += 1;
+                self.pending = Some(event);
+                self.candidate = Some(record);
+                continue;
+            }
+            if self.signature == fingerprint && self.goal.canonical.get().is_none() {
+                self.goal.advance();
+                self.work += 1;
+                self.pending = Some(event);
+                self.candidate = Some(record);
+                continue;
+            }
+            if let Some(index) = self.index.get(&fingerprint).and_then(|candidate| {
+                candidate
+                    .iter()
+                    .copied()
+                    .find(|&index| self.state[index].canonical.get().is_none())
+            }) {
+                self.state[index].advance();
+                self.work += 1;
+                self.pending = Some(event);
+                self.candidate = Some(record);
+                continue;
+            }
+            let known = self.index.get(&fingerprint).and_then(|candidate| {
+                candidate
+                    .iter()
+                    .copied()
+                    .find(|&index| self.state[index].canonical().state == record.canonical().state)
+            });
+            if known.is_none() && self.state.len() >= limit.state {
+                self.pending = Some(event);
+                self.candidate = Some(record);
                 return;
             }
+            let target = known.unwrap_or(self.state.len());
+            self.reached = self.signature == fingerprint
+                && record.canonical().state == self.goal.canonical().state;
+            if known.is_none() {
+                self.state.push(record);
+                self.index.entry(fingerprint).or_default().push(target);
+            }
+            self.runtime
+                .advance(event.state, &event.binding.world, event.fingerprint);
+            self.event.push(Step {
+                source: self.cursor,
+                target,
+                rule: event.rule,
+                binding: event.binding,
+                event: OnceLock::new(),
+            });
+            self.cursor = target;
+            self.cycle = known.is_some();
         }
     }
 
     pub fn inspect(&self, index: usize) -> Option<Node> {
-        self.state
-            .get_index(index)
-            .map(|state| Node::new(index, state, &self.runtime.program, Status::Supported))
+        self.state.get(index).map(|state| {
+            Node::new(
+                index,
+                &state.canonical().state,
+                &self.compiled,
+                Status::Supported,
+            )
+        })
     }
 
     pub fn transition(&self, index: usize) -> Option<&Event> {
-        self.event.get(index)
+        let step = self.event.get(index)?;
+        Some(step.event.get_or_init(|| {
+            let canonical = self.state[step.source].canonical();
+            let place = |place: &Place| match *place {
+                Place::World(world, token) => {
+                    Place::World(canonical.world[world].unwrap(), canonical.resource[&token])
+                }
+                Place::Held(frame, token) => {
+                    Place::Held(canonical.frame[frame].unwrap(), canonical.resource[&token])
+                }
+            };
+            let selection = |value: &crate::basis::Set<Place>| {
+                let mut value = value.iter().map(place).collect::<Vec<_>>();
+                value.sort_unstable();
+                value
+            };
+            Event {
+                source: step.source,
+                target: step.target,
+                rule: self.compiled.rule[step.rule].name.clone(),
+                footprint: selection(&step.binding.footprint),
+                exact: selection(&step.binding.exact),
+                read: selection(&step.binding.read),
+            }
+        }))
     }
 
     pub fn current(&self) -> Node {
@@ -141,47 +288,43 @@ impl Search {
     }
 
     pub fn summary(&self) -> Summary {
-        let reached = self.state[self.cursor].as_ref() == &self.goal;
         Summary {
-            outcome: if reached {
+            outcome: if self.reached {
                 Outcome::Reached
             } else {
                 Outcome::Unknown
             },
-            witness: reached.then(|| self.current()),
+            witness: self.reached.then(|| self.current()),
             event: self.event.len(),
             work: self.work,
         }
     }
 
     pub fn report(&self) -> Report {
-        let reached = self.state[self.cursor].as_ref() == &self.goal;
         Report {
-            outcome: if reached {
+            outcome: if self.reached {
                 Outcome::Reached
             } else {
                 Outcome::Unknown
             },
-            witness: reached.then_some(self.cursor),
+            witness: self.reached.then_some(self.cursor),
             work: self.work,
             program: self.program.clone(),
             target: self.claim.clone(),
-            state: self
-                .state
-                .iter()
-                .enumerate()
-                .map(|(id, state)| Node::new(id, state, &self.runtime.program, Status::Supported))
+            state: (0..self.state.len())
+                .map(|index| self.inspect(index).unwrap())
                 .collect(),
-            event: self
-                .event
-                .iter()
-                .map(|event| Event {
-                    source: event.source,
-                    target: event.target,
-                    rule: event.rule.clone(),
-                    footprint: event.footprint.clone(),
-                    exact: event.exact.clone(),
-                    read: event.read.clone(),
+            event: (0..self.event.len())
+                .map(|index| {
+                    let event = self.transition(index).unwrap();
+                    Event {
+                        source: event.source,
+                        target: event.target,
+                        rule: event.rule.clone(),
+                        footprint: event.footprint.clone(),
+                        exact: event.exact.clone(),
+                        read: event.read.clone(),
+                    }
                 })
                 .collect(),
         }

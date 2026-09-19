@@ -37,6 +37,47 @@ impl<Value> Set<Value> {
     }
 }
 
+impl<Value: Ord> Set<Value> {
+    pub(crate) fn contains(&self, value: &Value) -> bool {
+        self.slice().binary_search(value).is_ok()
+    }
+
+    pub(crate) fn union<'set>(&'set self, other: &'set Self) -> Union<'set, Value> {
+        Union {
+            left: self.slice(),
+            right: other.slice(),
+        }
+    }
+}
+
+pub(crate) struct Union<'set, Value> {
+    left: &'set [Value],
+    right: &'set [Value],
+}
+
+impl<'set, Value: Ord> Iterator for Union<'set, Value> {
+    type Item = &'set Value;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let Some(left) = self.left.first() else {
+            let (value, rest) = self.right.split_first()?;
+            self.right = rest;
+            return Some(value);
+        };
+        let Some(right) = self.right.first() else {
+            self.left = &self.left[1..];
+            return Some(left);
+        };
+        if left <= right {
+            self.left = &self.left[1..];
+        }
+        if right <= left {
+            self.right = &self.right[1..];
+        }
+        Some(left.min(right))
+    }
+}
+
 impl<Value> Default for Set<Value> {
     fn default() -> Self {
         Self(Storage::Empty)

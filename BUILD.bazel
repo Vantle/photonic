@@ -25,6 +25,8 @@ native_binary(
         "benchmark/runtime.rs",
         "benchmark/symmetry.rs",
         "benchmark/trace.rs",
+        "benchmark/matching.rs",
+        "benchmark/arithmetic.rs",
         "library/test/suite.rs",
         "photonic/assemble.rs",
         "photonic/check.rs",

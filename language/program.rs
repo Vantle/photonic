@@ -1,6 +1,6 @@
 use crate::source;
 use indexmap::IndexSet;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum Symbol {
@@ -30,10 +30,10 @@ pub struct Scope {
 }
 
 impl Scope {
-    pub(crate) fn candidate(&self, available: &HashSet<Symbol>) -> Vec<usize> {
+    pub(crate) fn candidate(&self, available: impl IntoIterator<Item = Symbol>) -> Vec<usize> {
         let mut candidate = self.empty.clone();
         for symbol in available {
-            if let Some(rule) = self.anchor.get(symbol) {
+            if let Some(rule) = self.anchor.get(&symbol) {
                 candidate.extend_from_slice(rule);
             }
         }

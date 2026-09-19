@@ -1,4 +1,38 @@
+load("@bazel_skylib//rules:native_binary.bzl", "native_binary")
 load("@rules_rs//rs:rust_binary.bzl", "rust_binary")
+
+rust_binary(
+    name = "arithmetic",
+    srcs = ["arithmetic.rs"],
+    compile_data = ["//program/ternary:formula"],
+    crate_root = "arithmetic.rs",
+    rustc_env = {"FORMULA": "$(execpath //program/ternary:formula)"},
+    deps = [
+        "//language:photonic",
+        "@crate//:clap",
+        "@crate//:serde",
+        "@crate//:serde_json",
+    ],
+)
+
+native_binary(
+    name = "browser",
+    src = "//toolchain:execute",
+    args = [
+        "$(rlocationpath //toolchain:node)",
+        "$(rlocationpath browser.mjs)",
+        "$(rlocationpath //toolchain/browser:webassembly)",
+        "$(rlocationpath //toolchain/browser:javascript)",
+        "$(rlocationpath //document:numeral)",
+    ],
+    data = [
+        "browser.mjs",
+        "//document:numeral",
+        "//toolchain:node",
+        "//toolchain/browser:javascript",
+        "//toolchain/browser:webassembly",
+    ],
+)
 
 rust_binary(
     name = "runtime",
@@ -40,4 +74,20 @@ filegroup(
     name = "build",
     srcs = ["BUILD.bazel"],
     visibility = ["//:__pkg__"],
+)
+
+rust_binary(
+    name = "matching",
+    srcs = ["matching.rs"],
+    crate_root = "matching.rs",
+    data = [
+        "case/coherence.wave",
+        "case/token.wave",
+    ],
+    deps = [
+        "//language:photonic",
+        "@crate//:clap",
+        "@crate//:serde",
+        "@crate//:serde_json",
+    ],
 )

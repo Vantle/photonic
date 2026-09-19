@@ -52,20 +52,26 @@ fn normalize(
             .as_array()
             .unwrap()
             .iter()
-            .map(|world| World {
-                frame: world["frame"].as_u64().unwrap() as usize,
-                particle: particle(&world["particle"]),
+            .map(|world| {
+                World {
+                    frame: world["frame"].as_u64().unwrap() as usize,
+                    particle: particle(&world["particle"]),
+                }
+                .into()
             })
             .collect(),
         frame: node["frame"]
             .as_array()
             .unwrap()
             .iter()
-            .map(|frame| Frame {
-                scope: scope[frame["scope"].as_str().unwrap()],
-                parent: optional(&frame["parent"]),
-                lexical: optional(&frame["lexical"]),
-                held: particle(&frame["held"]),
+            .map(|frame| {
+                Frame {
+                    scope: scope[frame["scope"].as_str().unwrap()],
+                    parent: optional(&frame["parent"]),
+                    lexical: optional(&frame["lexical"]),
+                    held: particle(&frame["held"]),
+                }
+                .into()
             })
             .collect(),
     }
@@ -238,12 +244,12 @@ fn capture() {
     use crate::program::{Instruction, Output, Symbol};
     use crate::state::{Frame, State, Token, World};
     use std::collections::BTreeSet;
-    let root = Frame {
+    let root = std::sync::Arc::new(Frame {
         scope: 0,
         parent: None,
         lexical: None,
         held: Vec::new(),
-    };
+    });
     let seed = Token {
         id: 0,
         value: Symbol::Atom(0),
@@ -258,25 +264,30 @@ fn capture() {
                 parent: Some(0),
                 lexical: Some(0),
                 held: vec![seed.clone()],
-            },
+            }
+            .into(),
             Frame {
                 scope: 2,
                 parent: Some(0),
                 lexical: Some(1),
                 held: vec![seed.clone()],
-            },
+            }
+            .into(),
         ],
     };
     for mapped in [false, true] {
         let state = State {
-            world: vec![World {
-                frame: 0,
-                particle: vec![Token {
-                    id: 1,
-                    value: Symbol::Atom(1),
-                    capture: mapped.then_some(1),
-                }],
-            }],
+            world: vec![
+                World {
+                    frame: 0,
+                    particle: vec![Token {
+                        id: 1,
+                        value: Symbol::Atom(1),
+                        capture: mapped.then_some(1),
+                    }],
+                }
+                .into(),
+            ],
             frame: if mapped {
                 vec![root.clone(), witness.frame[1].clone()]
             } else {
@@ -306,10 +317,10 @@ fn capture() {
             ..Instruction::default()
         };
         let binding = Binding {
-            world: BTreeSet::from([0]),
-            footprint: BTreeSet::new(),
-            exact: BTreeSet::new(),
-            read: BTreeSet::from([basis]),
+            world: BTreeSet::from([0]).into(),
+            footprint: BTreeSet::new().into(),
+            exact: BTreeSet::new().into(),
+            read: BTreeSet::from([basis]).into(),
         };
         let output = crate::application::apply(
             &state,
@@ -349,12 +360,12 @@ fn capture() {
 fn permutation() {
     use crate::program::Symbol;
     use crate::state::{Frame, State, Token, World};
-    let root = Frame {
+    let root = std::sync::Arc::new(Frame {
         scope: 0,
         parent: None,
         lexical: None,
         held: Vec::new(),
-    };
+    });
     for mask in 0..256usize {
         let identity = (0..4)
             .map(|index| mask / 4usize.pow(index) % 4)
@@ -365,22 +376,26 @@ fn permutation() {
         let state = State {
             frame: vec![root.clone()],
             world: (0..2)
-                .map(|index| World {
-                    frame: 0,
-                    particle: identity[index * 2..index * 2 + 2]
-                        .iter()
-                        .map(|&id| Token {
-                            id,
-                            value: Symbol::Atom(0),
-                            capture: None,
-                        })
-                        .collect(),
+                .map(|index| {
+                    World {
+                        frame: 0,
+                        particle: identity[index * 2..index * 2 + 2]
+                            .iter()
+                            .map(|&id| Token {
+                                id,
+                                value: Symbol::Atom(0),
+                                capture: None,
+                            })
+                            .collect(),
+                    }
+                    .into()
                 })
                 .collect(),
         };
         let mut changed = state.clone();
         changed.world.reverse();
         for world in &mut changed.world {
+            let world = std::sync::Arc::make_mut(world);
             world.particle.reverse();
             for token in &mut world.particle {
                 token.id = 17 - token.id;
@@ -410,6 +425,34 @@ fn determinism() {
 }
 
 #[test]
+fn observation() {
+    for source in [
+        "Seed.A [Seed] [A] B [B] C",
+        "A [A] B,C [B,C] D",
+        "A [A] (B [B] C)",
+    ] {
+        let program = crate::lowering::parse(source).unwrap();
+        let mut complete = Runtime::new(program.clone());
+        complete.run(100_000, None);
+        assert!(complete.closed(), "{source}");
+        let expected = serde_json::to_value(complete.snapshot()).unwrap();
+        let mut observed = Runtime::new(program);
+        for _ in 0..100_000 {
+            observed.snapshot();
+            if observed.closed() {
+                break;
+            }
+            observed.run(1, None);
+        }
+        assert!(observed.closed(), "{source}");
+        let actual = serde_json::to_value(observed.snapshot()).unwrap();
+        for field in ["state", "event", "view"] {
+            assert_eq!(actual[field], expected[field], "{source}: {field}");
+        }
+    }
+}
+
+#[test]
 fn inheritance() {
     use crate::flow::{Binding, Closure, Flow, Place};
     use crate::program::{Instruction, Output, Symbol};
@@ -429,7 +472,7 @@ fn inheritance() {
                     value,
                     capture: fragment.then_some(0),
                 };
-                let root = Frame {
+                let root = std::sync::Arc::new(Frame {
                     scope: 0,
                     parent: None,
                     lexical: None,
@@ -438,12 +481,15 @@ fn inheritance() {
                     } else {
                         Vec::new()
                     },
-                };
+                });
                 let source = State {
-                    world: vec![World {
-                        frame: 0,
-                        particle: vec![original.clone()],
-                    }],
+                    world: vec![
+                        World {
+                            frame: 0,
+                            particle: vec![original.clone()],
+                        }
+                        .into(),
+                    ],
                     frame: vec![root.clone()],
                 };
                 let witness = State {
@@ -463,7 +509,8 @@ fn inheritance() {
                                 },
                                 capture: (!transformed).then_some(original.capture).flatten(),
                             }],
-                        },
+                        }
+                        .into(),
                     ],
                 };
                 let basis = if held {
@@ -487,10 +534,10 @@ fn inheritance() {
                     ..Instruction::default()
                 };
                 let binding = Binding {
-                    world: BTreeSet::new(),
-                    footprint: BTreeSet::new(),
-                    exact: BTreeSet::new(),
-                    read: BTreeSet::from([basis]),
+                    world: BTreeSet::new().into(),
+                    footprint: BTreeSet::new().into(),
+                    exact: BTreeSet::new().into(),
+                    read: BTreeSet::from([basis]).into(),
                 };
                 let result = crate::application::apply(
                     &source,

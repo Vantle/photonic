@@ -1,4 +1,5 @@
 mod addition;
+mod assignment;
 mod binary;
 mod executor;
 mod group;
@@ -9,6 +10,7 @@ mod parser;
 mod path;
 mod prism;
 mod product;
+mod reduction;
 mod runtime;
 mod scheduling;
 mod support;

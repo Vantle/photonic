@@ -153,6 +153,10 @@ The current canonicalizer compares rule symbols by compiled identifiers in sever
 
 ### Construction and activation
 
+The incremental ground evaluator retains the existing fixed compiled-rule catalog. Its activation network, scope-candidate cache, and rule-symbol fingerprints are implementation indexes, not a language restriction on future code construction. Introducing dynamic code must register new definitions and their dependencies with those indexes, invalidate affected candidates, and replace allocation-dependent rule identifiers in equality and fingerprints with structural keys or deterministic remapping. A cached negative match cannot survive a relevant definition or occurrence change.
+
+The ground particle matcher groups equal candidate domains and enumerates distinct token combinations. This relies on current literal symbol and capture matching: domains are equal or disjoint. Structural variables and mixed-fragment patterns can have overlapping unequal domains; they require a general binding matcher with an all-different resource constraint, rather than reusing that ground optimization without its precondition. Keep the ground path as an optimization within the shared semantics. Preserve every alternative binding and its provenance in the general matcher.
+
 Construction can perform local steps: resolve a structural binding, create a node referring to existing children, close a contextual template, and emit a rule occurrence. A rule is eligible only after its required structure and environment are complete. A generated child can execute before unrelated siblings finish if its interface does not require those siblings.
 
 Indexes should distinguish a literal rule match from a structural pattern. Ground patterns retain their existing fast path. Structural patterns can index by constructor and known literal components before considering bindings. A newly produced occurrence must notify the relevant local matching work; changing the code cache alone should notify nothing.

@@ -56,6 +56,7 @@ struct Identity {
     binding: Binding,
     environment: Option<Arc<State>>,
 }
+#[cfg(test)]
 pub(crate) struct Transition<'a> {
     pub target: usize,
     pub rule: &'a str,
@@ -126,6 +127,7 @@ pub struct Runtime {
     clause: IndexSet<Clause>,
     evaluation: OnceLock<Support>,
     matching: HashMap<Match, usize>,
+    candidate: HashMap<(usize, usize), Arc<Vec<usize>>>,
     cache: Vec<Cache>,
     request: IndexSet<Request>,
     cursor: Vec<usize>,
@@ -164,6 +166,7 @@ impl Runtime {
             clause: IndexSet::new(),
             evaluation: OnceLock::new(),
             matching: HashMap::new(),
+            candidate: HashMap::new(),
             cache: Vec::new(),
             request: IndexSet::new(),
             cursor: Vec::new(),
@@ -183,6 +186,7 @@ impl Runtime {
         runtime
     }
 
+    #[cfg(test)]
     pub(crate) fn first(&self) -> Option<Transition<'_>> {
         self.event.first().map(|event| Transition {
             target: event.target,
@@ -192,10 +196,12 @@ impl Runtime {
     }
 
     fn support(&mut self, head: Atom, premise: impl IntoIterator<Item = Atom>) {
-        self.clause.insert(Clause {
+        if self.clause.insert(Clause {
             head,
             premise: premise.into_iter().collect(),
-        });
+        }) {
+            self.evaluation.take();
+        }
     }
 
     fn intern(&mut self, state: Arc<State>) -> usize {
@@ -358,27 +364,40 @@ impl Runtime {
         let view = self.view[index].clone();
         let source = self.state[view.source].clone();
         let target = self.state[view.target].clone();
-        let available = target
-            .world
-            .iter()
-            .flat_map(|world| world.particle.iter().map(|token| token.value))
-            .collect::<HashSet<_>>();
+        let available = self.index[view.target]
+            .get_or_insert_with(|| {
+                let index = Arc::new(crate::index::Index::new(target.clone()));
+                self.indexed += index.retained();
+                index
+            })
+            .clone();
         for frame in 0..source.frame.len() {
             if frame != 0 && !source.world.iter().any(|world| world.frame == frame) {
                 continue;
             }
             let mut owner = Some(frame);
             while let Some(current) = owner {
-                let rule = self.program.scope[source.frame[current].scope].candidate(&available);
-                for rule in rule {
-                    if self.program.rule[rule]
-                        .input
-                        .iter()
-                        .flatten()
-                        .any(|symbol| !available.contains(symbol))
-                    {
-                        continue;
-                    }
+                let scope = source.frame[current].scope;
+                let rule = self
+                    .candidate
+                    .entry((view.target, scope))
+                    .or_insert_with(|| {
+                        let candidate = self.program.scope[scope]
+                            .candidate(available.available())
+                            .into_iter()
+                            .filter(|&rule| {
+                                self.program.rule[rule]
+                                    .input
+                                    .iter()
+                                    .flatten()
+                                    .all(|symbol| available.contains(symbol))
+                            })
+                            .collect::<Vec<_>>();
+                        self.indexed += candidate.len();
+                        Arc::new(candidate)
+                    })
+                    .clone();
+                for &rule in rule.iter() {
                     let input = if self.program.rule[rule].input.is_empty() {
                         vec![Vec::new()]
                     } else {
@@ -575,7 +594,6 @@ impl Runtime {
         limit: Option<Limit>,
         executor: Option<&crate::executor::Executor>,
     ) {
-        self.evaluation.take();
         if let Some(limit) = limit {
             self.limit = limit;
             self.agenda.extend(self.pending.drain(..).map(Task::Apply));
@@ -662,6 +680,7 @@ impl Runtime {
             + self.clause.len()
             + self.request.len()
             + self.cache.len()
+            + self.candidate.len()
             + self.binding
             + self.retained
             + self.flying

@@ -1,0 +1,283 @@
+{
+  "baseline": "5b6cc53e6a027c3aec9554e2adb5e92fce0cff0b",
+  "host": "Apple M5 Max, macOS 26.6.2",
+  "date": "2026-09-19T15:08:48.173634+00:00",
+  "protocol": "Native Rust via bazel run -c opt //benchmark:arithmetic on both revisions. Same harness and budgets; one warm-up and three measured samples per process. Baseline followed by current for each case. Execution includes the Photonic expression evaluator and Photonic digit-by-digit output verification. Excludes Bazel build/startup, parsing, initialization, report serialization, and release. No JavaScript or WebAssembly measurements included.",
+  "case": [
+    {
+      "name": "addition",
+      "baseline": {
+        "decimal": "34066 + 50740 = 84806",
+        "input": "1201201201+2120121021",
+        "measurement": [
+          {
+            "event": 6130,
+            "execution": 0.875373375,
+            "initialization": 0.0013225,
+            "work": 132571
+          },
+          {
+            "event": 6130,
+            "execution": 0.870925458,
+            "initialization": 0.00132925,
+            "work": 132571
+          },
+          {
+            "event": 6130,
+            "execution": 0.881101416,
+            "initialization": 0.001314208,
+            "work": 132571
+          }
+        ],
+        "ternary": "11022022222"
+      },
+      "current": {
+        "decimal": "34066 + 50740 = 84806",
+        "input": "1201201201+2120121021",
+        "measurement": [
+          {
+            "event": 6130,
+            "execution": 0.114323125,
+            "initialization": 0.001516958,
+            "work": 20756
+          },
+          {
+            "event": 6130,
+            "execution": 0.11212175,
+            "initialization": 0.001521667,
+            "work": 20756
+          },
+          {
+            "event": 6130,
+            "execution": 0.111549042,
+            "initialization": 0.001485584,
+            "work": 20756
+          }
+        ],
+        "ternary": "11022022222"
+      },
+      "speedup": 7.807346701242176,
+      "source": "Push.([Digit] 1).Zero, Stage.1\n[Built,Stage.1] (Push.([Digit] 2)) (Forget.Stage.2)\n[Clean.Stage.2] Stage.2\n[Built,Stage.2] (Push.([Digit] 0)) (Forget.Stage.3)\n[Clean.Stage.3] Stage.3\n[Built,Stage.3] (Push.([Digit] 1)) (Forget.Stage.4)\n[Clean.Stage.4] Stage.4\n[Built,Stage.4] (Push.([Digit] 2)) (Forget.Stage.5)\n[Clean.Stage.5] Stage.5\n[Built,Stage.5] (Push.([Digit] 1)) (Forget.Stage.6)\n[Clean.Stage.6] Stage.6\n[Built,Stage.6] (Push.([Digit] 0)) (Forget.Stage.7)\n[Clean.Stage.7] Stage.7\n[Built,Stage.7] (Push.([Digit] 2)) (Forget.Stage.8)\n[Clean.Stage.8] Stage.8\n[Built,Stage.8] (Push.([Digit] 1)) (Forget.Stage.9)\n[Clean.Stage.9] Stage.9\n[Built,Stage.9] (Push.([Digit] 2)) (Forget.Stage.10)\n[Clean.Stage.10] Stage.10\n[Built,Stage.10] (Push.Add) (Forget.Stage.11)\n[Clean.Stage.11] Stage.11\n[Built,Stage.11] (Push.([Digit] 1)) (Forget.Stage.12)\n[Clean.Stage.12] Stage.12\n[Built,Stage.12] (Push.([Digit] 0)) (Forget.Stage.13)\n[Clean.Stage.13] Stage.13\n[Built,Stage.13] (Push.([Digit] 2)) (Forget.Stage.14)\n[Clean.Stage.14] Stage.14\n[Built,Stage.14] (Push.([Digit] 1)) (Forget.Stage.15)\n[Clean.Stage.15] Stage.15\n[Built,Stage.15] (Push.([Digit] 0)) (Forget.Stage.16)\n[Clean.Stage.16] Stage.16\n[Built,Stage.16] (Push.([Digit] 2)) (Forget.Stage.17)\n[Clean.Stage.17] Stage.17\n[Built,Stage.17] (Push.([Digit] 1)) (Forget.Stage.18)\n[Clean.Stage.18] Stage.18\n[Built,Stage.18] (Push.([Digit] 0)) (Forget.Stage.19)\n[Clean.Stage.19] Stage.19\n[Built,Stage.19] (Push.([Digit] 2)) (Forget.Stage.20)\n[Clean.Stage.20] Stage.20\n[Built,Stage.20] (Push.([Digit] 1)) (Forget.Stage.21)\n[Clean.Stage.21] Stage.21\n[Built,Stage.21] (Function.Expression) (Forget.Inspect.0)\n[Clean.Inspect.0] Inspect.0\n[Return.Expression.Number.Positive,Inspect.0] (Read) (Forget.Inspect.1)\n[Clean.Inspect.1] Inspect.1\n[Yield.([Digit] 2),Inspect.1] (Read) (Forget.Inspect.2)\n[Clean.Inspect.2] Inspect.2\n[Yield.([Digit] 2),Inspect.2] (Read) (Forget.Inspect.3)\n[Clean.Inspect.3] Inspect.3\n[Yield.([Digit] 2),Inspect.3] (Read) (Forget.Inspect.4)\n[Clean.Inspect.4] Inspect.4\n[Yield.([Digit] 2),Inspect.4] (Read) (Forget.Inspect.5)\n[Clean.Inspect.5] Inspect.5\n[Yield.([Digit] 2),Inspect.5] (Read) (Forget.Inspect.6)\n[Clean.Inspect.6] Inspect.6\n[Yield.([Digit] 0),Inspect.6] (Read) (Forget.Inspect.7)\n[Clean.Inspect.7] Inspect.7\n[Yield.([Digit] 2),Inspect.7] (Read) (Forget.Inspect.8)\n[Clean.Inspect.8] Inspect.8\n[Yield.([Digit] 2),Inspect.8] (Read) (Forget.Inspect.9)\n[Clean.Inspect.9] Inspect.9\n[Yield.([Digit] 0),Inspect.9] (Read) (Forget.Inspect.10)\n[Clean.Inspect.10] Inspect.10\n[Yield.([Digit] 1),Inspect.10] (Read) (Forget.Inspect.11)\n[Clean.Inspect.11] Inspect.11\n[Yield.([Digit] 1).Zero,Inspect.11] Done.Zero\n"
+    },
+    {
+      "name": "carry",
+      "baseline": {
+        "decimal": "59048 + 59048 = 118096",
+        "input": "2222222222+2222222222",
+        "measurement": [
+          {
+            "event": 6130,
+            "execution": 0.939198542,
+            "initialization": 0.001328292,
+            "work": 132566
+          },
+          {
+            "event": 6130,
+            "execution": 0.940744125,
+            "initialization": 0.001324208,
+            "work": 132566
+          },
+          {
+            "event": 6130,
+            "execution": 0.940878875,
+            "initialization": 0.001280875,
+            "work": 132566
+          }
+        ],
+        "ternary": "12222222221"
+      },
+      "current": {
+        "decimal": "59048 + 59048 = 118096",
+        "input": "2222222222+2222222222",
+        "measurement": [
+          {
+            "event": 6130,
+            "execution": 0.364502084,
+            "initialization": 0.001561583,
+            "work": 28229
+          },
+          {
+            "event": 6130,
+            "execution": 0.359130833,
+            "initialization": 0.001514875,
+            "work": 28229
+          },
+          {
+            "event": 6130,
+            "execution": 0.359984792,
+            "initialization": 0.001516541,
+            "work": 28229
+          }
+        ],
+        "ternary": "12222222221"
+      },
+      "speedup": 2.6132885219217816,
+      "source": "Push.([Digit] 2).Zero, Stage.1\n[Built,Stage.1] (Push.([Digit] 2)) (Forget.Stage.2)\n[Clean.Stage.2] Stage.2\n[Built,Stage.2] (Push.([Digit] 2)) (Forget.Stage.3)\n[Clean.Stage.3] Stage.3\n[Built,Stage.3] (Push.([Digit] 2)) (Forget.Stage.4)\n[Clean.Stage.4] Stage.4\n[Built,Stage.4] (Push.([Digit] 2)) (Forget.Stage.5)\n[Clean.Stage.5] Stage.5\n[Built,Stage.5] (Push.([Digit] 2)) (Forget.Stage.6)\n[Clean.Stage.6] Stage.6\n[Built,Stage.6] (Push.([Digit] 2)) (Forget.Stage.7)\n[Clean.Stage.7] Stage.7\n[Built,Stage.7] (Push.([Digit] 2)) (Forget.Stage.8)\n[Clean.Stage.8] Stage.8\n[Built,Stage.8] (Push.([Digit] 2)) (Forget.Stage.9)\n[Clean.Stage.9] Stage.9\n[Built,Stage.9] (Push.([Digit] 2)) (Forget.Stage.10)\n[Clean.Stage.10] Stage.10\n[Built,Stage.10] (Push.Add) (Forget.Stage.11)\n[Clean.Stage.11] Stage.11\n[Built,Stage.11] (Push.([Digit] 2)) (Forget.Stage.12)\n[Clean.Stage.12] Stage.12\n[Built,Stage.12] (Push.([Digit] 2)) (Forget.Stage.13)\n[Clean.Stage.13] Stage.13\n[Built,Stage.13] (Push.([Digit] 2)) (Forget.Stage.14)\n[Clean.Stage.14] Stage.14\n[Built,Stage.14] (Push.([Digit] 2)) (Forget.Stage.15)\n[Clean.Stage.15] Stage.15\n[Built,Stage.15] (Push.([Digit] 2)) (Forget.Stage.16)\n[Clean.Stage.16] Stage.16\n[Built,Stage.16] (Push.([Digit] 2)) (Forget.Stage.17)\n[Clean.Stage.17] Stage.17\n[Built,Stage.17] (Push.([Digit] 2)) (Forget.Stage.18)\n[Clean.Stage.18] Stage.18\n[Built,Stage.18] (Push.([Digit] 2)) (Forget.Stage.19)\n[Clean.Stage.19] Stage.19\n[Built,Stage.19] (Push.([Digit] 2)) (Forget.Stage.20)\n[Clean.Stage.20] Stage.20\n[Built,Stage.20] (Push.([Digit] 2)) (Forget.Stage.21)\n[Clean.Stage.21] Stage.21\n[Built,Stage.21] (Function.Expression) (Forget.Inspect.0)\n[Clean.Inspect.0] Inspect.0\n[Return.Expression.Number.Positive,Inspect.0] (Read) (Forget.Inspect.1)\n[Clean.Inspect.1] Inspect.1\n[Yield.([Digit] 1),Inspect.1] (Read) (Forget.Inspect.2)\n[Clean.Inspect.2] Inspect.2\n[Yield.([Digit] 2),Inspect.2] (Read) (Forget.Inspect.3)\n[Clean.Inspect.3] Inspect.3\n[Yield.([Digit] 2),Inspect.3] (Read) (Forget.Inspect.4)\n[Clean.Inspect.4] Inspect.4\n[Yield.([Digit] 2),Inspect.4] (Read) (Forget.Inspect.5)\n[Clean.Inspect.5] Inspect.5\n[Yield.([Digit] 2),Inspect.5] (Read) (Forget.Inspect.6)\n[Clean.Inspect.6] Inspect.6\n[Yield.([Digit] 2),Inspect.6] (Read) (Forget.Inspect.7)\n[Clean.Inspect.7] Inspect.7\n[Yield.([Digit] 2),Inspect.7] (Read) (Forget.Inspect.8)\n[Clean.Inspect.8] Inspect.8\n[Yield.([Digit] 2),Inspect.8] (Read) (Forget.Inspect.9)\n[Clean.Inspect.9] Inspect.9\n[Yield.([Digit] 2),Inspect.9] (Read) (Forget.Inspect.10)\n[Clean.Inspect.10] Inspect.10\n[Yield.([Digit] 2),Inspect.10] (Read) (Forget.Inspect.11)\n[Clean.Inspect.11] Inspect.11\n[Yield.([Digit] 1).Zero,Inspect.11] Done.Zero\n"
+    },
+    {
+      "name": "product",
+      "baseline": {
+        "decimal": "80 * 80 = 6400",
+        "input": "2222*2222",
+        "measurement": [
+          {
+            "event": 9775,
+            "execution": 1.062740333,
+            "initialization": 0.001314125,
+            "work": 214006
+          },
+          {
+            "event": 9775,
+            "execution": 1.063704958,
+            "initialization": 0.001334583,
+            "work": 214006
+          },
+          {
+            "event": 9775,
+            "execution": 1.061688041,
+            "initialization": 0.001317958,
+            "work": 214006
+          }
+        ],
+        "ternary": "22210001"
+      },
+      "current": {
+        "decimal": "80 * 80 = 6400",
+        "input": "2222*2222",
+        "measurement": [
+          {
+            "event": 9775,
+            "execution": 0.172960792,
+            "initialization": 0.001628334,
+            "work": 34437
+          },
+          {
+            "event": 9775,
+            "execution": 0.172363,
+            "initialization": 0.001422583,
+            "work": 34437
+          },
+          {
+            "event": 9775,
+            "execution": 0.170526459,
+            "initialization": 0.001502167,
+            "work": 34437
+          }
+        ],
+        "ternary": "22210001"
+      },
+      "speedup": 6.1657103496690135,
+      "source": "Push.([Digit] 2).Zero, Stage.1\n[Built,Stage.1] (Push.([Digit] 2)) (Forget.Stage.2)\n[Clean.Stage.2] Stage.2\n[Built,Stage.2] (Push.([Digit] 2)) (Forget.Stage.3)\n[Clean.Stage.3] Stage.3\n[Built,Stage.3] (Push.([Digit] 2)) (Forget.Stage.4)\n[Clean.Stage.4] Stage.4\n[Built,Stage.4] (Push.Multiply) (Forget.Stage.5)\n[Clean.Stage.5] Stage.5\n[Built,Stage.5] (Push.([Digit] 2)) (Forget.Stage.6)\n[Clean.Stage.6] Stage.6\n[Built,Stage.6] (Push.([Digit] 2)) (Forget.Stage.7)\n[Clean.Stage.7] Stage.7\n[Built,Stage.7] (Push.([Digit] 2)) (Forget.Stage.8)\n[Clean.Stage.8] Stage.8\n[Built,Stage.8] (Push.([Digit] 2)) (Forget.Stage.9)\n[Clean.Stage.9] Stage.9\n[Built,Stage.9] (Function.Expression) (Forget.Inspect.0)\n[Clean.Inspect.0] Inspect.0\n[Return.Expression.Number.Positive,Inspect.0] (Read) (Forget.Inspect.1)\n[Clean.Inspect.1] Inspect.1\n[Yield.([Digit] 1),Inspect.1] (Read) (Forget.Inspect.2)\n[Clean.Inspect.2] Inspect.2\n[Yield.([Digit] 0),Inspect.2] (Read) (Forget.Inspect.3)\n[Clean.Inspect.3] Inspect.3\n[Yield.([Digit] 0),Inspect.3] (Read) (Forget.Inspect.4)\n[Clean.Inspect.4] Inspect.4\n[Yield.([Digit] 0),Inspect.4] (Read) (Forget.Inspect.5)\n[Clean.Inspect.5] Inspect.5\n[Yield.([Digit] 1),Inspect.5] (Read) (Forget.Inspect.6)\n[Clean.Inspect.6] Inspect.6\n[Yield.([Digit] 2),Inspect.6] (Read) (Forget.Inspect.7)\n[Clean.Inspect.7] Inspect.7\n[Yield.([Digit] 2),Inspect.7] (Read) (Forget.Inspect.8)\n[Clean.Inspect.8] Inspect.8\n[Yield.([Digit] 2).Zero,Inspect.8] Done.Zero\n"
+    },
+    {
+      "name": "wide",
+      "baseline": {
+        "decimal": "34066 * 50740 = 1728508840",
+        "input": "1201201201*2120121021",
+        "measurement": [
+          {
+            "event": 29205,
+            "execution": 7.089079667,
+            "initialization": 0.001415,
+            "work": 640103
+          },
+          {
+            "event": 29205,
+            "execution": 7.230739333,
+            "initialization": 0.0014955,
+            "work": 640103
+          },
+          {
+            "event": 29205,
+            "execution": 7.022905334,
+            "initialization": 0.00149025,
+            "work": 640103
+          }
+        ],
+        "ternary": "11110110111100100221"
+      },
+      "current": {
+        "decimal": "34066 * 50740 = 1728508840",
+        "input": "1201201201*2120121021",
+        "measurement": [
+          {
+            "event": 29205,
+            "execution": 1.036055416,
+            "initialization": 0.001690417,
+            "work": 103456
+          },
+          {
+            "event": 29205,
+            "execution": 1.036454167,
+            "initialization": 0.00170925,
+            "work": 103456
+          },
+          {
+            "event": 29205,
+            "execution": 1.027226375,
+            "initialization": 0.001724125,
+            "work": 103456
+          }
+        ],
+        "ternary": "11110110111100100221"
+      },
+      "speedup": 6.842374990296851,
+      "source": "Push.([Digit] 1).Zero, Stage.1\n[Built,Stage.1] (Push.([Digit] 2)) (Forget.Stage.2)\n[Clean.Stage.2] Stage.2\n[Built,Stage.2] (Push.([Digit] 0)) (Forget.Stage.3)\n[Clean.Stage.3] Stage.3\n[Built,Stage.3] (Push.([Digit] 1)) (Forget.Stage.4)\n[Clean.Stage.4] Stage.4\n[Built,Stage.4] (Push.([Digit] 2)) (Forget.Stage.5)\n[Clean.Stage.5] Stage.5\n[Built,Stage.5] (Push.([Digit] 1)) (Forget.Stage.6)\n[Clean.Stage.6] Stage.6\n[Built,Stage.6] (Push.([Digit] 0)) (Forget.Stage.7)\n[Clean.Stage.7] Stage.7\n[Built,Stage.7] (Push.([Digit] 2)) (Forget.Stage.8)\n[Clean.Stage.8] Stage.8\n[Built,Stage.8] (Push.([Digit] 1)) (Forget.Stage.9)\n[Clean.Stage.9] Stage.9\n[Built,Stage.9] (Push.([Digit] 2)) (Forget.Stage.10)\n[Clean.Stage.10] Stage.10\n[Built,Stage.10] (Push.Multiply) (Forget.Stage.11)\n[Clean.Stage.11] Stage.11\n[Built,Stage.11] (Push.([Digit] 1)) (Forget.Stage.12)\n[Clean.Stage.12] Stage.12\n[Built,Stage.12] (Push.([Digit] 0)) (Forget.Stage.13)\n[Clean.Stage.13] Stage.13\n[Built,Stage.13] (Push.([Digit] 2)) (Forget.Stage.14)\n[Clean.Stage.14] Stage.14\n[Built,Stage.14] (Push.([Digit] 1)) (Forget.Stage.15)\n[Clean.Stage.15] Stage.15\n[Built,Stage.15] (Push.([Digit] 0)) (Forget.Stage.16)\n[Clean.Stage.16] Stage.16\n[Built,Stage.16] (Push.([Digit] 2)) (Forget.Stage.17)\n[Clean.Stage.17] Stage.17\n[Built,Stage.17] (Push.([Digit] 1)) (Forget.Stage.18)\n[Clean.Stage.18] Stage.18\n[Built,Stage.18] (Push.([Digit] 0)) (Forget.Stage.19)\n[Clean.Stage.19] Stage.19\n[Built,Stage.19] (Push.([Digit] 2)) (Forget.Stage.20)\n[Clean.Stage.20] Stage.20\n[Built,Stage.20] (Push.([Digit] 1)) (Forget.Stage.21)\n[Clean.Stage.21] Stage.21\n[Built,Stage.21] (Function.Expression) (Forget.Inspect.0)\n[Clean.Inspect.0] Inspect.0\n[Return.Expression.Number.Positive,Inspect.0] (Read) (Forget.Inspect.1)\n[Clean.Inspect.1] Inspect.1\n[Yield.([Digit] 1),Inspect.1] (Read) (Forget.Inspect.2)\n[Clean.Inspect.2] Inspect.2\n[Yield.([Digit] 2),Inspect.2] (Read) (Forget.Inspect.3)\n[Clean.Inspect.3] Inspect.3\n[Yield.([Digit] 2),Inspect.3] (Read) (Forget.Inspect.4)\n[Clean.Inspect.4] Inspect.4\n[Yield.([Digit] 0),Inspect.4] (Read) (Forget.Inspect.5)\n[Clean.Inspect.5] Inspect.5\n[Yield.([Digit] 0),Inspect.5] (Read) (Forget.Inspect.6)\n[Clean.Inspect.6] Inspect.6\n[Yield.([Digit] 1),Inspect.6] (Read) (Forget.Inspect.7)\n[Clean.Inspect.7] Inspect.7\n[Yield.([Digit] 0),Inspect.7] (Read) (Forget.Inspect.8)\n[Clean.Inspect.8] Inspect.8\n[Yield.([Digit] 0),Inspect.8] (Read) (Forget.Inspect.9)\n[Clean.Inspect.9] Inspect.9\n[Yield.([Digit] 1),Inspect.9] (Read) (Forget.Inspect.10)\n[Clean.Inspect.10] Inspect.10\n[Yield.([Digit] 1),Inspect.10] (Read) (Forget.Inspect.11)\n[Clean.Inspect.11] Inspect.11\n[Yield.([Digit] 1),Inspect.11] (Read) (Forget.Inspect.12)\n[Clean.Inspect.12] Inspect.12\n[Yield.([Digit] 1),Inspect.12] (Read) (Forget.Inspect.13)\n[Clean.Inspect.13] Inspect.13\n[Yield.([Digit] 0),Inspect.13] (Read) (Forget.Inspect.14)\n[Clean.Inspect.14] Inspect.14\n[Yield.([Digit] 1),Inspect.14] (Read) (Forget.Inspect.15)\n[Clean.Inspect.15] Inspect.15\n[Yield.([Digit] 1),Inspect.15] (Read) (Forget.Inspect.16)\n[Clean.Inspect.16] Inspect.16\n[Yield.([Digit] 0),Inspect.16] (Read) (Forget.Inspect.17)\n[Clean.Inspect.17] Inspect.17\n[Yield.([Digit] 1),Inspect.17] (Read) (Forget.Inspect.18)\n[Clean.Inspect.18] Inspect.18\n[Yield.([Digit] 1),Inspect.18] (Read) (Forget.Inspect.19)\n[Clean.Inspect.19] Inspect.19\n[Yield.([Digit] 1),Inspect.19] (Read) (Forget.Inspect.20)\n[Clean.Inspect.20] Inspect.20\n[Yield.([Digit] 1).Zero,Inspect.20] Done.Zero\n"
+    },
+    {
+      "name": "decimal",
+      "baseline": {
+        "decimal": "1234567890 + 9876543210 = 11111111100",
+        "input": "10012001001112202200+221111022110101020200",
+        "measurement": [
+          {
+            "event": 11839,
+            "execution": 3.05283925,
+            "initialization": 0.001460625,
+            "work": 255262
+          },
+          {
+            "event": 11839,
+            "execution": 3.028487209,
+            "initialization": 0.001396,
+            "work": 255262
+          },
+          {
+            "event": 11839,
+            "execution": 3.045618125,
+            "initialization": 0.001392,
+            "work": 255262
+          }
+        ],
+        "ternary": "1001200100111221000100"
+      },
+      "current": {
+        "decimal": "1234567890 + 9876543210 = 11111111100",
+        "input": "10012001001112202200+221111022110101020200",
+        "measurement": [
+          {
+            "event": 11839,
+            "execution": 0.682681375,
+            "initialization": 0.001772042,
+            "work": 44895
+          },
+          {
+            "event": 11839,
+            "execution": 0.687123375,
+            "initialization": 0.001669709,
+            "work": 44895
+          },
+          {
+            "event": 11839,
+            "execution": 0.679436042,
+            "initialization": 0.001711833,
+            "work": 44895
+          }
+        ],
+        "ternary": "1001200100111221000100"
+      },
+      "speedup": 4.461258555647574,
+      "source": "Push.([Digit] 0).Zero, Stage.1\n[Built,Stage.1] (Push.([Digit] 0)) (Forget.Stage.2)\n[Clean.Stage.2] Stage.2\n[Built,Stage.2] (Push.([Digit] 2)) (Forget.Stage.3)\n[Clean.Stage.3] Stage.3\n[Built,Stage.3] (Push.([Digit] 0)) (Forget.Stage.4)\n[Clean.Stage.4] Stage.4\n[Built,Stage.4] (Push.([Digit] 2)) (Forget.Stage.5)\n[Clean.Stage.5] Stage.5\n[Built,Stage.5] (Push.([Digit] 0)) (Forget.Stage.6)\n[Clean.Stage.6] Stage.6\n[Built,Stage.6] (Push.([Digit] 1)) (Forget.Stage.7)\n[Clean.Stage.7] Stage.7\n[Built,Stage.7] (Push.([Digit] 0)) (Forget.Stage.8)\n[Clean.Stage.8] Stage.8\n[Built,Stage.8] (Push.([Digit] 1)) (Forget.Stage.9)\n[Clean.Stage.9] Stage.9\n[Built,Stage.9] (Push.([Digit] 0)) (Forget.Stage.10)\n[Clean.Stage.10] Stage.10\n[Built,Stage.10] (Push.([Digit] 1)) (Forget.Stage.11)\n[Clean.Stage.11] Stage.11\n[Built,Stage.11] (Push.([Digit] 1)) (Forget.Stage.12)\n[Clean.Stage.12] Stage.12\n[Built,Stage.12] (Push.([Digit] 2)) (Forget.Stage.13)\n[Clean.Stage.13] Stage.13\n[Built,Stage.13] (Push.([Digit] 2)) (Forget.Stage.14)\n[Clean.Stage.14] Stage.14\n[Built,Stage.14] (Push.([Digit] 0)) (Forget.Stage.15)\n[Clean.Stage.15] Stage.15\n[Built,Stage.15] (Push.([Digit] 1)) (Forget.Stage.16)\n[Clean.Stage.16] Stage.16\n[Built,Stage.16] (Push.([Digit] 1)) (Forget.Stage.17)\n[Clean.Stage.17] Stage.17\n[Built,Stage.17] (Push.([Digit] 1)) (Forget.Stage.18)\n[Clean.Stage.18] Stage.18\n[Built,Stage.18] (Push.([Digit] 1)) (Forget.Stage.19)\n[Clean.Stage.19] Stage.19\n[Built,Stage.19] (Push.([Digit] 2)) (Forget.Stage.20)\n[Clean.Stage.20] Stage.20\n[Built,Stage.20] (Push.([Digit] 2)) (Forget.Stage.21)\n[Clean.Stage.21] Stage.21\n[Built,Stage.21] (Push.Add) (Forget.Stage.22)\n[Clean.Stage.22] Stage.22\n[Built,Stage.22] (Push.([Digit] 0)) (Forget.Stage.23)\n[Clean.Stage.23] Stage.23\n[Built,Stage.23] (Push.([Digit] 0)) (Forget.Stage.24)\n[Clean.Stage.24] Stage.24\n[Built,Stage.24] (Push.([Digit] 2)) (Forget.Stage.25)\n[Clean.Stage.25] Stage.25\n[Built,Stage.25] (Push.([Digit] 2)) (Forget.Stage.26)\n[Clean.Stage.26] Stage.26\n[Built,Stage.26] (Push.([Digit] 0)) (Forget.Stage.27)\n[Clean.Stage.27] Stage.27\n[Built,Stage.27] (Push.([Digit] 2)) (Forget.Stage.28)\n[Clean.Stage.28] Stage.28\n[Built,Stage.28] (Push.([Digit] 2)) (Forget.Stage.29)\n[Clean.Stage.29] Stage.29\n[Built,Stage.29] (Push.([Digit] 1)) (Forget.Stage.30)\n[Clean.Stage.30] Stage.30\n[Built,Stage.30] (Push.([Digit] 1)) (Forget.Stage.31)\n[Clean.Stage.31] Stage.31\n[Built,Stage.31] (Push.([Digit] 1)) (Forget.Stage.32)\n[Clean.Stage.32] Stage.32\n[Built,Stage.32] (Push.([Digit] 0)) (Forget.Stage.33)\n[Clean.Stage.33] Stage.33\n[Built,Stage.33] (Push.([Digit] 0)) (Forget.Stage.34)\n[Clean.Stage.34] Stage.34\n[Built,Stage.34] (Push.([Digit] 1)) (Forget.Stage.35)\n[Clean.Stage.35] Stage.35\n[Built,Stage.35] (Push.([Digit] 0)) (Forget.Stage.36)\n[Clean.Stage.36] Stage.36\n[Built,Stage.36] (Push.([Digit] 0)) (Forget.Stage.37)\n[Clean.Stage.37] Stage.37\n[Built,Stage.37] (Push.([Digit] 2)) (Forget.Stage.38)\n[Clean.Stage.38] Stage.38\n[Built,Stage.38] (Push.([Digit] 1)) (Forget.Stage.39)\n[Clean.Stage.39] Stage.39\n[Built,Stage.39] (Push.([Digit] 0)) (Forget.Stage.40)\n[Clean.Stage.40] Stage.40\n[Built,Stage.40] (Push.([Digit] 0)) (Forget.Stage.41)\n[Clean.Stage.41] Stage.41\n[Built,Stage.41] (Push.([Digit] 1)) (Forget.Stage.42)\n[Clean.Stage.42] Stage.42\n[Built,Stage.42] (Function.Expression) (Forget.Inspect.0)\n[Clean.Inspect.0] Inspect.0\n[Return.Expression.Number.Positive,Inspect.0] (Read) (Forget.Inspect.1)\n[Clean.Inspect.1] Inspect.1\n[Yield.([Digit] 0),Inspect.1] (Read) (Forget.Inspect.2)\n[Clean.Inspect.2] Inspect.2\n[Yield.([Digit] 0),Inspect.2] (Read) (Forget.Inspect.3)\n[Clean.Inspect.3] Inspect.3\n[Yield.([Digit] 1),Inspect.3] (Read) (Forget.Inspect.4)\n[Clean.Inspect.4] Inspect.4\n[Yield.([Digit] 0),Inspect.4] (Read) (Forget.Inspect.5)\n[Clean.Inspect.5] Inspect.5\n[Yield.([Digit] 0),Inspect.5] (Read) (Forget.Inspect.6)\n[Clean.Inspect.6] Inspect.6\n[Yield.([Digit] 0),Inspect.6] (Read) (Forget.Inspect.7)\n[Clean.Inspect.7] Inspect.7\n[Yield.([Digit] 1),Inspect.7] (Read) (Forget.Inspect.8)\n[Clean.Inspect.8] Inspect.8\n[Yield.([Digit] 2),Inspect.8] (Read) (Forget.Inspect.9)\n[Clean.Inspect.9] Inspect.9\n[Yield.([Digit] 2),Inspect.9] (Read) (Forget.Inspect.10)\n[Clean.Inspect.10] Inspect.10\n[Yield.([Digit] 1),Inspect.10] (Read) (Forget.Inspect.11)\n[Clean.Inspect.11] Inspect.11\n[Yield.([Digit] 1),Inspect.11] (Read) (Forget.Inspect.12)\n[Clean.Inspect.12] Inspect.12\n[Yield.([Digit] 1),Inspect.12] (Read) (Forget.Inspect.13)\n[Clean.Inspect.13] Inspect.13\n[Yield.([Digit] 0),Inspect.13] (Read) (Forget.Inspect.14)\n[Clean.Inspect.14] Inspect.14\n[Yield.([Digit] 0),Inspect.14] (Read) (Forget.Inspect.15)\n[Clean.Inspect.15] Inspect.15\n[Yield.([Digit] 1),Inspect.15] (Read) (Forget.Inspect.16)\n[Clean.Inspect.16] Inspect.16\n[Yield.([Digit] 0),Inspect.16] (Read) (Forget.Inspect.17)\n[Clean.Inspect.17] Inspect.17\n[Yield.([Digit] 0),Inspect.17] (Read) (Forget.Inspect.18)\n[Clean.Inspect.18] Inspect.18\n[Yield.([Digit] 2),Inspect.18] (Read) (Forget.Inspect.19)\n[Clean.Inspect.19] Inspect.19\n[Yield.([Digit] 1),Inspect.19] (Read) (Forget.Inspect.20)\n[Clean.Inspect.20] Inspect.20\n[Yield.([Digit] 0),Inspect.20] (Read) (Forget.Inspect.21)\n[Clean.Inspect.21] Inspect.21\n[Yield.([Digit] 0),Inspect.21] (Read) (Forget.Inspect.22)\n[Clean.Inspect.22] Inspect.22\n[Yield.([Digit] 1).Zero,Inspect.22] Done.Zero\n"
+    }
+  ]
+}

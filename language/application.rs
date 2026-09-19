@@ -28,12 +28,15 @@ impl Import<'_> {
         let position = state.frame.len();
         self.frame.insert(index, position);
         let original = self.closure.state.frame[index].clone();
-        state.frame.push(Frame {
-            scope: original.scope,
-            parent: None,
-            lexical: None,
-            held: Vec::new(),
-        });
+        state.frame.push(
+            Frame {
+                scope: original.scope,
+                parent: None,
+                lexical: None,
+                held: Vec::new(),
+            }
+            .into(),
+        );
         flow.frame.push(None);
         let parent = original
             .parent
@@ -42,7 +45,7 @@ impl Import<'_> {
             .lexical
             .map(|index| self.include(index, state, flow));
         let mut held = Vec::new();
-        for token in original.held {
+        for token in &original.held {
             let id = *self.resource.entry(token.id).or_insert_with(|| {
                 let next = self.next;
                 self.next += 1;
@@ -64,7 +67,8 @@ impl Import<'_> {
             parent,
             lexical,
             held,
-        };
+        }
+        .into();
         position
     }
 }
@@ -77,6 +81,28 @@ pub(crate) fn apply(
     binding: &Binding,
     closure: Option<Closure<'_>>,
 ) -> Applied {
+    construct(source, frame, owner, rule, binding, closure, true)
+}
+
+pub(crate) fn direct(
+    source: &State,
+    frame: usize,
+    owner: usize,
+    rule: &Instruction,
+    binding: &Binding,
+) -> State {
+    construct(source, frame, Some(owner), rule, binding, None, false).state
+}
+
+fn construct(
+    source: &State,
+    frame: usize,
+    owner: Option<usize>,
+    rule: &Instruction,
+    binding: &Binding,
+    closure: Option<Closure<'_>>,
+    evidence: bool,
+) -> Applied {
     let mut state = State {
         world: Vec::new(),
         frame: source.frame.clone(),
@@ -86,6 +112,7 @@ pub(crate) fn apply(
             .frame
             .iter()
             .enumerate()
+            .filter(|_| evidence)
             .flat_map(|(index, frame)| {
                 frame.held.iter().map(move |token| {
                     let place = Place::Held(index, token.id);
@@ -94,7 +121,10 @@ pub(crate) fn apply(
             })
             .collect(),
         context: Vec::new(),
-        frame: (0..source.frame.len()).map(Some).collect(),
+        frame: (0..source.frame.len())
+            .filter(|_| evidence)
+            .map(Some)
+            .collect(),
     };
     let mut next = source
         .world
@@ -158,6 +188,9 @@ pub(crate) fn apply(
         }
         let target = state.world.len();
         state.world.push(world.clone());
+        if !evidence {
+            continue;
+        }
         flow.context.push(Set::single(index));
         for token in &world.particle {
             flow.resource.push((
@@ -171,15 +204,25 @@ pub(crate) fn apply(
             .held
             .iter()
             .map(|token| Place::Held(frame, token.id))
-            .collect::<BTreeSet<_>>()
+            .collect::<Set<_>>()
     } else {
-        BTreeSet::new()
+        Set::default()
     };
     let basis = binding
         .footprint
         .union(&consumed)
         .copied()
+        .filter(|_| evidence)
         .collect::<Set<_>>();
+    let mut vacant = if evidence {
+        Vec::new()
+    } else {
+        let reachable = source.reachable();
+        (1..source.frame.len())
+            .rev()
+            .filter(|index| !reachable.contains(index))
+            .collect()
+    };
     for output in &rule.output {
         let selected = if output.body.is_some() {
             &binding.exact
@@ -198,15 +241,16 @@ pub(crate) fn apply(
                 if removed.contains(&token.id) {
                     continue;
                 }
-                remainder
+                let entry = remainder
                     .entry(token.id)
-                    .or_insert_with(|| (token.clone(), BTreeSet::new()))
-                    .1
-                    .insert(Place::World(index, token.id));
+                    .or_insert_with(|| (token.clone(), BTreeSet::new()));
+                if evidence {
+                    entry.1.insert(Place::World(index, token.id));
+                }
             }
         }
         let target = if let Some(scope) = output.body {
-            let target = state.frame.len();
+            let target = vacant.pop().unwrap_or(state.frame.len());
             let mut reserve = BTreeMap::<usize, (Token, BTreeSet<Place>)>::new();
             for &place in binding.exact.union(&consumed) {
                 let token = match place {
@@ -219,21 +263,30 @@ pub(crate) fn apply(
                     }
                 }
                 .unwrap();
-                reserve
+                let entry = reserve
                     .entry(token.id)
-                    .or_insert_with(|| (token.clone(), BTreeSet::new()))
-                    .1
-                    .insert(place);
+                    .or_insert_with(|| (token.clone(), BTreeSet::new()));
+                if evidence {
+                    entry.1.insert(place);
+                }
             }
-            state.frame.push(Frame {
+            let created = Frame {
                 scope,
                 parent: Some(parent),
                 lexical: Some(owner),
                 held: reserve.values().map(|(token, _)| token.clone()).collect(),
-            });
-            flow.frame.push(None);
-            for (id, (_, basis)) in reserve {
-                flow.resource.push((Place::Held(target, id), basis.into()));
+            }
+            .into();
+            if target == state.frame.len() {
+                state.frame.push(created);
+            } else {
+                state.frame[target] = created;
+            }
+            if evidence {
+                flow.frame.push(None);
+                for (id, (_, basis)) in reserve {
+                    flow.resource.push((Place::Held(target, id), basis.into()));
+                }
             }
             target
         } else {
@@ -242,8 +295,10 @@ pub(crate) fn apply(
         let index = state.world.len();
         let mut particle = Vec::new();
         for (_, (token, basis)) in remainder {
-            flow.resource
-                .push((Place::World(index, token.id), basis.into()));
+            if evidence {
+                flow.resource
+                    .push((Place::World(index, token.id), basis.into()));
+            }
             particle.push(token);
         }
         for &value in &output.particle {
@@ -253,15 +308,22 @@ pub(crate) fn apply(
                 capture: matches!(value, Symbol::Rule(_)).then_some(owner),
             };
             next += 1;
-            flow.resource
-                .push((Place::World(index, token.id), basis.clone()));
+            if evidence {
+                flow.resource
+                    .push((Place::World(index, token.id), basis.clone()));
+            }
             particle.push(token);
         }
-        state.world.push(World {
-            frame: target,
-            particle,
-        });
-        flow.context.push(binding.world.iter().copied().collect());
+        state.world.push(
+            World {
+                frame: target,
+                particle,
+            }
+            .into(),
+        );
+        if evidence {
+            flow.context.push(binding.world.iter().copied().collect());
+        }
     }
     Applied {
         state,

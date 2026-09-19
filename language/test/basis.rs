@@ -41,3 +41,24 @@ fn canonical() {
         digest(&[4, 4].into_iter().collect())
     );
 }
+
+#[test]
+fn union() {
+    for left in 0..64 {
+        for right in 0..64 {
+            let first = (0..6)
+                .filter(|index| left & (1 << index) != 0)
+                .collect::<crate::basis::Set<_>>();
+            let second = (0..6)
+                .filter(|index| right & (1 << index) != 0)
+                .collect::<crate::basis::Set<_>>();
+            let expected = (0..6)
+                .filter(|index| (left | right) & (1 << index) != 0)
+                .collect::<Vec<_>>();
+            assert_eq!(first.union(&second).copied().collect::<Vec<_>>(), expected);
+            for value in 0..7 {
+                assert_eq!(first.contains(&value), left & (1 << value) != 0);
+            }
+        }
+    }
+}

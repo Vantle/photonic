@@ -1,8 +1,9 @@
 use crate::program::Symbol;
-use std::collections::{HashSet, VecDeque};
+use indexmap::IndexSet;
+use std::collections::VecDeque;
 use std::sync::Arc;
 
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct Term {
     pub value: Symbol,
     pub capture: Option<usize>,
@@ -46,9 +47,8 @@ enum Task {
 
 pub struct Gate {
     pattern: Vec<Vec<Term>>,
-    candidate: Vec<Vec<Slot>>,
+    candidate: Vec<IndexSet<Slot>>,
     prefix: Vec<Vec<Arc<Vec<Slot>>>>,
-    seen: Vec<HashSet<Vec<Slot>>>,
     agenda: VecDeque<Task>,
 }
 
@@ -59,19 +59,17 @@ impl Gate {
         prefix[0].push(Arc::new(Vec::new()));
         Self {
             pattern,
-            candidate: vec![Vec::new(); count],
+            candidate: vec![IndexSet::new(); count],
             prefix,
-            seen: vec![HashSet::new(); count + 1],
             agenda: VecDeque::new(),
         }
     }
 
     pub(crate) fn enqueue(&mut self, slot: Slot) {
         let position = slot.position;
-        if self.candidate[position].contains(&slot) {
+        if !self.candidate[position].insert(slot.clone()) {
             return;
         }
-        self.candidate[position].push(slot.clone());
         let end = self.prefix[position].len();
         if end > 0 {
             self.agenda.push_back(Task::Arrival {
@@ -131,14 +129,11 @@ impl Gate {
         let next = slot.position + 1;
         let mut value = (*binding).clone();
         value.push(slot);
-        if !self.seen[next].insert(value.clone()) {
-            return None;
+        if next == self.pattern.len() {
+            return Some(value);
         }
         let binding = Arc::new(value);
         self.prefix[next].push(binding.clone());
-        if next == self.pattern.len() {
-            return Some((*binding).clone());
-        }
         let end = self.candidate[next].len();
         if end > 0 {
             self.agenda.push_back(Task::Follow {
@@ -152,7 +147,7 @@ impl Gate {
     }
 
     pub(crate) fn retained(&self) -> usize {
-        self.candidate.iter().map(Vec::len).sum::<usize>()
+        self.candidate.iter().map(IndexSet::len).sum::<usize>()
             + self.prefix.iter().map(Vec::len).sum::<usize>()
             + self.agenda.len()
     }

@@ -182,7 +182,7 @@ try {
     await evaluate("const select = document.getElementById('expression-select'); select.value = 3; select.dispatchEvent(new Event('change')); document.getElementById('expression-lab').scrollIntoView({block: 'start', behavior: 'instant'});");
     assert.equal(await evaluate("return document.getElementById('expression-result').textContent"), '10 (base 3) = 3 (decimal)');
     await command(`/session/${session}/window/rect`, { width: 1440, height: 1000 });
-    for (const [input, expected] of [['12 + 2', '21 (base 3) = 7 (decimal)'], ['-(12 + 2) * 10', '-210 (base 3) = -21 (decimal)'], ['1212 * 10 / 2 + 11 - 1', '2220 (base 3) = 78 (decimal)'], ['2*2*2*2*2*2*2*2*2*2', '1101221 (base 3) = 1024 (decimal)']]) {
+    for (const [input, expected] of [['12 + 2', '21 (base 3) = 7 (decimal)'], ['-(12 + 2) * 10', '-210 (base 3) = -21 (decimal)'], ['1212 * 10 / 2 + 11 - 1', '2220 (base 3) = 78 (decimal)'], ['2*2*2*2*2*2', '2101 (base 3) = 64 (decimal)'], ['2*2*2*2*2*2*2*2*2*2', '1101221 (base 3) = 1024 (decimal)']]) {
         await evaluate(`document.getElementById('sandbox-input').value = ${JSON.stringify(input)}; document.getElementById('sandbox-run').click();`);
         for (let attempt = 0; attempt < 450; attempt++) {
             if (await evaluate("return !document.getElementById('sandbox-run').disabled")) break;

@@ -169,3 +169,68 @@ fn inspection() {
     assert!(path.inspect(report.state.len()).is_none());
     assert!(path.transition(report.event.len()).is_none());
 }
+
+#[test]
+fn collision() {
+    let source = "X.A [X] (),()";
+    let target = "A,A";
+    let mut path = search(source, target);
+    let mut previous = 0;
+    for _ in 0..1000 {
+        path.run(1, Limit::default());
+        let summary = path.summary();
+        assert!(summary.work - previous <= 1);
+        previous = summary.work;
+    }
+    assert_eq!(path.summary().outcome, Outcome::Unknown);
+    assert_eq!(path.current().world.len(), 2);
+    let mut exhaustive =
+        crate::prism::Search::new(parse(source).unwrap(), parse(target).unwrap()).unwrap();
+    exhaustive.run(10000, None);
+    assert_eq!(exhaustive.report().outcome, Outcome::Unreachable);
+}
+
+#[test]
+fn suspension() {
+    for (source, target, limit) in [
+        (
+            "A [A] B,C [B,C] D",
+            "D",
+            Limit {
+                world: 1,
+                ..Limit::default()
+            },
+        ),
+        (
+            "A [A] (B [B] (C [C] D))",
+            "D",
+            Limit {
+                frame: 1,
+                ..Limit::default()
+            },
+        ),
+    ] {
+        let mut complete = search(source, target);
+        complete.run(100_000, Limit::default());
+        let mut expected = serde_json::to_value(complete.report()).unwrap();
+        assert_eq!(complete.summary().outcome, Outcome::Reached);
+        let mut paused = search(source, target);
+        paused.run(100_000, limit);
+        assert_eq!(paused.summary().outcome, Outcome::Unknown);
+        for _ in 0..100_000 {
+            paused.current();
+            paused.run(1, Limit::default());
+            let summary = paused.summary();
+            if summary.event > 0 {
+                paused.transition(summary.event - 1).unwrap();
+            }
+            if summary.outcome == Outcome::Reached {
+                break;
+            }
+        }
+        let mut actual = serde_json::to_value(paused.report()).unwrap();
+        actual.as_object_mut().unwrap().remove("work");
+        expected.as_object_mut().unwrap().remove("work");
+        assert_eq!(actual, expected, "{source}");
+    }
+}

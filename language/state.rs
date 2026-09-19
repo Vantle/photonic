@@ -1,5 +1,6 @@
 use crate::program::{Program, Symbol};
 use std::collections::{BTreeSet, HashMap};
+use std::sync::Arc;
 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct Token {
@@ -24,8 +25,8 @@ pub struct Frame {
 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct State {
-    pub world: Vec<World>,
-    pub frame: Vec<Frame>,
+    pub world: Vec<Arc<World>>,
+    pub frame: Vec<Arc<Frame>>,
 }
 
 pub struct Canonical {
@@ -36,34 +37,56 @@ pub struct Canonical {
 }
 
 impl State {
+    pub(crate) fn reclaim(mut self) -> Self {
+        let reachable = self.reachable();
+        self.frame.truncate(reachable.last().unwrap() + 1);
+        for (index, frame) in self.frame.iter_mut().enumerate() {
+            if reachable.contains(&index) {
+                continue;
+            }
+            let frame = Arc::make_mut(frame);
+            frame.scope = 0;
+            frame.parent = None;
+            frame.lexical = None;
+            frame.held.clear();
+        }
+        self
+    }
+
     pub fn initial(program: &Program) -> Self {
         let mut id = 0;
         let state = Self {
             world: program
                 .initial
                 .iter()
-                .map(|particle| World {
-                    frame: 0,
-                    particle: particle
-                        .iter()
-                        .map(|&value| {
-                            let token = Token {
-                                id,
-                                value,
-                                capture: matches!(value, Symbol::Rule(_)).then_some(0),
-                            };
-                            id += 1;
-                            token
-                        })
-                        .collect(),
+                .map(|particle| {
+                    World {
+                        frame: 0,
+                        particle: particle
+                            .iter()
+                            .map(|&value| {
+                                let token = Token {
+                                    id,
+                                    value,
+                                    capture: matches!(value, Symbol::Rule(_)).then_some(0),
+                                };
+                                id += 1;
+                                token
+                            })
+                            .collect(),
+                    }
+                    .into()
                 })
                 .collect(),
-            frame: vec![Frame {
-                scope: 0,
-                parent: None,
-                lexical: None,
-                held: Vec::new(),
-            }],
+            frame: vec![
+                Frame {
+                    scope: 0,
+                    parent: None,
+                    lexical: None,
+                    held: Vec::new(),
+                }
+                .into(),
+            ],
         };
         let mut world = (0..state.world.len()).collect::<Vec<_>>();
         world.sort_by_key(|&index| {
@@ -197,9 +220,12 @@ impl State {
         let state = Self {
             world: world
                 .iter()
-                .map(|&index| World {
-                    frame: mapping[self.world[index].frame].unwrap(),
-                    particle: particle(&self.world[index].particle),
+                .map(|&index| {
+                    World {
+                        frame: mapping[self.world[index].frame].unwrap(),
+                        particle: particle(&self.world[index].particle),
+                    }
+                    .into()
                 })
                 .collect(),
             frame: frame
@@ -212,6 +238,7 @@ impl State {
                         lexical: value.lexical.and_then(|index| mapping[index]),
                         held: particle(&value.held),
                     }
+                    .into()
                 })
                 .collect(),
         };
@@ -241,10 +268,13 @@ impl State {
 
     pub fn environment(&self, capture: usize) -> State {
         Self {
-            world: vec![World {
-                frame: capture,
-                particle: Vec::new(),
-            }],
+            world: vec![
+                World {
+                    frame: capture,
+                    particle: Vec::new(),
+                }
+                .into(),
+            ],
             frame: self.frame.clone(),
         }
         .canonical()

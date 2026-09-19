@@ -1,0 +1,389 @@
+{
+  "baseline": "5b6cc53e6a027c3aec9554e2adb5e92fce0cff0b",
+  "date": "2026-09-19T15:27:08.590954+00:00",
+  "method": "Native bazel run -c opt //command:photonic run, 1000000 work, 256 states, 5000000 records, 64 cells, 32 frames, 16 coherences. Compare sorted canonical states, events and views with state/view indices replaced by their complete content. Preserve support status, footprint, exact/read selection, resource flow, frame/context mapping and event evidence. Exclude counters and ordering of graph enumeration. No differences found in 63 complete graphs. The empty-input growth example remains unfinished under bounds on both revisions; its complete graph is not compared.",
+  "case": [
+    {
+      "source": "",
+      "state": 1,
+      "event": 0,
+      "view": 1
+    },
+    {
+      "source": "A",
+      "state": 1,
+      "event": 0,
+      "view": 1
+    },
+    {
+      "source": "A [A] B",
+      "state": 2,
+      "event": 1,
+      "view": 3
+    },
+    {
+      "source": "A [A] B [A] C",
+      "state": 3,
+      "event": 2,
+      "view": 5
+    },
+    {
+      "source": "A.A.A [A.A] B",
+      "state": 2,
+      "event": 3,
+      "view": 5
+    },
+    {
+      "source": "A,A,A [A,A] B",
+      "state": 2,
+      "event": 3,
+      "view": 5
+    },
+    {
+      "source": "A.X,B.X [A,B] C,D",
+      "state": 2,
+      "event": 1,
+      "view": 3
+    },
+    {
+      "source": "Seed.A [Seed] [A] B",
+      "state": 4,
+      "event": 4,
+      "view": 9
+    },
+    {
+      "source": "Seed.A [Seed] ([A] B)",
+      "state": 3,
+      "event": 2,
+      "view": 6
+    },
+    {
+      "source": "A [A] B,C [B,C] D",
+      "state": 3,
+      "event": 3,
+      "view": 6
+    },
+    {
+      "source": "A [A] (B [B] C)",
+      "state": 3,
+      "event": 2,
+      "view": 6
+    },
+    {
+      "source": "A.X [A] (B [B] C),D [C,D] E",
+      "state": 4,
+      "event": 4,
+      "view": 10
+    },
+    {
+      "source": "A.([A] B),A.([A] C)",
+      "state": 4,
+      "event": 4,
+      "view": 9
+    },
+    {
+      "source": "A,B [A] (C [C,B] D)",
+      "state": 2,
+      "event": 1,
+      "view": 3
+    },
+    {
+      "source": "A [A] () [ ] B",
+      "bounded": true
+    },
+    {
+      "source": "X.A [X] (),()",
+      "state": 2,
+      "event": 1,
+      "view": 3
+    },
+    {
+      "source": "A [A] B [B] A",
+      "state": 2,
+      "event": 4,
+      "view": 4
+    },
+    {
+      "source": "A,B [A] C [B] D [C,D] E",
+      "state": 5,
+      "event": 8,
+      "view": 14
+    },
+    {
+      "source": "A.A.B [A.B] C",
+      "state": 2,
+      "event": 2,
+      "view": 4
+    },
+    {
+      "source": "A,B,C [A,C] D [B,D] E",
+      "state": 3,
+      "event": 3,
+      "view": 6
+    },
+    {
+      "source": "Seed.A.X [Seed] ([A] B) ([A] C)",
+      "state": 5,
+      "event": 5,
+      "view": 14
+    },
+    {
+      "source": "Call.([A] B).A [Call] ()",
+      "state": 4,
+      "event": 4,
+      "view": 9
+    },
+    {
+      "source": "A [A] (B [B] (C [C] D))",
+      "state": 4,
+      "event": 3,
+      "view": 10
+    },
+    {
+      "source": "Seed.A [Seed] [A] B [B] C",
+      "state": 6,
+      "event": 9,
+      "view": 18
+    },
+    {
+      "source": "A.A [A] D",
+      "state": 3,
+      "event": 3,
+      "view": 8
+    },
+    {
+      "source": "A.A [A.A] D",
+      "state": 2,
+      "event": 1,
+      "view": 3
+    },
+    {
+      "source": "A.A [A,B] D",
+      "state": 1,
+      "event": 0,
+      "view": 1
+    },
+    {
+      "source": "A.A [A,B] D,E",
+      "state": 1,
+      "event": 0,
+      "view": 1
+    },
+    {
+      "source": "A.A [A.B] D",
+      "state": 1,
+      "event": 0,
+      "view": 1
+    },
+    {
+      "source": "A.A.A [A] D",
+      "state": 4,
+      "event": 6,
+      "view": 24
+    },
+    {
+      "source": "A.A.A [A.A] D",
+      "state": 2,
+      "event": 3,
+      "view": 5
+    },
+    {
+      "source": "A.A.A [A,B] D",
+      "state": 1,
+      "event": 0,
+      "view": 1
+    },
+    {
+      "source": "A.A.A [A,B] D,E",
+      "state": 1,
+      "event": 0,
+      "view": 1
+    },
+    {
+      "source": "A.A.A [A.B] D",
+      "state": 1,
+      "event": 0,
+      "view": 1
+    },
+    {
+      "source": "A.B [A] D",
+      "state": 2,
+      "event": 1,
+      "view": 3
+    },
+    {
+      "source": "A.B [A.A] D",
+      "state": 1,
+      "event": 0,
+      "view": 1
+    },
+    {
+      "source": "A.B [A,B] D",
+      "state": 1,
+      "event": 0,
+      "view": 1
+    },
+    {
+      "source": "A.B [A,B] D,E",
+      "state": 1,
+      "event": 0,
+      "view": 1
+    },
+    {
+      "source": "A.B [A.B] D",
+      "state": 2,
+      "event": 1,
+      "view": 3
+    },
+    {
+      "source": "A.B.C [A] D",
+      "state": 2,
+      "event": 1,
+      "view": 3
+    },
+    {
+      "source": "A.B.C [A.A] D",
+      "state": 1,
+      "event": 0,
+      "view": 1
+    },
+    {
+      "source": "A.B.C [A,B] D",
+      "state": 1,
+      "event": 0,
+      "view": 1
+    },
+    {
+      "source": "A.B.C [A,B] D,E",
+      "state": 1,
+      "event": 0,
+      "view": 1
+    },
+    {
+      "source": "A.B.C [A.B] D",
+      "state": 2,
+      "event": 1,
+      "view": 3
+    },
+    {
+      "source": "A,A [A] D",
+      "state": 3,
+      "event": 3,
+      "view": 8
+    },
+    {
+      "source": "A,A [A.A] D",
+      "state": 1,
+      "event": 0,
+      "view": 1
+    },
+    {
+      "source": "A,A [A,B] D",
+      "state": 1,
+      "event": 0,
+      "view": 1
+    },
+    {
+      "source": "A,A [A,B] D,E",
+      "state": 1,
+      "event": 0,
+      "view": 1
+    },
+    {
+      "source": "A,A [A.B] D",
+      "state": 1,
+      "event": 0,
+      "view": 1
+    },
+    {
+      "source": "A,B [A] D",
+      "state": 2,
+      "event": 1,
+      "view": 3
+    },
+    {
+      "source": "A,B [A.A] D",
+      "state": 1,
+      "event": 0,
+      "view": 1
+    },
+    {
+      "source": "A,B [A,B] D",
+      "state": 2,
+      "event": 1,
+      "view": 3
+    },
+    {
+      "source": "A,B [A,B] D,E",
+      "state": 2,
+      "event": 1,
+      "view": 3
+    },
+    {
+      "source": "A,B [A.B] D",
+      "state": 1,
+      "event": 0,
+      "view": 1
+    },
+    {
+      "source": "A,A,B [A] D",
+      "state": 3,
+      "event": 3,
+      "view": 8
+    },
+    {
+      "source": "A,A,B [A.A] D",
+      "state": 1,
+      "event": 0,
+      "view": 1
+    },
+    {
+      "source": "A,A,B [A,B] D",
+      "state": 2,
+      "event": 2,
+      "view": 4
+    },
+    {
+      "source": "A,A,B [A,B] D,E",
+      "state": 2,
+      "event": 2,
+      "view": 4
+    },
+    {
+      "source": "A,A,B [A.B] D",
+      "state": 1,
+      "event": 0,
+      "view": 1
+    },
+    {
+      "source": "A.B,A.C [A] D",
+      "state": 4,
+      "event": 4,
+      "view": 9
+    },
+    {
+      "source": "A.B,A.C [A.A] D",
+      "state": 1,
+      "event": 0,
+      "view": 1
+    },
+    {
+      "source": "A.B,A.C [A,B] D",
+      "state": 2,
+      "event": 1,
+      "view": 3
+    },
+    {
+      "source": "A.B,A.C [A,B] D,E",
+      "state": 2,
+      "event": 1,
+      "view": 3
+    },
+    {
+      "source": "A.B,A.C [A.B] D",
+      "state": 2,
+      "event": 1,
+      "view": 3
+    }
+  ]
+}

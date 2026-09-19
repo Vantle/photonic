@@ -24,6 +24,7 @@ filegroup(
 node(
     name = "node",
     visibility = [
+        "//benchmark:__pkg__",
         "//program/ternary:__pkg__",
         "//toolchain/browser:__pkg__",
     ],
@@ -35,6 +36,7 @@ rust_binary(
     crate_root = "execute.rs",
     visibility = [
         "//:__pkg__",
+        "//benchmark:__pkg__",
         "//program/ternary:__pkg__",
         "//toolchain/browser:__pkg__",
     ],

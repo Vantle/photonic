@@ -1,11 +1,14 @@
 filegroup(
     name = "source",
     srcs = [
+        "arithmetic.json",
+        "audit.json",
         "book.css",
         "book.js",
         "calculation.js",
         "demo.record.js",
         "evaluation.js",
+        "execution.json",
         "expression.js",
         "expression.record.js",
         "graph.js",
@@ -44,5 +47,8 @@ filegroup(
 filegroup(
     name = "numeral",
     srcs = ["numeral.js"],
-    visibility = ["//toolchain/browser:__pkg__"],
+    visibility = [
+        "//benchmark:__pkg__",
+        "//toolchain/browser:__pkg__",
+    ],
 )

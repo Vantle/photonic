@@ -47,12 +47,14 @@ filegroup(
     name = "javascript",
     srcs = [":asset"],
     output_group = "javascript",
+    visibility = ["//benchmark:__pkg__"],
 )
 
 filegroup(
     name = "webassembly",
     srcs = [":asset"],
     output_group = "webassembly",
+    visibility = ["//benchmark:__pkg__"],
 )
 
 filegroup(
