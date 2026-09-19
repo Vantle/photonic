@@ -220,7 +220,7 @@ fn construct(
         let reachable = source.reachable();
         (1..source.frame.len())
             .rev()
-            .filter(|index| !reachable.contains(index))
+            .filter(|index| reachable.binary_search(index).is_err())
             .collect()
     };
     for output in &rule.output {

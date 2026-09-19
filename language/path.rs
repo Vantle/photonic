@@ -38,9 +38,21 @@ pub struct Summary {
     pub work: usize,
 }
 
+#[derive(Debug, Serialize)]
+pub struct Statistic {
+    pub refinement: usize,
+    pub resolution: usize,
+    pub normalization: usize,
+    pub bucket: usize,
+    pub preparation: usize,
+    pub reuse: usize,
+}
+
 struct Record {
     state: Arc<State>,
     canonical: OnceLock<Canonical>,
+    signature: OnceLock<u64>,
+    resolution: OnceLock<u64>,
     normalization: Option<crate::canonical::Search>,
 }
 
@@ -49,8 +61,26 @@ impl Record {
         Self {
             state,
             canonical: OnceLock::new(),
+            signature: OnceLock::new(),
+            resolution: OnceLock::new(),
             normalization: None,
         }
+    }
+
+    fn signature(&self) -> u64 {
+        *self
+            .signature
+            .get_or_init(|| crate::fingerprint::signature(&self.state))
+    }
+
+    fn compatible(&self, other: &Self) -> bool {
+        self.signature() == other.signature()
+            && self
+                .resolution
+                .get_or_init(|| crate::fingerprint::resolution(&self.state))
+                == other
+                    .resolution
+                    .get_or_init(|| crate::fingerprint::resolution(&other.state))
     }
 
     fn canonical(&self) -> &Canonical {
@@ -180,7 +210,13 @@ impl Search {
                 .candidate
                 .take()
                 .unwrap_or_else(|| Record::new(event.state.clone()));
-            let comparison = self.signature == fingerprint || self.index.contains_key(&fingerprint);
+            let goal = self.signature == fingerprint && record.compatible(&self.goal);
+            let comparison = goal
+                || self.index.get(&fingerprint).is_some_and(|candidate| {
+                    candidate
+                        .iter()
+                        .any(|&index| self.state[index].compatible(&record))
+                });
             if comparison && self.work != work {
                 self.pending = Some(event);
                 self.candidate = Some(record);
@@ -193,7 +229,7 @@ impl Search {
                 self.candidate = Some(record);
                 continue;
             }
-            if self.signature == fingerprint && self.goal.canonical.get().is_none() {
+            if goal && self.goal.canonical.get().is_none() {
                 self.goal.advance();
                 self.work += 1;
                 self.pending = Some(event);
@@ -201,10 +237,10 @@ impl Search {
                 continue;
             }
             if let Some(index) = self.index.get(&fingerprint).and_then(|candidate| {
-                candidate
-                    .iter()
-                    .copied()
-                    .find(|&index| self.state[index].canonical.get().is_none())
+                candidate.iter().copied().find(|&index| {
+                    self.state[index].compatible(&record)
+                        && self.state[index].canonical.get().is_none()
+                })
             }) {
                 self.state[index].advance();
                 self.work += 1;
@@ -213,10 +249,10 @@ impl Search {
                 continue;
             }
             let known = self.index.get(&fingerprint).and_then(|candidate| {
-                candidate
-                    .iter()
-                    .copied()
-                    .find(|&index| self.state[index].canonical().state == record.canonical().state)
+                candidate.iter().copied().find(|&index| {
+                    self.state[index].compatible(&record)
+                        && self.state[index].canonical().state == record.canonical().state
+                })
             });
             if known.is_none() && self.state.len() >= limit.state {
                 self.pending = Some(event);
@@ -224,8 +260,7 @@ impl Search {
                 return;
             }
             let target = known.unwrap_or(self.state.len());
-            self.reached = self.signature == fingerprint
-                && record.canonical().state == self.goal.canonical().state;
+            self.reached = goal && record.canonical().state == self.goal.canonical().state;
             if known.is_none() {
                 self.state.push(record);
                 self.index.entry(fingerprint).or_default().push(target);
@@ -241,6 +276,29 @@ impl Search {
             });
             self.cursor = target;
             self.cycle = known.is_some();
+        }
+    }
+
+    pub fn statistic(&self) -> Statistic {
+        Statistic {
+            refinement: self
+                .state
+                .iter()
+                .filter(|record| record.signature.get().is_some())
+                .count(),
+            resolution: self
+                .state
+                .iter()
+                .filter(|record| record.resolution.get().is_some())
+                .count(),
+            normalization: self
+                .state
+                .iter()
+                .filter(|record| record.canonical.get().is_some())
+                .count(),
+            bucket: self.index.values().map(Vec::len).max().unwrap_or(0),
+            preparation: self.runtime.preparation(),
+            reuse: self.runtime.reuse(),
         }
     }
 
@@ -330,3 +388,7 @@ impl Search {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "test/collision.rs"]
+mod test;

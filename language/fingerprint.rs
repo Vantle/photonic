@@ -188,3 +188,39 @@ impl Index {
 pub(crate) fn state(state: &State) -> u64 {
     Index::new(Arc::new(state.clone())).value
 }
+
+pub(crate) fn signature(state: &State) -> u64 {
+    refine(state, 4)
+}
+
+pub(crate) fn resolution(state: &State) -> u64 {
+    refine(state, 8)
+}
+
+fn refine(state: &State, depth: usize) -> u64 {
+    use std::hash::{Hash, Hasher};
+    let incidence = crate::incidence::Incidence::new(state);
+    let mut color = incidence
+        .label
+        .iter()
+        .map(|label| {
+            let mut hash = std::collections::hash_map::DefaultHasher::new();
+            label.hash(&mut hash);
+            hash.finish()
+        })
+        .collect::<Vec<_>>();
+    for _ in 0..depth {
+        color = incidence
+            .edge
+            .iter()
+            .enumerate()
+            .map(|(index, edge)| {
+                mix(color[index])
+                    .wrapping_add(collection(edge.iter().map(|&(kind, target)| {
+                        mix(color[target].wrapping_add(mix(kind as u64)))
+                    })))
+            })
+            .collect();
+    }
+    collection(color)
+}

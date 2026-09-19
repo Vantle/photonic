@@ -3,8 +3,7 @@ use std::sync::Arc;
 use std::task::Poll;
 
 pub struct Search {
-    pattern: Vec<Vec<Term>>,
-    order: Vec<usize>,
+    selection: Arc<crate::selection::Selection>,
     index: Arc<crate::index::Index>,
     candidate: Vec<Vec<usize>>,
     cursor: Vec<usize>,
@@ -17,31 +16,46 @@ pub struct Search {
 
 impl Search {
     pub fn new(pattern: Vec<Vec<Term>>, index: Arc<crate::index::Index>, frame: usize) -> Self {
-        let mut candidate = pattern
+        Self::prepared(
+            Arc::new(crate::selection::Selection::new(
+                Arc::new(pattern),
+                &index,
+                frame,
+            )),
+            index,
+        )
+    }
+
+    pub(crate) fn prepared(
+        selection: Arc<crate::selection::Selection>,
+        index: Arc<crate::index::Index>,
+    ) -> Self {
+        let candidate = selection
+            .candidate
             .iter()
-            .map(|pattern| index.candidate(pattern, frame))
-            .collect::<Vec<_>>();
-        if candidate.iter().any(Vec::is_empty) || !crate::assignment::feasible(&candidate) {
-            candidate.clear();
-        }
-        let mut order = (0..pattern.len()).collect::<Vec<_>>();
-        if !candidate.is_empty() {
-            order.sort_by_key(|&position| candidate[position].len());
-            candidate = order
-                .iter()
-                .map(|&position| candidate[position].clone())
-                .collect();
-        }
-        let pattern = order
-            .iter()
-            .map(|&position| pattern[position].clone())
-            .collect::<Vec<_>>();
+            .map(|candidate| {
+                let mut candidate = candidate
+                    .iter()
+                    .map(|&site| index.world(site))
+                    .collect::<Vec<_>>();
+                candidate.sort_unstable();
+                candidate
+            })
+            .collect();
+        let pattern = &selection.pattern;
         Self {
-            gate: (pattern.len() > 1).then(|| Gate::new(pattern.clone())),
+            gate: (pattern.len() > 1).then(|| {
+                Gate::new(
+                    selection
+                        .order
+                        .iter()
+                        .map(|&position| pattern[position].clone())
+                        .collect(),
+                )
+            }),
             candidate,
             cursor: vec![0; pattern.len()],
-            pattern,
-            order,
+            selection,
             index,
             world: 0,
             position: 0,
@@ -51,10 +65,14 @@ impl Search {
     }
 
     pub(crate) fn viable(&self) -> bool {
-        self.pattern.is_empty() || !self.candidate.is_empty()
+        self.selection.pattern.is_empty() || !self.candidate.is_empty()
     }
 
     pub(crate) fn retained(&self) -> usize {
+        self.selection.retained() + self.resident()
+    }
+
+    pub(crate) fn resident(&self) -> usize {
         self.candidate.len()
             + self.candidate.iter().map(Vec::len).sum::<usize>()
             + self.cursor.len()
@@ -66,7 +84,7 @@ impl Search {
     }
 
     pub fn step(&mut self) -> Poll<Option<Vec<Slot>>> {
-        if self.pattern.is_empty() {
+        if self.selection.pattern.is_empty() {
             if self.empty {
                 return Poll::Ready(None);
             }
@@ -78,7 +96,7 @@ impl Search {
         {
             return gate.step().map_or(Poll::Pending, |mut value| {
                 for slot in &mut value {
-                    slot.position = self.order[slot.position];
+                    slot.position = self.selection.order[slot.position];
                 }
                 value.sort_by_key(|slot| slot.position);
                 Poll::Ready(Some(value))
@@ -101,7 +119,7 @@ impl Search {
             self.world = world;
             self.position = position;
             self.particle = Some(crate::particle::Match::new(
-                &self.pattern[position],
+                &self.selection.pattern[position],
                 &self.index.state.world[world].particle,
             ));
         }

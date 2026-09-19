@@ -28,6 +28,8 @@ hermetic_binary(
         "benchmark/trace.rs",
         "benchmark/matching.rs",
         "benchmark/arithmetic.rs",
+        "benchmark/expression.rs",
+        "benchmark/retention.rs",
         "library/test/suite.rs",
         "photonic/assemble.rs",
         "photonic/check.rs",

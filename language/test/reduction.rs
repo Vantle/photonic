@@ -114,6 +114,12 @@ fn incremental() {
         "A.X,B.Y [A,B] (C [C] D),E [D,E] F",
         "A [A] B,C [B] D [C] E [D,E] F",
         "A.([A] B) [B] (C [C] A)",
+        "A.X,B.Y,Z [Z] Q [Q] R [A,B] End",
+        "A.X,B.X,C.X [A,B] D [C] E [D,E] F",
+        "A [A] (B [B] C) [C] (D [D] A)",
+        "A.([A] B),A.([A] C) [B,C] D",
+        "A,A,A [A,A] B [B,A] C",
+        "A [A] B [B] A [ ] Z",
     ] {
         let program = Arc::new(Program::new(crate::lowering::parse(source).unwrap()));
         let mut state = Arc::new(State::initial(&program));

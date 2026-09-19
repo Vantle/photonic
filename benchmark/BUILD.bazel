@@ -3,10 +3,47 @@ load("//toolchain:defs.bzl", "hermetic_binary")
 
 rust_binary(
     name = "arithmetic",
-    srcs = ["arithmetic.rs"],
+    srcs = [
+        "arithmetic.rs",
+        "evaluation.rs",
+        "formula.rs",
+    ],
     compile_data = ["//program/ternary:formula"],
     crate_root = "arithmetic.rs",
     rustc_env = {"FORMULA": "$(execpath //program/ternary:formula)"},
+    deps = [
+        "//language:photonic",
+        "@crate//:clap",
+        "@crate//:serde",
+        "@crate//:serde_json",
+    ],
+)
+
+rust_binary(
+    name = "expression",
+    srcs = [
+        "evaluation.rs",
+        "expression.rs",
+        "formula.rs",
+    ],
+    compile_data = ["//program/ternary:formula"],
+    crate_root = "expression.rs",
+    rustc_env = {"FORMULA": "$(execpath //program/ternary:formula)"},
+    deps = [
+        "//language:photonic",
+        "@crate//:clap",
+        "@crate//:serde",
+        "@crate//:serde_json",
+    ],
+)
+
+rust_binary(
+    name = "retention",
+    srcs = [
+        "evaluation.rs",
+        "retention.rs",
+    ],
+    crate_root = "retention.rs",
     deps = [
         "//language:photonic",
         "@crate//:clap",

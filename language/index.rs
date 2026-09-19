@@ -16,6 +16,8 @@ pub(crate) struct Index {
     symbol: HashMap<Symbol, usize>,
     code: HashMap<usize, Vec<(usize, usize, usize)>>,
     change: Vec<(Symbol, bool)>,
+    pub altered: std::collections::HashSet<Symbol>,
+    pub occupied: bool,
 }
 
 impl Index {
@@ -31,6 +33,8 @@ impl Index {
             symbol: HashMap::new(),
             code: HashMap::new(),
             change: Vec::new(),
+            altered: Default::default(),
+            occupied: false,
         };
         index.frame.resize(index.state.frame.len(), Vec::new());
         for world in 0..index.state.world.len() {
@@ -48,6 +52,9 @@ impl Index {
         self.rank[site] = world;
         self.site.push(site);
         let value = &self.state.world[world];
+        self.occupied = true;
+        self.altered
+            .extend(value.particle.iter().map(|token| token.value));
         self.frame[value.frame].push(site);
         self.retained += 1;
         for token in &value.particle {
@@ -81,9 +88,14 @@ impl Index {
     }
 
     pub(crate) fn advance(&mut self, state: Arc<State>, removed: &Set<usize>) {
+        self.altered.clear();
+        self.occupied = false;
         for &world in removed {
             let site = self.site[world];
             let value = &self.state.world[world];
+            self.occupied = true;
+            self.altered
+                .extend(value.particle.iter().map(|token| token.value));
             self.frame[value.frame].retain(|&candidate| candidate != site);
             self.retained -= 1;
             for token in &value.particle {
@@ -174,6 +186,14 @@ impl Index {
         result
     }
 
+    pub(crate) fn site(&self, world: usize) -> usize {
+        self.site[world]
+    }
+
+    pub(crate) fn world(&self, site: usize) -> usize {
+        self.rank[site]
+    }
+
     pub fn retained(&self) -> usize {
         self.frame.len()
             + self.term.len()
@@ -184,6 +204,7 @@ impl Index {
             + self.symbol.len()
             + self.code.len()
             + self.change.len()
+            + self.altered.len()
     }
 
     pub(crate) fn change(&mut self) -> impl Iterator<Item = (Symbol, bool)> + '_ {

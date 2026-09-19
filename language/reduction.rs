@@ -1,6 +1,5 @@
 use crate::basis::Set;
 use crate::flow::{Binding, Place};
-use crate::matching;
 use crate::program::Program;
 use crate::runtime::Limit;
 use crate::state::State;
@@ -29,6 +28,7 @@ pub(crate) struct Search {
     agenda: VecDeque<Candidate>,
     pending: Vec<Event>,
     initialized: bool,
+    query: crate::query::Query,
     index: Option<Arc<crate::index::Index>>,
     network: crate::activation::Network,
     fingerprint: crate::fingerprint::Index,
@@ -38,6 +38,7 @@ pub(crate) struct Search {
 impl Search {
     pub(crate) fn new(program: Arc<Program>, state: Arc<State>) -> Self {
         Self {
+            query: crate::query::Query::new(&program),
             network: crate::activation::Network::new(&program),
             fingerprint: crate::fingerprint::Index::new(state.clone()),
             program,
@@ -88,13 +89,11 @@ impl Search {
             }
         }
         for (rule, frame, owner, read) in request {
-            let input = &self.program.rule[rule].input;
-            let pattern = if input.is_empty() {
-                vec![Vec::new()]
-            } else {
-                matching::pattern(input, Some(owner))
-            };
-            let search = crate::search::Search::new(pattern, index.clone(), frame);
+            let selection = self.query.select(rule, frame, owner, &index);
+            if !selection.pattern.is_empty() && selection.candidate.is_empty() {
+                continue;
+            }
+            let search = crate::search::Search::prepared(selection, index.clone());
             if search.viable() {
                 self.agenda.push_back(Candidate {
                     rule,
@@ -105,13 +104,22 @@ impl Search {
                 });
             }
         }
+        self.query.finish();
         self.initialized = true;
+    }
+
+    pub(crate) fn preparation(&self) -> usize {
+        self.query.preparation
+    }
+
+    pub(crate) fn reuse(&self) -> usize {
+        self.query.reuse
     }
 
     pub(crate) fn record(&self) -> usize {
         self.agenda
             .iter()
-            .map(|candidate| candidate.search.retained() + 1)
+            .map(|candidate| candidate.search.resident() + 1)
             .sum::<usize>()
             + self
                 .pending
@@ -121,6 +129,7 @@ impl Search {
             + self.index.as_ref().map_or(0, |index| index.retained())
             + self.fingerprint.retained()
             + self.network.retained()
+            + self.query.retained()
             + 1
     }
 
@@ -134,6 +143,7 @@ impl Search {
         self.pending.clear();
         let mut index = Arc::try_unwrap(self.index.take().unwrap()).ok().unwrap();
         index.advance(state.clone(), removed);
+        self.query.advance(&index);
         for (symbol, present) in index.change() {
             self.network.change(symbol, present);
         }

@@ -1,5 +1,5 @@
 use crate::program::{Program, Symbol};
-use std::collections::{BTreeSet, HashMap};
+use std::collections::HashMap;
 use std::sync::Arc;
 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -41,7 +41,12 @@ impl State {
         let reachable = self.reachable();
         self.frame.truncate(reachable.last().unwrap() + 1);
         for (index, frame) in self.frame.iter_mut().enumerate() {
-            if reachable.contains(&index) {
+            if reachable.binary_search(&index).is_ok()
+                || (frame.scope == 0
+                    && frame.parent.is_none()
+                    && frame.lexical.is_none()
+                    && frame.held.is_empty())
+            {
                 continue;
             }
             let frame = Arc::make_mut(frame);
@@ -101,7 +106,7 @@ impl State {
         state.rename(&world, &[0]).state
     }
 
-    pub fn reachable(&self) -> BTreeSet<usize> {
+    pub fn reachable(&self) -> Vec<usize> {
         let mut selected = vec![false; self.frame.len()];
         let mut pending = Vec::new();
         let mut insert = |index| {
