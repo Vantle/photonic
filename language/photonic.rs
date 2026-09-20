@@ -40,6 +40,7 @@ mod recipe;
 mod reduction;
 mod refinement;
 mod relation;
+mod replay;
 mod rewrite;
 pub mod runtime;
 mod search;

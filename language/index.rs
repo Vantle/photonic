@@ -70,8 +70,10 @@ impl Index {
             if let Symbol::Rule(rule) = token.value {
                 self.reader[value.frame].push(crate::reader::Reader {
                     rule,
-                    site,
-                    resource: token.id,
+                    read: crate::reader::Read {
+                        site,
+                        resource: token.id,
+                    },
                     owner: token.capture.unwrap(),
                 });
                 self.retained += 1;
@@ -134,7 +136,7 @@ impl Index {
                 .extend(value.particle.iter().map(|token| token.value));
             let reader = &mut self.reader[value.frame];
             let previous = reader.len();
-            reader.retain(|reader| reader.site != site);
+            reader.retain(|reader| reader.read.site != site);
             self.retained -= previous - reader.len();
             self.frame[value.frame].remove(&site);
             self.retained -= 1;
@@ -186,30 +188,53 @@ impl Index {
             candidate.sort_unstable();
             return candidate;
         }
+        if let [term] = pattern {
+            return self
+                .posting(term, frame)
+                .into_iter()
+                .flatten()
+                .map(|&site| self.world(site))
+                .collect();
+        }
         let posting = pattern
             .iter()
-            .map(|term| {
-                let key = (frame, Term::new(term.value, term.capture));
-                self.term.get(&key)
-            })
+            .map(|term| self.posting(term, frame))
             .collect::<Option<Vec<_>>>();
         let Some(posting) = posting else {
             return Vec::new();
         };
-        let candidate = posting
+        let (anchor, candidate) = posting
             .iter()
             .copied()
-            .min_by_key(|posting| posting.len())
+            .enumerate()
+            .min_by_key(|(_, posting)| posting.len())
             .unwrap();
         candidate
             .iter()
-            .filter(|site| posting.iter().all(|posting| posting.contains(site)))
+            .filter(|&&site| {
+                posting.iter().enumerate().all(|(position, posting)| {
+                    position == anchor
+                        || if posting.len() <= 16 {
+                            posting.contains(&site)
+                        } else {
+                            posting
+                                .binary_search_by_key(&self.rank[site], |&site| self.rank[site])
+                                .is_ok()
+                        }
+                })
+            })
             .map(|&site| self.world(site))
             .collect::<Vec<_>>()
     }
 
     pub(crate) fn site(&self, world: usize) -> usize {
         self.position.select(world)
+    }
+
+    fn posting(&self, term: &Term, frame: usize) -> Option<&[usize]> {
+        self.term
+            .get(&(frame, Term::new(term.value, term.capture)))
+            .map(Vec::as_slice)
     }
 
     pub(crate) fn world(&self, site: usize) -> usize {
@@ -261,3 +286,7 @@ impl Index {
         self.symbol.contains_key(symbol)
     }
 }
+
+#[cfg(test)]
+#[path = "test/index.rs"]
+mod test;

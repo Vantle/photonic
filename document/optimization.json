@@ -1,0 +1,3035 @@
+{
+  "baseline": "c0a597c",
+  "candidate": "implementation accompanying optimization.md",
+  "source": "82d01a050928cb3c46b8addd107cbaf962c5afd896a2580ad8ee7abf71ec7b39",
+  "machine": "Apple M5 Max, macOS 26.6.2 (25G83)",
+  "method": "Native bazel run -c opt; sequential paired cases, alternating revision order; at least 100 ms of warmup per case on both revisions; posting uses seven samples of ten lookups after verifying the result; exhaustive runtime uses 25 samples per reference case.",
+  "case": [
+    {
+      "name": "expression-6",
+      "target": "//benchmark:expression",
+      "argument": [
+        "2*2*2*2*2*2",
+        "2101",
+        "--sample",
+        "7"
+      ],
+      "before": {
+        "expected": "2101",
+        "input": "2*2*2*2*2*2",
+        "measurement": [
+          {
+            "event": 10101,
+            "execution": 0.067615333,
+            "initialization": 0.001655083,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.066776416,
+            "initialization": 0.001603125,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.065942042,
+            "initialization": 0.001786458,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.067075917,
+            "initialization": 0.001572459,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.066519875,
+            "initialization": 0.00157,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.066916958,
+            "initialization": 0.001660875,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.066487666,
+            "initialization": 0.001602292,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          }
+        ]
+      },
+      "after": {
+        "expected": "2101",
+        "input": "2*2*2*2*2*2",
+        "measurement": [
+          {
+            "event": 10101,
+            "execution": 0.070837,
+            "initialization": 0.0016895,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.0722995,
+            "initialization": 0.001752209,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.07148225,
+            "initialization": 0.001711667,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.0709315,
+            "initialization": 0.001605333,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.070636875,
+            "initialization": 0.001608667,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.07086525,
+            "initialization": 0.001571375,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.068887417,
+            "initialization": 0.0015915,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          }
+        ]
+      }
+    },
+    {
+      "name": "addition",
+      "target": "//benchmark:arithmetic",
+      "argument": [
+        "1234567890",
+        "add",
+        "9876543210",
+        "--radix",
+        "10",
+        "--sample",
+        "7"
+      ],
+      "after": {
+        "decimal": "1234567890 + 9876543210 = 11111111100",
+        "input": "10012001001112202200+221111022110101020200",
+        "measurement": [
+          {
+            "event": 11839,
+            "execution": 0.202662583,
+            "initialization": 0.001878042,
+            "statistic": {
+              "bucket": 5,
+              "normalization": 1,
+              "preparation": 154535,
+              "refinement": 3910,
+              "resolution": 51,
+              "reuse": 36159
+            },
+            "work": 28977
+          },
+          {
+            "event": 11839,
+            "execution": 0.200029583,
+            "initialization": 0.001850583,
+            "statistic": {
+              "bucket": 5,
+              "normalization": 1,
+              "preparation": 154535,
+              "refinement": 3910,
+              "resolution": 51,
+              "reuse": 36159
+            },
+            "work": 28977
+          },
+          {
+            "event": 11839,
+            "execution": 0.199546875,
+            "initialization": 0.001693917,
+            "statistic": {
+              "bucket": 5,
+              "normalization": 1,
+              "preparation": 154535,
+              "refinement": 3910,
+              "resolution": 51,
+              "reuse": 36159
+            },
+            "work": 28977
+          },
+          {
+            "event": 11839,
+            "execution": 0.201920333,
+            "initialization": 0.001759208,
+            "statistic": {
+              "bucket": 5,
+              "normalization": 1,
+              "preparation": 154535,
+              "refinement": 3910,
+              "resolution": 51,
+              "reuse": 36159
+            },
+            "work": 28977
+          },
+          {
+            "event": 11839,
+            "execution": 0.20110025,
+            "initialization": 0.001807667,
+            "statistic": {
+              "bucket": 5,
+              "normalization": 1,
+              "preparation": 154535,
+              "refinement": 3910,
+              "resolution": 51,
+              "reuse": 36159
+            },
+            "work": 28977
+          },
+          {
+            "event": 11839,
+            "execution": 0.199848958,
+            "initialization": 0.001804,
+            "statistic": {
+              "bucket": 5,
+              "normalization": 1,
+              "preparation": 154535,
+              "refinement": 3910,
+              "resolution": 51,
+              "reuse": 36159
+            },
+            "work": 28977
+          },
+          {
+            "event": 11839,
+            "execution": 0.200483291,
+            "initialization": 0.001788208,
+            "statistic": {
+              "bucket": 5,
+              "normalization": 1,
+              "preparation": 154535,
+              "refinement": 3910,
+              "resolution": 51,
+              "reuse": 36159
+            },
+            "work": 28977
+          }
+        ],
+        "source": "Push.([Digit] 0).Zero, Stage.1\n[Built,Stage.1] (Push.([Digit] 0)) (Forget.Stage.2)\n[Clean.Stage.2] Stage.2\n[Built,Stage.2] (Push.([Digit] 2)) (Forget.Stage.3)\n[Clean.Stage.3] Stage.3\n[Built,Stage.3] (Push.([Digit] 0)) (Forget.Stage.4)\n[Clean.Stage.4] Stage.4\n[Built,Stage.4] (Push.([Digit] 2)) (Forget.Stage.5)\n[Clean.Stage.5] Stage.5\n[Built,Stage.5] (Push.([Digit] 0)) (Forget.Stage.6)\n[Clean.Stage.6] Stage.6\n[Built,Stage.6] (Push.([Digit] 1)) (Forget.Stage.7)\n[Clean.Stage.7] Stage.7\n[Built,Stage.7] (Push.([Digit] 0)) (Forget.Stage.8)\n[Clean.Stage.8] Stage.8\n[Built,Stage.8] (Push.([Digit] 1)) (Forget.Stage.9)\n[Clean.Stage.9] Stage.9\n[Built,Stage.9] (Push.([Digit] 0)) (Forget.Stage.10)\n[Clean.Stage.10] Stage.10\n[Built,Stage.10] (Push.([Digit] 1)) (Forget.Stage.11)\n[Clean.Stage.11] Stage.11\n[Built,Stage.11] (Push.([Digit] 1)) (Forget.Stage.12)\n[Clean.Stage.12] Stage.12\n[Built,Stage.12] (Push.([Digit] 2)) (Forget.Stage.13)\n[Clean.Stage.13] Stage.13\n[Built,Stage.13] (Push.([Digit] 2)) (Forget.Stage.14)\n[Clean.Stage.14] Stage.14\n[Built,Stage.14] (Push.([Digit] 0)) (Forget.Stage.15)\n[Clean.Stage.15] Stage.15\n[Built,Stage.15] (Push.([Digit] 1)) (Forget.Stage.16)\n[Clean.Stage.16] Stage.16\n[Built,Stage.16] (Push.([Digit] 1)) (Forget.Stage.17)\n[Clean.Stage.17] Stage.17\n[Built,Stage.17] (Push.([Digit] 1)) (Forget.Stage.18)\n[Clean.Stage.18] Stage.18\n[Built,Stage.18] (Push.([Digit] 1)) (Forget.Stage.19)\n[Clean.Stage.19] Stage.19\n[Built,Stage.19] (Push.([Digit] 2)) (Forget.Stage.20)\n[Clean.Stage.20] Stage.20\n[Built,Stage.20] (Push.([Digit] 2)) (Forget.Stage.21)\n[Clean.Stage.21] Stage.21\n[Built,Stage.21] (Push.Add) (Forget.Stage.22)\n[Clean.Stage.22] Stage.22\n[Built,Stage.22] (Push.([Digit] 0)) (Forget.Stage.23)\n[Clean.Stage.23] Stage.23\n[Built,Stage.23] (Push.([Digit] 0)) (Forget.Stage.24)\n[Clean.Stage.24] Stage.24\n[Built,Stage.24] (Push.([Digit] 2)) (Forget.Stage.25)\n[Clean.Stage.25] Stage.25\n[Built,Stage.25] (Push.([Digit] 2)) (Forget.Stage.26)\n[Clean.Stage.26] Stage.26\n[Built,Stage.26] (Push.([Digit] 0)) (Forget.Stage.27)\n[Clean.Stage.27] Stage.27\n[Built,Stage.27] (Push.([Digit] 2)) (Forget.Stage.28)\n[Clean.Stage.28] Stage.28\n[Built,Stage.28] (Push.([Digit] 2)) (Forget.Stage.29)\n[Clean.Stage.29] Stage.29\n[Built,Stage.29] (Push.([Digit] 1)) (Forget.Stage.30)\n[Clean.Stage.30] Stage.30\n[Built,Stage.30] (Push.([Digit] 1)) (Forget.Stage.31)\n[Clean.Stage.31] Stage.31\n[Built,Stage.31] (Push.([Digit] 1)) (Forget.Stage.32)\n[Clean.Stage.32] Stage.32\n[Built,Stage.32] (Push.([Digit] 0)) (Forget.Stage.33)\n[Clean.Stage.33] Stage.33\n[Built,Stage.33] (Push.([Digit] 0)) (Forget.Stage.34)\n[Clean.Stage.34] Stage.34\n[Built,Stage.34] (Push.([Digit] 1)) (Forget.Stage.35)\n[Clean.Stage.35] Stage.35\n[Built,Stage.35] (Push.([Digit] 0)) (Forget.Stage.36)\n[Clean.Stage.36] Stage.36\n[Built,Stage.36] (Push.([Digit] 0)) (Forget.Stage.37)\n[Clean.Stage.37] Stage.37\n[Built,Stage.37] (Push.([Digit] 2)) (Forget.Stage.38)\n[Clean.Stage.38] Stage.38\n[Built,Stage.38] (Push.([Digit] 1)) (Forget.Stage.39)\n[Clean.Stage.39] Stage.39\n[Built,Stage.39] (Push.([Digit] 0)) (Forget.Stage.40)\n[Clean.Stage.40] Stage.40\n[Built,Stage.40] (Push.([Digit] 0)) (Forget.Stage.41)\n[Clean.Stage.41] Stage.41\n[Built,Stage.41] (Push.([Digit] 1)) (Forget.Stage.42)\n[Clean.Stage.42] Stage.42\n[Built,Stage.42] (Function.Expression) (Forget.Inspect.0)\n[Clean.Inspect.0] Inspect.0\n[Return.Expression.Number.Positive,Inspect.0] (Read) (Forget.Inspect.1)\n[Clean.Inspect.1] Inspect.1\n[Yield.([Digit] 0),Inspect.1] (Read) (Forget.Inspect.2)\n[Clean.Inspect.2] Inspect.2\n[Yield.([Digit] 0),Inspect.2] (Read) (Forget.Inspect.3)\n[Clean.Inspect.3] Inspect.3\n[Yield.([Digit] 1),Inspect.3] (Read) (Forget.Inspect.4)\n[Clean.Inspect.4] Inspect.4\n[Yield.([Digit] 0),Inspect.4] (Read) (Forget.Inspect.5)\n[Clean.Inspect.5] Inspect.5\n[Yield.([Digit] 0),Inspect.5] (Read) (Forget.Inspect.6)\n[Clean.Inspect.6] Inspect.6\n[Yield.([Digit] 0),Inspect.6] (Read) (Forget.Inspect.7)\n[Clean.Inspect.7] Inspect.7\n[Yield.([Digit] 1),Inspect.7] (Read) (Forget.Inspect.8)\n[Clean.Inspect.8] Inspect.8\n[Yield.([Digit] 2),Inspect.8] (Read) (Forget.Inspect.9)\n[Clean.Inspect.9] Inspect.9\n[Yield.([Digit] 2),Inspect.9] (Read) (Forget.Inspect.10)\n[Clean.Inspect.10] Inspect.10\n[Yield.([Digit] 1),Inspect.10] (Read) (Forget.Inspect.11)\n[Clean.Inspect.11] Inspect.11\n[Yield.([Digit] 1),Inspect.11] (Read) (Forget.Inspect.12)\n[Clean.Inspect.12] Inspect.12\n[Yield.([Digit] 1),Inspect.12] (Read) (Forget.Inspect.13)\n[Clean.Inspect.13] Inspect.13\n[Yield.([Digit] 0),Inspect.13] (Read) (Forget.Inspect.14)\n[Clean.Inspect.14] Inspect.14\n[Yield.([Digit] 0),Inspect.14] (Read) (Forget.Inspect.15)\n[Clean.Inspect.15] Inspect.15\n[Yield.([Digit] 1),Inspect.15] (Read) (Forget.Inspect.16)\n[Clean.Inspect.16] Inspect.16\n[Yield.([Digit] 0),Inspect.16] (Read) (Forget.Inspect.17)\n[Clean.Inspect.17] Inspect.17\n[Yield.([Digit] 0),Inspect.17] (Read) (Forget.Inspect.18)\n[Clean.Inspect.18] Inspect.18\n[Yield.([Digit] 2),Inspect.18] (Read) (Forget.Inspect.19)\n[Clean.Inspect.19] Inspect.19\n[Yield.([Digit] 1),Inspect.19] (Read) (Forget.Inspect.20)\n[Clean.Inspect.20] Inspect.20\n[Yield.([Digit] 0),Inspect.20] (Read) (Forget.Inspect.21)\n[Clean.Inspect.21] Inspect.21\n[Yield.([Digit] 0),Inspect.21] (Read) (Forget.Inspect.22)\n[Clean.Inspect.22] Inspect.22\n[Yield.([Digit] 1).Zero,Inspect.22] Done.Zero\n",
+        "ternary": "1001200100111221000100"
+      },
+      "before": {
+        "decimal": "1234567890 + 9876543210 = 11111111100",
+        "input": "10012001001112202200+221111022110101020200",
+        "measurement": [
+          {
+            "event": 11839,
+            "execution": 0.191962292,
+            "initialization": 0.001818083,
+            "statistic": {
+              "bucket": 5,
+              "normalization": 1,
+              "preparation": 154535,
+              "refinement": 3910,
+              "resolution": 51,
+              "reuse": 36159
+            },
+            "work": 28977
+          },
+          {
+            "event": 11839,
+            "execution": 0.194793417,
+            "initialization": 0.001822792,
+            "statistic": {
+              "bucket": 5,
+              "normalization": 1,
+              "preparation": 154535,
+              "refinement": 3910,
+              "resolution": 51,
+              "reuse": 36159
+            },
+            "work": 28977
+          },
+          {
+            "event": 11839,
+            "execution": 0.193523791,
+            "initialization": 0.001701333,
+            "statistic": {
+              "bucket": 5,
+              "normalization": 1,
+              "preparation": 154535,
+              "refinement": 3910,
+              "resolution": 51,
+              "reuse": 36159
+            },
+            "work": 28977
+          },
+          {
+            "event": 11839,
+            "execution": 0.19186675,
+            "initialization": 0.001767708,
+            "statistic": {
+              "bucket": 5,
+              "normalization": 1,
+              "preparation": 154535,
+              "refinement": 3910,
+              "resolution": 51,
+              "reuse": 36159
+            },
+            "work": 28977
+          },
+          {
+            "event": 11839,
+            "execution": 0.194998,
+            "initialization": 0.001736625,
+            "statistic": {
+              "bucket": 5,
+              "normalization": 1,
+              "preparation": 154535,
+              "refinement": 3910,
+              "resolution": 51,
+              "reuse": 36159
+            },
+            "work": 28977
+          },
+          {
+            "event": 11839,
+            "execution": 0.192434875,
+            "initialization": 0.001729917,
+            "statistic": {
+              "bucket": 5,
+              "normalization": 1,
+              "preparation": 154535,
+              "refinement": 3910,
+              "resolution": 51,
+              "reuse": 36159
+            },
+            "work": 28977
+          },
+          {
+            "event": 11839,
+            "execution": 0.19251925,
+            "initialization": 0.001724,
+            "statistic": {
+              "bucket": 5,
+              "normalization": 1,
+              "preparation": 154535,
+              "refinement": 3910,
+              "resolution": 51,
+              "reuse": 36159
+            },
+            "work": 28977
+          }
+        ],
+        "source": "Push.([Digit] 0).Zero, Stage.1\n[Built,Stage.1] (Push.([Digit] 0)) (Forget.Stage.2)\n[Clean.Stage.2] Stage.2\n[Built,Stage.2] (Push.([Digit] 2)) (Forget.Stage.3)\n[Clean.Stage.3] Stage.3\n[Built,Stage.3] (Push.([Digit] 0)) (Forget.Stage.4)\n[Clean.Stage.4] Stage.4\n[Built,Stage.4] (Push.([Digit] 2)) (Forget.Stage.5)\n[Clean.Stage.5] Stage.5\n[Built,Stage.5] (Push.([Digit] 0)) (Forget.Stage.6)\n[Clean.Stage.6] Stage.6\n[Built,Stage.6] (Push.([Digit] 1)) (Forget.Stage.7)\n[Clean.Stage.7] Stage.7\n[Built,Stage.7] (Push.([Digit] 0)) (Forget.Stage.8)\n[Clean.Stage.8] Stage.8\n[Built,Stage.8] (Push.([Digit] 1)) (Forget.Stage.9)\n[Clean.Stage.9] Stage.9\n[Built,Stage.9] (Push.([Digit] 0)) (Forget.Stage.10)\n[Clean.Stage.10] Stage.10\n[Built,Stage.10] (Push.([Digit] 1)) (Forget.Stage.11)\n[Clean.Stage.11] Stage.11\n[Built,Stage.11] (Push.([Digit] 1)) (Forget.Stage.12)\n[Clean.Stage.12] Stage.12\n[Built,Stage.12] (Push.([Digit] 2)) (Forget.Stage.13)\n[Clean.Stage.13] Stage.13\n[Built,Stage.13] (Push.([Digit] 2)) (Forget.Stage.14)\n[Clean.Stage.14] Stage.14\n[Built,Stage.14] (Push.([Digit] 0)) (Forget.Stage.15)\n[Clean.Stage.15] Stage.15\n[Built,Stage.15] (Push.([Digit] 1)) (Forget.Stage.16)\n[Clean.Stage.16] Stage.16\n[Built,Stage.16] (Push.([Digit] 1)) (Forget.Stage.17)\n[Clean.Stage.17] Stage.17\n[Built,Stage.17] (Push.([Digit] 1)) (Forget.Stage.18)\n[Clean.Stage.18] Stage.18\n[Built,Stage.18] (Push.([Digit] 1)) (Forget.Stage.19)\n[Clean.Stage.19] Stage.19\n[Built,Stage.19] (Push.([Digit] 2)) (Forget.Stage.20)\n[Clean.Stage.20] Stage.20\n[Built,Stage.20] (Push.([Digit] 2)) (Forget.Stage.21)\n[Clean.Stage.21] Stage.21\n[Built,Stage.21] (Push.Add) (Forget.Stage.22)\n[Clean.Stage.22] Stage.22\n[Built,Stage.22] (Push.([Digit] 0)) (Forget.Stage.23)\n[Clean.Stage.23] Stage.23\n[Built,Stage.23] (Push.([Digit] 0)) (Forget.Stage.24)\n[Clean.Stage.24] Stage.24\n[Built,Stage.24] (Push.([Digit] 2)) (Forget.Stage.25)\n[Clean.Stage.25] Stage.25\n[Built,Stage.25] (Push.([Digit] 2)) (Forget.Stage.26)\n[Clean.Stage.26] Stage.26\n[Built,Stage.26] (Push.([Digit] 0)) (Forget.Stage.27)\n[Clean.Stage.27] Stage.27\n[Built,Stage.27] (Push.([Digit] 2)) (Forget.Stage.28)\n[Clean.Stage.28] Stage.28\n[Built,Stage.28] (Push.([Digit] 2)) (Forget.Stage.29)\n[Clean.Stage.29] Stage.29\n[Built,Stage.29] (Push.([Digit] 1)) (Forget.Stage.30)\n[Clean.Stage.30] Stage.30\n[Built,Stage.30] (Push.([Digit] 1)) (Forget.Stage.31)\n[Clean.Stage.31] Stage.31\n[Built,Stage.31] (Push.([Digit] 1)) (Forget.Stage.32)\n[Clean.Stage.32] Stage.32\n[Built,Stage.32] (Push.([Digit] 0)) (Forget.Stage.33)\n[Clean.Stage.33] Stage.33\n[Built,Stage.33] (Push.([Digit] 0)) (Forget.Stage.34)\n[Clean.Stage.34] Stage.34\n[Built,Stage.34] (Push.([Digit] 1)) (Forget.Stage.35)\n[Clean.Stage.35] Stage.35\n[Built,Stage.35] (Push.([Digit] 0)) (Forget.Stage.36)\n[Clean.Stage.36] Stage.36\n[Built,Stage.36] (Push.([Digit] 0)) (Forget.Stage.37)\n[Clean.Stage.37] Stage.37\n[Built,Stage.37] (Push.([Digit] 2)) (Forget.Stage.38)\n[Clean.Stage.38] Stage.38\n[Built,Stage.38] (Push.([Digit] 1)) (Forget.Stage.39)\n[Clean.Stage.39] Stage.39\n[Built,Stage.39] (Push.([Digit] 0)) (Forget.Stage.40)\n[Clean.Stage.40] Stage.40\n[Built,Stage.40] (Push.([Digit] 0)) (Forget.Stage.41)\n[Clean.Stage.41] Stage.41\n[Built,Stage.41] (Push.([Digit] 1)) (Forget.Stage.42)\n[Clean.Stage.42] Stage.42\n[Built,Stage.42] (Function.Expression) (Forget.Inspect.0)\n[Clean.Inspect.0] Inspect.0\n[Return.Expression.Number.Positive,Inspect.0] (Read) (Forget.Inspect.1)\n[Clean.Inspect.1] Inspect.1\n[Yield.([Digit] 0),Inspect.1] (Read) (Forget.Inspect.2)\n[Clean.Inspect.2] Inspect.2\n[Yield.([Digit] 0),Inspect.2] (Read) (Forget.Inspect.3)\n[Clean.Inspect.3] Inspect.3\n[Yield.([Digit] 1),Inspect.3] (Read) (Forget.Inspect.4)\n[Clean.Inspect.4] Inspect.4\n[Yield.([Digit] 0),Inspect.4] (Read) (Forget.Inspect.5)\n[Clean.Inspect.5] Inspect.5\n[Yield.([Digit] 0),Inspect.5] (Read) (Forget.Inspect.6)\n[Clean.Inspect.6] Inspect.6\n[Yield.([Digit] 0),Inspect.6] (Read) (Forget.Inspect.7)\n[Clean.Inspect.7] Inspect.7\n[Yield.([Digit] 1),Inspect.7] (Read) (Forget.Inspect.8)\n[Clean.Inspect.8] Inspect.8\n[Yield.([Digit] 2),Inspect.8] (Read) (Forget.Inspect.9)\n[Clean.Inspect.9] Inspect.9\n[Yield.([Digit] 2),Inspect.9] (Read) (Forget.Inspect.10)\n[Clean.Inspect.10] Inspect.10\n[Yield.([Digit] 1),Inspect.10] (Read) (Forget.Inspect.11)\n[Clean.Inspect.11] Inspect.11\n[Yield.([Digit] 1),Inspect.11] (Read) (Forget.Inspect.12)\n[Clean.Inspect.12] Inspect.12\n[Yield.([Digit] 1),Inspect.12] (Read) (Forget.Inspect.13)\n[Clean.Inspect.13] Inspect.13\n[Yield.([Digit] 0),Inspect.13] (Read) (Forget.Inspect.14)\n[Clean.Inspect.14] Inspect.14\n[Yield.([Digit] 0),Inspect.14] (Read) (Forget.Inspect.15)\n[Clean.Inspect.15] Inspect.15\n[Yield.([Digit] 1),Inspect.15] (Read) (Forget.Inspect.16)\n[Clean.Inspect.16] Inspect.16\n[Yield.([Digit] 0),Inspect.16] (Read) (Forget.Inspect.17)\n[Clean.Inspect.17] Inspect.17\n[Yield.([Digit] 0),Inspect.17] (Read) (Forget.Inspect.18)\n[Clean.Inspect.18] Inspect.18\n[Yield.([Digit] 2),Inspect.18] (Read) (Forget.Inspect.19)\n[Clean.Inspect.19] Inspect.19\n[Yield.([Digit] 1),Inspect.19] (Read) (Forget.Inspect.20)\n[Clean.Inspect.20] Inspect.20\n[Yield.([Digit] 0),Inspect.20] (Read) (Forget.Inspect.21)\n[Clean.Inspect.21] Inspect.21\n[Yield.([Digit] 0),Inspect.21] (Read) (Forget.Inspect.22)\n[Clean.Inspect.22] Inspect.22\n[Yield.([Digit] 1).Zero,Inspect.22] Done.Zero\n",
+        "ternary": "1001200100111221000100"
+      }
+    },
+    {
+      "name": "multiplication",
+      "target": "//benchmark:arithmetic",
+      "argument": [
+        "12345",
+        "multiply",
+        "67890",
+        "--radix",
+        "10",
+        "--sample",
+        "7"
+      ],
+      "before": {
+        "decimal": "12345 * 67890 = 838102050",
+        "input": "121221020*10110010110",
+        "measurement": [
+          {
+            "event": 17806,
+            "execution": 0.229890709,
+            "initialization": 0.001921583,
+            "statistic": {
+              "bucket": 4,
+              "normalization": 1,
+              "preparation": 206426,
+              "refinement": 3728,
+              "resolution": 291,
+              "reuse": 42792
+            },
+            "work": 43575
+          },
+          {
+            "event": 17806,
+            "execution": 0.226468917,
+            "initialization": 0.001754292,
+            "statistic": {
+              "bucket": 4,
+              "normalization": 1,
+              "preparation": 206426,
+              "refinement": 3728,
+              "resolution": 291,
+              "reuse": 42792
+            },
+            "work": 43575
+          },
+          {
+            "event": 17806,
+            "execution": 0.2318895,
+            "initialization": 0.001848666,
+            "statistic": {
+              "bucket": 4,
+              "normalization": 1,
+              "preparation": 206426,
+              "refinement": 3728,
+              "resolution": 291,
+              "reuse": 42792
+            },
+            "work": 43575
+          },
+          {
+            "event": 17806,
+            "execution": 0.226465667,
+            "initialization": 0.001767291,
+            "statistic": {
+              "bucket": 4,
+              "normalization": 1,
+              "preparation": 206426,
+              "refinement": 3728,
+              "resolution": 291,
+              "reuse": 42792
+            },
+            "work": 43575
+          },
+          {
+            "event": 17806,
+            "execution": 0.234439541,
+            "initialization": 0.001664208,
+            "statistic": {
+              "bucket": 4,
+              "normalization": 1,
+              "preparation": 206426,
+              "refinement": 3728,
+              "resolution": 291,
+              "reuse": 42792
+            },
+            "work": 43575
+          },
+          {
+            "event": 17806,
+            "execution": 0.22290025,
+            "initialization": 0.001851541,
+            "statistic": {
+              "bucket": 4,
+              "normalization": 1,
+              "preparation": 206426,
+              "refinement": 3728,
+              "resolution": 291,
+              "reuse": 42792
+            },
+            "work": 43575
+          },
+          {
+            "event": 17806,
+            "execution": 0.215824166,
+            "initialization": 0.001764542,
+            "statistic": {
+              "bucket": 4,
+              "normalization": 1,
+              "preparation": 206426,
+              "refinement": 3728,
+              "resolution": 291,
+              "reuse": 42792
+            },
+            "work": 43575
+          }
+        ],
+        "source": "Push.([Digit] 0).Zero, Stage.1\n[Built,Stage.1] (Push.([Digit] 1)) (Forget.Stage.2)\n[Clean.Stage.2] Stage.2\n[Built,Stage.2] (Push.([Digit] 1)) (Forget.Stage.3)\n[Clean.Stage.3] Stage.3\n[Built,Stage.3] (Push.([Digit] 0)) (Forget.Stage.4)\n[Clean.Stage.4] Stage.4\n[Built,Stage.4] (Push.([Digit] 1)) (Forget.Stage.5)\n[Clean.Stage.5] Stage.5\n[Built,Stage.5] (Push.([Digit] 0)) (Forget.Stage.6)\n[Clean.Stage.6] Stage.6\n[Built,Stage.6] (Push.([Digit] 0)) (Forget.Stage.7)\n[Clean.Stage.7] Stage.7\n[Built,Stage.7] (Push.([Digit] 1)) (Forget.Stage.8)\n[Clean.Stage.8] Stage.8\n[Built,Stage.8] (Push.([Digit] 1)) (Forget.Stage.9)\n[Clean.Stage.9] Stage.9\n[Built,Stage.9] (Push.([Digit] 0)) (Forget.Stage.10)\n[Clean.Stage.10] Stage.10\n[Built,Stage.10] (Push.([Digit] 1)) (Forget.Stage.11)\n[Clean.Stage.11] Stage.11\n[Built,Stage.11] (Push.Multiply) (Forget.Stage.12)\n[Clean.Stage.12] Stage.12\n[Built,Stage.12] (Push.([Digit] 0)) (Forget.Stage.13)\n[Clean.Stage.13] Stage.13\n[Built,Stage.13] (Push.([Digit] 2)) (Forget.Stage.14)\n[Clean.Stage.14] Stage.14\n[Built,Stage.14] (Push.([Digit] 0)) (Forget.Stage.15)\n[Clean.Stage.15] Stage.15\n[Built,Stage.15] (Push.([Digit] 1)) (Forget.Stage.16)\n[Clean.Stage.16] Stage.16\n[Built,Stage.16] (Push.([Digit] 2)) (Forget.Stage.17)\n[Clean.Stage.17] Stage.17\n[Built,Stage.17] (Push.([Digit] 2)) (Forget.Stage.18)\n[Clean.Stage.18] Stage.18\n[Built,Stage.18] (Push.([Digit] 1)) (Forget.Stage.19)\n[Clean.Stage.19] Stage.19\n[Built,Stage.19] (Push.([Digit] 2)) (Forget.Stage.20)\n[Clean.Stage.20] Stage.20\n[Built,Stage.20] (Push.([Digit] 1)) (Forget.Stage.21)\n[Clean.Stage.21] Stage.21\n[Built,Stage.21] (Function.Expression) (Forget.Inspect.0)\n[Clean.Inspect.0] Inspect.0\n[Return.Expression.Number.Positive,Inspect.0] (Read) (Forget.Inspect.1)\n[Clean.Inspect.1] Inspect.1\n[Yield.([Digit] 0),Inspect.1] (Read) (Forget.Inspect.2)\n[Clean.Inspect.2] Inspect.2\n[Yield.([Digit] 0),Inspect.2] (Read) (Forget.Inspect.3)\n[Clean.Inspect.3] Inspect.3\n[Yield.([Digit] 2),Inspect.3] (Read) (Forget.Inspect.4)\n[Clean.Inspect.4] Inspect.4\n[Yield.([Digit] 2),Inspect.4] (Read) (Forget.Inspect.5)\n[Clean.Inspect.5] Inspect.5\n[Yield.([Digit] 1),Inspect.5] (Read) (Forget.Inspect.6)\n[Clean.Inspect.6] Inspect.6\n[Yield.([Digit] 2),Inspect.6] (Read) (Forget.Inspect.7)\n[Clean.Inspect.7] Inspect.7\n[Yield.([Digit] 2),Inspect.7] (Read) (Forget.Inspect.8)\n[Clean.Inspect.8] Inspect.8\n[Yield.([Digit] 2),Inspect.8] (Read) (Forget.Inspect.9)\n[Clean.Inspect.9] Inspect.9\n[Yield.([Digit] 2),Inspect.9] (Read) (Forget.Inspect.10)\n[Clean.Inspect.10] Inspect.10\n[Yield.([Digit] 0),Inspect.10] (Read) (Forget.Inspect.11)\n[Clean.Inspect.11] Inspect.11\n[Yield.([Digit] 0),Inspect.11] (Read) (Forget.Inspect.12)\n[Clean.Inspect.12] Inspect.12\n[Yield.([Digit] 0),Inspect.12] (Read) (Forget.Inspect.13)\n[Clean.Inspect.13] Inspect.13\n[Yield.([Digit] 2),Inspect.13] (Read) (Forget.Inspect.14)\n[Clean.Inspect.14] Inspect.14\n[Yield.([Digit] 0),Inspect.14] (Read) (Forget.Inspect.15)\n[Clean.Inspect.15] Inspect.15\n[Yield.([Digit] 1),Inspect.15] (Read) (Forget.Inspect.16)\n[Clean.Inspect.16] Inspect.16\n[Yield.([Digit] 1),Inspect.16] (Read) (Forget.Inspect.17)\n[Clean.Inspect.17] Inspect.17\n[Yield.([Digit] 1),Inspect.17] (Read) (Forget.Inspect.18)\n[Clean.Inspect.18] Inspect.18\n[Yield.([Digit] 0),Inspect.18] (Read) (Forget.Inspect.19)\n[Clean.Inspect.19] Inspect.19\n[Yield.([Digit] 2).Zero,Inspect.19] Done.Zero\n",
+        "ternary": "2011102000222212200"
+      },
+      "after": {
+        "decimal": "12345 * 67890 = 838102050",
+        "input": "121221020*10110010110",
+        "measurement": [
+          {
+            "event": 17806,
+            "execution": 0.228457583,
+            "initialization": 0.001864167,
+            "statistic": {
+              "bucket": 4,
+              "normalization": 1,
+              "preparation": 206426,
+              "refinement": 3728,
+              "resolution": 291,
+              "reuse": 42792
+            },
+            "work": 43575
+          },
+          {
+            "event": 17806,
+            "execution": 0.223628083,
+            "initialization": 0.00170975,
+            "statistic": {
+              "bucket": 4,
+              "normalization": 1,
+              "preparation": 206426,
+              "refinement": 3728,
+              "resolution": 291,
+              "reuse": 42792
+            },
+            "work": 43575
+          },
+          {
+            "event": 17806,
+            "execution": 0.224419959,
+            "initialization": 0.00169825,
+            "statistic": {
+              "bucket": 4,
+              "normalization": 1,
+              "preparation": 206426,
+              "refinement": 3728,
+              "resolution": 291,
+              "reuse": 42792
+            },
+            "work": 43575
+          },
+          {
+            "event": 17806,
+            "execution": 0.224022291,
+            "initialization": 0.001658708,
+            "statistic": {
+              "bucket": 4,
+              "normalization": 1,
+              "preparation": 206426,
+              "refinement": 3728,
+              "resolution": 291,
+              "reuse": 42792
+            },
+            "work": 43575
+          },
+          {
+            "event": 17806,
+            "execution": 0.225017458,
+            "initialization": 0.001688708,
+            "statistic": {
+              "bucket": 4,
+              "normalization": 1,
+              "preparation": 206426,
+              "refinement": 3728,
+              "resolution": 291,
+              "reuse": 42792
+            },
+            "work": 43575
+          },
+          {
+            "event": 17806,
+            "execution": 0.225733833,
+            "initialization": 0.001626125,
+            "statistic": {
+              "bucket": 4,
+              "normalization": 1,
+              "preparation": 206426,
+              "refinement": 3728,
+              "resolution": 291,
+              "reuse": 42792
+            },
+            "work": 43575
+          },
+          {
+            "event": 17806,
+            "execution": 0.224723125,
+            "initialization": 0.001589708,
+            "statistic": {
+              "bucket": 4,
+              "normalization": 1,
+              "preparation": 206426,
+              "refinement": 3728,
+              "resolution": 291,
+              "reuse": 42792
+            },
+            "work": 43575
+          }
+        ],
+        "source": "Push.([Digit] 0).Zero, Stage.1\n[Built,Stage.1] (Push.([Digit] 1)) (Forget.Stage.2)\n[Clean.Stage.2] Stage.2\n[Built,Stage.2] (Push.([Digit] 1)) (Forget.Stage.3)\n[Clean.Stage.3] Stage.3\n[Built,Stage.3] (Push.([Digit] 0)) (Forget.Stage.4)\n[Clean.Stage.4] Stage.4\n[Built,Stage.4] (Push.([Digit] 1)) (Forget.Stage.5)\n[Clean.Stage.5] Stage.5\n[Built,Stage.5] (Push.([Digit] 0)) (Forget.Stage.6)\n[Clean.Stage.6] Stage.6\n[Built,Stage.6] (Push.([Digit] 0)) (Forget.Stage.7)\n[Clean.Stage.7] Stage.7\n[Built,Stage.7] (Push.([Digit] 1)) (Forget.Stage.8)\n[Clean.Stage.8] Stage.8\n[Built,Stage.8] (Push.([Digit] 1)) (Forget.Stage.9)\n[Clean.Stage.9] Stage.9\n[Built,Stage.9] (Push.([Digit] 0)) (Forget.Stage.10)\n[Clean.Stage.10] Stage.10\n[Built,Stage.10] (Push.([Digit] 1)) (Forget.Stage.11)\n[Clean.Stage.11] Stage.11\n[Built,Stage.11] (Push.Multiply) (Forget.Stage.12)\n[Clean.Stage.12] Stage.12\n[Built,Stage.12] (Push.([Digit] 0)) (Forget.Stage.13)\n[Clean.Stage.13] Stage.13\n[Built,Stage.13] (Push.([Digit] 2)) (Forget.Stage.14)\n[Clean.Stage.14] Stage.14\n[Built,Stage.14] (Push.([Digit] 0)) (Forget.Stage.15)\n[Clean.Stage.15] Stage.15\n[Built,Stage.15] (Push.([Digit] 1)) (Forget.Stage.16)\n[Clean.Stage.16] Stage.16\n[Built,Stage.16] (Push.([Digit] 2)) (Forget.Stage.17)\n[Clean.Stage.17] Stage.17\n[Built,Stage.17] (Push.([Digit] 2)) (Forget.Stage.18)\n[Clean.Stage.18] Stage.18\n[Built,Stage.18] (Push.([Digit] 1)) (Forget.Stage.19)\n[Clean.Stage.19] Stage.19\n[Built,Stage.19] (Push.([Digit] 2)) (Forget.Stage.20)\n[Clean.Stage.20] Stage.20\n[Built,Stage.20] (Push.([Digit] 1)) (Forget.Stage.21)\n[Clean.Stage.21] Stage.21\n[Built,Stage.21] (Function.Expression) (Forget.Inspect.0)\n[Clean.Inspect.0] Inspect.0\n[Return.Expression.Number.Positive,Inspect.0] (Read) (Forget.Inspect.1)\n[Clean.Inspect.1] Inspect.1\n[Yield.([Digit] 0),Inspect.1] (Read) (Forget.Inspect.2)\n[Clean.Inspect.2] Inspect.2\n[Yield.([Digit] 0),Inspect.2] (Read) (Forget.Inspect.3)\n[Clean.Inspect.3] Inspect.3\n[Yield.([Digit] 2),Inspect.3] (Read) (Forget.Inspect.4)\n[Clean.Inspect.4] Inspect.4\n[Yield.([Digit] 2),Inspect.4] (Read) (Forget.Inspect.5)\n[Clean.Inspect.5] Inspect.5\n[Yield.([Digit] 1),Inspect.5] (Read) (Forget.Inspect.6)\n[Clean.Inspect.6] Inspect.6\n[Yield.([Digit] 2),Inspect.6] (Read) (Forget.Inspect.7)\n[Clean.Inspect.7] Inspect.7\n[Yield.([Digit] 2),Inspect.7] (Read) (Forget.Inspect.8)\n[Clean.Inspect.8] Inspect.8\n[Yield.([Digit] 2),Inspect.8] (Read) (Forget.Inspect.9)\n[Clean.Inspect.9] Inspect.9\n[Yield.([Digit] 2),Inspect.9] (Read) (Forget.Inspect.10)\n[Clean.Inspect.10] Inspect.10\n[Yield.([Digit] 0),Inspect.10] (Read) (Forget.Inspect.11)\n[Clean.Inspect.11] Inspect.11\n[Yield.([Digit] 0),Inspect.11] (Read) (Forget.Inspect.12)\n[Clean.Inspect.12] Inspect.12\n[Yield.([Digit] 0),Inspect.12] (Read) (Forget.Inspect.13)\n[Clean.Inspect.13] Inspect.13\n[Yield.([Digit] 2),Inspect.13] (Read) (Forget.Inspect.14)\n[Clean.Inspect.14] Inspect.14\n[Yield.([Digit] 0),Inspect.14] (Read) (Forget.Inspect.15)\n[Clean.Inspect.15] Inspect.15\n[Yield.([Digit] 1),Inspect.15] (Read) (Forget.Inspect.16)\n[Clean.Inspect.16] Inspect.16\n[Yield.([Digit] 1),Inspect.16] (Read) (Forget.Inspect.17)\n[Clean.Inspect.17] Inspect.17\n[Yield.([Digit] 1),Inspect.17] (Read) (Forget.Inspect.18)\n[Clean.Inspect.18] Inspect.18\n[Yield.([Digit] 0),Inspect.18] (Read) (Forget.Inspect.19)\n[Clean.Inspect.19] Inspect.19\n[Yield.([Digit] 2).Zero,Inspect.19] Done.Zero\n",
+        "ternary": "2011102000222212200"
+      }
+    },
+    {
+      "name": "storage-16",
+      "target": "//benchmark:storage",
+      "argument": [
+        "--width",
+        "16",
+        "--length",
+        "1000",
+        "--sample",
+        "9"
+      ],
+      "after": {
+        "length": 1000,
+        "measurement": [
+          {
+            "event": 1000,
+            "execution": 0.001258334,
+            "initialization": 0.000625583,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1000,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.0012455,
+            "initialization": 0.000616042,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1000,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.001175292,
+            "initialization": 0.000564792,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1000,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.0012775,
+            "initialization": 0.000579167,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1000,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.001291708,
+            "initialization": 0.000591167,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1000,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.001247875,
+            "initialization": 0.000589584,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1000,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.001239125,
+            "initialization": 0.000604291,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1000,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.001264791,
+            "initialization": 0.00058375,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1000,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.001261042,
+            "initialization": 0.000590375,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1000,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 2006
+          }
+        ],
+        "rule": false,
+        "width": 16
+      },
+      "before": {
+        "length": 1000,
+        "measurement": [
+          {
+            "event": 1000,
+            "execution": 0.001153542,
+            "initialization": 0.000607417,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1000,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.001124709,
+            "initialization": 0.000602125,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1000,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.001069333,
+            "initialization": 0.000630709,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1000,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.001088208,
+            "initialization": 0.00056975,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1000,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.001115792,
+            "initialization": 0.000605291,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1000,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.001135583,
+            "initialization": 0.000621375,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1000,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.001133083,
+            "initialization": 0.000603375,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1000,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.001074,
+            "initialization": 0.000625375,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1000,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.001072084,
+            "initialization": 0.000556166,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1000,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 2006
+          }
+        ],
+        "rule": false,
+        "width": 16
+      }
+    },
+    {
+      "name": "storage-10000",
+      "target": "//benchmark:storage",
+      "argument": [
+        "--width",
+        "10000",
+        "--length",
+        "1000",
+        "--sample",
+        "7"
+      ],
+      "before": {
+        "length": 1000,
+        "measurement": [
+          {
+            "event": 1000,
+            "execution": 0.016163083,
+            "initialization": 0.009535292,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1000,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.016185375,
+            "initialization": 0.009356166,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1000,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.016567708,
+            "initialization": 0.009461042,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1000,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.016522875,
+            "initialization": 0.0095725,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1000,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.016805792,
+            "initialization": 0.009453291,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1000,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.0162085,
+            "initialization": 0.009232416,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1000,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.016478958,
+            "initialization": 0.009499958,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1000,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 2006
+          }
+        ],
+        "rule": false,
+        "width": 10000
+      },
+      "after": {
+        "length": 1000,
+        "measurement": [
+          {
+            "event": 1000,
+            "execution": 0.016651708,
+            "initialization": 0.009823417,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1000,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.016798791,
+            "initialization": 0.009708709,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1000,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.016424334,
+            "initialization": 0.009683666,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1000,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.01677675,
+            "initialization": 0.009620042,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1000,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.016298125,
+            "initialization": 0.009543958,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1000,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.016387958,
+            "initialization": 0.009509292,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1000,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.016241833,
+            "initialization": 0.009921625,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1000,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 2006
+          }
+        ],
+        "rule": false,
+        "width": 10000
+      }
+    },
+    {
+      "name": "dispatch-512",
+      "target": "//benchmark:storage",
+      "argument": [
+        "--width",
+        "512",
+        "--length",
+        "1000",
+        "--rule",
+        "--sample",
+        "7"
+      ],
+      "after": {
+        "length": 1000,
+        "measurement": [
+          {
+            "event": 1000,
+            "execution": 0.002434916,
+            "initialization": 0.001604958,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1512,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 512000
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.002478459,
+            "initialization": 0.00156875,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1512,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 512000
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.002607416,
+            "initialization": 0.001602792,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1512,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 512000
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.002470208,
+            "initialization": 0.001574125,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1512,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 512000
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.002605625,
+            "initialization": 0.001672875,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1512,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 512000
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.002612375,
+            "initialization": 0.001674708,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1512,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 512000
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.002548208,
+            "initialization": 0.001671167,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1512,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 512000
+            },
+            "work": 2006
+          }
+        ],
+        "rule": true,
+        "width": 512
+      },
+      "before": {
+        "length": 1000,
+        "measurement": [
+          {
+            "event": 1000,
+            "execution": 0.016797625,
+            "initialization": 0.001705458,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1512,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 512000
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.01669275,
+            "initialization": 0.001703958,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1512,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 512000
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.016531375,
+            "initialization": 0.001682292,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1512,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 512000
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.017015,
+            "initialization": 0.001717084,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1512,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 512000
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.016612833,
+            "initialization": 0.001727917,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1512,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 512000
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.016489292,
+            "initialization": 0.001696292,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1512,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 512000
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.016419959,
+            "initialization": 0.001685292,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1512,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 512000
+            },
+            "work": 2006
+          }
+        ],
+        "rule": true,
+        "width": 512
+      }
+    },
+    {
+      "name": "dispatch-4096",
+      "target": "//benchmark:storage",
+      "argument": [
+        "--width",
+        "4096",
+        "--length",
+        "1000",
+        "--rule",
+        "--sample",
+        "7"
+      ],
+      "before": {
+        "length": 1000,
+        "measurement": [
+          {
+            "event": 1000,
+            "execution": 0.128827667,
+            "initialization": 0.010467,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 5096,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 4096000
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.124408959,
+            "initialization": 0.010916959,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 5096,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 4096000
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.127508708,
+            "initialization": 0.010571375,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 5096,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 4096000
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.12850975,
+            "initialization": 0.011046584,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 5096,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 4096000
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.125104417,
+            "initialization": 0.011061916,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 5096,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 4096000
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.126626,
+            "initialization": 0.010481708,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 5096,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 4096000
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.125825792,
+            "initialization": 0.010544666,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 5096,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 4096000
+            },
+            "work": 2006
+          }
+        ],
+        "rule": true,
+        "width": 4096
+      },
+      "after": {
+        "length": 1000,
+        "measurement": [
+          {
+            "event": 1000,
+            "execution": 0.008015416,
+            "initialization": 0.01072525,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 5096,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 4096000
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.008230625,
+            "initialization": 0.010761542,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 5096,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 4096000
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.007867167,
+            "initialization": 0.010461291,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 5096,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 4096000
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.008028375,
+            "initialization": 0.010635583,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 5096,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 4096000
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.007946333,
+            "initialization": 0.010652416,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 5096,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 4096000
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.00804175,
+            "initialization": 0.010938334,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 5096,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 4096000
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.0077775,
+            "initialization": 0.01067275,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 5096,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 4096000
+            },
+            "work": 2006
+          }
+        ],
+        "rule": true,
+        "width": 4096
+      }
+    },
+    {
+      "name": "replay-1024",
+      "target": "//benchmark:replay",
+      "argument": [
+        "--width",
+        "1024",
+        "--length",
+        "1000",
+        "--sample",
+        "7"
+      ],
+      "after": {
+        "length": 1000,
+        "measurement": [
+          {
+            "event": 1000,
+            "execution": 0.00189625,
+            "initialization": 0.000949875,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 1000
+            },
+            "work": 3006
+          },
+          {
+            "event": 1000,
+            "execution": 0.001763958,
+            "initialization": 0.000895,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 1000
+            },
+            "work": 3006
+          },
+          {
+            "event": 1000,
+            "execution": 0.001886875,
+            "initialization": 0.000952083,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 1000
+            },
+            "work": 3006
+          },
+          {
+            "event": 1000,
+            "execution": 0.001928042,
+            "initialization": 0.000955542,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 1000
+            },
+            "work": 3006
+          },
+          {
+            "event": 1000,
+            "execution": 0.001924959,
+            "initialization": 0.000990542,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 1000
+            },
+            "work": 3006
+          },
+          {
+            "event": 1000,
+            "execution": 0.001874208,
+            "initialization": 0.0009435,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 1000
+            },
+            "work": 3006
+          },
+          {
+            "event": 1000,
+            "execution": 0.001868334,
+            "initialization": 0.0009335,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 1000
+            },
+            "work": 3006
+          }
+        ],
+        "width": 1024
+      },
+      "before": {
+        "length": 1000,
+        "measurement": [
+          {
+            "event": 1000,
+            "execution": 0.010075416,
+            "initialization": 0.001021167,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 1000
+            },
+            "work": 3006
+          },
+          {
+            "event": 1000,
+            "execution": 0.010339875,
+            "initialization": 0.001069916,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 1000
+            },
+            "work": 3006
+          },
+          {
+            "event": 1000,
+            "execution": 0.010473333,
+            "initialization": 0.001056458,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 1000
+            },
+            "work": 3006
+          },
+          {
+            "event": 1000,
+            "execution": 0.010155166,
+            "initialization": 0.001030792,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 1000
+            },
+            "work": 3006
+          },
+          {
+            "event": 1000,
+            "execution": 0.010397083,
+            "initialization": 0.001035583,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 1000
+            },
+            "work": 3006
+          },
+          {
+            "event": 1000,
+            "execution": 0.010212167,
+            "initialization": 0.001035583,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 1000
+            },
+            "work": 3006
+          },
+          {
+            "event": 1000,
+            "execution": 0.010093875,
+            "initialization": 0.000972125,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 1000
+            },
+            "work": 3006
+          }
+        ],
+        "width": 1024
+      }
+    },
+    {
+      "name": "replay-4096",
+      "target": "//benchmark:replay",
+      "argument": [
+        "--width",
+        "4096",
+        "--length",
+        "1000",
+        "--sample",
+        "7"
+      ],
+      "before": {
+        "length": 1000,
+        "measurement": [
+          {
+            "event": 1000,
+            "execution": 0.062785917,
+            "initialization": 0.002412958,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 1000
+            },
+            "work": 3006
+          },
+          {
+            "event": 1000,
+            "execution": 0.06266675,
+            "initialization": 0.002354417,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 1000
+            },
+            "work": 3006
+          },
+          {
+            "event": 1000,
+            "execution": 0.06184325,
+            "initialization": 0.002257666,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 1000
+            },
+            "work": 3006
+          },
+          {
+            "event": 1000,
+            "execution": 0.061286,
+            "initialization": 0.0023485,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 1000
+            },
+            "work": 3006
+          },
+          {
+            "event": 1000,
+            "execution": 0.062098667,
+            "initialization": 0.002253541,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 1000
+            },
+            "work": 3006
+          },
+          {
+            "event": 1000,
+            "execution": 0.061549917,
+            "initialization": 0.002314875,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 1000
+            },
+            "work": 3006
+          },
+          {
+            "event": 1000,
+            "execution": 0.062090209,
+            "initialization": 0.002294042,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 1000
+            },
+            "work": 3006
+          }
+        ],
+        "width": 4096
+      },
+      "after": {
+        "length": 1000,
+        "measurement": [
+          {
+            "event": 1000,
+            "execution": 0.003884709,
+            "initialization": 0.002136,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 1000
+            },
+            "work": 3006
+          },
+          {
+            "event": 1000,
+            "execution": 0.003922375,
+            "initialization": 0.002187708,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 1000
+            },
+            "work": 3006
+          },
+          {
+            "event": 1000,
+            "execution": 0.003907125,
+            "initialization": 0.002110917,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 1000
+            },
+            "work": 3006
+          },
+          {
+            "event": 1000,
+            "execution": 0.003869042,
+            "initialization": 0.002218,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 1000
+            },
+            "work": 3006
+          },
+          {
+            "event": 1000,
+            "execution": 0.003915542,
+            "initialization": 0.002489666,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 1000
+            },
+            "work": 3006
+          },
+          {
+            "event": 1000,
+            "execution": 0.004023833,
+            "initialization": 0.00221925,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 1000
+            },
+            "work": 3006
+          },
+          {
+            "event": 1000,
+            "execution": 0.00393225,
+            "initialization": 0.002204833,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 1000
+            },
+            "work": 3006
+          }
+        ],
+        "width": 4096
+      }
+    },
+    {
+      "name": "posting",
+      "target": "//benchmark:posting",
+      "argument": [],
+      "after": [
+        {
+          "width": 128,
+          "term": 1,
+          "candidate": 128,
+          "initialization": 6.5875e-05,
+          "repetition": 10,
+          "sample": [
+            3.416e-07,
+            3.375e-07,
+            3.375e-07,
+            3.375e-07,
+            3.375e-07,
+            3.334e-07,
+            3.334e-07
+          ]
+        },
+        {
+          "width": 128,
+          "term": 2,
+          "candidate": 64,
+          "initialization": 6.5875e-05,
+          "repetition": 10,
+          "sample": [
+            6.041000000000001e-07,
+            5.792e-07,
+            5.833e-07,
+            5.792e-07,
+            5.916e-07,
+            5.792e-07,
+            5.875e-07
+          ]
+        },
+        {
+          "width": 1024,
+          "term": 1,
+          "candidate": 1024,
+          "initialization": 0.000229459,
+          "repetition": 10,
+          "sample": [
+            2.7625000000000002e-06,
+            2.7666e-06,
+            2.7583999999999997e-06,
+            2.7583999999999997e-06,
+            2.7667e-06,
+            2.7625000000000002e-06,
+            2.7667e-06
+          ]
+        },
+        {
+          "width": 1024,
+          "term": 2,
+          "candidate": 512,
+          "initialization": 0.000229459,
+          "repetition": 10,
+          "sample": [
+            5.2166999999999995e-06,
+            5.1709e-06,
+            5.125e-06,
+            4.8542e-06,
+            4.7959e-06,
+            4.825e-06,
+            5.075e-06
+          ]
+        },
+        {
+          "width": 16384,
+          "term": 1,
+          "candidate": 16384,
+          "initialization": 0.016059375,
+          "repetition": 10,
+          "sample": [
+            5.7291700000000006e-05,
+            5.75042e-05,
+            5.775e-05,
+            5.6891699999999996e-05,
+            5.695e-05,
+            5.6904199999999996e-05,
+            5.68417e-05
+          ]
+        },
+        {
+          "width": 16384,
+          "term": 2,
+          "candidate": 8192,
+          "initialization": 0.016059375,
+          "repetition": 10,
+          "sample": [
+            0.0001222458,
+            0.0001224083,
+            0.0001185583,
+            0.00011863749999999999,
+            0.00011859170000000001,
+            0.0001209209,
+            0.000121575
+          ]
+        }
+      ],
+      "before": [
+        {
+          "width": 128,
+          "term": 1,
+          "candidate": 128,
+          "initialization": 3.725e-05,
+          "repetition": 10,
+          "sample": [
+            9.290999999999999e-07,
+            9.124999999999999e-07,
+            9.124999999999999e-07,
+            9.083e-07,
+            9.167e-07,
+            9.124999999999999e-07,
+            9.167e-07
+          ]
+        },
+        {
+          "width": 128,
+          "term": 2,
+          "candidate": 64,
+          "initialization": 3.725e-05,
+          "repetition": 10,
+          "sample": [
+            6.375e-07,
+            6.292e-07,
+            6.25e-07,
+            6.292e-07,
+            6.25e-07,
+            6.291e-07,
+            6.292e-07
+          ]
+        },
+        {
+          "width": 1024,
+          "term": 1,
+          "candidate": 1024,
+          "initialization": 0.000222,
+          "repetition": 10,
+          "sample": [
+            4.64834e-05,
+            4.61292e-05,
+            4.92708e-05,
+            4.56708e-05,
+            4.47417e-05,
+            4.5225e-05,
+            4.57459e-05
+          ]
+        },
+        {
+          "width": 1024,
+          "term": 2,
+          "candidate": 512,
+          "initialization": 0.000222,
+          "repetition": 10,
+          "sample": [
+            3.24333e-05,
+            3.32416e-05,
+            3.36333e-05,
+            3.35167e-05,
+            3.31542e-05,
+            3.31875e-05,
+            3.3175e-05
+          ]
+        },
+        {
+          "width": 16384,
+          "term": 1,
+          "candidate": 16384,
+          "initialization": 0.016134916,
+          "repetition": 10,
+          "sample": [
+            0.0091177541,
+            0.0091012459,
+            0.009135758400000001,
+            0.0091355916,
+            0.0091283,
+            0.0091248458,
+            0.009116558299999999
+          ]
+        },
+        {
+          "width": 16384,
+          "term": 2,
+          "candidate": 8192,
+          "initialization": 0.016134916,
+          "repetition": 10,
+          "sample": [
+            0.006958320799999999,
+            0.0069717416,
+            0.006974620900000001,
+            0.0069833334,
+            0.0069407959,
+            0.0069467291,
+            0.006994475
+          ]
+        }
+      ]
+    },
+    {
+      "name": "runtime",
+      "target": "//benchmark:runtime",
+      "argument": [],
+      "before": [
+        {
+          "name": "Concrete And through two Boolean deductions",
+          "sample": 25,
+          "worker": 1,
+          "record": 610,
+          "peak": 611,
+          "work": 240,
+          "state": 14,
+          "event": 17,
+          "minimum": 125.66699999999999,
+          "median": 128.708,
+          "maximum": 168.209
+        },
+        {
+          "name": "Two inputs broadcast their leftovers",
+          "sample": 25,
+          "worker": 1,
+          "record": 129,
+          "peak": 130,
+          "work": 39,
+          "state": 3,
+          "event": 3,
+          "minimum": 22.833,
+          "median": 23.125,
+          "maximum": 25.041
+        },
+        {
+          "name": "One source supports a joint sibling match",
+          "sample": 25,
+          "worker": 1,
+          "record": 104,
+          "peak": 105,
+          "work": 35,
+          "state": 3,
+          "event": 3,
+          "minimum": 18.334,
+          "median": 18.583000000000002,
+          "maximum": 19.0
+        },
+        {
+          "name": "Competing histories cannot supply a joint match",
+          "sample": 25,
+          "worker": 1,
+          "record": 72,
+          "peak": 73,
+          "work": 20,
+          "state": 3,
+          "event": 2,
+          "minimum": 10.125,
+          "median": 10.25,
+          "maximum": 13.459
+        },
+        {
+          "name": "Explicit duplicate outputs remain distinct",
+          "sample": 25,
+          "worker": 1,
+          "record": 84,
+          "peak": 85,
+          "work": 45,
+          "state": 3,
+          "event": 3,
+          "minimum": 17.625,
+          "median": 17.875,
+          "maximum": 18.208
+        },
+        {
+          "name": "Evidence-only co-results are not source leftovers",
+          "sample": 25,
+          "worker": 1,
+          "record": 127,
+          "peak": 128,
+          "work": 33,
+          "state": 4,
+          "event": 3,
+          "minimum": 17.083,
+          "median": 17.334,
+          "maximum": 20.292
+        },
+        {
+          "name": "Independent branches compute independent equal results",
+          "sample": 25,
+          "worker": 1,
+          "record": 624,
+          "peak": 625,
+          "work": 310,
+          "state": 13,
+          "event": 21,
+          "minimum": 143.417,
+          "median": 144.75,
+          "maximum": 152.875
+        },
+        {
+          "name": "Arbitrarily nested body expressions",
+          "sample": 25,
+          "worker": 1,
+          "record": 338,
+          "peak": 339,
+          "work": 116,
+          "state": 9,
+          "event": 9,
+          "minimum": 64.542,
+          "median": 65.625,
+          "maximum": 68.459
+        },
+        {
+          "name": "A finite cycle shares its configurations",
+          "sample": 25,
+          "worker": 1,
+          "record": 69,
+          "peak": 69,
+          "work": 38,
+          "state": 2,
+          "event": 4,
+          "minimum": 16.125,
+          "median": 16.625,
+          "maximum": 35.5
+        },
+        {
+          "name": "Generated rule reads its concrete source",
+          "sample": 25,
+          "worker": 1,
+          "record": 130,
+          "peak": 131,
+          "work": 46,
+          "state": 4,
+          "event": 4,
+          "minimum": 23.875,
+          "median": 24.083,
+          "maximum": 24.333
+        },
+        {
+          "name": "One source supplies rule and operand",
+          "sample": 25,
+          "worker": 1,
+          "record": 108,
+          "peak": 109,
+          "work": 33,
+          "state": 4,
+          "event": 3,
+          "minimum": 17.75,
+          "median": 18.165999999999997,
+          "maximum": 20.166999999999998
+        },
+        {
+          "name": "Competing code and data cannot interact",
+          "sample": 25,
+          "worker": 1,
+          "record": 73,
+          "peak": 74,
+          "work": 20,
+          "state": 3,
+          "event": 2,
+          "minimum": 10.332999999999998,
+          "median": 10.541,
+          "maximum": 15.832999999999998
+        },
+        {
+          "name": "A meta rule replaces a whole rule value",
+          "sample": 25,
+          "worker": 1,
+          "record": 201,
+          "peak": 202,
+          "work": 72,
+          "state": 6,
+          "event": 6,
+          "minimum": 35.75,
+          "median": 36.042,
+          "maximum": 36.334
+        },
+        {
+          "name": "Rule activation respects coherence locality",
+          "sample": 25,
+          "worker": 1,
+          "record": 76,
+          "peak": 86,
+          "work": 20,
+          "state": 2,
+          "event": 1,
+          "minimum": 9.959000000000001,
+          "median": 10.208,
+          "maximum": 10.291
+        },
+        {
+          "name": "A generated rule enables decoherence",
+          "sample": 25,
+          "worker": 1,
+          "record": 206,
+          "peak": 207,
+          "work": 56,
+          "state": 5,
+          "event": 5,
+          "minimum": 35.459,
+          "median": 35.875,
+          "maximum": 36.792
+        },
+        {
+          "name": "A whole rule acquires an abstraction",
+          "sample": 25,
+          "worker": 1,
+          "record": 239,
+          "peak": 240,
+          "work": 86,
+          "state": 8,
+          "event": 8,
+          "minimum": 45.375,
+          "median": 45.791999999999994,
+          "maximum": 58.208000000000006
+        },
+        {
+          "name": "A generated rule opens a nested body",
+          "sample": 25,
+          "worker": 1,
+          "record": 236,
+          "peak": 237,
+          "work": 91,
+          "state": 6,
+          "event": 7,
+          "minimum": 46.041999999999994,
+          "median": 46.958,
+          "maximum": 63.583000000000006
+        },
+        {
+          "name": "An escaped rule retains its local definition",
+          "sample": 25,
+          "worker": 1,
+          "record": 1517,
+          "peak": 1518,
+          "work": 666,
+          "state": 29,
+          "event": 43,
+          "minimum": 343.792,
+          "median": 366.791,
+          "maximum": 398.75
+        },
+        {
+          "name": "Consuming code later does not erase earlier results",
+          "sample": 25,
+          "worker": 1,
+          "record": 125,
+          "peak": 126,
+          "work": 38,
+          "state": 4,
+          "event": 3,
+          "minimum": 19.667,
+          "median": 19.875,
+          "maximum": 20.166
+        }
+      ],
+      "after": [
+        {
+          "name": "Concrete And through two Boolean deductions",
+          "sample": 25,
+          "worker": 1,
+          "record": 610,
+          "peak": 611,
+          "work": 240,
+          "state": 14,
+          "event": 17,
+          "minimum": 125.75,
+          "median": 126.95800000000001,
+          "maximum": 132.667
+        },
+        {
+          "name": "Two inputs broadcast their leftovers",
+          "sample": 25,
+          "worker": 1,
+          "record": 129,
+          "peak": 130,
+          "work": 39,
+          "state": 3,
+          "event": 3,
+          "minimum": 23.375,
+          "median": 23.791,
+          "maximum": 24.25
+        },
+        {
+          "name": "One source supports a joint sibling match",
+          "sample": 25,
+          "worker": 1,
+          "record": 104,
+          "peak": 105,
+          "work": 35,
+          "state": 3,
+          "event": 3,
+          "minimum": 18.458,
+          "median": 18.708000000000002,
+          "maximum": 20.791
+        },
+        {
+          "name": "Competing histories cannot supply a joint match",
+          "sample": 25,
+          "worker": 1,
+          "record": 72,
+          "peak": 73,
+          "work": 20,
+          "state": 3,
+          "event": 2,
+          "minimum": 10.332999999999998,
+          "median": 10.5,
+          "maximum": 10.625
+        },
+        {
+          "name": "Explicit duplicate outputs remain distinct",
+          "sample": 25,
+          "worker": 1,
+          "record": 84,
+          "peak": 85,
+          "work": 45,
+          "state": 3,
+          "event": 3,
+          "minimum": 19.083,
+          "median": 19.667,
+          "maximum": 20.25
+        },
+        {
+          "name": "Evidence-only co-results are not source leftovers",
+          "sample": 25,
+          "worker": 1,
+          "record": 127,
+          "peak": 128,
+          "work": 33,
+          "state": 4,
+          "event": 3,
+          "minimum": 17.541999999999998,
+          "median": 17.875,
+          "maximum": 32.209
+        },
+        {
+          "name": "Independent branches compute independent equal results",
+          "sample": 25,
+          "worker": 1,
+          "record": 624,
+          "peak": 625,
+          "work": 310,
+          "state": 13,
+          "event": 21,
+          "minimum": 137.5,
+          "median": 146.541,
+          "maximum": 158.375
+        },
+        {
+          "name": "Arbitrarily nested body expressions",
+          "sample": 25,
+          "worker": 1,
+          "record": 338,
+          "peak": 339,
+          "work": 116,
+          "state": 9,
+          "event": 9,
+          "minimum": 64.791,
+          "median": 65.625,
+          "maximum": 73.08399999999999
+        },
+        {
+          "name": "A finite cycle shares its configurations",
+          "sample": 25,
+          "worker": 1,
+          "record": 69,
+          "peak": 69,
+          "work": 38,
+          "state": 2,
+          "event": 4,
+          "minimum": 16.916,
+          "median": 17.125,
+          "maximum": 19.791999999999998
+        },
+        {
+          "name": "Generated rule reads its concrete source",
+          "sample": 25,
+          "worker": 1,
+          "record": 130,
+          "peak": 131,
+          "work": 46,
+          "state": 4,
+          "event": 4,
+          "minimum": 24.166,
+          "median": 24.542,
+          "maximum": 25.5
+        },
+        {
+          "name": "One source supplies rule and operand",
+          "sample": 25,
+          "worker": 1,
+          "record": 108,
+          "peak": 109,
+          "work": 33,
+          "state": 4,
+          "event": 3,
+          "minimum": 18.333,
+          "median": 18.541999999999998,
+          "maximum": 19.375
+        },
+        {
+          "name": "Competing code and data cannot interact",
+          "sample": 25,
+          "worker": 1,
+          "record": 73,
+          "peak": 74,
+          "work": 20,
+          "state": 3,
+          "event": 2,
+          "minimum": 10.542,
+          "median": 10.75,
+          "maximum": 10.959
+        },
+        {
+          "name": "A meta rule replaces a whole rule value",
+          "sample": 25,
+          "worker": 1,
+          "record": 201,
+          "peak": 202,
+          "work": 72,
+          "state": 6,
+          "event": 6,
+          "minimum": 36.708,
+          "median": 37.416999999999994,
+          "maximum": 45.041
+        },
+        {
+          "name": "Rule activation respects coherence locality",
+          "sample": 25,
+          "worker": 1,
+          "record": 76,
+          "peak": 86,
+          "work": 20,
+          "state": 2,
+          "event": 1,
+          "minimum": 10.0,
+          "median": 10.125,
+          "maximum": 10.417
+        },
+        {
+          "name": "A generated rule enables decoherence",
+          "sample": 25,
+          "worker": 1,
+          "record": 206,
+          "peak": 207,
+          "work": 56,
+          "state": 5,
+          "event": 5,
+          "minimum": 36.125,
+          "median": 36.416,
+          "maximum": 37.209
+        },
+        {
+          "name": "A whole rule acquires an abstraction",
+          "sample": 25,
+          "worker": 1,
+          "record": 239,
+          "peak": 240,
+          "work": 86,
+          "state": 8,
+          "event": 8,
+          "minimum": 45.666,
+          "median": 46.083,
+          "maximum": 86.083
+        },
+        {
+          "name": "A generated rule opens a nested body",
+          "sample": 25,
+          "worker": 1,
+          "record": 236,
+          "peak": 237,
+          "work": 91,
+          "state": 6,
+          "event": 7,
+          "minimum": 44.792,
+          "median": 45.125,
+          "maximum": 45.75
+        },
+        {
+          "name": "An escaped rule retains its local definition",
+          "sample": 25,
+          "worker": 1,
+          "record": 1517,
+          "peak": 1518,
+          "work": 666,
+          "state": 29,
+          "event": 43,
+          "minimum": 348.167,
+          "median": 369.959,
+          "maximum": 394.875
+        },
+        {
+          "name": "Consuming code later does not erase earlier results",
+          "sample": 25,
+          "worker": 1,
+          "record": 125,
+          "peak": 126,
+          "work": 38,
+          "state": 4,
+          "event": 3,
+          "minimum": 18.625,
+          "median": 18.958000000000002,
+          "maximum": 19.833000000000002
+        }
+      ]
+    },
+    {
+      "name": "expression-10",
+      "target": "//benchmark:expression",
+      "argument": [
+        "2*2*2*2*2*2*2*2*2*2",
+        "1101221",
+        "--sample",
+        "5"
+      ],
+      "after": {
+        "expected": "1101221",
+        "input": "2*2*2*2*2*2*2*2*2*2",
+        "measurement": [
+          {
+            "event": 22924,
+            "execution": 0.201212542,
+            "initialization": 0.001742917,
+            "statistic": {
+              "bucket": 2,
+              "normalization": 1,
+              "preparation": 240763,
+              "refinement": 417,
+              "resolution": 1,
+              "reuse": 46496
+            },
+            "work": 56090
+          },
+          {
+            "event": 22924,
+            "execution": 0.201781375,
+            "initialization": 0.001664333,
+            "statistic": {
+              "bucket": 2,
+              "normalization": 1,
+              "preparation": 240763,
+              "refinement": 417,
+              "resolution": 1,
+              "reuse": 46496
+            },
+            "work": 56090
+          },
+          {
+            "event": 22924,
+            "execution": 0.199299208,
+            "initialization": 0.001657167,
+            "statistic": {
+              "bucket": 2,
+              "normalization": 1,
+              "preparation": 240763,
+              "refinement": 417,
+              "resolution": 1,
+              "reuse": 46496
+            },
+            "work": 56090
+          },
+          {
+            "event": 22924,
+            "execution": 0.198641209,
+            "initialization": 0.001619667,
+            "statistic": {
+              "bucket": 2,
+              "normalization": 1,
+              "preparation": 240763,
+              "refinement": 417,
+              "resolution": 1,
+              "reuse": 46496
+            },
+            "work": 56090
+          },
+          {
+            "event": 22924,
+            "execution": 0.199288834,
+            "initialization": 0.001677958,
+            "statistic": {
+              "bucket": 2,
+              "normalization": 1,
+              "preparation": 240763,
+              "refinement": 417,
+              "resolution": 1,
+              "reuse": 46496
+            },
+            "work": 56090
+          }
+        ]
+      },
+      "before": {
+        "expected": "1101221",
+        "input": "2*2*2*2*2*2*2*2*2*2",
+        "measurement": [
+          {
+            "event": 22924,
+            "execution": 0.188262166,
+            "initialization": 0.001813416,
+            "statistic": {
+              "bucket": 2,
+              "normalization": 1,
+              "preparation": 240763,
+              "refinement": 417,
+              "resolution": 1,
+              "reuse": 46496
+            },
+            "work": 56090
+          },
+          {
+            "event": 22924,
+            "execution": 0.188872041,
+            "initialization": 0.001706917,
+            "statistic": {
+              "bucket": 2,
+              "normalization": 1,
+              "preparation": 240763,
+              "refinement": 417,
+              "resolution": 1,
+              "reuse": 46496
+            },
+            "work": 56090
+          },
+          {
+            "event": 22924,
+            "execution": 0.188449875,
+            "initialization": 0.001619542,
+            "statistic": {
+              "bucket": 2,
+              "normalization": 1,
+              "preparation": 240763,
+              "refinement": 417,
+              "resolution": 1,
+              "reuse": 46496
+            },
+            "work": 56090
+          },
+          {
+            "event": 22924,
+            "execution": 0.193504167,
+            "initialization": 0.001675708,
+            "statistic": {
+              "bucket": 2,
+              "normalization": 1,
+              "preparation": 240763,
+              "refinement": 417,
+              "resolution": 1,
+              "reuse": 46496
+            },
+            "work": 56090
+          },
+          {
+            "event": 22924,
+            "execution": 0.191399916,
+            "initialization": 0.001703375,
+            "statistic": {
+              "bucket": 2,
+              "normalization": 1,
+              "preparation": 240763,
+              "refinement": 417,
+              "resolution": 1,
+              "reuse": 46496
+            },
+            "work": 56090
+          }
+        ]
+      }
+    },
+    {
+      "name": "expression-30",
+      "target": "//benchmark:expression",
+      "argument": [
+        "2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2",
+        "2202211102201212201",
+        "--sample",
+        "3"
+      ],
+      "before": {
+        "expected": "2202211102201212201",
+        "input": "2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2",
+        "measurement": [
+          {
+            "event": 151476,
+            "execution": 3.119622458,
+            "initialization": 0.002162542,
+            "statistic": {
+              "bucket": 7,
+              "normalization": 1,
+              "preparation": 3499509,
+              "refinement": 30092,
+              "resolution": 961,
+              "reuse": 757812
+            },
+            "work": 368584
+          },
+          {
+            "event": 151476,
+            "execution": 3.097255209,
+            "initialization": 0.00221775,
+            "statistic": {
+              "bucket": 7,
+              "normalization": 1,
+              "preparation": 3499509,
+              "refinement": 30092,
+              "resolution": 961,
+              "reuse": 757812
+            },
+            "work": 368584
+          },
+          {
+            "event": 151476,
+            "execution": 3.102676375,
+            "initialization": 0.002259208,
+            "statistic": {
+              "bucket": 7,
+              "normalization": 1,
+              "preparation": 3499509,
+              "refinement": 30092,
+              "resolution": 961,
+              "reuse": 757812
+            },
+            "work": 368584
+          }
+        ]
+      },
+      "after": {
+        "expected": "2202211102201212201",
+        "input": "2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2",
+        "measurement": [
+          {
+            "event": 151476,
+            "execution": 3.326183125,
+            "initialization": 0.002207791,
+            "statistic": {
+              "bucket": 7,
+              "normalization": 1,
+              "preparation": 3499509,
+              "refinement": 30092,
+              "resolution": 961,
+              "reuse": 757812
+            },
+            "work": 368584
+          },
+          {
+            "event": 151476,
+            "execution": 3.383785875,
+            "initialization": 0.002499167,
+            "statistic": {
+              "bucket": 7,
+              "normalization": 1,
+              "preparation": 3499509,
+              "refinement": 30092,
+              "resolution": 961,
+              "reuse": 757812
+            },
+            "work": 368584
+          },
+          {
+            "event": 151476,
+            "execution": 3.285494792,
+            "initialization": 0.002141916,
+            "statistic": {
+              "bucket": 7,
+              "normalization": 1,
+              "preparation": 3499509,
+              "refinement": 30092,
+              "resolution": 961,
+              "reuse": 757812
+            },
+            "work": 368584
+          }
+        ]
+      }
+    }
+  ]
+}

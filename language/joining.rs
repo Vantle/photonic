@@ -12,6 +12,7 @@ struct Member {
 }
 
 pub(crate) struct Join {
+    frame: usize,
     pattern: Arc<Vec<Vec<Term>>>,
     domain: SmallVec<[Vec<Member>; 2]>,
     order: SmallVec<[usize; 2]>,
@@ -41,6 +42,7 @@ impl Join {
             .collect();
         let width = pattern.len();
         let mut join = Self {
+            frame,
             pattern,
             domain,
             order: (0..width).collect(),
@@ -60,12 +62,12 @@ impl Join {
         join
     }
 
-    pub fn advance(&mut self, index: &Index, frame: usize) {
+    pub fn advance(&mut self, index: &Index) {
         for (position, domain) in self.domain.iter_mut().enumerate() {
             domain.retain(|member| !index.removal.contains(&member.site));
             for &site in &index.insertion {
                 let world = &index.state.world[index.world(site)];
-                if world.frame != frame {
+                if world.frame != self.frame {
                     continue;
                 }
                 if self.pattern[position]
@@ -101,6 +103,10 @@ impl Join {
 
     pub fn viable(&self) -> bool {
         self.viable
+    }
+
+    pub fn frame(&self) -> usize {
+        self.frame
     }
 
     fn feasible(&self) -> bool {

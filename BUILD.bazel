@@ -30,6 +30,8 @@ hermetic_binary(
         "benchmark/arithmetic.rs",
         "benchmark/expression.rs",
         "benchmark/retention.rs",
+        "benchmark/replay.rs",
+        "benchmark/posting.rs",
         "benchmark/storage.rs",
         "library/test/suite.rs",
         "photonic/assemble.rs",

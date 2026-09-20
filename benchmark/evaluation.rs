@@ -2,7 +2,7 @@ use photonic::path::Search;
 use photonic::prism::Outcome;
 use photonic::runtime::Limit;
 use serde::Serialize;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 #[derive(Serialize)]
 pub struct Measurement {
@@ -40,5 +40,19 @@ pub fn evaluate(
         event: summary.event,
         work: summary.work,
         statistic,
+    }
+}
+
+pub fn warm(
+    program: &photonic::source::Program,
+    target: &photonic::source::Program,
+    limit: Option<Limit>,
+) {
+    let start = Instant::now();
+    loop {
+        evaluate(program.clone(), target.clone(), limit);
+        if start.elapsed() >= Duration::from_millis(100) {
+            return;
+        }
     }
 }

@@ -1,5 +1,5 @@
 use std::hint::black_box;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use clap::Parser;
 use photonic::executor::Executor;
@@ -51,6 +51,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     for case in fixture.into_iter().filter(|case| case.closed) {
         let result = evaluate(case.program.clone(), &executor);
         assert!(result.closed, "{} did not close", case.name);
+        let warm = Instant::now();
+        while warm.elapsed() < Duration::from_millis(100) {
+            assert!(evaluate(case.program.clone(), &executor).closed);
+        }
         let mut duration = Vec::new();
         for _ in 0..25 {
             let program = case.program.clone();

@@ -1,5 +1,7 @@
 # Persistent incremental evaluation
 
+The subsequent [optimization audit](optimization.md) records dependency-driven scheduling, bounded join replay, faster posting intersections, tighter module interfaces, and the remaining unimplemented recommendations.
+
 The native path evaluator maintains its matching network across rewrites. Rules with the same input share a compiled plan and a lazy matcher. A transition reports an explicit change, which updates world membership, affected matching domains, resource accounting, reachability, and fingerprints. Large state collections share persistent tree nodes with their historical versions.
 
 This is an in-process Rust implementation over Photonic's typed incidence graph. World membership, resource identity, frame relationships, captures, and rule read dependencies remain distinct relationships. Synchronization still requires a complete valid gate binding. Storage positions and traversal order are implementation details; they do not impose an execution order on Photonic.

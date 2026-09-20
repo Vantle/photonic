@@ -1,30 +1,29 @@
 use clap::Parser;
+use std::num::NonZeroUsize;
 
 mod evaluation;
 
 #[derive(Parser)]
 struct Argument {
-    #[arg(long, default_value_t = 200)]
-    width: usize,
+    #[arg(long, default_value = "1024")]
+    width: NonZeroUsize,
     #[arg(long, default_value_t = 1000)]
     length: usize,
-    #[arg(long, default_value_t = 5)]
-    sample: usize,
+    #[arg(long, default_value = "5")]
+    sample: NonZeroUsize,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let argument = Argument::parse();
-    let mut source = String::from("A,Stage.0\n");
-    for index in 0..argument.width {
-        source.push_str(&format!("[A,A] Never.{index}\n"));
-    }
+    let particle = vec!["A"; argument.width.get()].join(".");
+    let mut source = format!("X.{particle},Stage0\n[{particle}.A] Never\n");
     for index in 0..argument.length {
-        source.push_str(&format!("[Stage.{index}] Stage.{}\n", index + 1));
+        source.push_str(&format!("[Stage{index}] Stage{}\n", index + 1));
     }
     let program = photonic::lowering::parse(&source)?;
-    let target = photonic::lowering::parse(&format!("A,Stage.{}", argument.length))?;
+    let target = photonic::lowering::parse(&format!("X.{particle},Stage{}", argument.length))?;
     evaluation::warm(&program, &target, None);
-    let measurement = (0..argument.sample)
+    let measurement = (0..argument.sample.get())
         .map(|_| evaluation::evaluate(program.clone(), target.clone(), None))
         .collect::<Vec<_>>();
     serde_json::to_writer_pretty(

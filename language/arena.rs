@@ -1,4 +1,3 @@
-#[derive(Default)]
 pub(crate) struct Store<Value> {
     value: Vec<Option<Value>>,
     vacant: Vec<usize>,
@@ -28,6 +27,7 @@ impl<Value> Store<Value> {
         value
     }
 
+    #[cfg(test)]
     pub fn iter(&self) -> impl Iterator<Item = &Value> {
         self.value.iter().flatten()
     }

@@ -1,3 +1,5 @@
+pub mod query;
+
 use crate::canonical::Search;
 use crate::program::Symbol;
 use crate::state::{Frame, State, Token, World};

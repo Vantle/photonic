@@ -1,11 +1,14 @@
 use crate::program::Symbol;
 use crate::term::Term;
+use smallvec::SmallVec;
 use std::sync::Arc;
 
 pub(crate) struct Input {
     value: Vec<Vec<Symbol>>,
     pattern: Arc<Vec<Vec<Term>>>,
     capture: bool,
+    empty: bool,
+    dependency: SmallVec<[Symbol; 2]>,
 }
 
 impl Input {
@@ -15,14 +18,22 @@ impl Input {
         } else {
             pattern(value, None)
         });
-        let capture = value
+        let mut dependency = value
             .iter()
             .flatten()
+            .copied()
+            .collect::<SmallVec<[Symbol; 2]>>();
+        dependency.sort_unstable();
+        dependency.dedup();
+        let capture = dependency
+            .iter()
             .any(|symbol| matches!(symbol, Symbol::Rule(_)));
         Self {
             value: value.to_vec(),
             pattern,
             capture,
+            empty: value.is_empty() || value.iter().any(Vec::is_empty),
+            dependency,
         }
     }
 
@@ -38,15 +49,17 @@ impl Input {
     }
 
     pub fn empty(&self) -> bool {
-        self.value.is_empty() || self.value.iter().any(Vec::is_empty)
+        self.empty
     }
 
-    pub fn symbol(&self) -> impl Iterator<Item = Symbol> + '_ {
-        self.value.iter().flatten().copied()
+    pub fn dependency(&self) -> &[Symbol] {
+        &self.dependency
     }
 
     pub fn retained(&self) -> usize {
-        self.value.len() * 2 + self.value.iter().map(Vec::len).sum::<usize>() * 2
+        self.value.len() * 2
+            + self.value.iter().map(Vec::len).sum::<usize>() * 2
+            + self.dependency.len()
     }
 }
 

@@ -104,7 +104,7 @@ fn differential() {
             }
             state.world.push(world.into());
             index.advance(Arc::new(state.clone()), &crate::basis::Set::single(removed));
-            join.advance(&index, 0);
+            join.advance(&index);
         }
     }
 }

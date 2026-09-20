@@ -53,6 +53,31 @@ rust_binary(
 )
 
 rust_binary(
+    name = "posting",
+    srcs = ["posting.rs"],
+    crate_root = "posting.rs",
+    deps = [
+        "//language:measurement",
+        "@crate//:serde_json",
+    ],
+)
+
+rust_binary(
+    name = "replay",
+    srcs = [
+        "evaluation.rs",
+        "replay.rs",
+    ],
+    crate_root = "replay.rs",
+    deps = [
+        "//language:photonic",
+        "@crate//:clap",
+        "@crate//:serde",
+        "@crate//:serde_json",
+    ],
+)
+
+rust_binary(
     name = "storage",
     srcs = [
         "evaluation.rs",

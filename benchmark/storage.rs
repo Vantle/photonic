@@ -11,6 +11,8 @@ struct Argument {
     length: usize,
     #[arg(long, default_value_t = 5)]
     sample: usize,
+    #[arg(long)]
+    rule: bool,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -19,6 +21,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .map(|index| format!("Idle{index},"))
         .collect::<String>();
     let mut source = format!("{context}Stage0\n");
+    if argument.rule {
+        for index in 0..argument.width {
+            source.push_str(&format!("[Idle{index},Idle{index}] Never{index}\n"));
+        }
+    }
     for index in 0..argument.length {
         source.push_str(&format!("[Stage{index}] Stage{}\n", index + 1));
     }
@@ -32,14 +39,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         cell: argument.width + 1,
         frame: 1,
     };
-    evaluation::evaluate(program.clone(), target.clone(), Some(limit));
+    evaluation::warm(&program, &target, Some(limit));
     let measurement = (0..argument.sample)
         .map(|_| evaluation::evaluate(program.clone(), target.clone(), Some(limit)))
         .collect::<Vec<_>>();
     serde_json::to_writer_pretty(
         std::io::stdout().lock(),
         &serde_json::json!({
-            "width": argument.width, "length": argument.length, "measurement": measurement,
+            "width": argument.width, "length": argument.length, "rule": argument.rule,
+            "measurement": measurement,
         }),
     )?;
     Ok(())

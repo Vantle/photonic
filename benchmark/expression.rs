@@ -32,7 +32,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     program.initial = encoded.initial;
     program.rule.extend(encoded.rule);
     let target = photonic::lowering::parse("Done.Zero")?;
-    evaluation::evaluate(program.clone(), target.clone(), None);
+    evaluation::warm(&program, &target, None);
     let measurement = (0..argument.sample)
         .map(|_| evaluation::evaluate(program.clone(), target.clone(), None))
         .collect::<Vec<_>>();

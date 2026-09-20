@@ -1,5 +1,6 @@
 use crate::state::Token;
 use crate::term::Term;
+use smallvec::SmallVec;
 use std::task::Poll;
 
 struct Group {
@@ -38,7 +39,14 @@ pub(crate) struct Match {
 impl Match {
     pub(crate) fn new(pattern: &[Term], particle: &[Token]) -> Self {
         let mut group: Vec<Group> = Vec::new();
+        let mut known: SmallVec<[(&Term, usize); 4]> = SmallVec::new();
         for (position, term) in pattern.iter().enumerate() {
+            if let Some(&(_, index)) = known.iter().find(|&&(value, _)| value == term) {
+                let group = &mut group[index];
+                group.position.push(position);
+                group.selected.push(group.selected.len());
+                continue;
+            }
             let mut candidate = particle
                 .iter()
                 .filter(|token| term.matches(token))
@@ -46,10 +54,13 @@ impl Match {
                 .collect::<Vec<_>>();
             candidate.sort_unstable();
             candidate.dedup();
-            if let Some(group) = group.iter_mut().find(|group| group.candidate == candidate) {
+            if let Some(index) = group.iter().position(|group| group.candidate == candidate) {
+                known.push((term, index));
+                let group = &mut group[index];
                 group.position.push(position);
                 group.selected.push(group.selected.len());
             } else {
+                known.push((term, group.len()));
                 group.push(Group {
                     candidate,
                     position: vec![position],
@@ -106,3 +117,7 @@ impl Match {
             .sum()
     }
 }
+
+#[cfg(test)]
+#[path = "test/particle.rs"]
+mod test;

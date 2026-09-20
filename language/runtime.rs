@@ -1,8 +1,9 @@
+mod application;
+mod matching;
 mod report;
 
-use crate::flow::{Binding, Closure, Flow, Place};
-use crate::plan;
-use crate::program::{Program, Symbol};
+use crate::flow::{Binding, Flow, Place};
+use crate::program::Program;
 use crate::slot::Slot;
 use crate::source;
 use crate::state::State;
@@ -12,7 +13,6 @@ use indexmap::IndexSet;
 use serde::Serialize;
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::sync::{Arc, OnceLock};
-use std::task::Poll;
 
 #[derive(Clone, Copy, Debug, Serialize)]
 pub struct Limit {
@@ -72,7 +72,7 @@ struct Event {
     evidence: BTreeSet<usize>,
 }
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
-struct Match {
+struct Query {
     target: usize,
     frame: usize,
     pattern: Vec<Vec<Term>>,
@@ -128,7 +128,7 @@ pub struct Runtime {
     binding: usize,
     clause: IndexSet<Clause>,
     evaluation: OnceLock<Support>,
-    matching: HashMap<Match, usize>,
+    matching: HashMap<Query, usize>,
     candidate: HashMap<(usize, usize), Arc<Vec<usize>>>,
     cache: Vec<Cache>,
     request: IndexSet<Request>,
@@ -235,346 +235,6 @@ impl Runtime {
             self.agenda.defer(Task::Compose(index, event));
         }
         index
-    }
-
-    fn wake(&mut self, request: usize) {
-        if self.active.insert(request) {
-            self.agenda.push_back(Task::Deliver(request));
-        }
-    }
-
-    fn matching(
-        &mut self,
-        target: usize,
-        frame: usize,
-        pattern: Vec<Vec<Term>>,
-        consumer: Consumer,
-    ) {
-        let key = Match {
-            target,
-            frame,
-            pattern,
-        };
-        let cache = if let Some(&cache) = self.matching.get(&key) {
-            cache
-        } else {
-            let cache = self.cache.len();
-            let index = self.index[target]
-                .get_or_insert_with(|| {
-                    let index = Arc::new(crate::index::Index::new(self.state[target].clone()));
-                    self.indexed += index.retained();
-                    index
-                })
-                .clone();
-            let search = crate::search::Search::new(key.pattern.clone(), index, frame);
-            let viable = search.viable();
-            let retained = if viable { search.retained() } else { 0 };
-            self.retained += retained;
-            self.cache.push(Cache {
-                search: viable.then_some(search),
-                binding: Vec::new(),
-                listener: Vec::new(),
-                retained,
-            });
-            self.matching.insert(key, cache);
-            if viable {
-                self.agenda.push_back(Task::Search(cache));
-            }
-            cache
-        };
-        if self.cache[cache].search.is_none() && self.cache[cache].binding.is_empty() {
-            return;
-        }
-        let (index, fresh) = self.request.insert_full(Request { cache, consumer });
-        if !fresh {
-            return;
-        }
-        self.cursor.push(0);
-        self.cache[cache].listener.push(index);
-        if !self.cache[cache].binding.is_empty() {
-            self.wake(index);
-        }
-    }
-
-    fn search(&mut self, cache: usize, progress: Poll<Option<Vec<Slot>>>) {
-        let retained = self.cache[cache].search.as_ref().unwrap().retained();
-        self.retained = self.retained - self.cache[cache].retained + retained;
-        self.cache[cache].retained = retained;
-        match progress {
-            Poll::Ready(None) => {
-                self.retained -= self.cache[cache].retained;
-                self.cache[cache].retained = 0;
-                self.cache[cache].search = None;
-                return;
-            }
-            Poll::Ready(Some(binding)) => {
-                self.binding += 1;
-                self.cache[cache].binding.push(Arc::new(binding));
-                for index in self.cache[cache].listener.clone() {
-                    self.wake(index);
-                }
-            }
-            Poll::Pending => {}
-        }
-        self.agenda.push_back(Task::Search(cache));
-    }
-
-    fn deliver(&mut self, index: usize) {
-        self.active.remove(&index);
-        let request = self.request[index].clone();
-        let cache = &self.cache[request.cache];
-        let Some(selection) = cache.binding.get(self.cursor[index]).cloned() else {
-            return;
-        };
-        self.cursor[index] += 1;
-        if self.cursor[index] < cache.binding.len() {
-            self.wake(index);
-        }
-        let consumer = request.consumer;
-        let view = self.view[consumer.view].clone();
-        if let Some(Place::World(site, _)) = consumer.read
-            && !selection.iter().any(|slot| slot.world == site)
-        {
-            return;
-        }
-        let selected = selection
-            .iter()
-            .map(|slot| (slot.world, slot.token.clone()))
-            .collect::<Vec<_>>();
-        let Some(mut binding) = view.flow.project(
-            &self.state[view.source],
-            &self.state[view.target],
-            &selected,
-            consumer.frame,
-        ) else {
-            return;
-        };
-        if let Some(read) = consumer.read {
-            binding.read = view.flow.resource[&read].iter().copied().collect();
-        }
-        self.agenda.push_back(Task::Apply(Application {
-            view: consumer.view,
-            frame: consumer.frame,
-            owner: consumer.owner,
-            rule: consumer.rule,
-            binding,
-            capture: consumer.capture,
-        }));
-    }
-
-    fn inspect(&mut self, index: usize) {
-        let view = self.view[index].clone();
-        let source = self.state[view.source].clone();
-        let target = self.state[view.target].clone();
-        let available = self.index[view.target]
-            .get_or_insert_with(|| {
-                let index = Arc::new(crate::index::Index::new(target.clone()));
-                self.indexed += index.retained();
-                index
-            })
-            .clone();
-        for frame in 0..source.frame.len() {
-            if frame != 0 && !source.world.iter().any(|world| world.frame == frame) {
-                continue;
-            }
-            let mut owner = Some(frame);
-            while let Some(current) = owner {
-                let scope = source.frame[current].scope;
-                let rule = self
-                    .candidate
-                    .entry((view.target, scope))
-                    .or_insert_with(|| {
-                        let candidate = self.program.scope[scope]
-                            .candidate(available.available())
-                            .into_iter()
-                            .filter(|&rule| {
-                                self.program.rule[rule]
-                                    .input
-                                    .iter()
-                                    .flatten()
-                                    .all(|symbol| available.contains(symbol))
-                            })
-                            .collect::<Vec<_>>();
-                        self.indexed += candidate.len();
-                        Arc::new(candidate)
-                    })
-                    .clone();
-                for &rule in rule.iter() {
-                    let input = if self.program.rule[rule].input.is_empty() {
-                        vec![Vec::new()]
-                    } else {
-                        self.program.rule[rule].input.clone()
-                    };
-                    let capture = view
-                        .flow
-                        .frame
-                        .iter()
-                        .position(|&value| value == Some(current));
-                    let pattern = plan::pattern(&input, capture);
-                    for destination in 0..target.frame.len() {
-                        if view.flow.frame[destination] != Some(frame) {
-                            continue;
-                        }
-                        self.matching(
-                            view.target,
-                            destination,
-                            pattern.clone(),
-                            Consumer {
-                                view: index,
-                                frame,
-                                owner: Some(current),
-                                rule,
-                                capture: None,
-                                read: None,
-                            },
-                        );
-                    }
-                }
-                owner = source.frame[current].lexical;
-            }
-        }
-        for (site, world) in target.world.iter().enumerate() {
-            let Some(frame) = view.flow.frame[world.frame] else {
-                continue;
-            };
-            for token in &world.particle {
-                let Symbol::Rule(rule) = token.value else {
-                    continue;
-                };
-                if self.program.rule[rule]
-                    .input
-                    .iter()
-                    .flatten()
-                    .any(|symbol| !available.contains(symbol))
-                {
-                    continue;
-                }
-                let input = if self.program.rule[rule].input.is_empty() {
-                    vec![Vec::new()]
-                } else {
-                    self.program.rule[rule].input.clone()
-                };
-                let pattern = plan::pattern(&input, token.capture);
-                self.matching(
-                    view.target,
-                    world.frame,
-                    pattern,
-                    Consumer {
-                        view: index,
-                        frame,
-                        owner: token.capture.and_then(|capture| view.flow.frame[capture]),
-                        rule,
-                        capture: token.capture,
-                        read: Some(Place::World(site, token.id)),
-                    },
-                );
-            }
-        }
-    }
-
-    fn apply(&mut self, application: Application) {
-        let view = self.view[application.view].clone();
-        let environment = application
-            .capture
-            .map(|capture| Arc::new(self.state[view.target].environment(capture)));
-        let key = Identity {
-            source: view.source,
-            frame: application.frame,
-            owner: application.owner,
-            rule: application.rule,
-            binding: application.binding.clone(),
-            environment,
-        };
-        if let Some(&event) = self.identity.get(&key) {
-            self.justify(event, application);
-            return;
-        }
-        if let Some(&index) = self.normalizing.get(&key) {
-            self.normalization[index]
-                .as_mut()
-                .unwrap()
-                .application
-                .push(application);
-            return;
-        }
-        let closure = application.capture.map(|capture| Closure {
-            state: &self.state[view.target],
-            flow: &view.flow,
-            capture,
-        });
-        let result = crate::application::apply(
-            &self.state[view.source],
-            application.frame,
-            application.owner,
-            &self.program.rule[application.rule],
-            &application.binding,
-            closure,
-        );
-        if result.state.world.len() > self.limit.world
-            || result.state.size() > self.limit.cell
-            || result.state.reachable().len() > self.limit.frame
-        {
-            self.pending.insert(application);
-            return;
-        }
-        let search = crate::canonical::Search::new(Arc::new(result.state));
-        let index = self.vacant.pop().unwrap_or_else(|| {
-            let index = self.normalization.len();
-            self.normalization.push(None);
-            index
-        });
-        self.normalizing.insert(key.clone(), index);
-        self.normalization[index] = Some(Normalization {
-            identity: key,
-            application: vec![application],
-            flow: result.flow,
-            search: Some(search),
-        });
-        self.agenda.push_back(Task::Normalize(index));
-    }
-
-    fn normalize(&mut self, index: usize, complete: bool) {
-        if !complete {
-            self.agenda.push_back(Task::Normalize(index));
-            return;
-        }
-        let normalization = self.normalization[index].take().unwrap();
-        self.vacant.push(index);
-        self.normalizing.remove(&normalization.identity);
-        let result = normalization
-            .flow
-            .rename(normalization.search.unwrap().finish().unwrap());
-        if self.state.len() >= self.limit.state && !self.state.contains(&result.state) {
-            self.pending.extend(normalization.application);
-            return;
-        }
-        let source = normalization.identity.source;
-        let target = self.intern(Arc::new(result.state));
-        let event = self.event.len();
-        self.identity.insert(normalization.identity.clone(), event);
-        self.event.push(Event {
-            identity: normalization.identity,
-            target,
-            flow: result.flow,
-            evidence: BTreeSet::new(),
-        });
-        self.outgoing[source].push(event);
-        for &previous in &self.incoming[source] {
-            self.agenda.defer(Task::Compose(previous, event));
-        }
-        self.support(Atom::State(target), [Atom::Event(event)]);
-        for application in normalization.application {
-            self.justify(event, application);
-        }
-    }
-
-    fn justify(&mut self, event: usize, application: Application) {
-        let source = self.event[event].identity.source;
-        self.event[event].evidence.insert(application.view);
-        self.support(
-            Atom::Event(event),
-            [Atom::State(source), Atom::View(application.view)],
-        );
     }
 
     pub fn run(&mut self, budget: usize, limit: Option<Limit>) {

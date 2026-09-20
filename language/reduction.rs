@@ -95,17 +95,18 @@ impl Search {
             self.work += 1;
             return None;
         }
-        let delivery = self.network.next(&self.index)?;
-        self.work += 1;
-        let candidate = match delivery {
-            Poll::Ready(candidate) => candidate,
-            Poll::Pending => return None,
+        let candidate = match self.network.next(&self.index) {
+            Poll::Ready(Some(candidate)) => Some(candidate),
+            Poll::Ready(None) => return None,
+            Poll::Pending => None,
         };
+        self.work += 1;
+        let candidate = candidate?;
         let selection = candidate.selection;
-        if let Some((site, _)) = candidate.read
+        if let Some(read) = candidate.read
             && !selection
                 .iter()
-                .any(|slot| slot.world == self.index.world(site))
+                .any(|slot| slot.world == self.index.world(read.site))
         {
             return None;
         }
@@ -123,7 +124,7 @@ impl Search {
             footprint,
             read: candidate
                 .read
-                .map(|(site, token)| Place::World(self.index.world(site), token))
+                .map(|read| Place::World(self.index.world(read.site), read.resource))
                 .into_iter()
                 .collect(),
         };
