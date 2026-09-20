@@ -10,6 +10,8 @@ A follow-up native instrumented run of `2*2*2*2*2*2` on the delivered implementa
 
 This changes the practical priority: first investigate subscription reconciliation and reuse of immutable query/particle preparation on real expressions, then expand maintained fragment sharing where it saves measured work. The synthetic join improvements have moved ordinary arithmetic by only about 1–2%. A hypothetical infinitely fast implementation of the measured matching phase would save only about 2 ms in this diagnostic, before GPU overhead. This is an inference from one direct-execution workload, not a bound for every program or the exhaustive runtime. Re-profile both execution modes before choosing a GPU kernel.
 
+The subsequent [preparation audit](preparation.md) implements the immutable particle portion of that priority and removes repeated occurrence/ordinal conversions. A focused repeated-preparation workload improves roughly 20–40×, while the paired expression workload improves about 2%. Subscription reconciliation remains substantial; multilevel maintenance and exhaustive fragment sharing remain open.
+
 ## What the implementation now represents
 
 Photonic contains several hypergraphs. Worlds group resource occurrences; firings synchronize several inputs; proof clauses require all premises. Alternative proofs and competing histories add different dependency relationships. A matching plan is a reusable computation graph over this data, not the state itself. The [architecture report](architecture.md) separates these identities and owners.

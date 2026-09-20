@@ -62,17 +62,17 @@ pub fn run() -> Vec<Measurement> {
             let expected = (0..width)
                 .filter(|&world| term == 1 || world % 2 == 0)
                 .collect::<Vec<_>>();
-            assert_eq!(index.candidate(&pattern, 0), expected);
+            assert_eq!(index.candidate(pattern.iter().cloned(), 0), expected);
             let warm = Instant::now();
             while warm.elapsed() < Duration::from_millis(100) {
-                black_box(index.candidate(black_box(&pattern), 0));
+                black_box(index.candidate(black_box(&pattern).iter().cloned(), 0));
             }
             let repetition = 10;
             let sample = (0..7)
                 .map(|_| {
                     let start = Instant::now();
                     for _ in 0..repetition {
-                        black_box(index.candidate(black_box(&pattern), 0));
+                        black_box(index.candidate(black_box(&pattern).iter().cloned(), 0));
                     }
                     start.elapsed().as_secs_f64() / repetition as f64
                 })

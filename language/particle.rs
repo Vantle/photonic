@@ -1,52 +1,68 @@
+mod group;
+
 use crate::state::Token;
 use crate::term::Term;
+use group::Group;
 use smallvec::SmallVec;
 use std::sync::Arc;
 use std::task::Poll;
 
-struct Group {
-    candidate: Vec<usize>,
-    position: Arc<Vec<usize>>,
-    selected: Vec<usize>,
+pub(crate) struct Preparation {
+    group: SmallVec<[Group; 1]>,
+    width: usize,
+    viable: bool,
 }
 
-impl Group {
-    fn advance(&mut self) -> bool {
-        let width = self.selected.len();
-        let Some(position) = (0..width)
-            .rev()
-            .find(|&position| self.selected[position] < self.candidate.len() - width + position)
-        else {
-            for (index, selected) in self.selected.iter_mut().enumerate() {
-                *selected = index;
-            }
-            return false;
-        };
-        self.selected[position] += 1;
-        for index in position + 1..width {
-            self.selected[index] = self.selected[index - 1] + 1;
-        }
-        true
+impl Preparation {
+    fn new(group: SmallVec<[Group; 1]>, width: usize) -> Arc<Self> {
+        let viable = group
+            .iter()
+            .all(|group| group.candidate.len() >= group.position.len());
+        Arc::new(Self {
+            group,
+            width,
+            viable,
+        })
+    }
+
+    pub fn retained(&self) -> usize {
+        self.group
+            .iter()
+            .map(|group| group.candidate.len() + group.position.len())
+            .sum()
     }
 }
 
 pub(crate) struct Match {
-    group: Vec<Group>,
-    width: usize,
+    preparation: Arc<Preparation>,
+    selected: Box<[usize]>,
     fresh: bool,
-    viable: bool,
     complete: bool,
+}
+
+impl From<Arc<Preparation>> for Match {
+    fn from(preparation: Arc<Preparation>) -> Self {
+        let mut selected = vec![0; preparation.width].into_boxed_slice();
+        for group in &preparation.group {
+            group.reset(&mut selected);
+        }
+        Self {
+            complete: !preparation.viable,
+            preparation,
+            selected,
+            fresh: true,
+        }
+    }
 }
 
 impl Match {
     pub(crate) fn new(pattern: &[Term], particle: &[Token]) -> Self {
-        let mut group: Vec<Group> = Vec::new();
+        let mut group: SmallVec<[Group; 1]> = SmallVec::new();
         let mut known: SmallVec<[(&Term, usize); 4]> = SmallVec::new();
         for (position, term) in pattern.iter().enumerate() {
             if let Some(&(_, index)) = known.iter().find(|&&(value, _)| value == term) {
                 let group = &mut group[index];
                 Arc::make_mut(&mut group.position).push(position);
-                group.selected.push(group.selected.len());
                 continue;
             }
             let mut candidate = particle
@@ -60,26 +76,15 @@ impl Match {
                 known.push((term, index));
                 let group = &mut group[index];
                 Arc::make_mut(&mut group.position).push(position);
-                group.selected.push(group.selected.len());
             } else {
                 known.push((term, group.len()));
                 group.push(Group {
                     candidate,
                     position: Arc::new(vec![position]),
-                    selected: vec![0],
                 });
             }
         }
-        let complete = group
-            .iter()
-            .any(|group| group.candidate.len() < group.selected.len());
-        Self {
-            group,
-            width: pattern.len(),
-            fresh: true,
-            viable: !complete,
-            complete,
-        }
+        Self::from(Preparation::new(group, pattern.len()))
     }
 
     pub(crate) fn prepared(
@@ -112,7 +117,7 @@ impl Match {
             }
             candidate
         });
-        let mut group: Vec<Group> = Vec::with_capacity(pattern.group.len());
+        let mut group: SmallVec<[Group; 1]> = SmallVec::with_capacity(pattern.group.len());
         for requirement in &pattern.group {
             let term = term(&requirement.value);
             let mut candidate = indexed.as_mut().map_or_else(
@@ -129,76 +134,72 @@ impl Match {
             candidate.dedup();
             if let Some(group) = group.iter_mut().find(|group| group.candidate == candidate) {
                 Arc::make_mut(&mut group.position).extend(requirement.position.iter().copied());
-                group
-                    .selected
-                    .extend(group.selected.len()..group.position.len());
             } else {
                 group.push(Group {
                     candidate,
                     position: requirement.position.clone(),
-                    selected: (0..requirement.position.len()).collect(),
                 });
             }
         }
-        let complete = group
-            .iter()
-            .any(|group| group.candidate.len() < group.selected.len());
-        Self {
-            group,
-            width: pattern.width,
-            fresh: true,
-            viable: !complete,
-            complete,
-        }
+        Self::from(Preparation::new(group, pattern.width))
     }
 
     pub(crate) fn impossible(width: usize) -> Self {
         Self {
-            group: Vec::new(),
-            width,
+            preparation: Arc::new(Preparation {
+                group: SmallVec::new(),
+                width,
+                viable: false,
+            }),
+            selected: Box::new([]),
             fresh: true,
-            viable: false,
             complete: true,
         }
     }
 
     pub(crate) fn reset(&mut self) {
         self.fresh = true;
-        self.complete = !self.viable;
-        for group in &mut self.group {
-            for (index, selected) in group.selected.iter_mut().enumerate() {
-                *selected = index;
-            }
+        self.complete = !self.preparation.viable;
+        for group in &self.preparation.group {
+            group.reset(&mut self.selected);
         }
     }
 
     pub(crate) fn viable(&self) -> bool {
-        self.viable
+        self.preparation.viable
     }
 
     pub(crate) fn step(&mut self) -> Poll<Option<Vec<usize>>> {
         if self.complete {
             return Poll::Ready(None);
         }
-        if !self.fresh && !self.group.iter_mut().rev().any(Group::advance) {
+        if !self.fresh
+            && !self
+                .preparation
+                .group
+                .iter()
+                .rev()
+                .any(|group| group.advance(&mut self.selected))
+        {
             self.complete = true;
             return Poll::Ready(None);
         }
         self.fresh = false;
-        let mut result = vec![0; self.width];
-        for group in &self.group {
-            for (&position, &selected) in group.position.iter().zip(&group.selected) {
-                result[position] = group.candidate[selected];
+        let mut result = vec![0; self.preparation.width];
+        for group in &self.preparation.group {
+            for &position in group.position.iter() {
+                result[position] = group.candidate[self.selected[position]];
             }
         }
         Poll::Ready(Some(result))
     }
 
+    pub(crate) fn preparation(&self) -> Arc<Preparation> {
+        self.preparation.clone()
+    }
+
     pub(crate) fn retained(&self) -> usize {
-        self.group
-            .iter()
-            .map(|group| group.candidate.len() + group.position.len() + group.selected.len())
-            .sum()
+        self.preparation.retained() + self.selected.len()
     }
 }
 

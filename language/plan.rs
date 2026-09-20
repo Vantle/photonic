@@ -42,9 +42,8 @@ impl Context {
         let pattern = self.fragment[position]
             .group
             .iter()
-            .map(|group| Term::new(group.value, Some(self.owner)))
-            .collect::<SmallVec<[Term; 4]>>();
-        index.candidate(&pattern, frame)
+            .map(|group| Term::new(group.value, Some(self.owner)));
+        index.candidate(pattern, frame)
     }
 
     pub fn matches(&self, position: usize, index: &crate::index::Index, site: usize) -> bool {
@@ -64,6 +63,7 @@ impl Context {
         position: usize,
         index: &crate::index::Index,
         site: usize,
+        shared: Option<&crate::preparation::Store>,
     ) -> crate::particle::Match {
         let world = &index.state.world[index.world(site)];
         let pattern = &self.fragment[position];
@@ -74,6 +74,16 @@ impl Context {
             })
         {
             return crate::particle::Match::impossible(pattern.width);
+        }
+        if pattern.width >= 8
+            && world.particle.len() >= 32
+            && let Some(shared) = shared
+        {
+            return shared.select(crate::preparation::Request {
+                pattern,
+                world,
+                owner: self.owner,
+            });
         }
         self.prepare(position, &world.particle)
     }

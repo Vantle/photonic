@@ -17,13 +17,7 @@ impl Selection {
     ) -> Self {
         let candidate = pattern
             .iter()
-            .map(|particle| {
-                index
-                    .candidate(particle, frame)
-                    .into_iter()
-                    .map(|world| index.site(world))
-                    .collect()
-            })
+            .map(|particle| index.candidate(particle.iter().cloned(), frame))
             .collect();
         Self::construct(pattern, candidate)
     }

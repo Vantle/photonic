@@ -209,36 +209,33 @@ impl Index {
         }
     }
 
-    pub fn candidate(&self, pattern: &[Term], frame: usize) -> Vec<usize> {
-        let Some(world) = self.frame.get(frame) else {
-            return Vec::new();
-        };
-        if pattern.is_empty() {
-            let mut candidate = world
-                .iter()
-                .map(|&site| self.world(site))
-                .collect::<Vec<_>>();
-            candidate.sort_unstable();
+    pub fn candidate(&self, pattern: impl IntoIterator<Item = Term>, frame: usize) -> Vec<usize> {
+        let mut pattern = pattern.into_iter();
+        let Some(term) = pattern.next() else {
+            let Some(world) = self.frame.get(frame) else {
+                return Vec::new();
+            };
+            let mut candidate = world.iter().copied().collect::<Vec<_>>();
+            candidate.sort_unstable_by_key(|&site| self.rank[site]);
             return candidate;
-        }
-        if let [term] = pattern {
-            return self
-                .posting(term, frame)
-                .into_iter()
-                .flatten()
-                .map(|occurrence| self.world(occurrence.site))
-                .collect();
-        }
-        let posting = pattern
-            .iter()
-            .map(|term| self.posting(term, frame))
-            .collect::<Option<Vec<_>>>();
-        let Some(posting) = posting else {
+        };
+        let Some(first) = self.posting(&term, frame) else {
             return Vec::new();
         };
-        posting::intersect(&posting, &self.rank)
-            .map(|site| self.world(site))
-            .collect()
+        let Some(term) = pattern.next() else {
+            return first.iter().map(|occurrence| occurrence.site).collect();
+        };
+        let Some(second) = self.posting(&term, frame) else {
+            return Vec::new();
+        };
+        let mut posting = smallvec::SmallVec::<[_; 4]>::from_slice(&[first, second]);
+        for term in pattern {
+            let Some(candidate) = self.posting(&term, frame) else {
+                return Vec::new();
+            };
+            posting.push(candidate);
+        }
+        posting::intersect(&posting, &self.rank).collect()
     }
 
     pub(crate) fn quantity(&self, term: &Term, frame: usize, site: usize) -> usize {

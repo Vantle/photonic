@@ -55,7 +55,14 @@ fn predicate() {
                     expected.then_some(position)
                 })
                 .collect::<Vec<_>>();
-            assert_eq!(context.candidate(0, &index, 0), expected);
+            assert_eq!(
+                context
+                    .candidate(0, &index, 0)
+                    .into_iter()
+                    .map(|site| index.world(site))
+                    .collect::<Vec<_>>(),
+                expected
+            );
         }
     }
 }
@@ -138,7 +145,7 @@ fn summary() {
                     let context = input.context(owner);
                     let pattern = input.pattern(owner);
                     for (world, value) in state.world.iter().enumerate() {
-                        let mut actual = context.select(0, &index, index.site(world));
+                        let mut actual = context.select(0, &index, index.site(world), None);
                         let mut expected =
                             crate::particle::Match::new(&pattern[0], &value.particle);
                         for _ in 0..2 {

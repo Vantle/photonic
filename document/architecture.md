@@ -4,7 +4,7 @@ Photonic is a proof language with a native Rust kernel, two execution modes, per
 
 This report describes the source measured in [architecture.json](architecture.json), following baseline `437bda3`. Earlier algorithmic work and measurements remain in [optimization.md](optimization.md), [implementation.md](implementation.md), and [factorization.md](factorization.md). The [roadmap](roadmap.md) remains the record of larger unfinished work. No benchmark establishes a universal speedup or the absence of all kernel bugs.
 
-The subsequent [joined-prefix audit](prefix.md) adds bounded multi-input prefix reuse and adaptive dispatch storage, with paired measurements against `20984f1`. Its matching ownership breakdown supersedes the single-file join description below. The subsequent [sharing audit](sharing.md) adds cross-plan prefix transcripts, constant-time symmetry comparisons, canonical environment reuse and shared identity flows; it records the preceding implementation. The subsequent [candidate-domain audit](candidate.md) adds shared exact presence filters, dependency summaries, and incremental candidate snapshots with independent query cursors; it records the preceding implementation. The subsequent [dispatch audit](dispatch.md) adds shared lexical-ancestry discovery, coherent availability maintenance, and detailed native phase measurements; it records the preceding implementation. The subsequent [partition audit](partition.md) adds bounded joined-prefix partitions that survive first-input occurrence changes; it records the preceding implementation. The subsequent [interior matching audit](interior.md) adds reverse dependencies below the first input, immutable unfinished snapshots, and a cheaper symmetry check; it is the latest implementation and performance report. The [CPU research review](research.md) evaluates what remains before GPU execution.
+The subsequent [joined-prefix audit](prefix.md) adds bounded multi-input prefix reuse and adaptive dispatch storage, with paired measurements against `20984f1`. Its matching ownership breakdown supersedes the single-file join description below. The subsequent [sharing audit](sharing.md) adds cross-plan prefix transcripts, constant-time symmetry comparisons, canonical environment reuse and shared identity flows; it records the preceding implementation. The subsequent [candidate-domain audit](candidate.md) adds shared exact presence filters, dependency summaries, and incremental candidate snapshots with independent query cursors; it records the preceding implementation. The subsequent [dispatch audit](dispatch.md) adds shared lexical-ancestry discovery, coherent availability maintenance, and detailed native phase measurements; it records the preceding implementation. The subsequent [partition audit](partition.md) adds bounded joined-prefix partitions that survive first-input occurrence changes; it records the preceding implementation. The subsequent [interior matching audit](interior.md) adds reverse dependencies below the first input, immutable unfinished snapshots, and a cheaper symmetry check; it records the preceding implementation. The [preparation audit](preparation.md) adds bounded immutable particle preparation reuse, private combination cursors, and occurrence-native candidate lookup; it is the latest implementation and performance report. The [CPU research review](research.md) evaluates what remains before GPU execution.
 
 ## The graph model
 
@@ -40,6 +40,8 @@ flowchart TD
     Rewrite --> State[Persistent state and capture topology]
     State --> Index[Counted postings and fingerprints]
     Index --> Join
+    Join --> Preparation[Shared immutable particle preparation]
+    Preparation --> Cursor[Private combination cursor]
     Runtime --> Table[Shared exact query and delivery table]
     Table --> Gate[Compiled particle matching and queued gates]
     Gate --> Projection[Consumer-specific flow projection]
@@ -57,6 +59,7 @@ flowchart TD
 | Persistent storage | `sequence.rs`, `basis.rs`, `relation.rs`, `state.rs` | Share unchanged structure while retaining semantic resource identity |
 | Lookup | `index.rs`, `index/posting.rs`, `position.rs` | Maintain counted postings and translate current ordinals to stable live sites |
 | Candidate filtering | `candidate.rs`, `candidate/` | Share exact context-sensitive filters, summaries, and coherent candidate snapshots under a bounded budget |
+| Particle preparation | `preparation.rs`, `preparation/`, `particle.rs`, `particle/` | Share immutable candidate data by exact fragment/world/capture identity; retain private selection and bounded admission |
 | Direct matching | `dispatch/`, `joining.rs`, `particle.rs`, `factor.rs`, `replay.rs` | Emit exact bindings and cooperative progress without constructing proof evidence |
 | Proof matching | `runtime/table.rs`, `selection.rs`, `search.rs`, `gate.rs` | Share exact target/frame/pattern queries with independent consumer delivery |
 | Construction | `rewrite.rs`, `recipe.rs`, `application.rs` | Apply a binding under an explicit source and capture context |

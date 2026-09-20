@@ -2,7 +2,7 @@ use crate::factor::Budget;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-pub(super) struct Reservation {
+pub(crate) struct Reservation {
     budget: Arc<Budget>,
     accounting: Arc<AtomicUsize>,
     retained: usize,

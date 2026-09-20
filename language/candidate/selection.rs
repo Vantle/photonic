@@ -1,5 +1,5 @@
-use super::reservation::Reservation;
 use crate::factor::Budget;
+use crate::reservation::Reservation;
 use std::sync::Arc;
 use std::sync::atomic::AtomicUsize;
 

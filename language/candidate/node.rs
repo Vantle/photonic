@@ -1,8 +1,8 @@
 use super::key::Key;
-use super::reservation::Reservation;
 use super::selection::Selection;
 use crate::factor::Budget;
 use crate::index::Index;
+use crate::reservation::Reservation;
 use std::sync::atomic::AtomicUsize;
 use std::sync::{Arc, Mutex};
 

@@ -16,11 +16,7 @@ impl Key {
     }
 
     pub fn select(&self, index: &Index) -> Vec<usize> {
-        index
-            .candidate(&self.pattern, self.frame)
-            .into_iter()
-            .map(|world| index.site(world))
-            .collect()
+        index.candidate(self.pattern.iter().cloned(), self.frame)
     }
 
     pub fn affected(&self, index: &Index) -> bool {
