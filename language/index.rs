@@ -6,11 +6,16 @@ use crate::term::Term;
 use std::collections::HashMap;
 use std::sync::Arc;
 
+struct Occurrence {
+    site: usize,
+    count: usize,
+}
+
 pub(crate) struct Index {
     pub state: Arc<State>,
     frame: Vec<crate::membership::Set>,
     reader: Vec<Vec<crate::reader::Reader>>,
-    term: HashMap<(usize, Term), Vec<usize>>,
+    term: HashMap<(usize, Term), Vec<Occurrence>>,
     position: crate::position::Index,
     rank: Vec<usize>,
     vacant: Vec<usize>,
@@ -85,8 +90,13 @@ impl Index {
             *count += 1;
             let key = (value.frame, Term::new(token.value, token.capture));
             let posting = self.term.entry(key).or_default();
-            if !posting.contains(&site) {
-                posting.push(site);
+            if let Some(occurrence) = posting
+                .last_mut()
+                .filter(|occurrence| occurrence.site == site)
+            {
+                occurrence.count += 1;
+            } else {
+                posting.push(Occurrence { site, count: 1 });
                 self.retained += 1;
             }
         }
@@ -103,6 +113,9 @@ impl Index {
     }
 
     pub(crate) fn update(&mut self, state: Arc<State>, change: &crate::change::Change) {
+        #[cfg(feature = "measurement")]
+        let _measurement =
+            crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Index);
         let removed = &change.world;
         self.altered.clear();
         self.affected.clear();
@@ -128,16 +141,13 @@ impl Index {
             .collect::<Vec<_>>();
         self.removal
             .extend(removed.iter().map(|&world| self.position.select(world)));
+        let mut posting = smallvec::SmallVec::<[(usize, Term); 8]>::new();
         for (&world, &site) in removed.iter().zip(&self.removal) {
             let value = &self.state.world[world];
             self.affected
                 .entry(value.frame)
                 .or_default()
                 .extend(value.particle.iter().map(|token| token.value));
-            let reader = &mut self.reader[value.frame];
-            let previous = reader.len();
-            reader.retain(|reader| reader.read.site != site);
-            self.retained -= previous - reader.len();
             self.frame[value.frame].remove(&site);
             self.retained -= 1;
             for token in &value.particle {
@@ -147,19 +157,30 @@ impl Index {
                     self.symbol.remove(&token.value);
                     self.altered.insert(token.value);
                 }
-                let key = (value.frame, Term::new(token.value, token.capture));
-                let Some(posting) = self.term.get_mut(&key) else {
-                    continue;
-                };
-                let previous = posting.len();
-                posting.retain(|&candidate| candidate != site);
-                self.retained -= previous - posting.len();
-                if posting.is_empty() {
-                    self.term.remove(&key);
-                }
+                posting.push((value.frame, Term::new(token.value, token.capture)));
             }
             self.position.remove(self.rank[site]);
+            self.rank[site] = usize::MAX;
             self.vacant.push(site);
+        }
+        for &frame in &affected {
+            let Some(reader) = self.reader.get_mut(frame) else {
+                continue;
+            };
+            let previous = reader.len();
+            reader.retain(|reader| self.rank[reader.read.site] != usize::MAX);
+            self.retained -= previous - reader.len();
+        }
+        posting.sort_unstable();
+        posting.dedup();
+        for key in posting {
+            let posting = self.term.get_mut(&key).unwrap();
+            let previous = posting.len();
+            posting.retain(|occurrence| self.rank[occurrence.site] != usize::MAX);
+            self.retained -= previous - posting.len();
+            if posting.is_empty() {
+                self.term.remove(&key);
+            }
         }
         self.position.compact(&mut self.rank);
         self.state = state;
@@ -193,7 +214,7 @@ impl Index {
                 .posting(term, frame)
                 .into_iter()
                 .flatten()
-                .map(|&site| self.world(site))
+                .map(|occurrence| self.world(occurrence.site))
                 .collect();
         }
         let posting = pattern
@@ -211,27 +232,39 @@ impl Index {
             .unwrap();
         candidate
             .iter()
-            .filter(|&&site| {
+            .filter(|occurrence| {
+                let site = occurrence.site;
                 posting.iter().enumerate().all(|(position, posting)| {
                     position == anchor
                         || if posting.len() <= 16 {
-                            posting.contains(&site)
+                            posting.iter().any(|occurrence| occurrence.site == site)
                         } else {
                             posting
-                                .binary_search_by_key(&self.rank[site], |&site| self.rank[site])
+                                .binary_search_by_key(&self.rank[site], |occurrence| {
+                                    self.rank[occurrence.site]
+                                })
                                 .is_ok()
                         }
                 })
             })
-            .map(|&site| self.world(site))
+            .map(|occurrence| self.world(occurrence.site))
             .collect::<Vec<_>>()
+    }
+
+    pub(crate) fn quantity(&self, term: &Term, frame: usize, site: usize) -> usize {
+        let Some(posting) = self.posting(term, frame) else {
+            return 0;
+        };
+        posting
+            .binary_search_by_key(&self.rank[site], |occurrence| self.rank[occurrence.site])
+            .map_or(0, |position| posting[position].count)
     }
 
     pub(crate) fn site(&self, world: usize) -> usize {
         self.position.select(world)
     }
 
-    fn posting(&self, term: &Term, frame: usize) -> Option<&[usize]> {
+    fn posting(&self, term: &Term, frame: usize) -> Option<&[Occurrence]> {
         self.term
             .get(&(frame, Term::new(term.value, term.capture)))
             .map(Vec::as_slice)

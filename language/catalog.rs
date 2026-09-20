@@ -13,6 +13,7 @@ pub(crate) struct Catalog {
 impl Catalog {
     pub fn new(program: &Program) -> Self {
         let mut identity = HashMap::new();
+        let mut fragment = HashMap::new();
         let mut input = Vec::new();
         let rule = program
             .rule
@@ -20,7 +21,7 @@ impl Catalog {
             .map(|rule| {
                 *identity.entry(&rule.input).or_insert_with(|| {
                     let index = input.len();
-                    input.push(Input::new(&rule.input));
+                    input.push(Input::shared(&rule.input, &mut fragment));
                     index
                 })
             })

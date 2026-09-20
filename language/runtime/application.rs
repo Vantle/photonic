@@ -1,4 +1,5 @@
-use super::{Application, Event, Identity, Normalization, Runtime, Task};
+use super::normalization::Status;
+use super::{Application, Event, Identity, Runtime, Task};
 use crate::flow::Closure;
 use crate::support::Atom;
 use std::collections::BTreeSet;
@@ -18,17 +19,16 @@ impl Runtime {
             binding: application.binding.clone(),
             environment,
         };
-        if let Some(&event) = self.identity.get(&key) {
-            self.justify(event, application);
-            return;
-        }
-        if let Some(&index) = self.normalizing.get(&key) {
-            self.normalization[index]
-                .as_mut()
-                .unwrap()
-                .application
-                .push(application);
-            return;
+        match self.normalization.find(&key) {
+            Some(Status::Complete(event)) => {
+                self.justify(event, application);
+                return;
+            }
+            Some(Status::Pending(index)) => {
+                self.normalization.attach(index, application);
+                return;
+            }
+            None => {}
         }
         let closure = application.capture.map(|capture| Closure {
             state: &self.state[view.target],
@@ -50,33 +50,21 @@ impl Runtime {
             self.pending.insert(application);
             return;
         }
-        let search = crate::canonical::Search::new(Arc::new(result.state));
-        let index = self.vacant.pop().unwrap_or_else(|| {
-            let index = self.normalization.len();
-            self.normalization.push(None);
-            index
-        });
-        self.normalizing.insert(key.clone(), index);
-        self.normalization[index] = Some(Normalization {
-            identity: key,
-            application: vec![application],
-            flow: result.flow,
-            search: Some(search),
-        });
+        let index = self.normalization.insert(key, application, result);
         self.agenda.push_back(Task::Normalize(index));
     }
 
-    pub(super) fn normalize(&mut self, index: usize, complete: bool) {
-        if !complete {
+    pub(super) fn normalize(
+        &mut self,
+        index: usize,
+        search: crate::canonical::Search,
+        complete: bool,
+    ) {
+        let Some(normalization) = self.normalization.advance(index, search, complete) else {
             self.agenda.push_back(Task::Normalize(index));
             return;
-        }
-        let normalization = self.normalization[index].take().unwrap();
-        self.vacant.push(index);
-        self.normalizing.remove(&normalization.identity);
-        let result = normalization
-            .flow
-            .rename(normalization.search.unwrap().finish().unwrap());
+        };
+        let result = normalization.result;
         if self.state.len() >= self.limit.state && !self.state.contains(&result.state) {
             self.pending.extend(normalization.application);
             return;
@@ -84,7 +72,8 @@ impl Runtime {
         let source = normalization.identity.source;
         let target = self.intern(Arc::new(result.state));
         let event = self.event.len();
-        self.identity.insert(normalization.identity.clone(), event);
+        self.normalization
+            .complete(normalization.identity.clone(), event);
         self.event.push(Event {
             identity: normalization.identity,
             target,

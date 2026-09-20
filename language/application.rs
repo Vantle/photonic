@@ -81,6 +81,9 @@ pub(crate) fn apply(
     binding: &Binding,
     closure: Option<Closure<'_>>,
 ) -> Applied {
+    #[cfg(feature = "measurement")]
+    let _measurement =
+        crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Application);
     let mut state = State {
         world: crate::sequence::List::new(),
         frame: source.frame.clone(),

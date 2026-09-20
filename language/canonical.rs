@@ -53,6 +53,10 @@ impl Search {
     }
 
     pub fn step(&mut self) -> bool {
+        #[cfg(feature = "measurement")]
+        let _measurement = crate::measurement::profile::Scope::new(
+            crate::measurement::profile::Phase::Canonicalization,
+        );
         if self.complete {
             return true;
         }

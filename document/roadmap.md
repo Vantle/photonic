@@ -1,0 +1,204 @@
+# Incremental evaluation roadmap
+
+This is an implementation plan, not a report of completed optimization. It extends the [measured optimization audit](optimization.md) and preserves the language and frontend contracts. The inspected committed baseline is `54620eddec128ce545d9ee7be1efa351c8a26ec7`. The working tree also contains ongoing implementation and build edits; implementation must rebaseline against the revision actually tested.
+
+The first production implementation and its remaining boundaries are tracked in [implementation.md](implementation.md). The stages below remain a roadmap rather than a completion claim.
+
+The target is an evaluator that shares reusable program structure, discovers concrete work on demand, and maintains derived results from explicit changes. Decisions are conditional on semantic equivalence and measured benefit. No universal speedup or globally optimal query plan is assumed.
+
+## Semantic boundary
+
+- State is unordered. Synchronization establishes a firing; planner order and scheduler order are implementation details.
+- Bindings retain resource occurrence identity, multiplicity, distinct-world constraints, captures, lexical ownership, and executable-rule read dependencies.
+- Sharing a description never merges live occurrences or makes evidence from competing histories jointly available.
+- Every successful optimized operation reconstructs the exact binding, state change, and provenance required by the existing evaluator.
+- A summary can reject a match only when it conservatively covers every concrete candidate in the relevant context. Passing the summary establishes a possibility, not a proof.
+- Failure to match a current snapshot is not proof of permanent unreachability. Incomplete or suspended enumeration is never cached as absence.
+- Inspectable history, support, reporting, resource limits, and suspension behavior remain part of the compatibility contract. A different cache footprint or traversal must not silently alter that contract.
+- Arithmetic receives no special treatment. Frontend syntax, browser defaults, and planned language capabilities are not restricted for optimization.
+
+Before changing scheduling or accounting, specify which progress details are externally observable and retain their current behavior. If an optimization cannot preserve a required observation, leave that optimization out of the production path. A mathematical proof of result equivalence alone does not establish compatibility with a bounded, inspectable runtime.
+
+## Current sharing and remaining gap
+
+| Layer | Existing implementation | Remaining work |
+| --- | --- | --- |
+| Code | `program.rs` interns complete rule values | Discover reusable internal structure without identifying executable occurrences |
+| Input | `catalog.rs` shares identical complete input plans | Share common fragments between different inputs |
+| Context | `plan.rs` omits owner from capture-free identity | Explicit dependency contracts for each fragment and specialization |
+| Candidate | `index.rs` shares postings; `joining.rs` retains unaffected particle preparation | Share candidate preparation between different plans and maintain changed domains more locally |
+| Binding | `replay.rs` reuses bounded streams on unchanged domains | Retain surviving partial bindings after relevant changes |
+| Proof query | `runtime/matching.rs` shares exact target/frame/pattern queries | Share common query fragments while preserving consumer-specific projection |
+| Rewrite | `recipe.rs` compiles output construction | Reuse parameterized construction with explicit boundary dependencies |
+| History | Persistent state and exact provenance | Share additional flow and proof structure; later investigate causal representation |
+
+The direct path and exhaustive backward runtime have different responsibilities. Shared primitives can serve both, but migrating the exhaustive runtime cannot remove source inference or proof projection. Its separate algorithms are useful reference behavior, although some underlying storage and indexing are already shared.
+
+## Sharing from abstraction to instance
+
+Use a graph of reusable computations with explicit interfaces. A source-level abstraction is a discovery hint, not a sufficient cache key: lexical nesting and similar names do not establish semantic equivalence. Within a compiled matching plan, shared fragments form a directed acyclic graph. Recursive proof dependencies require separate strongly connected components and fixed-point processing.
+
+Demand travels from rule consumers toward the data needed by their plans. Changes travel from concrete data toward the affected derived computations. Neither direction imposes an execution order on Photonic firings.
+
+```mermaid
+flowchart TD
+    Consumer[Rule consumer] --> Plan[Shared program plan]
+    Plan --> Fragment[Shared matching fragment]
+    Fragment --> Context[Context specialization]
+    Context --> Domain[Candidate domain]
+    Domain --> Binding[Exact binding]
+    Binding --> Proof[Consumer-specific proof projection]
+```
+
+The first implementation discovers exact reuse. Intern identical operators with their child identity and parameter interface. Index symbol and multiplicity signatures to find candidate common fragments, then verify equality exactly. Search a bounded set of fragments already exposed by rule structure or observed reuse; do not enumerate every subset of every input. Any normalization of unordered structure must retain the permutation needed to restore existing input-position and reporting behavior.
+
+As an illustration, two plans that each require separate worlds containing `A` and `B`, followed by different requirements `C` and `D`, may share the `A`/`B` fragment in the same compatible context. Extension must still check that the third world is distinct, that resource multiplicity is valid, and that each consumer's evidence is compatible. Sharing the fragment does not share the entire proof.
+
+Later, parameterized templates can represent several structurally equal plans with different explicit parameters. Structural anti-unification is a candidate discovery technique only: the original constants and capture requirements must be reinstated at specialization. It must not introduce new pattern variables or change language matching.
+
+Use these cache boundaries:
+
+| Layer | Reusable value | Validity boundary |
+| --- | --- | --- |
+| Program | Immutable exact plan and recipe | Program identity and verified structural identity |
+| Summary | Conservative symbol, count, shape, and scope information | Snapshot or explicitly maintained dependency version |
+| Context | Plan specialized to its environment | Required ownership, capture, visibility, and boundary mapping |
+| Domain | Candidate occurrence and prepared particle match | Context plus site/resource generation and exact dependency |
+| Binding | Factorized partial result and enumeration frontier | All contributing domains, residual constraints, and consumer position mapping |
+| Proof | Shared derivation or parameterized construction | Exact source evidence, read support, capture mapping, and fresh identity substitution |
+
+Global immutable plans must never embed a live frame or resource identity. Initially use explicit conservative context keys. Reduce the key only after proving that omitted context cannot affect the value; arbitrary whole-state equivalence or unrestricted query containment is not a practical lookup operation.
+
+Sound summaries can avoid expensive refinement. For example, insufficient possible resource occurrences can rule out a current binding before token enumeration. Counts must conservatively account for sharing, alternative histories, capture eligibility, and world boundaries. Unknown or stale summaries fall through to exact evaluation. Negative results require a complete relevant search or a sound exclusion certificate and are invalidated on relevant changes.
+
+Demand must include every consumer required by the existing execution mode. In exhaustive mode, it cannot mean only the user's final expression or a favored proof branch. A suspended shared computation must retain enough state for every subscriber to receive its own complete result stream without duplication or starvation.
+
+## Incremental partial matching
+
+Replace whole-stream invalidation incrementally, with the current exact traversal available during development:
+
+1. Represent a reusable partial binding with explicit consumed occurrence, read dependency, capture dependency, and remaining constraint.
+2. Maintain reverse dependencies from changed sites and context components to affected fragments. Version reusable slots so a new occurrence cannot revive an old binding.
+3. Apply each rewrite's removals and insertions as one coherent delta relative to a snapshot. Do not expose partially updated indexes or mixed versions to a consumer.
+4. Preserve unaffected fragments. Extend inserted candidates against compatible retained fragments; retract only unsupported results. Handle simultaneous changes to several inputs without duplicate derivations.
+5. Keep result multiplicity and evidence distinct. A support count can maintain existence, but it cannot replace the identity of competing derivations or consumed resources.
+6. Enumerate products lazily with independent consumer cursors. Retain continuation state when a prefix is only partially explored.
+7. Bound retained state globally as well as locally. Eviction discards recomputable acceleration data, preserving required continuation and proof data. It never truncates answers.
+
+Cache admission uses measured reuse, construction cost, update rate, fanout, retained bytes, and logical records. Small or frequently changing queries can use direct traversal. Introduce deterministic policy and hysteresis before attempting sophisticated online tuning. Compare discovery and maintenance overhead against saved work, including consumers that stop early.
+
+The desired cost follows the changed dependency region plus newly demanded results. This is a workload-sensitive objective, not a bound that defeats combinatorial output size. If an update invalidates nearly every result, broad recomputation may be optimal.
+
+## Ownership and API design
+
+Move related state and its invariants into an owning component rather than adding more files containing methods on the same large `Runtime`.
+
+| Responsibility | Owns | Boundary |
+| --- | --- | --- |
+| Model | Program meaning and exact state | No scheduler, cache, or reporting dependency |
+| Storage | Persistent representation and allocation | Stable identity distinct from physical position |
+| Index | Derived lookup and graph metadata | Applies validated state changes |
+| Matching | Plan, domain, subscription, cursor, and reuse | Emits exact bindings; does not construct proof state |
+| Rewrite | Binding application and construction | Emits state, change, and required provenance |
+| Proof | Flow, evidence, support, and history | Preserves competing derivations |
+| Runtime | Agenda, suspension, limits, coordination | Composes components through explicit operations |
+| Report | Inspection and external representation | Reads a consistent snapshot |
+
+Begin with matching subscription/cache/cursor ownership and proof normalization ownership, which are currently fields of `Runtime`. Keep accounting owned alongside the structure it measures, with one consistent aggregate interface. Avoid independently maintained duplicate totals.
+
+Use distinct identity newtypes where interchange is invalid, with unabbreviated namespace-based naming such as `frame::Identity` and `resource::Identity`. A live stable site, a historical occurrence, and a current ordinal are different concepts. Use generation checks where reuse is possible; never expose arena placement as semantic identity.
+
+Replace positional argument groups with a named request when they describe one operation, particularly rewrite source/context/binding. Validate a binding against its snapshot at the boundary before applying it. Use concrete structs and enums, private fields, early returns, immutable plans, and exclusively owned mutable cursors. Introduce a trait only for a real substitution point. `Option`, `Result`, and `Poll` represent absence, failure, and cooperative progress respectively.
+
+Keep identifiers singular, one word, and unabbreviated. Put explanations and invariants in design documents. Remove dead paths after equivalence and performance acceptance; retain a deliberately small test oracle rather than a permanent duplicate production framework.
+
+Use explicit Bazel source lists and narrow visibility. Introduce crate boundaries only at stable ownership boundaries where dependency enforcement and incremental rebuild behavior justify them. Avoid a crate per file. Preserve hermetic native and WebAssembly builds with Bazel as the only system build prerequisite.
+
+## Delivery order
+
+| Stage | Work | Acceptance gate |
+| --- | --- | --- |
+| 0 | Record observables, benchmark manifest, and phase counters | Reproduce current arithmetic regression and matching gains on an isolated revision |
+| 1 | Extract matching and normalization ownership; tighten identity and request APIs | Exact existing snapshots and suspension behavior; no meaningful end-to-end regression |
+| 2 | Compile a shared exact fragment graph; retain consumer projections | Work saved across different rules, with bounded discovery cost and identical binding/proof multiplicity |
+| 3 | Add conservative summaries and demand-driven context specialization | No false rejection; complete exhaustive demand; cold and low-reuse workloads remain competitive |
+| 4 | Maintain bounded factorized partial matches under deltas | Insert/delete/reuse/pause sequences agree with fresh exhaustive enumeration; bounded retained memory |
+| 5 | Add adaptive intersection, residual assignment filtering, and safe decomposition | Benefit on skewed/wide constraints without regressions on simple matching |
+| 6 | Localize posting removal, reachability, fingerprint, and rewrite construction work | Exact full recomputation agrees through cyclic frame and capture mutation |
+| 7 | Share flow composition and proof support; add contextual rewrite templates | Full backward-inference and competing-evidence equivalence, including recursive support |
+| 8 | Develop compact causal history and an independence relation | Reconstruct all required observations; reduction only with a suitable equivalence argument |
+| 9 | Evaluate generic instruction fusion and parallel execution | Preserve synchronization, logical accounting, and inspection; measured native and browser benefit |
+
+Stages 2 through 4 are the first major algorithmic milestone. Stages 5 and 6 can change priority according to measured bottlenecks. Stages 8 and 9 are conditional research tracks, not promises that an implementation must contain these techniques to be complete.
+
+The first reviewable changes should be: semantic/performance harness, including the metaprogramming and recursion matrix below; ownership extraction; immutable shared fragment planning; conservative context reuse; then one delta-maintained fragment integrated end to end. Expand supported operators after that vertical slice passes the gates. Keep each change separately measurable so refactoring and algorithmic gains can be distinguished.
+
+The [dynamic construction proposal](dynamic.md) remains a separate semantic extension. These optimizations must not bake a permanently closed program catalog into every layer. Keep compiled plan storage separate from executable occurrence activation, make identity and invalidation explicit, and specify the extension boundary for future plan registration. Do not implement speculative dynamic syntax or unused compatibility machinery in this work.
+
+## Verification and measurement
+
+Use differential, generated, and metamorphic tests at stable boundaries. Compare full binding multisets and provenance, not only final arithmetic answers. The direct and exhaustive engines are compared only on their common semantic domain; backward inference also needs its own reference cases.
+
+Required adversarial coverage includes unordered permutations, administrative renaming, duplicate values with distinct identity, reused slots, captured equal code, competing histories, executable read dependencies, empty inputs, wide gates, interrupted enumeration, cyclic reachability, cyclic unsupported evidence, fingerprint collisions, simultaneous insertion/deletion, cache eviction, new subscribers, and exhaustion immediately around a delivery. Abstract filters must be checked against exact candidate enumeration.
+
+### Metaprogramming and recursion
+
+Deep metaprogramming is a release gate for optimization, not an optional benchmark. The requirement is zero known semantic regressions. Testing cannot establish the absence of all kernel bugs; combine independent expected results, bounded exhaustive comparison, invariant checks, and an explicit preservation argument for every new sharing or pruning rule. A disagreement blocks acceptance and must be minimized into a permanent regression case before continuing.
+
+Distinguish three capabilities when reporting coverage:
+
+| Capability | Current boundary | Test commitment |
+| --- | --- | --- |
+| Deep rules about rules | Complete nested rule values and whole-rule matching exist | Generate depth families that execute and transform nested rule values, preserving level, multiplicity, and capture |
+| Runtime rule occurrence production | A firing can emit executable code whose shape was compiled from the source | Exercise delayed activation, repeated production, replacement, consumption, and local execution |
+| Runtime construction of new rule shapes | Structural inspection and reconstruction remain the proposal in `dynamic.md` | Specify future acceptance cases; do not report precompiled rule emission as passing structural construction |
+
+Existing reference cases in `language/test/reference.json` cover whole-rule replacement, generated rule execution and nested bodies, escaped local definitions, competing code/data histories, and persistence of earlier results after code consumption. `language/test/support.rs` covers unsupported self-cycles and a seeded cycle. These provide anchors, but do not establish systematic deep or dynamically structural coverage. The examples in `program/language/dynamic.wave`, `replacement.wave`, and `capture.wave` are executable fixtures, not evidence that every planned scenario is already tested.
+
+Build the following matrix before enabling new shared matching behavior:
+
+| Family | Required observation |
+| --- | --- |
+| Nested execution | Rules emit rules that emit rules; the intended leaf becomes executable only through the required firings |
+| Nested matching | A meta-rule matches a complete nested rule; a near-identical value with a different inner input, output, multiplicity, or body must not match |
+| Deep capture | Equal code escapes distinct nested environments; each invocation retains its own lexical behavior through frame reclamation and reuse |
+| Shared description | Equal syntax can share storage while separate executable occurrences and their evidence remain distinct |
+| Delayed generation | A query initially has no matching executable occurrence; later production wakes it and invalidates any cached negative result |
+| Replacement and consumption | Replacing or consuming code changes future availability without deleting earlier results supported by valid reads |
+| Competing production | Code from one incompatible history cannot execute on data from another, including when both share a high-level plan |
+| Repeated generation | A finite program repeatedly produces fresh occurrences; cache and catalog growth do not merge them or impose an accidental lifetime cap |
+| Recursive execution | Seeded direct and mutual recursive behavior follows the existing cycle, support, and limit semantics |
+| Circular evidence | Self-support and mutually circular support without a grounding derivation establish no proof |
+| Suspension | Pausing during generation, matching, activation, or projection and then resuming agrees with uninterrupted execution |
+| Resource pressure | Eviction, tight limits, and slot reuse preserve evidence and report exhaustion through the existing contract |
+
+Recursion in execution does not require a rule's syntax to contain itself. Initially express recursion through existing rules, captured definitions, or repeated generation. Cyclic code values are a separate representation and semantic question, not a prerequisite. Do not add a fixed-point operator or new reflective syntax merely to exercise recursive execution.
+
+Generate families with depth, branching, capture count, and production count varied independently. Include depth 1, 2, 3, 8, 16, and 32 where admitted by existing resource limits, then use a separate stress sweep to discover practical boundaries. Begin with linear-size construction so exponentially growing source does not confound evaluator depth. Exercise parsing, compilation, matching, rewriting, canonicalization, reporting, and destruction; a runtime-only test can miss recursive stack failure elsewhere. Supported inputs must execute correctly, and larger inputs must not acquire an undocumented new semantic depth restriction from the optimization.
+
+Use hand-specified positive and forbidden results for small cases, full proof and binding comparison against a simple reference on tractable cases, and metamorphic renaming/permutation checks for larger cases. Test fresh and shared execution with cold, warm, invalidated, and evicted caches. Check derivation multiplicity and capture provenance as well as reachable labels. Agreement between two paths that share a faulty index is insufficient, so include direct enumeration and targeted invariants at that boundary. Run through native Bazel tests and browser conformance without changing expected records to accommodate a discrepancy.
+
+For future structural construction, the decisive test is one fixed source program whose runtime input controls increasing output-code depth or shape, without enumerating those shapes in the source. Add generator-of-generator execution, reconstruction of an unknown complete rule, mixed-origin captured fragments, and repeated recursive generation with exact flow preservation. Keep these as specification cases until the syntax and semantics are implemented; an ignored test or unsupported-syntax rejection is not a passing feature test.
+
+### Performance acceptance
+
+Measurements include existing arithmetic and expression programs, shared complete plans, shared fragments across different plans, many contexts with equal shape and different captures, disjoint plans with no reuse, high update rates, skewed domains, combinatorial products, frame churn, deep proof composition, and recursive proof support. Vary program size, sharing ratio, context count, and mutation density independently.
+
+Measure initialization, execution, reporting, release, peak bytes, retained logical records, actual transitions, candidate preparation, invalidated fragments, cache admissions, and cache reuse. Keep timers/counters out of hot paths when disabled. Use sequential paired optimized native Bazel runs with adequate warmup and enough samples to report dispersion; also measure cold execution and WebAssembly. Do not run competing builds during timings.
+
+Record the exact source revision and configuration. Select explicit regression tolerances from observed benchmark noise before evaluating a candidate. Require repeatable end-to-end improvement on the targeted workload and no unexplained regression beyond those tolerances on the protected workload set. Report failure and memory growth, not just successful medians. Preserve raw samples and reproduction commands.
+
+Before accepting a production stage, run the full Bazel test suite, formatting and lint checks, native/browser conformance, and relevant platform CI. Historical test results in `optimization.md` are not validation of a new change. Documentation-only planning does not require rerunning the runtime suite.
+
+## Research basis
+
+The implementation recommendation combines established techniques with current query-engine work. These sources provide algorithms and design precedents; none establishes Photonic equivalence automatically.
+
+- [Top-down and Bottom-up Evaluation Procedurally Integrated](https://arxiv.org/abs/1804.08443): subsumptive tabling with abstraction provides a close analogue for demanded general computations reused by specific queries.
+- [SWI-Prolog subsumptive tabling](https://www.swi-prolog.org/pldoc/man?section=tabling-subsumptive) and [incremental tabling](https://www.swi-prolog.org/pldoc/man?section=tabling-incremental): practical distinctions between query reuse and dependency maintenance. Photonic must retain its own resource and evidence rules.
+- [Abstract interpretation](https://www.di.ens.fr/~cousot/COUSOTpapers/POPL77.shtml): sound approximation motivates summaries that conservatively filter concrete work. The proposed initial filters do not require a general abstract interpreter.
+- [DBSP](https://docs.feldera.com/vldb23.pdf): compositional incremental maintenance, including multiset and recursive computations, informs delta propagation.
+- [Free Join](https://arxiv.org/abs/2301.10841): supports adaptive planning across traditional and worst-case-optimal joins rather than a universal algorithm replacement.
+- [FlowLog](https://arxiv.org/abs/2511.00865): separation of recursive control and relational plans informs ownership and subplan reuse.
+- [Maintaining Queries under Updates Using Heavy-Light Partitioning](https://arxiv.org/abs/2605.08397): a 2026 research candidate for skew-aware maintenance after simpler delta planning is measured.
+- [Unfolding-based Partial Order Reduction](https://arxiv.org/abs/1507.00980): motivates the later causal track, subject to a Photonic-specific independence relation and observation-preservation argument.

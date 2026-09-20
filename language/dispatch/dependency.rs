@@ -20,9 +20,11 @@ impl Network {
                 }
             } else {
                 self.missing[input] += 1;
-                if self.enabled.remove(&input) {
-                    self.altered.insert(input);
+                if self.missing[input] != 1 {
+                    continue;
                 }
+                self.enabled.remove(&input);
+                self.altered.insert(input);
                 for &owner in self.catalog.owner(input) {
                     if self.scope[owner].remove(&input) {
                         self.retained -= 1;

@@ -11,29 +11,48 @@ pub(crate) struct Result {
     pub layout: Layout,
 }
 
-fn remainder(source: &State, binding: &Binding, selected: &crate::basis::Set<Place>) -> Vec<Token> {
-    let mut value = BTreeMap::new();
-    for &world in &binding.world {
-        for token in &source.world[world].particle {
-            if selected.iter().any(|place| match place {
-                Place::World(_, id) | Place::Held(_, id) => *id == token.id,
-            }) {
-                continue;
-            }
-            value.entry(token.id).or_insert_with(|| token.clone());
-        }
-    }
-    value.into_values().collect()
+pub(crate) struct Request<'source> {
+    pub source: &'source State,
+    pub frame: usize,
+    pub owner: usize,
+    pub recipe: &'source Recipe,
+    pub binding: &'source Binding,
+    pub layout: &'source Layout,
 }
 
-pub(crate) fn apply(
-    source: &State,
-    frame: usize,
-    owner: usize,
-    recipe: &Recipe,
-    binding: &Binding,
-    layout: &Layout,
-) -> Result {
+fn remainder(source: &State, binding: &Binding, selected: &crate::basis::Set<Place>) -> Vec<Token> {
+    let selected = selected
+        .iter()
+        .map(|place| match place {
+            Place::World(_, id) | Place::Held(_, id) => *id,
+        })
+        .collect::<crate::basis::Set<_>>();
+    let mut value = smallvec::SmallVec::<[&Token; 8]>::new();
+    for &world in &binding.world {
+        for token in &source.world[world].particle {
+            if selected.contains(&token.id) {
+                continue;
+            }
+            value.push(token);
+        }
+    }
+    value.sort_by_key(|token| token.id);
+    value.dedup_by_key(|token| token.id);
+    value.into_iter().cloned().collect()
+}
+
+pub(crate) fn apply(request: Request<'_>) -> Result {
+    #[cfg(feature = "measurement")]
+    let _measurement =
+        crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Rewrite);
+    let Request {
+        source,
+        frame,
+        owner,
+        recipe,
+        binding,
+        layout,
+    } = request;
     let returning = owner == frame && frame != 0;
     let parent = if returning {
         source.frame[frame].parent.unwrap()

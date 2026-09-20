@@ -83,3 +83,55 @@ fn combination() {
         }
     }
 }
+
+#[test]
+fn preparation() {
+    for capture in [None, Some(0), Some(1)] {
+        for encoding in 0..256usize {
+            let pattern = (0..4)
+                .map(|position| match (encoding >> (position * 2)) & 3 {
+                    0 => Symbol::Atom(0),
+                    1 => Symbol::Atom(1),
+                    _ => Symbol::Rule(0),
+                })
+                .collect::<Vec<_>>();
+            let fragment = crate::pattern::Pattern::new(&pattern);
+            let pattern = pattern
+                .iter()
+                .map(|&value| Term::new(value, capture))
+                .collect::<Vec<_>>();
+            let mut particle = (0..8)
+                .map(|id| Token {
+                    id,
+                    value: match id % 3 {
+                        0 => Symbol::Atom(0),
+                        1 => Symbol::Atom(1),
+                        _ => Symbol::Rule(0),
+                    },
+                    capture: (id % 3 == 2).then_some(id % 2),
+                })
+                .collect::<Vec<_>>();
+            particle.push(particle[0].clone());
+            let mut expected = BTreeSet::new();
+            enumerate(&pattern, &particle, &mut Vec::new(), &mut expected);
+            let mut prepared = Match::prepared(&fragment, capture, &particle);
+            let mut reference = Match::new(&pattern, &particle);
+            for _ in 0..3 {
+                let mut actual = BTreeSet::new();
+                loop {
+                    let value = prepared.step();
+                    assert_eq!(value, reference.step());
+                    assert_eq!(prepared.retained(), reference.retained());
+                    match value {
+                        Poll::Ready(Some(value)) => assert!(actual.insert(value)),
+                        Poll::Ready(None) => break,
+                        Poll::Pending => {}
+                    }
+                }
+                assert_eq!(actual, expected);
+                prepared.reset();
+                reference.reset();
+            }
+        }
+    }
+}

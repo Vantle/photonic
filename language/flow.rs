@@ -59,6 +59,10 @@ impl Flow {
     }
 
     pub(crate) fn compose(&self, event: &Self) -> Self {
+        #[cfg(feature = "measurement")]
+        let _measurement = crate::measurement::profile::Scope::new(
+            crate::measurement::profile::Phase::Composition,
+        );
         let mut resource = HashMap::new();
         let mut context = HashMap::new();
         Self {

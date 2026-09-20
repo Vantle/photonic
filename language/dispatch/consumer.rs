@@ -20,8 +20,14 @@ impl Network {
             let mut owner = Some(frame);
             while let Some(current) = owner {
                 let scope = index.state.frame[current].scope;
-                for &input in selected.unwrap_or(&self.scope[scope]) {
-                    if !self.enabled.contains(&input) {
+                let available = &self.scope[scope];
+                let candidate = selected
+                    .filter(|selected| selected.len() < available.len())
+                    .unwrap_or(available);
+                for &input in candidate {
+                    if !available.contains(&input)
+                        || selected.is_some_and(|selected| !selected.contains(&input))
+                    {
                         continue;
                     }
                     let plan = self.catalog.input(input);

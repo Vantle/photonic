@@ -128,14 +128,14 @@ impl Search {
                 .into_iter()
                 .collect(),
         };
-        let result = crate::rewrite::apply(
-            &self.state,
-            candidate.frame,
-            candidate.owner,
-            &self.recipe[candidate.rule],
-            &binding,
-            &self.fingerprint.layout,
-        );
+        let result = crate::rewrite::apply(crate::rewrite::Request {
+            source: &self.state,
+            frame: candidate.frame,
+            owner: candidate.owner,
+            recipe: &self.recipe[candidate.rule],
+            binding: &binding,
+            layout: &self.fingerprint.layout,
+        });
         let state = Arc::new(result.state);
         let fingerprint = self
             .fingerprint

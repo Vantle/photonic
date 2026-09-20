@@ -1,0 +1,2906 @@
+{
+  "baseline": "03c5606a0e910e80fba00e519560e057af4aea85",
+  "case": [
+    {
+      "name": "expression",
+      "target": "expression",
+      "argument": [
+        "2*2*2*2*2*2",
+        "2101",
+        "--sample",
+        "7"
+      ],
+      "before": {
+        "expected": "2101",
+        "input": "2*2*2*2*2*2",
+        "measurement": [
+          {
+            "event": 10101,
+            "execution": 0.072061708,
+            "initialization": 0.00171275,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.071452917,
+            "initialization": 0.00172975,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.072649292,
+            "initialization": 0.001637167,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.071665667,
+            "initialization": 0.001627333,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.071117791,
+            "initialization": 0.0016735,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.072729542,
+            "initialization": 0.001672875,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.072299375,
+            "initialization": 0.001619334,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          }
+        ]
+      },
+      "after": {
+        "expected": "2101",
+        "input": "2*2*2*2*2*2",
+        "measurement": [
+          {
+            "event": 10101,
+            "execution": 0.06973225,
+            "initialization": 0.001860792,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.069253458,
+            "initialization": 0.001905625,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.074001416,
+            "initialization": 0.001869959,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.070348333,
+            "initialization": 0.001930959,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.068923375,
+            "initialization": 0.001860084,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.069197208,
+            "initialization": 0.001875125,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.068919416,
+            "initialization": 0.00184975,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          }
+        ]
+      }
+    },
+    {
+      "name": "addition",
+      "target": "arithmetic",
+      "argument": [
+        "1234567890",
+        "add",
+        "9876543210",
+        "--radix",
+        "10",
+        "--sample",
+        "7"
+      ],
+      "after": {
+        "decimal": "1234567890 + 9876543210 = 11111111100",
+        "input": "10012001001112202200+221111022110101020200",
+        "measurement": [
+          {
+            "event": 11839,
+            "execution": 0.204716416,
+            "initialization": 0.002109583,
+            "statistic": {
+              "bucket": 5,
+              "normalization": 1,
+              "preparation": 154535,
+              "refinement": 3910,
+              "resolution": 51,
+              "reuse": 36159
+            },
+            "work": 28977
+          },
+          {
+            "event": 11839,
+            "execution": 0.202301792,
+            "initialization": 0.002028709,
+            "statistic": {
+              "bucket": 5,
+              "normalization": 1,
+              "preparation": 154535,
+              "refinement": 3910,
+              "resolution": 51,
+              "reuse": 36159
+            },
+            "work": 28977
+          },
+          {
+            "event": 11839,
+            "execution": 0.202642458,
+            "initialization": 0.002057292,
+            "statistic": {
+              "bucket": 5,
+              "normalization": 1,
+              "preparation": 154535,
+              "refinement": 3910,
+              "resolution": 51,
+              "reuse": 36159
+            },
+            "work": 28977
+          },
+          {
+            "event": 11839,
+            "execution": 0.202486084,
+            "initialization": 0.002018709,
+            "statistic": {
+              "bucket": 5,
+              "normalization": 1,
+              "preparation": 154535,
+              "refinement": 3910,
+              "resolution": 51,
+              "reuse": 36159
+            },
+            "work": 28977
+          },
+          {
+            "event": 11839,
+            "execution": 0.202274791,
+            "initialization": 0.002030417,
+            "statistic": {
+              "bucket": 5,
+              "normalization": 1,
+              "preparation": 154535,
+              "refinement": 3910,
+              "resolution": 51,
+              "reuse": 36159
+            },
+            "work": 28977
+          },
+          {
+            "event": 11839,
+            "execution": 0.202760417,
+            "initialization": 0.002020333,
+            "statistic": {
+              "bucket": 5,
+              "normalization": 1,
+              "preparation": 154535,
+              "refinement": 3910,
+              "resolution": 51,
+              "reuse": 36159
+            },
+            "work": 28977
+          },
+          {
+            "event": 11839,
+            "execution": 0.201807458,
+            "initialization": 0.002006666,
+            "statistic": {
+              "bucket": 5,
+              "normalization": 1,
+              "preparation": 154535,
+              "refinement": 3910,
+              "resolution": 51,
+              "reuse": 36159
+            },
+            "work": 28977
+          }
+        ],
+        "source": "Push.([Digit] 0).Zero, Stage.1\n[Built,Stage.1] (Push.([Digit] 0)) (Forget.Stage.2)\n[Clean.Stage.2] Stage.2\n[Built,Stage.2] (Push.([Digit] 2)) (Forget.Stage.3)\n[Clean.Stage.3] Stage.3\n[Built,Stage.3] (Push.([Digit] 0)) (Forget.Stage.4)\n[Clean.Stage.4] Stage.4\n[Built,Stage.4] (Push.([Digit] 2)) (Forget.Stage.5)\n[Clean.Stage.5] Stage.5\n[Built,Stage.5] (Push.([Digit] 0)) (Forget.Stage.6)\n[Clean.Stage.6] Stage.6\n[Built,Stage.6] (Push.([Digit] 1)) (Forget.Stage.7)\n[Clean.Stage.7] Stage.7\n[Built,Stage.7] (Push.([Digit] 0)) (Forget.Stage.8)\n[Clean.Stage.8] Stage.8\n[Built,Stage.8] (Push.([Digit] 1)) (Forget.Stage.9)\n[Clean.Stage.9] Stage.9\n[Built,Stage.9] (Push.([Digit] 0)) (Forget.Stage.10)\n[Clean.Stage.10] Stage.10\n[Built,Stage.10] (Push.([Digit] 1)) (Forget.Stage.11)\n[Clean.Stage.11] Stage.11\n[Built,Stage.11] (Push.([Digit] 1)) (Forget.Stage.12)\n[Clean.Stage.12] Stage.12\n[Built,Stage.12] (Push.([Digit] 2)) (Forget.Stage.13)\n[Clean.Stage.13] Stage.13\n[Built,Stage.13] (Push.([Digit] 2)) (Forget.Stage.14)\n[Clean.Stage.14] Stage.14\n[Built,Stage.14] (Push.([Digit] 0)) (Forget.Stage.15)\n[Clean.Stage.15] Stage.15\n[Built,Stage.15] (Push.([Digit] 1)) (Forget.Stage.16)\n[Clean.Stage.16] Stage.16\n[Built,Stage.16] (Push.([Digit] 1)) (Forget.Stage.17)\n[Clean.Stage.17] Stage.17\n[Built,Stage.17] (Push.([Digit] 1)) (Forget.Stage.18)\n[Clean.Stage.18] Stage.18\n[Built,Stage.18] (Push.([Digit] 1)) (Forget.Stage.19)\n[Clean.Stage.19] Stage.19\n[Built,Stage.19] (Push.([Digit] 2)) (Forget.Stage.20)\n[Clean.Stage.20] Stage.20\n[Built,Stage.20] (Push.([Digit] 2)) (Forget.Stage.21)\n[Clean.Stage.21] Stage.21\n[Built,Stage.21] (Push.Add) (Forget.Stage.22)\n[Clean.Stage.22] Stage.22\n[Built,Stage.22] (Push.([Digit] 0)) (Forget.Stage.23)\n[Clean.Stage.23] Stage.23\n[Built,Stage.23] (Push.([Digit] 0)) (Forget.Stage.24)\n[Clean.Stage.24] Stage.24\n[Built,Stage.24] (Push.([Digit] 2)) (Forget.Stage.25)\n[Clean.Stage.25] Stage.25\n[Built,Stage.25] (Push.([Digit] 2)) (Forget.Stage.26)\n[Clean.Stage.26] Stage.26\n[Built,Stage.26] (Push.([Digit] 0)) (Forget.Stage.27)\n[Clean.Stage.27] Stage.27\n[Built,Stage.27] (Push.([Digit] 2)) (Forget.Stage.28)\n[Clean.Stage.28] Stage.28\n[Built,Stage.28] (Push.([Digit] 2)) (Forget.Stage.29)\n[Clean.Stage.29] Stage.29\n[Built,Stage.29] (Push.([Digit] 1)) (Forget.Stage.30)\n[Clean.Stage.30] Stage.30\n[Built,Stage.30] (Push.([Digit] 1)) (Forget.Stage.31)\n[Clean.Stage.31] Stage.31\n[Built,Stage.31] (Push.([Digit] 1)) (Forget.Stage.32)\n[Clean.Stage.32] Stage.32\n[Built,Stage.32] (Push.([Digit] 0)) (Forget.Stage.33)\n[Clean.Stage.33] Stage.33\n[Built,Stage.33] (Push.([Digit] 0)) (Forget.Stage.34)\n[Clean.Stage.34] Stage.34\n[Built,Stage.34] (Push.([Digit] 1)) (Forget.Stage.35)\n[Clean.Stage.35] Stage.35\n[Built,Stage.35] (Push.([Digit] 0)) (Forget.Stage.36)\n[Clean.Stage.36] Stage.36\n[Built,Stage.36] (Push.([Digit] 0)) (Forget.Stage.37)\n[Clean.Stage.37] Stage.37\n[Built,Stage.37] (Push.([Digit] 2)) (Forget.Stage.38)\n[Clean.Stage.38] Stage.38\n[Built,Stage.38] (Push.([Digit] 1)) (Forget.Stage.39)\n[Clean.Stage.39] Stage.39\n[Built,Stage.39] (Push.([Digit] 0)) (Forget.Stage.40)\n[Clean.Stage.40] Stage.40\n[Built,Stage.40] (Push.([Digit] 0)) (Forget.Stage.41)\n[Clean.Stage.41] Stage.41\n[Built,Stage.41] (Push.([Digit] 1)) (Forget.Stage.42)\n[Clean.Stage.42] Stage.42\n[Built,Stage.42] (Function.Expression) (Forget.Inspect.0)\n[Clean.Inspect.0] Inspect.0\n[Return.Expression.Number.Positive,Inspect.0] (Read) (Forget.Inspect.1)\n[Clean.Inspect.1] Inspect.1\n[Yield.([Digit] 0),Inspect.1] (Read) (Forget.Inspect.2)\n[Clean.Inspect.2] Inspect.2\n[Yield.([Digit] 0),Inspect.2] (Read) (Forget.Inspect.3)\n[Clean.Inspect.3] Inspect.3\n[Yield.([Digit] 1),Inspect.3] (Read) (Forget.Inspect.4)\n[Clean.Inspect.4] Inspect.4\n[Yield.([Digit] 0),Inspect.4] (Read) (Forget.Inspect.5)\n[Clean.Inspect.5] Inspect.5\n[Yield.([Digit] 0),Inspect.5] (Read) (Forget.Inspect.6)\n[Clean.Inspect.6] Inspect.6\n[Yield.([Digit] 0),Inspect.6] (Read) (Forget.Inspect.7)\n[Clean.Inspect.7] Inspect.7\n[Yield.([Digit] 1),Inspect.7] (Read) (Forget.Inspect.8)\n[Clean.Inspect.8] Inspect.8\n[Yield.([Digit] 2),Inspect.8] (Read) (Forget.Inspect.9)\n[Clean.Inspect.9] Inspect.9\n[Yield.([Digit] 2),Inspect.9] (Read) (Forget.Inspect.10)\n[Clean.Inspect.10] Inspect.10\n[Yield.([Digit] 1),Inspect.10] (Read) (Forget.Inspect.11)\n[Clean.Inspect.11] Inspect.11\n[Yield.([Digit] 1),Inspect.11] (Read) (Forget.Inspect.12)\n[Clean.Inspect.12] Inspect.12\n[Yield.([Digit] 1),Inspect.12] (Read) (Forget.Inspect.13)\n[Clean.Inspect.13] Inspect.13\n[Yield.([Digit] 0),Inspect.13] (Read) (Forget.Inspect.14)\n[Clean.Inspect.14] Inspect.14\n[Yield.([Digit] 0),Inspect.14] (Read) (Forget.Inspect.15)\n[Clean.Inspect.15] Inspect.15\n[Yield.([Digit] 1),Inspect.15] (Read) (Forget.Inspect.16)\n[Clean.Inspect.16] Inspect.16\n[Yield.([Digit] 0),Inspect.16] (Read) (Forget.Inspect.17)\n[Clean.Inspect.17] Inspect.17\n[Yield.([Digit] 0),Inspect.17] (Read) (Forget.Inspect.18)\n[Clean.Inspect.18] Inspect.18\n[Yield.([Digit] 2),Inspect.18] (Read) (Forget.Inspect.19)\n[Clean.Inspect.19] Inspect.19\n[Yield.([Digit] 1),Inspect.19] (Read) (Forget.Inspect.20)\n[Clean.Inspect.20] Inspect.20\n[Yield.([Digit] 0),Inspect.20] (Read) (Forget.Inspect.21)\n[Clean.Inspect.21] Inspect.21\n[Yield.([Digit] 0),Inspect.21] (Read) (Forget.Inspect.22)\n[Clean.Inspect.22] Inspect.22\n[Yield.([Digit] 1).Zero,Inspect.22] Done.Zero\n",
+        "ternary": "1001200100111221000100"
+      },
+      "before": {
+        "decimal": "1234567890 + 9876543210 = 11111111100",
+        "input": "10012001001112202200+221111022110101020200",
+        "measurement": [
+          {
+            "event": 11839,
+            "execution": 0.205226084,
+            "initialization": 0.001885167,
+            "statistic": {
+              "bucket": 5,
+              "normalization": 1,
+              "preparation": 154535,
+              "refinement": 3910,
+              "resolution": 51,
+              "reuse": 36159
+            },
+            "work": 28977
+          },
+          {
+            "event": 11839,
+            "execution": 0.2052355,
+            "initialization": 0.001832375,
+            "statistic": {
+              "bucket": 5,
+              "normalization": 1,
+              "preparation": 154535,
+              "refinement": 3910,
+              "resolution": 51,
+              "reuse": 36159
+            },
+            "work": 28977
+          },
+          {
+            "event": 11839,
+            "execution": 0.204126291,
+            "initialization": 0.001768208,
+            "statistic": {
+              "bucket": 5,
+              "normalization": 1,
+              "preparation": 154535,
+              "refinement": 3910,
+              "resolution": 51,
+              "reuse": 36159
+            },
+            "work": 28977
+          },
+          {
+            "event": 11839,
+            "execution": 0.204438333,
+            "initialization": 0.001812417,
+            "statistic": {
+              "bucket": 5,
+              "normalization": 1,
+              "preparation": 154535,
+              "refinement": 3910,
+              "resolution": 51,
+              "reuse": 36159
+            },
+            "work": 28977
+          },
+          {
+            "event": 11839,
+            "execution": 0.203588791,
+            "initialization": 0.001749333,
+            "statistic": {
+              "bucket": 5,
+              "normalization": 1,
+              "preparation": 154535,
+              "refinement": 3910,
+              "resolution": 51,
+              "reuse": 36159
+            },
+            "work": 28977
+          },
+          {
+            "event": 11839,
+            "execution": 0.204053375,
+            "initialization": 0.001760667,
+            "statistic": {
+              "bucket": 5,
+              "normalization": 1,
+              "preparation": 154535,
+              "refinement": 3910,
+              "resolution": 51,
+              "reuse": 36159
+            },
+            "work": 28977
+          },
+          {
+            "event": 11839,
+            "execution": 0.204889208,
+            "initialization": 0.001790291,
+            "statistic": {
+              "bucket": 5,
+              "normalization": 1,
+              "preparation": 154535,
+              "refinement": 3910,
+              "resolution": 51,
+              "reuse": 36159
+            },
+            "work": 28977
+          }
+        ],
+        "source": "Push.([Digit] 0).Zero, Stage.1\n[Built,Stage.1] (Push.([Digit] 0)) (Forget.Stage.2)\n[Clean.Stage.2] Stage.2\n[Built,Stage.2] (Push.([Digit] 2)) (Forget.Stage.3)\n[Clean.Stage.3] Stage.3\n[Built,Stage.3] (Push.([Digit] 0)) (Forget.Stage.4)\n[Clean.Stage.4] Stage.4\n[Built,Stage.4] (Push.([Digit] 2)) (Forget.Stage.5)\n[Clean.Stage.5] Stage.5\n[Built,Stage.5] (Push.([Digit] 0)) (Forget.Stage.6)\n[Clean.Stage.6] Stage.6\n[Built,Stage.6] (Push.([Digit] 1)) (Forget.Stage.7)\n[Clean.Stage.7] Stage.7\n[Built,Stage.7] (Push.([Digit] 0)) (Forget.Stage.8)\n[Clean.Stage.8] Stage.8\n[Built,Stage.8] (Push.([Digit] 1)) (Forget.Stage.9)\n[Clean.Stage.9] Stage.9\n[Built,Stage.9] (Push.([Digit] 0)) (Forget.Stage.10)\n[Clean.Stage.10] Stage.10\n[Built,Stage.10] (Push.([Digit] 1)) (Forget.Stage.11)\n[Clean.Stage.11] Stage.11\n[Built,Stage.11] (Push.([Digit] 1)) (Forget.Stage.12)\n[Clean.Stage.12] Stage.12\n[Built,Stage.12] (Push.([Digit] 2)) (Forget.Stage.13)\n[Clean.Stage.13] Stage.13\n[Built,Stage.13] (Push.([Digit] 2)) (Forget.Stage.14)\n[Clean.Stage.14] Stage.14\n[Built,Stage.14] (Push.([Digit] 0)) (Forget.Stage.15)\n[Clean.Stage.15] Stage.15\n[Built,Stage.15] (Push.([Digit] 1)) (Forget.Stage.16)\n[Clean.Stage.16] Stage.16\n[Built,Stage.16] (Push.([Digit] 1)) (Forget.Stage.17)\n[Clean.Stage.17] Stage.17\n[Built,Stage.17] (Push.([Digit] 1)) (Forget.Stage.18)\n[Clean.Stage.18] Stage.18\n[Built,Stage.18] (Push.([Digit] 1)) (Forget.Stage.19)\n[Clean.Stage.19] Stage.19\n[Built,Stage.19] (Push.([Digit] 2)) (Forget.Stage.20)\n[Clean.Stage.20] Stage.20\n[Built,Stage.20] (Push.([Digit] 2)) (Forget.Stage.21)\n[Clean.Stage.21] Stage.21\n[Built,Stage.21] (Push.Add) (Forget.Stage.22)\n[Clean.Stage.22] Stage.22\n[Built,Stage.22] (Push.([Digit] 0)) (Forget.Stage.23)\n[Clean.Stage.23] Stage.23\n[Built,Stage.23] (Push.([Digit] 0)) (Forget.Stage.24)\n[Clean.Stage.24] Stage.24\n[Built,Stage.24] (Push.([Digit] 2)) (Forget.Stage.25)\n[Clean.Stage.25] Stage.25\n[Built,Stage.25] (Push.([Digit] 2)) (Forget.Stage.26)\n[Clean.Stage.26] Stage.26\n[Built,Stage.26] (Push.([Digit] 0)) (Forget.Stage.27)\n[Clean.Stage.27] Stage.27\n[Built,Stage.27] (Push.([Digit] 2)) (Forget.Stage.28)\n[Clean.Stage.28] Stage.28\n[Built,Stage.28] (Push.([Digit] 2)) (Forget.Stage.29)\n[Clean.Stage.29] Stage.29\n[Built,Stage.29] (Push.([Digit] 1)) (Forget.Stage.30)\n[Clean.Stage.30] Stage.30\n[Built,Stage.30] (Push.([Digit] 1)) (Forget.Stage.31)\n[Clean.Stage.31] Stage.31\n[Built,Stage.31] (Push.([Digit] 1)) (Forget.Stage.32)\n[Clean.Stage.32] Stage.32\n[Built,Stage.32] (Push.([Digit] 0)) (Forget.Stage.33)\n[Clean.Stage.33] Stage.33\n[Built,Stage.33] (Push.([Digit] 0)) (Forget.Stage.34)\n[Clean.Stage.34] Stage.34\n[Built,Stage.34] (Push.([Digit] 1)) (Forget.Stage.35)\n[Clean.Stage.35] Stage.35\n[Built,Stage.35] (Push.([Digit] 0)) (Forget.Stage.36)\n[Clean.Stage.36] Stage.36\n[Built,Stage.36] (Push.([Digit] 0)) (Forget.Stage.37)\n[Clean.Stage.37] Stage.37\n[Built,Stage.37] (Push.([Digit] 2)) (Forget.Stage.38)\n[Clean.Stage.38] Stage.38\n[Built,Stage.38] (Push.([Digit] 1)) (Forget.Stage.39)\n[Clean.Stage.39] Stage.39\n[Built,Stage.39] (Push.([Digit] 0)) (Forget.Stage.40)\n[Clean.Stage.40] Stage.40\n[Built,Stage.40] (Push.([Digit] 0)) (Forget.Stage.41)\n[Clean.Stage.41] Stage.41\n[Built,Stage.41] (Push.([Digit] 1)) (Forget.Stage.42)\n[Clean.Stage.42] Stage.42\n[Built,Stage.42] (Function.Expression) (Forget.Inspect.0)\n[Clean.Inspect.0] Inspect.0\n[Return.Expression.Number.Positive,Inspect.0] (Read) (Forget.Inspect.1)\n[Clean.Inspect.1] Inspect.1\n[Yield.([Digit] 0),Inspect.1] (Read) (Forget.Inspect.2)\n[Clean.Inspect.2] Inspect.2\n[Yield.([Digit] 0),Inspect.2] (Read) (Forget.Inspect.3)\n[Clean.Inspect.3] Inspect.3\n[Yield.([Digit] 1),Inspect.3] (Read) (Forget.Inspect.4)\n[Clean.Inspect.4] Inspect.4\n[Yield.([Digit] 0),Inspect.4] (Read) (Forget.Inspect.5)\n[Clean.Inspect.5] Inspect.5\n[Yield.([Digit] 0),Inspect.5] (Read) (Forget.Inspect.6)\n[Clean.Inspect.6] Inspect.6\n[Yield.([Digit] 0),Inspect.6] (Read) (Forget.Inspect.7)\n[Clean.Inspect.7] Inspect.7\n[Yield.([Digit] 1),Inspect.7] (Read) (Forget.Inspect.8)\n[Clean.Inspect.8] Inspect.8\n[Yield.([Digit] 2),Inspect.8] (Read) (Forget.Inspect.9)\n[Clean.Inspect.9] Inspect.9\n[Yield.([Digit] 2),Inspect.9] (Read) (Forget.Inspect.10)\n[Clean.Inspect.10] Inspect.10\n[Yield.([Digit] 1),Inspect.10] (Read) (Forget.Inspect.11)\n[Clean.Inspect.11] Inspect.11\n[Yield.([Digit] 1),Inspect.11] (Read) (Forget.Inspect.12)\n[Clean.Inspect.12] Inspect.12\n[Yield.([Digit] 1),Inspect.12] (Read) (Forget.Inspect.13)\n[Clean.Inspect.13] Inspect.13\n[Yield.([Digit] 0),Inspect.13] (Read) (Forget.Inspect.14)\n[Clean.Inspect.14] Inspect.14\n[Yield.([Digit] 0),Inspect.14] (Read) (Forget.Inspect.15)\n[Clean.Inspect.15] Inspect.15\n[Yield.([Digit] 1),Inspect.15] (Read) (Forget.Inspect.16)\n[Clean.Inspect.16] Inspect.16\n[Yield.([Digit] 0),Inspect.16] (Read) (Forget.Inspect.17)\n[Clean.Inspect.17] Inspect.17\n[Yield.([Digit] 0),Inspect.17] (Read) (Forget.Inspect.18)\n[Clean.Inspect.18] Inspect.18\n[Yield.([Digit] 2),Inspect.18] (Read) (Forget.Inspect.19)\n[Clean.Inspect.19] Inspect.19\n[Yield.([Digit] 1),Inspect.19] (Read) (Forget.Inspect.20)\n[Clean.Inspect.20] Inspect.20\n[Yield.([Digit] 0),Inspect.20] (Read) (Forget.Inspect.21)\n[Clean.Inspect.21] Inspect.21\n[Yield.([Digit] 0),Inspect.21] (Read) (Forget.Inspect.22)\n[Clean.Inspect.22] Inspect.22\n[Yield.([Digit] 1).Zero,Inspect.22] Done.Zero\n",
+        "ternary": "1001200100111221000100"
+      }
+    },
+    {
+      "name": "multiplication",
+      "target": "arithmetic",
+      "argument": [
+        "12345",
+        "multiply",
+        "67890",
+        "--radix",
+        "10",
+        "--sample",
+        "7"
+      ],
+      "before": {
+        "decimal": "12345 * 67890 = 838102050",
+        "input": "121221020*10110010110",
+        "measurement": [
+          {
+            "event": 17806,
+            "execution": 0.231342084,
+            "initialization": 0.001815792,
+            "statistic": {
+              "bucket": 4,
+              "normalization": 1,
+              "preparation": 206426,
+              "refinement": 3728,
+              "resolution": 291,
+              "reuse": 42792
+            },
+            "work": 43575
+          },
+          {
+            "event": 17806,
+            "execution": 0.229014167,
+            "initialization": 0.00175625,
+            "statistic": {
+              "bucket": 4,
+              "normalization": 1,
+              "preparation": 206426,
+              "refinement": 3728,
+              "resolution": 291,
+              "reuse": 42792
+            },
+            "work": 43575
+          },
+          {
+            "event": 17806,
+            "execution": 0.230777584,
+            "initialization": 0.001753542,
+            "statistic": {
+              "bucket": 4,
+              "normalization": 1,
+              "preparation": 206426,
+              "refinement": 3728,
+              "resolution": 291,
+              "reuse": 42792
+            },
+            "work": 43575
+          },
+          {
+            "event": 17806,
+            "execution": 0.229615959,
+            "initialization": 0.001728792,
+            "statistic": {
+              "bucket": 4,
+              "normalization": 1,
+              "preparation": 206426,
+              "refinement": 3728,
+              "resolution": 291,
+              "reuse": 42792
+            },
+            "work": 43575
+          },
+          {
+            "event": 17806,
+            "execution": 0.23044925,
+            "initialization": 0.001719375,
+            "statistic": {
+              "bucket": 4,
+              "normalization": 1,
+              "preparation": 206426,
+              "refinement": 3728,
+              "resolution": 291,
+              "reuse": 42792
+            },
+            "work": 43575
+          },
+          {
+            "event": 17806,
+            "execution": 0.230510541,
+            "initialization": 0.001756375,
+            "statistic": {
+              "bucket": 4,
+              "normalization": 1,
+              "preparation": 206426,
+              "refinement": 3728,
+              "resolution": 291,
+              "reuse": 42792
+            },
+            "work": 43575
+          },
+          {
+            "event": 17806,
+            "execution": 0.2294625,
+            "initialization": 0.001714334,
+            "statistic": {
+              "bucket": 4,
+              "normalization": 1,
+              "preparation": 206426,
+              "refinement": 3728,
+              "resolution": 291,
+              "reuse": 42792
+            },
+            "work": 43575
+          }
+        ],
+        "source": "Push.([Digit] 0).Zero, Stage.1\n[Built,Stage.1] (Push.([Digit] 1)) (Forget.Stage.2)\n[Clean.Stage.2] Stage.2\n[Built,Stage.2] (Push.([Digit] 1)) (Forget.Stage.3)\n[Clean.Stage.3] Stage.3\n[Built,Stage.3] (Push.([Digit] 0)) (Forget.Stage.4)\n[Clean.Stage.4] Stage.4\n[Built,Stage.4] (Push.([Digit] 1)) (Forget.Stage.5)\n[Clean.Stage.5] Stage.5\n[Built,Stage.5] (Push.([Digit] 0)) (Forget.Stage.6)\n[Clean.Stage.6] Stage.6\n[Built,Stage.6] (Push.([Digit] 0)) (Forget.Stage.7)\n[Clean.Stage.7] Stage.7\n[Built,Stage.7] (Push.([Digit] 1)) (Forget.Stage.8)\n[Clean.Stage.8] Stage.8\n[Built,Stage.8] (Push.([Digit] 1)) (Forget.Stage.9)\n[Clean.Stage.9] Stage.9\n[Built,Stage.9] (Push.([Digit] 0)) (Forget.Stage.10)\n[Clean.Stage.10] Stage.10\n[Built,Stage.10] (Push.([Digit] 1)) (Forget.Stage.11)\n[Clean.Stage.11] Stage.11\n[Built,Stage.11] (Push.Multiply) (Forget.Stage.12)\n[Clean.Stage.12] Stage.12\n[Built,Stage.12] (Push.([Digit] 0)) (Forget.Stage.13)\n[Clean.Stage.13] Stage.13\n[Built,Stage.13] (Push.([Digit] 2)) (Forget.Stage.14)\n[Clean.Stage.14] Stage.14\n[Built,Stage.14] (Push.([Digit] 0)) (Forget.Stage.15)\n[Clean.Stage.15] Stage.15\n[Built,Stage.15] (Push.([Digit] 1)) (Forget.Stage.16)\n[Clean.Stage.16] Stage.16\n[Built,Stage.16] (Push.([Digit] 2)) (Forget.Stage.17)\n[Clean.Stage.17] Stage.17\n[Built,Stage.17] (Push.([Digit] 2)) (Forget.Stage.18)\n[Clean.Stage.18] Stage.18\n[Built,Stage.18] (Push.([Digit] 1)) (Forget.Stage.19)\n[Clean.Stage.19] Stage.19\n[Built,Stage.19] (Push.([Digit] 2)) (Forget.Stage.20)\n[Clean.Stage.20] Stage.20\n[Built,Stage.20] (Push.([Digit] 1)) (Forget.Stage.21)\n[Clean.Stage.21] Stage.21\n[Built,Stage.21] (Function.Expression) (Forget.Inspect.0)\n[Clean.Inspect.0] Inspect.0\n[Return.Expression.Number.Positive,Inspect.0] (Read) (Forget.Inspect.1)\n[Clean.Inspect.1] Inspect.1\n[Yield.([Digit] 0),Inspect.1] (Read) (Forget.Inspect.2)\n[Clean.Inspect.2] Inspect.2\n[Yield.([Digit] 0),Inspect.2] (Read) (Forget.Inspect.3)\n[Clean.Inspect.3] Inspect.3\n[Yield.([Digit] 2),Inspect.3] (Read) (Forget.Inspect.4)\n[Clean.Inspect.4] Inspect.4\n[Yield.([Digit] 2),Inspect.4] (Read) (Forget.Inspect.5)\n[Clean.Inspect.5] Inspect.5\n[Yield.([Digit] 1),Inspect.5] (Read) (Forget.Inspect.6)\n[Clean.Inspect.6] Inspect.6\n[Yield.([Digit] 2),Inspect.6] (Read) (Forget.Inspect.7)\n[Clean.Inspect.7] Inspect.7\n[Yield.([Digit] 2),Inspect.7] (Read) (Forget.Inspect.8)\n[Clean.Inspect.8] Inspect.8\n[Yield.([Digit] 2),Inspect.8] (Read) (Forget.Inspect.9)\n[Clean.Inspect.9] Inspect.9\n[Yield.([Digit] 2),Inspect.9] (Read) (Forget.Inspect.10)\n[Clean.Inspect.10] Inspect.10\n[Yield.([Digit] 0),Inspect.10] (Read) (Forget.Inspect.11)\n[Clean.Inspect.11] Inspect.11\n[Yield.([Digit] 0),Inspect.11] (Read) (Forget.Inspect.12)\n[Clean.Inspect.12] Inspect.12\n[Yield.([Digit] 0),Inspect.12] (Read) (Forget.Inspect.13)\n[Clean.Inspect.13] Inspect.13\n[Yield.([Digit] 2),Inspect.13] (Read) (Forget.Inspect.14)\n[Clean.Inspect.14] Inspect.14\n[Yield.([Digit] 0),Inspect.14] (Read) (Forget.Inspect.15)\n[Clean.Inspect.15] Inspect.15\n[Yield.([Digit] 1),Inspect.15] (Read) (Forget.Inspect.16)\n[Clean.Inspect.16] Inspect.16\n[Yield.([Digit] 1),Inspect.16] (Read) (Forget.Inspect.17)\n[Clean.Inspect.17] Inspect.17\n[Yield.([Digit] 1),Inspect.17] (Read) (Forget.Inspect.18)\n[Clean.Inspect.18] Inspect.18\n[Yield.([Digit] 0),Inspect.18] (Read) (Forget.Inspect.19)\n[Clean.Inspect.19] Inspect.19\n[Yield.([Digit] 2).Zero,Inspect.19] Done.Zero\n",
+        "ternary": "2011102000222212200"
+      },
+      "after": {
+        "decimal": "12345 * 67890 = 838102050",
+        "input": "121221020*10110010110",
+        "measurement": [
+          {
+            "event": 17806,
+            "execution": 0.226102875,
+            "initialization": 0.002081667,
+            "statistic": {
+              "bucket": 4,
+              "normalization": 1,
+              "preparation": 206426,
+              "refinement": 3728,
+              "resolution": 291,
+              "reuse": 42792
+            },
+            "work": 43575
+          },
+          {
+            "event": 17806,
+            "execution": 0.224254208,
+            "initialization": 0.001950625,
+            "statistic": {
+              "bucket": 4,
+              "normalization": 1,
+              "preparation": 206426,
+              "refinement": 3728,
+              "resolution": 291,
+              "reuse": 42792
+            },
+            "work": 43575
+          },
+          {
+            "event": 17806,
+            "execution": 0.225127,
+            "initialization": 0.001948292,
+            "statistic": {
+              "bucket": 4,
+              "normalization": 1,
+              "preparation": 206426,
+              "refinement": 3728,
+              "resolution": 291,
+              "reuse": 42792
+            },
+            "work": 43575
+          },
+          {
+            "event": 17806,
+            "execution": 0.225516,
+            "initialization": 0.0019585,
+            "statistic": {
+              "bucket": 4,
+              "normalization": 1,
+              "preparation": 206426,
+              "refinement": 3728,
+              "resolution": 291,
+              "reuse": 42792
+            },
+            "work": 43575
+          },
+          {
+            "event": 17806,
+            "execution": 0.226227875,
+            "initialization": 0.001977416,
+            "statistic": {
+              "bucket": 4,
+              "normalization": 1,
+              "preparation": 206426,
+              "refinement": 3728,
+              "resolution": 291,
+              "reuse": 42792
+            },
+            "work": 43575
+          },
+          {
+            "event": 17806,
+            "execution": 0.22468325,
+            "initialization": 0.001926583,
+            "statistic": {
+              "bucket": 4,
+              "normalization": 1,
+              "preparation": 206426,
+              "refinement": 3728,
+              "resolution": 291,
+              "reuse": 42792
+            },
+            "work": 43575
+          },
+          {
+            "event": 17806,
+            "execution": 0.224532792,
+            "initialization": 0.001917958,
+            "statistic": {
+              "bucket": 4,
+              "normalization": 1,
+              "preparation": 206426,
+              "refinement": 3728,
+              "resolution": 291,
+              "reuse": 42792
+            },
+            "work": 43575
+          }
+        ],
+        "source": "Push.([Digit] 0).Zero, Stage.1\n[Built,Stage.1] (Push.([Digit] 1)) (Forget.Stage.2)\n[Clean.Stage.2] Stage.2\n[Built,Stage.2] (Push.([Digit] 1)) (Forget.Stage.3)\n[Clean.Stage.3] Stage.3\n[Built,Stage.3] (Push.([Digit] 0)) (Forget.Stage.4)\n[Clean.Stage.4] Stage.4\n[Built,Stage.4] (Push.([Digit] 1)) (Forget.Stage.5)\n[Clean.Stage.5] Stage.5\n[Built,Stage.5] (Push.([Digit] 0)) (Forget.Stage.6)\n[Clean.Stage.6] Stage.6\n[Built,Stage.6] (Push.([Digit] 0)) (Forget.Stage.7)\n[Clean.Stage.7] Stage.7\n[Built,Stage.7] (Push.([Digit] 1)) (Forget.Stage.8)\n[Clean.Stage.8] Stage.8\n[Built,Stage.8] (Push.([Digit] 1)) (Forget.Stage.9)\n[Clean.Stage.9] Stage.9\n[Built,Stage.9] (Push.([Digit] 0)) (Forget.Stage.10)\n[Clean.Stage.10] Stage.10\n[Built,Stage.10] (Push.([Digit] 1)) (Forget.Stage.11)\n[Clean.Stage.11] Stage.11\n[Built,Stage.11] (Push.Multiply) (Forget.Stage.12)\n[Clean.Stage.12] Stage.12\n[Built,Stage.12] (Push.([Digit] 0)) (Forget.Stage.13)\n[Clean.Stage.13] Stage.13\n[Built,Stage.13] (Push.([Digit] 2)) (Forget.Stage.14)\n[Clean.Stage.14] Stage.14\n[Built,Stage.14] (Push.([Digit] 0)) (Forget.Stage.15)\n[Clean.Stage.15] Stage.15\n[Built,Stage.15] (Push.([Digit] 1)) (Forget.Stage.16)\n[Clean.Stage.16] Stage.16\n[Built,Stage.16] (Push.([Digit] 2)) (Forget.Stage.17)\n[Clean.Stage.17] Stage.17\n[Built,Stage.17] (Push.([Digit] 2)) (Forget.Stage.18)\n[Clean.Stage.18] Stage.18\n[Built,Stage.18] (Push.([Digit] 1)) (Forget.Stage.19)\n[Clean.Stage.19] Stage.19\n[Built,Stage.19] (Push.([Digit] 2)) (Forget.Stage.20)\n[Clean.Stage.20] Stage.20\n[Built,Stage.20] (Push.([Digit] 1)) (Forget.Stage.21)\n[Clean.Stage.21] Stage.21\n[Built,Stage.21] (Function.Expression) (Forget.Inspect.0)\n[Clean.Inspect.0] Inspect.0\n[Return.Expression.Number.Positive,Inspect.0] (Read) (Forget.Inspect.1)\n[Clean.Inspect.1] Inspect.1\n[Yield.([Digit] 0),Inspect.1] (Read) (Forget.Inspect.2)\n[Clean.Inspect.2] Inspect.2\n[Yield.([Digit] 0),Inspect.2] (Read) (Forget.Inspect.3)\n[Clean.Inspect.3] Inspect.3\n[Yield.([Digit] 2),Inspect.3] (Read) (Forget.Inspect.4)\n[Clean.Inspect.4] Inspect.4\n[Yield.([Digit] 2),Inspect.4] (Read) (Forget.Inspect.5)\n[Clean.Inspect.5] Inspect.5\n[Yield.([Digit] 1),Inspect.5] (Read) (Forget.Inspect.6)\n[Clean.Inspect.6] Inspect.6\n[Yield.([Digit] 2),Inspect.6] (Read) (Forget.Inspect.7)\n[Clean.Inspect.7] Inspect.7\n[Yield.([Digit] 2),Inspect.7] (Read) (Forget.Inspect.8)\n[Clean.Inspect.8] Inspect.8\n[Yield.([Digit] 2),Inspect.8] (Read) (Forget.Inspect.9)\n[Clean.Inspect.9] Inspect.9\n[Yield.([Digit] 2),Inspect.9] (Read) (Forget.Inspect.10)\n[Clean.Inspect.10] Inspect.10\n[Yield.([Digit] 0),Inspect.10] (Read) (Forget.Inspect.11)\n[Clean.Inspect.11] Inspect.11\n[Yield.([Digit] 0),Inspect.11] (Read) (Forget.Inspect.12)\n[Clean.Inspect.12] Inspect.12\n[Yield.([Digit] 0),Inspect.12] (Read) (Forget.Inspect.13)\n[Clean.Inspect.13] Inspect.13\n[Yield.([Digit] 2),Inspect.13] (Read) (Forget.Inspect.14)\n[Clean.Inspect.14] Inspect.14\n[Yield.([Digit] 0),Inspect.14] (Read) (Forget.Inspect.15)\n[Clean.Inspect.15] Inspect.15\n[Yield.([Digit] 1),Inspect.15] (Read) (Forget.Inspect.16)\n[Clean.Inspect.16] Inspect.16\n[Yield.([Digit] 1),Inspect.16] (Read) (Forget.Inspect.17)\n[Clean.Inspect.17] Inspect.17\n[Yield.([Digit] 1),Inspect.17] (Read) (Forget.Inspect.18)\n[Clean.Inspect.18] Inspect.18\n[Yield.([Digit] 0),Inspect.18] (Read) (Forget.Inspect.19)\n[Clean.Inspect.19] Inspect.19\n[Yield.([Digit] 2).Zero,Inspect.19] Done.Zero\n",
+        "ternary": "2011102000222212200"
+      }
+    },
+    {
+      "name": "fragment",
+      "target": "fragment",
+      "argument": [
+        "--width",
+        "64",
+        "--size",
+        "256",
+        "--length",
+        "100",
+        "--sample",
+        "7"
+      ],
+      "after": {
+        "length": 100,
+        "measurement": [
+          {
+            "event": 100,
+            "execution": 0.003400416,
+            "initialization": 0.001533917,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 6564,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 6606
+          },
+          {
+            "event": 100,
+            "execution": 0.003458833,
+            "initialization": 0.00156725,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 6564,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 6606
+          },
+          {
+            "event": 100,
+            "execution": 0.003427,
+            "initialization": 0.001552084,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 6564,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 6606
+          },
+          {
+            "event": 100,
+            "execution": 0.003355209,
+            "initialization": 0.001520958,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 6564,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 6606
+          },
+          {
+            "event": 100,
+            "execution": 0.003425417,
+            "initialization": 0.001554542,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 6564,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 6606
+          },
+          {
+            "event": 100,
+            "execution": 0.003338791,
+            "initialization": 0.001551792,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 6564,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 6606
+          },
+          {
+            "event": 100,
+            "execution": 0.003311041,
+            "initialization": 0.001585625,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 6564,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 6606
+          }
+        ],
+        "size": 256,
+        "width": 64
+      },
+      "before": {
+        "length": 100,
+        "measurement": [
+          {
+            "event": 100,
+            "execution": 0.015008916,
+            "initialization": 0.001698292,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 6564,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 6606
+          },
+          {
+            "event": 100,
+            "execution": 0.01524225,
+            "initialization": 0.001711,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 6564,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 6606
+          },
+          {
+            "event": 100,
+            "execution": 0.015243375,
+            "initialization": 0.001722959,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 6564,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 6606
+          },
+          {
+            "event": 100,
+            "execution": 0.01533825,
+            "initialization": 0.001714166,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 6564,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 6606
+          },
+          {
+            "event": 100,
+            "execution": 0.015458458,
+            "initialization": 0.001743333,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 6564,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 6606
+          },
+          {
+            "event": 100,
+            "execution": 0.0151155,
+            "initialization": 0.001819958,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 6564,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 6606
+          },
+          {
+            "event": 100,
+            "execution": 0.015068709,
+            "initialization": 0.001754,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 6564,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 6606
+          }
+        ],
+        "size": 256,
+        "width": 64
+      }
+    },
+    {
+      "name": "wide",
+      "target": "fragment",
+      "argument": [
+        "--width",
+        "64",
+        "--size",
+        "4096",
+        "--length",
+        "100",
+        "--sample",
+        "7"
+      ],
+      "before": {
+        "length": 100,
+        "measurement": [
+          {
+            "event": 100,
+            "execution": 0.173334459,
+            "initialization": 0.024091625,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 6564,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 6606
+          },
+          {
+            "event": 100,
+            "execution": 0.171539584,
+            "initialization": 0.02560025,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 6564,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 6606
+          },
+          {
+            "event": 100,
+            "execution": 0.170456,
+            "initialization": 0.025198417,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 6564,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 6606
+          },
+          {
+            "event": 100,
+            "execution": 0.168103708,
+            "initialization": 0.023690333,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 6564,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 6606
+          },
+          {
+            "event": 100,
+            "execution": 0.170694667,
+            "initialization": 0.023399,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 6564,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 6606
+          },
+          {
+            "event": 100,
+            "execution": 0.174025375,
+            "initialization": 0.024170125,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 6564,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 6606
+          },
+          {
+            "event": 100,
+            "execution": 0.176361541,
+            "initialization": 0.023679833,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 6564,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 6606
+          }
+        ],
+        "size": 4096,
+        "width": 64
+      },
+      "after": {
+        "length": 100,
+        "measurement": [
+          {
+            "event": 100,
+            "execution": 0.0351135,
+            "initialization": 0.022288083,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 6564,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 6606
+          },
+          {
+            "event": 100,
+            "execution": 0.035356542,
+            "initialization": 0.023144166,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 6564,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 6606
+          },
+          {
+            "event": 100,
+            "execution": 0.035151,
+            "initialization": 0.023146,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 6564,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 6606
+          },
+          {
+            "event": 100,
+            "execution": 0.035129209,
+            "initialization": 0.021605459,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 6564,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 6606
+          },
+          {
+            "event": 100,
+            "execution": 0.035320375,
+            "initialization": 0.022492167,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 6564,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 6606
+          },
+          {
+            "event": 100,
+            "execution": 0.035309125,
+            "initialization": 0.0219515,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 6564,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 6606
+          },
+          {
+            "event": 100,
+            "execution": 0.035150458,
+            "initialization": 0.023268792,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 6564,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 6606
+          }
+        ],
+        "size": 4096,
+        "width": 64
+      }
+    },
+    {
+      "name": "storage",
+      "target": "storage",
+      "argument": [
+        "--width",
+        "4096",
+        "--length",
+        "1000",
+        "--rule",
+        "--sample",
+        "7"
+      ],
+      "after": {
+        "length": 1000,
+        "measurement": [
+          {
+            "event": 1000,
+            "execution": 0.007950584,
+            "initialization": 0.011252334,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 5096,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 4096000
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.007928542,
+            "initialization": 0.011324208,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 5096,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 4096000
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.00813725,
+            "initialization": 0.011517958,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 5096,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 4096000
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.00797725,
+            "initialization": 0.011496208,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 5096,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 4096000
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.008047,
+            "initialization": 0.011354042,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 5096,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 4096000
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.00818625,
+            "initialization": 0.011223,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 5096,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 4096000
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.008175208,
+            "initialization": 0.011611167,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 5096,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 4096000
+            },
+            "work": 2006
+          }
+        ],
+        "rule": true,
+        "width": 4096
+      },
+      "before": {
+        "length": 1000,
+        "measurement": [
+          {
+            "event": 1000,
+            "execution": 0.007829708,
+            "initialization": 0.01073125,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 5096,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 4096000
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.007903083,
+            "initialization": 0.010588042,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 5096,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 4096000
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.008162125,
+            "initialization": 0.011060292,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 5096,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 4096000
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.008025042,
+            "initialization": 0.010826959,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 5096,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 4096000
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.007969458,
+            "initialization": 0.010821542,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 5096,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 4096000
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.00790025,
+            "initialization": 0.010922417,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 5096,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 4096000
+            },
+            "work": 2006
+          },
+          {
+            "event": 1000,
+            "execution": 0.008002334,
+            "initialization": 0.010521458,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 5096,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 4096000
+            },
+            "work": 2006
+          }
+        ],
+        "rule": true,
+        "width": 4096
+      }
+    },
+    {
+      "name": "replay",
+      "target": "replay",
+      "argument": [
+        "--width",
+        "4096",
+        "--length",
+        "1000",
+        "--sample",
+        "7"
+      ],
+      "before": {
+        "length": 1000,
+        "measurement": [
+          {
+            "event": 1000,
+            "execution": 0.004082458,
+            "initialization": 0.002249333,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 1000
+            },
+            "work": 3006
+          },
+          {
+            "event": 1000,
+            "execution": 0.00408625,
+            "initialization": 0.002237958,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 1000
+            },
+            "work": 3006
+          },
+          {
+            "event": 1000,
+            "execution": 0.004011541,
+            "initialization": 0.002266334,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 1000
+            },
+            "work": 3006
+          },
+          {
+            "event": 1000,
+            "execution": 0.003986667,
+            "initialization": 0.0022305,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 1000
+            },
+            "work": 3006
+          },
+          {
+            "event": 1000,
+            "execution": 0.004005875,
+            "initialization": 0.002207125,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 1000
+            },
+            "work": 3006
+          },
+          {
+            "event": 1000,
+            "execution": 0.004061084,
+            "initialization": 0.002265042,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 1000
+            },
+            "work": 3006
+          },
+          {
+            "event": 1000,
+            "execution": 0.003905167,
+            "initialization": 0.002226875,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 1000
+            },
+            "work": 3006
+          }
+        ],
+        "width": 4096
+      },
+      "after": {
+        "length": 1000,
+        "measurement": [
+          {
+            "event": 1000,
+            "execution": 0.003875417,
+            "initialization": 0.002525916,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 1000
+            },
+            "work": 3006
+          },
+          {
+            "event": 1000,
+            "execution": 0.00396625,
+            "initialization": 0.002468458,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 1000
+            },
+            "work": 3006
+          },
+          {
+            "event": 1000,
+            "execution": 0.003964292,
+            "initialization": 0.002511,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 1000
+            },
+            "work": 3006
+          },
+          {
+            "event": 1000,
+            "execution": 0.003986625,
+            "initialization": 0.002502042,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 1000
+            },
+            "work": 3006
+          },
+          {
+            "event": 1000,
+            "execution": 0.003999083,
+            "initialization": 0.002605833,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 1000
+            },
+            "work": 3006
+          },
+          {
+            "event": 1000,
+            "execution": 0.003950458,
+            "initialization": 0.002552917,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 1000
+            },
+            "work": 3006
+          },
+          {
+            "event": 1000,
+            "execution": 0.003882,
+            "initialization": 0.002484375,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 1001,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 1000
+            },
+            "work": 3006
+          }
+        ],
+        "width": 4096
+      }
+    },
+    {
+      "name": "long",
+      "target": "expression",
+      "argument": [
+        "2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2",
+        "2202211102201212201",
+        "--sample",
+        "7"
+      ],
+      "after": {
+        "expected": "2202211102201212201",
+        "input": "2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2",
+        "measurement": [
+          {
+            "event": 151476,
+            "execution": 3.327508042,
+            "initialization": 0.002439459,
+            "statistic": {
+              "bucket": 7,
+              "normalization": 1,
+              "preparation": 3499509,
+              "refinement": 30092,
+              "resolution": 961,
+              "reuse": 757812
+            },
+            "work": 368584
+          },
+          {
+            "event": 151476,
+            "execution": 3.2653515410000002,
+            "initialization": 0.002401708,
+            "statistic": {
+              "bucket": 7,
+              "normalization": 1,
+              "preparation": 3499509,
+              "refinement": 30092,
+              "resolution": 961,
+              "reuse": 757812
+            },
+            "work": 368584
+          },
+          {
+            "event": 151476,
+            "execution": 3.228864375,
+            "initialization": 0.002293875,
+            "statistic": {
+              "bucket": 7,
+              "normalization": 1,
+              "preparation": 3499509,
+              "refinement": 30092,
+              "resolution": 961,
+              "reuse": 757812
+            },
+            "work": 368584
+          },
+          {
+            "event": 151476,
+            "execution": 3.2136675,
+            "initialization": 0.002275458,
+            "statistic": {
+              "bucket": 7,
+              "normalization": 1,
+              "preparation": 3499509,
+              "refinement": 30092,
+              "resolution": 961,
+              "reuse": 757812
+            },
+            "work": 368584
+          },
+          {
+            "event": 151476,
+            "execution": 3.232118584,
+            "initialization": 0.002298625,
+            "statistic": {
+              "bucket": 7,
+              "normalization": 1,
+              "preparation": 3499509,
+              "refinement": 30092,
+              "resolution": 961,
+              "reuse": 757812
+            },
+            "work": 368584
+          },
+          {
+            "event": 151476,
+            "execution": 3.2152645,
+            "initialization": 0.002244083,
+            "statistic": {
+              "bucket": 7,
+              "normalization": 1,
+              "preparation": 3499509,
+              "refinement": 30092,
+              "resolution": 961,
+              "reuse": 757812
+            },
+            "work": 368584
+          },
+          {
+            "event": 151476,
+            "execution": 3.213952208,
+            "initialization": 0.002303416,
+            "statistic": {
+              "bucket": 7,
+              "normalization": 1,
+              "preparation": 3499509,
+              "refinement": 30092,
+              "resolution": 961,
+              "reuse": 757812
+            },
+            "work": 368584
+          }
+        ]
+      },
+      "before": {
+        "expected": "2202211102201212201",
+        "input": "2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2",
+        "measurement": [
+          {
+            "event": 151476,
+            "execution": 3.237508833,
+            "initialization": 0.002190667,
+            "statistic": {
+              "bucket": 7,
+              "normalization": 1,
+              "preparation": 3499509,
+              "refinement": 30092,
+              "resolution": 961,
+              "reuse": 757812
+            },
+            "work": 368584
+          },
+          {
+            "event": 151476,
+            "execution": 3.237613875,
+            "initialization": 0.002225834,
+            "statistic": {
+              "bucket": 7,
+              "normalization": 1,
+              "preparation": 3499509,
+              "refinement": 30092,
+              "resolution": 961,
+              "reuse": 757812
+            },
+            "work": 368584
+          },
+          {
+            "event": 151476,
+            "execution": 3.250634333,
+            "initialization": 0.002138541,
+            "statistic": {
+              "bucket": 7,
+              "normalization": 1,
+              "preparation": 3499509,
+              "refinement": 30092,
+              "resolution": 961,
+              "reuse": 757812
+            },
+            "work": 368584
+          },
+          {
+            "event": 151476,
+            "execution": 3.231682792,
+            "initialization": 0.002073792,
+            "statistic": {
+              "bucket": 7,
+              "normalization": 1,
+              "preparation": 3499509,
+              "refinement": 30092,
+              "resolution": 961,
+              "reuse": 757812
+            },
+            "work": 368584
+          },
+          {
+            "event": 151476,
+            "execution": 3.236776791,
+            "initialization": 0.002145917,
+            "statistic": {
+              "bucket": 7,
+              "normalization": 1,
+              "preparation": 3499509,
+              "refinement": 30092,
+              "resolution": 961,
+              "reuse": 757812
+            },
+            "work": 368584
+          },
+          {
+            "event": 151476,
+            "execution": 3.239873458,
+            "initialization": 0.002164792,
+            "statistic": {
+              "bucket": 7,
+              "normalization": 1,
+              "preparation": 3499509,
+              "refinement": 30092,
+              "resolution": 961,
+              "reuse": 757812
+            },
+            "work": 368584
+          },
+          {
+            "event": 151476,
+            "execution": 3.235194791,
+            "initialization": 0.002123667,
+            "statistic": {
+              "bucket": 7,
+              "normalization": 1,
+              "preparation": 3499509,
+              "refinement": 30092,
+              "resolution": 961,
+              "reuse": 757812
+            },
+            "work": 368584
+          }
+        ]
+      }
+    },
+    {
+      "name": "runtime",
+      "target": "runtime",
+      "argument": [],
+      "before": [
+        {
+          "name": "Concrete And through two Boolean deductions",
+          "sample": 25,
+          "worker": 1,
+          "record": 610,
+          "peak": 611,
+          "work": 240,
+          "state": 14,
+          "event": 17,
+          "minimum": 123.62500000000001,
+          "median": 126.74999999999999,
+          "maximum": 131.375
+        },
+        {
+          "name": "Two inputs broadcast their leftovers",
+          "sample": 25,
+          "worker": 1,
+          "record": 129,
+          "peak": 130,
+          "work": 39,
+          "state": 3,
+          "event": 3,
+          "minimum": 23.375,
+          "median": 23.708000000000002,
+          "maximum": 24.167
+        },
+        {
+          "name": "One source supports a joint sibling match",
+          "sample": 25,
+          "worker": 1,
+          "record": 104,
+          "peak": 105,
+          "work": 35,
+          "state": 3,
+          "event": 3,
+          "minimum": 18.583000000000002,
+          "median": 18.833000000000002,
+          "maximum": 19.334000000000003
+        },
+        {
+          "name": "Competing histories cannot supply a joint match",
+          "sample": 25,
+          "worker": 1,
+          "record": 72,
+          "peak": 73,
+          "work": 20,
+          "state": 3,
+          "event": 2,
+          "minimum": 10.25,
+          "median": 10.375,
+          "maximum": 10.542
+        },
+        {
+          "name": "Explicit duplicate outputs remain distinct",
+          "sample": 25,
+          "worker": 1,
+          "record": 84,
+          "peak": 85,
+          "work": 45,
+          "state": 3,
+          "event": 3,
+          "minimum": 19.291,
+          "median": 19.667,
+          "maximum": 23.416999999999998
+        },
+        {
+          "name": "Evidence-only co-results are not source leftovers",
+          "sample": 25,
+          "worker": 1,
+          "record": 127,
+          "peak": 128,
+          "work": 33,
+          "state": 4,
+          "event": 3,
+          "minimum": 17.458000000000002,
+          "median": 17.625,
+          "maximum": 24.75
+        },
+        {
+          "name": "Independent branches compute independent equal results",
+          "sample": 25,
+          "worker": 1,
+          "record": 624,
+          "peak": 625,
+          "work": 310,
+          "state": 13,
+          "event": 21,
+          "minimum": 136.666,
+          "median": 145.667,
+          "maximum": 169.75
+        },
+        {
+          "name": "Arbitrarily nested body expressions",
+          "sample": 25,
+          "worker": 1,
+          "record": 338,
+          "peak": 339,
+          "work": 116,
+          "state": 9,
+          "event": 9,
+          "minimum": 60.791000000000004,
+          "median": 64.375,
+          "maximum": 74.5
+        },
+        {
+          "name": "A finite cycle shares its configurations",
+          "sample": 25,
+          "worker": 1,
+          "record": 69,
+          "peak": 69,
+          "work": 38,
+          "state": 2,
+          "event": 4,
+          "minimum": 16.625,
+          "median": 16.833,
+          "maximum": 17.416
+        },
+        {
+          "name": "Generated rule reads its concrete source",
+          "sample": 25,
+          "worker": 1,
+          "record": 130,
+          "peak": 131,
+          "work": 46,
+          "state": 4,
+          "event": 4,
+          "minimum": 24.167,
+          "median": 24.417,
+          "maximum": 24.709
+        },
+        {
+          "name": "One source supplies rule and operand",
+          "sample": 25,
+          "worker": 1,
+          "record": 108,
+          "peak": 109,
+          "work": 33,
+          "state": 4,
+          "event": 3,
+          "minimum": 18.292,
+          "median": 18.5,
+          "maximum": 18.833000000000002
+        },
+        {
+          "name": "Competing code and data cannot interact",
+          "sample": 25,
+          "worker": 1,
+          "record": 73,
+          "peak": 74,
+          "work": 20,
+          "state": 3,
+          "event": 2,
+          "minimum": 10.583,
+          "median": 10.708,
+          "maximum": 10.875
+        },
+        {
+          "name": "A meta rule replaces a whole rule value",
+          "sample": 25,
+          "worker": 1,
+          "record": 201,
+          "peak": 202,
+          "work": 72,
+          "state": 6,
+          "event": 6,
+          "minimum": 35.958,
+          "median": 36.333,
+          "maximum": 37.167
+        },
+        {
+          "name": "Rule activation respects coherence locality",
+          "sample": 25,
+          "worker": 1,
+          "record": 76,
+          "peak": 86,
+          "work": 20,
+          "state": 2,
+          "event": 1,
+          "minimum": 10.042,
+          "median": 10.25,
+          "maximum": 10.583
+        },
+        {
+          "name": "A generated rule enables decoherence",
+          "sample": 25,
+          "worker": 1,
+          "record": 206,
+          "peak": 207,
+          "work": 56,
+          "state": 5,
+          "event": 5,
+          "minimum": 35.542,
+          "median": 35.917,
+          "maximum": 36.833
+        },
+        {
+          "name": "A whole rule acquires an abstraction",
+          "sample": 25,
+          "worker": 1,
+          "record": 239,
+          "peak": 240,
+          "work": 86,
+          "state": 8,
+          "event": 8,
+          "minimum": 45.375,
+          "median": 45.666,
+          "maximum": 46.417
+        },
+        {
+          "name": "A generated rule opens a nested body",
+          "sample": 25,
+          "worker": 1,
+          "record": 236,
+          "peak": 237,
+          "work": 91,
+          "state": 6,
+          "event": 7,
+          "minimum": 47.041,
+          "median": 47.458,
+          "maximum": 48.25
+        },
+        {
+          "name": "An escaped rule retains its local definition",
+          "sample": 25,
+          "worker": 1,
+          "record": 1517,
+          "peak": 1518,
+          "work": 666,
+          "state": 29,
+          "event": 43,
+          "minimum": 367.375,
+          "median": 371.95799999999997,
+          "maximum": 382.125
+        },
+        {
+          "name": "Consuming code later does not erase earlier results",
+          "sample": 25,
+          "worker": 1,
+          "record": 125,
+          "peak": 126,
+          "work": 38,
+          "state": 4,
+          "event": 3,
+          "minimum": 19.709,
+          "median": 19.959,
+          "maximum": 37.0
+        }
+      ],
+      "after": [
+        {
+          "name": "Concrete And through two Boolean deductions",
+          "sample": 25,
+          "worker": 1,
+          "record": 610,
+          "peak": 611,
+          "work": 240,
+          "state": 14,
+          "event": 17,
+          "minimum": 122.708,
+          "median": 129.291,
+          "maximum": 156.833
+        },
+        {
+          "name": "Two inputs broadcast their leftovers",
+          "sample": 25,
+          "worker": 1,
+          "record": 129,
+          "peak": 130,
+          "work": 39,
+          "state": 3,
+          "event": 3,
+          "minimum": 23.334,
+          "median": 23.583000000000002,
+          "maximum": 23.916
+        },
+        {
+          "name": "One source supports a joint sibling match",
+          "sample": 25,
+          "worker": 1,
+          "record": 104,
+          "peak": 105,
+          "work": 35,
+          "state": 3,
+          "event": 3,
+          "minimum": 18.625,
+          "median": 18.833000000000002,
+          "maximum": 19.415999999999997
+        },
+        {
+          "name": "Competing histories cannot supply a joint match",
+          "sample": 25,
+          "worker": 1,
+          "record": 72,
+          "peak": 73,
+          "work": 20,
+          "state": 3,
+          "event": 2,
+          "minimum": 10.416,
+          "median": 10.584000000000001,
+          "maximum": 10.833
+        },
+        {
+          "name": "Explicit duplicate outputs remain distinct",
+          "sample": 25,
+          "worker": 1,
+          "record": 84,
+          "peak": 85,
+          "work": 45,
+          "state": 3,
+          "event": 3,
+          "minimum": 18.791999999999998,
+          "median": 18.958000000000002,
+          "maximum": 21.708
+        },
+        {
+          "name": "Evidence-only co-results are not source leftovers",
+          "sample": 25,
+          "worker": 1,
+          "record": 127,
+          "peak": 128,
+          "work": 33,
+          "state": 4,
+          "event": 3,
+          "minimum": 17.583000000000002,
+          "median": 18.334,
+          "maximum": 20.708
+        },
+        {
+          "name": "Independent branches compute independent equal results",
+          "sample": 25,
+          "worker": 1,
+          "record": 624,
+          "peak": 625,
+          "work": 310,
+          "state": 13,
+          "event": 21,
+          "minimum": 146.542,
+          "median": 147.459,
+          "maximum": 158.041
+        },
+        {
+          "name": "Arbitrarily nested body expressions",
+          "sample": 25,
+          "worker": 1,
+          "record": 338,
+          "peak": 339,
+          "work": 116,
+          "state": 9,
+          "event": 9,
+          "minimum": 63.584,
+          "median": 67.042,
+          "maximum": 94.25
+        },
+        {
+          "name": "A finite cycle shares its configurations",
+          "sample": 25,
+          "worker": 1,
+          "record": 69,
+          "peak": 69,
+          "work": 38,
+          "state": 2,
+          "event": 4,
+          "minimum": 16.041,
+          "median": 16.459,
+          "maximum": 21.5
+        },
+        {
+          "name": "Generated rule reads its concrete source",
+          "sample": 25,
+          "worker": 1,
+          "record": 130,
+          "peak": 131,
+          "work": 46,
+          "state": 4,
+          "event": 4,
+          "minimum": 24.290999999999997,
+          "median": 24.875,
+          "maximum": 25.5
+        },
+        {
+          "name": "One source supplies rule and operand",
+          "sample": 25,
+          "worker": 1,
+          "record": 108,
+          "peak": 109,
+          "work": 33,
+          "state": 4,
+          "event": 3,
+          "minimum": 17.208,
+          "median": 18.416,
+          "maximum": 19.083
+        },
+        {
+          "name": "Competing code and data cannot interact",
+          "sample": 25,
+          "worker": 1,
+          "record": 73,
+          "peak": 74,
+          "work": 20,
+          "state": 3,
+          "event": 2,
+          "minimum": 10.625,
+          "median": 10.791,
+          "maximum": 11.083
+        },
+        {
+          "name": "A meta rule replaces a whole rule value",
+          "sample": 25,
+          "worker": 1,
+          "record": 201,
+          "peak": 202,
+          "work": 72,
+          "state": 6,
+          "event": 6,
+          "minimum": 36.792,
+          "median": 37.25,
+          "maximum": 40.833
+        },
+        {
+          "name": "Rule activation respects coherence locality",
+          "sample": 25,
+          "worker": 1,
+          "record": 76,
+          "peak": 86,
+          "work": 20,
+          "state": 2,
+          "event": 1,
+          "minimum": 10.25,
+          "median": 10.458,
+          "maximum": 10.708
+        },
+        {
+          "name": "A generated rule enables decoherence",
+          "sample": 25,
+          "worker": 1,
+          "record": 206,
+          "peak": 207,
+          "work": 56,
+          "state": 5,
+          "event": 5,
+          "minimum": 36.0,
+          "median": 36.417,
+          "maximum": 36.875
+        },
+        {
+          "name": "A whole rule acquires an abstraction",
+          "sample": 25,
+          "worker": 1,
+          "record": 239,
+          "peak": 240,
+          "work": 86,
+          "state": 8,
+          "event": 8,
+          "minimum": 45.75,
+          "median": 46.166,
+          "maximum": 55.541999999999994
+        },
+        {
+          "name": "A generated rule opens a nested body",
+          "sample": 25,
+          "worker": 1,
+          "record": 236,
+          "peak": 237,
+          "work": 91,
+          "state": 6,
+          "event": 7,
+          "minimum": 47.25,
+          "median": 47.958,
+          "maximum": 49.0
+        },
+        {
+          "name": "An escaped rule retains its local definition",
+          "sample": 25,
+          "worker": 1,
+          "record": 1517,
+          "peak": 1518,
+          "work": 666,
+          "state": 29,
+          "event": 43,
+          "minimum": 354.5,
+          "median": 372.25,
+          "maximum": 399.54200000000003
+        },
+        {
+          "name": "Consuming code later does not erase earlier results",
+          "sample": 25,
+          "worker": 1,
+          "record": 125,
+          "peak": 126,
+          "work": 38,
+          "state": 4,
+          "event": 3,
+          "minimum": 20.25,
+          "median": 20.5,
+          "maximum": 20.667
+        }
+      ]
+    },
+    {
+      "name": "shared",
+      "target": "fragment",
+      "argument": [
+        "--width",
+        "256",
+        "--size",
+        "4096",
+        "--length",
+        "100",
+        "--sample",
+        "7"
+      ],
+      "before": {
+        "length": 100,
+        "measurement": [
+          {
+            "event": 100,
+            "execution": 0.580347959,
+            "initialization": 0.086443042,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 25956,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 25806
+          },
+          {
+            "event": 100,
+            "execution": 0.592616375,
+            "initialization": 0.090643792,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 25956,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 25806
+          },
+          {
+            "event": 100,
+            "execution": 0.613863042,
+            "initialization": 0.089371792,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 25956,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 25806
+          },
+          {
+            "event": 100,
+            "execution": 0.629131792,
+            "initialization": 0.091561041,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 25956,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 25806
+          },
+          {
+            "event": 100,
+            "execution": 0.606059541,
+            "initialization": 0.097506458,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 25956,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 25806
+          },
+          {
+            "event": 100,
+            "execution": 0.584016792,
+            "initialization": 0.085236375,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 25956,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 25806
+          },
+          {
+            "event": 100,
+            "execution": 0.586373834,
+            "initialization": 0.085716542,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 25956,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 25806
+          }
+        ],
+        "size": 4096,
+        "width": 256
+      },
+      "after": {
+        "length": 100,
+        "measurement": [
+          {
+            "event": 100,
+            "execution": 0.060733375,
+            "initialization": 0.079502917,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 25956,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 25806
+          },
+          {
+            "event": 100,
+            "execution": 0.060420459,
+            "initialization": 0.082174,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 25956,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 25806
+          },
+          {
+            "event": 100,
+            "execution": 0.06052975,
+            "initialization": 0.079954334,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 25956,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 25806
+          },
+          {
+            "event": 100,
+            "execution": 0.060462084,
+            "initialization": 0.077166375,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 25956,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 25806
+          },
+          {
+            "event": 100,
+            "execution": 0.060556292,
+            "initialization": 0.079764708,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 25956,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 25806
+          },
+          {
+            "event": 100,
+            "execution": 0.060257583,
+            "initialization": 0.077871042,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 25956,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 25806
+          },
+          {
+            "event": 100,
+            "execution": 0.060279333,
+            "initialization": 0.078457125,
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 25956,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 0
+            },
+            "work": 25806
+          }
+        ],
+        "size": 4096,
+        "width": 256
+      }
+    }
+  ],
+  "host": {
+    "cpu": "Apple M5 Max",
+    "system": "macOS 26.6.2 (25G83)"
+  },
+  "method": "Sequential paired native bazel run -c opt; alternating revision order; at least 100 ms warmup per case; seven path samples; 25 exhaustive samples. Execution excludes parsing, initialization, reporting and release. Exhaustive timing includes initialization, execution, snapshot and release. Instrumentation is disabled in comparison samples.",
+  "source": {
+    "algorithm": "sha256",
+    "digest": "def40c42ddc45f27398185700c745e3909b2d747d7bb193d8f2b994427e8cded",
+    "file": [
+      ".bazelrc",
+      "BUILD.bazel",
+      "Cargo.lock",
+      "Cargo.toml",
+      "MODULE.bazel",
+      "MODULE.bazel.lock",
+      "arithmetic/BUILD.bazel",
+      "arithmetic/address.rs",
+      "arithmetic/argument.rs",
+      "arithmetic/benchmark.rs",
+      "arithmetic/circuit.rs",
+      "arithmetic/circuit/emit.rs",
+      "arithmetic/circuit/reduce.rs",
+      "arithmetic/encoding.rs",
+      "arithmetic/failure.rs",
+      "arithmetic/format.rs",
+      "arithmetic/gate.rs",
+      "arithmetic/gate/test.rs",
+      "arithmetic/library.rs",
+      "arithmetic/numeral.rs",
+      "arithmetic/power.rs",
+      "arithmetic/test/boundary.rs",
+      "arithmetic/test/stream.rs",
+      "arithmetic/test/suite.rs",
+      "arithmetic/test/ternary.rs",
+      "arithmetic/word.rs",
+      "benchmark/BUILD.bazel",
+      "benchmark/arithmetic.rs",
+      "benchmark/evaluation.rs",
+      "benchmark/expression.rs",
+      "benchmark/formula.rs",
+      "benchmark/fragment.rs",
+      "benchmark/matching.rs",
+      "benchmark/posting.rs",
+      "benchmark/replay.rs",
+      "benchmark/retention.rs",
+      "benchmark/runtime.rs",
+      "benchmark/storage.rs",
+      "benchmark/symmetry.rs",
+      "benchmark/trace.rs",
+      "command/BUILD.bazel",
+      "command/argument.rs",
+      "command/main.rs",
+      "command/test.rs",
+      "document/BUILD.bazel",
+      "frontend/BUILD.bazel",
+      "frontend/expansion.rs",
+      "frontend/failure.rs",
+      "frontend/frontend.rs",
+      "frontend/lowering.rs",
+      "frontend/parser.rs",
+      "frontend/source.rs",
+      "frontend/syntax.rs",
+      "frontend/test/lowering.rs",
+      "frontend/test/parser.rs",
+      "frontend/test/suite.rs",
+      "language/BUILD.bazel",
+      "language/accumulator.rs",
+      "language/agenda.rs",
+      "language/application.rs",
+      "language/arena.rs",
+      "language/assignment.rs",
+      "language/basis.rs",
+      "language/canonical.rs",
+      "language/catalog.rs",
+      "language/change.rs",
+      "language/dispatch.rs",
+      "language/dispatch/consumer.rs",
+      "language/dispatch/dependency.rs",
+      "language/dispatch/entry.rs",
+      "language/dispatch/key.rs",
+      "language/executor.rs",
+      "language/fingerprint.rs",
+      "language/flow.rs",
+      "language/gate.rs",
+      "language/graph.rs",
+      "language/hashing.rs",
+      "language/incidence.rs",
+      "language/index.rs",
+      "language/joining.rs",
+      "language/layout.rs",
+      "language/link.rs",
+      "language/measurement.rs",
+      "language/measurement/profile.rs",
+      "language/measurement/query.rs",
+      "language/membership.rs",
+      "language/ordering.rs",
+      "language/particle.rs",
+      "language/partition.rs",
+      "language/path.rs",
+      "language/pattern.rs",
+      "language/photonic.rs",
+      "language/plan.rs",
+      "language/position.rs",
+      "language/prefix.rs",
+      "language/prism.rs",
+      "language/program.rs",
+      "language/propagation.rs",
+      "language/reachability.rs",
+      "language/reader.rs",
+      "language/recipe.rs",
+      "language/reduction.rs",
+      "language/refinement.rs",
+      "language/relation.rs",
+      "language/replay.rs",
+      "language/rewrite.rs",
+      "language/runtime.rs",
+      "language/runtime/application.rs",
+      "language/runtime/matching.rs",
+      "language/runtime/normalization.rs",
+      "language/runtime/report.rs",
+      "language/runtime/table.rs",
+      "language/search.rs",
+      "language/selection.rs",
+      "language/sequence.rs",
+      "language/slot.rs",
+      "language/snapshot.rs",
+      "language/state.rs",
+      "language/structure.rs",
+      "language/support.rs",
+      "language/symmetry.rs",
+      "language/term.rs",
+      "language/test/addition.rs",
+      "language/test/agenda.rs",
+      "language/test/assignment.rs",
+      "language/test/basis.rs",
+      "language/test/binary.rs",
+      "language/test/collision.rs",
+      "language/test/dispatch.rs",
+      "language/test/executor.rs",
+      "language/test/group.rs",
+      "language/test/index.rs",
+      "language/test/joining.rs",
+      "language/test/membership.rs",
+      "language/test/metaprogram.rs",
+      "language/test/multiplication.rs",
+      "language/test/natural.rs",
+      "language/test/ordering.rs",
+      "language/test/particle.rs",
+      "language/test/partition.rs",
+      "language/test/path.rs",
+      "language/test/plan.rs",
+      "language/test/position.rs",
+      "language/test/prism.rs",
+      "language/test/product.rs",
+      "language/test/reachability.rs",
+      "language/test/reduction.rs",
+      "language/test/relation.rs",
+      "language/test/replay.rs",
+      "language/test/runtime.rs",
+      "language/test/scheduling.rs",
+      "language/test/sequence.rs",
+      "language/test/structure.rs",
+      "language/test/suite.rs",
+      "language/test/support.rs",
+      "language/work.rs",
+      "library/BUILD.bazel",
+      "library/test/suite.rs",
+      "photonic/BUILD.bazel",
+      "photonic/assemble.rs",
+      "photonic/check.rs",
+      "photonic/defs.bzl",
+      "photonic/launch.rs",
+      "photonic/test.rs",
+      "platform/BUILD.bazel",
+      "program/association/BUILD.bazel",
+      "program/binary/BUILD.bazel",
+      "program/binary/benchmark.rs",
+      "program/circuit/BUILD.bazel",
+      "program/composition/BUILD.bazel",
+      "program/decimal/BUILD.bazel",
+      "program/language/BUILD.bazel",
+      "program/natural/BUILD.bazel",
+      "program/ternary/BUILD.bazel",
+      "program/ternary/case/BUILD.bazel",
+      "toolchain/BUILD.bazel",
+      "toolchain/argument.rs",
+      "toolchain/browser/BUILD.bazel",
+      "toolchain/browser/defs.bzl",
+      "toolchain/browser/engine.rs",
+      "toolchain/browser/expression.rs",
+      "toolchain/browser/failure.rs",
+      "toolchain/browser/product.rs",
+      "toolchain/browser/serve.rs",
+      "toolchain/browser/session.rs",
+      "toolchain/check.bzl",
+      "toolchain/defs.bzl",
+      "toolchain/execute.rs",
+      "toolchain/format.rs",
+      "toolchain/node.bzl",
+      "toolchain/probe.rs",
+      "toolchain/starlark.bzl",
+      "toolchain/test.rs",
+      "toolchain/verify.rs",
+      "toolchain/wasm/BUILD.bazel",
+      "toolchain/wasm/binary.bzl",
+      "toolchain/wasm/extension.bzl"
+    ]
+  },
+  "profile": {
+    "expected": "2101",
+    "input": "2*2*2*2*2*2",
+    "measurement": [
+      {
+        "event": 10101,
+        "execution": 0.068096167,
+        "initialization": 0.001748417,
+        "phase": [
+          {
+            "count": 14695,
+            "duration": 0.002121095,
+            "phase": "matching"
+          },
+          {
+            "count": 10101,
+            "duration": 0.037542662,
+            "phase": "dispatch"
+          },
+          {
+            "count": 10101,
+            "duration": 0.013196915,
+            "phase": "index"
+          },
+          {
+            "count": 10101,
+            "duration": 0.006669,
+            "phase": "rewrite"
+          },
+          {
+            "count": 10101,
+            "duration": 0.00354181,
+            "phase": "fingerprint"
+          },
+          {
+            "count": 1,
+            "duration": 3.916e-06,
+            "phase": "structure"
+          },
+          {
+            "count": 6,
+            "duration": 4.126e-06,
+            "phase": "canonicalization"
+          },
+          {
+            "count": 0,
+            "duration": 0.0,
+            "phase": "composition"
+          },
+          {
+            "count": 0,
+            "duration": 0.0,
+            "phase": "application"
+          }
+        ],
+        "statistic": {
+          "bucket": 1,
+          "normalization": 1,
+          "preparation": 78510,
+          "refinement": 1,
+          "resolution": 1,
+          "reuse": 14468
+        },
+        "work": 24802
+      },
+      {
+        "event": 10101,
+        "execution": 0.066552334,
+        "initialization": 0.0017445,
+        "phase": [
+          {
+            "count": 14695,
+            "duration": 0.002085801,
+            "phase": "matching"
+          },
+          {
+            "count": 10101,
+            "duration": 0.036979478,
+            "phase": "dispatch"
+          },
+          {
+            "count": 10101,
+            "duration": 0.012637294,
+            "phase": "index"
+          },
+          {
+            "count": 10101,
+            "duration": 0.006531683,
+            "phase": "rewrite"
+          },
+          {
+            "count": 10101,
+            "duration": 0.003527981,
+            "phase": "fingerprint"
+          },
+          {
+            "count": 1,
+            "duration": 3.333e-06,
+            "phase": "structure"
+          },
+          {
+            "count": 6,
+            "duration": 3.249e-06,
+            "phase": "canonicalization"
+          },
+          {
+            "count": 0,
+            "duration": 0.0,
+            "phase": "composition"
+          },
+          {
+            "count": 0,
+            "duration": 0.0,
+            "phase": "application"
+          }
+        ],
+        "statistic": {
+          "bucket": 1,
+          "normalization": 1,
+          "preparation": 78510,
+          "refinement": 1,
+          "resolution": 1,
+          "reuse": 14468
+        },
+        "work": 24802
+      },
+      {
+        "event": 10101,
+        "execution": 0.06782625,
+        "initialization": 0.001777792,
+        "phase": [
+          {
+            "count": 14695,
+            "duration": 0.002126983,
+            "phase": "matching"
+          },
+          {
+            "count": 10101,
+            "duration": 0.037956865,
+            "phase": "dispatch"
+          },
+          {
+            "count": 10101,
+            "duration": 0.012742284,
+            "phase": "index"
+          },
+          {
+            "count": 10101,
+            "duration": 0.006623482,
+            "phase": "rewrite"
+          },
+          {
+            "count": 10101,
+            "duration": 0.003524458,
+            "phase": "fingerprint"
+          },
+          {
+            "count": 1,
+            "duration": 2.667e-06,
+            "phase": "structure"
+          },
+          {
+            "count": 6,
+            "duration": 3.001e-06,
+            "phase": "canonicalization"
+          },
+          {
+            "count": 0,
+            "duration": 0.0,
+            "phase": "composition"
+          },
+          {
+            "count": 0,
+            "duration": 0.0,
+            "phase": "application"
+          }
+        ],
+        "statistic": {
+          "bucket": 1,
+          "normalization": 1,
+          "preparation": 78510,
+          "refinement": 1,
+          "resolution": 1,
+          "reuse": 14468
+        },
+        "work": 24802
+      }
+    ]
+  }
+}

@@ -1,11 +1,12 @@
 use crate::state::Token;
 use crate::term::Term;
 use smallvec::SmallVec;
+use std::sync::Arc;
 use std::task::Poll;
 
 struct Group {
     candidate: Vec<usize>,
-    position: Vec<usize>,
+    position: Arc<Vec<usize>>,
     selected: Vec<usize>,
 }
 
@@ -33,6 +34,7 @@ pub(crate) struct Match {
     group: Vec<Group>,
     width: usize,
     fresh: bool,
+    viable: bool,
     complete: bool,
 }
 
@@ -43,7 +45,7 @@ impl Match {
         for (position, term) in pattern.iter().enumerate() {
             if let Some(&(_, index)) = known.iter().find(|&&(value, _)| value == term) {
                 let group = &mut group[index];
-                group.position.push(position);
+                Arc::make_mut(&mut group.position).push(position);
                 group.selected.push(group.selected.len());
                 continue;
             }
@@ -57,13 +59,13 @@ impl Match {
             if let Some(index) = group.iter().position(|group| group.candidate == candidate) {
                 known.push((term, index));
                 let group = &mut group[index];
-                group.position.push(position);
+                Arc::make_mut(&mut group.position).push(position);
                 group.selected.push(group.selected.len());
             } else {
                 known.push((term, group.len()));
                 group.push(Group {
                     candidate,
-                    position: vec![position],
+                    position: Arc::new(vec![position]),
                     selected: vec![0],
                 });
             }
@@ -75,16 +77,64 @@ impl Match {
             group,
             width: pattern.len(),
             fresh: true,
+            viable: !complete,
             complete,
+        }
+    }
+
+    pub(crate) fn prepared(
+        pattern: &crate::pattern::Pattern,
+        capture: Option<usize>,
+        particle: &[Token],
+    ) -> Self {
+        let mut group: Vec<Group> = Vec::with_capacity(pattern.group.len());
+        for requirement in &pattern.group {
+            let term = Term::new(requirement.value, capture);
+            let mut candidate = particle
+                .iter()
+                .filter(|token| term.matches(token))
+                .map(|token| token.id)
+                .collect::<Vec<_>>();
+            candidate.sort_unstable();
+            candidate.dedup();
+            if let Some(group) = group.iter_mut().find(|group| group.candidate == candidate) {
+                Arc::make_mut(&mut group.position).extend(requirement.position.iter().copied());
+                group
+                    .selected
+                    .extend(group.selected.len()..group.position.len());
+            } else {
+                group.push(Group {
+                    candidate,
+                    position: requirement.position.clone(),
+                    selected: (0..requirement.position.len()).collect(),
+                });
+            }
+        }
+        let complete = group
+            .iter()
+            .any(|group| group.candidate.len() < group.selected.len());
+        Self {
+            group,
+            width: pattern.width,
+            fresh: true,
+            viable: !complete,
+            complete,
+        }
+    }
+
+    pub(crate) fn impossible(width: usize) -> Self {
+        Self {
+            group: Vec::new(),
+            width,
+            fresh: true,
+            viable: false,
+            complete: true,
         }
     }
 
     pub(crate) fn reset(&mut self) {
         self.fresh = true;
-        self.complete = self
-            .group
-            .iter()
-            .any(|group| group.candidate.len() < group.selected.len());
+        self.complete = !self.viable;
         for group in &mut self.group {
             for (index, selected) in group.selected.iter_mut().enumerate() {
                 *selected = index;

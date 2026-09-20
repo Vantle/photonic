@@ -152,9 +152,8 @@ impl Network {
                 entry.replace(consumer);
                 self.storage += entry.retained();
             } else {
-                let pattern = plan.pattern(key.owner);
                 let entry = Entry::new(
-                    Search::new(pattern, index, frame),
+                    Search::planned(plan, index, frame, key.owner),
                     consumer,
                     self.generation,
                 );
@@ -196,6 +195,9 @@ impl Network {
     }
 
     pub fn advance(&mut self, index: &Index, previous: &State, change: &crate::change::Change) {
+        #[cfg(feature = "measurement")]
+        let _measurement =
+            crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Dispatch);
         self.generation += 1;
         self.count
             .resize(self.count.len().max(index.state.frame.len()), 0);
@@ -258,6 +260,9 @@ impl Network {
     }
 
     pub fn next(&mut self, index: &Index) -> Poll<Option<Delivery>> {
+        #[cfg(feature = "measurement")]
+        let _measurement =
+            crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Matching);
         let Some(position) = self.agenda.pop_front() else {
             return Poll::Ready(None);
         };

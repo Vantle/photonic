@@ -1,3 +1,4 @@
+pub mod profile;
 pub mod query;
 
 use crate::canonical::Search;

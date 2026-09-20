@@ -5,6 +5,7 @@ mod executor;
 mod group;
 mod joining;
 mod membership;
+mod metaprogram;
 mod multiplication;
 mod natural;
 mod path;

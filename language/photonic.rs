@@ -28,6 +28,7 @@ mod ordering;
 mod particle;
 mod partition;
 pub mod path;
+mod pattern;
 mod plan;
 mod position;
 mod prefix;

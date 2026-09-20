@@ -68,6 +68,10 @@ impl Index {
         change: &crate::change::Change,
         layout: crate::layout::Layout,
     ) -> Self {
+        #[cfg(feature = "measurement")]
+        let _measurement = crate::measurement::profile::Scope::new(
+            crate::measurement::profile::Phase::Fingerprint,
+        );
         if !change.frame.is_empty() {
             return Self::construct(state, Some(self), &change.world, layout);
         }

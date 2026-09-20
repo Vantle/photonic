@@ -81,3 +81,45 @@ fn overflow() {
     }
     assert!(matches!(search.mode, Mode::Streaming));
 }
+
+#[test]
+fn invalidation() {
+    let program = Program::new(crate::lowering::parse("A.X,A.C.C,B,B [A.C,B] Done").unwrap());
+    let mut state = State::initial(&program);
+    let mut index = Index::new(Arc::new(state.clone()));
+    let pattern = crate::plan::Input::new(&program.rule[0].input).pattern(0);
+    let mut search = Search::new(pattern.clone(), &index, 0);
+    let mut reference = Join::new(pattern, &index, 0);
+    for _ in 0..3 {
+        compare(&mut search, &mut reference, &index, 1000);
+        search.reset();
+        reference.reset();
+    }
+    assert!(matches!(search.mode, Mode::Recording(_)));
+    let symbol = crate::program::Symbol::Atom(program.atom.get_index_of("X").unwrap());
+    let removed = state
+        .world
+        .iter()
+        .position(|world| world.particle.iter().any(|token| token.value == symbol))
+        .unwrap();
+    let world = state.world.remove(removed);
+    state.world.push(world);
+    index.advance(Arc::new(state.clone()), &crate::basis::Set::single(removed));
+    search.advance(&index);
+    reference.advance(&index);
+    assert!(matches!(search.mode, Mode::Recording(_)));
+    compare(&mut search, &mut reference, &index, 1000);
+    let symbol = crate::program::Symbol::Atom(program.atom.get_index_of("C").unwrap());
+    let removed = state
+        .world
+        .iter()
+        .position(|world| world.particle.iter().any(|token| token.value == symbol))
+        .unwrap();
+    let world = state.world.remove(removed);
+    state.world.push(world);
+    index.advance(Arc::new(state), &crate::basis::Set::single(removed));
+    search.advance(&index);
+    reference.advance(&index);
+    assert!(matches!(search.mode, Mode::Dormant));
+    compare(&mut search, &mut reference, &index, 1000);
+}

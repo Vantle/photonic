@@ -92,3 +92,92 @@ fn intersection() {
         index.advance(Arc::new(state.clone()), &crate::basis::Set::single(removed));
     }
 }
+
+#[test]
+fn batch() {
+    let program = crate::program::Program::new(
+        crate::lowering::parse("A.A.([A] B),A.B.([A] B),B.B,Empty").unwrap(),
+    );
+    let mut state = State::initial(&program);
+    for _ in 0..8 {
+        state.world.extend(state.world.clone().iter().cloned());
+    }
+    let mut index = Index::new(Arc::new(state.clone()));
+    for iteration in 0..64 {
+        let removed = (0..state.world.len())
+            .filter(|world| (world + iteration) % 3 == 0)
+            .collect::<crate::basis::Set<_>>();
+        let mut replacement = removed
+            .iter()
+            .map(|&world| state.world[world].clone())
+            .collect::<Vec<_>>();
+        replacement.reverse();
+        for &world in removed.iter().rev() {
+            state.world.remove(world);
+        }
+        state.world.extend(replacement);
+        index.advance(Arc::new(state.clone()), &removed);
+        for symbol in program
+            .atom
+            .iter()
+            .enumerate()
+            .map(|(index, _)| Symbol::Atom(index))
+            .chain(program.code.keys().copied().map(Symbol::Rule))
+        {
+            for capture in [None, Some(0), Some(1)] {
+                let pattern = [Term::new(symbol, capture)];
+                let expected = state
+                    .world
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(world, value)| {
+                        value
+                            .particle
+                            .iter()
+                            .any(|token| pattern[0].matches(token))
+                            .then_some(world)
+                    })
+                    .collect::<Vec<_>>();
+                assert_eq!(index.candidate(&pattern, 0), expected);
+                for (world, value) in state.world.iter().enumerate() {
+                    assert_eq!(
+                        index.quantity(&pattern[0], 0, index.site(world)),
+                        value
+                            .particle
+                            .iter()
+                            .filter(|token| pattern[0].matches(token))
+                            .count()
+                    );
+                }
+            }
+        }
+        assert_eq!(
+            index.retained,
+            index
+                .frame
+                .iter()
+                .map(|frame| frame.iter().count())
+                .sum::<usize>()
+                + index.reader.iter().map(Vec::len).sum::<usize>()
+                + index.term.values().map(Vec::len).sum::<usize>()
+        );
+        let fresh = Index::new(Arc::new(state.clone()));
+        let read = |index: &Index| {
+            let mut value = index
+                .reader(0)
+                .iter()
+                .map(|reader| {
+                    (
+                        index.world(reader.read.site),
+                        reader.read.resource,
+                        reader.rule,
+                        reader.owner,
+                    )
+                })
+                .collect::<Vec<_>>();
+            value.sort_unstable();
+            value
+        };
+        assert_eq!(read(&index), read(&fresh));
+    }
+}

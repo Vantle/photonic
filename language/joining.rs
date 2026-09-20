@@ -13,6 +13,7 @@ struct Member {
 
 pub(crate) struct Join {
     frame: usize,
+    preparation: Option<crate::plan::Context>,
     pattern: Arc<Vec<Vec<Term>>>,
     domain: SmallVec<[Vec<Member>; 2]>,
     order: SmallVec<[usize; 2]>,
@@ -26,12 +27,27 @@ pub(crate) struct Join {
 }
 
 impl Join {
+    #[cfg(test)]
     pub fn new(pattern: Arc<Vec<Vec<Term>>>, index: &Index, frame: usize) -> Self {
+        Self::construct(pattern, index, frame, None)
+    }
+
+    fn construct(
+        pattern: Arc<Vec<Vec<Term>>>,
+        index: &Index,
+        frame: usize,
+        preparation: Option<crate::plan::Context>,
+    ) -> Self {
         let domain = pattern
             .iter()
-            .map(|pattern| {
-                index
-                    .candidate(pattern, frame)
+            .enumerate()
+            .map(|(position, pattern)| {
+                preparation
+                    .as_ref()
+                    .map_or_else(
+                        || index.candidate(pattern, frame),
+                        |context| context.candidate(position, index, frame),
+                    )
                     .into_iter()
                     .map(|world| Member {
                         site: index.site(world),
@@ -43,6 +59,7 @@ impl Join {
         let width = pattern.len();
         let mut join = Self {
             frame,
+            preparation,
             pattern,
             domain,
             order: (0..width).collect(),
@@ -62,18 +79,42 @@ impl Join {
         join
     }
 
+    pub fn planned(input: &crate::plan::Input, index: &Index, frame: usize, owner: usize) -> Self {
+        Self::construct(
+            input.pattern(owner),
+            index,
+            frame,
+            Some(input.context(owner)),
+        )
+    }
+
+    #[cfg(test)]
     pub fn advance(&mut self, index: &Index) {
+        self.update(index);
+        self.reset();
+    }
+
+    pub fn update(&mut self, index: &Index) -> bool {
+        let mut changed = false;
         for (position, domain) in self.domain.iter_mut().enumerate() {
+            let previous = domain.len();
             domain.retain(|member| !index.removal.contains(&member.site));
+            changed |= previous != domain.len();
             for &site in &index.insertion {
                 let world = &index.state.world[index.world(site)];
                 if world.frame != self.frame {
                     continue;
                 }
-                if self.pattern[position]
-                    .iter()
-                    .all(|term| world.particle.iter().any(|token| term.matches(token)))
-                {
+                let eligible = self.preparation.as_ref().map_or_else(
+                    || {
+                        self.pattern[position]
+                            .iter()
+                            .all(|term| world.particle.iter().any(|token| term.matches(token)))
+                    },
+                    |context| context.matches(position, &world.particle),
+                );
+                if eligible {
+                    changed = true;
                     domain.push(Member {
                         site,
                         particle: None,
@@ -81,11 +122,15 @@ impl Join {
                 }
             }
         }
+        if !changed {
+            return false;
+        }
         self.order
             .sort_by_key(|&position| self.domain[position].len());
         self.viable = self.feasible();
         self.reset();
         self.retained = self.size();
+        true
     }
 
     pub fn reset(&mut self) {
@@ -168,10 +213,12 @@ impl Join {
                 return Poll::Pending;
             }
             if member.particle.is_none() {
-                let particle = Match::new(
-                    &self.pattern[position],
-                    &index.state.world[index.world(member.site)].particle,
-                );
+                let particle = &index.state.world[index.world(member.site)].particle;
+                let particle = if let Some(context) = &self.preparation {
+                    context.select(position, index, member.site)
+                } else {
+                    Match::new(&self.pattern[position], particle)
+                };
                 self.retained += particle.retained();
                 member.particle = Some(particle);
             }

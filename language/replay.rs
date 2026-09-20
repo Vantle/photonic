@@ -1,7 +1,9 @@
 use crate::index::Index;
 use crate::joining::Join;
 use crate::slot::Slot;
+#[cfg(test)]
 use crate::term::Term;
+#[cfg(test)]
 use std::sync::Arc;
 use std::task::Poll;
 
@@ -38,6 +40,7 @@ pub(crate) struct Search {
 }
 
 impl Search {
+    #[cfg(test)]
     pub fn new(pattern: Arc<Vec<Vec<Term>>>, index: &Index, frame: usize) -> Self {
         Self {
             join: Join::new(pattern, index, frame),
@@ -45,9 +48,19 @@ impl Search {
         }
     }
 
+    pub fn planned(input: &crate::plan::Input, index: &Index, frame: usize, owner: usize) -> Self {
+        Self {
+            join: Join::planned(input, index, frame, owner),
+            mode: Mode::Dormant,
+        }
+    }
+
     pub fn advance(&mut self, index: &Index) {
-        self.join.advance(index);
-        self.mode = Mode::Dormant;
+        if self.join.update(index) {
+            self.mode = Mode::Dormant;
+        } else {
+            self.reset();
+        }
     }
 
     pub fn reset(&mut self) {

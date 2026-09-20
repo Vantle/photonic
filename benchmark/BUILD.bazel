@@ -40,6 +40,42 @@ rust_binary(
 )
 
 rust_binary(
+    name = "profile",
+    srcs = [
+        "evaluation.rs",
+        "expression.rs",
+        "formula.rs",
+    ],
+    compile_data = ["//program/ternary:formula"],
+    crate_features = ["measurement"],
+    crate_root = "expression.rs",
+    lint_config = "//:lint",
+    rustc_env = {"FORMULA": "$(execpath //program/ternary:formula)"},
+    deps = [
+        "//language:measurement",
+        "@crate//:clap",
+        "@crate//:serde",
+        "@crate//:serde_json",
+    ],
+)
+
+rust_binary(
+    name = "fragment",
+    srcs = [
+        "evaluation.rs",
+        "fragment.rs",
+    ],
+    crate_root = "fragment.rs",
+    lint_config = "//:lint",
+    deps = [
+        "//language:photonic",
+        "@crate//:clap",
+        "@crate//:serde",
+        "@crate//:serde_json",
+    ],
+)
+
+rust_binary(
     name = "retention",
     srcs = [
         "evaluation.rs",

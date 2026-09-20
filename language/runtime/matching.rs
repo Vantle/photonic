@@ -1,4 +1,5 @@
-use super::{Application, Cache, Consumer, Query, Request, Runtime, Task};
+use super::table::{Consumer, Query};
+use super::{Application, Runtime, Task};
 use crate::flow::Place;
 use crate::plan;
 use crate::program::Symbol;
@@ -7,12 +8,6 @@ use std::sync::Arc;
 use std::task::Poll;
 
 impl Runtime {
-    fn wake(&mut self, request: usize) {
-        if self.active.insert(request) {
-            self.agenda.push_back(Task::Deliver(request));
-        }
-    }
-
     fn index(&mut self, state: usize) -> Arc<crate::index::Index> {
         self.index[state]
             .get_or_insert_with(|| {
@@ -24,76 +19,38 @@ impl Runtime {
     }
 
     fn subscribe(&mut self, key: Query, consumer: Consumer) {
-        let cache = if let Some(&cache) = self.matching.get(&key) {
-            cache
-        } else {
-            let cache = self.cache.len();
-            let index = self.index(key.target);
-            let search = crate::search::Search::new(key.pattern.clone(), index, key.frame);
-            let viable = search.viable();
-            let retained = if viable { search.retained() } else { 0 };
-            self.retained += retained;
-            self.cache.push(Cache {
-                search: viable.then_some(search),
-                binding: Vec::new(),
-                listener: Vec::new(),
-                retained,
-            });
-            self.matching.insert(key, cache);
-            if viable {
-                self.agenda.push_back(Task::Search(cache));
-            }
-            cache
-        };
-        if self.cache[cache].search.is_none() && self.cache[cache].binding.is_empty() {
-            return;
+        let index = self.index(key.target);
+        let schedule = self.matching.subscribe(key, consumer, index);
+        if let Some(index) = schedule.search {
+            self.agenda.push_back(Task::Search(index));
         }
-        let (index, fresh) = self.request.insert_full(Request { cache, consumer });
-        if !fresh {
-            return;
-        }
-        self.cursor.push(0);
-        self.cache[cache].listener.push(index);
-        if !self.cache[cache].binding.is_empty() {
-            self.wake(index);
-        }
+        self.agenda
+            .extend(schedule.delivery.into_iter().map(Task::Deliver));
     }
 
-    pub(super) fn search(&mut self, cache: usize, progress: Poll<Option<Vec<Slot>>>) {
-        let retained = self.cache[cache].search.as_ref().unwrap().retained();
-        self.retained = self.retained - self.cache[cache].retained + retained;
-        self.cache[cache].retained = retained;
-        match progress {
-            Poll::Ready(None) => {
-                self.retained -= self.cache[cache].retained;
-                self.cache[cache].retained = 0;
-                self.cache[cache].search = None;
-                return;
-            }
-            Poll::Ready(Some(binding)) => {
-                self.binding += 1;
-                self.cache[cache].binding.push(Arc::new(binding));
-                for index in self.cache[cache].listener.clone() {
-                    self.wake(index);
-                }
-            }
-            Poll::Pending => {}
+    pub(super) fn search(
+        &mut self,
+        index: usize,
+        search: crate::search::Search,
+        progress: Poll<Option<Vec<Slot>>>,
+    ) {
+        let schedule = self.matching.advance(index, search, progress);
+        self.agenda
+            .extend(schedule.delivery.into_iter().map(Task::Deliver));
+        if let Some(index) = schedule.search {
+            self.agenda.push_back(Task::Search(index));
         }
-        self.agenda.push_back(Task::Search(cache));
     }
 
     pub(super) fn deliver(&mut self, index: usize) {
-        self.active.remove(&index);
-        let request = self.request[index].clone();
-        let cache = &self.cache[request.cache];
-        let Some(selection) = cache.binding.get(self.cursor[index]).cloned() else {
+        let Some(delivery) = self.matching.deliver(index) else {
             return;
         };
-        self.cursor[index] += 1;
-        if self.cursor[index] < cache.binding.len() {
-            self.wake(index);
+        if delivery.again {
+            self.agenda.push_back(Task::Deliver(index));
         }
-        let consumer = request.consumer;
+        let consumer = delivery.consumer;
+        let selection = delivery.selection;
         let view = self.view[consumer.view].clone();
         if let Some(Place::World(site, _)) = consumer.read
             && !selection.iter().any(|slot| slot.world == site)

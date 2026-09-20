@@ -1,17 +1,17 @@
 mod application;
 mod matching;
+mod normalization;
 mod report;
+mod table;
 
-use crate::flow::{Binding, Flow, Place};
+use crate::flow::{Binding, Flow};
 use crate::program::Program;
-use crate::slot::Slot;
 use crate::source;
 use crate::state::State;
 use crate::support::{Atom, Clause, Support};
-use crate::term::Term;
 use indexmap::IndexSet;
 use serde::Serialize;
-use std::collections::{BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap};
 use std::sync::{Arc, OnceLock};
 
 #[derive(Clone, Copy, Debug, Serialize)]
@@ -71,38 +71,6 @@ struct Event {
     flow: Flow,
     evidence: BTreeSet<usize>,
 }
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-struct Query {
-    target: usize,
-    frame: usize,
-    pattern: Vec<Vec<Term>>,
-}
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-struct Consumer {
-    view: usize,
-    frame: usize,
-    owner: Option<usize>,
-    rule: usize,
-    capture: Option<usize>,
-    read: Option<Place>,
-}
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-struct Request {
-    cache: usize,
-    consumer: Consumer,
-}
-struct Cache {
-    search: Option<crate::search::Search>,
-    binding: Vec<Arc<Vec<Slot>>>,
-    listener: Vec<usize>,
-    retained: usize,
-}
-struct Normalization {
-    identity: Identity,
-    application: Vec<Application>,
-    flow: Flow,
-    search: Option<crate::canonical::Search>,
-}
 #[derive(Clone)]
 enum Task {
     Inspect(usize),
@@ -120,20 +88,11 @@ pub struct Runtime {
     indexed: usize,
     view: IndexSet<Arc<View>>,
     event: Vec<Event>,
-    identity: HashMap<Identity, usize>,
-    normalizing: HashMap<Identity, usize>,
-    normalization: Vec<Option<Normalization>>,
-    vacant: Vec<usize>,
-    retained: usize,
-    binding: usize,
+    normalization: normalization::Store,
     clause: IndexSet<Clause>,
     evaluation: OnceLock<Support>,
-    matching: HashMap<Query, usize>,
+    matching: table::Table,
     candidate: HashMap<(usize, usize), Arc<Vec<usize>>>,
-    cache: Vec<Cache>,
-    request: IndexSet<Request>,
-    cursor: Vec<usize>,
-    active: HashSet<usize>,
     outgoing: Vec<Vec<usize>>,
     incoming: Vec<Vec<usize>>,
     agenda: crate::agenda::Queue<Task>,
@@ -159,20 +118,11 @@ impl Runtime {
             indexed: 0,
             view: IndexSet::new(),
             event: Vec::new(),
-            identity: HashMap::new(),
-            normalizing: HashMap::new(),
-            normalization: Vec::new(),
-            vacant: Vec::new(),
-            retained: 0,
-            binding: 0,
+            normalization: normalization::Store::default(),
             clause: IndexSet::new(),
             evaluation: OnceLock::new(),
-            matching: HashMap::new(),
+            matching: table::Table::default(),
             candidate: HashMap::new(),
-            cache: Vec::new(),
-            request: IndexSet::new(),
-            cursor: Vec::new(),
-            active: HashSet::new(),
             outgoing: Vec::new(),
             incoming: Vec::new(),
             agenda: crate::agenda::Queue::new(),
@@ -267,16 +217,11 @@ impl Runtime {
                 match self.agenda.front() {
                     Some(Task::Search(index)) => batch.push(crate::work::Work::Search(
                         *index,
-                        self.cache[*index].search.take().unwrap(),
+                        self.matching.take(*index),
                     )),
                     Some(Task::Normalize(index)) => batch.push(crate::work::Work::Normalize(
                         *index,
-                        self.normalization[*index]
-                            .as_mut()
-                            .unwrap()
-                            .search
-                            .take()
-                            .unwrap(),
+                        self.normalization.take(*index),
                     )),
                     _ => break,
                 }
@@ -295,12 +240,10 @@ impl Runtime {
                     self.flying -= 1;
                     match result {
                         crate::work::Result::Search(index, search, progress) => {
-                            self.cache[index].search = Some(search);
-                            self.search(index, progress);
+                            self.search(index, search, progress);
                         }
                         crate::work::Result::Normalize(index, search, complete) => {
-                            self.normalization[index].as_mut().unwrap().search = Some(search);
-                            self.normalize(index, complete);
+                            self.normalize(index, search, complete);
                         }
                     }
                     self.peak = self.peak.max(self.record());
@@ -340,14 +283,10 @@ impl Runtime {
             + self.event.len()
             + self.view.len()
             + self.clause.len()
-            + self.request.len()
-            + self.cache.len()
+            + self.matching.retained()
             + self.candidate.len()
-            + self.binding
-            + self.retained
             + self.flying
-            + self.normalization.len()
-            + self.vacant.len()
+            + self.normalization.retained()
             + self.agenda.len()
             + self.pending.len()
     }

@@ -1,0 +1,156 @@
+use crate::flow::Place;
+use crate::index::Index;
+use crate::search::Search;
+use crate::slot::Slot;
+use crate::term::Term;
+use indexmap::IndexSet;
+use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
+use std::task::Poll;
+
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub(super) struct Query {
+    pub target: usize,
+    pub frame: usize,
+    pub pattern: Vec<Vec<Term>>,
+}
+
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub(super) struct Consumer {
+    pub view: usize,
+    pub frame: usize,
+    pub owner: Option<usize>,
+    pub rule: usize,
+    pub capture: Option<usize>,
+    pub read: Option<Place>,
+}
+
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+struct Request {
+    cache: usize,
+    consumer: Consumer,
+}
+
+struct Cache {
+    search: Option<Search>,
+    binding: Vec<Arc<Vec<Slot>>>,
+    listener: Vec<usize>,
+    retained: usize,
+}
+
+#[derive(Default)]
+pub(super) struct Schedule {
+    pub search: Option<usize>,
+    pub delivery: Vec<usize>,
+}
+
+pub(super) struct Delivery {
+    pub consumer: Consumer,
+    pub selection: Arc<Vec<Slot>>,
+    pub again: bool,
+}
+
+#[derive(Default)]
+pub(super) struct Table {
+    query: HashMap<Query, usize>,
+    cache: Vec<Cache>,
+    request: IndexSet<Request>,
+    cursor: Vec<usize>,
+    active: HashSet<usize>,
+    binding: usize,
+    retained: usize,
+}
+
+impl Table {
+    pub fn subscribe(&mut self, key: Query, consumer: Consumer, index: Arc<Index>) -> Schedule {
+        let mut schedule = Schedule::default();
+        let cache = if let Some(&cache) = self.query.get(&key) {
+            cache
+        } else {
+            let cache = self.cache.len();
+            let search = Search::new(key.pattern.clone(), index, key.frame);
+            let viable = search.viable();
+            let retained = if viable { search.retained() } else { 0 };
+            self.retained += retained;
+            self.cache.push(Cache {
+                search: viable.then_some(search),
+                binding: Vec::new(),
+                listener: Vec::new(),
+                retained,
+            });
+            self.query.insert(key, cache);
+            if viable {
+                schedule.search = Some(cache);
+            }
+            cache
+        };
+        if self.cache[cache].search.is_none() && self.cache[cache].binding.is_empty() {
+            return schedule;
+        }
+        let (index, fresh) = self.request.insert_full(Request { cache, consumer });
+        if !fresh {
+            return schedule;
+        }
+        self.cursor.push(0);
+        self.cache[cache].listener.push(index);
+        if !self.cache[cache].binding.is_empty() && self.active.insert(index) {
+            schedule.delivery.push(index);
+        }
+        schedule
+    }
+
+    pub fn take(&mut self, index: usize) -> Search {
+        self.cache[index].search.take().unwrap()
+    }
+
+    pub fn advance(
+        &mut self,
+        index: usize,
+        search: Search,
+        progress: Poll<Option<Vec<Slot>>>,
+    ) -> Schedule {
+        let cache = &mut self.cache[index];
+        let retained = search.retained();
+        self.retained = self.retained - cache.retained + retained;
+        cache.retained = retained;
+        cache.search = Some(search);
+        if matches!(progress, Poll::Ready(None)) {
+            self.retained -= cache.retained;
+            cache.retained = 0;
+            cache.search = None;
+            return Schedule::default();
+        }
+        let mut schedule = Schedule {
+            search: Some(index),
+            delivery: Vec::new(),
+        };
+        if let Poll::Ready(Some(binding)) = progress {
+            self.binding += 1;
+            cache.binding.push(Arc::new(binding));
+            for &listener in &cache.listener {
+                if self.active.insert(listener) {
+                    schedule.delivery.push(listener);
+                }
+            }
+        }
+        schedule
+    }
+
+    pub fn deliver(&mut self, index: usize) -> Option<Delivery> {
+        self.active.remove(&index);
+        let request = &self.request[index];
+        let cache = &self.cache[request.cache];
+        let selection = cache.binding.get(self.cursor[index])?.clone();
+        self.cursor[index] += 1;
+        let again = self.cursor[index] < cache.binding.len() && self.active.insert(index);
+        Some(Delivery {
+            consumer: request.consumer.clone(),
+            selection,
+            again,
+        })
+    }
+
+    pub fn retained(&self) -> usize {
+        self.request.len() + self.cache.len() + self.binding + self.retained
+    }
+}

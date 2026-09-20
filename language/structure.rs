@@ -165,6 +165,9 @@ impl Structure {
     }
 
     pub fn advance(&mut self, state: &State) -> u64 {
+        #[cfg(feature = "measurement")]
+        let _measurement =
+            crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Structure);
         let current = state
             .world
             .iter()
