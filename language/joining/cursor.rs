@@ -34,6 +34,15 @@ impl Cursor {
         self.retained = self.cursor.len() + self.scan.len();
     }
 
+    pub fn boundary(&self) -> Option<usize> {
+        (!self.complete && self.depth == 0 && !self.scan[0]).then(|| self.cursor[0])
+    }
+
+    pub fn seek(&mut self, position: usize) {
+        self.reset();
+        self.cursor[0] = position;
+    }
+
     pub fn seed(&mut self, binding: Vec<Slot>) {
         self.reset();
         self.retained += binding

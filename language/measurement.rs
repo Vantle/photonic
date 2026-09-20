@@ -1,5 +1,6 @@
 pub mod dispatch;
 pub mod joining;
+pub mod partition;
 pub mod profile;
 pub mod query;
 pub mod reachability;

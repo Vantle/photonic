@@ -1,23 +1,24 @@
 use super::cursor::Cursor;
 use super::space::Space;
-use super::stream::Stream;
 use crate::index::Index;
 use crate::slot::Slot;
-use std::sync::Arc;
 use std::task::Poll;
 
-pub(super) struct Product {
-    prefix: Stream,
+pub(super) enum Strategy {
+    Shared,
+    Partitioned,
+}
+
+pub(super) struct Product<Prefix> {
+    pub prefix: Prefix,
     suffix: Cursor,
     active: bool,
 }
 
-impl Product {
-    pub fn new(space: &Space, order: &[usize], store: &Arc<super::Store>) -> Self {
-        let width = order.len();
-        let node = store.subscribe(super::key::Key::new(space, &order[..width - 1]));
+impl<Prefix: super::prefix::Prefix> Product<Prefix> {
+    pub fn new(prefix: Prefix) -> Self {
         Self {
-            prefix: Stream::new(width - 1, store.budget().clone(), node),
+            prefix,
             suffix: Cursor::new(1),
             active: false,
         }
@@ -62,11 +63,6 @@ impl Product {
     }
 
     #[cfg(test)]
-    pub fn shares(&self, other: &Self) -> bool {
-        self.prefix.shares(&other.prefix)
-    }
-
-    #[cfg(test)]
     pub fn size(&self) -> usize {
         self.prefix.size() + self.suffix.size() + 1
     }
@@ -78,5 +74,12 @@ impl Product {
 
     pub fn retained(&self) -> usize {
         self.prefix.retained() + self.suffix.retained() + 1
+    }
+}
+
+#[cfg(test)]
+impl Product<super::stream::Stream> {
+    pub fn shares(&self, other: &Self) -> bool {
+        self.prefix.shares(&other.prefix)
     }
 }
