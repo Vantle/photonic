@@ -1,58 +1,32 @@
 # Continuous verification
 
-[Photonic on Buildkite](https://buildkite.com/vantle-labs/photonic) runs Bazel directly. The pipeline editor contains [bootstrap.yml](../.buildkite/bootstrap.yml), which uploads the output of [pipeline](../.buildkite/pipeline) from the checked-out commit. The generator declares the six platforms once and gives every build and test its own step key and GitHub status. Native Buildkite matrices group status notifications by matrix step, so distinct generated steps are needed for independent per-platform results. Verification behavior stays under version control.
+[Photonic on Buildkite](https://buildkite.com/vantle-labs/photonic) runs two independent jobs: **Build · Linux x86-64** and **Test · Linux x86-64**. The build job compiles in release mode with lint aspects, checks formatting, and exercises the dependency command. The test job runs the release test suite. Both have a 60-minute timeout.
 
-The pipeline has thirteen independent jobs: six `Build · <platform>` jobs, six `Test · <platform>` jobs, and `Test · browser` on ARM64 macOS. Build jobs compile in release mode with lint aspects, check formatting, and exercise the dependency command. Test jobs run the release test suite; Bazel builds their prerequisites. Every job reports its own GitHub status, so build and test failures remain distinguishable. There is no global barrier between platforms. Native jobs have a 60-minute timeout; browser verification has 20 minutes. New commits supersede older queued and running builds on the same branch.
+## Hosted capacity
 
-Repository hooks install checksum-verified Bazelisk 1.28.1, which reads the Bazel version from `.bazelversion`. Bazel supplies the compiler and every build dependency. Post-command hooks shut down Bazel even after verification fails. Windows agents use the default Batch shell and PowerShell for bootstrap; Unix agents use Bash, curl, and shasum. These are agent bootstrap facilities, not additional project build tools.
+Every step, including pipeline upload, uses the existing `linux-small` hosted queue: AMD64 Linux with 2 vCPU and 4 GB memory. Buildkite’s [Free plan](https://buildkite.com/pricing/) includes up to 2,000 Linux vCPU minutes per month on this shape. The allowance is finite; this configuration does not require paid machine shapes or self-hosted agents.
 
-## Queue inventory
+macOS, Windows, ARM64 Linux, and browser CI are excluded. Browser verification currently requires ARM64 macOS and can still be run locally with `bazel test --config=release //toolchain/browser:check`. The repository’s platform definitions and hermetic toolchains remain available for local builds on the other supported systems.
 
-Queues belong to Vantle’s default Buildkite cluster. Each generated native step selects the queue with exactly the same platform name; it never substitutes a cross-compiled test for a native execution.
+## Pipeline configuration
 
-| Queue | Execution | Provisioning |
-| --- | --- | --- |
-| `linux-medium` | Pipeline upload | Existing hosted queue |
-| `x86_64-unknown-linux-gnu` | Native Linux | Hosted, 4 vCPU / 16 GB |
-| `aarch64-apple-darwin` | Browser and native macOS | Hosted macOS Sequoia, 6 vCPU / 28 GB |
-| `aarch64-unknown-linux-gnu` | Native Linux | Self-hosted agent required |
-| `x86_64-apple-darwin` | Native macOS | Self-hosted Intel Mac required |
-| `aarch64-pc-windows-gnullvm` | Native Windows | Self-hosted ARM64 Windows agent required |
-| `x86_64-pc-windows-gnullvm` | Native Windows | Self-hosted x86-64 Windows agent required |
+The pipeline editor contains [bootstrap.yml](../.buildkite/bootstrap.yml). It publishes the aggregate **Verification** status from the start of each build and uploads [pipeline.yml](../.buildkite/pipeline.yml) from the checked-out commit. Each verification step publishes its own explicitly named GitHub status. New commits supersede older queued and running builds on the same branch.
 
-All queues are created. At migration time, the organization could not create hosted ARM64 Linux or Windows agents. Buildkite does not offer hosted Intel macOS or ARM64 Windows. Jobs in the four self-hosted queues remain queued until matching agents connect; they are deliberately neither skipped nor allowed to fail.
+Repository hooks install checksum-verified Bazelisk 1.28.1, which reads the Bazel version from `.bazelversion`. Bazel supplies the compiler and every build dependency. The generated, ignored `user.bazelrc` limits Bazel to two jobs and a 1 GB server heap for the small agent. Post-command hooks shut down Bazel even when verification fails.
 
-## Provision an agent
-
-Use a dedicated machine or disposable virtual machine running the queue’s native operating system and architecture. Install Git and the matching [Buildkite agent](https://buildkite.com/docs/agent/self-hosted/install). Keep the default shell: Bash on Unix and Batch on Windows. Windows also needs Windows PowerShell with `Invoke-WebRequest` and `Get-FileHash`.
-
-In the default cluster’s agent-token settings, create a token restricted to the intended queue. Supply it through the service’s `BUILDKITE_AGENT_TOKEN` environment variable or a restricted agent configuration file. The temporary API token used to configure the pipeline is not an agent token and is not needed to run builds.
-
-Start the agent with the exact queue key, for example:
-
-```sh
-buildkite-agent start --queue=aarch64-unknown-linux-gnu
-```
-
-For the remaining machines, replace the queue key with `x86_64-apple-darwin`, `aarch64-pc-windows-gnullvm`, or `x86_64-pc-windows-gnullvm`. Use the operating system’s service manager to keep the agent running. The repository is public and clones over HTTPS, so checkout needs no GitHub credential. Avoid personal machines containing unrelated credentials: verification executes repository code.
+Bazel and Bazelisk caches live outside the checkout under `/tmp/photonic`. They are local to the ephemeral agent and are discarded with it. Persistent cache volumes are not included in the Free plan and are not requested. Builds therefore work from an empty cache without any external cache service.
 
 ## GitHub integration
 
-The repository webhook sends `push`, `pull_request`, and `merge_group` events to this pipeline’s Buildkite-generated webhook URL with JSON encoding and TLS verification. Keep that URL in service configuration rather than committing it. The webhook ping returned HTTP 200 during setup.
+The Buildkite GitHub App is connected to Vantle. The repository webhook sends `push`, `pull_request`, and `merge_group` events to the pipeline’s Buildkite-generated URL with JSON encoding and TLS verification. Keep that URL in service configuration rather than committing it. Receiving merge-group events does not itself enable Buildkite merge-queue builds.
 
-Buildkite enables branch and pull-request builds. The bootstrap YAML publishes the aggregate `Verification` commit status from the start of each build. Require that context from the Buildkite GitHub App on `main`, with the branch up to date before merging. Disable **Update commit statuses** in the pipeline’s GitHub settings to suppress Buildkite’s autogenerated name; the explicit aggregate and per-job notifications remain enabled. The aggregate covers pipeline upload and every verification job, so a missing agent cannot accidentally produce a green required check. Third-party fork builds remain disabled; enabling them requires a separate policy for agent isolation and cache access. Delivery of merge-group events alone does not enable Buildkite merge-queue builds.
+Branch and pull-request builds are enabled. Require **Verification** from the Buildkite GitHub App on `main`, with the branch up to date before merging. It covers pipeline upload and both verification jobs. Disable **Update commit statuses** in the pipeline’s GitHub settings to suppress Buildkite’s autogenerated name; explicit notifications continue to publish the aggregate and per-job statuses. Third-party fork builds remain disabled to avoid spending the organization’s limited hosted allowance on untrusted submissions.
 
-Connect the [Buildkite GitHub App](https://buildkite.com/docs/pipelines/source-control/github) to the Vantle organization to publish statuses independently of a personal OAuth connection. The App installation is an interactive GitHub account operation. Pipeline and webhook configuration do not grant Buildkite permission to write GitHub statuses by themselves.
+The repository is public and clones over HTTPS without a GitHub checkout credential. No API token or self-hosted agent token is required in the repository. Manual verification is available through **New Build** in Buildkite.
 
-Manual verification is available through **New Build** in Buildkite. For local pipeline syntax validation, use:
+Validate pipeline syntax locally with:
 
 ```sh
 BUILDKITE_AGENT_ACCESS_TOKEN=validation buildkite-agent pipeline upload --dry-run .buildkite/bootstrap.yml
-.buildkite/pipeline | BUILDKITE_AGENT_ACCESS_TOKEN=validation buildkite-agent pipeline upload --dry-run
+BUILDKITE_AGENT_ACCESS_TOKEN=validation buildkite-agent pipeline upload --dry-run .buildkite/pipeline.yml
 ```
-
-## Cache behavior
-
-The pipeline requests a 40 GB hosted cache volume mounted at `/tmp/photonic`. Bazel action and repository caches, Bazelisk downloads, and verified bootstrap binaries live below it. Self-hosted Unix agents use the same location; Windows agents use `%LOCALAPPDATA%/photonic`. Caches stay outside the checkout, as required by Bazel’s repository contents cache. Normal checkout cleanup remains enabled. The generated, ignored `user.bazelrc` selects these CI cache locations without changing local build defaults.
-
-Hosted volumes are best-effort, and concurrent jobs receive separate copies. Successful jobs can update the shared volume. Cache reuse is an optimization; it is never required for correctness. The pipeline keeps no compiler output or credentials in GitHub Actions caches.

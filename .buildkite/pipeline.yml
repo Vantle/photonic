@@ -1,0 +1,22 @@
+agents:
+  queue: linux-small
+
+steps:
+  - label: Build · Linux x86-64
+    key: build
+    command:
+      - bazel build --config=release //... --host_platform=//platform:x86_64-unknown-linux-gnu --platforms=//platform:x86_64-unknown-linux-gnu
+      - bazel run --config=release //:format --host_platform=//platform:x86_64-unknown-linux-gnu --platforms=//platform:x86_64-unknown-linux-gnu -- --check
+      - bazel run --config=release //:update --host_platform=//platform:x86_64-unknown-linux-gnu --platforms=//platform:x86_64-unknown-linux-gnu -- --help
+    timeout_in_minutes: 60
+    notify:
+      - github_commit_status:
+          context: Build · Linux x86-64
+
+  - label: Test · Linux x86-64
+    key: test
+    command: bazel test --config=release //... --host_platform=//platform:x86_64-unknown-linux-gnu --platforms=//platform:x86_64-unknown-linux-gnu
+    timeout_in_minutes: 60
+    notify:
+      - github_commit_status:
+          context: Test · Linux x86-64
