@@ -22516,6 +22516,13 @@
       "javascript": "6996447d77c3fb8262e206ad7c496e0112ddb3ceb47e85859874fa8bcb9f4920",
       "webassembly": "a60f865cbfb6fba718e73a48c9b08041e6cc3d73c10e0549c56204fb9852748e",
       "verification": "HTTP 200; served JS and WASM byte-identical to the tested optimized artifacts"
+    },
+    "continuous": {
+      "revision": "e78afb2ca863d531a7e53909ac128d8ef4fd04fa",
+      "url": "https://github.com/Vantle/photonic/actions/runs/35517082657",
+      "conclusion": "failure",
+      "execution": "No job steps started",
+      "reason": "GitHub reported failed recent account payments or a spending limit requiring an increase."
     }
   }
 }

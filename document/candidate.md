@@ -123,6 +123,8 @@ For the baseline, check out `19bf474` separately and copy only `benchmark/candid
 - Hermetic rustfmt, Clippy, and buildifier checks passed through the Bazel aspects.
 - Three paired benchmark rounds preserve all compared event, work, binding, state, record, and peak logical-record counts.
 
+The [GitHub verification run for `e78afb2`](https://github.com/Vantle/photonic/actions/runs/35517082657) was marked failed before job steps started: GitHub reported an account payment or spending-limit problem. It provides no remote build or test validation. Cross-platform CI needs to be rerun after that account issue is resolved.
+
 The new tests compare candidate selections against a direct world/token scan and compare every planned join `Poll` against raw traversal. They cover canonical term permutations, differing multiplicities, independent cursors, partial consumption, simultaneous removal/insertion, numeric site reuse, late subscribers, irrelevant changes, skipped snapshots, different histories, captured equal code in different frames, cache eviction, concurrent readers, reservation exhaustion while an older selection remains live, oversized insertion batches, empty domains, and repopulation after a cached negative result.
 
 Existing semantic expectations were not changed. The full suite includes nested metaprogramming, runtime production of compiled rule occurrences, competing proof histories, cyclic support, resource limits, and native/browser conformance. Structural construction of previously uncompiled rule shapes remains the separate proposal in [dynamic.md](dynamic.md).
