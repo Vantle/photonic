@@ -1756,16 +1756,13 @@ bazel run //:analyze.rust</code></pre>
 <h4 id="guide-build-verification">Verification</h4>
 <p>Run these commands from the repository root:</p>
 <pre><code>bazel build -c opt //...
-bazel test -c opt //...
-bazel test //toolchain:check</code></pre>
-<p>Rust formatting and Clippy run automatically as aspects on every build and test, including transitive dependencies and WebAssembly. Every Rust target uses <code>lint_config = "//:lint"</code>. Compiler warnings and enabled Clippy lints fail the build. The policy selects useful idiom checks without enabling the entire pedantic or restriction groups. Fix the underlying issue instead of adding lint exemptions. See <a href="document/build.md">build configuration</a> for the policy. Preserve independent test oracles: native runtime reports are compared with reference fixtures, support propagation is compared with a fixed-point implementation, and arithmetic results are checked through runtime execution. <code>//toolchain/browser:check</code> checks theme persistence, all four recorded arithmetic results, event navigation, Wasm expression evaluation, cancellation, reference links, mobile layout, and asset loading in pinned headless Chrome. Run that target on ARM64 macOS; no host Node, browser, package manager, or shell launcher is needed.</p>
-<p>Format Rust with the package&#x27;s formatter:</p>
-<pre><code>bazel run //:format
-bazel run //arithmetic:format
-bazel run //program/binary:format</code></pre>
+bazel test -c opt //...</code></pre>
+<p>Rust formatting, Clippy, and Bazel formatting/lint checks run automatically through the default aspect on every build and test, including transitive dependencies and WebAssembly. Every Rust target uses <code>lint_config = "//:lint"</code>. Compiler warnings and enabled Clippy lints fail the build. The policy selects useful idiom checks without enabling the entire pedantic or restriction groups. Fix the underlying issue instead of adding lint exemptions. See <a href="document/build.md">build configuration</a> for the policy. Preserve independent test oracles: native runtime reports are compared with reference fixtures, support propagation is compared with a fixed-point implementation, and arithmetic results are checked through runtime execution. <code>//toolchain/browser:check</code> checks theme persistence, all four recorded arithmetic results, event navigation, Wasm expression evaluation, cancellation, reference links, mobile layout, and asset loading in pinned headless Chrome. Run that target on ARM64 macOS; no host Node, browser, package manager, or shell launcher is needed.</p>
+<p>Format declared Rust sources with the pinned formatter:</p>
+<pre><code>bazel run //:format</code></pre>
 <p>Format a changed Bazel file with the pinned toolchain:</p>
 <pre><code>bazel run @buildifier_prebuilt//:buildifier -- language/BUILD.bazel</code></pre>
-<p>When adding a crate root, include it in the appropriate formatter entry point. The formatting aspect checks declared Rust source files independently of those convenience commands.</p>
+<p>The formatter queries the Rust dependency graph, including filegroups and WebAssembly sources; no separate file list is needed. Starlark checks retain the explicit <code>//:build</code> inventory because BUILD files and loaded <code>.bzl</code> files are not exposed as source file inputs to aspects.</p>
 <p>Add tests at stable interface boundaries. Cover failure, suspension, resumption, and deterministic behavior where they are part of the contract. Keep arithmetic expectations independent of circuit generation. The saved add, multiply, subtract, and divide programs are fixtures with explicit expected results.</p>
 <a id="guide-build-contribution-dependencies-and-performance"></a>
 <h4 id="guide-build-dependencies-and-performance">Dependencies and performance</h4>
@@ -1796,8 +1793,7 @@ bazel mod deps --config=refresh</code></pre>
 bazel build //command:photonic --platforms=//platform:x86_64-pc-windows-gnullvm</code></pre>
 <p>To verify on a matching native host:</p>
 <pre><code>bazel build -c opt //... --host_platform=//platform:aarch64-apple-darwin --platforms=//platform:aarch64-apple-darwin
-bazel test -c opt //... --host_platform=//platform:aarch64-apple-darwin --platforms=//platform:aarch64-apple-darwin
-bazel test //toolchain:check</code></pre>
+bazel test -c opt //... --host_platform=//platform:aarch64-apple-darwin --platforms=//platform:aarch64-apple-darwin</code></pre>
 <p>Replace the example target with the matching platform from the table. Cross-compilation alone does not establish native execution; the workflow runs the tests on each matching host.</p>
 <p>CLI integration tests declare executables as data and resolve <code>rlocationpath</code> values with the standard Rust runfiles library. This supports both directory runfiles and Windows manifests.</p>
 <a id="guide-build-api"></a>
@@ -1908,7 +1904,7 @@ value(node(digit, tail)) = digit + 3 × value(tail)</code></pre>
 </table></div>
 <p>The library pass reduced events by 6.3% and work by 11.2% relative to the previous implementation, reaching 3,411,783 work steps. General runtime pruning subsequently reduced work to 2,875,589. Shared indexing and removal of known-empty matching work reduced it further to 215,876 without changing the event count; see the <a href="#guide-investigation">runtime investigation</a> <a href="#guide-indexing">indexed matching measurements</a>, and subsequent <a href="#guide-provenance">provenance measurements</a>. Constructors introduce the cell directly in its captured scope. Token reads return bare token values directly; digit reads retain the root conversion that preserves the digit field&#x27;s capture. Empty-tail termination consumes <code>Zero</code> explicitly instead of passing it through head cleanup. Roles, fields, and function boundaries remain explicit.</p>
 <p>A shared constructor that stored every token as cell data passed the functional checks but raised this example&#x27;s work to 4,632,304. It was rejected. Fewer declarations alone do not imply less matching work.</p>
-<pre><code>bazel test -c opt //program/ternary:all //toolchain:check //toolchain/browser:check \
+<pre><code>bazel test -c opt //program/ternary:all //toolchain/browser:check \
   --test_output=errors</code></pre>
 <p>The remaining costs include linked-cell construction, magnitude copying during multiplication and division, repeated traversal for normalization, and interpreter-stack transfers. Removing those costs or parallelizing complete subexpressions requires further measured library design; the current improvements do not establish perfection.</p>
 </details>
@@ -2066,7 +2062,7 @@ output=$(bazel info -c opt bazel-bin)
 <p>These sources provide established and recent techniques, rather than a claim that a single current system is universally the fastest or semantically interchangeable with Photonic.</p>
 <h3 id="guide-investigation-reproduction">Reproduction</h3>
 <p>Build and test with the pinned Bazel toolchain:</p>
-<pre><code>bazel test -c opt //language:test //program/ternary:all //toolchain:check //toolchain/browser:check --test_output=errors
+<pre><code>bazel test -c opt //language:test //program/ternary:all //toolchain/browser:check --test_output=errors
 bazel run -c opt //benchmark:runtime
 bazel run -c opt //program/ternary:infix -- prism \
   --target &quot;$PWD/program/ternary/result.particle&quot; --path \

@@ -9,7 +9,9 @@ def _collect(target):
     return [getattr(output, name) for name in ["clippy_checks", "rustfmt_checks", "check"] if hasattr(output, name)]
 
 def _check(target, context):
-    if not target.label.workspace_root and hasattr(context.rule.attr, "lint_config") and not context.rule.attr.lint_config:
+    if target.label.workspace_root:
+        return []
+    if hasattr(context.rule.attr, "lint_config") and not context.rule.attr.lint_config:
         fail("Rust targets must set lint_config = \"//:lint\"")
     dependency = []
     for name in dir(context.rule.attr):
@@ -18,10 +20,11 @@ def _check(target, context):
             dependency.append(value)
         elif type(value) == "list":
             dependency.extend([entry for entry in value if type(entry) == "Target"])
-    return [OutputGroupInfo(check = depset(transitive = _collect(target) + [output for entry in dependency for output in _collect(entry)]))]
+    return [OutputGroupInfo(check = depset(transitive = [context.attr._starlark[DefaultInfo].files] + _collect(target) + [output for entry in dependency for output in _collect(entry)]))]
 
 check = aspect(
     implementation = _check,
     attr_aspects = ["*"],
+    attrs = {"_starlark": attr.label(default = "//toolchain:check")},
     requires = [rust_clippy_aspect, rustfmt_aspect],
 )

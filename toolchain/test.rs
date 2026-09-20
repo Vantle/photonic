@@ -73,3 +73,30 @@ fn launcher() -> Result<(), Box<dyn std::error::Error>> {
     }
     Ok(())
 }
+
+#[test]
+fn validation() -> Result<(), Box<dyn std::error::Error>> {
+    let runfile = runfiles::Runfiles::create()?;
+    let locate = |name| runfiles::rlocation!(runfile, std::env::var(name).unwrap()).unwrap();
+    let verify = locate("VERIFY");
+    let node = locate("PHOTONIC_NODE");
+    let script = locate("PHOTONIC_SCRIPT");
+    let directory = PathBuf::from(std::env::var("TEST_TMPDIR")?).join("validation space");
+    fs::create_dir_all(&directory)?;
+    for code in [7, 0] {
+        let marker = directory.join(code.to_string());
+        let output = Command::new(&verify)
+            .arg(&marker)
+            .arg(&node)
+            .arg(&script)
+            .arg(code.to_string())
+            .output()?;
+        assert_eq!(output.status.code(), Some(code), "{output:?}");
+        assert_eq!(marker.exists(), code == 0);
+    }
+    let marker = directory.join("missing");
+    let output = Command::new(verify).arg(&marker).output()?;
+    assert!(!output.status.success());
+    assert!(!marker.exists());
+    Ok(())
+}

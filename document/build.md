@@ -24,13 +24,15 @@ bazel test --config=release //...
 bazel test --config=release //toolchain/browser:check
 ```
 
-The default `//toolchain:check.bzl%check` aspect composes the pinned Rust formatting and Clippy aspects and propagates their outputs through dependencies, launchers, and WebAssembly transitions. Both `bazel build` and `bazel test` request its `check` output group in addition to normal outputs. No lint configuration flag is needed. `//toolchain:check` checks Bazel formatting and lint warnings as part of `bazel test //...`.
+The default `//toolchain:check.bzl%check` aspect composes the pinned Rust formatting and Clippy aspects and propagates their outputs through dependencies, launchers, and WebAssembly transitions. Both `bazel build` and `bazel test` request its `check` output group in addition to normal outputs. No lint configuration flag is needed. The same aspect requires the shared `//toolchain:check` Buildifier action, so Bazel formatting and lint warnings also fail ordinary builds and tests. The action is cached once per configured inventory; it does not execute separately for every Rust target.
 
 The lint policy lives in `Cargo.toml`. The documented [rules_rs Cargo lint integration](https://github.com/hermeticbuild/rules_rs#cargo-lint-configuration) produces its Bazel configuration, exposed as `//:lint`. Compilation rules and toolchains come from `rules_rs`; its public compatibility repository supplies the formatting and Clippy aspects that it has not wrapped. No independent `rules_rust` dependency or private API is used.
 
 Every Rust target sets `lint_config = "//:lint"`; the aspect rejects missing configuration. This shared policy denies compiler warnings, Rust 2018 idiom violations, unused lifetimes, standard Clippy lints, and selected checks for redundant clones, copied values, explicit iterator loops, option handling, early returns, mutable references, nested patterns, `Self`, and unfinished debugging code. Following [Clippy's guidance](https://doc.rust-lang.org/clippy/lints.html), pedantic and restriction groups are not enabled wholesale. Add individual rules when they improve this codebase without routine exemptions. Fix diagnostics instead of adding `allow`, `expect`, or skip tags; an exception requires a concrete explanation of why a code fix is impossible. No exemptions are currently required.
 
-Run `bazel run //:format` to format Rust. The lint policy applies to repository code; dependency repositories keep their upstream policy.
+Run `bazel run //:format` to format Rust, or append `-- --check` to check it. This command queries declared Rust source dependencies, including filegroups and WebAssembly targets, and uses the pinned formatter. New source targets need no separate formatter registration. Only source files in the build graph participate.
+
+Starlark files retain the explicit `//:build` inventory: Bazel does not expose BUILD files or transitive `.bzl` loads as source `File` inputs to aspects. Keep each package’s `build` filegroup up to date and add it to `//:build`. These declarations keep Buildifier sandboxed, cacheable, and independent of filesystem scanning. The lint policy applies to repository code; dependency repositories keep their upstream policy.
 
 The browser check runs on ARM64 macOS. The CI matrix also runs native tests on both CPU architectures for macOS, Linux, and Windows.
 

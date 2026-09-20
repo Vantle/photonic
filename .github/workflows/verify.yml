@@ -31,8 +31,6 @@ jobs:
           repository-cache: true
           disk-cache: ${{ github.job }}
           cache-save: ${{ github.event_name != 'pull_request' }}
-      - name: Build format
-        run: bazel test //toolchain:check
       - name: Build and lint
         run: bazel build //...
 

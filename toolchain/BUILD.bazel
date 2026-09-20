@@ -1,17 +1,14 @@
-load("@buildifier_prebuilt//:rules.bzl", "buildifier_test")
 load("@rules_rs//rs:rust_binary.bzl", "rust_binary")
 load("@rules_rs//rs:rust_test.bzl", "rust_test")
 load(":defs.bzl", "hermetic_binary")
 load(":node.bzl", "node")
+load(":starlark.bzl", "starlark")
 
 exports_files(["defs.bzl"])
 
-buildifier_test(
+starlark(
     name = "check",
-    size = "small",
-    srcs = ["//:build"],
-    lint_mode = "warn",
-    mode = "check",
+    source = "//:build",
 )
 
 filegroup(
@@ -21,6 +18,7 @@ filegroup(
         "check.bzl",
         "defs.bzl",
         "node.bzl",
+        "starlark.bzl",
     ],
     visibility = ["//:__pkg__"],
 )
@@ -60,8 +58,10 @@ rust_test(
         ":node",
         ":probe",
         ":sample",
+        ":verify",
     ],
     env = {
+        "VERIFY": "$(rlocationpath :verify)",
         "SAMPLE": "$(rlocationpath :sample)",
         "ARGUMENT": "$(rlocationpath :argument)",
         "PROBE": "$(rlocationpath :probe)",
@@ -98,4 +98,20 @@ rust_binary(
     crate_root = "argument.rs",
     lint_config = "//:lint",
     deps = ["@crate//:serde_json"],
+)
+
+rust_binary(
+    name = "verify",
+    srcs = ["verify.rs"],
+    crate_root = "verify.rs",
+    lint_config = "//:lint",
+)
+
+rust_binary(
+    name = "format",
+    srcs = ["format.rs"],
+    crate_root = "format.rs",
+    lint_config = "//:lint",
+    visibility = ["//:__pkg__"],
+    deps = ["@rules_rust//rust/runfiles"],
 )
