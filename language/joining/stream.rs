@@ -110,7 +110,7 @@ impl Stream {
         {
             cache.playback.seek(&trace, progress);
             cache.trace = trace;
-            if let Some(result) = cache.playback.step(&cache.trace, order) {
+            if let Some(result) = cache.playback.step(&cache.trace, order, &[]) {
                 return result;
             }
             return Poll::Ready(None);
@@ -167,7 +167,7 @@ impl super::prefix::Prefix for Stream {
             }
             _ => return self.advance(space, order, index),
         };
-        if let Some(result) = cache.playback.step(&cache.trace, order) {
+        if let Some(result) = cache.playback.step(&cache.trace, order, &[]) {
             return result;
         }
         if cache.trace.complete {

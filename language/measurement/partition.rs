@@ -1,13 +1,9 @@
+use super::maintenance;
 use crate::change::Change;
-use crate::index::Index;
-use crate::joining::{Join, Request, Store};
-use crate::plan::Input;
 use crate::program::Program;
 use crate::state::State;
-use serde::Serialize;
 use std::hint::black_box;
 use std::sync::Arc;
-use std::task::Poll;
 use std::time::{Duration, Instant};
 
 pub struct Configuration {
@@ -17,55 +13,11 @@ pub struct Configuration {
     pub replacement: usize,
     pub length: usize,
     pub productive: bool,
+    pub alternating: bool,
     pub sample: usize,
 }
 
-#[derive(Serialize)]
-pub struct Measurement {
-    execution: f64,
-    work: usize,
-    binding: usize,
-    peak: usize,
-}
-
-fn evaluate(program: &Program, state: &[(Arc<State>, Change)]) -> Measurement {
-    let mut index = Index::new(Arc::new(State::initial(program)));
-    let input = Input::shared(&program.rule[0].input, &mut Default::default());
-    let store = Arc::new(Store::new(65536));
-    let mut join = Join::planned(Request {
-        input: &input,
-        index: &index,
-        frame: 0,
-        owner: 0,
-        store: &store,
-    });
-    let mut work = 0;
-    let mut binding = 0;
-    let mut peak = join.retained() + store.retained();
-    let start = Instant::now();
-    for (state, change) in state {
-        index.update(state.clone(), change);
-        join.update(&index);
-        join.reset(&index);
-        loop {
-            work += 1;
-            match black_box(join.step(&index)) {
-                Poll::Ready(None) => break,
-                Poll::Ready(Some(_)) => binding += 1,
-                Poll::Pending => {}
-            }
-        }
-        peak = peak.max(join.retained() + store.retained());
-    }
-    Measurement {
-        execution: start.elapsed().as_secs_f64(),
-        work,
-        binding,
-        peak,
-    }
-}
-
-pub fn run(configuration: Configuration) -> Vec<Measurement> {
+pub fn run(configuration: Configuration) -> Vec<maintenance::Measurement> {
     assert!(configuration.count > 1 && configuration.count <= configuration.width);
     assert!(configuration.replacement > 0 && configuration.replacement <= configuration.count);
     let anchor = (0..configuration.depth)
@@ -96,13 +48,26 @@ pub fn run(configuration: Configuration) -> Vec<Measurement> {
     );
     let mut previous = State::initial(&program);
     let state = (0..configuration.length)
-        .map(|_| {
+        .map(|iteration| {
+            let depth = (configuration.alternating && !anchor.is_empty() && iteration % 4 != 0)
+                .then(|| (iteration / 4) % anchor.len());
+            let symbol = depth.map(|depth| {
+                crate::program::Symbol::Atom(program.atom.get_index_of(&anchor[depth]).unwrap())
+            });
             let removal = previous
                 .world
                 .iter()
                 .enumerate()
-                .filter(|(_, world)| world.particle.len() == 8)
-                .take(configuration.replacement)
+                .filter(|(_, world)| {
+                    symbol.map_or(world.particle.len() == 8, |symbol| {
+                        world.particle[0].value == symbol
+                    })
+                })
+                .take(if symbol.is_some() {
+                    1
+                } else {
+                    configuration.replacement
+                })
                 .map(|(position, _)| position)
                 .collect::<crate::basis::Set<_>>();
             let insertion = previous.world.len() - removal.len();
@@ -125,10 +90,10 @@ pub fn run(configuration: Configuration) -> Vec<Measurement> {
         .collect::<Vec<_>>();
     let start = Instant::now();
     while start.elapsed() < Duration::from_millis(100) {
-        black_box(evaluate(&program, &state));
+        black_box(maintenance::run(&program, &state));
     }
     let measurement = (0..configuration.sample)
-        .map(|_| evaluate(&program, &state))
+        .map(|_| maintenance::run(&program, &state))
         .collect::<Vec<_>>();
     let expected = if configuration.productive {
         configuration.count

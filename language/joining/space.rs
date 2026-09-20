@@ -22,6 +22,29 @@ pub(super) struct Space {
 }
 
 impl Space {
+    pub fn dependency(
+        &self,
+        site: usize,
+        binding: &[crate::slot::Slot],
+        order: &[usize],
+        index: &Index,
+    ) -> super::dependency::Dependency {
+        super::dependency::Dependency::new(
+            site,
+            binding
+                .iter()
+                .filter(|slot| {
+                    let world = &index.state.world[index.world(slot.world)];
+                    order[binding.len()..].iter().any(|&position| {
+                        self.pattern[position]
+                            .iter()
+                            .all(|term| world.particle.iter().any(|token| term.matches(token)))
+                    })
+                })
+                .map(|slot| (slot.position, slot.world)),
+        )
+    }
+
     pub fn new(
         pattern: Arc<Vec<Vec<Term>>>,
         index: &Index,

@@ -46,12 +46,12 @@ impl Recording {
         let allowance = 4096 - self.retained();
         let mut recorded = Arc::get_mut(&mut self.trace)
             .unwrap()
-            .append(result, allowance);
+            .append(result, 0.., allowance);
         if !recorded && self.publication.take().is_some() {
             let allowance = 4096 - self.trace.retained;
             recorded = Arc::get_mut(&mut self.trace)
                 .unwrap()
-                .append(result, allowance);
+                .append(result, 0.., allowance);
         }
         if recorded {
             self.playback.cursor = self.trace.record.len();

@@ -29,7 +29,12 @@ impl Playback {
     }
 
     #[inline]
-    pub fn step(&mut self, trace: &Trace, order: &[usize]) -> Option<Poll<Option<Vec<Slot>>>> {
+    pub fn step(
+        &mut self,
+        trace: &Trace,
+        order: &[usize],
+        prefix: &[Slot],
+    ) -> Option<Poll<Option<Vec<Slot>>>> {
         if self.waiting != 0 {
             self.waiting -= 1;
             self.progress += 1;
@@ -46,14 +51,19 @@ impl Playback {
             Record::Binding(binding) => {
                 self.cursor += 1;
                 Poll::Ready(Some(
-                    binding
+                    prefix
                         .iter()
-                        .enumerate()
-                        .map(|(position, selection)| Slot {
-                            world: selection.site,
-                            position: order[position],
-                            token: selection.token.clone(),
-                        })
+                        .cloned()
+                        .chain(
+                            binding
+                                .iter()
+                                .enumerate()
+                                .map(|(position, selection)| Slot {
+                                    world: selection.site,
+                                    position: order[prefix.len() + position],
+                                    token: selection.token.clone(),
+                                }),
+                        )
                         .collect(),
                 ))
             }

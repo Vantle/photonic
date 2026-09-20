@@ -6,7 +6,12 @@ use crate::state::State;
 use std::sync::Arc;
 use std::task::Poll;
 
-fn compare(actual: &mut Join, expected: &mut Join, index: &Index, length: usize) -> bool {
+pub(super) fn compare(
+    actual: &mut Join,
+    expected: &mut Join,
+    index: &Index,
+    length: usize,
+) -> bool {
     for _ in 0..length {
         let result = actual.step(index);
         assert_eq!(result, expected.step(index));
@@ -19,10 +24,11 @@ fn compare(actual: &mut Join, expected: &mut Join, index: &Index, length: usize)
     false
 }
 
-fn cached(join: &Join) -> usize {
+pub(super) fn cached(join: &Join) -> usize {
     match &join.traversal {
         Traversal::Factored(product) => product.cached(),
         Traversal::Partitioned(product) => product.cached(),
+        Traversal::Layered(product) => product.cached(),
         _ => 0,
     }
 }

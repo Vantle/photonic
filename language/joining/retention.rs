@@ -10,6 +10,16 @@ pub(super) struct Retention {
 }
 
 impl Retention {
+    pub fn granularity(&self) -> Option<usize> {
+        (!self.record.is_empty()).then(|| {
+            self.record
+                .values()
+                .map(|trace| trace.length)
+                .sum::<usize>()
+                / self.record.len()
+        })
+    }
+
     pub fn take(&mut self, dependency: &Dependency) -> Option<(Arc<Dependency>, Box<Trace>)> {
         self.record.remove_entry(dependency)
     }
