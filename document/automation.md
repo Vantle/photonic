@@ -1,6 +1,6 @@
 # Continuous verification
 
-[Photonic on Buildkite](https://buildkite.com/vantle-1/photonic) runs Bazel directly. The pipeline editor contains [bootstrap.yml](../.buildkite/bootstrap.yml), which uploads [pipeline.yml](../.buildkite/pipeline.yml) from the checked-out commit. Verification behavior stays under version control.
+[Photonic on Buildkite](https://buildkite.com/vantle-labs/photonic) runs Bazel directly. The pipeline editor contains [bootstrap.yml](../.buildkite/bootstrap.yml), which uploads [pipeline.yml](../.buildkite/pipeline.yml) from the checked-out commit. Verification behavior stays under version control.
 
 The pipeline has thirteen independent jobs: six `Build · <platform>` jobs, six `Test · <platform>` jobs, and `Test · browser` on ARM64 macOS. Build jobs compile in release mode with lint aspects, check formatting, and exercise the dependency command. Test jobs run the release test suite; Bazel builds their prerequisites. Every job reports its own GitHub status, so build and test failures remain distinguishable. There is no global barrier between platforms. Native jobs have a 60-minute timeout; browser verification has 20 minutes. New commits supersede older queued and running builds on the same branch.
 
