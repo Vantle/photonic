@@ -2,7 +2,13 @@
 
 Research checked on 2026-09-20. The [interior matching audit](interior.md) describes the implementation delivered with this review; the [roadmap](roadmap.md) distinguishes shipped work from research. The recommendations below are an assessment of applicability to Photonic, not performance claims imported from other systems.
 
-The strongest next direction is a bounded graph of maintained matching fragments, followed by shared immutable particle preparation and execution over compact batches. Keep the Rust kernel as the semantic authority. A graph database is not a replacement for occurrence identity, synchronized input selection, captures, resumable progress, or proof provenance.
+The strongest remaining CPU opportunities are subscription and immutable preparation reuse, a bounded graph of maintained matching fragments, and execution over compact batches. Keep the Rust kernel as the semantic authority. A graph database is not a replacement for occurrence identity, synchronized input selection, captures, resumable progress, or proof provenance.
+
+## Current expression bottleneck
+
+A follow-up native instrumented run of `2*2*2*2*2*2` on the delivered implementation takes about 70 ms. Dispatch accounts for about 38 ms, index maintenance 13 ms, rewrite 7 ms, and the measured matching phase 2 ms. Within dispatch, subscription work accounts for about 26 ms; query preparation accounts for about 11 ms within subscription. These scopes are nested and must not be added as independent costs. The [audit artifact](interior.json) retains all seven diagnostic samples and their source revision; ordinary, uninstrumented arithmetic timings remain in the paired audit.
+
+This changes the practical priority: first investigate subscription reconciliation and reuse of immutable query/particle preparation on real expressions, then expand maintained fragment sharing where it saves measured work. The synthetic join improvements have moved ordinary arithmetic by only about 1–2%. A hypothetical infinitely fast implementation of the measured matching phase would save only about 2 ms in this diagnostic, before GPU overhead. This is an inference from one direct-execution workload, not a bound for every program or the exhaustive runtime. Re-profile both execution modes before choosing a GPU kernel.
 
 ## What the implementation now represents
 
@@ -17,7 +23,7 @@ Whole-prefix consumers can also share an immutable snapshot before enumeration f
 | Priority | Work | Why it can matter | Gate before production |
 | --- | --- | --- | --- |
 | 1 | Measure actual cursor work, fragment survival, frontier overruns, allocations, and phase time | Distinguish repeated matching from output/provenance cost | Disabled instrumentation has no hot-path cost; separate direct and exhaustive execution |
-| 2 | Share immutable particle preparation and compact dependency keys | Reuse below plans without duplicating mutable enumeration | Exact tokens/captures, site reuse, private reset and eviction; cold and low-reuse controls |
+| 2 | Reduce subscription reconciliation; share immutable preparation and compact dependency keys | Reuse below plans without duplicating mutable enumeration | Exact tokens/captures, site reuse, private reset and eviction; cold and low-reuse controls |
 | 3 | Maintain a multilevel fragment graph with explicit searched-domain dependencies | Avoid dropping an entire partition when another interior input changes | Coherent multi-input deltas, negative fragments, independent delivery, bounded discovery and storage |
 | 4 | Add adaptive residual filtering and physical join choices | Avoid large unsuccessful intermediate products under skew | Preserve occurrence multiplicity, symmetry, exact bindings and logical suspension boundaries |
 | 5 | Extend shared fragments into exhaustive matching and contextual construction | Reuse across proof consumers rather than only direct dispatch | Source inference, executable reads, capture mapping and competing evidence remain complete |

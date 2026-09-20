@@ -125,6 +125,10 @@ bazel run -c opt //benchmark:prefix -- --sample 31
 bazel run -c opt //benchmark:prefix -- --changing --sample 31
 ```
 
+## Follow-up diagnostic
+
+The instrumented native expression profile attributes about 38 ms to dispatch, 13 ms to index maintenance and 2 ms to the matching phase within an approximately 70 ms execution. Subscription and preparation are nested inside dispatch, accounting for about 26 ms and 11 ms respectively. Seven raw samples are retained in `interior.json`; instrumentation and nesting make these diagnostic values distinct from the paired uninstrumented timings. This supports targeting subscription/preparation reuse before matching-only GPU acceleration. The research review explains the qualification and next steps.
+
 ## Remaining boundary
 
 The requested delivery implements interior dependency ownership, safe immutable sharing of unfinished transcripts, and the protected prefix improvement. It does not complete every research track. Shared immutable particle preparation, multilevel maintained fragments, checkpointed continuation sharing, exhaustive-fragment projection, contextual construction, bulk progress execution and CPU/GPU parallelism remain open. Their recommended order and semantic acceptance gates are in the [research review](research.md).

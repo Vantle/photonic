@@ -60878,5 +60878,688 @@
     "Final audit and confirmation ran on AC power, checked before and after every invocation; earlier battery measurements are excluded.",
     "Frontier timing measures follower delivery after producer setup; producer recording and publication are outside the timer.",
     "Logical records are not allocator bytes; Windows execution and browser timings were not measured."
-  ]
+  ],
+  "profile": {
+    "source": "fb99812fed06c205d28d6f82b0f4409fb2f156be",
+    "command": "bazel run -c opt //benchmark:profile -- '2*2*2*2*2*2' 2101 --sample 7",
+    "measurement": {
+      "expected": "2101",
+      "input": "2*2*2*2*2*2",
+      "measurement": [
+        {
+          "event": 10101,
+          "execution": 0.068199792,
+          "initialization": 0.001838833,
+          "phase": [
+            {
+              "count": 14695,
+              "duration": 0.002147736,
+              "phase": "matching"
+            },
+            {
+              "count": 10101,
+              "duration": 0.038501126,
+              "phase": "dispatch"
+            },
+            {
+              "count": 10101,
+              "duration": 0.012635414,
+              "phase": "index"
+            },
+            {
+              "count": 10101,
+              "duration": 0.006657858,
+              "phase": "rewrite"
+            },
+            {
+              "count": 10101,
+              "duration": 0.003400341,
+              "phase": "fingerprint"
+            },
+            {
+              "count": 1,
+              "duration": 3.542e-06,
+              "phase": "structure"
+            },
+            {
+              "count": 6,
+              "duration": 3.667e-06,
+              "phase": "canonicalization"
+            },
+            {
+              "count": 0,
+              "duration": 0.0,
+              "phase": "composition"
+            },
+            {
+              "count": 0,
+              "duration": 0.0,
+              "phase": "application"
+            },
+            {
+              "count": 14974,
+              "duration": 0.025800503,
+              "phase": "subscription"
+            },
+            {
+              "count": 14974,
+              "duration": 0.004330029,
+              "phase": "refresh"
+            },
+            {
+              "count": 10101,
+              "duration": 0.00021432,
+              "phase": "restart"
+            },
+            {
+              "count": 14974,
+              "duration": 0.002593509,
+              "phase": "request"
+            },
+            {
+              "count": 66492,
+              "duration": 0.011283565,
+              "phase": "preparation"
+            },
+            {
+              "count": 10101,
+              "duration": 0.005056597,
+              "phase": "availability"
+            },
+            {
+              "count": 4191,
+              "duration": 0.000214565,
+              "phase": "context"
+            }
+          ],
+          "statistic": {
+            "bucket": 1,
+            "normalization": 1,
+            "preparation": 78510,
+            "refinement": 1,
+            "resolution": 1,
+            "reuse": 14468
+          },
+          "work": 24802
+        },
+        {
+          "event": 10101,
+          "execution": 0.0704675,
+          "initialization": 0.001838625,
+          "phase": [
+            {
+              "count": 14695,
+              "duration": 0.00221809,
+              "phase": "matching"
+            },
+            {
+              "count": 10101,
+              "duration": 0.039738646,
+              "phase": "dispatch"
+            },
+            {
+              "count": 10101,
+              "duration": 0.013175264,
+              "phase": "index"
+            },
+            {
+              "count": 10101,
+              "duration": 0.006817074,
+              "phase": "rewrite"
+            },
+            {
+              "count": 10101,
+              "duration": 0.003509427,
+              "phase": "fingerprint"
+            },
+            {
+              "count": 1,
+              "duration": 3.334e-06,
+              "phase": "structure"
+            },
+            {
+              "count": 6,
+              "duration": 3.043e-06,
+              "phase": "canonicalization"
+            },
+            {
+              "count": 0,
+              "duration": 0.0,
+              "phase": "composition"
+            },
+            {
+              "count": 0,
+              "duration": 0.0,
+              "phase": "application"
+            },
+            {
+              "count": 14974,
+              "duration": 0.0265426,
+              "phase": "subscription"
+            },
+            {
+              "count": 14974,
+              "duration": 0.004496102,
+              "phase": "refresh"
+            },
+            {
+              "count": 10101,
+              "duration": 0.000220397,
+              "phase": "restart"
+            },
+            {
+              "count": 14974,
+              "duration": 0.002685202,
+              "phase": "request"
+            },
+            {
+              "count": 66492,
+              "duration": 0.011601344,
+              "phase": "preparation"
+            },
+            {
+              "count": 10101,
+              "duration": 0.00531407,
+              "phase": "availability"
+            },
+            {
+              "count": 4191,
+              "duration": 0.000217476,
+              "phase": "context"
+            }
+          ],
+          "statistic": {
+            "bucket": 1,
+            "normalization": 1,
+            "preparation": 78510,
+            "refinement": 1,
+            "resolution": 1,
+            "reuse": 14468
+          },
+          "work": 24802
+        },
+        {
+          "event": 10101,
+          "execution": 0.069760125,
+          "initialization": 0.001791291,
+          "phase": [
+            {
+              "count": 14695,
+              "duration": 0.002200849,
+              "phase": "matching"
+            },
+            {
+              "count": 10101,
+              "duration": 0.039322224,
+              "phase": "dispatch"
+            },
+            {
+              "count": 10101,
+              "duration": 0.012974993,
+              "phase": "index"
+            },
+            {
+              "count": 10101,
+              "duration": 0.006739528,
+              "phase": "rewrite"
+            },
+            {
+              "count": 10101,
+              "duration": 0.003470652,
+              "phase": "fingerprint"
+            },
+            {
+              "count": 1,
+              "duration": 3.166e-06,
+              "phase": "structure"
+            },
+            {
+              "count": 6,
+              "duration": 3.332e-06,
+              "phase": "canonicalization"
+            },
+            {
+              "count": 0,
+              "duration": 0.0,
+              "phase": "composition"
+            },
+            {
+              "count": 0,
+              "duration": 0.0,
+              "phase": "application"
+            },
+            {
+              "count": 14974,
+              "duration": 0.026282275,
+              "phase": "subscription"
+            },
+            {
+              "count": 14974,
+              "duration": 0.00442163,
+              "phase": "refresh"
+            },
+            {
+              "count": 10101,
+              "duration": 0.000223162,
+              "phase": "restart"
+            },
+            {
+              "count": 14974,
+              "duration": 0.002619274,
+              "phase": "request"
+            },
+            {
+              "count": 66492,
+              "duration": 0.011512304,
+              "phase": "preparation"
+            },
+            {
+              "count": 10101,
+              "duration": 0.005234461,
+              "phase": "availability"
+            },
+            {
+              "count": 4191,
+              "duration": 0.000211343,
+              "phase": "context"
+            }
+          ],
+          "statistic": {
+            "bucket": 1,
+            "normalization": 1,
+            "preparation": 78510,
+            "refinement": 1,
+            "resolution": 1,
+            "reuse": 14468
+          },
+          "work": 24802
+        },
+        {
+          "event": 10101,
+          "execution": 0.069378542,
+          "initialization": 0.001803917,
+          "phase": [
+            {
+              "count": 14695,
+              "duration": 0.002150275,
+              "phase": "matching"
+            },
+            {
+              "count": 10101,
+              "duration": 0.039112533,
+              "phase": "dispatch"
+            },
+            {
+              "count": 10101,
+              "duration": 0.01301088,
+              "phase": "index"
+            },
+            {
+              "count": 10101,
+              "duration": 0.006705306,
+              "phase": "rewrite"
+            },
+            {
+              "count": 10101,
+              "duration": 0.003441143,
+              "phase": "fingerprint"
+            },
+            {
+              "count": 1,
+              "duration": 3.208e-06,
+              "phase": "structure"
+            },
+            {
+              "count": 6,
+              "duration": 3.291e-06,
+              "phase": "canonicalization"
+            },
+            {
+              "count": 0,
+              "duration": 0.0,
+              "phase": "composition"
+            },
+            {
+              "count": 0,
+              "duration": 0.0,
+              "phase": "application"
+            },
+            {
+              "count": 14974,
+              "duration": 0.026104742,
+              "phase": "subscription"
+            },
+            {
+              "count": 14974,
+              "duration": 0.004398307,
+              "phase": "refresh"
+            },
+            {
+              "count": 10101,
+              "duration": 0.00021915,
+              "phase": "restart"
+            },
+            {
+              "count": 14974,
+              "duration": 0.002672366,
+              "phase": "request"
+            },
+            {
+              "count": 66492,
+              "duration": 0.011439331,
+              "phase": "preparation"
+            },
+            {
+              "count": 10101,
+              "duration": 0.005253022,
+              "phase": "availability"
+            },
+            {
+              "count": 4191,
+              "duration": 0.000202867,
+              "phase": "context"
+            }
+          ],
+          "statistic": {
+            "bucket": 1,
+            "normalization": 1,
+            "preparation": 78510,
+            "refinement": 1,
+            "resolution": 1,
+            "reuse": 14468
+          },
+          "work": 24802
+        },
+        {
+          "event": 10101,
+          "execution": 0.06866725,
+          "initialization": 0.001851792,
+          "phase": [
+            {
+              "count": 14695,
+              "duration": 0.00212147,
+              "phase": "matching"
+            },
+            {
+              "count": 10101,
+              "duration": 0.038868808,
+              "phase": "dispatch"
+            },
+            {
+              "count": 10101,
+              "duration": 0.012753208,
+              "phase": "index"
+            },
+            {
+              "count": 10101,
+              "duration": 0.006715744,
+              "phase": "rewrite"
+            },
+            {
+              "count": 10101,
+              "duration": 0.003415227,
+              "phase": "fingerprint"
+            },
+            {
+              "count": 1,
+              "duration": 3.625e-06,
+              "phase": "structure"
+            },
+            {
+              "count": 6,
+              "duration": 3.835e-06,
+              "phase": "canonicalization"
+            },
+            {
+              "count": 0,
+              "duration": 0.0,
+              "phase": "composition"
+            },
+            {
+              "count": 0,
+              "duration": 0.0,
+              "phase": "application"
+            },
+            {
+              "count": 14974,
+              "duration": 0.026056604,
+              "phase": "subscription"
+            },
+            {
+              "count": 14974,
+              "duration": 0.00438442,
+              "phase": "refresh"
+            },
+            {
+              "count": 10101,
+              "duration": 0.000217415,
+              "phase": "restart"
+            },
+            {
+              "count": 14974,
+              "duration": 0.002692254,
+              "phase": "request"
+            },
+            {
+              "count": 66492,
+              "duration": 0.011398245,
+              "phase": "preparation"
+            },
+            {
+              "count": 10101,
+              "duration": 0.005101129,
+              "phase": "availability"
+            },
+            {
+              "count": 4191,
+              "duration": 0.000208508,
+              "phase": "context"
+            }
+          ],
+          "statistic": {
+            "bucket": 1,
+            "normalization": 1,
+            "preparation": 78510,
+            "refinement": 1,
+            "resolution": 1,
+            "reuse": 14468
+          },
+          "work": 24802
+        },
+        {
+          "event": 10101,
+          "execution": 0.073108,
+          "initialization": 0.001844583,
+          "phase": [
+            {
+              "count": 14695,
+              "duration": 0.002258933,
+              "phase": "matching"
+            },
+            {
+              "count": 10101,
+              "duration": 0.041032464,
+              "phase": "dispatch"
+            },
+            {
+              "count": 10101,
+              "duration": 0.013992222,
+              "phase": "index"
+            },
+            {
+              "count": 10101,
+              "duration": 0.007071011,
+              "phase": "rewrite"
+            },
+            {
+              "count": 10101,
+              "duration": 0.003614789,
+              "phase": "fingerprint"
+            },
+            {
+              "count": 1,
+              "duration": 6.292e-06,
+              "phase": "structure"
+            },
+            {
+              "count": 6,
+              "duration": 3.542e-06,
+              "phase": "canonicalization"
+            },
+            {
+              "count": 0,
+              "duration": 0.0,
+              "phase": "composition"
+            },
+            {
+              "count": 0,
+              "duration": 0.0,
+              "phase": "application"
+            },
+            {
+              "count": 14974,
+              "duration": 0.027381547,
+              "phase": "subscription"
+            },
+            {
+              "count": 14974,
+              "duration": 0.004647788,
+              "phase": "refresh"
+            },
+            {
+              "count": 10101,
+              "duration": 0.000232397,
+              "phase": "restart"
+            },
+            {
+              "count": 14974,
+              "duration": 0.002843351,
+              "phase": "request"
+            },
+            {
+              "count": 66492,
+              "duration": 0.011968905,
+              "phase": "preparation"
+            },
+            {
+              "count": 10101,
+              "duration": 0.005498328,
+              "phase": "availability"
+            },
+            {
+              "count": 4191,
+              "duration": 0.000221773,
+              "phase": "context"
+            }
+          ],
+          "statistic": {
+            "bucket": 1,
+            "normalization": 1,
+            "preparation": 78510,
+            "refinement": 1,
+            "resolution": 1,
+            "reuse": 14468
+          },
+          "work": 24802
+        },
+        {
+          "event": 10101,
+          "execution": 0.070282625,
+          "initialization": 0.001899833,
+          "phase": [
+            {
+              "count": 14695,
+              "duration": 0.002186317,
+              "phase": "matching"
+            },
+            {
+              "count": 10101,
+              "duration": 0.039716882,
+              "phase": "dispatch"
+            },
+            {
+              "count": 10101,
+              "duration": 0.013163332,
+              "phase": "index"
+            },
+            {
+              "count": 10101,
+              "duration": 0.006794097,
+              "phase": "rewrite"
+            },
+            {
+              "count": 10101,
+              "duration": 0.003482235,
+              "phase": "fingerprint"
+            },
+            {
+              "count": 1,
+              "duration": 3.416e-06,
+              "phase": "structure"
+            },
+            {
+              "count": 6,
+              "duration": 3.04e-06,
+              "phase": "canonicalization"
+            },
+            {
+              "count": 0,
+              "duration": 0.0,
+              "phase": "composition"
+            },
+            {
+              "count": 0,
+              "duration": 0.0,
+              "phase": "application"
+            },
+            {
+              "count": 14974,
+              "duration": 0.02652847,
+              "phase": "subscription"
+            },
+            {
+              "count": 14974,
+              "duration": 0.004479961,
+              "phase": "refresh"
+            },
+            {
+              "count": 10101,
+              "duration": 0.000224176,
+              "phase": "restart"
+            },
+            {
+              "count": 14974,
+              "duration": 0.002739212,
+              "phase": "request"
+            },
+            {
+              "count": 66492,
+              "duration": 0.011516603,
+              "phase": "preparation"
+            },
+            {
+              "count": 10101,
+              "duration": 0.005337556,
+              "phase": "availability"
+            },
+            {
+              "count": 4191,
+              "duration": 0.000205086,
+              "phase": "context"
+            }
+          ],
+          "statistic": {
+            "bucket": 1,
+            "normalization": 1,
+            "preparation": 78510,
+            "refinement": 1,
+            "resolution": 1,
+            "reuse": 14468
+          },
+          "work": 24802
+        }
+      ]
+    },
+    "limitation": "Diagnostic instrumentation; nested phase scopes cannot be summed. Paired uninstrumented timings are the performance comparison."
+  }
 }
