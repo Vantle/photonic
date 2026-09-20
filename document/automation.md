@@ -2,7 +2,7 @@
 
 [Photonic on Buildkite](https://buildkite.com/vantle-1/photonic) runs Bazel directly. The pipeline editor contains [bootstrap.yml](../.buildkite/bootstrap.yml), which uploads [pipeline.yml](../.buildkite/pipeline.yml) from the checked-out commit. Verification behavior stays under version control.
 
-The pipeline has eight independent jobs: a default build with lint aspects, an ARM64 macOS browser test, and a six-platform native matrix. Each native job builds, checks formatting, exercises the dependency command, and runs the release test suite. A failing job does not cancel the other platforms. Timeouts are 30, 20, and 60 minutes respectively. New commits supersede older queued and running builds on the same branch.
+The pipeline has thirteen independent jobs: six `Build · <platform>` jobs, six `Test · <platform>` jobs, and `Test · browser` on ARM64 macOS. Build jobs compile in release mode with lint aspects, check formatting, and exercise the dependency command. Test jobs run the release test suite; Bazel builds their prerequisites. Every job reports its own GitHub status, so build and test failures remain distinguishable. There is no global barrier between platforms. Native jobs have a 60-minute timeout; browser verification has 20 minutes. New commits supersede older queued and running builds on the same branch.
 
 Repository hooks install checksum-verified Bazelisk 1.28.1, which reads the Bazel version from `.bazelversion`. Bazel supplies the compiler and every build dependency. Post-command hooks shut down Bazel even after verification fails. Windows agents use the default Batch shell and PowerShell for bootstrap; Unix agents use Bash, curl, and shasum. These are agent bootstrap facilities, not additional project build tools.
 
@@ -13,7 +13,7 @@ Queues belong to Vantle’s default Buildkite cluster. A matrix entry selects th
 | Queue | Execution | Provisioning |
 | --- | --- | --- |
 | `linux-medium` | Pipeline upload | Existing hosted queue |
-| `x86_64-unknown-linux-gnu` | Check and native Linux | Hosted, 4 vCPU / 16 GB |
+| `x86_64-unknown-linux-gnu` | Native Linux | Hosted, 4 vCPU / 16 GB |
 | `aarch64-apple-darwin` | Browser and native macOS | Hosted macOS Sequoia, 6 vCPU / 28 GB |
 | `aarch64-unknown-linux-gnu` | Native Linux | Self-hosted agent required |
 | `x86_64-apple-darwin` | Native macOS | Self-hosted Intel Mac required |
