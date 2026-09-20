@@ -10,6 +10,24 @@ pub(super) struct Playback {
 }
 
 impl Playback {
+    pub fn seek(&mut self, trace: &Trace, progress: usize) {
+        *self = Self::default();
+        self.progress = progress;
+        let mut remaining = progress;
+        while remaining != 0 {
+            let length = match &trace.record[self.cursor] {
+                Record::Waiting(count) => *count,
+                Record::Binding(_) => 1,
+            };
+            self.cursor += 1;
+            if length > remaining {
+                self.waiting = length - remaining;
+                return;
+            }
+            remaining -= length;
+        }
+    }
+
     #[inline]
     pub fn step(&mut self, trace: &Trace, order: &[usize]) -> Option<Poll<Option<Vec<Slot>>>> {
         if self.waiting != 0 {

@@ -4,11 +4,6 @@ use crate::index::Index;
 use crate::slot::Slot;
 use std::task::Poll;
 
-pub(super) enum Strategy {
-    Shared,
-    Partitioned,
-}
-
 pub(super) struct Product<Prefix> {
     pub prefix: Prefix,
     suffix: Cursor,

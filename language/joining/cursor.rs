@@ -34,13 +34,18 @@ impl Cursor {
         self.retained = self.cursor.len() + self.scan.len();
     }
 
-    pub fn boundary(&self) -> Option<usize> {
-        (!self.complete && self.depth == 0 && !self.scan[0]).then(|| self.cursor[0])
+    pub fn boundary(&self, depth: usize) -> Option<usize> {
+        (!self.complete && self.depth == depth && !self.scan[depth]).then(|| self.cursor[depth])
     }
 
-    pub fn seek(&mut self, position: usize) {
-        self.reset();
-        self.cursor[0] = position;
+    pub fn seek(&mut self, depth: usize, position: usize) {
+        self.cursor[depth] = position;
+        self.cursor[depth + 1..].fill(0);
+        self.scan[depth..].fill(false);
+    }
+
+    pub fn binding(&self) -> &[Slot] {
+        &self.binding
     }
 
     pub fn seed(&mut self, binding: Vec<Slot>) {
@@ -93,11 +98,23 @@ impl Cursor {
                 self.retained -= slot.token.len() + 1;
                 return Poll::Pending;
             };
-            if self.binding.iter().any(|slot| {
-                slot.world == member.site
-                    || (space.group[slot.position] == space.group[position]
-                        && !index.precedes(slot.world, member.site))
-            }) {
+            let blocked = self
+                .binding
+                .iter()
+                .rev()
+                .find(|slot| space.group[slot.position] == space.group[position])
+                .is_some_and(|slot| !index.precedes(slot.world, member.site))
+                || self.binding.iter().any(|slot| slot.world == member.site);
+            #[cfg(test)]
+            assert_eq!(
+                blocked,
+                self.binding.iter().any(|slot| {
+                    slot.world == member.site
+                        || (space.group[slot.position] == space.group[position]
+                            && !index.precedes(slot.world, member.site))
+                })
+            );
+            if blocked {
                 self.cursor[self.depth] += 1;
                 return Poll::Pending;
             }

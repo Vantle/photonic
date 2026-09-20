@@ -1,12 +1,16 @@
 mod cursor;
+mod dependency;
 mod key;
 mod node;
 mod partition;
 mod playback;
 mod prefix;
 mod product;
+mod recording;
+mod retention;
 mod space;
 mod store;
+mod strategy;
 mod stream;
 mod trace;
 
@@ -18,11 +22,12 @@ use crate::slot::Slot;
 use crate::term::Term;
 use cursor::Cursor;
 use partition::Partition;
-use product::{Product, Strategy};
+use product::Product;
 use smallvec::SmallVec;
 use space::Space;
 use std::sync::Arc;
 use std::task::Poll;
+use strategy::Strategy;
 use stream::Stream;
 
 #[repr(u8)]
@@ -99,8 +104,8 @@ impl Join {
                         node,
                     ))))
                 }
-                Strategy::Partitioned => Traversal::Partitioned(Box::new(Product::new(
-                    Partition::new(width, store.budget().clone()),
+                Strategy::Partitioned(depth) => Traversal::Partitioned(Box::new(Product::new(
+                    Partition::new(width, depth, store.budget().clone()),
                 ))),
             });
         }
@@ -134,49 +139,41 @@ impl Join {
         let previous = self.order.clone();
         self.order
             .sort_by_key(|&position| self.space.domain[position].len());
-        let stable = self.order == previous
-            && !changed.iter().any(|position| {
-                self.order[..self.order.len().saturating_sub(1)].contains(position)
-            });
-        let partitioned = !stable
-            && self.order == previous
-            && self.order.len() >= 3
-            && self.space.domain[self.order[0]].len() > 1
-            && (self.space.domain[self.order[0]].len() > index.insertion.len()
-                || !index
-                    .insertion
-                    .contains(&self.space.domain[self.order[0]][0].site))
-            && changed
-                .iter()
-                .all(|position| *position == self.order[0] || Some(position) == self.order.last());
-        if !stable && !partitioned {
-            if !matches!(self.traversal, Traversal::Direct(_)) || self.order != previous {
-                self.traversal = Traversal::Direct(Cursor::new(self.order.len()));
+        let strategy = (self.order == previous)
+            .then(|| {
+                strategy::select(strategy::Request {
+                    space: &self.space,
+                    order: &self.order,
+                    changed: &changed,
+                    index,
+                    depth: match &self.traversal {
+                        Traversal::Partitioned(product) => Some(product.prefix.depth()),
+                        _ => None,
+                    },
+                })
+            })
+            .flatten();
+        if let Some(strategy) = strategy {
+            let replace = match (&self.traversal, strategy) {
+                (Traversal::Direct(_), _) => self.stable,
+                (Traversal::Factored(_), Strategy::Partitioned(_)) => true,
+                (Traversal::Partitioned(product), Strategy::Partitioned(depth)) => {
+                    product.prefix.depth() != depth
+                }
+                _ => false,
+            };
+            if replace && let Some(product) = Self::product(&self.space, &self.order, strategy) {
+                self.traversal = product;
             }
-        } else if self.stable
-            && matches!(self.traversal, Traversal::Direct(_))
-            && let Some(product) = Self::product(
-                &self.space,
-                &self.order,
-                if partitioned {
-                    Strategy::Partitioned
-                } else {
-                    Strategy::Shared
-                },
-            )
-        {
-            self.traversal = product;
-        }
-        if partitioned {
-            if matches!(self.traversal, Traversal::Factored(_)) {
-                self.traversal =
-                    Self::product(&self.space, &self.order, Strategy::Partitioned).unwrap();
-            }
-            if let Traversal::Partitioned(product) = &mut self.traversal {
+            if matches!(strategy, Strategy::Partitioned(_))
+                && let Traversal::Partitioned(product) = &mut self.traversal
+            {
                 product.prefix.update(index);
             }
+        } else if !matches!(self.traversal, Traversal::Direct(_)) || self.order != previous {
+            self.traversal = Traversal::Direct(Cursor::new(self.order.len()));
         }
-        self.stable = stable || partitioned;
+        self.stable = strategy.is_some();
         self.viable = self.feasible();
         self.reset(index);
         true

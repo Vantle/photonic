@@ -12,6 +12,7 @@ use std::time::{Duration, Instant};
 
 pub struct Configuration {
     pub width: usize,
+    pub depth: usize,
     pub count: usize,
     pub replacement: usize,
     pub length: usize,
@@ -67,6 +68,17 @@ fn evaluate(program: &Program, state: &[(Arc<State>, Change)]) -> Measurement {
 pub fn run(configuration: Configuration) -> Vec<Measurement> {
     assert!(configuration.count > 1 && configuration.count <= configuration.width);
     assert!(configuration.replacement > 0 && configuration.replacement <= configuration.count);
+    let anchor = (0..configuration.depth)
+        .map(|position| format!("P{position}"))
+        .collect::<Vec<_>>();
+    let prefix = anchor
+        .iter()
+        .map(|value| format!("{value},{value},"))
+        .collect::<String>();
+    let input = anchor
+        .iter()
+        .map(|value| format!("{value},"))
+        .collect::<String>();
     let particle = ["A"; 8].join(".");
     let content = vec![particle.as_str(); configuration.count].join(",");
     let companion = vec!["B.C.E"; configuration.width].join(",");
@@ -78,7 +90,7 @@ pub fn run(configuration: Configuration) -> Vec<Measurement> {
     };
     let program = Program::new(
         crate::lowering::parse(&format!(
-            "{content},{companion},C [{particle},{pattern},{constraint},C] Done"
+            "{prefix}{content},{companion},C [{input}{particle},{pattern},{constraint},C] Done"
         ))
         .unwrap(),
     );
@@ -119,7 +131,10 @@ pub fn run(configuration: Configuration) -> Vec<Measurement> {
         .map(|_| evaluate(&program, &state))
         .collect::<Vec<_>>();
     let expected = if configuration.productive {
-        configuration.count * configuration.width * configuration.length
+        configuration.count
+            * configuration.width
+            * configuration.length
+            * 2usize.pow(configuration.depth.try_into().unwrap())
     } else {
         0
     };

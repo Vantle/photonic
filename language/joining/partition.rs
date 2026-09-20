@@ -1,24 +1,26 @@
 use super::cursor::Cursor;
+use super::dependency::Dependency;
 use super::playback::Playback;
 use super::prefix::Prefix;
+use super::retention::Retention;
 use super::space::Space;
 use super::trace::Trace;
 use crate::factor::Budget;
 use crate::index::Index;
 use crate::slot::Slot;
-use std::collections::HashMap;
 use std::sync::Arc;
 use std::task::Poll;
 
 struct Active {
-    site: usize,
+    dependency: Arc<Dependency>,
     trace: Box<Trace>,
 }
 
 pub(super) struct Partition {
     source: Cursor,
+    depth: usize,
     budget: Arc<Budget>,
-    record: HashMap<usize, Box<Trace>>,
+    record: Retention,
     active: Option<Active>,
     playback: Playback,
     restoration: Option<usize>,
@@ -27,11 +29,12 @@ pub(super) struct Partition {
 }
 
 impl Partition {
-    pub fn new(width: usize, budget: Arc<Budget>) -> Self {
+    pub fn new(width: usize, depth: usize, budget: Arc<Budget>) -> Self {
         Self {
             source: Cursor::new(width),
+            depth,
             budget,
-            record: HashMap::new(),
+            record: Retention::default(),
             active: None,
             playback: Playback::default(),
             restoration: None,
@@ -40,10 +43,14 @@ impl Partition {
         }
     }
 
+    pub fn depth(&self) -> usize {
+        self.depth
+    }
+
     fn finish(&mut self) {
         if let Some(active) = self.active.take() {
             if active.trace.complete {
-                self.record.insert(active.site, active.trace);
+                self.record.insert(active.dependency, active.trace);
             } else {
                 self.cached -= active.trace.retained;
             }
@@ -54,9 +61,7 @@ impl Partition {
     pub fn update(&mut self, index: &Index) {
         self.reset(index);
         for site in &index.removal {
-            if let Some(trace) = self.record.remove(site) {
-                self.cached -= trace.retained;
-            }
+            self.cached -= self.record.remove(*site);
         }
     }
 
@@ -64,24 +69,23 @@ impl Partition {
         if !self.enabled || self.active.is_some() {
             return;
         }
-        let Some(position) = self.source.boundary() else {
+        let Some(position) = self.source.boundary(self.depth) else {
             return;
         };
-        let Some(member) = space.domain[order[0]].get(position) else {
+        let Some(member) = space.domain[order[self.depth]].get(position) else {
             return;
         };
-        let trace = self.record.remove(&member.site).or_else(|| {
-            if self.cached > 4094 {
+        let dependency = Dependency::new(member.site, self.source.binding());
+        let record = self.record.take(&dependency).or_else(|| {
+            let retained = dependency.retained();
+            if retained > 4096 - self.cached {
                 return None;
             }
-            let trace = Trace::new(self.budget.clone(), 2)?;
+            let trace = Trace::new(self.budget.clone(), retained)?;
             self.cached += trace.retained;
-            Some(Box::new(trace))
+            Some((Arc::new(dependency), Box::new(trace)))
         });
-        self.active = trace.map(|trace| Active {
-            site: member.site,
-            trace,
-        });
+        self.active = record.map(|(dependency, trace)| Active { dependency, trace });
     }
 
     fn advance(
@@ -95,8 +99,8 @@ impl Partition {
             .as_ref()
             .is_some_and(|active| active.trace.complete)
         {
-            let position = self.source.boundary().unwrap();
-            self.source.seek(position + 1);
+            let position = self.source.boundary(self.depth).unwrap();
+            self.source.seek(self.depth, position + 1);
             self.finish();
         }
         if let Some(progress) = self.restoration.take() {
@@ -121,7 +125,7 @@ impl Partition {
         }
         self.cached += active.trace.retained - previous;
         self.playback.progress += 1;
-        if self.source.boundary().is_some() {
+        if self.source.boundary(self.depth).is_some() {
             active.trace.complete = true;
             self.finish();
         }
@@ -178,11 +182,12 @@ impl super::prefix::Prefix for Partition {
     #[cfg(test)]
     fn size(&self) -> usize {
         self.source.size()
-            + self
-                .record
-                .values()
-                .map(|trace| trace.size())
-                .sum::<usize>()
+            + self.record.size(
+                self.active
+                    .as_ref()
+                    .filter(|active| active.trace.complete)
+                    .map(|active| active.dependency.as_ref()),
+            )
             + self.active.as_ref().map_or(0, |active| active.trace.size())
             + 1
     }
