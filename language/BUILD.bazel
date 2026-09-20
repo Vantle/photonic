@@ -142,6 +142,7 @@ filegroup(
         "prefix.rs",
         "prism.rs",
         "program.rs",
+        "proof.rs",
         "propagation.rs",
         "reachability.rs",
         "reachability/network.rs",

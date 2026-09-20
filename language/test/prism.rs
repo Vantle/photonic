@@ -6,6 +6,26 @@ fn search(program: &str, target: &str) -> Search {
     Search::new(parse(program).unwrap(), parse(target).unwrap()).unwrap()
 }
 
+#[test]
+fn observation() {
+    for (program, target) in [
+        ("A [A] B [B] C [C] A", "A"),
+        ("Seed.A [Seed] [A] B", "Seed.A"),
+        ("A [A] B [A] C [B,C] Forbidden", "A"),
+    ] {
+        let mut observed = search(program, target);
+        for budget in 1usize..=128 {
+            observed.run(1, None);
+            let report = serde_json::to_value(observed.report()).unwrap();
+            if budget.is_power_of_two() {
+                let mut reference = search(program, target);
+                reference.run(budget, None);
+                assert_eq!(report, serde_json::to_value(reference.report()).unwrap());
+            }
+        }
+    }
+}
+
 fn outcome(program: &str, target: &str) -> Outcome {
     let mut search = search(program, target);
     search.run(12_000, None);

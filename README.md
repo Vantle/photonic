@@ -85,6 +85,7 @@ rg --files library program
 | [Verification](index.html#guide-verification) | Prism, exact configurations, and retained counterexamples. |
 | [Dynamic code proposal](document/dynamic.md) | Research, contextual rule construction, capture, recursive growth, and implementation gates. |
 | [Runtime](index.html#guide-runtime) | Implementation and reproducible performance measurements. |
+| [Architecture audit](document/architecture.md) | Graph models, ownership, incremental matching and proof support, measurements, and remaining work. |
 | [Build and development](index.html#guide-build) | Bazel interfaces, contributions, and platform verification. |
 
 The webbook is the single maintained guide. Its technical reference includes the full contracts, written arithmetic arguments, current limitations, and reproducible benchmark evidence. Prism checks concrete reachability; it does not provide universal mathematical certificates. Native linked ternary expressions support arbitrary finite widths with sufficient execution budgets.

@@ -326,18 +326,18 @@ fn capture() {
             exact: BTreeSet::new().into(),
             read: BTreeSet::from([basis]).into(),
         };
-        let output = crate::application::apply(
-            &state,
-            0,
-            None,
-            &rule,
-            &binding,
-            Some(Closure {
+        let output = crate::application::apply(crate::application::Request {
+            source: &state,
+            frame: 0,
+            owner: None,
+            rule: &rule,
+            binding: &binding,
+            closure: Some(Closure {
                 state: &witness,
                 flow: &flow,
                 capture: 2,
             }),
-        )
+        })
         .canonical();
         let capture = output.state.world[0]
             .particle
@@ -545,18 +545,18 @@ fn inheritance() {
                     exact: BTreeSet::new().into(),
                     read: BTreeSet::from([basis]).into(),
                 };
-                let result = crate::application::apply(
-                    &source,
-                    0,
-                    None,
-                    &rule,
-                    &binding,
-                    Some(Closure {
+                let result = crate::application::apply(crate::application::Request {
+                    source: &source,
+                    frame: 0,
+                    owner: None,
+                    rule: &rule,
+                    binding: &binding,
+                    closure: Some(Closure {
                         state: &witness,
                         flow: &flow,
                         capture: 1,
                     }),
-                );
+                });
                 assert_eq!(result.state.frame[1].held[0].id == 5, !transformed);
                 let expected = if transformed { 3 } else { 2 };
                 let result = result.canonical();

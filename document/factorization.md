@@ -1,6 +1,6 @@
 # Incremental matching and reachability
 
-This continues the [shared matching implementation](implementation.md) against baseline `0969b6b`. The changes run through the ordinary native evaluator and proof matcher. Syntax, rule meaning, unordered state, synchronized firing, evidence, and browser defaults are unchanged. No arithmetic operation is recognized specially.
+The later [architecture audit](architecture.md) records localized domain updates and incremental grounded support. This audit continues the [shared matching implementation](implementation.md) against baseline `0969b6b`. The changes run through the ordinary native evaluator and proof matcher. Syntax, rule meaning, unordered state, synchronized firing, evidence, and browser defaults are unchanged. No arithmetic operation is recognized specially.
 
 ## Retained match factors
 

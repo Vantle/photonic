@@ -1,5 +1,5 @@
 use serde::Serialize;
-use std::collections::{BTreeSet, HashMap, HashSet, VecDeque};
+use std::collections::{BTreeSet, HashMap, HashSet};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum Atom {
@@ -21,40 +21,82 @@ pub enum Status {
     Unsupported,
 }
 
+struct Pending {
+    head: Atom,
+    remaining: usize,
+}
+
+struct Network {
+    dependency: HashMap<Atom, Vec<usize>>,
+    pending: crate::arena::Store<Pending>,
+}
+
 pub struct Support {
     established: HashSet<Atom>,
+    network: Option<Box<Network>>,
 }
 
 impl Support {
     pub fn new(clause: impl IntoIterator<Item = Clause>) -> Self {
-        let clause = clause.into_iter().collect::<Vec<_>>();
-        let mut remaining = clause
-            .iter()
-            .map(|clause| clause.premise.len())
-            .collect::<Vec<_>>();
-        let mut dependency = HashMap::<Atom, Vec<usize>>::new();
-        let mut pending = VecDeque::new();
-        for (index, clause) in clause.iter().enumerate() {
-            if clause.premise.is_empty() {
-                pending.push_back(clause.head);
-            }
-            for &atom in &clause.premise {
-                dependency.entry(atom).or_default().push(index);
-            }
+        let mut support = Self {
+            established: HashSet::new(),
+            network: None,
+        };
+        for clause in clause {
+            support.insert(&clause);
         }
-        let mut established = HashSet::new();
-        while let Some(atom) = pending.pop_front() {
-            if !established.insert(atom) {
+        support
+    }
+
+    pub(crate) fn insert(&mut self, clause: &Clause) {
+        if self.established.contains(&clause.head) {
+            return;
+        }
+        let missing = clause
+            .premise
+            .iter()
+            .copied()
+            .filter(|atom| !self.established.contains(atom))
+            .collect::<smallvec::SmallVec<[_; 2]>>();
+        if missing.is_empty() {
+            self.establish(clause.head);
+            return;
+        }
+        let network = self.network.get_or_insert_with(|| {
+            Box::new(Network {
+                dependency: HashMap::new(),
+                pending: crate::arena::Store::new(),
+            })
+        });
+        let pending = network.pending.insert(Pending {
+            head: clause.head,
+            remaining: missing.len(),
+        });
+        for atom in missing {
+            network.dependency.entry(atom).or_default().push(pending);
+        }
+    }
+
+    fn establish(&mut self, atom: Atom) {
+        let mut pending: smallvec::SmallVec<[Atom; 2]> = smallvec::smallvec![atom];
+        while let Some(atom) = pending.pop() {
+            if !self.established.insert(atom) {
                 continue;
             }
-            for &index in dependency.get(&atom).into_iter().flatten() {
-                remaining[index] -= 1;
-                if remaining[index] == 0 {
-                    pending.push_back(clause[index].head);
+            let Some(network) = self.network.as_mut() else {
+                continue;
+            };
+            for position in network.dependency.remove(&atom).into_iter().flatten() {
+                let waiting = &mut network.pending[position];
+                waiting.remaining -= 1;
+                if waiting.remaining == 0 {
+                    pending.push(network.pending.remove(position).head);
                 }
             }
+            if network.dependency.is_empty() {
+                self.network = None;
+            }
         }
-        Self { established }
     }
 
     pub fn status(&self, atom: Atom) -> Status {

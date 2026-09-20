@@ -51,12 +51,69 @@ fn predicate() {
                     let expected = pattern[0]
                         .iter()
                         .all(|term| world.particle.iter().any(|token| term.matches(token)));
-                    assert_eq!(context.matches(0, &world.particle), expected);
+                    assert_eq!(context.matches(0, &index, index.site(position)), expected);
                     expected.then_some(position)
                 })
                 .collect::<Vec<_>>();
             assert_eq!(context.candidate(0, &index, 0), expected);
         }
+    }
+}
+
+#[test]
+fn mutation() {
+    let program = crate::program::Program::new(
+        crate::lowering::parse("A.A.B,A.B.B,A.A.([A] B),B.([A] B)").unwrap(),
+    );
+    let mut state = crate::state::State::initial(&program);
+    state.frame.push(state.frame[0].clone());
+    for position in 0..state.world.len() {
+        let world = Arc::make_mut(&mut state.world[position]);
+        world.frame = position % 2;
+        world.particle.extend((0..64).map(|offset| Token {
+            id: 1000 + position * 64 + offset,
+            value: if offset % 3 == 0 {
+                Symbol::Rule(*program.code.keys().next().unwrap())
+            } else {
+                Symbol::Atom(offset % 2)
+            },
+            capture: Some(offset % 2),
+        }));
+    }
+    let mut index = crate::index::Index::new(Arc::new(state.clone()));
+    for iteration in 0..64 {
+        for owner in 0..2 {
+            for width in [0, 1, 4, 8, 32] {
+                let value = (0..width)
+                    .map(|position| match (position + iteration) % 4 {
+                        0 => Symbol::Atom(0),
+                        1 => Symbol::Atom(1),
+                        2 => Symbol::Rule(*program.code.keys().next().unwrap()),
+                        _ => Symbol::Atom(100),
+                    })
+                    .collect::<Vec<_>>();
+                let input = Input::new(&[value]);
+                let context = input.context(owner);
+                let pattern = input.pattern(owner);
+                for (world, value) in state.world.iter().enumerate() {
+                    let expected = pattern[0]
+                        .iter()
+                        .all(|term| value.particle.iter().any(|token| term.matches(token)));
+                    assert_eq!(context.matches(0, &index, index.site(world)), expected);
+                }
+            }
+        }
+        let removed = iteration % state.world.len();
+        let mut world = (*state.world.remove(removed)).clone();
+        world.frame = 1 - world.frame;
+        for token in &mut world.particle {
+            token.capture = token.capture.map(|capture| 1 - capture);
+        }
+        if iteration % 2 == 0 {
+            world.particle.truncate(8);
+        }
+        state.world.push(world.into());
+        index.advance(Arc::new(state.clone()), &crate::basis::Set::single(removed));
     }
 }
 

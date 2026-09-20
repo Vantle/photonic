@@ -4,6 +4,15 @@ use crate::program::{Instruction, Symbol};
 use crate::state::{Frame, State, Token, World};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
+pub(crate) struct Request<'source> {
+    pub source: &'source State,
+    pub frame: usize,
+    pub owner: Option<usize>,
+    pub rule: &'source Instruction,
+    pub binding: &'source Binding,
+    pub closure: Option<Closure<'source>>,
+}
+
 struct Draft {
     resource: Vec<(Place, Set<Place>)>,
     context: Vec<Set<usize>>,
@@ -73,17 +82,18 @@ impl Import<'_> {
     }
 }
 
-pub(crate) fn apply(
-    source: &State,
-    frame: usize,
-    owner: Option<usize>,
-    rule: &Instruction,
-    binding: &Binding,
-    closure: Option<Closure<'_>>,
-) -> Applied {
+pub(crate) fn apply(request: Request<'_>) -> Applied {
     #[cfg(feature = "measurement")]
     let _measurement =
         crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Application);
+    let Request {
+        source,
+        frame,
+        owner,
+        rule,
+        binding,
+        closure,
+    } = request;
     let mut state = State {
         world: crate::sequence::List::new(),
         frame: source.frame.clone(),

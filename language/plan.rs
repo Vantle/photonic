@@ -24,6 +24,15 @@ impl Context {
         self.group.clone()
     }
 
+    pub fn affected(&self, position: usize, index: &crate::index::Index, frame: usize) -> bool {
+        index.affected.get(&frame).is_some_and(|symbol| {
+            self.fragment[position]
+                .group
+                .iter()
+                .all(|group| symbol.contains(&group.value))
+        })
+    }
+
     pub fn candidate(
         &self,
         position: usize,
@@ -38,10 +47,15 @@ impl Context {
         index.candidate(&pattern, frame)
     }
 
-    pub fn matches(&self, position: usize, particle: &[crate::state::Token]) -> bool {
+    pub fn matches(&self, position: usize, index: &crate::index::Index, site: usize) -> bool {
+        let world = &index.state.world[index.world(site)];
         self.fragment[position].group.iter().all(|group| {
             let term = Term::new(group.value, Some(self.owner));
-            particle.iter().any(|token| term.matches(token))
+            if world.particle.len() <= 16 {
+                world.particle.iter().any(|token| term.matches(token))
+            } else {
+                index.quantity(&term, world.frame, site) > 0
+            }
         })
     }
 

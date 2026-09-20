@@ -2,7 +2,7 @@
 
 This is an implementation plan, not a report of completed optimization. It extends the [measured optimization audit](optimization.md) and preserves the language and frontend contracts. Each implementation audit names its tested baseline, records measurements, and states the remaining boundary; the stages below are not a claim that every research track has shipped.
 
-The first production implementation and its remaining boundaries are tracked in [implementation.md](implementation.md). The subsequent [factorization audit](factorization.md) records retained leaf bindings, adaptive intersections, and cyclic reachability. The stages below remain a roadmap rather than a completion claim.
+The first production implementation and its remaining boundaries are tracked in [implementation.md](implementation.md). The subsequent [factorization audit](factorization.md) records retained leaf bindings, adaptive intersections, and cyclic reachability. The subsequent [architecture audit](architecture.md) adds localized domain updates, incremental grounded support, and explicit proof-store ownership. The stages below remain a roadmap rather than a completion claim.
 
 The target is an evaluator that shares reusable program structure, discovers concrete work on demand, and maintains derived results from explicit changes. Decisions are conditional on semantic equivalence and measured benefit. No universal speedup or globally optimal query plan is assumed.
 
@@ -26,11 +26,11 @@ Before changing scheduling or accounting, specify which progress details are ext
 | Code | `program.rs` interns complete rule values | Discover reusable internal structure without identifying executable occurrences |
 | Input | `catalog.rs` shares complete inputs and immutable particle fragments between different plans | Share common multi-particle subplans |
 | Context | `plan.rs` omits owner from capture-free identity | Explicit dependency contracts for each fragment and specialization |
-| Candidate | Shared counted postings, adaptive intersections, demanded-term indexing, and retained preparation | Share concrete candidate domains between different plans and apply changes more locally |
+| Candidate | Counted postings, adaptive intersections, indexed eligibility, conservative delta exclusion, and retained preparation | Share concrete candidate domains between different plans |
 | Binding | Bounded whole-query replay on unchanged domains and surviving leaf factors under relevant deltas | Retain surviving multi-particle joined prefixes |
 | Proof query | `runtime/table.rs` shares exact queries; `selection.rs` lazily compiles wider patterns | Share multi-particle query fragments while preserving consumer-specific projection |
 | Rewrite | `recipe.rs` compiles output construction | Reuse parameterized construction with explicit boundary dependencies |
-| History | Persistent state, exact provenance, and incremental cyclic frame reachability | Share additional flow and proof structure; later investigate causal representation |
+| History | Persistent state, exact provenance, incremental capture reachability, and grounded-support propagation | Share additional flow and contextual construction; later investigate causal representation |
 
 The direct path and exhaustive backward runtime have different responsibilities. Shared primitives can serve both, but migrating the exhaustive runtime cannot remove source inference or proof projection. Its separate algorithms are useful reference behavior, although some underlying storage and indexing are already shared.
 
@@ -104,7 +104,7 @@ Move related state and its invariants into an owning component rather than addin
 | Runtime | Agenda, suspension, limits, coordination | Composes components through explicit operations |
 | Report | Inspection and external representation | Reads a consistent snapshot |
 
-Begin with matching subscription/cache/cursor ownership and proof normalization ownership, which are currently fields of `Runtime`. Keep accounting owned alongside the structure it measures, with one consistent aggregate interface. Avoid independently maintained duplicate totals.
+Matching subscription/cache/cursor ownership, proof normalization, and grounded evidence now have dedicated stores. Continue tightening identity and flow ownership at those boundaries. Keep accounting with the structure it measures, using one consistent aggregate interface; avoid independently maintained duplicate totals.
 
 Use distinct identity newtypes where interchange is invalid, with unabbreviated namespace-based naming such as `frame::Identity` and `resource::Identity`. A live stable site, a historical occurrence, and a current ordinal are different concepts. Use generation checks where reuse is possible; never expose arena placement as semantic identity.
 

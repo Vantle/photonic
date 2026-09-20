@@ -35,6 +35,7 @@ mod position;
 mod prefix;
 pub mod prism;
 mod program;
+mod proof;
 mod propagation;
 mod reachability;
 mod reader;

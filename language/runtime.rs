@@ -8,11 +8,11 @@ use crate::flow::{Binding, Flow};
 use crate::program::Program;
 use crate::source;
 use crate::state::State;
-use crate::support::{Atom, Clause, Support};
+use crate::support::{Atom, Clause};
 use indexmap::IndexSet;
 use serde::Serialize;
 use std::collections::{BTreeSet, HashMap};
-use std::sync::{Arc, OnceLock};
+use std::sync::Arc;
 
 #[derive(Clone, Copy, Debug, Serialize)]
 pub struct Limit {
@@ -89,8 +89,7 @@ pub struct Runtime {
     view: IndexSet<Arc<View>>,
     event: Vec<Event>,
     normalization: normalization::Store,
-    clause: IndexSet<Clause>,
-    evaluation: OnceLock<Support>,
+    proof: crate::proof::Store,
     matching: table::Table,
     candidate: HashMap<(usize, usize), Arc<Vec<usize>>>,
     outgoing: Vec<Vec<usize>>,
@@ -119,8 +118,7 @@ impl Runtime {
             view: IndexSet::new(),
             event: Vec::new(),
             normalization: normalization::Store::default(),
-            clause: IndexSet::new(),
-            evaluation: OnceLock::new(),
+            proof: crate::proof::Store::default(),
             matching: table::Table::default(),
             candidate: HashMap::new(),
             outgoing: Vec::new(),
@@ -148,12 +146,10 @@ impl Runtime {
     }
 
     fn support(&mut self, head: Atom, premise: impl IntoIterator<Item = Atom>) {
-        if self.clause.insert(Clause {
+        self.proof.insert(Clause {
             head,
             premise: premise.into_iter().collect(),
-        }) {
-            self.evaluation.take();
-        }
+        });
     }
 
     fn intern(&mut self, state: Arc<State>) -> usize {
@@ -282,7 +278,7 @@ impl Runtime {
             + self.indexed
             + self.event.len()
             + self.view.len()
-            + self.clause.len()
+            + self.proof.retained()
             + self.matching.retained()
             + self.candidate.len()
             + self.flying

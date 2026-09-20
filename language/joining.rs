@@ -115,8 +115,26 @@ impl Join {
     pub fn update(&mut self, index: &Index) -> bool {
         let mut changed = false;
         for (position, domain) in self.domain.iter_mut().enumerate() {
+            if domain.len() > 16
+                && self
+                    .preparation
+                    .as_ref()
+                    .is_some_and(|context| !context.affected(position, index, self.frame))
+            {
+                continue;
+            }
             let previous = domain.len();
-            domain.retain(|member| !index.removal.contains(&member.site));
+            domain.retain(|member| {
+                if !index.removal.contains(&member.site) {
+                    return true;
+                }
+                self.retained -= 1;
+                if let Some(particle) = &member.particle {
+                    self.retained -= particle.retained();
+                    self.cached -= particle.cached();
+                }
+                false
+            });
             changed |= previous != domain.len();
             for &site in &index.insertion {
                 let world = &index.state.world[index.world(site)];
@@ -129,7 +147,7 @@ impl Join {
                             .iter()
                             .all(|term| world.particle.iter().any(|token| term.matches(token)))
                     },
-                    |context| context.matches(position, &world.particle),
+                    |context| context.matches(position, index, site),
                 );
                 if eligible {
                     changed = true;
@@ -137,6 +155,7 @@ impl Join {
                         site,
                         particle: None,
                     });
+                    self.retained += 1;
                 }
             }
         }
@@ -147,14 +166,6 @@ impl Join {
             .sort_by_key(|&position| self.domain[position].len());
         self.viable = self.feasible();
         self.reset();
-        self.retained = self.size();
-        self.cached = self
-            .domain
-            .iter()
-            .flatten()
-            .filter_map(|member| member.particle.as_ref())
-            .map(crate::factor::Cursor::cached)
-            .sum();
         true
     }
 

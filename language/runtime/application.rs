@@ -35,14 +35,14 @@ impl Runtime {
             flow: &view.flow,
             capture,
         });
-        let result = crate::application::apply(
-            &self.state[view.source],
-            application.frame,
-            application.owner,
-            &self.program.rule[application.rule],
-            &application.binding,
+        let result = crate::application::apply(crate::application::Request {
+            source: &self.state[view.source],
+            frame: application.frame,
+            owner: application.owner,
+            rule: &self.program.rule[application.rule],
+            binding: &application.binding,
             closure,
-        );
+        });
         if result.state.world.len() > self.limit.world
             || result.state.size() > self.limit.cell
             || result.state.reachable().len() > self.limit.frame

@@ -87,3 +87,33 @@ fn survival() {
     assert_eq!(actual.cached, 0);
     compare(&mut actual, &mut expected, &index, 100);
 }
+
+#[test]
+fn locality() {
+    for pattern in ["A.B", "A", ""] {
+        let source = format!("{},A.C [{pattern},C] Done", vec!["A.B"; 32].join(","));
+        let program = Program::new(crate::lowering::parse(&source).unwrap());
+        let mut state = State::initial(&program);
+        let mut index = Index::new(Arc::new(state.clone()));
+        let input = crate::plan::Input::new(&program.rule[0].input);
+        let budget = Arc::new(crate::factor::Budget::new(65536));
+        let mut actual = Join::planned(&input, &index, 0, 0, &budget);
+        let mut expected = Join::new(input.pattern(0), &index, 0);
+        for iteration in 0..128 {
+            compare(&mut actual, &mut expected, &index, iteration % 17);
+            let removed = if iteration % 3 == 0 {
+                iteration % state.world.len()
+            } else {
+                state.world.len() - 1
+            };
+            let world = state.world.remove(removed);
+            state.world.push(world);
+            index.advance(Arc::new(state.clone()), &crate::basis::Set::single(removed));
+            actual.advance(&index);
+            expected.advance(&index);
+            compare(&mut actual, &mut expected, &index, 10000);
+            actual.reset();
+            expected.reset();
+        }
+    }
+}
