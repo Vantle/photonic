@@ -13,6 +13,7 @@ rust_library(
         "syntax.rs",
     ],
     crate_root = "frontend.rs",
+    lint_config = "//:lint",
     proc_macro_deps = ["@crate//:pest_derive"],
     visibility = [
         "//language:__pkg__",
@@ -41,6 +42,7 @@ rust_test(
     ],
     compile_data = ["//program/language:fixture"],
     crate_root = "test/suite.rs",
+    lint_config = "//:lint",
     deps = [
         ":frontend",
         "@crate//:serde_json",

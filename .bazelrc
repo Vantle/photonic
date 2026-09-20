@@ -24,10 +24,7 @@ build:remote --spawn_strategy=remote
 build:remote --noremote_local_fallback
 build:remote --remote_download_outputs=minimal
 
-build:format --aspects=@rules_rust//rust:defs.bzl%rustfmt_aspect
-build:format --output_groups=rustfmt_checks
-
-build:lint --aspects=@rules_rust//rust:defs.bzl%rust_clippy_aspect
-build:lint --output_groups=clippy_checks
+build --aspects=//toolchain:check.bzl%check
+build --output_groups=+check
 
 try-import %workspace%/user.bazelrc

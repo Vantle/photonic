@@ -275,7 +275,7 @@ impl State {
                 .sum::<usize>()
     }
 
-    pub fn environment(&self, capture: usize) -> State {
+    pub fn environment(&self, capture: usize) -> Self {
         Self {
             world: vec![
                 World {

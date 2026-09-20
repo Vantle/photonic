@@ -18,6 +18,7 @@ rust_shared_library(
         "//library:digit",
     ],
     crate_root = "engine.rs",
+    lint_config = "//:lint",
     rustc_env = {
         "FORMULA": "$(execpath //program/ternary:formula)",
         "DIGIT": "$(execpath //library:digit)",
@@ -78,6 +79,7 @@ rust_binary(
         "JAVASCRIPT": "$(rlocationpath :javascript)",
         "WEBASSEMBLY": "$(rlocationpath :webassembly)",
     },
+    lint_config = "//:lint",
     deps = ["@rules_rust//rust/runfiles"],
 )
 

@@ -1757,10 +1757,8 @@ bazel run //:analyze.rust</code></pre>
 <p>Run these commands from the repository root:</p>
 <pre><code>bazel build -c opt //...
 bazel test -c opt //...
-bazel test //toolchain:check
-bazel build --config=format //...
-bazel build --config=lint //...</code></pre>
-<p>Clippy warnings fail verification. Fix the underlying issue instead of suppressing a diagnostic globally. Preserve independent test oracles: native runtime reports are compared with reference fixtures, support propagation is compared with a fixed-point implementation, and arithmetic results are checked through runtime execution. <code>//toolchain/browser:check</code> checks theme persistence, all four recorded arithmetic results, event navigation, Wasm expression evaluation, cancellation, reference links, mobile layout, and asset loading in pinned headless Chrome. Run that target on ARM64 macOS; no host Node, browser, package manager, or shell launcher is needed.</p>
+bazel test //toolchain:check</code></pre>
+<p>Rust formatting and Clippy run automatically as aspects on every build and test, including transitive dependencies and WebAssembly. Every Rust target uses <code>lint_config = "//:lint"</code>. Compiler warnings and enabled Clippy lints fail the build. The policy selects useful idiom checks without enabling the entire pedantic or restriction groups. Fix the underlying issue instead of adding lint exemptions. See <a href="document/build.md">build configuration</a> for the policy. Preserve independent test oracles: native runtime reports are compared with reference fixtures, support propagation is compared with a fixed-point implementation, and arithmetic results are checked through runtime execution. <code>//toolchain/browser:check</code> checks theme persistence, all four recorded arithmetic results, event navigation, Wasm expression evaluation, cancellation, reference links, mobile layout, and asset loading in pinned headless Chrome. Run that target on ARM64 macOS; no host Node, browser, package manager, or shell launcher is needed.</p>
 <p>Format Rust with the package&#x27;s formatter:</p>
 <pre><code>bazel run //:format
 bazel run //arithmetic:format
@@ -1790,7 +1788,7 @@ bazel mod deps --config=refresh</code></pre>
 <tr><td><code>//platform:aarch64-pc-windows-gnullvm</code></td><td><code>windows-11-arm</code></td></tr>
 <tr><td><code>//platform:x86_64-pc-windows-gnullvm</code></td><td><code>windows-2025</code></td></tr>
 </table></div>
-<p>The <a href=".github/workflows/verify.yml">verification workflow</a> builds and tests optimized binaries on each configured native runner. A separate Linux job checks explicit Bazel formatting inputs and applies Rust formatting and Clippy to every maintained Rust target. Clippy warnings fail the check. Bazel 9.2.0 comes from <code>.bazelversion</code>; the workflow pins Bazelisk 1.28.1, checkout 6.0.2, and setup-bazel 0.19.0. Actions use immutable commit references. Cargo is not a workflow command. Runner labels identify operating-system families and architectures, but hosted images receive updates. The labels come from GitHub&#x27;s <a href="https://docs.github.com/en/actions/reference/runners/github-hosted-runners">runner reference</a>; Bazel bootstrap and caching follow <a href="https://github.com/bazel-contrib/setup-bazel/tree/c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86">setup-bazel</a>.</p>
+<p>The <a href=".github/workflows/verify.yml">verification workflow</a> builds and tests optimized binaries on each configured native runner. A separate Linux job checks explicit Bazel formatting inputs and builds all targets with the default formatting and Clippy aspects. Clippy warnings fail the check. Bazel 9.2.0 comes from <code>.bazelversion</code>; the workflow pins Bazelisk 1.28.1, checkout 6.0.2, and setup-bazel 0.19.0. Actions use immutable commit references. Cargo is not a workflow command. Runner labels identify operating-system families and architectures, but hosted images receive updates. The labels come from GitHub&#x27;s <a href="https://docs.github.com/en/actions/reference/runners/github-hosted-runners">runner reference</a>; Bazel bootstrap and caching follow <a href="https://github.com/bazel-contrib/setup-bazel/tree/c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86">setup-bazel</a>.</p>
 <p>Native jobs explicitly set both <code>--host_platform</code> and <code>--platforms</code> to the matching platform. This gives Bazel&#x27;s test execution platform the same constraints as the target, including the Linux glibc baseline. Set the host platform only to one matching the machine&#x27;s architecture and operating system. Cross-builds change only <code>--platforms</code> and retain the detected host.</p>
 <p>Bazelisk and repository downloads are cached on every runner. Windows CI disables the expanded repository contents cache with <code>--repo_contents_cache=</code> while retaining downloaded archives. The expanded directory can change during compression, causing cache archival to fail after several minutes. Native jobs stop Bazel before saving caches. The runtime and arithmetic suites have Bazel&#x27;s medium test size, allowing five minutes per suite.</p>
 <p>From the repository root, cross-compile the CLI without attempting to execute the target binary:</p>
@@ -1799,9 +1797,7 @@ bazel build //command:photonic --platforms=//platform:x86_64-pc-windows-gnullvm<
 <p>To verify on a matching native host:</p>
 <pre><code>bazel build -c opt //... --host_platform=//platform:aarch64-apple-darwin --platforms=//platform:aarch64-apple-darwin
 bazel test -c opt //... --host_platform=//platform:aarch64-apple-darwin --platforms=//platform:aarch64-apple-darwin
-bazel test //toolchain:check
-bazel build --config=format //...
-bazel build --config=lint //...</code></pre>
+bazel test //toolchain:check</code></pre>
 <p>Replace the example target with the matching platform from the table. Cross-compilation alone does not establish native execution; the workflow runs the tests on each matching host.</p>
 <p>CLI integration tests declare executables as data and resolve <code>rlocationpath</code> values with the standard Rust runfiles library. This supports both directory runfiles and Windows manifests.</p>
 <a id="guide-build-api"></a>

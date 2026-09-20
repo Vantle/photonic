@@ -12,13 +12,13 @@ buildifier_test(
     srcs = ["//:build"],
     lint_mode = "warn",
     mode = "check",
-    tags = ["manual"],
 )
 
 filegroup(
     name = "build",
     srcs = [
         "BUILD.bazel",
+        "check.bzl",
         "defs.bzl",
         "node.bzl",
     ],
@@ -38,6 +38,7 @@ rust_binary(
     name = "execute",
     srcs = ["execute.rs"],
     crate_root = "execute.rs",
+    lint_config = "//:lint",
     visibility = [
         "//:__pkg__",
         "//benchmark:__pkg__",
@@ -68,6 +69,7 @@ rust_test(
         "PHOTONIC_NODE": "$(rlocationpath :node)",
         "PHOTONIC_SCRIPT": "$(rlocationpath exit.mjs)",
     },
+    lint_config = "//:lint",
     deps = ["@rules_rust//rust/runfiles"],
 )
 
@@ -76,6 +78,7 @@ rust_binary(
     testonly = True,
     srcs = ["probe.rs"],
     crate_root = "probe.rs",
+    lint_config = "//:lint",
 )
 
 hermetic_binary(
@@ -93,5 +96,6 @@ rust_binary(
     name = "argument",
     srcs = ["argument.rs"],
     crate_root = "argument.rs",
+    lint_config = "//:lint",
     deps = ["@crate//:serde_json"],
 )

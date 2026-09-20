@@ -52,6 +52,7 @@ crate.from_cargo(
     name = "crate",
     cargo_lock = "//:Cargo.lock",
     cargo_toml = "//:Cargo.toml",
+    generate_lint_config = True,
     platform_triples = [
         "wasm32-unknown-unknown",
         "aarch64-apple-darwin",

@@ -58,7 +58,7 @@ impl Flow {
         }
     }
 
-    pub(crate) fn compose(&self, event: &Flow) -> Self {
+    pub(crate) fn compose(&self, event: &Self) -> Self {
         let mut resource = HashMap::new();
         let mut context = HashMap::new();
         Self {
@@ -206,7 +206,7 @@ impl Flow {
         }
         Applied {
             state: canonical.state,
-            flow: Flow {
+            flow: Self {
                 resource,
                 context,
                 frame,

@@ -1,3 +1,4 @@
+load("@crate//:defs.bzl", "lint_config")
 load("@default_rust_toolchains//rustc:component_labels.bzl", "rust_toolchain_component_label")
 load("//toolchain:defs.bzl", "hermetic_binary")
 
@@ -96,4 +97,21 @@ filegroup(
     name = "page",
     srcs = ["index.html"],
     visibility = ["//toolchain/browser:__pkg__"],
+)
+
+alias(
+    name = "lint",
+    actual = lint_config(),
+    visibility = [
+        "//arithmetic:__pkg__",
+        "//benchmark:__pkg__",
+        "//command:__pkg__",
+        "//frontend:__pkg__",
+        "//language:__pkg__",
+        "//library:__pkg__",
+        "//photonic:__pkg__",
+        "//program/binary:__pkg__",
+        "//toolchain:__pkg__",
+        "//toolchain/browser:__pkg__",
+    ],
 )

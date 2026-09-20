@@ -5,6 +5,7 @@ rust_binary(
     name = "benchmark",
     srcs = ["benchmark.rs"],
     crate_root = "benchmark.rs",
+    lint_config = "//:lint",
     deps = [
         "//arithmetic:library",
         "//language:photonic",

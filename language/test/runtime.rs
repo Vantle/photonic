@@ -31,17 +31,17 @@ fn normalize(
             .unwrap()
             .iter()
             .map(|token| Token {
-                id: token["id"]
-                    .as_u64()
-                    .map(|value| value as usize)
-                    .unwrap_or_else(|| {
+                id: token["id"].as_u64().map_or_else(
+                    || {
                         token["id"]
                             .as_str()
                             .unwrap()
                             .trim_start_matches('r')
                             .parse()
                             .unwrap()
-                    }),
+                    },
+                    |value| value as usize,
+                ),
                 value: Symbol::Atom(symbol[token["label"].as_str().unwrap()]),
                 capture: optional(&token["capture"]),
             })
@@ -272,7 +272,7 @@ fn capture() {
                 scope: 2,
                 parent: Some(0),
                 lexical: Some(1),
-                held: vec![seed.clone()],
+                held: vec![seed],
             }
             .into(),
         ]

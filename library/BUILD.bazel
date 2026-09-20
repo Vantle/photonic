@@ -9,6 +9,7 @@ rust_test(
         "//program/composition:fixture",
     ],
     crate_root = "test/suite.rs",
+    lint_config = "//:lint",
     deps = ["//language:photonic"],
 )
 

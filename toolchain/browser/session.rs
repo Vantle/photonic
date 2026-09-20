@@ -11,7 +11,7 @@ pub struct Evaluation {
 #[wasm_bindgen]
 impl Evaluation {
     #[wasm_bindgen(constructor)]
-    pub fn new(input: &str) -> Result<Evaluation, JsValue> {
+    pub fn new(input: &str) -> Result<Self, JsValue> {
         let (search, source) = expression::prepare(input)
             .map_err(|error| JsValue::from_str(&serde_json::to_string(&error).unwrap()))?;
         Ok(Self { search, source })

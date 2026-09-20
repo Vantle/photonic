@@ -11,9 +11,7 @@ struct Fixture {
 
 impl Fixture {
     fn new() -> Self {
-        let base = std::env::var_os("TEST_TMPDIR")
-            .map(PathBuf::from)
-            .unwrap_or_else(std::env::temp_dir);
+        let base = std::env::var_os("TEST_TMPDIR").map_or_else(std::env::temp_dir, PathBuf::from);
         let time = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()

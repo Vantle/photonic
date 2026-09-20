@@ -127,8 +127,6 @@ bazel run -c opt //benchmark:replay -- --width 4096 --length 1000 --sample 7
 bazel run -c opt //benchmark:posting
 bazel run -c opt //benchmark:runtime
 bazel test -c opt --nocache_test_results //... //toolchain:check //toolchain/browser:check
-bazel build -c opt --config=lint //...
-bazel build -c opt --config=format //...
 ```
 
 The earlier [persistent-state measurements](incremental.md) remain a separate comparison against their original baseline; their speedup ratios should not be multiplied into this table without a new paired measurement.

@@ -10,6 +10,7 @@ rust_binary(
     ],
     compile_data = ["//program/ternary:formula"],
     crate_root = "arithmetic.rs",
+    lint_config = "//:lint",
     rustc_env = {"FORMULA": "$(execpath //program/ternary:formula)"},
     deps = [
         "//language:photonic",
@@ -28,6 +29,7 @@ rust_binary(
     ],
     compile_data = ["//program/ternary:formula"],
     crate_root = "expression.rs",
+    lint_config = "//:lint",
     rustc_env = {"FORMULA": "$(execpath //program/ternary:formula)"},
     deps = [
         "//language:photonic",
@@ -44,6 +46,7 @@ rust_binary(
         "retention.rs",
     ],
     crate_root = "retention.rs",
+    lint_config = "//:lint",
     deps = [
         "//language:photonic",
         "@crate//:clap",
@@ -56,6 +59,7 @@ rust_binary(
     name = "posting",
     srcs = ["posting.rs"],
     crate_root = "posting.rs",
+    lint_config = "//:lint",
     deps = [
         "//language:measurement",
         "@crate//:serde_json",
@@ -69,6 +73,7 @@ rust_binary(
         "replay.rs",
     ],
     crate_root = "replay.rs",
+    lint_config = "//:lint",
     deps = [
         "//language:photonic",
         "@crate//:clap",
@@ -84,6 +89,7 @@ rust_binary(
         "storage.rs",
     ],
     crate_root = "storage.rs",
+    lint_config = "//:lint",
     deps = [
         "//language:photonic",
         "@crate//:clap",
@@ -116,6 +122,7 @@ rust_binary(
     srcs = ["runtime.rs"],
     compile_data = ["//language:fixture"],
     crate_root = "runtime.rs",
+    lint_config = "//:lint",
     deps = [
         "//language:photonic",
         "@crate//:clap",
@@ -128,6 +135,7 @@ rust_binary(
     name = "symmetry",
     srcs = ["symmetry.rs"],
     crate_root = "symmetry.rs",
+    lint_config = "//:lint",
     deps = [
         "//language:measurement",
         "@crate//:serde",
@@ -139,6 +147,7 @@ rust_binary(
     name = "trace",
     srcs = ["trace.rs"],
     crate_root = "trace.rs",
+    lint_config = "//:lint",
     deps = [
         "//language:photonic",
         "@crate//:clap",
@@ -161,6 +170,7 @@ rust_binary(
         "case/coherence.wave",
         "case/token.wave",
     ],
+    lint_config = "//:lint",
     deps = [
         "//language:photonic",
         "@crate//:clap",

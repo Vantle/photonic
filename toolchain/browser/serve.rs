@@ -20,9 +20,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut stream = stream?;
         stream.set_read_timeout(Some(std::time::Duration::from_secs(2)))?;
         let mut buffer = [0; 8192];
-        let count = match stream.read(&mut buffer) {
-            Ok(count) => count,
-            Err(_) => continue,
+        let Ok(count) = stream.read(&mut buffer) else {
+            continue;
         };
         let request = String::from_utf8_lossy(&buffer[..count]);
         let mut line = request
@@ -52,9 +51,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         } else {
             None
         };
-        let (status, body) = content
-            .map(|body| ("200 OK", body))
-            .unwrap_or_else(|| ("404 Not Found", b"Not found".to_vec()));
+        let (status, body) = content.map_or_else(
+            || ("404 Not Found", b"Not found".to_vec()),
+            |body| ("200 OK", body),
+        );
         let kind = match path.extension().and_then(|value| value.to_str()) {
             Some("html") => "text/html; charset=utf-8",
             Some("js") => "text/javascript; charset=utf-8",

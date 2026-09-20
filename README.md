@@ -4,15 +4,13 @@
 
 ## Run and test
 
-Bazel is the only required build tool. It downloads the pinned compiler and dependencies.
+Bazel is the only required build tool. It downloads the pinned compiler and dependencies. Rust formatting and Clippy checks run automatically on builds and tests, including dependencies and WebAssembly. Compiler warnings and enabled Clippy lints are errors.
 
 ```sh
 bazel run -c opt //toolchain/browser:serve
 bazel run -c opt //program/composition:pipeline
 bazel test -c opt //...
 bazel test --config=release //toolchain:check
-bazel build --config=release --config=format //...
-bazel build --config=release --config=lint //...
 ```
 
 Open http://127.0.0.1:8080 after starting the preview. The live examples run the Rust evaluator compiled to WebAssembly; Bazel builds the module and its wasm-bindgen bindings. Recorded diagrams remain available when opening the HTML file directly.

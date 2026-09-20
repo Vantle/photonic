@@ -7,6 +7,7 @@ rust_library(
     srcs = [":source"],
     crate_name = "arithmetic",
     crate_root = "library.rs",
+    lint_config = "//:lint",
     visibility = ["//program/binary:__pkg__"],
     deps = ["@crate//:thiserror"],
 )
@@ -18,6 +19,7 @@ rust_binary(
         "word.rs",
     ],
     crate_root = "word.rs",
+    lint_config = "//:lint",
     deps = [
         ":library",
         "//language:photonic",
@@ -41,6 +43,7 @@ rust_test(
     crate_root = "test/suite.rs",
     data = [":word"],
     env = {"PHOTONIC_WORD": "$(rlocationpath :word)"},
+    lint_config = "//:lint",
     deps = [
         ":library",
         "//language:photonic",
@@ -54,6 +57,7 @@ rust_binary(
     name = "benchmark",
     srcs = ["benchmark.rs"],
     crate_root = "benchmark.rs",
+    lint_config = "//:lint",
     deps = [
         ":library",
         "//language:photonic",
@@ -92,6 +96,7 @@ rust_test(
         "gate/test.rs",
     ],
     crate_root = "gate.rs",
+    lint_config = "//:lint",
 )
 
 filegroup(

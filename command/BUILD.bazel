@@ -8,6 +8,7 @@ rust_binary(
         "main.rs",
     ],
     crate_root = "main.rs",
+    lint_config = "//:lint",
     visibility = [
         "//photonic:__pkg__",
         "//program:__subpackages__",
@@ -27,6 +28,7 @@ rust_test(
     crate_root = "test.rs",
     data = [":photonic"],
     env = {"PHOTONIC_COMMAND": "$(rlocationpath :photonic)"},
+    lint_config = "//:lint",
     deps = [
         "@crate//:serde_json",
         "@rules_rust//rust/runfiles",
