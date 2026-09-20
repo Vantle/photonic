@@ -29,6 +29,7 @@ if ((Get-FileHash $binary -Algorithm SHA256).Hash -ne $checksum) {
 
 $cache = (Join-Path $env:LOCALAPPDATA 'photonic').Replace('\', '/')
 @(
+    'common --repo_contents_cache='
     "build --disk_cache=`"$cache/action`""
     "common --repository_cache=`"$cache/repository`""
 ) | Set-Content -Encoding Ascii user.bazelrc
