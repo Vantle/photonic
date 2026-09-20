@@ -5,6 +5,24 @@ use smallvec::SmallVec;
 use std::collections::BTreeSet;
 
 impl Network {
+    pub(super) fn availability(&mut self, index: &Index) {
+        #[cfg(feature = "measurement")]
+        let _measurement = crate::measurement::profile::Scope::new(
+            crate::measurement::profile::Phase::Availability,
+        );
+        let mut insertion = SmallVec::<[Symbol; 4]>::new();
+        for &symbol in &index.altered {
+            if index.contains(&symbol) {
+                insertion.push(symbol);
+            } else {
+                self.symbol(symbol, false);
+            }
+        }
+        for symbol in insertion {
+            self.symbol(symbol, true);
+        }
+    }
+
     pub(super) fn symbol(&mut self, symbol: Symbol, present: bool) {
         for &input in self.trigger.get(&symbol).into_iter().flatten() {
             if present {
@@ -35,6 +53,9 @@ impl Network {
     }
 
     pub(super) fn refresh(&mut self, index: &Index, frame: usize) {
+        #[cfg(feature = "measurement")]
+        let _measurement =
+            crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Refresh);
         let count = self.count.get(frame).copied().unwrap_or(0);
         let dependency = || {
             index

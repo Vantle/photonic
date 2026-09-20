@@ -14,9 +14,16 @@ pub enum Phase {
     Canonicalization,
     Composition,
     Application,
+    Subscription,
+    Refresh,
+    Restart,
+    Request,
+    Preparation,
+    Availability,
+    Context,
 }
 
-const PHASE: [Phase; 9] = [
+const PHASE: [Phase; 16] = [
     Phase::Matching,
     Phase::Dispatch,
     Phase::Index,
@@ -26,10 +33,17 @@ const PHASE: [Phase; 9] = [
     Phase::Canonicalization,
     Phase::Composition,
     Phase::Application,
+    Phase::Subscription,
+    Phase::Refresh,
+    Phase::Restart,
+    Phase::Request,
+    Phase::Preparation,
+    Phase::Availability,
+    Phase::Context,
 ];
 
 thread_local! {
-    static RECORD: RefCell<[[u64; 2]; 9]> = const { RefCell::new([[0; 2]; 9]) };
+    static RECORD: RefCell<[[u64; 2]; PHASE.len()]> = const { RefCell::new([[0; 2]; PHASE.len()]) };
 }
 
 pub(crate) struct Scope {
@@ -75,7 +89,7 @@ pub fn take() -> Vec<Measurement> {
                 duration: duration as f64 / 1_000_000_000.0,
             })
             .collect();
-        *record = [[0; 2]; 9];
+        *record = [[0; 2]; PHASE.len()];
         value
     })
 }

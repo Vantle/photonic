@@ -340,3 +340,15 @@ rust_binary(
         "@crate//:serde_json",
     ],
 )
+
+rust_binary(
+    name = "dispatch",
+    srcs = ["dispatch.rs"],
+    crate_root = "dispatch.rs",
+    lint_config = "//:lint",
+    deps = [
+        "//language:measurement",
+        "@crate//:clap",
+        "@crate//:serde_json",
+    ],
+)

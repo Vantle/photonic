@@ -12,6 +12,7 @@ use std::collections::{BTreeMap, HashMap, VecDeque};
 use std::task::Poll;
 
 mod consumer;
+mod context;
 mod dependency;
 mod entry;
 mod key;
@@ -109,6 +110,10 @@ impl Network {
     }
 
     fn frame(&mut self, index: &Index, frame: usize, selected: Option<&Set>) {
+        #[cfg(feature = "measurement")]
+        let _measurement = crate::measurement::profile::Scope::new(
+            crate::measurement::profile::Phase::Subscription,
+        );
         let request = self.request(index, frame, selected);
         let interval = selected
             .filter(|selected| selected.len() < self.count.get(frame).copied().unwrap_or(0))
@@ -190,6 +195,9 @@ impl Network {
     }
 
     fn reset(&mut self, index: &Index) {
+        #[cfg(feature = "measurement")]
+        let _measurement =
+            crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Restart);
         self.agenda.clear();
         for &position in self.ready.as_ref().unwrap_or(&self.entry).values() {
             let entry = &mut self.store[position];
@@ -211,9 +219,7 @@ impl Network {
         self.count
             .resize(self.count.len().max(index.state.frame.len()), 0);
         self.altered.clear();
-        for &symbol in &index.altered {
-            self.symbol(symbol, index.contains(&symbol));
-        }
+        self.availability(index);
         let mut affected = index
             .affected
             .keys()
@@ -238,17 +244,9 @@ impl Network {
         context.extend_from_slice(&index.context);
         affected.extend_from_slice(&changed);
         if !changed.is_empty() {
-            for frame in index.frame() {
-                let mut owner = Some(frame);
-                while let Some(current) = owner {
-                    if changed.binary_search(&current).is_ok() {
-                        affected.push(frame);
-                        context.push(frame);
-                        break;
-                    }
-                    owner = index.state.frame[current].lexical;
-                }
-            }
+            let descendant = context::select(index, &changed);
+            affected.extend_from_slice(&descendant);
+            context.extend_from_slice(&descendant);
         }
         affected.sort_unstable();
         affected.dedup();
