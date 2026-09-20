@@ -15,6 +15,9 @@ impl Network {
         frame: usize,
         selected: Option<&Set>,
     ) -> Vec<Request> {
+        #[cfg(feature = "measurement")]
+        let _measurement =
+            crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Request);
         let mut request = Vec::new();
         if index.present(frame) {
             let mut owner = Some(frame);

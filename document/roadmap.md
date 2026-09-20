@@ -10,6 +10,8 @@ The [joined-prefix implementation](prefix.md) now retains bounded multi-input pr
 
 The [candidate-domain implementation](candidate.md) now shares presence filters and dependency summaries across distinct plans, maintains complete candidate snapshots across verified deltas, and supports late activation with exact fallback. Query-local occurrence arrays and mutable particle cursors remain private. This completes the candidate-filter vertical slice, while individual joined-result maintenance and exhaustive-fragment integration remain the next major milestones.
 
+The [dispatch dependency audit](dispatch.md) now removes repeated lexical-ancestor walks within each update and transient activation during coherent symbol changes. Detailed profiling showed agenda restart was a small part of arithmetic dispatch cost, so the existing progress-preserving restart remains. Individual joined-result maintenance remains the next major algorithmic milestone; a persistent agenda and reverse lexical dependency index are not complete.
+
 ## Semantic boundary
 
 - State is unordered. Synchronization establishes a firing; planner order and scheduler order are implementation details.

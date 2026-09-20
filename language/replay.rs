@@ -49,6 +49,10 @@ impl Search {
     }
 
     pub fn planned(request: crate::joining::Request<'_>) -> Self {
+        #[cfg(feature = "measurement")]
+        let _measurement = crate::measurement::profile::Scope::new(
+            crate::measurement::profile::Phase::Preparation,
+        );
         Self {
             join: Join::planned(request),
             mode: Mode::Dormant,

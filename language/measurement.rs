@@ -1,8 +1,10 @@
+pub mod dispatch;
 pub mod joining;
 pub mod profile;
 pub mod query;
 pub mod reachability;
 pub mod sharing;
+pub mod subscription;
 
 use crate::canonical::Search;
 use crate::program::Symbol;

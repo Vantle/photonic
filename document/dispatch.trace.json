@@ -1,0 +1,6911 @@
+[
+  [
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 0,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": [
+              0
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 2,
+        "frame": 0,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": [
+              0,
+              1
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 0,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    "Complete"
+  ],
+  [
+    "Complete"
+  ],
+  [
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 7,
+        "owner": 7,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 7,
+        "owner": 3,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 7,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 7,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    }
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 4,
+        "owner": 4,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 4,
+        "owner": 2,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 4,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 4,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 2,
+        "owner": 2,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": [
+              180
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 2,
+        "owner": 2,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending"
+  ],
+  [
+    "Complete"
+  ],
+  [
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 0,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 1,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 1,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 0,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 6,
+        "owner": 6,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 5,
+        "owner": 2,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 2,
+        "owner": 2,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 6,
+        "owner": 6,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 5,
+        "owner": 2,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 2,
+        "owner": 2,
+        "read": null,
+        "selection": [
+          {
+            "world": 3,
+            "position": 0,
+            "token": [
+              280
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 2,
+        "owner": 2,
+        "read": null,
+        "selection": [
+          {
+            "world": 3,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 2,
+        "owner": 2,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": [
+              280
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 2,
+        "owner": 2,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 1,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 2,
+        "owner": 2,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": [
+              280
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 2,
+        "owner": 2,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 1,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 6,
+        "owner": 6,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 1,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 6,
+        "owner": 6,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    "Complete"
+  ],
+  [
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 0,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 4,
+        "owner": 4,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": [
+              405
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 4,
+        "owner": 4,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 4,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": [
+              405
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 4,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 1,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 6,
+        "owner": 6,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 1,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 1,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": [
+              436
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 4,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": [
+              436,
+              437
+            ]
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 6,
+        "owner": 6,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 1,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": [
+              437
+            ]
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 1,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": [
+              436
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 4,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": [
+              436,
+              437
+            ]
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 6,
+        "owner": 6,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 1,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": [
+              437
+            ]
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 1,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 6,
+        "owner": 6,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 1,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 1,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 4,
+        "owner": 4,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": [
+              486
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 4,
+        "owner": 4,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 1,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 4,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": [
+              486
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 4,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 2,
+        "owner": 2,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 4,
+        "owner": 4,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": [
+              486
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 4,
+        "owner": 4,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 4,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": [
+              486
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 4,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 2,
+        "owner": 2,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 4,
+        "owner": 4,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": [
+              486
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 4,
+        "owner": 4,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 4,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": [
+              486
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 4,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 4,
+        "owner": 4,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": [
+              486
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 4,
+        "owner": 4,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 4,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": [
+              486
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 4,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 1,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": [
+              548
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 1,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 4,
+        "owner": 4,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 1,
+        "owner": 7,
+        "read": {
+          "world": 2,
+          "resource": 549
+        },
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 4,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    }
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 0,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 1,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": [
+              548
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 1,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 4,
+        "owner": 4,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 1,
+        "owner": 7,
+        "read": {
+          "world": 1,
+          "resource": 549
+        },
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 4,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    }
+  ],
+  [],
+  [
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 1,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": [
+              548
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 1,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 4,
+        "owner": 4,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 1,
+        "owner": 7,
+        "read": {
+          "world": 1,
+          "resource": 549
+        },
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 4,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 2,
+        "owner": 2,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": [
+              613
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 2,
+        "frame": 2,
+        "owner": 2,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": [
+              613,
+              612
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 2,
+        "owner": 2,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": [
+              613
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 2,
+        "frame": 2,
+        "owner": 2,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": [
+              613,
+              612
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 2,
+        "owner": 2,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    }
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 2,
+        "owner": 2,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": [
+              613
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 2,
+        "frame": 2,
+        "owner": 2,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": [
+              613,
+              612
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 2,
+        "owner": 2,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 2,
+        "owner": 2,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": [
+              613
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 2,
+        "frame": 2,
+        "owner": 2,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": [
+              613,
+              612
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 2,
+        "owner": 2,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 6,
+        "owner": 6,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 2,
+        "owner": 2,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 1,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    "Complete"
+  ],
+  [
+    "Complete"
+  ],
+  [
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 2,
+        "owner": 2,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": [
+              840
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 2,
+        "owner": 2,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 7,
+        "owner": 7,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 2,
+        "owner": 2,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": [
+              840
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 2,
+        "owner": 2,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 7,
+        "owner": 7,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 7,
+        "owner": 3,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 7,
+        "owner": 7,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": [
+              868
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 7,
+        "owner": 7,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 7,
+        "owner": 3,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": [
+              868
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 7,
+        "owner": 3,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 0,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 3,
+        "owner": 3,
+        "read": null,
+        "selection": [
+          {
+            "world": 3,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 7,
+        "owner": 7,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": [
+              868
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 7,
+        "owner": 7,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 7,
+        "owner": 3,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": [
+              868
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 7,
+        "owner": 3,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    }
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 3,
+        "owner": 3,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 3,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 7,
+        "owner": 7,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": [
+              868
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 7,
+        "owner": 7,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 7,
+        "owner": 3,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": [
+              868
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 7,
+        "owner": 3,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 3,
+        "owner": 3,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 7,
+        "owner": 7,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 7,
+        "owner": 3,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 3,
+        "owner": 3,
+        "read": null,
+        "selection": [
+          {
+            "world": 3,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 3,
+        "owner": 3,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 3,
+        "owner": 3,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 3,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 3,
+        "owner": 3,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 3,
+        "owner": 3,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 0,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 3,
+        "owner": 3,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 0,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 0,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 4,
+        "owner": 4,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 2,
+        "owner": 2,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 2,
+        "owner": 2,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 2,
+        "owner": 2,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 7,
+        "owner": 7,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 4,
+        "owner": 4,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": [
+              1060
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 4,
+        "owner": 4,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 7,
+        "owner": 7,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 4,
+        "owner": 4,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    }
+  ],
+  [],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 4,
+        "owner": 4,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    }
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 3,
+        "owner": 3,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 0,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": [
+              1140
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 0,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 0,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": [
+              1140
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 0,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 3,
+        "owner": 3,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 3,
+        "owner": 3,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 3,
+        "owner": 3,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 1,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 3,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 3,
+        "owner": 3,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": [
+              1189
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 0,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 3,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 1,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 3,
+        "owner": 3,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": [
+              1189
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 0,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 1,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 3,
+        "owner": 3,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 6,
+        "owner": 6,
+        "read": null,
+        "selection": [
+          {
+            "world": 4,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 0,
+        "owner": 7,
+        "read": {
+          "world": 2,
+          "resource": 1204
+        },
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 1,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 0,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 1,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 3,
+        "owner": 3,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 6,
+        "owner": 6,
+        "read": null,
+        "selection": [
+          {
+            "world": 3,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 0,
+        "owner": 7,
+        "read": {
+          "world": 2,
+          "resource": 1204
+        },
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 1,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 0,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 3,
+        "owner": 3,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 3,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 6,
+        "owner": 6,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 7,
+        "owner": 7,
+        "read": null,
+        "selection": [
+          {
+            "world": 4,
+            "position": 0,
+            "token": [
+              1257
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 2,
+        "frame": 7,
+        "owner": 7,
+        "read": null,
+        "selection": [
+          {
+            "world": 4,
+            "position": 0,
+            "token": [
+              1257,
+              1256
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 7,
+        "owner": 7,
+        "read": null,
+        "selection": [
+          {
+            "world": 4,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 0,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 3,
+        "owner": 3,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 6,
+        "owner": 6,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 7,
+        "owner": 7,
+        "read": null,
+        "selection": [
+          {
+            "world": 3,
+            "position": 0,
+            "token": [
+              1257
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 2,
+        "frame": 7,
+        "owner": 7,
+        "read": null,
+        "selection": [
+          {
+            "world": 3,
+            "position": 0,
+            "token": [
+              1257,
+              1256
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 7,
+        "owner": 7,
+        "read": null,
+        "selection": [
+          {
+            "world": 3,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 0,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 6,
+        "owner": 6,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 7,
+        "owner": 7,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": [
+              1257
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 2,
+        "frame": 7,
+        "owner": 7,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": [
+              1257,
+              1256
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 7,
+        "owner": 7,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 0,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 6,
+        "owner": 6,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 7,
+        "owner": 7,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": [
+              1257
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 2,
+        "frame": 7,
+        "owner": 7,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": [
+              1257,
+              1256
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 7,
+        "owner": 7,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 0,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 6,
+        "owner": 6,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 7,
+        "owner": 7,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": [
+              1257
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 2,
+        "frame": 7,
+        "owner": 7,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": [
+              1257,
+              1256
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 7,
+        "owner": 7,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 0,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 7,
+        "owner": 7,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": [
+              1257
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 2,
+        "frame": 7,
+        "owner": 7,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": [
+              1257,
+              1256
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 7,
+        "owner": 7,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 0,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 1,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 3,
+            "position": 0,
+            "token": [
+              1352
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 2,
+        "frame": 1,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 3,
+            "position": 0,
+            "token": [
+              1352,
+              1353
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 1,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 3,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 4,
+        "frame": 1,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 3,
+            "position": 0,
+            "token": [
+              1352,
+              1354
+            ]
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 7,
+        "owner": 7,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": [
+              1257
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 0,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 7,
+        "owner": 7,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": [
+              1257
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 2,
+        "frame": 7,
+        "owner": 7,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": [
+              1257,
+              1256
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 7,
+        "owner": 7,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 7,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": [
+              1257
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 2,
+        "frame": 7,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": [
+              1257,
+              1256
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 7,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 7,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": [
+              1257
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 2,
+        "frame": 7,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": [
+              1257,
+              1256
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 7,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 0,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 0,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 4,
+        "owner": 4,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 4,
+        "owner": 2,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 0,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 6,
+        "owner": 6,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 6,
+        "owner": 6,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 6,
+        "owner": 6,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 1,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 6,
+        "owner": 6,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 1,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 6,
+        "owner": 6,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    "Complete"
+  ],
+  [
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 0,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 1,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 1,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 0,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 1,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 2,
+        "owner": 2,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": [
+              1544
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 2,
+        "owner": 2,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 1,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 0,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 2,
+        "owner": 2,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": [
+              1544
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 2,
+        "owner": 2,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending"
+  ],
+  [],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 2,
+        "owner": 2,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    }
+  ],
+  [
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 0,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 4,
+        "owner": 4,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 4,
+        "owner": 3,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 4,
+        "owner": 4,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 4,
+        "owner": 3,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 4,
+        "owner": 4,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": [
+              1653
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 2,
+        "frame": 4,
+        "owner": 4,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": [
+              1653,
+              1654
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 4,
+        "owner": 4,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 1,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 4,
+        "owner": 4,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": [
+              1653
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 2,
+        "frame": 4,
+        "owner": 4,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": [
+              1653,
+              1654
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 4,
+        "owner": 4,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 1,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 2,
+        "owner": 2,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": [
+              1684
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 2,
+        "owner": 2,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 4,
+        "frame": 2,
+        "owner": 2,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": [
+              1684,
+              1686
+            ]
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 1,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 4,
+        "owner": 4,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 1,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 4,
+        "owner": 3,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 4,
+        "owner": 4,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 4,
+        "owner": 3,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 3,
+        "owner": 3,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": [
+              1733
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 3,
+        "owner": 3,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 7,
+        "owner": 7,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 7,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 0,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 0,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 0,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": [
+              1785
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 2,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": [
+              1785,
+              1784
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 3,
+        "owner": 3,
+        "read": null,
+        "selection": [
+          {
+            "world": 2,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": [
+              1785
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 2,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": [
+              1785,
+              1784
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 3,
+        "owner": 3,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": [
+              1785
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 2,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": [
+              1785,
+              1784
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 3,
+        "owner": 3,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 3,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 4,
+        "owner": 4,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 4,
+        "owner": 3,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 4,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": [
+              1877
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 2,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": [
+              1877,
+              1878
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 5,
+        "owner": 5,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 0,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 4,
+        "owner": 4,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 4,
+        "owner": 3,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 4,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 0,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 0,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 4,
+        "owner": 4,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 4,
+        "owner": 3,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 4,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 3,
+        "owner": 3,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 3,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 0,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 3,
+        "owner": 3,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": [
+              1992
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 3,
+        "owner": 3,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 3,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": [
+              1992
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 3,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 0,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 7,
+        "owner": 7,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 7,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 1,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": [
+              2021
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 2,
+        "frame": 1,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": [
+              2021,
+              2020
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 1,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 7,
+        "owner": 7,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 1,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": [
+              2021
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 2,
+        "frame": 1,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": [
+              2021,
+              2020
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 1,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 7,
+        "owner": 7,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 7,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 7,
+        "owner": 7,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 7,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 1,
+        "owner": 1,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 7,
+        "owner": 7,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 1,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 7,
+        "owner": 0,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending",
+    "Pending",
+    "Pending",
+    "Pending",
+    "Complete"
+  ],
+  [],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 4,
+        "owner": 4,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    }
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 6,
+        "owner": 6,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    "Pending"
+  ],
+  [
+    {
+      "Binding": {
+        "rule": 3,
+        "frame": 2,
+        "owner": 2,
+        "read": null,
+        "selection": [
+          {
+            "world": 1,
+            "position": 0,
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 0,
+        "frame": 6,
+        "owner": 6,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": [
+              2116
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Binding": {
+        "rule": 2,
+        "frame": 6,
+        "owner": 6,
+        "read": null,
+        "selection": [
+          {
+            "world": 0,
+            "position": 0,
+            "token": [
+              2116,
+              2117
+            ]
+          }
+        ]
+      }
+    }
+  ]
+]
