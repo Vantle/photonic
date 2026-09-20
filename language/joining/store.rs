@@ -6,6 +6,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
 pub(crate) struct Store {
+    pub domain: crate::candidate::Store,
     budget: Arc<Budget>,
     accounting: Arc<AtomicUsize>,
     node: Mutex<HashMap<Arc<Key>, Arc<Node>>>,
@@ -13,9 +14,12 @@ pub(crate) struct Store {
 
 impl Store {
     pub fn new(capacity: usize) -> Self {
+        let budget = Arc::new(Budget::new(capacity));
+        let accounting = Arc::new(AtomicUsize::new(0));
         Self {
-            budget: Arc::new(Budget::new(capacity)),
-            accounting: Arc::new(AtomicUsize::new(0)),
+            domain: crate::candidate::Store::new(budget.clone(), accounting.clone()),
+            budget,
+            accounting,
             node: Mutex::new(HashMap::new()),
         }
     }
@@ -47,6 +51,7 @@ impl Store {
 
     pub fn evict(&self) {
         self.node.lock().unwrap().clear();
+        self.domain.evict();
     }
 
     pub fn retained(&self) -> usize {

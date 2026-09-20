@@ -13,6 +13,7 @@ use posting::Occurrence;
 pub(crate) struct Index {
     pub state: Arc<State>,
     revision: OnceLock<Arc<()>>,
+    previous: Option<Arc<()>>,
     frame: Vec<crate::membership::Set>,
     reader: Vec<Vec<crate::reader::Reader>>,
     term: HashMap<(usize, Term), Vec<Occurrence>>,
@@ -33,6 +34,7 @@ impl Index {
         let mut index = Self {
             state,
             revision: OnceLock::new(),
+            previous: None,
             frame: Vec::new(),
             reader: Vec::new(),
             term: HashMap::new(),
@@ -59,6 +61,10 @@ impl Index {
 
     pub fn revision(&self) -> &Arc<()> {
         self.revision.get_or_init(|| Arc::new(()))
+    }
+
+    pub fn previous(&self) -> Option<&Arc<()>> {
+        self.previous.as_ref()
     }
 
     fn insert(&mut self, world: usize) {
@@ -121,7 +127,7 @@ impl Index {
         #[cfg(feature = "measurement")]
         let _measurement =
             crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Index);
-        self.revision.take();
+        self.previous = self.revision.take();
         let removed = &change.world;
         self.altered.clear();
         self.affected.clear();

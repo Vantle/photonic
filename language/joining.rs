@@ -94,7 +94,7 @@ impl Join {
                 request.index,
                 request.frame,
                 Some(request.input.context(request.owner)),
-                request.input.factor().then(|| request.store.clone()),
+                Some(request.store),
             ),
             request.index,
         )
@@ -227,3 +227,7 @@ mod test;
 #[cfg(test)]
 #[path = "test/sharing.rs"]
 mod sharing;
+
+#[cfg(test)]
+#[path = "test/domain.rs"]
+mod domain;

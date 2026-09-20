@@ -4,7 +4,7 @@ Photonic is a proof language with a native Rust kernel, two execution modes, per
 
 This report describes the source measured in [architecture.json](architecture.json), following baseline `437bda3`. Earlier algorithmic work and measurements remain in [optimization.md](optimization.md), [implementation.md](implementation.md), and [factorization.md](factorization.md). The [roadmap](roadmap.md) remains the record of larger unfinished work. No benchmark establishes a universal speedup or the absence of all kernel bugs.
 
-The subsequent [joined-prefix audit](prefix.md) adds bounded multi-input prefix reuse and adaptive dispatch storage, with paired measurements against `20984f1`. Its matching ownership breakdown supersedes the single-file join description below. The subsequent [sharing audit](sharing.md) adds cross-plan prefix transcripts, constant-time symmetry comparisons, canonical environment reuse and shared identity flows; it is the latest implementation and performance report.
+The subsequent [joined-prefix audit](prefix.md) adds bounded multi-input prefix reuse and adaptive dispatch storage, with paired measurements against `20984f1`. Its matching ownership breakdown supersedes the single-file join description below. The subsequent [sharing audit](sharing.md) adds cross-plan prefix transcripts, constant-time symmetry comparisons, canonical environment reuse and shared identity flows; it records the preceding implementation. The subsequent [candidate-domain audit](candidate.md) adds shared exact presence filters, dependency summaries, and incremental candidate snapshots with independent query cursors; it is the latest implementation and performance report.
 
 ## The graph model
 
@@ -33,6 +33,9 @@ flowchart TD
     Program --> Runtime[Exhaustive proof runtime]
     Path --> Dispatch[Input plans and occurrence activation]
     Dispatch --> Join[Delta domains and lazy joins]
+    Dispatch --> Filter[Shared candidate filters]
+    Index --> Filter
+    Filter --> Join
     Join --> Rewrite[Compiled direct rewrite]
     Rewrite --> State[Persistent state and capture topology]
     State --> Index[Counted postings and fingerprints]
@@ -53,6 +56,7 @@ flowchart TD
 | Program | `program.rs`, `catalog.rs`, `plan.rs` | Intern code and immutable descriptions; activate executable occurrences separately |
 | Persistent storage | `sequence.rs`, `basis.rs`, `relation.rs`, `state.rs` | Share unchanged structure while retaining semantic resource identity |
 | Lookup | `index.rs`, `index/posting.rs`, `position.rs` | Maintain counted postings and translate current ordinals to stable live sites |
+| Candidate filtering | `candidate.rs`, `candidate/` | Share exact context-sensitive filters, summaries, and coherent candidate snapshots under a bounded budget |
 | Direct matching | `dispatch/`, `joining.rs`, `particle.rs`, `factor.rs`, `replay.rs` | Emit exact bindings and cooperative progress without constructing proof evidence |
 | Proof matching | `runtime/table.rs`, `selection.rs`, `search.rs`, `gate.rs` | Share exact target/frame/pattern queries with independent consumer delivery |
 | Construction | `rewrite.rs`, `recipe.rs`, `application.rs` | Apply a binding under an explicit source and capture context |
@@ -75,7 +79,7 @@ Both construction paths now take named request values: `rewrite::Request` and `a
 | Code | Interned complete rule values | Exact structural identity |
 | Plan | Shared complete inputs and immutable particle fragments | Program and exact fragment identity |
 | Context | Capture-free input sharing and capture-specific preparation | Required owner/capture context |
-| Candidate | Counted postings and retained per-query domains | Frame and coherent insertion/removal delta |
+| Candidate | Counted postings, shared exact filters and dependency summaries, incremental candidate snapshots, and private occurrence projections | Frame, exact captured terms, and validated snapshot continuity |
 | Leaf binding | Bounded factor caches for surviving candidate worlds | Same live occurrence, exact resource identity, and capture context |
 | Whole query | Bounded direct replay on unchanged domains; shared exhaustive query table | Exact query dependencies and independent delivery cursors |
 | Construction | Compiled recipes and normalization reuse for exact application identities | Source, binding, owner, rule, and captured environment |

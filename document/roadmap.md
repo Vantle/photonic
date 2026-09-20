@@ -8,6 +8,8 @@ The target is an evaluator that shares reusable program structure, discovers con
 
 The [joined-prefix implementation](prefix.md) now retains bounded multi-input prefixes across suffix-only changes and gates admission on observed reuse. It preserves exact pending/binding streams and falls back to direct traversal under prefix churn. The [sharing implementation](sharing.md) adds completed prefix transcripts across distinct direct-dispatch plans, bounded canonical environment reuse and immutable identity flow sharing. Row-level retraction inside changed prefixes, exhaustive subquery sharing and general contextual construction remain unfinished.
 
+The [candidate-domain implementation](candidate.md) now shares presence filters and dependency summaries across distinct plans, maintains complete candidate snapshots across verified deltas, and supports late activation with exact fallback. Query-local occurrence arrays and mutable particle cursors remain private. This completes the candidate-filter vertical slice, while individual joined-result maintenance and exhaustive-fragment integration remain the next major milestones.
+
 ## Semantic boundary
 
 - State is unordered. Synchronization establishes a firing; planner order and scheduler order are implementation details.
@@ -28,7 +30,7 @@ Before changing scheduling or accounting, specify which progress details are ext
 | Code | `program.rs` interns complete rule values | Discover reusable internal structure without identifying executable occurrences |
 | Input | `catalog.rs` shares complete inputs and immutable particles; `joining/store.rs` shares exact completed prefixes between direct plans | Discover additional reusable internal subplans |
 | Context | Capture-sensitive prefix keys, capture-free input identity and bounded weak reuse of canonical environments | Broader contextual specialization with explicit boundary dependencies |
-| Candidate | Counted postings, adaptive intersections, indexed eligibility, conservative delta exclusion, and retained preparation | Share concrete candidate domains between different plans |
+| Candidate | Shared exact filters, dependency summaries, eligible insertions, and incremental candidate snapshots in `candidate/`; indexed eligibility and private preparation | Share consumer occurrence storage and immutable preparation; add occurrence-to-binding reverse dependencies |
 | Binding | Bounded whole-query replay, surviving leaf factors and shared completed joined prefixes | Individual row maintenance under prefix changes and shared partial recordings |
 | Proof query | `runtime/table.rs` shares exact queries; `selection.rs` lazily compiles wider patterns | Share multi-particle query fragments while preserving consumer-specific projection |
 | Rewrite | `recipe.rs` compiles output construction | Reuse parameterized construction with explicit boundary dependencies |
@@ -130,6 +132,8 @@ Use explicit Bazel source lists and narrow visibility. Introduce crate boundarie
 | 7 | Share flow composition and proof support; add contextual rewrite templates | Full backward-inference and competing-evidence equivalence, including recursive support |
 | 8 | Develop compact causal history and an independence relation | Reconstruct all required observations; reduction only with a suitable equivalence argument |
 | 9 | Evaluate generic instruction fusion and parallel execution | Preserve synchronization, logical accounting, and inspection; measured native and browser benefit |
+
+Current acceptance state: stage 2 includes shared completed prefixes and exact candidate-filter nodes; stage 3 includes their conservative dependency summaries; stage 4 includes candidate membership maintenance. Individual partial-binding rows, arbitrary internal join fragments, and exhaustive proof integration are still open. The next vertical slice should retain one bounded joined fragment with explicit occurrence dependencies, validate insertion/retraction against fresh enumeration, and preserve every consumer's logical progress stream.
 
 Stages 2 through 4 are the first major algorithmic milestone. Stages 5 and 6 can change priority according to measured bottlenecks. Stages 8 and 9 are conditional research tracks, not promises that an implementation must contain these techniques to be complete.
 

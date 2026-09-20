@@ -163,10 +163,6 @@ impl Input {
         }
     }
 
-    pub fn factor(&self) -> bool {
-        self.pattern.len() > 1 && self.pattern.iter().any(|particle| particle.len() >= 8)
-    }
-
     pub fn empty(&self) -> bool {
         self.empty
     }

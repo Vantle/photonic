@@ -74,6 +74,22 @@ rust_binary(
 )
 
 rust_binary(
+    name = "candidate",
+    srcs = [
+        "candidate.rs",
+        "evaluation.rs",
+    ],
+    crate_root = "candidate.rs",
+    lint_config = "//:lint",
+    deps = [
+        "//language:photonic",
+        "@crate//:clap",
+        "@crate//:serde",
+        "@crate//:serde_json",
+    ],
+)
+
+rust_binary(
     name = "domain",
     srcs = [
         "domain.rs",

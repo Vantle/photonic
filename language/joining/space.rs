@@ -16,6 +16,7 @@ pub(super) struct Space {
     pub pattern: Arc<Vec<Vec<Term>>>,
     pub group: Arc<Vec<usize>>,
     pub domain: SmallVec<[Vec<Member>; 2]>,
+    subscription: Box<[(usize, Arc<crate::candidate::Node>)]>,
     pub retained: usize,
 }
 
@@ -25,21 +26,42 @@ impl Space {
         index: &Index,
         frame: usize,
         preparation: Option<crate::plan::Context>,
-        store: Option<Arc<super::Store>>,
+        store: Option<&Arc<super::Store>>,
     ) -> Self {
+        let mut subscription = Vec::new();
         let domain = pattern
             .iter()
             .enumerate()
             .map(|(position, pattern)| {
-                preparation
-                    .as_ref()
-                    .map_or_else(
-                        || index.candidate(pattern, frame),
-                        |context| context.candidate(position, index, frame),
-                    )
+                let shared = store.filter(|_| index.state.world.len() > 32 && pattern.len() > 1);
+                let selected = if let Some(store) = shared {
+                    store.domain.select(crate::candidate::Request {
+                        pattern,
+                        index,
+                        frame,
+                    })
+                } else {
+                    crate::candidate::Domain {
+                        site: preparation
+                            .as_ref()
+                            .map_or_else(
+                                || index.candidate(pattern, frame),
+                                |context| context.candidate(position, index, frame),
+                            )
+                            .into_iter()
+                            .map(|world| index.site(world))
+                            .collect(),
+                        node: None,
+                    }
+                };
+                if let Some(node) = selected.node {
+                    subscription.push((position, node));
+                }
+                selected
+                    .site
                     .into_iter()
-                    .map(|world| Member {
-                        site: index.site(world),
+                    .map(|site| Member {
+                        site,
                         particle: None,
                     })
                     .collect()
@@ -50,8 +72,12 @@ impl Space {
             crate::plan::Context::group,
         );
         let domain: SmallVec<[Vec<Member>; 2]> = domain;
-        let retained = pattern.iter().map(Vec::len).sum::<usize>()
+        let retained = subscription.len() * 2
+            + pattern.iter().map(Vec::len).sum::<usize>()
             + domain.iter().map(|member| member.len() + 1).sum::<usize>();
+        let store = store
+            .filter(|_| pattern.len() > 1 && pattern.iter().any(|particle| particle.len() >= 8))
+            .cloned();
         Self {
             frame,
             store,
@@ -60,18 +86,39 @@ impl Space {
             pattern,
             group,
             domain,
+            subscription: subscription.into_boxed_slice(),
             retained,
         }
     }
 
     pub fn update(&mut self, index: &Index) -> SmallVec<[usize; 2]> {
+        if self.subscription.is_empty() {
+            return self.advance::<false>(index);
+        }
+        self.advance::<true>(index)
+    }
+
+    fn advance<const SHARED: bool>(&mut self, index: &Index) -> SmallVec<[usize; 2]> {
         let mut changed = SmallVec::new();
         for (position, domain) in self.domain.iter_mut().enumerate() {
+            let change = if SHARED {
+                self.subscription
+                    .iter()
+                    .find(|(input, _)| *input == position)
+                    .filter(|(_, node)| Arc::strong_count(node) > 2)
+                    .map(|(_, node)| node.change(index))
+            } else {
+                None
+            };
             if domain.len() > 16
-                && self
-                    .preparation
-                    .as_ref()
-                    .is_some_and(|context| !context.affected(position, index, self.frame))
+                && change.as_ref().map_or_else(
+                    || {
+                        self.preparation
+                            .as_ref()
+                            .is_some_and(|context| !context.affected(position, index, self.frame))
+                    },
+                    |change| !change.affected,
+                )
             {
                 continue;
             }
@@ -88,19 +135,24 @@ impl Space {
                 false
             });
             let mut affected = previous != domain.len();
-            for &site in &index.insertion {
-                let world = &index.state.world[index.world(site)];
-                if world.frame != self.frame {
-                    continue;
-                }
-                let eligible = self.preparation.as_ref().map_or_else(
-                    || {
-                        self.pattern[position]
-                            .iter()
-                            .all(|term| world.particle.iter().any(|token| term.matches(token)))
-                    },
-                    |context| context.matches(position, index, site),
-                );
+            let candidate = change
+                .as_ref()
+                .map_or(index.insertion.as_slice(), |change| {
+                    change.insertion.site.as_slice()
+                });
+            for &site in candidate {
+                let eligible = change.is_some() || {
+                    let world = &index.state.world[index.world(site)];
+                    world.frame == self.frame
+                        && self.preparation.as_ref().map_or_else(
+                            || {
+                                self.pattern[position].iter().all(|term| {
+                                    world.particle.iter().any(|token| term.matches(token))
+                                })
+                            },
+                            |context| context.matches(position, index, site),
+                        )
+                };
                 if eligible {
                     affected = true;
                     domain.push(Member {
@@ -143,6 +195,8 @@ impl Space {
     }
 
     pub fn evict(&mut self) {
+        self.retained -= self.subscription.len() * 2;
+        self.subscription = Box::new([]);
         if self.cached == 0 {
             return;
         }
@@ -160,7 +214,8 @@ impl Space {
 
     #[cfg(test)]
     pub fn size(&self) -> usize {
-        self.pattern.iter().map(Vec::len).sum::<usize>()
+        self.subscription.len() * 2
+            + self.pattern.iter().map(Vec::len).sum::<usize>()
             + self
                 .domain
                 .iter()

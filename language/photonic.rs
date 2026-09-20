@@ -8,6 +8,7 @@ mod application;
 mod arena;
 mod assignment;
 mod basis;
+mod candidate;
 mod canonical;
 mod catalog;
 mod change;
