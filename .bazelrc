@@ -17,6 +17,7 @@ build --guard_against_concurrent_changes
 build:release --compilation_mode=opt
 
 test --test_output=errors
+test:continuous --test_tag_filters=-memory
 
 common:refresh --lockfile_mode=update
 

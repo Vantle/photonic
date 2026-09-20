@@ -8,11 +8,13 @@ Every step, including pipeline upload, uses the existing `linux-small` hosted qu
 
 macOS, Windows, ARM64 Linux, and browser CI are excluded. Browser verification currently requires ARM64 macOS and can still be run locally with `bazel test --config=release //toolchain/browser:check`. The repository’s platform definitions and hermetic toolchains remain available for local builds on the other supported systems.
 
+The test job selects Bazel’s `continuous` configuration, which excludes tests tagged `memory`. Currently this excludes `//program/ternary/case:repeated`: it uses approximately 2.6 GB in isolation and was killed when running alongside other work on the 4 GB agent. Normal local test runs retain it; run it explicitly with `bazel test --config=release //program/ternary/case:repeated`.
+
 ## Pipeline configuration
 
 The pipeline editor contains [bootstrap.yml](../.buildkite/bootstrap.yml). It publishes the aggregate **Verification** status from the start of each build and uploads [pipeline.yml](../.buildkite/pipeline.yml) from the checked-out commit. Each verification step publishes its own explicitly named GitHub status. New commits supersede older queued and running builds on the same branch.
 
-Repository hooks install checksum-verified Bazelisk 1.28.1, which reads the Bazel version from `.bazelversion`. Bazel supplies the compiler and every build dependency. The generated, ignored `user.bazelrc` limits Bazel to two jobs and a 1 GB server heap for the small agent. Post-command hooks shut down Bazel even when verification fails.
+Repository hooks install checksum-verified Bazelisk 1.28.1, which reads the Bazel version from `.bazelversion`. Bazel supplies the compiler and every build dependency. The generated, ignored `user.bazelrc` limits Bazel to two jobs and a 1 GB server heap for the small agent. Post-command hooks upload test logs and XML reports as build artifacts and shut down Bazel even when verification fails.
 
 Bazel and Bazelisk caches live outside the checkout under `/tmp/photonic`. They are local to the ephemeral agent and are discarded with it. Persistent cache volumes are not included in the Free plan and are not requested. Builds therefore work from an empty cache without any external cache service.
 
