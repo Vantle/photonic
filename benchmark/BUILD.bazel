@@ -52,6 +52,21 @@ rust_binary(
     ],
 )
 
+rust_binary(
+    name = "storage",
+    srcs = [
+        "evaluation.rs",
+        "storage.rs",
+    ],
+    crate_root = "storage.rs",
+    deps = [
+        "//language:photonic",
+        "@crate//:clap",
+        "@crate//:serde",
+        "@crate//:serde_json",
+    ],
+)
+
 hermetic_binary(
     name = "browser",
     argument = [

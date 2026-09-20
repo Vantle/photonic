@@ -3,151 +3,80 @@ use crate::flow::{Binding, Place};
 use crate::program::Program;
 use crate::runtime::Limit;
 use crate::state::State;
-use std::collections::VecDeque;
 use std::sync::Arc;
 use std::task::Poll;
 
-struct Candidate {
-    rule: usize,
-    frame: usize,
-    owner: usize,
-    read: Option<Place>,
-    search: crate::search::Search,
-}
-
 pub(crate) struct Event {
     pub state: Arc<State>,
+    pub change: crate::change::Change,
     pub rule: usize,
     pub binding: Binding,
     pub fingerprint: crate::fingerprint::Index,
 }
 
 pub(crate) struct Search {
-    program: Arc<Program>,
+    recipe: Vec<crate::recipe::Recipe>,
+    retained: usize,
     state: Arc<State>,
-    agenda: VecDeque<Candidate>,
     pending: Vec<Event>,
     initialized: bool,
-    query: crate::query::Query,
-    index: Option<Arc<crate::index::Index>>,
-    network: crate::activation::Network,
+    index: crate::index::Index,
+    network: crate::dispatch::Network,
     fingerprint: crate::fingerprint::Index,
     pub work: usize,
 }
 
 impl Search {
     pub(crate) fn new(program: Arc<Program>, state: Arc<State>) -> Self {
+        let index = crate::index::Index::new(state.clone());
+        let recipe = program
+            .rule
+            .iter()
+            .map(crate::recipe::Recipe::new)
+            .collect::<Vec<_>>();
+        let retained = recipe.iter().map(crate::recipe::Recipe::retained).sum();
         Self {
-            query: crate::query::Query::new(&program),
-            network: crate::activation::Network::new(&program),
+            network: crate::dispatch::Network::new(&program, &index),
             fingerprint: crate::fingerprint::Index::new(state.clone()),
-            program,
+            recipe,
+            retained,
             state,
-            agenda: VecDeque::new(),
             pending: Vec::new(),
             initialized: false,
-            index: None,
+            index,
             work: 0,
         }
     }
 
-    fn initialize(&mut self) {
-        let index = self
-            .index
-            .get_or_insert_with(|| {
-                let mut index = crate::index::Index::new(self.state.clone());
-                for (symbol, present) in index.change() {
-                    self.network.change(symbol, present);
-                }
-                Arc::new(index)
-            })
-            .clone();
-        let mut request = Vec::new();
-        let mut declaration = vec![Vec::new(); self.program.scope.len()];
-        for &rule in &self.network.enabled {
-            if let Some(scope) = self.network.scope[rule] {
-                declaration[scope].push(rule);
-            }
-        }
-        for frame in index.frame() {
-            let mut owner = Some(frame);
-            while let Some(current) = owner {
-                for &rule in &declaration[self.state.frame[current].scope] {
-                    request.push((rule, frame, current, None));
-                }
-                owner = self.state.frame[current].lexical;
-            }
-        }
-        for &rule in &self.network.enabled {
-            for (site, token, capture) in index.code(rule) {
-                request.push((
-                    rule,
-                    self.state.world[site].frame,
-                    capture,
-                    Some(Place::World(site, token)),
-                ));
-            }
-        }
-        for (rule, frame, owner, read) in request {
-            let selection = self.query.select(rule, frame, owner, &index);
-            if !selection.viable {
-                continue;
-            }
-            let search = crate::search::Search::prepared(selection, index.clone());
-            if search.viable() {
-                self.agenda.push_back(Candidate {
-                    rule,
-                    frame,
-                    owner,
-                    read,
-                    search,
-                });
-            }
-        }
-        self.query.finish();
-        self.initialized = true;
-    }
-
     pub(crate) fn preparation(&self) -> usize {
-        self.query.preparation
+        self.network.preparation
     }
 
     pub(crate) fn reuse(&self) -> usize {
-        self.query.reuse
+        self.network.reuse
     }
 
     pub(crate) fn record(&self) -> usize {
-        self.agenda
+        self.pending
             .iter()
-            .map(|candidate| candidate.search.resident() + 1)
+            .map(|event| event.fingerprint.retained() + event.change.retained() + 1)
             .sum::<usize>()
-            + self
-                .pending
-                .iter()
-                .map(|event| event.fingerprint.retained() + 1)
-                .sum::<usize>()
-            + self.index.as_ref().map_or(0, |index| index.retained())
+            + self.retained
+            + self.index.retained()
             + self.fingerprint.retained()
             + self.network.retained()
-            + self.query.retained()
             + 1
     }
 
     pub(crate) fn advance(
         &mut self,
         state: Arc<State>,
-        removed: &Set<usize>,
+        change: &crate::change::Change,
         fingerprint: crate::fingerprint::Index,
     ) {
-        self.agenda.clear();
         self.pending.clear();
-        let mut index = Arc::try_unwrap(self.index.take().unwrap()).ok().unwrap();
-        index.advance(state.clone(), removed);
-        self.query.advance(&index);
-        for (symbol, present) in index.change() {
-            self.network.change(symbol, present);
-        }
-        self.index = Some(Arc::new(index));
+        self.index.update(state.clone(), change);
+        self.network.advance(&self.index, &self.state, change);
         self.state = state;
         self.fingerprint = fingerprint;
         self.initialized = false;
@@ -157,29 +86,27 @@ impl Search {
         if let Some(index) = self.pending.iter().position(|event| {
             event.state.world.len() <= limit.world
                 && event.fingerprint.layout.cell <= limit.cell
-                && event.fingerprint.layout.reachable.len() <= limit.frame
+                && event.fingerprint.layout.reach.frame.len() <= limit.frame
         }) {
             return Some(self.pending.remove(index));
         }
         if !self.initialized {
-            self.initialize();
+            self.initialized = true;
             self.work += 1;
             return None;
         }
-        let mut candidate = self.agenda.pop_front()?;
+        let delivery = self.network.next(&self.index)?;
         self.work += 1;
-        let selection = match candidate.search.step() {
-            Poll::Ready(None) => return None,
-            Poll::Pending => {
-                self.agenda.push_back(candidate);
-                return None;
-            }
-            Poll::Ready(Some(selection)) => selection,
+        let candidate = match delivery {
+            Poll::Ready(candidate) => candidate,
+            Poll::Pending => return None,
         };
-        if let Some(Place::World(site, _)) = candidate.read
-            && !selection.iter().any(|slot| slot.world == site)
+        let selection = candidate.selection;
+        if let Some((site, _)) = candidate.read
+            && !selection
+                .iter()
+                .any(|slot| slot.world == self.index.world(site))
         {
-            self.agenda.push_back(candidate);
             return None;
         }
         let footprint = selection
@@ -194,31 +121,34 @@ impl Search {
             world: selection.iter().map(|slot| slot.world).collect(),
             exact: footprint.clone(),
             footprint,
-            read: candidate.read.into_iter().collect(),
+            read: candidate
+                .read
+                .map(|(site, token)| Place::World(self.index.world(site), token))
+                .into_iter()
+                .collect(),
         };
-        let result = crate::application::direct(
+        let result = crate::rewrite::apply(
             &self.state,
             candidate.frame,
             candidate.owner,
-            &self.program.rule[candidate.rule],
+            &self.recipe[candidate.rule],
             &binding,
             &self.fingerprint.layout,
         );
-        let reachable = result.reachable();
-        let state = Arc::new(result.reclaim(&reachable));
+        let state = Arc::new(result.state);
         let fingerprint = self
             .fingerprint
-            .advance(state.clone(), &binding.world, reachable);
+            .advance(state.clone(), &result.change, result.layout);
         let event = Event {
             state,
+            change: result.change,
             fingerprint,
             rule: candidate.rule,
             binding,
         };
-        self.agenda.push_back(candidate);
         if event.state.world.len() > limit.world
             || event.fingerprint.layout.cell > limit.cell
-            || event.fingerprint.layout.reachable.len() > limit.frame
+            || event.fingerprint.layout.reach.frame.len() > limit.frame
         {
             self.pending.push(event);
             return None;

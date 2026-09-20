@@ -76,6 +76,10 @@ fn reference() {
                         event.fingerprint.value,
                         crate::fingerprint::state(&event.state)
                     );
+                    let layout = crate::layout::Layout::new(&event.state);
+                    assert_eq!(event.fingerprint.layout.cell, layout.cell);
+                    assert_eq!(event.fingerprint.layout.resource, layout.resource);
+                    assert_eq!(event.fingerprint.layout.reach.frame, layout.reach.frame);
                     actual.insert((
                         event.state.canonical().state,
                         program.rule[event.rule].name.clone(),
@@ -179,8 +183,41 @@ fn incremental() {
                 crate::fingerprint::state(&event.state),
                 "{source}"
             );
+            let layout = crate::layout::Layout::new(&event.state);
+            assert_eq!(event.fingerprint.layout.cell, layout.cell);
+            assert_eq!(event.fingerprint.layout.resource, layout.resource);
+            assert_eq!(event.fingerprint.layout.reach.frame, layout.reach.frame);
             state = event.state.clone();
-            cached.advance(event.state, &event.binding.world, event.fingerprint);
+            cached.advance(event.state, &event.change, event.fingerprint);
         }
+    }
+}
+
+#[test]
+fn scaling() {
+    for width in [128, 8192] {
+        let mut source = String::from("A,Stage.0\n");
+        for index in 0..width {
+            source.push_str(&format!("[A,A] Never.{index}\n"));
+        }
+        for index in 0..128 {
+            source.push_str(&format!("[Stage.{index}] Stage.{}\n", index + 1));
+        }
+        let program = Arc::new(Program::new(crate::lowering::parse(&source).unwrap()));
+        let state = Arc::new(State::initial(&program));
+        let mut search = crate::reduction::Search::new(program, state);
+        let mut count = 0;
+        for _ in 0..10_000 {
+            let work = search.work;
+            if let Some(event) = search.run(Limit::default()) {
+                count += 1;
+                search.advance(event.state, &event.change, event.fingerprint);
+            }
+            if search.work == work {
+                break;
+            }
+        }
+        assert_eq!(count, 128);
+        assert_eq!(search.preparation(), 129);
     }
 }

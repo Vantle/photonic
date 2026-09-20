@@ -19,7 +19,8 @@ fn root(world: Vec<World>) -> State {
                 held: Vec::new(),
             }
             .into(),
-        ],
+        ]
+        .into(),
     }
 }
 
@@ -106,8 +107,8 @@ fn refinement() {
     );
     let expected = search.finish().unwrap().state;
     state.world.reverse();
-    for world in &mut state.world {
-        let world = Arc::make_mut(world);
+    for position in 0..state.world.len() {
+        let world = Arc::make_mut(&mut state.world[position]);
         world.particle.reverse();
         for token in &mut world.particle {
             token.id = 100 - token.id;
@@ -274,8 +275,8 @@ fn symmetry() {
     assert_eq!(result.resource.len(), 30);
     assert_eq!(result.world.iter().flatten().count(), 30);
     state.world.reverse();
-    for world in &mut state.world {
-        let world = Arc::make_mut(world);
+    for position in 0..state.world.len() {
+        let world = Arc::make_mut(&mut state.world[position]);
         for token in &mut world.particle {
             token.id += 100;
         }
@@ -314,8 +315,8 @@ fn incidence() {
         state.world.push(state.world[0].clone());
         let expected = state.canonical().state;
         state.world.reverse();
-        for world in &mut state.world {
-            let world = Arc::make_mut(world);
+        for position in 0..state.world.len() {
+            let world = Arc::make_mut(&mut state.world[position]);
             world.particle.reverse();
             for token in &mut world.particle {
                 token.id = 100 - token.id;

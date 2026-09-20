@@ -1,19 +1,90 @@
 use crate::state::State;
 
 pub(crate) struct Layout {
-    pub reachable: Vec<usize>,
+    pub reach: crate::reachability::Index,
     pub cell: usize,
     pub resource: usize,
 }
 
 impl Layout {
-    pub fn new(state: &State, reachable: Vec<usize>) -> Self {
+    pub fn advance(
+        &self,
+        source: &State,
+        state: &State,
+        change: &crate::change::Change,
+        reach: crate::reachability::Index,
+    ) -> Self {
+        let removed = change
+            .world
+            .iter()
+            .map(|&world| source.world[world].particle.len())
+            .sum::<usize>()
+            + change
+                .frame
+                .iter()
+                .filter(|frame| self.reach.frame.binary_search(frame).is_ok())
+                .map(|&frame| source.frame[frame].held.len())
+                .sum::<usize>();
+        let inserted = state
+            .world
+            .range(change.insertion.clone())
+            .map(|world| world.particle.len())
+            .sum::<usize>()
+            + change
+                .frame
+                .iter()
+                .filter(|frame| reach.frame.binary_search(frame).is_ok())
+                .map(|&frame| state.frame[frame].held.len())
+                .sum::<usize>();
+        let newest = state
+            .world
+            .range(change.insertion.clone())
+            .flat_map(|world| &world.particle)
+            .map(|token| token.id + 1)
+            .max()
+            .unwrap_or(0);
+        let resource = if newest >= self.resource {
+            newest
+        } else if change
+            .world
+            .iter()
+            .flat_map(|&world| &source.world[world].particle)
+            .chain(
+                change
+                    .frame
+                    .iter()
+                    .filter_map(|&frame| source.frame.get(frame))
+                    .flat_map(|frame| &frame.held),
+            )
+            .any(|token| token.id + 1 == self.resource)
+        {
+            state
+                .world
+                .iter()
+                .flat_map(|world| &world.particle)
+                .chain(state.frame.iter().flat_map(|frame| &frame.held))
+                .map(|token| token.id + 1)
+                .max()
+                .unwrap_or(0)
+        } else {
+            self.resource
+        };
+        Self {
+            reach,
+            cell: self.cell - removed + inserted,
+            resource,
+        }
+    }
+
+    pub fn new(state: &State) -> Self {
+        let reach = crate::reachability::Index::new(state);
         let cell = state
             .world
             .iter()
             .map(|world| world.particle.len())
             .sum::<usize>()
-            + reachable
+            + reach
+                .frame
                 .iter()
                 .map(|&index| state.frame[index].held.len())
                 .sum::<usize>();
@@ -26,7 +97,7 @@ impl Layout {
             .max()
             .map_or(0, |id| id + 1);
         Self {
-            reachable,
+            reach,
             cell,
             resource,
         }

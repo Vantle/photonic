@@ -52,7 +52,8 @@ fn state(count: usize, sharing: Sharing) -> State {
                 held: Vec::new(),
             }
             .into(),
-        ],
+        ]
+        .into(),
     }
 }
 

@@ -26,7 +26,8 @@ fn state(edge: &[(usize, usize)]) -> State {
             parent: None,
             lexical: None,
             held: Vec::new(),
-        })],
+        })]
+        .into(),
     }
 }
 
@@ -61,15 +62,15 @@ fn permutation() {
                 .chain((1..state.frame.len()).rev())
                 .collect::<Vec<_>>();
             let mut renamed = state.rename(&world, &frame).state;
-            for world in &mut renamed.world {
-                let world = Arc::make_mut(world);
+            for position in 0..renamed.world.len() {
+                let world = Arc::make_mut(&mut renamed.world[position]);
                 world.particle.reverse();
                 for token in &mut world.particle {
                     token.id += 1000;
                 }
             }
-            for frame in &mut renamed.frame {
-                let frame = Arc::make_mut(frame);
+            for position in 0..renamed.frame.len() {
+                let frame = Arc::make_mut(&mut renamed.frame[position]);
                 frame.held.reverse();
                 for token in &mut frame.held {
                     token.id += 1000;
@@ -146,7 +147,8 @@ fn capture() {
                 capture: Some(1),
             }],
         }),
-    ];
+    ]
+    .into();
     let mut right = left.clone();
     Arc::make_mut(&mut right.world[2]).particle[0].capture = Some(2);
     assert_eq!(

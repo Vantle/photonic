@@ -25,8 +25,8 @@ pub struct Frame {
 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct State {
-    pub world: Vec<Arc<World>>,
-    pub frame: Vec<Arc<Frame>>,
+    pub world: crate::sequence::List<Arc<World>>,
+    pub frame: crate::sequence::List<Arc<Frame>>,
 }
 
 pub struct Canonical {
@@ -39,7 +39,11 @@ pub struct Canonical {
 impl State {
     pub(crate) fn reclaim(mut self, reachable: &[usize]) -> Self {
         self.frame.truncate(reachable.last().unwrap() + 1);
-        for (index, frame) in self.frame.iter_mut().enumerate() {
+        if self.frame.len() == reachable.len() {
+            return self;
+        }
+        for index in 0..self.frame.len() {
+            let frame = &self.frame[index];
             if reachable.binary_search(&index).is_ok()
                 || (frame.scope == 0
                     && frame.parent.is_none()
@@ -48,7 +52,7 @@ impl State {
             {
                 continue;
             }
-            let frame = Arc::make_mut(frame);
+            let frame = Arc::make_mut(&mut self.frame[index]);
             frame.scope = 0;
             frame.parent = None;
             frame.lexical = None;
@@ -90,7 +94,8 @@ impl State {
                     held: Vec::new(),
                 }
                 .into(),
-            ],
+            ]
+            .into(),
         };
         let mut world = (0..state.world.len()).collect::<Vec<_>>();
         world.sort_by_key(|&index| {
@@ -278,7 +283,8 @@ impl State {
                     particle: Vec::new(),
                 }
                 .into(),
-            ],
+            ]
+            .into(),
             frame: self.frame.clone(),
         }
         .canonical()

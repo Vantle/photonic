@@ -1,97 +1,115 @@
-# Incremental evaluation
+# Persistent incremental evaluation
 
-The runtime maintains typed hypergraph structure and candidate membership directly in Rust. It uses delta maintenance and shared partial results without introducing a database server, query language, native arithmetic shortcuts, or an execution order for Photonic. The frontend and browser resource defaults remain unchanged.
+The native path evaluator maintains its matching network across rewrites. Rules with the same input share a compiled plan and a lazy matcher. A transition reports an explicit change, which updates world membership, affected matching domains, resource accounting, reachability, and fingerprints. Large state collections share persistent tree nodes with their historical versions.
 
-## Module boundaries
+This is an in-process Rust implementation over Photonic's typed incidence graph. World membership, resource identity, frame relationships, captures, and rule read dependencies remain distinct relationships. Synchronization still requires a complete valid gate binding. Storage positions and traversal order are implementation details; they do not impose an execution order on Photonic.
 
-The implementation separates immutable descriptions, mutable indexes, and search-local work. All modules below are private to the Rust library; the public runtime and frontend interfaces stay the same.
+## Runtime boundaries
 
-| Responsibility | Module | Ownership |
-| --- | --- | --- |
-| Symbol and capture matching | [term.rs](../language/term.rs) | One predicate shared by particle enumeration and selection updates; atom captures are ignored, rule captures must agree. |
-| Input compilation | [plan.rs](../language/plan.rs) | Immutable normalized patterns and owner-dependent capture binding. |
-| Rule dependencies | [catalog.rs](../language/catalog.rs) | Interned input plans, rule-to-plan mapping, and revisions driven by changed symbols or occupancy. |
-| Candidate caching | [query.rs](../language/query.rs) | Selection lifetime, generation checks, and preparation/reuse accounting. |
-| Candidate membership | [selection.rs](../language/selection.rs), [index.rs](../language/index.rs) | Stable sites, candidate domains, and incremental insertion/retraction. |
-| Gate synchronization | [gate.rs](../language/gate.rs) | Candidate arrival and continuation scheduling, distinct-world constraints, and equivalent-pattern symmetry. |
-| Partial binding storage | [prefix.rs](../language/prefix.rs), [slot.rs](../language/slot.rs) | Arena allocation and ancestor traversal; complete bindings alone become flat vectors. |
-| Relationship vocabulary | [link.rs](../language/link.rs) | Explicit paired edge roles shared by full and incremental incidence construction. |
-| State graph lifecycle | [structure.rs](../language/structure.rs) | Vertex retention, frame preparation, relationship installation, and unreachable-vertex reclamation. |
-| Refinement updates | [propagation.rs](../language/propagation.rs) | Dirty propagation, per-round accumulators, and dense-pass fallback. |
-| Hash primitives | [hashing.rs](../language/hashing.rs), [accumulator.rs](../language/accumulator.rs) | Shared scalar mixing and unordered collection aggregation. |
-| State comparison | [fingerprint.rs](../language/fingerprint.rs), [canonical.rs](../language/canonical.rs) | Fingerprint filtering followed by exact comparison when required. |
+| Responsibility | Implementation |
+| --- | --- |
+| Compile and intern rule inputs | [plan.rs](../language/plan.rs), [catalog.rs](../language/catalog.rs) |
+| Maintain eligible plans and rule consumers | [dispatch.rs](../language/dispatch.rs) |
+| Enumerate synchronized bindings lazily | [joining.rs](../language/joining.rs), [particle.rs](../language/particle.rs), [assignment.rs](../language/assignment.rs) |
+| Index worlds, symbols, captures, and executable rule tokens | [index.rs](../language/index.rs), [reader.rs](../language/reader.rs) |
+| Maintain stable sites and current world positions | [position.rs](../language/position.rs), [membership.rs](../language/membership.rs) |
+| Compile output construction and perform a rewrite | [recipe.rs](../language/recipe.rs), [rewrite.rs](../language/rewrite.rs) |
+| Describe changed worlds and frames | [change.rs](../language/change.rs) |
+| Share immutable state and fingerprint collections | [sequence.rs](../language/sequence.rs) |
+| Maintain reachability and resource accounting | [reachability.rs](../language/reachability.rs), [layout.rs](../language/layout.rs) |
+| Filter state comparisons and resolve collisions exactly | [fingerprint.rs](../language/fingerprint.rs), [structure.rs](../language/structure.rs), [canonical.rs](../language/canonical.rs) |
+| Retain inspectable states and transition provenance | [path.rs](../language/path.rs) |
 
-Graph updates prepare every changed frame vertex before installing frame relationships. That lifecycle order ensures every referenced vertex exists; it does not impose an execution order on Photonic states. Gate arrival order remains arbitrary. Candidate filtering is only a prefilter: token multiplicity, resource identity, and full gate constraints remain the responsibility of matching and execution.
+The exhaustive proof evaluator retains its separate synchronization, inference, and provenance machinery in `gate.rs`, `search.rs`, `application.rs`, and `runtime.rs`. It shares state storage and world indexing with the path evaluator and serves as an independent reference for the new direct matcher and rewrite implementation. The superseded path activation and query caches have been removed.
 
-Hash aggregation intentionally forgets neighbor order, while retaining multiplicity through sum, squared sum, and count. Full and incremental refinement use the same contribution formula. Hash equality remains a filter, never a proof of semantic equality.
+## Matching
 
-## Structural maintenance
+Each interned input plan has symbol dependencies. The world index reports net changes to global symbol presence, rather than notifying the dispatcher every time an unchanged symbol is removed and reinserted. The dispatcher updates plan eligibility and affected frame consumers. Frame occupancy, lexical context changes, and executable rule tokens participate in invalidation.
 
-`language/structure.rs` maintains world, frame, and resource vertices across structural comparisons. Immutable world identity and resource identity identify retained vertices; frame changes replace the relevant relationships. These identifiers are internal index keys and never contribute to the fingerprint. Vertex labels and incidence types match `language/incidence.rs`.
+A matching entry owns candidate domains and reusable particle matchers. Unchanged domains survive transitions. A removed site always loses its particle cache, even when an insertion immediately reuses the same site number. Capture-free inputs share matching across lexical owners; capture-dependent inputs retain separate owner keys. Every consumer retains its own rule, owner, and read dependency.
 
-`language/propagation.rs` maintains four rounds of neighborhood refinement. Each vertex retains the sum, squared sum, and count of its neighbors' contributions at each round. Edge insertion and deletion adjust those accumulators. A changed color updates dependent contributions at the following round. If more than half the live vertex count is queued, the round switches to a full pass to avoid expensive dense propagation.
+Domains are visited in increasing cardinality. A cheap distinct-world assignment check accepts easy cases, with an exact bipartite matching fallback. Token enumeration remains lazy. Identical input positions use the existing symmetry restriction, and results are restored to input-position order. Inline storage spills to the heap; it does not limit gate width.
 
-The resulting fingerprint is identical to full four-round recomputation. Eight-round filtering and exact canonicalization still handle remaining collisions. Repeated membership, distinct equal-valued resources, captures, lexical relationships, and the distinguished root remain represented. A state containing repeated references to the same world allocation uses full recomputation, preserving multiple world occurrences.
+Preparation and reuse statistics now count shared matching entries rather than repeated requests by individual rule consumers. Their counts are not directly comparable to the previous per-request cache statistics.
 
-Only one mutable refinement cache is retained by a path search. Historical fingerprints remain immutable scalar values. The cache participates in record accounting and is discarded before optional cache retention can stop a search at its record budget.
+The runtime stores factorized domains, not an eagerly materialized Cartesian product. It retains particle candidate preparation across rewrites, but does not memoize every complete binding or claim a general worst-case-optimal join algorithm. The choice follows the evidence behind hybrid approaches such as [Free Join](https://arxiv.org/abs/2301.10841): the best execution strategy depends on query structure. Delta maintenance follows the general approach of [DBSP](https://docs.feldera.com/vldb23.pdf), without substituting database set semantics for Photonic resource semantics.
 
-## Matching and synchronization
+## State updates and history
 
-The world index records removed and inserted sites. Cached selections retain every input domain, including domains belonging to an impossible conjunction. A selection update retracts removed membership and checks inserted worlds against its frame, symbol, and capture constraints. It preserves the selection allocation when membership is unchanged, including safe reuse of a site for a different world. Token enumeration still reads the current world, so unchanged candidate membership does not imply unchanged token bindings.
+A rewrite identifies removed source worlds, appended target worlds, and changed frame slots. Compiled output recipes retain output scopes and capture requirements. Remainders and enclosed resources are prepared once and shared across output construction. The implementation applies the same generic machinery to arithmetic and every other program.
 
-Capture-free input patterns share compiled terms and selections across lexical owners. Rules still retain their own owner, output, and read dependency. Capture-dependent patterns keep separate owner keys. Cached entries are evicted when no longer requested, and updates across a missing generation fall back to fresh preparation.
+Stable world sites are distinct from observable world positions. Small indexes use a dense array; larger indexes use a Fenwick tree for logarithmic rank and selection, with amortized compaction of tombstones. The index returns to dense storage after substantial shrinkage. Surviving worlds no longer need to be renumbered after every deletion. Frame membership uses compact arrays up to 32 sites and a tree beyond that; small frames avoid tree allocation on each transition.
 
-The gate matcher stores partial bindings as parent-linked arena entries. Extending a binding shares its existing prefix; only a complete result becomes a flat slot vector. Distinct-world constraints, synchronization, and symmetry checks retain their existing meaning. Matching order is an internal search optimization. The candidate-order regression test ensures that a reordered domain uses its corresponding pattern, and both direct and exhaustive evaluators reach the expected result.
+State collections use flat storage up to 256 elements and then the public [`imbl` persistent vector](https://docs.rs/imbl/latest/imbl/vector/index.html), pinned to 7.0.2 in `Cargo.lock`. Its RRB tree supports structural sharing and logarithmic edits. The threshold was selected after measuring the overhead of tree access on arithmetic's smaller states. Range access seeks directly to the requested interval instead of walking the preceding elements. Equality, ordering, and hashing depend on logical contents, regardless of storage representation.
 
-The runtime still reconstructs rule scheduling after a transition. Candidate membership persists across transitions; gate prefixes are shared within a search. This implementation does not claim full cross-transition join maintenance or the complexity guarantees of a complete worst-case-optimal join engine.
+Reachability retains counts of references from worlds and captures, with the root permanently included. If the root set and frame structure are unchanged, the reachable-frame result is shared. Other changes use full reachability, including cyclic frame relationships. This avoids the incorrect assumption that ordinary reference counting can collect every graph.
 
-## State layout
+When frame structure is unchanged, world fingerprint contributions are removed and inserted into an unordered accumulator. Frame hashes and untouched world hashes are shared. Frame changes use the existing full frame pass with reusable unchanged contributions. Cell counts and the next resource identifier use the explicit change, with full recomputation when removing the highest resource requires it. Hash equality remains a filter followed by exact comparison where necessary.
 
-A transition computes reachable frames once for reclamation, then retains its cell count, next resource identifier, and reachable frame list alongside its fingerprint. Application, fingerprint aggregation, and limit checks reuse that layout. Historical states and complete transition provenance remain inspectable. State collections still share immutable worlds and frames; history has not been replaced by lossy summaries or checkpoints.
+Historical states retain complete immutable contents through structural sharing. Every executed transition still has its footprint, exact resources, and read dependency. This is structural reuse, not partial-order pruning: no execution is discarded based on an independence assumption. [Unfolding-based partial-order reduction](https://arxiv.org/abs/1507.00980) could reduce some concurrent search spaces much further, but applying it here would require preserving the inspectable histories and backward proof dependencies as well as reachability.
 
-## Selection and verification
+## Complexity and limits
 
-The design borrows incremental view maintenance principles from [Differential Dataflow](https://github.com/TimelyDataflow/differential-dataflow) and [DBSP](https://docs.feldera.com/vldb23.pdf). Shared intermediate representation follows the direction of [MAVIS](https://github.com/pkumod/MAVIS) and factorized query processing. These are algorithm references, not new dependencies.
+For the retention benchmark's family of `R` rules sharing an unchanged impossible input over `T` transitions, the previous scheduler repeatedly visited those `R` rule consumers. The new scheduler prepares their shared matcher once. The redundant portion changes from approximately `O(T × R)` work to `O(R + T)`, including initial construction. If those rules actually match, delivering all their distinct results still requires work proportional to the number of results.
 
-A per-frame activation index was implemented and measured, then removed: maintaining its additional symbol counts and constructing local request lists was slower on the benchmark matrix. The selected implementation also avoids eagerly materializing every complete match.
+Persistent collections, order statistics, and unchanged-frame fingerprint updates make several state operations depend on the changed region instead of the entire world collection. This is not a logarithmic bound for a whole runtime transition: posting maintenance, affected domain updates, lexical topology changes, reachability fallback, graph refinement, and exact canonicalization can still require larger passes.
 
-Regression coverage compares incremental fingerprints with independent full recomputation across forward and reverse state sequences, renaming, repeated world references, and 1,024 generated mutations. Matching coverage includes candidate retraction, site reuse, capture reassignment, owner sharing, input multiplicity, unequal candidate cardinality, and independently enumerated multiway gate results. Existing exhaustive reference, provenance, pause/resume, budget, browser, and program tests remain enabled.
+There is no arithmetic shortcut, change to the Photonic program library, frontend semantic change, or relaxation of browser resource defaults. Thirty factors of two still execute 151,476 transitions. Large gains on retained rules and state do not imply an exponential or thousand-fold arithmetic speedup.
+
+## Verification
+
+All 108 Bazel test targets pass, including native programs, exhaustive reference snapshots, browser conformance, and build-tool checks. Formatting and lint checks pass. Native and WebAssembly builds use the locked Bazel dependency graph; Linux and Windows execution was not tested on this macOS host.
+
+Additional coverage includes:
+
+- Complete binding and provenance sets compared with the independent exhaustive evaluator.
+- Cached matching compared with fresh matching across successive rewrites.
+- 1,024 generated join mutations, including capture changes and site reuse, plus an eight-world gate.
+- 1,024 reachability mutations with cyclic frame links, compared with full traversal.
+- 8,192 order-statistic mutations with rank/select checks and compaction.
+- Persistent snapshots, range access, and equal hashing across flat and tree representations.
+- Occupancy changes, read-token replacement, shared rule inputs, multiplicity, and capture-specific owners.
+- Exact layout and fingerprint comparisons with full recomputation, and preparation counts independent of 128 versus 8,192 unrelated rule consumers.
+
+The saved browser demo records changed only in their runtime work counters. Their inputs, results, transition counts, and displayed proof events were checked for exact equality before the records were updated.
 
 ## Measurement
 
-Measurements compare commit `b8010d2` with this implementation on the same Apple M5 Max running macOS 26.6.2. Every program runs through `bazel run -c opt`, with one warmup and three measured samples. Parsing, compilation, initialization, reporting, and release are outside the execution timer. Runs are sequential, without concurrent builds or tests. Raw samples are in [incremental.json](incremental.json).
+Measurements compare `1b99d02` with this implementation on an Apple M5 Max running macOS 26.6.2. Both revisions use the identical benchmark harness, `bazel run -c opt`, one warmup, and five measured samples. Each case is measured as a before/after pair, alternating which revision runs first. Runs are sequential without concurrent builds or tests. Raw samples, arguments, initialization times, work counts, and transition counts are in [rewrite.json](rewrite.json).
 
-| Program | Before | After | Speedup |
-| --- | ---: | ---: | ---: |
-| Six factors of two | 0.0809 s | 0.0648 s | 1.25× |
-| Ten factors of two | 0.2308 s | 0.1850 s | 1.25× |
-| Twenty factors of two | 1.3746 s | 1.0127 s | 1.36× |
-| Thirty factors of two | 4.3365 s | 3.0387 s | 1.43× |
-| Nested ternary expression | 0.0641 s | 0.0526 s | 1.22× |
-| Ten-digit decimal addition | 0.2803 s | 0.1909 s | 1.47× |
-| Five-digit decimal multiplication | 0.2901 s | 0.2185 s | 1.33× |
-| Preparation reuse workload | 0.0162 s | 0.0148 s | 1.09× |
+Execution includes search and establishing the result. Parsing, program construction, reporting, and release are outside that timer. Runtime initialization is measured separately; the table also reports speedup for initialization plus execution. These are medians, not universal performance guarantees.
 
-Every program reaches its expected result with the same successful transition count. Thirty factors still execute 151,476 transitions. This work improves implementation cost; it does not remove the separate browser state limit or establish an exponential or thousand-fold speedup.
+| Program | Before (ms) | After (ms) | Execution speedup | Including setup |
+| --- | ---: | ---: | ---: | ---: |
+| Six factors of two | 66.998 | 68.882 | 0.97× | 0.98× |
+| Ten factors of two | 186.775 | 194.099 | 0.96× | 0.96× |
+| Twenty factors of two | 1,034.604 | 1,062.747 | 0.97× | 0.97× |
+| Thirty factors of two | 3,102.193 | 3,185.446 | 0.97× | 0.97× |
+| Nested ternary expression | 52.395 | 53.730 | 0.98× | 0.98× |
+| Ten-digit decimal addition | 196.877 | 194.799 | 1.01× | 1.01× |
+| Five-digit decimal multiplication | 222.884 | 220.305 | 1.01× | 1.01× |
+| 200 retained rule consumers | 13.788 | 2.270 | 6.07× | 3.88× |
+| 2,000 retained rule consumers | 48.740 | 1.360 | 35.84× | 16.47× |
+| 20,000 retained rule consumers | 363.391 | 1.415 | 256.73× | 29.82× |
+| 16 untouched worlds | 1.367 | 1.875 | 0.73× | 0.72× |
+| 1,000 untouched worlds | 10.864 | 2.974 | 3.65× | 2.70× |
+| 10,000 untouched worlds | 106.547 | 16.564 | 6.43× | 4.30× |
+
+Values below 1× indicate a slowdown. Arithmetic remains within about 4% of baseline in this run and is not uniformly faster. The tiny storage workload increases from 1.37 ms to 1.87 ms; maintaining the extra indexes has a cost when little state can be reused. The large improvements apply to the explicitly measured retention and larger-storage workloads.
+
+The retention workload contains one unmatched `[A,A]` input shared by many distinct rules, plus a chain of 1,000 enabled transitions. The storage workload retains distinct idle worlds while another world advances through 1,000 transitions. Arithmetic measurements execute the existing ternary programs. Successful transition counts agree between revisions in every case.
 
 Reproduce representative cases with:
 
 ```sh
-bazel run -c opt //benchmark:expression -- '2*2*2*2*2*2' 2101 --sample 3
-bazel run -c opt //benchmark:arithmetic -- 1234567890 add 9876543210 --radix 10 --sample 3
-bazel run -c opt //benchmark:arithmetic -- 12345 multiply 67890 --radix 10 --sample 3
-bazel run -c opt //benchmark:retention -- --width 200 --length 1000 --sample 3
+bazel run -c opt //benchmark:expression -- '2*2*2*2*2*2' 2101 --sample 5
+bazel run -c opt //benchmark:arithmetic -- 1234567890 add 9876543210 --radix 10 --sample 5
+bazel run -c opt //benchmark:arithmetic -- 12345 multiply 67890 --radix 10 --sample 5
+bazel run -c opt //benchmark:retention -- --width 20000 --length 1000 --sample 5
+bazel run -c opt //benchmark:storage -- --width 10000 --length 1000 --sample 5
+bazel test -c opt --nocache_test_results //... //toolchain:check //toolchain/browser:check
+bazel build -c opt --config=format //...
+bazel build -c opt --config=lint //...
 ```
 
-## Refactoring verification
-
-The module separation above was checked against `a7a5f62` with the same native Bazel harness. All 108 test targets, including browser conformance, pass; Rust formatting and lint checks pass. Successful transition counts, work counts, and every reported search statistic agree across the measured cases.
-
-| Program | Before | After |
-| --- | ---: | ---: |
-| Six factors of two | 0.0667 s | 0.0650 s |
-| Thirty factors of two | 2.9823 s | 3.0256 s |
-| Ten-digit decimal addition | 0.1885 s | 0.1906 s |
-| Preparation reuse workload | 0.01333 s | 0.01331 s |
-
-Values are median execution times. The first three rows use three measured samples after one warmup. The short reuse workload initially measured 0.0131 s versus 0.0152 s; repeating both revisions with fifteen samples produced the values shown. These measurements support comparable performance for this cleanup, rather than a speedup claim. Initial and repeated samples are retained in [refactoring.json](refactoring.json).
+Earlier measurements remain available in [incremental.json](incremental.json) and [refactoring.json](refactoring.json).

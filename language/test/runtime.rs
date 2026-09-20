@@ -258,7 +258,7 @@ fn capture() {
         capture: None,
     };
     let witness = State {
-        world: Vec::new(),
+        world: Vec::new().into(),
         frame: vec![
             root.clone(),
             Frame {
@@ -275,7 +275,8 @@ fn capture() {
                 held: vec![seed.clone()],
             }
             .into(),
-        ],
+        ]
+        .into(),
     };
     for mapped in [false, true] {
         let state = State {
@@ -289,11 +290,12 @@ fn capture() {
                     }],
                 }
                 .into(),
-            ],
+            ]
+            .into(),
             frame: if mapped {
-                vec![root.clone(), witness.frame[1].clone()]
+                vec![root.clone(), witness.frame[1].clone()].into()
             } else {
-                vec![root.clone()]
+                vec![root.clone()].into()
             },
         };
         let basis = if mapped {
@@ -376,7 +378,7 @@ fn permutation() {
             continue;
         }
         let state = State {
-            frame: vec![root.clone()],
+            frame: vec![root.clone()].into(),
             world: (0..2)
                 .map(|index| {
                     World {
@@ -396,8 +398,8 @@ fn permutation() {
         };
         let mut changed = state.clone();
         changed.world.reverse();
-        for world in &mut changed.world {
-            let world = std::sync::Arc::make_mut(world);
+        for position in 0..changed.world.len() {
+            let world = std::sync::Arc::make_mut(&mut changed.world[position]);
             world.particle.reverse();
             for token in &mut world.particle {
                 token.id = 17 - token.id;
@@ -491,11 +493,12 @@ fn inheritance() {
                             particle: vec![original.clone()],
                         }
                         .into(),
-                    ],
-                    frame: vec![root.clone()],
+                    ]
+                    .into(),
+                    frame: vec![root.clone()].into(),
                 };
                 let witness = State {
-                    world: Vec::new(),
+                    world: Vec::new().into(),
                     frame: vec![
                         root,
                         Frame {
@@ -513,7 +516,8 @@ fn inheritance() {
                             }],
                         }
                         .into(),
-                    ],
+                    ]
+                    .into(),
                 };
                 let basis = if held {
                     Place::Held(0, 5)

@@ -40,36 +40,6 @@ impl Selection {
         }
     }
 
-    pub(crate) fn advance(&self, index: &crate::index::Index, frame: usize) -> Option<Self> {
-        let mut candidate = None;
-        for (position, pattern) in self.pattern.iter().enumerate() {
-            let previous = &self.candidate[position];
-            let insertion = index
-                .insertion
-                .iter()
-                .copied()
-                .filter(|&site| {
-                    let world = &index.state.world[index.world(site)];
-                    world.frame == frame
-                        && pattern
-                            .iter()
-                            .all(|term| world.particle.iter().any(|token| term.matches(token)))
-                })
-                .collect::<Vec<_>>();
-            let removed = previous
-                .iter()
-                .any(|site| index.removal.contains(site) && !insertion.contains(site));
-            let inserted = insertion.iter().any(|site| !previous.contains(site));
-            if !removed && !inserted {
-                continue;
-            }
-            let candidate = candidate.get_or_insert_with(|| self.candidate.clone());
-            candidate[position].retain(|site| !index.removal.contains(site));
-            candidate[position].extend(insertion);
-        }
-        candidate.map(|candidate| Self::construct(self.pattern.clone(), candidate))
-    }
-
     pub(crate) fn retained(&self) -> usize {
         self.pattern.iter().map(Vec::len).sum::<usize>()
             + self.order.len()

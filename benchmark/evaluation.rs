@@ -16,21 +16,20 @@ pub struct Measurement {
 pub fn evaluate(
     program: photonic::source::Program,
     target: photonic::source::Program,
+    limit: Option<Limit>,
 ) -> Measurement {
+    let limit = limit.unwrap_or(Limit {
+        state: 262_144,
+        record: 100_000_000,
+        world: 1024,
+        cell: 16_384,
+        frame: 2048,
+    });
     let start = Instant::now();
     let mut search = Search::new(program, target).unwrap();
     let initialization = start.elapsed().as_secs_f64();
     let start = Instant::now();
-    search.run(
-        100_000_000,
-        Limit {
-            state: 262_144,
-            record: 100_000_000,
-            world: 1024,
-            cell: 16_384,
-            frame: 2048,
-        },
-    );
+    search.run(100_000_000, limit);
     let execution = start.elapsed().as_secs_f64();
     let summary = search.summary();
     let statistic = search.statistic();

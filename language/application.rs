@@ -81,41 +81,8 @@ pub(crate) fn apply(
     binding: &Binding,
     closure: Option<Closure<'_>>,
 ) -> Applied {
-    construct(source, frame, owner, rule, binding, closure, None)
-}
-
-pub(crate) fn direct(
-    source: &State,
-    frame: usize,
-    owner: usize,
-    rule: &Instruction,
-    binding: &Binding,
-    layout: &crate::layout::Layout,
-) -> State {
-    construct(
-        source,
-        frame,
-        Some(owner),
-        rule,
-        binding,
-        None,
-        Some(layout),
-    )
-    .state
-}
-
-fn construct(
-    source: &State,
-    frame: usize,
-    owner: Option<usize>,
-    rule: &Instruction,
-    binding: &Binding,
-    closure: Option<Closure<'_>>,
-    layout: Option<&crate::layout::Layout>,
-) -> Applied {
-    let evidence = layout.is_none();
     let mut state = State {
-        world: Vec::new(),
+        world: crate::sequence::List::new(),
         frame: source.frame.clone(),
     };
     let mut flow = Draft {
@@ -123,7 +90,6 @@ fn construct(
             .frame
             .iter()
             .enumerate()
-            .filter(|_| evidence)
             .flat_map(|(index, frame)| {
                 frame.held.iter().map(move |token| {
                     let place = Place::Held(index, token.id);
@@ -132,24 +98,16 @@ fn construct(
             })
             .collect(),
         context: Vec::new(),
-        frame: (0..source.frame.len())
-            .filter(|_| evidence)
-            .map(Some)
-            .collect(),
+        frame: (0..source.frame.len()).map(Some).collect(),
     };
-    let mut next = layout.map_or_else(
-        || {
-            source
-                .world
-                .iter()
-                .flat_map(|world| &world.particle)
-                .chain(source.frame.iter().flat_map(|frame| &frame.held))
-                .map(|token| token.id)
-                .max()
-                .map_or(0, |id| id + 1)
-        },
-        |layout| layout.resource,
-    );
+    let mut next = source
+        .world
+        .iter()
+        .flat_map(|world| &world.particle)
+        .chain(source.frame.iter().flat_map(|frame| &frame.held))
+        .map(|token| token.id)
+        .max()
+        .map_or(0, |id| id + 1);
     let owner = if let Some(closure) = closure {
         let mut resource = HashMap::new();
         for (index, frame) in closure.state.frame.iter().enumerate() {
@@ -204,9 +162,6 @@ fn construct(
         }
         let target = state.world.len();
         state.world.push(world.clone());
-        if !evidence {
-            continue;
-        }
         flow.context.push(Set::single(index));
         for token in &world.particle {
             flow.resource.push((
@@ -228,17 +183,7 @@ fn construct(
         .footprint
         .union(&consumed)
         .copied()
-        .filter(|_| evidence)
         .collect::<Set<_>>();
-    let mut vacant = if evidence || !rule.output.iter().any(|output| output.body.is_some()) {
-        Vec::new()
-    } else {
-        let reachable = &layout.unwrap().reachable;
-        (1..source.frame.len())
-            .rev()
-            .filter(|index| reachable.binary_search(index).is_err())
-            .collect()
-    };
     for output in &rule.output {
         let selected = if output.body.is_some() {
             &binding.exact
@@ -260,13 +205,12 @@ fn construct(
                 let entry = remainder
                     .entry(token.id)
                     .or_insert_with(|| (token.clone(), BTreeSet::new()));
-                if evidence {
-                    entry.1.insert(Place::World(index, token.id));
-                }
+
+                entry.1.insert(Place::World(index, token.id));
             }
         }
         let target = if let Some(scope) = output.body {
-            let target = vacant.pop().unwrap_or(state.frame.len());
+            let target = state.frame.len();
             let mut reserve = BTreeMap::<usize, (Token, BTreeSet<Place>)>::new();
             for &place in binding.exact.union(&consumed) {
                 let token = match place {
@@ -282,9 +226,8 @@ fn construct(
                 let entry = reserve
                     .entry(token.id)
                     .or_insert_with(|| (token.clone(), BTreeSet::new()));
-                if evidence {
-                    entry.1.insert(place);
-                }
+
+                entry.1.insert(place);
             }
             let created = Frame {
                 scope,
@@ -293,17 +236,13 @@ fn construct(
                 held: reserve.values().map(|(token, _)| token.clone()).collect(),
             }
             .into();
-            if target == state.frame.len() {
-                state.frame.push(created);
-            } else {
-                state.frame[target] = created;
+            state.frame.push(created);
+
+            flow.frame.push(None);
+            for (id, (_, basis)) in reserve {
+                flow.resource.push((Place::Held(target, id), basis.into()));
             }
-            if evidence {
-                flow.frame.push(None);
-                for (id, (_, basis)) in reserve {
-                    flow.resource.push((Place::Held(target, id), basis.into()));
-                }
-            }
+
             target
         } else {
             parent
@@ -311,10 +250,9 @@ fn construct(
         let index = state.world.len();
         let mut particle = Vec::new();
         for (_, (token, basis)) in remainder {
-            if evidence {
-                flow.resource
-                    .push((Place::World(index, token.id), basis.into()));
-            }
+            flow.resource
+                .push((Place::World(index, token.id), basis.into()));
+
             particle.push(token);
         }
         for &value in &output.particle {
@@ -324,10 +262,10 @@ fn construct(
                 capture: matches!(value, Symbol::Rule(_)).then_some(owner),
             };
             next += 1;
-            if evidence {
-                flow.resource
-                    .push((Place::World(index, token.id), basis.clone()));
-            }
+
+            flow.resource
+                .push((Place::World(index, token.id), basis.clone()));
+
             particle.push(token);
         }
         state.world.push(
@@ -337,9 +275,8 @@ fn construct(
             }
             .into(),
         );
-        if evidence {
-            flow.context.push(binding.world.iter().copied().collect());
-        }
+
+        flow.context.push(binding.world.iter().copied().collect());
     }
     Applied {
         state,

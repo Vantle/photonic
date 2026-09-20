@@ -1,3 +1,4 @@
+#[cfg(test)]
 use crate::basis::Set;
 use crate::program::Symbol;
 use crate::state::State;
@@ -7,17 +8,17 @@ use std::sync::Arc;
 
 pub(crate) struct Index {
     pub state: Arc<State>,
-    frame: Vec<Vec<usize>>,
+    frame: Vec<crate::membership::Set>,
+    reader: Vec<Vec<crate::reader::Reader>>,
     term: HashMap<(usize, Term), Vec<usize>>,
-    site: Vec<usize>,
+    position: crate::position::Index,
     rank: Vec<usize>,
     vacant: Vec<usize>,
     retained: usize,
     symbol: HashMap<Symbol, usize>,
-    code: HashMap<usize, Vec<(usize, usize, usize)>>,
-    change: Vec<(Symbol, bool)>,
     pub altered: std::collections::HashSet<Symbol>,
-    pub occupied: bool,
+    pub context: Vec<usize>,
+    pub affected: HashMap<usize, std::collections::HashSet<Symbol>>,
     pub removal: Vec<usize>,
     pub insertion: Vec<usize>,
 }
@@ -27,20 +28,23 @@ impl Index {
         let mut index = Self {
             state,
             frame: Vec::new(),
+            reader: Vec::new(),
             term: HashMap::new(),
-            site: Vec::new(),
+            position: Default::default(),
             rank: Vec::new(),
             vacant: Vec::new(),
             retained: 0,
             symbol: HashMap::new(),
-            code: HashMap::new(),
-            change: Vec::new(),
             altered: Default::default(),
-            occupied: false,
+            context: Vec::new(),
+            affected: HashMap::new(),
             removal: Vec::new(),
             insertion: Vec::new(),
         };
-        index.frame.resize(index.state.frame.len(), Vec::new());
+        index
+            .frame
+            .resize_with(index.state.frame.len(), crate::membership::Set::default);
+        index.reader.resize_with(index.state.frame.len(), Vec::new);
         for world in 0..index.state.world.len() {
             index.insert(world);
         }
@@ -53,28 +57,30 @@ impl Index {
             self.rank.push(0);
             site
         });
-        self.rank[site] = world;
-        self.site.push(site);
+        self.rank[site] = self.position.insert(site);
         self.insertion.push(site);
         let value = &self.state.world[world];
-        self.occupied = true;
-        self.altered
+        self.affected
+            .entry(value.frame)
+            .or_default()
             .extend(value.particle.iter().map(|token| token.value));
-        self.frame[value.frame].push(site);
+        self.frame[value.frame].insert(site);
         self.retained += 1;
         for token in &value.particle {
-            let count = self.symbol.entry(token.value).or_default();
-            if *count == 0 {
-                self.change.push((token.value, true));
-            }
-            *count += 1;
             if let Symbol::Rule(rule) = token.value {
-                self.code
-                    .entry(rule)
-                    .or_default()
-                    .push((site, token.id, token.capture.unwrap()));
+                self.reader[value.frame].push(crate::reader::Reader {
+                    rule,
+                    site,
+                    resource: token.id,
+                    owner: token.capture.unwrap(),
+                });
                 self.retained += 1;
             }
+            let count = self.symbol.entry(token.value).or_default();
+            if *count == 0 && !self.altered.remove(&token.value) {
+                self.altered.insert(token.value);
+            }
+            *count += 1;
             let key = (value.frame, Term::new(token.value, token.capture));
             let posting = self.term.entry(key).or_default();
             if !posting.contains(&site) {
@@ -84,34 +90,60 @@ impl Index {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn advance(&mut self, state: Arc<State>, removed: &Set<usize>) {
+        let change = crate::change::Change {
+            world: removed.clone(),
+            insertion: self.state.world.len() - removed.len()..state.world.len(),
+            frame: Vec::new(),
+        };
+        self.update(state, &change);
+    }
+
+    pub(crate) fn update(&mut self, state: Arc<State>, change: &crate::change::Change) {
+        let removed = &change.world;
         self.altered.clear();
+        self.affected.clear();
         self.removal.clear();
         self.insertion.clear();
-        self.occupied = false;
-        for &world in removed {
-            let site = self.site[world];
-            self.removal.push(site);
+        self.context.clear();
+        let mut affected = change
+            .world
+            .iter()
+            .map(|&world| self.state.world[world].frame)
+            .chain(
+                state
+                    .world
+                    .range(change.insertion.clone())
+                    .map(|world| world.frame),
+            )
+            .collect::<Vec<_>>();
+        affected.sort_unstable();
+        affected.dedup();
+        let previous = affected
+            .iter()
+            .map(|&frame| self.present(frame))
+            .collect::<Vec<_>>();
+        self.removal
+            .extend(removed.iter().map(|&world| self.position.select(world)));
+        for (&world, &site) in removed.iter().zip(&self.removal) {
             let value = &self.state.world[world];
-            self.occupied = true;
-            self.altered
+            self.affected
+                .entry(value.frame)
+                .or_default()
                 .extend(value.particle.iter().map(|token| token.value));
-            self.frame[value.frame].retain(|&candidate| candidate != site);
+            let reader = &mut self.reader[value.frame];
+            let previous = reader.len();
+            reader.retain(|reader| reader.site != site);
+            self.retained -= previous - reader.len();
+            self.frame[value.frame].remove(&site);
             self.retained -= 1;
             for token in &value.particle {
                 let count = self.symbol.get_mut(&token.value).unwrap();
                 *count -= 1;
                 if *count == 0 {
                     self.symbol.remove(&token.value);
-                    self.change.push((token.value, false));
-                }
-                if let Symbol::Rule(rule) = token.value {
-                    self.retained -= 1;
-                    let code = self.code.get_mut(&rule).unwrap();
-                    code.retain(|&(candidate, id, _)| candidate != site || id != token.id);
-                    if code.is_empty() {
-                        self.code.remove(&rule);
-                    }
+                    self.altered.insert(token.value);
                 }
                 let key = (value.frame, Term::new(token.value, token.capture));
                 let Some(posting) = self.term.get_mut(&key) else {
@@ -124,21 +156,21 @@ impl Index {
                     self.term.remove(&key);
                 }
             }
+            self.position.remove(self.rank[site]);
             self.vacant.push(site);
         }
-        self.site = self
-            .site
-            .iter()
-            .enumerate()
-            .filter_map(|(world, &site)| (!removed.contains(&world)).then_some(site))
-            .collect();
-        for (world, &site) in self.site.iter().enumerate() {
-            self.rank[site] = world;
-        }
+        self.position.compact(&mut self.rank);
         self.state = state;
-        self.frame.resize(self.state.frame.len(), Vec::new());
-        for world in self.site.len()..self.state.world.len() {
+        self.frame
+            .resize_with(self.state.frame.len(), crate::membership::Set::default);
+        self.reader.resize_with(self.state.frame.len(), Vec::new);
+        for world in change.insertion.clone() {
             self.insert(world);
+        }
+        for (frame, previous) in affected.into_iter().zip(previous) {
+            if previous != self.present(frame) {
+                self.context.push(frame);
+            }
         }
     }
 
@@ -146,6 +178,14 @@ impl Index {
         let Some(world) = self.frame.get(frame) else {
             return Vec::new();
         };
+        if pattern.is_empty() {
+            let mut candidate = world
+                .iter()
+                .map(|&site| self.world(site))
+                .collect::<Vec<_>>();
+            candidate.sort_unstable();
+            return candidate;
+        }
         let posting = pattern
             .iter()
             .map(|term| {
@@ -160,41 +200,50 @@ impl Index {
             .iter()
             .copied()
             .min_by_key(|posting| posting.len())
-            .unwrap_or(world);
-        let mut result = candidate
+            .unwrap();
+        candidate
             .iter()
             .filter(|site| posting.iter().all(|posting| posting.contains(site)))
-            .map(|&site| self.rank[site])
-            .collect::<Vec<_>>();
-        result.sort_unstable();
-        result
+            .map(|&site| self.world(site))
+            .collect::<Vec<_>>()
     }
 
     pub(crate) fn site(&self, world: usize) -> usize {
-        self.site[world]
+        self.position.select(world)
     }
 
     pub(crate) fn world(&self, site: usize) -> usize {
-        self.rank[site]
+        self.position.rank(self.rank[site])
     }
 
     pub fn retained(&self) -> usize {
         self.frame.len()
+            + self.reader.len()
             + self.term.len()
             + self.retained
-            + self.site.len()
+            + self.position.retained()
             + self.rank.len()
             + self.vacant.len()
             + self.symbol.len()
-            + self.code.len()
-            + self.change.len()
+            + self.context.len()
+            + self.affected.len()
+            + self
+                .affected
+                .values()
+                .map(std::collections::HashSet::len)
+                .sum::<usize>()
             + self.altered.len()
             + self.removal.len()
             + self.insertion.len()
     }
 
-    pub(crate) fn change(&mut self) -> impl Iterator<Item = (Symbol, bool)> + '_ {
-        self.change.drain(..)
+    pub(crate) fn reader(&self, frame: usize) -> &[crate::reader::Reader] {
+        self.reader.get(frame).map_or(&[], Vec::as_slice)
+    }
+
+    pub(crate) fn present(&self, frame: usize) -> bool {
+        frame < self.state.frame.len()
+            && (frame == 0 || self.frame.get(frame).is_some_and(|world| !world.is_empty()))
     }
 
     pub(crate) fn frame(&self) -> impl Iterator<Item = usize> + '_ {
@@ -202,14 +251,6 @@ impl Index {
             .iter()
             .enumerate()
             .filter_map(|(index, world)| (index == 0 || !world.is_empty()).then_some(index))
-    }
-
-    pub(crate) fn code(&self, rule: usize) -> impl Iterator<Item = (usize, usize, usize)> + '_ {
-        self.code
-            .get(&rule)
-            .into_iter()
-            .flatten()
-            .map(|&(site, token, capture)| (self.rank[site], token, capture))
     }
 
     pub(crate) fn available(&self) -> impl Iterator<Item = Symbol> + '_ {

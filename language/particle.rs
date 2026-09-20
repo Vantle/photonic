@@ -68,6 +68,19 @@ impl Match {
         }
     }
 
+    pub(crate) fn reset(&mut self) {
+        self.fresh = true;
+        self.complete = self
+            .group
+            .iter()
+            .any(|group| group.candidate.len() < group.selected.len());
+        for group in &mut self.group {
+            for (index, selected) in group.selected.iter_mut().enumerate() {
+                *selected = index;
+            }
+        }
+    }
+
     pub(crate) fn step(&mut self) -> Poll<Option<Vec<usize>>> {
         if self.complete {
             return Poll::Ready(None);

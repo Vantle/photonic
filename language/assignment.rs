@@ -1,6 +1,11 @@
 use std::collections::VecDeque;
 
 pub(crate) fn feasible(candidate: &[Vec<usize>]) -> bool {
+    if candidate.len() <= 1 {
+        return candidate
+            .first()
+            .is_none_or(|candidate| !candidate.is_empty());
+    }
     let count = candidate
         .iter()
         .flatten()

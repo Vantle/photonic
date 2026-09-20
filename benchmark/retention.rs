@@ -23,9 +23,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     let program = photonic::lowering::parse(&source)?;
     let target = photonic::lowering::parse(&format!("A,Stage.{}", argument.length))?;
-    evaluation::evaluate(program.clone(), target.clone());
+    evaluation::evaluate(program.clone(), target.clone(), None);
     let measurement = (0..argument.sample)
-        .map(|_| evaluation::evaluate(program.clone(), target.clone()))
+        .map(|_| evaluation::evaluate(program.clone(), target.clone(), None))
         .collect::<Vec<_>>();
     serde_json::to_writer_pretty(
         std::io::stdout().lock(),

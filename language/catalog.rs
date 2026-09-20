@@ -1,14 +1,13 @@
 use crate::plan::Input;
-use crate::program::{Program, Symbol};
-use std::collections::{BTreeSet, HashMap};
+use crate::program::Program;
+use std::collections::HashMap;
 
 pub(crate) struct Catalog {
     input: Vec<Input>,
     rule: Vec<usize>,
-    revision: Vec<usize>,
-    trigger: HashMap<Symbol, Vec<usize>>,
-    empty: Vec<usize>,
     retained: usize,
+    scope: Vec<HashMap<usize, Vec<usize>>>,
+    owner: Vec<Vec<usize>>,
 }
 
 impl Catalog {
@@ -26,31 +25,49 @@ impl Catalog {
                 })
             })
             .collect::<Vec<_>>();
-        let mut trigger: HashMap<_, Vec<_>> = HashMap::new();
-        let mut empty = Vec::new();
-        for (index, input) in input.iter().enumerate() {
-            if input.empty() {
-                empty.push(index);
-            }
-            for symbol in input.symbol().collect::<BTreeSet<_>>() {
-                trigger.entry(symbol).or_default().push(index);
+        let scope = program
+            .scope
+            .iter()
+            .map(|scope| {
+                let mut group: HashMap<usize, Vec<usize>> = HashMap::new();
+                for &index in &scope.rule {
+                    group.entry(rule[index]).or_default().push(index);
+                }
+                group
+            })
+            .collect::<Vec<_>>();
+        let mut owner = vec![Vec::new(); input.len()];
+        for (index, scope) in scope.iter().enumerate() {
+            for &input in scope.keys() {
+                owner[input].push(index);
             }
         }
-        let revision = vec![0; input.len()];
-        let retained = input.iter().map(Input::retained).sum::<usize>()
-            + revision.len()
-            + rule.len()
-            + empty.len()
-            + trigger.len()
-            + trigger.values().map(Vec::len).sum::<usize>();
+        let retained = input.iter().map(Input::retained).sum::<usize>() + rule.len();
+        let retained = retained
+            + owner.iter().map(Vec::len).sum::<usize>()
+            + scope
+                .iter()
+                .map(|scope| scope.len() + scope.values().map(Vec::len).sum::<usize>())
+                .sum::<usize>();
         Self {
             input,
             rule,
-            revision,
-            trigger,
-            empty,
             retained,
+            scope,
+            owner,
         }
+    }
+
+    pub fn owner(&self, input: usize) -> &[usize] {
+        &self.owner[input]
+    }
+
+    pub fn count(&self) -> usize {
+        self.input.len()
+    }
+
+    pub fn scope(&self, scope: usize, input: usize) -> &[usize] {
+        self.scope[scope].get(&input).map_or(&[], Vec::as_slice)
     }
 
     pub fn rule(&self, rule: usize) -> usize {
@@ -59,23 +76,6 @@ impl Catalog {
 
     pub fn input(&self, index: usize) -> &Input {
         &self.input[index]
-    }
-
-    pub fn revision(&self, index: usize) -> usize {
-        self.revision[index]
-    }
-
-    pub fn advance(&mut self, change: impl IntoIterator<Item = Symbol>, occupied: bool) {
-        for symbol in change {
-            for &input in self.trigger.get(&symbol).into_iter().flatten() {
-                self.revision[input] += 1;
-            }
-        }
-        if occupied {
-            for &input in &self.empty {
-                self.revision[input] += 1;
-            }
-        }
     }
 
     pub fn retained(&self) -> usize {

@@ -46,8 +46,11 @@ impl World {
 
 pub(crate) struct Index {
     state: Arc<State>,
-    frame: [Vec<u64>; 3],
-    world: Vec<Arc<World>>,
+    frame: [Arc<Vec<u64>>; 3],
+    world: crate::sequence::List<Arc<World>>,
+    aggregate: Accumulator,
+    context: u64,
+    dependency: usize,
     pub value: u64,
     pub layout: crate::layout::Layout,
     retained: usize,
@@ -55,24 +58,62 @@ pub(crate) struct Index {
 
 impl Index {
     pub(crate) fn new(state: Arc<State>) -> Self {
-        let reachable = state.reachable();
-        Self::construct(state, None, &Set::default(), reachable)
+        let layout = crate::layout::Layout::new(&state);
+        Self::construct(state, None, &Set::default(), layout)
     }
 
     pub(crate) fn advance(
         &self,
         state: Arc<State>,
-        removed: &Set<usize>,
-        reachable: Vec<usize>,
+        change: &crate::change::Change,
+        layout: crate::layout::Layout,
     ) -> Self {
-        Self::construct(state, Some(self), removed, reachable)
+        if !change.frame.is_empty() {
+            return Self::construct(state, Some(self), &change.world, layout);
+        }
+        let mut world = self.world.clone();
+        let mut aggregate = self.aggregate;
+        let mut dependency = self.dependency;
+        for &index in change.world.iter().rev() {
+            let previous = world.remove(index);
+            aggregate.remove(previous.value);
+            dependency -= previous.dependency.len();
+        }
+        for value in state.world.range(change.insertion.clone()) {
+            let value = Arc::new(World::new(value, &self.frame[2]));
+            aggregate.insert(value.value);
+            dependency += value.dependency.len();
+            world.push(value);
+        }
+        let context = if Arc::ptr_eq(&layout.reach.frame, &self.layout.reach.frame) {
+            self.context
+        } else {
+            Accumulator::collect(layout.reach.frame.iter().map(|&index| self.frame[2][index]))
+        };
+        let value = mix(aggregate.value()).wrapping_add(context.rotate_left(31));
+        let retained = layout.reach.retained()
+            + 1
+            + self.frame.iter().map(|frame| frame.len()).sum::<usize>()
+            + world.len()
+            + dependency;
+        Self {
+            state,
+            frame: self.frame.clone(),
+            world,
+            aggregate,
+            context,
+            dependency,
+            value,
+            layout,
+            retained,
+        }
     }
 
     fn construct(
         state: Arc<State>,
         previous: Option<&Self>,
         removed: &Set<usize>,
-        reachable: Vec<usize>,
+        layout: crate::layout::Layout,
     ) -> Self {
         let stable = state
             .frame
@@ -153,25 +194,31 @@ impl Index {
                 world.push(value);
             }
         }
-        for value in &state.world[world.len()..] {
+        for value in state.world.range(world.len()..state.world.len()) {
             world.push(Arc::new(World::new(value, &frame[2])));
         }
-        let value = mix(Accumulator::collect(world.iter().map(|world| world.value))).wrapping_add(
-            Accumulator::collect(reachable.iter().map(|&index| frame[2][index])).rotate_left(31),
-        );
-        let layout = crate::layout::Layout::new(&state, reachable);
-        let retained = layout.reachable.len()
+        let mut aggregate = Accumulator::default();
+        for world in &world {
+            aggregate.insert(world.value);
+        }
+        let context = Accumulator::collect(layout.reach.frame.iter().map(|&index| frame[2][index]));
+        let value = mix(aggregate.value()).wrapping_add(context.rotate_left(31));
+        let dependency = world
+            .iter()
+            .map(|world| world.dependency.len())
+            .sum::<usize>();
+        let retained = layout.reach.retained()
             + 1
             + frame.iter().map(Vec::len).sum::<usize>()
             + world.len()
-            + world
-                .iter()
-                .map(|world| world.dependency.len())
-                .sum::<usize>();
+            + dependency;
         Self {
             state,
-            frame,
-            world,
+            frame: frame.map(Arc::new),
+            world: world.into(),
+            aggregate,
+            context,
+            dependency,
             value,
             retained,
             layout,

@@ -279,7 +279,7 @@ impl Search {
                 self.index.entry(fingerprint).or_default().push(target);
             }
             self.runtime
-                .advance(event.state, &event.binding.world, event.fingerprint);
+                .advance(event.state, &event.change, event.fingerprint);
             self.event.push(Step {
                 source: self.cursor,
                 target,

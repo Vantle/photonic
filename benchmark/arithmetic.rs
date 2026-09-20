@@ -54,9 +54,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     program.initial = encoded.initial;
     program.rule.extend(encoded.rule);
     let target = photonic::lowering::parse("Done.Zero")?;
-    evaluation::evaluate(program.clone(), target.clone());
+    evaluation::evaluate(program.clone(), target.clone(), None);
     let measurement = (0..argument.sample)
-        .map(|_| evaluation::evaluate(program.clone(), target.clone()))
+        .map(|_| evaluation::evaluate(program.clone(), target.clone(), None))
         .collect::<Vec<_>>();
     serde_json::to_writer_pretty(
         std::io::stdout().lock(),
