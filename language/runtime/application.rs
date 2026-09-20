@@ -8,9 +8,13 @@ use std::sync::Arc;
 impl Runtime {
     pub(super) fn apply(&mut self, application: Application) {
         let view = self.view[application.view].clone();
-        let environment = application
-            .capture
-            .map(|capture| Arc::new(self.state[view.target].environment(capture)));
+        let environment = application.capture.map(|capture| {
+            self.normalization.environment(super::environment::Request {
+                target: view.target,
+                capture,
+                state: &self.state[view.target],
+            })
+        });
         let key = Identity {
             source: view.source,
             frame: application.frame,
@@ -77,7 +81,7 @@ impl Runtime {
         self.event.push(Event {
             identity: normalization.identity,
             target,
-            flow: result.flow,
+            flow: Arc::new(result.flow),
             evidence: BTreeSet::new(),
         });
         self.outgoing[source].push(event);

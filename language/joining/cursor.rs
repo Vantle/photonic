@@ -87,7 +87,7 @@ impl Cursor {
             if self.binding.iter().any(|slot| {
                 slot.world == member.site
                     || (space.group[slot.position] == space.group[position]
-                        && index.world(slot.world) >= index.world(member.site))
+                        && !index.precedes(slot.world, member.site))
             }) {
                 self.cursor[self.depth] += 1;
                 return Poll::Pending;
@@ -101,7 +101,7 @@ impl Cursor {
             .particle
             .as_mut()
             .unwrap();
-        let result = if space.budget.is_some() {
+        let result = if space.store.is_some() {
             let previous = particle.cached();
             let result = particle.step(4096 - space.cached);
             space.cached = space.cached - previous + particle.cached();

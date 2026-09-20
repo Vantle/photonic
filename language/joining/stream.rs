@@ -1,14 +1,12 @@
 use super::cursor::Cursor;
+use super::node::Node;
+use super::playback::Playback;
 use super::space::Space;
+use super::trace::Trace;
 use crate::index::Index;
 use crate::slot::Slot;
 use std::sync::Arc;
 use std::task::Poll;
-
-enum Record {
-    Waiting(usize),
-    Binding(Vec<Slot>),
-}
 
 enum Mode {
     Fresh,
@@ -19,114 +17,84 @@ enum Mode {
 }
 
 struct Cache {
-    budget: Arc<crate::factor::Budget>,
-    record: Vec<Record>,
-    cursor: usize,
-    offset: usize,
-    progress: usize,
-    retained: usize,
-    complete: bool,
-}
-
-impl Cache {
-    fn reserve(&mut self, size: usize) -> bool {
-        if size > 4096 - self.retained || !self.budget.reserve(size) {
-            return false;
-        }
-        self.retained += size;
-        true
-    }
-
-    fn replay(&mut self) -> Option<Poll<Option<Vec<Slot>>>> {
-        let record = self.record.get(self.cursor)?;
-        self.progress += 1;
-        Some(match record {
-            Record::Waiting(count) => {
-                self.offset += 1;
-                if self.offset == *count {
-                    self.cursor += 1;
-                    self.offset = 0;
-                }
-                Poll::Pending
-            }
-            Record::Binding(binding) => {
-                self.cursor += 1;
-                Poll::Ready(Some(binding.clone()))
-            }
-        })
-    }
-
-    fn append(&mut self, result: &Poll<Option<Vec<Slot>>>) -> bool {
-        if self.progress == 65536 {
-            return false;
-        }
-        match result {
-            Poll::Ready(None) => self.complete = true,
-            Poll::Pending => {
-                if let Some(Record::Waiting(count)) = self.record.last_mut() {
-                    *count += 1;
-                } else {
-                    if !self.reserve(1) {
-                        return false;
-                    }
-                    self.record.push(Record::Waiting(1));
-                }
-            }
-            Poll::Ready(Some(binding)) => {
-                let size = 1 + binding
-                    .iter()
-                    .map(|slot| slot.token.len() + 1)
-                    .sum::<usize>();
-                if !self.reserve(size) {
-                    return false;
-                }
-                self.record.push(Record::Binding(binding.clone()));
-            }
-        }
-        self.cursor = self.record.len();
-        self.progress += 1;
-        true
-    }
-}
-
-impl Drop for Cache {
-    fn drop(&mut self) {
-        self.budget.release(self.retained);
-    }
+    trace: Arc<Trace>,
+    playback: Playback,
 }
 
 pub(super) struct Stream {
     source: Cursor,
     budget: Arc<crate::factor::Budget>,
+    node: Option<Arc<Node>>,
     mode: Mode,
     restoration: Option<usize>,
 }
 
 impl Stream {
-    pub fn new(width: usize, budget: Arc<crate::factor::Budget>) -> Self {
+    pub fn new(width: usize, budget: Arc<crate::factor::Budget>, node: Option<Arc<Node>>) -> Self {
         Self {
             source: Cursor::new(width),
             budget,
+            node,
             mode: Mode::Fresh,
             restoration: None,
         }
     }
 
-    pub fn reset(&mut self) {
+    fn shared(&self) -> Option<&Node> {
+        self.node
+            .as_ref()
+            .filter(|node| Arc::strong_count(node) > 2)
+            .map(Arc::as_ref)
+    }
+
+    pub fn reset(&mut self, index: &Index) {
         if let Mode::Recording(cache) = &mut self.mode {
-            cache.cursor = 0;
-            cache.offset = 0;
-            cache.progress = 0;
+            cache.playback = Playback::default();
+            if cache.trace.complete
+                && let Some(node) = &self.node
+                && Arc::strong_count(node) > 2
+            {
+                node.publish(index, &cache.trace);
+            }
             return;
         }
         self.restoration = None;
         self.source.reset();
-        if matches!(self.mode, Mode::Visited) {
+        if let Some(trace) = self.shared().and_then(|node| node.find(index)) {
+            self.mode = Mode::Recording(Box::new(Cache {
+                trace,
+                playback: Playback::default(),
+            }));
+        } else if matches!(self.mode, Mode::Visited) {
             self.mode = Mode::Repeated;
         }
     }
 
+    #[inline]
     pub fn step(
+        &mut self,
+        space: &mut Space,
+        order: &[usize],
+        index: &Index,
+    ) -> Poll<Option<Vec<Slot>>> {
+        let cache = match &mut self.mode {
+            Mode::Recording(cache) => cache,
+            Mode::Visited => return self.source.step(space, order, index),
+            Mode::Streaming if self.restoration.is_none() => {
+                return self.source.step(space, order, index);
+            }
+            _ => return self.advance(space, order, index),
+        };
+        if let Some(result) = cache.playback.step(&cache.trace, order) {
+            return result;
+        }
+        if cache.trace.complete {
+            return Poll::Ready(None);
+        }
+        self.record(space, order, index)
+    }
+
+    fn advance(
         &mut self,
         space: &mut Space,
         order: &[usize],
@@ -141,43 +109,66 @@ impl Stream {
             self.mode = Mode::Visited;
         }
         if matches!(self.mode, Mode::Repeated) {
-            self.mode = if self.budget.reserve(1) {
+            self.mode = if let Some(trace) = Trace::new(self.budget.clone()) {
                 Mode::Recording(Box::new(Cache {
-                    budget: self.budget.clone(),
-                    record: Vec::new(),
-                    cursor: 0,
-                    offset: 0,
-                    progress: 0,
-                    retained: 1,
-                    complete: false,
+                    trace: Arc::new(trace),
+                    playback: Playback::default(),
                 }))
             } else {
                 Mode::Streaming
             };
+            if matches!(self.mode, Mode::Recording(_)) {
+                return self.record(space, order, index);
+            }
         }
+        self.source.step(space, order, index)
+    }
+
+    fn record(
+        &mut self,
+        space: &mut Space,
+        order: &[usize],
+        index: &Index,
+    ) -> Poll<Option<Vec<Slot>>> {
+        let result = self.source.step(space, order, index);
         let Mode::Recording(cache) = &mut self.mode else {
-            return self.source.step(space, order, index);
+            unreachable!();
         };
-        if let Some(result) = cache.replay() {
+        if cache.playback.progress == 65536
+            || !Arc::get_mut(&mut cache.trace).unwrap().append(&result)
+        {
+            self.mode = Mode::Streaming;
             return result;
         }
-        if cache.complete {
-            return Poll::Ready(None);
-        }
-        let result = self.source.step(space, order, index);
-        if !cache.append(&result) {
-            self.mode = Mode::Streaming;
+        cache.playback.cursor = cache.trace.record.len();
+        cache.playback.progress += 1;
+        if cache.trace.complete
+            && let Some(node) = &self.node
+            && Arc::strong_count(node) > 2
+        {
+            node.publish(index, &cache.trace);
         }
         result
     }
 
     pub fn evict(&mut self) {
+        self.node = None;
         let Mode::Recording(cache) = &self.mode else {
             return;
         };
-        self.restoration = Some(cache.progress);
+        self.restoration = Some(cache.playback.progress);
         self.source.reset();
         self.mode = Mode::Streaming;
+    }
+
+    #[cfg(test)]
+    pub fn shares(&self, other: &Self) -> bool {
+        match (&self.mode, &other.mode) {
+            (Mode::Recording(left), Mode::Recording(right)) => {
+                Arc::ptr_eq(&left.trace, &right.trace)
+            }
+            _ => false,
+        }
     }
 
     #[cfg(test)]
@@ -185,39 +176,19 @@ impl Stream {
         self.source.size()
             + 1
             + match &self.mode {
-                Mode::Recording(cache) => {
-                    1 + cache
-                        .record
-                        .iter()
-                        .map(|record| match record {
-                            Record::Waiting(_) => 1,
-                            Record::Binding(binding) => {
-                                1 + binding
-                                    .iter()
-                                    .map(|slot| slot.token.len() + 1)
-                                    .sum::<usize>()
-                            }
-                        })
-                        .sum::<usize>()
-                }
+                Mode::Recording(cache) => cache.trace.size(),
                 _ => 0,
             }
     }
 
-    #[cfg(test)]
     pub fn cached(&self) -> usize {
         match &self.mode {
-            Mode::Recording(cache) => cache.retained,
+            Mode::Recording(cache) => cache.trace.retained,
             _ => 0,
         }
     }
 
     pub fn retained(&self) -> usize {
-        self.source.retained()
-            + match &self.mode {
-                Mode::Recording(cache) => cache.retained,
-                _ => 0,
-            }
-            + 1
+        self.source.retained() + self.cached() + 1
     }
 }

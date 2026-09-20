@@ -21,13 +21,14 @@ impl Network {
             while let Some(current) = owner {
                 let scope = index.state.frame[current].scope;
                 let available = &self.scope[scope];
-                let candidate = selected
-                    .filter(|selected| selected.len() < available.len())
-                    .unwrap_or(available);
+                let (candidate, filter) = match selected {
+                    Some(selected) if selected.len() < available.len() => {
+                        (selected, Some(available))
+                    }
+                    selected => (available, selected),
+                };
                 for &input in candidate {
-                    if !available.contains(&input)
-                        || selected.is_some_and(|selected| !selected.contains(&input))
-                    {
+                    if filter.is_some_and(|filter| !filter.contains(&input)) {
                         continue;
                     }
                     let plan = self.catalog.input(input);

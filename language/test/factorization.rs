@@ -32,13 +32,19 @@ fn mutation() {
             let mut state = State::initial(&program);
             let mut index = Index::new(Arc::new(state.clone()));
             let input = crate::plan::Input::new(&program.rule[0].input);
-            let budget = Arc::new(crate::factor::Budget::new(capacity));
-            let mut actual = Join::planned(&input, &index, 0, 0, &budget);
+            let store = Arc::new(crate::joining::Store::new(capacity));
+            let mut actual = Join::planned(super::Request {
+                input: &input,
+                index: &index,
+                frame: 0,
+                owner: 0,
+                store: &store,
+            });
             let mut expected = Join::new(input.pattern(0), &index, 0);
             for iteration in 0..96 {
                 compare(&mut actual, &mut expected, &index, iteration % 31);
-                actual.reset();
-                expected.reset();
+                actual.reset(&index);
+                expected.reset(&index);
                 compare(&mut actual, &mut expected, &index, 10000);
                 let removed = iteration % state.world.len();
                 let world = state.world.remove(removed);
@@ -47,8 +53,8 @@ fn mutation() {
                 actual.advance(&index);
                 expected.advance(&index);
                 compare(&mut actual, &mut expected, &index, 10000);
-                actual.reset();
-                expected.reset();
+                actual.reset(&index);
+                expected.reset(&index);
             }
         }
     }
@@ -62,13 +68,19 @@ fn survival() {
     let mut state = State::initial(&program);
     let mut index = Index::new(Arc::new(state.clone()));
     let input = crate::plan::Input::new(&program.rule[0].input);
-    let budget = Arc::new(crate::factor::Budget::new(65536));
-    let mut actual = Join::planned(&input, &index, 0, 0, &budget);
+    let store = Arc::new(crate::joining::Store::new(65536));
+    let mut actual = Join::planned(super::Request {
+        input: &input,
+        index: &index,
+        frame: 0,
+        owner: 0,
+        store: &store,
+    });
     let mut expected = Join::new(input.pattern(0), &index, 0);
     for _ in 0..3 {
         compare(&mut actual, &mut expected, &index, 100);
-        actual.reset();
-        expected.reset();
+        actual.reset(&index);
+        expected.reset(&index);
     }
     assert!(actual.space.cached > 0);
     let retained = actual.space.cached;
@@ -96,8 +108,14 @@ fn locality() {
         let mut state = State::initial(&program);
         let mut index = Index::new(Arc::new(state.clone()));
         let input = crate::plan::Input::new(&program.rule[0].input);
-        let budget = Arc::new(crate::factor::Budget::new(65536));
-        let mut actual = Join::planned(&input, &index, 0, 0, &budget);
+        let store = Arc::new(crate::joining::Store::new(65536));
+        let mut actual = Join::planned(super::Request {
+            input: &input,
+            index: &index,
+            frame: 0,
+            owner: 0,
+            store: &store,
+        });
         let mut expected = Join::new(input.pattern(0), &index, 0);
         for iteration in 0..128 {
             compare(&mut actual, &mut expected, &index, iteration % 17);
@@ -112,8 +130,8 @@ fn locality() {
             actual.advance(&index);
             expected.advance(&index);
             compare(&mut actual, &mut expected, &index, 10000);
-            actual.reset();
-            expected.reset();
+            actual.reset(&index);
+            expected.reset(&index);
         }
     }
 }
@@ -134,8 +152,14 @@ fn prefix() {
             let mut state = State::initial(&program);
             let mut index = Index::new(Arc::new(state.clone()));
             let input = crate::plan::Input::new(&program.rule[0].input);
-            let budget = Arc::new(crate::factor::Budget::new(capacity));
-            let mut actual = Join::planned(&input, &index, 0, 0, &budget);
+            let store = Arc::new(crate::joining::Store::new(capacity));
+            let mut actual = Join::planned(super::Request {
+                input: &input,
+                index: &index,
+                frame: 0,
+                owner: 0,
+                store: &store,
+            });
             let mut expected = Join::new(input.pattern(0), &index, 0);
             for iteration in 0..48 {
                 compare(&mut actual, &mut expected, &index, iteration);
@@ -143,8 +167,8 @@ fn prefix() {
                     actual.evict();
                     compare(&mut actual, &mut expected, &index, 7);
                 }
-                actual.reset();
-                expected.reset();
+                actual.reset(&index);
+                expected.reset(&index);
                 compare(&mut actual, &mut expected, &index, 10000);
                 let removed = if iteration % 4 == 0 {
                     iteration % state.world.len()
@@ -158,8 +182,9 @@ fn prefix() {
                 expected.advance(&index);
             }
             drop(actual);
-            assert!(budget.reserve(capacity));
-            budget.release(capacity);
+            store.evict();
+            assert!(store.budget().reserve(capacity));
+            store.budget().release(capacity);
         }
     }
 }
@@ -172,8 +197,14 @@ fn saturation() {
     let mut state = State::initial(&program);
     let mut index = Index::new(Arc::new(state.clone()));
     let input = crate::plan::Input::new(&program.rule[0].input);
-    let budget = Arc::new(crate::factor::Budget::new(65536));
-    let mut actual = Join::planned(&input, &index, 0, 0, &budget);
+    let store = Arc::new(crate::joining::Store::new(65536));
+    let mut actual = Join::planned(super::Request {
+        input: &input,
+        index: &index,
+        frame: 0,
+        owner: 0,
+        store: &store,
+    });
     let mut expected = Join::new(input.pattern(0), &index, 0);
     for _ in 0..3 {
         let world = state.world.remove(2);
@@ -185,8 +216,8 @@ fn saturation() {
     assert!(matches!(actual.traversal, super::Traversal::Factored(_)));
     for _ in 0..3 {
         compare(&mut actual, &mut expected, &index, 100000);
-        actual.reset();
-        expected.reset();
+        actual.reset(&index);
+        expected.reset(&index);
     }
     actual.evict();
     compare(&mut actual, &mut expected, &index, 100000);
@@ -200,8 +231,14 @@ fn persistence() {
     let mut state = State::initial(&program);
     let mut index = Index::new(Arc::new(state.clone()));
     let input = crate::plan::Input::new(&program.rule[0].input);
-    let budget = Arc::new(crate::factor::Budget::new(65536));
-    let mut actual = Join::planned(&input, &index, 0, 0, &budget);
+    let store = Arc::new(crate::joining::Store::new(65536));
+    let mut actual = Join::planned(super::Request {
+        input: &input,
+        index: &index,
+        frame: 0,
+        owner: 0,
+        store: &store,
+    });
     let mut expected = Join::new(input.pattern(0), &index, 0);
     let cached = |join: &Join| match &join.traversal {
         super::Traversal::Factored(product) => product.cached(),
@@ -226,8 +263,8 @@ fn persistence() {
         assert_eq!(cached(&actual), retained);
         compare(&mut actual, &mut expected, &index, 100);
     }
-    actual.reset();
-    expected.reset();
+    actual.reset(&index);
+    expected.reset(&index);
     compare(&mut actual, &mut expected, &index, 3);
     actual.evict();
     assert_eq!(cached(&actual), 0);
@@ -250,8 +287,14 @@ fn reordering() {
     let template = [state.world[1].clone(), state.world[2].clone()];
     let mut index = Index::new(Arc::new(state.clone()));
     let input = crate::plan::Input::new(&program.rule[0].input);
-    let budget = Arc::new(crate::factor::Budget::new(65536));
-    let mut actual = Join::planned(&input, &index, 0, 0, &budget);
+    let store = Arc::new(crate::joining::Store::new(65536));
+    let mut actual = Join::planned(super::Request {
+        input: &input,
+        index: &index,
+        frame: 0,
+        owner: 0,
+        store: &store,
+    });
     let mut expected = Join::new(input.pattern(0), &index, 0);
     for iteration in 0..64 {
         compare(&mut actual, &mut expected, &index, iteration % 17);
@@ -294,8 +337,8 @@ fn reordering() {
         actual.advance(&index);
         expected.advance(&index);
         compare(&mut actual, &mut expected, &index, 10000);
-        actual.reset();
-        expected.reset();
+        actual.reset(&index);
+        expected.reset(&index);
     }
 }
 
@@ -309,8 +352,14 @@ fn frontier() {
     let mut state = State::initial(&program);
     let mut index = Index::new(Arc::new(state.clone()));
     let input = crate::plan::Input::new(&program.rule[0].input);
-    let budget = Arc::new(crate::factor::Budget::new(65536));
-    let mut actual = Join::planned(&input, &index, 0, 0, &budget);
+    let store = Arc::new(crate::joining::Store::new(65536));
+    let mut actual = Join::planned(super::Request {
+        input: &input,
+        index: &index,
+        frame: 0,
+        owner: 0,
+        store: &store,
+    });
     let mut expected = Join::new(input.pattern(0), &index, 0);
     for _ in 0..3 {
         let position = state.world.len() - 1;
@@ -329,8 +378,8 @@ fn frontier() {
             panic!("expected prefix admission");
         };
         assert_eq!(product.cached(), 0);
-        actual.reset();
-        expected.reset();
+        actual.reset(&index);
+        expected.reset(&index);
     }
     actual.evict();
     compare(&mut actual, &mut expected, &index, 1000000);

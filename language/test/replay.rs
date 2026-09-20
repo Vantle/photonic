@@ -37,12 +37,12 @@ fn continuation() {
         let mut reference = Join::new(pattern, &index, 0);
         for iteration in 0..128 {
             compare(&mut search, &mut reference, &index, iteration % 19);
-            search.reset();
-            reference.reset();
+            search.reset(&index);
+            reference.reset(&index);
         }
         compare(&mut search, &mut reference, &index, 1000);
-        search.reset();
-        reference.reset();
+        search.reset(&index);
+        reference.reset(&index);
         let symbol = crate::program::Symbol::Atom(program.atom.get_index_of("X").unwrap());
         let removed = state
             .world
@@ -76,8 +76,8 @@ fn overflow() {
     let mut reference = Join::new(pattern, &index, 0);
     for _ in 0..3 {
         assert_eq!(compare(&mut search, &mut reference, &index, 10000), 2048);
-        search.reset();
-        reference.reset();
+        search.reset(&index);
+        reference.reset(&index);
     }
     assert!(matches!(search.mode, Mode::Streaming));
 }
@@ -92,8 +92,8 @@ fn invalidation() {
     let mut reference = Join::new(pattern, &index, 0);
     for _ in 0..3 {
         compare(&mut search, &mut reference, &index, 1000);
-        search.reset();
-        reference.reset();
+        search.reset(&index);
+        reference.reset(&index);
     }
     assert!(matches!(search.mode, Mode::Recording(_)));
     let symbol = crate::program::Symbol::Atom(program.atom.get_index_of("X").unwrap());

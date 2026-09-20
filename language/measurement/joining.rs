@@ -28,8 +28,14 @@ struct Sample {
 fn evaluate(program: &Program, state: &[(Arc<State>, Change)]) -> Sample {
     let mut index = Index::new(Arc::new(State::initial(program)));
     let input = crate::plan::Input::shared(&program.rule[0].input, &mut Default::default());
-    let budget = Arc::new(crate::factor::Budget::new(65536));
-    let mut join = Join::planned(&input, &index, 0, 0, &budget);
+    let store = Arc::new(crate::joining::Store::new(65536));
+    let mut join = Join::planned(crate::joining::Request {
+        input: &input,
+        index: &index,
+        frame: 0,
+        owner: 0,
+        store: &store,
+    });
     let mut work = 0;
     let mut binding = 0;
     let mut peak = join.retained();
@@ -37,7 +43,7 @@ fn evaluate(program: &Program, state: &[(Arc<State>, Change)]) -> Sample {
     for (state, change) in state {
         index.update(state.clone(), change);
         join.update(&index);
-        join.reset();
+        join.reset(&index);
         loop {
             work += 1;
             match black_box(join.step(&index)) {

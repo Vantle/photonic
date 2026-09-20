@@ -26,7 +26,7 @@ pub(crate) struct Delivery {
 
 pub(crate) struct Network {
     catalog: Catalog,
-    budget: std::sync::Arc<crate::factor::Budget>,
+    sharing: std::sync::Arc<crate::joining::Store>,
     trigger: HashMap<Symbol, Vec<usize>>,
     empty: Vec<usize>,
     missing: Vec<usize>,
@@ -85,7 +85,7 @@ impl Network {
             generation: 0,
             altered: Set::default(),
             catalog,
-            budget: std::sync::Arc::new(crate::factor::Budget::new(65_536)),
+            sharing: std::sync::Arc::new(crate::joining::Store::new(65_536)),
             trigger,
             empty,
             scope,
@@ -104,7 +104,7 @@ impl Network {
         for frame in index.frame() {
             network.frame(index, frame, None);
         }
-        network.reset();
+        network.reset(index);
         network
     }
 
@@ -156,7 +156,13 @@ impl Network {
                 self.storage += entry.retained();
             } else {
                 let entry = Entry::new(
-                    Search::planned(plan, index, frame, key.owner, &self.budget),
+                    Search::planned(crate::joining::Request {
+                        input: plan,
+                        index,
+                        frame,
+                        owner: key.owner,
+                        store: &self.sharing,
+                    }),
                     consumer,
                     self.generation,
                 );
@@ -183,7 +189,7 @@ impl Network {
         }
     }
 
-    fn reset(&mut self) {
+    fn reset(&mut self, index: &Index) {
         self.agenda.clear();
         for &position in self.ready.as_ref().unwrap_or(&self.entry).values() {
             let entry = &mut self.store[position];
@@ -191,7 +197,7 @@ impl Network {
                 continue;
             }
             self.storage -= entry.retained();
-            entry.reset();
+            entry.reset(index);
             self.agenda.push_back(position);
             self.storage += entry.retained();
         }
@@ -269,7 +275,7 @@ impl Network {
             self.reuse +=
                 self.count.get(frame).copied().unwrap_or(0) - (self.preparation - previous);
         }
-        self.reset();
+        self.reset(index);
     }
 
     pub fn next(&mut self, index: &Index) -> Poll<Option<Delivery>> {
@@ -297,18 +303,20 @@ impl Network {
     }
 
     pub fn evict(&mut self) -> usize {
-        let previous = self.storage;
+        let previous = self.storage + self.sharing.retained();
         for &position in self.entry.values() {
             let entry = &mut self.store[position];
             self.storage -= entry.retained();
             entry.evict();
             self.storage += entry.retained();
         }
-        previous - self.storage
+        self.sharing.evict();
+        previous - self.storage - self.sharing.retained()
     }
 
     pub fn retained(&self) -> usize {
         self.retained
+            + self.sharing.retained()
             + self.altered.len()
             + self.enabled.len()
             + self.agenda.len()

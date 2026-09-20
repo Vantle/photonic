@@ -10,7 +10,7 @@ pub(super) struct Member {
 
 pub(super) struct Space {
     pub frame: usize,
-    pub budget: Option<Arc<crate::factor::Budget>>,
+    pub store: Option<Arc<super::Store>>,
     pub cached: usize,
     pub preparation: Option<crate::plan::Context>,
     pub pattern: Arc<Vec<Vec<Term>>>,
@@ -25,7 +25,7 @@ impl Space {
         index: &Index,
         frame: usize,
         preparation: Option<crate::plan::Context>,
-        budget: Option<Arc<crate::factor::Budget>>,
+        store: Option<Arc<super::Store>>,
     ) -> Self {
         let domain = pattern
             .iter()
@@ -54,7 +54,7 @@ impl Space {
             + domain.iter().map(|member| member.len() + 1).sum::<usize>();
         Self {
             frame,
-            budget,
+            store,
             cached: 0,
             preparation,
             pattern,
@@ -133,10 +133,10 @@ impl Space {
             };
             self.retained += particle.retained();
             let budget = self
-                .budget
+                .store
                 .as_ref()
                 .filter(|_| self.pattern[position].len() >= 8)
-                .cloned();
+                .map(|store| store.budget().clone());
             member.particle = Some(crate::factor::Cursor::new(particle, budget));
         }
         member.particle.as_mut().unwrap()

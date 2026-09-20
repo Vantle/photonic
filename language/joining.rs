@@ -1,7 +1,14 @@
 mod cursor;
+mod key;
+mod node;
+mod playback;
 mod product;
 mod space;
+mod store;
 mod stream;
+mod trace;
+
+pub(crate) use store::Store;
 
 use crate::index::Index;
 use crate::slot::Slot;
@@ -19,6 +26,23 @@ enum Traversal {
     Factored(Box<Product>),
 }
 
+impl Traversal {
+    fn retained(&self) -> usize {
+        match self {
+            Self::Direct(cursor) => cursor.retained(),
+            Self::Factored(product) => product.retained(),
+        }
+    }
+}
+
+pub(crate) struct Request<'a> {
+    pub input: &'a crate::plan::Input,
+    pub index: &'a Index,
+    pub frame: usize,
+    pub owner: usize,
+    pub store: &'a Arc<Store>,
+}
+
 pub(crate) struct Join {
     space: Space,
     order: SmallVec<[usize; 2]>,
@@ -31,10 +55,10 @@ pub(crate) struct Join {
 impl Join {
     #[cfg(test)]
     pub fn new(pattern: Arc<Vec<Vec<Term>>>, index: &Index, frame: usize) -> Self {
-        Self::construct(Space::new(pattern, index, frame, None, None))
+        Self::construct(Space::new(pattern, index, frame, None, None), index)
     }
 
-    fn construct(space: Space) -> Self {
+    fn construct(space: Space, index: &Index) -> Self {
         let mut order: SmallVec<[usize; 2]> = (0..space.pattern.len()).collect();
         order.sort_by_key(|&position| space.domain[position].len());
         let traversal = Traversal::Direct(Cursor::new(order.len()));
@@ -47,42 +71,39 @@ impl Join {
             stable: false,
         };
         join.viable = join.feasible();
-        join.reset();
+        join.reset(index);
         join
     }
 
     fn product(space: &Space, order: &[usize]) -> Option<Box<Product>> {
-        if let Some(budget) = &space.budget
+        if let Some(store) = &space.store
             && order.len() >= 3
             && order[..order.len() - 1]
                 .iter()
                 .any(|&position| space.pattern[position].len() >= 8)
         {
-            return Some(Box::new(Product::new(order.len(), budget.clone())));
+            return Some(Box::new(Product::new(space, order, store)));
         }
         None
     }
 
-    pub fn planned(
-        input: &crate::plan::Input,
-        index: &Index,
-        frame: usize,
-        owner: usize,
-        budget: &Arc<crate::factor::Budget>,
-    ) -> Self {
-        Self::construct(Space::new(
-            input.pattern(owner),
-            index,
-            frame,
-            Some(input.context(owner)),
-            input.factor().then(|| budget.clone()),
-        ))
+    pub fn planned(request: Request<'_>) -> Self {
+        Self::construct(
+            Space::new(
+                request.input.pattern(request.owner),
+                request.index,
+                request.frame,
+                Some(request.input.context(request.owner)),
+                request.input.factor().then(|| request.store.clone()),
+            ),
+            request.index,
+        )
     }
 
     #[cfg(test)]
     pub fn advance(&mut self, index: &Index) {
         self.update(index);
-        self.reset();
+        self.reset(index);
     }
 
     pub fn update(&mut self, index: &Index) -> bool {
@@ -109,14 +130,14 @@ impl Join {
         }
         self.stable = stable;
         self.viable = self.feasible();
-        self.reset();
+        self.reset(index);
         true
     }
 
-    pub fn reset(&mut self) {
+    pub fn reset(&mut self, index: &Index) {
         match &mut self.traversal {
             Traversal::Direct(cursor) => cursor.reset(),
-            Traversal::Factored(product) => product.reset(),
+            Traversal::Factored(product) => product.reset(index),
         }
         self.complete = self.space.domain.iter().any(Vec::is_empty);
     }
@@ -195,15 +216,14 @@ impl Join {
     }
 
     pub fn retained(&self) -> usize {
-        self.space.retained()
-            + self.order.len()
-            + match &self.traversal {
-                Traversal::Direct(cursor) => cursor.retained(),
-                Traversal::Factored(product) => product.retained(),
-            }
+        self.space.retained() + self.order.len() + self.traversal.retained()
     }
 }
 
 #[cfg(test)]
 #[path = "test/factorization.rs"]
 mod test;
+
+#[cfg(test)]
+#[path = "test/sharing.rs"]
+mod sharing;

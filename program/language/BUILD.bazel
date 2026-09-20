@@ -3,6 +3,7 @@ load("//photonic:defs.bzl", "photonic_binary", "photonic_test")
 filegroup(
     name = "fixture",
     srcs = [
+        "capture.wave",
         "conjunction.wave",
     ],
     visibility = [

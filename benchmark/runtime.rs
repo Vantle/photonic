@@ -22,6 +22,8 @@ struct Case {
 #[derive(Serialize)]
 struct Measurement {
     name: String,
+    #[cfg(feature = "measurement")]
+    profile: Vec<photonic::measurement::profile::Measurement>,
     sample: usize,
     worker: usize,
     record: usize,
@@ -49,7 +51,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let fixture: Vec<Case> = serde_json::from_str(include_str!("../language/test/reference.json"))?;
     let mut report = Vec::new();
     for case in fixture.into_iter().filter(|case| case.closed) {
+        #[cfg(feature = "measurement")]
+        photonic::measurement::profile::take();
         let result = evaluate(case.program.clone(), &executor);
+        #[cfg(feature = "measurement")]
+        let profile = photonic::measurement::profile::take();
         assert!(result.closed, "{} did not close", case.name);
         let warm = Instant::now();
         while warm.elapsed() < Duration::from_millis(100) {
@@ -66,6 +72,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         duration.sort_by(f64::total_cmp);
         report.push(Measurement {
             name: case.name,
+            #[cfg(feature = "measurement")]
+            profile,
             sample: duration.len(),
             worker: argument.worker,
             record: result.record,

@@ -6,7 +6,7 @@ The first production implementation and its remaining boundaries are tracked in 
 
 The target is an evaluator that shares reusable program structure, discovers concrete work on demand, and maintains derived results from explicit changes. Decisions are conditional on semantic equivalence and measured benefit. No universal speedup or globally optimal query plan is assumed.
 
-The [joined-prefix implementation](prefix.md) now retains bounded multi-input prefixes across suffix-only changes and gates admission on observed reuse. It preserves exact pending/binding streams and falls back to direct traversal under prefix churn. Cross-plan joined-result sharing, row-level retraction inside changed prefixes, and broader contextual construction/flow reuse remain unfinished.
+The [joined-prefix implementation](prefix.md) now retains bounded multi-input prefixes across suffix-only changes and gates admission on observed reuse. It preserves exact pending/binding streams and falls back to direct traversal under prefix churn. The [sharing implementation](sharing.md) adds completed prefix transcripts across distinct direct-dispatch plans, bounded canonical environment reuse and immutable identity flow sharing. Row-level retraction inside changed prefixes, exhaustive subquery sharing and general contextual construction remain unfinished.
 
 ## Semantic boundary
 
@@ -26,13 +26,13 @@ Before changing scheduling or accounting, specify which progress details are ext
 | Layer | Existing implementation | Remaining work |
 | --- | --- | --- |
 | Code | `program.rs` interns complete rule values | Discover reusable internal structure without identifying executable occurrences |
-| Input | `catalog.rs` shares complete inputs and immutable particle fragments between different plans | Share common multi-particle subplans |
-| Context | `plan.rs` omits owner from capture-free identity | Explicit dependency contracts for each fragment and specialization |
+| Input | `catalog.rs` shares complete inputs and immutable particles; `joining/store.rs` shares exact completed prefixes between direct plans | Discover additional reusable internal subplans |
+| Context | Capture-sensitive prefix keys, capture-free input identity and bounded weak reuse of canonical environments | Broader contextual specialization with explicit boundary dependencies |
 | Candidate | Counted postings, adaptive intersections, indexed eligibility, conservative delta exclusion, and retained preparation | Share concrete candidate domains between different plans |
-| Binding | Bounded whole-query replay on unchanged domains and surviving leaf factors under relevant deltas | Retain surviving multi-particle joined prefixes |
+| Binding | Bounded whole-query replay, surviving leaf factors and shared completed joined prefixes | Individual row maintenance under prefix changes and shared partial recordings |
 | Proof query | `runtime/table.rs` shares exact queries; `selection.rs` lazily compiles wider patterns | Share multi-particle query fragments while preserving consumer-specific projection |
 | Rewrite | `recipe.rs` compiles output construction | Reuse parameterized construction with explicit boundary dependencies |
-| History | Persistent state, exact provenance, incremental capture reachability, and grounded-support propagation | Share additional flow and contextual construction; later investigate causal representation |
+| History | Persistent state, exact provenance, incremental capture reachability, grounded support and shared identity compositions | General nonidentity flow reuse and contextual construction; later investigate causal representation |
 
 The direct path and exhaustive backward runtime have different responsibilities. Shared primitives can serve both, but migrating the exhaustive runtime cannot remove source inference or proof projection. Its separate algorithms are useful reference behavior, although some underlying storage and indexing are already shared.
 

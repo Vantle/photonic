@@ -2,6 +2,7 @@ pub mod joining;
 pub mod profile;
 pub mod query;
 pub mod reachability;
+pub mod sharing;
 
 use crate::canonical::Search;
 use crate::program::Symbol;

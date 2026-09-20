@@ -24,12 +24,20 @@ pub(super) struct Completion {
 
 #[derive(Default)]
 pub(super) struct Store {
+    environment: super::environment::Store,
     identity: HashMap<Identity, Status>,
     job: Vec<Option<Job>>,
     vacant: Vec<usize>,
 }
 
 impl Store {
+    pub fn environment(
+        &mut self,
+        request: super::environment::Request<'_>,
+    ) -> std::sync::Arc<crate::state::State> {
+        self.environment.resolve(request)
+    }
+
     pub fn find(&self, identity: &Identity) -> Option<Status> {
         self.identity.get(identity).copied()
     }

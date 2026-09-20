@@ -4,7 +4,7 @@ use crate::program::Symbol;
 use crate::state::State;
 use crate::term::Term;
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 mod posting;
 
@@ -12,6 +12,7 @@ use posting::Occurrence;
 
 pub(crate) struct Index {
     pub state: Arc<State>,
+    revision: OnceLock<Arc<()>>,
     frame: Vec<crate::membership::Set>,
     reader: Vec<Vec<crate::reader::Reader>>,
     term: HashMap<(usize, Term), Vec<Occurrence>>,
@@ -31,6 +32,7 @@ impl Index {
     pub fn new(state: Arc<State>) -> Self {
         let mut index = Self {
             state,
+            revision: OnceLock::new(),
             frame: Vec::new(),
             reader: Vec::new(),
             term: HashMap::new(),
@@ -53,6 +55,10 @@ impl Index {
             index.insert(world);
         }
         index
+    }
+
+    pub fn revision(&self) -> &Arc<()> {
+        self.revision.get_or_init(|| Arc::new(()))
     }
 
     fn insert(&mut self, world: usize) {
@@ -115,6 +121,7 @@ impl Index {
         #[cfg(feature = "measurement")]
         let _measurement =
             crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Index);
+        self.revision.take();
         let removed = &change.world;
         self.altered.clear();
         self.affected.clear();
@@ -245,6 +252,10 @@ impl Index {
         self.term
             .get(&(frame, Term::new(term.value, term.capture)))
             .map(Vec::as_slice)
+    }
+
+    pub(crate) fn precedes(&self, left: usize, right: usize) -> bool {
+        self.rank[left] < self.rank[right]
     }
 
     pub(crate) fn world(&self, site: usize) -> usize {

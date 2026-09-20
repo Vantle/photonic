@@ -96,6 +96,15 @@ fn intersection() {
     };
     let mut index = Index::new(Arc::new(state.clone()));
     for iteration in 0..1024 {
+        for world in 0..state.world.len() {
+            let site = index.site(world);
+            assert!(!index.precedes(site, site));
+            if world > 0 {
+                let previous = index.site(world - 1);
+                assert!(index.precedes(previous, site));
+                assert!(!index.precedes(site, previous));
+            }
+        }
         for width in 0..5 {
             let pattern = (0..width)
                 .map(|_| {

@@ -95,7 +95,7 @@ fn differential() {
                 0,
             );
             assert_eq!(collect(|| join.step(&index)), collect(|| reference.step()));
-            join.reset();
+            join.reset(&index);
             let removed = next(state.world.len());
             let mut world = (*state.world.remove(removed)).clone();
             for token in &mut world.particle {

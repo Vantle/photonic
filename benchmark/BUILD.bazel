@@ -176,6 +176,17 @@ rust_binary(
 )
 
 rust_binary(
+    name = "sharing",
+    srcs = ["sharing.rs"],
+    crate_root = "sharing.rs",
+    lint_config = "//:lint",
+    deps = [
+        "//language:measurement",
+        "@crate//:serde_json",
+    ],
+)
+
+rust_binary(
     name = "posting",
     srcs = ["posting.rs"],
     crate_root = "posting.rs",
@@ -245,6 +256,21 @@ rust_binary(
     lint_config = "//:lint",
     deps = [
         "//language:photonic",
+        "@crate//:clap",
+        "@crate//:serde",
+        "@crate//:serde_json",
+    ],
+)
+
+rust_binary(
+    name = "proof",
+    srcs = ["runtime.rs"],
+    compile_data = ["//language:fixture"],
+    crate_features = ["measurement"],
+    crate_root = "runtime.rs",
+    lint_config = "//:lint",
+    deps = [
+        "//language:measurement",
         "@crate//:clap",
         "@crate//:serde",
         "@crate//:serde_json",

@@ -1,4 +1,6 @@
 mod application;
+mod composition;
+mod environment;
 mod matching;
 mod normalization;
 mod report;
@@ -38,7 +40,7 @@ impl Default for Limit {
 struct View {
     source: usize,
     target: usize,
-    flow: Flow,
+    flow: Arc<Flow>,
 }
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 struct Application {
@@ -68,7 +70,7 @@ pub(crate) struct Transition<'a> {
 struct Event {
     identity: Identity,
     target: usize,
-    flow: Flow,
+    flow: Arc<Flow>,
     evidence: BTreeSet<usize>,
 }
 #[derive(Clone)]
@@ -163,7 +165,7 @@ impl Runtime {
         let view = self.witness(View {
             source: index,
             target: index,
-            flow: Flow::identity(&self.state[index]),
+            flow: Arc::new(Flow::identity(&self.state[index])),
         });
         self.support(Atom::View(view), []);
         index
@@ -255,17 +257,7 @@ impl Runtime {
                 Task::Inspect(view) => self.inspect(view),
                 Task::Deliver(request) => self.deliver(request),
                 Task::Apply(application) => self.apply(application),
-                Task::Compose(previous, event) => {
-                    let source = self.view[previous].source;
-                    let target = self.event[event].target;
-                    let flow = self.view[previous].flow.compose(&self.event[event].flow);
-                    let view = self.witness(View {
-                        source,
-                        target,
-                        flow,
-                    });
-                    self.support(Atom::View(view), [Atom::View(previous), Atom::Event(event)]);
-                }
+                Task::Compose(previous, event) => self.compose(previous, event),
                 Task::Search(_) | Task::Normalize(_) => unreachable!(),
             }
             self.peak = self.peak.max(self.record());

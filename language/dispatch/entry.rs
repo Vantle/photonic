@@ -49,10 +49,10 @@ impl Entry {
         self.search.viable()
     }
 
-    pub fn reset(&mut self) {
+    pub fn reset(&mut self, index: &Index) {
         self.selection = None;
         self.cursor = 0;
-        self.search.reset();
+        self.search.reset(index);
     }
 
     pub fn next(&mut self, index: &Index) -> Poll<Option<Delivery>> {

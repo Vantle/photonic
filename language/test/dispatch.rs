@@ -133,7 +133,7 @@ fn mutation() {
         let expected = normalize(drain(&mut reference, &fresh), &fresh);
         for _ in 0..3 {
             assert_eq!(normalize(drain(&mut network, &index), &index), expected);
-            network.reset();
+            network.reset(&index);
         }
         let removed = if state.world.is_empty() {
             crate::basis::Set::default()

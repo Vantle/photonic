@@ -13,20 +13,23 @@ pub(super) struct Product {
 }
 
 impl Product {
-    pub fn new(width: usize, budget: Arc<crate::factor::Budget>) -> Self {
+    pub fn new(space: &Space, order: &[usize], store: &Arc<super::Store>) -> Self {
+        let width = order.len();
+        let node = store.subscribe(super::key::Key::new(space, &order[..width - 1]));
         Self {
-            prefix: Stream::new(width - 1, budget),
+            prefix: Stream::new(width - 1, store.budget().clone(), node),
             suffix: Cursor::new(1),
             active: false,
         }
     }
 
-    pub fn reset(&mut self) {
-        self.prefix.reset();
+    pub fn reset(&mut self, index: &Index) {
+        self.prefix.reset(index);
         self.suffix.reset();
         self.active = false;
     }
 
+    #[inline]
     pub fn step(
         &mut self,
         space: &mut Space,
@@ -56,6 +59,11 @@ impl Product {
 
     pub fn evict(&mut self) {
         self.prefix.evict();
+    }
+
+    #[cfg(test)]
+    pub fn shares(&self, other: &Self) -> bool {
+        self.prefix.shares(&other.prefix)
     }
 
     #[cfg(test)]

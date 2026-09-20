@@ -3,6 +3,7 @@ use crate::joining::Join;
 use crate::slot::Slot;
 #[cfg(test)]
 use crate::term::Term;
+#[cfg(test)]
 use std::sync::Arc;
 use std::task::Poll;
 
@@ -47,15 +48,9 @@ impl Search {
         }
     }
 
-    pub fn planned(
-        input: &crate::plan::Input,
-        index: &Index,
-        frame: usize,
-        owner: usize,
-        budget: &Arc<crate::factor::Budget>,
-    ) -> Self {
+    pub fn planned(request: crate::joining::Request<'_>) -> Self {
         Self {
-            join: Join::planned(input, index, frame, owner, budget),
+            join: Join::planned(request),
             mode: Mode::Dormant,
         }
     }
@@ -64,17 +59,17 @@ impl Search {
         if self.join.update(index) {
             self.mode = Mode::Dormant;
         } else {
-            self.reset();
+            self.reset(index);
         }
     }
 
-    pub fn reset(&mut self) {
+    pub fn reset(&mut self, index: &Index) {
         if let Mode::Recording(cache) = &mut self.mode {
             cache.cursor = 0;
             cache.offset = 0;
             return;
         }
-        self.join.reset();
+        self.join.reset(index);
         if matches!(self.mode, Mode::Visited) {
             self.mode = Mode::Recording(Box::new(Cache {
                 record: Vec::new(),
