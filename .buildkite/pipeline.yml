@@ -1,0 +1,40 @@
+env:
+  BUILDKITE_GIT_CLEAN_FLAGS: "-ffdx -e .cache/"
+
+cache:
+  paths:
+    - .cache
+  size: 40g
+
+steps:
+  - label: Check
+    key: check
+    command: bazel build //...
+    timeout_in_minutes: 30
+    agents:
+      queue: x86_64-unknown-linux-gnu
+
+  - label: Browser
+    key: browser
+    command: bazel test --config=release //toolchain/browser:check
+    timeout_in_minutes: 20
+    agents:
+      queue: aarch64-apple-darwin
+
+  - label: "{{matrix}}"
+    key: native
+    command:
+      - bazel build --config=release //... --host_platform=//platform:{{matrix}} --platforms=//platform:{{matrix}}
+      - bazel run --config=release //:format --host_platform=//platform:{{matrix}} --platforms=//platform:{{matrix}} -- --check
+      - bazel run --config=release //:update --host_platform=//platform:{{matrix}} --platforms=//platform:{{matrix}} -- --help
+      - bazel test --config=release //... --host_platform=//platform:{{matrix}} --platforms=//platform:{{matrix}}
+    timeout_in_minutes: 60
+    agents:
+      queue: "{{matrix}}"
+    matrix:
+      - aarch64-apple-darwin
+      - x86_64-apple-darwin
+      - aarch64-unknown-linux-gnu
+      - x86_64-unknown-linux-gnu
+      - aarch64-pc-windows-gnullvm
+      - x86_64-pc-windows-gnullvm

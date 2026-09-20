@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ "${BUILDKITE_STEP_KEY:-}" == upload ]]; then
+    exit 0
+fi
+
+bazel shutdown || true

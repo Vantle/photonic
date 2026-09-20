@@ -2,6 +2,7 @@ common --lockfile_mode=error
 common --registry=https://bcr.bazel.build
 common --enable_platform_specific_config
 common:windows --host_platform=//platform:windows
+common:windows --repo_contents_cache=
 
 build --host_compilation_mode=fastbuild
 build --incompatible_strict_action_env

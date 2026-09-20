@@ -1,0 +1,58 @@
+# Continuous verification
+
+[Photonic on Buildkite](https://buildkite.com/vantle-1/photonic) runs Bazel directly. The pipeline editor contains [bootstrap.yml](../.buildkite/bootstrap.yml), which uploads [pipeline.yml](../.buildkite/pipeline.yml) from the checked-out commit. Verification behavior stays under version control.
+
+The pipeline has eight independent jobs: a default build with lint aspects, an ARM64 macOS browser test, and a six-platform native matrix. Each native job builds, checks formatting, exercises the dependency command, and runs the release test suite. A failing job does not cancel the other platforms. Timeouts are 30, 20, and 60 minutes respectively. New commits supersede older queued and running builds on the same branch.
+
+Repository hooks install checksum-verified Bazelisk 1.28.1, which reads the Bazel version from `.bazelversion`. Bazel supplies the compiler and every build dependency. Post-command hooks shut down Bazel even after verification fails. Windows agents use the default Batch shell and PowerShell for bootstrap; Unix agents use Bash, curl, and shasum. These are agent bootstrap facilities, not additional project build tools.
+
+## Queue inventory
+
+Queues belong to Vantle’s default Buildkite cluster. A matrix entry selects the queue with exactly the same platform name; it never substitutes a cross-compiled test for a native execution.
+
+| Queue | Execution | Provisioning |
+| --- | --- | --- |
+| `linux-medium` | Pipeline upload | Existing hosted queue |
+| `x86_64-unknown-linux-gnu` | Check and native Linux | Hosted, 4 vCPU / 16 GB |
+| `aarch64-apple-darwin` | Browser and native macOS | Hosted macOS Sequoia, 6 vCPU / 28 GB |
+| `aarch64-unknown-linux-gnu` | Native Linux | Self-hosted agent required |
+| `x86_64-apple-darwin` | Native macOS | Self-hosted Intel Mac required |
+| `aarch64-pc-windows-gnullvm` | Native Windows | Self-hosted ARM64 Windows agent required |
+| `x86_64-pc-windows-gnullvm` | Native Windows | Self-hosted x86-64 Windows agent required |
+
+All queues are created. At migration time, the organization could not create hosted ARM64 Linux or Windows agents. Buildkite does not offer hosted Intel macOS or ARM64 Windows. Jobs in the four self-hosted queues remain queued until matching agents connect; they are deliberately neither skipped nor allowed to fail.
+
+## Provision an agent
+
+Use a dedicated machine or disposable virtual machine running the queue’s native operating system and architecture. Install Git and the matching [Buildkite agent](https://buildkite.com/docs/agent/self-hosted/install). Keep the default shell: Bash on Unix and Batch on Windows. Windows also needs Windows PowerShell with `Invoke-WebRequest` and `Get-FileHash`.
+
+In the default cluster’s agent-token settings, create a token restricted to the intended queue. Supply it through the service’s `BUILDKITE_AGENT_TOKEN` environment variable or a restricted agent configuration file. The temporary API token used to configure the pipeline is not an agent token and is not needed to run builds.
+
+Start the agent with the exact queue key, for example:
+
+```sh
+buildkite-agent start --queue=aarch64-unknown-linux-gnu
+```
+
+For the remaining machines, replace the queue key with `x86_64-apple-darwin`, `aarch64-pc-windows-gnullvm`, or `x86_64-pc-windows-gnullvm`. Use the operating system’s service manager to keep the agent running. The repository is public and clones over HTTPS, so checkout needs no GitHub credential. Avoid personal machines containing unrelated credentials: verification executes repository code.
+
+## GitHub integration
+
+The repository webhook sends `push`, `pull_request`, and `merge_group` events to this pipeline’s Buildkite-generated webhook URL with JSON encoding and TLS verification. Keep that URL in service configuration rather than committing it. The webhook ping returned HTTP 200 during setup.
+
+Buildkite enables branch and pull-request builds and publishes the aggregate `buildkite/photonic` commit status. Require that context on `main`, with the branch up to date before merging. The aggregate covers pipeline upload and every matrix job, so a missing agent cannot accidentally produce a green required check. Third-party fork builds remain disabled; enabling them requires a separate policy for agent isolation and cache access. Delivery of merge-group events alone does not enable Buildkite merge-queue builds.
+
+Connect the [Buildkite GitHub App](https://buildkite.com/docs/pipelines/source-control/github) to the Vantle organization to publish statuses independently of a personal OAuth connection. The App installation is an interactive GitHub account operation. Pipeline and webhook configuration do not grant Buildkite permission to write GitHub statuses by themselves.
+
+Manual verification is available through **New Build** in Buildkite. For local pipeline syntax validation, use:
+
+```sh
+buildkite-agent pipeline upload --dry-run .buildkite/bootstrap.yml
+buildkite-agent pipeline upload --dry-run .buildkite/pipeline.yml
+```
+
+## Cache behavior
+
+The pipeline requests a 40 GB hosted cache volume mounted at `.cache/`. Bazel action and repository caches, Bazelisk downloads, and verified bootstrap binaries live below it. Self-hosted agents use the same layout, and checkout cleanup preserves only `.cache/`. All other ignored and untracked checkout files are removed. The generated, ignored `user.bazelrc` selects these CI cache locations without changing local build defaults.
+
+Hosted volumes are best-effort, and concurrent jobs receive separate copies. Successful jobs can update the shared volume. Cache reuse is an optimization; it is never required for correctness. The pipeline keeps no compiler output or credentials in GitHub Actions caches.

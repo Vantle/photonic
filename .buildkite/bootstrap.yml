@@ -1,0 +1,7 @@
+steps:
+  - label: Upload
+    key: upload
+    command: buildkite-agent pipeline upload .buildkite/pipeline.yml
+    timeout_in_minutes: 5
+    agents:
+      queue: linux-medium
