@@ -16,7 +16,7 @@ impl Budget {
         }
     }
 
-    fn reserve(&self, size: usize) -> bool {
+    pub fn reserve(&self, size: usize) -> bool {
         self.retained
             .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |retained| {
                 retained
@@ -24,6 +24,9 @@ impl Budget {
                     .filter(|&next| next <= self.capacity)
             })
             .is_ok()
+    }
+    pub fn release(&self, size: usize) {
+        self.retained.fetch_sub(size, Ordering::Relaxed);
     }
 }
 
@@ -45,9 +48,7 @@ struct Cache {
 
 impl Drop for Cache {
     fn drop(&mut self) {
-        self.budget
-            .retained
-            .fetch_sub(self.retained, Ordering::Relaxed);
+        self.budget.release(self.retained);
     }
 }
 

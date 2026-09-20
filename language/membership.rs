@@ -1,11 +1,13 @@
 use smallvec::SmallVec;
 use std::collections::BTreeSet;
 
+#[derive(Clone)]
 enum Storage {
     Flat(SmallVec<[usize; 2]>),
     Tree(BTreeSet<usize>),
 }
 
+#[derive(Clone)]
 pub(crate) struct Set(Storage);
 
 pub(crate) enum Traversal<'set> {
@@ -20,33 +22,50 @@ impl Default for Set {
 }
 
 impl Set {
-    pub fn insert(&mut self, value: usize) {
+    pub fn insert(&mut self, value: usize) -> bool {
         match &mut self.0 {
             Storage::Flat(sequence) => {
                 let Err(position) = sequence.binary_search(&value) else {
-                    return;
+                    return false;
                 };
                 sequence.insert(position, value);
                 if sequence.len() > 32 {
                     self.0 = Storage::Tree(sequence.drain(..).collect());
                 }
+                true
             }
-            Storage::Tree(sequence) => {
-                sequence.insert(value);
-            }
+            Storage::Tree(sequence) => sequence.insert(value),
         }
     }
 
-    pub fn remove(&mut self, value: &usize) {
+    pub fn remove(&mut self, value: &usize) -> bool {
         match &mut self.0 {
             Storage::Flat(sequence) => {
-                if let Ok(position) = sequence.binary_search(value) {
-                    sequence.remove(position);
-                }
+                let Ok(position) = sequence.binary_search(value) else {
+                    return false;
+                };
+                sequence.remove(position);
+                true
             }
-            Storage::Tree(sequence) => {
-                sequence.remove(value);
-            }
+            Storage::Tree(sequence) => sequence.remove(value),
+        }
+    }
+
+    pub fn clear(&mut self) {
+        self.0 = Storage::Flat(SmallVec::new());
+    }
+
+    pub fn len(&self) -> usize {
+        match &self.0 {
+            Storage::Flat(value) => value.len(),
+            Storage::Tree(value) => value.len(),
+        }
+    }
+
+    pub fn contains(&self, value: &usize) -> bool {
+        match &self.0 {
+            Storage::Flat(sequence) => sequence.binary_search(value).is_ok(),
+            Storage::Tree(sequence) => sequence.contains(value),
         }
     }
 
@@ -72,5 +91,13 @@ impl<'set> Iterator for Traversal<'set> {
             Self::Flat(value) => value.next(),
             Self::Tree(value) => value.next(),
         }
+    }
+}
+
+impl<'set> IntoIterator for &'set Set {
+    type Item = &'set usize;
+    type IntoIter = Traversal<'set>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
     }
 }

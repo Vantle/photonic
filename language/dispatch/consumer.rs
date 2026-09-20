@@ -1,7 +1,7 @@
 use super::entry::Consumer;
 use super::{Key, Network};
 use crate::index::Index;
-use std::collections::BTreeSet;
+use crate::membership::Set;
 
 pub(super) struct Request {
     pub key: Key,
@@ -13,7 +13,7 @@ impl Network {
         &self,
         index: &Index,
         frame: usize,
-        selected: Option<&BTreeSet<usize>>,
+        selected: Option<&Set>,
     ) -> Vec<Request> {
         let mut request = Vec::new();
         if index.present(frame) {

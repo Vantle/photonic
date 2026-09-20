@@ -4,6 +4,8 @@ Photonic is a proof language with a native Rust kernel, two execution modes, per
 
 This report describes the source measured in [architecture.json](architecture.json), following baseline `437bda3`. Earlier algorithmic work and measurements remain in [optimization.md](optimization.md), [implementation.md](implementation.md), and [factorization.md](factorization.md). The [roadmap](roadmap.md) remains the record of larger unfinished work. No benchmark establishes a universal speedup or the absence of all kernel bugs.
 
+The subsequent [joined-prefix audit](prefix.md) adds bounded multi-input prefix reuse and adaptive dispatch storage, with paired measurements against `20984f1`. Its matching ownership breakdown supersedes the single-file join description below.
+
 ## The graph model
 
 There are several related graphs, with different identities and invariants:

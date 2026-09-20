@@ -128,6 +128,10 @@ filegroup(
         "index.rs",
         "index/posting.rs",
         "joining.rs",
+        "joining/cursor.rs",
+        "joining/product.rs",
+        "joining/space.rs",
+        "joining/stream.rs",
         "layout.rs",
         "link.rs",
         "membership.rs",
@@ -177,6 +181,7 @@ rust_library(
     name = "measurement",
     srcs = [
         "measurement.rs",
+        "measurement/joining.rs",
         "measurement/profile.rs",
         "measurement/query.rs",
         "measurement/reachability.rs",

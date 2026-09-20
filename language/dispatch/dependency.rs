@@ -44,7 +44,7 @@ impl Network {
                 .flatten()
                 .filter_map(|symbol| self.trigger.get(symbol))
         };
-        let selected: SmallVec<[Key; 4]> = if count <= 16
+        let selected: SmallVec<[(Key, usize); 4]> = if count <= 16
             || count <= self.empty.len() + dependency().map(Vec::len).sum::<usize>()
         {
             self.entry
@@ -56,7 +56,7 @@ impl Network {
                             plan.dependency().iter().any(|value| symbol.contains(value))
                         })
                 })
-                .map(|(&key, _)| key)
+                .map(|(&key, &position)| (key, position))
                 .collect()
         } else {
             dependency()
@@ -66,11 +66,10 @@ impl Network {
                 .collect::<BTreeSet<_>>()
                 .into_iter()
                 .flat_map(|input| self.entry.range(Key::input(frame, input)))
-                .map(|(&key, _)| key)
+                .map(|(&key, &position)| (key, position))
                 .collect()
         };
-        for key in selected {
-            let position = self.entry[&key];
+        for (key, position) in selected {
             let entry = &mut self.store[position];
             self.storage -= entry.retained();
             if entry.advance(index, self.generation) {

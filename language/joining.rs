@@ -1,93 +1,66 @@
+mod cursor;
+mod product;
+mod space;
+mod stream;
+
 use crate::index::Index;
-use crate::particle::Match;
 use crate::slot::Slot;
+#[cfg(test)]
 use crate::term::Term;
-use smallvec::{SmallVec, smallvec};
+use cursor::Cursor;
+use product::Product;
+use smallvec::SmallVec;
+use space::Space;
 use std::sync::Arc;
 use std::task::Poll;
 
-struct Member {
-    site: usize,
-    particle: Option<crate::factor::Cursor>,
+enum Traversal {
+    Direct(Cursor),
+    Factored(Box<Product>),
 }
 
 pub(crate) struct Join {
-    frame: usize,
-    budget: Option<Arc<crate::factor::Budget>>,
-    cached: usize,
-    preparation: Option<crate::plan::Context>,
-    pattern: Arc<Vec<Vec<Term>>>,
-    group: Arc<Vec<usize>>,
-    domain: SmallVec<[Vec<Member>; 2]>,
+    space: Space,
     order: SmallVec<[usize; 2]>,
-    cursor: SmallVec<[usize; 2]>,
-    scan: SmallVec<[bool; 2]>,
-    binding: SmallVec<[Slot; 2]>,
-    depth: usize,
-    complete: bool,
+    traversal: Traversal,
     viable: bool,
-    retained: usize,
+    complete: bool,
+    stable: bool,
 }
 
 impl Join {
     #[cfg(test)]
     pub fn new(pattern: Arc<Vec<Vec<Term>>>, index: &Index, frame: usize) -> Self {
-        Self::construct(pattern, index, frame, None, None)
+        Self::construct(Space::new(pattern, index, frame, None, None))
     }
 
-    fn construct(
-        pattern: Arc<Vec<Vec<Term>>>,
-        index: &Index,
-        frame: usize,
-        preparation: Option<crate::plan::Context>,
-        budget: Option<Arc<crate::factor::Budget>>,
-    ) -> Self {
-        let domain = pattern
-            .iter()
-            .enumerate()
-            .map(|(position, pattern)| {
-                preparation
-                    .as_ref()
-                    .map_or_else(
-                        || index.candidate(pattern, frame),
-                        |context| context.candidate(position, index, frame),
-                    )
-                    .into_iter()
-                    .map(|world| Member {
-                        site: index.site(world),
-                        particle: None,
-                    })
-                    .collect()
-            })
-            .collect();
-        let width = pattern.len();
-        let group = preparation.as_ref().map_or_else(
-            || Arc::new(crate::partition::classify(&pattern)),
-            crate::plan::Context::group,
-        );
+    fn construct(space: Space) -> Self {
+        let mut order: SmallVec<[usize; 2]> = (0..space.pattern.len()).collect();
+        order.sort_by_key(|&position| space.domain[position].len());
+        let traversal = Traversal::Direct(Cursor::new(order.len()));
         let mut join = Self {
-            frame,
-            budget,
-            cached: 0,
-            preparation,
-            group,
-            pattern,
-            domain,
-            order: (0..width).collect(),
-            cursor: smallvec![0; width],
-            scan: smallvec![false; width],
-            binding: SmallVec::with_capacity(width),
-            depth: 0,
-            complete: false,
+            space,
+            order,
+            traversal,
             viable: false,
-            retained: 0,
+            complete: false,
+            stable: false,
         };
-        join.order
-            .sort_by_key(|&position| join.domain[position].len());
         join.viable = join.feasible();
         join.reset();
-        join.retained = join.size();
         join
+    }
+
+    fn product(space: &Space, order: &[usize]) -> Option<Box<Product>> {
+        if let Some(budget) = &space.budget
+            && order.len() >= 3
+            && order[..order.len() - 1]
+                .iter()
+                .any(|&position| space.pattern[position].len() >= 8)
+        {
+            return Some(Box::new(Product::new(order.len(), budget.clone())));
+        }
+        None
     }
 
     pub fn planned(
@@ -97,13 +70,13 @@ impl Join {
         owner: usize,
         budget: &Arc<crate::factor::Budget>,
     ) -> Self {
-        Self::construct(
+        Self::construct(Space::new(
             input.pattern(owner),
             index,
             frame,
             Some(input.context(owner)),
             input.factor().then(|| budget.clone()),
-        )
+        ))
     }
 
     #[cfg(test)]
@@ -113,93 +86,58 @@ impl Join {
     }
 
     pub fn update(&mut self, index: &Index) -> bool {
-        let mut changed = false;
-        for (position, domain) in self.domain.iter_mut().enumerate() {
-            if domain.len() > 16
-                && self
-                    .preparation
-                    .as_ref()
-                    .is_some_and(|context| !context.affected(position, index, self.frame))
-            {
-                continue;
-            }
-            let previous = domain.len();
-            domain.retain(|member| {
-                if !index.removal.contains(&member.site) {
-                    return true;
-                }
-                self.retained -= 1;
-                if let Some(particle) = &member.particle {
-                    self.retained -= particle.retained();
-                    self.cached -= particle.cached();
-                }
-                false
-            });
-            changed |= previous != domain.len();
-            for &site in &index.insertion {
-                let world = &index.state.world[index.world(site)];
-                if world.frame != self.frame {
-                    continue;
-                }
-                let eligible = self.preparation.as_ref().map_or_else(
-                    || {
-                        self.pattern[position]
-                            .iter()
-                            .all(|term| world.particle.iter().any(|token| term.matches(token)))
-                    },
-                    |context| context.matches(position, index, site),
-                );
-                if eligible {
-                    changed = true;
-                    domain.push(Member {
-                        site,
-                        particle: None,
-                    });
-                    self.retained += 1;
-                }
-            }
-        }
-        if !changed {
+        let changed = self.space.update(index);
+        if changed.is_empty() {
             return false;
         }
+        let previous = self.order.clone();
         self.order
-            .sort_by_key(|&position| self.domain[position].len());
+            .sort_by_key(|&position| self.space.domain[position].len());
+        let stable = self.order == previous
+            && !changed.iter().any(|position| {
+                self.order[..self.order.len().saturating_sub(1)].contains(position)
+            });
+        if !stable {
+            if matches!(self.traversal, Traversal::Factored(_)) || self.order != previous {
+                self.traversal = Traversal::Direct(Cursor::new(self.order.len()));
+            }
+        } else if self.stable
+            && matches!(self.traversal, Traversal::Direct(_))
+            && let Some(product) = Self::product(&self.space, &self.order)
+        {
+            self.traversal = Traversal::Factored(product);
+        }
+        self.stable = stable;
         self.viable = self.feasible();
         self.reset();
         true
     }
 
     pub fn reset(&mut self) {
-        self.cursor.fill(0);
-        self.scan.fill(false);
-        self.retained -= self
-            .binding
-            .iter()
-            .map(|slot| slot.token.len() + 1)
-            .sum::<usize>();
-        self.binding.clear();
-        self.depth = 0;
-        self.complete = self.domain.iter().any(Vec::is_empty);
+        match &mut self.traversal {
+            Traversal::Direct(cursor) => cursor.reset(),
+            Traversal::Factored(product) => product.reset(),
+        }
+        self.complete = self.space.domain.iter().any(Vec::is_empty);
     }
 
     pub fn viable(&self) -> bool {
         self.viable
     }
-
     pub fn frame(&self) -> usize {
-        self.frame
+        self.space.frame
     }
 
     fn feasible(&self) -> bool {
-        if self.domain.iter().any(Vec::is_empty) {
+        if self.space.domain.iter().any(Vec::is_empty) {
             return false;
         }
-        if self.domain.len() <= 1 {
+        if self.space.domain.len() <= 1 {
             return true;
         }
-        let mut selected = Vec::with_capacity(self.domain.len());
+        let mut selected = Vec::with_capacity(self.space.domain.len());
         for &position in &self.order {
-            if let Some(member) = self.domain[position]
+            if let Some(member) = self.space.domain[position]
                 .iter()
                 .find(|member| !selected.contains(&member.site))
             {
@@ -208,10 +146,11 @@ impl Join {
                 break;
             }
         }
-        if selected.len() == self.domain.len() {
+        if selected.len() == self.space.domain.len() {
             return true;
         }
         let domain = self
+            .space
             .domain
             .iter()
             .map(|domain| domain.iter().map(|member| member.site).collect())
@@ -223,138 +162,45 @@ impl Join {
         if self.complete {
             return Poll::Ready(None);
         }
-        if self.order.is_empty() {
-            self.complete = true;
-            return Poll::Ready(Some(Vec::new()));
-        }
-        let position = self.order[self.depth];
-        if !self.scan[self.depth] {
-            let Some(member) = self.domain[position].get_mut(self.cursor[self.depth]) else {
-                self.cursor[self.depth] = 0;
-                if self.depth == 0 {
-                    self.complete = true;
-                    return Poll::Ready(None);
-                }
-                self.depth -= 1;
-                let slot = self.binding.pop().unwrap();
-                self.retained -= slot.token.len() + 1;
-                return Poll::Pending;
-            };
-            if self.binding.iter().any(|slot| {
-                slot.world == member.site
-                    || (self.group[slot.position] == self.group[position]
-                        && index.world(slot.world) >= index.world(member.site))
-            }) {
-                self.cursor[self.depth] += 1;
-                return Poll::Pending;
-            }
-            if member.particle.is_none() {
-                let particle = &index.state.world[index.world(member.site)].particle;
-                let particle = if let Some(context) = &self.preparation {
-                    context.select(position, index, member.site)
-                } else {
-                    Match::new(&self.pattern[position], particle)
-                };
-                self.retained += particle.retained();
-                let budget = self
-                    .budget
-                    .as_ref()
-                    .filter(|_| self.pattern[position].len() >= 8)
-                    .cloned();
-                member.particle = Some(crate::factor::Cursor::new(particle, budget));
-            }
-            member.particle.as_mut().unwrap().reset();
-            self.scan[self.depth] = true;
-        }
-        let particle = self.domain[position][self.cursor[self.depth]]
-            .particle
-            .as_mut()
-            .unwrap();
-        let result = if self.budget.is_some() {
-            let previous = particle.cached();
-            let result = particle.step(4096 - self.cached);
-            self.cached = self.cached - previous + particle.cached();
-            self.retained = self.retained - previous + particle.cached();
-            result
-        } else {
-            particle.step(0)
+        let result = match &mut self.traversal {
+            Traversal::Direct(cursor) => cursor.step(&mut self.space, &self.order, index),
+            Traversal::Factored(product) => product.step(&mut self.space, &self.order, index),
         };
-        match result {
-            Poll::Ready(Some(token)) => {
-                let slot = Slot {
-                    world: self.domain[position][self.cursor[self.depth]].site,
-                    token,
-                    position,
-                };
-                if self.depth + 1 == self.order.len() {
-                    let mut value = self.binding.clone();
-                    value.push(slot);
-                    for slot in &mut value {
-                        slot.world = index.world(slot.world);
-                    }
-                    value.sort_by_key(|slot| slot.position);
-                    return Poll::Ready(Some(value.into_vec()));
+        result.map(|selection| {
+            selection.map(|mut selection| {
+                for slot in &mut selection {
+                    slot.world = index.world(slot.world);
                 }
-                self.retained += slot.token.len() + 1;
-                self.binding.push(slot);
-                self.depth += 1;
-            }
-            Poll::Ready(None) => {
-                self.scan[self.depth] = false;
-                self.cursor[self.depth] += 1;
-            }
-            Poll::Pending => {}
-        }
-        Poll::Pending
+                selection.sort_by_key(|slot| slot.position);
+                selection
+            })
+        })
     }
 
     pub fn evict(&mut self) {
-        if self.cached == 0 {
-            return;
+        if let Traversal::Factored(product) = &mut self.traversal {
+            product.evict();
         }
-        for particle in self
-            .domain
-            .iter_mut()
-            .flatten()
-            .filter_map(|member| member.particle.as_mut())
-        {
-            particle.evict();
-        }
-        self.retained -= self.cached;
-        self.cached = 0;
+        self.space.evict();
+    }
+
+    #[cfg(test)]
+    fn size(&self) -> usize {
+        self.space.size()
+            + self.order.len()
+            + match &self.traversal {
+                Traversal::Direct(cursor) => cursor.size(),
+                Traversal::Factored(product) => product.size(),
+            }
     }
 
     pub fn retained(&self) -> usize {
-        self.retained
-    }
-
-    fn size(&self) -> usize {
-        self.pattern.iter().map(Vec::len).sum::<usize>()
-            + self
-                .domain
-                .iter()
-                .map(|domain| {
-                    domain
-                        .iter()
-                        .map(|member| {
-                            member
-                                .particle
-                                .as_ref()
-                                .map_or(0, crate::factor::Cursor::retained)
-                                + 1
-                        })
-                        .sum::<usize>()
-                        + 1
-                })
-                .sum::<usize>()
+        self.space.retained()
             + self.order.len()
-            + self.cursor.len()
-            + self.scan.len()
-            + self
-                .binding
-                .iter()
-                .map(|slot| slot.token.len() + 1)
-                .sum::<usize>()
+            + match &self.traversal {
+                Traversal::Direct(cursor) => cursor.retained(),
+                Traversal::Factored(product) => product.retained(),
+            }
     }
 }
 

@@ -4,23 +4,43 @@ fn mutation() {
     let mut actual = crate::membership::Set::default();
     for width in [2, 512, 16] {
         for value in (0..width).rev() {
-            expected.insert(value);
-            actual.insert(value);
-            actual.insert(value);
+            assert_eq!(actual.insert(value), expected.insert(value));
+            assert!(!actual.insert(value));
+            assert!(actual.contains(&value));
+            assert_eq!(actual.len(), expected.len());
             assert_eq!(
                 actual.iter().collect::<Vec<_>>(),
                 expected.iter().collect::<Vec<_>>()
             );
         }
         for value in 0..width {
-            expected.remove(&value);
-            actual.remove(&value);
-            actual.remove(&value);
+            assert_eq!(actual.remove(&value), expected.remove(&value));
+            assert!(!actual.remove(&value));
+            assert!(!actual.contains(&value));
+            assert_eq!(actual.len(), expected.len());
             assert_eq!(
                 actual.iter().collect::<Vec<_>>(),
                 expected.iter().collect::<Vec<_>>()
             );
         }
         assert!(actual.is_empty());
+    }
+}
+
+#[test]
+fn isolation() {
+    for width in [2, 32, 33, 512] {
+        let mut original = crate::membership::Set::default();
+        for value in 0..width {
+            original.insert(value);
+        }
+        let mut copied = original.clone();
+        copied.clear();
+        assert!(copied.is_empty());
+        assert_eq!(original.len(), width);
+        assert_eq!(
+            (&original).into_iter().copied().collect::<Vec<_>>(),
+            (0..width).collect::<Vec<_>>()
+        );
     }
 }

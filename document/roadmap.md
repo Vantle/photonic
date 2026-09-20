@@ -6,6 +6,8 @@ The first production implementation and its remaining boundaries are tracked in 
 
 The target is an evaluator that shares reusable program structure, discovers concrete work on demand, and maintains derived results from explicit changes. Decisions are conditional on semantic equivalence and measured benefit. No universal speedup or globally optimal query plan is assumed.
 
+The [joined-prefix implementation](prefix.md) now retains bounded multi-input prefixes across suffix-only changes and gates admission on observed reuse. It preserves exact pending/binding streams and falls back to direct traversal under prefix churn. Cross-plan joined-result sharing, row-level retraction inside changed prefixes, and broader contextual construction/flow reuse remain unfinished.
+
 ## Semantic boundary
 
 - State is unordered. Synchronization establishes a firing; planner order and scheduler order are implementation details.

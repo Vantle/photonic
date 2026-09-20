@@ -1,5 +1,6 @@
 use crate::catalog::Catalog;
 use crate::index::Index;
+use crate::membership::Set;
 use crate::program::Symbol;
 use crate::replay::Search;
 use crate::slot::Slot;
@@ -7,7 +8,7 @@ use crate::state::State;
 use entry::Entry;
 use key::Key;
 use smallvec::SmallVec;
-use std::collections::{BTreeMap, BTreeSet, HashMap, VecDeque};
+use std::collections::{BTreeMap, HashMap, VecDeque};
 use std::task::Poll;
 
 mod consumer;
@@ -29,8 +30,8 @@ pub(crate) struct Network {
     trigger: HashMap<Symbol, Vec<usize>>,
     empty: Vec<usize>,
     missing: Vec<usize>,
-    enabled: BTreeSet<usize>,
-    scope: Vec<BTreeSet<usize>>,
+    enabled: Set,
+    scope: Vec<Set>,
     entry: BTreeMap<Key, usize>,
     ready: Option<BTreeMap<Key, usize>>,
     count: Vec<usize>,
@@ -39,7 +40,7 @@ pub(crate) struct Network {
     retained: usize,
     storage: usize,
     generation: usize,
-    altered: BTreeSet<usize>,
+    altered: Set,
     pub preparation: usize,
     pub reuse: usize,
 }
@@ -49,7 +50,7 @@ impl Network {
         let catalog = Catalog::new(program);
         let mut trigger: HashMap<_, Vec<_>> = HashMap::new();
         let mut missing = Vec::new();
-        let mut enabled = BTreeSet::new();
+        let mut enabled = Set::default();
         let mut empty = Vec::new();
         for input in 0..catalog.count() {
             if catalog.input(input).empty() {
@@ -64,7 +65,7 @@ impl Network {
                 trigger.entry(symbol).or_default().push(input);
             }
         }
-        let mut scope = vec![BTreeSet::new(); program.scope.len()];
+        let mut scope = vec![Set::default(); program.scope.len()];
         for &input in &enabled {
             for &owner in catalog.owner(input) {
                 scope[owner].insert(input);
@@ -76,13 +77,13 @@ impl Network {
             + trigger.values().map(Vec::len).sum::<usize>()
             + missing.len()
             + scope.len()
-            + scope.iter().map(BTreeSet::len).sum::<usize>();
+            + scope.iter().map(Set::len).sum::<usize>();
         let mut network = Self {
             retained,
             storage: 0,
             store: crate::arena::Store::new(),
             generation: 0,
-            altered: BTreeSet::new(),
+            altered: Set::default(),
             catalog,
             budget: std::sync::Arc::new(crate::factor::Budget::new(65_536)),
             trigger,
@@ -107,7 +108,7 @@ impl Network {
         network
     }
 
-    fn frame(&mut self, index: &Index, frame: usize, selected: Option<&BTreeSet<usize>>) {
+    fn frame(&mut self, index: &Index, frame: usize, selected: Option<&Set>) {
         let request = self.request(index, frame, selected);
         let interval = selected
             .filter(|selected| selected.len() < self.count.get(frame).copied().unwrap_or(0))
@@ -207,8 +208,12 @@ impl Network {
         for &symbol in &index.altered {
             self.symbol(symbol, index.contains(&symbol));
         }
-        let mut affected = index.affected.keys().copied().collect::<BTreeSet<_>>();
-        let changed = change
+        let mut affected = index
+            .affected
+            .keys()
+            .copied()
+            .collect::<SmallVec<[usize; 4]>>();
+        let mut changed = change
             .frame
             .iter()
             .copied()
@@ -220,26 +225,32 @@ impl Network {
                     _ => true,
                 },
             )
-            .collect::<BTreeSet<_>>();
+            .collect::<SmallVec<[usize; 4]>>();
+        changed.sort_unstable();
+        changed.dedup();
         let mut context = changed.clone();
-        context.extend(&index.context);
-        affected.extend(&changed);
+        context.extend_from_slice(&index.context);
+        affected.extend_from_slice(&changed);
         if !changed.is_empty() {
             for frame in index.frame() {
                 let mut owner = Some(frame);
                 while let Some(current) = owner {
-                    if changed.contains(&current) {
-                        affected.insert(frame);
-                        context.insert(frame);
+                    if changed.binary_search(&current).is_ok() {
+                        affected.push(frame);
+                        context.push(frame);
                         break;
                     }
                     owner = index.state.frame[current].lexical;
                 }
             }
         }
+        affected.sort_unstable();
+        affected.dedup();
+        context.sort_unstable();
+        context.dedup();
         for frame in affected {
             let previous = self.preparation;
-            if context.contains(&frame) {
+            if context.binary_search(&frame).is_ok() {
                 self.frame(index, frame, None);
             } else {
                 let mut selected = self.altered.clone();

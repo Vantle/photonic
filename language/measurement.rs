@@ -1,3 +1,4 @@
+pub mod joining;
 pub mod profile;
 pub mod query;
 pub mod reachability;
