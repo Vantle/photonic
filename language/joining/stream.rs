@@ -1,6 +1,7 @@
 use super::cursor::Cursor;
 use super::node::Node;
 use super::playback::Playback;
+use super::recording::Recording;
 use super::space::Space;
 use super::trace::Trace;
 use crate::index::Index;
@@ -13,12 +14,7 @@ enum Mode {
     Visited,
     Repeated,
     Streaming,
-    Recording(Box<Cache>),
-}
-
-struct Cache {
-    trace: Arc<Trace>,
-    playback: Playback,
+    Recording(Box<Recording>),
 }
 
 pub(super) struct Stream {
@@ -63,10 +59,7 @@ impl Stream {
         }
         if matches!(self.mode, Mode::Repeated) {
             self.mode = if let Some(trace) = Trace::new(self.budget.clone(), 1) {
-                Mode::Recording(Box::new(Cache {
-                    trace: Arc::new(trace),
-                    playback: Playback::default(),
-                }))
+                Mode::Recording(Box::new(Recording::new(trace)))
             } else {
                 Mode::Streaming
             };
@@ -87,23 +80,45 @@ impl Stream {
         let Mode::Recording(cache) = &mut self.mode else {
             unreachable!();
         };
-        if cache.playback.progress == 65536
-            || !Arc::get_mut(&mut cache.trace)
-                .unwrap()
-                .append(&result, 4096)
-        {
+        if !cache.append(&result) {
             self.mode = Mode::Streaming;
             return result;
         }
-        cache.playback.cursor = cache.trace.record.len();
-        cache.playback.progress += 1;
-        if cache.trace.complete
-            && let Some(node) = &self.node
+        if let Some(node) = &self.node
             && Arc::strong_count(node) > 2
         {
-            node.publish(index, &cache.trace);
+            cache.publish(node, index);
         }
         result
+    }
+
+    fn follow(
+        &mut self,
+        space: &mut Space,
+        order: &[usize],
+        index: &Index,
+    ) -> Poll<Option<Vec<Slot>>> {
+        let Mode::Recording(cache) = &mut self.mode else {
+            unreachable!();
+        };
+        let progress = cache.playback.progress;
+        if let Some(trace) = self
+            .node
+            .as_ref()
+            .and_then(|node| node.find(index))
+            .filter(|trace| trace.length > progress || (trace.complete && trace.length == progress))
+        {
+            cache.playback.seek(&trace, progress);
+            cache.trace = trace;
+            if let Some(result) = cache.playback.step(&cache.trace, order) {
+                return result;
+            }
+            return Poll::Ready(None);
+        }
+        self.source.reset();
+        self.restoration = Some(progress);
+        self.mode = Mode::Streaming;
+        self.advance(space, order, index)
     }
 
     #[cfg(test)]
@@ -121,21 +136,17 @@ impl super::prefix::Prefix for Stream {
     fn reset(&mut self, index: &Index) {
         if let Mode::Recording(cache) = &mut self.mode {
             cache.playback = Playback::default();
-            if cache.trace.complete
-                && let Some(node) = &self.node
+            if let Some(node) = &self.node
                 && Arc::strong_count(node) > 2
             {
-                node.publish(index, &cache.trace);
+                cache.share(node, index);
             }
             return;
         }
         self.restoration = None;
         self.source.reset();
         if let Some(trace) = self.shared().and_then(|node| node.find(index)) {
-            self.mode = Mode::Recording(Box::new(Cache {
-                trace,
-                playback: Playback::default(),
-            }));
+            self.mode = Mode::Recording(Box::new(Recording::shared(trace)));
         } else if matches!(self.mode, Mode::Visited) {
             self.mode = Mode::Repeated;
         }
@@ -162,6 +173,9 @@ impl super::prefix::Prefix for Stream {
         if cache.trace.complete {
             return Poll::Ready(None);
         }
+        if !cache.writable() {
+            return self.follow(space, order, index);
+        }
         self.record(space, order, index)
     }
 
@@ -180,14 +194,14 @@ impl super::prefix::Prefix for Stream {
         self.source.size()
             + 1
             + match &self.mode {
-                Mode::Recording(cache) => cache.trace.size(),
+                Mode::Recording(cache) => cache.size(),
                 _ => 0,
             }
     }
 
     fn cached(&self) -> usize {
         match &self.mode {
-            Mode::Recording(cache) => cache.trace.retained,
+            Mode::Recording(cache) => cache.retained(),
             _ => 0,
         }
     }

@@ -235,3 +235,237 @@ fn pressure() {
     assert!(store.budget().reserve(3));
     store.budget().release(3);
 }
+
+fn advance(query: &mut Join, reference: &mut Join, index: &Index, length: usize) {
+    for _ in 0..length {
+        let result = query.step(index);
+        assert_eq!(result, reference.step(index));
+        assert_eq!(query.retained(), query.size());
+        assert!(prefix(query).cached() <= 4096);
+        if result == Poll::Ready(None) {
+            return;
+        }
+    }
+}
+
+#[test]
+fn unfinished() {
+    for productive in [false, true] {
+        let particle = format!("{}.([X] Y)", ["A"; 8].join("."));
+        let source = if productive {
+            format!(
+                "{particle}.A,I,I,I,I,J,J,J,J,J,K.L.M,K.L.M,K.L.M,K.L.M,K.L.M,K.L.M [{particle},I,J,K] First [L,{particle},I,J] Second [{particle},I,J,M] Third"
+            )
+        } else {
+            let content = ["I.J.K.L.M"; 10].join(",");
+            let pattern = ["I"; 9].join(",");
+            format!(
+                "{particle},{content},K.L.M [{particle},{pattern},I.J.J,K] First [L,{particle},{pattern},I.J.J] Second [{particle},{pattern},I.J.J,M] Third"
+            )
+        };
+        let program = Program::new(crate::lowering::parse(&source).unwrap());
+        let index = Index::new(Arc::new(State::initial(&program)));
+        let store = Arc::new(Store::new(65536));
+        let input = program
+            .rule
+            .iter()
+            .filter(|rule| rule.input.len() >= 3)
+            .map(|rule| Input::new(&rule.input))
+            .collect::<Vec<_>>();
+        let mut query = input
+            .iter()
+            .map(|input| {
+                let mut query = Join::planned(Request {
+                    input,
+                    index: &index,
+                    frame: 0,
+                    owner: 0,
+                    store: &store,
+                });
+                query.traversal =
+                    Join::product(&query.space, &query.order, super::Strategy::Shared).unwrap();
+                query
+            })
+            .collect::<Vec<_>>();
+        let mut reference = input
+            .iter()
+            .map(|input| Join::new(input.pattern(0), &index, 0))
+            .collect::<Vec<_>>();
+        let node = store
+            .subscribe(super::key::Key::new(
+                &query[0].space,
+                &query[0].order[..query[0].order.len() - 1],
+            ))
+            .unwrap();
+        drain(&mut query[0], &mut reference[0], &index);
+        query[0].reset(&index);
+        reference[0].reset(&index);
+        for _ in 0..100000 {
+            advance(&mut query[0], &mut reference[0], &index, 1);
+            if node.find(&index).is_some() {
+                break;
+            }
+        }
+        let snapshot = node.find(&index).unwrap();
+        assert!(!snapshot.complete);
+        assert_eq!(snapshot.length, 256);
+        drop(snapshot);
+        for query in &mut query[1..] {
+            query.reset(&index);
+        }
+        assert!(prefix(&query[1]).shares(prefix(&query[2])));
+        advance(&mut query[1], &mut reference[1], &index, 4000);
+        advance(&mut query[2], &mut reference[2], &index, 97);
+        if productive {
+            drain(&mut query[0], &mut reference[0], &index);
+            assert!(node.find(&index).unwrap().complete);
+        } else {
+            advance(&mut query[0], &mut reference[0], &index, 2048);
+            assert!(node.find(&index).unwrap().length >= 2048);
+        }
+        advance(&mut query[2], &mut reference[2], &index, 1200);
+        query.remove(0);
+        reference.remove(0);
+        query[1].evict();
+        store.evict();
+        for (query, reference) in query.iter_mut().zip(&mut reference) {
+            drain(query, reference, &index);
+        }
+        drop(query);
+        drop(node);
+        store.evict();
+        assert!(store.budget().reserve(65536));
+        store.budget().release(65536);
+    }
+}
+
+#[test]
+fn snapshot() {
+    let budget = Arc::new(crate::factor::Budget::new(65536));
+    let mut trace = super::trace::Trace::new(budget.clone(), 1).unwrap();
+    for length in [3, 1, 5, 2] {
+        for _ in 0..length {
+            assert!(trace.append(&Poll::Pending, 4096));
+        }
+        assert!(trace.append(
+            &Poll::Ready(Some(vec![crate::slot::Slot {
+                world: length,
+                position: 0,
+                token: vec![length, length + 1]
+            }])),
+            4096
+        ));
+    }
+    assert!(trace.duplicate(trace.retained - 1).is_none());
+    let snapshot = trace.duplicate(trace.retained).unwrap();
+    assert!(trace.append(&Poll::Pending, 4096));
+    assert_eq!(snapshot.length + 1, trace.length);
+    for offset in 0..=snapshot.length {
+        let mut actual = super::playback::Playback::default();
+        let mut expected = super::playback::Playback::default();
+        actual.seek(&snapshot, offset);
+        for _ in 0..offset {
+            expected.step(&snapshot, &[0]);
+        }
+        loop {
+            let result = actual.step(&snapshot, &[0]);
+            assert_eq!(result, expected.step(&snapshot, &[0]));
+            if result.is_none() {
+                break;
+            }
+        }
+    }
+    drop(trace);
+    drop(snapshot);
+    assert!(budget.reserve(65536));
+    budget.release(65536);
+}
+
+#[test]
+fn mutation() {
+    let particle = format!("{}.([X] Y)", ["A"; 8].join("."));
+    let content = ["I.J.K.L.M"; 8].join(",");
+    let pattern = ["I"; 7].join(",");
+    let program = Program::new(crate::lowering::parse(&format!(
+        "{particle},{content},K.L.M [{particle},{pattern},I.J.J,K] First [L,{particle},{pattern},I.J.J] Second [{particle},{pattern},I.J.J,M] Third"
+    )).unwrap());
+    for capacity in [0, 32, 128, 512, 65536] {
+        for replacement in [false, true] {
+            for reverse in [false, true] {
+                let mut state = State::initial(&program);
+                let mut index = Index::new(Arc::new(state.clone()));
+                let store = Arc::new(Store::new(capacity));
+                let input = program
+                    .rule
+                    .iter()
+                    .filter(|rule| rule.input.len() >= 3)
+                    .map(|rule| Input::new(&rule.input))
+                    .collect::<Vec<_>>();
+                let mut query = input
+                    .iter()
+                    .map(|input| {
+                        let mut query = Join::planned(Request {
+                            input,
+                            index: &index,
+                            frame: 0,
+                            owner: 0,
+                            store: &store,
+                        });
+                        query.traversal =
+                            Join::product(&query.space, &query.order, super::Strategy::Shared)
+                                .unwrap();
+                        query
+                    })
+                    .collect::<Vec<_>>();
+                let mut reference = input
+                    .iter()
+                    .map(|input| Join::new(input.pattern(0), &index, 0))
+                    .collect::<Vec<_>>();
+                drain(&mut query[0], &mut reference[0], &index);
+                query[0].reset(&index);
+                reference[0].reset(&index);
+                advance(&mut query[0], &mut reference[0], &index, 600);
+                for query in &mut query[1..] {
+                    query.reset(&index);
+                }
+                advance(&mut query[1], &mut reference[1], &index, 97);
+                query[0].reset(&index);
+                reference[0].reset(&index);
+                advance(&mut query[0], &mut reference[0], &index, 900);
+                let position = state
+                    .world
+                    .iter()
+                    .position(|world| world.particle.len() == if replacement { 9 } else { 3 })
+                    .unwrap();
+                let mut world = (*state.world.remove(position)).clone();
+                for token in &mut world.particle {
+                    token.id += 1000;
+                }
+                state.world.push(world.into());
+                index.advance(
+                    Arc::new(state.clone()),
+                    &crate::basis::Set::single(position),
+                );
+                let order = if reverse { [2, 1, 0] } else { [0, 1, 2] };
+                for position in order {
+                    query[position].advance(&index);
+                    reference[position].advance(&index);
+                }
+                for position in order {
+                    drain(&mut query[position], &mut reference[position], &index);
+                    query[position].reset(&index);
+                    reference[position].reset(&index);
+                }
+                query[1].evict();
+                store.evict();
+                for position in order {
+                    drain(&mut query[position], &mut reference[position], &index);
+                }
+                drop(query);
+                store.evict();
+                assert!(store.budget().reserve(capacity));
+                store.budget().release(capacity);
+            }
+        }
+    }
+}

@@ -3,6 +3,8 @@ use std::num::NonZeroUsize;
 
 #[derive(Parser)]
 struct Argument {
+    #[arg(long, default_value = "0")]
+    depth: usize,
     #[arg(long, default_value = "8")]
     width: NonZeroUsize,
     #[arg(long, default_value = "4")]
@@ -19,15 +21,17 @@ struct Argument {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let argument = Argument::parse();
-    if argument.count.get() < 2
+    if argument.depth > 16
+        || argument.count.get() < 2
         || argument.count > argument.width
         || argument.replacement > argument.count
     {
-        return Err("require 2 <= count <= width and replacement <= count".into());
+        return Err("require depth <= 16, 2 <= count <= width and replacement <= count".into());
     }
     let measurement =
         photonic::measurement::partition::run(photonic::measurement::partition::Configuration {
             width: argument.width.get(),
+            depth: argument.depth,
             count: argument.count.get(),
             replacement: argument.replacement.get(),
             length: argument.length.get(),
@@ -37,7 +41,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     serde_json::to_writer_pretty(
         std::io::stdout().lock(),
         &serde_json::json!({
-            "width": argument.width, "count": argument.count, "replacement": argument.replacement,
+            "depth": argument.depth, "width": argument.width, "count": argument.count, "replacement": argument.replacement,
             "length": argument.length, "productive": argument.productive, "measurement": measurement,
         }),
     )?;

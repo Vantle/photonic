@@ -3,11 +3,13 @@ use crate::slot::Slot;
 use std::sync::Arc;
 use std::task::Poll;
 
+#[derive(Clone)]
 pub(super) enum Record {
     Waiting(usize),
     Binding(Vec<Selection>),
 }
 
+#[derive(Clone, Eq, Hash, PartialEq)]
 pub(super) struct Selection {
     pub site: usize,
     pub token: Vec<usize>,
@@ -19,6 +21,7 @@ pub(super) struct Trace {
     header: usize,
     pub record: Vec<Record>,
     pub retained: usize,
+    pub length: usize,
     pub complete: bool,
 }
 
@@ -30,6 +33,7 @@ impl Trace {
             header,
             record: Vec::new(),
             retained: header,
+            length: 0,
             complete: false,
         })
     }
@@ -73,7 +77,25 @@ impl Trace {
                 self.record.push(Record::Binding(binding));
             }
         }
+        if !matches!(result, Poll::Ready(None)) {
+            self.length += 1;
+        }
         true
+    }
+
+    pub fn duplicate(&self, allowance: usize) -> Option<Self> {
+        if self.retained > allowance || !self.budget.reserve(self.retained) {
+            return None;
+        }
+        Some(Self {
+            budget: self.budget.clone(),
+            #[cfg(test)]
+            header: self.header,
+            record: self.record.clone(),
+            retained: self.retained,
+            length: self.length,
+            complete: self.complete,
+        })
     }
 
     #[cfg(test)]

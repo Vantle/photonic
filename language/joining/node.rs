@@ -38,7 +38,16 @@ impl Node {
     }
 
     pub fn publish(&self, index: &Index, trace: &Arc<Trace>) {
-        *self.version.lock().unwrap() = Some(Version {
+        let mut version = self.version.lock().unwrap();
+        if let Some(previous) = version
+            .as_ref()
+            .filter(|version| Arc::ptr_eq(&version.revision, index.revision()))
+            .and_then(|version| version.trace.upgrade())
+            && (previous.complete || previous.length > trace.length)
+        {
+            return;
+        }
+        *version = Some(Version {
             revision: index.revision().clone(),
             trace: Arc::downgrade(trace),
         });
