@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ "${BUILDKITE_STEP_KEY:-}" == upload ]]; then
+    exit 0
+fi
+
+if [[ "${BUILDKITE_STEP_KEY:-}" == test ]]; then
+    if directory="$(bazel info --config=release --host_platform=//platform:x86_64-unknown-linux-gnu --platforms=//platform:x86_64-unknown-linux-gnu bazel-testlogs)"; then
+        (
+            cd "$directory"
+            buildkite-agent artifact upload '**/test.log;**/test.xml'
+        ) || true
+    fi
+fi
+
+bazel shutdown || true
