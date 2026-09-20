@@ -1,6 +1,6 @@
 # Continuous verification
 
-[Photonic on Buildkite](https://buildkite.com/vantle-labs/photonic) runs Bazel directly. The pipeline editor contains [bootstrap.yml](../.buildkite/bootstrap.yml), which uploads [pipeline.yml](../.buildkite/pipeline.yml) from the checked-out commit. Verification behavior stays under version control.
+[Photonic on Buildkite](https://buildkite.com/vantle-labs/photonic) runs Bazel directly. The pipeline editor contains [bootstrap.yml](../.buildkite/bootstrap.yml), which uploads the output of [pipeline](../.buildkite/pipeline) from the checked-out commit. The generator declares the six platforms once and gives every build and test its own step key and GitHub status. Native Buildkite matrices group status notifications by matrix step, so distinct generated steps are needed for independent per-platform results. Verification behavior stays under version control.
 
 The pipeline has thirteen independent jobs: six `Build · <platform>` jobs, six `Test · <platform>` jobs, and `Test · browser` on ARM64 macOS. Build jobs compile in release mode with lint aspects, check formatting, and exercise the dependency command. Test jobs run the release test suite; Bazel builds their prerequisites. Every job reports its own GitHub status, so build and test failures remain distinguishable. There is no global barrier between platforms. Native jobs have a 60-minute timeout; browser verification has 20 minutes. New commits supersede older queued and running builds on the same branch.
 
@@ -8,7 +8,7 @@ Repository hooks install checksum-verified Bazelisk 1.28.1, which reads the Baze
 
 ## Queue inventory
 
-Queues belong to Vantle’s default Buildkite cluster. A matrix entry selects the queue with exactly the same platform name; it never substitutes a cross-compiled test for a native execution.
+Queues belong to Vantle’s default Buildkite cluster. Each generated native step selects the queue with exactly the same platform name; it never substitutes a cross-compiled test for a native execution.
 
 | Queue | Execution | Provisioning |
 | --- | --- | --- |
@@ -40,7 +40,7 @@ For the remaining machines, replace the queue key with `x86_64-apple-darwin`, `a
 
 The repository webhook sends `push`, `pull_request`, and `merge_group` events to this pipeline’s Buildkite-generated webhook URL with JSON encoding and TLS verification. Keep that URL in service configuration rather than committing it. The webhook ping returned HTTP 200 during setup.
 
-Buildkite enables branch and pull-request builds and publishes the aggregate `buildkite/photonic` commit status. Require that context on `main`, with the branch up to date before merging. The aggregate covers pipeline upload and every matrix job, so a missing agent cannot accidentally produce a green required check. Third-party fork builds remain disabled; enabling them requires a separate policy for agent isolation and cache access. Delivery of merge-group events alone does not enable Buildkite merge-queue builds.
+Buildkite enables branch and pull-request builds and publishes the aggregate `buildkite/photonic` commit status. Require that context on `main`, with the branch up to date before merging. The aggregate covers pipeline upload and every verification job, so a missing agent cannot accidentally produce a green required check. Third-party fork builds remain disabled; enabling them requires a separate policy for agent isolation and cache access. Delivery of merge-group events alone does not enable Buildkite merge-queue builds.
 
 Connect the [Buildkite GitHub App](https://buildkite.com/docs/pipelines/source-control/github) to the Vantle organization to publish statuses independently of a personal OAuth connection. The App installation is an interactive GitHub account operation. Pipeline and webhook configuration do not grant Buildkite permission to write GitHub statuses by themselves.
 
@@ -48,7 +48,7 @@ Manual verification is available through **New Build** in Buildkite. For local p
 
 ```sh
 BUILDKITE_AGENT_ACCESS_TOKEN=validation buildkite-agent pipeline upload --dry-run .buildkite/bootstrap.yml
-BUILDKITE_AGENT_ACCESS_TOKEN=validation buildkite-agent pipeline upload --dry-run .buildkite/pipeline.yml
+.buildkite/pipeline | BUILDKITE_AGENT_ACCESS_TOKEN=validation buildkite-agent pipeline upload --dry-run
 ```
 
 ## Cache behavior

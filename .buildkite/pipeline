@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cat <<'YAML'
+cache:
+  paths:
+    - /tmp/photonic
+  size: 40g
+
+steps:
+YAML
+
+for platform in \
+    aarch64-apple-darwin \
+    x86_64-apple-darwin \
+    aarch64-unknown-linux-gnu \
+    x86_64-unknown-linux-gnu \
+    aarch64-pc-windows-gnullvm \
+    x86_64-pc-windows-gnullvm
+do
+    cat <<YAML
+  - label: "Build · $platform"
+    key: build-$platform
+    command:
+      - bazel build --config=release //... --host_platform=//platform:$platform --platforms=//platform:$platform
+      - bazel run --config=release //:format --host_platform=//platform:$platform --platforms=//platform:$platform -- --check
+      - bazel run --config=release //:update --host_platform=//platform:$platform --platforms=//platform:$platform -- --help
+    timeout_in_minutes: 60
+    agents:
+      queue: $platform
+    notify:
+      - github_commit_status:
+          context: "Build · $platform"
+
+  - label: "Test · $platform"
+    key: test-$platform
+    command: bazel test --config=release //... --host_platform=//platform:$platform --platforms=//platform:$platform
+    timeout_in_minutes: 60
+    agents:
+      queue: $platform
+    notify:
+      - github_commit_status:
+          context: "Test · $platform"
+
+YAML
+done
+
+cat <<'YAML'
+  - label: Test · browser
+    key: browser
+    command: bazel test --config=release //toolchain/browser:check
+    timeout_in_minutes: 20
+    agents:
+      queue: aarch64-apple-darwin
+    notify:
+      - github_commit_status:
+          context: Test · browser
+YAML
