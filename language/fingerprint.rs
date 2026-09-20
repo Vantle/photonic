@@ -229,6 +229,12 @@ impl Index {
         }
     }
 
+    pub(crate) fn evict(&mut self) -> usize {
+        let released = self.layout.reach.evict();
+        self.retained -= released;
+        released
+    }
+
     pub(crate) fn retained(&self) -> usize {
         self.retained
     }

@@ -4,7 +4,19 @@ use crate::state::State;
 use smallvec::SmallVec;
 use std::sync::Arc;
 
+mod network;
+
+fn admitted(state: &State) -> bool {
+    state.frame.len() >= 64 && state.world.len() / state.frame.len() >= 4
+}
+
+enum Storage {
+    Retained(network::Network),
+    Evicted,
+}
+
 pub(crate) struct Index {
+    storage: Option<Arc<Storage>>,
     anchor: List<usize>,
     pub frame: Arc<Vec<usize>>,
 }
@@ -20,9 +32,12 @@ impl Index {
         for frame in state.world.iter().flat_map(|world| reference(world)) {
             anchor[frame] += 1;
         }
+        let frame = Arc::new(state.reachable());
         Self {
+            storage: admitted(state)
+                .then(|| Arc::new(Storage::Retained(network::Network::new(state, &frame)))),
             anchor,
-            frame: Arc::new(state.reachable()),
+            frame,
         }
     }
 
@@ -52,16 +67,63 @@ impl Index {
             && affected.iter().all(|&frame| {
                 (anchor[frame] == 0) == (self.anchor.get(frame).copied().unwrap_or(0) == 0)
             });
-        let frame = if unchanged {
-            self.frame.clone()
+        let enabled = !matches!(self.storage.as_deref(), Some(Storage::Evicted));
+        let retained = self
+            .network()
+            .filter(|_| state.frame.len() >= 32 && state.world.len() / state.frame.len() >= 2);
+        let (storage, frame) = if unchanged {
+            (
+                if retained.is_some() || !enabled {
+                    self.storage.clone()
+                } else {
+                    None
+                },
+                self.frame.clone(),
+            )
+        } else if let Some(network) = retained {
+            let (network, frame) = network.advance(network::Request {
+                source,
+                state,
+                anchor: &anchor,
+                affected: &affected,
+                changed: &change.frame,
+            });
+            (Some(Arc::new(Storage::Retained(network))), frame)
         } else {
-            Arc::new(state.reachable())
+            let frame = Arc::new(state.reachable());
+            let storage = if !enabled {
+                self.storage.clone()
+            } else {
+                admitted(state)
+                    .then(|| Arc::new(Storage::Retained(network::Network::new(state, &frame))))
+            };
+            (storage, frame)
         };
         anchor.truncate(frame.last().unwrap() + 1);
-        Self { anchor, frame }
+        Self {
+            storage,
+            anchor,
+            frame,
+        }
+    }
+
+    fn network(&self) -> Option<&network::Network> {
+        match self.storage.as_deref() {
+            Some(Storage::Retained(network)) => Some(network),
+            _ => None,
+        }
+    }
+
+    pub fn evict(&mut self) -> usize {
+        if matches!(self.storage.as_deref(), Some(Storage::Evicted)) {
+            return 0;
+        }
+        let released = self.network().map_or(0, network::Network::retained);
+        self.storage = Some(Arc::new(Storage::Evicted));
+        released
     }
 
     pub fn retained(&self) -> usize {
-        self.anchor.len() + self.frame.len()
+        self.anchor.len() + self.frame.len() + self.network().map_or(0, network::Network::retained)
     }
 }

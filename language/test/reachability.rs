@@ -32,6 +32,15 @@ fn differential() {
             })
             .collect(),
     };
+    for _ in 0..1200 {
+        state.world.push(
+            World {
+                frame: 0,
+                particle: Vec::new(),
+            }
+            .into(),
+        );
+    }
     let mut index = Index::new(&state);
     for step in 0..1024 {
         let previous = state.clone();
@@ -80,4 +89,161 @@ fn sharing() {
     };
     let next = index.advance(&state, &changed, &change);
     assert!(Arc::ptr_eq(&index.frame, &next.frame));
+}
+
+#[test]
+fn reclamation() {
+    let mut state = State {
+        world: std::iter::repeat_n(0, 512)
+            .chain([0, 127, 1])
+            .map(|frame| {
+                World {
+                    frame,
+                    particle: Vec::new(),
+                }
+                .into()
+            })
+            .collect(),
+        frame: (0..128)
+            .map(|frame| {
+                Frame {
+                    scope: 0,
+                    parent: None,
+                    lexical: (frame > 0 && frame < 127)
+                        .then(|| if frame % 2 == 0 { frame - 1 } else { frame + 1 }),
+                    held: Vec::new(),
+                }
+                .into()
+            })
+            .collect(),
+    };
+    let mut index = Index::new(&state);
+    assert_eq!(*index.frame, state.reachable());
+    let mut seed = 317u64;
+    let mut next = |bound| {
+        seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1);
+        (seed >> 32) as usize % bound
+    };
+    for iteration in 0..1024 {
+        let source = state.clone();
+        let frame = next(126) + 1;
+        let target = next(128);
+        let value = Arc::make_mut(&mut state.frame[frame]);
+        value.lexical = Some(target);
+        value.held = vec![Token {
+            id: iteration,
+            value: crate::program::Symbol::Rule(0),
+            capture: Some(next(128)),
+        }];
+        state.world.remove(514);
+        state.world.push(
+            World {
+                frame,
+                particle: Vec::new(),
+            }
+            .into(),
+        );
+        let change = Change {
+            world: [514].into_iter().collect(),
+            insertion: 514..515,
+            frame: vec![frame],
+        };
+        index = index.advance(&source, &state, &change);
+        assert_eq!(*index.frame, state.reachable(), "iteration {iteration}");
+        state = state.reclaim(&index.frame);
+        if state.frame.len() < 128 {
+            while state.frame.len() < 128 {
+                state.frame.push(
+                    Frame {
+                        scope: 0,
+                        parent: None,
+                        lexical: None,
+                        held: Vec::new(),
+                    }
+                    .into(),
+                );
+            }
+        }
+    }
+    let previous = index.retained();
+    let released = index.evict();
+    assert!(released > 0);
+    assert_eq!(index.retained() + released, previous);
+    assert_eq!(index.evict(), 0);
+    let mut next = index.advance(
+        &state,
+        &state,
+        &Change {
+            world: Default::default(),
+            insertion: 515..515,
+            frame: vec![1],
+        },
+    );
+    assert_eq!(*next.frame, state.reachable());
+    assert_eq!(next.evict(), 0);
+}
+
+#[test]
+fn cycle() {
+    let mut state = State {
+        world: (0..1024)
+            .map(|position| {
+                World {
+                    frame: usize::from(position == 1023),
+                    particle: Vec::new(),
+                }
+                .into()
+            })
+            .collect(),
+        frame: (0..129)
+            .map(|frame| {
+                Frame {
+                    scope: 0,
+                    parent: None,
+                    lexical: match frame {
+                        1 => Some(2),
+                        2 => Some(1),
+                        _ => None,
+                    },
+                    held: Vec::new(),
+                }
+                .into()
+            })
+            .collect(),
+    };
+    let mut index = Index::new(&state);
+    assert_eq!(*index.frame, vec![0, 1, 2]);
+    let source = state.clone();
+    Arc::make_mut(&mut state.world[1023]).frame = 0;
+    let change = Change {
+        world: [1023].into_iter().collect(),
+        insertion: 1023..1024,
+        frame: Vec::new(),
+    };
+    index = index.advance(&source, &state, &change);
+    assert_eq!(*index.frame, vec![0]);
+    state = state.reclaim(&index.frame);
+    let source = state.clone();
+    while state.frame.len() < 129 {
+        state.frame.push(
+            Frame {
+                scope: 0,
+                parent: None,
+                lexical: None,
+                held: Vec::new(),
+            }
+            .into(),
+        );
+    }
+    Arc::make_mut(&mut state.world[1023]).frame = 1;
+    Arc::make_mut(&mut state.frame[1]).lexical = Some(3);
+    index = index.advance(
+        &source,
+        &state,
+        &Change {
+            frame: vec![1, 3],
+            ..change
+        },
+    );
+    assert_eq!(*index.frame, vec![0, 1, 3]);
 }

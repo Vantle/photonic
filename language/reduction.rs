@@ -56,6 +56,16 @@ impl Search {
         self.network.reuse
     }
 
+    pub(crate) fn evict(&mut self) -> usize {
+        self.network.evict()
+            + self.fingerprint.evict()
+            + self
+                .pending
+                .iter_mut()
+                .map(|event| event.fingerprint.evict())
+                .sum::<usize>()
+    }
+
     pub(crate) fn record(&self) -> usize {
         self.pending
             .iter()

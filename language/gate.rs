@@ -18,7 +18,7 @@ enum Task {
 }
 
 pub struct Gate {
-    pattern: Vec<Vec<Term>>,
+    group: Vec<usize>,
     candidate: Vec<IndexSet<Slot>>,
     prefix: Vec<Vec<Option<usize>>>,
     binding: crate::prefix::Arena,
@@ -26,12 +26,17 @@ pub struct Gate {
 }
 
 impl Gate {
-    pub fn new(pattern: Vec<Vec<Term>>) -> Self {
+    pub fn new<Value: AsRef<[Term]>>(pattern: impl IntoIterator<Item = Value>) -> Self {
+        let pattern = pattern.into_iter().collect::<smallvec::SmallVec<[_; 2]>>();
+        let pattern = pattern
+            .iter()
+            .map(|value| value.as_ref())
+            .collect::<smallvec::SmallVec<[_; 2]>>();
         let count = pattern.len();
         let mut prefix = vec![Vec::new(); count + 1];
         prefix[0].push(None);
         Self {
-            pattern,
+            group: crate::partition::classify(&pattern),
             candidate: vec![IndexSet::new(); count],
             prefix,
             binding: crate::prefix::Arena::default(),
@@ -94,7 +99,7 @@ impl Gate {
             if prefix.world == slot.world {
                 return None;
             }
-            if !equivalent && self.pattern[prefix.position] == self.pattern[slot.position] {
+            if !equivalent && self.group[prefix.position] == self.group[slot.position] {
                 if prefix.world >= slot.world {
                     return None;
                 }
@@ -102,7 +107,7 @@ impl Gate {
             }
         }
         let next = slot.position + 1;
-        if next == self.pattern.len() {
+        if next == self.group.len() {
             return Some(self.binding.complete(binding, slot));
         }
         let binding = Some(self.binding.push(binding, slot));

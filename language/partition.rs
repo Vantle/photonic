@@ -1,4 +1,16 @@
 pub(crate) fn classify<Key: Ord>(value: &[Key]) -> Vec<usize> {
+    match value {
+        [] => return Vec::new(),
+        [_] => return vec![0],
+        [left, right] => {
+            return match left.cmp(right) {
+                std::cmp::Ordering::Less => vec![0, 1],
+                std::cmp::Ordering::Equal => vec![0, 0],
+                std::cmp::Ordering::Greater => vec![1, 0],
+            };
+        }
+        _ => {}
+    }
     let mut order = (0..value.len()).collect::<Vec<_>>();
     order.sort_unstable_by(|&left, &right| value[left].cmp(&value[right]));
     let mut result = vec![0; value.len()];

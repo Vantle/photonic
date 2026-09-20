@@ -1,5 +1,6 @@
 pub mod profile;
 pub mod query;
+pub mod reachability;
 
 use crate::canonical::Search;
 use crate::program::Symbol;

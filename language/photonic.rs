@@ -13,6 +13,7 @@ mod catalog;
 mod change;
 mod dispatch;
 pub mod executor;
+mod factor;
 mod fingerprint;
 pub mod flow;
 mod gate;

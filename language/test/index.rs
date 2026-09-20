@@ -5,6 +5,61 @@ use crate::term::Term;
 use std::sync::Arc;
 
 #[test]
+fn skew() {
+    let state = State {
+        world: (0..4096)
+            .map(|world| {
+                World {
+                    frame: 0,
+                    particle: [1, 2, 64, 127]
+                        .into_iter()
+                        .enumerate()
+                        .filter(|&(_, divisor)| world % divisor == 0)
+                        .map(|(position, _)| Token {
+                            id: world * 4 + position,
+                            value: Symbol::Atom(position),
+                            capture: None,
+                        })
+                        .collect(),
+                }
+                .into()
+            })
+            .collect(),
+        frame: vec![
+            Frame {
+                scope: 0,
+                parent: None,
+                lexical: None,
+                held: Vec::new(),
+            }
+            .into(),
+        ]
+        .into(),
+    };
+    let index = Index::new(Arc::new(state.clone()));
+    for order in crate::ordering::Ordering::new(0..4, |_| 0) {
+        for width in 1..=4 {
+            let pattern = order[..width]
+                .iter()
+                .map(|&value| Term::new(Symbol::Atom(value), None))
+                .collect::<Vec<_>>();
+            let expected = state
+                .world
+                .iter()
+                .enumerate()
+                .filter(|(_, world)| {
+                    pattern
+                        .iter()
+                        .all(|term| world.particle.iter().any(|token| term.matches(token)))
+                })
+                .map(|(world, _)| world)
+                .collect::<Vec<_>>();
+            assert_eq!(index.candidate(&pattern, 0), expected);
+        }
+    }
+}
+
+#[test]
 fn intersection() {
     let mut seed = 71u64;
     let mut next = |bound| {

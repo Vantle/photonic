@@ -135,3 +135,49 @@ fn preparation() {
         }
     }
 }
+
+#[test]
+fn indexed() {
+    for width in [8, 16, 32] {
+        for capture in [None, Some(0), Some(1)] {
+            let value = |index| {
+                if index % 2 == 0 {
+                    Symbol::Atom(index)
+                } else {
+                    Symbol::Rule(index)
+                }
+            };
+            let pattern = (0..width).map(value).collect::<Vec<_>>();
+            let fragment = crate::pattern::Pattern::new(&pattern);
+            let pattern = pattern
+                .iter()
+                .map(|&value| Term::new(value, capture))
+                .collect::<Vec<_>>();
+            let mut particle = (0..256)
+                .map(|id| Token {
+                    id,
+                    value: value(id % 64),
+                    capture: Some(id / 64 % 2),
+                })
+                .collect::<Vec<_>>();
+            particle.push(particle[0].clone());
+            particle.reverse();
+            let mut actual = Match::prepared(&fragment, capture, &particle);
+            let compiled = crate::pattern::Pattern::new(&pattern);
+            let mut specialized = Match::compiled(&compiled, &particle);
+            let mut expected = Match::new(&pattern, &particle);
+            for _ in 0..3 {
+                for _ in 0..1024 {
+                    let result = expected.step();
+                    assert_eq!(actual.step(), result);
+                    assert_eq!(specialized.step(), result);
+                    assert_eq!(actual.retained(), expected.retained());
+                    assert_eq!(specialized.retained(), expected.retained());
+                }
+                actual.reset();
+                specialized.reset();
+                expected.reset();
+            }
+        }
+    }
+}

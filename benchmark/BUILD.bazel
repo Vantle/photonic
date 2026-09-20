@@ -60,6 +60,22 @@ rust_binary(
 )
 
 rust_binary(
+    name = "factor",
+    srcs = [
+        "evaluation.rs",
+        "factor.rs",
+    ],
+    crate_root = "factor.rs",
+    lint_config = "//:lint",
+    deps = [
+        "//language:photonic",
+        "@crate//:clap",
+        "@crate//:serde",
+        "@crate//:serde_json",
+    ],
+)
+
+rust_binary(
     name = "fragment",
     srcs = [
         "evaluation.rs",
@@ -87,6 +103,17 @@ rust_binary(
         "//language:photonic",
         "@crate//:clap",
         "@crate//:serde",
+        "@crate//:serde_json",
+    ],
+)
+
+rust_binary(
+    name = "reachability",
+    srcs = ["reachability.rs"],
+    crate_root = "reachability.rs",
+    lint_config = "//:lint",
+    deps = [
+        "//language:measurement",
         "@crate//:serde_json",
     ],
 )

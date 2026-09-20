@@ -8,13 +8,16 @@ use std::task::Poll;
 
 struct Member {
     site: usize,
-    particle: Option<Match>,
+    particle: Option<crate::factor::Cursor>,
 }
 
 pub(crate) struct Join {
     frame: usize,
+    budget: Option<Arc<crate::factor::Budget>>,
+    cached: usize,
     preparation: Option<crate::plan::Context>,
     pattern: Arc<Vec<Vec<Term>>>,
+    group: Arc<Vec<usize>>,
     domain: SmallVec<[Vec<Member>; 2]>,
     order: SmallVec<[usize; 2]>,
     cursor: SmallVec<[usize; 2]>,
@@ -29,7 +32,7 @@ pub(crate) struct Join {
 impl Join {
     #[cfg(test)]
     pub fn new(pattern: Arc<Vec<Vec<Term>>>, index: &Index, frame: usize) -> Self {
-        Self::construct(pattern, index, frame, None)
+        Self::construct(pattern, index, frame, None, None)
     }
 
     fn construct(
@@ -37,6 +40,7 @@ impl Join {
         index: &Index,
         frame: usize,
         preparation: Option<crate::plan::Context>,
+        budget: Option<Arc<crate::factor::Budget>>,
     ) -> Self {
         let domain = pattern
             .iter()
@@ -57,9 +61,16 @@ impl Join {
             })
             .collect();
         let width = pattern.len();
+        let group = preparation.as_ref().map_or_else(
+            || Arc::new(crate::partition::classify(&pattern)),
+            crate::plan::Context::group,
+        );
         let mut join = Self {
             frame,
+            budget,
+            cached: 0,
             preparation,
+            group,
             pattern,
             domain,
             order: (0..width).collect(),
@@ -79,12 +90,19 @@ impl Join {
         join
     }
 
-    pub fn planned(input: &crate::plan::Input, index: &Index, frame: usize, owner: usize) -> Self {
+    pub fn planned(
+        input: &crate::plan::Input,
+        index: &Index,
+        frame: usize,
+        owner: usize,
+        budget: &Arc<crate::factor::Budget>,
+    ) -> Self {
         Self::construct(
             input.pattern(owner),
             index,
             frame,
             Some(input.context(owner)),
+            input.factor().then(|| budget.clone()),
         )
     }
 
@@ -130,6 +148,13 @@ impl Join {
         self.viable = self.feasible();
         self.reset();
         self.retained = self.size();
+        self.cached = self
+            .domain
+            .iter()
+            .flatten()
+            .filter_map(|member| member.particle.as_ref())
+            .map(crate::factor::Cursor::cached)
+            .sum();
         true
     }
 
@@ -206,7 +231,7 @@ impl Join {
             };
             if self.binding.iter().any(|slot| {
                 slot.world == member.site
-                    || (self.pattern[slot.position] == self.pattern[position]
+                    || (self.group[slot.position] == self.group[position]
                         && index.world(slot.world) >= index.world(member.site))
             }) {
                 self.cursor[self.depth] += 1;
@@ -220,17 +245,30 @@ impl Join {
                     Match::new(&self.pattern[position], particle)
                 };
                 self.retained += particle.retained();
-                member.particle = Some(particle);
+                let budget = self
+                    .budget
+                    .as_ref()
+                    .filter(|_| self.pattern[position].len() >= 8)
+                    .cloned();
+                member.particle = Some(crate::factor::Cursor::new(particle, budget));
             }
             member.particle.as_mut().unwrap().reset();
             self.scan[self.depth] = true;
         }
-        match self.domain[position][self.cursor[self.depth]]
+        let particle = self.domain[position][self.cursor[self.depth]]
             .particle
             .as_mut()
-            .unwrap()
-            .step()
-        {
+            .unwrap();
+        let result = if self.budget.is_some() {
+            let previous = particle.cached();
+            let result = particle.step(4096 - self.cached);
+            self.cached = self.cached - previous + particle.cached();
+            self.retained = self.retained - previous + particle.cached();
+            result
+        } else {
+            particle.step(0)
+        };
+        match result {
             Poll::Ready(Some(token)) => {
                 let slot = Slot {
                     world: self.domain[position][self.cursor[self.depth]].site,
@@ -259,6 +297,22 @@ impl Join {
         Poll::Pending
     }
 
+    pub fn evict(&mut self) {
+        if self.cached == 0 {
+            return;
+        }
+        for particle in self
+            .domain
+            .iter_mut()
+            .flatten()
+            .filter_map(|member| member.particle.as_mut())
+        {
+            particle.evict();
+        }
+        self.retained -= self.cached;
+        self.cached = 0;
+    }
+
     pub fn retained(&self) -> usize {
         self.retained
     }
@@ -271,7 +325,13 @@ impl Join {
                 .map(|domain| {
                     domain
                         .iter()
-                        .map(|member| member.particle.as_ref().map_or(0, Match::retained) + 1)
+                        .map(|member| {
+                            member
+                                .particle
+                                .as_ref()
+                                .map_or(0, crate::factor::Cursor::retained)
+                                + 1
+                        })
                         .sum::<usize>()
                         + 1
                 })
@@ -286,3 +346,7 @@ impl Join {
                 .sum::<usize>()
     }
 }
+
+#[cfg(test)]
+#[path = "test/factorization.rs"]
+mod test;

@@ -177,6 +177,11 @@ impl Search {
                     .map_or(0, |event| event.fingerprint.retained() + 1)
                 + usize::from(self.candidate.is_some());
             if retained >= limit.record {
+                retained -= self.runtime.evict();
+                retained -= self
+                    .pending
+                    .as_mut()
+                    .map_or(0, |event| event.fingerprint.evict());
                 retained -= self.structure.retained();
                 self.structure = crate::structure::Structure::default();
                 if retained >= limit.record {

@@ -3,7 +3,6 @@ use crate::joining::Join;
 use crate::slot::Slot;
 #[cfg(test)]
 use crate::term::Term;
-#[cfg(test)]
 use std::sync::Arc;
 use std::task::Poll;
 
@@ -48,9 +47,15 @@ impl Search {
         }
     }
 
-    pub fn planned(input: &crate::plan::Input, index: &Index, frame: usize, owner: usize) -> Self {
+    pub fn planned(
+        input: &crate::plan::Input,
+        index: &Index,
+        frame: usize,
+        owner: usize,
+        budget: &Arc<crate::factor::Budget>,
+    ) -> Self {
         Self {
-            join: Join::planned(input, index, frame, owner),
+            join: Join::planned(input, index, frame, owner, budget),
             mode: Mode::Dormant,
         }
     }
@@ -102,6 +107,10 @@ impl Search {
             self.mode = Mode::Streaming;
         }
         result
+    }
+
+    pub fn evict(&mut self) {
+        self.join.evict();
     }
 
     pub fn retained(&self) -> usize {

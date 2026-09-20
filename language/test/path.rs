@@ -72,6 +72,46 @@ fn resume() {
 }
 
 #[test]
+fn factor() {
+    let particle = (0..16)
+        .map(|index| format!("Value{index}"))
+        .collect::<Vec<_>>()
+        .join(".");
+    let mut source = format!("{particle},Stage0.B [{particle},B] Never\n");
+    for index in 0..32 {
+        source.push_str(&format!("[Stage{index}] Stage{}\n", index + 1));
+    }
+    let target = format!("{particle},Stage32.B");
+    let limit = Limit {
+        cell: 32,
+        ..Limit::default()
+    };
+    let mut complete = search(&source, &target);
+    complete.run(10000, limit);
+    assert_eq!(complete.summary().outcome, Outcome::Reached);
+    let expected = serde_json::to_value(complete.report()).unwrap();
+    for interval in [1, 7, 19] {
+        let mut chunk = search(&source, &target);
+        for iteration in 0..1000 {
+            chunk.run(1, limit);
+            if iteration % interval == 0 {
+                chunk.run(
+                    1,
+                    Limit {
+                        record: 1,
+                        ..Limit::default()
+                    },
+                );
+            }
+            if chunk.summary().outcome == Outcome::Reached {
+                break;
+            }
+        }
+        assert_eq!(serde_json::to_value(chunk.report()).unwrap(), expected);
+    }
+}
+
+#[test]
 fn inference() {
     let source = "Seed.A [Seed] [A] B";
     let mut path = search(source, "Seed.B");

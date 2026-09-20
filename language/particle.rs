@@ -87,14 +87,44 @@ impl Match {
         capture: Option<usize>,
         particle: &[Token],
     ) -> Self {
+        Self::materialize(pattern, particle, |value| Term::new(*value, capture))
+    }
+
+    pub(crate) fn compiled(pattern: &crate::pattern::Pattern<Term>, particle: &[Token]) -> Self {
+        Self::materialize(pattern, particle, Clone::clone)
+    }
+
+    fn materialize<Value>(
+        pattern: &crate::pattern::Pattern<Value>,
+        particle: &[Token],
+        term: impl Fn(&Value) -> Term,
+    ) -> Self {
+        let mut indexed = (pattern.group.len() >= 8 && particle.len() >= 32).then(|| {
+            let mut candidate = pattern
+                .group
+                .iter()
+                .map(|group| (term(&group.value), Vec::new()))
+                .collect::<std::collections::HashMap<_, _>>();
+            for token in particle {
+                if let Some(candidate) = candidate.get_mut(&Term::new(token.value, token.capture)) {
+                    candidate.push(token.id);
+                }
+            }
+            candidate
+        });
         let mut group: Vec<Group> = Vec::with_capacity(pattern.group.len());
         for requirement in &pattern.group {
-            let term = Term::new(requirement.value, capture);
-            let mut candidate = particle
-                .iter()
-                .filter(|token| term.matches(token))
-                .map(|token| token.id)
-                .collect::<Vec<_>>();
+            let term = term(&requirement.value);
+            let mut candidate = indexed.as_mut().map_or_else(
+                || {
+                    particle
+                        .iter()
+                        .filter(|token| term.matches(token))
+                        .map(|token| token.id)
+                        .collect::<Vec<_>>()
+                },
+                |candidate| candidate.remove(&term).unwrap(),
+            );
             candidate.sort_unstable();
             candidate.dedup();
             if let Some(group) = group.iter_mut().find(|group| group.candidate == candidate) {
@@ -140,6 +170,10 @@ impl Match {
                 *selected = index;
             }
         }
+    }
+
+    pub(crate) fn viable(&self) -> bool {
+        self.viable
     }
 
     pub(crate) fn step(&mut self) -> Poll<Option<Vec<usize>>> {

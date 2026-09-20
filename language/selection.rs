@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 pub(crate) struct Selection {
     pub pattern: Arc<Vec<Vec<Term>>>,
+    fragment: Vec<std::sync::OnceLock<crate::pattern::Pattern<Term>>>,
     pub order: Vec<usize>,
     pub candidate: Vec<Vec<usize>>,
     pub viable: bool,
@@ -33,11 +34,36 @@ impl Selection {
         let mut order = (0..pattern.len()).collect::<Vec<_>>();
         order.sort_by_key(|&position| candidate[position].len());
         Self {
+            fragment: if pattern.iter().any(|particle| particle.len() >= 8) {
+                (0..pattern.len())
+                    .map(|_| std::sync::OnceLock::new())
+                    .collect()
+            } else {
+                Vec::new()
+            },
             pattern,
             order,
             candidate,
             viable,
         }
+    }
+
+    pub(crate) fn prepare(
+        &self,
+        position: usize,
+        particle: &[crate::state::Token],
+    ) -> crate::particle::Match {
+        if self.pattern[position].len() < 8 {
+            return crate::particle::Match::new(&self.pattern[position], particle);
+        }
+        let pattern = self.fragment[position].get_or_init(|| {
+            let pattern = self.pattern[position]
+                .iter()
+                .map(|term| Term::new(term.value, term.capture))
+                .collect::<Vec<_>>();
+            crate::pattern::Pattern::new(&pattern)
+        });
+        crate::particle::Match::compiled(pattern, particle)
     }
 
     pub(crate) fn retained(&self) -> usize {

@@ -1,8 +1,8 @@
 # Incremental evaluation roadmap
 
-This is an implementation plan, not a report of completed optimization. It extends the [measured optimization audit](optimization.md) and preserves the language and frontend contracts. The inspected committed baseline is `54620eddec128ce545d9ee7be1efa351c8a26ec7`. The working tree also contains ongoing implementation and build edits; implementation must rebaseline against the revision actually tested.
+This is an implementation plan, not a report of completed optimization. It extends the [measured optimization audit](optimization.md) and preserves the language and frontend contracts. Each implementation audit names its tested baseline, records measurements, and states the remaining boundary; the stages below are not a claim that every research track has shipped.
 
-The first production implementation and its remaining boundaries are tracked in [implementation.md](implementation.md). The stages below remain a roadmap rather than a completion claim.
+The first production implementation and its remaining boundaries are tracked in [implementation.md](implementation.md). The subsequent [factorization audit](factorization.md) records retained leaf bindings, adaptive intersections, and cyclic reachability. The stages below remain a roadmap rather than a completion claim.
 
 The target is an evaluator that shares reusable program structure, discovers concrete work on demand, and maintains derived results from explicit changes. Decisions are conditional on semantic equivalence and measured benefit. No universal speedup or globally optimal query plan is assumed.
 
@@ -24,13 +24,13 @@ Before changing scheduling or accounting, specify which progress details are ext
 | Layer | Existing implementation | Remaining work |
 | --- | --- | --- |
 | Code | `program.rs` interns complete rule values | Discover reusable internal structure without identifying executable occurrences |
-| Input | `catalog.rs` shares identical complete input plans | Share common fragments between different inputs |
+| Input | `catalog.rs` shares complete inputs and immutable particle fragments between different plans | Share common multi-particle subplans |
 | Context | `plan.rs` omits owner from capture-free identity | Explicit dependency contracts for each fragment and specialization |
-| Candidate | `index.rs` shares postings; `joining.rs` retains unaffected particle preparation | Share candidate preparation between different plans and maintain changed domains more locally |
-| Binding | `replay.rs` reuses bounded streams on unchanged domains | Retain surviving partial bindings after relevant changes |
-| Proof query | `runtime/matching.rs` shares exact target/frame/pattern queries | Share common query fragments while preserving consumer-specific projection |
+| Candidate | Shared counted postings, adaptive intersections, demanded-term indexing, and retained preparation | Share concrete candidate domains between different plans and apply changes more locally |
+| Binding | Bounded whole-query replay on unchanged domains and surviving leaf factors under relevant deltas | Retain surviving multi-particle joined prefixes |
+| Proof query | `runtime/table.rs` shares exact queries; `selection.rs` lazily compiles wider patterns | Share multi-particle query fragments while preserving consumer-specific projection |
 | Rewrite | `recipe.rs` compiles output construction | Reuse parameterized construction with explicit boundary dependencies |
-| History | Persistent state and exact provenance | Share additional flow and proof structure; later investigate causal representation |
+| History | Persistent state, exact provenance, and incremental cyclic frame reachability | Share additional flow and proof structure; later investigate causal representation |
 
 The direct path and exhaustive backward runtime have different responsibilities. Shared primitives can serve both, but migrating the exhaustive runtime cannot remove source inference or proof projection. Its separate algorithms are useful reference behavior, although some underlying storage and indexing are already shared.
 

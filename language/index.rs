@@ -6,10 +6,9 @@ use crate::term::Term;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-struct Occurrence {
-    site: usize,
-    count: usize,
-}
+mod posting;
+
+use posting::Occurrence;
 
 pub(crate) struct Index {
     pub state: Arc<State>,
@@ -224,31 +223,9 @@ impl Index {
         let Some(posting) = posting else {
             return Vec::new();
         };
-        let (anchor, candidate) = posting
-            .iter()
-            .copied()
-            .enumerate()
-            .min_by_key(|(_, posting)| posting.len())
-            .unwrap();
-        candidate
-            .iter()
-            .filter(|occurrence| {
-                let site = occurrence.site;
-                posting.iter().enumerate().all(|(position, posting)| {
-                    position == anchor
-                        || if posting.len() <= 16 {
-                            posting.iter().any(|occurrence| occurrence.site == site)
-                        } else {
-                            posting
-                                .binary_search_by_key(&self.rank[site], |occurrence| {
-                                    self.rank[occurrence.site]
-                                })
-                                .is_ok()
-                        }
-                })
-            })
-            .map(|occurrence| self.world(occurrence.site))
-            .collect::<Vec<_>>()
+        posting::intersect(&posting, &self.rank)
+            .map(|site| self.world(site))
+            .collect()
     }
 
     pub(crate) fn quantity(&self, term: &Term, frame: usize, site: usize) -> usize {

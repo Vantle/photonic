@@ -25,6 +25,7 @@ pub(crate) struct Delivery {
 
 pub(crate) struct Network {
     catalog: Catalog,
+    budget: std::sync::Arc<crate::factor::Budget>,
     trigger: HashMap<Symbol, Vec<usize>>,
     empty: Vec<usize>,
     missing: Vec<usize>,
@@ -83,6 +84,7 @@ impl Network {
             generation: 0,
             altered: BTreeSet::new(),
             catalog,
+            budget: std::sync::Arc::new(crate::factor::Budget::new(65_536)),
             trigger,
             empty,
             scope,
@@ -153,7 +155,7 @@ impl Network {
                 self.storage += entry.retained();
             } else {
                 let entry = Entry::new(
-                    Search::planned(plan, index, frame, key.owner),
+                    Search::planned(plan, index, frame, key.owner, &self.budget),
                     consumer,
                     self.generation,
                 );
@@ -281,6 +283,17 @@ impl Network {
                 Poll::Pending
             }
         }
+    }
+
+    pub fn evict(&mut self) -> usize {
+        let previous = self.storage;
+        for &position in self.entry.values() {
+            let entry = &mut self.store[position];
+            self.storage -= entry.retained();
+            entry.evict();
+            self.storage += entry.retained();
+        }
+        previous - self.storage
     }
 
     pub fn retained(&self) -> usize {

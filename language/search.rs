@@ -47,15 +47,8 @@ impl Search {
             .collect();
         let pattern = &selection.pattern;
         Self {
-            gate: (pattern.len() > 1).then(|| {
-                Gate::new(
-                    selection
-                        .order
-                        .iter()
-                        .map(|&position| pattern[position].clone())
-                        .collect(),
-                )
-            }),
+            gate: (pattern.len() > 1)
+                .then(|| Gate::new(selection.order.iter().map(|&position| &pattern[position]))),
             candidate,
             cursor: vec![0; pattern.len()],
             selection,
@@ -121,8 +114,8 @@ impl Search {
             };
             self.world = world;
             self.position = position;
-            self.particle = Some(crate::particle::Match::new(
-                &self.selection.pattern[self.selection.order[position]],
+            self.particle = Some(self.selection.prepare(
+                self.selection.order[position],
                 &self.index.state.world[world].particle,
             ));
         }

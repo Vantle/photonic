@@ -82,6 +82,10 @@ impl Entry {
         }))
     }
 
+    pub fn evict(&mut self) {
+        self.search.evict();
+    }
+
     pub fn retained(&self) -> usize {
         self.search.retained()
             + self.consumer.len()

@@ -5,6 +5,7 @@ use std::sync::Arc;
 
 pub(crate) struct Input {
     fragment: Arc<Vec<Arc<crate::pattern::Pattern>>>,
+    group: Arc<Vec<usize>>,
     pattern: Arc<Vec<Vec<Term>>>,
     capture: bool,
     arity: usize,
@@ -14,10 +15,15 @@ pub(crate) struct Input {
 
 pub(crate) struct Context {
     fragment: Arc<Vec<Arc<crate::pattern::Pattern>>>,
+    group: Arc<Vec<usize>>,
     owner: usize,
 }
 
 impl Context {
+    pub fn group(&self) -> Arc<Vec<usize>> {
+        self.group.clone()
+    }
+
     pub fn candidate(
         &self,
         position: usize,
@@ -93,6 +99,7 @@ impl Input {
             .iter()
             .any(|symbol| matches!(symbol, Symbol::Rule(_)));
         Self {
+            group: Arc::new(crate::partition::classify(&pattern)),
             fragment: Arc::new(
                 pattern
                     .iter()
@@ -137,8 +144,13 @@ impl Input {
     pub fn context(&self, owner: usize) -> Context {
         Context {
             fragment: self.fragment.clone(),
+            group: self.group.clone(),
             owner,
         }
+    }
+
+    pub fn factor(&self) -> bool {
+        self.pattern.len() > 1 && self.pattern.iter().any(|particle| particle.len() >= 8)
     }
 
     pub fn empty(&self) -> bool {

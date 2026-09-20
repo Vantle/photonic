@@ -1,6 +1,6 @@
 # Shared matching implementation
 
-This implements the first production stages of the [roadmap](roadmap.md): deeper semantic coverage, phase measurement, matching and normalization ownership, shared immutable particle plans, conservative count summaries, and more selective maintenance. It does not implement the entire research roadmap. The comparison baseline is `03c5606`.
+This implements the first production stages of the [roadmap](roadmap.md): deeper semantic coverage, phase measurement, matching and normalization ownership, shared immutable particle plans, conservative count summaries, and more selective maintenance. It does not implement the entire research roadmap. The comparison baseline is `03c5606`. The subsequent [incremental matching and reachability implementation](factorization.md) reports the next production changes separately.
 
 ## Matching and reuse
 
