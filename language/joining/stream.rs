@@ -47,53 +47,6 @@ impl Stream {
             .map(Arc::as_ref)
     }
 
-    pub fn reset(&mut self, index: &Index) {
-        if let Mode::Recording(cache) = &mut self.mode {
-            cache.playback = Playback::default();
-            if cache.trace.complete
-                && let Some(node) = &self.node
-                && Arc::strong_count(node) > 2
-            {
-                node.publish(index, &cache.trace);
-            }
-            return;
-        }
-        self.restoration = None;
-        self.source.reset();
-        if let Some(trace) = self.shared().and_then(|node| node.find(index)) {
-            self.mode = Mode::Recording(Box::new(Cache {
-                trace,
-                playback: Playback::default(),
-            }));
-        } else if matches!(self.mode, Mode::Visited) {
-            self.mode = Mode::Repeated;
-        }
-    }
-
-    #[inline]
-    pub fn step(
-        &mut self,
-        space: &mut Space,
-        order: &[usize],
-        index: &Index,
-    ) -> Poll<Option<Vec<Slot>>> {
-        let cache = match &mut self.mode {
-            Mode::Recording(cache) => cache,
-            Mode::Visited => return self.source.step(space, order, index),
-            Mode::Streaming if self.restoration.is_none() => {
-                return self.source.step(space, order, index);
-            }
-            _ => return self.advance(space, order, index),
-        };
-        if let Some(result) = cache.playback.step(&cache.trace, order) {
-            return result;
-        }
-        if cache.trace.complete {
-            return Poll::Ready(None);
-        }
-        self.record(space, order, index)
-    }
-
     fn advance(
         &mut self,
         space: &mut Space,
@@ -109,7 +62,7 @@ impl Stream {
             self.mode = Mode::Visited;
         }
         if matches!(self.mode, Mode::Repeated) {
-            self.mode = if let Some(trace) = Trace::new(self.budget.clone()) {
+            self.mode = if let Some(trace) = Trace::new(self.budget.clone(), 1) {
                 Mode::Recording(Box::new(Cache {
                     trace: Arc::new(trace),
                     playback: Playback::default(),
@@ -135,7 +88,9 @@ impl Stream {
             unreachable!();
         };
         if cache.playback.progress == 65536
-            || !Arc::get_mut(&mut cache.trace).unwrap().append(&result)
+            || !Arc::get_mut(&mut cache.trace)
+                .unwrap()
+                .append(&result, 4096)
         {
             self.mode = Mode::Streaming;
             return result;
@@ -151,7 +106,66 @@ impl Stream {
         result
     }
 
-    pub fn evict(&mut self) {
+    #[cfg(test)]
+    pub fn shares(&self, other: &Self) -> bool {
+        match (&self.mode, &other.mode) {
+            (Mode::Recording(left), Mode::Recording(right)) => {
+                Arc::ptr_eq(&left.trace, &right.trace)
+            }
+            _ => false,
+        }
+    }
+}
+
+impl super::prefix::Prefix for Stream {
+    fn reset(&mut self, index: &Index) {
+        if let Mode::Recording(cache) = &mut self.mode {
+            cache.playback = Playback::default();
+            if cache.trace.complete
+                && let Some(node) = &self.node
+                && Arc::strong_count(node) > 2
+            {
+                node.publish(index, &cache.trace);
+            }
+            return;
+        }
+        self.restoration = None;
+        self.source.reset();
+        if let Some(trace) = self.shared().and_then(|node| node.find(index)) {
+            self.mode = Mode::Recording(Box::new(Cache {
+                trace,
+                playback: Playback::default(),
+            }));
+        } else if matches!(self.mode, Mode::Visited) {
+            self.mode = Mode::Repeated;
+        }
+    }
+
+    #[inline]
+    fn step(
+        &mut self,
+        space: &mut Space,
+        order: &[usize],
+        index: &Index,
+    ) -> Poll<Option<Vec<Slot>>> {
+        let cache = match &mut self.mode {
+            Mode::Recording(cache) => cache,
+            Mode::Visited => return self.source.step(space, order, index),
+            Mode::Streaming if self.restoration.is_none() => {
+                return self.source.step(space, order, index);
+            }
+            _ => return self.advance(space, order, index),
+        };
+        if let Some(result) = cache.playback.step(&cache.trace, order) {
+            return result;
+        }
+        if cache.trace.complete {
+            return Poll::Ready(None);
+        }
+        self.record(space, order, index)
+    }
+
+    fn evict(&mut self) {
         self.node = None;
         let Mode::Recording(cache) = &self.mode else {
             return;
@@ -162,17 +176,7 @@ impl Stream {
     }
 
     #[cfg(test)]
-    pub fn shares(&self, other: &Self) -> bool {
-        match (&self.mode, &other.mode) {
-            (Mode::Recording(left), Mode::Recording(right)) => {
-                Arc::ptr_eq(&left.trace, &right.trace)
-            }
-            _ => false,
-        }
-    }
-
-    #[cfg(test)]
-    pub fn size(&self) -> usize {
+    fn size(&self) -> usize {
         self.source.size()
             + 1
             + match &self.mode {
@@ -181,14 +185,14 @@ impl Stream {
             }
     }
 
-    pub fn cached(&self) -> usize {
+    fn cached(&self) -> usize {
         match &self.mode {
             Mode::Recording(cache) => cache.trace.retained,
             _ => 0,
         }
     }
 
-    pub fn retained(&self) -> usize {
+    fn retained(&self) -> usize {
         self.source.retained() + self.cached() + 1
     }
 }

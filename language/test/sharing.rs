@@ -7,7 +7,7 @@ use crate::state::State;
 use std::sync::Arc;
 use std::task::Poll;
 
-fn prefix(join: &Join) -> &Product {
+fn prefix(join: &Join) -> &Product<super::stream::Stream> {
     let Traversal::Factored(product) = &join.traversal else {
         panic!(
             "expected factored traversal: {:?}, {:?}, {}",
@@ -179,8 +179,8 @@ fn isolation() {
         node.push(store.subscribe(super::key::Key::new(&space, &[0])).unwrap());
     }
     assert!(!Arc::ptr_eq(&node[0], &node[1]));
-    let mut trace = super::trace::Trace::new(store.budget().clone()).unwrap();
-    assert!(trace.append(&Poll::Ready(None)));
+    let mut trace = super::trace::Trace::new(store.budget().clone(), 1).unwrap();
+    assert!(trace.append(&Poll::Ready(None), 4096));
     let trace = Arc::new(trace);
     node[0].publish(&index, &trace);
     assert!(Arc::ptr_eq(&node[0].find(&index).unwrap(), &trace));

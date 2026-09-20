@@ -1,7 +1,9 @@
 mod cursor;
 mod key;
 mod node;
+mod partition;
 mod playback;
+mod prefix;
 mod product;
 mod space;
 mod store;
@@ -15,15 +17,19 @@ use crate::slot::Slot;
 #[cfg(test)]
 use crate::term::Term;
 use cursor::Cursor;
-use product::Product;
+use partition::Partition;
+use product::{Product, Strategy};
 use smallvec::SmallVec;
 use space::Space;
 use std::sync::Arc;
 use std::task::Poll;
+use stream::Stream;
 
+#[repr(u8)]
 enum Traversal {
     Direct(Cursor),
-    Factored(Box<Product>),
+    Factored(Box<Product<Stream>>),
+    Partitioned(Box<Product<Partition>>),
 }
 
 impl Traversal {
@@ -31,6 +37,7 @@ impl Traversal {
         match self {
             Self::Direct(cursor) => cursor.retained(),
             Self::Factored(product) => product.retained(),
+            Self::Partitioned(product) => product.retained(),
         }
     }
 }
@@ -75,14 +82,27 @@ impl Join {
         join
     }
 
-    fn product(space: &Space, order: &[usize]) -> Option<Box<Product>> {
+    fn product(space: &Space, order: &[usize], strategy: Strategy) -> Option<Traversal> {
         if let Some(store) = &space.store
             && order.len() >= 3
             && order[..order.len() - 1]
                 .iter()
                 .any(|&position| space.pattern[position].len() >= 8)
         {
-            return Some(Box::new(Product::new(space, order, store)));
+            let width = order.len() - 1;
+            return Some(match strategy {
+                Strategy::Shared => {
+                    let node = store.subscribe(key::Key::new(space, &order[..width]));
+                    Traversal::Factored(Box::new(Product::new(Stream::new(
+                        width,
+                        store.budget().clone(),
+                        node,
+                    ))))
+                }
+                Strategy::Partitioned => Traversal::Partitioned(Box::new(Product::new(
+                    Partition::new(width, store.budget().clone()),
+                ))),
+            });
         }
         None
     }
@@ -118,17 +138,45 @@ impl Join {
             && !changed.iter().any(|position| {
                 self.order[..self.order.len().saturating_sub(1)].contains(position)
             });
-        if !stable {
-            if matches!(self.traversal, Traversal::Factored(_)) || self.order != previous {
+        let partitioned = !stable
+            && self.order == previous
+            && self.order.len() >= 3
+            && self.space.domain[self.order[0]].len() > 1
+            && (self.space.domain[self.order[0]].len() > index.insertion.len()
+                || !index
+                    .insertion
+                    .contains(&self.space.domain[self.order[0]][0].site))
+            && changed
+                .iter()
+                .all(|position| *position == self.order[0] || Some(position) == self.order.last());
+        if !stable && !partitioned {
+            if !matches!(self.traversal, Traversal::Direct(_)) || self.order != previous {
                 self.traversal = Traversal::Direct(Cursor::new(self.order.len()));
             }
         } else if self.stable
             && matches!(self.traversal, Traversal::Direct(_))
-            && let Some(product) = Self::product(&self.space, &self.order)
+            && let Some(product) = Self::product(
+                &self.space,
+                &self.order,
+                if partitioned {
+                    Strategy::Partitioned
+                } else {
+                    Strategy::Shared
+                },
+            )
         {
-            self.traversal = Traversal::Factored(product);
+            self.traversal = product;
         }
-        self.stable = stable;
+        if partitioned {
+            if matches!(self.traversal, Traversal::Factored(_)) {
+                self.traversal =
+                    Self::product(&self.space, &self.order, Strategy::Partitioned).unwrap();
+            }
+            if let Traversal::Partitioned(product) = &mut self.traversal {
+                product.prefix.update(index);
+            }
+        }
+        self.stable = stable || partitioned;
         self.viable = self.feasible();
         self.reset(index);
         true
@@ -138,6 +186,7 @@ impl Join {
         match &mut self.traversal {
             Traversal::Direct(cursor) => cursor.reset(),
             Traversal::Factored(product) => product.reset(index),
+            Traversal::Partitioned(product) => product.reset(index),
         }
         self.complete = self.space.domain.iter().any(Vec::is_empty);
     }
@@ -186,6 +235,7 @@ impl Join {
         let result = match &mut self.traversal {
             Traversal::Direct(cursor) => cursor.step(&mut self.space, &self.order, index),
             Traversal::Factored(product) => product.step(&mut self.space, &self.order, index),
+            Traversal::Partitioned(product) => product.step(&mut self.space, &self.order, index),
         };
         result.map(|selection| {
             selection.map(|mut selection| {
@@ -199,8 +249,10 @@ impl Join {
     }
 
     pub fn evict(&mut self) {
-        if let Traversal::Factored(product) = &mut self.traversal {
-            product.evict();
+        match &mut self.traversal {
+            Traversal::Direct(_) => {}
+            Traversal::Factored(product) => product.evict(),
+            Traversal::Partitioned(product) => product.evict(),
         }
         self.space.evict();
     }
@@ -212,6 +264,7 @@ impl Join {
             + match &self.traversal {
                 Traversal::Direct(cursor) => cursor.size(),
                 Traversal::Factored(product) => product.size(),
+                Traversal::Partitioned(product) => product.size(),
             }
     }
 
@@ -231,3 +284,7 @@ mod sharing;
 #[cfg(test)]
 #[path = "test/domain.rs"]
 mod domain;
+
+#[cfg(test)]
+#[path = "test/fragment.rs"]
+mod fragment;

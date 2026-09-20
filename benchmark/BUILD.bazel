@@ -352,3 +352,15 @@ rust_binary(
         "@crate//:serde_json",
     ],
 )
+
+rust_binary(
+    name = "partition",
+    srcs = ["partition.rs"],
+    crate_root = "partition.rs",
+    lint_config = "//:lint",
+    deps = [
+        "//language:measurement",
+        "@crate//:clap",
+        "@crate//:serde_json",
+    ],
+)
