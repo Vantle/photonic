@@ -11,7 +11,7 @@ $checksum = switch ($platform) {
     'amd64' { 'b9d65a1f7c2d7af885a96a4fd5aa36b40fb41816d30944390569eef908bdc954' }
 }
 
-$directory = Join-Path $env:BUILDKITE_BUILD_CHECKOUT_PATH '.cache/bootstrap/1.28.1'
+$directory = Join-Path $env:LOCALAPPDATA 'photonic/bootstrap/1.28.1'
 $binary = Join-Path $directory 'bazel.exe'
 New-Item -ItemType Directory -Force -Path $directory | Out-Null
 if (!(Test-Path $binary)) {
@@ -27,8 +27,8 @@ if ((Get-FileHash $binary -Algorithm SHA256).Hash -ne $checksum) {
     throw 'Bazelisk checksum mismatch'
 }
 
-$checkout = $env:BUILDKITE_BUILD_CHECKOUT_PATH.Replace('\', '/')
+$cache = (Join-Path $env:LOCALAPPDATA 'photonic').Replace('\', '/')
 @(
-    "build --disk_cache=`"$checkout/.cache/action`""
-    "common --repository_cache=`"$checkout/.cache/repository`""
+    "build --disk_cache=`"$cache/action`""
+    "common --repository_cache=`"$cache/repository`""
 ) | Set-Content -Encoding Ascii user.bazelrc

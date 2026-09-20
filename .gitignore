@@ -1,5 +1,4 @@
 user.bazelrc
-.cache/
 rust-project.json
 .rules_rust_analyzer/
 target/

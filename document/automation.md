@@ -47,12 +47,12 @@ Connect the [Buildkite GitHub App](https://buildkite.com/docs/pipelines/source-c
 Manual verification is available through **New Build** in Buildkite. For local pipeline syntax validation, use:
 
 ```sh
-buildkite-agent pipeline upload --dry-run .buildkite/bootstrap.yml
-buildkite-agent pipeline upload --dry-run .buildkite/pipeline.yml
+BUILDKITE_AGENT_ACCESS_TOKEN=validation buildkite-agent pipeline upload --dry-run .buildkite/bootstrap.yml
+BUILDKITE_AGENT_ACCESS_TOKEN=validation buildkite-agent pipeline upload --dry-run .buildkite/pipeline.yml
 ```
 
 ## Cache behavior
 
-The pipeline requests a 40 GB hosted cache volume mounted at `.cache/`. Bazel action and repository caches, Bazelisk downloads, and verified bootstrap binaries live below it. Self-hosted agents use the same layout, and checkout cleanup preserves only `.cache/`. All other ignored and untracked checkout files are removed. The generated, ignored `user.bazelrc` selects these CI cache locations without changing local build defaults.
+The pipeline requests a 40 GB hosted cache volume mounted at `/tmp/photonic`. Bazel action and repository caches, Bazelisk downloads, and verified bootstrap binaries live below it. Self-hosted Unix agents use the same location; Windows agents use `%LOCALAPPDATA%/photonic`. Caches stay outside the checkout, as required by Bazel’s repository contents cache. Normal checkout cleanup remains enabled. The generated, ignored `user.bazelrc` selects these CI cache locations without changing local build defaults.
 
 Hosted volumes are best-effort, and concurrent jobs receive separate copies. Successful jobs can update the shared volume. Cache reuse is an optimization; it is never required for correctness. The pipeline keeps no compiler output or credentials in GitHub Actions caches.

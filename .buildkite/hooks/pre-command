@@ -28,7 +28,7 @@ case "$(uname -s)/$(uname -m)" in
         ;;
 esac
 
-directory="$BUILDKITE_BUILD_CHECKOUT_PATH/.cache/bootstrap/1.28.1/$platform"
+directory="/tmp/photonic/bootstrap/1.28.1/$platform"
 mkdir -p "$directory"
 if [[ ! -f "$directory/bazel" ]]; then
     download="$(mktemp "$directory/download.XXXXXX")"
@@ -41,6 +41,5 @@ if [[ ! -f "$directory/bazel" ]]; then
 fi
 printf '%s  %s\n' "$checksum" "$directory/bazel" | shasum -a 256 --check
 export PATH="$directory:$PATH"
-export BAZELISK_HOME="$BUILDKITE_BUILD_CHECKOUT_PATH/.cache/bazelisk"
-printf 'build --disk_cache="%s/.cache/action"\ncommon --repository_cache="%s/.cache/repository"\n' \
-    "$BUILDKITE_BUILD_CHECKOUT_PATH" "$BUILDKITE_BUILD_CHECKOUT_PATH" > user.bazelrc
+export BAZELISK_HOME=/tmp/photonic/bazelisk
+printf 'build --disk_cache=/tmp/photonic/action\ncommon --repository_cache=/tmp/photonic/repository\n' > user.bazelrc

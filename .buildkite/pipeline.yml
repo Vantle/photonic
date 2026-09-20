@@ -1,9 +1,6 @@
-env:
-  BUILDKITE_GIT_CLEAN_FLAGS: "-ffdx -e .cache/"
-
 cache:
   paths:
-    - .cache
+    - /tmp/photonic
   size: 40g
 
 steps:
