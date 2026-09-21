@@ -69,7 +69,8 @@ impl Table {
             cache
         } else {
             let cache = self.cache.len();
-            let search = if crate::gate::Store::eligible(key.pattern.len())
+            let search = if Search::eligible(&key.pattern)
+                || crate::gate::Store::eligible(key.pattern.len())
                 || key.pattern.iter().any(|particle| particle.len() >= 8)
             {
                 let store = self

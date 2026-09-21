@@ -12,6 +12,7 @@ use std::time::{Duration, Instant};
 pub struct Measurement {
     width: usize,
     token: usize,
+    record: usize,
     length: usize,
     extend: bool,
     sample: Vec<f64>,
@@ -19,7 +20,14 @@ pub struct Measurement {
 
 pub fn run() -> Vec<Measurement> {
     let mut report = Vec::new();
-    for (width, token) in [(2, 8), (16, 8), (16, 64), (64, 16)] {
+    for (width, token, record) in [
+        (2, 8, 1),
+        (16, 8, 1),
+        (16, 64, 1),
+        (64, 16, 1),
+        (2, 1, 32),
+        (2, 1, 256),
+    ] {
         let budget = Arc::new(Budget::new(65536));
         let binding = (0..width)
             .map(|position| Slot {
@@ -29,7 +37,9 @@ pub fn run() -> Vec<Measurement> {
             })
             .collect::<Vec<_>>();
         let mut trace = Trace::new(budget.clone(), 1).unwrap();
-        assert!(trace.append(&Poll::Ready(Some(binding.clone())), 0.., 4096));
+        for _ in 0..record {
+            assert!(trace.append(&Poll::Ready(Some(binding.clone())), 0.., 4096));
+        }
         let prefix = [Slot {
             world: width,
             position: 0,
@@ -79,6 +89,7 @@ pub fn run() -> Vec<Measurement> {
             report.push(Measurement {
                 width,
                 token,
+                record,
                 length,
                 extend,
                 sample: (0..9).map(|_| evaluate()).collect(),

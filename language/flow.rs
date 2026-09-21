@@ -6,6 +6,7 @@ use std::collections::BTreeSet;
 mod composition;
 mod key;
 mod store;
+mod template;
 mod union;
 
 pub(crate) use store::Store;

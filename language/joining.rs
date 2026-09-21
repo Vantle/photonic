@@ -15,6 +15,7 @@ mod store;
 mod strategy;
 mod stream;
 mod trace;
+mod transcript;
 mod tree;
 
 #[cfg(test)]
@@ -281,7 +282,7 @@ impl Join {
         domain.iter().all(|domain| !domain.is_empty()) && crate::assignment::feasible(&domain)
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn step(&mut self, index: &Index) -> Poll<Option<Vec<Slot>>> {
         if self.complete {
             return Poll::Ready(None);

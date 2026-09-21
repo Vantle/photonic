@@ -14,7 +14,7 @@ pub struct Measurement {
     sample: Vec<f64>,
 }
 
-fn fixture(width: usize) -> (Arc<Flow>, Flow) {
+fn fixture(width: usize) -> (Arc<Flow>, Arc<Flow>) {
     let parent = Arc::new(Flow {
         resource: (0..width)
             .map(|position| {
@@ -43,7 +43,7 @@ fn fixture(width: usize) -> (Arc<Flow>, Flow) {
         context: (0..32).map(|_| (0..width).collect()).collect(),
         frame: vec![Some(2), Some(0), None, Some(1)],
     };
-    (parent, event)
+    (parent, Arc::new(event))
 }
 
 pub fn run() -> Vec<Measurement> {

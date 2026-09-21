@@ -85,3 +85,85 @@ fn refusal() {
     drop(trace);
     assert!(budget.reserve(4096));
 }
+
+#[test]
+fn boundary() {
+    for count in [0, 1, 2, 31, 32, 33, 64, 65] {
+        let budget = Arc::new(Budget::new(65536));
+        let mut trace = Trace::new(budget.clone(), 1).unwrap();
+        let expected = (0..count)
+            .map(|world| {
+                Poll::Ready(Some(vec![Slot {
+                    world,
+                    position: 0,
+                    token: vec![world],
+                }]))
+            })
+            .collect::<Vec<_>>();
+        for result in &expected {
+            assert!(trace.append(result, 0.., 4096));
+        }
+        let snapshot = trace.duplicate(4096).unwrap();
+        assert!(trace.append(&Poll::Pending, 0.., 4096));
+        assert!(trace.append(&Poll::Pending, 0.., 4096));
+        assert_eq!(snapshot.length, count);
+        assert_eq!(snapshot.retained, snapshot.size());
+        drop(trace);
+        let mut playback = Playback::default();
+        for result in expected {
+            assert_eq!(playback.step(&snapshot, &[0], &[]), Some(result));
+        }
+        assert_eq!(playback.step(&snapshot, &[0], &[]), None);
+        drop(snapshot);
+        assert!(budget.reserve(65536));
+    }
+}
+
+#[test]
+fn branching() {
+    let budget = Arc::new(Budget::new(65536));
+    let mut trace = Trace::new(budget.clone(), 1).unwrap();
+    for world in 0..128 {
+        assert!(trace.append(&Poll::Pending, 0.., 4096));
+        assert!(trace.append(
+            &Poll::Ready(Some(vec![Slot {
+                world,
+                position: 0,
+                token: vec![world],
+            }])),
+            0..,
+            4096,
+        ));
+    }
+    assert!(trace.append(&Poll::Pending, 0.., 4096));
+    let snapshot = trace.duplicate(4096).unwrap();
+    assert!(trace.append(&Poll::Pending, 0.., 4096));
+    assert!(trace.append(&Poll::Ready(None), 0.., 4096));
+    assert_eq!(snapshot.length, 257);
+    assert!(!snapshot.complete);
+    assert_eq!(trace.length, 258);
+    assert_eq!(trace.size(), trace.retained);
+    assert_eq!(snapshot.size(), snapshot.retained);
+    let mut playback = Playback::default();
+    for world in 0..128 {
+        assert_eq!(playback.step(&snapshot, &[0], &[]), Some(Poll::Pending));
+        assert_eq!(
+            playback.step(&snapshot, &[0], &[]),
+            Some(Poll::Ready(Some(vec![Slot {
+                world,
+                position: 0,
+                token: vec![world],
+            }])))
+        );
+    }
+    assert_eq!(playback.skip(&snapshot, 10), 1);
+    assert_eq!(playback.step(&snapshot, &[0], &[]), None);
+    drop(trace);
+    playback.seek(&snapshot, 255);
+    assert!(matches!(
+        playback.step(&snapshot, &[0], &[]),
+        Some(Poll::Ready(Some(_)))
+    ));
+    drop(snapshot);
+    assert!(budget.reserve(65536));
+}

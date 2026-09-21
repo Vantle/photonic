@@ -126,6 +126,15 @@ fn composition() -> usize {
 
 fn run() -> usize {
     let mut count = wide() + composition();
+    for source in ["A.B.C,A,B.C [A,B,C] Done", "A,C [A] B [C] D"] {
+        count += bounded(
+            source,
+            photonic::runtime::Limit::default(),
+            &[1; 128],
+            false,
+        );
+    }
+
     for depth in [1, 2, 3, 8, 16, 32] {
         let mut rule = "Done".to_owned();
         let mut target = vec![rule.clone()];

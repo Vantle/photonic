@@ -5,6 +5,7 @@ use std::sync::Arc;
 
 pub(super) struct Member {
     pub site: usize,
+    pub rejected: bool,
     pub particle: Option<crate::factor::Cursor>,
 }
 
@@ -82,6 +83,7 @@ impl Space {
                     .map(|site| Member {
                         site,
                         particle: None,
+                        rejected: false,
                     })
                     .collect()
             })
@@ -181,6 +183,7 @@ impl Space {
                     domain.push(Member {
                         site,
                         particle: None,
+                        rejected: false,
                     });
                     self.retained += 1;
                 }
@@ -192,6 +195,7 @@ impl Space {
         changed
     }
 
+    #[inline]
     pub fn prepare(
         &mut self,
         position: usize,
@@ -212,6 +216,7 @@ impl Space {
                 .as_ref()
                 .filter(|_| self.pattern[position].len() >= 8)
                 .map(|store| store.budget().clone());
+            member.rejected = !particle.viable();
             member.particle = Some(crate::factor::Cursor::new(particle, budget));
         }
         member.particle.as_mut().unwrap()

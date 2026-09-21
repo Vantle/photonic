@@ -514,3 +514,25 @@ rust_binary(
         "@crate//:serde_json",
     ],
 )
+
+rust_binary(
+    name = "transcript",
+    srcs = ["transcript.rs"],
+    crate_root = "transcript.rs",
+    lint_config = "//:lint",
+    deps = [
+        "//language:measurement",
+        "@crate//:serde_json",
+    ],
+)
+
+rust_binary(
+    name = "search",
+    srcs = ["search.rs"],
+    crate_root = "search.rs",
+    lint_config = "//:lint",
+    deps = [
+        "//language:measurement",
+        "@crate//:serde_json",
+    ],
+)
