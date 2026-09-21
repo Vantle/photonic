@@ -39,6 +39,7 @@ fn composition() {
             .collect(),
         frame: vec![Some(1), Some(0), None],
     };
+    let event = Arc::new(event);
     for capacity in [0, 128, 65536] {
         let mut store = Store::new(capacity);
         for offset in 0..16 {

@@ -8,6 +8,7 @@ pub(super) struct Cursor {
     cursor: SmallVec<[usize; 2]>,
     scan: SmallVec<[bool; 2]>,
     binding: SmallVec<[Slot; 2]>,
+    occupied: u64,
     depth: usize,
     complete: bool,
     retained: usize,
@@ -19,6 +20,7 @@ impl Cursor {
             cursor: smallvec![0; width],
             scan: smallvec![false; width],
             binding: SmallVec::with_capacity(width),
+            occupied: 0,
             depth: 0,
             complete: false,
             retained: width * 2,
@@ -29,6 +31,7 @@ impl Cursor {
         self.cursor.fill(0);
         self.scan.fill(false);
         self.binding.clear();
+        self.occupied = 0;
         self.depth = 0;
         self.complete = false;
         self.retained = self.cursor.len() + self.scan.len();
@@ -55,6 +58,11 @@ impl Cursor {
             .map(|slot| slot.token.len() + 1)
             .sum::<usize>();
         self.binding = SmallVec::from_vec(binding);
+        self.occupied = self
+            .binding
+            .iter()
+            .filter(|slot| slot.world < 64)
+            .fold(0, |occupied, slot| occupied | (1 << slot.world));
     }
 
     #[cfg(test)]
@@ -96,16 +104,27 @@ impl Cursor {
                 }
                 self.depth -= 1;
                 let slot = self.binding.pop().unwrap();
+                if slot.world < 64 {
+                    self.occupied &= !(1 << slot.world);
+                }
                 self.retained -= slot.token.len() + 1;
                 return Poll::Pending;
             };
+            if member.rejected {
+                self.cursor[self.depth] += 1;
+                return Poll::Pending;
+            }
             let blocked = self
                 .binding
                 .iter()
                 .rev()
                 .find(|slot| space.group[slot.position] == space.group[position])
                 .is_some_and(|slot| !index.precedes(slot.world, member.site))
-                || self.binding.iter().any(|slot| slot.world == member.site);
+                || if member.site < 64 {
+                    self.occupied & (1 << member.site) != 0
+                } else {
+                    self.binding.iter().any(|slot| slot.world == member.site)
+                };
             #[cfg(test)]
             assert_eq!(
                 blocked,
@@ -150,6 +169,9 @@ impl Cursor {
                     return Poll::Ready(Some(value.into_vec()));
                 }
                 self.retained += slot.token.len() + 1;
+                if slot.world < 64 {
+                    self.occupied |= 1 << slot.world;
+                }
                 self.binding.push(slot);
                 self.depth += 1;
             }

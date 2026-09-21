@@ -18,10 +18,12 @@ impl Work {
         let mut cost = 0usize;
         let mut count = 0;
         for work in batch {
-            if let Self::Normalize(_, search) = work
-                && search.cost() >= 128
-            {
-                cost = cost.saturating_add(search.cost());
+            let estimate = match work {
+                Self::Normalize(_, search) => search.cost(),
+                Self::Search(_, search) => search.cost(),
+            };
+            if estimate >= 128 {
+                cost = cost.saturating_add(estimate);
                 count += 1;
             }
         }

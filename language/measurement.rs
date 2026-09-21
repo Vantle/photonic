@@ -12,8 +12,10 @@ pub mod profile;
 pub mod query;
 pub mod reachability;
 pub mod residual;
+pub mod search;
 pub mod sharing;
 pub mod subscription;
+pub mod transcript;
 
 use crate::canonical::Search;
 use crate::program::Symbol;

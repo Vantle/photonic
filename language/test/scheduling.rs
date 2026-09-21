@@ -630,3 +630,59 @@ fn bulk() {
         }
     }
 }
+
+#[test]
+fn preparation() {
+    use crate::work::{Result, Work};
+    let executor = Executor::new(4).unwrap();
+    for (width, arity) in [32, 4096]
+        .into_iter()
+        .flat_map(|width| [1, 8].map(|arity| (width, arity)))
+    {
+        let state = Arc::new(root(vec![World {
+            frame: 0,
+            particle: (0..width)
+                .map(|id| Token {
+                    id,
+                    value: Symbol::Atom(id.min(8)),
+                    capture: None,
+                })
+                .collect(),
+        }]));
+        let index = Arc::new(crate::index::Index::new(state));
+        let pattern = vec![
+            (0..arity)
+                .map(|position| Term::new(Symbol::Atom(position), None))
+                .collect::<Vec<_>>(),
+        ];
+        let mut reference = (0..2)
+            .map(|_| crate::search::Search::new(pattern.clone(), index.clone(), 0))
+            .collect::<Vec<_>>();
+        let mut batch = (0..2)
+            .map(|position| {
+                Work::Search(
+                    position,
+                    crate::search::Search::new(pattern.clone(), index.clone(), 0),
+                )
+            })
+            .collect::<Vec<_>>();
+        for step in 0..3 {
+            assert_eq!(Work::parallel(&batch), width == 4096 && step == 0);
+            let result = if Work::parallel(&batch) {
+                executor.map(batch, Work::advance)
+            } else {
+                batch.into_iter().map(Work::advance).collect()
+            };
+            batch = Vec::new();
+            for (position, result) in result.into_iter().enumerate() {
+                let Result::Search(identity, search, progress) = result else {
+                    unreachable!()
+                };
+                assert_eq!(position, identity);
+                assert_eq!(progress, reference[position].step());
+                assert_eq!(search.retained(), reference[position].retained());
+                batch.push(Work::Search(identity, search));
+            }
+        }
+    }
+}

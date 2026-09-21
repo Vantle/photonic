@@ -9,6 +9,30 @@ pub(super) struct Composition {
 }
 
 impl Composition {
+    pub fn resource(&mut self, parent: &Flow, source: &Set<Place>) -> Set<Place> {
+        if source.len() == 1 {
+            return parent.resource[source.first().unwrap()].clone();
+        }
+        self.resource.select(source, || {
+            source
+                .iter()
+                .flat_map(|key| parent.resource[key].iter().copied())
+                .collect()
+        })
+    }
+
+    pub fn context(&mut self, parent: &Flow, source: &Set<usize>) -> Set<usize> {
+        if source.len() == 1 {
+            return parent.context[*source.first().unwrap()].clone();
+        }
+        self.context.select(source, || {
+            source
+                .iter()
+                .flat_map(|&index| parent.context[index].iter().copied())
+                .collect()
+        })
+    }
+
     pub fn compose(&mut self, parent: &Flow, event: &Flow) -> Flow {
         #[cfg(feature = "measurement")]
         let _measurement = crate::measurement::profile::Scope::new(
@@ -18,35 +42,12 @@ impl Composition {
             resource: event
                 .resource
                 .iter()
-                .map(|(&place, source)| {
-                    if source.len() == 1 {
-                        return (place, parent.resource[source.first().unwrap()].clone());
-                    }
-                    (
-                        place,
-                        self.resource.select(source, || {
-                            source
-                                .iter()
-                                .flat_map(|key| parent.resource[key].iter().copied())
-                                .collect::<Set<_>>()
-                        }),
-                    )
-                })
+                .map(|(&place, source)| (place, self.resource(parent, source)))
                 .collect(),
             context: event
                 .context
                 .iter()
-                .map(|source| {
-                    if source.len() == 1 {
-                        return parent.context[*source.first().unwrap()].clone();
-                    }
-                    self.context.select(source, || {
-                        source
-                            .iter()
-                            .flat_map(|&index| parent.context[index].iter().copied())
-                            .collect::<Set<_>>()
-                    })
-                })
+                .map(|source| self.context(parent, source))
                 .collect(),
             frame: event
                 .frame

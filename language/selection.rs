@@ -15,6 +15,16 @@ pub(crate) struct Selection {
 }
 
 impl Selection {
+    pub(crate) fn cost(&self, position: usize, world: &crate::state::World) -> usize {
+        if self.shared.is_some() || world.particle.len() < 4096 {
+            return 0;
+        }
+        world
+            .particle
+            .len()
+            .saturating_mul(self.pattern[position].len().clamp(1, 8))
+    }
+
     pub(crate) fn new(
         pattern: Arc<Vec<Vec<Term>>>,
         index: &crate::index::Index,

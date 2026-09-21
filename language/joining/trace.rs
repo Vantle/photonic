@@ -10,20 +10,11 @@ pub(super) enum Record {
     Binding(Binding),
 }
 
-impl Record {
-    fn retained(&self) -> usize {
-        match self {
-            Self::Waiting(_) => 1,
-            Self::Binding(binding) => binding.retained(),
-        }
-    }
-}
-
 pub(super) struct Trace {
     budget: Arc<Budget>,
-    #[cfg(test)]
-    header: usize,
-    pub record: Vec<Record>,
+    header: u16,
+    binding: u16,
+    pub record: super::transcript::Transcript,
     pub retained: usize,
     pub length: usize,
     pub complete: bool,
@@ -33,9 +24,9 @@ impl Trace {
     pub fn new(budget: Arc<Budget>, header: usize) -> Option<Self> {
         (header <= 4096 && budget.reserve(header)).then(|| Self {
             budget,
-            #[cfg(test)]
-            header,
-            record: Vec::new(),
+            header: header.try_into().unwrap(),
+            binding: 0,
+            record: super::transcript::Transcript::default(),
             retained: header,
             length: 0,
             complete: false,
@@ -81,6 +72,7 @@ impl Trace {
                     return false;
                 }
                 self.record.push(Record::Binding(Binding::new(binding)));
+                self.binding += 1;
             }
         }
         if !matches!(result, Poll::Ready(None)) {
@@ -89,14 +81,15 @@ impl Trace {
         true
     }
 
+    #[inline]
     pub fn duplicate(&self, allowance: usize) -> Option<Self> {
         if self.retained > allowance || !self.budget.reserve(self.retained) {
             return None;
         }
         Some(Self {
             budget: self.budget.clone(),
-            #[cfg(test)]
             header: self.header,
+            binding: self.binding,
             record: self.record.clone(),
             retained: self.retained,
             length: self.length,
@@ -120,28 +113,13 @@ impl Trace {
             .iter()
             .map(|slot| slot.token.len() + 1)
             .sum::<usize>();
-        let retained = trace
-            .record
-            .iter()
-            .map(|record| {
-                record.retained()
-                    + if matches!(record, Record::Binding(_)) {
-                        inherited + usize::from(!prefix.is_empty())
-                    } else {
-                        0
-                    }
-            })
-            .sum::<usize>()
+        let retained = trace.retained - usize::from(trace.header)
+            + usize::from(trace.binding) * (inherited + usize::from(!prefix.is_empty()))
             - usize::from(merged);
         if !self.reserve(retained, allowance) {
             return false;
         }
-        let prefix = (!prefix.is_empty()
-            && trace
-                .record
-                .iter()
-                .any(|record| matches!(record, Record::Binding(_))))
-        .then(|| {
+        let prefix = (!prefix.is_empty() && trace.binding != 0).then(|| {
             prefix
                 .iter()
                 .map(|slot| Selection {
@@ -168,12 +146,13 @@ impl Trace {
             }
         }));
         self.length = length;
+        self.binding += trace.binding;
         true
     }
 
     #[cfg(test)]
     pub fn size(&self) -> usize {
-        self.header
+        usize::from(self.header)
             + self
                 .record
                 .iter()

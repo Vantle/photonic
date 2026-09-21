@@ -124,3 +124,25 @@ fn width() {
     assert_eq!(actual.len(), 1);
     assert_eq!(actual, collect(|| reference.step()));
 }
+
+#[test]
+fn occupancy() {
+    let program = crate::program::Program::new(
+        crate::lowering::parse(&format!("{} [A,A] Done", ["A"; 70].join(","))).unwrap(),
+    );
+    let state = Arc::new(State::initial(&program));
+    let index = Index::new(state);
+    let input = crate::plan::Input::new(&program.rule[0].input);
+    let mut join = Join::new(input.pattern(0), &index, 0);
+    for _ in 0..3 {
+        let actual = collect(|| join.step(&index));
+        let expected = (0..70)
+            .flat_map(|left| {
+                (left + 1..70)
+                    .map(move |right| vec![(left, vec![left], 0), (right, vec![right], 1)])
+            })
+            .collect();
+        assert_eq!(actual, expected);
+        join.reset(&index);
+    }
+}
