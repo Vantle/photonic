@@ -4,7 +4,7 @@ Photonic is a proof language with a native Rust kernel, two execution modes, per
 
 This report describes the source measured in [architecture.json](architecture.json), following baseline `437bda3`. Earlier algorithmic work and measurements remain in [optimization.md](optimization.md), [implementation.md](implementation.md), and [factorization.md](factorization.md). The [roadmap](roadmap.md) remains the record of larger unfinished work. No benchmark establishes a universal speedup or the absence of all kernel bugs.
 
-The subsequent [joined-prefix audit](prefix.md) adds bounded multi-input prefix reuse and adaptive dispatch storage, with paired measurements against `20984f1`. Its matching ownership breakdown supersedes the single-file join description below. The subsequent [sharing audit](sharing.md) adds cross-plan prefix transcripts, constant-time symmetry comparisons, canonical environment reuse and shared identity flows; it records the preceding implementation. The subsequent [candidate-domain audit](candidate.md) adds shared exact presence filters, dependency summaries, and incremental candidate snapshots with independent query cursors; it records the preceding implementation. The subsequent [dispatch audit](dispatch.md) adds shared lexical-ancestry discovery, coherent availability maintenance, and detailed native phase measurements; it records the preceding implementation. The subsequent [partition audit](partition.md) adds bounded joined-prefix partitions that survive first-input occurrence changes; it records the preceding implementation. The subsequent [interior matching audit](interior.md) adds reverse dependencies below the first input, immutable unfinished snapshots, and a cheaper symmetry check; it is the latest implementation and performance report. The [CPU research review](research.md) evaluates what remains before GPU execution.
+The subsequent [joined-prefix audit](prefix.md) adds bounded multi-input prefix reuse and adaptive dispatch storage, with paired measurements against `20984f1`. Its matching ownership breakdown supersedes the single-file join description below. The subsequent [sharing audit](sharing.md) adds cross-plan prefix transcripts, constant-time symmetry comparisons, canonical environment reuse and shared identity flows; it records the preceding implementation. The subsequent [candidate-domain audit](candidate.md) adds shared exact presence filters, dependency summaries, and incremental candidate snapshots with independent query cursors; it records the preceding implementation. The subsequent [dispatch audit](dispatch.md) adds shared lexical-ancestry discovery, coherent availability maintenance, and detailed native phase measurements; it records the preceding implementation. The subsequent [partition audit](partition.md) adds bounded joined-prefix partitions that survive first-input occurrence changes; it records the preceding implementation. The subsequent [interior matching audit](interior.md) adds reverse dependencies below the first input, immutable unfinished snapshots, and a cheaper symmetry check; it records the preceding implementation. The [preparation audit](preparation.md) adds bounded immutable particle preparation reuse, private combination cursors, and occurrence-native candidate lookup; it records the preceding implementation. The [multilevel audit](hierarchy.md) adds projected context, bounded retained depths, explicit searched-domain invalidation and measured admission; it records the preceding implementation. The [capacity rejection audit](residual.md) avoids repeated allocation for impossible matches and redundant unique-term count checks; it records the preceding implementation. The [exhaustive preparation audit](exhaustive.md) adds bounded captured-pattern interning and preparation sharing beneath private proof consumers; it records the preceding implementation. The [batching audit](batch.md) adds exact bulk consumption of cached waiting spans with unchanged budgets, agenda rotation and synchronized firings; it is the latest implementation and performance report. The [CPU research review](research.md) evaluates what remains before GPU execution. The [parallelism audit](parallel.md) measures the existing executor and refreshes arithmetic profiling; it keeps the current execution default and records the GPU feasibility boundary.
 
 ## The graph model
 
@@ -40,8 +40,12 @@ flowchart TD
     Rewrite --> State[Persistent state and capture topology]
     State --> Index[Counted postings and fingerprints]
     Index --> Join
+    Join --> Preparation[Shared immutable particle preparation]
+    Preparation --> Cursor[Private combination cursor]
     Runtime --> Table[Shared exact query and delivery table]
-    Table --> Gate[Compiled particle matching and queued gates]
+    Table --> Captured[Bounded exact captured-pattern interning]
+    Captured --> Preparation
+    Table --> Gate[Private particle cursors and queued gates]
     Gate --> Projection[Consumer-specific flow projection]
     Projection --> Application[Proof application and normalization]
     Application --> Evidence[Views and evidence clauses]
@@ -57,8 +61,9 @@ flowchart TD
 | Persistent storage | `sequence.rs`, `basis.rs`, `relation.rs`, `state.rs` | Share unchanged structure while retaining semantic resource identity |
 | Lookup | `index.rs`, `index/posting.rs`, `position.rs` | Maintain counted postings and translate current ordinals to stable live sites |
 | Candidate filtering | `candidate.rs`, `candidate/` | Share exact context-sensitive filters, summaries, and coherent candidate snapshots under a bounded budget |
+| Particle preparation | `preparation.rs`, `preparation/`, `particle.rs`, `particle/` | Share immutable candidate data by exact fragment/world/capture identity; retain private selection and bounded admission |
 | Direct matching | `dispatch/`, `joining.rs`, `particle.rs`, `factor.rs`, `replay.rs` | Emit exact bindings and cooperative progress without constructing proof evidence |
-| Proof matching | `runtime/table.rs`, `selection.rs`, `search.rs`, `gate.rs` | Share exact target/frame/pattern queries with independent consumer delivery |
+| Proof matching | `runtime/table.rs`, `selection.rs`, `selection/`, `search.rs`, `gate.rs` | Share exact queries and immutable captured preparation; retain private gates, independent delivery and proof projection |
 | Construction | `rewrite.rs`, `recipe.rs`, `application.rs` | Apply a binding under an explicit source and capture context |
 | Canonical identity | `fingerprint.rs`, `structure.rs`, `canonical.rs`, `runtime/normalization.rs` | Refine and check identity; fingerprints alone do not establish equality |
 | Provenance | `flow.rs`, `runtime/application.rs` | Project and compose consumed, exact, read, and context dependencies |
@@ -81,7 +86,7 @@ Both construction paths now take named request values: `rewrite::Request` and `a
 | Context | Capture-free input sharing and capture-specific preparation | Required owner/capture context |
 | Candidate | Counted postings, shared exact filters and dependency summaries, incremental candidate snapshots, and private occurrence projections | Frame, exact captured terms, and validated snapshot continuity |
 | Leaf binding | Bounded factor caches for surviving candidate worlds | Same live occurrence, exact resource identity, and capture context |
-| Joined fragment | Completed regions at an adaptive prefix depth, with reverse occurrence dependencies; immutable unfinished whole-prefix snapshots | Exact selected ancestor binding and surviving anchor; unchanged descendant domains/order; revision-scoped independent playback and retraction before numeric site reuse |
+| Joined fragment | Projected regions at adaptively retained depths, with reverse occurrence dependencies; immutable unfinished whole-prefix snapshots | Relevant inherited occurrences and surviving anchors; unchanged searched-domain intervals/order; independent playback and retraction before numeric site reuse |
 | Whole query | Bounded direct replay on unchanged domains; shared exhaustive query table | Exact query dependencies and independent delivery cursors |
 | Construction | Compiled recipes and normalization reuse for exact application identities | Source, binding, owner, rule, and captured environment |
 | Grounded evidence | Established support plus unresolved premise dependencies | Append-only clauses within one exhaustive runtime |
@@ -158,8 +163,8 @@ bazel run -c opt //benchmark:runtime
 | Work | Present boundary | Next acceptance requirement |
 | --- | --- | --- |
 | Shared multi-particle plans | Immutable particle fragments and exact whole-query sharing exist | Share a common join without merging consumer evidence, reordering delivery, or exploding discovery cost |
-| Surviving joined prefixes | Completed first-input partitions survive root insertion/retraction; suffix-only updates also preserve shared whole prefixes | Extend dependencies to arbitrary internal fragments and shared partial cursors without changing logical progress |
-| Cross-plan candidate reuse | Per-query domains use shared postings | Share concrete preparation with explicit context/site generations and bounded cache accounting |
+| Surviving joined prefixes | Projected single-depth and multilevel fragments survive compatible occurrence updates; shared whole prefixes retain independent consumers | Share retained partitions across plans and replace bounded transcript copies with persistent child links only if measured beneficial |
+| Cross-plan candidate reuse | Shared domains and immutable preparation use exact weak fragment/world identity | Captured exhaustive preparation is now shared too; extend multi-input fragments only with private evidence and precise searched dependencies |
 | Contextual construction | Exact application identities and recipes are reused | Fresh identity substitution and proof-preserving boundary maps for parameterized templates |
 | Flow composition sharing | Persistent relations and local composition reuse exist | Reuse across compositions only under exact source/read/capture dependencies |
 | Strong identity types | Current APIs distinguish responsibilities; many values remain integer indices | Introduce types where invalid interchange is possible without making hot representations larger |

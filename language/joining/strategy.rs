@@ -5,6 +5,31 @@ use crate::index::Index;
 pub(super) enum Strategy {
     Shared,
     Partitioned(usize),
+    Layered { previous: usize, depth: usize },
+}
+
+#[derive(Clone, Copy)]
+pub(super) enum History {
+    Single {
+        depth: usize,
+        granularity: Option<usize>,
+    },
+    Nested(usize),
+}
+
+impl History {
+    fn depth(self) -> usize {
+        match self {
+            Self::Single { depth, .. } | Self::Nested(depth) => depth,
+        }
+    }
+
+    fn layered(self) -> bool {
+        match self {
+            Self::Single { granularity, .. } => granularity.is_some_and(|length| length <= 256),
+            Self::Nested(_) => true,
+        }
+    }
 }
 
 pub(super) struct Request<'a> {
@@ -12,7 +37,7 @@ pub(super) struct Request<'a> {
     pub order: &'a [usize],
     pub changed: &'a [usize],
     pub index: &'a Index,
-    pub depth: Option<usize>,
+    pub history: Option<History>,
 }
 
 pub(super) fn select(request: Request<'_>) -> Option<Strategy> {
@@ -38,10 +63,25 @@ pub(super) fn select(request: Request<'_>) -> Option<Strategy> {
             return None;
         }
     }
-    let depth = request.depth.map_or(depth, |previous| previous.max(depth));
+    let changed = depth;
+    let depth = request
+        .history
+        .map_or(depth, |previous| previous.depth().max(depth));
     let position = request.order[depth];
     if depth + 1 == prefix.len() && request.space.pattern[position].len() < 8 {
         return None;
     }
-    (request.space.domain[position].len() > 1).then_some(Strategy::Partitioned(depth))
+    if request.space.domain[position].len() <= 1 {
+        return None;
+    }
+    if let Some(previous) = request.history
+        && previous.depth() != changed
+        && previous.layered()
+    {
+        return Some(Strategy::Layered {
+            previous: previous.depth(),
+            depth: changed,
+        });
+    }
+    Some(Strategy::Partitioned(depth))
 }

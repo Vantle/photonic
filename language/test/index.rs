@@ -54,7 +54,14 @@ fn skew() {
                 })
                 .map(|(world, _)| world)
                 .collect::<Vec<_>>();
-            assert_eq!(index.candidate(&pattern, 0), expected);
+            assert_eq!(
+                index
+                    .candidate(pattern.iter().cloned(), 0)
+                    .into_iter()
+                    .map(|site| index.world(site))
+                    .collect::<Vec<_>>(),
+                expected
+            );
         }
     }
 }
@@ -128,7 +135,14 @@ fn intersection() {
                     })
                     .map(|(world, _)| world)
                     .collect::<Vec<_>>();
-                assert_eq!(index.candidate(&pattern, frame), expected);
+                assert_eq!(
+                    index
+                        .candidate(pattern.iter().cloned(), frame)
+                        .into_iter()
+                        .map(|site| index.world(site))
+                        .collect::<Vec<_>>(),
+                    expected
+                );
             }
         }
         let removed = next(state.world.len());
@@ -202,7 +216,14 @@ fn batch() {
                             .then_some(world)
                     })
                     .collect::<Vec<_>>();
-                assert_eq!(index.candidate(&pattern, 0), expected);
+                assert_eq!(
+                    index
+                        .candidate(pattern.iter().cloned(), 0)
+                        .into_iter()
+                        .map(|site| index.world(site))
+                        .collect::<Vec<_>>(),
+                    expected
+                );
                 for (world, value) in state.world.iter().enumerate() {
                     assert_eq!(
                         index.quantity(&pattern[0], 0, index.site(world)),

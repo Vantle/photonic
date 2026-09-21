@@ -8,6 +8,50 @@ fn search(source: &str, target: &str) -> Search {
 }
 
 #[test]
+fn batching() {
+    let particle = ["A"; 8].join(".");
+    let content = ["B.C.E"; 6].join(",");
+    let delay = ["D"; 8].join(",");
+    let world = |stage| format!("{particle},{content},Stage{stage}.C,{delay}");
+    let mut source = format!("{} [{particle},B,B,B,B,B.E.E,C] Never ", world(0));
+    for stage in 0..8 {
+        source.push_str(&format!(
+            "[Stage{stage}.C,{delay}] Stage{}.C,{delay} ",
+            stage + 1
+        ));
+    }
+    let mut actual = search(&source, &world(8));
+    let mut expected = search(&source, &world(8));
+    let mut limit = Limit {
+        state: 32,
+        record: 1_000_000,
+        world: 32,
+        cell: 64,
+        frame: 4,
+    };
+    for iteration in 0..10_000 {
+        let budget = [0, 1, 2, 3, 7, 31, 127][iteration % 7];
+        limit.record = if iteration % 13 == 0 { 1 } else { 1_000_000 };
+        actual.run(budget, limit);
+        for _ in 0..budget {
+            expected.run(1, limit);
+        }
+        assert_eq!(
+            serde_json::to_value(actual.report()).unwrap(),
+            serde_json::to_value(expected.report()).unwrap()
+        );
+        assert_eq!(
+            serde_json::to_value(actual.statistic()).unwrap(),
+            serde_json::to_value(expected.statistic()).unwrap()
+        );
+        if actual.summary().outcome == Outcome::Reached {
+            break;
+        }
+    }
+    assert_eq!(actual.summary().outcome, Outcome::Reached);
+}
+
+#[test]
 fn execution() {
     for (source, target) in [
         ("A [A] B [B] C", "C"),

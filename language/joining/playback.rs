@@ -1,4 +1,4 @@
-use super::trace::{Record, Trace};
+use super::trace::{Record, Selection, Trace};
 use crate::slot::Slot;
 use std::task::Poll;
 
@@ -10,6 +10,30 @@ pub(super) struct Playback {
 }
 
 impl Playback {
+    pub fn waiting(&self, trace: &Trace) -> usize {
+        if self.waiting > 0 {
+            return self.waiting;
+        }
+        match trace.record.get(self.cursor) {
+            Some(Record::Waiting(count)) => *count,
+            _ => 0,
+        }
+    }
+
+    pub fn skip(&mut self, trace: &Trace, maximum: usize) -> usize {
+        let available = self.waiting(trace);
+        let count = available.min(maximum);
+        if count == 0 {
+            return 0;
+        }
+        if self.waiting == 0 {
+            self.cursor += 1;
+        }
+        self.waiting = available - count;
+        self.progress += count;
+        count
+    }
+
     pub fn seek(&mut self, trace: &Trace, progress: usize) {
         *self = Self::default();
         self.progress = progress;
@@ -29,7 +53,12 @@ impl Playback {
     }
 
     #[inline]
-    pub fn step(&mut self, trace: &Trace, order: &[usize]) -> Option<Poll<Option<Vec<Slot>>>> {
+    pub fn step(
+        &mut self,
+        trace: &Trace,
+        order: &[usize],
+        prefix: &[Slot],
+    ) -> Option<Poll<Option<Vec<Slot>>>> {
         if self.waiting != 0 {
             self.waiting -= 1;
             self.progress += 1;
@@ -45,18 +74,26 @@ impl Playback {
             }
             Record::Binding(binding) => {
                 self.cursor += 1;
-                Poll::Ready(Some(
-                    binding
-                        .iter()
-                        .enumerate()
-                        .map(|(position, selection)| Slot {
-                            world: selection.site,
-                            position: order[position],
-                            token: selection.token.clone(),
-                        })
-                        .collect(),
-                ))
+                Poll::Ready(Some(Self::binding(binding, order, prefix)))
             }
         })
+    }
+
+    #[inline(never)]
+    fn binding(binding: &[Selection], order: &[usize], prefix: &[Slot]) -> Vec<Slot> {
+        prefix
+            .iter()
+            .cloned()
+            .chain(
+                binding
+                    .iter()
+                    .enumerate()
+                    .map(|(position, selection)| Slot {
+                        world: selection.site,
+                        position: order[prefix.len() + position],
+                        token: selection.token.clone(),
+                    }),
+            )
+            .collect()
     }
 }

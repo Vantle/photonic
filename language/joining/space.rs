@@ -16,11 +16,35 @@ pub(super) struct Space {
     pub pattern: Arc<Vec<Vec<Term>>>,
     pub group: Arc<Vec<usize>>,
     pub domain: SmallVec<[Vec<Member>; 2]>,
+    shared: Option<Arc<crate::preparation::Store>>,
     subscription: Box<[(usize, Arc<crate::candidate::Node>)]>,
     pub retained: usize,
 }
 
 impl Space {
+    pub fn dependency(
+        &self,
+        site: usize,
+        binding: &[crate::slot::Slot],
+        order: &[usize],
+        index: &Index,
+    ) -> super::dependency::Dependency {
+        super::dependency::Dependency::new(
+            site,
+            binding
+                .iter()
+                .filter(|slot| {
+                    let world = &index.state.world[index.world(slot.world)];
+                    order[binding.len()..].iter().any(|&position| {
+                        self.pattern[position]
+                            .iter()
+                            .all(|term| world.particle.iter().any(|token| term.matches(token)))
+                    })
+                })
+                .map(|slot| (slot.position, slot.world)),
+        )
+    }
+
     pub fn new(
         pattern: Arc<Vec<Vec<Term>>>,
         index: &Index,
@@ -42,15 +66,10 @@ impl Space {
                     })
                 } else {
                     crate::candidate::Domain {
-                        site: preparation
-                            .as_ref()
-                            .map_or_else(
-                                || index.candidate(pattern, frame),
-                                |context| context.candidate(position, index, frame),
-                            )
-                            .into_iter()
-                            .map(|world| index.site(world))
-                            .collect(),
+                        site: preparation.as_ref().map_or_else(
+                            || index.candidate(pattern.iter().cloned(), frame),
+                            |context| context.candidate(position, index, frame),
+                        ),
                         node: None,
                     }
                 };
@@ -75,12 +94,16 @@ impl Space {
         let retained = subscription.len() * 2
             + pattern.iter().map(Vec::len).sum::<usize>()
             + domain.iter().map(|member| member.len() + 1).sum::<usize>();
+        let shared = store
+            .filter(|_| pattern.iter().any(|particle| particle.len() >= 8))
+            .map(|store| store.preparation.clone());
         let store = store
             .filter(|_| pattern.len() > 1 && pattern.iter().any(|particle| particle.len() >= 8))
             .cloned();
         Self {
             frame,
             store,
+            shared,
             cached: 0,
             preparation,
             pattern,
@@ -179,7 +202,7 @@ impl Space {
         if member.particle.is_none() {
             let particle = &index.state.world[index.world(member.site)].particle;
             let particle = if let Some(context) = &self.preparation {
-                context.select(position, index, member.site)
+                context.select(position, index, member.site, self.shared.as_deref())
             } else {
                 crate::particle::Match::new(&self.pattern[position], particle)
             };

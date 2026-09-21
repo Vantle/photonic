@@ -376,3 +376,68 @@ rust_binary(
         "@crate//:serde_json",
     ],
 )
+
+rust_binary(
+    name = "preparation",
+    srcs = ["preparation.rs"],
+    crate_root = "preparation.rs",
+    lint_config = "//:lint",
+    deps = [
+        "//language:measurement",
+        "@crate//:clap",
+        "@crate//:serde_json",
+    ],
+)
+
+rust_binary(
+    name = "context",
+    srcs = ["context.rs"],
+    crate_root = "context.rs",
+    lint_config = "//:lint",
+    deps = [
+        "//language:measurement",
+        "@crate//:clap",
+        "@crate//:serde_json",
+    ],
+)
+
+rust_binary(
+    name = "residual",
+    srcs = ["residual.rs"],
+    crate_root = "residual.rs",
+    lint_config = "//:lint",
+    deps = [
+        "//language:measurement",
+        "@crate//:clap",
+        "@crate//:serde_json",
+    ],
+)
+
+rust_binary(
+    name = "exhaustive",
+    srcs = ["exhaustive.rs"],
+    crate_root = "exhaustive.rs",
+    lint_config = "//:lint",
+    deps = [
+        "//language:measurement",
+        "@crate//:clap",
+        "@crate//:serde_json",
+    ],
+)
+
+rust_binary(
+    name = "traversal",
+    srcs = [
+        "evaluation.rs",
+        "prefix.rs",
+    ],
+    crate_features = ["measurement"],
+    crate_root = "prefix.rs",
+    lint_config = "//:lint",
+    deps = [
+        "//language:measurement",
+        "@crate//:clap",
+        "@crate//:serde",
+        "@crate//:serde_json",
+    ],
+)

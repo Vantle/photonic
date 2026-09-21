@@ -162,7 +162,9 @@ impl Search {
     }
 
     pub fn run(&mut self, budget: usize, limit: Limit) {
-        for _ in 0..budget {
+        let mut remaining = budget;
+        while remaining > 0 {
+            remaining -= 1;
             let work = self.work;
             if self.reached || self.cycle {
                 return;
@@ -202,6 +204,14 @@ impl Search {
                 self.reached = self.goal.canonical().state == self.state[0].canonical().state;
                 self.initial = false;
                 continue;
+            }
+            if self.pending.is_none() && self.candidate.is_none() {
+                let skipped = self.runtime.skip(remaining + 1);
+                if skipped > 0 {
+                    self.work += skipped;
+                    remaining -= skipped - 1;
+                    continue;
+                }
             }
             let event = if let Some(event) = self.pending.take() {
                 event

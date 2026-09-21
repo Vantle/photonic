@@ -42,9 +42,8 @@ impl Context {
         let pattern = self.fragment[position]
             .group
             .iter()
-            .map(|group| Term::new(group.value, Some(self.owner)))
-            .collect::<SmallVec<[Term; 4]>>();
-        index.candidate(&pattern, frame)
+            .map(|group| Term::new(group.value, Some(self.owner)));
+        index.candidate(pattern, frame)
     }
 
     pub fn matches(&self, position: usize, index: &crate::index::Index, site: usize) -> bool {
@@ -64,16 +63,41 @@ impl Context {
         position: usize,
         index: &crate::index::Index,
         site: usize,
+        shared: Option<&crate::preparation::Store>,
     ) -> crate::particle::Match {
         let world = &index.state.world[index.world(site)];
         let pattern = &self.fragment[position];
-        if pattern.width > 4
-            && pattern.group.iter().any(|group| {
-                index.quantity(&Term::new(group.value, Some(self.owner)), world.frame, site)
-                    < group.position.len()
-            })
+        if world.particle.len() < pattern.width
+            || (pattern.group.len() < pattern.width
+                && pattern.group.iter().any(|group| {
+                    let count = group.position.len();
+                    if count == 1 {
+                        return false;
+                    }
+                    let term = Term::new(group.value, Some(self.owner));
+                    if world.particle.len() <= 16 {
+                        return world
+                            .particle
+                            .iter()
+                            .filter(|token| term.matches(token))
+                            .take(count)
+                            .count()
+                            < count;
+                    }
+                    index.quantity(&term, world.frame, site) < count
+                }))
         {
-            return crate::particle::Match::impossible(pattern.width);
+            return crate::particle::Match::impossible();
+        }
+        if pattern.width >= 8
+            && world.particle.len() >= 32
+            && let Some(shared) = shared
+        {
+            return shared.select(crate::preparation::Request {
+                pattern,
+                world,
+                owner: self.owner,
+            });
         }
         self.prepare(position, &world.particle)
     }

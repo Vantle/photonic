@@ -23,7 +23,7 @@ fn search() -> Match {
 #[test]
 fn impossible() {
     let budget = Arc::new(Budget::new(8192));
-    let mut cursor = Cursor::new(Match::impossible(8), Some(budget.clone()));
+    let mut cursor = Cursor::new(Match::impossible(), Some(budget.clone()));
     for _ in 0..4 {
         assert_eq!(cursor.step(8192), Poll::Ready(None));
         assert_eq!(cursor.cached(), 0);

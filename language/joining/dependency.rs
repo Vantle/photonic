@@ -1,22 +1,23 @@
-use super::trace::Selection;
-use crate::slot::Slot;
+use smallvec::SmallVec;
+
+#[derive(Eq, Hash, PartialEq)]
+struct Influence {
+    position: usize,
+    site: usize,
+}
 
 #[derive(Eq, Hash, PartialEq)]
 pub(super) struct Dependency {
     site: usize,
-    binding: Vec<Selection>,
+    binding: SmallVec<[Influence; 2]>,
 }
 
 impl Dependency {
-    pub fn new(site: usize, binding: &[Slot]) -> Self {
+    pub fn new(site: usize, binding: impl Iterator<Item = (usize, usize)>) -> Self {
         Self {
             site,
             binding: binding
-                .iter()
-                .map(|slot| Selection {
-                    site: slot.world,
-                    token: slot.token.clone(),
-                })
+                .map(|(position, site)| Influence { position, site })
                 .collect(),
         }
     }
@@ -31,11 +32,6 @@ impl Dependency {
     }
 
     pub fn retained(&self) -> usize {
-        2 + self
-            .binding
-            .iter()
-            .map(|slot| slot.token.len() + 1)
-            .sum::<usize>()
-            + self.site().count() * 2
+        2 + self.binding.len() * 2 + self.site().count() * 2
     }
 }

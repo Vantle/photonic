@@ -1,0 +1,5187 @@
+{
+  "revision": "eea981d6c98b6f671fd3bcb26ab1a5dc72995f27",
+  "machine": "Apple M5 Max",
+  "configuration": "bazel run -c opt //benchmark:runtime -- --workers N; caffeinate -is; alternating 1/2/4 worker order; 25 samples after 100ms warmup per fixture; no competing builds",
+  "round": [
+    {
+      "1": [
+        {
+          "name": "Concrete And through two Boolean deductions",
+          "sample": 25,
+          "worker": 1,
+          "record": 610,
+          "peak": 611,
+          "work": 240,
+          "state": 14,
+          "event": 17,
+          "minimum": 116.291,
+          "median": 119.875,
+          "maximum": 132.542
+        },
+        {
+          "name": "Two inputs broadcast their leftovers",
+          "sample": 25,
+          "worker": 1,
+          "record": 129,
+          "peak": 130,
+          "work": 39,
+          "state": 3,
+          "event": 3,
+          "minimum": 20.875,
+          "median": 21.334,
+          "maximum": 22.75
+        },
+        {
+          "name": "One source supports a joint sibling match",
+          "sample": 25,
+          "worker": 1,
+          "record": 104,
+          "peak": 105,
+          "work": 35,
+          "state": 3,
+          "event": 3,
+          "minimum": 16.833,
+          "median": 17.042,
+          "maximum": 18.165999999999997
+        },
+        {
+          "name": "Competing histories cannot supply a joint match",
+          "sample": 25,
+          "worker": 1,
+          "record": 72,
+          "peak": 73,
+          "work": 20,
+          "state": 3,
+          "event": 2,
+          "minimum": 9.667000000000002,
+          "median": 10.125,
+          "maximum": 10.542
+        },
+        {
+          "name": "Explicit duplicate outputs remain distinct",
+          "sample": 25,
+          "worker": 1,
+          "record": 84,
+          "peak": 85,
+          "work": 45,
+          "state": 3,
+          "event": 3,
+          "minimum": 16.625,
+          "median": 17.833000000000002,
+          "maximum": 19.25
+        },
+        {
+          "name": "Evidence-only co-results are not source leftovers",
+          "sample": 25,
+          "worker": 1,
+          "record": 127,
+          "peak": 128,
+          "work": 33,
+          "state": 4,
+          "event": 3,
+          "minimum": 17.5,
+          "median": 17.791999999999998,
+          "maximum": 18.084000000000003
+        },
+        {
+          "name": "Independent branches compute independent equal results",
+          "sample": 25,
+          "worker": 1,
+          "record": 624,
+          "peak": 625,
+          "work": 310,
+          "state": 13,
+          "event": 21,
+          "minimum": 131.875,
+          "median": 137.209,
+          "maximum": 158.417
+        },
+        {
+          "name": "Arbitrarily nested body expressions",
+          "sample": 25,
+          "worker": 1,
+          "record": 338,
+          "peak": 339,
+          "work": 116,
+          "state": 9,
+          "event": 9,
+          "minimum": 61.50000000000001,
+          "median": 62.083,
+          "maximum": 63.25000000000001
+        },
+        {
+          "name": "A finite cycle shares its configurations",
+          "sample": 25,
+          "worker": 1,
+          "record": 69,
+          "peak": 69,
+          "work": 38,
+          "state": 2,
+          "event": 4,
+          "minimum": 15.0,
+          "median": 15.167,
+          "maximum": 15.625
+        },
+        {
+          "name": "Generated rule reads its concrete source",
+          "sample": 25,
+          "worker": 1,
+          "record": 130,
+          "peak": 131,
+          "work": 46,
+          "state": 4,
+          "event": 4,
+          "minimum": 21.375,
+          "median": 22.75,
+          "maximum": 27.0
+        },
+        {
+          "name": "One source supplies rule and operand",
+          "sample": 25,
+          "worker": 1,
+          "record": 108,
+          "peak": 109,
+          "work": 33,
+          "state": 4,
+          "event": 3,
+          "minimum": 16.458000000000002,
+          "median": 16.583000000000002,
+          "maximum": 19.0
+        },
+        {
+          "name": "Competing code and data cannot interact",
+          "sample": 25,
+          "worker": 1,
+          "record": 73,
+          "peak": 74,
+          "work": 20,
+          "state": 3,
+          "event": 2,
+          "minimum": 9.917,
+          "median": 10.0,
+          "maximum": 10.332999999999998
+        },
+        {
+          "name": "A meta rule replaces a whole rule value",
+          "sample": 25,
+          "worker": 1,
+          "record": 201,
+          "peak": 202,
+          "work": 72,
+          "state": 6,
+          "event": 6,
+          "minimum": 35.25,
+          "median": 35.792,
+          "maximum": 36.833
+        },
+        {
+          "name": "Rule activation respects coherence locality",
+          "sample": 25,
+          "worker": 1,
+          "record": 76,
+          "peak": 86,
+          "work": 20,
+          "state": 2,
+          "event": 1,
+          "minimum": 9.415999999999999,
+          "median": 9.709,
+          "maximum": 12.5
+        },
+        {
+          "name": "A generated rule enables decoherence",
+          "sample": 25,
+          "worker": 1,
+          "record": 206,
+          "peak": 207,
+          "work": 56,
+          "state": 5,
+          "event": 5,
+          "minimum": 32.125,
+          "median": 32.417,
+          "maximum": 35.792
+        },
+        {
+          "name": "A whole rule acquires an abstraction",
+          "sample": 25,
+          "worker": 1,
+          "record": 239,
+          "peak": 240,
+          "work": 86,
+          "state": 8,
+          "event": 8,
+          "minimum": 42.0,
+          "median": 43.208,
+          "maximum": 51.041999999999994
+        },
+        {
+          "name": "A generated rule opens a nested body",
+          "sample": 25,
+          "worker": 1,
+          "record": 236,
+          "peak": 237,
+          "work": 91,
+          "state": 6,
+          "event": 7,
+          "minimum": 42.416999999999994,
+          "median": 44.583000000000006,
+          "maximum": 46.041999999999994
+        },
+        {
+          "name": "An escaped rule retains its local definition",
+          "sample": 25,
+          "worker": 1,
+          "record": 1517,
+          "peak": 1518,
+          "work": 666,
+          "state": 29,
+          "event": 43,
+          "minimum": 328.416,
+          "median": 347.625,
+          "maximum": 389.209
+        },
+        {
+          "name": "Consuming code later does not erase earlier results",
+          "sample": 25,
+          "worker": 1,
+          "record": 125,
+          "peak": 126,
+          "work": 38,
+          "state": 4,
+          "event": 3,
+          "minimum": 18.125,
+          "median": 19.25,
+          "maximum": 19.875
+        }
+      ],
+      "2": [
+        {
+          "name": "Concrete And through two Boolean deductions",
+          "sample": 25,
+          "worker": 2,
+          "record": 610,
+          "peak": 611,
+          "work": 240,
+          "state": 14,
+          "event": 17,
+          "minimum": 327.666,
+          "median": 344.41700000000003,
+          "maximum": 371.709
+        },
+        {
+          "name": "Two inputs broadcast their leftovers",
+          "sample": 25,
+          "worker": 2,
+          "record": 129,
+          "peak": 130,
+          "work": 39,
+          "state": 3,
+          "event": 3,
+          "minimum": 42.416999999999994,
+          "median": 44.916000000000004,
+          "maximum": 48.125
+        },
+        {
+          "name": "One source supports a joint sibling match",
+          "sample": 25,
+          "worker": 2,
+          "record": 104,
+          "peak": 105,
+          "work": 35,
+          "state": 3,
+          "event": 3,
+          "minimum": 38.583,
+          "median": 40.917,
+          "maximum": 47.5
+        },
+        {
+          "name": "Competing histories cannot supply a joint match",
+          "sample": 25,
+          "worker": 2,
+          "record": 72,
+          "peak": 73,
+          "work": 20,
+          "state": 3,
+          "event": 2,
+          "minimum": 26.833,
+          "median": 33.416,
+          "maximum": 45.208
+        },
+        {
+          "name": "Explicit duplicate outputs remain distinct",
+          "sample": 25,
+          "worker": 2,
+          "record": 84,
+          "peak": 85,
+          "work": 45,
+          "state": 3,
+          "event": 3,
+          "minimum": 42.333999999999996,
+          "median": 48.667,
+          "maximum": 56.083
+        },
+        {
+          "name": "Evidence-only co-results are not source leftovers",
+          "sample": 25,
+          "worker": 2,
+          "record": 127,
+          "peak": 128,
+          "work": 33,
+          "state": 4,
+          "event": 3,
+          "minimum": 33.542,
+          "median": 41.291999999999994,
+          "maximum": 45.334
+        },
+        {
+          "name": "Independent branches compute independent equal results",
+          "sample": 25,
+          "worker": 2,
+          "record": 624,
+          "peak": 625,
+          "work": 310,
+          "state": 13,
+          "event": 21,
+          "minimum": 318.042,
+          "median": 335.125,
+          "maximum": 379.584
+        },
+        {
+          "name": "Arbitrarily nested body expressions",
+          "sample": 25,
+          "worker": 2,
+          "record": 338,
+          "peak": 339,
+          "work": 116,
+          "state": 9,
+          "event": 9,
+          "minimum": 124.0,
+          "median": 136.208,
+          "maximum": 163.542
+        },
+        {
+          "name": "A finite cycle shares its configurations",
+          "sample": 25,
+          "worker": 2,
+          "record": 69,
+          "peak": 69,
+          "work": 38,
+          "state": 2,
+          "event": 4,
+          "minimum": 35.5,
+          "median": 39.25,
+          "maximum": 42.875
+        },
+        {
+          "name": "Generated rule reads its concrete source",
+          "sample": 25,
+          "worker": 2,
+          "record": 130,
+          "peak": 131,
+          "work": 46,
+          "state": 4,
+          "event": 4,
+          "minimum": 52.209,
+          "median": 54.333000000000006,
+          "maximum": 62.542
+        },
+        {
+          "name": "One source supplies rule and operand",
+          "sample": 25,
+          "worker": 2,
+          "record": 108,
+          "peak": 109,
+          "work": 33,
+          "state": 4,
+          "event": 3,
+          "minimum": 37.958,
+          "median": 40.542,
+          "maximum": 63.41700000000001
+        },
+        {
+          "name": "Competing code and data cannot interact",
+          "sample": 25,
+          "worker": 2,
+          "record": 73,
+          "peak": 74,
+          "work": 20,
+          "state": 3,
+          "event": 2,
+          "minimum": 29.458000000000002,
+          "median": 35.083000000000006,
+          "maximum": 44.416000000000004
+        },
+        {
+          "name": "A meta rule replaces a whole rule value",
+          "sample": 25,
+          "worker": 2,
+          "record": 201,
+          "peak": 202,
+          "work": 72,
+          "state": 6,
+          "event": 6,
+          "minimum": 97.958,
+          "median": 108.0,
+          "maximum": 125.542
+        },
+        {
+          "name": "Rule activation respects coherence locality",
+          "sample": 25,
+          "worker": 2,
+          "record": 76,
+          "peak": 86,
+          "work": 20,
+          "state": 2,
+          "event": 1,
+          "minimum": 19.5,
+          "median": 23.125,
+          "maximum": 25.583
+        },
+        {
+          "name": "A generated rule enables decoherence",
+          "sample": 25,
+          "worker": 2,
+          "record": 206,
+          "peak": 207,
+          "work": 56,
+          "state": 5,
+          "event": 5,
+          "minimum": 59.833999999999996,
+          "median": 66.5,
+          "maximum": 72.333
+        },
+        {
+          "name": "A whole rule acquires an abstraction",
+          "sample": 25,
+          "worker": 2,
+          "record": 239,
+          "peak": 240,
+          "work": 86,
+          "state": 8,
+          "event": 8,
+          "minimum": 99.208,
+          "median": 108.167,
+          "maximum": 115.917
+        },
+        {
+          "name": "A generated rule opens a nested body",
+          "sample": 25,
+          "worker": 2,
+          "record": 236,
+          "peak": 237,
+          "work": 91,
+          "state": 6,
+          "event": 7,
+          "minimum": 104.791,
+          "median": 114.458,
+          "maximum": 133.625
+        },
+        {
+          "name": "An escaped rule retains its local definition",
+          "sample": 25,
+          "worker": 2,
+          "record": 1517,
+          "peak": 1518,
+          "work": 666,
+          "state": 29,
+          "event": 43,
+          "minimum": 568.708,
+          "median": 592.292,
+          "maximum": 661.0
+        },
+        {
+          "name": "Consuming code later does not erase earlier results",
+          "sample": 25,
+          "worker": 2,
+          "record": 125,
+          "peak": 126,
+          "work": 38,
+          "state": 4,
+          "event": 3,
+          "minimum": 58.084,
+          "median": 64.417,
+          "maximum": 72.292
+        }
+      ],
+      "4": [
+        {
+          "name": "Concrete And through two Boolean deductions",
+          "sample": 25,
+          "worker": 4,
+          "record": 610,
+          "peak": 611,
+          "work": 240,
+          "state": 14,
+          "event": 17,
+          "minimum": 372.792,
+          "median": 389.0,
+          "maximum": 550.041
+        },
+        {
+          "name": "Two inputs broadcast their leftovers",
+          "sample": 25,
+          "worker": 4,
+          "record": 129,
+          "peak": 130,
+          "work": 39,
+          "state": 3,
+          "event": 3,
+          "minimum": 45.875,
+          "median": 52.833,
+          "maximum": 66.79199999999999
+        },
+        {
+          "name": "One source supports a joint sibling match",
+          "sample": 25,
+          "worker": 4,
+          "record": 104,
+          "peak": 105,
+          "work": 35,
+          "state": 3,
+          "event": 3,
+          "minimum": 38.458,
+          "median": 46.791,
+          "maximum": 51.916999999999994
+        },
+        {
+          "name": "Competing histories cannot supply a joint match",
+          "sample": 25,
+          "worker": 4,
+          "record": 72,
+          "peak": 73,
+          "work": 20,
+          "state": 3,
+          "event": 2,
+          "minimum": 27.834000000000003,
+          "median": 43.958,
+          "maximum": 169.625
+        },
+        {
+          "name": "Explicit duplicate outputs remain distinct",
+          "sample": 25,
+          "worker": 4,
+          "record": 84,
+          "peak": 85,
+          "work": 45,
+          "state": 3,
+          "event": 3,
+          "minimum": 45.208,
+          "median": 52.958,
+          "maximum": 60.833
+        },
+        {
+          "name": "Evidence-only co-results are not source leftovers",
+          "sample": 25,
+          "worker": 4,
+          "record": 127,
+          "peak": 128,
+          "work": 33,
+          "state": 4,
+          "event": 3,
+          "minimum": 35.958999999999996,
+          "median": 45.541000000000004,
+          "maximum": 56.916999999999994
+        },
+        {
+          "name": "Independent branches compute independent equal results",
+          "sample": 25,
+          "worker": 4,
+          "record": 624,
+          "peak": 625,
+          "work": 310,
+          "state": 13,
+          "event": 21,
+          "minimum": 376.666,
+          "median": 401.25,
+          "maximum": 468.541
+        },
+        {
+          "name": "Arbitrarily nested body expressions",
+          "sample": 25,
+          "worker": 4,
+          "record": 338,
+          "peak": 339,
+          "work": 116,
+          "state": 9,
+          "event": 9,
+          "minimum": 148.417,
+          "median": 160.916,
+          "maximum": 185.125
+        },
+        {
+          "name": "A finite cycle shares its configurations",
+          "sample": 25,
+          "worker": 4,
+          "record": 69,
+          "peak": 69,
+          "work": 38,
+          "state": 2,
+          "event": 4,
+          "minimum": 37.209,
+          "median": 43.417,
+          "maximum": 46.708
+        },
+        {
+          "name": "Generated rule reads its concrete source",
+          "sample": 25,
+          "worker": 4,
+          "record": 130,
+          "peak": 131,
+          "work": 46,
+          "state": 4,
+          "event": 4,
+          "minimum": 56.25,
+          "median": 62.833,
+          "maximum": 73.0
+        },
+        {
+          "name": "One source supplies rule and operand",
+          "sample": 25,
+          "worker": 4,
+          "record": 108,
+          "peak": 109,
+          "work": 33,
+          "state": 4,
+          "event": 3,
+          "minimum": 36.917,
+          "median": 45.125,
+          "maximum": 49.292
+        },
+        {
+          "name": "Competing code and data cannot interact",
+          "sample": 25,
+          "worker": 4,
+          "record": 73,
+          "peak": 74,
+          "work": 20,
+          "state": 3,
+          "event": 2,
+          "minimum": 34.708,
+          "median": 40.25,
+          "maximum": 48.708
+        },
+        {
+          "name": "A meta rule replaces a whole rule value",
+          "sample": 25,
+          "worker": 4,
+          "record": 201,
+          "peak": 202,
+          "work": 72,
+          "state": 6,
+          "event": 6,
+          "minimum": 111.58300000000001,
+          "median": 125.16599999999998,
+          "maximum": 156.584
+        },
+        {
+          "name": "Rule activation respects coherence locality",
+          "sample": 25,
+          "worker": 4,
+          "record": 76,
+          "peak": 86,
+          "work": 20,
+          "state": 2,
+          "event": 1,
+          "minimum": 20.417,
+          "median": 24.916,
+          "maximum": 30.667
+        },
+        {
+          "name": "A generated rule enables decoherence",
+          "sample": 25,
+          "worker": 4,
+          "record": 206,
+          "peak": 207,
+          "work": 56,
+          "state": 5,
+          "event": 5,
+          "minimum": 65.583,
+          "median": 75.208,
+          "maximum": 91.042
+        },
+        {
+          "name": "A whole rule acquires an abstraction",
+          "sample": 25,
+          "worker": 4,
+          "record": 239,
+          "peak": 240,
+          "work": 86,
+          "state": 8,
+          "event": 8,
+          "minimum": 113.709,
+          "median": 124.542,
+          "maximum": 135.625
+        },
+        {
+          "name": "A generated rule opens a nested body",
+          "sample": 25,
+          "worker": 4,
+          "record": 236,
+          "peak": 237,
+          "work": 91,
+          "state": 6,
+          "event": 7,
+          "minimum": 120.083,
+          "median": 131.459,
+          "maximum": 151.708
+        },
+        {
+          "name": "An escaped rule retains its local definition",
+          "sample": 25,
+          "worker": 4,
+          "record": 1517,
+          "peak": 1518,
+          "work": 666,
+          "state": 29,
+          "event": 43,
+          "minimum": 615.541,
+          "median": 640.0419999999999,
+          "maximum": 714.708
+        },
+        {
+          "name": "Consuming code later does not erase earlier results",
+          "sample": 25,
+          "worker": 4,
+          "record": 125,
+          "peak": 126,
+          "work": 38,
+          "state": 4,
+          "event": 3,
+          "minimum": 63.792,
+          "median": 72.291,
+          "maximum": 90.292
+        }
+      ]
+    },
+    {
+      "4": [
+        {
+          "name": "Concrete And through two Boolean deductions",
+          "sample": 25,
+          "worker": 4,
+          "record": 610,
+          "peak": 611,
+          "work": 240,
+          "state": 14,
+          "event": 17,
+          "minimum": 373.916,
+          "median": 395.959,
+          "maximum": 435.583
+        },
+        {
+          "name": "Two inputs broadcast their leftovers",
+          "sample": 25,
+          "worker": 4,
+          "record": 129,
+          "peak": 130,
+          "work": 39,
+          "state": 3,
+          "event": 3,
+          "minimum": 45.875,
+          "median": 50.667,
+          "maximum": 53.708
+        },
+        {
+          "name": "One source supports a joint sibling match",
+          "sample": 25,
+          "worker": 4,
+          "record": 104,
+          "peak": 105,
+          "work": 35,
+          "state": 3,
+          "event": 3,
+          "minimum": 41.583,
+          "median": 46.041999999999994,
+          "maximum": 51.916000000000004
+        },
+        {
+          "name": "Competing histories cannot supply a joint match",
+          "sample": 25,
+          "worker": 4,
+          "record": 72,
+          "peak": 73,
+          "work": 20,
+          "state": 3,
+          "event": 2,
+          "minimum": 34.875,
+          "median": 40.958000000000006,
+          "maximum": 47.375
+        },
+        {
+          "name": "Explicit duplicate outputs remain distinct",
+          "sample": 25,
+          "worker": 4,
+          "record": 84,
+          "peak": 85,
+          "work": 45,
+          "state": 3,
+          "event": 3,
+          "minimum": 44.333,
+          "median": 54.0,
+          "maximum": 62.62500000000001
+        },
+        {
+          "name": "Evidence-only co-results are not source leftovers",
+          "sample": 25,
+          "worker": 4,
+          "record": 127,
+          "peak": 128,
+          "work": 33,
+          "state": 4,
+          "event": 3,
+          "minimum": 34.5,
+          "median": 47.166999999999994,
+          "maximum": 53.375
+        },
+        {
+          "name": "Independent branches compute independent equal results",
+          "sample": 25,
+          "worker": 4,
+          "record": 624,
+          "peak": 625,
+          "work": 310,
+          "state": 13,
+          "event": 21,
+          "minimum": 367.541,
+          "median": 395.875,
+          "maximum": 436.417
+        },
+        {
+          "name": "Arbitrarily nested body expressions",
+          "sample": 25,
+          "worker": 4,
+          "record": 338,
+          "peak": 339,
+          "work": 116,
+          "state": 9,
+          "event": 9,
+          "minimum": 148.916,
+          "median": 156.833,
+          "maximum": 201.292
+        },
+        {
+          "name": "A finite cycle shares its configurations",
+          "sample": 25,
+          "worker": 4,
+          "record": 69,
+          "peak": 69,
+          "work": 38,
+          "state": 2,
+          "event": 4,
+          "minimum": 36.042,
+          "median": 43.25,
+          "maximum": 52.042
+        },
+        {
+          "name": "Generated rule reads its concrete source",
+          "sample": 25,
+          "worker": 4,
+          "record": 130,
+          "peak": 131,
+          "work": 46,
+          "state": 4,
+          "event": 4,
+          "minimum": 54.792,
+          "median": 61.50000000000001,
+          "maximum": 69.583
+        },
+        {
+          "name": "One source supplies rule and operand",
+          "sample": 25,
+          "worker": 4,
+          "record": 108,
+          "peak": 109,
+          "work": 33,
+          "state": 4,
+          "event": 3,
+          "minimum": 41.084,
+          "median": 46.667,
+          "maximum": 52.125
+        },
+        {
+          "name": "Competing code and data cannot interact",
+          "sample": 25,
+          "worker": 4,
+          "record": 73,
+          "peak": 74,
+          "work": 20,
+          "state": 3,
+          "event": 2,
+          "minimum": 33.083,
+          "median": 41.958,
+          "maximum": 49.625
+        },
+        {
+          "name": "A meta rule replaces a whole rule value",
+          "sample": 25,
+          "worker": 4,
+          "record": 201,
+          "peak": 202,
+          "work": 72,
+          "state": 6,
+          "event": 6,
+          "minimum": 117.834,
+          "median": 124.91600000000001,
+          "maximum": 147.625
+        },
+        {
+          "name": "Rule activation respects coherence locality",
+          "sample": 25,
+          "worker": 4,
+          "record": 76,
+          "peak": 86,
+          "work": 20,
+          "state": 2,
+          "event": 1,
+          "minimum": 24.166,
+          "median": 24.458,
+          "maximum": 25.709
+        },
+        {
+          "name": "A generated rule enables decoherence",
+          "sample": 25,
+          "worker": 4,
+          "record": 206,
+          "peak": 207,
+          "work": 56,
+          "state": 5,
+          "event": 5,
+          "minimum": 67.625,
+          "median": 72.792,
+          "maximum": 81.542
+        },
+        {
+          "name": "A whole rule acquires an abstraction",
+          "sample": 25,
+          "worker": 4,
+          "record": 239,
+          "peak": 240,
+          "work": 86,
+          "state": 8,
+          "event": 8,
+          "minimum": 119.708,
+          "median": 128.125,
+          "maximum": 156.667
+        },
+        {
+          "name": "A generated rule opens a nested body",
+          "sample": 25,
+          "worker": 4,
+          "record": 236,
+          "peak": 237,
+          "work": 91,
+          "state": 6,
+          "event": 7,
+          "minimum": 126.833,
+          "median": 136.209,
+          "maximum": 170.5
+        },
+        {
+          "name": "An escaped rule retains its local definition",
+          "sample": 25,
+          "worker": 4,
+          "record": 1517,
+          "peak": 1518,
+          "work": 666,
+          "state": 29,
+          "event": 43,
+          "minimum": 616.0840000000001,
+          "median": 631.542,
+          "maximum": 724.75
+        },
+        {
+          "name": "Consuming code later does not erase earlier results",
+          "sample": 25,
+          "worker": 4,
+          "record": 125,
+          "peak": 126,
+          "work": 38,
+          "state": 4,
+          "event": 3,
+          "minimum": 61.916,
+          "median": 74.667,
+          "maximum": 82.125
+        }
+      ],
+      "1": [
+        {
+          "name": "Concrete And through two Boolean deductions",
+          "sample": 25,
+          "worker": 1,
+          "record": 610,
+          "peak": 611,
+          "work": 240,
+          "state": 14,
+          "event": 17,
+          "minimum": 115.375,
+          "median": 116.41699999999999,
+          "maximum": 120.708
+        },
+        {
+          "name": "Two inputs broadcast their leftovers",
+          "sample": 25,
+          "worker": 1,
+          "record": 129,
+          "peak": 130,
+          "work": 39,
+          "state": 3,
+          "event": 3,
+          "minimum": 22.166,
+          "median": 22.375,
+          "maximum": 22.708
+        },
+        {
+          "name": "One source supports a joint sibling match",
+          "sample": 25,
+          "worker": 1,
+          "record": 104,
+          "peak": 105,
+          "work": 35,
+          "state": 3,
+          "event": 3,
+          "minimum": 16.667,
+          "median": 16.917,
+          "maximum": 18.042
+        },
+        {
+          "name": "Competing histories cannot supply a joint match",
+          "sample": 25,
+          "worker": 1,
+          "record": 72,
+          "peak": 73,
+          "work": 20,
+          "state": 3,
+          "event": 2,
+          "minimum": 10.125,
+          "median": 10.25,
+          "maximum": 10.375
+        },
+        {
+          "name": "Explicit duplicate outputs remain distinct",
+          "sample": 25,
+          "worker": 1,
+          "record": 84,
+          "peak": 85,
+          "work": 45,
+          "state": 3,
+          "event": 3,
+          "minimum": 16.75,
+          "median": 17.791999999999998,
+          "maximum": 18.125
+        },
+        {
+          "name": "Evidence-only co-results are not source leftovers",
+          "sample": 25,
+          "worker": 1,
+          "record": 127,
+          "peak": 128,
+          "work": 33,
+          "state": 4,
+          "event": 3,
+          "minimum": 16.875,
+          "median": 17.5,
+          "maximum": 17.708000000000002
+        },
+        {
+          "name": "Independent branches compute independent equal results",
+          "sample": 25,
+          "worker": 1,
+          "record": 624,
+          "peak": 625,
+          "work": 310,
+          "state": 13,
+          "event": 21,
+          "minimum": 133.959,
+          "median": 140.292,
+          "maximum": 147.041
+        },
+        {
+          "name": "Arbitrarily nested body expressions",
+          "sample": 25,
+          "worker": 1,
+          "record": 338,
+          "peak": 339,
+          "work": 116,
+          "state": 9,
+          "event": 9,
+          "minimum": 59.083999999999996,
+          "median": 59.833,
+          "maximum": 60.417
+        },
+        {
+          "name": "A finite cycle shares its configurations",
+          "sample": 25,
+          "worker": 1,
+          "record": 69,
+          "peak": 69,
+          "work": 38,
+          "state": 2,
+          "event": 4,
+          "minimum": 16.042,
+          "median": 16.208000000000002,
+          "maximum": 16.5
+        },
+        {
+          "name": "Generated rule reads its concrete source",
+          "sample": 25,
+          "worker": 1,
+          "record": 130,
+          "peak": 131,
+          "work": 46,
+          "state": 4,
+          "event": 4,
+          "minimum": 21.25,
+          "median": 21.833,
+          "maximum": 27.208000000000002
+        },
+        {
+          "name": "One source supplies rule and operand",
+          "sample": 25,
+          "worker": 1,
+          "record": 108,
+          "peak": 109,
+          "work": 33,
+          "state": 4,
+          "event": 3,
+          "minimum": 17.333000000000002,
+          "median": 17.583000000000002,
+          "maximum": 20.041999999999998
+        },
+        {
+          "name": "Competing code and data cannot interact",
+          "sample": 25,
+          "worker": 1,
+          "record": 73,
+          "peak": 74,
+          "work": 20,
+          "state": 3,
+          "event": 2,
+          "minimum": 9.833,
+          "median": 9.958,
+          "maximum": 10.167
+        },
+        {
+          "name": "A meta rule replaces a whole rule value",
+          "sample": 25,
+          "worker": 1,
+          "record": 201,
+          "peak": 202,
+          "work": 72,
+          "state": 6,
+          "event": 6,
+          "minimum": 34.25,
+          "median": 35.5,
+          "maximum": 36.167
+        },
+        {
+          "name": "Rule activation respects coherence locality",
+          "sample": 25,
+          "worker": 1,
+          "record": 76,
+          "peak": 86,
+          "work": 20,
+          "state": 2,
+          "event": 1,
+          "minimum": 9.5,
+          "median": 9.667000000000002,
+          "maximum": 10.334
+        },
+        {
+          "name": "A generated rule enables decoherence",
+          "sample": 25,
+          "worker": 1,
+          "record": 206,
+          "peak": 207,
+          "work": 56,
+          "state": 5,
+          "event": 5,
+          "minimum": 34.125,
+          "median": 34.458,
+          "maximum": 34.792
+        },
+        {
+          "name": "A whole rule acquires an abstraction",
+          "sample": 25,
+          "worker": 1,
+          "record": 239,
+          "peak": 240,
+          "work": 86,
+          "state": 8,
+          "event": 8,
+          "minimum": 42.625,
+          "median": 44.084,
+          "maximum": 45.791999999999994
+        },
+        {
+          "name": "A generated rule opens a nested body",
+          "sample": 25,
+          "worker": 1,
+          "record": 236,
+          "peak": 237,
+          "work": 91,
+          "state": 6,
+          "event": 7,
+          "minimum": 45.042,
+          "median": 45.667,
+          "maximum": 49.666999999999994
+        },
+        {
+          "name": "An escaped rule retains its local definition",
+          "sample": 25,
+          "worker": 1,
+          "record": 1517,
+          "peak": 1518,
+          "work": 666,
+          "state": 29,
+          "event": 43,
+          "minimum": 332.666,
+          "median": 345.292,
+          "maximum": 369.458
+        },
+        {
+          "name": "Consuming code later does not erase earlier results",
+          "sample": 25,
+          "worker": 1,
+          "record": 125,
+          "peak": 126,
+          "work": 38,
+          "state": 4,
+          "event": 3,
+          "minimum": 18.625,
+          "median": 19.417,
+          "maximum": 20.208000000000002
+        }
+      ],
+      "2": [
+        {
+          "name": "Concrete And through two Boolean deductions",
+          "sample": 25,
+          "worker": 2,
+          "record": 610,
+          "peak": 611,
+          "work": 240,
+          "state": 14,
+          "event": 17,
+          "minimum": 333.458,
+          "median": 356.16700000000003,
+          "maximum": 390.70799999999997
+        },
+        {
+          "name": "Two inputs broadcast their leftovers",
+          "sample": 25,
+          "worker": 2,
+          "record": 129,
+          "peak": 130,
+          "work": 39,
+          "state": 3,
+          "event": 3,
+          "minimum": 43.75,
+          "median": 44.708,
+          "maximum": 53.584
+        },
+        {
+          "name": "One source supports a joint sibling match",
+          "sample": 25,
+          "worker": 2,
+          "record": 104,
+          "peak": 105,
+          "work": 35,
+          "state": 3,
+          "event": 3,
+          "minimum": 41.584,
+          "median": 42.958,
+          "maximum": 47.0
+        },
+        {
+          "name": "Competing histories cannot supply a joint match",
+          "sample": 25,
+          "worker": 2,
+          "record": 72,
+          "peak": 73,
+          "work": 20,
+          "state": 3,
+          "event": 2,
+          "minimum": 30.875,
+          "median": 35.042,
+          "maximum": 44.5
+        },
+        {
+          "name": "Explicit duplicate outputs remain distinct",
+          "sample": 25,
+          "worker": 2,
+          "record": 84,
+          "peak": 85,
+          "work": 45,
+          "state": 3,
+          "event": 3,
+          "minimum": 40.166999999999994,
+          "median": 47.5,
+          "maximum": 59.5
+        },
+        {
+          "name": "Evidence-only co-results are not source leftovers",
+          "sample": 25,
+          "worker": 2,
+          "record": 127,
+          "peak": 128,
+          "work": 33,
+          "state": 4,
+          "event": 3,
+          "minimum": 37.458,
+          "median": 40.834,
+          "maximum": 43.75
+        },
+        {
+          "name": "Independent branches compute independent equal results",
+          "sample": 25,
+          "worker": 2,
+          "record": 624,
+          "peak": 625,
+          "work": 310,
+          "state": 13,
+          "event": 21,
+          "minimum": 329.0,
+          "median": 346.41700000000003,
+          "maximum": 393.20799999999997
+        },
+        {
+          "name": "Arbitrarily nested body expressions",
+          "sample": 25,
+          "worker": 2,
+          "record": 338,
+          "peak": 339,
+          "work": 116,
+          "state": 9,
+          "event": 9,
+          "minimum": 130.125,
+          "median": 138.125,
+          "maximum": 157.708
+        },
+        {
+          "name": "A finite cycle shares its configurations",
+          "sample": 25,
+          "worker": 2,
+          "record": 69,
+          "peak": 69,
+          "work": 38,
+          "state": 2,
+          "event": 4,
+          "minimum": 37.542,
+          "median": 40.292,
+          "maximum": 42.625
+        },
+        {
+          "name": "Generated rule reads its concrete source",
+          "sample": 25,
+          "worker": 2,
+          "record": 130,
+          "peak": 131,
+          "work": 46,
+          "state": 4,
+          "event": 4,
+          "minimum": 47.416000000000004,
+          "median": 53.25,
+          "maximum": 63.833999999999996
+        },
+        {
+          "name": "One source supplies rule and operand",
+          "sample": 25,
+          "worker": 2,
+          "record": 108,
+          "peak": 109,
+          "work": 33,
+          "state": 4,
+          "event": 3,
+          "minimum": 39.792,
+          "median": 40.875,
+          "maximum": 42.875
+        },
+        {
+          "name": "Competing code and data cannot interact",
+          "sample": 25,
+          "worker": 2,
+          "record": 73,
+          "peak": 74,
+          "work": 20,
+          "state": 3,
+          "event": 2,
+          "minimum": 30.0,
+          "median": 34.541,
+          "maximum": 40.292
+        },
+        {
+          "name": "A meta rule replaces a whole rule value",
+          "sample": 25,
+          "worker": 2,
+          "record": 201,
+          "peak": 202,
+          "work": 72,
+          "state": 6,
+          "event": 6,
+          "minimum": 101.083,
+          "median": 112.292,
+          "maximum": 137.709
+        },
+        {
+          "name": "Rule activation respects coherence locality",
+          "sample": 25,
+          "worker": 2,
+          "record": 76,
+          "peak": 86,
+          "work": 20,
+          "state": 2,
+          "event": 1,
+          "minimum": 20.458,
+          "median": 23.666999999999998,
+          "maximum": 24.75
+        },
+        {
+          "name": "A generated rule enables decoherence",
+          "sample": 25,
+          "worker": 2,
+          "record": 206,
+          "peak": 207,
+          "work": 56,
+          "state": 5,
+          "event": 5,
+          "minimum": 65.83399999999999,
+          "median": 69.667,
+          "maximum": 77.25
+        },
+        {
+          "name": "A whole rule acquires an abstraction",
+          "sample": 25,
+          "worker": 2,
+          "record": 239,
+          "peak": 240,
+          "work": 86,
+          "state": 8,
+          "event": 8,
+          "minimum": 101.167,
+          "median": 117.417,
+          "maximum": 135.625
+        },
+        {
+          "name": "A generated rule opens a nested body",
+          "sample": 25,
+          "worker": 2,
+          "record": 236,
+          "peak": 237,
+          "work": 91,
+          "state": 6,
+          "event": 7,
+          "minimum": 111.042,
+          "median": 117.916,
+          "maximum": 132.29100000000003
+        },
+        {
+          "name": "An escaped rule retains its local definition",
+          "sample": 25,
+          "worker": 2,
+          "record": 1517,
+          "peak": 1518,
+          "work": 666,
+          "state": 29,
+          "event": 43,
+          "minimum": 582.083,
+          "median": 617.667,
+          "maximum": 655.333
+        },
+        {
+          "name": "Consuming code later does not erase earlier results",
+          "sample": 25,
+          "worker": 2,
+          "record": 125,
+          "peak": 126,
+          "work": 38,
+          "state": 4,
+          "event": 3,
+          "minimum": 64.667,
+          "median": 68.833,
+          "maximum": 73.5
+        }
+      ]
+    },
+    {
+      "2": [
+        {
+          "name": "Concrete And through two Boolean deductions",
+          "sample": 25,
+          "worker": 2,
+          "record": 610,
+          "peak": 611,
+          "work": 240,
+          "state": 14,
+          "event": 17,
+          "minimum": 330.25,
+          "median": 348.5,
+          "maximum": 374.292
+        },
+        {
+          "name": "Two inputs broadcast their leftovers",
+          "sample": 25,
+          "worker": 2,
+          "record": 129,
+          "peak": 130,
+          "work": 39,
+          "state": 3,
+          "event": 3,
+          "minimum": 41.625,
+          "median": 45.208,
+          "maximum": 47.625
+        },
+        {
+          "name": "One source supports a joint sibling match",
+          "sample": 25,
+          "worker": 2,
+          "record": 104,
+          "peak": 105,
+          "work": 35,
+          "state": 3,
+          "event": 3,
+          "minimum": 34.916000000000004,
+          "median": 41.041000000000004,
+          "maximum": 47.25
+        },
+        {
+          "name": "Competing histories cannot supply a joint match",
+          "sample": 25,
+          "worker": 2,
+          "record": 72,
+          "peak": 73,
+          "work": 20,
+          "state": 3,
+          "event": 2,
+          "minimum": 27.667,
+          "median": 33.209,
+          "maximum": 38.958000000000006
+        },
+        {
+          "name": "Explicit duplicate outputs remain distinct",
+          "sample": 25,
+          "worker": 2,
+          "record": 84,
+          "peak": 85,
+          "work": 45,
+          "state": 3,
+          "event": 3,
+          "minimum": 45.167,
+          "median": 47.917,
+          "maximum": 54.5
+        },
+        {
+          "name": "Evidence-only co-results are not source leftovers",
+          "sample": 25,
+          "worker": 2,
+          "record": 127,
+          "peak": 128,
+          "work": 33,
+          "state": 4,
+          "event": 3,
+          "minimum": 37.292,
+          "median": 40.834,
+          "maximum": 47.209
+        },
+        {
+          "name": "Independent branches compute independent equal results",
+          "sample": 25,
+          "worker": 2,
+          "record": 624,
+          "peak": 625,
+          "work": 310,
+          "state": 13,
+          "event": 21,
+          "minimum": 322.875,
+          "median": 346.91700000000003,
+          "maximum": 379.25
+        },
+        {
+          "name": "Arbitrarily nested body expressions",
+          "sample": 25,
+          "worker": 2,
+          "record": 338,
+          "peak": 339,
+          "work": 116,
+          "state": 9,
+          "event": 9,
+          "minimum": 127.37499999999999,
+          "median": 137.083,
+          "maximum": 155.208
+        },
+        {
+          "name": "A finite cycle shares its configurations",
+          "sample": 25,
+          "worker": 2,
+          "record": 69,
+          "peak": 69,
+          "work": 38,
+          "state": 2,
+          "event": 4,
+          "minimum": 35.166999999999994,
+          "median": 39.041000000000004,
+          "maximum": 47.917
+        },
+        {
+          "name": "Generated rule reads its concrete source",
+          "sample": 25,
+          "worker": 2,
+          "record": 130,
+          "peak": 131,
+          "work": 46,
+          "state": 4,
+          "event": 4,
+          "minimum": 50.167,
+          "median": 53.708999999999996,
+          "maximum": 65.542
+        },
+        {
+          "name": "One source supplies rule and operand",
+          "sample": 25,
+          "worker": 2,
+          "record": 108,
+          "peak": 109,
+          "work": 33,
+          "state": 4,
+          "event": 3,
+          "minimum": 38.583,
+          "median": 40.333999999999996,
+          "maximum": 42.25
+        },
+        {
+          "name": "Competing code and data cannot interact",
+          "sample": 25,
+          "worker": 2,
+          "record": 73,
+          "peak": 74,
+          "work": 20,
+          "state": 3,
+          "event": 2,
+          "minimum": 27.375,
+          "median": 33.292,
+          "maximum": 46.791
+        },
+        {
+          "name": "A meta rule replaces a whole rule value",
+          "sample": 25,
+          "worker": 2,
+          "record": 201,
+          "peak": 202,
+          "work": 72,
+          "state": 6,
+          "event": 6,
+          "minimum": 98.833,
+          "median": 108.125,
+          "maximum": 116.292
+        },
+        {
+          "name": "Rule activation respects coherence locality",
+          "sample": 25,
+          "worker": 2,
+          "record": 76,
+          "peak": 86,
+          "work": 20,
+          "state": 2,
+          "event": 1,
+          "minimum": 17.083,
+          "median": 23.040999999999997,
+          "maximum": 27.917
+        },
+        {
+          "name": "A generated rule enables decoherence",
+          "sample": 25,
+          "worker": 2,
+          "record": 206,
+          "peak": 207,
+          "work": 56,
+          "state": 5,
+          "event": 5,
+          "minimum": 62.24999999999999,
+          "median": 65.459,
+          "maximum": 77.58300000000001
+        },
+        {
+          "name": "A whole rule acquires an abstraction",
+          "sample": 25,
+          "worker": 2,
+          "record": 239,
+          "peak": 240,
+          "work": 86,
+          "state": 8,
+          "event": 8,
+          "minimum": 100.375,
+          "median": 113.125,
+          "maximum": 135.375
+        },
+        {
+          "name": "A generated rule opens a nested body",
+          "sample": 25,
+          "worker": 2,
+          "record": 236,
+          "peak": 237,
+          "work": 91,
+          "state": 6,
+          "event": 7,
+          "minimum": 108.167,
+          "median": 116.959,
+          "maximum": 125.04200000000002
+        },
+        {
+          "name": "An escaped rule retains its local definition",
+          "sample": 25,
+          "worker": 2,
+          "record": 1517,
+          "peak": 1518,
+          "work": 666,
+          "state": 29,
+          "event": 43,
+          "minimum": 571.0,
+          "median": 586.625,
+          "maximum": 618.084
+        },
+        {
+          "name": "Consuming code later does not erase earlier results",
+          "sample": 25,
+          "worker": 2,
+          "record": 125,
+          "peak": 126,
+          "work": 38,
+          "state": 4,
+          "event": 3,
+          "minimum": 56.458,
+          "median": 64.20800000000001,
+          "maximum": 69.334
+        }
+      ],
+      "4": [
+        {
+          "name": "Concrete And through two Boolean deductions",
+          "sample": 25,
+          "worker": 4,
+          "record": 610,
+          "peak": 611,
+          "work": 240,
+          "state": 14,
+          "event": 17,
+          "minimum": 361.083,
+          "median": 383.042,
+          "maximum": 422.625
+        },
+        {
+          "name": "Two inputs broadcast their leftovers",
+          "sample": 25,
+          "worker": 4,
+          "record": 129,
+          "peak": 130,
+          "work": 39,
+          "state": 3,
+          "event": 3,
+          "minimum": 46.667,
+          "median": 50.083,
+          "maximum": 58.458
+        },
+        {
+          "name": "One source supports a joint sibling match",
+          "sample": 25,
+          "worker": 4,
+          "record": 104,
+          "peak": 105,
+          "work": 35,
+          "state": 3,
+          "event": 3,
+          "minimum": 41.125,
+          "median": 47.0,
+          "maximum": 55.333
+        },
+        {
+          "name": "Competing histories cannot supply a joint match",
+          "sample": 25,
+          "worker": 4,
+          "record": 72,
+          "peak": 73,
+          "work": 20,
+          "state": 3,
+          "event": 2,
+          "minimum": 33.791000000000004,
+          "median": 39.292,
+          "maximum": 57.542
+        },
+        {
+          "name": "Explicit duplicate outputs remain distinct",
+          "sample": 25,
+          "worker": 4,
+          "record": 84,
+          "peak": 85,
+          "work": 45,
+          "state": 3,
+          "event": 3,
+          "minimum": 43.958999999999996,
+          "median": 50.417,
+          "maximum": 57.541
+        },
+        {
+          "name": "Evidence-only co-results are not source leftovers",
+          "sample": 25,
+          "worker": 4,
+          "record": 127,
+          "peak": 128,
+          "work": 33,
+          "state": 4,
+          "event": 3,
+          "minimum": 42.459,
+          "median": 45.875,
+          "maximum": 55.541999999999994
+        },
+        {
+          "name": "Independent branches compute independent equal results",
+          "sample": 25,
+          "worker": 4,
+          "record": 624,
+          "peak": 625,
+          "work": 310,
+          "state": 13,
+          "event": 21,
+          "minimum": 379.33299999999997,
+          "median": 403.292,
+          "maximum": 565.625
+        },
+        {
+          "name": "Arbitrarily nested body expressions",
+          "sample": 25,
+          "worker": 4,
+          "record": 338,
+          "peak": 339,
+          "work": 116,
+          "state": 9,
+          "event": 9,
+          "minimum": 138.375,
+          "median": 154.375,
+          "maximum": 167.417
+        },
+        {
+          "name": "A finite cycle shares its configurations",
+          "sample": 25,
+          "worker": 4,
+          "record": 69,
+          "peak": 69,
+          "work": 38,
+          "state": 2,
+          "event": 4,
+          "minimum": 37.666000000000004,
+          "median": 43.083,
+          "maximum": 46.375
+        },
+        {
+          "name": "Generated rule reads its concrete source",
+          "sample": 25,
+          "worker": 4,
+          "record": 130,
+          "peak": 131,
+          "work": 46,
+          "state": 4,
+          "event": 4,
+          "minimum": 53.708999999999996,
+          "median": 63.25000000000001,
+          "maximum": 71.95899999999999
+        },
+        {
+          "name": "One source supplies rule and operand",
+          "sample": 25,
+          "worker": 4,
+          "record": 108,
+          "peak": 109,
+          "work": 33,
+          "state": 4,
+          "event": 3,
+          "minimum": 38.125,
+          "median": 45.834,
+          "maximum": 51.667
+        },
+        {
+          "name": "Competing code and data cannot interact",
+          "sample": 25,
+          "worker": 4,
+          "record": 73,
+          "peak": 74,
+          "work": 20,
+          "state": 3,
+          "event": 2,
+          "minimum": 31.208,
+          "median": 40.125,
+          "maximum": 44.292
+        },
+        {
+          "name": "A meta rule replaces a whole rule value",
+          "sample": 25,
+          "worker": 4,
+          "record": 201,
+          "peak": 202,
+          "work": 72,
+          "state": 6,
+          "event": 6,
+          "minimum": 111.709,
+          "median": 125.70800000000001,
+          "maximum": 153.25
+        },
+        {
+          "name": "Rule activation respects coherence locality",
+          "sample": 25,
+          "worker": 4,
+          "record": 76,
+          "peak": 86,
+          "work": 20,
+          "state": 2,
+          "event": 1,
+          "minimum": 22.209,
+          "median": 25.25,
+          "maximum": 30.625
+        },
+        {
+          "name": "A generated rule enables decoherence",
+          "sample": 25,
+          "worker": 4,
+          "record": 206,
+          "peak": 207,
+          "work": 56,
+          "state": 5,
+          "event": 5,
+          "minimum": 69.04199999999999,
+          "median": 73.5,
+          "maximum": 92.375
+        },
+        {
+          "name": "A whole rule acquires an abstraction",
+          "sample": 25,
+          "worker": 4,
+          "record": 239,
+          "peak": 240,
+          "work": 86,
+          "state": 8,
+          "event": 8,
+          "minimum": 118.0,
+          "median": 123.66699999999999,
+          "maximum": 141.125
+        },
+        {
+          "name": "A generated rule opens a nested body",
+          "sample": 25,
+          "worker": 4,
+          "record": 236,
+          "peak": 237,
+          "work": 91,
+          "state": 6,
+          "event": 7,
+          "minimum": 122.084,
+          "median": 130.041,
+          "maximum": 158.875
+        },
+        {
+          "name": "An escaped rule retains its local definition",
+          "sample": 25,
+          "worker": 4,
+          "record": 1517,
+          "peak": 1518,
+          "work": 666,
+          "state": 29,
+          "event": 43,
+          "minimum": 601.417,
+          "median": 625.0840000000001,
+          "maximum": 684.75
+        },
+        {
+          "name": "Consuming code later does not erase earlier results",
+          "sample": 25,
+          "worker": 4,
+          "record": 125,
+          "peak": 126,
+          "work": 38,
+          "state": 4,
+          "event": 3,
+          "minimum": 67.083,
+          "median": 75.375,
+          "maximum": 90.583
+        }
+      ],
+      "1": [
+        {
+          "name": "Concrete And through two Boolean deductions",
+          "sample": 25,
+          "worker": 1,
+          "record": 610,
+          "peak": 611,
+          "work": 240,
+          "state": 14,
+          "event": 17,
+          "minimum": 118.084,
+          "median": 122.333,
+          "maximum": 132.708
+        },
+        {
+          "name": "Two inputs broadcast their leftovers",
+          "sample": 25,
+          "worker": 1,
+          "record": 129,
+          "peak": 130,
+          "work": 39,
+          "state": 3,
+          "event": 3,
+          "minimum": 20.833,
+          "median": 22.291999999999998,
+          "maximum": 22.75
+        },
+        {
+          "name": "One source supports a joint sibling match",
+          "sample": 25,
+          "worker": 1,
+          "record": 104,
+          "peak": 105,
+          "work": 35,
+          "state": 3,
+          "event": 3,
+          "minimum": 16.916,
+          "median": 18.125,
+          "maximum": 18.75
+        },
+        {
+          "name": "Competing histories cannot supply a joint match",
+          "sample": 25,
+          "worker": 1,
+          "record": 72,
+          "peak": 73,
+          "work": 20,
+          "state": 3,
+          "event": 2,
+          "minimum": 10.292000000000002,
+          "median": 10.417,
+          "maximum": 10.584000000000001
+        },
+        {
+          "name": "Explicit duplicate outputs remain distinct",
+          "sample": 25,
+          "worker": 1,
+          "record": 84,
+          "peak": 85,
+          "work": 45,
+          "state": 3,
+          "event": 3,
+          "minimum": 16.958,
+          "median": 17.959,
+          "maximum": 18.458
+        },
+        {
+          "name": "Evidence-only co-results are not source leftovers",
+          "sample": 25,
+          "worker": 1,
+          "record": 127,
+          "peak": 128,
+          "work": 33,
+          "state": 4,
+          "event": 3,
+          "minimum": 17.375,
+          "median": 17.5,
+          "maximum": 18.0
+        },
+        {
+          "name": "Independent branches compute independent equal results",
+          "sample": 25,
+          "worker": 1,
+          "record": 624,
+          "peak": 625,
+          "work": 310,
+          "state": 13,
+          "event": 21,
+          "minimum": 130.334,
+          "median": 139.75,
+          "maximum": 168.5
+        },
+        {
+          "name": "Arbitrarily nested body expressions",
+          "sample": 25,
+          "worker": 1,
+          "record": 338,
+          "peak": 339,
+          "work": 116,
+          "state": 9,
+          "event": 9,
+          "minimum": 58.458,
+          "median": 59.0,
+          "maximum": 65.417
+        },
+        {
+          "name": "A finite cycle shares its configurations",
+          "sample": 25,
+          "worker": 1,
+          "record": 69,
+          "peak": 69,
+          "work": 38,
+          "state": 2,
+          "event": 4,
+          "minimum": 15.291999999999998,
+          "median": 15.5,
+          "maximum": 16.458000000000002
+        },
+        {
+          "name": "Generated rule reads its concrete source",
+          "sample": 25,
+          "worker": 1,
+          "record": 130,
+          "peak": 131,
+          "work": 46,
+          "state": 4,
+          "event": 4,
+          "minimum": 21.166999999999998,
+          "median": 21.833,
+          "maximum": 22.917
+        },
+        {
+          "name": "One source supplies rule and operand",
+          "sample": 25,
+          "worker": 1,
+          "record": 108,
+          "peak": 109,
+          "work": 33,
+          "state": 4,
+          "event": 3,
+          "minimum": 16.5,
+          "median": 17.541,
+          "maximum": 24.417
+        },
+        {
+          "name": "Competing code and data cannot interact",
+          "sample": 25,
+          "worker": 1,
+          "record": 73,
+          "peak": 74,
+          "work": 20,
+          "state": 3,
+          "event": 2,
+          "minimum": 10.0,
+          "median": 10.209,
+          "maximum": 10.959
+        },
+        {
+          "name": "A meta rule replaces a whole rule value",
+          "sample": 25,
+          "worker": 1,
+          "record": 201,
+          "peak": 202,
+          "work": 72,
+          "state": 6,
+          "event": 6,
+          "minimum": 33.375,
+          "median": 35.125,
+          "maximum": 36.25
+        },
+        {
+          "name": "Rule activation respects coherence locality",
+          "sample": 25,
+          "worker": 1,
+          "record": 76,
+          "peak": 86,
+          "work": 20,
+          "state": 2,
+          "event": 1,
+          "minimum": 9.5,
+          "median": 9.75,
+          "maximum": 10.292000000000002
+        },
+        {
+          "name": "A generated rule enables decoherence",
+          "sample": 25,
+          "worker": 1,
+          "record": 206,
+          "peak": 207,
+          "work": 56,
+          "state": 5,
+          "event": 5,
+          "minimum": 32.458,
+          "median": 34.208,
+          "maximum": 35.333000000000006
+        },
+        {
+          "name": "A whole rule acquires an abstraction",
+          "sample": 25,
+          "worker": 1,
+          "record": 239,
+          "peak": 240,
+          "work": 86,
+          "state": 8,
+          "event": 8,
+          "minimum": 43.208,
+          "median": 43.708000000000006,
+          "maximum": 46.5
+        },
+        {
+          "name": "A generated rule opens a nested body",
+          "sample": 25,
+          "worker": 1,
+          "record": 236,
+          "peak": 237,
+          "work": 91,
+          "state": 6,
+          "event": 7,
+          "minimum": 43.541999999999994,
+          "median": 46.125,
+          "maximum": 47.459
+        },
+        {
+          "name": "An escaped rule retains its local definition",
+          "sample": 25,
+          "worker": 1,
+          "record": 1517,
+          "peak": 1518,
+          "work": 666,
+          "state": 29,
+          "event": 43,
+          "minimum": 353.875,
+          "median": 367.66700000000003,
+          "maximum": 394.25
+        },
+        {
+          "name": "Consuming code later does not erase earlier results",
+          "sample": 25,
+          "worker": 1,
+          "record": 125,
+          "peak": 126,
+          "work": 38,
+          "state": 4,
+          "event": 3,
+          "minimum": 19.833000000000002,
+          "median": 20.125,
+          "maximum": 20.709
+        }
+      ]
+    }
+  ],
+  "summary": [
+    {
+      "name": "Concrete And through two Boolean deductions",
+      "microsecond": {
+        "1": 119.875,
+        "2": 348.5,
+        "4": 389.0
+      },
+      "slowdown": {
+        "2": 2.9071949947862357,
+        "4": 3.2450469238790407
+      }
+    },
+    {
+      "name": "Two inputs broadcast their leftovers",
+      "microsecond": {
+        "1": 22.291999999999998,
+        "2": 44.916000000000004,
+        "4": 50.667
+      },
+      "slowdown": {
+        "2": 2.0148932352413427,
+        "4": 2.272878162569532
+      }
+    },
+    {
+      "name": "One source supports a joint sibling match",
+      "microsecond": {
+        "1": 17.042,
+        "2": 41.041000000000004,
+        "4": 46.791
+      },
+      "slowdown": {
+        "2": 2.4082267339514143,
+        "4": 2.7456284473653323
+      }
+    },
+    {
+      "name": "Competing histories cannot supply a joint match",
+      "microsecond": {
+        "1": 10.25,
+        "2": 33.416,
+        "4": 40.958000000000006
+      },
+      "slowdown": {
+        "2": 3.2600975609756095,
+        "4": 3.9959024390243907
+      }
+    },
+    {
+      "name": "Explicit duplicate outputs remain distinct",
+      "microsecond": {
+        "1": 17.833000000000002,
+        "2": 47.917,
+        "4": 52.958
+      },
+      "slowdown": {
+        "2": 2.68698480345427,
+        "4": 2.9696629843548474
+      }
+    },
+    {
+      "name": "Evidence-only co-results are not source leftovers",
+      "microsecond": {
+        "1": 17.5,
+        "2": 40.834,
+        "4": 45.875
+      },
+      "slowdown": {
+        "2": 2.3333714285714287,
+        "4": 2.6214285714285714
+      }
+    },
+    {
+      "name": "Independent branches compute independent equal results",
+      "microsecond": {
+        "1": 139.75,
+        "2": 346.41700000000003,
+        "4": 401.25
+      },
+      "slowdown": {
+        "2": 2.4788336314847945,
+        "4": 2.8711985688729875
+      }
+    },
+    {
+      "name": "Arbitrarily nested body expressions",
+      "microsecond": {
+        "1": 59.833,
+        "2": 137.083,
+        "4": 156.833
+      },
+      "slowdown": {
+        "2": 2.2910935436966224,
+        "4": 2.621178948072134
+      }
+    },
+    {
+      "name": "A finite cycle shares its configurations",
+      "microsecond": {
+        "1": 15.5,
+        "2": 39.25,
+        "4": 43.25
+      },
+      "slowdown": {
+        "2": 2.532258064516129,
+        "4": 2.7903225806451615
+      }
+    },
+    {
+      "name": "Generated rule reads its concrete source",
+      "microsecond": {
+        "1": 21.833,
+        "2": 53.708999999999996,
+        "4": 62.833
+      },
+      "slowdown": {
+        "2": 2.4599917555993223,
+        "4": 2.8778912655155042
+      }
+    },
+    {
+      "name": "One source supplies rule and operand",
+      "microsecond": {
+        "1": 17.541,
+        "2": 40.542,
+        "4": 45.834
+      },
+      "slowdown": {
+        "2": 2.3112707371301524,
+        "4": 2.6129639131178384
+      }
+    },
+    {
+      "name": "Competing code and data cannot interact",
+      "microsecond": {
+        "1": 10.0,
+        "2": 34.541,
+        "4": 40.25
+      },
+      "slowdown": {
+        "2": 3.4540999999999995,
+        "4": 4.025
+      }
+    },
+    {
+      "name": "A meta rule replaces a whole rule value",
+      "microsecond": {
+        "1": 35.5,
+        "2": 108.125,
+        "4": 125.16599999999998
+      },
+      "slowdown": {
+        "2": 3.045774647887324,
+        "4": 3.525802816901408
+      }
+    },
+    {
+      "name": "Rule activation respects coherence locality",
+      "microsecond": {
+        "1": 9.709,
+        "2": 23.125,
+        "4": 24.916
+      },
+      "slowdown": {
+        "2": 2.38181069111134,
+        "4": 2.5662787104748173
+      }
+    },
+    {
+      "name": "A generated rule enables decoherence",
+      "microsecond": {
+        "1": 34.208,
+        "2": 66.5,
+        "4": 73.5
+      },
+      "slowdown": {
+        "2": 1.9439897100093546,
+        "4": 2.148620205799813
+      }
+    },
+    {
+      "name": "A whole rule acquires an abstraction",
+      "microsecond": {
+        "1": 43.708000000000006,
+        "2": 113.125,
+        "4": 124.542
+      },
+      "slowdown": {
+        "2": 2.5881989567127297,
+        "4": 2.849409719044568
+      }
+    },
+    {
+      "name": "A generated rule opens a nested body",
+      "microsecond": {
+        "1": 45.667,
+        "2": 116.959,
+        "4": 131.459
+      },
+      "slowdown": {
+        "2": 2.561127291041671,
+        "4": 2.8786432215823243
+      }
+    },
+    {
+      "name": "An escaped rule retains its local definition",
+      "microsecond": {
+        "1": 347.625,
+        "2": 592.292,
+        "4": 631.542
+      },
+      "slowdown": {
+        "2": 1.703824523552679,
+        "4": 1.8167335490830638
+      }
+    },
+    {
+      "name": "Consuming code later does not erase earlier results",
+      "microsecond": {
+        "1": 19.417,
+        "2": 64.417,
+        "4": 74.667
+      },
+      "slowdown": {
+        "2": 3.317556780141113,
+        "4": 3.845444713395478
+      }
+    }
+  ],
+  "verification": "All nineteen fixture name/state/event/work/record/peak observations agree for each worker count in each round. Snapshot content is covered separately by kernel differential tests; this benchmark compares reported counts.",
+  "profile": {
+    "revision": "eea981d6c98b6f671fd3bcb26ab1a5dc72995f27",
+    "configuration": "bazel run -c opt //benchmark:profile -- 2*2*2*2*2*2 2101 --sample 9; instrumented nested scopes; caffeinate -is; no competing builds",
+    "round": [
+      {
+        "expected": "2101",
+        "input": "2*2*2*2*2*2",
+        "measurement": [
+          {
+            "event": 10101,
+            "execution": 0.067760125,
+            "initialization": 0.001769542,
+            "phase": [
+              {
+                "count": 15083,
+                "duration": 0.002022103,
+                "phase": "matching"
+              },
+              {
+                "count": 10101,
+                "duration": 0.03790247,
+                "phase": "dispatch"
+              },
+              {
+                "count": 10101,
+                "duration": 0.012953605,
+                "phase": "index"
+              },
+              {
+                "count": 10101,
+                "duration": 0.006521873,
+                "phase": "rewrite"
+              },
+              {
+                "count": 10101,
+                "duration": 0.003409197,
+                "phase": "fingerprint"
+              },
+              {
+                "count": 1,
+                "duration": 3.458e-06,
+                "phase": "structure"
+              },
+              {
+                "count": 6,
+                "duration": 3.207e-06,
+                "phase": "canonicalization"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "composition"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "application"
+              },
+              {
+                "count": 14974,
+                "duration": 0.025168215,
+                "phase": "subscription"
+              },
+              {
+                "count": 14974,
+                "duration": 0.00434833,
+                "phase": "refresh"
+              },
+              {
+                "count": 10101,
+                "duration": 0.000216905,
+                "phase": "restart"
+              },
+              {
+                "count": 14974,
+                "duration": 0.002669054,
+                "phase": "request"
+              },
+              {
+                "count": 66492,
+                "duration": 0.010005899,
+                "phase": "preparation"
+              },
+              {
+                "count": 10101,
+                "duration": 0.005070297,
+                "phase": "availability"
+              },
+              {
+                "count": 4191,
+                "duration": 0.000228183,
+                "phase": "context"
+              }
+            ],
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.067584333,
+            "initialization": 0.001766458,
+            "phase": [
+              {
+                "count": 15083,
+                "duration": 0.002027842,
+                "phase": "matching"
+              },
+              {
+                "count": 10101,
+                "duration": 0.037765039,
+                "phase": "dispatch"
+              },
+              {
+                "count": 10101,
+                "duration": 0.01319242,
+                "phase": "index"
+              },
+              {
+                "count": 10101,
+                "duration": 0.006464523,
+                "phase": "rewrite"
+              },
+              {
+                "count": 10101,
+                "duration": 0.003379641,
+                "phase": "fingerprint"
+              },
+              {
+                "count": 1,
+                "duration": 3.583e-06,
+                "phase": "structure"
+              },
+              {
+                "count": 6,
+                "duration": 3.416e-06,
+                "phase": "canonicalization"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "composition"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "application"
+              },
+              {
+                "count": 14974,
+                "duration": 0.025119339,
+                "phase": "subscription"
+              },
+              {
+                "count": 14974,
+                "duration": 0.004256445,
+                "phase": "refresh"
+              },
+              {
+                "count": 10101,
+                "duration": 0.000214958,
+                "phase": "restart"
+              },
+              {
+                "count": 14974,
+                "duration": 0.002590625,
+                "phase": "request"
+              },
+              {
+                "count": 66492,
+                "duration": 0.010040638,
+                "phase": "preparation"
+              },
+              {
+                "count": 10101,
+                "duration": 0.005089731,
+                "phase": "availability"
+              },
+              {
+                "count": 4191,
+                "duration": 0.000232775,
+                "phase": "context"
+              }
+            ],
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.067527375,
+            "initialization": 0.001871333,
+            "phase": [
+              {
+                "count": 15083,
+                "duration": 0.00199936,
+                "phase": "matching"
+              },
+              {
+                "count": 10101,
+                "duration": 0.037714615,
+                "phase": "dispatch"
+              },
+              {
+                "count": 10101,
+                "duration": 0.013112916,
+                "phase": "index"
+              },
+              {
+                "count": 10101,
+                "duration": 0.006519196,
+                "phase": "rewrite"
+              },
+              {
+                "count": 10101,
+                "duration": 0.003392813,
+                "phase": "fingerprint"
+              },
+              {
+                "count": 1,
+                "duration": 3.541e-06,
+                "phase": "structure"
+              },
+              {
+                "count": 6,
+                "duration": 3.458e-06,
+                "phase": "canonicalization"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "composition"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "application"
+              },
+              {
+                "count": 14974,
+                "duration": 0.025024916,
+                "phase": "subscription"
+              },
+              {
+                "count": 14974,
+                "duration": 0.004279936,
+                "phase": "refresh"
+              },
+              {
+                "count": 10101,
+                "duration": 0.000224129,
+                "phase": "restart"
+              },
+              {
+                "count": 14974,
+                "duration": 0.002668207,
+                "phase": "request"
+              },
+              {
+                "count": 66492,
+                "duration": 0.009957203,
+                "phase": "preparation"
+              },
+              {
+                "count": 10101,
+                "duration": 0.005108371,
+                "phase": "availability"
+              },
+              {
+                "count": 4191,
+                "duration": 0.000225862,
+                "phase": "context"
+              }
+            ],
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.069348542,
+            "initialization": 0.001776416,
+            "phase": [
+              {
+                "count": 15083,
+                "duration": 0.002047909,
+                "phase": "matching"
+              },
+              {
+                "count": 10101,
+                "duration": 0.038787928,
+                "phase": "dispatch"
+              },
+              {
+                "count": 10101,
+                "duration": 0.013550609,
+                "phase": "index"
+              },
+              {
+                "count": 10101,
+                "duration": 0.006584176,
+                "phase": "rewrite"
+              },
+              {
+                "count": 10101,
+                "duration": 0.00341474,
+                "phase": "fingerprint"
+              },
+              {
+                "count": 1,
+                "duration": 2.75e-06,
+                "phase": "structure"
+              },
+              {
+                "count": 6,
+                "duration": 2.999e-06,
+                "phase": "canonicalization"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "composition"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "application"
+              },
+              {
+                "count": 14974,
+                "duration": 0.025765666,
+                "phase": "subscription"
+              },
+              {
+                "count": 14974,
+                "duration": 0.004361337,
+                "phase": "refresh"
+              },
+              {
+                "count": 10101,
+                "duration": 0.000221484,
+                "phase": "restart"
+              },
+              {
+                "count": 14974,
+                "duration": 0.002750836,
+                "phase": "request"
+              },
+              {
+                "count": 66492,
+                "duration": 0.010237546,
+                "phase": "preparation"
+              },
+              {
+                "count": 10101,
+                "duration": 0.005318355,
+                "phase": "availability"
+              },
+              {
+                "count": 4191,
+                "duration": 0.000228056,
+                "phase": "context"
+              }
+            ],
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.068584417,
+            "initialization": 0.001746542,
+            "phase": [
+              {
+                "count": 15083,
+                "duration": 0.002057562,
+                "phase": "matching"
+              },
+              {
+                "count": 10101,
+                "duration": 0.038444045,
+                "phase": "dispatch"
+              },
+              {
+                "count": 10101,
+                "duration": 0.013062656,
+                "phase": "index"
+              },
+              {
+                "count": 10101,
+                "duration": 0.006548545,
+                "phase": "rewrite"
+              },
+              {
+                "count": 10101,
+                "duration": 0.003428661,
+                "phase": "fingerprint"
+              },
+              {
+                "count": 1,
+                "duration": 6.041e-06,
+                "phase": "structure"
+              },
+              {
+                "count": 6,
+                "duration": 3.042e-06,
+                "phase": "canonicalization"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "composition"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "application"
+              },
+              {
+                "count": 14974,
+                "duration": 0.025439203,
+                "phase": "subscription"
+              },
+              {
+                "count": 14974,
+                "duration": 0.004349938,
+                "phase": "refresh"
+              },
+              {
+                "count": 10101,
+                "duration": 0.000231152,
+                "phase": "restart"
+              },
+              {
+                "count": 14974,
+                "duration": 0.002640263,
+                "phase": "request"
+              },
+              {
+                "count": 66492,
+                "duration": 0.010060529,
+                "phase": "preparation"
+              },
+              {
+                "count": 10101,
+                "duration": 0.005274601,
+                "phase": "availability"
+              },
+              {
+                "count": 4191,
+                "duration": 0.000227198,
+                "phase": "context"
+              }
+            ],
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.067132041,
+            "initialization": 0.001753709,
+            "phase": [
+              {
+                "count": 15083,
+                "duration": 0.002004169,
+                "phase": "matching"
+              },
+              {
+                "count": 10101,
+                "duration": 0.037808838,
+                "phase": "dispatch"
+              },
+              {
+                "count": 10101,
+                "duration": 0.012873767,
+                "phase": "index"
+              },
+              {
+                "count": 10101,
+                "duration": 0.006453124,
+                "phase": "rewrite"
+              },
+              {
+                "count": 10101,
+                "duration": 0.003385663,
+                "phase": "fingerprint"
+              },
+              {
+                "count": 1,
+                "duration": 3.5e-06,
+                "phase": "structure"
+              },
+              {
+                "count": 6,
+                "duration": 3.208e-06,
+                "phase": "canonicalization"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "composition"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "application"
+              },
+              {
+                "count": 14974,
+                "duration": 0.025070976,
+                "phase": "subscription"
+              },
+              {
+                "count": 14974,
+                "duration": 0.004289306,
+                "phase": "refresh"
+              },
+              {
+                "count": 10101,
+                "duration": 0.000216438,
+                "phase": "restart"
+              },
+              {
+                "count": 14974,
+                "duration": 0.002634358,
+                "phase": "request"
+              },
+              {
+                "count": 66492,
+                "duration": 0.00988588,
+                "phase": "preparation"
+              },
+              {
+                "count": 10101,
+                "duration": 0.005128251,
+                "phase": "availability"
+              },
+              {
+                "count": 4191,
+                "duration": 0.000223448,
+                "phase": "context"
+              }
+            ],
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.067419667,
+            "initialization": 0.001862875,
+            "phase": [
+              {
+                "count": 15083,
+                "duration": 0.002036783,
+                "phase": "matching"
+              },
+              {
+                "count": 10101,
+                "duration": 0.038033969,
+                "phase": "dispatch"
+              },
+              {
+                "count": 10101,
+                "duration": 0.01279263,
+                "phase": "index"
+              },
+              {
+                "count": 10101,
+                "duration": 0.006462878,
+                "phase": "rewrite"
+              },
+              {
+                "count": 10101,
+                "duration": 0.003367759,
+                "phase": "fingerprint"
+              },
+              {
+                "count": 1,
+                "duration": 2.791e-06,
+                "phase": "structure"
+              },
+              {
+                "count": 6,
+                "duration": 3.167e-06,
+                "phase": "canonicalization"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "composition"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "application"
+              },
+              {
+                "count": 14974,
+                "duration": 0.025183621,
+                "phase": "subscription"
+              },
+              {
+                "count": 14974,
+                "duration": 0.004331385,
+                "phase": "refresh"
+              },
+              {
+                "count": 10101,
+                "duration": 0.000218633,
+                "phase": "restart"
+              },
+              {
+                "count": 14974,
+                "duration": 0.002641799,
+                "phase": "request"
+              },
+              {
+                "count": 66492,
+                "duration": 0.009986671,
+                "phase": "preparation"
+              },
+              {
+                "count": 10101,
+                "duration": 0.005169911,
+                "phase": "availability"
+              },
+              {
+                "count": 4191,
+                "duration": 0.000227764,
+                "phase": "context"
+              }
+            ],
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.067823791,
+            "initialization": 0.00175175,
+            "phase": [
+              {
+                "count": 15083,
+                "duration": 0.002039291,
+                "phase": "matching"
+              },
+              {
+                "count": 10101,
+                "duration": 0.038163638,
+                "phase": "dispatch"
+              },
+              {
+                "count": 10101,
+                "duration": 0.01284046,
+                "phase": "index"
+              },
+              {
+                "count": 10101,
+                "duration": 0.00651013,
+                "phase": "rewrite"
+              },
+              {
+                "count": 10101,
+                "duration": 0.003389988,
+                "phase": "fingerprint"
+              },
+              {
+                "count": 1,
+                "duration": 5.458e-06,
+                "phase": "structure"
+              },
+              {
+                "count": 6,
+                "duration": 3.333e-06,
+                "phase": "canonicalization"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "composition"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "application"
+              },
+              {
+                "count": 14974,
+                "duration": 0.025274513,
+                "phase": "subscription"
+              },
+              {
+                "count": 14974,
+                "duration": 0.004330744,
+                "phase": "refresh"
+              },
+              {
+                "count": 10101,
+                "duration": 0.000215004,
+                "phase": "restart"
+              },
+              {
+                "count": 14974,
+                "duration": 0.00266959,
+                "phase": "request"
+              },
+              {
+                "count": 66492,
+                "duration": 0.009981844,
+                "phase": "preparation"
+              },
+              {
+                "count": 10101,
+                "duration": 0.005191555,
+                "phase": "availability"
+              },
+              {
+                "count": 4191,
+                "duration": 0.000230632,
+                "phase": "context"
+              }
+            ],
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.067271375,
+            "initialization": 0.001733166,
+            "phase": [
+              {
+                "count": 15083,
+                "duration": 0.002002027,
+                "phase": "matching"
+              },
+              {
+                "count": 10101,
+                "duration": 0.037768139,
+                "phase": "dispatch"
+              },
+              {
+                "count": 10101,
+                "duration": 0.012962213,
+                "phase": "index"
+              },
+              {
+                "count": 10101,
+                "duration": 0.006417251,
+                "phase": "rewrite"
+              },
+              {
+                "count": 10101,
+                "duration": 0.003351173,
+                "phase": "fingerprint"
+              },
+              {
+                "count": 1,
+                "duration": 3.292e-06,
+                "phase": "structure"
+              },
+              {
+                "count": 6,
+                "duration": 3e-06,
+                "phase": "canonicalization"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "composition"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "application"
+              },
+              {
+                "count": 14974,
+                "duration": 0.025024036,
+                "phase": "subscription"
+              },
+              {
+                "count": 14974,
+                "duration": 0.004317613,
+                "phase": "refresh"
+              },
+              {
+                "count": 10101,
+                "duration": 0.000212399,
+                "phase": "restart"
+              },
+              {
+                "count": 14974,
+                "duration": 0.002630739,
+                "phase": "request"
+              },
+              {
+                "count": 66492,
+                "duration": 0.009923949,
+                "phase": "preparation"
+              },
+              {
+                "count": 10101,
+                "duration": 0.005107626,
+                "phase": "availability"
+              },
+              {
+                "count": 4191,
+                "duration": 0.000225894,
+                "phase": "context"
+              }
+            ],
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          }
+        ]
+      },
+      {
+        "expected": "2101",
+        "input": "2*2*2*2*2*2",
+        "measurement": [
+          {
+            "event": 10101,
+            "execution": 0.067161292,
+            "initialization": 0.001769791,
+            "phase": [
+              {
+                "count": 15083,
+                "duration": 0.001998676,
+                "phase": "matching"
+              },
+              {
+                "count": 10101,
+                "duration": 0.037792448,
+                "phase": "dispatch"
+              },
+              {
+                "count": 10101,
+                "duration": 0.012821431,
+                "phase": "index"
+              },
+              {
+                "count": 10101,
+                "duration": 0.006479728,
+                "phase": "rewrite"
+              },
+              {
+                "count": 10101,
+                "duration": 0.003415221,
+                "phase": "fingerprint"
+              },
+              {
+                "count": 1,
+                "duration": 3.125e-06,
+                "phase": "structure"
+              },
+              {
+                "count": 6,
+                "duration": 3.627e-06,
+                "phase": "canonicalization"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "composition"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "application"
+              },
+              {
+                "count": 14974,
+                "duration": 0.025045601,
+                "phase": "subscription"
+              },
+              {
+                "count": 14974,
+                "duration": 0.004252315,
+                "phase": "refresh"
+              },
+              {
+                "count": 10101,
+                "duration": 0.000211662,
+                "phase": "restart"
+              },
+              {
+                "count": 14974,
+                "duration": 0.002648665,
+                "phase": "request"
+              },
+              {
+                "count": 66492,
+                "duration": 0.009929534,
+                "phase": "preparation"
+              },
+              {
+                "count": 10101,
+                "duration": 0.005163348,
+                "phase": "availability"
+              },
+              {
+                "count": 4191,
+                "duration": 0.000225962,
+                "phase": "context"
+              }
+            ],
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.068198958,
+            "initialization": 0.001835416,
+            "phase": [
+              {
+                "count": 15083,
+                "duration": 0.002041266,
+                "phase": "matching"
+              },
+              {
+                "count": 10101,
+                "duration": 0.038449462,
+                "phase": "dispatch"
+              },
+              {
+                "count": 10101,
+                "duration": 0.012877704,
+                "phase": "index"
+              },
+              {
+                "count": 10101,
+                "duration": 0.006570443,
+                "phase": "rewrite"
+              },
+              {
+                "count": 10101,
+                "duration": 0.003457853,
+                "phase": "fingerprint"
+              },
+              {
+                "count": 1,
+                "duration": 3.625e-06,
+                "phase": "structure"
+              },
+              {
+                "count": 6,
+                "duration": 4.336e-06,
+                "phase": "canonicalization"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "composition"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "application"
+              },
+              {
+                "count": 14974,
+                "duration": 0.025498528,
+                "phase": "subscription"
+              },
+              {
+                "count": 14974,
+                "duration": 0.004332729,
+                "phase": "refresh"
+              },
+              {
+                "count": 10101,
+                "duration": 0.000215546,
+                "phase": "restart"
+              },
+              {
+                "count": 14974,
+                "duration": 0.002679898,
+                "phase": "request"
+              },
+              {
+                "count": 66492,
+                "duration": 0.01012902,
+                "phase": "preparation"
+              },
+              {
+                "count": 10101,
+                "duration": 0.005221587,
+                "phase": "availability"
+              },
+              {
+                "count": 4191,
+                "duration": 0.000230274,
+                "phase": "context"
+              }
+            ],
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.068160458,
+            "initialization": 0.001778042,
+            "phase": [
+              {
+                "count": 15083,
+                "duration": 0.002040662,
+                "phase": "matching"
+              },
+              {
+                "count": 10101,
+                "duration": 0.038355394,
+                "phase": "dispatch"
+              },
+              {
+                "count": 10101,
+                "duration": 0.012932737,
+                "phase": "index"
+              },
+              {
+                "count": 10101,
+                "duration": 0.006470346,
+                "phase": "rewrite"
+              },
+              {
+                "count": 10101,
+                "duration": 0.003467672,
+                "phase": "fingerprint"
+              },
+              {
+                "count": 1,
+                "duration": 2.875e-06,
+                "phase": "structure"
+              },
+              {
+                "count": 6,
+                "duration": 3.583e-06,
+                "phase": "canonicalization"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "composition"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "application"
+              },
+              {
+                "count": 14974,
+                "duration": 0.025387143,
+                "phase": "subscription"
+              },
+              {
+                "count": 14974,
+                "duration": 0.004324695,
+                "phase": "refresh"
+              },
+              {
+                "count": 10101,
+                "duration": 0.000214415,
+                "phase": "restart"
+              },
+              {
+                "count": 14974,
+                "duration": 0.002670675,
+                "phase": "request"
+              },
+              {
+                "count": 66492,
+                "duration": 0.010053784,
+                "phase": "preparation"
+              },
+              {
+                "count": 10101,
+                "duration": 0.005262354,
+                "phase": "availability"
+              },
+              {
+                "count": 4191,
+                "duration": 0.00023364,
+                "phase": "context"
+              }
+            ],
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.067577041,
+            "initialization": 0.00173275,
+            "phase": [
+              {
+                "count": 15083,
+                "duration": 0.002021212,
+                "phase": "matching"
+              },
+              {
+                "count": 10101,
+                "duration": 0.038221546,
+                "phase": "dispatch"
+              },
+              {
+                "count": 10101,
+                "duration": 0.012741763,
+                "phase": "index"
+              },
+              {
+                "count": 10101,
+                "duration": 0.006465169,
+                "phase": "rewrite"
+              },
+              {
+                "count": 10101,
+                "duration": 0.00342037,
+                "phase": "fingerprint"
+              },
+              {
+                "count": 1,
+                "duration": 3.791e-06,
+                "phase": "structure"
+              },
+              {
+                "count": 6,
+                "duration": 3.792e-06,
+                "phase": "canonicalization"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "composition"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "application"
+              },
+              {
+                "count": 14974,
+                "duration": 0.025291253,
+                "phase": "subscription"
+              },
+              {
+                "count": 14974,
+                "duration": 0.004306318,
+                "phase": "refresh"
+              },
+              {
+                "count": 10101,
+                "duration": 0.000216442,
+                "phase": "restart"
+              },
+              {
+                "count": 14974,
+                "duration": 0.002681736,
+                "phase": "request"
+              },
+              {
+                "count": 66492,
+                "duration": 0.009973809,
+                "phase": "preparation"
+              },
+              {
+                "count": 10101,
+                "duration": 0.005245125,
+                "phase": "availability"
+              },
+              {
+                "count": 4191,
+                "duration": 0.000231929,
+                "phase": "context"
+              }
+            ],
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.066802416,
+            "initialization": 0.00184225,
+            "phase": [
+              {
+                "count": 15083,
+                "duration": 0.001990206,
+                "phase": "matching"
+              },
+              {
+                "count": 10101,
+                "duration": 0.037665382,
+                "phase": "dispatch"
+              },
+              {
+                "count": 10101,
+                "duration": 0.012720063,
+                "phase": "index"
+              },
+              {
+                "count": 10101,
+                "duration": 0.006405948,
+                "phase": "rewrite"
+              },
+              {
+                "count": 10101,
+                "duration": 0.003372994,
+                "phase": "fingerprint"
+              },
+              {
+                "count": 1,
+                "duration": 2.875e-06,
+                "phase": "structure"
+              },
+              {
+                "count": 6,
+                "duration": 3.5e-06,
+                "phase": "canonicalization"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "composition"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "application"
+              },
+              {
+                "count": 14974,
+                "duration": 0.024863568,
+                "phase": "subscription"
+              },
+              {
+                "count": 14974,
+                "duration": 0.004257854,
+                "phase": "refresh"
+              },
+              {
+                "count": 10101,
+                "duration": 0.000214404,
+                "phase": "restart"
+              },
+              {
+                "count": 14974,
+                "duration": 0.002609708,
+                "phase": "request"
+              },
+              {
+                "count": 66492,
+                "duration": 0.009832469,
+                "phase": "preparation"
+              },
+              {
+                "count": 10101,
+                "duration": 0.005208718,
+                "phase": "availability"
+              },
+              {
+                "count": 4191,
+                "duration": 0.000225704,
+                "phase": "context"
+              }
+            ],
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.067824,
+            "initialization": 0.001745459,
+            "phase": [
+              {
+                "count": 15083,
+                "duration": 0.002023525,
+                "phase": "matching"
+              },
+              {
+                "count": 10101,
+                "duration": 0.038123218,
+                "phase": "dispatch"
+              },
+              {
+                "count": 10101,
+                "duration": 0.012952859,
+                "phase": "index"
+              },
+              {
+                "count": 10101,
+                "duration": 0.00644697,
+                "phase": "rewrite"
+              },
+              {
+                "count": 10101,
+                "duration": 0.003432882,
+                "phase": "fingerprint"
+              },
+              {
+                "count": 1,
+                "duration": 2.959e-06,
+                "phase": "structure"
+              },
+              {
+                "count": 6,
+                "duration": 3.124e-06,
+                "phase": "canonicalization"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "composition"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "application"
+              },
+              {
+                "count": 14974,
+                "duration": 0.02521498,
+                "phase": "subscription"
+              },
+              {
+                "count": 14974,
+                "duration": 0.004306396,
+                "phase": "refresh"
+              },
+              {
+                "count": 10101,
+                "duration": 0.000217664,
+                "phase": "restart"
+              },
+              {
+                "count": 14974,
+                "duration": 0.002640816,
+                "phase": "request"
+              },
+              {
+                "count": 66492,
+                "duration": 0.010024846,
+                "phase": "preparation"
+              },
+              {
+                "count": 10101,
+                "duration": 0.005241915,
+                "phase": "availability"
+              },
+              {
+                "count": 4191,
+                "duration": 0.000225463,
+                "phase": "context"
+              }
+            ],
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.067651042,
+            "initialization": 0.001767208,
+            "phase": [
+              {
+                "count": 15083,
+                "duration": 0.002003514,
+                "phase": "matching"
+              },
+              {
+                "count": 10101,
+                "duration": 0.038017558,
+                "phase": "dispatch"
+              },
+              {
+                "count": 10101,
+                "duration": 0.012907701,
+                "phase": "index"
+              },
+              {
+                "count": 10101,
+                "duration": 0.006435823,
+                "phase": "rewrite"
+              },
+              {
+                "count": 10101,
+                "duration": 0.003385981,
+                "phase": "fingerprint"
+              },
+              {
+                "count": 1,
+                "duration": 3.5e-06,
+                "phase": "structure"
+              },
+              {
+                "count": 6,
+                "duration": 3.209e-06,
+                "phase": "canonicalization"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "composition"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "application"
+              },
+              {
+                "count": 14974,
+                "duration": 0.025120036,
+                "phase": "subscription"
+              },
+              {
+                "count": 14974,
+                "duration": 0.004307208,
+                "phase": "refresh"
+              },
+              {
+                "count": 10101,
+                "duration": 0.000215651,
+                "phase": "restart"
+              },
+              {
+                "count": 14974,
+                "duration": 0.002653503,
+                "phase": "request"
+              },
+              {
+                "count": 66492,
+                "duration": 0.009985092,
+                "phase": "preparation"
+              },
+              {
+                "count": 10101,
+                "duration": 0.005233222,
+                "phase": "availability"
+              },
+              {
+                "count": 4191,
+                "duration": 0.000229434,
+                "phase": "context"
+              }
+            ],
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.066550791,
+            "initialization": 0.001746,
+            "phase": [
+              {
+                "count": 15083,
+                "duration": 0.001970651,
+                "phase": "matching"
+              },
+              {
+                "count": 10101,
+                "duration": 0.037523428,
+                "phase": "dispatch"
+              },
+              {
+                "count": 10101,
+                "duration": 0.012727484,
+                "phase": "index"
+              },
+              {
+                "count": 10101,
+                "duration": 0.00635009,
+                "phase": "rewrite"
+              },
+              {
+                "count": 10101,
+                "duration": 0.003387968,
+                "phase": "fingerprint"
+              },
+              {
+                "count": 1,
+                "duration": 3.167e-06,
+                "phase": "structure"
+              },
+              {
+                "count": 6,
+                "duration": 3.083e-06,
+                "phase": "canonicalization"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "composition"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "application"
+              },
+              {
+                "count": 14974,
+                "duration": 0.024821904,
+                "phase": "subscription"
+              },
+              {
+                "count": 14974,
+                "duration": 0.004256303,
+                "phase": "refresh"
+              },
+              {
+                "count": 10101,
+                "duration": 0.000216726,
+                "phase": "restart"
+              },
+              {
+                "count": 14974,
+                "duration": 0.00260744,
+                "phase": "request"
+              },
+              {
+                "count": 66492,
+                "duration": 0.00982641,
+                "phase": "preparation"
+              },
+              {
+                "count": 10101,
+                "duration": 0.005122867,
+                "phase": "availability"
+              },
+              {
+                "count": 4191,
+                "duration": 0.000223872,
+                "phase": "context"
+              }
+            ],
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.068005375,
+            "initialization": 0.001854334,
+            "phase": [
+              {
+                "count": 15083,
+                "duration": 0.002038129,
+                "phase": "matching"
+              },
+              {
+                "count": 10101,
+                "duration": 0.038420869,
+                "phase": "dispatch"
+              },
+              {
+                "count": 10101,
+                "duration": 0.012881523,
+                "phase": "index"
+              },
+              {
+                "count": 10101,
+                "duration": 0.006514333,
+                "phase": "rewrite"
+              },
+              {
+                "count": 10101,
+                "duration": 0.003429604,
+                "phase": "fingerprint"
+              },
+              {
+                "count": 1,
+                "duration": 2.875e-06,
+                "phase": "structure"
+              },
+              {
+                "count": 6,
+                "duration": 3.166e-06,
+                "phase": "canonicalization"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "composition"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "application"
+              },
+              {
+                "count": 14974,
+                "duration": 0.02541124,
+                "phase": "subscription"
+              },
+              {
+                "count": 14974,
+                "duration": 0.004338974,
+                "phase": "refresh"
+              },
+              {
+                "count": 10101,
+                "duration": 0.000217126,
+                "phase": "restart"
+              },
+              {
+                "count": 14974,
+                "duration": 0.002687889,
+                "phase": "request"
+              },
+              {
+                "count": 66492,
+                "duration": 0.010018626,
+                "phase": "preparation"
+              },
+              {
+                "count": 10101,
+                "duration": 0.00528397,
+                "phase": "availability"
+              },
+              {
+                "count": 4191,
+                "duration": 0.000245971,
+                "phase": "context"
+              }
+            ],
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          }
+        ]
+      },
+      {
+        "expected": "2101",
+        "input": "2*2*2*2*2*2",
+        "measurement": [
+          {
+            "event": 10101,
+            "execution": 0.068775542,
+            "initialization": 0.001848916,
+            "phase": [
+              {
+                "count": 15083,
+                "duration": 0.002092131,
+                "phase": "matching"
+              },
+              {
+                "count": 10101,
+                "duration": 0.038692995,
+                "phase": "dispatch"
+              },
+              {
+                "count": 10101,
+                "duration": 0.012888356,
+                "phase": "index"
+              },
+              {
+                "count": 10101,
+                "duration": 0.006701207,
+                "phase": "rewrite"
+              },
+              {
+                "count": 10101,
+                "duration": 0.003531739,
+                "phase": "fingerprint"
+              },
+              {
+                "count": 1,
+                "duration": 3.333e-06,
+                "phase": "structure"
+              },
+              {
+                "count": 6,
+                "duration": 3.459e-06,
+                "phase": "canonicalization"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "composition"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "application"
+              },
+              {
+                "count": 14974,
+                "duration": 0.025608647,
+                "phase": "subscription"
+              },
+              {
+                "count": 14974,
+                "duration": 0.00440059,
+                "phase": "refresh"
+              },
+              {
+                "count": 10101,
+                "duration": 0.000223868,
+                "phase": "restart"
+              },
+              {
+                "count": 14974,
+                "duration": 0.002703291,
+                "phase": "request"
+              },
+              {
+                "count": 66492,
+                "duration": 0.010087443,
+                "phase": "preparation"
+              },
+              {
+                "count": 10101,
+                "duration": 0.005285552,
+                "phase": "availability"
+              },
+              {
+                "count": 4191,
+                "duration": 0.00023785,
+                "phase": "context"
+              }
+            ],
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.068287375,
+            "initialization": 0.001799125,
+            "phase": [
+              {
+                "count": 15083,
+                "duration": 0.002047167,
+                "phase": "matching"
+              },
+              {
+                "count": 10101,
+                "duration": 0.038296777,
+                "phase": "dispatch"
+              },
+              {
+                "count": 10101,
+                "duration": 0.013205059,
+                "phase": "index"
+              },
+              {
+                "count": 10101,
+                "duration": 0.006549867,
+                "phase": "rewrite"
+              },
+              {
+                "count": 10101,
+                "duration": 0.003458915,
+                "phase": "fingerprint"
+              },
+              {
+                "count": 1,
+                "duration": 3.75e-06,
+                "phase": "structure"
+              },
+              {
+                "count": 6,
+                "duration": 3.752e-06,
+                "phase": "canonicalization"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "composition"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "application"
+              },
+              {
+                "count": 14974,
+                "duration": 0.025357811,
+                "phase": "subscription"
+              },
+              {
+                "count": 14974,
+                "duration": 0.004346638,
+                "phase": "refresh"
+              },
+              {
+                "count": 10101,
+                "duration": 0.000215882,
+                "phase": "restart"
+              },
+              {
+                "count": 14974,
+                "duration": 0.002651987,
+                "phase": "request"
+              },
+              {
+                "count": 66492,
+                "duration": 0.010056581,
+                "phase": "preparation"
+              },
+              {
+                "count": 10101,
+                "duration": 0.005194554,
+                "phase": "availability"
+              },
+              {
+                "count": 4191,
+                "duration": 0.000232054,
+                "phase": "context"
+              }
+            ],
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.067766208,
+            "initialization": 0.001900666,
+            "phase": [
+              {
+                "count": 15083,
+                "duration": 0.002007951,
+                "phase": "matching"
+              },
+              {
+                "count": 10101,
+                "duration": 0.037929422,
+                "phase": "dispatch"
+              },
+              {
+                "count": 10101,
+                "duration": 0.013249996,
+                "phase": "index"
+              },
+              {
+                "count": 10101,
+                "duration": 0.006500437,
+                "phase": "rewrite"
+              },
+              {
+                "count": 10101,
+                "duration": 0.003450389,
+                "phase": "fingerprint"
+              },
+              {
+                "count": 1,
+                "duration": 2.833e-06,
+                "phase": "structure"
+              },
+              {
+                "count": 6,
+                "duration": 2.917e-06,
+                "phase": "canonicalization"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "composition"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "application"
+              },
+              {
+                "count": 14974,
+                "duration": 0.025121088,
+                "phase": "subscription"
+              },
+              {
+                "count": 14974,
+                "duration": 0.004279464,
+                "phase": "refresh"
+              },
+              {
+                "count": 10101,
+                "duration": 0.000214645,
+                "phase": "restart"
+              },
+              {
+                "count": 14974,
+                "duration": 0.002633334,
+                "phase": "request"
+              },
+              {
+                "count": 66492,
+                "duration": 0.009961019,
+                "phase": "preparation"
+              },
+              {
+                "count": 10101,
+                "duration": 0.005188932,
+                "phase": "availability"
+              },
+              {
+                "count": 4191,
+                "duration": 0.000229382,
+                "phase": "context"
+              }
+            ],
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.068009625,
+            "initialization": 0.001830042,
+            "phase": [
+              {
+                "count": 15083,
+                "duration": 0.002017023,
+                "phase": "matching"
+              },
+              {
+                "count": 10101,
+                "duration": 0.038229166,
+                "phase": "dispatch"
+              },
+              {
+                "count": 10101,
+                "duration": 0.012959201,
+                "phase": "index"
+              },
+              {
+                "count": 10101,
+                "duration": 0.006541636,
+                "phase": "rewrite"
+              },
+              {
+                "count": 10101,
+                "duration": 0.003460827,
+                "phase": "fingerprint"
+              },
+              {
+                "count": 1,
+                "duration": 3.459e-06,
+                "phase": "structure"
+              },
+              {
+                "count": 6,
+                "duration": 3.956e-06,
+                "phase": "canonicalization"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "composition"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "application"
+              },
+              {
+                "count": 14974,
+                "duration": 0.025301586,
+                "phase": "subscription"
+              },
+              {
+                "count": 14974,
+                "duration": 0.004317656,
+                "phase": "refresh"
+              },
+              {
+                "count": 10101,
+                "duration": 0.000214038,
+                "phase": "restart"
+              },
+              {
+                "count": 14974,
+                "duration": 0.002686442,
+                "phase": "request"
+              },
+              {
+                "count": 66492,
+                "duration": 0.009955861,
+                "phase": "preparation"
+              },
+              {
+                "count": 10101,
+                "duration": 0.005242685,
+                "phase": "availability"
+              },
+              {
+                "count": 4191,
+                "duration": 0.000234291,
+                "phase": "context"
+              }
+            ],
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.067664292,
+            "initialization": 0.001739667,
+            "phase": [
+              {
+                "count": 15083,
+                "duration": 0.001995889,
+                "phase": "matching"
+              },
+              {
+                "count": 10101,
+                "duration": 0.03806379,
+                "phase": "dispatch"
+              },
+              {
+                "count": 10101,
+                "duration": 0.012813633,
+                "phase": "index"
+              },
+              {
+                "count": 10101,
+                "duration": 0.006526681,
+                "phase": "rewrite"
+              },
+              {
+                "count": 10101,
+                "duration": 0.003421969,
+                "phase": "fingerprint"
+              },
+              {
+                "count": 1,
+                "duration": 3.083e-06,
+                "phase": "structure"
+              },
+              {
+                "count": 6,
+                "duration": 3.042e-06,
+                "phase": "canonicalization"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "composition"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "application"
+              },
+              {
+                "count": 14974,
+                "duration": 0.025181403,
+                "phase": "subscription"
+              },
+              {
+                "count": 14974,
+                "duration": 0.004364469,
+                "phase": "refresh"
+              },
+              {
+                "count": 10101,
+                "duration": 0.000217707,
+                "phase": "restart"
+              },
+              {
+                "count": 14974,
+                "duration": 0.002670364,
+                "phase": "request"
+              },
+              {
+                "count": 66492,
+                "duration": 0.009919119,
+                "phase": "preparation"
+              },
+              {
+                "count": 10101,
+                "duration": 0.005146275,
+                "phase": "availability"
+              },
+              {
+                "count": 4191,
+                "duration": 0.000231947,
+                "phase": "context"
+              }
+            ],
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.068291333,
+            "initialization": 0.001735792,
+            "phase": [
+              {
+                "count": 15083,
+                "duration": 0.002023925,
+                "phase": "matching"
+              },
+              {
+                "count": 10101,
+                "duration": 0.038209659,
+                "phase": "dispatch"
+              },
+              {
+                "count": 10101,
+                "duration": 0.013405259,
+                "phase": "index"
+              },
+              {
+                "count": 10101,
+                "duration": 0.00651063,
+                "phase": "rewrite"
+              },
+              {
+                "count": 10101,
+                "duration": 0.003418173,
+                "phase": "fingerprint"
+              },
+              {
+                "count": 1,
+                "duration": 3.5e-06,
+                "phase": "structure"
+              },
+              {
+                "count": 6,
+                "duration": 3.585e-06,
+                "phase": "canonicalization"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "composition"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "application"
+              },
+              {
+                "count": 14974,
+                "duration": 0.025303493,
+                "phase": "subscription"
+              },
+              {
+                "count": 14974,
+                "duration": 0.004311981,
+                "phase": "refresh"
+              },
+              {
+                "count": 10101,
+                "duration": 0.000216858,
+                "phase": "restart"
+              },
+              {
+                "count": 14974,
+                "duration": 0.002698936,
+                "phase": "request"
+              },
+              {
+                "count": 66492,
+                "duration": 0.010021084,
+                "phase": "preparation"
+              },
+              {
+                "count": 10101,
+                "duration": 0.005240088,
+                "phase": "availability"
+              },
+              {
+                "count": 4191,
+                "duration": 0.000229503,
+                "phase": "context"
+              }
+            ],
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.067908875,
+            "initialization": 0.001876417,
+            "phase": [
+              {
+                "count": 15083,
+                "duration": 0.00204405,
+                "phase": "matching"
+              },
+              {
+                "count": 10101,
+                "duration": 0.038174073,
+                "phase": "dispatch"
+              },
+              {
+                "count": 10101,
+                "duration": 0.012939149,
+                "phase": "index"
+              },
+              {
+                "count": 10101,
+                "duration": 0.006562162,
+                "phase": "rewrite"
+              },
+              {
+                "count": 10101,
+                "duration": 0.003429418,
+                "phase": "fingerprint"
+              },
+              {
+                "count": 1,
+                "duration": 2.959e-06,
+                "phase": "structure"
+              },
+              {
+                "count": 6,
+                "duration": 3.375e-06,
+                "phase": "canonicalization"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "composition"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "application"
+              },
+              {
+                "count": 14974,
+                "duration": 0.02523329,
+                "phase": "subscription"
+              },
+              {
+                "count": 14974,
+                "duration": 0.004345936,
+                "phase": "refresh"
+              },
+              {
+                "count": 10101,
+                "duration": 0.000221351,
+                "phase": "restart"
+              },
+              {
+                "count": 14974,
+                "duration": 0.00268226,
+                "phase": "request"
+              },
+              {
+                "count": 66492,
+                "duration": 0.009894568,
+                "phase": "preparation"
+              },
+              {
+                "count": 10101,
+                "duration": 0.005223704,
+                "phase": "availability"
+              },
+              {
+                "count": 4191,
+                "duration": 0.0002288,
+                "phase": "context"
+              }
+            ],
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.067858333,
+            "initialization": 0.001705792,
+            "phase": [
+              {
+                "count": 15083,
+                "duration": 0.002010139,
+                "phase": "matching"
+              },
+              {
+                "count": 10101,
+                "duration": 0.03815958,
+                "phase": "dispatch"
+              },
+              {
+                "count": 10101,
+                "duration": 0.012942793,
+                "phase": "index"
+              },
+              {
+                "count": 10101,
+                "duration": 0.006521296,
+                "phase": "rewrite"
+              },
+              {
+                "count": 10101,
+                "duration": 0.003397694,
+                "phase": "fingerprint"
+              },
+              {
+                "count": 1,
+                "duration": 3.542e-06,
+                "phase": "structure"
+              },
+              {
+                "count": 6,
+                "duration": 3.625e-06,
+                "phase": "canonicalization"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "composition"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "application"
+              },
+              {
+                "count": 14974,
+                "duration": 0.025244009,
+                "phase": "subscription"
+              },
+              {
+                "count": 14974,
+                "duration": 0.00432133,
+                "phase": "refresh"
+              },
+              {
+                "count": 10101,
+                "duration": 0.000218613,
+                "phase": "restart"
+              },
+              {
+                "count": 14974,
+                "duration": 0.002689485,
+                "phase": "request"
+              },
+              {
+                "count": 66492,
+                "duration": 0.009961567,
+                "phase": "preparation"
+              },
+              {
+                "count": 10101,
+                "duration": 0.005243659,
+                "phase": "availability"
+              },
+              {
+                "count": 4191,
+                "duration": 0.000230638,
+                "phase": "context"
+              }
+            ],
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          },
+          {
+            "event": 10101,
+            "execution": 0.0672025,
+            "initialization": 0.001747167,
+            "phase": [
+              {
+                "count": 15083,
+                "duration": 0.001979281,
+                "phase": "matching"
+              },
+              {
+                "count": 10101,
+                "duration": 0.037684994,
+                "phase": "dispatch"
+              },
+              {
+                "count": 10101,
+                "duration": 0.012873703,
+                "phase": "index"
+              },
+              {
+                "count": 10101,
+                "duration": 0.006415073,
+                "phase": "rewrite"
+              },
+              {
+                "count": 10101,
+                "duration": 0.00338218,
+                "phase": "fingerprint"
+              },
+              {
+                "count": 1,
+                "duration": 3.083e-06,
+                "phase": "structure"
+              },
+              {
+                "count": 6,
+                "duration": 2.627e-06,
+                "phase": "canonicalization"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "composition"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "application"
+              },
+              {
+                "count": 14974,
+                "duration": 0.024960574,
+                "phase": "subscription"
+              },
+              {
+                "count": 14974,
+                "duration": 0.004267289,
+                "phase": "refresh"
+              },
+              {
+                "count": 10101,
+                "duration": 0.000214258,
+                "phase": "restart"
+              },
+              {
+                "count": 14974,
+                "duration": 0.002640079,
+                "phase": "request"
+              },
+              {
+                "count": 66492,
+                "duration": 0.009861107,
+                "phase": "preparation"
+              },
+              {
+                "count": 10101,
+                "duration": 0.005129328,
+                "phase": "availability"
+              },
+              {
+                "count": 4191,
+                "duration": 0.00022559,
+                "phase": "context"
+              }
+            ],
+            "statistic": {
+              "bucket": 1,
+              "normalization": 1,
+              "preparation": 78510,
+              "refinement": 1,
+              "resolution": 1,
+              "reuse": 14468
+            },
+            "work": 24802
+          }
+        ]
+      }
+    ],
+    "interruption": [],
+    "summary": {
+      "execution": 0.067766208,
+      "phase": [
+        {
+          "count": 15083,
+          "duration": 0.002022103,
+          "phase": "matching"
+        },
+        {
+          "count": 10101,
+          "duration": 0.038123218,
+          "phase": "dispatch"
+        },
+        {
+          "count": 10101,
+          "duration": 0.012932737,
+          "phase": "index"
+        },
+        {
+          "count": 10101,
+          "duration": 0.00651013,
+          "phase": "rewrite"
+        },
+        {
+          "count": 10101,
+          "duration": 0.003415221,
+          "phase": "fingerprint"
+        },
+        {
+          "count": 1,
+          "duration": 3.333e-06,
+          "phase": "structure"
+        },
+        {
+          "count": 6,
+          "duration": 3.333e-06,
+          "phase": "canonicalization"
+        },
+        {
+          "count": 0,
+          "duration": 0.0,
+          "phase": "composition"
+        },
+        {
+          "count": 0,
+          "duration": 0.0,
+          "phase": "application"
+        },
+        {
+          "count": 14974,
+          "duration": 0.02521498,
+          "phase": "subscription"
+        },
+        {
+          "count": 14974,
+          "duration": 0.004317656,
+          "phase": "refresh"
+        },
+        {
+          "count": 10101,
+          "duration": 0.000216442,
+          "phase": "restart"
+        },
+        {
+          "count": 14974,
+          "duration": 0.002668207,
+          "phase": "request"
+        },
+        {
+          "count": 66492,
+          "duration": 0.009981844,
+          "phase": "preparation"
+        },
+        {
+          "count": 10101,
+          "duration": 0.005208718,
+          "phase": "availability"
+        },
+        {
+          "count": 4191,
+          "duration": 0.000229382,
+          "phase": "context"
+        }
+      ]
+    }
+  }
+}

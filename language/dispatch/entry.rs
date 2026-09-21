@@ -20,6 +20,22 @@ pub(super) struct Entry {
 }
 
 impl Entry {
+    pub fn waiting(&self) -> usize {
+        if self.selection.is_some() {
+            0
+        } else {
+            self.search.waiting()
+        }
+    }
+
+    pub fn skip(&mut self, maximum: usize) -> usize {
+        if self.selection.is_some() {
+            0
+        } else {
+            self.search.skip(maximum)
+        }
+    }
+
     pub fn new(search: Search, consumer: SmallVec<[Consumer; 1]>, generation: usize) -> Self {
         Self {
             search,

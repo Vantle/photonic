@@ -1,6 +1,7 @@
 mod cursor;
 mod dependency;
 mod key;
+mod layer;
 mod node;
 mod partition;
 mod playback;
@@ -13,6 +14,11 @@ mod store;
 mod strategy;
 mod stream;
 mod trace;
+mod tree;
+
+#[cfg(test)]
+#[path = "test/batch.rs"]
+mod batch;
 
 pub(crate) use store::Store;
 
@@ -29,12 +35,14 @@ use std::sync::Arc;
 use std::task::Poll;
 use strategy::Strategy;
 use stream::Stream;
+use tree::Tree;
 
 #[repr(u8)]
 enum Traversal {
     Direct(Cursor),
     Factored(Box<Product<Stream>>),
     Partitioned(Box<Product<Partition>>),
+    Layered(Box<Product<Tree>>),
 }
 
 impl Traversal {
@@ -43,6 +51,7 @@ impl Traversal {
             Self::Direct(cursor) => cursor.retained(),
             Self::Factored(product) => product.retained(),
             Self::Partitioned(product) => product.retained(),
+            Self::Layered(product) => product.retained(),
         }
     }
 }
@@ -65,6 +74,30 @@ pub(crate) struct Join {
 }
 
 impl Join {
+    pub fn waiting(&self) -> usize {
+        if self.complete {
+            return 0;
+        }
+        match &self.traversal {
+            Traversal::Direct(_) => 0,
+            Traversal::Factored(product) => product.waiting(),
+            Traversal::Partitioned(product) => product.waiting(),
+            Traversal::Layered(product) => product.waiting(),
+        }
+    }
+
+    pub fn skip(&mut self, maximum: usize) -> usize {
+        if self.complete {
+            return 0;
+        }
+        match &mut self.traversal {
+            Traversal::Direct(_) => 0,
+            Traversal::Factored(product) => product.skip(maximum),
+            Traversal::Partitioned(product) => product.skip(maximum),
+            Traversal::Layered(product) => product.skip(maximum),
+        }
+    }
+
     #[cfg(test)]
     pub fn new(pattern: Arc<Vec<Vec<Term>>>, index: &Index, frame: usize) -> Self {
         Self::construct(Space::new(pattern, index, frame, None, None), index)
@@ -104,6 +137,9 @@ impl Join {
                         node,
                     ))))
                 }
+                Strategy::Layered { previous, depth } => Traversal::Layered(Box::new(
+                    Product::new(Tree::new(width, [previous, depth], store.budget().clone())),
+                )),
                 Strategy::Partitioned(depth) => Traversal::Partitioned(Box::new(Product::new(
                     Partition::new(width, depth, store.budget().clone()),
                 ))),
@@ -146,8 +182,14 @@ impl Join {
                     order: &self.order,
                     changed: &changed,
                     index,
-                    depth: match &self.traversal {
-                        Traversal::Partitioned(product) => Some(product.prefix.depth()),
+                    history: match &self.traversal {
+                        Traversal::Partitioned(product) => Some(strategy::History::Single {
+                            depth: product.prefix.depth(),
+                            granularity: product.prefix.granularity(),
+                        }),
+                        Traversal::Layered(product) => {
+                            Some(strategy::History::Nested(product.prefix.depth()))
+                        }
                         _ => None,
                     },
                 })
@@ -157,6 +199,7 @@ impl Join {
             let replace = match (&self.traversal, strategy) {
                 (Traversal::Direct(_), _) => self.stable,
                 (Traversal::Factored(_), Strategy::Partitioned(_)) => true,
+                (Traversal::Partitioned(_), Strategy::Layered { .. }) => true,
                 (Traversal::Partitioned(product), Strategy::Partitioned(depth)) => {
                     product.prefix.depth() != depth
                 }
@@ -164,6 +207,17 @@ impl Join {
             };
             if replace && let Some(product) = Self::product(&self.space, &self.order, strategy) {
                 self.traversal = product;
+            }
+            if let Traversal::Layered(product) = &mut self.traversal {
+                product.prefix.update(tree::Update {
+                    index,
+                    order: &self.order,
+                    changed: &changed,
+                    depth: match strategy {
+                        Strategy::Layered { depth, .. } => Some(depth),
+                        _ => None,
+                    },
+                });
             }
             if matches!(strategy, Strategy::Partitioned(_))
                 && let Traversal::Partitioned(product) = &mut self.traversal
@@ -184,6 +238,7 @@ impl Join {
             Traversal::Direct(cursor) => cursor.reset(),
             Traversal::Factored(product) => product.reset(index),
             Traversal::Partitioned(product) => product.reset(index),
+            Traversal::Layered(product) => product.reset(index),
         }
         self.complete = self.space.domain.iter().any(Vec::is_empty);
     }
@@ -225,6 +280,7 @@ impl Join {
         domain.iter().all(|domain| !domain.is_empty()) && crate::assignment::feasible(&domain)
     }
 
+    #[inline]
     pub fn step(&mut self, index: &Index) -> Poll<Option<Vec<Slot>>> {
         if self.complete {
             return Poll::Ready(None);
@@ -233,6 +289,7 @@ impl Join {
             Traversal::Direct(cursor) => cursor.step(&mut self.space, &self.order, index),
             Traversal::Factored(product) => product.step(&mut self.space, &self.order, index),
             Traversal::Partitioned(product) => product.step(&mut self.space, &self.order, index),
+            Traversal::Layered(product) => product.step(&mut self.space, &self.order, index),
         };
         result.map(|selection| {
             selection.map(|mut selection| {
@@ -250,6 +307,7 @@ impl Join {
             Traversal::Direct(_) => {}
             Traversal::Factored(product) => product.evict(),
             Traversal::Partitioned(product) => product.evict(),
+            Traversal::Layered(product) => product.evict(),
         }
         self.space.evict();
     }
@@ -262,6 +320,7 @@ impl Join {
                 Traversal::Direct(cursor) => cursor.size(),
                 Traversal::Factored(product) => product.size(),
                 Traversal::Partitioned(product) => product.size(),
+                Traversal::Layered(product) => product.size(),
             }
     }
 
@@ -285,3 +344,7 @@ mod domain;
 #[cfg(test)]
 #[path = "test/fragment.rs"]
 mod fragment;
+
+#[cfg(test)]
+#[path = "test/tree.rs"]
+mod hierarchy;

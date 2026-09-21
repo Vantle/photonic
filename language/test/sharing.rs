@@ -180,7 +180,7 @@ fn isolation() {
     }
     assert!(!Arc::ptr_eq(&node[0], &node[1]));
     let mut trace = super::trace::Trace::new(store.budget().clone(), 1).unwrap();
-    assert!(trace.append(&Poll::Ready(None), 4096));
+    assert!(trace.append(&Poll::Ready(None), 0.., 4096));
     let trace = Arc::new(trace);
     node[0].publish(&index, &trace);
     assert!(Arc::ptr_eq(&node[0].find(&index).unwrap(), &trace));
@@ -345,7 +345,7 @@ fn snapshot() {
     let mut trace = super::trace::Trace::new(budget.clone(), 1).unwrap();
     for length in [3, 1, 5, 2] {
         for _ in 0..length {
-            assert!(trace.append(&Poll::Pending, 4096));
+            assert!(trace.append(&Poll::Pending, 0.., 4096));
         }
         assert!(trace.append(
             &Poll::Ready(Some(vec![crate::slot::Slot {
@@ -353,23 +353,24 @@ fn snapshot() {
                 position: 0,
                 token: vec![length, length + 1]
             }])),
+            0..,
             4096
         ));
     }
     assert!(trace.duplicate(trace.retained - 1).is_none());
     let snapshot = trace.duplicate(trace.retained).unwrap();
-    assert!(trace.append(&Poll::Pending, 4096));
+    assert!(trace.append(&Poll::Pending, 0.., 4096));
     assert_eq!(snapshot.length + 1, trace.length);
     for offset in 0..=snapshot.length {
         let mut actual = super::playback::Playback::default();
         let mut expected = super::playback::Playback::default();
         actual.seek(&snapshot, offset);
         for _ in 0..offset {
-            expected.step(&snapshot, &[0]);
+            expected.step(&snapshot, &[0], &[]);
         }
         loop {
-            let result = actual.step(&snapshot, &[0]);
-            assert_eq!(result, expected.step(&snapshot, &[0]));
+            let result = actual.step(&snapshot, &[0], &[]);
+            assert_eq!(result, expected.step(&snapshot, &[0], &[]));
             if result.is_none() {
                 break;
             }

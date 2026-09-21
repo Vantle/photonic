@@ -29,6 +29,77 @@ fn accounting(network: &Network) {
 }
 
 #[test]
+fn batching() {
+    let particle = ["A"; 8].join(".");
+    let program = Program::new(crate::lowering::parse(&format!(
+        "{particle}.A,{particle}.A,B,B,C [{particle},B] Left [{particle},B] Right [{particle},C] Third [B,B] Pair"
+    )).unwrap());
+    let mut state = State::initial(&program);
+    let mut index = Index::new(Arc::new(state.clone()));
+    let mut actual = Network::new(&program, &index);
+    let mut expected = Network::new(&program, &index);
+    let observe = |result: Poll<Option<Delivery>>| {
+        result.map(|delivery| {
+            delivery.map(|delivery| {
+                (
+                    delivery.rule,
+                    delivery.frame,
+                    delivery.owner,
+                    delivery.read.map(|read| (read.site, read.resource)),
+                    delivery.selection,
+                )
+            })
+        })
+    };
+    let mut batched = 0;
+    for iteration in 0..32 {
+        let mut complete = false;
+        for step in 0..10_000 {
+            let retained = actual.retained();
+            let skipped = actual.skip([0, 1, 2, 3, 7, 31, 128][step % 7]);
+            batched += skipped;
+            assert_eq!(actual.retained(), retained);
+            for _ in 0..skipped {
+                assert!(matches!(expected.next(&index), Poll::Pending));
+            }
+            assert_eq!(actual.agenda, expected.agenda);
+            accounting(&actual);
+            assert_eq!(actual.retained(), expected.retained());
+            if iteration % 3 == 0 && step == 17 {
+                assert_eq!(actual.evict(), expected.evict());
+            }
+            let result = observe(actual.next(&index));
+            assert_eq!(result, observe(expected.next(&index)));
+            if matches!(result, Poll::Ready(None)) {
+                complete = true;
+                break;
+            }
+        }
+        assert!(complete);
+        if iteration % 4 == 3 {
+            let previous = index.state.clone();
+            let mut world = (*state.world.remove(0)).clone();
+            for token in &mut world.particle {
+                token.id += 1000;
+            }
+            state.world.push(world.into());
+            let change = Change {
+                world: crate::basis::Set::single(0),
+                insertion: state.world.len() - 1..state.world.len(),
+                frame: Vec::new(),
+            };
+            index.update(Arc::new(state.clone()), &change);
+            actual.advance(&index, &previous, &change);
+            expected.advance(&index, &previous, &change);
+        } else {
+            actual.reset(&index);
+            expected.reset(&index);
+        }
+    }
+    assert!(batched > 0);
+}
+
+#[test]
 fn promotion() {
     let mut source = (0..64)
         .map(|index| format!("Idle{index},"))

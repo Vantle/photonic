@@ -1,9 +1,14 @@
 use crate::term::Term;
 use std::sync::Arc;
 
+mod store;
+
+pub(crate) use store::Store;
+
 pub(crate) struct Selection {
     pub pattern: Arc<Vec<Vec<Term>>>,
-    fragment: Vec<std::sync::OnceLock<crate::pattern::Pattern<Term>>>,
+    fragment: Vec<std::sync::OnceLock<Arc<crate::pattern::Pattern<Term>>>>,
+    shared: Option<Arc<Store>>,
     pub order: Vec<usize>,
     pub candidate: Vec<Vec<usize>>,
     pub viable: bool,
@@ -17,13 +22,7 @@ impl Selection {
     ) -> Self {
         let candidate = pattern
             .iter()
-            .map(|particle| {
-                index
-                    .candidate(particle, frame)
-                    .into_iter()
-                    .map(|world| index.site(world))
-                    .collect()
-            })
+            .map(|particle| index.candidate(particle.iter().cloned(), frame))
             .collect();
         Self::construct(pattern, candidate)
     }
@@ -34,6 +33,7 @@ impl Selection {
         let mut order = (0..pattern.len()).collect::<Vec<_>>();
         order.sort_by_key(|&position| candidate[position].len());
         Self {
+            shared: None,
             fragment: if pattern.iter().any(|particle| particle.len() >= 8) {
                 (0..pattern.len())
                     .map(|_| std::sync::OnceLock::new())
@@ -51,19 +51,40 @@ impl Selection {
     pub(crate) fn prepare(
         &self,
         position: usize,
-        particle: &[crate::state::Token],
+        world: &Arc<crate::state::World>,
     ) -> crate::particle::Match {
+        let particle = &world.particle;
         if self.pattern[position].len() < 8 {
             return crate::particle::Match::new(&self.pattern[position], particle);
         }
         let pattern = self.fragment[position].get_or_init(|| {
+            if let Some(shared) = &self.shared {
+                return shared.compile(&self.pattern[position]);
+            }
             let pattern = self.pattern[position]
                 .iter()
                 .map(|term| Term::new(term.value, term.capture))
                 .collect::<Vec<_>>();
-            crate::pattern::Pattern::new(&pattern)
+            Arc::new(crate::pattern::Pattern::new(&pattern))
         });
+        if particle.len() >= 32
+            && let Some(shared) = &self.shared
+        {
+            return shared.select(pattern, world);
+        }
         crate::particle::Match::compiled(pattern, particle)
+    }
+
+    pub(crate) fn shared(
+        pattern: Arc<Vec<Vec<Term>>>,
+        index: &crate::index::Index,
+        frame: usize,
+        store: &Arc<Store>,
+    ) -> Self {
+        Self {
+            shared: store.subscribe(),
+            ..Self::new(pattern, index, frame)
+        }
     }
 
     pub(crate) fn retained(&self) -> usize {
@@ -73,3 +94,7 @@ impl Selection {
             + self.candidate.len()
     }
 }
+
+#[cfg(test)]
+#[path = "test/selection.rs"]
+mod test;

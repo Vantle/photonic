@@ -491,7 +491,14 @@ fn indexing() {
                         })
                         .map(|(site, _)| site)
                         .collect::<Vec<_>>();
-                    assert_eq!(index.candidate(&pattern, frame), expected);
+                    assert_eq!(
+                        index
+                            .candidate(pattern.iter().cloned(), frame)
+                            .into_iter()
+                            .map(|site| index.world(site))
+                            .collect::<Vec<_>>(),
+                        expected
+                    );
                 }
             }
         }

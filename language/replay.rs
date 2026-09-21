@@ -40,6 +40,22 @@ pub(crate) struct Search {
 }
 
 impl Search {
+    pub fn waiting(&self) -> usize {
+        match &self.mode {
+            Mode::Dormant => 0,
+            Mode::Recording(cache) => cache.waiting(),
+            _ => self.join.waiting(),
+        }
+    }
+
+    pub fn skip(&mut self, maximum: usize) -> usize {
+        match &mut self.mode {
+            Mode::Dormant => 0,
+            Mode::Recording(cache) => cache.skip(maximum),
+            _ => self.join.skip(maximum),
+        }
+    }
+
     #[cfg(test)]
     pub fn new(pattern: Arc<Vec<Vec<Term>>>, index: &Index, frame: usize) -> Self {
         Self {
@@ -122,6 +138,28 @@ impl Search {
 }
 
 impl Cache {
+    fn waiting(&self) -> usize {
+        match self.record.get(self.cursor) {
+            Some(Step::Waiting(count)) => count - self.offset,
+            _ => 0,
+        }
+    }
+
+    fn skip(&mut self, maximum: usize) -> usize {
+        let available = self.waiting();
+        let count = available.min(maximum);
+        if count == 0 {
+            return 0;
+        }
+        if count == available {
+            self.cursor += 1;
+            self.offset = 0;
+        } else {
+            self.offset += count;
+        }
+        count
+    }
+
     fn step(&mut self, join: &mut Join, index: &Index) -> Poll<Option<Vec<Slot>>> {
         if let Some(step) = self.record.get(self.cursor) {
             match step {

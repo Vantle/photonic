@@ -209,7 +209,13 @@ impl Runtime {
             self.agenda.extend(self.pending.drain(..).map(Task::Apply));
         }
         let mut remaining = budget;
-        while remaining > 0 && self.record() < self.limit.record {
+        while remaining > 0 {
+            if self.record() >= self.limit.record {
+                self.matching.evict();
+                if self.record() >= self.limit.record {
+                    break;
+                }
+            }
             let mut batch = Vec::new();
             while batch.len() < remaining.min(32) {
                 match self.agenda.front() {

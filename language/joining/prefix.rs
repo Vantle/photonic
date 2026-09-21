@@ -4,6 +4,8 @@ use crate::slot::Slot;
 use std::task::Poll;
 
 pub(super) trait Prefix {
+    fn waiting(&self) -> usize;
+    fn skip(&mut self, maximum: usize) -> usize;
     fn reset(&mut self, index: &Index);
     fn step(
         &mut self,

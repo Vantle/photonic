@@ -1,15 +1,14 @@
 mod key;
 mod node;
-mod reservation;
 mod selection;
 
 pub(crate) use node::Node;
 
 use crate::factor::Budget;
 use crate::index::Index;
+use crate::reservation::Reservation;
 use crate::term::Term;
 use key::Key;
-use reservation::Reservation;
 use selection::Selection;
 use std::collections::HashMap;
 use std::sync::atomic::AtomicUsize;

@@ -41,12 +41,67 @@ pub(crate) struct Network {
     retained: usize,
     storage: usize,
     generation: usize,
+    cooldown: usize,
     altered: Set,
     pub preparation: usize,
     pub reuse: usize,
 }
 
 impl Network {
+    #[inline]
+    pub fn skip(&mut self, maximum: usize) -> usize {
+        if maximum < 2 {
+            return 0;
+        }
+        if self.cooldown > 0 {
+            self.cooldown -= 1;
+            return 0;
+        }
+        let count = self.batch(maximum);
+        if count == 0 {
+            self.cooldown = 31;
+        }
+        count
+    }
+
+    fn batch(&mut self, maximum: usize) -> usize {
+        let width = self.agenda.len();
+        if width == 0 {
+            return 0;
+        }
+        let mut prefix = 0;
+        let mut minimum = usize::MAX;
+        for &position in self.agenda.iter().take(maximum) {
+            let available = self.store[position].waiting();
+            if available == 0 {
+                break;
+            }
+            prefix += 1;
+            minimum = minimum.min(available);
+        }
+        if prefix == 0 {
+            return 0;
+        }
+        #[cfg(feature = "measurement")]
+        let _measurement =
+            crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Matching);
+        let count = if prefix == width {
+            minimum.min(maximum / width)
+        } else {
+            1
+        };
+        if prefix * count < 2 {
+            return 0;
+        }
+        for &position in self.agenda.iter().take(prefix) {
+            assert_eq!(self.store[position].skip(count), count);
+        }
+        if prefix < width {
+            self.agenda.rotate_left(prefix);
+        }
+        prefix * count
+    }
+
     pub fn new(program: &crate::program::Program, index: &Index) -> Self {
         let catalog = Catalog::new(program);
         let mut trigger: HashMap<_, Vec<_>> = HashMap::new();
@@ -84,6 +139,7 @@ impl Network {
             storage: 0,
             store: crate::arena::Store::new(),
             generation: 0,
+            cooldown: 0,
             altered: Set::default(),
             catalog,
             sharing: std::sync::Arc::new(crate::joining::Store::new(65_536)),
@@ -199,6 +255,7 @@ impl Network {
         let _measurement =
             crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Restart);
         self.agenda.clear();
+        self.cooldown = 0;
         for &position in self.ready.as_ref().unwrap_or(&self.entry).values() {
             let entry = &mut self.store[position];
             if !entry.viable() {
@@ -276,6 +333,7 @@ impl Network {
         self.reset(index);
     }
 
+    #[inline]
     pub fn next(&mut self, index: &Index) -> Poll<Option<Delivery>> {
         #[cfg(feature = "measurement")]
         let _measurement =
@@ -312,6 +370,7 @@ impl Network {
         previous - self.storage - self.sharing.retained()
     }
 
+    #[inline]
     pub fn retained(&self) -> usize {
         self.retained
             + self.sharing.retained()

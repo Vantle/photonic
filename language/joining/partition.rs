@@ -47,6 +47,10 @@ impl Partition {
         self.depth
     }
 
+    pub fn granularity(&self) -> Option<usize> {
+        self.record.granularity()
+    }
+
     fn finish(&mut self) {
         if let Some(active) = self.active.take() {
             if active.trace.complete {
@@ -65,7 +69,7 @@ impl Partition {
         }
     }
 
-    fn prepare(&mut self, space: &Space, order: &[usize]) {
+    fn prepare(&mut self, space: &Space, order: &[usize], index: &Index) {
         if !self.enabled || self.active.is_some() {
             return;
         }
@@ -75,7 +79,7 @@ impl Partition {
         let Some(member) = space.domain[order[self.depth]].get(position) else {
             return;
         };
-        let dependency = Dependency::new(member.site, self.source.binding());
+        let dependency = space.dependency(member.site, self.source.binding(), order, index);
         let record = self.record.take(&dependency).or_else(|| {
             let retained = dependency.retained();
             if retained > 4096 - self.cached {
@@ -108,18 +112,25 @@ impl Partition {
                 let _ = self.source.step(space, order, index);
             }
         }
-        self.prepare(space, order);
+        self.prepare(space, order, index);
         if let Some(active) = &self.active
             && active.trace.complete
         {
-            return self.playback.step(&active.trace, order).unwrap();
+            return self
+                .playback
+                .step(&active.trace, order, self.source.binding())
+                .unwrap();
         }
         let result = self.source.step(space, order, index);
         let Some(active) = &mut self.active else {
             return result;
         };
         let previous = active.trace.retained;
-        if self.playback.progress == 65536 || !active.trace.append(&result, 4096 - self.cached) {
+        if self.playback.progress == 65536
+            || !active
+                .trace
+                .append(&result, self.depth.., 4096 - self.cached)
+        {
             self.finish();
             return result;
         }
@@ -134,6 +145,20 @@ impl Partition {
 }
 
 impl super::prefix::Prefix for Partition {
+    fn waiting(&self) -> usize {
+        self.active
+            .as_ref()
+            .filter(|active| active.trace.complete)
+            .map_or(0, |active| self.playback.waiting(&active.trace))
+    }
+
+    fn skip(&mut self, maximum: usize) -> usize {
+        self.active
+            .as_ref()
+            .filter(|active| active.trace.complete)
+            .map_or(0, |active| self.playback.skip(&active.trace, maximum))
+    }
+
     fn reset(&mut self, _: &Index) {
         self.finish();
         self.source.reset();
@@ -149,7 +174,9 @@ impl super::prefix::Prefix for Partition {
     ) -> Poll<Option<Vec<Slot>>> {
         if let Some(active) = &self.active
             && active.trace.complete
-            && let Some(result) = self.playback.step(&active.trace, order)
+            && let Some(result) = self
+                .playback
+                .step(&active.trace, order, self.source.binding())
         {
             return result;
         }

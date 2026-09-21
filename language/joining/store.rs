@@ -7,6 +7,7 @@ use std::sync::{Arc, Mutex};
 
 pub(crate) struct Store {
     pub domain: crate::candidate::Store,
+    pub preparation: Arc<crate::preparation::Store>,
     budget: Arc<Budget>,
     accounting: Arc<AtomicUsize>,
     node: Mutex<HashMap<Arc<Key>, Arc<Node>>>,
@@ -18,6 +19,10 @@ impl Store {
         let accounting = Arc::new(AtomicUsize::new(0));
         Self {
             domain: crate::candidate::Store::new(budget.clone(), accounting.clone()),
+            preparation: Arc::new(crate::preparation::Store::new(
+                budget.clone(),
+                accounting.clone(),
+            )),
             budget,
             accounting,
             node: Mutex::new(HashMap::new()),
@@ -52,6 +57,7 @@ impl Store {
     pub fn evict(&self) {
         self.node.lock().unwrap().clear();
         self.domain.evict();
+        self.preparation.evict();
     }
 
     pub fn retained(&self) -> usize {
