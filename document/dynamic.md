@@ -4,6 +4,8 @@ Photonic should support finite programs that construct unbounded families of fin
 
 This is a design proposal, not implemented syntax or a correctness proof. The implementation baseline is commit [82e15d9](https://github.com/Vantle/photonic/commit/82e15d9). The literature includes foundational work and developments published through 2026; publication dates, rather than search-engine crawl dates, identify the sources below. The recommendation is a synthesis for Photonic, not a claim that one published calculus already provides its semantics.
 
+The [structural reference model](model.md) now implements typed closed fragments, contextual inspection/reconstruction and an explicit restricted history compatibility model. It is independently Bazel-tested and does not add production syntax. Scoped bindings, template execution, inferred-witness projection and native integration remain queued in the [roadmap](roadmap.md).
+
 ## Design criteria
 
 An elegant extension should explain several capabilities with the same operations: constructing a field from unknown values, inspecting an unknown rule, adapting that rule to an interface, recursively building larger code, and deliberately replacing code with a smaller representation. These operations must preserve association, multiplicity, lexical capture, resource identity, and the distinction between jointly available evidence and competing histories.
@@ -22,7 +24,7 @@ The compiler in [program.rs](../language/program.rs) interns complete source def
 
 Live tokens in [state.rs](../language/state.rs) have an occurrence identity and an optional captured frame. [plan.rs](../language/plan.rs) currently associates nested rule patterns with a capture derived from the enclosing match. [flow.rs](../language/flow.rs) separately tracks consuming footprints, exact matches, read support, and frame imports. These are semantic assets to preserve, not machinery to bypass with a second evaluator.
 
-The present program can already produce `[A] B`, invoke it locally, and replace it by matching the complete rule. It cannot generically bind an unknown rule's input and output and reconstruct a new shape. Existing [dynamic fixtures](kernel/dynamic.js) also establish that code and data from competing histories cannot interact, and that later consumption of code does not erase earlier results supported by reading it.
+The present program can already produce `[A] B`, invoke it locally, and replace it by matching the complete rule. It cannot generically bind an unknown rule's input and output and reconstruct a new shape. Existing [runtime reference fixtures](../language/test/reference.json) also check that code and data from competing histories cannot interact, and that later consumption of code does not erase earlier results supported by reading it.
 
 The central implementation gap is therefore larger than making a vector mutable. It includes structural binding, construction, mixed captures, dynamic indexing, provenance, canonicalization, and resource bounds.
 
@@ -243,7 +245,7 @@ flowchart TD
 | Library | Implement field builders, code reconstruction, adapters, and recursive generators in Photonic | Unknown roles, nested payloads, and generated generators work without runtime special cases |
 | Optimization | Add indexes, sharing, parallel construction, and collection incrementally | Each optimization preserves the reference behavior and reports its costs |
 
-The likely native changes concentrate in [source.rs](../frontend/source.rs), [lowering.rs](../frontend/lowering.rs), [program.rs](../language/program.rs), [plan.rs](../language/plan.rs), [search.rs](../language/search.rs), [flow.rs](../language/flow.rs), [state.rs](../language/state.rs), [canonical.rs](../language/canonical.rs), [runtime.rs](../language/runtime.rs), and [snapshot.rs](../language/snapshot.rs). The browser uses the native engine, but its interface and independent [reference model](kernel/dynamic.js) still require conformance work. These paths describe responsibilities, not a mandate to introduce all changes at once.
+The likely native changes concentrate in [source.rs](../frontend/source.rs), [lowering.rs](../frontend/lowering.rs), [program.rs](../language/program.rs), [plan.rs](../language/plan.rs), [search.rs](../language/search.rs), [flow.rs](../language/flow.rs), [state.rs](../language/state.rs), [canonical.rs](../language/canonical.rs), [runtime.rs](../language/runtime.rs), and [snapshot.rs](../language/snapshot.rs). The browser uses the native engine, but its interface and comparison with the independent [reference model](model.md) still require conformance work. These paths describe responsibilities, not a mandate to introduce all changes at once.
 
 Keep the syntax decision bounded. Prefer explicit lexical binder declarations and references that lower to scoped structural slots. Their spelling must be unmistakably part of the language extension, with literal atoms remaining literal. Do not overload dots or parentheses, revive a hidden wildcard convention, or expose raw environment identifiers as public syntax. The precise delimiters remain open pending the reference semantics; the structural operations and their obligations do not.
 
