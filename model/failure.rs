@@ -6,6 +6,17 @@ pub enum Failure {
     Capacity,
     Rule,
     Generator,
+    Site,
+    Context(crate::context::Identity),
+    World(crate::world::Identity),
+    Match(crate::world::Identity),
+    Occurrence(crate::occurrence::Identity),
+    Repeated(crate::occurrence::Identity),
+    Identity(crate::occurrence::Identity),
+    Declaration {
+        context: crate::context::Identity,
+        position: usize,
+    },
     Arity {
         expected: usize,
         actual: usize,

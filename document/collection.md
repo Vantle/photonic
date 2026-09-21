@@ -6,7 +6,7 @@ This contract implements the first specification milestone of the [roadmap](road
 
 A collection is a finite ordered binary tree. Its mathematical constructors are Empty, Leaf(value) and Branch(left, right). A value may be an atom or a complete contextual rule. Empty is an explicit closed shape; silence, an absent branch and a pending computation are not Empty. Branch has exactly two children, including any explicitly empty child. Association and child position are structural, not inferred from particle order or flattened labels.
 
-The tree is immutable. Internal storage sharing does not introduce a second live resource. Each leaf carries its payload occurrence identity and, for code, its capture and provenance. Two equal printed leaves may represent distinct occurrences. Two paths referencing one inherited occurrence retain that sharing. A consumer must not turn the latter into two independently consumable operands.
+The tree is immutable. Internal storage sharing does not introduce a second live resource. Each leaf carries its payload occurrence identity and, for code, its capture and provenance. Two equal printed leaves may represent distinct occurrences. Two paths referencing one inherited occurrence retain that sharing. A consumer must not turn the latter into two independently consumable operands. The ground runtime permits a joint match to consume an introduction shared across distinct coherences; this is one shared resource, not two independent introductions. Within one particle, distinct matched positions still require distinct occurrences.
 
 An open construction is distinct from this carrier. A missing child or unresolved external binding cannot be published as a complete Branch. Construction can advance independently in either child, but publication requires both complete children and compatible evidence. Empty input is accepted only through an explicit Empty value.
 
@@ -57,10 +57,10 @@ The reference model first establishes exact structural sorts, contextual reconst
 
 ## Queue
 
-The [independent model](model.md) now implements typed contextual fragments, construction, scoped binding, templates, resumable traversal, staged generator factories and restricted branch-history compatibility. Its construction-language factories and host-driven growth tests do not establish native Photonic generation.
+The [independent model](model.md) now implements typed contextual fragments, construction, scoped binding, templates, resumable traversal, staged generator factories, concrete closed-rule application and restricted branch-history compatibility. Thirty native comparison cases cover a restricted ground application subset. Its construction-language factories and host-driven growth tests do not establish native Photonic generation.
 
-1. Extend concrete application with contextual lookup, declaration activation and explicit read/consume ownership.
-2. Prove or refine the projection law against ground source-inference counterexamples, and complete resumable quotation and quoted-code equality before native integration.
+1. Complete declaration activation by distinguishing fresh local bindings from inserted closed captures, and connect construction evidence to executable introductions.
+2. Independently compose event flows, prove or refine the projection law against ground source-inference counterexamples, and complete resumable quotation and quoted-code equality before native integration.
 3. Select source syntax and implement generic construction, then the collection library and runtime-sized demonstration.
 
 Completing this document closes the specification deliverable only. It does not establish the laws experimentally, provide a native collection implementation or settle the source-inference proof obligation.

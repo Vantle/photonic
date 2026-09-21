@@ -93,7 +93,7 @@ impl Value {
 }
 
 impl Rule {
-    fn collect(&self, result: &mut BTreeSet<context::Identity>) {
+    pub(crate) fn collect(&self, result: &mut BTreeSet<context::Identity>) {
         result.insert(self.context);
         for particle in self.input.particle() {
             for value in particle.value() {

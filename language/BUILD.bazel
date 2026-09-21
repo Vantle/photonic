@@ -11,6 +11,7 @@ rust_library(
         "//benchmark:__pkg__",
         "//command:__pkg__",
         "//library:__pkg__",
+        "//model:__pkg__",
         "//photonic:__pkg__",
         "//program/binary:__pkg__",
         "//toolchain/browser:__pkg__",

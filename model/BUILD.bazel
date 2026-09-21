@@ -4,8 +4,11 @@ load("@rules_rs//rs:rust_test.bzl", "rust_test")
 rust_library(
     name = "model",
     srcs = [
+        "allocation.rs",
+        "application.rs",
         "argument.rs",
         "binding.rs",
+        "configuration.rs",
         "construction.rs",
         "context.rs",
         "environment.rs",
@@ -23,6 +26,7 @@ rust_library(
         "slot.rs",
         "structure.rs",
         "template.rs",
+        "world.rs",
     ],
     crate_root = "model.rs",
     lint_config = "//:lint",
@@ -31,6 +35,7 @@ rust_library(
 rust_test(
     name = "test",
     srcs = [
+        "test/application.rs",
         "test/generator.rs",
         "test/machine.rs",
         "test/suite.rs",
@@ -45,4 +50,15 @@ filegroup(
     name = "build",
     srcs = ["BUILD.bazel"],
     visibility = ["//:__pkg__"],
+)
+
+rust_test(
+    name = "conformance",
+    srcs = ["test/conformance.rs"],
+    crate_root = "test/conformance.rs",
+    lint_config = "//:lint",
+    deps = [
+        ":model",
+        "//language:photonic",
+    ],
 )
