@@ -105,7 +105,7 @@ fn projection() {
     for boundary in 0..=expected.len() {
         let mut search = Search::shared(pattern.clone(), projected.clone(), 0, &store);
         assert!(matches!(
-            search.replay,
+            search.replay.as_deref(),
             Some(super::replay::Replay::Playing { .. })
         ));
         for (position, result) in expected.iter().enumerate() {

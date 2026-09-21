@@ -14,12 +14,12 @@ pub(crate) use store::Store;
 
 pub struct Search {
     cursor: Cursor,
-    replay: Option<replay::Replay>,
+    replay: Option<Box<replay::Replay>>,
 }
 
 impl Search {
     pub(crate) fn cost(&self) -> usize {
-        if matches!(self.replay, Some(replay::Replay::Playing { .. })) {
+        if matches!(self.replay.as_deref(), Some(replay::Replay::Playing { .. })) {
             return 0;
         }
         self.cursor.cost()
@@ -61,10 +61,10 @@ impl Search {
             crate::selection::Selection::shared(Arc::new(pattern), &index, frame, store);
         let mut search = Self::prepared(Arc::new(selection), index);
         if eligible {
-            search.replay = Some(replay::Replay::new(
+            search.replay = Some(Box::new(replay::Replay::new(
                 &search.cursor,
                 store.transcript().clone(),
-            ));
+            )));
         }
         search
     }
@@ -74,7 +74,7 @@ impl Search {
     }
 
     pub(crate) fn resident(&self) -> usize {
-        self.cursor.resident() + self.replay.as_ref().map_or(0, replay::Replay::retained)
+        self.cursor.resident() + self.replay.as_deref().map_or(0, replay::Replay::retained)
     }
 
     pub(crate) fn retained(&self) -> usize {
@@ -88,6 +88,7 @@ impl Search {
         self.cursor.evict();
     }
 
+    #[inline]
     pub fn step(&mut self) -> Poll<Option<Vec<Slot>>> {
         match &mut self.replay {
             Some(replay) => replay.step(&mut self.cursor),
