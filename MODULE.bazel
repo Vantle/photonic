@@ -93,3 +93,16 @@ register_toolchains(
     "//toolchain/wasm:x86_64-unknown-linux-musl",
     "@rules_rust_wasm_bindgen//:default_wasm_bindgen_toolchain",
 )
+
+archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+archive(
+    name = "reference",
+    dev_dependency = True,
+    patch_args = ["-p1"],
+    patches = ["//benchmark:reference.patch"],
+    sha256 = "c0fbb9bd21c0ca0d7f03201a52984a79278e7d4f08d1b65003b06e8dd31ebad4",
+    strip_prefix = "photonic-8c68ad69196f77c2601d294ac5c23b13505f2175",
+    type = "tar.gz",
+    urls = ["https://codeload.github.com/Vantle/photonic/tar.gz/8c68ad69196f77c2601d294ac5c23b13505f2175"],
+)

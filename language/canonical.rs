@@ -52,6 +52,10 @@ impl Search {
         }
     }
 
+    pub(crate) fn cost(&self) -> usize {
+        self.state.world.len()
+    }
+
     pub fn step(&mut self) -> bool {
         #[cfg(feature = "measurement")]
         let _measurement = crate::measurement::profile::Scope::new(

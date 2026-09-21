@@ -15,6 +15,7 @@ struct Entry {
 }
 
 pub(crate) struct Store {
+    gate: OnceLock<Arc<crate::gate::Store>>,
     capacity: usize,
     visited: AtomicBool,
     storage: OnceLock<Box<Storage>>,
@@ -23,6 +24,7 @@ pub(crate) struct Store {
 impl Store {
     pub fn new(capacity: usize) -> Self {
         Self {
+            gate: OnceLock::new(),
             capacity,
             visited: AtomicBool::new(false),
             storage: OnceLock::new(),
@@ -33,6 +35,11 @@ impl Store {
         self.visited
             .swap(true, Ordering::Relaxed)
             .then(|| self.clone())
+    }
+
+    pub fn gate(&self) -> &Arc<crate::gate::Store> {
+        self.gate
+            .get_or_init(|| Arc::new(crate::gate::Store::new(self.capacity)))
     }
 
     pub fn compile(&self, pattern: &[Term]) -> Arc<Pattern<Term>> {
@@ -48,13 +55,17 @@ impl Store {
     }
 
     pub fn evict(&self) {
+        if let Some(gate) = self.gate.get() {
+            gate.evict();
+        }
         if let Some(storage) = self.storage.get() {
             storage.evict();
         }
     }
 
     pub fn retained(&self) -> usize {
-        self.storage.get().map_or(0, |storage| storage.retained())
+        self.gate.get().map_or(0, |gate| gate.retained())
+            + self.storage.get().map_or(0, |storage| storage.retained())
     }
 }
 

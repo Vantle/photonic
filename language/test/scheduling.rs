@@ -585,3 +585,48 @@ fn factorization() {
         }
     }
 }
+
+#[test]
+fn bulk() {
+    use crate::work::{Result, Work};
+    let executor = Executor::new(4).unwrap();
+    for width in [16, 4096] {
+        let state = Arc::new(root(
+            (0..width)
+                .map(|position| World {
+                    frame: 0,
+                    particle: vec![Token {
+                        id: position,
+                        value: Symbol::Atom(position),
+                        capture: None,
+                    }],
+                })
+                .collect(),
+        ));
+        let expected = state.canonical().state;
+        let mut batch = (0..2)
+            .map(|position| Work::Normalize(position, canonical::Search::new(state.clone())))
+            .collect::<Vec<_>>();
+        assert_eq!(Work::parallel(&batch), width == 4096);
+        for step in 0..3 {
+            let result = if Work::parallel(&batch) {
+                executor.map(batch, Work::advance)
+            } else {
+                batch.into_iter().map(Work::advance).collect()
+            };
+            batch = Vec::new();
+            for (position, result) in result.into_iter().enumerate() {
+                let Result::Normalize(index, search, complete) = result else {
+                    unreachable!()
+                };
+                assert_eq!(index, position);
+                assert_eq!(complete, step == 2);
+                if complete {
+                    assert_eq!(search.finish().unwrap().state, expected);
+                } else {
+                    batch.push(Work::Normalize(index, search));
+                }
+            }
+        }
+    }
+}

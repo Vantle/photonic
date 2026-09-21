@@ -3,6 +3,17 @@ use crate::term::Term;
 use indexmap::IndexSet;
 use std::collections::VecDeque;
 
+mod sharing;
+mod store;
+
+pub(crate) use store::Store;
+
+#[derive(Eq, Hash, PartialEq)]
+pub(super) struct Constraint {
+    group: usize,
+    world: usize,
+}
+
 enum Task {
     Arrival {
         slot: Slot,
@@ -18,6 +29,7 @@ enum Task {
 }
 
 pub struct Gate {
+    shared: Option<sharing::Sharing>,
     group: Vec<usize>,
     candidate: Vec<IndexSet<Slot>>,
     prefix: Vec<Vec<Option<usize>>>,
@@ -36,12 +48,39 @@ impl Gate {
         let mut prefix = vec![Vec::new(); count + 1];
         prefix[0].push(None);
         Self {
+            shared: None,
             group: crate::partition::classify(&pattern),
             candidate: vec![IndexSet::new(); count],
             prefix,
             binding: crate::prefix::Arena::default(),
             agenda: VecDeque::new(),
         }
+    }
+
+    pub(crate) fn share(&mut self, store: &std::sync::Arc<Store>) {
+        if Store::eligible(self.group.len()) {
+            self.shared = Some(sharing::Sharing::new(store.clone()));
+        }
+    }
+
+    pub(crate) fn evict(&mut self) {
+        self.shared = None;
+    }
+
+    fn accepts(&self, binding: Option<usize>, slot: &Slot) -> bool {
+        let mut equivalent = false;
+        for prefix in self.binding.iter(binding) {
+            if prefix.world == slot.world {
+                return false;
+            }
+            if !equivalent && self.group[prefix.position] == self.group[slot.position] {
+                if prefix.world >= slot.world {
+                    return false;
+                }
+                equivalent = true;
+            }
+        }
+        true
     }
 
     pub(crate) fn enqueue(&mut self, slot: Slot) {
@@ -94,23 +133,33 @@ impl Gate {
                 (binding, slot)
             }
         };
-        let mut equivalent = false;
-        for prefix in self.binding.iter(binding) {
-            if prefix.world == slot.world {
-                return None;
-            }
-            if !equivalent && self.group[prefix.position] == self.group[slot.position] {
-                if prefix.world >= slot.world {
-                    return None;
-                }
-                equivalent = true;
-            }
+        let decision = self.shared.as_ref().map_or_else(
+            || store::Decision {
+                accepted: self.accepts(binding, &slot),
+                identity: None,
+            },
+            |shared| {
+                shared.select(
+                    binding,
+                    Constraint {
+                        group: self.group[slot.position],
+                        world: slot.world,
+                    },
+                    || self.accepts(binding, &slot),
+                )
+            },
+        );
+        if !decision.accepted {
+            return None;
         }
         let next = slot.position + 1;
         if next == self.group.len() {
             return Some(self.binding.complete(binding, slot));
         }
         let binding = Some(self.binding.push(binding, slot));
+        if let Some(shared) = &mut self.shared {
+            shared.push(decision.identity);
+        }
         self.prefix[next].push(binding);
         let end = self.candidate[next].len();
         if end > 0 {
@@ -128,6 +177,7 @@ impl Gate {
         self.candidate.iter().map(IndexSet::len).sum::<usize>()
             + self.prefix.iter().map(Vec::len).sum::<usize>()
             + self.agenda.len()
+            + self.shared.as_ref().map_or(0, sharing::Sharing::retained)
     }
 
     #[cfg(test)]
@@ -140,3 +190,7 @@ impl Gate {
         result
     }
 }
+
+#[cfg(test)]
+#[path = "test/gate.rs"]
+mod test;

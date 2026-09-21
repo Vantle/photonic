@@ -2,6 +2,10 @@
 pub(crate) struct Map<Key, Value>(Vec<(Key, Value)>);
 
 impl<Key, Value> Map<Key, Value> {
+    pub(crate) fn len(&self) -> usize {
+        self.0.len()
+    }
+
     pub(crate) fn iter(&self) -> impl Iterator<Item = (&Key, &Value)> {
         self.0.iter().map(|(key, value)| (key, value))
     }

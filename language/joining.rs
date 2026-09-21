@@ -351,4 +351,4 @@ mod fragment;
 mod hierarchy;
 
 #[cfg(feature = "measurement")]
-pub mod measurement;
+pub mod segment;

@@ -47,8 +47,7 @@ impl Search {
             .collect();
         let pattern = &selection.pattern;
         Self {
-            gate: (pattern.len() > 1)
-                .then(|| Gate::new(selection.order.iter().map(|&position| &pattern[position]))),
+            gate: selection.gate(),
             candidate,
             cursor: vec![0; pattern.len()],
             selection,
@@ -88,6 +87,12 @@ impl Search {
                 .particle
                 .as_ref()
                 .map_or(0, crate::particle::Match::retained)
+    }
+
+    pub(crate) fn evict(&mut self) {
+        if let Some(gate) = &mut self.gate {
+            gate.evict();
+        }
     }
 
     pub fn step(&mut self) -> Poll<Option<Vec<Slot>>> {

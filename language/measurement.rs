@@ -1,6 +1,9 @@
+pub mod bulk;
+pub mod composition;
 pub mod context;
 pub mod dispatch;
 pub mod exhaustive;
+pub mod gate;
 pub mod joining;
 pub mod maintenance;
 pub mod partition;
@@ -109,4 +112,4 @@ pub fn run() -> Vec<Measurement> {
     report
 }
 
-pub use crate::joining::measurement as segment;
+pub use crate::joining::segment;

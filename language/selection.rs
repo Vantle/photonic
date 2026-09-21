@@ -48,6 +48,20 @@ impl Selection {
         }
     }
 
+    pub(crate) fn gate(&self) -> Option<crate::gate::Gate> {
+        if self.pattern.len() <= 1 {
+            return None;
+        }
+        let mut gate =
+            crate::gate::Gate::new(self.order.iter().map(|&position| &self.pattern[position]));
+        if crate::gate::Store::eligible(self.pattern.len())
+            && let Some(shared) = &self.shared
+        {
+            gate.share(shared.gate());
+        }
+        Some(gate)
+    }
+
     pub(crate) fn prepare(
         &self,
         position: usize,

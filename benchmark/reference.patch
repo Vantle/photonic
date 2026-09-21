@@ -1,0 +1,25 @@
+--- a/language/BUILD.bazel
++++ b/language/BUILD.bazel
+@@ -255,3 +255,22 @@
+     srcs = ["test/reference.json"],
+     visibility = ["//benchmark:__pkg__"],
+ )
++
++rust_library(
++    name = "reference",
++    srcs = [":source"],
++    crate_name = "reference",
++    crate_root = "photonic.rs",
++    lint_config = "//:lint",
++    visibility = ["@@//benchmark:__pkg__"],
++    deps = [
++        "//frontend",
++        "@crate//:imbl",
++        "@crate//:indexmap",
++        "@crate//:miette",
++        "@crate//:rayon",
++        "@crate//:serde",
++        "@crate//:smallvec",
++        "@crate//:thiserror",
++    ],
++)

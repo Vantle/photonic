@@ -8,7 +8,10 @@ impl Runtime {
         let flow = if self.incoming[parent.target][0] == previous {
             self.event[event].flow.clone()
         } else {
-            Arc::new(parent.flow.compose(&self.event[event].flow))
+            Arc::new(
+                self.composition
+                    .compose(&parent.flow, &self.event[event].flow),
+            )
         };
         let view = self.witness(View {
             source: parent.source,
