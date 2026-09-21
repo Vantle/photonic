@@ -59,7 +59,7 @@ The reference model first establishes exact structural sorts, contextual reconst
 
 The [independent model](model.md) now implements typed contextual fragments, construction, scoped binding, templates, resumable traversal, staged generator factories, concrete application with fresh local declaration binding and restricted branch-history compatibility. Thirty-one native comparison cases cover a restricted ground application subset. Its construction-language factories and host-driven growth tests do not establish native Photonic generation.
 
-1. Integrate local declaration binding into evidence-carrying templates and their resumable machine, and connect construction evidence to executable introductions.
+1. Connect constructed fragments' read, context and history evidence to supported executable introductions; local declaration binding now works through templates and their resumable machine.
 2. Independently compose event flows, prove or refine the projection law against ground source-inference counterexamples, and complete resumable quotation and quoted-code equality before native integration.
 3. Select source syntax and implement generic construction, then the collection library and runtime-sized demonstration.
 

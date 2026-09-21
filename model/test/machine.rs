@@ -6,7 +6,11 @@ use model::scope::Scope;
 use model::{context, scope, template};
 use std::task::Poll;
 
-fn compare(value: &template::Value, construction: &Construction, environment: &Environment) {
+pub(super) fn compare(
+    value: &template::Value,
+    construction: &Construction,
+    environment: &Environment,
+) {
     let expected = value.instantiate(construction, environment);
     let mut complete = Machine::new(value, construction, environment);
     assert_eq!(complete.run(0), Poll::Pending);

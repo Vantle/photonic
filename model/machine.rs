@@ -1,4 +1,5 @@
 use crate::construction::Construction;
+use crate::context::Reference;
 use crate::environment::Environment;
 use crate::evidence::Evidence;
 use crate::failure::Failure;
@@ -7,12 +8,12 @@ use crate::{structure, template};
 use std::task::Poll;
 
 enum Product {
-    Value(Fragment<structure::Value>),
-    Particle(Fragment<structure::Particle>),
-    Input(Fragment<structure::Input>),
-    Destination(Fragment<structure::Destination>),
-    Output(Fragment<structure::Output>),
-    Body(Fragment<structure::Body>),
+    Value(Fragment<structure::Value<Reference>>),
+    Particle(Fragment<structure::Particle<Reference>>),
+    Input(Fragment<structure::Input<Reference>>),
+    Destination(Fragment<structure::Destination<Reference>>),
+    Output(Fragment<structure::Output<Reference>>),
+    Body(Fragment<structure::Body<Reference>>),
 }
 
 enum Task<'a> {
@@ -23,21 +24,32 @@ enum Task<'a> {
     Output(&'a template::Output),
     Body(&'a template::Body),
     Rule(&'a template::Rule),
-    Collect(&'a [template::Value], Vec<Fragment<structure::Value>>),
-    Gather(&'a [template::Particle], Vec<Fragment<structure::Particle>>),
+    Collect(
+        &'a [template::Value],
+        Vec<Fragment<structure::Value<Reference>>>,
+    ),
+    Gather(
+        &'a [template::Particle],
+        Vec<Fragment<structure::Particle<Reference>>>,
+    ),
     Assemble(
         &'a [template::Destination],
-        Vec<Fragment<structure::Destination>>,
+        Vec<Fragment<structure::Destination<Reference>>>,
     ),
-    Declare(&'a [template::Rule], Vec<Fragment<structure::Rule>>),
+    Declare(
+        &'a [template::Rule],
+        Vec<Fragment<structure::Rule<Reference>>>,
+        Construction<Reference>,
+    ),
     Attach(&'a template::Destination),
-    Enter(Fragment<structure::Particle>),
+    Enter(Fragment<structure::Particle<Reference>>),
     Prepare(&'a template::Rule),
-    Close(Fragment<structure::Input>),
+    Close(Fragment<structure::Input<Reference>>),
 }
 
 pub struct Machine<'a> {
-    construction: &'a Construction,
+    construction: Construction<Reference>,
+    sealing: &'a Construction,
     environment: &'a Environment,
     task: Vec<Task<'a>>,
     result: Option<Product>,
@@ -53,7 +65,8 @@ impl<'a> Machine<'a> {
         environment: &'a Environment,
     ) -> Self {
         Self {
-            construction,
+            construction: construction.defer(),
+            sealing: construction,
             environment,
             task: vec![Task::Value(value)],
             result: None,
@@ -102,7 +115,7 @@ impl<'a> Machine<'a> {
                 if let Some(origin) = self.origin.take() {
                     value.evidence.append(origin);
                 }
-                self.outcome = Some(Ok(value));
+                self.outcome = Some(self.sealing.seal(value));
             }
         }
         self.outcome.clone().map_or(Poll::Pending, Poll::Ready)
@@ -114,7 +127,7 @@ impl<'a> Machine<'a> {
                 template::Value::Rule(rule) => self.task.push(Task::Rule(rule)),
                 _ => {
                     self.result = Some(Product::Value(
-                        value.instantiate(self.construction, self.environment)?,
+                        value.defer(&self.construction, self.environment)?,
                     ));
                 }
             },
@@ -124,7 +137,7 @@ impl<'a> Machine<'a> {
                 }
                 _ => {
                     self.result = Some(Product::Particle(
-                        particle.instantiate(self.construction, self.environment)?,
+                        particle.defer(&self.construction, self.environment)?,
                     ));
                 }
             },
@@ -134,7 +147,7 @@ impl<'a> Machine<'a> {
                 }
                 _ => {
                     self.result = Some(Product::Input(
-                        input.instantiate(self.construction, self.environment)?,
+                        input.defer(&self.construction, self.environment)?,
                     ));
                 }
             },
@@ -148,17 +161,19 @@ impl<'a> Machine<'a> {
                 }
                 _ => {
                     self.result = Some(Product::Output(
-                        output.instantiate(self.construction, self.environment)?,
+                        output.defer(&self.construction, self.environment)?,
                     ));
                 }
             },
             Task::Body(body) => match body {
                 template::Body::Build(rule) => {
-                    self.task.push(Task::Declare(rule, Vec::new()));
+                    let local = self.construction.local();
+                    let outer = std::mem::replace(&mut self.construction, local);
+                    self.task.push(Task::Declare(rule, Vec::new(), outer));
                 }
                 _ => {
                     self.result = Some(Product::Body(
-                        body.instantiate(self.construction, self.environment)?,
+                        body.defer(&self.construction, self.environment)?,
                     ));
                 }
             },
@@ -208,7 +223,7 @@ impl<'a> Machine<'a> {
                     self.result = Some(Product::Output(self.construction.output(value)?));
                 }
             }
-            Task::Declare(source, mut value) => {
+            Task::Declare(source, mut value, outer) => {
                 if let Some(result) = self.result.take() {
                     let Product::Value(result) = result else {
                         unreachable!();
@@ -216,9 +231,10 @@ impl<'a> Machine<'a> {
                     value.push(self.construction.definition(result)?);
                 }
                 if let Some((first, rest)) = source.split_first() {
-                    self.task.push(Task::Declare(rest, value));
+                    self.task.push(Task::Declare(rest, value, outer));
                     self.task.push(Task::Rule(first));
                 } else {
+                    self.construction = outer;
                     self.result = Some(Product::Body(self.construction.body(value)?));
                 }
             }

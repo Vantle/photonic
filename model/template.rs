@@ -1,4 +1,5 @@
 use crate::construction::Construction;
+use crate::context::Reference;
 use crate::environment::Environment;
 use crate::failure::Failure;
 use crate::fragment::Fragment;
@@ -54,10 +55,18 @@ impl Value {
         construction: &Construction,
         environment: &Environment,
     ) -> Result<Fragment<structure::Value>, Failure> {
+        construction.seal(self.defer(&construction.defer(), environment)?)
+    }
+
+    pub(crate) fn defer(
+        &self,
+        construction: &Construction<Reference>,
+        environment: &Environment,
+    ) -> Result<Fragment<structure::Value<Reference>>, Failure> {
         match self {
             Self::Atom(atom) => Ok(construction.literal(atom.clone())),
-            Self::Reference(slot) => construction.accept(environment.value.resolve(slot)?),
-            Self::Rule(rule) => rule.instantiate(construction, environment),
+            Self::Reference(slot) => construction.capture(environment.value.resolve(slot)?),
+            Self::Rule(rule) => rule.defer(construction, environment),
         }
     }
 }
@@ -68,12 +77,20 @@ impl Particle {
         construction: &Construction,
         environment: &Environment,
     ) -> Result<Fragment<structure::Particle>, Failure> {
+        construction.seal(self.defer(&construction.defer(), environment)?)
+    }
+
+    pub(crate) fn defer(
+        &self,
+        construction: &Construction<Reference>,
+        environment: &Environment,
+    ) -> Result<Fragment<structure::Particle<Reference>>, Failure> {
         match self {
-            Self::Reference(slot) => construction.accept(environment.particle.resolve(slot)?),
+            Self::Reference(slot) => construction.capture(environment.particle.resolve(slot)?),
             Self::Build(value) => construction.particle(
                 value
                     .iter()
-                    .map(|value| value.instantiate(construction, environment))
+                    .map(|value| value.defer(construction, environment))
                     .collect::<Result<Vec<_>, _>>()?,
             ),
         }
@@ -86,12 +103,20 @@ impl Input {
         construction: &Construction,
         environment: &Environment,
     ) -> Result<Fragment<structure::Input>, Failure> {
+        construction.seal(self.defer(&construction.defer(), environment)?)
+    }
+
+    pub(crate) fn defer(
+        &self,
+        construction: &Construction<Reference>,
+        environment: &Environment,
+    ) -> Result<Fragment<structure::Input<Reference>>, Failure> {
         match self {
-            Self::Reference(slot) => construction.accept(environment.input.resolve(slot)?),
+            Self::Reference(slot) => construction.capture(environment.input.resolve(slot)?),
             Self::Build(particle) => construction.input(
                 particle
                     .iter()
-                    .map(|particle| particle.instantiate(construction, environment))
+                    .map(|particle| particle.defer(construction, environment))
                     .collect::<Result<Vec<_>, _>>()?,
             ),
         }
@@ -104,11 +129,19 @@ impl Destination {
         construction: &Construction,
         environment: &Environment,
     ) -> Result<Fragment<structure::Destination>, Failure> {
+        construction.seal(self.defer(&construction.defer(), environment)?)
+    }
+
+    pub(crate) fn defer(
+        &self,
+        construction: &Construction<Reference>,
+        environment: &Environment,
+    ) -> Result<Fragment<structure::Destination<Reference>>, Failure> {
         construction.destination(
-            self.particle.instantiate(construction, environment)?,
+            self.particle.defer(construction, environment)?,
             self.body
                 .as_ref()
-                .map(|body| body.instantiate(construction, environment))
+                .map(|body| body.defer(construction, environment))
                 .transpose()?,
         )
     }
@@ -120,12 +153,20 @@ impl Output {
         construction: &Construction,
         environment: &Environment,
     ) -> Result<Fragment<structure::Output>, Failure> {
+        construction.seal(self.defer(&construction.defer(), environment)?)
+    }
+
+    pub(crate) fn defer(
+        &self,
+        construction: &Construction<Reference>,
+        environment: &Environment,
+    ) -> Result<Fragment<structure::Output<Reference>>, Failure> {
         match self {
-            Self::Reference(slot) => construction.accept(environment.output.resolve(slot)?),
+            Self::Reference(slot) => construction.capture(environment.output.resolve(slot)?),
             Self::Build(destination) => construction.output(
                 destination
                     .iter()
-                    .map(|destination| destination.instantiate(construction, environment))
+                    .map(|destination| destination.defer(construction, environment))
                     .collect::<Result<Vec<_>, _>>()?,
             ),
         }
@@ -138,15 +179,24 @@ impl Body {
         construction: &Construction,
         environment: &Environment,
     ) -> Result<Fragment<structure::Body>, Failure> {
+        construction.seal(self.defer(&construction.defer(), environment)?)
+    }
+
+    pub(crate) fn defer(
+        &self,
+        construction: &Construction<Reference>,
+        environment: &Environment,
+    ) -> Result<Fragment<structure::Body<Reference>>, Failure> {
         match self {
-            Self::Reference(slot) => construction.accept(environment.body.resolve(slot)?),
-            Self::Build(rule) => construction.body(
-                rule.iter()
-                    .map(|rule| {
-                        construction.definition(rule.instantiate(construction, environment)?)
-                    })
-                    .collect::<Result<Vec<_>, _>>()?,
-            ),
+            Self::Reference(slot) => construction.capture(environment.body.resolve(slot)?),
+            Self::Build(rule) => {
+                let local = construction.local();
+                construction.body(
+                    rule.iter()
+                        .map(|rule| local.definition(rule.defer(&local, environment)?))
+                        .collect::<Result<Vec<_>, _>>()?,
+                )
+            }
         }
     }
 }
@@ -157,9 +207,17 @@ impl Rule {
         construction: &Construction,
         environment: &Environment,
     ) -> Result<Fragment<structure::Value>, Failure> {
+        construction.seal(self.defer(&construction.defer(), environment)?)
+    }
+
+    pub(crate) fn defer(
+        &self,
+        construction: &Construction<Reference>,
+        environment: &Environment,
+    ) -> Result<Fragment<structure::Value<Reference>>, Failure> {
         construction.rule(
-            self.input.instantiate(construction, environment)?,
-            self.output.instantiate(construction, environment)?,
+            self.input.defer(construction, environment)?,
+            self.output.defer(construction, environment)?,
         )
     }
 }

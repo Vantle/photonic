@@ -38,6 +38,7 @@ rust_test(
     srcs = [
         "test/activation.rs",
         "test/application.rs",
+        "test/declaration.rs",
         "test/generator.rs",
         "test/machine.rs",
         "test/suite.rs",

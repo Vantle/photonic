@@ -3,6 +3,7 @@ use model::context::{Frame, Identity, Reference};
 use model::history::History;
 use model::occurrence::{self, Occurrence};
 use model::structure::{Body, Destination, Input, Output, Particle, Rule, Value};
+use model::template;
 use model::world::{self, World};
 use photonic::source;
 
@@ -95,6 +96,70 @@ pub fn read(source: &str) -> Configuration {
             declaration,
             held: vec![],
         }],
+        History::default(),
+    )
+    .unwrap()
+}
+
+fn literal(source: &source::Value) -> template::Value {
+    match source {
+        source::Value::Atom(atom) => template::Value::Atom(atom.clone()),
+        source::Value::Rule { rule } => template::Value::Rule(Box::new(syntax(rule))),
+    }
+}
+
+fn syntax(source: &source::Definition) -> template::Rule {
+    template::Rule {
+        input: template::Input::Build(
+            source
+                .input
+                .iter()
+                .map(|source| template::Particle::Build(source.iter().map(literal).collect()))
+                .collect(),
+        ),
+        output: template::Output::Build(
+            source
+                .output
+                .iter()
+                .map(|source| template::Destination {
+                    particle: template::Particle::Build(
+                        source.particle.iter().map(literal).collect(),
+                    ),
+                    body: source
+                        .body
+                        .as_ref()
+                        .map(|source| template::Body::Build(source.iter().map(syntax).collect())),
+                })
+                .collect(),
+        ),
+    }
+}
+
+pub fn build(source: &str) -> Configuration {
+    let initial = read(source);
+    let program = photonic::lowering::parse(source).unwrap();
+    let construction = model::construction::Construction::new(Identity(0), History::default());
+    let environment = model::environment::Environment::new(model::scope::Identity(0));
+    let mut declaration = Vec::new();
+    for source in program.rule {
+        let value = template::Value::Rule(Box::new(syntax(&source)));
+        let expected = value.instantiate(&construction, &environment).unwrap();
+        let mut machine = model::machine::Machine::new(&value, &construction, &environment);
+        let result = loop {
+            if let std::task::Poll::Ready(result) = machine.run(1) {
+                break result.unwrap();
+            }
+        };
+        assert_eq!(result, expected);
+        declaration.push(construction.definition(result).unwrap().value().clone());
+    }
+    declaration.sort();
+    let mut frame = initial.frame().cloned().collect::<Vec<_>>();
+    frame[0].declaration = declaration;
+    Configuration::new(
+        Identity(0),
+        initial.world().cloned().collect(),
+        frame,
         History::default(),
     )
     .unwrap()

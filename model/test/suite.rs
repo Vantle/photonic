@@ -415,3 +415,4 @@ fn generation() {
 }
 mod activation;
 mod application;
+mod declaration;
