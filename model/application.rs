@@ -241,7 +241,7 @@ pub fn apply(state: &Configuration, request: &Request) -> Result<Event, Failure>
                     identity,
                     parent: Some(parent),
                     lexical: Some(body.context()),
-                    declaration: body.rule().to_vec(),
+                    declaration: body.activate(identity)?,
                     held: held.values().map(|(value, _)| value.clone()).collect(),
                 },
             );

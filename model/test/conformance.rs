@@ -55,6 +55,10 @@ fn native(source: &str, target: &str) -> Report {
 }
 
 fn check(state: &Configuration, report: &Report) {
+    compare(state, &report.state[report.event.last().unwrap().target]);
+}
+
+fn compare(state: &Configuration, witness: &photonic::snapshot::Node) {
     let model = observe(
         state
             .world()
@@ -75,7 +79,6 @@ fn check(state: &Configuration, report: &Report) {
             })
             .collect(),
     );
-    let witness = &report.state[report.event.last().unwrap().target];
     let native = observe(
         witness
             .world
@@ -366,3 +369,97 @@ fn returning() {
     assert_eq!(intermediate.frame[1].held[0].label, "A");
     assert_eq!(returned.consumed.len(), report.event[1].footprint.len());
 }
+
+fn declared(state: &Configuration, context: u64, input: &str) -> Code {
+    let frame = state
+        .frame()
+        .find(|frame| frame.identity.0 == context)
+        .unwrap();
+    let expected = Input::new(vec![Particle::new(vec![atom(input)])]);
+    let position = frame
+        .declaration
+        .iter()
+        .position(|rule| rule.input == expected)
+        .unwrap();
+    Code::Declaration {
+        context: context::Identity(context),
+        position,
+    }
+}
+
+fn step(state: &Configuration, code: Code, input: &str) -> application::Event {
+    assert_eq!(state.world().count(), 1);
+    let world = state.world().next().unwrap();
+    let occurrence = world
+        .occurrence
+        .iter()
+        .find(|value| value.value == atom(input))
+        .unwrap();
+    application::apply(
+        state,
+        &Request {
+            code,
+            selection: vec![Selection {
+                world: world.identity,
+                occurrence: vec![occurrence.identity],
+            }],
+        },
+    )
+    .unwrap()
+}
+
+#[test]
+fn escaping() {
+    let source = "Enter.Make.Call [Enter] ([A] Local, [Make] [Call] (A [Local] Done),) [A] Global";
+    let report = native(source, "Missing");
+    let witness = report
+        .state
+        .iter()
+        .find(|state| {
+            state
+                .world
+                .iter()
+                .any(|world| world.particle.iter().any(|token| token.label == "Done"))
+        })
+        .unwrap();
+    let initial = program::read(source);
+    let entered = step(&initial, declared(&initial, 0, "Enter"), "Enter");
+    let made = step(
+        &entered.target,
+        declared(&entered.target, 1, "Make"),
+        "Make",
+    );
+    let world = made.target.world().next().unwrap();
+    assert_eq!(world.context, context::Identity(0));
+    let code = world
+        .occurrence
+        .iter()
+        .find(|value| matches!(&value.value, Value::Rule(_)))
+        .unwrap();
+    let Value::Rule(rule) = &code.value else {
+        unreachable!()
+    };
+    assert_eq!(rule.context, context::Identity(1));
+    let called = step(
+        &made.target,
+        Code::Local {
+            world: world.identity,
+            occurrence: code.identity,
+        },
+        "Call",
+    );
+    assert_eq!(called.read.len(), 1);
+    let local = step(&called.target, declared(&called.target, 1, "A"), "A");
+    let done = step(&local.target, declared(&local.target, 2, "Local"), "Local");
+    compare(&done.target, witness);
+    assert_eq!(done.target.frame().count(), 2);
+    let capture = witness.world[0]
+        .particle
+        .iter()
+        .find_map(|token| token.capture)
+        .unwrap();
+    assert_ne!(capture, 0);
+    assert_eq!(witness.frame[capture].parent, Some(0));
+    assert_eq!(witness.frame[capture].lexical, Some(0));
+}
+mod program;

@@ -4,6 +4,7 @@ load("@rules_rs//rs:rust_test.bzl", "rust_test")
 rust_library(
     name = "model",
     srcs = [
+        "activation.rs",
         "allocation.rs",
         "application.rs",
         "argument.rs",
@@ -35,6 +36,7 @@ rust_library(
 rust_test(
     name = "test",
     srcs = [
+        "test/activation.rs",
         "test/application.rs",
         "test/generator.rs",
         "test/machine.rs",
@@ -54,7 +56,10 @@ filegroup(
 
 rust_test(
     name = "conformance",
-    srcs = ["test/conformance.rs"],
+    srcs = [
+        "test/conformance.rs",
+        "test/program.rs",
+    ],
     crate_root = "test/conformance.rs",
     lint_config = "//:lint",
     deps = [

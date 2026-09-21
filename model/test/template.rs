@@ -217,7 +217,10 @@ fn body() {
     .unwrap();
     assert_eq!(built.value().context(), context::Identity(0));
     assert_eq!(built.value().rule().len(), 1);
-    assert_eq!(built.value().rule()[0].context, context::Identity(0));
+    assert_eq!(
+        built.value().rule()[0].context,
+        context::Reference::Captured(context::Identity(0))
+    );
 }
 
 #[test]

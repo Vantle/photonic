@@ -4,6 +4,7 @@ use crate::scope;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Failure {
     Capacity,
+    Depth(usize),
     Rule,
     Generator,
     Site,
