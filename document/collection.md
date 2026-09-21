@@ -57,9 +57,9 @@ The reference model first establishes exact structural sorts, contextual reconst
 
 ## Queue
 
-The [independent model](model.md) now implements typed contextual fragments, construction, scoped binding, templates, resumable traversal, staged generator factories, concrete application with fresh local declaration binding, checked introduction from live read witnesses, flow composition, replayed paths, projected bindings and restricted branch-history compatibility. Thirty-eight native comparison cases cover restricted ground behavior and projection evidence. Its construction-language factories and host-driven growth tests do not establish native Photonic generation.
+The [independent model](model.md) now implements typed contextual fragments, construction, scoped binding, templates, resumable traversal, staged generator factories, concrete application with fresh local declaration binding, checked introduction from live read witnesses, flow composition, replayed paths, projected application with capture import and restricted branch-history compatibility. Forty-one native comparison cases cover restricted ground behavior, projection evidence, scalar/scoped flow and escaped local execution. Held-identity convergence has additional reference and native primitive regressions. Its construction-language factories and host-driven growth tests do not establish native Photonic generation.
 
-1. Apply projected bindings to source configurations with correct scoped consumption and complete captured-frame import, then extend introduction beyond live single-world read witnesses.
+1. Retain complete auxiliary derivations when replaying inferred events, then extend introduction beyond live single-world read witnesses.
 2. Preserve auxiliary read support across historical and inferred events, and complete resumable quotation and quoted-code equality before native integration.
 3. Select source syntax and implement generic construction, then the collection library and runtime-sized demonstration.
 

@@ -1,12 +1,11 @@
-use crate::allocation::take;
 use crate::configuration::Configuration;
 use crate::context;
 use crate::failure::Failure;
 use crate::flow::{Flow, Place};
-use crate::occurrence::{self, Occurrence};
+use crate::occurrence;
 use crate::structure::{Particle, Rule, Value};
 use crate::world::{self, World};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Code {
@@ -162,133 +161,18 @@ pub fn apply(state: &Configuration, request: &Request) -> Result<Event, Failure>
     let (site, selected) = select(state, request)?;
     let (rule, owner, read) = code(state, request.code, site, &selected)?;
     let consumed = binding(state, request, &rule.input)?;
-    let frame = &state.frame[&site];
-    let returning = site == owner && frame.parent.is_some();
-    let parent = if returning {
-        frame.parent.unwrap()
-    } else {
-        site
-    };
-    let mut basis = consumed.clone();
-    let mut held = BTreeMap::new();
-    if returning {
-        for value in &frame.held {
-            let place = Place::Held(site, value.identity);
-            basis.insert(place);
-            held.insert(value.identity, (value.clone(), BTreeSet::from([place])));
-        }
-    }
-    let removed = consumed
-        .iter()
-        .map(|place| match place {
-            Place::World(_, identity) | Place::Held(_, identity) => *identity,
-        })
-        .collect::<BTreeSet<_>>();
-    let mut remainder = BTreeMap::new();
-    for &identity in &selected {
-        for value in &state.world[&identity].occurrence {
-            let place = Place::World(identity, value.identity);
-            let target = if removed.contains(&value.identity) {
-                &mut held
-            } else {
-                &mut remainder
-            };
-            let entry = target
-                .entry(value.identity)
-                .or_insert_with(|| (value.clone(), BTreeSet::new()));
-            if !removed.contains(&value.identity) || consumed.contains(&place) {
-                entry.1.insert(place);
-            }
-        }
-    }
-    let mut target = state.clone();
-    let mut flow = Flow {
-        resource: BTreeMap::new(),
-        context: BTreeMap::new(),
-        frame: state
-            .frame
-            .keys()
-            .map(|&identity| (identity, Some(identity)))
-            .collect(),
-    };
-    for &identity in &selected {
-        target.world.remove(&identity);
-    }
-    for value in target.world.values() {
-        flow.context
-            .insert(value.identity, BTreeSet::from([value.identity]));
-        for occurrence in &value.occurrence {
-            let place = Place::World(value.identity, occurrence.identity);
-            flow.resource.insert(place, BTreeSet::from([place]));
-        }
-    }
-    for frame in target.frame.values() {
-        for occurrence in &frame.held {
-            let place = Place::Held(frame.identity, occurrence.identity);
-            flow.resource.insert(place, BTreeSet::from([place]));
-        }
-    }
-    for output in rule.output.destination() {
-        let destination = world::Identity(take(&mut target.allocation.world)?);
-        let frame = if let Some(body) = &output.body {
-            let identity = context::Identity(take(&mut target.allocation.context)?);
-            target.frame.insert(
-                identity,
-                context::Frame {
-                    identity,
-                    parent: Some(parent),
-                    lexical: Some(body.context()),
-                    declaration: body.activate(identity)?,
-                    held: held.values().map(|(value, _)| value.clone()).collect(),
-                },
-            );
-            flow.frame.insert(identity, None);
-            for (&resource, (_, source)) in &held {
-                flow.resource
-                    .insert(Place::Held(identity, resource), source.clone());
-            }
-            identity
-        } else {
-            parent
-        };
-        let mut occurrence = Vec::new();
-        for (&identity, (value, source)) in &remainder {
-            occurrence.push(value.clone());
-            flow.resource
-                .insert(Place::World(destination, identity), source.clone());
-        }
-        for value in output.particle.value() {
-            let identity = occurrence::Identity(take(&mut target.allocation.occurrence)?);
-            occurrence.push(Occurrence {
-                identity,
-                value: value.clone(),
-                history: state.history.clone(),
-            });
-            flow.resource
-                .insert(Place::World(destination, identity), basis.clone());
-        }
-        target.world.insert(
-            destination,
-            World {
-                identity: destination,
-                context: frame,
-                occurrence,
-            },
-        );
-        flow.context.insert(destination, selected.clone());
-    }
-    target.reclaim();
-    flow.frame
-        .retain(|identity, _| target.frame.contains_key(identity));
-    flow.resource.retain(|place, _| match place {
-        Place::Held(identity, _) => target.frame.contains_key(identity),
-        Place::World(_, _) => true,
-    });
-    Ok(Event {
-        target,
-        flow,
-        read,
-        consumed,
-        owner,
-    })
+    crate::rewrite::apply(
+        crate::rewrite::Request {
+            source: state,
+            rule,
+            frame: site,
+            owner,
+            world: &selected,
+            footprint: &consumed,
+            exact: &consumed,
+            read,
+        },
+        state.clone(),
+        Flow::identity(state),
+    )
 }

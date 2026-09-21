@@ -106,6 +106,19 @@ impl Configuration {
         self.root
     }
 
+    pub(crate) fn occurrence(&self, place: crate::flow::Place) -> &Occurrence {
+        let (value, identity) = match place {
+            crate::flow::Place::World(world, identity) => {
+                (&self.world[&world].occurrence, identity)
+            }
+            crate::flow::Place::Held(frame, identity) => (&self.frame[&frame].held, identity),
+        };
+        value
+            .iter()
+            .find(|value| value.identity == identity)
+            .unwrap()
+    }
+
     pub(crate) fn reclaim(&mut self) {
         let mut pending = BTreeSet::from([self.root]);
         for world in self.world.values() {

@@ -35,6 +35,40 @@ impl Projection<'_> {
     pub fn binding(&self) -> &Binding {
         &self.binding
     }
+
+    pub fn apply(&self) -> Result<application::Event, Failure> {
+        let source = self.path.source();
+        let mut target = source.clone();
+        let mut flow = crate::flow::Flow::identity(source);
+        let (rule, owner) = match self.request.code {
+            Code::Declaration { context, position } => (
+                source.frame[&context].declaration[position].clone(),
+                context,
+            ),
+            Code::Local { .. } => {
+                let endpoint = self.path.target();
+                let (site, selected) = application::select(endpoint, &self.request)?;
+                let (rule, _, _) = application::code(endpoint, self.request.code, site, &selected)?;
+                let rule = crate::import::include(self.path, rule, &mut target, &mut flow)?;
+                let owner = rule.context;
+                (rule, owner)
+            }
+        };
+        crate::rewrite::apply(
+            crate::rewrite::Request {
+                source,
+                rule: &rule,
+                frame: self.binding.frame,
+                owner,
+                world: &self.binding.world,
+                footprint: &self.binding.footprint,
+                exact: &self.binding.exact,
+                read: self.binding.read.clone(),
+            },
+            target,
+            flow,
+        )
+    }
 }
 
 fn input(path: &Path, input: &Input) -> Result<Input, Failure> {

@@ -3,6 +3,7 @@ mod assignment;
 mod binary;
 mod executor;
 mod group;
+mod import;
 mod joining;
 mod membership;
 mod metaprogram;

@@ -53,7 +53,7 @@ impl Import<'_> {
         let lexical = original
             .lexical
             .map(|index| self.include(index, state, flow));
-        let mut held = Vec::new();
+        let mut held = BTreeMap::<usize, (Token, BTreeSet<Place>)>::new();
         for token in &original.held {
             let id = *self.resource.entry(token.id).or_insert_with(|| {
                 let next = self.next;
@@ -61,21 +61,33 @@ impl Import<'_> {
                 next
             });
             let capture = token.capture.map(|index| self.include(index, state, flow));
-            held.push(Token {
-                id,
-                value: token.value,
-                capture,
+            let entry = held.entry(id).or_insert_with(|| {
+                (
+                    Token {
+                        id,
+                        value: token.value,
+                        capture,
+                    },
+                    BTreeSet::new(),
+                )
             });
-            flow.resource.push((
-                Place::Held(position, id),
-                self.closure.flow.resource[&Place::Held(index, token.id)].clone(),
-            ));
+            entry.1.extend(
+                self.closure.flow.resource[&Place::Held(index, token.id)]
+                    .iter()
+                    .copied(),
+            );
+        }
+        let mut reserve = Vec::new();
+        for (identity, (token, basis)) in held {
+            reserve.push(token);
+            flow.resource
+                .push((Place::Held(position, identity), basis.into()));
         }
         state.frame[position] = Frame {
             scope: original.scope,
             parent,
             lexical,
-            held,
+            held: reserve,
         }
         .into();
         position

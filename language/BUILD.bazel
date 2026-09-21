@@ -52,6 +52,7 @@ rust_test(
         "test/fragment.rs",
         "test/gate.rs",
         "test/group.rs",
+        "test/import.rs",
         "test/index.rs",
         "test/joining.rs",
         "test/membership.rs",
