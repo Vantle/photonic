@@ -1,3 +1,4 @@
+mod machine;
 mod template;
 
 use model::construction::Construction;

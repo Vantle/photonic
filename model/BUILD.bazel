@@ -12,6 +12,7 @@ rust_library(
         "failure.rs",
         "fragment.rs",
         "history.rs",
+        "machine.rs",
         "model.rs",
         "occurrence.rs",
         "scope.rs",
@@ -26,6 +27,7 @@ rust_library(
 rust_test(
     name = "test",
     srcs = [
+        "test/machine.rs",
         "test/suite.rs",
         "test/template.rs",
     ],

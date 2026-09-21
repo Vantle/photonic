@@ -28,7 +28,7 @@ Evidence records source reads, contextual dependencies and the current branch as
 
 The first suite checks arbitrary role/payload spelling, construction from inspected role and nested-rule payload occurrences, exact reconstruction through depth 16, distinct empty forms, permutation and multiplicity, mixed contextual insertion, body origins, output replacement and retention of a private origin when both components are replaced. A 729-pair history matrix independently checks assignment inclusion and inspection admission. Host-driven structural construction exercises depths 0, 1, 2, 3, 8, 16 and 32.
 
-Host-driven generation demonstrates that the model representation can grow new structures. It does not establish an object-language generator, generated generators, native structural execution or a collection library. The present operations are atomic reference functions; they do not yet establish resumable construction or hard memory bounds. No universal preservation proof is claimed from finite tests.
+Host-driven generation demonstrates that the model representation can grow new structures. It does not establish an object-language generator, generated generators, native structural execution or a collection library. The construction operations remain atomic reference primitives; the machine below adds resumable template traversal. No universal preservation proof is claimed from finite tests.
 
 ## Binding and templates
 
@@ -36,12 +36,20 @@ Scope allocates typed slots with a nominal lexical owner and a unique position w
 
 Templates distinguish literal construction from references at each supported sort: value, particle, input, output and body. Building a rule or body uses the current construction context. Substituting a captured rule or body retains its original context and evidence. Every reference is checked against the current construction history before insertion. The output type contains only closed structures, so an unresolved reference cannot be returned as executable code.
 
-The template suite checks unknown roles and contextual payloads, administrative renaming of binder scope identities, ancestor access and child isolation, duplicate binding rejection, missing external references, all supported structural sorts, body capture retention and history rejection on substitution. Repeated substitution preserves syntax multiplicity without manufacturing distinct source reads. One fixed template wraps increasing depth through 32 host-driven instantiations. Generated object-language binding forms and resumable template evaluation remain unfinished.
+The template suite checks unknown roles and contextual payloads, administrative renaming of binder scope identities, ancestor access and child isolation, duplicate binding rejection, missing external references, all supported structural sorts, body capture retention and history rejection on substitution. Repeated substitution preserves syntax multiplicity without manufacturing distinct source reads. One fixed template wraps increasing depth through 32 host-driven instantiations. Generated object-language binding forms remain unfinished.
+
+## Resumable construction
+
+Machine interprets a template through an explicit task stack, visiting one child at a time and retaining private partial composites. Each task transition consumes one model work unit. `run(0)` leaves unfinished construction unchanged. A successful result is published only after the complete outer value is assembled; a failure is terminal and discards partial work. Further calls after either outcome preserve the outcome and consume no additional work. Immutable borrowed templates, environments and construction contexts prevent mutation beneath a suspended cursor.
+
+The recursive template interpreter remains the independent traversal oracle. Machine tests compare both success and structured failure at every single suspension boundary for empty shapes, nested code, branching particles, bodies, references and missing or incompatible bindings. They also compare repeated budgets of 1, 2, 3, 7 and 32 work units and repeated observation after completion.
+
+These work units specify reference-machine progress, not production runtime step accounting. Fragment cloning, dependency union and multiset sorting still occur within individual primitives. Consequently this is cooperative resumability between structural operations, not a wall-clock preemption or hard-memory guarantee. Native integration must separately account for those primitive costs, code/environment limits and production observation compatibility.
 
 ## Verification
 
-The foundation and template increments pass all 19 model tests through `bazel test -c opt //model:test`, including the 729-pair history matrix inside one test. The build runs Rustfmt, Clippy and Bazel checks. `bazel test -c opt //...` reports all 108 repository test targets passing using valid cached results, including the newly executed model suite. This is local native build evidence; it is not a new cross-platform run, a benchmark, or native/WebAssembly structural conformance.
+The foundation, template and machine increments pass all 24 model tests through `bazel test -c opt //model:test`, including the 729-pair history matrix inside one test and the complete suspension-prefix comparisons. The build runs Rustfmt, Clippy and Bazel checks. `bazel test -c opt //...` reports all 108 repository test targets passing using valid cached results, including the newly executed model suite. This is local native build evidence; it is not a new cross-platform run, a benchmark, or native/WebAssembly structural conformance.
 
 ## Next work
 
-Add a small resumable construction machine and generated binder forms without allowing external unresolved bindings to become executable. Extend the reference with concrete application and source-inference projection before selecting production syntax or claiming mixed-capture execution conformance. Native and WebAssembly integration must compare against the model on the actual shared semantic domain.
+Add generated binder forms without allowing external unresolved bindings to become executable, then concrete application with contextual lookup and explicit read/consume ownership. Establish source-inference projection before selecting production syntax or claiming mixed-capture execution conformance. Native and WebAssembly integration must compare against the model on the actual shared semantic domain.

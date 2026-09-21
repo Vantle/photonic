@@ -8,6 +8,7 @@ pub mod evidence;
 pub mod failure;
 pub mod fragment;
 pub mod history;
+pub mod machine;
 pub mod occurrence;
 pub mod scope;
 pub mod slot;
