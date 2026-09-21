@@ -2,7 +2,6 @@ use crate::catalog::Catalog;
 use crate::index::Index;
 use crate::membership::Set;
 use crate::program::Symbol;
-use crate::replay::Search;
 use crate::slot::Slot;
 use crate::state::State;
 use entry::Entry;
@@ -16,6 +15,8 @@ mod context;
 mod dependency;
 mod entry;
 mod key;
+mod registry;
+mod subscription;
 
 pub(crate) struct Delivery {
     pub rule: usize,
@@ -33,9 +34,8 @@ pub(crate) struct Network {
     missing: Vec<usize>,
     enabled: Set,
     scope: Vec<Set>,
-    entry: BTreeMap<Key, usize>,
+    entry: registry::Registry,
     ready: Option<BTreeMap<Key, usize>>,
-    count: Vec<usize>,
     agenda: VecDeque<usize>,
     store: crate::arena::Store<Entry>,
     retained: usize,
@@ -43,6 +43,7 @@ pub(crate) struct Network {
     generation: usize,
     cooldown: usize,
     altered: Set,
+    context: context::Context,
     pub preparation: usize,
     pub reuse: usize,
 }
@@ -141,6 +142,7 @@ impl Network {
             generation: 0,
             cooldown: 0,
             altered: Set::default(),
+            context: context::Context::default(),
             catalog,
             sharing: std::sync::Arc::new(crate::joining::Store::new(65_536)),
             trigger,
@@ -148,9 +150,8 @@ impl Network {
             scope,
             missing,
             enabled,
-            entry: BTreeMap::new(),
+            entry: registry::Registry::new(index.state.frame.len()),
             ready: None,
-            count: vec![0; index.state.frame.len()],
             agenda: VecDeque::new(),
             preparation: 0,
             reuse: 0,
@@ -165,106 +166,26 @@ impl Network {
         network
     }
 
-    fn frame(&mut self, index: &Index, frame: usize, selected: Option<&Set>) {
-        #[cfg(feature = "measurement")]
-        let _measurement = crate::measurement::profile::Scope::new(
-            crate::measurement::profile::Phase::Subscription,
-        );
-        let request = self.request(index, frame, selected);
-        let interval = selected
-            .filter(|selected| selected.len() < self.count.get(frame).copied().unwrap_or(0))
-            .map_or_else(
-                || vec![Key::frame(frame)],
-                |selected| {
-                    selected
-                        .iter()
-                        .map(|&input| Key::input(frame, input))
-                        .collect()
-                },
-            );
-        let removal = interval
-            .into_iter()
-            .flat_map(|interval| self.entry.range(interval))
-            .filter(|(key, _)| {
-                selected.is_none_or(|selected| selected.contains(&key.input))
-                    && request
-                        .binary_search_by_key(*key, |request| request.key)
-                        .is_err()
-            })
-            .map(|(&key, _)| key)
-            .collect::<Vec<_>>();
-        for key in removal {
-            let position = self.entry.remove(&key).unwrap();
-            if let Some(ready) = &mut self.ready {
-                ready.remove(&key);
-            }
-            self.count[frame] -= 1;
-            self.storage -= self.store.remove(position).retained();
-        }
-        let mut request = request.into_iter().peekable();
-        while let Some(first) = request.next() {
-            let key = first.key;
-            let mut consumer = SmallVec::new();
-            consumer.push(first.consumer);
-            while request.peek().is_some_and(|next| next.key == key) {
-                consumer.push(request.next().unwrap().consumer);
-            }
-            let plan = self.catalog.input(key.input);
-            if let Some(&position) = self.entry.get(&key) {
-                let entry = &mut self.store[position];
-                self.storage -= entry.retained();
-                entry.replace(consumer);
-                self.storage += entry.retained();
-            } else {
-                let entry = Entry::new(
-                    Search::planned(crate::joining::Request {
-                        input: plan,
-                        index,
-                        frame,
-                        owner: key.owner,
-                        store: &self.sharing,
-                    }),
-                    consumer,
-                    self.generation,
-                );
-                self.storage += entry.retained();
-                let viable = entry.viable();
-                let position = self.store.insert(entry);
-                self.entry.insert(key, position);
-                if let Some(ready) = &mut self.ready {
-                    if viable {
-                        ready.insert(key, position);
-                    }
-                } else if self.entry.len() > 32 {
-                    self.ready = Some(
-                        self.entry
-                            .iter()
-                            .filter(|&(_, &position)| self.store[position].viable())
-                            .map(|(&key, &position)| (key, position))
-                            .collect(),
-                    );
-                }
-                self.count[frame] += 1;
-                self.preparation += 1;
-            }
-        }
-    }
-
     fn reset(&mut self, index: &Index) {
         #[cfg(feature = "measurement")]
         let _measurement =
             crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Restart);
         self.agenda.clear();
         self.cooldown = 0;
-        for &position in self.ready.as_ref().unwrap_or(&self.entry).values() {
+        let mut reset = |&position: &usize| {
             let entry = &mut self.store[position];
             if !entry.viable() {
-                continue;
+                return;
             }
             self.storage -= entry.retained();
             entry.reset(index);
             self.agenda.push_back(position);
             self.storage += entry.retained();
+        };
+        if let Some(ready) = &self.ready {
+            ready.values().for_each(&mut reset);
+        } else {
+            self.entry.values().for_each(reset);
         }
     }
 
@@ -273,8 +194,7 @@ impl Network {
         let _measurement =
             crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Dispatch);
         self.generation += 1;
-        self.count
-            .resize(self.count.len().max(index.state.frame.len()), 0);
+        self.entry.resize(index.state.frame.len());
         self.altered.clear();
         self.availability(index);
         let mut affected = index
@@ -301,7 +221,7 @@ impl Network {
         context.extend_from_slice(&index.context);
         affected.extend_from_slice(&changed);
         if !changed.is_empty() {
-            let descendant = context::select(index, &changed);
+            let descendant = self.context.select(index, previous, &changed);
             affected.extend_from_slice(&descendant);
             context.extend_from_slice(&descendant);
         }
@@ -327,8 +247,7 @@ impl Network {
                 }
             }
             self.refresh(index, frame);
-            self.reuse +=
-                self.count.get(frame).copied().unwrap_or(0) - (self.preparation - previous);
+            self.reuse += self.entry.count(frame) - (self.preparation - previous);
         }
         self.reset(index);
     }
@@ -359,7 +278,7 @@ impl Network {
     }
 
     pub fn evict(&mut self) -> usize {
-        let previous = self.storage + self.sharing.retained();
+        let previous = self.storage + self.sharing.retained() + self.context.retained();
         for &position in self.entry.values() {
             let entry = &mut self.store[position];
             self.storage -= entry.retained();
@@ -367,19 +286,21 @@ impl Network {
             self.storage += entry.retained();
         }
         self.sharing.evict();
+        self.context.evict();
         previous - self.storage - self.sharing.retained()
     }
 
     #[inline]
     pub fn retained(&self) -> usize {
         self.retained
+            + self.context.retained()
             + self.sharing.retained()
             + self.altered.len()
             + self.enabled.len()
             + self.agenda.len()
             + self.store.retained()
             + self.ready.as_ref().map_or(0, BTreeMap::len)
-            + self.count.len()
+            + self.entry.retained()
             + self.storage
     }
 }

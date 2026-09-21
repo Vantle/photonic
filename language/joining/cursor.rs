@@ -72,6 +72,7 @@ impl Cursor {
         self.retained
     }
 
+    #[inline]
     pub fn step(
         &mut self,
         space: &mut Space,

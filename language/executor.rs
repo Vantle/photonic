@@ -24,6 +24,10 @@ impl Executor {
         })
     }
 
+    pub(crate) fn concurrent(&self) -> bool {
+        self.pool.current_num_threads() > 1
+    }
+
     pub fn map<Input: Send, Output: Send>(
         &self,
         input: Vec<Input>,

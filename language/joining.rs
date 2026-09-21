@@ -1,3 +1,4 @@
+mod binding;
 mod cursor;
 mod dependency;
 mod key;
@@ -348,3 +349,6 @@ mod fragment;
 #[cfg(test)]
 #[path = "test/tree.rs"]
 mod hierarchy;
+
+#[cfg(feature = "measurement")]
+pub mod segment;

@@ -1,7 +1,14 @@
 use crate::basis::Set;
 use crate::state::State;
 use serde::Serialize;
-use std::collections::{BTreeSet, HashMap};
+use std::collections::BTreeSet;
+
+mod composition;
+mod key;
+mod store;
+mod union;
+
+pub(crate) use store::Store;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -59,58 +66,7 @@ impl Flow {
     }
 
     pub(crate) fn compose(&self, event: &Self) -> Self {
-        #[cfg(feature = "measurement")]
-        let _measurement = crate::measurement::profile::Scope::new(
-            crate::measurement::profile::Phase::Composition,
-        );
-        let mut resource = HashMap::new();
-        let mut context = HashMap::new();
-        Self {
-            resource: event
-                .resource
-                .iter()
-                .map(|(&place, source)| {
-                    if source.len() == 1 {
-                        return (place, self.resource[source.first().unwrap()].clone());
-                    }
-                    (
-                        place,
-                        resource
-                            .entry(source.clone())
-                            .or_insert_with(|| {
-                                source
-                                    .iter()
-                                    .flat_map(|key| self.resource[key].iter().copied())
-                                    .collect::<Set<_>>()
-                            })
-                            .clone(),
-                    )
-                })
-                .collect(),
-            context: event
-                .context
-                .iter()
-                .map(|value| {
-                    if value.len() == 1 {
-                        return self.context[*value.first().unwrap()].clone();
-                    }
-                    context
-                        .entry(value.clone())
-                        .or_insert_with(|| {
-                            value
-                                .iter()
-                                .flat_map(|&index| self.context[index].iter().copied())
-                                .collect::<Set<_>>()
-                        })
-                        .clone()
-                })
-                .collect(),
-            frame: event
-                .frame
-                .iter()
-                .map(|index| index.and_then(|index| self.frame[index]))
-                .collect(),
-        }
+        composition::Composition::default().compose(self, event)
     }
 
     pub(crate) fn project(
@@ -218,3 +174,7 @@ impl Flow {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "test/flow.rs"]
+mod test;

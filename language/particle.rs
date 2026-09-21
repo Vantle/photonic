@@ -152,7 +152,12 @@ impl Match {
                 viable: false,
             })
         });
-        Self::from(EMPTY.clone())
+        Self {
+            preparation: EMPTY.clone(),
+            selected: Box::new([]),
+            fresh: true,
+            complete: true,
+        }
     }
 
     pub(crate) fn reset(&mut self) {

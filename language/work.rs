@@ -14,6 +14,20 @@ pub(crate) enum Result {
 }
 
 impl Work {
+    pub(crate) fn parallel(batch: &[Self]) -> bool {
+        let mut cost = 0usize;
+        let mut count = 0;
+        for work in batch {
+            if let Self::Normalize(_, search) = work
+                && search.cost() >= 128
+            {
+                cost = cost.saturating_add(search.cost());
+                count += 1;
+            }
+        }
+        count >= 2 && cost >= 8192
+    }
+
     pub(crate) fn advance(self) -> Result {
         match self {
             Self::Search(index, mut search) => {

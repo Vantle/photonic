@@ -15,7 +15,7 @@ fn accounting(network: &Network) {
             .map(super::entry::Entry::retained)
             .sum::<usize>()
     );
-    assert_eq!(network.entry.len(), network.count.iter().sum::<usize>());
+    assert_eq!(network.entry.len(), network.store.iter().count());
     if let Some(ready) = &network.ready {
         assert_eq!(
             ready.len(),
@@ -515,7 +515,9 @@ fn ancestry() {
                 })
                 .collect::<Vec<_>>();
             assert_eq!(
-                super::context::select(&index, &changed).as_slice(),
+                super::context::Context::default()
+                    .select(&index, &index.state, &changed)
+                    .as_slice(),
                 expected
             );
         }

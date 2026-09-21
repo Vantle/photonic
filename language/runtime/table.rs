@@ -69,7 +69,9 @@ impl Table {
             cache
         } else {
             let cache = self.cache.len();
-            let search = if key.pattern.iter().any(|particle| particle.len() >= 8) {
+            let search = if crate::gate::Store::eligible(key.pattern.len())
+                || key.pattern.iter().any(|particle| particle.len() >= 8)
+            {
                 let store = self
                     .preparation
                     .get_or_insert_with(|| Arc::new(crate::selection::Store::new(65_536)));
@@ -169,7 +171,15 @@ impl Table {
                 .map_or(0, |store| store.retained())
     }
 
-    pub fn evict(&self) {
+    pub fn evict(&mut self) {
+        for cache in &mut self.cache {
+            if let Some(search) = &mut cache.search {
+                search.evict();
+                let retained = search.retained();
+                self.retained = self.retained - cache.retained + retained;
+                cache.retained = retained;
+            }
+        }
         if let Some(store) = &self.preparation {
             store.evict();
         }

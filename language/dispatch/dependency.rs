@@ -56,7 +56,7 @@ impl Network {
         #[cfg(feature = "measurement")]
         let _measurement =
             crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Refresh);
-        let count = self.count.get(frame).copied().unwrap_or(0);
+        let count = self.entry.count(frame);
         let dependency = || {
             index
                 .affected

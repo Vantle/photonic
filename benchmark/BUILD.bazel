@@ -1,4 +1,5 @@
 load("@rules_rs//rs:rust_binary.bzl", "rust_binary")
+load("@rules_rs//rs:rust_test.bzl", "rust_test")
 load("//toolchain:defs.bzl", "hermetic_binary")
 
 rust_binary(
@@ -438,6 +439,78 @@ rust_binary(
         "//language:measurement",
         "@crate//:clap",
         "@crate//:serde",
+        "@crate//:serde_json",
+    ],
+)
+
+rust_binary(
+    name = "segment",
+    srcs = ["segment.rs"],
+    crate_root = "segment.rs",
+    lint_config = "//:lint",
+    deps = [
+        "//language:measurement",
+        "@crate//:serde_json",
+    ],
+)
+
+rust_binary(
+    name = "gate",
+    srcs = ["gate.rs"],
+    crate_root = "gate.rs",
+    lint_config = "//:lint",
+    deps = [
+        "//language:measurement",
+        "@crate//:serde_json",
+    ],
+)
+
+rust_binary(
+    name = "differential",
+    srcs = ["differential.rs"],
+    crate_root = "differential.rs",
+    lint_config = "//:lint",
+    deps = [
+        "//language:photonic",
+        "@crate//:serde",
+        "@crate//:serde_json",
+        "@reference//language:reference",
+    ],
+)
+
+rust_test(
+    name = "differential.test",
+    size = "medium",
+    srcs = ["differential.rs"],
+    crate_name = "differential",
+    crate_root = "differential.rs",
+    lint_config = "//:lint",
+    deps = [
+        "//language:photonic",
+        "@crate//:serde",
+        "@crate//:serde_json",
+        "@reference//language:reference",
+    ],
+)
+
+rust_binary(
+    name = "composition",
+    srcs = ["composition.rs"],
+    crate_root = "composition.rs",
+    lint_config = "//:lint",
+    deps = [
+        "//language:measurement",
+        "@crate//:serde_json",
+    ],
+)
+
+rust_binary(
+    name = "bulk",
+    srcs = ["bulk.rs"],
+    crate_root = "bulk.rs",
+    lint_config = "//:lint",
+    deps = [
+        "//language:measurement",
         "@crate//:serde_json",
     ],
 )

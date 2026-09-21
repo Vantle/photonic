@@ -1,0 +1,49 @@
+use super::{Key, Registry};
+use std::collections::BTreeMap;
+
+#[test]
+fn reconciliation() {
+    let mut actual = Registry::new(0);
+    let mut expected = BTreeMap::new();
+    let mut seed = 71u64;
+    for iteration in 0..4096 {
+        seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1);
+        let frame = (seed >> 32) as usize % 17;
+        actual.resize(frame + 1);
+        let key = Key {
+            frame,
+            input: (seed >> 16) as usize % 11,
+            owner: seed as usize % 5,
+        };
+        if iteration % 3 != 0 {
+            actual.insert(key, iteration);
+            expected.insert(key, iteration);
+        } else {
+            let interval = if iteration % 2 == 0 {
+                Key::frame(frame)
+            } else {
+                Key::input(frame, key.input)
+            };
+            assert!(
+                actual
+                    .range(interval.clone())
+                    .eq(expected.range(interval.clone()))
+            );
+            let before = expected
+                .extract_if(interval.clone(), |_, position| *position % 2 == 0)
+                .collect::<Vec<_>>();
+            let after = actual
+                .extract(interval, |_, position| *position % 2 == 0)
+                .collect::<Vec<_>>();
+            assert!(before == after);
+        }
+        assert_eq!(actual.len(), expected.len());
+        assert_eq!(actual.get(&key), expected.get(&key));
+        assert_eq!(
+            actual.count(frame),
+            expected.range(Key::frame(frame)).count()
+        );
+        assert!(actual.iter().eq(expected.iter()));
+        assert!(actual.values().eq(expected.values()));
+    }
+}

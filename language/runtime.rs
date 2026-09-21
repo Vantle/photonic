@@ -92,6 +92,7 @@ pub struct Runtime {
     event: Vec<Event>,
     normalization: normalization::Store,
     proof: crate::proof::Store,
+    composition: crate::flow::Store,
     matching: table::Table,
     candidate: HashMap<(usize, usize), Arc<Vec<usize>>>,
     outgoing: Vec<Vec<usize>>,
@@ -121,6 +122,7 @@ impl Runtime {
             event: Vec::new(),
             normalization: normalization::Store::default(),
             proof: crate::proof::Store::default(),
+            composition: crate::flow::Store::new(65_536),
             matching: table::Table::default(),
             candidate: HashMap::new(),
             outgoing: Vec::new(),
@@ -212,6 +214,7 @@ impl Runtime {
         while remaining > 0 {
             if self.record() >= self.limit.record {
                 self.matching.evict();
+                self.composition.evict();
                 if self.record() >= self.limit.record {
                     break;
                 }
@@ -235,7 +238,9 @@ impl Runtime {
                 self.flying = batch.len();
                 remaining -= batch.len();
                 self.work += batch.len();
-                let result = if let Some(executor) = executor {
+                let result = if let Some(executor) = executor
+                    .filter(|executor| executor.concurrent() && crate::work::Work::parallel(&batch))
+                {
                     executor.map(batch, crate::work::Work::advance)
                 } else {
                     batch.into_iter().map(crate::work::Work::advance).collect()
@@ -277,6 +282,7 @@ impl Runtime {
             + self.event.len()
             + self.view.len()
             + self.proof.retained()
+            + self.composition.retained()
             + self.matching.retained()
             + self.candidate.len()
             + self.flying
