@@ -57,10 +57,10 @@ The reference model first establishes exact structural sorts, contextual reconst
 
 ## Queue
 
-The [independent model](model.md) now implements typed contextual fragments, construction, scoped binding, templates, resumable traversal and restricted branch-history compatibility. Its host-driven growth tests do not establish object-language generation.
+The [independent model](model.md) now implements typed contextual fragments, construction, scoped binding, templates, resumable traversal, staged generator factories and restricted branch-history compatibility. Its construction-language factories and host-driven growth tests do not establish native Photonic generation.
 
-1. Add generated binder forms to the reference model while preserving its resumable construction contract.
-2. Extend concrete application and prove or refine the projection law against ground source-inference counterexamples before native integration.
+1. Extend concrete application with contextual lookup, declaration activation and explicit read/consume ownership.
+2. Prove or refine the projection law against ground source-inference counterexamples, and complete resumable quotation and quoted-code equality before native integration.
 3. Select source syntax and implement generic construction, then the collection library and runtime-sized demonstration.
 
 Completing this document closes the specification deliverable only. It does not establish the laws experimentally, provide a native collection implementation or settle the source-inference proof obligation.

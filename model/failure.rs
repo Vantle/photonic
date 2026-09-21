@@ -5,6 +5,15 @@ use crate::scope;
 pub enum Failure {
     Capacity,
     Rule,
+    Generator,
+    Arity {
+        expected: usize,
+        actual: usize,
+    },
+    Sort {
+        expected: crate::parameter::Sort,
+        actual: crate::parameter::Sort,
+    },
     Scope(scope::Identity),
     Binding {
         scope: scope::Identity,

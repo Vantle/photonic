@@ -1,5 +1,6 @@
 use crate::construction::Construction;
 use crate::environment::Environment;
+use crate::evidence::Evidence;
 use crate::failure::Failure;
 use crate::fragment::Fragment;
 use crate::{structure, template};
@@ -41,6 +42,7 @@ pub struct Machine<'a> {
     task: Vec<Task<'a>>,
     result: Option<Product>,
     outcome: Option<Result<Fragment<structure::Value>, Failure>>,
+    origin: Option<Evidence>,
     work: usize,
 }
 
@@ -56,8 +58,20 @@ impl<'a> Machine<'a> {
             task: vec![Task::Value(value)],
             result: None,
             outcome: None,
+            origin: None,
             work: 0,
         }
+    }
+
+    pub(crate) fn supported(
+        value: &'a template::Value,
+        construction: &'a Construction,
+        environment: &'a Environment,
+        origin: Evidence,
+    ) -> Self {
+        let mut machine = Self::new(value, construction, environment);
+        machine.origin = Some(origin);
+        machine
     }
 
     pub fn work(&self) -> usize {
@@ -82,9 +96,12 @@ impl<'a> Machine<'a> {
                 break;
             }
             if self.task.is_empty() {
-                let Some(Product::Value(value)) = self.result.take() else {
+                let Some(Product::Value(mut value)) = self.result.take() else {
                     unreachable!();
                 };
+                if let Some(origin) = self.origin.take() {
+                    value.evidence.append(origin);
+                }
                 self.outcome = Some(Ok(value));
             }
         }

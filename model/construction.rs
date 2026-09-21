@@ -24,12 +24,16 @@ impl Construction {
         Self { context, history }
     }
 
-    fn evidence(&self) -> Evidence {
+    pub(crate) fn evidence(&self) -> Evidence {
         Evidence {
             read: BTreeSet::new(),
             context: BTreeSet::from([self.context]),
             history: self.history.clone(),
         }
+    }
+
+    pub(crate) fn permits(&self, evidence: &Evidence) -> Result<(), Failure> {
+        self.history.permits(&evidence.history)
     }
 
     pub(crate) fn accept<Item>(&self, value: Fragment<Item>) -> Result<Fragment<Item>, Failure> {

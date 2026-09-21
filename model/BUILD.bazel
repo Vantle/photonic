@@ -4,6 +4,7 @@ load("@rules_rs//rs:rust_test.bzl", "rust_test")
 rust_library(
     name = "model",
     srcs = [
+        "argument.rs",
         "binding.rs",
         "construction.rs",
         "context.rs",
@@ -11,10 +12,13 @@ rust_library(
         "evidence.rs",
         "failure.rs",
         "fragment.rs",
+        "generator.rs",
         "history.rs",
         "machine.rs",
         "model.rs",
         "occurrence.rs",
+        "parameter.rs",
+        "quotation.rs",
         "scope.rs",
         "slot.rs",
         "structure.rs",
@@ -27,6 +31,7 @@ rust_library(
 rust_test(
     name = "test",
     srcs = [
+        "test/generator.rs",
         "test/machine.rs",
         "test/suite.rs",
         "test/template.rs",

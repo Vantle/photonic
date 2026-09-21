@@ -4,7 +4,7 @@ Photonic should support finite programs that construct unbounded families of fin
 
 This is a design proposal, not implemented syntax or a correctness proof. The implementation baseline is commit [82e15d9](https://github.com/Vantle/photonic/commit/82e15d9). The literature includes foundational work and developments published through 2026; publication dates, rather than search-engine crawl dates, identify the sources below. The recommendation is a synthesis for Photonic, not a claim that one published calculus already provides its semantics.
 
-The [structural reference model](model.md) now implements typed closed fragments, contextual inspection/reconstruction, scoped bindings, contextual templates, resumable template traversal and an explicit restricted history compatibility model. It is independently Bazel-tested and does not add production syntax. Generated binder forms, concrete contextual execution, inferred-witness projection and native integration remain queued in the [roadmap](roadmap.md).
+The [structural reference model](model.md) now implements typed closed fragments, contextual inspection/reconstruction, scoped bindings, templates, resumable template traversal, staged generator factories with future binder declarations and an explicit restricted history compatibility model. It is independently Bazel-tested and does not add production syntax. Concrete contextual execution, inferred-witness projection, resumable quotation and native integration remain queued in the [roadmap](roadmap.md).
 
 ## Design criteria
 
