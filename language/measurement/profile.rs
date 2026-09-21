@@ -21,9 +21,12 @@ pub enum Phase {
     Preparation,
     Availability,
     Context,
+    Removal,
+    Replacement,
+    Admission,
 }
 
-const PHASE: [Phase; 16] = [
+const PHASE: [Phase; 19] = [
     Phase::Matching,
     Phase::Dispatch,
     Phase::Index,
@@ -40,6 +43,9 @@ const PHASE: [Phase; 16] = [
     Phase::Preparation,
     Phase::Availability,
     Phase::Context,
+    Phase::Removal,
+    Phase::Replacement,
+    Phase::Admission,
 ];
 
 thread_local! {
