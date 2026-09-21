@@ -575,10 +575,24 @@ fn archive() {
         .iter()
         .find(|value| matches!(value.value, Value::Rule(_)))
         .unwrap();
+    let direct = projection::project(
+        &path,
+        request(
+            path.target(),
+            Code::Local {
+                world: world.identity,
+                occurrence: code.identity,
+            },
+            &[&["Call"]],
+        ),
+    )
+    .unwrap()
+    .apply()
+    .unwrap();
     let witness = model::admission::Witness {
         state: 2,
         world: world.identity,
-        occurrence: code.identity,
+        place: model::flow::Place::World(world.identity, code.identity),
     };
     let construction = model::construction::Construction::new(
         context::Identity(0),
@@ -612,6 +626,43 @@ fn archive() {
         .iter()
         .find(|value| matches!(value.value, Value::Rule(_)))
         .unwrap();
+    let projected = projection::project(
+        &path,
+        request(
+            path.target(),
+            Code::Local {
+                world: world.identity,
+                occurrence: code.identity,
+            },
+            &[&["Call"]],
+        ),
+    )
+    .unwrap()
+    .apply()
+    .unwrap();
+    assert_eq!(projected, direct);
+    let frame = path
+        .target()
+        .frame()
+        .find(|frame| frame.identity == context::Identity(2))
+        .unwrap();
+    assert_eq!(path.flow().frame[&frame.identity], None);
+    let entry = path
+        .source()
+        .world()
+        .next()
+        .unwrap()
+        .occurrence
+        .iter()
+        .find(|value| value.value == Value::Atom("Enter".into()))
+        .unwrap();
+    assert_eq!(
+        path.flow().resource[&model::flow::Place::Held(frame.identity, frame.held[0].identity)],
+        BTreeSet::from([model::flow::Place::World(
+            model::world::Identity(0),
+            entry.identity
+        )])
+    );
     let called = super::step(
         path.target(),
         Code::Local {

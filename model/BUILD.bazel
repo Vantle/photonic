@@ -35,6 +35,7 @@ rust_library(
         "slot.rs",
         "structure.rs",
         "template.rs",
+        "transport.rs",
         "world.rs",
     ],
     crate_root = "model.rs",
@@ -45,6 +46,7 @@ rust_test(
     name = "test",
     srcs = [
         "test/activation.rs",
+        "test/admission.rs",
         "test/application.rs",
         "test/archive.rs",
         "test/declaration.rs",
@@ -56,6 +58,7 @@ rust_test(
         "test/projection.rs",
         "test/suite.rs",
         "test/template.rs",
+        "test/transport.rs",
     ],
     crate_root = "test/suite.rs",
     lint_config = "//:lint",

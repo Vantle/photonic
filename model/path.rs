@@ -37,13 +37,13 @@ pub struct Record {
 pub struct Path {
     state: Vec<Configuration>,
     record: Vec<Record>,
-    flow: Flow,
+    flow: Vec<Flow>,
 }
 
 impl Path {
     pub fn new(source: Configuration) -> Self {
         Self {
-            flow: Flow::identity(&source),
+            flow: vec![Flow::identity(&source)],
             state: vec![source],
             record: vec![],
         }
@@ -77,7 +77,11 @@ impl Path {
     }
 
     pub fn flow(&self) -> &Flow {
-        &self.flow
+        self.flow.last().unwrap()
+    }
+
+    pub(crate) fn prefix(&self, position: usize) -> Result<&Flow, Failure> {
+        self.flow.get(position).ok_or(Failure::State(position))
     }
 
     pub fn advance(&self, step: Step) -> Result<Self, Failure> {
@@ -137,7 +141,7 @@ impl Path {
         };
         flow.validate(self.target(), &target)
             .map_err(Failure::Flow)?;
-        let composed = self.flow.compose(&flow).map_err(Failure::Flow)?;
+        let composed = crate::transport::compose(self, &flow, &archive)?;
         composed
             .validate(self.source(), &target)
             .map_err(Failure::Flow)?;
@@ -152,10 +156,12 @@ impl Path {
             context,
             archive,
         });
+        let mut flow = self.flow.clone();
+        flow.push(composed);
         Ok(Self {
             state,
             record,
-            flow: composed,
+            flow,
         })
     }
 }

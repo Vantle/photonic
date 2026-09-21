@@ -8,6 +8,14 @@ pub enum Place {
     Held(context::Identity, occurrence::Identity),
 }
 
+impl Place {
+    pub fn occurrence(self) -> occurrence::Identity {
+        match self {
+            Self::World(_, identity) | Self::Held(_, identity) => identity,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Endpoint {
     Source,

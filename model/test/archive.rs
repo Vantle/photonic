@@ -30,7 +30,7 @@ fn code(context: u64) -> Value {
     Value::Rule(Box::new(rule))
 }
 
-fn initial(shared: bool) -> Path {
+pub(super) fn initial(shared: bool) -> Path {
     let held = super::source(10, Value::Atom("Secret".into()));
     let mut occurrence = vec![
         super::source(0, code(1)),
@@ -70,7 +70,7 @@ fn initial(shared: bool) -> Path {
     )
 }
 
-fn retain(path: &Path, identity: Identity) -> Fragment<Value> {
+pub(super) fn retain(path: &Path, identity: Identity) -> Fragment<Value> {
     let occurrence = path
         .target()
         .world()
@@ -85,7 +85,7 @@ fn retain(path: &Path, identity: Identity) -> Fragment<Value> {
         .unwrap()
 }
 
-fn remove(path: &Path, consumed: Vec<Identity>) -> Path {
+pub(super) fn remove(path: &Path, consumed: Vec<Identity>) -> Path {
     path.advance(Step::Introduction {
         world: path.target().world().next().unwrap().identity,
         consumed,
@@ -94,7 +94,12 @@ fn remove(path: &Path, consumed: Vec<Identity>) -> Path {
     .unwrap()
 }
 
-fn restore(path: &Path, value: Fragment<Value>, state: usize, occurrence: Identity) -> Path {
+pub(super) fn restore(
+    path: &Path,
+    value: Fragment<Value>,
+    state: usize,
+    occurrence: Identity,
+) -> Path {
     let source = path.state()[state].world().next().unwrap().identity;
     let world = path.target().world().next().unwrap();
     let consumed = world
@@ -110,7 +115,7 @@ fn restore(path: &Path, value: Fragment<Value>, state: usize, occurrence: Identi
         witness: vec![Witness {
             state,
             world: source,
-            occurrence,
+            place: model::flow::Place::World(source, occurrence),
         }],
     }))
     .unwrap()
@@ -392,12 +397,12 @@ fn equivalence() {
                 Witness {
                     state: 0,
                     world: world::Identity(0),
-                    occurrence: Identity(0),
+                    place: model::flow::Place::World(world::Identity(0), Identity(0)),
                 },
                 Witness {
                     state: 2,
                     world: world::Identity(2),
-                    occurrence: identity,
+                    place: model::flow::Place::World(world::Identity(2), identity),
                 },
             ],
         }))
@@ -451,7 +456,7 @@ fn capacity() {
                 witness: vec![Witness {
                     state: 0,
                     world: world::Identity(0),
-                    occurrence: Identity(0)
+                    place: model::flow::Place::World(world::Identity(0), Identity(0))
                 }],
             })),
             Err(model::failure::Failure::Capacity)

@@ -221,7 +221,7 @@ fn restore(value: model::fragment::Fragment<Value>, world: u64) -> admission::Re
         witness: vec![Witness {
             state: 0,
             world: world::Identity(0),
-            occurrence: Identity(0),
+            place: model::flow::Place::World(world::Identity(0), Identity(0)),
         }],
     }
 }
@@ -281,7 +281,7 @@ fn historical() {
         vec![Witness {
             state: 0,
             world: world::Identity(0),
-            occurrence: Identity(0)
+            place: model::flow::Place::World(world::Identity(0), Identity(0))
         }]
     );
     assert_eq!(
@@ -329,7 +329,7 @@ fn admission() {
     );
     let mut extra = original.clone();
     extra.witness.push(Witness {
-        occurrence: Identity(1),
+        place: model::flow::Place::World(extra.witness[0].world, Identity(1)),
         ..extra.witness[0]
     });
     assert_eq!(
@@ -434,7 +434,7 @@ fn lineage() {
         witness: vec![Witness {
             state: 0,
             world: world::Identity(9),
-            occurrence: Identity(9),
+            place: model::flow::Place::World(world::Identity(9), Identity(9)),
         }],
     };
     assert_eq!(
@@ -562,7 +562,7 @@ fn mixed() {
     request.witness.push(Witness {
         state: 1,
         world: world::Identity(1),
-        occurrence: Identity(2),
+        place: model::flow::Place::World(world::Identity(1), Identity(2)),
     });
     let result = path.advance(Step::Historical(request)).unwrap();
     assert_eq!(

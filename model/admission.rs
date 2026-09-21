@@ -12,7 +12,7 @@ use std::collections::{BTreeMap, BTreeSet};
 pub struct Witness {
     pub state: usize,
     pub world: world::Identity,
-    pub occurrence: occurrence::Identity,
+    pub place: Place,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -29,8 +29,9 @@ pub(crate) fn apply(path: &Path, request: &Request) -> Result<introduction::Even
         .permits(request.value.evidence().history())?;
     let mut supplied = BTreeMap::new();
     for &witness in &request.witness {
-        if supplied.insert(witness.occurrence, witness).is_some() {
-            return Err(Failure::Witness(witness.occurrence));
+        let identity = witness.place.occurrence();
+        if supplied.insert(identity, witness).is_some() {
+            return Err(Failure::Witness(identity));
         }
     }
     let mut read = BTreeSet::new();
@@ -46,13 +47,30 @@ pub(crate) fn apply(path: &Path, request: &Request) -> Result<introduction::Even
             .world
             .get(&witness.world)
             .ok_or(Failure::World(witness.world))?;
-        let occurrence = world
-            .occurrence
+        let identity = witness.place.occurrence();
+        let available = match witness.place {
+            Place::World(identity, _) => {
+                if identity != witness.world {
+                    return Err(Failure::World(identity));
+                }
+                &world.occurrence
+            }
+            Place::Held(context, _) => {
+                if context != world.context {
+                    return Err(Failure::Owner {
+                        world: witness.world,
+                        context,
+                    });
+                }
+                &state.frame[&context].held
+            }
+        };
+        let occurrence = available
             .iter()
-            .find(|value| value.identity == witness.occurrence)
-            .ok_or(Failure::Occurrence(witness.occurrence))?;
+            .find(|value| value.identity == identity)
+            .ok_or(Failure::Occurrence(identity))?;
         if occurrence != expected {
-            return Err(Failure::Identity(witness.occurrence));
+            return Err(Failure::Identity(identity));
         }
         let mut lineage = BTreeSet::from([request.world]);
         for record in path.record()[witness.state..].iter().rev() {
@@ -75,7 +93,7 @@ pub(crate) fn apply(path: &Path, request: &Request) -> Result<introduction::Even
             });
         }
         if witness.state == path.record().len() {
-            read.insert(Place::World(witness.world, witness.occurrence));
+            read.insert(witness.place);
         }
     }
     if let Some((&identity, _)) = supplied.first_key_value() {

@@ -1,9 +1,11 @@
+mod admission;
 mod archive;
 mod generator;
 mod machine;
 mod path;
 mod projection;
 mod template;
+mod transport;
 
 use model::construction::Construction;
 use model::context;

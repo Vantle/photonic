@@ -12,6 +12,10 @@ pub enum Failure {
     Generator,
     Site,
     Source,
+    Owner {
+        world: crate::world::Identity,
+        context: crate::context::Identity,
+    },
     State(usize),
     Witness(crate::occurrence::Identity),
     Lineage {
