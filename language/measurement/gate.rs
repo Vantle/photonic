@@ -33,10 +33,11 @@ pub fn run() -> Vec<Measurement> {
                     if !reused {
                         store.evict();
                     }
-                    let mut gate = Gate::new(&pattern);
-                    if shared {
-                        gate.share(&store);
-                    }
+                    let mut gate = if shared {
+                        Gate::shared(&pattern, &store)
+                    } else {
+                        Gate::new(&pattern)
+                    };
                     for position in 0..width {
                         gate.enqueue(Slot {
                             world: position + usize::from(position + 1 == width) * (iteration % 2),

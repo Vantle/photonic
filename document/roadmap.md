@@ -34,7 +34,7 @@ Before changing scheduling or accounting, specify which progress details are ext
 | Context | Capture-sensitive prefix keys, capture-free input identity and bounded weak reuse of canonical environments | Broader contextual specialization with explicit boundary dependencies |
 | Candidate | Shared exact filters, dependency summaries, eligible insertions, and incremental candidate snapshots in `candidate/`; indexed eligibility and bounded shared immutable preparation | Share consumer occurrence storage; immutable exhaustive preparation is now shared |
 | Binding | Bounded replay, surviving leaf factors, projected multilevel fragment retraction and shared immutable unfinished prefix snapshots | Cross-plan partitions, persistent record-level traces and efficient continuation checkpoints; binding payload links now share immutable child selections |
-| Proof query | `runtime/table.rs` shares exact queries; `selection/` interns captured patterns and shares bounded immutable preparation | Share multi-particle query fragments while preserving consumer-specific gates and projection |
+| Proof query | `runtime/table.rs` shares exact queries; `selection/` interns captured patterns and shares bounded immutable preparation; `gate/` reuses exact abstract assignment decisions | Share multi-particle query fragments while preserving consumer-specific gates and projection |
 | Rewrite | `recipe.rs` compiles output construction | Reuse parameterized construction with explicit boundary dependencies |
 | History | Persistent state, exact provenance, incremental capture reachability, grounded support and shared identity compositions | Broader contextual construction; bounded nonidentity union reuse now exists, while causal representation remains research |
 

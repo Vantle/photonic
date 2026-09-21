@@ -25,7 +25,7 @@ The cache interns that abstract sequence incrementally. Its key is the canonical
 
 This permits sharing across queries and even across snapshots without identifying their live occurrences: only a pure integer predicate is reused. Two class-number sequences can share a decision only when the equality comparisons along that entire keyed sequence are identical. No cached token or proof crosses the boundary.
 
-Admission starts at 512 inputs. A 128-input cold control regressed in the experiment and is excluded. Focused repeated 512-input and 2,048-input gates improve approximately 4.1× and 10.5×, including construction and exact binding reconstruction. Cold large controls remain competitive. Small gates retain private traversal. The store is bounded independently of preparation storage and is included in the runtime's aggregate record count.
+Admission starts at 512 inputs. A 128-input cold control regressed in the experiment and is excluded. Focused repeated 512-input and 2,048-input gates improve approximately 4.0× and 10.9×, including construction and exact binding reconstruction. Cold large controls remain competitive. Small gates retain private traversal. The store is bounded independently of preparation storage and is included in the runtime's aggregate record count.
 
 Eviction clears the cache and advances its generation. Old handles cannot refer to new entries. A stale, saturated or unadmitted parent falls back to the original scan; it is never mistaken for an empty prefix. Runtime record pressure also drops per-query cache handles. Every attempted extension still consumes exactly one gate step. This shares compatibility work beneath exhaustive consumers; it is not a shared mutable gate or a general incremental joined-result relation.
 
@@ -41,7 +41,7 @@ The executor still returns results in input order. The runtime still advances ea
 
 Configured parallel execution now requires at least two substantial normalization tasks and at least 8,192 estimated world visits in a batch. Tiny search steps do not pay a worker handoff merely because multiple workers were configured. The initial estimate deliberately covers the measured normalization workload; it is not an automatic hardware optimizer.
 
-The native sweep runs three successive normalization steps for 32 independent states. Four workers improve the measured 256- and 4,096-world batches about 3.4×. Small batches select serial execution. Construction and result validation occur outside these batch timings; this is not an end-to-end program speedup claim.
+The native sweep runs three successive normalization steps for 32 independent states. Four workers improve the measured 256- and 4,096-world batches about 2.8–3.5×. Small batches select serial execution. Construction and result validation occur outside these batch timings; this is not an end-to-end program speedup claim.
 
 ## Historical differential verification
 
@@ -58,3 +58,25 @@ General residual assignment pruning has not been enabled. A Hall-style rejection
 The implementation already has global assignment feasibility, capacity rejection before preparation, exact cached negative transcripts and waiting-span batching. The new gate cache further shares exact residual compatibility decisions without deleting steps. A stronger first-visit pruning algorithm still needs a cheap exact progress certificate; adding an unproven shortcut would contradict the preserved budget contract.
 
 Other research boundaries remain explicit: arbitrary row-level incremental joins, complete persistent trace DAGs, parameterized contextual rewrite templates, and causal-history reduction. Binding payload links do not imply that all record headers are persistent. A union cache does not prove arbitrary contextual construction reusable. Inspectable competing histories cannot be discarded based only on equal terminal values. These are research tracks with additional equivalence requirements, not disabled language features or reasons to begin GPU work.
+
+## Integrated acceptance
+
+The [raw audit](cpu.json) preserves three alternating rounds against `8c68ad69196f77c2601d294ac5c23b13505f2175`, source hashes, all samples, power/sleep checks, focused fixtures and rejected code-generation experiments. The complete matrix is measured at `bf48e5f`; the subsequent constructor-only API tightening is recorded with its own three-round targeted audit, which also passes the stated performance gates. Gate sharing can only be attached during construction, so partially running gates cannot acquire misaligned cache handles.
+
+| Workload | Before | After | Interpretation |
+| --- | ---: | ---: | --- |
+| Six factors of two | 66.47 ms | 65.33 ms | Essentially unchanged |
+| Ten-digit decimal addition | 202.02 ms | 204.85 ms | Essentially unchanged |
+| Five-digit decimal multiplication | 222.13 ms | 223.75 ms | Essentially unchanged |
+| 4,096-frame lexical maintenance | — | — | 8.9× faster |
+| Immutable trace snapshots | — | — | 3.3–55.9× faster |
+| Parent binding composition | — | — | 1.1–10.8× faster |
+| Repeated wide gate decisions | — | — | 4.0–10.9× faster |
+| Repeated provenance unions | — | — | 2.0–2.1× faster |
+| Large normalization batches, four workers | — | — | 2.8–3.5× faster |
+
+Focused gate, union and CPU-admission ratios compare enabled and disabled paths in the same native build. Lexical and trace-storage comparisons use the named historical baselines. No cumulative multiplier is inferred from these figures.
+
+The final full matrix has no pooled regression beyond its predeclared 5% protected-workload or 10% submillisecond tolerances. Larger individual-round outliers remain in the raw data. The initial integrated candidate regressed cold joins by approximately 13%; making the direct cursor boundary inlineable restored all six join controls to baseline or better. Outlining plan selection and inlining factor cursor wrappers did not resolve that regression and were reverted. The intermediate trace-payload negative-preparation regression also no longer reproduces beyond tolerance in the integrated build.
+
+Validation passes all 107 optimized Bazel test targets, 201 debug kernel tests, formatting/lint checks, native/WebAssembly conformance and 619 generated historical budgeted observations. The constructor refinement passes the full suite again. Linux Buildkite verification also passes on the implementation revision; final publication is subject to the protected branch checks on the submitted head. These checks cover the shipped syntax and current dynamic executable occurrences. They do not turn the separate structural rule-generation proposal into an implemented language feature, or establish a universal absence of kernel bugs.

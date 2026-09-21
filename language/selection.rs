@@ -52,14 +52,16 @@ impl Selection {
         if self.pattern.len() <= 1 {
             return None;
         }
-        let mut gate =
-            crate::gate::Gate::new(self.order.iter().map(|&position| &self.pattern[position]));
-        if crate::gate::Store::eligible(self.pattern.len())
-            && let Some(shared) = &self.shared
-        {
-            gate.share(shared.gate());
-        }
-        Some(gate)
+        let pattern = self.order.iter().map(|&position| &self.pattern[position]);
+        Some(
+            if crate::gate::Store::eligible(self.pattern.len())
+                && let Some(shared) = &self.shared
+            {
+                crate::gate::Gate::shared(pattern, shared.gate())
+            } else {
+                crate::gate::Gate::new(pattern)
+            },
+        )
     }
 
     pub(crate) fn prepare(

@@ -57,10 +57,15 @@ impl Gate {
         }
     }
 
-    pub(crate) fn share(&mut self, store: &std::sync::Arc<Store>) {
-        if Store::eligible(self.group.len()) {
-            self.shared = Some(sharing::Sharing::new(store.clone()));
+    pub(crate) fn shared<Value: AsRef<[Term]>>(
+        pattern: impl IntoIterator<Item = Value>,
+        store: &std::sync::Arc<Store>,
+    ) -> Self {
+        let mut gate = Self::new(pattern);
+        if Store::eligible(gate.group.len()) {
+            gate.shared = Some(sharing::Sharing::new(store.clone()));
         }
+        gate
     }
 
     pub(crate) fn evict(&mut self) {

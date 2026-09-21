@@ -17,8 +17,7 @@ fn sharing() {
             })
             .collect::<Vec<_>>();
         let mut private = Gate::new(&pattern);
-        let mut shared = Gate::new(&pattern);
-        shared.share(&store);
+        let mut shared = Gate::shared(&pattern, &store);
         for position in 0..512 {
             let slot = Slot {
                 world: position,
@@ -62,8 +61,7 @@ fn saturation() {
         let pattern = (0..512)
             .map(|position| vec![Term::new(Symbol::Atom(position), None)])
             .collect::<Vec<_>>();
-        let mut gate = Gate::new(&pattern);
-        gate.share(&store);
+        let mut gate = Gate::shared(&pattern, &store);
         let mut count = 0;
         for position in 0..512 {
             gate.enqueue(Slot {
