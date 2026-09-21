@@ -18,7 +18,10 @@ pub struct Measurement {
     peak: usize,
 }
 
-pub(super) fn run(program: &Program, state: &[(Arc<State>, Change)]) -> Measurement {
+pub(super) fn run<const SCALAR: bool>(
+    program: &Program,
+    state: &[(Arc<State>, Change)],
+) -> Measurement {
     let mut index = Index::new(Arc::new(State::initial(program)));
     let input = Input::shared(&program.rule[0].input, &mut Default::default());
     let store = Arc::new(Store::new(65536));
@@ -38,6 +41,9 @@ pub(super) fn run(program: &Program, state: &[(Arc<State>, Change)]) -> Measurem
         join.update(&index);
         join.reset(&index);
         loop {
+            if !SCALAR {
+                work += join.skip(usize::MAX);
+            }
             work += 1;
             match black_box(join.step(&index)) {
                 Poll::Ready(None) => break,

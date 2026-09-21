@@ -15,6 +15,7 @@ pub struct Configuration {
     pub productive: bool,
     pub alternating: bool,
     pub sample: usize,
+    pub scalar: bool,
 }
 
 pub fn run(configuration: Configuration) -> Vec<maintenance::Measurement> {
@@ -88,12 +89,19 @@ pub fn run(configuration: Configuration) -> Vec<maintenance::Measurement> {
             )
         })
         .collect::<Vec<_>>();
+    let evaluate = || {
+        if configuration.scalar {
+            maintenance::run::<true>(&program, &state)
+        } else {
+            maintenance::run::<false>(&program, &state)
+        }
+    };
     let start = Instant::now();
     while start.elapsed() < Duration::from_millis(100) {
-        black_box(maintenance::run(&program, &state));
+        black_box(evaluate());
     }
     let measurement = (0..configuration.sample)
-        .map(|_| maintenance::run(&program, &state))
+        .map(|_| evaluate())
         .collect::<Vec<_>>();
     let expected = if configuration.productive {
         configuration.count

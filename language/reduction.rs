@@ -27,6 +27,15 @@ pub(crate) struct Search {
 }
 
 impl Search {
+    pub(crate) fn skip(&mut self, maximum: usize) -> usize {
+        if !self.initialized || !self.pending.is_empty() {
+            return 0;
+        }
+        let count = self.network.skip(maximum);
+        self.work += count;
+        count
+    }
+
     pub(crate) fn new(program: Arc<Program>, state: Arc<State>) -> Self {
         let index = crate::index::Index::new(state.clone());
         let recipe = program

@@ -16,6 +16,10 @@ mod stream;
 mod trace;
 mod tree;
 
+#[cfg(test)]
+#[path = "test/batch.rs"]
+mod batch;
+
 pub(crate) use store::Store;
 
 use crate::index::Index;
@@ -70,6 +74,30 @@ pub(crate) struct Join {
 }
 
 impl Join {
+    pub fn waiting(&self) -> usize {
+        if self.complete {
+            return 0;
+        }
+        match &self.traversal {
+            Traversal::Direct(_) => 0,
+            Traversal::Factored(product) => product.waiting(),
+            Traversal::Partitioned(product) => product.waiting(),
+            Traversal::Layered(product) => product.waiting(),
+        }
+    }
+
+    pub fn skip(&mut self, maximum: usize) -> usize {
+        if self.complete {
+            return 0;
+        }
+        match &mut self.traversal {
+            Traversal::Direct(_) => 0,
+            Traversal::Factored(product) => product.skip(maximum),
+            Traversal::Partitioned(product) => product.skip(maximum),
+            Traversal::Layered(product) => product.skip(maximum),
+        }
+    }
+
     #[cfg(test)]
     pub fn new(pattern: Arc<Vec<Vec<Term>>>, index: &Index, frame: usize) -> Self {
         Self::construct(Space::new(pattern, index, frame, None, None), index)

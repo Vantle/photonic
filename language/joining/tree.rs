@@ -168,6 +168,18 @@ impl Tree {
 }
 
 impl Prefix for Tree {
+    fn waiting(&self) -> usize {
+        self.playback
+            .as_ref()
+            .map_or(0, |replay| replay.playback.waiting(&replay.active.trace))
+    }
+
+    fn skip(&mut self, maximum: usize) -> usize {
+        self.playback.as_mut().map_or(0, |replay| {
+            replay.playback.skip(&replay.active.trace, maximum)
+        })
+    }
+
     fn reset(&mut self, _: &Index) {
         if let Some(replay) = self.playback.take() {
             self.layer[replay.position].restore(replay.active);

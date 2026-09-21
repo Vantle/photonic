@@ -11,6 +11,7 @@ pub struct Configuration {
     pub length: usize,
     pub sample: usize,
     pub productive: bool,
+    pub scalar: bool,
 }
 
 pub fn run(configuration: Configuration) -> Vec<maintenance::Measurement> {
@@ -46,12 +47,19 @@ pub fn run(configuration: Configuration) -> Vec<maintenance::Measurement> {
             )
         })
         .collect::<Vec<_>>();
+    let evaluate = || {
+        if configuration.scalar {
+            maintenance::run::<true>(&program, &state)
+        } else {
+            maintenance::run::<false>(&program, &state)
+        }
+    };
     let start = Instant::now();
     while start.elapsed() < Duration::from_millis(100) {
-        black_box(maintenance::run(&program, &state));
+        black_box(evaluate());
     }
     let measurement = (0..configuration.sample)
-        .map(|_| maintenance::run(&program, &state))
+        .map(|_| evaluate())
         .collect::<Vec<_>>();
     let combination = (0..8).fold(1, |count, position| {
         count * (configuration.width - position) / (position + 1)

@@ -133,6 +133,20 @@ impl Stream {
 }
 
 impl super::prefix::Prefix for Stream {
+    fn waiting(&self) -> usize {
+        match &self.mode {
+            Mode::Recording(cache) => cache.playback.waiting(&cache.trace),
+            _ => 0,
+        }
+    }
+
+    fn skip(&mut self, maximum: usize) -> usize {
+        match &mut self.mode {
+            Mode::Recording(cache) => cache.playback.skip(&cache.trace, maximum),
+            _ => 0,
+        }
+    }
+
     fn reset(&mut self, index: &Index) {
         if let Mode::Recording(cache) = &mut self.mode {
             cache.playback = Playback::default();

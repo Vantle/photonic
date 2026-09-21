@@ -12,7 +12,20 @@ pub(super) fn compare(
     index: &Index,
     length: usize,
 ) -> bool {
-    for _ in 0..length {
+    let mut remaining = length;
+    while remaining > 0 {
+        let retained = actual.retained();
+        let skipped = actual.skip(remaining.min(1 + remaining % 31));
+        assert!(skipped <= remaining);
+        assert_eq!(actual.retained(), retained);
+        for _ in 0..skipped {
+            assert_eq!(expected.step(index), Poll::Pending);
+        }
+        remaining -= skipped;
+        if remaining == 0 {
+            break;
+        }
+        remaining -= 1;
         let result = actual.step(index);
         assert_eq!(result, expected.step(index));
         assert_eq!(actual.retained(), actual.size());

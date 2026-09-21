@@ -19,6 +19,8 @@ struct Argument {
     productive: bool,
     #[arg(long)]
     alternating: bool,
+    #[arg(long)]
+    scalar: bool,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -40,12 +42,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             sample: argument.sample.get(),
             productive: argument.productive,
             alternating: argument.alternating,
+            scalar: argument.scalar,
         });
     serde_json::to_writer_pretty(
         std::io::stdout().lock(),
         &serde_json::json!({
             "depth": argument.depth, "width": argument.width, "count": argument.count, "replacement": argument.replacement,
-            "length": argument.length, "productive": argument.productive, "alternating": argument.alternating, "measurement": measurement,
+            "length": argument.length, "productive": argument.productive, "alternating": argument.alternating, "scalar": argument.scalar, "measurement": measurement,
         }),
     )?;
     Ok(())

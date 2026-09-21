@@ -35,6 +35,7 @@ rust_test(
         "test/agenda.rs",
         "test/assignment.rs",
         "test/basis.rs",
+        "test/batch.rs",
         "test/binary.rs",
         "test/candidate.rs",
         "test/collision.rs",

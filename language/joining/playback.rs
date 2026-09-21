@@ -10,6 +10,30 @@ pub(super) struct Playback {
 }
 
 impl Playback {
+    pub fn waiting(&self, trace: &Trace) -> usize {
+        if self.waiting > 0 {
+            return self.waiting;
+        }
+        match trace.record.get(self.cursor) {
+            Some(Record::Waiting(count)) => *count,
+            _ => 0,
+        }
+    }
+
+    pub fn skip(&mut self, trace: &Trace, maximum: usize) -> usize {
+        let available = self.waiting(trace);
+        let count = available.min(maximum);
+        if count == 0 {
+            return 0;
+        }
+        if self.waiting == 0 {
+            self.cursor += 1;
+        }
+        self.waiting = available - count;
+        self.progress += count;
+        count
+    }
+
     pub fn seek(&mut self, trace: &Trace, progress: usize) {
         *self = Self::default();
         self.progress = progress;

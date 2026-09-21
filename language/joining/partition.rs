@@ -145,6 +145,20 @@ impl Partition {
 }
 
 impl super::prefix::Prefix for Partition {
+    fn waiting(&self) -> usize {
+        self.active
+            .as_ref()
+            .filter(|active| active.trace.complete)
+            .map_or(0, |active| self.playback.waiting(&active.trace))
+    }
+
+    fn skip(&mut self, maximum: usize) -> usize {
+        self.active
+            .as_ref()
+            .filter(|active| active.trace.complete)
+            .map_or(0, |active| self.playback.skip(&active.trace, maximum))
+    }
+
     fn reset(&mut self, _: &Index) {
         self.finish();
         self.source.reset();

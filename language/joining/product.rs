@@ -11,6 +11,22 @@ pub(super) struct Product<Prefix> {
 }
 
 impl<Prefix: super::prefix::Prefix> Product<Prefix> {
+    pub fn waiting(&self) -> usize {
+        if self.active {
+            0
+        } else {
+            self.prefix.waiting()
+        }
+    }
+
+    pub fn skip(&mut self, maximum: usize) -> usize {
+        if self.active {
+            0
+        } else {
+            self.prefix.skip(maximum)
+        }
+    }
+
     pub fn new(prefix: Prefix) -> Self {
         Self {
             prefix,
