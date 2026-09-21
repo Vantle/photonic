@@ -30,6 +30,18 @@ The first suite checks arbitrary role/payload spelling, construction from inspec
 
 Host-driven generation demonstrates that the model representation can grow new structures. It does not establish an object-language generator, generated generators, native structural execution or a collection library. The present operations are atomic reference functions; they do not yet establish resumable construction or hard memory bounds. No universal preservation proof is claimed from finite tests.
 
+## Binding and templates
+
+Scope allocates typed slots with a nominal lexical owner and a unique position within that scope. Literal atoms never become references by convention. Binding stores immutable fragments under slots of one structural sort; immutable nested environments retain access to ancestor slots, reject attempts to bind an ancestor from a child, and reject reuse of an active scope identity. Rebinding an occupied slot is an error. A reference to a missing slot or inaccessible scope produces a structured failure.
+
+Templates distinguish literal construction from references at each supported sort: value, particle, input, output and body. Building a rule or body uses the current construction context. Substituting a captured rule or body retains its original context and evidence. Every reference is checked against the current construction history before insertion. The output type contains only closed structures, so an unresolved reference cannot be returned as executable code.
+
+The template suite checks unknown roles and contextual payloads, administrative renaming of binder scope identities, ancestor access and child isolation, duplicate binding rejection, missing external references, all supported structural sorts, body capture retention and history rejection on substitution. Repeated substitution preserves syntax multiplicity without manufacturing distinct source reads. One fixed template wraps increasing depth through 32 host-driven instantiations. Generated object-language binding forms and resumable template evaluation remain unfinished.
+
+## Verification
+
+The foundation and template increments pass all 19 model tests through `bazel test -c opt //model:test`, including the 729-pair history matrix inside one test. The build runs Rustfmt, Clippy and Bazel checks. `bazel test -c opt //...` reports all 108 repository test targets passing using valid cached results, including the newly executed model suite. This is local native build evidence; it is not a new cross-platform run, a benchmark, or native/WebAssembly structural conformance.
+
 ## Next work
 
-Add scoped typed structural bindings with explicit missing-binding and scope failures, then contextual templates and a small resumable construction machine. Exercise generated binders without allowing external unresolved bindings to become executable. Extend the reference with concrete application and source-inference projection before selecting production syntax or claiming mixed-capture execution conformance. Native and WebAssembly integration must compare against the model on the actual shared semantic domain.
+Add a small resumable construction machine and generated binder forms without allowing external unresolved bindings to become executable. Extend the reference with concrete application and source-inference projection before selecting production syntax or claiming mixed-capture execution conformance. Native and WebAssembly integration must compare against the model on the actual shared semantic domain.

@@ -32,7 +32,7 @@ impl Construction {
         }
     }
 
-    fn accept<Item>(&self, value: Fragment<Item>) -> Result<Fragment<Item>, Failure> {
+    pub(crate) fn accept<Item>(&self, value: Fragment<Item>) -> Result<Fragment<Item>, Failure> {
         self.history.permits(&value.evidence.history)?;
         let mut evidence = self.evidence();
         evidence.append(value.evidence);

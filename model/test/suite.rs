@@ -1,3 +1,5 @@
+mod template;
+
 use model::construction::Construction;
 use model::context;
 use model::failure::Failure;

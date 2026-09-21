@@ -1,8 +1,19 @@
 use crate::history;
+use crate::scope;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Failure {
+    Capacity,
     Rule,
+    Scope(scope::Identity),
+    Binding {
+        scope: scope::Identity,
+        position: usize,
+    },
+    Occupied {
+        scope: scope::Identity,
+        position: usize,
+    },
     History {
         identity: history::Identity,
         expected: history::Branch,
