@@ -59,6 +59,7 @@ pub(super) struct Table {
     active: HashSet<usize>,
     binding: usize,
     retained: usize,
+    preparation: Option<Arc<crate::selection::Store>>,
 }
 
 impl Table {
@@ -68,7 +69,14 @@ impl Table {
             cache
         } else {
             let cache = self.cache.len();
-            let search = Search::new(key.pattern.clone(), index, key.frame);
+            let search = if key.pattern.iter().any(|particle| particle.len() >= 8) {
+                let store = self
+                    .preparation
+                    .get_or_insert_with(|| Arc::new(crate::selection::Store::new(65_536)));
+                Search::shared(key.pattern.clone(), index, key.frame, store)
+            } else {
+                Search::new(key.pattern.clone(), index, key.frame)
+            };
             let viable = search.viable();
             let retained = if viable { search.retained() } else { 0 };
             self.retained += retained;
@@ -151,6 +159,23 @@ impl Table {
     }
 
     pub fn retained(&self) -> usize {
-        self.request.len() + self.cache.len() + self.binding + self.retained
+        self.request.len()
+            + self.cache.len()
+            + self.binding
+            + self.retained
+            + self
+                .preparation
+                .as_ref()
+                .map_or(0, |store| store.retained())
+    }
+
+    pub fn evict(&self) {
+        if let Some(store) = &self.preparation {
+            store.evict();
+        }
     }
 }
+
+#[cfg(test)]
+#[path = "../test/table.rs"]
+mod test;

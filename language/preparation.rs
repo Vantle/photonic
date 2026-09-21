@@ -1,14 +1,14 @@
+pub(crate) mod cache;
 mod key;
 
 use crate::factor::Budget;
-use crate::particle::{Match, Preparation};
+use crate::particle::Match;
 use crate::pattern::Pattern;
-use crate::reservation::Reservation;
+use crate::program::Symbol;
 use crate::state::World;
-use key::Key;
-use std::collections::HashMap;
+use cache::Cache;
+use std::sync::Arc;
 use std::sync::atomic::AtomicUsize;
-use std::sync::{Arc, Mutex};
 
 pub(crate) struct Request<'a> {
     pub pattern: &'a Arc<Pattern>,
@@ -16,58 +16,41 @@ pub(crate) struct Request<'a> {
     pub owner: usize,
 }
 
-struct Entry {
-    preparation: Arc<Preparation>,
-    _reservation: Reservation,
-}
-
-pub(crate) struct Store {
-    budget: Arc<Budget>,
-    accounting: Arc<AtomicUsize>,
-    entry: Mutex<HashMap<Key, Entry>>,
-}
+pub(crate) struct Store(Cache<Pattern>);
 
 impl Store {
     pub fn new(budget: Arc<Budget>, accounting: Arc<AtomicUsize>) -> Self {
-        Self {
-            budget,
-            accounting,
-            entry: Mutex::new(HashMap::new()),
-        }
+        Self(Cache::new(budget, accounting))
     }
 
     pub fn select(&self, request: Request<'_>) -> Match {
-        let key = Key::new(&request);
-        let mut entry = self.entry.lock().unwrap();
-        if let Some(entry) = entry.get(&key) {
-            return Match::from(entry.preparation.clone());
-        }
-        let search = Match::prepared(
-            request.pattern,
-            Some(request.owner),
-            &request.world.particle,
-        );
-        let preparation = search.preparation();
-        let retained = preparation.retained() + 4;
-        let reservation =
-            Reservation::new(&self.budget, &self.accounting, retained).or_else(|| {
-                entry.retain(|key, _| key.alive());
-                Reservation::new(&self.budget, &self.accounting, retained)
-            });
-        if let Some(reservation) = reservation {
-            entry.insert(
-                key,
-                Entry {
-                    preparation,
-                    _reservation: reservation,
+        self.0.select(
+            cache::Request {
+                identity: request.pattern,
+                world: request.world,
+                context: if request
+                    .pattern
+                    .group
+                    .iter()
+                    .any(|group| matches!(group.value, Symbol::Rule(_)))
+                {
+                    request.owner
+                } else {
+                    0
                 },
-            );
-        }
-        search
+            },
+            || {
+                Match::prepared(
+                    request.pattern,
+                    Some(request.owner),
+                    &request.world.particle,
+                )
+            },
+        )
     }
 
     pub fn evict(&self) {
-        self.entry.lock().unwrap().clear();
+        self.0.evict();
     }
 }
 

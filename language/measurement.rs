@@ -1,5 +1,6 @@
 pub mod context;
 pub mod dispatch;
+pub mod exhaustive;
 pub mod joining;
 pub mod maintenance;
 pub mod partition;

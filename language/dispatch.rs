@@ -276,6 +276,7 @@ impl Network {
         self.reset(index);
     }
 
+    #[inline]
     pub fn next(&mut self, index: &Index) -> Poll<Option<Delivery>> {
         #[cfg(feature = "measurement")]
         let _measurement =
@@ -312,6 +313,7 @@ impl Network {
         previous - self.storage - self.sharing.retained()
     }
 
+    #[inline]
     pub fn retained(&self) -> usize {
         self.retained
             + self.sharing.retained()

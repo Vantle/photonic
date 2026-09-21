@@ -66,6 +66,7 @@ impl Search {
                 .sum::<usize>()
     }
 
+    #[inline]
     pub(crate) fn record(&self) -> usize {
         self.pending
             .iter()

@@ -1,4 +1,4 @@
-use super::trace::{Record, Trace};
+use super::trace::{Record, Selection, Trace};
 use crate::slot::Slot;
 use std::task::Poll;
 
@@ -50,23 +50,26 @@ impl Playback {
             }
             Record::Binding(binding) => {
                 self.cursor += 1;
-                Poll::Ready(Some(
-                    prefix
-                        .iter()
-                        .cloned()
-                        .chain(
-                            binding
-                                .iter()
-                                .enumerate()
-                                .map(|(position, selection)| Slot {
-                                    world: selection.site,
-                                    position: order[prefix.len() + position],
-                                    token: selection.token.clone(),
-                                }),
-                        )
-                        .collect(),
-                ))
+                Poll::Ready(Some(Self::binding(binding, order, prefix)))
             }
         })
+    }
+
+    #[inline(never)]
+    fn binding(binding: &[Selection], order: &[usize], prefix: &[Slot]) -> Vec<Slot> {
+        prefix
+            .iter()
+            .cloned()
+            .chain(
+                binding
+                    .iter()
+                    .enumerate()
+                    .map(|(position, selection)| Slot {
+                        world: selection.site,
+                        position: order[prefix.len() + position],
+                        token: selection.token.clone(),
+                    }),
+            )
+            .collect()
     }
 }

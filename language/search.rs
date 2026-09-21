@@ -60,6 +60,17 @@ impl Search {
         }
     }
 
+    pub(crate) fn shared(
+        pattern: Vec<Vec<Term>>,
+        index: Arc<crate::index::Index>,
+        frame: usize,
+        store: &Arc<crate::selection::Store>,
+    ) -> Self {
+        let selection =
+            crate::selection::Selection::shared(Arc::new(pattern), &index, frame, store);
+        Self::prepared(Arc::new(selection), index)
+    }
+
     pub(crate) fn viable(&self) -> bool {
         self.selection.viable
     }
@@ -116,7 +127,7 @@ impl Search {
             self.position = position;
             self.particle = Some(self.selection.prepare(
                 self.selection.order[position],
-                &self.index.state.world[world].particle,
+                &self.index.state.world[world],
             ));
         }
         let particle = self.particle.as_mut().unwrap();

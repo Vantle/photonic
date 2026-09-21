@@ -412,3 +412,32 @@ rust_binary(
         "@crate//:serde_json",
     ],
 )
+
+rust_binary(
+    name = "exhaustive",
+    srcs = ["exhaustive.rs"],
+    crate_root = "exhaustive.rs",
+    lint_config = "//:lint",
+    deps = [
+        "//language:measurement",
+        "@crate//:clap",
+        "@crate//:serde_json",
+    ],
+)
+
+rust_binary(
+    name = "traversal",
+    srcs = [
+        "evaluation.rs",
+        "prefix.rs",
+    ],
+    crate_features = ["measurement"],
+    crate_root = "prefix.rs",
+    lint_config = "//:lint",
+    deps = [
+        "//language:measurement",
+        "@crate//:clap",
+        "@crate//:serde",
+        "@crate//:serde_json",
+    ],
+)

@@ -252,6 +252,7 @@ impl Join {
         domain.iter().all(|domain| !domain.is_empty()) && crate::assignment::feasible(&domain)
     }
 
+    #[inline]
     pub fn step(&mut self, index: &Index) -> Poll<Option<Vec<Slot>>> {
         if self.complete {
             return Poll::Ready(None);
