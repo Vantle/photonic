@@ -552,3 +552,101 @@ fn coalescence() {
     )
     .unwrap();
 }
+
+#[test]
+fn archive() {
+    let source = "Enter.Make.Call [Enter] ([A] Local, [Make] [Call] (A [Local] Done),) [A] Global";
+    let initial = super::program::build(source);
+    let step = request(
+        &initial,
+        super::declared(&initial, 0, "Enter"),
+        &[&["Enter"]],
+    );
+    let path = Path::new(initial).advance(Step::Application(step)).unwrap();
+    let step = request(
+        path.target(),
+        super::declared(path.target(), 1, "Make"),
+        &[&["Make"]],
+    );
+    let path = path.advance(Step::Application(step)).unwrap();
+    let world = path.target().world().next().unwrap();
+    let code = world
+        .occurrence
+        .iter()
+        .find(|value| matches!(value.value, Value::Rule(_)))
+        .unwrap();
+    let witness = model::admission::Witness {
+        state: 2,
+        world: world.identity,
+        occurrence: code.identity,
+    };
+    let construction = model::construction::Construction::new(
+        context::Identity(0),
+        path.target().history().clone(),
+    );
+    let value = construction.inspect(code).unwrap();
+    let step = Step::Introduction {
+        world: world.identity,
+        consumed: vec![code.identity],
+        value: construction.literal("Bridge"),
+    };
+    let path = path.advance(step).unwrap();
+    assert_eq!(path.target().frame().count(), 1);
+    let world = path.target().world().next().unwrap();
+    let bridge = world
+        .occurrence
+        .iter()
+        .find(|value| value.value == Value::Atom("Bridge".into()))
+        .unwrap()
+        .identity;
+    let step = Step::Historical(model::admission::Request {
+        world: world.identity,
+        consumed: vec![bridge],
+        value,
+        witness: vec![witness],
+    });
+    let path = path.advance(step).unwrap();
+    let world = path.target().world().next().unwrap();
+    let code = world
+        .occurrence
+        .iter()
+        .find(|value| matches!(value.value, Value::Rule(_)))
+        .unwrap();
+    let called = super::step(
+        path.target(),
+        Code::Local {
+            world: world.identity,
+            occurrence: code.identity,
+        },
+        "Call",
+    );
+    let local = super::step(&called.target, super::declared(&called.target, 2, "A"), "A");
+    let done = super::step(
+        &local.target,
+        super::declared(&local.target, 3, "Local"),
+        "Local",
+    );
+    let report = super::native(source, "Missing");
+    let witness = report
+        .state
+        .iter()
+        .find(|state| {
+            state
+                .world
+                .iter()
+                .any(|world| world.particle.iter().any(|token| token.label == "Done"))
+        })
+        .unwrap();
+    super::compare(&done.target, witness);
+    assert_eq!(
+        path.record()[3].archive[&context::Identity(2)].context,
+        context::Identity(1)
+    );
+    assert_eq!(path.record()[3].archive[&context::Identity(2)].state, 2);
+    assert_eq!(done.target.frame().count(), 2);
+    assert!(
+        done.target
+            .world()
+            .all(|world| world.context == context::Identity(0))
+    );
+}

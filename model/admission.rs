@@ -24,6 +24,9 @@ pub struct Request {
 }
 
 pub(crate) fn apply(path: &Path, request: &Request) -> Result<introduction::Event, Failure> {
+    path.target()
+        .history
+        .permits(request.value.evidence().history())?;
     let mut supplied = BTreeMap::new();
     for &witness in &request.witness {
         if supplied.insert(witness.occurrence, witness).is_some() {
@@ -78,11 +81,36 @@ pub(crate) fn apply(path: &Path, request: &Request) -> Result<introduction::Even
     if let Some((&identity, _)) = supplied.first_key_value() {
         return Err(Failure::Witness(identity));
     }
-    introduction::publish(
-        path.target(),
-        request.world,
-        &request.consumed,
-        &request.value,
-        read,
-    )
+    let mut target = path.target().clone();
+    let mut flow = crate::flow::Flow::identity(path.target());
+    let archive = crate::archive::restore(
+        path,
+        request.value.evidence().context(),
+        &mut target,
+        &mut flow,
+    )?;
+    let value = crate::activation::rename(request.value.value().clone(), &|identity| {
+        Ok(archive.frame[&identity])
+    })?;
+    let context = request
+        .value
+        .evidence()
+        .context()
+        .iter()
+        .map(|identity| archive.frame[identity])
+        .collect();
+    let mut event = introduction::publish(
+        introduction::Request {
+            state: path.target(),
+            world: request.world,
+            consumed: &request.consumed,
+            value: &value,
+            context: &context,
+            read,
+        },
+        target,
+        flow,
+    )?;
+    event.archive = archive.origin;
+    Ok(event)
 }

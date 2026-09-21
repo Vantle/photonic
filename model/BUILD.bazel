@@ -8,6 +8,7 @@ rust_library(
         "admission.rs",
         "allocation.rs",
         "application.rs",
+        "archive.rs",
         "argument.rs",
         "binding.rs",
         "configuration.rs",
@@ -45,6 +46,7 @@ rust_test(
     srcs = [
         "test/activation.rs",
         "test/application.rs",
+        "test/archive.rs",
         "test/declaration.rs",
         "test/flow.rs",
         "test/generator.rs",

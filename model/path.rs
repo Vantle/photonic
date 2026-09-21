@@ -6,7 +6,7 @@ use crate::fragment::Fragment;
 use crate::introduction;
 use crate::structure::Value;
 use crate::{context, occurrence, world};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Step {
@@ -30,6 +30,7 @@ pub struct Record {
     pub read: BTreeSet<Place>,
     pub consumed: BTreeSet<Place>,
     pub context: BTreeSet<context::Identity>,
+    pub archive: BTreeMap<context::Identity, crate::archive::Origin>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -80,7 +81,7 @@ impl Path {
     }
 
     pub fn advance(&self, step: Step) -> Result<Self, Failure> {
-        let (target, flow, read, consumed, context) = match &step {
+        let (target, flow, read, consumed, context, archive) = match &step {
             Step::Historical(request) => {
                 let event = crate::admission::apply(self, request)?;
                 (
@@ -89,6 +90,7 @@ impl Path {
                     event.read,
                     event.consumed,
                     event.context,
+                    event.archive,
                 )
             }
             Step::Inference { path, request } => {
@@ -103,6 +105,7 @@ impl Path {
                     event.read,
                     event.consumed,
                     BTreeSet::from([event.owner]),
+                    BTreeMap::new(),
                 )
             }
             Step::Application(request) => {
@@ -113,6 +116,7 @@ impl Path {
                     event.read,
                     event.consumed,
                     BTreeSet::from([event.owner]),
+                    BTreeMap::new(),
                 )
             }
             Step::Introduction {
@@ -127,6 +131,7 @@ impl Path {
                     event.read,
                     event.consumed,
                     event.context,
+                    event.archive,
                 )
             }
         };
@@ -145,6 +150,7 @@ impl Path {
             read,
             consumed,
             context,
+            archive,
         });
         Ok(Self {
             state,
