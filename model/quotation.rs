@@ -43,7 +43,7 @@ impl<'a> Quotation<'a> {
             }
         }
         let fragment = self.construction.accept(binding.resolve(slot)?)?;
-        self.evidence.append(fragment.evidence);
+        self.evidence.append(fragment.evidence)?;
         Ok(())
     }
 

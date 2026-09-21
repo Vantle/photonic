@@ -10,6 +10,7 @@ use photonic::path::{Report, Search};
 use photonic::prism::Outcome;
 use photonic::runtime::Limit;
 use std::collections::BTreeMap;
+use std::collections::BTreeSet;
 
 #[derive(Debug, Eq, PartialEq)]
 struct Observation {
@@ -464,3 +465,138 @@ fn escaping() {
     }
 }
 mod program;
+
+fn address(state: &Configuration, place: model::flow::Place) -> String {
+    match place {
+        model::flow::Place::World(identity, occurrence) => {
+            let (position, world) = state
+                .world()
+                .enumerate()
+                .find(|(_, world)| world.identity == identity)
+                .unwrap();
+            let value = &world
+                .occurrence
+                .iter()
+                .find(|value| value.identity == occurrence)
+                .unwrap()
+                .value;
+            let Value::Atom(label) = value else {
+                panic!("fixture requires atom labels")
+            };
+            format!("{position}:{label}")
+        }
+        model::flow::Place::Held(_, _) => panic!("fixture endpoints contain no held resource"),
+    }
+}
+
+fn label(state: &photonic::snapshot::Node, place: photonic::flow::Place) -> String {
+    match place {
+        photonic::flow::Place::World(position, occurrence) => {
+            let value = state.world[position]
+                .particle
+                .iter()
+                .find(|value| value.id == occurrence)
+                .unwrap();
+            format!("{position}:{}", value.label)
+        }
+        photonic::flow::Place::Held(_, _) => panic!("fixture endpoints contain no held resource"),
+    }
+}
+
+#[test]
+fn composition() {
+    let source = "A.Keep [A] (X [X] Y) [Y] Z";
+    let initial = program::build(source);
+    let entered = step(&initial, declared(&initial, 0, "A"), "A");
+    let returned = step(&entered.target, declared(&entered.target, 1, "X"), "X");
+    let finished = step(&returned.target, declared(&returned.target, 0, "Y"), "Y");
+    entered.flow.validate(&initial, &entered.target).unwrap();
+    returned
+        .flow
+        .validate(&entered.target, &returned.target)
+        .unwrap();
+    finished
+        .flow
+        .validate(&returned.target, &finished.target)
+        .unwrap();
+    let flow = entered
+        .flow
+        .compose(&returned.flow)
+        .unwrap()
+        .compose(&finished.flow)
+        .unwrap();
+    flow.validate(&initial, &finished.target).unwrap();
+    let expected = flow
+        .resource
+        .iter()
+        .map(|(&place, source)| {
+            (
+                address(&finished.target, place),
+                source
+                    .iter()
+                    .map(|&place| address(&initial, place))
+                    .collect::<BTreeSet<_>>(),
+            )
+        })
+        .collect::<BTreeMap<_, _>>();
+    assert_eq!(
+        expected,
+        BTreeMap::from([
+            ("0:Keep".into(), BTreeSet::from(["0:Keep".into()])),
+            ("0:Z".into(), BTreeSet::from(["0:A".into()]))
+        ])
+    );
+    let mut runtime = photonic::runtime::Runtime::new(parse(source).unwrap());
+    runtime.run(100_000, Some(Limit::default()));
+    let snapshot = runtime.snapshot();
+    assert!(snapshot.closed);
+    let target = snapshot
+        .state
+        .iter()
+        .find(|state| {
+            state.world.len() == 1
+                && state.world[0]
+                    .particle
+                    .iter()
+                    .any(|token| token.label == "Z")
+        })
+        .unwrap();
+    compare(&finished.target, target);
+    let context = flow
+        .context
+        .values()
+        .map(|source| {
+            source
+                .iter()
+                .map(|identity| identity.0 as usize)
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>();
+    let frame = flow
+        .frame
+        .values()
+        .map(|source| source.map(|identity| identity.0 as usize))
+        .collect::<Vec<_>>();
+    assert!(snapshot.view.iter().any(|view| {
+        if view.source != 0
+            || view.target != target.id
+            || view.status != photonic::support::Status::Supported
+        {
+            return false;
+        }
+        let actual = view
+            .resource
+            .iter()
+            .map(|link| {
+                (
+                    label(target, link.target),
+                    link.source
+                        .iter()
+                        .map(|&place| label(&snapshot.state[0], place))
+                        .collect::<BTreeSet<_>>(),
+                )
+            })
+            .collect::<BTreeMap<_, _>>();
+        actual == expected && view.context == context && view.frame == frame
+    }));
+}

@@ -77,7 +77,7 @@ fn supplied() {
     let result = construction.rule(input, output).unwrap();
     assert_eq!(result.value(), &rule(0, "Unseen", payload.value));
     assert_eq!(
-        result.evidence().read(),
+        &result.evidence().read(),
         &BTreeSet::from([Identity(1), Identity(2)])
     );
     assert_eq!(
@@ -98,7 +98,10 @@ fn reconstruction() {
         let inspection = construction.open(definition).unwrap();
         let result = construction.close(inspection).unwrap();
         assert_eq!(result.value(), &value);
-        assert_eq!(result.evidence().read(), &BTreeSet::from([Identity(depth)]));
+        assert_eq!(
+            &result.evidence().read(),
+            &BTreeSet::from([Identity(depth)])
+        );
         assert_eq!(
             result.evidence().context(),
             &(0..=depth)
@@ -206,7 +209,7 @@ fn capture() {
         ])
     );
     assert_eq!(
-        wrapper.evidence().read(),
+        &wrapper.evidence().read(),
         &BTreeSet::from([Identity(1), Identity(2)])
     );
     let Value::Rule(definition) = wrapper.value() else {
@@ -220,7 +223,7 @@ fn capture() {
     let fragment = construction.inspect(&left).unwrap();
     let copied = construction.particle([fragment.clone(), fragment]).unwrap();
     assert_eq!(copied.value().value().len(), 2);
-    assert_eq!(copied.evidence().read(), &BTreeSet::from([Identity(1)]));
+    assert_eq!(&copied.evidence().read(), &BTreeSet::from([Identity(1)]));
 }
 
 #[test]
@@ -274,7 +277,7 @@ fn replacement() {
         .unwrap();
     let result = construction.close(inspection).unwrap();
     assert_eq!(result.value(), &rule(1, "A", Value::Atom("New".into())));
-    assert_eq!(result.evidence().read(), &BTreeSet::from([Identity(4)]));
+    assert_eq!(&result.evidence().read(), &BTreeSet::from([Identity(4)]));
     assert_eq!(occurrence, original);
 }
 
@@ -298,7 +301,7 @@ fn origin() {
         inspection.output = root.output([]).unwrap();
         if same {
             let value = construction.close(inspection).unwrap();
-            assert_eq!(value.evidence().read(), &BTreeSet::from([Identity(4)]));
+            assert_eq!(&value.evidence().read(), &BTreeSet::from([Identity(4)]));
             assert!(value.evidence().context().contains(&context::Identity(1)));
         } else {
             assert_eq!(
@@ -416,3 +419,5 @@ fn generation() {
 mod activation;
 mod application;
 mod declaration;
+mod flow;
+mod introduction;

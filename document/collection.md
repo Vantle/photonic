@@ -57,10 +57,10 @@ The reference model first establishes exact structural sorts, contextual reconst
 
 ## Queue
 
-The [independent model](model.md) now implements typed contextual fragments, construction, scoped binding, templates, resumable traversal, staged generator factories, concrete application with fresh local declaration binding and restricted branch-history compatibility. Thirty-one native comparison cases cover a restricted ground application subset. Its construction-language factories and host-driven growth tests do not establish native Photonic generation.
+The [independent model](model.md) now implements typed contextual fragments, construction, scoped binding, templates, resumable traversal, staged generator factories, concrete application with fresh local declaration binding, checked introduction from live read witnesses, flow composition and restricted branch-history compatibility. Thirty-two native comparison cases cover a restricted ground application subset. Its construction-language factories and host-driven growth tests do not establish native Photonic generation.
 
-1. Connect constructed fragments' read, context and history evidence to supported executable introductions; local declaration binding now works through templates and their resumable machine.
-2. Independently compose event flows, prove or refine the projection law against ground source-inference counterexamples, and complete resumable quotation and quoted-code equality before native integration.
+1. Establish source-inference projection with checked event paths and exact versus broader consumption, then extend introduction beyond live single-world read witnesses.
+2. Preserve read support across historical and inferred witnesses, and complete resumable quotation and quoted-code equality before native integration.
 3. Select source syntax and implement generic construction, then the collection library and runtime-sized demonstration.
 
 Completing this document closes the specification deliverable only. It does not establish the laws experimentally, provide a native collection implementation or settle the source-inference proof obligation.

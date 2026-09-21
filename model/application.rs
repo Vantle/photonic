@@ -2,16 +2,11 @@ use crate::allocation::take;
 use crate::configuration::Configuration;
 use crate::context;
 use crate::failure::Failure;
+use crate::flow::{Flow, Place};
 use crate::occurrence::{self, Occurrence};
 use crate::structure::{Particle, Rule, Value};
 use crate::world::{self, World};
 use std::collections::{BTreeMap, BTreeSet};
-
-#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
-pub enum Place {
-    World(world::Identity, occurrence::Identity),
-    Held(context::Identity, occurrence::Identity),
-}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Code {
@@ -35,13 +30,6 @@ pub struct Selection {
 pub struct Request {
     pub code: Code,
     pub selection: Vec<Selection>,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Flow {
-    pub resource: BTreeMap<Place, BTreeSet<Place>>,
-    pub context: BTreeMap<world::Identity, BTreeSet<world::Identity>>,
-    pub frame: BTreeMap<context::Identity, Option<context::Identity>>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

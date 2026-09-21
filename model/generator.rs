@@ -71,33 +71,33 @@ impl Fragment<Generator> {
         }
         construction.permits(&self.evidence)?;
         let mut origin = construction.evidence();
-        origin.append(self.evidence.clone());
+        origin.append(self.evidence.clone())?;
         let mut environment = generator.environment.nested(declaration.scope)?;
         for (parameter, argument) in declaration.parameter.iter().zip(argument) {
             match (parameter, argument) {
                 (Parameter::Value(slot), Argument::Value(value)) => {
                     let value = construction.accept(value)?;
-                    origin.append(value.evidence.clone());
+                    origin.append(value.evidence.clone())?;
                     environment.value = environment.value.bind(slot, value)?;
                 }
                 (Parameter::Particle(slot), Argument::Particle(value)) => {
                     let value = construction.accept(value)?;
-                    origin.append(value.evidence.clone());
+                    origin.append(value.evidence.clone())?;
                     environment.particle = environment.particle.bind(slot, value)?;
                 }
                 (Parameter::Input(slot), Argument::Input(value)) => {
                     let value = construction.accept(value)?;
-                    origin.append(value.evidence.clone());
+                    origin.append(value.evidence.clone())?;
                     environment.input = environment.input.bind(slot, value)?;
                 }
                 (Parameter::Output(slot), Argument::Output(value)) => {
                     let value = construction.accept(value)?;
-                    origin.append(value.evidence.clone());
+                    origin.append(value.evidence.clone())?;
                     environment.output = environment.output.bind(slot, value)?;
                 }
                 (Parameter::Body(slot), Argument::Body(value)) => {
                     let value = construction.accept(value)?;
-                    origin.append(value.evidence.clone());
+                    origin.append(value.evidence.clone())?;
                     environment.body = environment.body.bind(slot, value)?;
                 }
                 (parameter, argument) => {
@@ -122,13 +122,13 @@ impl Invocation<'_> {
         match self.term {
             Term::Value(value) => {
                 let mut result = value.instantiate(construction, &self.environment)?;
-                result.evidence.append(self.origin.clone());
+                result.evidence.append(self.origin.clone())?;
                 Ok(Product::Value(result))
             }
             Term::Quote(definition) => {
                 let mut result =
                     Generator::close(*definition.clone(), self.environment.clone(), construction)?;
-                result.evidence.append(self.origin.clone());
+                result.evidence.append(self.origin.clone())?;
                 Ok(Product::Generator(Box::new(result)))
             }
         }

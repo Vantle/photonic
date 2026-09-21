@@ -44,7 +44,7 @@ fn field() {
             &super::rule(0, "Unseen", payload.value.clone())
         );
         assert_eq!(
-            result.evidence().read(),
+            &result.evidence().read(),
             &BTreeSet::from([Identity(1), Identity(2)])
         );
         assert_eq!(
@@ -180,7 +180,7 @@ fn shape() {
         value.value(),
         &super::rule(0, "A", structure::Value::Atom("B".into()))
     );
-    assert_eq!(value.evidence().read(), &BTreeSet::from([Identity(1)]));
+    assert_eq!(&value.evidence().read(), &BTreeSet::from([Identity(1)]));
     let destination = template::Destination {
         particle: template::Particle::Reference(particle),
         body: Some(template::Body::Reference(body)),
@@ -255,7 +255,7 @@ fn history() {
     assert!(value.instantiate(&construction, &environment).is_err());
     let result = value.instantiate(&origin, &environment).unwrap();
     assert_eq!(result.value().value().len(), 2);
-    assert_eq!(result.evidence().read(), &BTreeSet::from([Identity(1)]));
+    assert_eq!(&result.evidence().read(), &BTreeSet::from([Identity(1)]));
 }
 
 #[test]

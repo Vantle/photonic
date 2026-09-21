@@ -133,25 +133,36 @@ fn execute(value: &Fragment<Value>) -> Vec<Configuration> {
         vec![World {
             identity: world::Identity(0),
             context: context::Identity(0),
-            occurrence: [Value::Atom("Enter".into()), value.value().clone()]
-                .into_iter()
-                .enumerate()
-                .map(|(identity, value)| Occurrence {
-                    identity: occurrence::Identity(identity as u64),
-                    value,
-                    history: history.clone(),
-                })
-                .collect(),
+            occurrence: [Occurrence {
+                identity: occurrence::Identity(0),
+                value: Value::Atom("Enter".into()),
+                history,
+            }]
+            .into_iter()
+            .chain(value.evidence().witness().cloned())
+            .collect(),
         }],
         frame,
         value.evidence().history().clone(),
     )
     .unwrap();
-    let entered = step(
+    let introduced = model::introduction::apply(
         &state,
+        world::Identity(0),
+        &value.evidence().read().into_iter().collect::<Vec<_>>(),
+        value,
+    )
+    .unwrap();
+    introduced
+        .flow
+        .validate(&state, &introduced.target)
+        .unwrap();
+    assert_eq!(introduced.read, introduced.consumed);
+    let entered = step(
+        &introduced.target,
         Code::Local {
-            world: world::Identity(0),
-            occurrence: occurrence::Identity(1),
+            world: introduced.target.world().next().unwrap().identity,
+            occurrence: introduced.occurrence,
         },
         "Enter",
     );
@@ -208,7 +219,7 @@ fn suspension() {
     let (construction, environment, value) = fixture(history.clone());
     let expected = value.instantiate(&construction, &environment).unwrap();
     assert_eq!(
-        expected.evidence().read(),
+        &expected.evidence().read(),
         &BTreeSet::from([occurrence::Identity(99)])
     );
     assert_eq!(
@@ -365,7 +376,7 @@ fn sort() {
     super::machine::compare(&template, &construction, &environment);
     let result = template.instantiate(&construction, &environment).unwrap();
     assert_eq!(
-        result.evidence().read(),
+        &result.evidence().read(),
         &BTreeSet::from([occurrence::Identity(99)])
     );
     assert_eq!(

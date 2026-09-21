@@ -112,10 +112,12 @@ impl<'a> Machine<'a> {
                 let Some(Product::Value(mut value)) = self.result.take() else {
                     unreachable!();
                 };
-                if let Some(origin) = self.origin.take() {
-                    value.evidence.append(origin);
-                }
-                self.outcome = Some(self.sealing.seal(value));
+                let result = if let Some(origin) = self.origin.take() {
+                    value.evidence.append(origin).map(|_| value)
+                } else {
+                    Ok(value)
+                };
+                self.outcome = Some(result.and_then(|value| self.sealing.seal(value)));
             }
         }
         self.outcome.clone().map_or(Poll::Pending, Poll::Ready)

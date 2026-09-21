@@ -57,7 +57,7 @@ fn factory() {
             panic!("factory must construct a generator with a future binding");
         };
         assert_eq!(
-            generator.evidence().read(),
+            &generator.evidence().read(),
             &BTreeSet::from([Identity(identity)])
         );
         generated.push((generator, role, identity));
@@ -79,7 +79,7 @@ fn factory() {
         };
         assert_eq!(value.value(), &super::rule(0, role, payload.value.clone()));
         assert_eq!(
-            value.evidence().read(),
+            &value.evidence().read(),
             &BTreeSet::from([Identity(identity), Identity(3)])
         );
         let mut machine = invocation.machine(&construction).unwrap();
@@ -250,7 +250,7 @@ fn capture() {
         &construction,
     )
     .unwrap();
-    assert_eq!(generator.evidence().read(), &BTreeSet::from([Identity(3)]));
+    assert_eq!(&generator.evidence().read(), &BTreeSet::from([Identity(3)]));
     assert!(
         generator
             .evidence()
@@ -270,7 +270,7 @@ fn capture() {
         panic!("final stage must emit a closed value");
     };
     assert_eq!(value.value(), &occurrence.value);
-    assert_eq!(value.evidence().read(), &BTreeSet::from([Identity(3)]));
+    assert_eq!(&value.evidence().read(), &BTreeSet::from([Identity(3)]));
 }
 
 #[test]
@@ -306,7 +306,7 @@ fn history() {
     let Product::Value(value) = invocation.evaluate(&construction).unwrap() else {
         panic!("constant generator must emit a value");
     };
-    assert_eq!(value.evidence().read(), &BTreeSet::from([Identity(3)]));
+    assert_eq!(&value.evidence().read(), &BTreeSet::from([Identity(3)]));
     let mut machine = invocation.machine(&construction).unwrap();
     assert_eq!(machine.run(1), Poll::Ready(Ok(value)));
 }

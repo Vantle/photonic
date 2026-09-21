@@ -32,7 +32,7 @@ impl<Context: Copy + Ord> Construction<Context> {
     pub(crate) fn accept<Item>(&self, value: Fragment<Item>) -> Result<Fragment<Item>, Failure> {
         self.origin.history.permits(&value.evidence.history)?;
         let mut evidence = self.evidence();
-        evidence.append(value.evidence);
+        evidence.append(value.evidence)?;
         Ok(Fragment {
             value: value.value,
             evidence,
@@ -47,7 +47,7 @@ impl<Context: Copy + Ord> Construction<Context> {
         let mut value = Vec::new();
         for fragment in source {
             self.origin.history.permits(&fragment.evidence.history)?;
-            evidence.append(fragment.evidence);
+            evidence.append(fragment.evidence)?;
             value.push(fragment.value);
         }
         Ok(Fragment { value, evidence })
@@ -84,7 +84,7 @@ impl<Context: Copy + Ord> Construction<Context> {
         let body = body
             .map(|body| {
                 let body = self.accept(body)?;
-                evidence.append(body.evidence);
+                evidence.append(body.evidence)?;
                 Ok(body.value)
             })
             .transpose()?;
@@ -155,8 +155,8 @@ impl<Context: Copy + Ord> Construction<Context> {
         let input = self.accept(inspection.input)?;
         let output = self.accept(inspection.output)?;
         let mut evidence = input.evidence;
-        evidence.append(output.evidence);
-        evidence.append(inspection.origin);
+        evidence.append(output.evidence)?;
+        evidence.append(inspection.origin)?;
         Ok(Fragment {
             value: Value::Rule(Box::new(Rule {
                 input: input.value,
@@ -173,7 +173,7 @@ impl Construction {
         Self {
             context,
             origin: Evidence {
-                read: BTreeSet::new(),
+                read: std::collections::BTreeMap::new(),
                 context: BTreeSet::from([context]),
                 history,
             },
@@ -201,7 +201,7 @@ impl Construction {
     pub fn inspect(&self, source: &Occurrence) -> Result<Fragment<Value>, Failure> {
         self.origin.history.permits(&source.history)?;
         let mut evidence = self.evidence();
-        evidence.read.insert(source.identity);
+        evidence.read.insert(source.identity, source.clone());
         source.value.context(&mut evidence.context);
         Ok(Fragment {
             value: source.value.clone(),

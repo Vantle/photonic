@@ -1,7 +1,8 @@
-use model::application::{self, Code, Place, Request, Selection};
+use model::application::{self, Code, Request, Selection};
 use model::configuration::Configuration;
 use model::context::{self, Frame};
 use model::failure::Failure;
+use model::flow::Place;
 use model::history::{Branch, History};
 use model::occurrence::{self, Occurrence};
 use model::structure::{Body, Destination, Input, Output, Particle, Rule, Value};
@@ -633,7 +634,7 @@ fn construction() {
         )
         .unwrap();
     assert_eq!(
-        generated.evidence().read(),
+        &generated.evidence().read(),
         &BTreeSet::from([occurrence::Identity(1), occurrence::Identity(2)])
     );
     let state = state(
