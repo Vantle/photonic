@@ -29,6 +29,7 @@ mod rewrite;
 pub mod scope;
 pub mod slot;
 pub mod structure;
+pub mod support;
 pub mod template;
 mod transport;
 pub mod world;

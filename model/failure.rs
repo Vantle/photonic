@@ -17,6 +17,10 @@ pub enum Failure {
         context: crate::context::Identity,
     },
     State(usize),
+    Derivation {
+        depth: usize,
+        position: usize,
+    },
     Witness(crate::occurrence::Identity),
     Lineage {
         source: crate::world::Identity,

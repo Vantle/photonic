@@ -4,6 +4,7 @@ mod generator;
 mod machine;
 mod path;
 mod projection;
+mod support;
 mod template;
 mod transport;
 

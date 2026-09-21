@@ -39,62 +39,19 @@ pub(crate) fn apply(path: &Path, request: &Request) -> Result<introduction::Even
         let witness = supplied
             .remove(&expected.identity)
             .ok_or(Failure::Witness(expected.identity))?;
-        let state = path
-            .state()
-            .get(witness.state)
-            .ok_or(Failure::State(witness.state))?;
-        let world = state
-            .world
-            .get(&witness.world)
-            .ok_or(Failure::World(witness.world))?;
-        let identity = witness.place.occurrence();
-        let available = match witness.place {
-            Place::World(identity, _) => {
-                if identity != witness.world {
-                    return Err(Failure::World(identity));
-                }
-                &world.occurrence
-            }
-            Place::Held(context, _) => {
-                if context != world.context {
-                    return Err(Failure::Owner {
-                        world: witness.world,
-                        context,
-                    });
-                }
-                &state.frame[&context].held
-            }
+        let location = crate::support::Request {
+            address: crate::support::Address {
+                derivation: vec![],
+                state: witness.state,
+            },
+            world: witness.world,
+            place: witness.place,
         };
-        let occurrence = available
-            .iter()
-            .find(|value| value.identity == identity)
-            .ok_or(Failure::Occurrence(identity))?;
-        if occurrence != expected {
-            return Err(Failure::Identity(identity));
+        let support = crate::support::resolve(path, request.world, &location)?;
+        if support.occurrence() != expected {
+            return Err(Failure::Identity(expected.identity));
         }
-        let mut lineage = BTreeSet::from([request.world]);
-        for record in path.record()[witness.state..].iter().rev() {
-            let mut previous = BTreeSet::new();
-            for identity in lineage {
-                previous.extend(
-                    record
-                        .flow
-                        .context
-                        .get(&identity)
-                        .ok_or(Failure::World(identity))?,
-                );
-            }
-            lineage = previous;
-        }
-        if !lineage.contains(&witness.world) {
-            return Err(Failure::Lineage {
-                source: witness.world,
-                target: request.world,
-            });
-        }
-        if witness.state == path.record().len() {
-            read.insert(witness.place);
-        }
+        read.extend(support.read());
     }
     if let Some((&identity, _)) = supplied.first_key_value() {
         return Err(Failure::Witness(identity));
