@@ -2,7 +2,7 @@
 
 Research checked on 2026-09-20. The [interior matching audit](interior.md) describes the implementation delivered with this review; the [roadmap](roadmap.md) distinguishes shipped work from research. The recommendations below are an assessment of applicability to Photonic, not performance claims imported from other systems.
 
-The strongest remaining CPU opportunities are subscription and immutable preparation reuse, a bounded graph of maintained matching fragments, and execution over compact batches. Keep the Rust kernel as the semantic authority. A graph database is not a replacement for occurrence identity, synchronized input selection, captures, resumable progress, or proof provenance.
+The CPU stages below now include immutable preparation reuse, a bounded forest of maintained matching fragments, conservative capacity rejection, exhaustive preparation sharing and exact cached waiting-span batching. Remaining opportunities include subscription reconciliation, broader maintained joins and proof construction reuse. Keep the Rust kernel as the semantic authority. A graph database is not a replacement for occurrence identity, synchronized input selection, captures, resumable progress, or proof provenance.
 
 ## Current expression bottleneck
 
@@ -11,6 +11,8 @@ A follow-up native instrumented run of `2*2*2*2*2*2` on the delivered implementa
 This changes the practical priority: first investigate subscription reconciliation and reuse of immutable query/particle preparation on real expressions, then expand maintained fragment sharing where it saves measured work. The synthetic join improvements have moved ordinary arithmetic by only about 1–2%. A hypothetical infinitely fast implementation of the measured matching phase would save only about 2 ms in this diagnostic, before GPU overhead. This is an inference from one direct-execution workload, not a bound for every program or the exhaustive runtime. Re-profile both execution modes before choosing a GPU kernel.
 
 The subsequent [preparation audit](preparation.md) implements the immutable particle portion of that priority and removes repeated occurrence/ordinal conversions. A focused repeated-preparation workload improves roughly 20–40×, while the paired expression workload improves about 2%. Subscription reconciliation remains substantial. The subsequent [multilevel audit](hierarchy.md) projects irrelevant ancestor context out of cache keys and retains a bounded forest of short fragments. Deep alternating-update workloads improve about 6–12× against the preparation revision; arithmetic is approximately unchanged. The [capacity rejection audit](residual.md) then removes allocation from repeated failed preparation and redundant unique-term count checks. It improves focused rejection about 1.5–6.9× while preserving logical visits; the [exhaustive preparation audit](exhaustive.md) then adds bounded immutable preparation beneath independent exhaustive queries. Multi-input gate sharing and contextual proof construction remain open.
+
+The subsequent [parallelism audit](parallel.md) refreshes the phase profile after all five stages and measures the existing executor at one, two and four workers. Small exhaustive fixtures favor one worker; the refreshed arithmetic profile still spends about 2 ms in matching and 38 ms in dispatch. It records the next CPU experiments and the conditional GPU boundary.
 
 ## What the implementation now represents
 
