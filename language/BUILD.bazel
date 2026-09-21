@@ -78,6 +78,7 @@ rust_test(
         "test/suite.rs",
         "test/support.rs",
         "test/table.rs",
+        "test/trace.rs",
         "test/tree.rs",
         ":source",
     ],
@@ -148,6 +149,7 @@ filegroup(
         "index.rs",
         "index/posting.rs",
         "joining.rs",
+        "joining/binding.rs",
         "joining/cursor.rs",
         "joining/dependency.rs",
         "joining/key.rs",
@@ -221,6 +223,7 @@ filegroup(
 rust_library(
     name = "measurement",
     srcs = [
+        "joining/measurement.rs",
         "measurement.rs",
         "measurement/context.rs",
         "measurement/dispatch.rs",

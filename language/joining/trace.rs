@@ -1,3 +1,4 @@
+use super::binding::{Binding, Selection};
 use crate::factor::Budget;
 use crate::slot::Slot;
 use std::sync::Arc;
@@ -6,27 +7,16 @@ use std::task::Poll;
 #[derive(Clone)]
 pub(super) enum Record {
     Waiting(usize),
-    Binding(Vec<Selection>),
+    Binding(Binding),
 }
 
 impl Record {
     fn retained(&self) -> usize {
         match self {
             Self::Waiting(_) => 1,
-            Self::Binding(binding) => {
-                1 + binding
-                    .iter()
-                    .map(|selection| selection.token.len() + 1)
-                    .sum::<usize>()
-            }
+            Self::Binding(binding) => binding.retained(),
         }
     }
-}
-
-#[derive(Clone, Eq, Hash, PartialEq)]
-pub(super) struct Selection {
-    pub site: usize,
-    pub token: Vec<usize>,
 }
 
 pub(super) struct Trace {
@@ -90,14 +80,7 @@ impl Trace {
                 if !self.reserve(size, allowance) {
                     return false;
                 }
-                let binding = binding
-                    .iter()
-                    .map(|slot| Selection {
-                        site: slot.world,
-                        token: slot.token.clone(),
-                    })
-                    .collect();
-                self.record.push(Record::Binding(binding));
+                self.record.push(Record::Binding(Binding::new(binding)));
             }
         }
         if !matches!(result, Poll::Ready(None)) {
@@ -143,7 +126,7 @@ impl Trace {
             .map(|record| {
                 record.retained()
                     + if matches!(record, Record::Binding(_)) {
-                        inherited
+                        inherited + usize::from(!prefix.is_empty())
                     } else {
                         0
                     }
@@ -153,6 +136,20 @@ impl Trace {
         if !self.reserve(retained, allowance) {
             return false;
         }
+        let prefix = (!prefix.is_empty()
+            && trace
+                .record
+                .iter()
+                .any(|record| matches!(record, Record::Binding(_))))
+        .then(|| {
+            prefix
+                .iter()
+                .map(|slot| Selection {
+                    site: slot.world,
+                    token: slot.token.clone(),
+                })
+                .collect::<Arc<[Selection]>>()
+        });
         let mut record = trace.record.iter();
         if merged
             && let Some(Record::Waiting(count)) = record.next()
@@ -165,13 +162,8 @@ impl Trace {
                 Record::Waiting(count) => Record::Waiting(*count),
                 Record::Binding(binding) => Record::Binding(
                     prefix
-                        .iter()
-                        .map(|slot| Selection {
-                            site: slot.world,
-                            token: slot.token.clone(),
-                        })
-                        .chain(binding.iter().cloned())
-                        .collect(),
+                        .as_ref()
+                        .map_or_else(|| binding.clone(), |prefix| binding.prepend(prefix.clone())),
                 ),
             }
         }));
@@ -181,7 +173,15 @@ impl Trace {
 
     #[cfg(test)]
     pub fn size(&self) -> usize {
-        self.header + self.record.iter().map(Record::retained).sum::<usize>()
+        self.header
+            + self
+                .record
+                .iter()
+                .map(|record| match record {
+                    Record::Waiting(_) => 1,
+                    Record::Binding(binding) => binding.size(),
+                })
+                .sum::<usize>()
     }
 }
 
@@ -190,3 +190,7 @@ impl Drop for Trace {
         self.budget.release(self.retained);
     }
 }
+
+#[cfg(test)]
+#[path = "../test/trace.rs"]
+mod test;

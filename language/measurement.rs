@@ -108,3 +108,5 @@ pub fn run() -> Vec<Measurement> {
     }
     report
 }
+
+pub use crate::joining::measurement as segment;

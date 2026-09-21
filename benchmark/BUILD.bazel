@@ -441,3 +441,14 @@ rust_binary(
         "@crate//:serde_json",
     ],
 )
+
+rust_binary(
+    name = "segment",
+    srcs = ["segment.rs"],
+    crate_root = "segment.rs",
+    lint_config = "//:lint",
+    deps = [
+        "//language:measurement",
+        "@crate//:serde_json",
+    ],
+)
