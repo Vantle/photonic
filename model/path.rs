@@ -11,6 +11,11 @@ use std::collections::BTreeSet;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Step {
     Application(application::Request),
+    Historical(crate::admission::Request),
+    Inference {
+        path: Box<Path>,
+        request: application::Request,
+    },
     Introduction {
         world: world::Identity,
         consumed: Vec<occurrence::Identity>,
@@ -76,6 +81,30 @@ impl Path {
 
     pub fn advance(&self, step: Step) -> Result<Self, Failure> {
         let (target, flow, read, consumed, context) = match &step {
+            Step::Historical(request) => {
+                let event = crate::admission::apply(self, request)?;
+                (
+                    event.target,
+                    event.flow,
+                    event.read,
+                    event.consumed,
+                    event.context,
+                )
+            }
+            Step::Inference { path, request } => {
+                if path.source() != self.target() {
+                    return Err(Failure::Source);
+                }
+                let projection = crate::projection::project(path, request.clone())?;
+                let event = projection.apply()?;
+                (
+                    event.target,
+                    event.flow,
+                    event.read,
+                    event.consumed,
+                    BTreeSet::from([event.owner]),
+                )
+            }
             Step::Application(request) => {
                 let event = application::apply(self.target(), request)?;
                 (

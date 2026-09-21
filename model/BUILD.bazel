@@ -5,6 +5,7 @@ rust_library(
     name = "model",
     srcs = [
         "activation.rs",
+        "admission.rs",
         "allocation.rs",
         "application.rs",
         "argument.rs",
@@ -49,6 +50,7 @@ rust_test(
         "test/generator.rs",
         "test/introduction.rs",
         "test/machine.rs",
+        "test/path.rs",
         "test/projection.rs",
         "test/suite.rs",
         "test/template.rs",

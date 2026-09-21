@@ -77,6 +77,14 @@ fn request(state: &Configuration, code: Code, input: &[&[&str]]) -> Request {
 fn check(source: &str, path: &Path, request: Request, output: &str) {
     let projection = projection::project(path, request).unwrap();
     let applied = projection.apply().unwrap();
+    let inferred = Path::new(path.source().clone())
+        .advance(Step::Inference {
+            path: Box::new(path.clone()),
+            request: projection.request().clone(),
+        })
+        .unwrap();
+    assert_eq!(inferred.target(), &applied.target);
+    assert_eq!(inferred.flow(), &applied.flow);
     let binding = projection.binding();
     let footprint = binding
         .footprint
@@ -214,6 +222,25 @@ fn projection() {
         assert_eq!(projected.binding().world.len(), 1);
         check(source, &path, request, "D");
     }
+}
+
+#[test]
+fn nested() {
+    let source = "A [A] B [B] C [C] D";
+    let initial = super::program::build(source);
+    let step = request(&initial, code(&initial, "B"), &[&["A"]]);
+    let support = Path::new(initial.clone())
+        .advance(Step::Application(step))
+        .unwrap();
+    let step = request(support.target(), code(&initial, "C"), &[&["B"]]);
+    let inferred = Path::new(initial.clone())
+        .advance(Step::Inference {
+            path: Box::new(support),
+            request: step,
+        })
+        .unwrap();
+    let request = request(inferred.target(), code(&initial, "D"), &[&["C"]]);
+    check(source, &inferred, request, "D");
 }
 
 #[test]

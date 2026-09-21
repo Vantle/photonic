@@ -25,12 +25,6 @@ pub fn apply(
     value: &Fragment<Value>,
 ) -> Result<Event, Failure> {
     let source = state.world.get(&world).ok_or(Failure::World(world))?;
-    state.history.permits(value.evidence().history())?;
-    for &identity in value.evidence().context() {
-        if !state.frame.contains_key(&identity) {
-            return Err(Failure::Context(identity));
-        }
-    }
     let mut read = BTreeSet::new();
     for witness in value.evidence().witness() {
         let occurrence = source
@@ -42,6 +36,23 @@ pub fn apply(
             return Err(Failure::Identity(witness.identity));
         }
         read.insert(Place::World(world, witness.identity));
+    }
+    publish(state, world, consumed, value, read)
+}
+
+pub(crate) fn publish(
+    state: &Configuration,
+    world: world::Identity,
+    consumed: &[occurrence::Identity],
+    value: &Fragment<Value>,
+    read: BTreeSet<Place>,
+) -> Result<Event, Failure> {
+    let source = state.world.get(&world).ok_or(Failure::World(world))?;
+    state.history.permits(value.evidence().history())?;
+    for &identity in value.evidence().context() {
+        if !state.frame.contains_key(&identity) {
+            return Err(Failure::Context(identity));
+        }
     }
     let mut selected = BTreeSet::new();
     for &identity in consumed {

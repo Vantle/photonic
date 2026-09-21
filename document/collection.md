@@ -57,10 +57,10 @@ The reference model first establishes exact structural sorts, contextual reconst
 
 ## Queue
 
-The [independent model](model.md) now implements typed contextual fragments, construction, scoped binding, templates, resumable traversal, staged generator factories, concrete application with fresh local declaration binding, checked introduction from live read witnesses, flow composition, replayed paths, projected application with capture import and restricted branch-history compatibility. Forty-one native comparison cases cover restricted ground behavior, projection evidence, scalar/scoped flow and escaped local execution. Held-identity convergence has additional reference and native primitive regressions. Its construction-language factories and host-driven growth tests do not establish native Photonic generation.
+The [independent model](model.md) now implements typed contextual fragments, construction, scoped binding, templates, resumable traversal, staged generator factories, concrete application with fresh local declaration binding, checked introduction from live read witnesses, flow composition, replayed paths, projected application with capture import and restricted branch-history compatibility. Forty-two native comparison cases cover restricted ground behavior, projection evidence, scalar/scoped flow, escaped local execution and nested inference. Checked historical introduction additionally admits prior-world reads along the current ancestry while preserving live consumption and current capture requirements. Held-identity convergence has additional reference and native primitive regressions. Its construction-language factories and host-driven growth tests do not establish native Photonic generation.
 
-1. Retain complete auxiliary derivations when replaying inferred events, then extend introduction beyond live single-world read witnesses.
-2. Preserve auxiliary read support across historical and inferred events, and complete resumable quotation and quoted-code equality before native integration.
+1. Extend checked historical introduction to archived captures, held reads and witnesses inside auxiliary derivations, with explicit resource ownership and history compatibility.
+2. Complete the structural projection law, general grounded support, resumable quotation and quoted-code equality before native integration.
 3. Select source syntax and implement generic construction, then the collection library and runtime-sized demonstration.
 
 Completing this document closes the specification deliverable only. It does not establish the laws experimentally, provide a native collection implementation or settle the source-inference proof obligation.

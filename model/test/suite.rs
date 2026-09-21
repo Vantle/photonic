@@ -1,5 +1,6 @@
 mod generator;
 mod machine;
+mod path;
 mod projection;
 mod template;
 

@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 
 pub mod activation;
+pub mod admission;
 mod allocation;
 pub mod application;
 pub mod argument;

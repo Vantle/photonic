@@ -11,6 +11,13 @@ pub enum Failure {
     Rule,
     Generator,
     Site,
+    Source,
+    State(usize),
+    Witness(crate::occurrence::Identity),
+    Lineage {
+        source: crate::world::Identity,
+        target: crate::world::Identity,
+    },
     Context(crate::context::Identity),
     World(crate::world::Identity),
     Match(crate::world::Identity),
