@@ -41,7 +41,7 @@ pub struct Event {
     pub owner: context::Identity,
 }
 
-fn select(
+pub(crate) fn select(
     state: &Configuration,
     request: &Request,
 ) -> Result<(context::Identity, BTreeSet<world::Identity>), Failure> {
@@ -63,7 +63,7 @@ fn select(
     Ok((context.ok_or(Failure::Site)?, selected))
 }
 
-fn code<'a>(
+pub(crate) fn code<'a>(
     state: &'a Configuration,
     source: Code,
     site: context::Identity,
@@ -134,10 +134,12 @@ fn matching(
         .collect())
 }
 
-pub fn apply(state: &Configuration, request: &Request) -> Result<Event, Failure> {
-    let (site, selected) = select(state, request)?;
-    let (rule, owner, read) = code(state, request.code, site, &selected)?;
-    let expected = rule.input.particle().len().max(1);
+pub(crate) fn binding(
+    state: &Configuration,
+    request: &Request,
+    input: &crate::structure::Input,
+) -> Result<BTreeSet<Place>, Failure> {
+    let expected = input.particle().len().max(1);
     if request.selection.len() != expected {
         return Err(Failure::Arity {
             expected,
@@ -150,9 +152,16 @@ pub fn apply(state: &Configuration, request: &Request) -> Result<Event, Failure>
         consumed.extend(matching(
             &state.world[&selection.world],
             &selection.occurrence,
-            rule.input.particle().get(position).unwrap_or(&empty),
+            input.particle().get(position).unwrap_or(&empty),
         )?);
     }
+    Ok(consumed)
+}
+
+pub fn apply(state: &Configuration, request: &Request) -> Result<Event, Failure> {
+    let (site, selected) = select(state, request)?;
+    let (rule, owner, read) = code(state, request.code, site, &selected)?;
+    let consumed = binding(state, request, &rule.input)?;
     let frame = &state.frame[&site];
     let returning = site == owner && frame.parent.is_some();
     let parent = if returning {

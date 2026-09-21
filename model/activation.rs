@@ -105,6 +105,27 @@ pub fn capture(source: Rule) -> Rule<Reference> {
     map(source, &|context| Ok(Reference::Captured(context)), &Ok).unwrap()
 }
 
+fn relocate(
+    source: Rule<Reference>,
+    context: &impl Fn(Identity) -> Result<Identity, Failure>,
+) -> Result<Rule<Reference>, Failure> {
+    map(
+        source,
+        &|reference| match reference {
+            Reference::Captured(identity) => Ok(Reference::Captured(context(identity)?)),
+            reference => Ok(reference),
+        },
+        &|source| relocate(source, context),
+    )
+}
+
+pub(crate) fn rename(
+    source: Value,
+    context: &impl Fn(Identity) -> Result<Identity, Failure>,
+) -> Result<Value, Failure> {
+    value(source, context, &|source| relocate(source, context))
+}
+
 fn reference(source: Reference, depth: usize) -> Result<(), Failure> {
     if let Reference::Local(position) = source
         && position >= depth

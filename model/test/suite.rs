@@ -1,5 +1,6 @@
 mod generator;
 mod machine;
+mod projection;
 mod template;
 
 use model::construction::Construction;

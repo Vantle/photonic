@@ -5,6 +5,9 @@ use crate::scope;
 pub enum Failure {
     Capacity,
     Depth(usize),
+    Flow(crate::flow::Failure),
+    Origin(crate::context::Identity),
+    Held(crate::flow::Place),
     Rule,
     Generator,
     Site,

@@ -464,6 +464,7 @@ fn escaping() {
         assert_eq!(witness.frame[capture].lexical, Some(0));
     }
 }
+mod inference;
 mod program;
 
 fn address(state: &Configuration, place: model::flow::Place) -> String {

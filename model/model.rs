@@ -19,6 +19,8 @@ pub mod introduction;
 pub mod machine;
 pub mod occurrence;
 pub mod parameter;
+pub mod path;
+pub mod projection;
 mod quotation;
 pub mod scope;
 pub mod slot;
