@@ -222,6 +222,7 @@ rust_library(
         "measurement/profile.rs",
         "measurement/query.rs",
         "measurement/reachability.rs",
+        "measurement/residual.rs",
         "measurement/sharing.rs",
         "measurement/subscription.rs",
         ":source",

@@ -144,17 +144,15 @@ impl Match {
         Self::from(Preparation::new(group, pattern.width))
     }
 
-    pub(crate) fn impossible(width: usize) -> Self {
-        Self {
-            preparation: Arc::new(Preparation {
+    pub(crate) fn impossible() -> Self {
+        static EMPTY: std::sync::LazyLock<Arc<Preparation>> = std::sync::LazyLock::new(|| {
+            Arc::new(Preparation {
                 group: SmallVec::new(),
-                width,
+                width: 0,
                 viable: false,
-            }),
-            selected: Box::new([]),
-            fresh: true,
-            complete: true,
-        }
+            })
+        });
+        Self::from(EMPTY.clone())
     }
 
     pub(crate) fn reset(&mut self) {

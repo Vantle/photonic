@@ -67,13 +67,27 @@ impl Context {
     ) -> crate::particle::Match {
         let world = &index.state.world[index.world(site)];
         let pattern = &self.fragment[position];
-        if pattern.width > 4
-            && pattern.group.iter().any(|group| {
-                index.quantity(&Term::new(group.value, Some(self.owner)), world.frame, site)
-                    < group.position.len()
-            })
+        if world.particle.len() < pattern.width
+            || (pattern.group.len() < pattern.width
+                && pattern.group.iter().any(|group| {
+                    let count = group.position.len();
+                    if count == 1 {
+                        return false;
+                    }
+                    let term = Term::new(group.value, Some(self.owner));
+                    if world.particle.len() <= 16 {
+                        return world
+                            .particle
+                            .iter()
+                            .filter(|token| term.matches(token))
+                            .take(count)
+                            .count()
+                            < count;
+                    }
+                    index.quantity(&term, world.frame, site) < count
+                }))
         {
-            return crate::particle::Match::impossible(pattern.width);
+            return crate::particle::Match::impossible();
         }
         if pattern.width >= 8
             && world.particle.len() >= 32

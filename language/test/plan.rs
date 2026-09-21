@@ -165,3 +165,56 @@ fn summary() {
         }
     }
 }
+
+#[test]
+fn rejection() {
+    let program = crate::program::Program::new(crate::lowering::parse("A.([A] B)").unwrap());
+    let mut seed = 71u64;
+    let mut next = |bound| {
+        seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1);
+        (seed >> 32) as usize % bound
+    };
+    let symbol = |value| match value {
+        0 => Symbol::Rule(*program.code.keys().next().unwrap()),
+        value => Symbol::Atom(value),
+    };
+    for iteration in 0..512 {
+        let mut state = crate::state::State::initial(&program);
+        state.frame.push(state.frame[0].clone());
+        let world = Arc::make_mut(&mut state.world[0]);
+        world.particle = (0..next(48))
+            .map(|id| {
+                let value = symbol(next(8));
+                Token {
+                    id,
+                    value,
+                    capture: matches!(value, Symbol::Rule(_)).then(|| next(2)),
+                }
+            })
+            .collect();
+        if iteration % 2 == 0 {
+            world.particle.extend(world.particle.clone());
+        }
+        let pattern = (0..next(10)).map(|_| symbol(next(8))).collect::<Vec<_>>();
+        let input = Input::new(&[pattern]);
+        let index = crate::index::Index::new(Arc::new(state.clone()));
+        for owner in 0..2 {
+            let context = input.context(owner);
+            let mut actual = context.select(0, &index, index.site(0), None);
+            let mut expected =
+                crate::particle::Match::new(&input.pattern(owner)[0], &state.world[0].particle);
+            assert_eq!(actual.viable(), expected.viable());
+            for _ in 0..2 {
+                for _ in 0..512 {
+                    let result = expected.step();
+                    assert_eq!(actual.step(), result);
+                    if matches!(result, Poll::Ready(None)) {
+                        break;
+                    }
+                }
+                actual.reset();
+                expected.reset();
+            }
+        }
+    }
+}
