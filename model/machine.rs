@@ -7,62 +7,62 @@ use crate::fragment::Fragment;
 use crate::{structure, template};
 use std::task::Poll;
 
-enum Product {
-    Value(Fragment<structure::Value<Reference>>),
-    Particle(Fragment<structure::Particle<Reference>>),
-    Input(Fragment<structure::Input<Reference>>),
-    Destination(Fragment<structure::Destination<Reference>>),
-    Output(Fragment<structure::Output<Reference>>),
-    Body(Fragment<structure::Body<Reference>>),
+enum Product<Capture> {
+    Value(Fragment<structure::Value<Reference<Capture>, Capture>>),
+    Particle(Fragment<structure::Particle<Reference<Capture>, Capture>>),
+    Input(Fragment<structure::Input<Reference<Capture>, Capture>>),
+    Destination(Fragment<structure::Destination<Reference<Capture>, Capture>>),
+    Output(Fragment<structure::Output<Reference<Capture>, Capture>>),
+    Body(Fragment<structure::Body<Reference<Capture>, Capture>>),
 }
 
-enum Task<'a> {
-    Value(&'a template::Value),
-    Particle(&'a template::Particle),
-    Input(&'a template::Input),
-    Destination(&'a template::Destination),
-    Output(&'a template::Output),
-    Body(&'a template::Body),
-    Rule(&'a template::Rule),
+enum Task<'a, Capture> {
+    Value(&'a template::Value<Capture>),
+    Particle(&'a template::Particle<Capture>),
+    Input(&'a template::Input<Capture>),
+    Destination(&'a template::Destination<Capture>),
+    Output(&'a template::Output<Capture>),
+    Body(&'a template::Body<Capture>),
+    Rule(&'a template::Rule<Capture>),
     Collect(
-        &'a [template::Value],
-        Vec<Fragment<structure::Value<Reference>>>,
+        &'a [template::Value<Capture>],
+        Vec<Fragment<structure::Value<Reference<Capture>, Capture>>>,
     ),
     Gather(
-        &'a [template::Particle],
-        Vec<Fragment<structure::Particle<Reference>>>,
+        &'a [template::Particle<Capture>],
+        Vec<Fragment<structure::Particle<Reference<Capture>, Capture>>>,
     ),
     Assemble(
-        &'a [template::Destination],
-        Vec<Fragment<structure::Destination<Reference>>>,
+        &'a [template::Destination<Capture>],
+        Vec<Fragment<structure::Destination<Reference<Capture>, Capture>>>,
     ),
     Declare(
-        &'a [template::Rule],
-        Vec<Fragment<structure::Rule<Reference>>>,
-        Construction<Reference>,
+        &'a [template::Rule<Capture>],
+        Vec<Fragment<structure::Rule<Reference<Capture>, Capture>>>,
+        Construction<Reference<Capture>, Capture>,
     ),
-    Attach(&'a template::Destination),
-    Enter(Fragment<structure::Particle<Reference>>),
-    Prepare(&'a template::Rule),
-    Close(Fragment<structure::Input<Reference>>),
+    Attach(&'a template::Destination<Capture>),
+    Enter(Fragment<structure::Particle<Reference<Capture>, Capture>>),
+    Prepare(&'a template::Rule<Capture>),
+    Close(Fragment<structure::Input<Reference<Capture>, Capture>>),
 }
 
-pub struct Machine<'a> {
-    construction: Construction<Reference>,
-    sealing: &'a Construction,
-    environment: &'a Environment,
-    task: Vec<Task<'a>>,
-    result: Option<Product>,
-    outcome: Option<Result<Fragment<structure::Value>, Failure>>,
+pub struct Machine<'a, Capture = crate::context::Identity> {
+    construction: Construction<Reference<Capture>, Capture>,
+    sealing: &'a Construction<Capture, Capture>,
+    environment: &'a Environment<Capture>,
+    task: Vec<Task<'a, Capture>>,
+    result: Option<Product<Capture>>,
+    outcome: Option<Result<Fragment<structure::Value<Capture, Capture>>, Failure>>,
     origin: Option<Evidence>,
     work: usize,
 }
 
-impl<'a> Machine<'a> {
+impl<'a, Capture: Clone + Ord> Machine<'a, Capture> {
     pub fn new(
-        value: &'a template::Value,
-        construction: &'a Construction,
-        environment: &'a Environment,
+        value: &'a template::Value<Capture>,
+        construction: &'a Construction<Capture, Capture>,
+        environment: &'a Environment<Capture>,
     ) -> Self {
         Self {
             construction: construction.defer(),
@@ -77,9 +77,9 @@ impl<'a> Machine<'a> {
     }
 
     pub(crate) fn supported(
-        value: &'a template::Value,
-        construction: &'a Construction,
-        environment: &'a Environment,
+        value: &'a template::Value<Capture>,
+        construction: &'a Construction<Capture, Capture>,
+        environment: &'a Environment<Capture>,
         origin: Evidence,
     ) -> Self {
         let mut machine = Self::new(value, construction, environment);
@@ -91,7 +91,10 @@ impl<'a> Machine<'a> {
         self.work
     }
 
-    pub fn run(&mut self, budget: usize) -> Poll<Result<Fragment<structure::Value>, Failure>> {
+    pub fn run(
+        &mut self,
+        budget: usize,
+    ) -> Poll<Result<Fragment<structure::Value<Capture, Capture>>, Failure>> {
         for _ in 0..budget {
             if self.outcome.is_some() {
                 break;
@@ -123,7 +126,7 @@ impl<'a> Machine<'a> {
         self.outcome.clone().map_or(Poll::Pending, Poll::Ready)
     }
 
-    fn advance(&mut self, task: Task<'a>) -> Result<(), Failure> {
+    fn advance(&mut self, task: Task<'a, Capture>) -> Result<(), Failure> {
         match task {
             Task::Value(value) => match value {
                 template::Value::Rule(rule) => self.task.push(Task::Rule(rule)),

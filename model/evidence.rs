@@ -45,7 +45,7 @@ impl Evidence {
         &self.history
     }
 
-    pub(crate) fn append(&mut self, source: Self) -> Result<(), Failure> {
+    pub(crate) fn permits(&self, source: &Self) -> Result<(), Failure> {
         self.history.permits(&source.history)?;
         if self.proof.is_some() && source.proof.is_some() && self.proof != source.proof {
             return Err(Failure::Source);
@@ -68,6 +68,11 @@ impl Evidence {
                 return Err(Failure::Identity(identity));
             }
         }
+        Ok(())
+    }
+
+    pub(crate) fn append(&mut self, source: Self) -> Result<(), Failure> {
+        self.permits(&source)?;
         self.read.extend(source.read);
         self.context.extend(source.context);
         self.proof = self.proof.take().or(source.proof);

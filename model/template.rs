@@ -7,62 +7,62 @@ use crate::slot::Slot;
 use crate::structure;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum Value {
+pub enum Value<Capture = crate::context::Identity> {
     Atom(String),
-    Reference(Slot<structure::Value>),
-    Rule(Box<Rule>),
+    Reference(Slot<structure::Value<Capture, Capture>>),
+    Rule(Box<Rule<Capture>>),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum Particle {
-    Reference(Slot<structure::Particle>),
-    Build(Vec<Value>),
+pub enum Particle<Capture = crate::context::Identity> {
+    Reference(Slot<structure::Particle<Capture, Capture>>),
+    Build(Vec<Value<Capture>>),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum Input {
-    Reference(Slot<structure::Input>),
-    Build(Vec<Particle>),
+pub enum Input<Capture = crate::context::Identity> {
+    Reference(Slot<structure::Input<Capture, Capture>>),
+    Build(Vec<Particle<Capture>>),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Destination {
-    pub particle: Particle,
-    pub body: Option<Body>,
+pub struct Destination<Capture = crate::context::Identity> {
+    pub particle: Particle<Capture>,
+    pub body: Option<Body<Capture>>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum Output {
-    Reference(Slot<structure::Output>),
-    Build(Vec<Destination>),
+pub enum Output<Capture = crate::context::Identity> {
+    Reference(Slot<structure::Output<Capture, Capture>>),
+    Build(Vec<Destination<Capture>>),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum Body {
-    Reference(Slot<structure::Body>),
-    Build(Vec<Rule>),
+pub enum Body<Capture = crate::context::Identity> {
+    Reference(Slot<structure::Body<Capture, Capture>>),
+    Build(Vec<Rule<Capture>>),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Rule {
-    pub input: Input,
-    pub output: Output,
+pub struct Rule<Capture = crate::context::Identity> {
+    pub input: Input<Capture>,
+    pub output: Output<Capture>,
 }
 
-impl Value {
+impl<Capture: Clone + Ord> Value<Capture> {
     pub fn instantiate(
         &self,
-        construction: &Construction,
-        environment: &Environment,
-    ) -> Result<Fragment<structure::Value>, Failure> {
+        construction: &Construction<Capture, Capture>,
+        environment: &Environment<Capture>,
+    ) -> Result<Fragment<structure::Value<Capture, Capture>>, Failure> {
         construction.seal(self.defer(&construction.defer(), environment)?)
     }
 
     pub(crate) fn defer(
         &self,
-        construction: &Construction<Reference>,
-        environment: &Environment,
-    ) -> Result<Fragment<structure::Value<Reference>>, Failure> {
+        construction: &Construction<Reference<Capture>, Capture>,
+        environment: &Environment<Capture>,
+    ) -> Result<Fragment<structure::Value<Reference<Capture>, Capture>>, Failure> {
         match self {
             Self::Atom(atom) => Ok(construction.literal(atom.clone())),
             Self::Reference(slot) => construction.capture(environment.value.resolve(slot)?),
@@ -71,20 +71,20 @@ impl Value {
     }
 }
 
-impl Particle {
+impl<Capture: Clone + Ord> Particle<Capture> {
     pub fn instantiate(
         &self,
-        construction: &Construction,
-        environment: &Environment,
-    ) -> Result<Fragment<structure::Particle>, Failure> {
+        construction: &Construction<Capture, Capture>,
+        environment: &Environment<Capture>,
+    ) -> Result<Fragment<structure::Particle<Capture, Capture>>, Failure> {
         construction.seal(self.defer(&construction.defer(), environment)?)
     }
 
     pub(crate) fn defer(
         &self,
-        construction: &Construction<Reference>,
-        environment: &Environment,
-    ) -> Result<Fragment<structure::Particle<Reference>>, Failure> {
+        construction: &Construction<Reference<Capture>, Capture>,
+        environment: &Environment<Capture>,
+    ) -> Result<Fragment<structure::Particle<Reference<Capture>, Capture>>, Failure> {
         match self {
             Self::Reference(slot) => construction.capture(environment.particle.resolve(slot)?),
             Self::Build(value) => construction.particle(
@@ -97,20 +97,20 @@ impl Particle {
     }
 }
 
-impl Input {
+impl<Capture: Clone + Ord> Input<Capture> {
     pub fn instantiate(
         &self,
-        construction: &Construction,
-        environment: &Environment,
-    ) -> Result<Fragment<structure::Input>, Failure> {
+        construction: &Construction<Capture, Capture>,
+        environment: &Environment<Capture>,
+    ) -> Result<Fragment<structure::Input<Capture, Capture>>, Failure> {
         construction.seal(self.defer(&construction.defer(), environment)?)
     }
 
     pub(crate) fn defer(
         &self,
-        construction: &Construction<Reference>,
-        environment: &Environment,
-    ) -> Result<Fragment<structure::Input<Reference>>, Failure> {
+        construction: &Construction<Reference<Capture>, Capture>,
+        environment: &Environment<Capture>,
+    ) -> Result<Fragment<structure::Input<Reference<Capture>, Capture>>, Failure> {
         match self {
             Self::Reference(slot) => construction.capture(environment.input.resolve(slot)?),
             Self::Build(particle) => construction.input(
@@ -123,20 +123,20 @@ impl Input {
     }
 }
 
-impl Destination {
+impl<Capture: Clone + Ord> Destination<Capture> {
     pub fn instantiate(
         &self,
-        construction: &Construction,
-        environment: &Environment,
-    ) -> Result<Fragment<structure::Destination>, Failure> {
+        construction: &Construction<Capture, Capture>,
+        environment: &Environment<Capture>,
+    ) -> Result<Fragment<structure::Destination<Capture, Capture>>, Failure> {
         construction.seal(self.defer(&construction.defer(), environment)?)
     }
 
     pub(crate) fn defer(
         &self,
-        construction: &Construction<Reference>,
-        environment: &Environment,
-    ) -> Result<Fragment<structure::Destination<Reference>>, Failure> {
+        construction: &Construction<Reference<Capture>, Capture>,
+        environment: &Environment<Capture>,
+    ) -> Result<Fragment<structure::Destination<Reference<Capture>, Capture>>, Failure> {
         construction.destination(
             self.particle.defer(construction, environment)?,
             self.body
@@ -147,20 +147,20 @@ impl Destination {
     }
 }
 
-impl Output {
+impl<Capture: Clone + Ord> Output<Capture> {
     pub fn instantiate(
         &self,
-        construction: &Construction,
-        environment: &Environment,
-    ) -> Result<Fragment<structure::Output>, Failure> {
+        construction: &Construction<Capture, Capture>,
+        environment: &Environment<Capture>,
+    ) -> Result<Fragment<structure::Output<Capture, Capture>>, Failure> {
         construction.seal(self.defer(&construction.defer(), environment)?)
     }
 
     pub(crate) fn defer(
         &self,
-        construction: &Construction<Reference>,
-        environment: &Environment,
-    ) -> Result<Fragment<structure::Output<Reference>>, Failure> {
+        construction: &Construction<Reference<Capture>, Capture>,
+        environment: &Environment<Capture>,
+    ) -> Result<Fragment<structure::Output<Reference<Capture>, Capture>>, Failure> {
         match self {
             Self::Reference(slot) => construction.capture(environment.output.resolve(slot)?),
             Self::Build(destination) => construction.output(
@@ -173,20 +173,20 @@ impl Output {
     }
 }
 
-impl Body {
+impl<Capture: Clone + Ord> Body<Capture> {
     pub fn instantiate(
         &self,
-        construction: &Construction,
-        environment: &Environment,
-    ) -> Result<Fragment<structure::Body>, Failure> {
+        construction: &Construction<Capture, Capture>,
+        environment: &Environment<Capture>,
+    ) -> Result<Fragment<structure::Body<Capture, Capture>>, Failure> {
         construction.seal(self.defer(&construction.defer(), environment)?)
     }
 
     pub(crate) fn defer(
         &self,
-        construction: &Construction<Reference>,
-        environment: &Environment,
-    ) -> Result<Fragment<structure::Body<Reference>>, Failure> {
+        construction: &Construction<Reference<Capture>, Capture>,
+        environment: &Environment<Capture>,
+    ) -> Result<Fragment<structure::Body<Reference<Capture>, Capture>>, Failure> {
         match self {
             Self::Reference(slot) => construction.capture(environment.body.resolve(slot)?),
             Self::Build(rule) => {
@@ -201,20 +201,20 @@ impl Body {
     }
 }
 
-impl Rule {
+impl<Capture: Clone + Ord> Rule<Capture> {
     pub fn instantiate(
         &self,
-        construction: &Construction,
-        environment: &Environment,
-    ) -> Result<Fragment<structure::Value>, Failure> {
+        construction: &Construction<Capture, Capture>,
+        environment: &Environment<Capture>,
+    ) -> Result<Fragment<structure::Value<Capture, Capture>>, Failure> {
         construction.seal(self.defer(&construction.defer(), environment)?)
     }
 
     pub(crate) fn defer(
         &self,
-        construction: &Construction<Reference>,
-        environment: &Environment,
-    ) -> Result<Fragment<structure::Value<Reference>>, Failure> {
+        construction: &Construction<Reference<Capture>, Capture>,
+        environment: &Environment<Capture>,
+    ) -> Result<Fragment<structure::Value<Reference<Capture>, Capture>>, Failure> {
         construction.rule(
             self.input.defer(construction, environment)?,
             self.output.defer(construction, environment)?,

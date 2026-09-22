@@ -65,6 +65,7 @@ rust_test(
         "test/projection.rs",
         "test/publication.rs",
         "test/qualification.rs",
+        "test/staging.rs",
         "test/suite.rs",
         "test/support.rs",
         "test/template.rs",

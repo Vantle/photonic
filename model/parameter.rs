@@ -14,15 +14,15 @@ pub enum Sort {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum Parameter {
-    Value(Slot<Value>),
-    Particle(Slot<Particle>),
-    Input(Slot<Input>),
-    Output(Slot<Output>),
-    Body(Slot<Body>),
+pub enum Parameter<Capture = crate::context::Identity> {
+    Value(Slot<Value<Capture, Capture>>),
+    Particle(Slot<Particle<Capture, Capture>>),
+    Input(Slot<Input<Capture, Capture>>),
+    Output(Slot<Output<Capture, Capture>>),
+    Body(Slot<Body<Capture, Capture>>),
 }
 
-impl Parameter {
+impl<Capture: Clone + Ord> Parameter<Capture> {
     pub(crate) fn identity(&self) -> (scope::Identity, usize, Sort) {
         match self {
             Self::Value(slot) => (slot.scope, slot.position, Sort::Value),
@@ -35,14 +35,17 @@ impl Parameter {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Declaration {
+pub struct Declaration<Capture = crate::context::Identity> {
     pub(crate) scope: scope::Identity,
-    pub(crate) parameter: Vec<Parameter>,
+    pub(crate) parameter: Vec<Parameter<Capture>>,
     entry: BTreeMap<usize, Sort>,
 }
 
-impl Declaration {
-    pub fn new(scope: scope::Identity, parameter: Vec<Parameter>) -> Result<Self, Failure> {
+impl<Capture: Clone + Ord> Declaration<Capture> {
+    pub fn new(
+        scope: scope::Identity,
+        parameter: Vec<Parameter<Capture>>,
+    ) -> Result<Self, Failure> {
         let mut entry = BTreeMap::new();
         for value in &parameter {
             let (owner, position, sort) = value.identity();
@@ -60,7 +63,7 @@ impl Declaration {
         })
     }
 
-    pub(crate) fn contains<Value>(&self, slot: &Slot<Value>, sort: Sort) -> Result<bool, Failure> {
+    pub(crate) fn contains<Item>(&self, slot: &Slot<Item>, sort: Sort) -> Result<bool, Failure> {
         if slot.scope != self.scope {
             return Ok(false);
         }

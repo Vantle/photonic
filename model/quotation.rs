@@ -8,17 +8,17 @@ use crate::parameter::{Declaration, Sort};
 use crate::slot::Slot;
 use crate::template;
 
-struct Quotation<'a> {
-    declaration: Vec<&'a Declaration>,
-    environment: &'a Environment,
-    construction: &'a Construction,
+struct Quotation<'a, Capture> {
+    declaration: Vec<&'a Declaration<Capture>>,
+    environment: &'a Environment<Capture>,
+    construction: &'a Construction<Capture, Capture>,
     evidence: Evidence,
 }
 
-pub(crate) fn check(
-    definition: &Definition,
-    environment: &Environment,
-    construction: &Construction,
+pub(crate) fn check<Capture: Clone + Ord>(
+    definition: &Definition<Capture>,
+    environment: &Environment<Capture>,
+    construction: &Construction<Capture, Capture>,
 ) -> Result<Evidence, Failure> {
     let mut quotation = Quotation {
         declaration: Vec::new(),
@@ -30,7 +30,7 @@ pub(crate) fn check(
     Ok(quotation.evidence)
 }
 
-impl<'a> Quotation<'a> {
+impl<'a, Capture: Clone + Ord> Quotation<'a, Capture> {
     fn reference<Value: Clone>(
         &mut self,
         slot: &Slot<Value>,
@@ -47,7 +47,7 @@ impl<'a> Quotation<'a> {
         Ok(())
     }
 
-    fn definition(&mut self, definition: &'a Definition) -> Result<(), Failure> {
+    fn definition(&mut self, definition: &'a Definition<Capture>) -> Result<(), Failure> {
         if self
             .declaration
             .iter()
@@ -65,7 +65,7 @@ impl<'a> Quotation<'a> {
         Ok(())
     }
 
-    fn value(&mut self, value: &template::Value) -> Result<(), Failure> {
+    fn value(&mut self, value: &template::Value<Capture>) -> Result<(), Failure> {
         match value {
             template::Value::Atom(_) => Ok(()),
             template::Value::Reference(slot) => {
@@ -75,7 +75,7 @@ impl<'a> Quotation<'a> {
         }
     }
 
-    fn particle(&mut self, particle: &template::Particle) -> Result<(), Failure> {
+    fn particle(&mut self, particle: &template::Particle<Capture>) -> Result<(), Failure> {
         match particle {
             template::Particle::Reference(slot) => {
                 self.reference(slot, Sort::Particle, &self.environment.particle)
@@ -89,7 +89,7 @@ impl<'a> Quotation<'a> {
         }
     }
 
-    fn input(&mut self, input: &template::Input) -> Result<(), Failure> {
+    fn input(&mut self, input: &template::Input<Capture>) -> Result<(), Failure> {
         match input {
             template::Input::Reference(slot) => {
                 self.reference(slot, Sort::Input, &self.environment.input)
@@ -103,7 +103,7 @@ impl<'a> Quotation<'a> {
         }
     }
 
-    fn output(&mut self, output: &template::Output) -> Result<(), Failure> {
+    fn output(&mut self, output: &template::Output<Capture>) -> Result<(), Failure> {
         match output {
             template::Output::Reference(slot) => {
                 self.reference(slot, Sort::Output, &self.environment.output)
@@ -120,7 +120,7 @@ impl<'a> Quotation<'a> {
         }
     }
 
-    fn body(&mut self, body: &template::Body) -> Result<(), Failure> {
+    fn body(&mut self, body: &template::Body<Capture>) -> Result<(), Failure> {
         match body {
             template::Body::Reference(slot) => {
                 self.reference(slot, Sort::Body, &self.environment.body)
@@ -134,7 +134,7 @@ impl<'a> Quotation<'a> {
         }
     }
 
-    fn rule(&mut self, rule: &template::Rule) -> Result<(), Failure> {
+    fn rule(&mut self, rule: &template::Rule<Capture>) -> Result<(), Failure> {
         self.input(&rule.input)?;
         self.output(&rule.output)
     }

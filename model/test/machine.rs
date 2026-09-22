@@ -6,10 +6,10 @@ use model::scope::Scope;
 use model::{context, scope, template};
 use std::task::Poll;
 
-pub(super) fn compare(
-    value: &template::Value,
-    construction: &Construction,
-    environment: &Environment,
+pub(super) fn compare<Capture: Clone + Ord + std::fmt::Debug>(
+    value: &template::Value<Capture>,
+    construction: &Construction<Capture, Capture>,
+    environment: &Environment<Capture>,
 ) {
     let expected = value.instantiate(construction, environment);
     let mut complete = Machine::new(value, construction, environment);

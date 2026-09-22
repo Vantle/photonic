@@ -9,40 +9,40 @@ use crate::parameter::{Declaration, Parameter};
 use crate::{structure, template};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum Term {
-    Value(template::Value),
-    Quote(Box<Definition>),
+pub enum Term<Capture = crate::context::Identity> {
+    Value(template::Value<Capture>),
+    Quote(Box<Definition<Capture>>),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Definition {
-    pub declaration: Declaration,
-    pub term: Term,
+pub struct Definition<Capture = crate::context::Identity> {
+    pub declaration: Declaration<Capture>,
+    pub term: Term<Capture>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Generator {
-    definition: Definition,
-    environment: Environment,
+pub struct Generator<Capture = crate::context::Identity> {
+    definition: Definition<Capture>,
+    environment: Environment<Capture>,
 }
 
-pub struct Invocation<'a> {
-    term: &'a Term,
-    environment: Environment,
+pub struct Invocation<'a, Capture = crate::context::Identity> {
+    term: &'a Term<Capture>,
+    environment: Environment<Capture>,
     origin: Evidence,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum Product {
-    Value(Fragment<structure::Value>),
-    Generator(Box<Fragment<Generator>>),
+pub enum Product<Capture = crate::context::Identity> {
+    Value(Fragment<structure::Value<Capture, Capture>>),
+    Generator(Box<Fragment<Generator<Capture>>>),
 }
 
-impl Generator {
+impl<Capture: Clone + Ord> Generator<Capture> {
     pub fn close(
-        definition: Definition,
-        environment: Environment,
-        construction: &Construction,
+        definition: Definition<Capture>,
+        environment: Environment<Capture>,
+        construction: &Construction<Capture, Capture>,
     ) -> Result<Fragment<Self>, Failure> {
         let evidence = crate::quotation::check(&definition, &environment, construction)?;
         Ok(Fragment {
@@ -55,12 +55,12 @@ impl Generator {
     }
 }
 
-impl Fragment<Generator> {
+impl<Capture: Clone + Ord> Fragment<Generator<Capture>> {
     pub fn bind(
         &self,
-        construction: &Construction,
-        argument: Vec<Argument>,
-    ) -> Result<Invocation<'_>, Failure> {
+        construction: &Construction<Capture, Capture>,
+        argument: Vec<Argument<Capture>>,
+    ) -> Result<Invocation<'_, Capture>, Failure> {
         let generator = &self.value;
         let declaration = &generator.definition.declaration;
         if declaration.parameter.len() != argument.len() {
@@ -116,8 +116,11 @@ impl Fragment<Generator> {
     }
 }
 
-impl Invocation<'_> {
-    pub fn evaluate(&self, construction: &Construction) -> Result<Product, Failure> {
+impl<Capture: Clone + Ord> Invocation<'_, Capture> {
+    pub fn evaluate(
+        &self,
+        construction: &Construction<Capture, Capture>,
+    ) -> Result<Product<Capture>, Failure> {
         construction.permits(&self.origin)?;
         match self.term {
             Term::Value(value) => {
@@ -134,7 +137,10 @@ impl Invocation<'_> {
         }
     }
 
-    pub fn machine<'a>(&'a self, construction: &'a Construction) -> Result<Machine<'a>, Failure> {
+    pub fn machine<'a>(
+        &'a self,
+        construction: &'a Construction<Capture, Capture>,
+    ) -> Result<Machine<'a, Capture>, Failure> {
         construction.permits(&self.origin)?;
         let Term::Value(value) = self.term else {
             return Err(Failure::Generator);

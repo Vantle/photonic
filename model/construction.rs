@@ -27,7 +27,7 @@ impl<Context: Clone + Ord, Capture: Clone + Ord> Construction<Context, Capture> 
     }
 
     pub(crate) fn permits(&self, evidence: &Evidence) -> Result<(), Failure> {
-        self.origin.history.permits(&evidence.history)
+        self.origin.permits(evidence)
     }
 
     pub(crate) fn accept<Item>(&self, value: Fragment<Item>) -> Result<Fragment<Item>, Failure> {

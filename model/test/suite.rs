@@ -6,6 +6,7 @@ mod path;
 mod projection;
 mod publication;
 mod qualification;
+mod staging;
 mod support;
 mod template;
 mod transport;

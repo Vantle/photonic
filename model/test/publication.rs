@@ -16,7 +16,7 @@ use model::support::{self, Address};
 use model::world;
 use std::collections::BTreeSet;
 
-fn validate(path: &Path) {
+pub(super) fn validate(path: &Path) {
     for state in path.state() {
         Configuration::new(
             state.root(),
@@ -67,7 +67,7 @@ fn wrapper() -> (Path, Fragment<Value<Capture, Capture>>) {
     (path, value)
 }
 
-fn publish(path: &Path, value: Fragment<Value<Capture, Capture>>) -> Path {
+pub(super) fn publish(path: &Path, value: Fragment<Value<Capture, Capture>>) -> Path {
     path.advance(Step::Construction(publication::Request {
         world: path.target().world().next().unwrap().identity,
         consumed: vec![],
@@ -92,7 +92,7 @@ fn request(path: &Path, code: Code, label: &str) -> Request {
     }
 }
 
-fn opened(path: &Path) -> Request {
+pub(super) fn opened(path: &Path) -> Request {
     let world = path.target().world().next().unwrap();
     let code = world.occurrence.iter().find(|value| matches!(&value.value, Value::Rule(rule) if rule.context == context::Identity(0))).unwrap();
     request(
@@ -105,7 +105,7 @@ fn opened(path: &Path) -> Request {
     )
 }
 
-fn execute(path: &Path) {
+pub(super) fn execute(path: &Path) {
     let world = path.target().world().next().unwrap();
     let mut observed = BTreeSet::new();
     for value in &world.occurrence {

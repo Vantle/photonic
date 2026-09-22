@@ -1,15 +1,15 @@
 use crate::fragment::Fragment;
 use crate::structure::{Body, Input, Output, Particle, Value};
 
-pub enum Argument {
-    Value(Fragment<Value>),
-    Particle(Fragment<Particle>),
-    Input(Fragment<Input>),
-    Output(Fragment<Output>),
-    Body(Fragment<Body>),
+pub enum Argument<Capture = crate::context::Identity> {
+    Value(Fragment<Value<Capture, Capture>>),
+    Particle(Fragment<Particle<Capture, Capture>>),
+    Input(Fragment<Input<Capture, Capture>>),
+    Output(Fragment<Output<Capture, Capture>>),
+    Body(Fragment<Body<Capture, Capture>>),
 }
 
-impl Argument {
+impl<Capture: Clone + Ord> Argument<Capture> {
     pub(crate) fn sort(&self) -> crate::parameter::Sort {
         match self {
             Self::Value(_) => crate::parameter::Sort::Value,

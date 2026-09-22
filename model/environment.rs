@@ -4,15 +4,15 @@ use crate::scope;
 use crate::structure::{Body, Input, Output, Particle, Value};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Environment {
-    pub value: Binding<Value>,
-    pub particle: Binding<Particle>,
-    pub input: Binding<Input>,
-    pub output: Binding<Output>,
-    pub body: Binding<Body>,
+pub struct Environment<Capture = crate::context::Identity> {
+    pub value: Binding<Value<Capture, Capture>>,
+    pub particle: Binding<Particle<Capture, Capture>>,
+    pub input: Binding<Input<Capture, Capture>>,
+    pub output: Binding<Output<Capture, Capture>>,
+    pub body: Binding<Body<Capture, Capture>>,
 }
 
-impl Environment {
+impl<Capture: Clone + Ord> Environment<Capture> {
     pub fn new(scope: scope::Identity) -> Self {
         Self {
             value: Binding::new(scope),
