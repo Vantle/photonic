@@ -36,6 +36,7 @@ pub mod provenance;
 pub mod publication;
 pub mod qualification;
 mod quotation;
+pub mod reconstruction;
 mod reference;
 mod resource;
 mod rewrite;

@@ -13,7 +13,7 @@ use model::support::{self, Address};
 use model::world::{self, World};
 use std::collections::BTreeSet;
 
-fn initial(base: u64, width: usize, count: u64) -> Path {
+pub(super) fn initial(base: u64, width: usize, count: u64) -> Path {
     let Value::Rule(seed) = super::rule(base, "Start", Value::Atom("Seed".into())) else {
         unreachable!()
     };
@@ -94,7 +94,7 @@ fn apply(path: &Path, context: context::Identity, position: usize, label: &str) 
     .unwrap()
 }
 
-fn auxiliary(initial: &Configuration, width: usize) -> (Path, Request) {
+pub(super) fn auxiliary(initial: &Configuration, width: usize) -> (Path, Request) {
     let root = initial.root();
     let path = apply(&Path::new(initial.clone()), root, 0, "Start");
     let mut path = apply(&path, root, 1, "Seed");
