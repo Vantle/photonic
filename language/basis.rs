@@ -1,3 +1,4 @@
+use smallvec::SmallVec;
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
@@ -84,7 +85,7 @@ impl<Value> Default for Set<Value> {
     }
 }
 
-impl<Value: Ord> FromIterator<Value> for Set<Value> {
+impl<Value: Clone + Ord> FromIterator<Value> for Set<Value> {
     fn from_iter<Input: IntoIterator<Item = Value>>(value: Input) -> Self {
         let mut input = value.into_iter();
         let Some(first) = input.next() else {
@@ -93,17 +94,20 @@ impl<Value: Ord> FromIterator<Value> for Set<Value> {
         let Some(second) = input.next() else {
             return Self::single(first);
         };
-        let mut value = [first, second].into_iter().chain(input).collect::<Vec<_>>();
+        let mut value = [first, second]
+            .into_iter()
+            .chain(input)
+            .collect::<SmallVec<[Value; 8]>>();
         value.sort_unstable();
         value.dedup();
         if value.len() == 1 {
             return Self::single(value.pop().unwrap());
         }
-        Self(Storage::Shared(value.into()))
+        Self(Storage::Shared(Arc::from(value.as_slice())))
     }
 }
 
-impl<Value: Ord> From<BTreeSet<Value>> for Set<Value> {
+impl<Value: Clone + Ord> From<BTreeSet<Value>> for Set<Value> {
     fn from(value: BTreeSet<Value>) -> Self {
         value.into_iter().collect()
     }

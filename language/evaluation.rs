@@ -3,6 +3,7 @@ use crate::flow::{Binding, Place};
 use crate::layout::Layout;
 use crate::program::{Instruction, Scope, Symbol};
 use crate::state::{Frame, State, Token, World};
+use smallvec::SmallVec;
 use std::collections::BTreeMap;
 
 pub(crate) struct Result {
@@ -23,8 +24,12 @@ pub(crate) struct Request<'source> {
     pub layout: &'source Layout,
 }
 
-fn remainder(source: &State, binding: &Binding, selected: &crate::basis::Set<Place>) -> Vec<Token> {
-    let mut value = smallvec::SmallVec::<[&Token; 8]>::new();
+fn remainder<'source>(
+    source: &'source State,
+    binding: &Binding,
+    selected: &crate::basis::Set<Place>,
+) -> SmallVec<[&'source Token; 8]> {
+    let mut value = SmallVec::<[&Token; 8]>::new();
     for &world in &binding.world {
         for token in &source.world[world].particle {
             if selected.contains(&Place::World(world, token.id)) {
@@ -35,7 +40,7 @@ fn remainder(source: &State, binding: &Binding, selected: &crate::basis::Set<Pla
     }
     value.sort_by_key(|token| token.id);
     value.dedup_by_key(|token| token.id);
-    value.into_iter().cloned().collect()
+    value
 }
 
 pub(crate) fn apply(request: Request<'_>) -> Result {
@@ -88,18 +93,12 @@ pub(crate) fn apply(request: Request<'_>) -> Result {
         }
     }
     let reserve = reserve.into_values().collect::<Vec<_>>();
-    let mut vacant = if nested {
-        (1..source.frame.len())
-            .rev()
-            .filter(|index| layout.reach.frame.binary_search(index).is_err())
-            .collect::<Vec<_>>()
-    } else {
-        Vec::new()
-    };
+    let mut vacant =
+        (1..source.frame.len()).filter(|index| layout.reach.frame.binary_search(index).is_err());
     let mut next = next;
     for output in &rule.output {
         let target = if let Some(body) = output.body {
-            let target = vacant.pop().unwrap_or(state.frame.len());
+            let target = vacant.next().unwrap_or(state.frame.len());
             let value = Frame {
                 scope: body,
                 parent: Some(parent),
@@ -122,15 +121,21 @@ pub(crate) fn apply(request: Request<'_>) -> Result {
         } else {
             parent
         };
-        let mut particle = if output.body.is_some() {
-            enclosed.as_ref().unwrap_or(&remainder).clone()
-        } else {
-            remainder.clone()
+        let base = match output.body {
+            Some(_) => enclosed.as_ref().unwrap_or(&remainder),
+            None => &remainder,
         };
-        particle.reserve(output.particle.len());
-        for &value in &output.particle {
-            particle.push(Token::new(value, owner, &mut next));
-        }
+        let particle = base
+            .iter()
+            .copied()
+            .cloned()
+            .chain(
+                output
+                    .particle
+                    .iter()
+                    .map(|&value| Token::new(value, owner, &mut next)),
+            )
+            .collect();
         state.world.push(
             World {
                 frame: target,
@@ -140,14 +145,16 @@ pub(crate) fn apply(request: Request<'_>) -> Result {
         );
     }
     let reach = layout.reach.advance(source, &state, &change);
-    change.frame.extend(
-        layout
-            .reach
-            .frame
-            .iter()
-            .copied()
-            .filter(|index| reach.frame.binary_search(index).is_err()),
-    );
+    if !std::sync::Arc::ptr_eq(&layout.reach.frame, &reach.frame) {
+        change.frame.extend(
+            layout
+                .reach
+                .frame
+                .iter()
+                .copied()
+                .filter(|index| reach.frame.binary_search(index).is_err()),
+        );
+    }
     change.frame.sort_unstable();
     change.frame.dedup();
     let state = state.reclaim(&reach.frame);

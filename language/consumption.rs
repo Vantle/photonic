@@ -1,21 +1,24 @@
 use crate::flow::{Binding, Place};
 use crate::state::State;
-use std::collections::{BTreeMap, BTreeSet};
+use smallvec::SmallVec;
 use std::sync::Arc;
 
 pub(crate) fn apply(state: &mut State, binding: &Binding) -> Vec<usize> {
-    let mut selection = BTreeMap::<_, BTreeSet<_>>::new();
-    for &place in &binding.exact {
-        if let Place::Context(frame, resource) = place {
-            selection.entry(frame).or_default().insert(resource);
-        }
-    }
+    let selection = binding
+        .exact
+        .iter()
+        .filter_map(|&place| match place {
+            Place::Context(frame, resource) => Some((frame, resource)),
+            _ => None,
+        })
+        .collect::<SmallVec<[(usize, usize); 4]>>();
     selection
-        .into_iter()
-        .map(|(frame, selection)| {
+        .chunk_by(|left, right| left.0 == right.0)
+        .map(|group| {
+            let frame = group[0].0;
             Arc::make_mut(&mut state.frame[frame])
                 .particle
-                .retain(|token| !selection.contains(&token.id));
+                .retain(|token| group.iter().all(|&(_, resource)| resource != token.id));
             frame
         })
         .collect()

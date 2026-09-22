@@ -24,10 +24,6 @@ impl<Value> Default for List<Value> {
 }
 
 impl<Value> List<Value> {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
     pub fn len(&self) -> usize {
         match &self.0 {
             Storage::Flat(value) => value.len(),
@@ -116,7 +112,8 @@ impl<Value: Clone> List<Value> {
 
 impl<Value: Clone> FromIterator<Value> for List<Value> {
     fn from_iter<Source: IntoIterator<Item = Value>>(source: Source) -> Self {
-        let mut list = Self::new();
+        let mut source = source.into_iter();
+        let mut list = Self(Storage::Flat(source.by_ref().take(256).collect()));
         list.extend(source);
         list
     }

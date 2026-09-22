@@ -213,6 +213,7 @@ impl<'set> IntoIterator for &'set Set {
     }
 }
 
+#[cfg(test)]
 impl std::ops::Index<usize> for Set {
     type Output = Token;
     fn index(&self, position: usize) -> &Token {

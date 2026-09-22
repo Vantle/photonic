@@ -191,16 +191,18 @@ mod test;
 
 impl Binding {
     pub(crate) fn select(state: &State, selection: &[crate::slot::Slot]) -> Option<Self> {
-        let mut footprint = BTreeSet::new();
-        for slot in selection {
-            for &id in &slot.token {
-                let place = state.resolve(slot.location, id)?;
-                if !footprint.insert(place) {
-                    return None;
-                }
-            }
+        let place = selection
+            .iter()
+            .flat_map(|slot| {
+                slot.token
+                    .iter()
+                    .map(|&id| state.resolve(slot.location, id))
+            })
+            .collect::<Option<smallvec::SmallVec<[Place; 8]>>>()?;
+        let footprint = place.iter().copied().collect::<Set<_>>();
+        if footprint.len() != place.len() {
+            return None;
         }
-        let footprint = Set::from(footprint);
         Some(Self {
             world: selection
                 .iter()
