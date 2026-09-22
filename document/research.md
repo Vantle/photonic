@@ -24,6 +24,8 @@ Whole-prefix consumers can also share an immutable snapshot before enumeration f
 
 ## Recommended order
 
+The 2026-09-21 [architectural assessment](opportunity.md) updates the immediate order: reusable subscription structure, incremental report materialization, then workload-justified shared maintained relations and lazy trace composition. It includes a fresh admission-count diagnostic and separates shipped foundations from remaining work. The table below records this earlier research review's broader sequence, rather than a requirement to revisit delivered microoptimizations.
+
 | Priority | Work | Why it can matter | Gate before production |
 | --- | --- | --- | --- |
 | 1 | Measure actual cursor work, fragment survival, frontier overruns, allocations, and phase time | Distinguish repeated matching from output/provenance cost | Disabled instrumentation has no hot-path cost; separate direct and exhaustive execution |

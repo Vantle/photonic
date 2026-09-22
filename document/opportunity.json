@@ -1,0 +1,2502 @@
+{
+  "date": "2026-09-21",
+  "baseline": "bdc4de148eed0e293e8da8f2243506fdcb7213c8",
+  "machine": "Apple M5 Max",
+  "admission": {
+    "run": 2,
+    "initial": 1,
+    "admission": 66492,
+    "coordinate": 2110,
+    "context": 486,
+    "captured": 37027,
+    "shape": [
+      {
+        "particle": 1,
+        "term": 1,
+        "count": 2554
+      },
+      {
+        "particle": 1,
+        "term": 2,
+        "count": 8293
+      },
+      {
+        "particle": 1,
+        "term": 3,
+        "count": 30400
+      },
+      {
+        "particle": 1,
+        "term": 4,
+        "count": 8551
+      },
+      {
+        "particle": 1,
+        "term": 5,
+        "count": 2151
+      },
+      {
+        "particle": 1,
+        "term": 6,
+        "count": 5
+      },
+      {
+        "particle": 2,
+        "term": 3,
+        "count": 486
+      },
+      {
+        "particle": 2,
+        "term": 4,
+        "count": 3558
+      },
+      {
+        "particle": 2,
+        "term": 5,
+        "count": 6505
+      },
+      {
+        "particle": 2,
+        "term": 6,
+        "count": 3631
+      },
+      {
+        "particle": 2,
+        "term": 7,
+        "count": 91
+      },
+      {
+        "particle": 2,
+        "term": 8,
+        "count": 5
+      },
+      {
+        "particle": 3,
+        "term": 6,
+        "count": 22
+      },
+      {
+        "particle": 3,
+        "term": 7,
+        "count": 162
+      },
+      {
+        "particle": 3,
+        "term": 8,
+        "count": 5
+      },
+      {
+        "particle": 4,
+        "term": 13,
+        "count": 1
+      },
+      {
+        "particle": 5,
+        "term": 16,
+        "count": 57
+      },
+      {
+        "particle": 7,
+        "term": 22,
+        "count": 15
+      }
+    ],
+    "input": [
+      {
+        "identity": 0,
+        "count": 1849
+      },
+      {
+        "identity": 1,
+        "count": 513
+      },
+      {
+        "identity": 2,
+        "count": 31
+      },
+      {
+        "identity": 4,
+        "count": 568
+      },
+      {
+        "identity": 8,
+        "count": 4133
+      },
+      {
+        "identity": 9,
+        "count": 341
+      },
+      {
+        "identity": 10,
+        "count": 4133
+      },
+      {
+        "identity": 11,
+        "count": 18688
+      },
+      {
+        "identity": 12,
+        "count": 1584
+      },
+      {
+        "identity": 13,
+        "count": 5718
+      },
+      {
+        "identity": 14,
+        "count": 176
+      },
+      {
+        "identity": 15,
+        "count": 283
+      },
+      {
+        "identity": 16,
+        "count": 125
+      },
+      {
+        "identity": 17,
+        "count": 660
+      },
+      {
+        "identity": 18,
+        "count": 158
+      },
+      {
+        "identity": 19,
+        "count": 129
+      },
+      {
+        "identity": 20,
+        "count": 680
+      },
+      {
+        "identity": 21,
+        "count": 167
+      },
+      {
+        "identity": 22,
+        "count": 23
+      },
+      {
+        "identity": 23,
+        "count": 132
+      },
+      {
+        "identity": 24,
+        "count": 12
+      },
+      {
+        "identity": 25,
+        "count": 70
+      },
+      {
+        "identity": 26,
+        "count": 64
+      },
+      {
+        "identity": 30,
+        "count": 235
+      },
+      {
+        "identity": 31,
+        "count": 93
+      },
+      {
+        "identity": 42,
+        "count": 5
+      },
+      {
+        "identity": 43,
+        "count": 5
+      },
+      {
+        "identity": 44,
+        "count": 1
+      },
+      {
+        "identity": 45,
+        "count": 6
+      },
+      {
+        "identity": 46,
+        "count": 5
+      },
+      {
+        "identity": 51,
+        "count": 17
+      },
+      {
+        "identity": 57,
+        "count": 70
+      },
+      {
+        "identity": 58,
+        "count": 189
+      },
+      {
+        "identity": 59,
+        "count": 360
+      },
+      {
+        "identity": 60,
+        "count": 54
+      },
+      {
+        "identity": 61,
+        "count": 153
+      },
+      {
+        "identity": 62,
+        "count": 153
+      },
+      {
+        "identity": 63,
+        "count": 360
+      },
+      {
+        "identity": 64,
+        "count": 15
+      },
+      {
+        "identity": 65,
+        "count": 15
+      },
+      {
+        "identity": 66,
+        "count": 62
+      },
+      {
+        "identity": 67,
+        "count": 62
+      },
+      {
+        "identity": 68,
+        "count": 59
+      },
+      {
+        "identity": 69,
+        "count": 59
+      },
+      {
+        "identity": 70,
+        "count": 6
+      },
+      {
+        "identity": 71,
+        "count": 6
+      },
+      {
+        "identity": 72,
+        "count": 6
+      },
+      {
+        "identity": 73,
+        "count": 6
+      },
+      {
+        "identity": 74,
+        "count": 37
+      },
+      {
+        "identity": 75,
+        "count": 27
+      },
+      {
+        "identity": 78,
+        "count": 153
+      },
+      {
+        "identity": 79,
+        "count": 108
+      },
+      {
+        "identity": 90,
+        "count": 3
+      },
+      {
+        "identity": 91,
+        "count": 5
+      },
+      {
+        "identity": 92,
+        "count": 12
+      },
+      {
+        "identity": 94,
+        "count": 6
+      },
+      {
+        "identity": 98,
+        "count": 6
+      },
+      {
+        "identity": 99,
+        "count": 6
+      },
+      {
+        "identity": 115,
+        "count": 6
+      },
+      {
+        "identity": 124,
+        "count": 5
+      },
+      {
+        "identity": 125,
+        "count": 5
+      },
+      {
+        "identity": 132,
+        "count": 1
+      },
+      {
+        "identity": 133,
+        "count": 1
+      },
+      {
+        "identity": 156,
+        "count": 6
+      },
+      {
+        "identity": 157,
+        "count": 5
+      },
+      {
+        "identity": 158,
+        "count": 6
+      },
+      {
+        "identity": 162,
+        "count": 9
+      },
+      {
+        "identity": 165,
+        "count": 2
+      },
+      {
+        "identity": 166,
+        "count": 23
+      },
+      {
+        "identity": 168,
+        "count": 6
+      },
+      {
+        "identity": 169,
+        "count": 6
+      },
+      {
+        "identity": 170,
+        "count": 6
+      },
+      {
+        "identity": 173,
+        "count": 5
+      },
+      {
+        "identity": 179,
+        "count": 5
+      },
+      {
+        "identity": 182,
+        "count": 62
+      },
+      {
+        "identity": 183,
+        "count": 28
+      },
+      {
+        "identity": 184,
+        "count": 62
+      },
+      {
+        "identity": 185,
+        "count": 28
+      },
+      {
+        "identity": 186,
+        "count": 28
+      },
+      {
+        "identity": 215,
+        "count": 9
+      },
+      {
+        "identity": 220,
+        "count": 4
+      },
+      {
+        "identity": 221,
+        "count": 4
+      },
+      {
+        "identity": 226,
+        "count": 5
+      },
+      {
+        "identity": 227,
+        "count": 5
+      },
+      {
+        "identity": 254,
+        "count": 2
+      },
+      {
+        "identity": 259,
+        "count": 1
+      },
+      {
+        "identity": 260,
+        "count": 1
+      },
+      {
+        "identity": 265,
+        "count": 1
+      },
+      {
+        "identity": 266,
+        "count": 1
+      },
+      {
+        "identity": 271,
+        "count": 95
+      },
+      {
+        "identity": 272,
+        "count": 115
+      },
+      {
+        "identity": 294,
+        "count": 32
+      },
+      {
+        "identity": 295,
+        "count": 6
+      },
+      {
+        "identity": 296,
+        "count": 16
+      },
+      {
+        "identity": 297,
+        "count": 33
+      },
+      {
+        "identity": 298,
+        "count": 23
+      },
+      {
+        "identity": 299,
+        "count": 141
+      },
+      {
+        "identity": 300,
+        "count": 62
+      },
+      {
+        "identity": 301,
+        "count": 281
+      },
+      {
+        "identity": 302,
+        "count": 230
+      },
+      {
+        "identity": 303,
+        "count": 30
+      },
+      {
+        "identity": 305,
+        "count": 10
+      },
+      {
+        "identity": 306,
+        "count": 24
+      },
+      {
+        "identity": 307,
+        "count": 88
+      },
+      {
+        "identity": 308,
+        "count": 24
+      },
+      {
+        "identity": 309,
+        "count": 6
+      },
+      {
+        "identity": 311,
+        "count": 6
+      },
+      {
+        "identity": 312,
+        "count": 5
+      },
+      {
+        "identity": 313,
+        "count": 17
+      },
+      {
+        "identity": 314,
+        "count": 34
+      },
+      {
+        "identity": 315,
+        "count": 8
+      },
+      {
+        "identity": 317,
+        "count": 18
+      },
+      {
+        "identity": 318,
+        "count": 15
+      },
+      {
+        "identity": 319,
+        "count": 27
+      },
+      {
+        "identity": 320,
+        "count": 2
+      },
+      {
+        "identity": 323,
+        "count": 2
+      },
+      {
+        "identity": 324,
+        "count": 4
+      },
+      {
+        "identity": 326,
+        "count": 5
+      },
+      {
+        "identity": 332,
+        "count": 9
+      },
+      {
+        "identity": 333,
+        "count": 9
+      },
+      {
+        "identity": 342,
+        "count": 8
+      },
+      {
+        "identity": 343,
+        "count": 8
+      },
+      {
+        "identity": 346,
+        "count": 2
+      },
+      {
+        "identity": 348,
+        "count": 5
+      },
+      {
+        "identity": 350,
+        "count": 3
+      },
+      {
+        "identity": 352,
+        "count": 10
+      },
+      {
+        "identity": 353,
+        "count": 5
+      },
+      {
+        "identity": 354,
+        "count": 41
+      },
+      {
+        "identity": 355,
+        "count": 17
+      },
+      {
+        "identity": 356,
+        "count": 17
+      },
+      {
+        "identity": 357,
+        "count": 17
+      },
+      {
+        "identity": 358,
+        "count": 7
+      },
+      {
+        "identity": 359,
+        "count": 7
+      },
+      {
+        "identity": 398,
+        "count": 329
+      },
+      {
+        "identity": 399,
+        "count": 64
+      },
+      {
+        "identity": 400,
+        "count": 169
+      },
+      {
+        "identity": 401,
+        "count": 173
+      },
+      {
+        "identity": 402,
+        "count": 30
+      },
+      {
+        "identity": 403,
+        "count": 61
+      },
+      {
+        "identity": 404,
+        "count": 10
+      },
+      {
+        "identity": 408,
+        "count": 24
+      },
+      {
+        "identity": 409,
+        "count": 106
+      },
+      {
+        "identity": 410,
+        "count": 120
+      },
+      {
+        "identity": 411,
+        "count": 212
+      },
+      {
+        "identity": 412,
+        "count": 119
+      },
+      {
+        "identity": 457,
+        "count": 20
+      },
+      {
+        "identity": 458,
+        "count": 136
+      },
+      {
+        "identity": 459,
+        "count": 130
+      },
+      {
+        "identity": 460,
+        "count": 40
+      },
+      {
+        "identity": 461,
+        "count": 116
+      },
+      {
+        "identity": 462,
+        "count": 4
+      },
+      {
+        "identity": 463,
+        "count": 24
+      },
+      {
+        "identity": 464,
+        "count": 116
+      },
+      {
+        "identity": 465,
+        "count": 48
+      },
+      {
+        "identity": 466,
+        "count": 34
+      },
+      {
+        "identity": 467,
+        "count": 24
+      },
+      {
+        "identity": 468,
+        "count": 18
+      },
+      {
+        "identity": 469,
+        "count": 73
+      },
+      {
+        "identity": 470,
+        "count": 30
+      },
+      {
+        "identity": 471,
+        "count": 23
+      },
+      {
+        "identity": 472,
+        "count": 20
+      },
+      {
+        "identity": 473,
+        "count": 17
+      },
+      {
+        "identity": 474,
+        "count": 70
+      },
+      {
+        "identity": 475,
+        "count": 29
+      },
+      {
+        "identity": 476,
+        "count": 22
+      },
+      {
+        "identity": 477,
+        "count": 344
+      },
+      {
+        "identity": 478,
+        "count": 72
+      },
+      {
+        "identity": 479,
+        "count": 48
+      },
+      {
+        "identity": 480,
+        "count": 20
+      },
+      {
+        "identity": 481,
+        "count": 10
+      },
+      {
+        "identity": 482,
+        "count": 10
+      },
+      {
+        "identity": 555,
+        "count": 20
+      },
+      {
+        "identity": 556,
+        "count": 40
+      },
+      {
+        "identity": 557,
+        "count": 171
+      },
+      {
+        "identity": 558,
+        "count": 172
+      },
+      {
+        "identity": 559,
+        "count": 10
+      },
+      {
+        "identity": 560,
+        "count": 387
+      },
+      {
+        "identity": 561,
+        "count": 14
+      },
+      {
+        "identity": 562,
+        "count": 5
+      },
+      {
+        "identity": 563,
+        "count": 463
+      },
+      {
+        "identity": 564,
+        "count": 188
+      },
+      {
+        "identity": 565,
+        "count": 81
+      },
+      {
+        "identity": 567,
+        "count": 147
+      },
+      {
+        "identity": 568,
+        "count": 62
+      },
+      {
+        "identity": 569,
+        "count": 81
+      },
+      {
+        "identity": 570,
+        "count": 5
+      },
+      {
+        "identity": 571,
+        "count": 154
+      },
+      {
+        "identity": 572,
+        "count": 63
+      },
+      {
+        "identity": 573,
+        "count": 15
+      },
+      {
+        "identity": 574,
+        "count": 5
+      },
+      {
+        "identity": 575,
+        "count": 199
+      },
+      {
+        "identity": 576,
+        "count": 120
+      },
+      {
+        "identity": 577,
+        "count": 29
+      },
+      {
+        "identity": 578,
+        "count": 28
+      },
+      {
+        "identity": 579,
+        "count": 23
+      },
+      {
+        "identity": 580,
+        "count": 5
+      },
+      {
+        "identity": 581,
+        "count": 165
+      },
+      {
+        "identity": 582,
+        "count": 5
+      },
+      {
+        "identity": 583,
+        "count": 194
+      },
+      {
+        "identity": 584,
+        "count": 117
+      },
+      {
+        "identity": 585,
+        "count": 27
+      },
+      {
+        "identity": 586,
+        "count": 27
+      },
+      {
+        "identity": 587,
+        "count": 22
+      },
+      {
+        "identity": 588,
+        "count": 5
+      },
+      {
+        "identity": 589,
+        "count": 128
+      },
+      {
+        "identity": 590,
+        "count": 65
+      },
+      {
+        "identity": 591,
+        "count": 15
+      },
+      {
+        "identity": 592,
+        "count": 5
+      },
+      {
+        "identity": 593,
+        "count": 22
+      },
+      {
+        "identity": 594,
+        "count": 1200
+      },
+      {
+        "identity": 595,
+        "count": 175
+      },
+      {
+        "identity": 620,
+        "count": 5
+      },
+      {
+        "identity": 621,
+        "count": 5
+      },
+      {
+        "identity": 622,
+        "count": 5
+      },
+      {
+        "identity": 645,
+        "count": 867
+      },
+      {
+        "identity": 653,
+        "count": 5
+      },
+      {
+        "identity": 655,
+        "count": 5
+      },
+      {
+        "identity": 656,
+        "count": 5
+      },
+      {
+        "identity": 660,
+        "count": 5
+      },
+      {
+        "identity": 662,
+        "count": 75
+      },
+      {
+        "identity": 664,
+        "count": 75
+      },
+      {
+        "identity": 665,
+        "count": 5
+      },
+      {
+        "identity": 666,
+        "count": 80
+      },
+      {
+        "identity": 667,
+        "count": 35
+      },
+      {
+        "identity": 668,
+        "count": 35
+      },
+      {
+        "identity": 669,
+        "count": 75
+      },
+      {
+        "identity": 670,
+        "count": 10
+      },
+      {
+        "identity": 671,
+        "count": 5
+      },
+      {
+        "identity": 673,
+        "count": 170
+      },
+      {
+        "identity": 674,
+        "count": 35
+      },
+      {
+        "identity": 675,
+        "count": 4
+      },
+      {
+        "identity": 676,
+        "count": 15
+      },
+      {
+        "identity": 677,
+        "count": 16
+      },
+      {
+        "identity": 678,
+        "count": 8
+      },
+      {
+        "identity": 679,
+        "count": 10
+      },
+      {
+        "identity": 680,
+        "count": 5
+      },
+      {
+        "identity": 681,
+        "count": 22
+      },
+      {
+        "identity": 682,
+        "count": 44
+      },
+      {
+        "identity": 683,
+        "count": 97
+      },
+      {
+        "identity": 684,
+        "count": 4
+      },
+      {
+        "identity": 685,
+        "count": 21
+      },
+      {
+        "identity": 686,
+        "count": 16
+      },
+      {
+        "identity": 687,
+        "count": 8
+      },
+      {
+        "identity": 688,
+        "count": 22
+      },
+      {
+        "identity": 689,
+        "count": 11
+      },
+      {
+        "identity": 690,
+        "count": 106
+      },
+      {
+        "identity": 691,
+        "count": 42
+      },
+      {
+        "identity": 692,
+        "count": 42
+      },
+      {
+        "identity": 693,
+        "count": 11
+      },
+      {
+        "identity": 694,
+        "count": 11
+      },
+      {
+        "identity": 695,
+        "count": 255
+      },
+      {
+        "identity": 696,
+        "count": 162
+      },
+      {
+        "identity": 698,
+        "count": 11
+      },
+      {
+        "identity": 705,
+        "count": 122
+      },
+      {
+        "identity": 706,
+        "count": 241
+      },
+      {
+        "identity": 707,
+        "count": 494
+      },
+      {
+        "identity": 708,
+        "count": 6
+      },
+      {
+        "identity": 709,
+        "count": 6
+      },
+      {
+        "identity": 710,
+        "count": 68
+      },
+      {
+        "identity": 711,
+        "count": 6
+      },
+      {
+        "identity": 712,
+        "count": 40
+      },
+      {
+        "identity": 713,
+        "count": 6
+      },
+      {
+        "identity": 714,
+        "count": 6
+      },
+      {
+        "identity": 715,
+        "count": 206
+      },
+      {
+        "identity": 717,
+        "count": 107
+      },
+      {
+        "identity": 719,
+        "count": 27
+      },
+      {
+        "identity": 720,
+        "count": 6
+      },
+      {
+        "identity": 721,
+        "count": 30
+      },
+      {
+        "identity": 722,
+        "count": 12
+      },
+      {
+        "identity": 723,
+        "count": 6
+      },
+      {
+        "identity": 724,
+        "count": 47
+      },
+      {
+        "identity": 726,
+        "count": 218
+      },
+      {
+        "identity": 731,
+        "count": 292
+      },
+      {
+        "identity": 734,
+        "count": 72
+      },
+      {
+        "identity": 756,
+        "count": 256
+      },
+      {
+        "identity": 757,
+        "count": 5
+      },
+      {
+        "identity": 758,
+        "count": 732
+      },
+      {
+        "identity": 759,
+        "count": 131
+      },
+      {
+        "identity": 760,
+        "count": 5
+      },
+      {
+        "identity": 761,
+        "count": 15
+      },
+      {
+        "identity": 763,
+        "count": 778
+      },
+      {
+        "identity": 764,
+        "count": 165
+      },
+      {
+        "identity": 765,
+        "count": 91
+      },
+      {
+        "identity": 766,
+        "count": 77
+      },
+      {
+        "identity": 767,
+        "count": 5
+      },
+      {
+        "identity": 769,
+        "count": 15
+      },
+      {
+        "identity": 770,
+        "count": 5
+      },
+      {
+        "identity": 788,
+        "count": 85
+      },
+      {
+        "identity": 789,
+        "count": 5
+      },
+      {
+        "identity": 790,
+        "count": 165
+      },
+      {
+        "identity": 791,
+        "count": 79
+      },
+      {
+        "identity": 792,
+        "count": 16
+      },
+      {
+        "identity": 793,
+        "count": 1513
+      },
+      {
+        "identity": 794,
+        "count": 162
+      },
+      {
+        "identity": 795,
+        "count": 1
+      },
+      {
+        "identity": 813,
+        "count": 162
+      },
+      {
+        "identity": 818,
+        "count": 22
+      },
+      {
+        "identity": 819,
+        "count": 105
+      },
+      {
+        "identity": 820,
+        "count": 96
+      },
+      {
+        "identity": 821,
+        "count": 11
+      },
+      {
+        "identity": 848,
+        "count": 42
+      },
+      {
+        "identity": 849,
+        "count": 45
+      },
+      {
+        "identity": 850,
+        "count": 45
+      },
+      {
+        "identity": 859,
+        "count": 393
+      },
+      {
+        "identity": 860,
+        "count": 10
+      },
+      {
+        "identity": 863,
+        "count": 125
+      },
+      {
+        "identity": 864,
+        "count": 332
+      },
+      {
+        "identity": 865,
+        "count": 1
+      },
+      {
+        "identity": 866,
+        "count": 1608
+      },
+      {
+        "identity": 867,
+        "count": 27
+      },
+      {
+        "identity": 872,
+        "count": 1
+      },
+      {
+        "identity": 873,
+        "count": 2
+      },
+      {
+        "identity": 874,
+        "count": 1
+      },
+      {
+        "identity": 875,
+        "count": 2
+      },
+      {
+        "identity": 876,
+        "count": 1
+      },
+      {
+        "identity": 877,
+        "count": 2
+      },
+      {
+        "identity": 878,
+        "count": 1
+      },
+      {
+        "identity": 879,
+        "count": 2
+      },
+      {
+        "identity": 880,
+        "count": 1
+      },
+      {
+        "identity": 881,
+        "count": 2
+      },
+      {
+        "identity": 882,
+        "count": 1
+      },
+      {
+        "identity": 883,
+        "count": 2
+      },
+      {
+        "identity": 884,
+        "count": 1
+      },
+      {
+        "identity": 885,
+        "count": 2
+      },
+      {
+        "identity": 886,
+        "count": 1
+      },
+      {
+        "identity": 887,
+        "count": 2
+      },
+      {
+        "identity": 888,
+        "count": 1
+      },
+      {
+        "identity": 889,
+        "count": 2
+      },
+      {
+        "identity": 890,
+        "count": 1
+      },
+      {
+        "identity": 891,
+        "count": 2
+      },
+      {
+        "identity": 892,
+        "count": 1
+      },
+      {
+        "identity": 893,
+        "count": 1724
+      },
+      {
+        "identity": 894,
+        "count": 27
+      },
+      {
+        "identity": 895,
+        "count": 410
+      },
+      {
+        "identity": 896,
+        "count": 36
+      },
+      {
+        "identity": 897,
+        "count": 419
+      },
+      {
+        "identity": 898,
+        "count": 10
+      },
+      {
+        "identity": 899,
+        "count": 1
+      },
+      {
+        "identity": 900,
+        "count": 1
+      },
+      {
+        "identity": 901,
+        "count": 1
+      },
+      {
+        "identity": 902,
+        "count": 1
+      }
+    ],
+    "coordinate_frequency": [
+      {
+        "admission": 1,
+        "coordinate": 543
+      },
+      {
+        "admission": 2,
+        "coordinate": 271
+      },
+      {
+        "admission": 3,
+        "coordinate": 150
+      },
+      {
+        "admission": 4,
+        "coordinate": 144
+      },
+      {
+        "admission": 5,
+        "coordinate": 115
+      },
+      {
+        "admission": 6,
+        "coordinate": 94
+      },
+      {
+        "admission": 7,
+        "coordinate": 44
+      },
+      {
+        "admission": 8,
+        "coordinate": 42
+      },
+      {
+        "admission": 9,
+        "coordinate": 29
+      },
+      {
+        "admission": 10,
+        "coordinate": 45
+      },
+      {
+        "admission": 11,
+        "coordinate": 28
+      },
+      {
+        "admission": 12,
+        "coordinate": 22
+      },
+      {
+        "admission": 13,
+        "coordinate": 23
+      },
+      {
+        "admission": 14,
+        "coordinate": 22
+      },
+      {
+        "admission": 15,
+        "coordinate": 22
+      },
+      {
+        "admission": 16,
+        "coordinate": 28
+      },
+      {
+        "admission": 17,
+        "coordinate": 24
+      },
+      {
+        "admission": 18,
+        "coordinate": 9
+      },
+      {
+        "admission": 19,
+        "coordinate": 7
+      },
+      {
+        "admission": 20,
+        "coordinate": 18
+      },
+      {
+        "admission": 21,
+        "coordinate": 20
+      },
+      {
+        "admission": 22,
+        "coordinate": 16
+      },
+      {
+        "admission": 23,
+        "coordinate": 11
+      },
+      {
+        "admission": 24,
+        "coordinate": 14
+      },
+      {
+        "admission": 25,
+        "coordinate": 8
+      },
+      {
+        "admission": 26,
+        "coordinate": 10
+      },
+      {
+        "admission": 27,
+        "coordinate": 11
+      },
+      {
+        "admission": 28,
+        "coordinate": 19
+      },
+      {
+        "admission": 29,
+        "coordinate": 9
+      },
+      {
+        "admission": 30,
+        "coordinate": 10
+      },
+      {
+        "admission": 31,
+        "coordinate": 5
+      },
+      {
+        "admission": 32,
+        "coordinate": 10
+      },
+      {
+        "admission": 33,
+        "coordinate": 3
+      },
+      {
+        "admission": 34,
+        "coordinate": 5
+      },
+      {
+        "admission": 35,
+        "coordinate": 11
+      },
+      {
+        "admission": 36,
+        "coordinate": 6
+      },
+      {
+        "admission": 37,
+        "coordinate": 5
+      },
+      {
+        "admission": 38,
+        "coordinate": 3
+      },
+      {
+        "admission": 39,
+        "coordinate": 7
+      },
+      {
+        "admission": 40,
+        "coordinate": 6
+      },
+      {
+        "admission": 41,
+        "coordinate": 1
+      },
+      {
+        "admission": 42,
+        "coordinate": 8
+      },
+      {
+        "admission": 44,
+        "coordinate": 2
+      },
+      {
+        "admission": 45,
+        "coordinate": 2
+      },
+      {
+        "admission": 46,
+        "coordinate": 1
+      },
+      {
+        "admission": 47,
+        "coordinate": 1
+      },
+      {
+        "admission": 48,
+        "coordinate": 5
+      },
+      {
+        "admission": 49,
+        "coordinate": 3
+      },
+      {
+        "admission": 50,
+        "coordinate": 4
+      },
+      {
+        "admission": 52,
+        "coordinate": 2
+      },
+      {
+        "admission": 53,
+        "coordinate": 2
+      },
+      {
+        "admission": 54,
+        "coordinate": 3
+      },
+      {
+        "admission": 55,
+        "coordinate": 5
+      },
+      {
+        "admission": 57,
+        "coordinate": 2
+      },
+      {
+        "admission": 58,
+        "coordinate": 3
+      },
+      {
+        "admission": 59,
+        "coordinate": 3
+      },
+      {
+        "admission": 60,
+        "coordinate": 1
+      },
+      {
+        "admission": 61,
+        "coordinate": 7
+      },
+      {
+        "admission": 62,
+        "coordinate": 9
+      },
+      {
+        "admission": 63,
+        "coordinate": 4
+      },
+      {
+        "admission": 64,
+        "coordinate": 3
+      },
+      {
+        "admission": 65,
+        "coordinate": 4
+      },
+      {
+        "admission": 66,
+        "coordinate": 4
+      },
+      {
+        "admission": 67,
+        "coordinate": 2
+      },
+      {
+        "admission": 68,
+        "coordinate": 2
+      },
+      {
+        "admission": 69,
+        "coordinate": 1
+      },
+      {
+        "admission": 71,
+        "coordinate": 2
+      },
+      {
+        "admission": 72,
+        "coordinate": 1
+      },
+      {
+        "admission": 74,
+        "coordinate": 1
+      },
+      {
+        "admission": 75,
+        "coordinate": 1
+      },
+      {
+        "admission": 76,
+        "coordinate": 2
+      },
+      {
+        "admission": 77,
+        "coordinate": 1
+      },
+      {
+        "admission": 78,
+        "coordinate": 2
+      },
+      {
+        "admission": 79,
+        "coordinate": 3
+      },
+      {
+        "admission": 81,
+        "coordinate": 3
+      },
+      {
+        "admission": 82,
+        "coordinate": 1
+      },
+      {
+        "admission": 85,
+        "coordinate": 3
+      },
+      {
+        "admission": 92,
+        "coordinate": 1
+      },
+      {
+        "admission": 93,
+        "coordinate": 1
+      },
+      {
+        "admission": 96,
+        "coordinate": 1
+      },
+      {
+        "admission": 101,
+        "coordinate": 1
+      },
+      {
+        "admission": 102,
+        "coordinate": 1
+      },
+      {
+        "admission": 104,
+        "coordinate": 1
+      },
+      {
+        "admission": 105,
+        "coordinate": 2
+      },
+      {
+        "admission": 106,
+        "coordinate": 1
+      },
+      {
+        "admission": 107,
+        "coordinate": 1
+      },
+      {
+        "admission": 108,
+        "coordinate": 3
+      },
+      {
+        "admission": 113,
+        "coordinate": 2
+      },
+      {
+        "admission": 116,
+        "coordinate": 2
+      },
+      {
+        "admission": 121,
+        "coordinate": 1
+      },
+      {
+        "admission": 125,
+        "coordinate": 3
+      },
+      {
+        "admission": 127,
+        "coordinate": 1
+      },
+      {
+        "admission": 128,
+        "coordinate": 2
+      },
+      {
+        "admission": 129,
+        "coordinate": 1
+      },
+      {
+        "admission": 131,
+        "coordinate": 1
+      },
+      {
+        "admission": 133,
+        "coordinate": 1
+      },
+      {
+        "admission": 136,
+        "coordinate": 1
+      },
+      {
+        "admission": 139,
+        "coordinate": 1
+      },
+      {
+        "admission": 141,
+        "coordinate": 1
+      },
+      {
+        "admission": 153,
+        "coordinate": 4
+      },
+      {
+        "admission": 156,
+        "coordinate": 3
+      },
+      {
+        "admission": 158,
+        "coordinate": 1
+      },
+      {
+        "admission": 159,
+        "coordinate": 2
+      },
+      {
+        "admission": 164,
+        "coordinate": 1
+      },
+      {
+        "admission": 165,
+        "coordinate": 1
+      },
+      {
+        "admission": 167,
+        "coordinate": 2
+      },
+      {
+        "admission": 169,
+        "coordinate": 2
+      },
+      {
+        "admission": 170,
+        "coordinate": 1
+      },
+      {
+        "admission": 172,
+        "coordinate": 1
+      },
+      {
+        "admission": 183,
+        "coordinate": 1
+      },
+      {
+        "admission": 184,
+        "coordinate": 1
+      },
+      {
+        "admission": 188,
+        "coordinate": 1
+      },
+      {
+        "admission": 190,
+        "coordinate": 1
+      },
+      {
+        "admission": 191,
+        "coordinate": 1
+      },
+      {
+        "admission": 192,
+        "coordinate": 1
+      },
+      {
+        "admission": 193,
+        "coordinate": 2
+      },
+      {
+        "admission": 194,
+        "coordinate": 1
+      },
+      {
+        "admission": 199,
+        "coordinate": 1
+      },
+      {
+        "admission": 202,
+        "coordinate": 2
+      },
+      {
+        "admission": 206,
+        "coordinate": 2
+      },
+      {
+        "admission": 207,
+        "coordinate": 1
+      },
+      {
+        "admission": 215,
+        "coordinate": 4
+      },
+      {
+        "admission": 218,
+        "coordinate": 2
+      },
+      {
+        "admission": 221,
+        "coordinate": 1
+      },
+      {
+        "admission": 227,
+        "coordinate": 1
+      },
+      {
+        "admission": 232,
+        "coordinate": 1
+      },
+      {
+        "admission": 235,
+        "coordinate": 2
+      },
+      {
+        "admission": 236,
+        "coordinate": 2
+      },
+      {
+        "admission": 242,
+        "coordinate": 1
+      },
+      {
+        "admission": 243,
+        "coordinate": 1
+      },
+      {
+        "admission": 246,
+        "coordinate": 1
+      },
+      {
+        "admission": 249,
+        "coordinate": 1
+      },
+      {
+        "admission": 256,
+        "coordinate": 2
+      },
+      {
+        "admission": 269,
+        "coordinate": 2
+      },
+      {
+        "admission": 272,
+        "coordinate": 1
+      },
+      {
+        "admission": 283,
+        "coordinate": 1
+      },
+      {
+        "admission": 284,
+        "coordinate": 1
+      },
+      {
+        "admission": 286,
+        "coordinate": 1
+      },
+      {
+        "admission": 292,
+        "coordinate": 1
+      },
+      {
+        "admission": 300,
+        "coordinate": 1
+      },
+      {
+        "admission": 305,
+        "coordinate": 2
+      },
+      {
+        "admission": 317,
+        "coordinate": 2
+      },
+      {
+        "admission": 320,
+        "coordinate": 1
+      },
+      {
+        "admission": 330,
+        "coordinate": 1
+      },
+      {
+        "admission": 332,
+        "coordinate": 3
+      },
+      {
+        "admission": 335,
+        "coordinate": 2
+      },
+      {
+        "admission": 336,
+        "coordinate": 1
+      },
+      {
+        "admission": 339,
+        "coordinate": 2
+      },
+      {
+        "admission": 341,
+        "coordinate": 2
+      },
+      {
+        "admission": 345,
+        "coordinate": 1
+      },
+      {
+        "admission": 368,
+        "coordinate": 1
+      },
+      {
+        "admission": 412,
+        "coordinate": 1
+      },
+      {
+        "admission": 446,
+        "coordinate": 1
+      },
+      {
+        "admission": 447,
+        "coordinate": 1
+      },
+      {
+        "admission": 450,
+        "coordinate": 1
+      },
+      {
+        "admission": 456,
+        "coordinate": 1
+      },
+      {
+        "admission": 461,
+        "coordinate": 1
+      },
+      {
+        "admission": 502,
+        "coordinate": 1
+      },
+      {
+        "admission": 524,
+        "coordinate": 1
+      },
+      {
+        "admission": 533,
+        "coordinate": 1
+      },
+      {
+        "admission": 551,
+        "coordinate": 1
+      },
+      {
+        "admission": 596,
+        "coordinate": 1
+      },
+      {
+        "admission": 734,
+        "coordinate": 1
+      },
+      {
+        "admission": 743,
+        "coordinate": 1
+      },
+      {
+        "admission": 766,
+        "coordinate": 1
+      },
+      {
+        "admission": 856,
+        "coordinate": 1
+      },
+      {
+        "admission": 972,
+        "coordinate": 1
+      },
+      {
+        "admission": 1008,
+        "coordinate": 2
+      },
+      {
+        "admission": 1017,
+        "coordinate": 1
+      },
+      {
+        "admission": 1090,
+        "coordinate": 1
+      },
+      {
+        "admission": 1102,
+        "coordinate": 1
+      },
+      {
+        "admission": 1161,
+        "coordinate": 1
+      },
+      {
+        "admission": 1197,
+        "coordinate": 1
+      },
+      {
+        "admission": 1243,
+        "coordinate": 1
+      },
+      {
+        "admission": 1291,
+        "coordinate": 1
+      },
+      {
+        "admission": 1382,
+        "coordinate": 1
+      },
+      {
+        "admission": 1428,
+        "coordinate": 1
+      },
+      {
+        "admission": 1439,
+        "coordinate": 1
+      },
+      {
+        "admission": 1476,
+        "coordinate": 1
+      }
+    ],
+    "observation": {
+      "event": 10101,
+      "work": 24802,
+      "statistic": {
+        "bucket": 1,
+        "normalization": 1,
+        "preparation": 78510,
+        "refinement": 1,
+        "resolution": 1,
+        "reuse": 14468
+      }
+    },
+    "log_sha256": "b62aa78242a63183d69f34574b62ba7a8032064826f8b8487e74c3422519013d",
+    "patch": "diff --git a/language/dispatch/subscription.rs b/language/dispatch/subscription.rs\nindex 6317251..d85de5f 100644\n--- a/language/dispatch/subscription.rs\n+++ b/language/dispatch/subscription.rs\n@@ -69,6 +69,10 @@ impl Network {\n                 let _measurement = crate::measurement::profile::Scope::new(\n                     crate::measurement::profile::Phase::Admission,\n                 );\n+                eprintln!(\n+                    \"admission {} {} {} {}\",\n+                    self.generation, key.frame, key.input, key.owner\n+                );\n                 let entry = Entry::new(\n                     Search::planned(crate::joining::Request {\n                         input: plan,\ndiff --git a/language/plan.rs b/language/plan.rs\nindex 3b2e4be..8aef4d8 100644\n--- a/language/plan.rs\n+++ b/language/plan.rs\n@@ -180,6 +180,12 @@ impl Input {\n     }\n \n     pub fn context(&self, owner: usize) -> Context {\n+        eprintln!(\n+            \"context {} {} {}\",\n+            self.capture,\n+            self.fragment.len(),\n+            self.pattern.iter().map(Vec::len).sum::<usize>()\n+        );\n         Context {\n             fragment: self.fragment.clone(),\n             group: self.group.clone(),\n",
+    "command": "bazel run -c opt //benchmark:profile -- '2*2*2*2*2*2' 2101 --sample 1",
+    "interpretation": "Counts cover the execution after initialization. Warmup and measured execution agree. Coordinates can refer to recycled frames and do not certify live-context equivalence. Logging timings are discarded.",
+    "instruction": "Apply the archived admission patch alone to the baseline revision. Run the recorded Bazel command, redirecting standard output and standard error to separate files. The observation comes from standard output; apply the analysis script to the standard error log. Counts exclude generation zero initialization. Discard all instrumented timing values.",
+    "analysis": "from collections import Counter\nimport json, sys\nrun = []\npending = None\nfor line in open(sys.argv[1]):\n    part = line.split()\n    if not part:\n        continue\n    if part[0] == 'admission':\n        generation, frame, identity, owner = map(int, part[1:])\n        if not run or (generation == 0 and run[-1] and run[-1][-1][0] != 0):\n            run.append([])\n        pending = (generation, frame, identity, owner)\n    elif part[0] == 'context':\n        assert pending is not None\n        run[-1].append((*pending, part[1] == 'true', int(part[2]), int(part[3])))\n        pending = None\nassert len(run) >= 2 and all(record == run[-1] for record in run)\nrecord = run[-1]\nexecution = [row for row in record if row[0] != 0]\ncoordinate = Counter(row[1:4] for row in execution)\nprint(json.dumps({'run': len(run), 'initial': len(record) - len(execution), 'admission': len(execution), 'coordinate': len(coordinate), 'context': len({(row[2], row[3]) for row in execution}), 'captured': sum(row[4] for row in execution), 'input': len({row[2] for row in execution})}, indent=2))\n"
+  },
+  "collection": {
+    "decision": "Removed: mixed preliminary results do not justify integration work or a broader acceptance audit.",
+    "patch": "diff --git a/language/index.rs b/language/index.rs\nindex b337ad5..b79f679 100644\n--- a/language/index.rs\n+++ b/language/index.rs\n@@ -209,7 +209,11 @@ impl Index {\n         }\n     }\n \n-    pub fn candidate(&self, pattern: impl IntoIterator<Item = Term>, frame: usize) -> Vec<usize> {\n+    pub fn candidate<Value: From<usize>>(\n+        &self,\n+        pattern: impl IntoIterator<Item = Term>,\n+        frame: usize,\n+    ) -> Vec<Value> {\n         let mut pattern = pattern.into_iter();\n         let Some(term) = pattern.next() else {\n             let Some(world) = self.frame.get(frame) else {\n@@ -217,13 +221,16 @@ impl Index {\n             };\n             let mut candidate = world.iter().copied().collect::<Vec<_>>();\n             candidate.sort_unstable_by_key(|&site| self.rank[site]);\n-            return candidate;\n+            return candidate.into_iter().map(Value::from).collect();\n         };\n         let Some(first) = self.posting(&term, frame) else {\n             return Vec::new();\n         };\n         let Some(term) = pattern.next() else {\n-            return first.iter().map(|occurrence| occurrence.site).collect();\n+            return first\n+                .iter()\n+                .map(|occurrence| Value::from(occurrence.site))\n+                .collect();\n         };\n         let Some(second) = self.posting(&term, frame) else {\n             return Vec::new();\n@@ -235,7 +242,9 @@ impl Index {\n             };\n             posting.push(candidate);\n         }\n-        posting::intersect(&posting, &self.rank).collect()\n+        posting::intersect(&posting, &self.rank)\n+            .map(Value::from)\n+            .collect()\n     }\n \n     pub(crate) fn quantity(&self, term: &Term, frame: usize, site: usize) -> usize {\ndiff --git a/language/joining/space.rs b/language/joining/space.rs\nindex 04536c2..3d1c177 100644\n--- a/language/joining/space.rs\n+++ b/language/joining/space.rs\n@@ -9,6 +9,16 @@ pub(super) struct Member {\n     pub particle: Option<crate::factor::Cursor>,\n }\n \n+impl From<usize> for Member {\n+    fn from(site: usize) -> Self {\n+        Self {\n+            site,\n+            particle: None,\n+            rejected: false,\n+        }\n+    }\n+}\n+\n pub(super) struct Space {\n     pub frame: usize,\n     pub store: Option<Arc<super::Store>>,\n@@ -58,34 +68,23 @@ impl Space {\n             .iter()\n             .enumerate()\n             .map(|(position, pattern)| {\n-                let shared = store.filter(|_| index.state.world.len() > 32 && pattern.len() > 1);\n-                let selected = if let Some(store) = shared {\n-                    store.domain.select(crate::candidate::Request {\n-                        pattern,\n-                        index,\n-                        frame,\n-                    })\n-                } else {\n-                    crate::candidate::Domain {\n-                        site: preparation.as_ref().map_or_else(\n-                            || index.candidate(pattern.iter().cloned(), frame),\n-                            |context| context.candidate(position, index, frame),\n-                        ),\n-                        node: None,\n-                    }\n+                let Some(store) =\n+                    store.filter(|_| index.state.world.len() > 32 && pattern.len() > 1)\n+                else {\n+                    return preparation.as_ref().map_or_else(\n+                        || index.candidate(pattern.iter().cloned(), frame),\n+                        |context| context.candidate(position, index, frame),\n+                    );\n                 };\n+                let selected = store.domain.select(crate::candidate::Request {\n+                    pattern,\n+                    index,\n+                    frame,\n+                });\n                 if let Some(node) = selected.node {\n                     subscription.push((position, node));\n                 }\n-                selected\n-                    .site\n-                    .into_iter()\n-                    .map(|site| Member {\n-                        site,\n-                        particle: None,\n-                        rejected: false,\n-                    })\n-                    .collect()\n+                selected.site.into_iter().map(Member::from).collect()\n             })\n             .collect();\n         let group = preparation.as_ref().map_or_else(\ndiff --git a/language/measurement/query.rs b/language/measurement/query.rs\nindex febcfc4..7047756 100644\n--- a/language/measurement/query.rs\n+++ b/language/measurement/query.rs\n@@ -62,17 +62,17 @@ pub fn run() -> Vec<Measurement> {\n             let expected = (0..width)\n                 .filter(|&world| term == 1 || world % 2 == 0)\n                 .collect::<Vec<_>>();\n-            assert_eq!(index.candidate(pattern.iter().cloned(), 0), expected);\n+            assert_eq!(index.candidate::<usize>(pattern.iter().cloned(), 0), expected);\n             let warm = Instant::now();\n             while warm.elapsed() < Duration::from_millis(100) {\n-                black_box(index.candidate(black_box(&pattern).iter().cloned(), 0));\n+                black_box(index.candidate::<usize>(black_box(&pattern).iter().cloned(), 0));\n             }\n             let repetition = 10;\n             let sample = (0..7)\n                 .map(|_| {\n                     let start = Instant::now();\n                     for _ in 0..repetition {\n-                        black_box(index.candidate(black_box(&pattern).iter().cloned(), 0));\n+                        black_box(index.candidate::<usize>(black_box(&pattern).iter().cloned(), 0));\n                     }\n                     start.elapsed().as_secs_f64() / repetition as f64\n                 })\ndiff --git a/language/plan.rs b/language/plan.rs\nindex 3b2e4be..e134961 100644\n--- a/language/plan.rs\n+++ b/language/plan.rs\n@@ -33,12 +33,12 @@ impl Context {\n         })\n     }\n \n-    pub fn candidate(\n+    pub fn candidate<Value: From<usize>>(\n         &self,\n         position: usize,\n         index: &crate::index::Index,\n         frame: usize,\n-    ) -> Vec<usize> {\n+    ) -> Vec<Value> {\n         let pattern = self.fragment[position]\n             .group\n             .iter()\n",
+    "reproduction": "from pathlib import Path\nimport subprocess, json, sys\nbaseline, candidate = map(Path, sys.argv[1:3])\nrecord = []\nfor iteration in range(3):\n    for name, target, argument in [('expression', 'expression', ['2*2*2*2*2*2', '2101']), ('addition', 'arithmetic', ['1234567890', 'add', '9876543210', '--radix', '10']), ('product', 'arithmetic', ['12345', 'multiply', '67890', '--radix', '10'])]:\n        for side in (['baseline', 'candidate'] if iteration % 2 == 0 else ['candidate', 'baseline']):\n            directory = baseline if side == 'baseline' else candidate\n            result = json.loads(subprocess.check_output([str(directory / target), *argument, '--sample', '9'], text=True))\n            record.append({'round': iteration, 'case': name, 'side': side, 'result': result})\nprint(json.dumps(record, indent=2))\n",
+    "sample": [
+      {
+        "case": "expression",
+        "baseline": [
+          {
+            "round": 0,
+            "execution": [
+              0.059695916,
+              0.060809667,
+              0.062021667,
+              0.064898917,
+              0.070308,
+              0.065025709,
+              0.062044833,
+              0.062104667,
+              0.063320916
+            ]
+          },
+          {
+            "round": 1,
+            "execution": [
+              0.064887208,
+              0.063905875,
+              0.064187166,
+              0.063886,
+              0.064120167,
+              0.063994667,
+              0.064269042,
+              0.062512292,
+              0.062599166
+            ]
+          },
+          {
+            "round": 2,
+            "execution": [
+              0.060793333,
+              0.060321291,
+              0.060158209,
+              0.060400792,
+              0.06048625,
+              0.060775083,
+              0.061722292,
+              0.063901208,
+              0.061429708
+            ]
+          }
+        ],
+        "baseline_median": 0.062512292,
+        "candidate": [
+          {
+            "round": 0,
+            "execution": [
+              0.059276375,
+              0.059064916,
+              0.058906583,
+              0.058998541,
+              0.059400042,
+              0.059783666,
+              0.059525542,
+              0.059733167,
+              0.059267125
+            ]
+          },
+          {
+            "round": 1,
+            "execution": [
+              0.061192375,
+              0.061552375,
+              0.060762625,
+              0.061111209,
+              0.064493458,
+              0.065229792,
+              0.062272584,
+              0.069418083,
+              0.065212334
+            ]
+          },
+          {
+            "round": 2,
+            "execution": [
+              0.062988291,
+              0.062228958,
+              0.060103583,
+              0.060507875,
+              0.062435167,
+              0.061554584,
+              0.062587541,
+              0.062395125,
+              0.063527292
+            ]
+          }
+        ],
+        "candidate_median": 0.061192375,
+        "change": -0.02111451936524733
+      },
+      {
+        "case": "addition",
+        "baseline": [
+          {
+            "round": 0,
+            "execution": [
+              0.177781166,
+              0.180249625,
+              0.181284834,
+              0.179878333,
+              0.179090417,
+              0.178705833,
+              0.183125125,
+              0.180828541,
+              0.178689209
+            ]
+          },
+          {
+            "round": 1,
+            "execution": [
+              0.180036625,
+              0.177950333,
+              0.177895458,
+              0.177937,
+              0.177671375,
+              0.178205833,
+              0.179118875,
+              0.1797585,
+              0.186808042
+            ]
+          },
+          {
+            "round": 2,
+            "execution": [
+              0.194527125,
+              0.187546125,
+              0.181290292,
+              0.179712459,
+              0.186409917,
+              0.193713625,
+              0.199536958,
+              0.201854334,
+              0.19480775
+            ]
+          }
+        ],
+        "baseline_median": 0.180036625,
+        "candidate": [
+          {
+            "round": 0,
+            "execution": [
+              0.183487208,
+              0.181680625,
+              0.179531667,
+              0.177913375,
+              0.183548875,
+              0.185306083,
+              0.179322542,
+              0.179509375,
+              0.192991875
+            ]
+          },
+          {
+            "round": 1,
+            "execution": [
+              0.190603083,
+              0.187343125,
+              0.185108875,
+              0.182174792,
+              0.179471334,
+              0.179819958,
+              0.18108775,
+              0.1786485,
+              0.181227417
+            ]
+          },
+          {
+            "round": 2,
+            "execution": [
+              0.205656792,
+              0.206103333,
+              0.199258667,
+              0.214568417,
+              0.232529334,
+              0.212788708,
+              0.223782042,
+              0.231406042,
+              0.226712583
+            ]
+          }
+        ],
+        "candidate_median": 0.185108875,
+        "change": 0.028173434155411403
+      },
+      {
+        "case": "product",
+        "baseline": [
+          {
+            "round": 0,
+            "execution": [
+              0.202632375,
+              0.200672875,
+              0.20100675,
+              0.203344,
+              0.200147708,
+              0.210154458,
+              0.22395825,
+              0.214158917,
+              0.21262225
+            ]
+          },
+          {
+            "round": 1,
+            "execution": [
+              0.205100625,
+              0.205516584,
+              0.20354425,
+              0.2074635,
+              0.210010667,
+              0.207679084,
+              0.20301275,
+              0.202383375,
+              0.203527625
+            ]
+          },
+          {
+            "round": 2,
+            "execution": [
+              0.248322375,
+              0.216679292,
+              0.215344,
+              0.209713167,
+              0.212837958,
+              0.204797916,
+              0.209750542,
+              0.218581458,
+              0.212517334
+            ]
+          }
+        ],
+        "baseline_median": 0.207679084,
+        "candidate": [
+          {
+            "round": 0,
+            "execution": [
+              0.221189541,
+              0.221230333,
+              0.209539542,
+              0.207027042,
+              0.2015505,
+              0.203532166,
+              0.224305916,
+              0.205866584,
+              0.203814875
+            ]
+          },
+          {
+            "round": 1,
+            "execution": [
+              0.213200792,
+              0.211722666,
+              0.206922833,
+              0.201232375,
+              0.202197333,
+              0.202493417,
+              0.201918792,
+              0.205975875,
+              0.208504125
+            ]
+          },
+          {
+            "round": 2,
+            "execution": [
+              0.205214416,
+              0.204689917,
+              0.210361958,
+              0.21340025,
+              0.205078208,
+              0.213187833,
+              0.213496084,
+              0.208649459,
+              0.206204458
+            ]
+          }
+        ],
+        "candidate_median": 0.206922833,
+        "change": -0.003641440367678106
+      }
+    ],
+    "interpretation": "Three alternating rounds, nine fresh execution samples per process. All recorded non-timing observations agree. This is a preliminary probe, not full performance acceptance.",
+    "baseline_binary": {
+      "expression": "fc022fe5f5a8b12633fb70afe1af982acb11fa963a013ae92c4f5ff3740a63c6",
+      "arithmetic": "3b2e0c78e1a17f666c0476acebacd231f31be0dbdc321d5ee4269df8707d06a9"
+    },
+    "instruction": "Build //benchmark:expression and //benchmark:arithmetic with bazel build -c opt at the baseline revision and preserve the executable directory. Apply the archived collection patch, rebuild, and preserve that directory separately. Run the reproduction script with baseline and candidate executable directories as its two arguments, without concurrent builds."
+  }
+}
