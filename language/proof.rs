@@ -17,8 +17,7 @@ impl Store {
     }
 
     pub fn evaluate(&self) -> &Support {
-        self.support
-            .get_or_init(|| Support::new(self.clause.iter().cloned()))
+        self.support.get_or_init(|| Support::new(&self.clause))
     }
 
     pub fn status(&self, atom: Atom) -> Status {

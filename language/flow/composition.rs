@@ -41,9 +41,7 @@ impl Composition {
         Flow {
             resource: event
                 .resource
-                .iter()
-                .map(|(&place, source)| (place, self.resource(parent, source)))
-                .collect(),
+                .transform(|source| self.resource(parent, source)),
             context: event
                 .context
                 .iter()

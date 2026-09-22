@@ -1,6 +1,7 @@
 use crate::hashing::Builder;
 use serde::Serialize;
-use std::collections::{BTreeSet, HashMap, HashSet};
+use smallvec::SmallVec;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum Atom {
@@ -12,7 +13,20 @@ pub enum Atom {
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Clause {
     pub head: Atom,
-    pub premise: BTreeSet<Atom>,
+    premise: SmallVec<[Atom; 2]>,
+}
+
+impl Clause {
+    pub fn new(head: Atom, premise: impl IntoIterator<Item = Atom>) -> Self {
+        let mut premise = premise.into_iter().collect::<SmallVec<[Atom; 2]>>();
+        premise.sort_unstable();
+        premise.dedup();
+        Self { head, premise }
+    }
+
+    pub fn premise(&self) -> &[Atom] {
+        &self.premise
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
@@ -38,13 +52,13 @@ pub struct Support {
 }
 
 impl Support {
-    pub fn new(clause: impl IntoIterator<Item = Clause>) -> Self {
+    pub fn new<'clause>(clause: impl IntoIterator<Item = &'clause Clause>) -> Self {
         let mut support = Self {
             established: HashSet::default(),
             network: None,
         };
         for clause in clause {
-            support.insert(&clause);
+            support.insert(clause);
         }
         support
     }

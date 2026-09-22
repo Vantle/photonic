@@ -9,6 +9,20 @@ impl<Key, Value> Map<Key, Value> {
     pub(crate) fn iter(&self) -> impl Iterator<Item = (&Key, &Value)> {
         self.0.iter().map(|(key, value)| (key, value))
     }
+
+    pub(crate) fn transform<Output>(
+        &self,
+        mut transform: impl FnMut(&Value) -> Output,
+    ) -> Map<Key, Output>
+    where
+        Key: Clone,
+    {
+        Map(self
+            .0
+            .iter()
+            .map(|(key, value)| (key.clone(), transform(value)))
+            .collect())
+    }
 }
 
 impl<Key: Ord, Value> FromIterator<(Key, Value)> for Map<Key, Value> {

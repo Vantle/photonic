@@ -5,7 +5,7 @@ use crate::search::Search;
 use crate::slot::Slot;
 use crate::term::Term;
 use indexmap::IndexSet;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::task::Poll;
 
@@ -57,7 +57,7 @@ pub(super) struct Table {
     cache: Vec<Cache>,
     request: IndexSet<Request, Builder>,
     cursor: Vec<usize>,
-    active: HashSet<usize, Builder>,
+    active: Vec<bool>,
     binding: usize,
     retained: usize,
     preparation: Option<Arc<crate::selection::Store>>,
@@ -104,8 +104,11 @@ impl Table {
             return schedule;
         }
         self.cursor.push(0);
+        self.active.push(false);
         self.cache[cache].listener.push(index);
-        if !self.cache[cache].binding.is_empty() && self.active.insert(index) {
+        if !self.cache[cache].binding.is_empty()
+            && !std::mem::replace(&mut self.active[index], true)
+        {
             schedule.delivery.push(index);
         }
         schedule
@@ -140,7 +143,7 @@ impl Table {
             self.binding += 1;
             cache.binding.push(Arc::new(binding));
             for &listener in &cache.listener {
-                if self.active.insert(listener) {
+                if !std::mem::replace(&mut self.active[listener], true) {
                     schedule.delivery.push(listener);
                 }
             }
@@ -149,12 +152,13 @@ impl Table {
     }
 
     pub fn deliver(&mut self, index: usize) -> Option<Delivery> {
-        self.active.remove(&index);
+        self.active[index] = false;
         let request = &self.request[index];
         let cache = &self.cache[request.cache];
         let selection = cache.binding.get(self.cursor[index])?.clone();
         self.cursor[index] += 1;
-        let again = self.cursor[index] < cache.binding.len() && self.active.insert(index);
+        let again = self.cursor[index] < cache.binding.len()
+            && !std::mem::replace(&mut self.active[index], true);
         Some(Delivery {
             consumer: request.consumer.clone(),
             selection,

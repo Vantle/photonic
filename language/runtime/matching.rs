@@ -69,7 +69,7 @@ impl Runtime {
             return;
         };
         if let Some(read) = consumer.read {
-            binding.read = view.flow.resource[&read].iter().copied().collect();
+            binding.read = view.flow.resource[&read].clone();
         }
         self.agenda.push_back(Task::Apply(Application {
             view: consumer.view,

@@ -148,10 +148,7 @@ impl Runtime {
     }
 
     fn support(&mut self, head: Atom, premise: impl IntoIterator<Item = Atom>) {
-        self.proof.insert(Clause {
-            head,
-            premise: premise.into_iter().collect(),
-        });
+        self.proof.insert(Clause::new(head, premise));
     }
 
     fn intern(&mut self, state: Arc<State>) -> usize {
