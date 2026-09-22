@@ -37,7 +37,7 @@ fn mutation() {
             Term::new(Symbol::Atom(1), None),
         ];
         let initial = store.select(Request {
-            pattern: &pattern,
+            pattern: pattern.iter().cloned(),
             index: &index,
             frame: 0,
         });
@@ -67,7 +67,7 @@ fn mutation() {
                 }
             }
             let current = store.select(Request {
-                pattern: &pattern,
+                pattern: pattern.iter().cloned(),
                 index: &index,
                 frame: 0,
             });
@@ -99,7 +99,7 @@ fn identity() {
     let mut index = Index::new(Arc::new(state.clone()));
     let first = store
         .select(Request {
-            pattern: &pattern,
+            pattern: pattern.iter().cloned(),
             index: &index,
             frame: 0,
         })
@@ -108,7 +108,7 @@ fn identity() {
     let permuted = [pattern[1].clone(), pattern[0].clone(), pattern[1].clone()];
     let second = store
         .select(Request {
-            pattern: &permuted,
+            pattern: permuted.iter().cloned(),
             index: &index,
             frame: 0,
         })
@@ -118,7 +118,7 @@ fn identity() {
     assert!(Arc::ptr_eq(&first.select(&index), &second.select(&index)));
     let captured = [Term::new(Symbol::Rule(0), Some(0))];
     let capture = store.select(Request {
-        pattern: &captured,
+        pattern: captured.iter().cloned(),
         index: &index,
         frame: 0,
     });
@@ -128,7 +128,7 @@ fn identity() {
     assert!(
         store
             .select(Request {
-                pattern: &other,
+                pattern: other.iter().cloned(),
                 index: &index,
                 frame: 0
             })
@@ -138,7 +138,7 @@ fn identity() {
     assert!(
         store
             .select(Request {
-                pattern: &pattern,
+                pattern: pattern.iter().cloned(),
                 index: &index,
                 frame: 1
             })
@@ -170,7 +170,7 @@ fn continuity() {
     ];
     let node = store
         .select(Request {
-            pattern: &pattern,
+            pattern: pattern.iter().cloned(),
             index: &index,
             frame: 0,
         })
@@ -247,7 +247,7 @@ fn context() {
             ];
             let node = store
                 .select(Request {
-                    pattern: &pattern,
+                    pattern: pattern.iter().cloned(),
                     index: &index,
                     frame,
                 })
@@ -305,7 +305,7 @@ fn saturation() {
     ];
     let node = store
         .select(Request {
-            pattern: &pattern,
+            pattern: pattern.iter().cloned(),
             index: &index,
             frame: 0,
         })
@@ -351,7 +351,7 @@ fn concurrency() {
                 let expected = scan(&index, &pattern, 0);
                 for iteration in 0..128 {
                     let domain = store.select(Request {
-                        pattern: &pattern,
+                        pattern: pattern.iter().cloned(),
                         index: &index,
                         frame: 0,
                     });
@@ -388,7 +388,7 @@ fn growth() {
     ];
     let node = store
         .select(Request {
-            pattern: &pattern,
+            pattern: pattern.iter().cloned(),
             index: &index,
             frame: 0,
         })

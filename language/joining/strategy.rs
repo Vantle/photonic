@@ -68,7 +68,7 @@ pub(super) fn select(request: Request<'_>) -> Option<Strategy> {
         .history
         .map_or(depth, |previous| previous.depth().max(depth));
     let position = request.order[depth];
-    if depth + 1 == prefix.len() && request.space.pattern[position].len() < 8 {
+    if depth + 1 == prefix.len() && request.space.query.width(position) < 8 {
         return None;
     }
     if request.space.domain[position].len() <= 1 {

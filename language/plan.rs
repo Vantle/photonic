@@ -3,112 +3,22 @@ use crate::term::Term;
 use smallvec::SmallVec;
 use std::sync::Arc;
 
+mod context;
+
+pub(crate) use context::Context;
+
+struct Shape {
+    fragment: Vec<Arc<crate::pattern::Pattern>>,
+    group: Vec<usize>,
+    pattern: Vec<Vec<Symbol>>,
+}
+
 pub(crate) struct Input {
-    fragment: Arc<Vec<Arc<crate::pattern::Pattern>>>,
-    group: Arc<Vec<usize>>,
-    pattern: Arc<Vec<Vec<Term>>>,
+    shape: Arc<Shape>,
     capture: bool,
     arity: usize,
     empty: bool,
     dependency: SmallVec<[Symbol; 2]>,
-}
-
-pub(crate) struct Context {
-    fragment: Arc<Vec<Arc<crate::pattern::Pattern>>>,
-    group: Arc<Vec<usize>>,
-    owner: usize,
-}
-
-impl Context {
-    pub fn group(&self) -> Arc<Vec<usize>> {
-        self.group.clone()
-    }
-
-    pub fn affected(&self, position: usize, index: &crate::index::Index, frame: usize) -> bool {
-        index.affected.get(&frame).is_some_and(|symbol| {
-            self.fragment[position]
-                .group
-                .iter()
-                .all(|group| symbol.contains(&group.value))
-        })
-    }
-
-    pub fn candidate(
-        &self,
-        position: usize,
-        index: &crate::index::Index,
-        frame: usize,
-    ) -> Vec<usize> {
-        let pattern = self.fragment[position]
-            .group
-            .iter()
-            .map(|group| Term::new(group.value, Some(self.owner)));
-        index.candidate(pattern, frame)
-    }
-
-    pub fn matches(&self, position: usize, index: &crate::index::Index, site: usize) -> bool {
-        let world = &index.state.world[index.world(site)];
-        self.fragment[position].group.iter().all(|group| {
-            let term = Term::new(group.value, Some(self.owner));
-            if world.particle.len() <= 16 {
-                world.particle.iter().any(|token| term.matches(token))
-            } else {
-                index.quantity(&term, world.frame, site) > 0
-            }
-        })
-    }
-
-    pub fn select(
-        &self,
-        position: usize,
-        index: &crate::index::Index,
-        site: usize,
-        shared: Option<&crate::preparation::Store>,
-    ) -> crate::particle::Match {
-        let world = &index.state.world[index.world(site)];
-        let pattern = &self.fragment[position];
-        if world.particle.len() < pattern.width
-            || (pattern.group.len() < pattern.width
-                && pattern.group.iter().any(|group| {
-                    let count = group.position.len();
-                    if count == 1 {
-                        return false;
-                    }
-                    let term = Term::new(group.value, Some(self.owner));
-                    if world.particle.len() <= 16 {
-                        return world
-                            .particle
-                            .iter()
-                            .filter(|token| term.matches(token))
-                            .take(count)
-                            .count()
-                            < count;
-                    }
-                    index.quantity(&term, world.frame, site) < count
-                }))
-        {
-            return crate::particle::Match::impossible();
-        }
-        if pattern.width >= 8
-            && world.particle.len() >= 32
-            && let Some(shared) = shared
-        {
-            return shared.select(crate::preparation::Request {
-                pattern,
-                world,
-                owner: self.owner,
-            });
-        }
-        self.prepare(position, &world.particle)
-    }
-
-    pub fn prepare(
-        &self,
-        position: usize,
-        particle: &[crate::state::Token],
-    ) -> crate::particle::Match {
-        crate::particle::Match::prepared(&self.fragment[position], Some(self.owner), particle)
-    }
 }
 
 impl Input {
@@ -121,11 +31,11 @@ impl Input {
         value: &[Vec<Symbol>],
         shared: &mut std::collections::HashMap<Vec<Symbol>, Arc<crate::pattern::Pattern>>,
     ) -> Self {
-        let pattern = Arc::new(if value.is_empty() {
+        let pattern = if value.is_empty() {
             vec![Vec::new()]
         } else {
-            pattern(value, None)
-        });
+            value.to_vec()
+        };
         let mut dependency = value
             .iter()
             .flatten()
@@ -137,20 +47,19 @@ impl Input {
             .iter()
             .any(|symbol| matches!(symbol, Symbol::Rule(_)));
         Self {
-            group: Arc::new(crate::partition::classify(&pattern)),
-            fragment: Arc::new(
-                pattern
+            shape: Arc::new(Shape {
+                group: crate::partition::classify(&pattern),
+                fragment: pattern
                     .iter()
-                    .map(|particle| {
-                        let value = particle.iter().map(|term| term.value).collect::<Vec<_>>();
+                    .map(|value| {
                         shared
                             .entry(value.clone())
-                            .or_insert_with(|| Arc::new(crate::pattern::Pattern::new(&value)))
+                            .or_insert_with(|| Arc::new(crate::pattern::Pattern::new(value)))
                             .clone()
                     })
                     .collect(),
-            ),
-            pattern,
+                pattern,
+            }),
             capture,
             arity: value.len(),
             empty: value.is_empty() || value.iter().any(Vec::is_empty),
@@ -162,29 +71,13 @@ impl Input {
         if self.capture { owner } else { 0 }
     }
 
+    #[cfg(test)]
     pub fn pattern(&self, owner: usize) -> Arc<Vec<Vec<Term>>> {
-        if self.capture {
-            return Arc::new(
-                self.pattern
-                    .iter()
-                    .map(|particle| {
-                        particle
-                            .iter()
-                            .map(|term| Term::new(term.value, Some(owner)))
-                            .collect()
-                    })
-                    .collect(),
-            );
-        }
-        self.pattern.clone()
+        Arc::new(pattern(&self.shape.pattern, Some(owner)))
     }
 
     pub fn context(&self, owner: usize) -> Context {
-        Context {
-            fragment: self.fragment.clone(),
-            group: self.group.clone(),
-            owner,
-        }
+        Context::new(self.shape.clone(), owner)
     }
 
     pub fn empty(&self) -> bool {
@@ -197,7 +90,7 @@ impl Input {
 
     pub fn retained(&self) -> usize {
         self.arity * 2
-            + self.pattern.iter().map(Vec::len).sum::<usize>() * 2
+            + self.shape.pattern.iter().map(Vec::len).sum::<usize>() * 2
             + self.dependency.len()
     }
 }

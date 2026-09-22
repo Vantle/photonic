@@ -14,8 +14,8 @@ use std::collections::HashMap;
 use std::sync::atomic::AtomicUsize;
 use std::sync::{Arc, Mutex};
 
-pub(crate) struct Request<'a> {
-    pub pattern: &'a [Term],
+pub(crate) struct Request<'a, Pattern> {
+    pub pattern: Pattern,
     pub index: &'a Index,
     pub frame: usize,
 }
@@ -45,7 +45,7 @@ impl Store {
         }
     }
 
-    pub fn select(&self, request: Request<'_>) -> Domain {
+    pub fn select(&self, request: Request<'_, impl IntoIterator<Item = Term>>) -> Domain {
         let key = Key::new(request.pattern, request.frame);
         let shared = self.node.lock().unwrap().get(&key).cloned();
         if let Some(node) = shared {

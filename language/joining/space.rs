@@ -1,5 +1,5 @@
+use super::query::Query;
 use crate::index::Index;
-use crate::term::Term;
 use smallvec::SmallVec;
 use std::sync::Arc;
 
@@ -13,9 +13,7 @@ pub(super) struct Space {
     pub frame: usize,
     pub store: Option<Arc<super::Store>>,
     pub cached: usize,
-    pub preparation: Option<crate::plan::Context>,
-    pub pattern: Arc<Vec<Vec<Term>>>,
-    pub group: Arc<Vec<usize>>,
+    pub query: Query,
     pub domain: SmallVec<[Vec<Member>; 2]>,
     shared: Option<Arc<crate::preparation::Store>>,
     subscription: Box<[(usize, Arc<crate::candidate::Node>)]>,
@@ -35,45 +33,27 @@ impl Space {
             binding
                 .iter()
                 .filter(|slot| {
-                    let world = &index.state.world[index.world(slot.world)];
-                    order[binding.len()..].iter().any(|&position| {
-                        self.pattern[position]
-                            .iter()
-                            .all(|term| world.particle.iter().any(|token| term.matches(token)))
-                    })
+                    order[binding.len()..]
+                        .iter()
+                        .any(|&position| self.query.matches(position, index, slot.world))
                 })
                 .map(|slot| (slot.position, slot.world)),
         )
     }
 
     pub fn new(
-        pattern: Arc<Vec<Vec<Term>>>,
+        query: Query,
         index: &Index,
         frame: usize,
-        preparation: Option<crate::plan::Context>,
         store: Option<&Arc<super::Store>>,
     ) -> Self {
         let mut subscription = Vec::new();
-        let domain = pattern
-            .iter()
-            .enumerate()
-            .map(|(position, pattern)| {
-                let shared = store.filter(|_| index.state.world.len() > 32 && pattern.len() > 1);
-                let selected = if let Some(store) = shared {
-                    store.domain.select(crate::candidate::Request {
-                        pattern,
-                        index,
-                        frame,
-                    })
-                } else {
-                    crate::candidate::Domain {
-                        site: preparation.as_ref().map_or_else(
-                            || index.candidate(pattern.iter().cloned(), frame),
-                            |context| context.candidate(position, index, frame),
-                        ),
-                        node: None,
-                    }
-                };
+        let domain = (0..query.count())
+            .map(|position| {
+                let shared = store
+                    .filter(|_| index.state.world.len() > 32 && query.width(position) > 1)
+                    .map(|store| &store.domain);
+                let selected = query.candidate(position, index, frame, shared);
                 if let Some(node) = selected.node {
                     subscription.push((position, node));
                 }
@@ -88,28 +68,24 @@ impl Space {
                     .collect()
             })
             .collect();
-        let group = preparation.as_ref().map_or_else(
-            || Arc::new(crate::partition::classify(&pattern)),
-            crate::plan::Context::group,
-        );
         let domain: SmallVec<[Vec<Member>; 2]> = domain;
         let retained = subscription.len() * 2
-            + pattern.iter().map(Vec::len).sum::<usize>()
+            + query.retained()
             + domain.iter().map(|member| member.len() + 1).sum::<usize>();
         let shared = store
-            .filter(|_| pattern.iter().any(|particle| particle.len() >= 8))
+            .filter(|_| (0..query.count()).any(|position| query.width(position) >= 8))
             .map(|store| store.preparation.clone());
         let store = store
-            .filter(|_| pattern.len() > 1 && pattern.iter().any(|particle| particle.len() >= 8))
+            .filter(|_| {
+                query.count() > 1 && (0..query.count()).any(|position| query.width(position) >= 8)
+            })
             .cloned();
         Self {
             frame,
             store,
             shared,
             cached: 0,
-            preparation,
-            pattern,
-            group,
+            query,
             domain,
             subscription: subscription.into_boxed_slice(),
             retained,
@@ -137,11 +113,7 @@ impl Space {
             };
             if domain.len() > 16
                 && change.as_ref().map_or_else(
-                    || {
-                        self.preparation
-                            .as_ref()
-                            .is_some_and(|context| !context.affected(position, index, self.frame))
-                    },
+                    || !self.query.affected(position, index, self.frame),
                     |change| !change.affected,
                 )
             {
@@ -168,15 +140,7 @@ impl Space {
             for &site in candidate {
                 let eligible = change.is_some() || {
                     let world = &index.state.world[index.world(site)];
-                    world.frame == self.frame
-                        && self.preparation.as_ref().map_or_else(
-                            || {
-                                self.pattern[position].iter().all(|term| {
-                                    world.particle.iter().any(|token| term.matches(token))
-                                })
-                            },
-                            |context| context.matches(position, index, site),
-                        )
+                    world.frame == self.frame && self.query.matches(position, index, site)
                 };
                 if eligible {
                     affected = true;
@@ -204,17 +168,14 @@ impl Space {
     ) -> &mut crate::factor::Cursor {
         let member = &mut self.domain[position][candidate];
         if member.particle.is_none() {
-            let particle = &index.state.world[index.world(member.site)].particle;
-            let particle = if let Some(context) = &self.preparation {
-                context.select(position, index, member.site, self.shared.as_deref())
-            } else {
-                crate::particle::Match::new(&self.pattern[position], particle)
-            };
+            let particle = self
+                .query
+                .select(position, index, member.site, self.shared.as_deref());
             self.retained += particle.retained();
             let budget = self
                 .store
                 .as_ref()
-                .filter(|_| self.pattern[position].len() >= 8)
+                .filter(|_| self.query.width(position) >= 8)
                 .map(|store| store.budget().clone());
             member.rejected = !particle.viable();
             member.particle = Some(crate::factor::Cursor::new(particle, budget));
@@ -243,7 +204,7 @@ impl Space {
     #[cfg(test)]
     pub fn size(&self) -> usize {
         self.subscription.len() * 2
-            + self.pattern.iter().map(Vec::len).sum::<usize>()
+            + self.query.retained()
             + self
                 .domain
                 .iter()

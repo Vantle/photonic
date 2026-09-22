@@ -175,7 +175,7 @@ fn isolation() {
             crate::program::Symbol::Rule(0),
             Some(capture),
         )]]);
-        let space = super::space::Space::new(pattern, &index, 0, None, None);
+        let space = super::space::Space::new(super::query::Query::direct(pattern), &index, 0, None);
         node.push(store.subscribe(super::key::Key::new(&space, &[0])).unwrap());
     }
     assert!(!Arc::ptr_eq(&node[0], &node[1]));
@@ -205,13 +205,12 @@ fn pressure() {
     let store = Store::new(3);
     let space = |value| {
         super::space::Space::new(
-            Arc::new(vec![vec![crate::term::Term::new(
+            super::query::Query::direct(Arc::new(vec![vec![crate::term::Term::new(
                 crate::program::Symbol::Atom(value),
                 None,
-            )]]),
+            )]])),
             &index,
             0,
-            None,
             None,
         )
     };

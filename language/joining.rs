@@ -8,6 +8,7 @@ mod partition;
 mod playback;
 mod prefix;
 mod product;
+mod query;
 mod recording;
 mod retention;
 mod space;
@@ -102,11 +103,14 @@ impl Join {
 
     #[cfg(test)]
     pub fn new(pattern: Arc<Vec<Vec<Term>>>, index: &Index, frame: usize) -> Self {
-        Self::construct(Space::new(pattern, index, frame, None, None), index)
+        Self::construct(
+            Space::new(query::Query::direct(pattern), index, frame, None),
+            index,
+        )
     }
 
     fn construct(space: Space, index: &Index) -> Self {
-        let mut order: SmallVec<[usize; 2]> = (0..space.pattern.len()).collect();
+        let mut order: SmallVec<[usize; 2]> = (0..space.query.count()).collect();
         order.sort_by_key(|&position| space.domain[position].len());
         let traversal = Traversal::Direct(Cursor::new(order.len()));
         let mut join = Self {
@@ -127,7 +131,7 @@ impl Join {
             && order.len() >= 3
             && order[..order.len() - 1]
                 .iter()
-                .any(|&position| space.pattern[position].len() >= 8)
+                .any(|&position| space.query.width(position) >= 8)
         {
             let width = order.len() - 1;
             return Some(match strategy {
@@ -153,10 +157,9 @@ impl Join {
     pub fn planned(request: Request<'_>) -> Self {
         Self::construct(
             Space::new(
-                request.input.pattern(request.owner),
+                query::Query::Planned(request.input.context(request.owner)),
                 request.index,
                 request.frame,
-                Some(request.input.context(request.owner)),
                 Some(request.store),
             ),
             request.index,

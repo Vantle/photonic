@@ -2,6 +2,8 @@
 
 Assessment on 2026-09-21 against `bdc4de1`. This supersedes allocation tuning as the immediate priority in the [roadmap](roadmap.md). The objective remains execution of the same rules and programs with unchanged semantics and public contracts. Scheduling may change. Rule construction, output replacement and automatic program rewriting remain outside scope.
 
+The first representation slice is now delivered in [shared matching structure](plan.md). It removes captured-pattern materialization and redundant subscription ownership; general lifecycle maintenance remains open. The baseline findings below record the evidence that motivated this change.
+
 ## Assessment
 
 The runtime has substantial algorithmic optimization already: interned input structure, incremental candidate domains, bounded maintained fragments, immutable preparation, exact transcript replay, persistent history, incremental support and cost-based CPU admission. These are working foundations, not a backlog to implement again. The [continuation](continuation.md), [sharing table](roadmap.md#current-sharing-and-remaining-gap) and later audits distinguish their limits.

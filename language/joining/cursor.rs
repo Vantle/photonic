@@ -118,7 +118,7 @@ impl Cursor {
                 .binding
                 .iter()
                 .rev()
-                .find(|slot| space.group[slot.position] == space.group[position])
+                .find(|slot| space.query.group()[slot.position] == space.query.group()[position])
                 .is_some_and(|slot| !index.precedes(slot.world, member.site))
                 || if member.site < 64 {
                     self.occupied & (1 << member.site) != 0
@@ -130,7 +130,7 @@ impl Cursor {
                 blocked,
                 self.binding.iter().any(|slot| {
                     slot.world == member.site
-                        || (space.group[slot.position] == space.group[position]
+                        || (space.query.group()[slot.position] == space.query.group()[position]
                             && !index.precedes(slot.world, member.site))
                 })
             );

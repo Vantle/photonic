@@ -13,7 +13,7 @@ impl Key {
             frame: space.frame,
             pattern: order
                 .iter()
-                .map(|&position| space.pattern[position].clone())
+                .map(|&position| space.query.pattern(position))
                 .collect(),
         }
     }

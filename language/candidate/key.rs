@@ -8,8 +8,8 @@ pub(super) struct Key {
 }
 
 impl Key {
-    pub fn new(pattern: &[Term], frame: usize) -> Self {
-        let mut pattern = pattern.to_vec();
+    pub fn new(pattern: impl IntoIterator<Item = Term>, frame: usize) -> Self {
+        let mut pattern = pattern.into_iter().collect::<Vec<_>>();
         pattern.sort_unstable();
         pattern.dedup();
         Self { frame, pattern }

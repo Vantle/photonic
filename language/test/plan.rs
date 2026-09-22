@@ -5,12 +5,60 @@ use std::sync::Arc;
 use std::task::Poll;
 
 #[test]
+fn ownership() {
+    let input = Input::new(&[
+        vec![Symbol::Atom(2), Symbol::Rule(7), Symbol::Atom(2)],
+        vec![Symbol::Rule(7)],
+        vec![Symbol::Atom(2), Symbol::Rule(7), Symbol::Atom(2)],
+    ]);
+    let shape = Arc::downgrade(&input.shape);
+    let fragment = Arc::downgrade(&input.shape.fragment[0]);
+    let left = input.context(1);
+    let right = input.context(usize::MAX);
+    assert_eq!(shape.strong_count(), 3);
+    drop(input);
+    assert_eq!(shape.strong_count(), 2);
+    assert_eq!(left.group(), &[0, 1, 0]);
+    assert_eq!(right.group(), left.group());
+    assert_eq!(
+        right.pattern(0).collect::<Vec<_>>(),
+        vec![
+            crate::term::Term::new(Symbol::Atom(2), None),
+            crate::term::Term::new(Symbol::Rule(7), Some(usize::MAX)),
+            crate::term::Term::new(Symbol::Atom(2), None),
+        ]
+    );
+    let particle = [Token {
+        id: 19,
+        value: Symbol::Rule(7),
+        capture: Some(1),
+    }];
+    assert_eq!(
+        left.prepare(1, &particle).step(),
+        Poll::Ready(Some(vec![19]))
+    );
+    assert_eq!(right.prepare(1, &particle).step(), Poll::Ready(None));
+    drop(left);
+    assert_eq!(shape.strong_count(), 1);
+    assert!(fragment.upgrade().is_some());
+    drop(right);
+    assert!(shape.upgrade().is_none());
+    assert!(fragment.upgrade().is_none());
+}
+
+#[test]
 fn sharing() {
     let mut shared = Default::default();
     let left = Input::shared(&[vec![Symbol::Rule(0)], vec![Symbol::Atom(0)]], &mut shared);
     let right = Input::shared(&[vec![Symbol::Rule(0)], vec![Symbol::Atom(1)]], &mut shared);
-    assert!(Arc::ptr_eq(&left.fragment[0], &right.fragment[0]));
-    assert!(!Arc::ptr_eq(&left.fragment[1], &right.fragment[1]));
+    assert!(Arc::ptr_eq(
+        &left.shape.fragment[0],
+        &right.shape.fragment[0]
+    ));
+    assert!(!Arc::ptr_eq(
+        &left.shape.fragment[1],
+        &right.shape.fragment[1]
+    ));
     let particle = [Token {
         id: 7,
         value: Symbol::Rule(0),
