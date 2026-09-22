@@ -14,6 +14,17 @@ pub struct Mapping {
 }
 
 impl Mapping {
+    pub(crate) fn join(&self, other: &Self) -> Option<Self> {
+        if !crate::provenance::persistent(self, other) {
+            return None;
+        }
+        let mut result = self.clone();
+        result.frame.extend(other.frame());
+        result.world.extend(other.world());
+        result.occurrence.extend(other.occurrence());
+        Some(result)
+    }
+
     pub fn frame(&self) -> &BTreeMap<context::Identity, context::Identity> {
         &self.frame
     }

@@ -262,6 +262,11 @@ fn inference() {
         result.push(local(&nested, occurrence[2], produced.0));
     }
     same(&result[0], &result[1]);
+    assert!(
+        model::derivation::compare(result[0].path(), result[1].path())
+            .unwrap()
+            .is_some()
+    );
     assert_eq!(result[0].binding().exact.len(), 1);
     assert_eq!(result[0].binding().footprint.len(), 1);
 }
@@ -416,6 +421,16 @@ fn support() {
     same(&left, &right);
     assert_ne!(left.path(), right.path());
     assert_ne!(left, right);
+    assert!(
+        model::derivation::compare(left.path(), right.path())
+            .unwrap()
+            .is_none()
+    );
+    let left = left.retain().unwrap();
+    let right = right.retain().unwrap();
+    assert_eq!(left.target(), right.target());
+    assert_eq!(left.flow(), right.flow());
+    assert!(model::derivation::compare(&left, &right).unwrap().is_none());
 }
 
 #[test]

@@ -36,7 +36,7 @@ pub(super) fn validate(path: &Path) {
     );
 }
 
-fn wrapper() -> (Path, Fragment<Value<Capture, Capture>>) {
+pub(super) fn wrapper() -> (Path, Fragment<Value<Capture, Capture>>) {
     let (path, witness) = super::qualification::branch();
     let world = path.target().world().next().unwrap();
     let qualification = Qualification::new(path.clone(), world.identity).unwrap();

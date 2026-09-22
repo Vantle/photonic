@@ -1,11 +1,10 @@
-use crate::application::{self, Code, Request};
+use crate::application::{self, Request};
 use crate::comparison;
 use crate::failure::Failure;
 use crate::path::Path;
 use crate::projection::{self, Binding};
 use crate::provenance;
-use crate::shape::Shape;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Transition {
@@ -39,6 +38,13 @@ impl Transition {
     pub fn event(&self) -> &application::Event {
         &self.event
     }
+
+    pub fn retain(&self) -> Result<Path, Failure> {
+        Path::new(self.path.source().clone()).advance(crate::path::Step::Inference {
+            path: Box::new(self.path.clone()),
+            request: self.request.clone(),
+        })
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -60,24 +66,6 @@ impl Mapping {
     }
 }
 
-fn consistent<Identity: Ord>(
-    source: &BTreeMap<Identity, Identity>,
-    target: &BTreeMap<Identity, Identity>,
-) -> bool {
-    source.iter().all(|(left, right)| {
-        target.get(left).is_none_or(|value| value == right)
-            && target
-                .iter()
-                .all(|(other, value)| value != right || other == left)
-    })
-}
-
-fn persistent(source: &comparison::Mapping, target: &comparison::Mapping) -> bool {
-    consistent(source.frame(), target.frame())
-        && consistent(source.world(), target.world())
-        && consistent(source.occurrence(), target.occurrence())
-}
-
 fn owner(
     mapping: &comparison::Mapping,
     source: crate::context::Identity,
@@ -89,7 +77,7 @@ fn owner(
     }
 }
 
-fn binding(mapping: &comparison::Mapping, source: &Binding, target: &Binding) -> bool {
+pub(crate) fn binding(mapping: &comparison::Mapping, source: &Binding, target: &Binding) -> bool {
     mapping.frame().get(&source.frame) == Some(&target.frame)
         && match source.owner {
             Some(owner) => mapping.frame().get(&owner).copied() == target.owner,
@@ -107,89 +95,6 @@ fn binding(mapping: &comparison::Mapping, source: &Binding, target: &Binding) ->
         && provenance::resource(mapping, &source.read).as_ref() == Some(&target.read)
 }
 
-fn code(
-    source: &Transition,
-    target: &Transition,
-    mapping: &comparison::Mapping,
-    witness: &comparison::Mapping,
-) -> bool {
-    match (source.request.code, target.request.code) {
-        (
-            Code::Local {
-                world: left,
-                occurrence: original,
-            },
-            Code::Local {
-                world: right,
-                occurrence: destination,
-            },
-        ) => {
-            witness.world().get(&left) == Some(&right)
-                && witness.occurrence().get(&original) == Some(&destination)
-        }
-        (
-            Code::Declaration {
-                context: left,
-                position: original,
-            },
-            Code::Declaration {
-                context: right,
-                position: destination,
-            },
-        ) => {
-            if mapping.frame().get(&left) != Some(&right) {
-                return false;
-            }
-            let source = &source.path.source().frame[&left].declaration[original];
-            let identity = target
-                .path
-                .source()
-                .frame()
-                .map(|frame| (frame.identity, frame.identity))
-                .collect();
-            let target = &target.path.source().frame[&right].declaration[destination];
-            Shape::declaration(std::slice::from_ref(source), mapping.frame())
-                == Shape::declaration(std::slice::from_ref(target), &identity)
-        }
-        _ => false,
-    }
-}
-
-fn selection(source: &Request, target: &Request, witness: &comparison::Mapping) -> bool {
-    let mut mapped = Vec::new();
-    for selection in &source.selection {
-        let Some(&world) = witness.world().get(&selection.world) else {
-            return false;
-        };
-        let Some(occurrence) = selection
-            .occurrence
-            .iter()
-            .map(|identity| witness.occurrence().get(identity).copied())
-            .collect::<Option<BTreeSet<_>>>()
-        else {
-            return false;
-        };
-        mapped.push((world, occurrence));
-    }
-    mapped.sort();
-    let mut expected = target
-        .selection
-        .iter()
-        .map(|selection| {
-            (
-                selection.world,
-                selection
-                    .occurrence
-                    .iter()
-                    .copied()
-                    .collect::<BTreeSet<_>>(),
-            )
-        })
-        .collect::<Vec<_>>();
-    expected.sort();
-    mapped == expected
-}
-
 pub fn boundary(source: &Transition, target: &Transition) -> Option<Mapping> {
     find(source, target, |_| true)
 }
@@ -205,15 +110,22 @@ pub fn find(
             return false;
         }
         comparison::find(source.path.target(), target.path.target(), |witness| {
-            if !persistent(mapping, witness)
+            if !provenance::persistent(mapping, witness)
                 || !provenance::compare(mapping, witness, source.path.flow(), target.path.flow())
-                || !selection(&source.request, &target.request, witness)
-                || !code(source, target, mapping, witness)
+                || !crate::reference::selection(&source.request, &target.request, witness)
+                || !crate::reference::code(
+                    source.path.source(),
+                    target.path.source(),
+                    source.request.code,
+                    target.request.code,
+                    mapping,
+                    witness,
+                )
             {
                 return false;
             }
             comparison::find(&source.event.target, &target.event.target, |destination| {
-                if !persistent(mapping, destination)
+                if !provenance::persistent(mapping, destination)
                     || !owner(mapping, source.event.owner, target.event.owner)
                     || !owner(destination, source.event.owner, target.event.owner)
                     || !provenance::compare(

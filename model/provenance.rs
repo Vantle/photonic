@@ -1,6 +1,6 @@
 use crate::comparison::Mapping;
 use crate::flow::{Flow, Place};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 pub fn place(mapping: &Mapping, source: Place) -> Option<Place> {
     let occurrence = *mapping.occurrence().get(&source.occurrence())?;
@@ -68,4 +68,22 @@ pub fn compare(source: &Mapping, target: &Mapping, original: &Flow, destination:
         }
     }
     true
+}
+
+fn consistent<Identity: Ord>(
+    source: &BTreeMap<Identity, Identity>,
+    target: &BTreeMap<Identity, Identity>,
+) -> bool {
+    source.iter().all(|(left, right)| {
+        target.get(left).is_none_or(|value| value == right)
+            && target
+                .iter()
+                .all(|(other, value)| value != right || other == left)
+    })
+}
+
+pub(crate) fn persistent(source: &Mapping, target: &Mapping) -> bool {
+    consistent(source.frame(), target.frame())
+        && consistent(source.world(), target.world())
+        && consistent(source.occurrence(), target.occurrence())
 }

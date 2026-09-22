@@ -3,39 +3,39 @@ use crate::structure;
 use std::collections::BTreeMap;
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
-pub(crate) enum Shape {
+pub(crate) enum Shape<Capture = Identity> {
     Atom(String),
     Rule {
-        context: Reference,
+        context: Reference<Capture>,
         input: Vec<Vec<Self>>,
-        output: Vec<Destination>,
+        output: Vec<Destination<Capture>>,
     },
 }
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
-pub(crate) struct Destination {
-    particle: Vec<Shape>,
-    body: Option<Body>,
+pub(crate) struct Destination<Capture> {
+    particle: Vec<Shape<Capture>>,
+    body: Option<Body<Capture>>,
 }
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
-pub(crate) struct Body {
-    context: Reference,
-    rule: Vec<Shape>,
+pub(crate) struct Body<Capture> {
+    context: Reference<Capture>,
+    rule: Vec<Shape<Capture>>,
 }
 
-trait Context: Clone + Ord {
-    fn resolve(&self, frame: &BTreeMap<Identity, Identity>) -> Reference;
+trait Context<Capture>: Clone + Ord {
+    fn resolve(&self, frame: &BTreeMap<Capture, Capture>) -> Reference<Capture>;
 }
 
-impl Context for Identity {
-    fn resolve(&self, frame: &BTreeMap<Identity, Identity>) -> Reference {
-        Reference::Captured(frame[self])
+impl<Capture: Clone + Ord> Context<Capture> for Capture {
+    fn resolve(&self, frame: &BTreeMap<Capture, Capture>) -> Reference<Capture> {
+        Reference::Captured(frame[self].clone())
     }
 }
 
-impl Context for Reference {
-    fn resolve(&self, frame: &BTreeMap<Identity, Identity>) -> Reference {
+impl<Capture: Clone + Ord> Context<Capture> for Reference<Capture> {
+    fn resolve(&self, frame: &BTreeMap<Capture, Capture>) -> Self {
         match self {
             Self::Captured(identity) => identity.resolve(frame),
             Self::Local(depth) => Self::Local(*depth),
@@ -43,20 +43,20 @@ impl Context for Reference {
     }
 }
 
-fn value<Owner: Context>(
-    source: &structure::Value<Owner>,
-    frame: &BTreeMap<Identity, Identity>,
-) -> Shape {
+fn value<Capture: Clone + Ord, Owner: Context<Capture>>(
+    source: &structure::Value<Owner, Capture>,
+    frame: &BTreeMap<Capture, Capture>,
+) -> Shape<Capture> {
     match source {
         structure::Value::Atom(atom) => Shape::Atom(atom.clone()),
         structure::Value::Rule(source) => rule(source, frame),
     }
 }
 
-fn particle<Owner: Context>(
-    source: &structure::Particle<Owner>,
-    frame: &BTreeMap<Identity, Identity>,
-) -> Vec<Shape> {
+fn particle<Capture: Clone + Ord, Owner: Context<Capture>>(
+    source: &structure::Particle<Owner, Capture>,
+    frame: &BTreeMap<Capture, Capture>,
+) -> Vec<Shape<Capture>> {
     let mut result = source
         .value()
         .iter()
@@ -66,10 +66,10 @@ fn particle<Owner: Context>(
     result
 }
 
-fn rule<Owner: Context>(
-    source: &structure::Rule<Owner>,
-    frame: &BTreeMap<Identity, Identity>,
-) -> Shape {
+fn rule<Capture: Clone + Ord, Owner: Context<Capture>>(
+    source: &structure::Rule<Owner, Capture>,
+    frame: &BTreeMap<Capture, Capture>,
+) -> Shape<Capture> {
     let mut input = source
         .input
         .particle()
@@ -108,14 +108,17 @@ fn rule<Owner: Context>(
     }
 }
 
-impl Shape {
-    pub(crate) fn value(source: &structure::Value, frame: &BTreeMap<Identity, Identity>) -> Self {
+impl<Capture: Clone + Ord> Shape<Capture> {
+    pub(crate) fn value(
+        source: &structure::Value<Capture, Capture>,
+        frame: &BTreeMap<Capture, Capture>,
+    ) -> Self {
         value(source, frame)
     }
 
     pub(crate) fn declaration(
-        source: &[structure::Rule],
-        frame: &BTreeMap<Identity, Identity>,
+        source: &[structure::Rule<Capture, Capture>],
+        frame: &BTreeMap<Capture, Capture>,
     ) -> Vec<Self> {
         let mut result = source
             .iter()
