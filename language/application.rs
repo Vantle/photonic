@@ -43,7 +43,7 @@ impl Import<'_> {
                 scope: original.scope,
                 parent: None,
                 lexical: None,
-                particle: Vec::new(),
+                particle: Default::default(),
                 held: Vec::new(),
             }
             .into(),
@@ -68,16 +68,16 @@ impl Import<'_> {
             scope: original.scope,
             parent,
             lexical,
-            particle,
+            particle: particle.into(),
             held,
         }
         .into();
         position
     }
 
-    fn particle(
+    fn particle<'token>(
         &mut self,
-        value: &[Token],
+        value: impl IntoIterator<Item = &'token Token>,
         source: usize,
         target: usize,
         place: impl Fn(usize, usize) -> Place,

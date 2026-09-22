@@ -43,10 +43,9 @@ pub fn run(width: usize, length: usize) -> Measurement {
     let initialization = start.elapsed().as_secs_f64();
     let start = Instant::now();
     for iteration in 0..length {
-        let previous = index.state.clone();
         Arc::make_mut(&mut state.frame[width]).lexical = (iteration % 2 == 0).then_some(0);
         index.update(Arc::new(state.clone()), &change);
-        network.advance(&index, &previous, &change);
+        network.advance(&index);
         assert!(matches!(network.next(&index), Poll::Ready(None)));
     }
     Measurement {

@@ -3,8 +3,10 @@ pub mod composition;
 pub mod context;
 pub mod dispatch;
 pub mod exhaustive;
+pub mod fingerprint;
 pub mod gate;
 pub mod joining;
+pub mod layout;
 pub mod maintenance;
 pub mod partition;
 pub mod preparation;
@@ -69,7 +71,7 @@ fn state(count: usize, sharing: Sharing) -> State {
                 scope: 0,
                 parent: None,
                 lexical: None,
-                particle: Vec::new(),
+                particle: Default::default(),
                 held: Vec::new(),
             }
             .into(),

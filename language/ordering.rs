@@ -125,28 +125,36 @@ impl Ordering {
         }
     }
 
-    pub(crate) fn quotient<Key: Ord>(
-        value: impl IntoIterator<Item = usize>,
-        key: impl Fn(usize) -> Key,
-        representative: impl Fn(usize) -> usize,
-    ) -> Self {
-        let mut group = BTreeMap::<Key, BTreeMap<usize, Vec<usize>>>::new();
-        for index in value {
-            group
-                .entry(key(index))
-                .or_default()
-                .entry(representative(index))
-                .or_default()
-                .push(index);
+    pub(crate) fn refine<Key: Ord>(mut self, key: impl Fn(usize) -> Key) -> Self {
+        let mut group = Vec::new();
+        for current in self.group {
+            if current.order.len() <= 1 {
+                group.push(current);
+                continue;
+            }
+            group.extend(Self::new(current.order, &key).group);
         }
-        Self {
-            group: group
-                .into_values()
-                .map(|member| Group::new(member.into_values().collect()))
-                .collect(),
-            fresh: true,
-            complete: false,
+        self.group = group;
+        self
+    }
+
+    pub(crate) fn quotient(mut self, representative: impl FnOnce() -> Vec<usize>) -> Self {
+        if self.group.iter().all(|group| group.order.len() <= 1) {
+            return self;
         }
+        let representative = representative();
+        self.group = self
+            .group
+            .into_iter()
+            .map(|group| {
+                let mut member = BTreeMap::<usize, Vec<usize>>::new();
+                for index in group.order {
+                    member.entry(representative[index]).or_default().push(index);
+                }
+                Group::new(member.into_values().collect())
+            })
+            .collect();
+        self
     }
 }
 

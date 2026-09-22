@@ -10,6 +10,8 @@ use serde::{Deserialize, Serialize};
 struct Argument {
     #[arg(long = "workers", default_value_t = 1)]
     worker: usize,
+    #[arg(long)]
+    source: Option<std::path::PathBuf>,
 }
 
 #[derive(Deserialize)]
@@ -48,7 +50,15 @@ fn evaluate(
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let argument = Argument::parse();
     let executor = Executor::new(argument.worker)?;
-    let fixture: Vec<Case> = serde_json::from_str(include_str!("../language/test/reference.json"))?;
+    let fixture = if let Some(path) = &argument.source {
+        vec![Case {
+            name: path.display().to_string(),
+            program: photonic::lowering::parse(&std::fs::read_to_string(path)?)?,
+            closed: true,
+        }]
+    } else {
+        serde_json::from_str::<Vec<Case>>(include_str!("../language/test/reference.json"))?
+    };
     let mut report = Vec::new();
     for case in fixture.into_iter().filter(|case| case.closed) {
         #[cfg(feature = "measurement")]

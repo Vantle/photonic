@@ -110,3 +110,93 @@ fn location() {
         }
     }
 }
+
+#[test]
+fn context() {
+    use crate::program::Symbol;
+    use crate::state::Token;
+    let source = format!("{},X,Y [X] Z", vec!["A"; 40].join(","));
+    let program = Program::new(crate::lowering::parse(&source).unwrap());
+    let atom = |name| Symbol::Atom(program.atom.get_index_of(name).unwrap());
+    let input = Input::new(&[
+        std::iter::once(atom("A"))
+            .chain(std::iter::repeat_n(Symbol::Rule(0), 8))
+            .collect(),
+        vec![atom("X")],
+        vec![atom("Y")],
+    ]);
+    let mut state = State::initial(&program);
+    let mut frame = (*state.frame[0]).clone();
+    frame.particle.clear();
+    frame.parent = Some(0);
+    frame.lexical = Some(0);
+    state.frame.push(frame.into());
+    Arc::make_mut(&mut state.frame[0]).particle = (0..8)
+        .map(|position| Token {
+            id: 100 + position,
+            value: Symbol::Rule(0),
+            capture: Some(0),
+        })
+        .collect();
+    let mut index = Index::new(Arc::new(state.clone()));
+    let store = Arc::new(Store::new(65536));
+    let create = |index: &Index| {
+        Join::planned(Request {
+            input: &input,
+            index,
+            frame: 0,
+            owner: 0,
+            store: &store,
+        })
+    };
+    let drain = |join: &mut Join, index: &Index| {
+        let mut result = Vec::new();
+        for _ in 0..10000 {
+            match join.step(index) {
+                Poll::Ready(Some(binding)) => result.push(
+                    binding
+                        .into_iter()
+                        .map(|slot| (slot.location, slot.position, slot.token))
+                        .collect::<Vec<_>>(),
+                ),
+                Poll::Ready(None) => {
+                    result.sort();
+                    return result;
+                }
+                Poll::Pending => {}
+            }
+        }
+        panic!("context join did not complete");
+    };
+    let mut join = create(&index);
+    for iteration in 0..64 {
+        let mut fresh = create(&index);
+        let expected = drain(&mut fresh, &index);
+        assert_eq!(drain(&mut join, &index), expected);
+        assert_eq!(join.retained(), join.size());
+        join.reset(&index);
+        for _ in 0..iteration % 19 {
+            let _ = join.step(&index);
+        }
+        if iteration % 5 == 0 {
+            join.evict();
+            store.evict();
+        }
+        Arc::make_mut(&mut state.frame[0]).particle = (0..8 - iteration % 2)
+            .map(|position| Token {
+                id: 200 + iteration * 8 + position,
+                value: Symbol::Rule(0),
+                capture: Some(iteration / 2 % 2),
+            })
+            .collect();
+        index.update(
+            Arc::new(state.clone()),
+            &crate::change::Change {
+                world: Default::default(),
+                insertion: state.world.len()..state.world.len(),
+                frame: vec![0],
+            },
+        );
+        join.advance(&index);
+    }
+}

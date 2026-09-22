@@ -39,10 +39,32 @@ fn exhaustive() {
                     })
                     .cloned()
                     .collect::<Vec<_>>();
-                let actual =
-                    Ordering::quotient(0..count, key, |index| class[index]).collect::<Vec<_>>();
+                let actual = Ordering::new(0..count, key)
+                    .quotient(|| class.clone())
+                    .collect::<Vec<_>>();
                 assert_eq!(actual, expected, "{class:?}, partition {partition}");
             }
+        }
+    }
+}
+
+#[test]
+fn refinement() {
+    let actual = Ordering::new(0..5, |index| index)
+        .refine(|_| -> usize { panic!("singleton requested refinement") })
+        .quotient(|| panic!("singleton requested equivalence"))
+        .collect::<Vec<_>>();
+    assert_eq!(actual, [vec![0, 1, 2, 3, 4]]);
+    for count in 0..=5 {
+        for encoding in 0..3usize.pow(count as u32) {
+            let key = |index| encoding / 3usize.pow(index as u32) % 3;
+            let fine = |index| (index * 7 + encoding) % 4;
+            let expected =
+                Ordering::new(0..count, |index| (key(index), fine(index))).collect::<Vec<_>>();
+            let actual = Ordering::new(0..count, key)
+                .refine(fine)
+                .collect::<Vec<_>>();
+            assert_eq!(actual, expected);
         }
     }
 }

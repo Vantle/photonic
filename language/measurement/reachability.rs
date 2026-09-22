@@ -53,7 +53,7 @@ pub fn run() -> Vec<Measurement> {
                             parent: None,
                             lexical: (frame > 0)
                                 .then(|| if frame % 2 == 0 { frame - 1 } else { frame + 1 }),
-                            particle: Vec::new(),
+                            particle: Default::default(),
                             held: Vec::new(),
                         }
                         .into()

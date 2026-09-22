@@ -5,6 +5,7 @@ use crate::slot::Slot;
 use smallvec::SmallVec;
 use std::task::Poll;
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) struct Consumer {
     pub rule: usize,
     pub owner: usize,

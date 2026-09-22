@@ -7,7 +7,9 @@ use crate::term::Term;
 use std::collections::HashMap;
 use std::sync::{Arc, OnceLock};
 
+mod context;
 mod posting;
+mod update;
 
 use posting::Occurrence;
 
@@ -17,6 +19,7 @@ pub(crate) struct Index {
     previous: Option<Arc<()>>,
     frame: Vec<crate::membership::Set>,
     reach: crate::reachability::Index,
+    lexical: crate::lexical::Index,
     location: Vec<Option<Location>>,
     coherence: Vec<usize>,
     owner: Vec<Option<usize>>,
@@ -30,6 +33,7 @@ pub(crate) struct Index {
     symbol: HashMap<Symbol, usize>,
     pub altered: std::collections::HashSet<Symbol>,
     pub context: Vec<usize>,
+    pub ownership: Vec<usize>,
     pub affected: HashMap<usize, std::collections::HashSet<Symbol>>,
     pub removal: Vec<usize>,
     pub insertion: Vec<usize>,
@@ -37,8 +41,14 @@ pub(crate) struct Index {
 
 impl Index {
     pub fn new(state: Arc<State>) -> Self {
+        let reach = crate::reachability::Index::new(&state);
+        Self::prepared(state, reach)
+    }
+
+    pub(crate) fn prepared(state: Arc<State>, reach: crate::reachability::Index) -> Self {
         let mut index = Self {
-            reach: crate::reachability::Index::new(&state),
+            reach,
+            lexical: crate::lexical::Index::new(&state),
             state,
             revision: OnceLock::new(),
             previous: None,
@@ -56,6 +66,7 @@ impl Index {
             symbol: HashMap::new(),
             altered: Default::default(),
             context: Vec::new(),
+            ownership: Vec::new(),
             affected: HashMap::new(),
             removal: Vec::new(),
             insertion: Vec::new(),
@@ -69,25 +80,9 @@ impl Index {
         }
         index.owner.resize(index.state.frame.len(), None);
         for &frame in index.reach.frame.clone().iter() {
-            let site = index.allocate(Location::Context(frame));
-            index.owner[frame] = Some(site);
-            let value = index.state.frame[frame].clone();
-            for (position, token) in value.particle.iter().enumerate() {
-                *index.symbol.entry(token.value).or_default() += 1;
-                index
-                    .lexicon
-                    .entry((frame, token.value))
-                    .or_default()
-                    .push(position);
-            }
+            index.attach(frame);
         }
-        for &frame in index.reach.frame.clone().iter() {
-            index
-                .affected
-                .entry(frame)
-                .or_default()
-                .extend(index.state.visible(frame).map(|(_, token)| token.value));
-        }
+        index.context = (*index.reach.frame).clone();
         index
     }
 
@@ -97,6 +92,10 @@ impl Index {
 
     pub fn previous(&self) -> Option<&Arc<()>> {
         self.previous.as_ref()
+    }
+
+    pub(crate) fn invalidated(&self, frame: usize) -> bool {
+        self.context.binary_search(&frame).is_ok()
     }
 
     fn allocate(&mut self, location: Location) -> usize {
@@ -155,147 +154,11 @@ impl Index {
         let change = crate::change::Change {
             world: removed.clone(),
             insertion: self.state.world.len() - removed.len()..state.world.len(),
-            frame: Vec::new(),
+            frame: (0..self.state.frame.len().max(state.frame.len()))
+                .filter(|&frame| self.state.frame.get(frame) != state.frame.get(frame))
+                .collect(),
         };
         self.update(state, &change);
-    }
-
-    pub(crate) fn update(&mut self, state: Arc<State>, change: &crate::change::Change) {
-        #[cfg(feature = "measurement")]
-        let _measurement =
-            crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Index);
-        let contextual = !change.frame.is_empty()
-            || self.state.frame.len() != state.frame.len()
-            || self
-                .state
-                .frame
-                .iter()
-                .zip(state.frame.iter())
-                .any(|(left, right)| !Arc::ptr_eq(left, right) && left != right);
-        let reach = (!contextual).then(|| self.reach.advance(&self.state, &state, change));
-        if contextual
-            || reach
-                .as_ref()
-                .is_some_and(|reach| reach.frame != self.reach.frame)
-        {
-            let mut fresh = Self::new(state);
-            fresh.previous = self.revision.take();
-            fresh.removal = self
-                .location
-                .iter()
-                .enumerate()
-                .filter_map(|(site, location)| location.is_some().then_some(site))
-                .collect();
-            fresh.altered = self
-                .symbol
-                .keys()
-                .chain(fresh.symbol.keys())
-                .copied()
-                .filter(|symbol| {
-                    self.symbol.contains_key(symbol) != fresh.symbol.contains_key(symbol)
-                })
-                .collect();
-            fresh.context = self
-                .reach
-                .frame
-                .iter()
-                .chain(fresh.reach.frame.iter())
-                .copied()
-                .collect();
-            fresh.context.sort_unstable();
-            fresh.context.dedup();
-            *self = fresh;
-            return;
-        }
-        self.reach = reach.unwrap();
-        self.previous = self.revision.take();
-        let removed = &change.world;
-        self.altered.clear();
-        self.affected.clear();
-        self.removal.clear();
-        self.insertion.clear();
-        self.context.clear();
-        let mut affected = change
-            .world
-            .iter()
-            .map(|&world| self.state.world[world].frame)
-            .chain(
-                state
-                    .world
-                    .range(change.insertion.clone())
-                    .map(|world| world.frame),
-            )
-            .collect::<Vec<_>>();
-        affected.sort_unstable();
-        affected.dedup();
-        let previous = affected
-            .iter()
-            .map(|&frame| self.present(frame))
-            .collect::<Vec<_>>();
-        self.removal
-            .extend(removed.iter().map(|&world| self.coherence[world]));
-        let mut posting = smallvec::SmallVec::<[(usize, Term); 8]>::new();
-        for (&world, &site) in removed.iter().zip(&self.removal) {
-            let value = &self.state.world[world];
-            self.affected
-                .entry(value.frame)
-                .or_default()
-                .extend(value.particle.iter().map(|token| token.value));
-            self.frame[value.frame].remove(&site);
-            self.retained -= 1;
-            for token in &value.particle {
-                let count = self.symbol.get_mut(&token.value).unwrap();
-                *count -= 1;
-                if *count == 0 {
-                    self.symbol.remove(&token.value);
-                    self.altered.insert(token.value);
-                }
-                posting.push((value.frame, Term::new(token.value, token.capture)));
-            }
-            self.position.remove(self.rank[site]);
-            self.rank[site] = usize::MAX;
-            self.location[site] = None;
-            self.vacant.push(site);
-        }
-        for &frame in &affected {
-            let Some(reader) = self.reader.get_mut(frame) else {
-                continue;
-            };
-            let previous = reader.len();
-            reader.retain(|reader| match reader.read {
-                crate::reader::Read::World(site, _) => self.rank[site] != usize::MAX,
-                crate::reader::Read::Context(_, _) => unreachable!(),
-            });
-            self.retained -= previous - reader.len();
-        }
-        posting.sort_unstable();
-        posting.dedup();
-        for key in posting {
-            let posting = self.term.get_mut(&key).unwrap();
-            let previous = posting.len();
-            posting.retain(|occurrence| self.rank[occurrence.site] != usize::MAX);
-            self.retained -= previous - posting.len();
-            if posting.is_empty() {
-                self.term.remove(&key);
-            }
-        }
-        self.position.compact(&mut self.rank);
-        self.coherence.retain(|&site| self.location[site].is_some());
-        for (world, &site) in self.coherence.iter().enumerate() {
-            self.location[site] = Some(Location::World(world));
-        }
-        self.state = state;
-        self.frame
-            .resize_with(self.state.frame.len(), crate::membership::Set::default);
-        self.reader.resize_with(self.state.frame.len(), Vec::new);
-        for world in change.insertion.clone() {
-            self.insert(world);
-        }
-        for (frame, previous) in affected.into_iter().zip(previous) {
-            if previous != self.present(frame) {
-                self.context.push(frame);
-            }
-        }
     }
 
     pub fn candidate(&self, pattern: impl IntoIterator<Item = Term>, frame: usize) -> Vec<usize> {
@@ -337,15 +200,21 @@ impl Index {
             self.state.frame[frame].lexical
         })
         .flat_map(move |frame| {
-            self.lexicon
-                .get(&(frame, symbol))
-                .into_iter()
-                .flatten()
-                .map(move |&position| {
-                    let token = &self.state.frame[frame].particle[position];
-                    (crate::flow::Place::Context(frame, token.id), token)
-                })
+            self.local(frame, symbol)
+                .map(move |token| (crate::flow::Place::Context(frame, token.id), token))
         })
+    }
+
+    pub(crate) fn local(
+        &self,
+        frame: usize,
+        symbol: Symbol,
+    ) -> impl Iterator<Item = &crate::state::Token> {
+        self.lexicon
+            .get(&(frame, symbol))
+            .into_iter()
+            .flatten()
+            .map(move |&position| self.state.frame[frame].particle.at(position))
     }
 
     pub(crate) fn visible<'index>(
@@ -418,11 +287,11 @@ impl Index {
     pub fn retained(&self) -> usize {
         self.frame.len()
             + self.reach.retained()
+            + self.lexical.retained()
             + self.location.len()
             + self.coherence.len()
             + self.owner.len()
             + self.lexicon.len()
-            + self.lexicon.values().map(Vec::len).sum::<usize>()
             + self.reader.len()
             + self.term.len()
             + self.retained
@@ -431,6 +300,7 @@ impl Index {
             + self.vacant.len()
             + self.symbol.len()
             + self.context.len()
+            + self.ownership.len()
             + self.affected.len()
             + self
                 .affected

@@ -14,6 +14,7 @@ pub(crate) struct Incidence {
     pub label: Vec<Label>,
     pub frame: Vec<usize>,
     pub edge: crate::graph::Graph,
+    pub resource: Vec<usize>,
 }
 
 struct Resource {
@@ -28,6 +29,9 @@ fn connect(edge: &mut Vec<(usize, usize, u8)>, source: usize, target: usize, kin
 
 impl Incidence {
     pub fn new(state: &State) -> Self {
+        #[cfg(feature = "measurement")]
+        let _measurement =
+            crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Incidence);
         let retained = state.reachable();
         let mut label = vec![Label::World; state.world.len()];
         let mut frame = vec![0; state.frame.len()];
@@ -36,6 +40,7 @@ impl Incidence {
             label.push(Label::Frame(state.frame[index].scope, index == 0));
         }
         let mut resource = HashMap::new();
+        let mut identity = Vec::new();
         for token in state.world.iter().flat_map(|world| &world.particle).chain(
             retained
                 .iter()
@@ -43,6 +48,7 @@ impl Incidence {
         ) {
             let entry = resource.entry(token.id).or_insert_with(|| {
                 let vertex = label.len();
+                identity.push(token.id);
                 label.push(Label::Resource(token.value));
                 Resource {
                     vertex,
@@ -91,6 +97,11 @@ impl Incidence {
             }
         }
         let edge = crate::graph::Graph::new(label.len(), edge.iter().copied());
-        Self { label, frame, edge }
+        Self {
+            label,
+            frame,
+            edge,
+            resource: identity,
+        }
     }
 }

@@ -10,7 +10,7 @@ pub(super) struct Request {
 
 impl Network {
     pub(super) fn request(
-        &self,
+        &mut self,
         index: &Index,
         frame: usize,
         selected: Option<&Set>,
@@ -22,41 +22,35 @@ impl Network {
         if self.enabled.is_empty() {
             return request;
         }
+        let ancestry = std::iter::successors(index.present(frame).then_some(frame), |&frame| {
+            index.state.frame[frame].lexical
+        })
+        .collect::<smallvec::SmallVec<[usize; 4]>>();
         if index.present(frame) {
-            for (place, token) in selected
+            for &input in selected
                 .unwrap_or(&self.enabled)
                 .iter()
                 .filter(|input| self.enabled.contains(input))
-                .flat_map(|&input| self.catalog.member(input))
-                .flat_map(|&rule| index.occurrence(frame, crate::program::Symbol::Rule(rule)))
             {
-                let crate::program::Symbol::Rule(rule) = token.value else {
-                    continue;
-                };
-                let crate::flow::Place::Context(current, resource) = place else {
-                    unreachable!()
-                };
-                let input = self.catalog.rule(rule);
                 let plan = self.catalog.input(input);
-                if !self.enabled.contains(&input)
-                    || selected.is_some_and(|selected| !selected.contains(&input))
-                    || (plan.arity() == 0 && frame != current)
-                {
-                    continue;
+                for &current in &ancestry {
+                    if plan.arity() == 0 && frame != current {
+                        continue;
+                    }
+                    self.membership.ensure(index, &self.catalog, current);
+                    request.extend(
+                        self.membership
+                            .select(&self.catalog, index, current, input)
+                            .map(|consumer| Request {
+                                key: Key {
+                                    frame,
+                                    input,
+                                    owner: plan.owner(consumer.owner),
+                                },
+                                consumer,
+                            }),
+                    );
                 }
-                let owner = token.capture.unwrap();
-                request.push(Request {
-                    key: Key {
-                        frame,
-                        input,
-                        owner: plan.owner(owner),
-                    },
-                    consumer: Consumer {
-                        rule,
-                        owner,
-                        read: Some(crate::reader::Read::Context(current, resource)),
-                    },
-                });
             }
             for reader in index.reader(frame) {
                 let input = self.catalog.rule(reader.rule);
@@ -79,10 +73,6 @@ impl Network {
                 });
             }
         }
-        let ancestry = std::iter::successors(index.present(frame).then_some(frame), |&frame| {
-            index.state.frame[frame].lexical
-        })
-        .collect::<smallvec::SmallVec<[usize; 4]>>();
         request.sort_by_key(|request| {
             let priority = match request.consumer.read {
                 Some(crate::reader::Read::Context(frame, resource)) => (

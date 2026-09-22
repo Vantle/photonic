@@ -157,6 +157,7 @@ impl Join {
         None
     }
 
+    #[cfg(any(test, feature = "measurement"))]
     pub fn planned(request: Request<'_>) -> Self {
         Self::construct(
             Space::new(
@@ -167,6 +168,18 @@ impl Join {
             ),
             request.index,
         )
+    }
+
+    pub fn admit(request: Request<'_>) -> Option<Self> {
+        Some(Self::construct(
+            Space::admit(
+                query::Query::Planned(request.input.context(request.owner)),
+                request.index,
+                request.frame,
+                Some(request.store),
+            )?,
+            request.index,
+        ))
     }
 
     #[cfg(test)]

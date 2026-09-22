@@ -38,9 +38,12 @@ impl<'program> Builder<'program> {
             .collect()
     }
 
-    fn particle(&mut self, value: &[crate::state::Token]) -> Vec<Token> {
+    fn particle<'token>(
+        &mut self,
+        value: impl IntoIterator<Item = &'token crate::state::Token>,
+    ) -> Vec<Token> {
         value
-            .iter()
+            .into_iter()
             .map(|token| {
                 let text = self
                     .text
@@ -69,6 +72,9 @@ impl<'program> Builder<'program> {
     }
 
     pub(crate) fn node(&mut self, id: usize, state: &State, status: Status) -> Node {
+        #[cfg(feature = "measurement")]
+        let _measurement =
+            crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Rendering);
         Node {
             id,
             world: state

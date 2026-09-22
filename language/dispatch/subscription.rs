@@ -69,17 +69,16 @@ impl Network {
                 let _measurement = crate::measurement::profile::Scope::new(
                     crate::measurement::profile::Phase::Admission,
                 );
-                let entry = Entry::new(
-                    Search::planned(crate::joining::Request {
-                        input: plan,
-                        index,
-                        frame,
-                        owner: key.owner,
-                        store: &self.sharing,
-                    }),
-                    consumer,
-                    self.generation,
-                );
+                let Some(search) = Search::admit(crate::joining::Request {
+                    input: plan,
+                    index,
+                    frame,
+                    owner: key.owner,
+                    store: &self.sharing,
+                }) else {
+                    continue;
+                };
+                let entry = Entry::new(search, consumer, self.generation);
                 self.storage += entry.retained();
                 let viable = entry.viable();
                 let position = self.store.insert(entry);

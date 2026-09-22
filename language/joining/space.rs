@@ -41,22 +41,46 @@ impl Space {
         )
     }
 
+    #[cfg(any(test, feature = "measurement"))]
     pub fn new(
         query: Query,
         index: &Index,
         frame: usize,
         store: Option<&Arc<super::Store>>,
     ) -> Self {
+        Self::construct(query, index, frame, store, false).unwrap()
+    }
+
+    pub fn admit(
+        query: Query,
+        index: &Index,
+        frame: usize,
+        store: Option<&Arc<super::Store>>,
+    ) -> Option<Self> {
+        Self::construct(query, index, frame, store, true)
+    }
+
+    fn construct(
+        query: Query,
+        index: &Index,
+        frame: usize,
+        store: Option<&Arc<super::Store>>,
+        admission: bool,
+    ) -> Option<Self> {
         let mut subscription = Vec::new();
-        let domain = (0..query.count())
-            .map(|position| {
-                let shared = store
-                    .filter(|_| index.state.world.len() > 32 && query.width(position) > 1)
-                    .map(|store| &store.domain);
-                let selected = query.candidate(position, index, frame, shared);
-                if let Some(node) = selected.node {
-                    subscription.push((position, node));
-                }
+        let mut domain = SmallVec::<[Vec<Member>; 2]>::new();
+        for position in 0..query.count() {
+            let shared = store
+                .filter(|_| index.state.world.len() > 32 && query.width(position) > 1)
+                .map(|store| &store.domain);
+            let selected = query.candidate(position, index, frame, shared);
+            if admission && selected.site.is_empty() {
+                return None;
+            }
+            if let Some(node) = selected.node {
+                subscription.push((position, node));
+            }
+            domain.push(
                 selected
                     .site
                     .into_iter()
@@ -65,10 +89,9 @@ impl Space {
                         particle: None,
                         rejected: false,
                     })
-                    .collect()
-            })
-            .collect();
-        let domain: SmallVec<[Vec<Member>; 2]> = domain;
+                    .collect(),
+            );
+        }
         let retained = subscription.len() * 2
             + query.retained()
             + domain.iter().map(|member| member.len() + 1).sum::<usize>();
@@ -80,7 +103,7 @@ impl Space {
                 query.count() > 1 && (0..query.count()).any(|position| query.width(position) >= 8)
             })
             .cloned();
-        Self {
+        Some(Self {
             frame,
             store,
             shared,
@@ -89,7 +112,7 @@ impl Space {
             domain,
             subscription: subscription.into_boxed_slice(),
             retained,
-        }
+        })
     }
 
     pub fn update(&mut self, index: &Index) -> SmallVec<[usize; 2]> {

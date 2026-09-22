@@ -85,6 +85,10 @@ pub struct Record {
     pub release: Measurement,
     duration: f64,
     observation: Observation,
+    #[cfg(feature = "measurement")]
+    phase: Vec<photonic::measurement::profile::Measurement>,
+    #[cfg(feature = "measurement")]
+    loading: Vec<photonic::measurement::profile::Measurement>,
     #[cfg(feature = "allocation")]
     footprint: Footprint,
     #[cfg(feature = "allocation")]
@@ -109,10 +113,16 @@ pub struct Footprint {
 }
 
 pub fn measure<Value: Engine>(initialize: impl FnOnce() -> Value, budget: usize) -> Record {
+    #[cfg(feature = "measurement")]
+    photonic::measurement::profile::take();
     let (mut engine, initialization) = meter::measure(initialize);
+    #[cfg(feature = "measurement")]
+    let loading = photonic::measurement::profile::take();
     let ((), execution) = meter::measure(|| {
         engine.execute(budget, limit());
     });
+    #[cfg(feature = "measurement")]
+    let phase = photonic::measurement::profile::take();
     let (report, reporting) = meter::measure(|| black_box(engine.report()));
     let mut observation = Value::observe(&report);
     let (encoded, serialization) = meter::measure(|| serde_json::to_vec(&report).unwrap());
@@ -158,6 +168,10 @@ pub fn measure<Value: Engine>(initialize: impl FnOnce() -> Value, budget: usize)
         release,
         duration,
         observation,
+        #[cfg(feature = "measurement")]
+        phase,
+        #[cfg(feature = "measurement")]
+        loading,
         #[cfg(feature = "allocation")]
         footprint,
         #[cfg(feature = "allocation")]

@@ -1,7 +1,7 @@
 use super::{Delivery, Network};
 use crate::change::Change;
 use crate::index::Index;
-use crate::program::Program;
+use crate::program::{Program, Symbol};
 use crate::state::{State, Token, World};
 use std::sync::Arc;
 use std::task::Poll;
@@ -80,7 +80,6 @@ fn batching() {
         }
         assert!(complete);
         if iteration % 4 == 3 {
-            let previous = index.state.clone();
             let mut world = (*state.world.remove(0)).clone();
             for token in &mut world.particle {
                 token.id += 1000;
@@ -92,8 +91,8 @@ fn batching() {
                 frame: Vec::new(),
             };
             index.update(Arc::new(state.clone()), &change);
-            actual.advance(&index, &previous, &change);
-            expected.advance(&index, &previous, &change);
+            actual.advance(&index);
+            expected.advance(&index);
         } else {
             actual.reset(&index);
             expected.reset(&index);
@@ -273,9 +272,8 @@ fn drain(network: &mut Network, index: &Index) -> Vec<Delivery> {
 }
 
 fn advance(network: &mut Network, index: &mut Index, state: State, change: Change) {
-    let previous = index.state.clone();
     index.update(Arc::new(state), &change);
-    network.advance(index, &previous, &change);
+    network.advance(index);
     accounting(network);
 }
 
@@ -479,6 +477,107 @@ fn capture() {
 }
 
 #[test]
+fn arrival() {
+    let mut program = Program::new(crate::lowering::parse("A [A] B [B] C").unwrap());
+    program.rule[0].input = vec![vec![Symbol::Rule(1)]];
+    let mut state = State::initial(&program);
+    state.frame.push(state.frame[0].clone());
+    Arc::make_mut(&mut state.frame[1]).particle.clear();
+    let root = Arc::make_mut(&mut state.frame[0]);
+    root.particle.retain(|token| token.value == Symbol::Rule(0));
+    root.particle.push(Token {
+        id: 100,
+        value: Symbol::Rule(0),
+        capture: Some(1),
+    });
+    state.world = vec![
+        World {
+            frame: 0,
+            particle: vec![Token {
+                id: 101,
+                value: Symbol::Rule(1),
+                capture: Some(0),
+            }],
+        }
+        .into(),
+    ]
+    .into();
+    let mut index = Index::new(Arc::new(state.clone()));
+    let mut network = Network::new(&program, &index);
+    assert_eq!(network.entry.len(), 1);
+    assert_eq!(drain(&mut network, &index)[0].owner, 0);
+    state.world.push(
+        World {
+            frame: 0,
+            particle: vec![Token {
+                id: 102,
+                value: Symbol::Rule(1),
+                capture: Some(1),
+            }],
+        }
+        .into(),
+    );
+    advance(
+        &mut network,
+        &mut index,
+        state,
+        Change {
+            world: Default::default(),
+            insertion: 1..2,
+            frame: Vec::new(),
+        },
+    );
+    assert!(network.altered.is_empty());
+    assert_eq!(network.entry.len(), 2);
+    let mut owner = drain(&mut network, &index)
+        .iter()
+        .map(|delivery| delivery.owner)
+        .collect::<Vec<_>>();
+    owner.sort_unstable();
+    assert_eq!(owner, [0, 1]);
+}
+
+#[test]
+fn coherence() {
+    let program = Program::new(crate::lowering::parse("[()] B").unwrap());
+    for evict in [false, true] {
+        let mut state = State::initial(&program);
+        state.world = Default::default();
+        let mut index = Index::new(Arc::new(state.clone()));
+        let mut network = Network::new(&program, &index);
+        assert_eq!(network.entry.len(), 0);
+        if evict {
+            network.evict();
+        }
+        state.world.push(
+            World {
+                frame: 0,
+                particle: Vec::new(),
+            }
+            .into(),
+        );
+        advance(
+            &mut network,
+            &mut index,
+            state,
+            Change {
+                world: Default::default(),
+                insertion: 0..1,
+                frame: Vec::new(),
+            },
+        );
+        assert!(network.altered.is_empty());
+        let delivery = drain(&mut network, &index);
+        assert_eq!(delivery.len(), 1);
+        assert_eq!(
+            delivery[0].selection[0].location,
+            crate::location::Location::World(0)
+        );
+        assert!(delivery[0].selection[0].token.is_empty());
+    }
+}
+
+#[test]
 fn ancestry() {
     let program = Program::new(crate::lowering::parse("A").unwrap());
     let initial = State::initial(&program);
@@ -526,9 +625,11 @@ fn ancestry() {
                 })
                 .collect::<Vec<_>>();
             assert_eq!(
-                super::context::Context::default()
-                    .select(&index, &index.state, &changed)
-                    .as_slice(),
+                crate::lexical::Index::new(&index.state)
+                    .select(&changed)
+                    .into_iter()
+                    .filter(|&frame| index.present(frame))
+                    .collect::<Vec<_>>(),
                 expected
             );
         }
@@ -565,6 +666,73 @@ fn activation() {
 }
 
 #[test]
+fn admission() {
+    let program = Program::new(crate::lowering::parse("A [A.B] C").unwrap());
+    let mut state = State::initial(&program);
+    for _ in 0..2 {
+        let mut frame = (*state.frame[0]).clone();
+        frame.particle.clear();
+        frame.lexical = Some(0);
+        frame.parent = Some(0);
+        state.frame.push(frame.into());
+    }
+    Arc::make_mut(&mut state.world[0]).frame = 1;
+    state.world.push(
+        crate::state::World {
+            frame: 2,
+            particle: Vec::new(),
+        }
+        .into(),
+    );
+    let mut index = Index::new(Arc::new(state.clone()));
+    let mut network = Network::new(&program, &index);
+    assert!(drain(&mut network, &index).is_empty());
+    let value = Symbol::Atom(program.atom.get_index_of("B").unwrap());
+    Arc::make_mut(&mut state.world[1]).particle.push(Token {
+        id: 10,
+        value,
+        capture: None,
+    });
+    advance(
+        &mut network,
+        &mut index,
+        state.clone(),
+        Change {
+            world: crate::basis::Set::single(1),
+            insertion: 1..2,
+            frame: Vec::new(),
+        },
+    );
+    assert!(drain(&mut network, &index).is_empty());
+    let mut world = (*state.world.remove(0)).clone();
+    world.particle.push(Token {
+        id: 11,
+        value,
+        capture: None,
+    });
+    state.world.push(world.into());
+    advance(
+        &mut network,
+        &mut index,
+        state,
+        Change {
+            world: crate::basis::Set::single(0),
+            insertion: 1..2,
+            frame: Vec::new(),
+        },
+    );
+    let delivery = drain(&mut network, &index);
+    assert_eq!(delivery.len(), 1);
+    assert_eq!(delivery[0].frame, 1);
+    assert_eq!(delivery[0].rule, 0);
+    assert_eq!(
+        delivery[0].selection[0].location,
+        crate::location::Location::World(1)
+    );
+    assert_eq!(drain(&mut Network::new(&program, &index), &index).len(), 1);
+}
+
+#[test]
 fn dormancy() {
     let program = Program::new(crate::lowering::parse("A,B [A,B] C").unwrap());
     let mut state = State::initial(&program);
@@ -573,7 +741,7 @@ fn dormancy() {
     Arc::make_mut(&mut state.world[1]).frame = 1;
     let mut index = Index::new(Arc::new(state.clone()));
     let mut network = Network::new(&program, &index);
-    assert_eq!(network.entry.len(), 2);
+    assert_eq!(network.entry.len(), 0);
     assert!(drain(&mut network, &index).is_empty());
     state.world.remove(0);
     advance(
@@ -586,7 +754,7 @@ fn dormancy() {
             frame: Vec::new(),
         },
     );
-    assert_eq!(network.entry.len(), 1);
+    assert_eq!(network.entry.len(), 0);
     Arc::make_mut(&mut state.world[0]).particle[0] = Token {
         id: 100,
         value: program.rule[0].input[0][0],
@@ -603,7 +771,7 @@ fn dormancy() {
         },
     );
     assert!(network.altered.is_empty());
-    assert_eq!(network.entry.len(), 1);
+    assert_eq!(network.entry.len(), 0);
     assert!(drain(&mut network, &index).is_empty());
     state.world.push(
         World {
@@ -646,6 +814,7 @@ fn awakening() {
     let mut index = Index::new(Arc::new(state.clone()));
     let mut network = Network::new(&program, &index);
     assert_eq!(network.entry.len(), 0);
+    assert_eq!(network.membership.retained(), state.frame.len());
     for iteration in 0..128 {
         Arc::make_mut(&mut state.world[0]).particle[0] = Token {
             id: iteration + 1,
@@ -663,6 +832,7 @@ fn awakening() {
             },
         );
         if iteration % 2 == 0 {
+            assert!(network.membership.retained() > state.frame.len());
             let delivery = (0..16)
                 .find_map(|_| match network.next(&index) {
                     Poll::Ready(Some(delivery)) => Some(delivery),

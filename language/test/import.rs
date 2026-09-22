@@ -10,7 +10,7 @@ fn coalescence() {
         scope: 0,
         parent: None,
         lexical: None,
-        particle: Vec::new(),
+        particle: Default::default(),
         held: Vec::new(),
     };
     let atom = Token {
@@ -49,7 +49,7 @@ fn coalescence() {
                 scope: 1,
                 parent: Some(0),
                 lexical: Some(0),
-                particle: Vec::new(),
+                particle: Default::default(),
                 held: vec![Token { id: 10, ..atom }, Token { id: 11, ..atom }],
             }
             .into(),

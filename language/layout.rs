@@ -1,5 +1,7 @@
 use crate::state::State;
 
+mod resource;
+
 pub(crate) struct Layout {
     pub reach: crate::reachability::Index,
     pub cell: usize,
@@ -40,30 +42,21 @@ impl Layout {
             .world
             .range(change.insertion.clone())
             .flat_map(|world| &world.particle)
-            .chain(
-                change
-                    .frame
-                    .iter()
-                    .filter_map(|&frame| state.frame.get(frame))
-                    .flat_map(|frame| frame.token()),
-            )
             .map(|token| token.id + 1)
             .max()
-            .unwrap_or(0);
+            .unwrap_or(0)
+            .max(resource::bound(state, source, &change.frame));
         let resource = if newest >= self.resource {
             newest
         } else if change
             .world
             .iter()
             .flat_map(|&world| &source.world[world].particle)
-            .chain(
-                change
-                    .frame
-                    .iter()
-                    .filter_map(|&frame| source.frame.get(frame))
-                    .flat_map(|frame| frame.token()),
-            )
-            .any(|token| token.id + 1 == self.resource)
+            .map(|token| token.id + 1)
+            .max()
+            .unwrap_or(0)
+            .max(resource::bound(source, state, &change.frame))
+            == self.resource
         {
             state
                 .world
@@ -110,3 +103,7 @@ impl Layout {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "test/layout.rs"]
+mod test;

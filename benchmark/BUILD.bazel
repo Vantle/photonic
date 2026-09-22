@@ -15,6 +15,32 @@ rust_binary(
     ],
 )
 
+rust_binary(
+    name = "fingerprint",
+    srcs = ["fingerprint.rs"],
+    crate_features = ["measurement"],
+    crate_root = "fingerprint.rs",
+    lint_config = "//:lint",
+    deps = [
+        "//language:measurement",
+        "@crate//:clap",
+        "@crate//:serde_json",
+    ],
+)
+
+rust_binary(
+    name = "layout",
+    srcs = ["layout.rs"],
+    crate_features = ["measurement"],
+    crate_root = "layout.rs",
+    lint_config = "//:lint",
+    deps = [
+        "//language:measurement",
+        "@crate//:clap",
+        "@crate//:serde_json",
+    ],
+)
+
 rust_test(
     name = "availability",
     size = "small",
@@ -582,6 +608,28 @@ rust_binary(
     rustc_env = {"FORMULA": "$(execpath //program/ternary:formula)"},
     deps = [
         "//language:photonic",
+        "@crate//:clap",
+        "@crate//:serde",
+        "@crate//:serde_json",
+    ],
+)
+
+rust_binary(
+    name = "reporting",
+    srcs = [
+        "export.rs",
+        "formula.rs",
+        "lifecycle.rs",
+        "lifetime.rs",
+        "meter.rs",
+    ],
+    compile_data = ["//program/ternary:formula"],
+    crate_features = ["measurement"],
+    crate_root = "lifetime.rs",
+    lint_config = "//:lint",
+    rustc_env = {"FORMULA": "$(execpath //program/ternary:formula)"},
+    deps = [
+        "//language:measurement",
         "@crate//:clap",
         "@crate//:serde",
         "@crate//:serde_json",

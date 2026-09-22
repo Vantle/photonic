@@ -1,41 +1,22 @@
-use crate::basis::Set;
 use crate::flow::{Binding, Place};
-use crate::state::Frame;
+use crate::state::State;
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
-pub(crate) struct Selection {
-    occurrence: Set<Place>,
-}
-
-impl Selection {
-    pub fn new(binding: &Binding) -> Self {
-        Self {
-            occurrence: binding
-                .exact
-                .iter()
-                .copied()
-                .filter(|place| matches!(place, Place::Context(_, _)))
-                .collect(),
+pub(crate) fn apply(state: &mut State, binding: &Binding) -> Vec<usize> {
+    let mut selection = BTreeMap::<_, BTreeSet<_>>::new();
+    for &place in &binding.exact {
+        if let Place::Context(frame, resource) = place {
+            selection.entry(frame).or_default().insert(resource);
         }
     }
-
-    pub fn frame(&self, index: usize, frame: &Frame) -> Option<Arc<Frame>> {
-        if self.occurrence.len() == 0
-            || !frame
+    selection
+        .into_iter()
+        .map(|(frame, selection)| {
+            Arc::make_mut(&mut state.frame[frame])
                 .particle
-                .iter()
-                .any(|token| self.occurrence.contains(&Place::Context(index, token.id)))
-        {
-            return None;
-        }
-        Some(Arc::new(Frame {
-            particle: frame
-                .particle
-                .iter()
-                .filter(|token| !self.occurrence.contains(&Place::Context(index, token.id)))
-                .cloned()
-                .collect(),
-            ..frame.clone()
-        }))
-    }
+                .retain(|token| !selection.contains(&token.id));
+            frame
+        })
+        .collect()
 }

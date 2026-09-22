@@ -64,6 +64,7 @@ impl Search {
         }
     }
 
+    #[cfg(test)]
     pub fn planned(request: crate::joining::Request<'_>) -> Self {
         #[cfg(feature = "measurement")]
         let _measurement = crate::measurement::profile::Scope::new(
@@ -73,6 +74,17 @@ impl Search {
             join: Join::planned(request),
             mode: Mode::Dormant,
         }
+    }
+
+    pub fn admit(request: crate::joining::Request<'_>) -> Option<Self> {
+        #[cfg(feature = "measurement")]
+        let _measurement = crate::measurement::profile::Scope::new(
+            crate::measurement::profile::Phase::Preparation,
+        );
+        Some(Self {
+            join: Join::admit(request)?,
+            mode: Mode::Dormant,
+        })
     }
 
     pub fn advance(&mut self, index: &Index) {

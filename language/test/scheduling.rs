@@ -16,7 +16,7 @@ fn root(world: Vec<World>) -> State {
                 scope: 0,
                 parent: None,
                 lexical: None,
-                particle: Vec::new(),
+                particle: Default::default(),
                 held: Vec::new(),
             }
             .into(),
@@ -391,14 +391,14 @@ fn capture() {
             scope: 1,
             parent: Some(0),
             lexical: Some(0),
-            particle: Vec::new(),
+            particle: Default::default(),
             held: vec![closure],
         }));
         state.frame.push(Arc::new(Frame {
             scope: 2,
             parent: None,
             lexical: None,
-            particle: Vec::new(),
+            particle: Default::default(),
             held: vec![Token {
                 id: 99,
                 value: Symbol::Rule(1),

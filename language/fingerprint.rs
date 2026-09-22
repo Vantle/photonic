@@ -1,9 +1,12 @@
 use crate::accumulator::Accumulator;
-use crate::basis::Set;
 use crate::hashing::mix;
 use crate::program::Symbol;
 use crate::state::{State, Token};
 use std::sync::Arc;
+
+mod context;
+mod dependency;
+mod population;
 
 fn symbol(value: Symbol) -> u64 {
     match value {
@@ -12,8 +15,8 @@ fn symbol(value: Symbol) -> u64 {
     }
 }
 
-fn particle(value: &[Token], frame: &[u64]) -> u64 {
-    Accumulator::collect(value.iter().map(|token| {
+fn particle<'token>(value: impl IntoIterator<Item = &'token Token>, frame: &[u64]) -> u64 {
+    Accumulator::collect(value.into_iter().map(|token| {
         mix(symbol(token.value).wrapping_add(
             token
                 .capture
@@ -45,8 +48,7 @@ impl World {
 }
 
 pub(crate) struct Index {
-    state: Arc<State>,
-    frame: [Arc<Vec<u64>>; 3],
+    frame: context::Index,
     world: crate::sequence::List<Arc<World>>,
     aggregate: Accumulator,
     context: u64,
@@ -59,7 +61,33 @@ pub(crate) struct Index {
 impl Index {
     pub(crate) fn new(state: Arc<State>) -> Self {
         let layout = crate::layout::Layout::new(&state);
-        Self::construct(state, None, &Set::default(), layout)
+        let frame = context::Index::new(&state);
+        let world = state
+            .world
+            .iter()
+            .map(|world| Arc::new(World::new(world, frame.color())))
+            .collect::<crate::sequence::List<_>>();
+        let mut aggregate = Accumulator::default();
+        for world in &world {
+            aggregate.insert(world.value);
+        }
+        let context =
+            Accumulator::collect(layout.reach.frame.iter().map(|&index| frame.color()[index]));
+        let dependency = world
+            .iter()
+            .map(|world| world.dependency.len())
+            .sum::<usize>();
+        let retained = layout.reach.retained() + 1 + frame.retained() + world.len() + dependency;
+        Self {
+            value: mix(aggregate.value()).wrapping_add(context.rotate_left(31)),
+            frame,
+            world,
+            aggregate,
+            context,
+            dependency,
+            layout,
+            retained,
+        }
     }
 
     pub(crate) fn advance(
@@ -72,9 +100,7 @@ impl Index {
         let _measurement = crate::measurement::profile::Scope::new(
             crate::measurement::profile::Phase::Fingerprint,
         );
-        if !change.frame.is_empty() {
-            return Self::construct(state, Some(self), &change.world, layout);
-        }
+        let (frame, changed) = self.frame.advance(&state, &change.frame);
         let mut world = self.world.clone();
         let mut aggregate = self.aggregate;
         let mut dependency = self.dependency;
@@ -83,26 +109,39 @@ impl Index {
             aggregate.remove(previous.value);
             dependency -= previous.dependency.len();
         }
+        if !changed.is_empty() {
+            for position in 0..world.len() {
+                let previous = &world[position];
+                if !previous
+                    .dependency
+                    .iter()
+                    .any(|index| changed.binary_search(index).is_ok())
+                {
+                    continue;
+                }
+                let current = Arc::new(World::new(&state.world[position], frame.color()));
+                aggregate.remove(previous.value);
+                aggregate.insert(current.value);
+                dependency = dependency - previous.dependency.len() + current.dependency.len();
+                world[position] = current;
+            }
+        }
         for value in state.world.range(change.insertion.clone()) {
-            let value = Arc::new(World::new(value, &self.frame[2]));
+            let value = Arc::new(World::new(value, frame.color()));
             aggregate.insert(value.value);
             dependency += value.dependency.len();
             world.push(value);
         }
-        let context = if Arc::ptr_eq(&layout.reach.frame, &self.layout.reach.frame) {
-            self.context
-        } else {
-            Accumulator::collect(layout.reach.frame.iter().map(|&index| self.frame[2][index]))
-        };
+        let context =
+            if changed.is_empty() && Arc::ptr_eq(&layout.reach.frame, &self.layout.reach.frame) {
+                self.context
+            } else {
+                Accumulator::collect(layout.reach.frame.iter().map(|&index| frame.color()[index]))
+            };
         let value = mix(aggregate.value()).wrapping_add(context.rotate_left(31));
-        let retained = layout.reach.retained()
-            + 1
-            + self.frame.iter().map(|frame| frame.len()).sum::<usize>()
-            + world.len()
-            + dependency;
+        let retained = layout.reach.retained() + 1 + frame.retained() + world.len() + dependency;
         Self {
-            state,
-            frame: self.frame.clone(),
+            frame,
             world,
             aggregate,
             context,
@@ -113,132 +152,8 @@ impl Index {
         }
     }
 
-    fn construct(
-        state: Arc<State>,
-        previous: Option<&Self>,
-        removed: &Set<usize>,
-        layout: crate::layout::Layout,
-    ) -> Self {
-        let stable = state
-            .frame
-            .iter()
-            .enumerate()
-            .map(|(index, frame)| {
-                previous.is_some_and(|previous| {
-                    previous
-                        .state
-                        .frame
-                        .get(index)
-                        .is_some_and(|old| Arc::ptr_eq(old, frame))
-                })
-            })
-            .collect::<Vec<_>>();
-        let mut frame = [
-            Vec::with_capacity(state.frame.len()),
-            Vec::with_capacity(state.frame.len()),
-            Vec::with_capacity(state.frame.len()),
-        ];
-        for (index, value) in state.frame.iter().enumerate() {
-            let hash = if stable[index] {
-                previous.unwrap().frame[0][index]
-            } else {
-                mix(value.scope as u64)
-                    .wrapping_add(Accumulator::collect(
-                        value.held.iter().map(|token| symbol(token.value)),
-                    ))
-                    .wrapping_add(
-                        Accumulator::collect(
-                            value.particle.iter().map(|token| symbol(token.value)),
-                        )
-                        .rotate_left(7),
-                    )
-            };
-            frame[0].push(hash);
-        }
-        for phase in 1..3 {
-            for (index, value) in state.frame.iter().enumerate() {
-                let unchanged = stable[index]
-                    && value
-                        .parent
-                        .into_iter()
-                        .chain(value.lexical)
-                        .chain(value.token().filter_map(|token| token.capture))
-                        .all(|index| {
-                            previous.unwrap().frame[phase - 1][index] == frame[phase - 1][index]
-                        });
-                let hash = if unchanged {
-                    previous.unwrap().frame[phase][index]
-                } else {
-                    mix(value.scope as u64)
-                        .wrapping_add(particle(&value.held, &frame[phase - 1]))
-                        .wrapping_add(particle(&value.particle, &frame[phase - 1]).rotate_left(7))
-                        .wrapping_add(
-                            value
-                                .parent
-                                .map_or(0, |index| frame[phase - 1][index])
-                                .rotate_left(13),
-                        )
-                        .wrapping_add(
-                            value
-                                .lexical
-                                .map_or(0, |index| frame[phase - 1][index])
-                                .rotate_left(37),
-                        )
-                };
-                frame[phase].push(hash);
-            }
-        }
-        let mut world = Vec::with_capacity(state.world.len());
-        if let Some(previous) = previous {
-            for (index, old) in previous.world.iter().enumerate() {
-                if removed.contains(&index) {
-                    continue;
-                }
-                let value = if old
-                    .dependency
-                    .iter()
-                    .all(|&index| previous.frame[2][index] == frame[2][index])
-                {
-                    old.clone()
-                } else {
-                    Arc::new(World::new(&state.world[world.len()], &frame[2]))
-                };
-                world.push(value);
-            }
-        }
-        for value in state.world.range(world.len()..state.world.len()) {
-            world.push(Arc::new(World::new(value, &frame[2])));
-        }
-        let mut aggregate = Accumulator::default();
-        for world in &world {
-            aggregate.insert(world.value);
-        }
-        let context = Accumulator::collect(layout.reach.frame.iter().map(|&index| frame[2][index]));
-        let value = mix(aggregate.value()).wrapping_add(context.rotate_left(31));
-        let dependency = world
-            .iter()
-            .map(|world| world.dependency.len())
-            .sum::<usize>();
-        let retained = layout.reach.retained()
-            + 1
-            + frame.iter().map(Vec::len).sum::<usize>()
-            + world.len()
-            + dependency;
-        Self {
-            state,
-            frame: frame.map(Arc::new),
-            world: world.into(),
-            aggregate,
-            context,
-            dependency,
-            value,
-            retained,
-            layout,
-        }
-    }
-
     pub(crate) fn evict(&mut self) -> usize {
-        let released = self.layout.reach.evict();
+        let released = self.layout.reach.evict() + self.frame.evict();
         self.retained -= released;
         released
     }
@@ -282,3 +197,7 @@ fn refine(state: &State, depth: usize) -> u64 {
     }
     Accumulator::collect(color)
 }
+
+#[cfg(test)]
+#[path = "test/fingerprint.rs"]
+mod test;

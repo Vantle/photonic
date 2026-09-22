@@ -30,6 +30,9 @@ impl Context {
     }
 
     pub fn affected(&self, position: usize, index: &crate::index::Index, frame: usize) -> bool {
+        if index.invalidated(frame) {
+            return true;
+        }
         index.affected.get(&frame).is_some_and(|symbol| {
             self.shape.fragment[position].group.iter().all(|group| {
                 symbol.contains(&group.value)

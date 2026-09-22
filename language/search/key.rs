@@ -5,13 +5,16 @@ use std::hash::{Hash, Hasher};
 use std::sync::{Arc, Weak};
 
 struct Occurrence {
+    site: usize,
     position: usize,
     world: Weak<World>,
 }
 
 impl PartialEq for Occurrence {
     fn eq(&self, other: &Self) -> bool {
-        self.position == other.position && self.world.ptr_eq(&other.world)
+        self.site == other.site
+            && self.position == other.position
+            && self.world.ptr_eq(&other.world)
     }
 }
 
@@ -19,6 +22,7 @@ impl Eq for Occurrence {}
 
 impl Hash for Occurrence {
     fn hash<State: Hasher>(&self, state: &mut State) {
+        self.site.hash(state);
         self.position.hash(state);
         self.world.as_ptr().hash(state);
     }
@@ -43,6 +47,7 @@ impl Key {
                     domain
                         .iter()
                         .map(|&position| Occurrence {
+                            site: position,
                             position: cursor.index.world(position),
                             world: Arc::downgrade(
                                 &cursor.index.state.world[cursor.index.world(position)],
@@ -68,7 +73,7 @@ impl Key {
             + self
                 .domain
                 .iter()
-                .map(|domain| domain.len() * 2)
+                .map(|domain| domain.len() * 3)
                 .sum::<usize>()
             + 1
     }

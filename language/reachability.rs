@@ -15,6 +15,7 @@ enum Storage {
     Evicted,
 }
 
+#[derive(Clone)]
 pub(crate) struct Index {
     storage: Option<Arc<Storage>>,
     anchor: List<usize>,

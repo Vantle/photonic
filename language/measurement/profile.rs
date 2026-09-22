@@ -24,9 +24,16 @@ pub enum Phase {
     Removal,
     Replacement,
     Admission,
+    Normalization,
+    Rendering,
+    Incidence,
+    Refinement,
+    Renaming,
+    Dependency,
+    Color,
 }
 
-const PHASE: [Phase; 19] = [
+const PHASE: [Phase; 26] = [
     Phase::Matching,
     Phase::Dispatch,
     Phase::Index,
@@ -46,6 +53,13 @@ const PHASE: [Phase; 19] = [
     Phase::Removal,
     Phase::Replacement,
     Phase::Admission,
+    Phase::Normalization,
+    Phase::Rendering,
+    Phase::Incidence,
+    Phase::Refinement,
+    Phase::Renaming,
+    Phase::Dependency,
+    Phase::Color,
 ];
 
 thread_local! {

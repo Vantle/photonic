@@ -20,6 +20,9 @@ impl Key {
     }
 
     pub fn affected(&self, index: &Index) -> bool {
+        if index.invalidated(self.frame) {
+            return true;
+        }
         index.affected.get(&self.frame).is_some_and(|symbol| {
             self.pattern.iter().all(|term| {
                 symbol.contains(&term.value) || index.visible(self.frame, term).next().is_some()

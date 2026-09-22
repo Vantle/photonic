@@ -157,14 +157,13 @@ pub fn run() -> Vec<Observation> {
         } else {
             Vec::new()
         };
-        let previous = index.state.clone();
         let change = Change {
             world: removal,
             insertion: start..state.world.len(),
             frame,
         };
         index.update(Arc::new(state.clone()), &change);
-        network.advance(&index, &previous, &change);
+        network.advance(&index);
     }
     observation
 }

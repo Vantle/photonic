@@ -69,7 +69,7 @@ fn normalize(
                     scope: scope[frame["scope"].as_str().unwrap()],
                     parent: optional(&frame["parent"]),
                     lexical: optional(&frame["lexical"]),
-                    particle: Vec::new(),
+                    particle: Default::default(),
                     held: particle(&frame["held"]),
                 }
                 .into()
@@ -252,7 +252,7 @@ fn capture() {
         scope: 0,
         parent: None,
         lexical: None,
-        particle: Vec::new(),
+        particle: Default::default(),
         held: Vec::new(),
     });
     let seed = Token {
@@ -268,7 +268,7 @@ fn capture() {
                 scope: 1,
                 parent: Some(0),
                 lexical: Some(0),
-                particle: Vec::new(),
+                particle: Default::default(),
                 held: vec![seed.clone()],
             }
             .into(),
@@ -276,7 +276,7 @@ fn capture() {
                 scope: 2,
                 parent: Some(0),
                 lexical: Some(1),
-                particle: Vec::new(),
+                particle: Default::default(),
                 held: vec![seed],
             }
             .into(),
@@ -374,7 +374,7 @@ fn permutation() {
         scope: 0,
         parent: None,
         lexical: None,
-        particle: Vec::new(),
+        particle: Default::default(),
         held: Vec::new(),
     });
     for mask in 0..256usize {
@@ -487,7 +487,7 @@ fn inheritance() {
                     scope: 0,
                     parent: None,
                     lexical: None,
-                    particle: Vec::new(),
+                    particle: Default::default(),
                     held: if held {
                         vec![original.clone()]
                     } else {
@@ -513,7 +513,7 @@ fn inheritance() {
                             scope: 1,
                             parent: Some(0),
                             lexical: Some(0),
-                            particle: Vec::new(),
+                            particle: Default::default(),
                             held: vec![Token {
                                 id: 9,
                                 value: if transformed {

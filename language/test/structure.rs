@@ -70,7 +70,7 @@ fn mutation() {
                         scope: (seed + index) % 3,
                         parent: (index > 0).then_some(0),
                         lexical: (index > 0).then_some(0),
-                        particle: Vec::new(),
+                        particle: Default::default(),
                         held: if seed & (1 << index) != 0 {
                             vec![token(index)]
                         } else {

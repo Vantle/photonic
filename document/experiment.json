@@ -1,0 +1,1942 @@
+{
+  "metadata": {
+    "time": "2026-09-22T19:26:57.311105+00:00",
+    "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "machine": "arm64",
+    "head": "c115754a3a4e056e2b29bdc567b29477355f8b01",
+    "baseline": "Final staged canonical ordering implementation recorded in document/normalization.json",
+    "argument": [
+      "expression",
+      "2*2*2*2*2*2",
+      "2101",
+      "--sample",
+      "3",
+      "--export",
+      "view",
+      "--writer"
+    ],
+    "profile": "Measurement-enabled reporting binary. Resumable-refinement profiles use --sample 1. Phase timers overlap; refinement includes incidence construction. The resumable version counts refinement initialization and resolution separately."
+  },
+  "experiment": [
+    {
+      "name": "symmetry",
+      "accepted": false,
+      "patch": "--- a/language/canonical.rs\n+++ b/language/canonical.rs\n@@ -28,13 +28,14 @@\n             particle.sort();\n             (state.chain(world.frame), particle)\n         };\n-        let world = Ordering::new(0..state.world.len(), key)\n-            .refine(|index| refinement.get_or_init(|| Refinement::new(&state)).world[index]);\n+        let world = Ordering::new(0..state.world.len(), key);\n         let world = if state.world.len() >= 4 {\n             world.quotient(|| crate::symmetry::world(&state))\n         } else {\n             world\n         };\n+        let world =\n+            world.refine(|index| refinement.get_or_init(|| Refinement::new(&state)).world[index]);\n         Self {\n             state,\n             refinement,\n--- a/language/ordering.rs\n+++ b/language/ordering.rs\n@@ -132,7 +132,19 @@\n                 group.push(current);\n                 continue;\n             }\n-            group.extend(Self::new(current.order, &key).group);\n+            if current.member.is_empty() {\n+                group.extend(Self::new(current.order, &key).group);\n+                continue;\n+            }\n+            if current.member.len() == 1 {\n+                group.push(current);\n+                continue;\n+            }\n+            let mut partition = BTreeMap::<Key, Vec<Vec<usize>>>::new();\n+            for member in current.member {\n+                partition.entry(key(member[0])).or_default().push(member);\n+            }\n+            group.extend(partition.into_values().map(Group::new));\n         }\n         self.group = group;\n         self\n--- a/language/test/canonical.rs\n+++ b/language/test/canonical.rs\n@@ -92,6 +92,28 @@\n     let search = Search::new(Arc::new(state.clone()));\n     assert!(search.refinement.get().is_some());\n     verify(state);\n+    let program = crate::program::Program::new(crate::lowering::parse(\"A,A,A,A\").unwrap());\n+    for sharing in [false, true] {\n+        let mut state = State::initial(&program);\n+        if sharing {\n+            let token = state.world[0].particle[0].clone();\n+            for world in 0..state.world.len() {\n+                Arc::make_mut(&mut state.world[world]).particle[0] = token.clone();\n+            }\n+        }\n+        let mut search = Search::new(Arc::new(state.clone()));\n+        assert!(search.refinement.get().is_none());\n+        while !search.step() {\n+            assert!(search.refinement.get().is_none());\n+        }\n+        verify(state);\n+    }\n+    let mut state = State::initial(&program);\n+    let token = state.world[2].particle[0].clone();\n+    Arc::make_mut(&mut state.world[3]).particle[0] = token;\n+    let search = Search::new(Arc::new(state.clone()));\n+    assert!(search.refinement.get().is_some());\n+    verify(state);\n     let state = State {\n         world: Default::default(),\n         frame: (0..3)\n--- a/language/test/ordering.rs\n+++ b/language/test/ordering.rs\n@@ -68,3 +68,33 @@\n         }\n     }\n }\n+\n+#[test]\n+fn quotient() {\n+    let actual = Ordering::new(0..4, |_| 0)\n+        .quotient(|| vec![0; 4])\n+        .refine(|_| -> usize { panic!(\"one equivalence class requested refinement\") })\n+        .collect::<Vec<_>>();\n+    assert_eq!(actual, [vec![0, 1, 2, 3]]);\n+    for count in 0..=5 {\n+        for encoding in 0..3usize.pow(count as u32) {\n+            let class = (0..count)\n+                .map(|index| encoding / 3usize.pow(index as u32) % 3)\n+                .collect::<Vec<_>>();\n+            for partition in [false, true] {\n+                let key = |index| if partition { index % 2 } else { 0 };\n+                for modulus in [1, 2, 3] {\n+                    let fine = |index: usize| class[index] % modulus;\n+                    let expected = Ordering::new(0..count, |index| (key(index), fine(index)))\n+                        .quotient(|| class.clone())\n+                        .collect::<Vec<_>>();\n+                    let actual = Ordering::new(0..count, key)\n+                        .quotient(|| class.clone())\n+                        .refine(fine)\n+                        .collect::<Vec<_>>();\n+                    assert_eq!(actual, expected);\n+                }\n+            }\n+        }\n+    }\n+}\n",
+      "source": {
+        "language/canonical.rs": {
+          "before": "1289011767a895fbf86725bd0cd93c8a1e265a49cad13d01a4f3c5942ccc8635",
+          "experiment": "8c5224675a1741351f5929dd0f8b6c25fa3da8780f755e0be082cc819e86463e"
+        },
+        "language/ordering.rs": {
+          "before": "63a476fe8715291e2c49ca4cf442194113b1378ca959c4cd612b96cb3f0f1b2c",
+          "experiment": "4d9dd3b994fd4bad889a0139f28d35d4a2edc255d8c0b858818122a1c3091b7e"
+        },
+        "language/test/canonical.rs": {
+          "before": "84990bed13a666bc1ff11400b210c9a1d06dce40348544e6528323b73d3edb86",
+          "experiment": "b678776f2e779083b84aff2820264c4e66c7246b6433d0e8938f4748de166c06"
+        },
+        "language/test/ordering.rs": {
+          "before": "266ef281359fe9f16d11abf2db5876a6befcd7517164959be12229bddceb7275",
+          "experiment": "2638c7ee980ddc891bcf35b77874fcef5cfa0dfa35793ef2ab5752837c25a2f4"
+        }
+      },
+      "binary": {
+        "before": {
+          "lifecycle": "9af381129cafd7ee319e675a66982a4648e152cfa8e2b797ab05851c2c2d1af4",
+          "reporting": "04614548dbe3962f99a42fbdec7b380c5b4f1c68e07f053ac47b0b3f0c7ea1cc"
+        },
+        "after": {
+          "lifecycle": "225418cf9f6af8ba3151c67181bb3a1448afa8e1dbb279f40f98cec3ed1047e4",
+          "reporting": "2de39b163b5136767fbe2826c54461d7be2bfb91caed7f68e181273dfa5b57ac"
+        }
+      },
+      "measurement": {
+        "quick": {
+          "before": {
+            "allocation": false,
+            "budget": 100000000,
+            "cold": {
+              "byte": 479701082,
+              "duration": 2.900426584,
+              "execution": {
+                "duration": 0.080791917
+              },
+              "export": {
+                "duration": 2.792910583
+              },
+              "fingerprint": 18187729700562578142,
+              "initialization": {
+                "duration": 0.007493209
+              },
+              "mode": "view",
+              "release": {
+                "duration": 0.019230875
+              },
+              "writer": true
+            },
+            "measurement": [
+              {
+                "byte": 479701082,
+                "duration": 2.882188291,
+                "execution": {
+                  "duration": 0.074466458
+                },
+                "export": {
+                  "duration": 2.791122625
+                },
+                "fingerprint": 18187729700562578142,
+                "initialization": {
+                  "duration": 0.005121333
+                },
+                "mode": "view",
+                "release": {
+                  "duration": 0.011477875
+                },
+                "writer": true
+              },
+              {
+                "byte": 479701082,
+                "duration": 2.8555344999999996,
+                "execution": {
+                  "duration": 0.072614917
+                },
+                "export": {
+                  "duration": 2.767275125
+                },
+                "fingerprint": 18187729700562578142,
+                "initialization": {
+                  "duration": 0.004847375
+                },
+                "mode": "view",
+                "release": {
+                  "duration": 0.010797083
+                },
+                "writer": true
+              },
+              {
+                "byte": 479701082,
+                "duration": 2.860029042,
+                "execution": {
+                  "duration": 0.073692167
+                },
+                "export": {
+                  "duration": 2.770532083
+                },
+                "fingerprint": 18187729700562578142,
+                "initialization": {
+                  "duration": 0.004621917
+                },
+                "mode": "view",
+                "release": {
+                  "duration": 0.011182875
+                },
+                "writer": true
+              }
+            ]
+          },
+          "after": {
+            "allocation": false,
+            "budget": 100000000,
+            "cold": {
+              "byte": 479701082,
+              "duration": 3.1707226659999996,
+              "execution": {
+                "duration": 0.083408708
+              },
+              "export": {
+                "duration": 3.061664042
+              },
+              "fingerprint": 18187729700562578142,
+              "initialization": {
+                "duration": 0.007793291
+              },
+              "mode": "view",
+              "release": {
+                "duration": 0.017856625
+              },
+              "writer": true
+            },
+            "measurement": [
+              {
+                "byte": 479701082,
+                "duration": 3.1431428759999998,
+                "execution": {
+                  "duration": 0.075135084
+                },
+                "export": {
+                  "duration": 3.051726083
+                },
+                "fingerprint": 18187729700562578142,
+                "initialization": {
+                  "duration": 0.005261167
+                },
+                "mode": "view",
+                "release": {
+                  "duration": 0.011020542
+                },
+                "writer": true
+              },
+              {
+                "byte": 479701082,
+                "duration": 3.1089859580000003,
+                "execution": {
+                  "duration": 0.07430525
+                },
+                "export": {
+                  "duration": 3.018657375
+                },
+                "fingerprint": 18187729700562578142,
+                "initialization": {
+                  "duration": 0.00482425
+                },
+                "mode": "view",
+                "release": {
+                  "duration": 0.011199083
+                },
+                "writer": true
+              },
+              {
+                "byte": 479701082,
+                "duration": 3.112649584,
+                "execution": {
+                  "duration": 0.075255167
+                },
+                "export": {
+                  "duration": 3.021565833
+                },
+                "fingerprint": 18187729700562578142,
+                "initialization": {
+                  "duration": 0.004822459
+                },
+                "mode": "view",
+                "release": {
+                  "duration": 0.011006125
+                },
+                "writer": true
+              }
+            ]
+          }
+        },
+        "profile": {
+          "allocation": false,
+          "budget": 100000000,
+          "cold": {
+            "byte": 479701082,
+            "duration": 3.1457229589999995,
+            "execution": {
+              "duration": 0.090655334
+            },
+            "export": {
+              "duration": 3.027995333
+            },
+            "fingerprint": 18187729700562578142,
+            "initialization": {
+              "duration": 0.007986333
+            },
+            "mode": "view",
+            "phase": [
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "matching"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "dispatch"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "index"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "rewrite"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "fingerprint"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "structure"
+              },
+              {
+                "count": 30303,
+                "duration": 0.808002363,
+                "phase": "canonicalization"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "composition"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "application"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "subscription"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "refresh"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "restart"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "request"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "preparation"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "availability"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "context"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "removal"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "replacement"
+              },
+              {
+                "count": 0,
+                "duration": 0.0,
+                "phase": "admission"
+              },
+              {
+                "count": 10101,
+                "duration": 2.137278519,
+                "phase": "normalization"
+              },
+              {
+                "count": 10102,
+                "duration": 0.158985782,
+                "phase": "rendering"
+              },
+              {
+                "count": 9707,
+                "duration": 0.527188606,
+                "phase": "incidence"
+              },
+              {
+                "count": 9707,
+                "duration": 1.052638285,
+                "phase": "refinement"
+              },
+              {
+                "count": 10101,
+                "duration": 0.770724407,
+                "phase": "renaming"
+              }
+            ],
+            "release": {
+              "duration": 0.019085959
+            },
+            "writer": true
+          },
+          "measurement": [
+            {
+              "byte": 479701082,
+              "duration": 3.131456249,
+              "execution": {
+                "duration": 0.084770208
+              },
+              "export": {
+                "duration": 3.030344208
+              },
+              "fingerprint": 18187729700562578142,
+              "initialization": {
+                "duration": 0.004985875
+              },
+              "mode": "view",
+              "phase": [
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "matching"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "dispatch"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "index"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "rewrite"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "fingerprint"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "structure"
+                },
+                {
+                  "count": 30303,
+                  "duration": 0.805032482,
+                  "phase": "canonicalization"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "composition"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "application"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "subscription"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "refresh"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "restart"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "request"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "preparation"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "availability"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "context"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "removal"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "replacement"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "admission"
+                },
+                {
+                  "count": 10101,
+                  "duration": 2.136643927,
+                  "phase": "normalization"
+                },
+                {
+                  "count": 10102,
+                  "duration": 0.160190042,
+                  "phase": "rendering"
+                },
+                {
+                  "count": 9707,
+                  "duration": 0.528628575,
+                  "phase": "incidence"
+                },
+                {
+                  "count": 9707,
+                  "duration": 1.054733537,
+                  "phase": "refinement"
+                },
+                {
+                  "count": 10101,
+                  "duration": 0.76789937,
+                  "phase": "renaming"
+                }
+              ],
+              "release": {
+                "duration": 0.011355958
+              },
+              "writer": true
+            },
+            {
+              "byte": 479701082,
+              "duration": 3.094749126,
+              "execution": {
+                "duration": 0.082531917
+              },
+              "export": {
+                "duration": 2.995739709
+              },
+              "fingerprint": 18187729700562578142,
+              "initialization": {
+                "duration": 0.004981
+              },
+              "mode": "view",
+              "phase": [
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "matching"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "dispatch"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "index"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "rewrite"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "fingerprint"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "structure"
+                },
+                {
+                  "count": 30303,
+                  "duration": 0.782210488,
+                  "phase": "canonicalization"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "composition"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "application"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "subscription"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "refresh"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "restart"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "request"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "preparation"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "availability"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "context"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "removal"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "replacement"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "admission"
+                },
+                {
+                  "count": 10101,
+                  "duration": 2.103599536,
+                  "phase": "normalization"
+                },
+                {
+                  "count": 10102,
+                  "duration": 0.159221711,
+                  "phase": "rendering"
+                },
+                {
+                  "count": 9707,
+                  "duration": 0.526889102,
+                  "phase": "incidence"
+                },
+                {
+                  "count": 9707,
+                  "duration": 1.048526975,
+                  "phase": "refinement"
+                },
+                {
+                  "count": 10101,
+                  "duration": 0.745131989,
+                  "phase": "renaming"
+                }
+              ],
+              "release": {
+                "duration": 0.0114965
+              },
+              "writer": true
+            },
+            {
+              "byte": 479701082,
+              "duration": 3.103732124,
+              "execution": {
+                "duration": 0.082477459
+              },
+              "export": {
+                "duration": 3.004808666
+              },
+              "fingerprint": 18187729700562578142,
+              "initialization": {
+                "duration": 0.004874291
+              },
+              "mode": "view",
+              "phase": [
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "matching"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "dispatch"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "index"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "rewrite"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "fingerprint"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "structure"
+                },
+                {
+                  "count": 30303,
+                  "duration": 0.784275674,
+                  "phase": "canonicalization"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "composition"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "application"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "subscription"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "refresh"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "restart"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "request"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "preparation"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "availability"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "context"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "removal"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "replacement"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "admission"
+                },
+                {
+                  "count": 10101,
+                  "duration": 2.106412525,
+                  "phase": "normalization"
+                },
+                {
+                  "count": 10102,
+                  "duration": 0.160455964,
+                  "phase": "rendering"
+                },
+                {
+                  "count": 9707,
+                  "duration": 0.526809073,
+                  "phase": "incidence"
+                },
+                {
+                  "count": 9707,
+                  "duration": 1.049113569,
+                  "phase": "refinement"
+                },
+                {
+                  "count": 10101,
+                  "duration": 0.747378254,
+                  "phase": "renaming"
+                }
+              ],
+              "release": {
+                "duration": 0.011571708
+              },
+              "writer": true
+            }
+          ]
+        }
+      },
+      "validation": {
+        "test.log": "INFO: Invocation ID: e54272d9-28b2-4744-9b12-6664db1a7560\nComputing main repo mapping: \nLoading: \nLoading: 0 packages loaded\nAnalyzing: target //language:test (0 packages loaded, 0 targets configured)\nAnalyzing: target //language:test (0 packages loaded, 0 targets configured)\n\nINFO: Analyzed target //language:test (0 packages loaded, 0 targets configured).\n[3 / 5] Compiling Rust bin //language:test (194 files); 1s disk-cache, darwin-sandbox\nINFO: From Compiling Rust bin //language:test (194 files):\nwarning: linker stderr: clang++: argument unused during compilation: '-rtlib=compiler-rt' [-Wunused-command-line-argument]\n  |\n  = note: `#[warn(linker_messages)]` on by default\n  = note: the `linker_messages` lint ignores `-D warnings`\n\nwarning: 1 warning emitted\n\n[4 / 5] [Prepa] runfiles for //language:test\n[5 / 6] Testing //language:test; 1s disk-cache, darwin-sandbox\nINFO: Found 1 test target...\nINFO: Elapsed time: 9.587s, Critical Path: 9.46s\nINFO: 6 processes: 2 internal, 5 darwin-sandbox.\nINFO: Build completed successfully, 6 total actions\n//language:test                                                          PASSED in 2.1s\n\nExecuted 1 out of 1 test: 1 test passes.\nThere were tests whose specified size is too big. Use the --test_verbose_timeout_warnings command line option to see which ones these are.\n",
+        "build.log": "INFO: Invocation ID: ab7b6630-9e0e-4111-9353-8d0643a987a1\nComputing main repo mapping: \nLoading: \nLoading: 0 packages loaded\nAnalyzing: 8 targets (0 packages loaded, 0 targets configured)\nAnalyzing: 8 targets (0 packages loaded, 0 targets configured)\n\nINFO: Analyzed 8 targets (0 packages loaded, 106 targets configured, 363 aspect applications).\n[149 / 175] Compiling Rust rlib //language:photonic (128 files); 1s disk-cache, darwin-sandbox ... (2 actions running)\n[150 / 175] Compiling Rust rlib //language:measurement (149 files); 4s disk-cache, darwin-sandbox ... (2 actions, 1 running)\nINFO: From Compiling Rust bin //benchmark:symmetry (1 file):\nwarning: linker stderr: clang++: argument unused during compilation: '-rtlib=compiler-rt' [-Wunused-command-line-argument]\n  |\n  = note: `#[warn(linker_messages)]` on by default\n  = note: the `linker_messages` lint ignores `-D warnings`\n\nwarning: 1 warning emitted\n\n[160 / 175] Compiling Rust bin //command:photonic (3 files); 1s disk-cache, darwin-sandbox ... (8 actions, 7 running)\nINFO: From Compiling Rust bin //benchmark:inspection (1 file):\nwarning: linker stderr: clang++: argument unused during compilation: '-rtlib=compiler-rt' [-Wunused-command-line-argument]\n  |\n  = note: `#[warn(linker_messages)]` on by default\n  = note: the `linker_messages` lint ignores `-D warnings`\n\nwarning: 1 warning emitted\n\nINFO: From Compiling Rust bin //benchmark:scope (1 file):\nwarning: linker stderr: clang++: argument unused during compilation: '-rtlib=compiler-rt' [-Wunused-command-line-argument]\n  |\n  = note: `#[warn(linker_messages)]` on by default\n  = note: the `linker_messages` lint ignores `-D warnings`\n\nwarning: 1 warning emitted\n\nINFO: From Compiling Rust bin //benchmark:expression (3 files):\nwarning: linker stderr: clang++: argument unused during compilation: '-rtlib=compiler-rt' [-Wunused-command-line-argument]\n  |\n  = note: `#[warn(linker_messages)]` on by default\n  = note: the `linker_messages` lint ignores `-D warnings`\n\nwarning: 1 warning emitted\n\nINFO: From Compiling Rust bin //benchmark:lifecycle (5 files):\nwarning: linker stderr: clang++: argument unused during compilation: '-rtlib=compiler-rt' [-Wunused-command-line-argument]\n  |\n  = note: `#[warn(linker_messages)]` on by default\n  = note: the `linker_messages` lint ignores `-D warnings`\n\nwarning: 1 warning emitted\n\nINFO: From Compiling Rust bin //command:photonic (3 files):\nwarning: linker stderr: clang++: argument unused during compilation: '-rtlib=compiler-rt' [-Wunused-command-line-argument]\n  |\n  = note: `#[warn(linker_messages)]` on by default\n  = note: the `linker_messages` lint ignores `-D warnings`\n\nwarning: 1 warning emitted\n\n[168 / 175] Compiling Rust bin //command:photonic (3 files); 2s disk-cache, darwin-sandbox ... (4 actions, 3 running)\nINFO: From Compiling Rust bin //benchmark:allocation (6 files):\nwarning: linker stderr: clang++: argument unused during compilation: '-rtlib=compiler-rt' [-Wunused-command-line-argument]\n  |\n  = note: `#[warn(linker_messages)]` on by default\n  = note: the `linker_messages` lint ignores `-D warnings`\n\nwarning: 1 warning emitted\n\nINFO: From Compiling Rust bin //benchmark:reporting (5 files):\nwarning: linker stderr: clang++: argument unused during compilation: '-rtlib=compiler-rt' [-Wunused-command-line-argument]\n  |\n  = note: `#[warn(linker_messages)]` on by default\n  = note: the `linker_messages` lint ignores `-D warnings`\n\nwarning: 1 warning emitted\n\nINFO: Found 8 targets...\nINFO: Elapsed time: 7.151s, Critical Path: 7.01s\nINFO: 35 processes: 140 action cache hit, 9 internal, 26 darwin-sandbox.\nINFO: Build completed successfully, 35 total actions\n",
+        "format.log": "INFO: Invocation ID: 4cce8e7b-3bf1-4306-874f-2918518d2a0b\nComputing main repo mapping: \nLoading: \nLoading: 0 packages loaded\nAnalyzing: target //:format (0 packages loaded, 0 targets configured)\nAnalyzing: target //:format (0 packages loaded, 0 targets configured)\n\nINFO: Analyzed target //:format (0 packages loaded, 0 targets configured).\nINFO: Found 1 target...\nINFO: Elapsed time: 0.155s, Critical Path: 0.00s\nINFO: 1 process: 1 internal.\nINFO: Build completed successfully, 1 total action\nINFO: Running command line: /Users/robertvanderzee/Library/Caches/bazel/_bazel_robertvanderzee/6259dc4c7713a84c173aa7f2cf7cf211/execroot/_main/bazel-out/darwin_arm64-opt/bin/format\nLoading: 0 packages loaded\n"
+      }
+    },
+    {
+      "name": "refinement",
+      "accepted": false,
+      "patch": "--- a/language/BUILD.bazel\n+++ b/language/BUILD.bazel\n@@ -210,6 +210,7 @@\n         \"particle.rs\",\n         \"particle/group.rs\",\n         \"partition.rs\",\n+        \"partition/search.rs\",\n         \"path.rs\",\n         \"path/report.rs\",\n         \"pattern.rs\",\n@@ -232,6 +233,7 @@\n         \"reader.rs\",\n         \"reduction.rs\",\n         \"refinement.rs\",\n+        \"refinement/search.rs\",\n         \"relation.rs\",\n         \"render.rs\",\n         \"render/sequence.rs\",\n--- a/language/canonical.rs\n+++ b/language/canonical.rs\n@@ -1,13 +1,12 @@\n use crate::ordering::Ordering;\n-use crate::refinement::Refinement;\n use crate::state::{Canonical, State};\n-use std::sync::{Arc, OnceLock};\n+use std::sync::Arc;\n \n pub(crate) mod storage;\n \n pub struct Search {\n     state: Arc<State>,\n-    refinement: OnceLock<Refinement>,\n+    refinement: Option<Box<crate::refinement::Search>>,\n     world: Ordering,\n     frame: Option<Ordering>,\n     selected: Vec<usize>,\n@@ -17,7 +16,7 @@\n \n impl Search {\n     pub fn new(state: Arc<State>) -> Self {\n-        let refinement = OnceLock::new();\n+        let mut refinement = None;\n         let key = |index: usize| {\n             let world = &state.world[index];\n             let mut particle = world\n@@ -28,8 +27,17 @@\n             particle.sort();\n             (state.chain(world.frame), particle)\n         };\n-        let world = Ordering::new(0..state.world.len(), key)\n-            .refine(|index| refinement.get_or_init(|| Refinement::new(&state)).world[index]);\n+        let world = Ordering::new(0..state.world.len(), key);\n+        let demand = world.demand();\n+        let world = if demand.is_empty() {\n+            world\n+        } else {\n+            let mut search = Box::new(crate::refinement::Search::new(&state));\n+            search.resolve(&demand);\n+            let world = world.refine(|index| search.color(index));\n+            refinement = Some(search);\n+            world\n+        };\n         let world = if state.world.len() >= 4 {\n             world.quotient(|| crate::symmetry::world(&state))\n         } else {\n@@ -89,20 +97,27 @@\n         for capture in &mut capture {\n             capture.sort_unstable();\n         }\n-        self.frame = Some(\n-            Ordering::new(\n-                self.state\n-                    .reachable()\n-                    .into_iter()\n-                    .filter(|&index| index != 0),\n-                |index| (self.state.chain(index), &occupied[index], &capture[index]),\n-            )\n-            .refine(|index| {\n-                self.refinement\n-                    .get_or_init(|| Refinement::new(&self.state))\n-                    .frame[index]\n-            }),\n+        let frame = Ordering::new(\n+            self.state\n+                .reachable()\n+                .into_iter()\n+                .filter(|&index| index != 0),\n+            |index| (self.state.chain(index), &occupied[index], &capture[index]),\n         );\n+        let demand = frame.demand();\n+        self.frame = Some(if demand.is_empty() {\n+            frame\n+        } else {\n+            let search = self\n+                .refinement\n+                .get_or_insert_with(|| Box::new(crate::refinement::Search::new(&self.state)));\n+            let demand = demand\n+                .into_iter()\n+                .map(|group| group.into_iter().map(|index| search.frame(index)).collect())\n+                .collect::<Vec<_>>();\n+            search.resolve(&demand);\n+            frame.refine(|index| search.color(search.frame(index)))\n+        });\n         self.selected = world;\n         false\n     }\n--- a/language/ordering.rs\n+++ b/language/ordering.rs\n@@ -138,6 +138,14 @@\n         self\n     }\n \n+    pub(crate) fn demand(&self) -> Vec<Vec<usize>> {\n+        self.group\n+            .iter()\n+            .filter(|group| group.order.len() > 1)\n+            .map(|group| group.order.clone())\n+            .collect()\n+    }\n+\n     pub(crate) fn quotient(mut self, representative: impl FnOnce() -> Vec<usize>) -> Self {\n         if self.group.iter().all(|group| group.order.len() <= 1) {\n             return self;\n--- /dev/null\n+++ b/language/partition/search.rs\n@@ -0,0 +1,166 @@\n+use crate::graph::Graph;\n+\n+struct Workspace {\n+    pending: Vec<usize>,\n+    range: Vec<std::ops::Range<usize>>,\n+    signature: Vec<(u8, usize)>,\n+    incoming: Graph,\n+    scheduled: Vec<bool>,\n+    changed: Vec<(usize, usize)>,\n+}\n+\n+pub(crate) struct Search {\n+    color: Vec<usize>,\n+    order: Vec<usize>,\n+    boundary: Vec<usize>,\n+    workspace: Option<Workspace>,\n+}\n+\n+impl Search {\n+    pub fn new(edge: &Graph, mut color: Vec<usize>) -> Self {\n+        let mut order = (0..color.len()).collect::<Vec<_>>();\n+        order.sort_unstable_by_key(|&index| color[index]);\n+        let mut boundary = vec![0; color.len()];\n+        let mut pending = Vec::new();\n+        let mut start = 0;\n+        for end in 1..=order.len() {\n+            if end < order.len() && color[order[end - 1]] == color[order[end]] {\n+                continue;\n+            }\n+            boundary[start] = end;\n+            if end - start > 1 {\n+                pending.push(start);\n+            }\n+            start = end;\n+        }\n+        let mut start = 0;\n+        while start < order.len() {\n+            let end = boundary[start];\n+            for &index in &order[start..end] {\n+                color[index] = start;\n+            }\n+            start = end;\n+        }\n+        let workspace = (!pending.is_empty()).then(|| {\n+            let mut length = 0;\n+            let range = edge\n+                .iter()\n+                .map(|adjacent| {\n+                    let start = length;\n+                    length += adjacent.len();\n+                    start..length\n+                })\n+                .collect();\n+            Workspace {\n+                pending,\n+                range,\n+                signature: vec![(0, 0); length],\n+                incoming: Graph::new(\n+                    color.len(),\n+                    edge.iter().enumerate().flat_map(|(source, adjacent)| {\n+                        adjacent\n+                            .iter()\n+                            .map(move |&(kind, target)| (target, source, kind))\n+                    }),\n+                ),\n+                scheduled: vec![false; color.len()],\n+                changed: Vec::new(),\n+            }\n+        });\n+        Self {\n+            color,\n+            order,\n+            boundary,\n+            workspace,\n+        }\n+    }\n+\n+    pub fn resolve(&mut self, edge: &Graph, demand: &[Vec<usize>]) {\n+        let mut color = Vec::new();\n+        while self.workspace.is_some() {\n+            let complete = demand.iter().all(|group| {\n+                color.clear();\n+                color.extend(group.iter().map(|&index| self.color[index]));\n+                color.sort_unstable();\n+                color.windows(2).all(|pair| pair[0] != pair[1])\n+            });\n+            if complete {\n+                return;\n+            }\n+            self.step(edge);\n+        }\n+    }\n+\n+    pub fn color(&self) -> &[usize] {\n+        &self.color\n+    }\n+\n+    pub fn step(&mut self, edge: &Graph) -> bool {\n+        let Some(workspace) = &mut self.workspace else {\n+            return true;\n+        };\n+        workspace.changed.clear();\n+        for start in workspace.pending.drain(..) {\n+            workspace.scheduled[start] = false;\n+            let end = self.boundary[start];\n+            for &index in &self.order[start..end] {\n+                let signature = &mut workspace.signature[workspace.range[index].clone()];\n+                for (value, &(kind, target)) in signature.iter_mut().zip(&edge[index]) {\n+                    *value = (kind, self.color[target]);\n+                }\n+                signature.sort_unstable();\n+            }\n+            self.order[start..end].sort_unstable_by(|&left, &right| {\n+                workspace.signature[workspace.range[left].clone()]\n+                    .cmp(&workspace.signature[workspace.range[right].clone()])\n+            });\n+            let mut partition = start;\n+            for position in start + 1..end {\n+                if workspace.signature[workspace.range[self.order[position - 1]].clone()]\n+                    != workspace.signature[workspace.range[self.order[position]].clone()]\n+                {\n+                    self.boundary[partition] = position;\n+                    partition = position;\n+                }\n+                if partition != start {\n+                    workspace.changed.push((self.order[position], partition));\n+                }\n+            }\n+            self.boundary[partition] = end;\n+        }\n+        if workspace.changed.is_empty() {\n+            self.workspace = None;\n+            return true;\n+        }\n+        for &(index, value) in &workspace.changed {\n+            self.color[index] = value;\n+        }\n+        for &(index, _) in &workspace.changed {\n+            for &(_, source) in &workspace.incoming[index] {\n+                let start = self.color[source];\n+                if self.boundary[start] - start > 1\n+                    && !std::mem::replace(&mut workspace.scheduled[start], true)\n+                {\n+                    workspace.pending.push(start);\n+                }\n+            }\n+        }\n+        false\n+    }\n+\n+    #[cfg(test)]\n+    pub fn finish(mut self) -> Vec<usize> {\n+        assert!(self.workspace.is_none());\n+        let mut start = 0;\n+        let mut ordinal = 0;\n+        while start < self.order.len() {\n+            let end = self.boundary[start];\n+            for &index in &self.order[start..end] {\n+                self.color[index] = ordinal;\n+            }\n+            ordinal += 1;\n+            start = end;\n+        }\n+        self.color\n+    }\n+}\n--- a/language/partition.rs\n+++ b/language/partition.rs\n@@ -1,3 +1,7 @@\n+mod search;\n+\n+pub(crate) use search::Search;\n+\n pub(crate) fn classify<Key: Ord>(value: &[Key]) -> Vec<usize> {\n     match value {\n         [] => return Vec::new(),\n@@ -24,107 +28,11 @@\n     result\n }\n \n-pub(crate) fn refine(edge: &crate::graph::Graph, mut color: Vec<usize>) -> Vec<usize> {\n-    let mut order = (0..color.len()).collect::<Vec<_>>();\n-    order.sort_unstable_by_key(|&index| color[index]);\n-    let mut boundary = vec![0; color.len()];\n-    let mut pending = Vec::new();\n-    let mut start = 0;\n-    for end in 1..=order.len() {\n-        if end < order.len() && color[order[end - 1]] == color[order[end]] {\n-            continue;\n-        }\n-        boundary[start] = end;\n-        if end - start > 1 {\n-            pending.push(start);\n-        }\n-        start = end;\n-    }\n-    let mut start = 0;\n-    while start < order.len() {\n-        let end = boundary[start];\n-        for &index in &order[start..end] {\n-            color[index] = start;\n-        }\n-        start = end;\n-    }\n-    if pending.is_empty() {\n-        return color;\n-    }\n-    let mut length = 0;\n-    let range = edge\n-        .iter()\n-        .map(|adjacent| {\n-            let start = length;\n-            length += adjacent.len();\n-            start..length\n-        })\n-        .collect::<Vec<_>>();\n-    let mut signature = vec![(0, 0); length];\n-    let incoming = crate::graph::Graph::new(\n-        color.len(),\n-        edge.iter().enumerate().flat_map(|(source, adjacent)| {\n-            adjacent\n-                .iter()\n-                .map(move |&(kind, target)| (target, source, kind))\n-        }),\n-    );\n-    let mut scheduled = vec![false; color.len()];\n-    let mut changed = Vec::new();\n-    loop {\n-        changed.clear();\n-        for start in pending.drain(..) {\n-            scheduled[start] = false;\n-            let end = boundary[start];\n-            for &index in &order[start..end] {\n-                let signature = &mut signature[range[index].clone()];\n-                for (value, &(kind, target)) in signature.iter_mut().zip(&edge[index]) {\n-                    *value = (kind, color[target]);\n-                }\n-                signature.sort_unstable();\n-            }\n-            order[start..end].sort_unstable_by(|&left, &right| {\n-                signature[range[left].clone()].cmp(&signature[range[right].clone()])\n-            });\n-            let mut partition = start;\n-            for position in start + 1..end {\n-                if signature[range[order[position - 1]].clone()]\n-                    != signature[range[order[position]].clone()]\n-                {\n-                    boundary[partition] = position;\n-                    partition = position;\n-                }\n-                if partition != start {\n-                    changed.push((order[position], partition));\n-                }\n-            }\n-            boundary[partition] = end;\n-        }\n-        if changed.is_empty() {\n-            let mut start = 0;\n-            let mut ordinal = 0;\n-            while start < order.len() {\n-                let end = boundary[start];\n-                for &index in &order[start..end] {\n-                    color[index] = ordinal;\n-                }\n-                ordinal += 1;\n-                start = end;\n-            }\n-            return color;\n-        }\n-        for &(index, value) in &changed {\n-            color[index] = value;\n-        }\n-        for &(index, _) in &changed {\n-            for &(_, source) in &incoming[index] {\n-                let start = color[source];\n-                if boundary[start] - start > 1 && !std::mem::replace(&mut scheduled[start], true) {\n-                    pending.push(start);\n-                }\n-            }\n-        }\n-    }\n+#[cfg(test)]\n+pub(crate) fn refine(edge: &crate::graph::Graph, color: Vec<usize>) -> Vec<usize> {\n+    let mut search = Search::new(edge, color);\n+    while !search.step(edge) {}\n+    search.finish()\n }\n \n #[cfg(test)]\n--- /dev/null\n+++ b/language/refinement/search.rs\n@@ -0,0 +1,41 @@\n+use crate::graph::Graph;\n+use crate::state::State;\n+\n+pub(crate) struct Search {\n+    edge: Graph,\n+    frame: Vec<usize>,\n+    partition: crate::partition::Search,\n+}\n+\n+impl Search {\n+    pub fn new(state: &State) -> Self {\n+        #[cfg(feature = \"measurement\")]\n+        let _measurement =\n+            crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Refinement);\n+        let incidence = crate::incidence::Incidence::new(state);\n+        let partition = crate::partition::Search::new(\n+            &incidence.edge,\n+            crate::partition::classify(&incidence.label),\n+        );\n+        Self {\n+            edge: incidence.edge,\n+            frame: incidence.frame,\n+            partition,\n+        }\n+    }\n+\n+    pub fn resolve(&mut self, demand: &[Vec<usize>]) {\n+        #[cfg(feature = \"measurement\")]\n+        let _measurement =\n+            crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Refinement);\n+        self.partition.resolve(&self.edge, demand);\n+    }\n+\n+    pub fn color(&self, vertex: usize) -> usize {\n+        self.partition.color()[vertex]\n+    }\n+\n+    pub fn frame(&self, index: usize) -> usize {\n+        self.frame[index]\n+    }\n+}\n--- a/language/refinement.rs\n+++ b/language/refinement.rs\n@@ -1,10 +1,17 @@\n+#[cfg(test)]\n use crate::state::State;\n \n+mod search;\n+\n+pub(crate) use search::Search;\n+\n+#[cfg(test)]\n pub struct Refinement {\n     pub world: Vec<usize>,\n     pub frame: Vec<usize>,\n }\n \n+#[cfg(test)]\n impl Refinement {\n     pub fn new(state: &State) -> Self {\n         #[cfg(feature = \"measurement\")]\n--- a/language/test/canonical.rs\n+++ b/language/test/canonical.rs\n@@ -81,16 +81,16 @@\n     let program = crate::program::Program::new(crate::lowering::parse(\"A,B [A] C\").unwrap());\n     let state = State::initial(&program);\n     let mut search = Search::new(Arc::new(state.clone()));\n-    assert!(search.refinement.get().is_none());\n+    assert!(search.refinement.is_none());\n     while !search.step() {\n-        assert!(search.refinement.get().is_none());\n+        assert!(search.refinement.is_none());\n     }\n-    assert!(search.refinement.get().is_none());\n+    assert!(search.refinement.is_none());\n     verify(state);\n     let program = crate::program::Program::new(crate::lowering::parse(\"A,A\").unwrap());\n     let state = State::initial(&program);\n     let search = Search::new(Arc::new(state.clone()));\n-    assert!(search.refinement.get().is_some());\n+    assert!(search.refinement.is_some());\n     verify(state);\n     let state = State {\n         world: Default::default(),\n@@ -117,9 +117,9 @@\n             .collect(),\n     };\n     let mut search = Search::new(Arc::new(state.clone()));\n-    assert!(search.refinement.get().is_none());\n+    assert!(search.refinement.is_none());\n     assert!(!search.step());\n-    assert!(search.refinement.get().is_some());\n+    assert!(search.refinement.is_some());\n     verify(state);\n }\n \n--- a/language/test/partition.rs\n+++ b/language/test/partition.rs\n@@ -82,7 +82,48 @@\n     for (index, adjacent) in edge.iter().enumerate() {\n         assert_eq!(&graph[index], adjacent);\n     }\n+    let mut search = crate::partition::Search::new(&graph, color.clone());\n+    for offset in 1..=3 {\n+        let demand = (0..edge.len())\n+            .step_by(offset)\n+            .collect::<Vec<_>>()\n+            .chunks(3)\n+            .map(<[usize]>::to_vec)\n+            .collect::<Vec<_>>();\n+        search.resolve(&graph, &demand);\n+        for group in demand {\n+            for &left in &group {\n+                for &right in &group {\n+                    assert_eq!(\n+                        search.color()[left].cmp(&search.color()[right]),\n+                        expected[left].cmp(&expected[right]),\n+                    );\n+                }\n+            }\n+        }\n+    }\n+    while !search.step(&graph) {}\n+    assert_eq!(search.finish(), expected);\n     assert_eq!(crate::partition::refine(&graph, color), expected);\n+}\n+\n+#[test]\n+fn demand() {\n+    let graph = crate::graph::Graph::new(8, (0..7).map(|index| (index, index + 1, 0)));\n+    let mut search = crate::partition::Search::new(&graph, vec![0; 8]);\n+    search.resolve(&graph, &[]);\n+    assert_eq!(search.color(), &[0; 8]);\n+    search.resolve(&graph, &[vec![0]]);\n+    assert_eq!(search.color(), &[0; 8]);\n+    search.resolve(&graph, &[vec![6, 7]]);\n+    assert_eq!(search.color(), &[1, 1, 1, 1, 1, 1, 1, 0]);\n+    search.resolve(&graph, &[vec![5, 6]]);\n+    assert_eq!(search.color(), &[2, 2, 2, 2, 2, 2, 1, 0]);\n+    search.resolve(&graph, &[vec![0, 1]]);\n+    assert_eq!(search.color(), &[7, 6, 5, 4, 3, 2, 1, 0]);\n+    assert!(search.step(&graph));\n+    assert!(search.step(&graph));\n+    assert_eq!(search.finish(), vec![7, 6, 5, 4, 3, 2, 1, 0]);\n }\n \n #[test]\n",
+      "source": {
+        "language/BUILD.bazel": {
+          "before": "1778b8b9c307522adf17fdd68ba67ff9d37e07c40d65acdd878a2b00d560dfbe",
+          "experiment": "11c1cf6fcf88e8c38185bf06180c8fad1da0fbd40b4358281f75802494b9f882"
+        },
+        "language/canonical.rs": {
+          "before": "1289011767a895fbf86725bd0cd93c8a1e265a49cad13d01a4f3c5942ccc8635",
+          "experiment": "7e24750277210e4c2ffcdeae3c78b9bc529ae68519547243a3fb6f4717d460bf"
+        },
+        "language/ordering.rs": {
+          "before": "63a476fe8715291e2c49ca4cf442194113b1378ca959c4cd612b96cb3f0f1b2c",
+          "experiment": "fa1446a3b4f6ca34ebe1c54153000e8c23de0a5f2131204f95ba347d710c66a4"
+        },
+        "language/partition/search.rs": {
+          "before": null,
+          "experiment": "a935754d6be2e76bbd540af2bc8886bc46d3f9759596bc23edccc0d03fab9f31"
+        },
+        "language/partition.rs": {
+          "before": "a31d6020f7d68670fa6848c0de3918cb70070a00d0df20f307c0e9403e12b6b5",
+          "experiment": "a4610299db6f76757d3b5e970da70a1cde349f32a08f2103084f2140e7e6aacd"
+        },
+        "language/refinement/search.rs": {
+          "before": null,
+          "experiment": "07b2acfa900010385f57e4c62a0a09d6f5366014c752e61a4ba3c43465d14da9"
+        },
+        "language/refinement.rs": {
+          "before": "aab566b0e3ceadf53b93912910128d42fa237f4d8b56ed8f3dac1ea70f8693b2",
+          "experiment": "170d456f8f376f74fddc20fcfae2bc45afc795e8c8e6dff1e10d204d3e583758"
+        },
+        "language/test/canonical.rs": {
+          "before": "84990bed13a666bc1ff11400b210c9a1d06dce40348544e6528323b73d3edb86",
+          "experiment": "321f4ef941d287863806f4a102bab6d98f2a7b0370738b06ff5e1c7f294310b0"
+        },
+        "language/test/partition.rs": {
+          "before": "46bb9a7cbd2282d4e83d304feb60620190601aae5adee3268f9c02fb2add78f2",
+          "experiment": "084d6e341607a2c1c9a6378d0d4c02f93c87f1fa06ad6bb5fd5efa341b5650fa"
+        }
+      },
+      "binary": {
+        "before": {
+          "lifecycle": "9af381129cafd7ee319e675a66982a4648e152cfa8e2b797ab05851c2c2d1af4",
+          "reporting": "04614548dbe3962f99a42fbdec7b380c5b4f1c68e07f053ac47b0b3f0c7ea1cc"
+        },
+        "after": {
+          "lifecycle": "723acd034b9a5b77f25aac3c8d23b2ae45a3f0b2382269db712a94a80405a544",
+          "reporting": "e16dcf74b2f6ce82d59a526950d791227932343428dc21da46c9e1f297bb4802"
+        }
+      },
+      "measurement": {
+        "quick": {
+          "before": {
+            "allocation": false,
+            "budget": 100000000,
+            "cold": {
+              "byte": 479701082,
+              "duration": 2.917458,
+              "execution": {
+                "duration": 0.08278025
+              },
+              "export": {
+                "duration": 2.808459208
+              },
+              "fingerprint": 18187729700562578142,
+              "initialization": {
+                "duration": 0.007724584
+              },
+              "mode": "view",
+              "release": {
+                "duration": 0.018493958
+              },
+              "writer": true
+            },
+            "measurement": [
+              {
+                "byte": 479701082,
+                "duration": 2.90682175,
+                "execution": {
+                  "duration": 0.075003667
+                },
+                "export": {
+                  "duration": 2.815257333
+                },
+                "fingerprint": 18187729700562578142,
+                "initialization": {
+                  "duration": 0.005300083
+                },
+                "mode": "view",
+                "release": {
+                  "duration": 0.011260667
+                },
+                "writer": true
+              },
+              {
+                "byte": 479701082,
+                "duration": 2.8922899579999997,
+                "execution": {
+                  "duration": 0.074542916
+                },
+                "export": {
+                  "duration": 2.801464292
+                },
+                "fingerprint": 18187729700562578142,
+                "initialization": {
+                  "duration": 0.005022125
+                },
+                "mode": "view",
+                "release": {
+                  "duration": 0.011260625
+                },
+                "writer": true
+              },
+              {
+                "byte": 479701082,
+                "duration": 2.905015709,
+                "execution": {
+                  "duration": 0.074088417
+                },
+                "export": {
+                  "duration": 2.81462375
+                },
+                "fingerprint": 18187729700562578142,
+                "initialization": {
+                  "duration": 0.004877708
+                },
+                "mode": "view",
+                "release": {
+                  "duration": 0.011425834
+                },
+                "writer": true
+              }
+            ]
+          },
+          "after": {
+            "allocation": false,
+            "budget": 100000000,
+            "cold": {
+              "byte": 479701082,
+              "duration": 2.9295960830000003,
+              "execution": {
+                "duration": 0.085913041
+              },
+              "export": {
+                "duration": 2.81606425
+              },
+              "fingerprint": 18187729700562578142,
+              "initialization": {
+                "duration": 0.00878975
+              },
+              "mode": "view",
+              "release": {
+                "duration": 0.018829042
+              },
+              "writer": true
+            },
+            "measurement": [
+              {
+                "byte": 479701082,
+                "duration": 3.082541082,
+                "execution": {
+                  "duration": 0.075796708
+                },
+                "export": {
+                  "duration": 2.987651833
+                },
+                "fingerprint": 18187729700562578142,
+                "initialization": {
+                  "duration": 0.005344458
+                },
+                "mode": "view",
+                "release": {
+                  "duration": 0.013748083
+                },
+                "writer": true
+              },
+              {
+                "byte": 479701082,
+                "duration": 3.2199396250000003,
+                "execution": {
+                  "duration": 0.090758
+                },
+                "export": {
+                  "duration": 3.109891
+                },
+                "fingerprint": 18187729700562578142,
+                "initialization": {
+                  "duration": 0.006068125
+                },
+                "mode": "view",
+                "release": {
+                  "duration": 0.0132225
+                },
+                "writer": true
+              },
+              {
+                "byte": 479701082,
+                "duration": 3.2299282920000003,
+                "execution": {
+                  "duration": 0.081928333
+                },
+                "export": {
+                  "duration": 3.1306965
+                },
+                "fingerprint": 18187729700562578142,
+                "initialization": {
+                  "duration": 0.005997584
+                },
+                "mode": "view",
+                "release": {
+                  "duration": 0.011305875
+                },
+                "writer": true
+              }
+            ]
+          }
+        },
+        "repeat": [
+          {
+            "round": 0,
+            "after": {
+              "allocation": false,
+              "budget": 100000000,
+              "cold": {
+                "byte": 479701082,
+                "duration": 2.9916097089999996,
+                "execution": {
+                  "duration": 0.084345584
+                },
+                "export": {
+                  "duration": 2.8831390839999997
+                },
+                "fingerprint": 18187729700562578142,
+                "initialization": {
+                  "duration": 0.006634666
+                },
+                "mode": "view",
+                "release": {
+                  "duration": 0.017490375
+                },
+                "writer": true
+              },
+              "measurement": [
+                {
+                  "byte": 479701082,
+                  "duration": 3.008459001,
+                  "execution": {
+                    "duration": 0.07884625
+                  },
+                  "export": {
+                    "duration": 2.912805292
+                  },
+                  "fingerprint": 18187729700562578142,
+                  "initialization": {
+                    "duration": 0.005695792
+                  },
+                  "mode": "view",
+                  "release": {
+                    "duration": 0.011111667
+                  },
+                  "writer": true
+                },
+                {
+                  "byte": 479701082,
+                  "duration": 2.935738001,
+                  "execution": {
+                    "duration": 0.074328084
+                  },
+                  "export": {
+                    "duration": 2.845510417
+                  },
+                  "fingerprint": 18187729700562578142,
+                  "initialization": {
+                    "duration": 0.004958708
+                  },
+                  "mode": "view",
+                  "release": {
+                    "duration": 0.010940792
+                  },
+                  "writer": true
+                },
+                {
+                  "byte": 479701082,
+                  "duration": 2.8748274589999996,
+                  "execution": {
+                    "duration": 0.074746875
+                  },
+                  "export": {
+                    "duration": 2.783719292
+                  },
+                  "fingerprint": 18187729700562578142,
+                  "initialization": {
+                    "duration": 0.004735375
+                  },
+                  "mode": "view",
+                  "release": {
+                    "duration": 0.011625917
+                  },
+                  "writer": true
+                }
+              ]
+            },
+            "before": {
+              "allocation": false,
+              "budget": 100000000,
+              "cold": {
+                "byte": 479701082,
+                "duration": 2.9356779179999997,
+                "execution": {
+                  "duration": 0.075485792
+                },
+                "export": {
+                  "duration": 2.836947709
+                },
+                "fingerprint": 18187729700562578142,
+                "initialization": {
+                  "duration": 0.005258667
+                },
+                "mode": "view",
+                "release": {
+                  "duration": 0.01798575
+                },
+                "writer": true
+              },
+              "measurement": [
+                {
+                  "byte": 479701082,
+                  "duration": 2.907293042,
+                  "execution": {
+                    "duration": 0.074326917
+                  },
+                  "export": {
+                    "duration": 2.816763792
+                  },
+                  "fingerprint": 18187729700562578142,
+                  "initialization": {
+                    "duration": 0.004828833
+                  },
+                  "mode": "view",
+                  "release": {
+                    "duration": 0.0113735
+                  },
+                  "writer": true
+                },
+                {
+                  "byte": 479701082,
+                  "duration": 2.875956708,
+                  "execution": {
+                    "duration": 0.07434
+                  },
+                  "export": {
+                    "duration": 2.785814083
+                  },
+                  "fingerprint": 18187729700562578142,
+                  "initialization": {
+                    "duration": 0.004847875
+                  },
+                  "mode": "view",
+                  "release": {
+                    "duration": 0.01095475
+                  },
+                  "writer": true
+                },
+                {
+                  "byte": 479701082,
+                  "duration": 2.897038541,
+                  "execution": {
+                    "duration": 0.073420875
+                  },
+                  "export": {
+                    "duration": 2.80801525
+                  },
+                  "fingerprint": 18187729700562578142,
+                  "initialization": {
+                    "duration": 0.004836
+                  },
+                  "mode": "view",
+                  "release": {
+                    "duration": 0.010766416
+                  },
+                  "writer": true
+                }
+              ]
+            }
+          },
+          {
+            "round": 1,
+            "before": {
+              "allocation": false,
+              "budget": 100000000,
+              "cold": {
+                "byte": 479701082,
+                "duration": 3.1313495,
+                "execution": {
+                  "duration": 0.076629917
+                },
+                "export": {
+                  "duration": 3.030355459
+                },
+                "fingerprint": 18187729700562578142,
+                "initialization": {
+                  "duration": 0.005333458
+                },
+                "mode": "view",
+                "release": {
+                  "duration": 0.019030666
+                },
+                "writer": true
+              },
+              "measurement": [
+                {
+                  "byte": 479701082,
+                  "duration": 2.961409583,
+                  "execution": {
+                    "duration": 0.078657125
+                  },
+                  "export": {
+                    "duration": 2.866909375
+                  },
+                  "fingerprint": 18187729700562578142,
+                  "initialization": {
+                    "duration": 0.005085333
+                  },
+                  "mode": "view",
+                  "release": {
+                    "duration": 0.01075775
+                  },
+                  "writer": true
+                },
+                {
+                  "byte": 479701082,
+                  "duration": 2.8855076669999997,
+                  "execution": {
+                    "duration": 0.073861167
+                  },
+                  "export": {
+                    "duration": 2.795290625
+                  },
+                  "fingerprint": 18187729700562578142,
+                  "initialization": {
+                    "duration": 0.004739583
+                  },
+                  "mode": "view",
+                  "release": {
+                    "duration": 0.011616292
+                  },
+                  "writer": true
+                },
+                {
+                  "byte": 479701082,
+                  "duration": 2.9058082929999998,
+                  "execution": {
+                    "duration": 0.073667917
+                  },
+                  "export": {
+                    "duration": 2.816118542
+                  },
+                  "fingerprint": 18187729700562578142,
+                  "initialization": {
+                    "duration": 0.004804292
+                  },
+                  "mode": "view",
+                  "release": {
+                    "duration": 0.011217542
+                  },
+                  "writer": true
+                }
+              ]
+            },
+            "after": {
+              "allocation": false,
+              "budget": 100000000,
+              "cold": {
+                "byte": 479701082,
+                "duration": 2.919758291,
+                "execution": {
+                  "duration": 0.078837375
+                },
+                "export": {
+                  "duration": 2.8178285
+                },
+                "fingerprint": 18187729700562578142,
+                "initialization": {
+                  "duration": 0.005407875
+                },
+                "mode": "view",
+                "release": {
+                  "duration": 0.017684541
+                },
+                "writer": true
+              },
+              "measurement": [
+                {
+                  "byte": 479701082,
+                  "duration": 2.9565490000000003,
+                  "execution": {
+                    "duration": 0.078056208
+                  },
+                  "export": {
+                    "duration": 2.862268375
+                  },
+                  "fingerprint": 18187729700562578142,
+                  "initialization": {
+                    "duration": 0.004834417
+                  },
+                  "mode": "view",
+                  "release": {
+                    "duration": 0.01139
+                  },
+                  "writer": true
+                },
+                {
+                  "byte": 479701082,
+                  "duration": 2.881600083,
+                  "execution": {
+                    "duration": 0.075675292
+                  },
+                  "export": {
+                    "duration": 2.790190208
+                  },
+                  "fingerprint": 18187729700562578142,
+                  "initialization": {
+                    "duration": 0.004815
+                  },
+                  "mode": "view",
+                  "release": {
+                    "duration": 0.010919583
+                  },
+                  "writer": true
+                },
+                {
+                  "byte": 479701082,
+                  "duration": 2.90206225,
+                  "execution": {
+                    "duration": 0.073497208
+                  },
+                  "export": {
+                    "duration": 2.812764042
+                  },
+                  "fingerprint": 18187729700562578142,
+                  "initialization": {
+                    "duration": 0.005037375
+                  },
+                  "mode": "view",
+                  "release": {
+                    "duration": 0.010763625
+                  },
+                  "writer": true
+                }
+              ]
+            }
+          }
+        ],
+        "profile": {
+          "before": {
+            "allocation": false,
+            "budget": 100000000,
+            "cold": {
+              "byte": 479701082,
+              "duration": 2.916175874,
+              "execution": {
+                "duration": 0.096960083
+              },
+              "export": {
+                "duration": 2.790562333
+              },
+              "fingerprint": 18187729700562578142,
+              "initialization": {
+                "duration": 0.010817667
+              },
+              "mode": "view",
+              "phase": [
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "matching"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "dispatch"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "index"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "rewrite"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "fingerprint"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "structure"
+                },
+                {
+                  "count": 30303,
+                  "duration": 0.795877454,
+                  "phase": "canonicalization"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "composition"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "application"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "subscription"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "refresh"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "restart"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "request"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "preparation"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "availability"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "context"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "removal"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "replacement"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "admission"
+                },
+                {
+                  "count": 10101,
+                  "duration": 1.877847241,
+                  "phase": "normalization"
+                },
+                {
+                  "count": 10102,
+                  "duration": 0.160317522,
+                  "phase": "rendering"
+                },
+                {
+                  "count": 9707,
+                  "duration": 0.526445438,
+                  "phase": "incidence"
+                },
+                {
+                  "count": 9707,
+                  "duration": 1.050141719,
+                  "phase": "refinement"
+                },
+                {
+                  "count": 10101,
+                  "duration": 0.759457935,
+                  "phase": "renaming"
+                }
+              ],
+              "release": {
+                "duration": 0.017835791
+              },
+              "writer": true
+            },
+            "measurement": [
+              {
+                "byte": 479701082,
+                "duration": 2.880300333,
+                "execution": {
+                  "duration": 0.0823875
+                },
+                "export": {
+                  "duration": 2.7818955
+                },
+                "fingerprint": 18187729700562578142,
+                "initialization": {
+                  "duration": 0.005310208
+                },
+                "mode": "view",
+                "phase": [
+                  {
+                    "count": 0,
+                    "duration": 0.0,
+                    "phase": "matching"
+                  },
+                  {
+                    "count": 0,
+                    "duration": 0.0,
+                    "phase": "dispatch"
+                  },
+                  {
+                    "count": 0,
+                    "duration": 0.0,
+                    "phase": "index"
+                  },
+                  {
+                    "count": 0,
+                    "duration": 0.0,
+                    "phase": "rewrite"
+                  },
+                  {
+                    "count": 0,
+                    "duration": 0.0,
+                    "phase": "fingerprint"
+                  },
+                  {
+                    "count": 0,
+                    "duration": 0.0,
+                    "phase": "structure"
+                  },
+                  {
+                    "count": 30303,
+                    "duration": 0.790381503,
+                    "phase": "canonicalization"
+                  },
+                  {
+                    "count": 0,
+                    "duration": 0.0,
+                    "phase": "composition"
+                  },
+                  {
+                    "count": 0,
+                    "duration": 0.0,
+                    "phase": "application"
+                  },
+                  {
+                    "count": 0,
+                    "duration": 0.0,
+                    "phase": "subscription"
+                  },
+                  {
+                    "count": 0,
+                    "duration": 0.0,
+                    "phase": "refresh"
+                  },
+                  {
+                    "count": 0,
+                    "duration": 0.0,
+                    "phase": "restart"
+                  },
+                  {
+                    "count": 0,
+                    "duration": 0.0,
+                    "phase": "request"
+                  },
+                  {
+                    "count": 0,
+                    "duration": 0.0,
+                    "phase": "preparation"
+                  },
+                  {
+                    "count": 0,
+                    "duration": 0.0,
+                    "phase": "availability"
+                  },
+                  {
+                    "count": 0,
+                    "duration": 0.0,
+                    "phase": "context"
+                  },
+                  {
+                    "count": 0,
+                    "duration": 0.0,
+                    "phase": "removal"
+                  },
+                  {
+                    "count": 0,
+                    "duration": 0.0,
+                    "phase": "replacement"
+                  },
+                  {
+                    "count": 0,
+                    "duration": 0.0,
+                    "phase": "admission"
+                  },
+                  {
+                    "count": 10101,
+                    "duration": 1.872944176,
+                    "phase": "normalization"
+                  },
+                  {
+                    "count": 10102,
+                    "duration": 0.159557758,
+                    "phase": "rendering"
+                  },
+                  {
+                    "count": 9707,
+                    "duration": 0.527006179,
+                    "phase": "incidence"
+                  },
+                  {
+                    "count": 9707,
+                    "duration": 1.05076178,
+                    "phase": "refinement"
+                  },
+                  {
+                    "count": 10101,
+                    "duration": 0.753881334,
+                    "phase": "renaming"
+                  }
+                ],
+                "release": {
+                  "duration": 0.010707125
+                },
+                "writer": true
+              }
+            ]
+          },
+          "after": {
+            "allocation": false,
+            "budget": 100000000,
+            "cold": {
+              "byte": 479701082,
+              "duration": 2.917237917,
+              "execution": {
+                "duration": 0.091044292
+              },
+              "export": {
+                "duration": 2.800478375
+              },
+              "fingerprint": 18187729700562578142,
+              "initialization": {
+                "duration": 0.008473833
+              },
+              "mode": "view",
+              "phase": [
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "matching"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "dispatch"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "index"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "rewrite"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "fingerprint"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "structure"
+                },
+                {
+                  "count": 30303,
+                  "duration": 0.81829574,
+                  "phase": "canonicalization"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "composition"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "application"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "subscription"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "refresh"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "restart"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "request"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "preparation"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "availability"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "context"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "removal"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "replacement"
+                },
+                {
+                  "count": 0,
+                  "duration": 0.0,
+                  "phase": "admission"
+                },
+                {
+                  "count": 10101,
+                  "duration": 1.887953172,
+                  "phase": "normalization"
+                },
+                {
+                  "count": 10102,
+                  "duration": 0.161013578,
+                  "phase": "rendering"
+                },
+                {
+                  "count": 9707,
+                  "duration": 0.529466354,
+                  "phase": "incidence"
+                },
+                {
+                  "count": 19414,
+                  "duration": 1.033894032,
+                  "phase": "refinement"
+                },
+                {
+                  "count": 10101,
+                  "duration": 0.782083462,
+                  "phase": "renaming"
+                }
+              ],
+              "release": {
+                "duration": 0.017241417
+              },
+              "writer": true
+            },
+            "measurement": [
+              {
+                "byte": 479701082,
+                "duration": 2.895413333,
+                "execution": {
+                  "duration": 0.082543
+                },
+                "export": {
+                  "duration": 2.796542541
+                },
+                "fingerprint": 18187729700562578142,
+                "initialization": {
+                  "duration": 0.005363125
+                },
+                "mode": "view",
+                "phase": [
+                  {
+                    "count": 0,
+                    "duration": 0.0,
+                    "phase": "matching"
+                  },
+                  {
+                    "count": 0,
+                    "duration": 0.0,
+                    "phase": "dispatch"
+                  },
+                  {
+                    "count": 0,
+                    "duration": 0.0,
+                    "phase": "index"
+                  },
+                  {
+                    "count": 0,
+                    "duration": 0.0,
+                    "phase": "rewrite"
+                  },
+                  {
+                    "count": 0,
+                    "duration": 0.0,
+                    "phase": "fingerprint"
+                  },
+                  {
+                    "count": 0,
+                    "duration": 0.0,
+                    "phase": "structure"
+                  },
+                  {
+                    "count": 30303,
+                    "duration": 0.814399848,
+                    "phase": "canonicalization"
+                  },
+                  {
+                    "count": 0,
+                    "duration": 0.0,
+                    "phase": "composition"
+                  },
+                  {
+                    "count": 0,
+                    "duration": 0.0,
+                    "phase": "application"
+                  },
+                  {
+                    "count": 0,
+                    "duration": 0.0,
+                    "phase": "subscription"
+                  },
+                  {
+                    "count": 0,
+                    "duration": 0.0,
+                    "phase": "refresh"
+                  },
+                  {
+                    "count": 0,
+                    "duration": 0.0,
+                    "phase": "restart"
+                  },
+                  {
+                    "count": 0,
+                    "duration": 0.0,
+                    "phase": "request"
+                  },
+                  {
+                    "count": 0,
+                    "duration": 0.0,
+                    "phase": "preparation"
+                  },
+                  {
+                    "count": 0,
+                    "duration": 0.0,
+                    "phase": "availability"
+                  },
+                  {
+                    "count": 0,
+                    "duration": 0.0,
+                    "phase": "context"
+                  },
+                  {
+                    "count": 0,
+                    "duration": 0.0,
+                    "phase": "removal"
+                  },
+                  {
+                    "count": 0,
+                    "duration": 0.0,
+                    "phase": "replacement"
+                  },
+                  {
+                    "count": 0,
+                    "duration": 0.0,
+                    "phase": "admission"
+                  },
+                  {
+                    "count": 10101,
+                    "duration": 1.886521069,
+                    "phase": "normalization"
+                  },
+                  {
+                    "count": 10102,
+                    "duration": 0.160143814,
+                    "phase": "rendering"
+                  },
+                  {
+                    "count": 9707,
+                    "duration": 0.529414868,
+                    "phase": "incidence"
+                  },
+                  {
+                    "count": 19414,
+                    "duration": 1.036665977,
+                    "phase": "refinement"
+                  },
+                  {
+                    "count": 10101,
+                    "duration": 0.778110967,
+                    "phase": "renaming"
+                  }
+                ],
+                "release": {
+                  "duration": 0.010964667
+                },
+                "writer": true
+              }
+            ]
+          }
+        }
+      },
+      "validation": {
+        "test.log": "INFO: Invocation ID: d880aa62-a001-4051-93f2-f08aee8b81d8\nComputing main repo mapping: \nLoading: \nLoading: 0 packages loaded\nAnalyzing: target //language:test (0 packages loaded, 0 targets configured)\nAnalyzing: target //language:test (0 packages loaded, 0 targets configured)\n\nINFO: Analyzed target //language:test (0 packages loaded, 0 targets configured).\n[2,748 / 2,750] Compiling Rust bin //language:test (196 files); 1s disk-cache, darwin-sandbox\nINFO: From Compiling Rust bin //language:test (196 files):\nwarning: linker stderr: clang++: argument unused during compilation: '-rtlib=compiler-rt' [-Wunused-command-line-argument]\n  |\n  = note: `#[warn(linker_messages)]` on by default\n  = note: the `linker_messages` lint ignores `-D warnings`\n\nwarning: 1 warning emitted\n\n[2,749 / 2,750] [Prepa] runfiles for //language:test\n[2,750 / 2,751] Testing //language:test; 1s disk-cache, darwin-sandbox\nINFO: Found 1 test target...\nINFO: Elapsed time: 9.542s, Critical Path: 9.41s\nINFO: 6 processes: 2 internal, 5 darwin-sandbox.\nINFO: Build completed successfully, 6 total actions\n//language:test                                                          PASSED in 2.1s\n\nExecuted 1 out of 1 test: 1 test passes.\nThere were tests whose specified size is too big. Use the --test_verbose_timeout_warnings command line option to see which ones these are.\n",
+        "build.log": "INFO: Invocation ID: bb3a0aa6-1776-4fa5-b760-c0e404be9643\nComputing main repo mapping: \nLoading: \nLoading: 0 packages loaded\nAnalyzing: 8 targets (0 packages loaded, 0 targets configured)\nAnalyzing: 8 targets (0 packages loaded, 0 targets configured)\n\nINFO: Analyzed 8 targets (0 packages loaded, 0 targets configured).\n[9 / 35] Compiling Rust rlib //language:photonic (130 files); 1s disk-cache, darwin-sandbox ... (2 actions running)\n[10 / 35] Compiling Rust rlib //language:measurement (151 files); 4s disk-cache, darwin-sandbox ... (2 actions, 1 running)\nINFO: From Compiling Rust bin //benchmark:inspection (1 file):\nwarning: linker stderr: clang++: argument unused during compilation: '-rtlib=compiler-rt' [-Wunused-command-line-argument]\n  |\n  = note: `#[warn(linker_messages)]` on by default\n  = note: the `linker_messages` lint ignores `-D warnings`\n\nwarning: 1 warning emitted\n\n[16 / 35] Compiling Rust rlib //language:measurement (151 files); 5s disk-cache, darwin-sandbox ... (6 actions, 5 running)\nINFO: From Compiling Rust bin //benchmark:expression (3 files):\nwarning: linker stderr: clang++: argument unused during compilation: '-rtlib=compiler-rt' [-Wunused-command-line-argument]\n  |\n  = note: `#[warn(linker_messages)]` on by default\n  = note: the `linker_messages` lint ignores `-D warnings`\n\nwarning: 1 warning emitted\n\nINFO: From Compiling Rust bin //benchmark:lifecycle (5 files):\nwarning: linker stderr: clang++: argument unused during compilation: '-rtlib=compiler-rt' [-Wunused-command-line-argument]\n  |\n  = note: `#[warn(linker_messages)]` on by default\n  = note: the `linker_messages` lint ignores `-D warnings`\n\nwarning: 1 warning emitted\n\nINFO: From Compiling Rust bin //command:photonic (3 files):\nwarning: linker stderr: clang++: argument unused during compilation: '-rtlib=compiler-rt' [-Wunused-command-line-argument]\n  |\n  = note: `#[warn(linker_messages)]` on by default\n  = note: the `linker_messages` lint ignores `-D warnings`\n\nwarning: 1 warning emitted\n\nINFO: From Compiling Rust bin //benchmark:allocation (6 files):\nwarning: linker stderr: clang++: argument unused during compilation: '-rtlib=compiler-rt' [-Wunused-command-line-argument]\n  |\n  = note: `#[warn(linker_messages)]` on by default\n  = note: the `linker_messages` lint ignores `-D warnings`\n\nwarning: 1 warning emitted\n\nINFO: From Compiling Rust bin //benchmark:symmetry (1 file):\nwarning: linker stderr: clang++: argument unused during compilation: '-rtlib=compiler-rt' [-Wunused-command-line-argument]\n  |\n  = note: `#[warn(linker_messages)]` on by default\n  = note: the `linker_messages` lint ignores `-D warnings`\n\nwarning: 1 warning emitted\n\nINFO: From Compiling Rust bin //benchmark:scope (1 file):\nwarning: linker stderr: clang++: argument unused during compilation: '-rtlib=compiler-rt' [-Wunused-command-line-argument]\n  |\n  = note: `#[warn(linker_messages)]` on by default\n  = note: the `linker_messages` lint ignores `-D warnings`\n\nwarning: 1 warning emitted\n\n[32 / 35] Compiling Rust bin //benchmark:reporting (5 files); 0s disk-cache, darwin-sandbox ... (2 actions, 1 running)\nINFO: From Compiling Rust bin //benchmark:reporting (5 files):\nwarning: linker stderr: clang++: argument unused during compilation: '-rtlib=compiler-rt' [-Wunused-command-line-argument]\n  |\n  = note: `#[warn(linker_messages)]` on by default\n  = note: the `linker_messages` lint ignores `-D warnings`\n\nwarning: 1 warning emitted\n\nINFO: Found 8 targets...\nINFO: Elapsed time: 7.257s, Critical Path: 7.14s\nINFO: 35 processes: 9 internal, 26 darwin-sandbox.\nINFO: Build completed successfully, 35 total actions\n",
+        "format.log": "INFO: Invocation ID: bab503de-c50e-4f7f-98ed-d6725ee08260\nComputing main repo mapping: \nLoading: \nLoading: 0 packages loaded\nAnalyzing: target //:format (0 packages loaded, 0 targets configured)\nAnalyzing: target //:format (0 packages loaded, 0 targets configured)\n\nINFO: Analyzed target //:format (0 packages loaded, 918 targets configured, 59 aspect applications).\nINFO: Found 1 target...\nINFO: Elapsed time: 0.243s, Critical Path: 0.01s\nINFO: 1 process: 12 action cache hit, 1 internal.\nINFO: Build completed successfully, 1 total action\nINFO: Running command line: /Users/robertvanderzee/Library/Caches/bazel/_bazel_robertvanderzee/6259dc4c7713a84c173aa7f2cf7cf211/execroot/_main/bazel-out/darwin_arm64-opt/bin/format\nLoading: 0 packages loaded\n"
+      }
+    }
+  ],
+  "restoration": {
+    "restored-test.log": "INFO: Invocation ID: 0670caf0-8014-43a3-9a24-9774e74d4cd0\nComputing main repo mapping: \nLoading: \nLoading: 0 packages loaded\nAnalyzing: 485 targets (1 packages loaded, 0 targets configured)\nAnalyzing: 485 targets (1 packages loaded, 32 targets configured)\n\nINFO: From Compiling Rust bin //benchmark:allocation (6 files):\nwarning: linker stderr: clang++: argument unused during compilation: '-rtlib=compiler-rt' [-Wunused-command-line-argument]\n  |\n  = note: `#[warn(linker_messages)]` on by default\n  = note: the `linker_messages` lint ignores `-D warnings`\n\nwarning: 1 warning emitted\n\nINFO: From Compiling Rust bin //benchmark:lifecycle (5 files):\nwarning: linker stderr: clang++: argument unused during compilation: '-rtlib=compiler-rt' [-Wunused-command-line-argument]\n  |\n  = note: `#[warn(linker_messages)]` on by default\n  = note: the `linker_messages` lint ignores `-D warnings`\n\nwarning: 1 warning emitted\n\nINFO: From Compiling Rust bin //command:photonic (3 files):\nwarning: linker stderr: clang++: argument unused during compilation: '-rtlib=compiler-rt' [-Wunused-command-line-argument]\n  |\n  = note: `#[warn(linker_messages)]` on by default\n  = note: the `linker_messages` lint ignores `-D warnings`\n\nwarning: 1 warning emitted\n\nINFO: From Compiling Rust bin //benchmark:expression (3 files):\nwarning: linker stderr: clang++: argument unused during compilation: '-rtlib=compiler-rt' [-Wunused-command-line-argument]\n  |\n  = note: `#[warn(linker_messages)]` on by default\n  = note: the `linker_messages` lint ignores `-D warnings`\n\nwarning: 1 warning emitted\n\nINFO: From Compiling Rust bin //benchmark:scope (1 file):\nwarning: linker stderr: clang++: argument unused during compilation: '-rtlib=compiler-rt' [-Wunused-command-line-argument]\n  |\n  = note: `#[warn(linker_messages)]` on by default\n  = note: the `linker_messages` lint ignores `-D warnings`\n\nwarning: 1 warning emitted\n\nINFO: From Compiling Rust bin //benchmark:symmetry (1 file):\nwarning: linker stderr: clang++: argument unused during compilation: '-rtlib=compiler-rt' [-Wunused-command-line-argument]\n  |\n  = note: `#[warn(linker_messages)]` on by default\n  = note: the `linker_messages` lint ignores `-D warnings`\n\nwarning: 1 warning emitted\n\nINFO: From Compiling Rust bin //benchmark:reporting (5 files):\nwarning: linker stderr: clang++: argument unused during compilation: '-rtlib=compiler-rt' [-Wunused-command-line-argument]\n  |\n  = note: `#[warn(linker_messages)]` on by default\n  = note: the `linker_messages` lint ignores `-D warnings`\n\nwarning: 1 warning emitted\n\nINFO: From Compiling Rust bin //benchmark:inspection (1 file):\nwarning: linker stderr: clang++: argument unused during compilation: '-rtlib=compiler-rt' [-Wunused-command-line-argument]\n  |\n  = note: `#[warn(linker_messages)]` on by default\n  = note: the `linker_messages` lint ignores `-D warnings`\n\nwarning: 1 warning emitted\n\nINFO: From Compiling Rust bin //language:test (194 files):\nwarning: linker stderr: clang++: argument unused during compilation: '-rtlib=compiler-rt' [-Wunused-command-line-argument]\n  |\n  = note: `#[warn(linker_messages)]` on by default\n  = note: the `linker_messages` lint ignores `-D warnings`\n\nwarning: 1 warning emitted\n\nINFO: Analyzed 485 targets (2 packages loaded, 946 targets configured, 2654 aspect applications).\nINFO: Found 374 targets and 111 test targets...\nINFO: Elapsed time: 1.080s, Critical Path: 0.39s\nINFO: 42 processes: 1940 action cache hit, 33 disk cache hit, 10 internal.\nINFO: Build completed successfully, 42 total actions\n//arithmetic:gate                                               (cached) PASSED in 0.1s\n//arithmetic:test                                               (cached) PASSED in 6.0s\n//benchmark:allocator                                           (cached) PASSED in 0.4s\n//benchmark:availability                                        (cached) PASSED in 0.3s\n//benchmark:differential.test                                   (cached) PASSED in 3.8s\n//benchmark:lifetime                                            (cached) PASSED in 3.7s\n//command:test                                                  (cached) PASSED in 0.1s\n//frontend:test                                                 (cached) PASSED in 0.2s\n//language:test                                                 (cached) PASSED in 2.1s\n//library:binary.check                                          (cached) PASSED in 0.1s\n//library:boolean.alternative                                   (cached) PASSED in 0.1s\n//library:boolean.check                                         (cached) PASSED in 0.1s\n//library:boolean.history                                       (cached) PASSED in 0.1s\n//library:boolean.reject                                        (cached) PASSED in 0.1s\n//library:test                                                  (cached) PASSED in 1.7s\n//photonic:test                                                 (cached) PASSED in 0.3s\n//program/association:addition.check                            (cached) PASSED in 0.1s\n//program/binary:addition.check                                 (cached) PASSED in 0.1s\n//program/circuit:add.check                                     (cached) PASSED in 0.1s\n//program/circuit:divide.check                                  (cached) PASSED in 0.5s\n//program/circuit:multiply.check                                (cached) PASSED in 0.3s\n//program/circuit:subtract.check                                (cached) PASSED in 0.1s\n//program/composition:function.check                            (cached) PASSED in 1.0s\n//program/composition:pipeline.check                            (cached) PASSED in 0.1s\n//program/decimal:addition.check                                (cached) PASSED in 0.1s\n//program/language:conjunction.check                            (cached) PASSED in 0.1s\n//program/language:inference.check                              (cached) PASSED in 0.1s\n//program/natural:addition.check                                (cached) PASSED in 0.1s\n//program/natural:membership.check                              (cached) PASSED in 0.1s\n//program/natural:preparation.check                             (cached) PASSED in 0.4s\n//program/natural:successor.check                               (cached) PASSED in 0.1s\n//program/natural:sum.check                                     (cached) PASSED in 0.1s\n//program/ternary:addition.check                                (cached) PASSED in 0.2s\n//program/ternary:carry.check                                   (cached) PASSED in 0.9s\n//program/ternary:column.association                            (cached) PASSED in 0.1s\n//program/ternary:column.begin                                  (cached) PASSED in 0.2s\n//program/ternary:column.completion                             (cached) PASSED in 0.1s\n//program/ternary:column.exchange                               (cached) PASSED in 0.1s\n//program/ternary:column.fork                                   (cached) PASSED in 0.1s\n//program/ternary:column.read                                   (cached) PASSED in 0.1s\n//program/ternary:composition.check                             (cached) PASSED in 1.8s\n//program/ternary:copy.left                                     (cached) PASSED in 0.1s\n//program/ternary:copy.right                                    (cached) PASSED in 0.1s\n//program/ternary:demo.addition.check                           (cached) PASSED in 1.0s\n//program/ternary:demo.check                                    (cached) PASSED in 5.1s\n//program/ternary:demo.division.check                           (cached) PASSED in 2.4s\n//program/ternary:demo.multiplication.check                     (cached) PASSED in 1.8s\n//program/ternary:demo.record.check                             (cached) PASSED in 8.8s\n//program/ternary:division.check                                (cached) PASSED in 1.6s\n//program/ternary:expression.check                              (cached) PASSED in 7.1s\n//program/ternary:infix.check                                   (cached) PASSED in 7.8s\n//program/ternary:local.check                                   (cached) PASSED in 0.1s\n//program/ternary:multiplication.check                          (cached) PASSED in 0.2s\n//program/ternary:parenthesis.check                             (cached) PASSED in 2.9s\n//program/ternary:performance                                   (cached) PASSED in 12.1s\n//program/ternary:position.check                                (cached) PASSED in 0.1s\n//program/ternary:reversal.check                                (cached) PASSED in 0.1s\n//program/ternary:reverse.zero                                  (cached) PASSED in 0.1s\n//program/ternary:subtraction.check                             (cached) PASSED in 0.2s\n//program/ternary:sum.check                                     (cached) PASSED in 0.1s\n//program/ternary:wide.check                                    (cached) PASSED in 0.5s\n//program/ternary/case:association                              (cached) PASSED in 4.2s\n//program/ternary/case:borrow                                   (cached) PASSED in 2.4s\n//program/ternary/case:cancel                                   (cached) PASSED in 0.3s\n//program/ternary/case:closing                                  (cached) PASSED in 0.1s\n//program/ternary/case:complement                               (cached) PASSED in 1.6s\n//program/ternary/case:consecutive                              (cached) PASSED in 0.2s\n//program/ternary/case:depth                                    (cached) PASSED in 1.5s\n//program/ternary/case:difference                               (cached) PASSED in 0.8s\n//program/ternary/case:divisor                                  (cached) PASSED in 0.4s\n//program/ternary/case:double                                   (cached) PASSED in 0.4s\n//program/ternary/case:empty                                    (cached) PASSED in 1.8s\n//program/ternary/case:equal                                    (cached) PASSED in 1.3s\n//program/ternary/case:extra                                    (cached) PASSED in 0.2s\n//program/ternary/case:leading                                  (cached) PASSED in 0.8s\n//program/ternary/case:missing                                  (cached) PASSED in 0.1s\n//program/ternary/case:negative                                 (cached) PASSED in 0.5s\n//program/ternary/case:opening                                  (cached) PASSED in 0.2s\n//program/ternary/case:operand                                  (cached) PASSED in 0.1s\n//program/ternary/case:opposite                                 (cached) PASSED in 0.9s\n//program/ternary/case:padding                                  (cached) PASSED in 1.2s\n//program/ternary/case:polarity.0                               (cached) PASSED in 1.0s\n//program/ternary/case:polarity.1                               (cached) PASSED in 1.0s\n//program/ternary/case:polarity.10                              (cached) PASSED in 0.6s\n//program/ternary/case:polarity.11                              (cached) PASSED in 0.9s\n//program/ternary/case:polarity.12                              (cached) PASSED in 1.0s\n//program/ternary/case:polarity.13                              (cached) PASSED in 0.8s\n//program/ternary/case:polarity.14                              (cached) PASSED in 1.3s\n//program/ternary/case:polarity.15                              (cached) PASSED in 1.1s\n//program/ternary/case:polarity.2                               (cached) PASSED in 0.6s\n//program/ternary/case:polarity.3                               (cached) PASSED in 0.8s\n//program/ternary/case:polarity.4                               (cached) PASSED in 0.4s\n//program/ternary/case:polarity.5                               (cached) PASSED in 0.7s\n//program/ternary/case:polarity.6                               (cached) PASSED in 0.6s\n//program/ternary/case:polarity.7                               (cached) PASSED in 0.8s\n//program/ternary/case:polarity.8                               (cached) PASSED in 0.6s\n//program/ternary/case:polarity.9                               (cached) PASSED in 0.8s\n//program/ternary/case:precedence                               (cached) PASSED in 1.7s\n//program/ternary/case:product                                  (cached) PASSED in 2.7s\n//program/ternary/case:quotient                                 (cached) PASSED in 1.5s\n//program/ternary/case:remainder                                (cached) PASSED in 3.9s\n//program/ternary/case:repeated                                 (cached) PASSED in 11.5s\n//program/ternary/case:short                                    (cached) PASSED in 1.6s\n//program/ternary/case:sign                                     (cached) PASSED in 1.3s\n//program/ternary/case:stack                                    (cached) PASSED in 0.1s\n//program/ternary/case:trailing                                 (cached) PASSED in 0.1s\n//program/ternary/case:unary                                    (cached) PASSED in 1.9s\n//program/ternary/case:width                                    (cached) PASSED in 7.3s\n//toolchain:runner                                              (cached) PASSED in 0.5s\n//toolchain/browser:check                                       (cached) PASSED in 7.9s\n//toolchain/browser:test                                        (cached) PASSED in 5.4s\n\nExecuted 0 out of 111 tests: 111 tests pass.\nThere were tests whose specified size is too big. Use the --test_verbose_timeout_warnings command line option to see which ones these are.\n",
+    "restored-format.log": "INFO: Invocation ID: a8ba9c1d-d88e-4f35-8053-e6907b58c444\nComputing main repo mapping: \nLoading: \nLoading: 0 packages loaded\nAnalyzing: target //:format (0 packages loaded, 0 targets configured)\nAnalyzing: target //:format (0 packages loaded, 0 targets configured)\n\nINFO: Analyzed target //:format (0 packages loaded, 912 targets configured, 26 aspect applications).\nINFO: Found 1 target...\nINFO: Elapsed time: 0.246s, Critical Path: 0.01s\nINFO: 1 process: 6 action cache hit, 1 internal.\nINFO: Build completed successfully, 1 total action\nINFO: Running command line: /Users/robertvanderzee/Library/Caches/bazel/_bazel_robertvanderzee/6259dc4c7713a84c173aa7f2cf7cf211/execroot/_main/bazel-out/darwin_arm64-opt/bin/format <args omitted>\nLoading: 0 packages loaded\n"
+  }
+}

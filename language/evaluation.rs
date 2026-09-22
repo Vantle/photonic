@@ -60,7 +60,6 @@ pub(crate) fn apply(request: Request<'_>) -> Result {
         frame
     };
     let nested = rule.output.iter().any(|output| output.body.is_some());
-    let consumed = crate::consumption::Selection::new(binding);
     for &world in binding.world.iter().rev() {
         state.world.remove(world);
     }
@@ -70,12 +69,9 @@ pub(crate) fn apply(request: Request<'_>) -> Result {
         insertion: start..start + rule.output.len(),
         frame: (source.frame.len()..state.frame.len()).collect(),
     };
-    for (index, frame) in source.frame.iter().enumerate() {
-        if let Some(frame) = consumed.frame(index, frame) {
-            state.frame[index] = frame;
-            change.frame.push(index);
-        }
-    }
+    change
+        .frame
+        .extend(crate::consumption::apply(&mut state, binding));
     let remainder = remainder(source, binding, &binding.footprint);
     let enclosed = (nested && binding.exact != binding.footprint)
         .then(|| self::remainder(source, binding, &binding.exact));
@@ -162,3 +158,7 @@ pub(crate) fn apply(request: Request<'_>) -> Result {
         layout,
     }
 }
+
+#[cfg(test)]
+#[path = "test/oracle.rs"]
+mod test;

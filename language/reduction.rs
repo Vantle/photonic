@@ -35,10 +35,11 @@ impl Search {
     }
 
     pub(crate) fn new(program: Arc<Program>, state: Arc<State>) -> Self {
-        let index = crate::index::Index::new(state.clone());
+        let fingerprint = crate::fingerprint::Index::new(state.clone());
+        let index = crate::index::Index::prepared(state.clone(), fingerprint.layout.reach.clone());
         Self {
             network: crate::dispatch::Network::new(&program, &index),
-            fingerprint: crate::fingerprint::Index::new(state.clone()),
+            fingerprint,
             program,
             state,
             pending: Vec::new(),
@@ -85,8 +86,9 @@ impl Search {
         fingerprint: crate::fingerprint::Index,
     ) {
         self.pending.clear();
-        self.index.update(state.clone(), change);
-        self.network.advance(&self.index, &self.state, change);
+        self.index
+            .apply(state.clone(), change, fingerprint.layout.reach.clone());
+        self.network.advance(&self.index);
         self.state = state;
         self.fingerprint = fingerprint;
         self.initialized = false;

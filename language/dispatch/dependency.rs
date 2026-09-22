@@ -55,7 +55,12 @@ impl Network {
                 .flatten()
                 .filter_map(|symbol| self.trigger.get(symbol))
         };
-        let selected: SmallVec<[(Key, usize); 4]> = if count <= 16
+        let selected: SmallVec<[(Key, usize); 4]> = if index.invalidated(frame) {
+            self.entry
+                .range(Key::frame(frame))
+                .map(|(key, &position)| (key, position))
+                .collect()
+        } else if count <= 16
             || count <= self.empty.len() + dependency().map(Vec::len).sum::<usize>()
         {
             self.entry

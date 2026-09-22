@@ -135,3 +135,167 @@ fn projection() {
         assert_eq!(search.step(), reference.step());
     }
 }
+
+#[test]
+fn context() {
+    use crate::program::Symbol;
+    use crate::state::{Token, World};
+    let program = Program::new(crate::lowering::parse("A [A] B").unwrap());
+    let mut state = State::initial(&program);
+    Arc::make_mut(&mut state.frame[0]).particle = (0..16)
+        .map(|position| Token {
+            id: position + 100,
+            value: Symbol::Rule(0),
+            capture: Some(0),
+        })
+        .collect();
+    let mut frame = (*state.frame[0]).clone();
+    frame.lexical = Some(0);
+    frame.parent = Some(0);
+    frame.particle.clear();
+    state.frame.push(frame.into());
+    state.world = vec![
+        Arc::new(World {
+            frame: 1,
+            particle: (0..16)
+                .map(|id| Token {
+                    id,
+                    value: program.rule[0].input[0][0],
+                    capture: None,
+                })
+                .collect(),
+        }),
+        Arc::new(World {
+            frame: 0,
+            particle: vec![Token {
+                id: 200,
+                value: Symbol::Atom(999),
+                capture: None,
+            }],
+        }),
+    ]
+    .into();
+    let pattern = vec![
+        vec![Term::new(Symbol::Rule(0), Some(0)); 16],
+        vec![Term::new(program.rule[0].input[0][0], None); 16],
+    ];
+    let index = Arc::new(Index::new(Arc::new(state.clone())));
+    let expected = exhaust(Search::new(pattern.clone(), index.clone(), 1));
+    assert_eq!(
+        expected
+            .iter()
+            .filter(|step| matches!(step, Poll::Ready(Some(_))))
+            .count(),
+        1
+    );
+    for capacity in [0, 1, 128, 65536] {
+        let store = Arc::new(Store::new(capacity));
+        let mut unfinished = Search::shared(pattern.clone(), index.clone(), 1, &store);
+        let _ = unfinished.step();
+        drop(unfinished);
+        assert_eq!(store.transcript().retained(), 0);
+        assert_eq!(
+            exhaust(Search::shared(pattern.clone(), index.clone(), 1, &store)),
+            expected
+        );
+        let mut projected = state.clone();
+        Arc::make_mut(&mut projected.world[1]).particle[0].id += 1;
+        let projected = Arc::new(Index::new(Arc::new(projected)));
+        for boundary in 0..=expected.len() {
+            let mut search = Search::shared(pattern.clone(), projected.clone(), 1, &store);
+            assert!(search.replay.is_none());
+            for (position, result) in expected.iter().enumerate() {
+                if position == boundary {
+                    search.evict();
+                }
+                assert_eq!(&search.step(), result);
+            }
+        }
+        for variant in 0..5 {
+            let mut changed = state.clone();
+            match variant {
+                0 => Arc::make_mut(&mut changed.frame[0]).particle[0].id += 1000,
+                1 => Arc::make_mut(&mut changed.frame[0]).particle[0].capture = Some(1),
+                2 => {
+                    Arc::make_mut(&mut changed.frame[0]).particle.pop();
+                }
+                3 => Arc::make_mut(&mut changed.frame[1]).lexical = None,
+                4 => changed.frame[0] = Arc::new((*state.frame[0]).clone()),
+                _ => unreachable!(),
+            }
+            let changed = Arc::new(Index::new(Arc::new(changed)));
+            let search = Search::shared(pattern.clone(), changed.clone(), 1, &store);
+            assert!(!matches!(
+                search.replay.as_deref(),
+                Some(super::replay::Replay::Playing { .. })
+            ));
+            let expected = exhaust(Search::new(pattern.clone(), changed.clone(), 1));
+            assert_eq!(exhaust(search), expected);
+            assert_eq!(
+                exhaust(Search::shared(pattern.clone(), changed, 1, &store)),
+                expected
+            );
+            assert!(store.transcript().retained() <= capacity);
+        }
+        let mut search = Search::shared(pattern.clone(), index.clone(), 1, &store);
+        store.evict();
+        assert_eq!(
+            exhaust(Search::new(pattern.clone(), index.clone(), 1)),
+            expected
+        );
+        for result in &expected {
+            assert_eq!(&search.step(), result);
+        }
+        drop(search);
+        store.evict();
+        assert_eq!(store.retained(), 0);
+    }
+}
+
+#[test]
+fn recycling() {
+    let program = Program::new(
+        crate::lowering::parse(&format!("{},{}", ["A"; 17].join("."), ["B"; 16].join(".")))
+            .unwrap(),
+    );
+    let state = Arc::new(State::initial(&program));
+    let pattern = state
+        .world
+        .iter()
+        .map(|world| {
+            world
+                .particle
+                .iter()
+                .take(16)
+                .map(|token| Term::new(token.value, token.capture))
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>();
+    let store = Arc::new(Store::new(65536));
+    let index = Arc::new(Index::new(state.clone()));
+    let expected = exhaust(Search::new(pattern.clone(), index.clone(), 0));
+    assert_eq!(
+        exhaust(Search::shared(pattern.clone(), index.clone(), 0, &store)),
+        expected
+    );
+    assert!(store.transcript().retained() > 0);
+    let mut changed = Index::new(state.clone());
+    changed.update(
+        state,
+        &crate::change::Change {
+            world: (0..2).collect(),
+            insertion: 0..2,
+            frame: Vec::new(),
+        },
+    );
+    let changed = Arc::new(changed);
+    assert_ne!(index.site(0), changed.site(0));
+    let search = Search::shared(pattern.clone(), changed.clone(), 0, &store);
+    assert!(!matches!(
+        search.replay.as_deref(),
+        Some(super::replay::Replay::Playing { .. })
+    ));
+    let fresh = exhaust(Search::new(pattern, changed, 0));
+    assert_ne!(fresh, expected);
+    assert_eq!(exhaust(search), fresh);
+}

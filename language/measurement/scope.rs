@@ -77,7 +77,6 @@ pub fn run(width: usize, depth: usize, length: usize, stride: usize) -> Measurem
     let mut delivery = 0;
     let mut fingerprint = 0u64;
     for iteration in 0..length {
-        let previous = index.state.clone();
         let mut world = (*state.world.remove(position)).clone();
         world.particle = if iteration % 2 == 0 {
             symbol
@@ -94,7 +93,7 @@ pub fn run(width: usize, depth: usize, length: usize, stride: usize) -> Measurem
         };
         state.world.push(world.into());
         index.update(Arc::new(state.clone()), &change);
-        network.advance(&index, &previous, &change);
+        network.advance(&index);
         loop {
             work += 1;
             match network.next(&index) {

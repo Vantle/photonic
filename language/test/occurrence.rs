@@ -24,14 +24,14 @@ fn state() -> State {
                 scope: 0,
                 parent: None,
                 lexical: None,
-                particle: vec![token(7, 0), token(11, 1)],
+                particle: vec![token(7, 0), token(11, 1)].into(),
                 held: Vec::new(),
             }),
             Arc::new(Frame {
                 scope: 1,
                 parent: Some(0),
                 lexical: Some(0),
-                particle: vec![token(19, 1)],
+                particle: vec![token(19, 1)].into(),
                 held: vec![token(23, 0)],
             }),
         ]
@@ -46,7 +46,10 @@ fn identity() {
     for index in 0..renamed.frame.len() {
         let frame = Arc::make_mut(&mut renamed.frame[index]);
         frame.particle.reverse();
-        for token in frame.particle.iter_mut().chain(&mut frame.held) {
+        for index in 0..frame.particle.len() {
+            frame.particle[index].id = 100 - frame.particle[index].id;
+        }
+        for token in &mut frame.held {
             token.id = 100 - token.id;
         }
     }
@@ -64,7 +67,7 @@ fn identity() {
     let mut changed = original.clone();
     Arc::make_mut(&mut changed.frame[0]).particle[0].capture = Some(1);
     assert_ne!(original.canonical().state, changed.canonical().state);
-    Arc::make_mut(&mut changed.frame[0]).particle = vec![token(7, 0), token(11, 0)];
+    Arc::make_mut(&mut changed.frame[0]).particle = vec![token(7, 0), token(11, 0)].into();
     let duplicate = changed.canonical().state;
     assert_eq!(duplicate.frame[0].particle.len(), 2);
     assert_ne!(
@@ -265,7 +268,7 @@ fn import() {
         scope: 2,
         parent: Some(0),
         lexical: Some(0),
-        particle: vec![token(41, 2)],
+        particle: vec![token(41, 2)].into(),
         held: Vec::new(),
     }));
     let identity = Flow::identity(&source);

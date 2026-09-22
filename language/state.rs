@@ -21,7 +21,7 @@ pub struct Frame {
     pub scope: usize,
     pub parent: Option<usize>,
     pub lexical: Option<usize>,
-    pub particle: Vec<Token>,
+    pub particle: crate::population::Set,
     pub held: Vec<Token>,
 }
 
@@ -41,12 +41,26 @@ pub struct Canonical {
 impl State {
     pub(crate) fn token(&self, place: crate::flow::Place) -> Option<&Token> {
         use crate::flow::Place;
-        let (particle, id) = match place {
-            Place::World(index, id) => (&self.world.get(index)?.particle, id),
-            Place::Context(index, id) => (&self.frame.get(index)?.particle, id),
-            Place::Held(index, id) => (&self.frame.get(index)?.held, id),
-        };
-        particle.iter().find(|token| token.id == id)
+        match place {
+            Place::World(index, id) => self
+                .world
+                .get(index)?
+                .particle
+                .iter()
+                .find(|token| token.id == id),
+            Place::Context(index, id) => self
+                .frame
+                .get(index)?
+                .particle
+                .iter()
+                .find(|token| token.id == id),
+            Place::Held(index, id) => self
+                .frame
+                .get(index)?
+                .held
+                .iter()
+                .find(|token| token.id == id),
+        }
     }
 
     pub(crate) fn visible(
@@ -202,6 +216,10 @@ impl State {
     }
 
     pub fn canonical(&self) -> Canonical {
+        #[cfg(feature = "measurement")]
+        let _measurement = crate::measurement::profile::Scope::new(
+            crate::measurement::profile::Phase::Normalization,
+        );
         let mut search = crate::canonical::Search::new(std::sync::Arc::new(self.clone()));
         while !search.step() {}
         search
@@ -210,58 +228,57 @@ impl State {
     }
 
     pub(crate) fn rename(&self, world: &[usize], frame: &[usize]) -> Canonical {
-        let mut mapping = vec![None; self.frame.len()];
-        for (position, &index) in frame.iter().enumerate() {
-            mapping[index] = Some(position);
-        }
-        let mut incidence =
-            HashMap::<usize, (Symbol, Option<usize>, SmallVec<[(u8, usize); 1]>)>::new();
-        for (position, &index) in world.iter().enumerate() {
-            for token in &self.world[index].particle {
-                incidence
-                    .entry(token.id)
-                    .or_insert_with(|| {
-                        (
-                            token.value,
-                            token.capture.and_then(|index| mapping[index]),
-                            SmallVec::new(),
-                        )
-                    })
-                    .2
-                    .push((0, position));
+        #[cfg(feature = "measurement")]
+        let _measurement =
+            crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Renaming);
+        self.remap(world, frame, |mapping| {
+            let mut incidence =
+                HashMap::<usize, (Symbol, Option<usize>, SmallVec<[(u8, usize); 1]>)>::new();
+            for (position, &index) in world.iter().enumerate() {
+                for token in &self.world[index].particle {
+                    incidence
+                        .entry(token.id)
+                        .or_insert_with(|| {
+                            (
+                                token.value,
+                                token.capture.and_then(|index| mapping[index]),
+                                SmallVec::new(),
+                            )
+                        })
+                        .2
+                        .push((0, position));
+                }
             }
-        }
-        for (position, &index) in frame.iter().enumerate() {
-            for token in &self.frame[index].held {
-                incidence
-                    .entry(token.id)
-                    .or_insert_with(|| {
-                        (
-                            token.value,
-                            token.capture.and_then(|index| mapping[index]),
-                            SmallVec::new(),
-                        )
-                    })
-                    .2
-                    .push((1, position));
+            for (position, &index) in frame.iter().enumerate() {
+                for token in &self.frame[index].held {
+                    incidence
+                        .entry(token.id)
+                        .or_insert_with(|| {
+                            (
+                                token.value,
+                                token.capture.and_then(|index| mapping[index]),
+                                SmallVec::new(),
+                            )
+                        })
+                        .2
+                        .push((1, position));
+                }
             }
-        }
-        for (position, &index) in frame.iter().enumerate() {
-            for token in &self.frame[index].particle {
-                incidence
-                    .entry(token.id)
-                    .or_insert_with(|| {
-                        (
-                            token.value,
-                            token.capture.and_then(|index| mapping[index]),
-                            SmallVec::new(),
-                        )
-                    })
-                    .2
-                    .push((2, position));
+            for (position, &index) in frame.iter().enumerate() {
+                for token in &self.frame[index].particle {
+                    incidence
+                        .entry(token.id)
+                        .or_insert_with(|| {
+                            (
+                                token.value,
+                                token.capture.and_then(|index| mapping[index]),
+                                SmallVec::new(),
+                            )
+                        })
+                        .2
+                        .push((2, position));
+                }
             }
-        }
-        let resource = {
             let mut resource = incidence.into_iter().collect::<Vec<_>>();
             resource.sort_by(|left, right| left.1.cmp(&right.1).then_with(|| left.0.cmp(&right.0)));
             resource
@@ -269,16 +286,26 @@ impl State {
                 .enumerate()
                 .map(|(position, (index, _))| (*index, position))
                 .collect::<crate::relation::Map<_, _>>()
+        })
+    }
+
+    pub(crate) fn remap(
+        &self,
+        world: &[usize],
+        frame: &[usize],
+        resource: impl FnOnce(&[Option<usize>]) -> crate::relation::Map<usize, usize>,
+    ) -> Canonical {
+        let mut mapping = vec![None; self.frame.len()];
+        for (position, &index) in frame.iter().enumerate() {
+            mapping[index] = Some(position);
+        }
+        let resource = resource(&mapping);
+        let token = |token: &Token| Token {
+            id: resource[&token.id],
+            value: token.value,
+            capture: token.capture.and_then(|index| mapping[index]),
         };
-        let particle = |value: &[Token]| {
-            let mut value = value
-                .iter()
-                .map(|token| Token {
-                    id: resource[&token.id],
-                    value: token.value,
-                    capture: token.capture.and_then(|index| mapping[index]),
-                })
-                .collect::<Vec<_>>();
+        let particle = |mut value: Vec<Token>| {
             value.sort_by_key(|token| token.id);
             value
         };
@@ -288,7 +315,7 @@ impl State {
                 .map(|&index| {
                     World {
                         frame: mapping[self.world[index].frame].unwrap(),
-                        particle: particle(&self.world[index].particle),
+                        particle: particle(self.world[index].particle.iter().map(token).collect()),
                     }
                     .into()
                 })
@@ -301,8 +328,8 @@ impl State {
                         scope: value.scope,
                         parent: value.parent.and_then(|index| mapping[index]),
                         lexical: value.lexical.and_then(|index| mapping[index]),
-                        particle: particle(&value.particle),
-                        held: particle(&value.held),
+                        particle: particle(value.particle.iter().map(token).collect()).into(),
+                        held: particle(value.held.iter().map(token).collect()),
                     }
                     .into()
                 })

@@ -1,13 +1,15 @@
 use crate::ordering::Ordering;
 use crate::refinement::Refinement;
 use crate::state::{Canonical, State};
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
+
+mod renaming;
 
 pub(crate) mod storage;
 
 pub struct Search {
     state: Arc<State>,
-    refinement: Refinement,
+    refinement: OnceLock<Box<Refinement>>,
     world: Ordering,
     frame: Option<Ordering>,
     selected: Vec<usize>,
@@ -17,11 +19,7 @@ pub struct Search {
 
 impl Search {
     pub fn new(state: Arc<State>) -> Self {
-        let refinement = Refinement::new(&state);
-        let mut color = std::collections::BTreeSet::new();
-        let representative = (state.world.len() >= 4
-            && refinement.world.iter().any(|value| !color.insert(*value)))
-        .then(|| crate::symmetry::world(&state));
+        let refinement = OnceLock::new();
         let key = |index: usize| {
             let world = &state.world[index];
             let mut particle = world
@@ -30,18 +28,17 @@ impl Search {
                 .map(|token| token.value)
                 .collect::<Vec<_>>();
             particle.sort();
-            (state.chain(world.frame), particle, refinement.world[index])
+            (state.chain(world.frame), particle)
         };
-        let world = match representative {
-            Some(representative)
-                if representative
-                    .iter()
-                    .enumerate()
-                    .any(|(index, value)| index != *value) =>
-            {
-                Ordering::quotient(0..state.world.len(), key, |index| representative[index])
-            }
-            _ => Ordering::new(0..state.world.len(), key),
+        let world = Ordering::new(0..state.world.len(), key).refine(|index| {
+            refinement
+                .get_or_init(|| Box::new(Refinement::new(&state)))
+                .world[index]
+        });
+        let world = if state.world.len() >= 4 {
+            world.quotient(|| crate::symmetry::world(&state))
+        } else {
+            world
         };
         Self {
             state,
@@ -69,7 +66,11 @@ impl Search {
         if let Some(frame) = self.frame.as_mut().and_then(Iterator::next) {
             let mut order = vec![0];
             order.extend(frame);
-            let value = self.state.rename(&self.selected, &order);
+            let value = if let Some(refinement) = self.refinement.get() {
+                renaming::rename(&self.state, &refinement.incidence, &self.selected, &order)
+            } else {
+                self.state.rename(&self.selected, &order)
+            };
             if self
                 .best
                 .as_ref()
@@ -97,20 +98,20 @@ impl Search {
         for capture in &mut capture {
             capture.sort_unstable();
         }
-        self.frame = Some(Ordering::new(
-            self.state
-                .reachable()
-                .into_iter()
-                .filter(|&index| index != 0),
-            |index| {
-                (
-                    self.state.chain(index),
-                    &occupied[index],
-                    &capture[index],
-                    self.refinement.frame[index],
-                )
-            },
-        ));
+        self.frame = Some(
+            Ordering::new(
+                self.state
+                    .reachable()
+                    .into_iter()
+                    .filter(|&index| index != 0),
+                |index| (self.state.chain(index), &occupied[index], &capture[index]),
+            )
+            .refine(|index| {
+                self.refinement
+                    .get_or_init(|| Box::new(Refinement::new(&self.state)))
+                    .frame[index]
+            }),
+        );
         self.selected = world;
         false
     }
@@ -119,3 +120,7 @@ impl Search {
         if self.complete { self.best } else { None }
     }
 }
+
+#[cfg(test)]
+#[path = "test/canonical.rs"]
+mod test;
