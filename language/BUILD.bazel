@@ -46,6 +46,7 @@ rust_test(
         "test/context.rs",
         "test/dispatch.rs",
         "test/domain.rs",
+        "test/dormancy.rs",
         "test/environment.rs",
         "test/executor.rs",
         "test/factor.rs",

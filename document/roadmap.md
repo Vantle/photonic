@@ -28,6 +28,8 @@ The [join location audit](location.md) now separates stable sites inside matchin
 
 The [subscription retention experiment](subscription.md) rejects whole-search parking with eager maintenance. A 128-entry policy has 48,764 potential hits in the six-factor trace but adds 426,099 maintenance calls; the actual prototype regresses four complete expression workloads about 83–93% and has been removed. Priority 1 now requires separating lightweight membership from materialized candidate state, rather than maintaining every inactive query. A high hit count is not sufficient evidence of benefit.
 
+The [empty search representation experiment](dormancy.md) also rejects a compact wrapper around initially empty joins. Boxing active joins regresses the six-factor case about 7.1%; the inline alternative changes timings by less than 1.5% with negligible allocation differences. Both were removed, while differential replay and activation coverage was retained. Further lifecycle work needs construction-cost attribution, not another layout variant inferred from admission counts.
+
 No new language capability or collection demonstration is required. Each optimization must justify its maintenance cost with repeatable complete-program benefit. Stop when latency and memory meet the workload's needs; the research list is optional.
 
 The [architectural opportunity assessment](opportunity.md) now governs selection. Prefer changes that remove repeated setup, materialization or maintenance across a whole layer. Attribution is part of each architectural experiment, not a separate open-ended optimization project. Small allocation changes remain optional when their benefit is clear; the latest direct-collection probe was removed after mixed results.

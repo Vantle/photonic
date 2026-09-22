@@ -235,3 +235,7 @@ impl Cache {
 #[cfg(test)]
 #[path = "test/replay.rs"]
 mod test;
+
+#[cfg(test)]
+#[path = "test/dormancy.rs"]
+mod dormancy;

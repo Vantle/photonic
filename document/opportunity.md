@@ -6,6 +6,8 @@ The first representation slice is now delivered in [shared matching structure](p
 
 The subsequent [subscription retention experiment](subscription.md) rejects eager maintenance of parked whole searches. Despite many potential reuse hits, its bounded prototype is about 83–93% slower on four complete expression workloads and has been removed. The remaining membership opportunity requires separating lightweight membership from demanded candidate state; the admission counts do not justify a general query-retention cache.
 
+The [empty search representation experiment](dormancy.md) subsequently rejects both boxed and inline compact wrappers. The boxed six-factor case is about 7.1% slower; inline timing differences are below 1.5%, with negligible allocation savings. Differential activation and replay tests remain. Identify actual construction or lookup cost before adding another membership representation.
+
 ## Assessment
 
 The runtime has substantial algorithmic optimization already: interned input structure, incremental candidate domains, bounded maintained fragments, immutable preparation, exact transcript replay, persistent history, incremental support and cost-based CPU admission. These are working foundations, not a backlog to implement again. The [continuation](continuation.md), [sharing table](roadmap.md#current-sharing-and-remaining-gap) and later audits distinguish their limits.
