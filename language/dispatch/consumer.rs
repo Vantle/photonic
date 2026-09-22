@@ -1,7 +1,7 @@
 use super::entry::Consumer;
 use super::{Key, Network};
 use crate::index::Index;
-use crate::membership::Set;
+use crate::mask::Set;
 
 pub(super) struct Request {
     pub key: Key,
@@ -27,10 +27,10 @@ impl Network {
         })
         .collect::<smallvec::SmallVec<[usize; 4]>>();
         if index.present(frame) {
-            for &input in selected
+            for input in selected
                 .unwrap_or(&self.enabled)
                 .iter()
-                .filter(|input| self.enabled.contains(input))
+                .filter(|&input| self.enabled.contains(input))
             {
                 let plan = self.catalog.input(input);
                 for &current in &ancestry {
@@ -54,8 +54,8 @@ impl Network {
             }
             for reader in index.reader(frame) {
                 let input = self.catalog.rule(reader.rule);
-                if !self.enabled.contains(&input)
-                    || selected.is_some_and(|selected| !selected.contains(&input))
+                if !self.enabled.contains(input)
+                    || selected.is_some_and(|selected| !selected.contains(input))
                 {
                     continue;
                 }

@@ -51,31 +51,6 @@ impl Set {
         }
     }
 
-    pub fn clear(&mut self) {
-        self.0 = Storage::Flat(SmallVec::new());
-    }
-
-    pub fn len(&self) -> usize {
-        match &self.0 {
-            Storage::Flat(value) => value.len(),
-            Storage::Tree(value) => value.len(),
-        }
-    }
-
-    pub fn contains(&self, value: &usize) -> bool {
-        match &self.0 {
-            Storage::Flat(sequence) => sequence.binary_search(value).is_ok(),
-            Storage::Tree(sequence) => sequence.contains(value),
-        }
-    }
-
-    pub fn is_empty(&self) -> bool {
-        match &self.0 {
-            Storage::Flat(value) => value.is_empty(),
-            Storage::Tree(value) => value.is_empty(),
-        }
-    }
-
     pub fn iter(&self) -> Traversal<'_> {
         match &self.0 {
             Storage::Flat(value) => Traversal::Flat(value.iter()),

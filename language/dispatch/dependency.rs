@@ -36,7 +36,7 @@ impl Network {
                 if self.missing[input] != 1 {
                     continue;
                 }
-                self.enabled.remove(&input);
+                self.enabled.remove(input);
                 self.altered.insert(input);
             }
         }
@@ -77,8 +77,8 @@ impl Network {
         } else {
             dependency()
                 .flatten()
-                .chain(&self.empty)
                 .copied()
+                .chain(&self.empty)
                 .collect::<BTreeSet<_>>()
                 .into_iter()
                 .flat_map(|input| self.entry.range(Key::input(frame, input)))

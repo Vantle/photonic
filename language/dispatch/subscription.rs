@@ -1,7 +1,7 @@
 use super::entry::Entry;
 use super::{Key, Network};
 use crate::index::Index;
-use crate::membership::Set;
+use crate::mask::Set;
 use crate::replay::Search;
 use smallvec::SmallVec;
 
@@ -22,14 +22,14 @@ impl Network {
                 |selected| {
                     selected
                         .iter()
-                        .map(|&input| Key::input(frame, input))
+                        .map(|input| Key::input(frame, input))
                         .collect()
                 },
             );
         let mut expected = request.iter().peekable();
         for interval in interval {
             let removal = self.entry.extract(interval, |key, _| {
-                if selected.is_some_and(|selected| !selected.contains(&key.input)) {
+                if selected.is_some_and(|selected| !selected.contains(key.input)) {
                     return false;
                 }
                 while expected.peek().is_some_and(|request| request.key < *key) {

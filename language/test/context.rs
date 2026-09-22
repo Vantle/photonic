@@ -44,7 +44,7 @@ fn mutation() {
             index
                 .child
                 .iter()
-                .map(crate::membership::Set::len)
+                .map(|child| child.iter().count())
                 .sum::<usize>()
         );
     }

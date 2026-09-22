@@ -8,7 +8,7 @@ use std::task::Poll;
 
 fn accounting(network: &Network) {
     for (input, &missing) in network.missing.iter().enumerate() {
-        assert_eq!(network.enabled.contains(&input), missing == 0);
+        assert_eq!(network.enabled.contains(input), missing == 0);
     }
     assert_eq!(
         network.storage,

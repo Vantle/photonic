@@ -6,8 +6,6 @@ fn mutation() {
         for value in (0..width).rev() {
             assert_eq!(actual.insert(value), expected.insert(value));
             assert!(!actual.insert(value));
-            assert!(actual.contains(&value));
-            assert_eq!(actual.len(), expected.len());
             assert_eq!(
                 actual.iter().collect::<Vec<_>>(),
                 expected.iter().collect::<Vec<_>>()
@@ -16,14 +14,12 @@ fn mutation() {
         for value in 0..width {
             assert_eq!(actual.remove(&value), expected.remove(&value));
             assert!(!actual.remove(&value));
-            assert!(!actual.contains(&value));
-            assert_eq!(actual.len(), expected.len());
             assert_eq!(
                 actual.iter().collect::<Vec<_>>(),
                 expected.iter().collect::<Vec<_>>()
             );
         }
-        assert!(actual.is_empty());
+        assert!(actual.iter().next().is_none());
     }
 }
 
@@ -35,9 +31,10 @@ fn isolation() {
             original.insert(value);
         }
         let mut copied = original.clone();
-        copied.clear();
-        assert!(copied.is_empty());
-        assert_eq!(original.len(), width);
+        for value in 0..width {
+            copied.remove(&value);
+        }
+        assert!(copied.iter().next().is_none());
         assert_eq!(
             (&original).into_iter().copied().collect::<Vec<_>>(),
             (0..width).collect::<Vec<_>>()

@@ -1,7 +1,7 @@
 use crate::catalog::Catalog;
 use crate::hashing::Builder;
 use crate::index::Index;
-use crate::membership::Set;
+use crate::mask::Set;
 use crate::program::Symbol;
 use crate::slot::Slot;
 use entry::Entry;
@@ -31,7 +31,7 @@ pub(crate) struct Network {
     membership: membership::Index,
     sharing: std::sync::Arc<crate::joining::Store>,
     trigger: HashMap<Symbol, Vec<usize>, Builder>,
-    empty: Vec<usize>,
+    empty: Set,
     missing: Vec<usize>,
     enabled: Set,
     entry: registry::Registry,
@@ -107,10 +107,10 @@ impl Network {
         let mut trigger: HashMap<_, Vec<_>, Builder> = HashMap::default();
         let mut missing = Vec::new();
         let mut enabled = Set::default();
-        let mut empty = Vec::new();
+        let mut empty = Set::default();
         for input in 0..catalog.count() {
             if catalog.input(input).empty() {
-                empty.push(input);
+                empty.insert(input);
             }
             let symbol = catalog.input(input).dependency();
             missing.push(symbol.len());
@@ -208,9 +208,7 @@ impl Network {
             } else {
                 let mut selected = self.altered.clone();
                 if let Some(symbol) = index.affected.get(&frame) {
-                    for &input in &self.empty {
-                        selected.insert(input);
-                    }
+                    selected.union(&self.empty);
                     for symbol in symbol {
                         if let Symbol::Rule(rule) = *symbol {
                             selected.insert(self.catalog.rule(rule));
@@ -221,8 +219,10 @@ impl Network {
                         let Some(input) = self.trigger.get(symbol) else {
                             continue;
                         };
-                        for &input in input.iter().filter(|input| self.enabled.contains(input)) {
-                            selected.insert(input);
+                        for &input in input {
+                            if self.enabled.contains(input) {
+                                selected.insert(input);
+                            }
                         }
                     }
                 }
