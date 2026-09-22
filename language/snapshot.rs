@@ -1,9 +1,8 @@
 use crate::flow::Place;
-use crate::program::{Program, Symbol};
 use crate::runtime::Limit;
-use crate::state::State;
 use crate::support::Status;
 use serde::Serialize;
+use std::sync::Arc;
 
 #[derive(Debug, Serialize)]
 pub struct Snapshot {
@@ -28,8 +27,8 @@ pub struct Node {
 #[derive(Debug, Serialize)]
 pub struct Token {
     pub id: usize,
-    pub label: String,
-    pub display: String,
+    pub label: Arc<str>,
+    pub display: Arc<str>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub capture: Option<usize>,
 }
@@ -40,7 +39,7 @@ pub struct World {
 }
 #[derive(Debug, Serialize)]
 pub struct Frame {
-    pub scope: String,
+    pub scope: Arc<str>,
     pub parent: Option<usize>,
     pub lexical: Option<usize>,
     pub held: Vec<Token>,
@@ -72,45 +71,4 @@ pub struct View {
 pub struct Link {
     pub target: Place,
     pub source: Vec<Place>,
-}
-
-impl Node {
-    pub(crate) fn new(id: usize, state: &State, program: &Program, status: Status) -> Self {
-        let particle = |value: &[crate::state::Token]| {
-            value
-                .iter()
-                .map(|token| Token {
-                    id: token.id,
-                    label: match token.value {
-                        Symbol::Atom(index) => program.atom[index].clone(),
-                        Symbol::Rule(index) => format!("§{}", program.code[&index]),
-                    },
-                    display: program.label(token.value),
-                    capture: token.capture,
-                })
-                .collect()
-        };
-        Self {
-            id,
-            world: state
-                .world
-                .iter()
-                .map(|world| World {
-                    frame: world.frame,
-                    particle: particle(&world.particle),
-                })
-                .collect(),
-            frame: state
-                .frame
-                .iter()
-                .map(|frame| Frame {
-                    scope: program.scope[frame.scope].name.clone(),
-                    parent: frame.parent,
-                    lexical: frame.lexical,
-                    held: particle(&frame.held),
-                })
-                .collect(),
-            status,
-        }
-    }
 }

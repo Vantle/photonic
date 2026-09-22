@@ -223,11 +223,11 @@ fn summary() {
 #[test]
 fn current() {
     let mut path = search("A [A] B", "Missing");
-    assert_eq!(path.current().world[0].particle[0].display, "A");
+    assert_eq!(path.current().world[0].particle[0].display.as_ref(), "A");
     path.run(10000, Limit::default());
     assert_eq!(path.summary().outcome, Outcome::Unknown);
     assert!(path.summary().witness.is_none());
-    assert_eq!(path.current().world[0].particle[0].display, "B");
+    assert_eq!(path.current().world[0].particle[0].display.as_ref(), "B");
     assert_eq!(
         serde_json::to_value(path.current()).unwrap(),
         serde_json::to_value(path.report().state.last()).unwrap()

@@ -200,9 +200,12 @@ fn fairness() {
     );
     assert!(!runtime.closed());
     assert!(runtime.snapshot().state.iter().any(|node| {
-        node.world
-            .iter()
-            .any(|world| world.particle.iter().any(|token| token.label == "Done"))
+        node.world.iter().any(|world| {
+            world
+                .particle
+                .iter()
+                .any(|token| token.label.as_ref() == "Done")
+        })
     }));
 }
 

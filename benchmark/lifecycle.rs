@@ -78,6 +78,16 @@ pub struct Record {
     observation: Observation,
     #[cfg(feature = "allocation")]
     footprint: Footprint,
+    #[cfg(feature = "allocation")]
+    retention: Retention,
+}
+
+#[cfg(feature = "allocation")]
+#[derive(Serialize)]
+struct Retention {
+    engine: usize,
+    report: usize,
+    encoded: usize,
 }
 
 #[cfg(feature = "allocation")]
@@ -110,7 +120,23 @@ pub fn measure<Value: Engine>(initialize: impl FnOnce() -> Value, budget: usize)
     let mut fingerprint = std::collections::hash_map::DefaultHasher::new();
     encoded.hash(&mut fingerprint);
     observation.fingerprint = fingerprint.finish();
+    #[cfg(not(feature = "allocation"))]
     let ((), release) = meter::measure(|| drop((engine, report, encoded)));
+    #[cfg(feature = "allocation")]
+    let (retention, release) = meter::measure(|| {
+        let before = crate::allocation::retained();
+        drop(engine);
+        let engine = crate::allocation::retained();
+        drop(report);
+        let report = crate::allocation::retained();
+        drop(encoded);
+        let encoded = crate::allocation::retained();
+        Retention {
+            engine: before - engine,
+            report: engine - report,
+            encoded: report - encoded,
+        }
+    });
     #[cfg(feature = "allocation")]
     let footprint = {
         let mut footprint = Footprint {
@@ -151,5 +177,7 @@ pub fn measure<Value: Engine>(initialize: impl FnOnce() -> Value, budget: usize)
         observation,
         #[cfg(feature = "allocation")]
         footprint,
+        #[cfg(feature = "allocation")]
+        retention,
     }
 }

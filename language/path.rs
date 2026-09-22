@@ -332,10 +332,9 @@ impl Search {
 
     pub fn inspect(&self, index: usize) -> Option<Node> {
         self.state.get(index).map(|state| {
-            Node::new(
+            crate::render::Builder::new(&self.compiled).node(
                 index,
                 &state.canonical().state,
-                &self.compiled,
                 Status::Supported,
             )
         })
@@ -387,6 +386,7 @@ impl Search {
     }
 
     pub fn report(&self) -> Report {
+        let mut builder = crate::render::Builder::new(&self.compiled);
         Report {
             outcome: if self.reached {
                 Outcome::Reached
@@ -397,8 +397,13 @@ impl Search {
             work: self.work,
             program: self.program.clone(),
             target: self.claim.clone(),
-            state: (0..self.state.len())
-                .map(|index| self.inspect(index).unwrap())
+            state: self
+                .state
+                .iter()
+                .enumerate()
+                .map(|(index, record)| {
+                    builder.node(index, &record.canonical().state, Status::Supported)
+                })
                 .collect(),
             event: (0..self.event.len())
                 .map(|index| {

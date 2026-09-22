@@ -115,6 +115,10 @@ pub struct Measurement {
 static ALLOCATOR: Allocator = Allocator::new();
 static ACTIVE: AtomicBool = AtomicBool::new(false);
 
+pub fn retained() -> usize {
+    ALLOCATOR.retained.load(Ordering::Relaxed)
+}
+
 struct Guard;
 
 impl Drop for Guard {

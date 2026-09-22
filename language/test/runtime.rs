@@ -13,7 +13,7 @@ fn conjunction() {
             && state.world[0]
                 .particle
                 .iter()
-                .any(|token| token.label == "False")
+                .any(|token| token.label.as_ref() == "False")
     }));
 }
 

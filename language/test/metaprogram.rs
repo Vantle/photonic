@@ -79,7 +79,7 @@ fn structure() {
                     world
                         .particle
                         .iter()
-                        .all(|token| token.label != "Forbidden")
+                        .all(|token| token.label.as_ref() != "Forbidden")
                 }))
         );
     }
@@ -95,10 +95,12 @@ fn evidence() {
         let expected = complete.snapshot();
         assert!(expected.state.iter().any(|state| {
             state.status == Status::Supported
-                && state
-                    .world
-                    .iter()
-                    .any(|world| world.particle.iter().any(|token| token.label == "Done"))
+                && state.world.iter().any(|world| {
+                    world
+                        .particle
+                        .iter()
+                        .any(|token| token.label.as_ref() == "Done")
+                })
         }));
         let mut chunk = Runtime::new(parse(&source).unwrap());
         chunk.run(0, Some(limit()));
@@ -128,10 +130,12 @@ fn recursion() {
         assert_eq!(search.summary().outcome, Outcome::Unknown);
         assert!(search.summary().work <= 10_000);
         assert!(search.report().state.iter().all(|state| {
-            state
-                .world
-                .iter()
-                .all(|world| world.particle.iter().all(|token| token.label != "Done"))
+            state.world.iter().all(|world| {
+                world
+                    .particle
+                    .iter()
+                    .all(|token| token.label.as_ref() != "Done")
+            })
         }));
     }
 }
@@ -153,19 +157,23 @@ fn capture() {
         let report = search.report();
         assert!(
             report.state.iter().any(|state| {
-                state
-                    .world
-                    .iter()
-                    .any(|world| world.particle.iter().any(|token| token.label == "Done"))
+                state.world.iter().any(|world| {
+                    world
+                        .particle
+                        .iter()
+                        .any(|token| token.label.as_ref() == "Done")
+                })
             }),
             "depth {depth}"
         );
         assert!(
             report.state.iter().all(|state| {
-                state
-                    .world
-                    .iter()
-                    .all(|world| world.particle.iter().all(|token| token.label != "Global"))
+                state.world.iter().all(|world| {
+                    world
+                        .particle
+                        .iter()
+                        .all(|token| token.label.as_ref() != "Global")
+                })
             }),
             "depth {depth}"
         );

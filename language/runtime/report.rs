@@ -1,5 +1,5 @@
 use super::Runtime;
-use crate::snapshot::{Event, Link, Node, Snapshot, View};
+use crate::snapshot::{Event, Link, Snapshot, View};
 use crate::support::{Atom, Status};
 
 impl Runtime {
@@ -9,6 +9,7 @@ impl Runtime {
 
     pub fn snapshot(&self) -> Snapshot {
         let support = self.proof.evaluate();
+        let mut builder = crate::render::Builder::new(&self.program);
         Snapshot {
             closed: self.closed(),
             record: self.record(),
@@ -22,12 +23,7 @@ impl Runtime {
                 .iter()
                 .enumerate()
                 .map(|(index, state)| {
-                    Node::new(
-                        index,
-                        state,
-                        &self.program,
-                        support.status(Atom::State(index)),
-                    )
+                    builder.node(index, state, support.status(Atom::State(index)))
                 })
                 .collect(),
             event: self

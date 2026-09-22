@@ -222,7 +222,7 @@ fn display(node: &Node) -> String {
                     .iter()
                     .map(|token| match token.capture {
                         Some(frame) => format!("{}@f{frame}", token.display),
-                        None => token.display.clone(),
+                        None => token.display.to_string(),
                     })
                     .collect::<Vec<_>>()
                     .join(".")

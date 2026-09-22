@@ -45,6 +45,7 @@ mod recipe;
 mod reduction;
 mod refinement;
 mod relation;
+mod render;
 mod replay;
 mod reservation;
 mod rewrite;

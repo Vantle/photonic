@@ -64,6 +64,17 @@ fn verify(argument: &[&str]) {
         assert_eq!(counted["footprint"]["released"], released);
         assert_eq!(counted["footprint"]["retained"], retained);
         assert_eq!(counted["footprint"]["peak"], peak);
+        assert_eq!(
+            counted["retention"]
+                .as_object()
+                .unwrap()
+                .values()
+                .map(|value| value.as_i64().unwrap())
+                .sum::<i64>(),
+            -counted["release"]["allocation"]["retained"]
+                .as_i64()
+                .unwrap()
+        );
     }
 }
 
