@@ -12,6 +12,7 @@ pub mod profile;
 pub mod query;
 pub mod reachability;
 pub mod residual;
+pub mod scope;
 pub mod search;
 pub mod sharing;
 pub mod subscription;

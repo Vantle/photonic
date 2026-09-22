@@ -33,7 +33,7 @@ pub(crate) struct Network {
     empty: Vec<usize>,
     missing: Vec<usize>,
     enabled: Set,
-    scope: Vec<Set>,
+    scope: Vec<crate::bitmap::Set>,
     entry: registry::Registry,
     ready: Option<BTreeMap<Key, usize>>,
     agenda: VecDeque<usize>,
@@ -122,10 +122,12 @@ impl Network {
                 trigger.entry(symbol).or_default().push(input);
             }
         }
-        let mut scope = vec![Set::default(); program.scope.len()];
+        let mut scope = (0..program.scope.len())
+            .map(|scope| crate::bitmap::Set::new(catalog.width(scope)))
+            .collect::<Vec<_>>();
         for &input in &enabled {
-            for &owner in catalog.owner(input) {
-                scope[owner].insert(input);
+            for owner in catalog.owner(input) {
+                scope[owner.scope].insert(owner.position);
             }
         }
         let retained = catalog.retained()
@@ -134,7 +136,7 @@ impl Network {
             + trigger.values().map(Vec::len).sum::<usize>()
             + missing.len()
             + scope.len()
-            + scope.iter().map(Set::len).sum::<usize>();
+            + scope.iter().map(crate::bitmap::Set::len).sum::<usize>();
         let mut network = Self {
             retained,
             storage: 0,

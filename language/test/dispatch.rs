@@ -7,6 +7,16 @@ use std::sync::Arc;
 use std::task::Poll;
 
 fn accounting(network: &Network) {
+    for (scope, available) in network.scope.iter().enumerate() {
+        let expected = (0..network.catalog.width(scope))
+            .filter(|&position| {
+                let (input, _) = network.catalog.scope(scope, position);
+                network.enabled.contains(&input)
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(available.len(), expected.len());
+        assert_eq!(available.iter().collect::<Vec<_>>(), expected);
+    }
     assert_eq!(
         network.storage,
         network

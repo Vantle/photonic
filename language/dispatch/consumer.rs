@@ -27,18 +27,10 @@ impl Network {
             while let Some(current) = owner {
                 let scope = index.state.frame[current].scope;
                 let available = &self.scope[scope];
-                let (candidate, filter) = match selected {
-                    Some(selected) if selected.len() < available.len() => {
-                        (selected, Some(available))
-                    }
-                    selected => (available, selected),
-                };
-                for &input in candidate {
-                    if filter.is_some_and(|filter| !filter.contains(&input)) {
-                        continue;
-                    }
+                let mut insert = |position| {
+                    let (input, rule) = self.catalog.scope(scope, position);
                     let plan = self.catalog.input(input);
-                    for &rule in self.catalog.scope(scope, input) {
+                    for &rule in rule {
                         request.push(Request {
                             key: Key {
                                 frame,
@@ -51,6 +43,23 @@ impl Network {
                                 read: None,
                             },
                         });
+                    }
+                };
+                if let Some(selected) = selected.filter(|selected| selected.len() < available.len())
+                {
+                    for &input in selected {
+                        if let Some(position) = self.catalog.position(scope, input)
+                            && available.contains(&position)
+                        {
+                            insert(position);
+                        }
+                    }
+                } else {
+                    for position in available.iter() {
+                        let (input, _) = self.catalog.scope(scope, position);
+                        if selected.is_none_or(|selected| selected.contains(&input)) {
+                            insert(position);
+                        }
                     }
                 }
                 owner = index.state.frame[current].lexical;

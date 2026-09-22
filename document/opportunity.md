@@ -2,7 +2,7 @@
 
 Assessment on 2026-09-21 against `bdc4de1`. This supersedes allocation tuning as the immediate priority in the [roadmap](roadmap.md). The objective remains execution of the same rules and programs with unchanged semantics and public contracts. Scheduling may change. Rule construction, output replacement and automatic program rewriting remain outside scope.
 
-The first representation slice is now delivered in [shared matching structure](plan.md). [Incremental report materialization](view.md) is also delivered across direct-path, exhaustive and prism JSON output. The [activation audit](activation.md) adds lifecycle attribution and deferred enumeration for initially empty candidate domains. General subscription membership maintenance remains open. The baseline findings and estimates below record the evidence that motivated these changes.
+The first representation slice is now delivered in [shared matching structure](plan.md). [Incremental report materialization](view.md) is also delivered across direct-path, exhaustive and prism JSON output. The [activation audit](activation.md) adds lifecycle attribution and deferred enumeration for initially empty candidate domains. [Compiled scope membership](scope.md) now uses flat declaration groups and compact masks, improving scope scaling while leaving arithmetic approximately flat. General subscription membership maintenance remains open. The baseline findings and estimates below record the evidence that motivated these changes.
 
 ## Assessment
 

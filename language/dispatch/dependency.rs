@@ -30,8 +30,8 @@ impl Network {
                 if self.missing[input] == 0 {
                     self.enabled.insert(input);
                     self.altered.insert(input);
-                    for &owner in self.catalog.owner(input) {
-                        if self.scope[owner].insert(input) {
+                    for owner in self.catalog.owner(input) {
+                        if self.scope[owner.scope].insert(owner.position) {
                             self.retained += 1;
                         }
                     }
@@ -43,8 +43,8 @@ impl Network {
                 }
                 self.enabled.remove(&input);
                 self.altered.insert(input);
-                for &owner in self.catalog.owner(input) {
-                    if self.scope[owner].remove(&input) {
+                for owner in self.catalog.owner(input) {
+                    if self.scope[owner.scope].remove(&owner.position) {
                         self.retained -= 1;
                     }
                 }
