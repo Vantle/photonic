@@ -536,3 +536,77 @@ rust_binary(
         "@crate//:serde_json",
     ],
 )
+
+rust_binary(
+    name = "lifecycle",
+    srcs = [
+        "formula.rs",
+        "lifecycle.rs",
+        "lifetime.rs",
+        "meter.rs",
+    ],
+    compile_data = ["//program/ternary:formula"],
+    crate_root = "lifetime.rs",
+    lint_config = "//:lint",
+    rustc_env = {"FORMULA": "$(execpath //program/ternary:formula)"},
+    deps = [
+        "//language:photonic",
+        "@crate//:clap",
+        "@crate//:serde",
+        "@crate//:serde_json",
+    ],
+)
+
+rust_binary(
+    name = "allocation",
+    srcs = [
+        "allocation.rs",
+        "formula.rs",
+        "lifecycle.rs",
+        "lifetime.rs",
+        "meter.rs",
+    ],
+    compile_data = ["//program/ternary:formula"],
+    crate_features = ["allocation"],
+    crate_root = "lifetime.rs",
+    lint_config = "//:lint",
+    rustc_env = {"FORMULA": "$(execpath //program/ternary:formula)"},
+    deps = [
+        "//language:photonic",
+        "@crate//:clap",
+        "@crate//:serde",
+        "@crate//:serde_json",
+    ],
+)
+
+rust_test(
+    name = "allocator",
+    size = "small",
+    srcs = [
+        "allocation.rs",
+        "test/allocation.rs",
+    ],
+    crate_root = "allocation.rs",
+    lint_config = "//:lint",
+    deps = ["@crate//:serde"],
+)
+
+rust_test(
+    name = "lifetime",
+    size = "small",
+    srcs = ["test/lifecycle.rs"],
+    crate_root = "test/lifecycle.rs",
+    data = [
+        ":allocation",
+        ":lifecycle",
+    ],
+    env = {
+        "ALLOCATION": "$(rlocationpath :allocation)",
+        "LIFECYCLE": "$(rlocationpath :lifecycle)",
+    },
+    lint_config = "//:lint",
+    deps = [
+        "@crate//:serde_json",
+        "@rules_rust//rust/runfiles",
+    ],
+)
