@@ -34,7 +34,7 @@ pub struct Canonical {
     pub state: State,
     pub world: Vec<Option<usize>>,
     pub frame: Vec<Option<usize>>,
-    pub resource: HashMap<usize, usize>,
+    pub resource: crate::relation::Map<usize, usize>,
 }
 
 impl State {
@@ -209,13 +209,15 @@ impl State {
                     .push((true, position));
             }
         }
-        let mut resource = incidence.into_iter().collect::<Vec<_>>();
-        resource.sort_by(|left, right| left.1.cmp(&right.1).then_with(|| left.0.cmp(&right.0)));
-        let resource = resource
-            .into_iter()
-            .enumerate()
-            .map(|(position, (index, _))| (index, position))
-            .collect::<HashMap<_, _>>();
+        let resource = {
+            let mut resource = incidence.into_iter().collect::<Vec<_>>();
+            resource.sort_by(|left, right| left.1.cmp(&right.1).then_with(|| left.0.cmp(&right.0)));
+            resource
+                .iter()
+                .enumerate()
+                .map(|(position, (index, _))| (*index, position))
+                .collect::<crate::relation::Map<_, _>>()
+        };
         let particle = |value: &[Token]| {
             let mut value = value
                 .iter()

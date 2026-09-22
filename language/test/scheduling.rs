@@ -301,6 +301,43 @@ fn symmetry() {
 }
 
 #[test]
+fn identity() {
+    let mut state = root(vec![
+        World {
+            frame: 0,
+            particle: vec![token(0), token(1)],
+        },
+        World {
+            frame: 0,
+            particle: vec![token(1), token(2)],
+        },
+    ]);
+    Arc::make_mut(&mut state.frame[0]).held.push(token(2));
+    let expected = state.canonical();
+    for identity in [
+        [usize::MAX, 0, usize::MAX / 2],
+        [1, usize::MAX, 0],
+        [usize::MAX - 1, usize::MAX / 2, usize::MAX],
+    ] {
+        let mut changed = state.clone();
+        for index in 0..changed.world.len() {
+            for token in &mut Arc::make_mut(&mut changed.world[index]).particle {
+                token.id = identity[token.id];
+            }
+        }
+        for token in &mut Arc::make_mut(&mut changed.frame[0]).held {
+            token.id = identity[token.id];
+        }
+        let actual = changed.canonical();
+        assert_eq!(actual.state, expected.state);
+        assert_eq!(actual.resource.len(), identity.len());
+        for (index, identity) in identity.iter().enumerate() {
+            assert_eq!(actual.resource[identity], expected.resource[&index]);
+        }
+    }
+}
+
+#[test]
 fn incidence() {
     for encoding in 0..512usize {
         let mut state = root(
