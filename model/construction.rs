@@ -8,19 +8,20 @@ use crate::structure::{Body, Destination, Input, Output, Particle, Rule, Value};
 use std::collections::BTreeSet;
 
 #[derive(Clone)]
-pub struct Construction<Context = context::Identity> {
+pub struct Construction<Context = context::Identity, Capture = context::Identity> {
+    pub(crate) context: Context,
+    pub(crate) origin: Evidence,
+    pub(crate) capture: std::marker::PhantomData<Capture>,
+}
+
+pub struct Inspection<Context = context::Identity, Capture = context::Identity> {
+    pub input: Fragment<Input<Context, Capture>>,
+    pub output: Fragment<Output<Context, Capture>>,
     context: Context,
     origin: Evidence,
 }
 
-pub struct Inspection<Context = context::Identity> {
-    pub input: Fragment<Input<Context>>,
-    pub output: Fragment<Output<Context>>,
-    context: Context,
-    origin: Evidence,
-}
-
-impl<Context: Copy + Ord> Construction<Context> {
+impl<Context: Clone + Ord, Capture: Clone + Ord> Construction<Context, Capture> {
     pub(crate) fn evidence(&self) -> Evidence {
         self.origin.clone()
     }
@@ -53,7 +54,7 @@ impl<Context: Copy + Ord> Construction<Context> {
         Ok(Fragment { value, evidence })
     }
 
-    pub fn literal(&self, atom: impl Into<String>) -> Fragment<Value<Context>> {
+    pub fn literal(&self, atom: impl Into<String>) -> Fragment<Value<Context, Capture>> {
         Fragment {
             value: Value::Atom(atom.into()),
             evidence: self.evidence(),
@@ -62,23 +63,23 @@ impl<Context: Copy + Ord> Construction<Context> {
 
     pub fn particle(
         &self,
-        value: impl IntoIterator<Item = Fragment<Value<Context>>>,
-    ) -> Result<Fragment<Particle<Context>>, Failure> {
+        value: impl IntoIterator<Item = Fragment<Value<Context, Capture>>>,
+    ) -> Result<Fragment<Particle<Context, Capture>>, Failure> {
         Ok(self.collect(value)?.map(Particle::new))
     }
 
     pub fn input(
         &self,
-        particle: impl IntoIterator<Item = Fragment<Particle<Context>>>,
-    ) -> Result<Fragment<Input<Context>>, Failure> {
+        particle: impl IntoIterator<Item = Fragment<Particle<Context, Capture>>>,
+    ) -> Result<Fragment<Input<Context, Capture>>, Failure> {
         Ok(self.collect(particle)?.map(Input::new))
     }
 
     pub fn destination(
         &self,
-        particle: Fragment<Particle<Context>>,
-        body: Option<Fragment<Body<Context>>>,
-    ) -> Result<Fragment<Destination<Context>>, Failure> {
+        particle: Fragment<Particle<Context, Capture>>,
+        body: Option<Fragment<Body<Context, Capture>>>,
+    ) -> Result<Fragment<Destination<Context, Capture>>, Failure> {
         let particle = self.accept(particle)?;
         let mut evidence = particle.evidence;
         let body = body
@@ -99,15 +100,15 @@ impl<Context: Copy + Ord> Construction<Context> {
 
     pub fn output(
         &self,
-        destination: impl IntoIterator<Item = Fragment<Destination<Context>>>,
-    ) -> Result<Fragment<Output<Context>>, Failure> {
+        destination: impl IntoIterator<Item = Fragment<Destination<Context, Capture>>>,
+    ) -> Result<Fragment<Output<Context, Capture>>, Failure> {
         Ok(self.collect(destination)?.map(Output::new))
     }
 
     pub fn definition(
         &self,
-        value: Fragment<Value<Context>>,
-    ) -> Result<Fragment<Rule<Context>>, Failure> {
+        value: Fragment<Value<Context, Capture>>,
+    ) -> Result<Fragment<Rule<Context, Capture>>, Failure> {
         let value = self.accept(value)?;
         let Value::Rule(rule) = value.value else {
             return Err(Failure::Rule);
@@ -118,7 +119,10 @@ impl<Context: Copy + Ord> Construction<Context> {
         })
     }
 
-    pub fn open(&self, value: Fragment<Rule<Context>>) -> Result<Inspection<Context>, Failure> {
+    pub fn open(
+        &self,
+        value: Fragment<Rule<Context, Capture>>,
+    ) -> Result<Inspection<Context, Capture>, Failure> {
         let value = self.accept(value)?;
         Ok(Inspection {
             input: Fragment {
@@ -136,21 +140,21 @@ impl<Context: Copy + Ord> Construction<Context> {
 
     pub fn rule(
         &self,
-        input: Fragment<Input<Context>>,
-        output: Fragment<Output<Context>>,
-    ) -> Result<Fragment<Value<Context>>, Failure> {
+        input: Fragment<Input<Context, Capture>>,
+        output: Fragment<Output<Context, Capture>>,
+    ) -> Result<Fragment<Value<Context, Capture>>, Failure> {
         self.close(Inspection {
             input,
             output,
-            context: self.context,
+            context: self.context.clone(),
             origin: self.evidence(),
         })
     }
 
     pub fn close(
         &self,
-        inspection: Inspection<Context>,
-    ) -> Result<Fragment<Value<Context>>, Failure> {
+        inspection: Inspection<Context, Capture>,
+    ) -> Result<Fragment<Value<Context, Capture>>, Failure> {
         self.origin.history.permits(&inspection.origin.history)?;
         let input = self.accept(inspection.input)?;
         let output = self.accept(inspection.output)?;
@@ -172,30 +176,16 @@ impl Construction {
     pub fn new(context: context::Identity, history: History) -> Self {
         Self {
             context,
+            capture: std::marker::PhantomData,
             origin: Evidence {
                 read: std::collections::BTreeMap::new(),
                 context: BTreeSet::from([context]),
                 history,
+                proof: None,
+                qualified: std::collections::BTreeMap::new(),
+                capture: BTreeSet::new(),
             },
         }
-    }
-
-    pub fn defer(&self) -> Construction<context::Reference> {
-        Construction {
-            context: context::Reference::Captured(self.context),
-            origin: self.evidence(),
-        }
-    }
-
-    pub fn seal<Item: crate::activation::Seal>(
-        &self,
-        value: Fragment<Item>,
-    ) -> Result<Fragment<Item::Target>, Failure> {
-        let value = self.accept(value)?;
-        Ok(Fragment {
-            value: value.value.seal()?,
-            evidence: value.evidence,
-        })
     }
 
     pub fn inspect(&self, source: &Occurrence) -> Result<Fragment<Value>, Failure> {
@@ -208,26 +198,18 @@ impl Construction {
             evidence,
         })
     }
-
-    pub fn body(
-        &self,
-        rule: impl IntoIterator<Item = Fragment<Rule>>,
-    ) -> Result<Fragment<Body>, Failure> {
-        Ok(self
-            .collect(rule)?
-            .map(|rule| Body::new(self.context, rule)))
-    }
 }
 
-impl Construction<context::Reference> {
+impl<Capture: Clone + Ord> Construction<context::Reference<Capture>, Capture> {
     pub fn local(&self) -> Self {
         Self {
             context: context::Reference::Local(0),
             origin: self.evidence(),
+            capture: std::marker::PhantomData,
         }
     }
 
-    pub fn capture<Item: crate::activation::Capture>(
+    pub fn capture<Item: crate::activation::Capture<Context = Capture>>(
         &self,
         value: Fragment<Item>,
     ) -> Result<Fragment<Item::Target>, Failure> {
@@ -236,10 +218,40 @@ impl Construction<context::Reference> {
 
     pub fn body(
         &self,
-        rule: impl IntoIterator<Item = Fragment<Rule<context::Reference>>>,
-    ) -> Result<Fragment<Body<context::Reference>>, Failure> {
+        rule: impl IntoIterator<Item = Fragment<Rule<context::Reference<Capture>, Capture>>>,
+    ) -> Result<Fragment<Body<context::Reference<Capture>, Capture>>, Failure> {
         Ok(self
             .collect(rule)?
-            .map(|rule| Body::nested(self.context, rule)))
+            .map(|rule| Body::nested(self.context.clone(), rule)))
+    }
+}
+
+impl<Capture: Clone + Ord> Construction<Capture, Capture> {
+    pub fn defer(&self) -> Construction<context::Reference<Capture>, Capture> {
+        Construction {
+            context: context::Reference::Captured(self.context.clone()),
+            origin: self.evidence(),
+            capture: std::marker::PhantomData,
+        }
+    }
+
+    pub fn seal<Item: crate::activation::Seal<Context = Capture>>(
+        &self,
+        value: Fragment<Item>,
+    ) -> Result<Fragment<Item::Target>, Failure> {
+        let value = self.accept(value)?;
+        Ok(Fragment {
+            value: value.value.seal()?,
+            evidence: value.evidence,
+        })
+    }
+
+    pub fn body(
+        &self,
+        rule: impl IntoIterator<Item = Fragment<Rule<Capture, Capture>>>,
+    ) -> Result<Fragment<Body<Capture, Capture>>, Failure> {
+        Ok(self
+            .collect(rule)?
+            .map(|rule| Body::new(self.context.clone(), rule)))
     }
 }

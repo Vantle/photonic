@@ -104,6 +104,27 @@ fn occurrence<'a>(state: &'a Configuration, request: &Request) -> Result<&'a Occ
         .ok_or(Failure::Occurrence(identity))
 }
 
+fn child(path: &Path, depth: usize, position: usize) -> Result<&Path, Failure> {
+    let Some(record) = path.record().get(position) else {
+        return Err(Failure::Derivation { depth, position });
+    };
+    let Step::Inference { path: child, .. } = &record.step else {
+        return Err(Failure::Derivation { depth, position });
+    };
+    if child.source() != &path.state()[position] {
+        return Err(Failure::Source);
+    }
+    Ok(child)
+}
+
+pub(crate) fn descend<'a>(path: &'a Path, derivation: &[usize]) -> Result<&'a Path, Failure> {
+    let mut cursor = path;
+    for (depth, &position) in derivation.iter().enumerate() {
+        cursor = child(cursor, depth, position)?;
+    }
+    Ok(cursor)
+}
+
 pub fn resolve<'a>(
     path: &'a Path,
     world: world::Identity,
@@ -116,15 +137,7 @@ pub fn resolve<'a>(
     let mut parent = Vec::new();
     let mut flow = Flow::identity(path.source());
     for (depth, &position) in request.address.derivation.iter().enumerate() {
-        let Some(record) = cursor.record().get(position) else {
-            return Err(Failure::Derivation { depth, position });
-        };
-        let Step::Inference { path: child, .. } = &record.step else {
-            return Err(Failure::Derivation { depth, position });
-        };
-        if child.source() != &cursor.state()[position] {
-            return Err(Failure::Source);
-        }
+        let child = child(cursor, depth, position)?;
         flow = flow
             .compose(cursor.prefix(position)?)
             .map_err(Failure::Flow)?;

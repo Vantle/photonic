@@ -2,8 +2,8 @@
 pub struct Identity(pub u64);
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
-pub enum Reference {
-    Captured(Identity),
+pub enum Reference<Context = Identity> {
+    Captured(Context),
     Local(usize),
 }
 
@@ -17,10 +17,10 @@ impl Capture for Identity {
     }
 }
 
-impl Capture for Reference {
+impl<Context: Capture> Capture for Reference<Context> {
     fn collect(&self, result: &mut std::collections::BTreeSet<Identity>) {
         if let Self::Captured(identity) = self {
-            result.insert(*identity);
+            identity.collect(result);
         }
     }
 }

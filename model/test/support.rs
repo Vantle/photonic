@@ -62,7 +62,7 @@ fn request(position: usize, world: u64, occurrence: u64) -> Request {
     }
 }
 
-fn derivation() -> Path {
+pub(super) fn derivation() -> Path {
     let initial = initial();
     let deepest = initial
         .advance(Step::Application(request(0, 0, 0)))
@@ -358,8 +358,7 @@ fn archive() {
     assert!(support.read().is_empty());
 }
 
-#[test]
-fn capture() {
+pub(super) fn captured() -> Path {
     let local = model::context::Reference::Local(0);
     let mut producer = model::activation::capture(rule("Make", "Unused"));
     producer.context = local;
@@ -412,12 +411,17 @@ fn capture() {
             ..request(0, 1, 2)
         }))
         .unwrap();
-    let path = initial
+    initial
         .advance(Step::Inference {
             path: Box::new(auxiliary),
             request: request(1, 2, 1),
         })
-        .unwrap();
+        .unwrap()
+}
+
+#[test]
+fn capture() {
+    let path = captured();
     let request = witness(vec![0], 2, 2, 3);
     let support = support::resolve(&path, world::Identity(1), &request).unwrap();
     let Value::Rule(code) = &support.occurrence().value else {
