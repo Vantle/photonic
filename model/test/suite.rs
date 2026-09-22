@@ -1,5 +1,6 @@
 mod admission;
 mod archive;
+mod comparison;
 mod generator;
 mod machine;
 mod path;
