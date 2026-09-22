@@ -31,7 +31,7 @@ enum Task {
 pub struct Gate {
     shared: Option<sharing::Sharing>,
     group: Vec<usize>,
-    candidate: Vec<IndexSet<Slot>>,
+    candidate: Vec<IndexSet<Slot, crate::hashing::Builder>>,
     prefix: Vec<Vec<Option<usize>>>,
     binding: crate::prefix::Arena,
     agenda: VecDeque<Task>,
@@ -50,7 +50,7 @@ impl Gate {
         Self {
             shared: None,
             group: crate::partition::classify(&pattern),
-            candidate: vec![IndexSet::new(); count],
+            candidate: vec![IndexSet::default(); count],
             prefix,
             binding: crate::prefix::Arena::default(),
             agenda: VecDeque::new(),

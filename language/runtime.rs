@@ -85,10 +85,10 @@ enum Task {
 
 pub struct Runtime {
     pub(crate) program: Arc<Program>,
-    pub(crate) state: IndexSet<Arc<State>>,
+    pub(crate) state: IndexSet<Arc<State>, crate::hashing::Builder>,
     index: Vec<Option<Arc<crate::index::Index>>>,
     indexed: usize,
-    view: IndexSet<Arc<View>>,
+    view: IndexSet<Arc<View>, crate::hashing::Builder>,
     event: Vec<Event>,
     normalization: normalization::Store,
     proof: crate::proof::Store,
@@ -97,7 +97,7 @@ pub struct Runtime {
     outgoing: Vec<Vec<usize>>,
     incoming: Vec<Vec<usize>>,
     agenda: crate::agenda::Queue<Task>,
-    pending: IndexSet<Application>,
+    pending: IndexSet<Application, crate::hashing::Builder>,
     limit: Limit,
     pub(crate) work: usize,
     peak: usize,
@@ -114,10 +114,10 @@ impl Runtime {
     pub(crate) fn seed(program: Arc<Program>, initial: Arc<State>) -> Self {
         let mut runtime = Self {
             program,
-            state: IndexSet::new(),
+            state: IndexSet::default(),
             index: Vec::new(),
             indexed: 0,
-            view: IndexSet::new(),
+            view: IndexSet::default(),
             event: Vec::new(),
             normalization: normalization::Store::default(),
             proof: crate::proof::Store::default(),
@@ -126,7 +126,7 @@ impl Runtime {
             outgoing: Vec::new(),
             incoming: Vec::new(),
             agenda: crate::agenda::Queue::new(),
-            pending: IndexSet::new(),
+            pending: IndexSet::default(),
             limit: Limit::default(),
             work: 0,
             peak: 0,

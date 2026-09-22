@@ -1,6 +1,7 @@
 use super::key::Key;
 use super::node::Node;
 use crate::factor::Budget;
+use crate::hashing::Builder;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
@@ -10,7 +11,7 @@ pub(crate) struct Store {
     pub preparation: Arc<crate::preparation::Store>,
     budget: Arc<Budget>,
     accounting: Arc<AtomicUsize>,
-    node: Mutex<HashMap<Arc<Key>, Arc<Node>>>,
+    node: Mutex<HashMap<Arc<Key>, Arc<Node>, Builder>>,
 }
 
 impl Store {
@@ -25,7 +26,7 @@ impl Store {
             )),
             budget,
             accounting,
-            node: Mutex::new(HashMap::new()),
+            node: Mutex::new(HashMap::default()),
         }
     }
 

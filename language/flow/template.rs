@@ -1,6 +1,7 @@
 use super::composition::Composition;
 use super::{Flow, Place};
 use crate::basis::Set;
+use crate::hashing::Builder;
 use std::collections::HashMap;
 
 pub(super) struct Template {
@@ -14,7 +15,7 @@ pub(super) struct Template {
 fn group<Value: Clone + Eq + std::hash::Hash, Position>(
     source: impl Iterator<Item = (Position, Set<Value>)>,
 ) -> Vec<(Set<Value>, Vec<Position>)> {
-    let mut identity = HashMap::new();
+    let mut identity = HashMap::<_, _, Builder>::default();
     let mut result: Vec<(Set<Value>, Vec<Position>)> = Vec::new();
     for (position, value) in source {
         let next = result.len();

@@ -1,3 +1,4 @@
+use crate::hashing::Builder;
 use crate::link::Link;
 use crate::program::Symbol;
 use crate::state::State;
@@ -39,7 +40,7 @@ impl Incidence {
             frame[index] = label.len();
             label.push(Label::Frame(state.frame[index].scope, index == 0));
         }
-        let mut resource = HashMap::new();
+        let mut resource = HashMap::<_, _, Builder>::default();
         let mut identity = Vec::new();
         for token in state.world.iter().flat_map(|world| &world.particle).chain(
             retained

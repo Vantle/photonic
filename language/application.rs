@@ -1,5 +1,6 @@
 use crate::basis::Set;
 use crate::flow::{Applied, Binding, Closure, Flow, Place};
+use crate::hashing::Builder;
 use crate::program::Instruction;
 use crate::state::{Frame, State, Token};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
@@ -22,8 +23,8 @@ struct Draft {
 
 struct Import<'state> {
     closure: Closure<'state>,
-    frame: HashMap<usize, usize>,
-    resource: HashMap<usize, usize>,
+    frame: HashMap<usize, usize, Builder>,
+    resource: HashMap<usize, usize, Builder>,
     next: usize,
 }
 
@@ -160,7 +161,7 @@ pub(crate) fn apply(request: Request<'_>) -> Applied {
     let layout = crate::layout::Layout::new(source);
     let mut next = layout.resource;
     let owner = if let Some(closure) = closure {
-        let mut resource = HashMap::new();
+        let mut resource = HashMap::default();
         for (index, frame) in closure.state.frame.iter().enumerate() {
             for (place, token) in frame
                 .particle
@@ -193,7 +194,7 @@ pub(crate) fn apply(request: Request<'_>) -> Applied {
         let capture = closure.capture;
         let mut import = Import {
             closure,
-            frame: HashMap::new(),
+            frame: HashMap::default(),
             resource,
             next,
         };

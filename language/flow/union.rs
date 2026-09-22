@@ -1,16 +1,17 @@
 use crate::basis::Set;
+use crate::hashing::Builder;
 use std::collections::HashMap;
 use std::hash::Hash;
 
 pub(super) struct Union<Value> {
-    entry: HashMap<Set<Value>, Set<Value>>,
+    entry: HashMap<Set<Value>, Set<Value>, Builder>,
     retained: usize,
 }
 
 impl<Value> Default for Union<Value> {
     fn default() -> Self {
         Self {
-            entry: HashMap::new(),
+            entry: HashMap::default(),
             retained: 0,
         }
     }

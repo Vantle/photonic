@@ -1,4 +1,5 @@
 use crate::flow::Place;
+use crate::hashing::Builder;
 use crate::index::Index;
 use crate::search::Search;
 use crate::slot::Slot;
@@ -52,11 +53,11 @@ pub(super) struct Delivery {
 
 #[derive(Default)]
 pub(super) struct Table {
-    query: HashMap<Query, usize>,
+    query: HashMap<Query, usize, Builder>,
     cache: Vec<Cache>,
-    request: IndexSet<Request>,
+    request: IndexSet<Request, Builder>,
     cursor: Vec<usize>,
-    active: HashSet<usize>,
+    active: HashSet<usize, Builder>,
     binding: usize,
     retained: usize,
     preparation: Option<Arc<crate::selection::Store>>,

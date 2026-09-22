@@ -1,3 +1,4 @@
+use crate::hashing::Builder;
 use crate::plan::Input;
 use crate::program::Program;
 use std::collections::HashMap;
@@ -11,8 +12,8 @@ pub(crate) struct Catalog {
 
 impl Catalog {
     pub fn new(program: &Program) -> Self {
-        let mut identity = HashMap::new();
-        let mut fragment = HashMap::new();
+        let mut identity = HashMap::<_, _, Builder>::default();
+        let mut fragment = HashMap::default();
         let mut input = Vec::new();
         let rule = program
             .rule

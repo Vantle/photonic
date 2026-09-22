@@ -4,7 +4,7 @@ use std::sync::OnceLock;
 
 #[derive(Default)]
 pub(crate) struct Store {
-    clause: IndexSet<Clause>,
+    clause: IndexSet<Clause, crate::hashing::Builder>,
     support: OnceLock<Support>,
 }
 

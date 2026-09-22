@@ -2,13 +2,14 @@ use super::Flow;
 use super::composition::Composition;
 use super::key::Key;
 use super::template::Template;
+use crate::hashing::Builder;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::sync::Arc;
 
 pub(crate) struct Store {
-    entry: HashMap<Key, Composition>,
-    template: HashMap<Key, Option<Template>>,
+    entry: HashMap<Key, Composition, Builder>,
+    template: HashMap<Key, Option<Template>, Builder>,
     capacity: usize,
     retained: usize,
     disabled: bool,
@@ -17,8 +18,8 @@ pub(crate) struct Store {
 impl Store {
     pub fn new(capacity: usize) -> Self {
         Self {
-            entry: HashMap::new(),
-            template: HashMap::new(),
+            entry: HashMap::default(),
+            template: HashMap::default(),
             capacity,
             retained: 0,
             disabled: false,

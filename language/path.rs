@@ -1,6 +1,7 @@
 mod report;
 
 use crate::flow::Place;
+use crate::hashing::Builder;
 use crate::prism::Outcome;
 use crate::program::Program;
 use crate::runtime::Limit;
@@ -123,7 +124,7 @@ pub struct Search {
     runtime: crate::reduction::Search,
     structure: crate::structure::Structure,
     state: Vec<Record>,
-    index: HashMap<u64, Vec<usize>>,
+    index: HashMap<u64, Vec<usize>, Builder>,
     event: Vec<Step>,
     pending: Option<crate::reduction::Event>,
     candidate: Option<Record>,
@@ -152,7 +153,7 @@ impl Search {
             structure: crate::structure::Structure::default(),
             compiled,
             state: vec![Record::new(initial)],
-            index: HashMap::from([(fingerprint, vec![0])]),
+            index: HashMap::from_iter([(fingerprint, vec![0])]),
             event: Vec::new(),
             pending: None,
             candidate: None,

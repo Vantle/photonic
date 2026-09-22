@@ -1,5 +1,6 @@
 use super::entry::Consumer;
 use crate::catalog::Catalog;
+use crate::hashing::Builder;
 use crate::program::Symbol;
 use crate::reader::Read;
 use crate::state::Token;
@@ -19,7 +20,7 @@ fn consumer(frame: usize, token: &Token) -> Option<Consumer> {
 
 struct Population {
     value: crate::population::Set,
-    group: HashMap<usize, SmallVec<[Consumer; 1]>>,
+    group: HashMap<usize, SmallVec<[Consumer; 1]>, Builder>,
     retained: usize,
 }
 
@@ -27,7 +28,7 @@ impl Population {
     fn new(frame: usize, value: &crate::population::Set, catalog: &Catalog) -> Self {
         let mut population = Self {
             value: value.clone(),
-            group: HashMap::new(),
+            group: HashMap::default(),
             retained: 1,
         };
         for consumer in value.iter().filter_map(|token| consumer(frame, token)) {

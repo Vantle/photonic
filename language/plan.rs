@@ -29,7 +29,11 @@ impl Input {
 
     pub fn shared(
         value: &[Vec<Symbol>],
-        shared: &mut std::collections::HashMap<Vec<Symbol>, Arc<crate::pattern::Pattern>>,
+        shared: &mut std::collections::HashMap<
+            Vec<Symbol>,
+            Arc<crate::pattern::Pattern>,
+            crate::hashing::Builder,
+        >,
     ) -> Self {
         let pattern = value.to_vec();
         let mut dependency = value

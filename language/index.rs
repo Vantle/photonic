@@ -1,10 +1,11 @@
 #[cfg(test)]
 use crate::basis::Set;
+use crate::hashing::Builder;
 use crate::location::Location;
 use crate::program::Symbol;
 use crate::state::State;
 use crate::term::Term;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, OnceLock};
 
 mod context;
@@ -23,18 +24,18 @@ pub(crate) struct Index {
     location: Vec<Option<Location>>,
     coherence: Vec<usize>,
     owner: Vec<Option<usize>>,
-    lexicon: HashMap<(usize, Symbol), Vec<usize>>,
+    lexicon: HashMap<(usize, Symbol), Vec<usize>, Builder>,
     reader: Vec<Vec<crate::reader::Reader>>,
-    term: HashMap<(usize, Term), Vec<Occurrence>>,
+    term: HashMap<(usize, Term), Vec<Occurrence>, Builder>,
     position: crate::position::Index,
     rank: Vec<usize>,
     vacant: Vec<usize>,
     retained: usize,
-    symbol: HashMap<Symbol, usize>,
-    pub altered: std::collections::HashSet<Symbol>,
+    symbol: HashMap<Symbol, usize, Builder>,
+    pub altered: HashSet<Symbol, Builder>,
     pub context: Vec<usize>,
     pub ownership: Vec<usize>,
-    pub affected: HashMap<usize, std::collections::HashSet<Symbol>>,
+    pub affected: HashMap<usize, HashSet<Symbol, Builder>, Builder>,
     pub removal: Vec<usize>,
     pub insertion: Vec<usize>,
 }
@@ -56,18 +57,18 @@ impl Index {
             location: Vec::new(),
             coherence: Vec::new(),
             owner: Vec::new(),
-            lexicon: HashMap::new(),
+            lexicon: HashMap::default(),
             reader: Vec::new(),
-            term: HashMap::new(),
+            term: HashMap::default(),
             position: Default::default(),
             rank: Vec::new(),
             vacant: Vec::new(),
             retained: 0,
-            symbol: HashMap::new(),
+            symbol: HashMap::default(),
             altered: Default::default(),
             context: Vec::new(),
             ownership: Vec::new(),
-            affected: HashMap::new(),
+            affected: HashMap::default(),
             removal: Vec::new(),
             insertion: Vec::new(),
         };
@@ -302,11 +303,7 @@ impl Index {
             + self.context.len()
             + self.ownership.len()
             + self.affected.len()
-            + self
-                .affected
-                .values()
-                .map(std::collections::HashSet::len)
-                .sum::<usize>()
+            + self.affected.values().map(HashSet::len).sum::<usize>()
             + self.altered.len()
             + self.removal.len()
             + self.insertion.len()

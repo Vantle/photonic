@@ -1,6 +1,7 @@
 use super::{Application, Identity};
 use crate::canonical::Search;
 use crate::flow::{Applied, Flow};
+use crate::hashing::Builder;
 use std::collections::HashMap;
 
 #[derive(Clone, Copy)]
@@ -25,7 +26,7 @@ pub(super) struct Completion {
 #[derive(Default)]
 pub(super) struct Store {
     environment: super::environment::Store,
-    identity: HashMap<Identity, Status>,
+    identity: HashMap<Identity, Status, Builder>,
     job: Vec<Option<Job>>,
     vacant: Vec<usize>,
 }

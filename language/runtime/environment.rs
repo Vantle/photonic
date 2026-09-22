@@ -1,3 +1,4 @@
+use crate::hashing::Builder;
 use crate::state::State;
 use std::collections::HashMap;
 use std::sync::{Arc, Weak};
@@ -9,7 +10,7 @@ pub(super) struct Request<'state> {
 }
 
 pub(super) struct Store {
-    entry: HashMap<(usize, usize), Weak<State>>,
+    entry: HashMap<(usize, usize), Weak<State>, Builder>,
     capacity: usize,
 }
 
@@ -22,7 +23,7 @@ impl Default for Store {
 impl Store {
     fn new(capacity: usize) -> Self {
         Self {
-            entry: HashMap::new(),
+            entry: HashMap::default(),
             capacity,
         }
     }

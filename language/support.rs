@@ -1,3 +1,4 @@
+use crate::hashing::Builder;
 use serde::Serialize;
 use std::collections::{BTreeSet, HashMap, HashSet};
 
@@ -27,19 +28,19 @@ struct Pending {
 }
 
 struct Network {
-    dependency: HashMap<Atom, Vec<usize>>,
+    dependency: HashMap<Atom, Vec<usize>, Builder>,
     pending: crate::arena::Store<Pending>,
 }
 
 pub struct Support {
-    established: HashSet<Atom>,
+    established: HashSet<Atom, Builder>,
     network: Option<Box<Network>>,
 }
 
 impl Support {
     pub fn new(clause: impl IntoIterator<Item = Clause>) -> Self {
         let mut support = Self {
-            established: HashSet::new(),
+            established: HashSet::default(),
             network: None,
         };
         for clause in clause {
@@ -64,7 +65,7 @@ impl Support {
         }
         let network = self.network.get_or_insert_with(|| {
             Box::new(Network {
-                dependency: HashMap::new(),
+                dependency: HashMap::default(),
                 pending: crate::arena::Store::new(),
             })
         });

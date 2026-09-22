@@ -1,3 +1,4 @@
+use crate::hashing::Builder;
 use crate::incidence::Label;
 use crate::link::Link;
 use crate::state::{State, Token};
@@ -17,9 +18,9 @@ struct Frame {
 #[derive(Default)]
 pub(crate) struct Structure {
     graph: crate::propagation::Network,
-    world: HashMap<usize, World>,
+    world: HashMap<usize, World, Builder>,
     frame: Vec<Option<Frame>>,
-    resource: HashMap<usize, usize>,
+    resource: HashMap<usize, usize, Builder>,
 }
 
 impl Structure {
@@ -50,7 +51,7 @@ impl Structure {
         vertex
     }
 
-    fn retain(&mut self, current: &HashSet<usize>) {
+    fn retain(&mut self, current: &HashSet<usize, Builder>) {
         let removal = self
             .world
             .keys()
@@ -178,7 +179,7 @@ impl Structure {
             .world
             .iter()
             .map(|world| Arc::as_ptr(world) as usize)
-            .collect::<HashSet<_>>();
+            .collect::<HashSet<_, Builder>>();
         if current.len() != state.world.len() {
             return crate::fingerprint::signature(state);
         }

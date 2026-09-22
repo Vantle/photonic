@@ -1,4 +1,5 @@
 use crate::catalog::Catalog;
+use crate::hashing::Builder;
 use crate::index::Index;
 use crate::membership::Set;
 use crate::program::Symbol;
@@ -29,7 +30,7 @@ pub(crate) struct Network {
     catalog: Catalog,
     membership: membership::Index,
     sharing: std::sync::Arc<crate::joining::Store>,
-    trigger: HashMap<Symbol, Vec<usize>>,
+    trigger: HashMap<Symbol, Vec<usize>, Builder>,
     empty: Vec<usize>,
     missing: Vec<usize>,
     enabled: Set,
@@ -103,7 +104,7 @@ impl Network {
 
     pub fn new(program: &crate::program::Program, index: &Index) -> Self {
         let catalog = Catalog::new(program);
-        let mut trigger: HashMap<_, Vec<_>> = HashMap::new();
+        let mut trigger: HashMap<_, Vec<_>, Builder> = HashMap::default();
         let mut missing = Vec::new();
         let mut enabled = Set::default();
         let mut empty = Vec::new();

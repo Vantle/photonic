@@ -1,5 +1,6 @@
 use super::key::Key;
 use crate::factor::Budget;
+use crate::hashing::Builder;
 use crate::particle::{Match, Preparation};
 use crate::reservation::Reservation;
 use crate::state::World;
@@ -21,7 +22,7 @@ struct Entry {
 pub(crate) struct Cache<Value> {
     budget: Arc<Budget>,
     accounting: Arc<AtomicUsize>,
-    entry: Mutex<HashMap<Key<Value>, Entry>>,
+    entry: Mutex<HashMap<Key<Value>, Entry, Builder>>,
 }
 
 impl<Value> Cache<Value> {
@@ -29,7 +30,7 @@ impl<Value> Cache<Value> {
         Self {
             budget,
             accounting,
-            entry: Mutex::new(HashMap::new()),
+            entry: Mutex::new(HashMap::default()),
         }
     }
 

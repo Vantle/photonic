@@ -1,3 +1,4 @@
+use crate::hashing::Builder;
 use crate::program::{Program, Symbol};
 use smallvec::SmallVec;
 use std::collections::HashMap;
@@ -232,8 +233,11 @@ impl State {
         let _measurement =
             crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Renaming);
         self.remap(world, frame, |mapping| {
-            let mut incidence =
-                HashMap::<usize, (Symbol, Option<usize>, SmallVec<[(u8, usize); 1]>)>::new();
+            let mut incidence = HashMap::<
+                usize,
+                (Symbol, Option<usize>, SmallVec<[(u8, usize); 1]>),
+                Builder,
+            >::default();
             for (position, &index) in world.iter().enumerate() {
                 for token in &self.world[index].particle {
                     incidence

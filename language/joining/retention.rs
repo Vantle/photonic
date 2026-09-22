@@ -1,12 +1,13 @@
 use super::dependency::Dependency;
 use super::trace::Trace;
+use crate::hashing::Builder;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 #[derive(Default)]
 pub(super) struct Retention {
-    record: HashMap<Arc<Dependency>, Box<Trace>>,
-    reverse: HashMap<usize, HashSet<Arc<Dependency>>>,
+    record: HashMap<Arc<Dependency>, Box<Trace>, Builder>,
+    reverse: HashMap<usize, HashSet<Arc<Dependency>, Builder>, Builder>,
 }
 
 impl Retention {

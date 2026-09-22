@@ -16,16 +16,16 @@ struct Text {
 
 pub(crate) struct Builder<'program> {
     program: &'program Program,
-    text: HashMap<Symbol, Text>,
-    scope: HashMap<usize, Arc<str>>,
+    text: HashMap<Symbol, Text, crate::hashing::Builder>,
+    scope: HashMap<usize, Arc<str>, crate::hashing::Builder>,
 }
 
 impl<'program> Builder<'program> {
     pub(crate) fn new(program: &'program Program) -> Self {
         Self {
             program,
-            text: HashMap::new(),
-            scope: HashMap::new(),
+            text: HashMap::default(),
+            scope: HashMap::default(),
         }
     }
 

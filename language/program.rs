@@ -1,3 +1,4 @@
+use crate::hashing::Builder;
 use crate::source;
 use indexmap::IndexSet;
 use std::collections::HashMap;
@@ -29,21 +30,21 @@ pub struct Scope {
 
 #[derive(Clone, Debug)]
 pub struct Program {
-    pub atom: IndexSet<String>,
+    pub atom: IndexSet<String, Builder>,
     pub rule: Vec<Instruction>,
     pub scope: Vec<Scope>,
     pub initial: Vec<Vec<Symbol>>,
-    interner: HashMap<source::Definition, usize>,
+    interner: HashMap<source::Definition, usize, Builder>,
 }
 
 impl Program {
     pub fn new(source: source::Program) -> Self {
         let mut program = Self {
-            atom: IndexSet::new(),
+            atom: IndexSet::default(),
             rule: Vec::new(),
             scope: Vec::new(),
             initial: Vec::new(),
-            interner: HashMap::new(),
+            interner: HashMap::default(),
         };
         program.declare(&source.rule, "root".into());
         program.initial = source

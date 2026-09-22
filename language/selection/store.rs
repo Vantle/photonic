@@ -1,4 +1,5 @@
 use crate::factor::Budget;
+use crate::hashing::Builder;
 use crate::particle::Match;
 use crate::pattern::Pattern;
 use crate::preparation::cache::{Cache, Request};
@@ -86,7 +87,7 @@ struct Storage {
     budget: Arc<Budget>,
     accounting: Arc<AtomicUsize>,
     preparation: Cache<Pattern<Term>>,
-    fragment: Mutex<HashMap<Vec<Term>, Entry>>,
+    fragment: Mutex<HashMap<Vec<Term>, Entry, Builder>>,
 }
 
 impl Storage {
@@ -97,7 +98,7 @@ impl Storage {
             preparation: Cache::new(budget.clone(), accounting.clone()),
             budget,
             accounting,
-            fragment: Mutex::new(HashMap::new()),
+            fragment: Mutex::new(HashMap::default()),
         }
     }
 

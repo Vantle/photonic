@@ -1,6 +1,7 @@
 use super::key::Key;
 use super::transcript::Transcript;
 use crate::factor::Budget;
+use crate::hashing::Builder;
 use crate::reservation::Reservation;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -12,7 +13,7 @@ pub(super) struct Entry {
 }
 
 pub(crate) struct Store {
-    entry: Mutex<HashMap<Key, Arc<Entry>>>,
+    entry: Mutex<HashMap<Key, Arc<Entry>, Builder>>,
     capacity: usize,
     budget: Arc<Budget>,
     accounting: Arc<AtomicUsize>,
@@ -21,7 +22,7 @@ pub(crate) struct Store {
 impl Store {
     pub fn new(capacity: usize) -> Self {
         Self {
-            entry: Mutex::new(HashMap::new()),
+            entry: Mutex::new(HashMap::default()),
             capacity,
             budget: Arc::new(Budget::new(capacity)),
             accounting: Arc::new(AtomicUsize::new(0)),

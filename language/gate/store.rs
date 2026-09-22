@@ -1,4 +1,5 @@
 use super::Constraint;
+use crate::hashing::Builder;
 use std::collections::HashMap;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -24,7 +25,7 @@ pub(super) struct Decision {
 #[derive(Default)]
 struct Cache {
     generation: usize,
-    entry: HashMap<Key, Decision>,
+    entry: HashMap<Key, Decision, Builder>,
 }
 
 pub(crate) struct Store {
