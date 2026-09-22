@@ -142,7 +142,8 @@ impl Index {
     fn insert(&mut self, world: usize) {
         let site = self.allocate(Location::World(world));
         self.coherence.push(site);
-        let value = self.state.world[world].clone();
+        let state = self.state.clone();
+        let value = &state.world[world];
         self.affected
             .insert(value.frame, value.particle.iter().map(|token| token.value));
         self.frame[value.frame].insert(site);
@@ -184,10 +185,10 @@ impl Index {
     }
 
     pub fn candidate(&self, pattern: impl IntoIterator<Item = Term>, frame: usize) -> Vec<usize> {
+        let mut pattern = pattern.into_iter().peekable();
+        let empty = pattern.peek().is_none();
         let mut posting = smallvec::SmallVec::<[&[Occurrence]; 4]>::new();
-        let mut empty = true;
         for term in pattern {
-            empty = false;
             if self.visible(frame, &term).next().is_some() {
                 continue;
             }

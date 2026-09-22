@@ -48,9 +48,10 @@ impl Index {
         self.removal
             .extend(removed.iter().map(|&world| self.coherence[world]));
         let mut posting = smallvec::SmallVec::<[(usize, Term); 8]>::new();
+        let prior = self.state.clone();
         for (offset, &world) in removed.iter().enumerate() {
             let site = self.removal[offset];
-            let value = self.state.world[world].clone();
+            let value = &prior.world[world];
             self.affected
                 .insert(value.frame, value.particle.iter().map(|token| token.value));
             self.frame[value.frame].remove(&site);
