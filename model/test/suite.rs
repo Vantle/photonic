@@ -10,6 +10,7 @@ mod qualification;
 mod staging;
 mod support;
 mod template;
+mod transition;
 mod transport;
 
 use model::construction::Construction;

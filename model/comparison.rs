@@ -82,7 +82,7 @@ pub fn compare(source: &Configuration, target: &Configuration) -> Option<Mapping
 pub fn find(
     source: &Configuration,
     target: &Configuration,
-    accept: impl Fn(&Mapping) -> bool,
+    mut accept: impl FnMut(&Mapping) -> bool,
 ) -> Option<Mapping> {
     if source.history() != target.history()
         || source.frame.len() != target.frame.len()
