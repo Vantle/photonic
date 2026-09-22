@@ -24,12 +24,12 @@ pub enum Outcome {
 }
 
 #[derive(Debug, Serialize)]
-pub struct Report {
+pub struct Report<Execution = Snapshot, Program = source::Program, Target = Vec<Vec<Value>>> {
     pub outcome: Outcome,
     pub witness: Option<usize>,
-    pub program: source::Program,
-    pub target: Vec<Vec<Value>>,
-    pub execution: Snapshot,
+    pub program: Program,
+    pub target: Target,
+    pub execution: Execution,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
@@ -92,6 +92,17 @@ impl Search {
         Verdict {
             outcome,
             witness: candidate.filter(|_| outcome == Outcome::Reached),
+        }
+    }
+
+    pub fn view(&self) -> impl Serialize + '_ {
+        let verdict = self.verdict();
+        Report {
+            outcome: verdict.outcome,
+            witness: verdict.witness,
+            program: &self.program,
+            target: &self.claim,
+            execution: self.runtime.view(),
         }
     }
 

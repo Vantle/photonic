@@ -540,6 +540,7 @@ rust_binary(
 rust_binary(
     name = "lifecycle",
     srcs = [
+        "export.rs",
         "formula.rs",
         "lifecycle.rs",
         "lifetime.rs",
@@ -561,6 +562,7 @@ rust_binary(
     name = "allocation",
     srcs = [
         "allocation.rs",
+        "export.rs",
         "formula.rs",
         "lifecycle.rs",
         "lifetime.rs",

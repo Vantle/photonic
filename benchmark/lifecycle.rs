@@ -9,6 +9,7 @@ pub trait Engine {
 
     fn execute(&mut self, budget: usize, limit: Limit);
     fn report(&self) -> Self::Report;
+    fn view(&self) -> impl Serialize + '_;
     fn observe(report: &Self::Report) -> Observation;
 }
 
@@ -32,6 +33,10 @@ impl Engine for photonic::path::Search {
         self.report()
     }
 
+    fn view(&self) -> impl Serialize + '_ {
+        self.view()
+    }
+
     fn observe(report: &Self::Report) -> Observation {
         assert_eq!(report.outcome, photonic::prism::Outcome::Reached);
         Observation {
@@ -53,6 +58,10 @@ impl Engine for photonic::runtime::Runtime {
 
     fn report(&self) -> Self::Report {
         self.snapshot()
+    }
+
+    fn view(&self) -> impl Serialize + '_ {
+        self.view()
     }
 
     fn observe(report: &Self::Report) -> Observation {
@@ -92,7 +101,7 @@ struct Retention {
 
 #[cfg(feature = "allocation")]
 #[derive(Serialize)]
-struct Footprint {
+pub struct Footprint {
     allocated: usize,
     released: usize,
     retained: i128,
@@ -102,16 +111,7 @@ struct Footprint {
 pub fn measure<Value: Engine>(initialize: impl FnOnce() -> Value, budget: usize) -> Record {
     let (mut engine, initialization) = meter::measure(initialize);
     let ((), execution) = meter::measure(|| {
-        engine.execute(
-            budget,
-            Limit {
-                state: 262_144,
-                record: 100_000_000,
-                world: 1024,
-                cell: 16_384,
-                frame: 2048,
-            },
-        );
+        engine.execute(budget, limit());
     });
     let (report, reporting) = meter::measure(|| black_box(engine.report()));
     let mut observation = Value::observe(&report);
@@ -138,30 +138,13 @@ pub fn measure<Value: Engine>(initialize: impl FnOnce() -> Value, budget: usize)
         }
     });
     #[cfg(feature = "allocation")]
-    let footprint = {
-        let mut footprint = Footprint {
-            allocated: 0,
-            released: 0,
-            retained: 0,
-            peak: 0,
-        };
-        for measurement in [
-            &initialization,
-            &execution,
-            &reporting,
-            &serialization,
-            &release,
-        ] {
-            let allocation = &measurement.allocation;
-            footprint.allocated += allocation.allocated;
-            footprint.released += allocation.released;
-            footprint.peak = footprint
-                .peak
-                .max(footprint.retained + allocation.peak as i128);
-            footprint.retained += allocation.retained;
-        }
-        footprint
-    };
+    let footprint = Footprint::new([
+        &initialization,
+        &execution,
+        &reporting,
+        &serialization,
+        &release,
+    ]);
     let duration = initialization.duration
         + execution.duration
         + reporting.duration
@@ -179,5 +162,37 @@ pub fn measure<Value: Engine>(initialize: impl FnOnce() -> Value, budget: usize)
         footprint,
         #[cfg(feature = "allocation")]
         retention,
+    }
+}
+
+pub fn limit() -> Limit {
+    Limit {
+        state: 262_144,
+        record: 100_000_000,
+        world: 1024,
+        cell: 16_384,
+        frame: 2048,
+    }
+}
+
+#[cfg(feature = "allocation")]
+impl Footprint {
+    pub fn new<'value>(measurement: impl IntoIterator<Item = &'value Measurement>) -> Self {
+        let mut footprint = Self {
+            allocated: 0,
+            released: 0,
+            retained: 0,
+            peak: 0,
+        };
+        for measurement in measurement {
+            let allocation = &measurement.allocation;
+            footprint.allocated += allocation.allocated;
+            footprint.released += allocation.released;
+            footprint.peak = footprint
+                .peak
+                .max(footprint.retained + allocation.peak as i128);
+            footprint.retained += allocation.retained;
+        }
+        footprint
     }
 }

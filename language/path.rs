@@ -1,3 +1,5 @@
+mod report;
+
 use crate::flow::Place;
 use crate::prism::{Failure, Outcome};
 use crate::program::Program;
@@ -10,7 +12,7 @@ use serde::Serialize;
 use std::collections::HashMap;
 use std::sync::{Arc, OnceLock};
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 pub struct Event {
     pub source: usize,
     pub target: usize,
@@ -21,14 +23,19 @@ pub struct Event {
 }
 
 #[derive(Debug, Serialize)]
-pub struct Report {
+pub struct Report<
+    State = Vec<Node>,
+    Transition = Vec<Event>,
+    Program = source::Program,
+    Target = Vec<Vec<source::Value>>,
+> {
     pub outcome: Outcome,
     pub witness: Option<usize>,
     pub work: usize,
-    pub program: source::Program,
-    pub target: Vec<Vec<source::Value>>,
-    pub state: Vec<Node>,
-    pub event: Vec<Event>,
+    pub program: Program,
+    pub target: Target,
+    pub state: State,
+    pub event: Transition,
 }
 
 pub struct Summary {
@@ -382,46 +389,6 @@ impl Search {
             witness: self.reached.then(|| self.current()),
             event: self.event.len(),
             work: self.work,
-        }
-    }
-
-    pub fn report(&self) -> Report {
-        let mut storage = crate::canonical::storage::Store::default();
-        let mut builder = crate::render::Builder::new(&self.compiled);
-        Report {
-            outcome: if self.reached {
-                Outcome::Reached
-            } else {
-                Outcome::Unknown
-            },
-            witness: self.reached.then_some(self.cursor),
-            work: self.work,
-            program: self.program.clone(),
-            target: self.claim.clone(),
-            state: self
-                .state
-                .iter()
-                .enumerate()
-                .map(|(index, record)| {
-                    let canonical = record
-                        .canonical
-                        .get_or_init(|| storage.insert(record.state.canonical()));
-                    builder.node(index, &canonical.state, Status::Supported)
-                })
-                .collect(),
-            event: (0..self.event.len())
-                .map(|index| {
-                    let event = self.transition(index).unwrap();
-                    Event {
-                        source: event.source,
-                        target: event.target,
-                        rule: event.rule.clone(),
-                        footprint: event.footprint.clone(),
-                        exact: event.exact.clone(),
-                        read: event.read.clone(),
-                    }
-                })
-                .collect(),
         }
     }
 }

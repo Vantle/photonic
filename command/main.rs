@@ -87,12 +87,12 @@ fn run(path: PathBuf, execution: Execution) -> miette::Result<()> {
     let executor = photonic::executor::Executor::new(execution.worker).into_diagnostic()?;
     let mut runtime = Runtime::new(load(&path, &execution)?);
     runtime.parallel(&executor, execution.step, Some(limit(&execution)));
-    let snapshot = runtime.snapshot();
     let mut output = std::io::stdout().lock();
     if execution.json {
-        serde_json::to_writer_pretty(&mut output, &snapshot).into_diagnostic()?;
+        serde_json::to_writer_pretty(&mut output, &runtime.view()).into_diagnostic()?;
         return writeln!(output).into_diagnostic();
     }
+    let snapshot = runtime.snapshot();
     writeln!(
         output,
         "{}: {} configurations, {} applications, {} work items; {} queued, {} deferred",
@@ -137,12 +137,12 @@ fn prism(path: PathBuf, target: PathBuf, execution: Execution, walk: bool) -> mi
         program(&target, execution.format)?,
     )?;
     search.parallel(&executor, execution.step, Some(limit(&execution)));
-    let report = search.report();
     let mut output = std::io::stdout().lock();
     if execution.json {
-        serde_json::to_writer_pretty(&mut output, &report).into_diagnostic()?;
+        serde_json::to_writer_pretty(&mut output, &search.view()).into_diagnostic()?;
         return writeln!(output).into_diagnostic();
     }
+    let report = search.report();
     let outcome = match report.outcome {
         photonic::prism::Outcome::Reached => "Reached",
         photonic::prism::Outcome::Unreachable => "Unreachable",
@@ -184,7 +184,7 @@ fn trace(path: PathBuf, target: PathBuf, execution: Execution) -> miette::Result
     search.run(execution.step, limit(&execution));
     let mut output = std::io::stdout().lock();
     if execution.json {
-        serde_json::to_writer_pretty(&mut output, &search.report()).into_diagnostic()?;
+        serde_json::to_writer_pretty(&mut output, &search.view()).into_diagnostic()?;
         return writeln!(output).into_diagnostic();
     }
     let report = search.summary();

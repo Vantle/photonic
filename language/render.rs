@@ -1,3 +1,7 @@
+mod sequence;
+
+pub(crate) use sequence::Sequence;
+
 use crate::program::{Program, Symbol};
 use crate::snapshot::{Frame, Node, Token, World};
 use crate::state::State;

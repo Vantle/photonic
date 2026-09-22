@@ -48,7 +48,7 @@ Existing differential tests compare planned matching against the raw-pattern pat
 
 Logical storage accounting intentionally keeps its existing charges: reducing physical allocation must not silently change bounded execution behavior. No scheduling or rule semantics changed, so exact historical comparisons remain appropriate here.
 
-Subscription admission and removal remain substantial. Further work needs to distinguish necessary fresh occurrences from avoidable consumer rediscovery or domain reconstruction under coherent changes. Repeated frame/input/owner coordinates alone still do not establish cache validity. The separate report-view project remains the clearest opportunity to reduce full-export peak memory.
+Subscription admission and removal remain substantial. Further work needs to distinguish necessary fresh occurrences from avoidable consumer rediscovery or domain reconstruction under coherent changes. Repeated frame/input/owner coordinates alone still do not establish cache validity. The subsequent [report-view implementation](view.md) removes complete owned-report materialization from the three JSON report consumers and reduces full-export peak memory.
 
 ```sh
 bazel test -c opt //...

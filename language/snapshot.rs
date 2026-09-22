@@ -5,7 +5,7 @@ use serde::Serialize;
 use std::sync::Arc;
 
 #[derive(Debug, Serialize)]
-pub struct Snapshot {
+pub struct Snapshot<State = Vec<Node>, Transition = Vec<Event>, Projection = Vec<View>> {
     pub closed: bool,
     pub record: usize,
     pub peak: usize,
@@ -13,9 +13,9 @@ pub struct Snapshot {
     pub deferred: usize,
     pub work: usize,
     pub limit: Limit,
-    pub state: Vec<Node>,
-    pub event: Vec<Event>,
-    pub view: Vec<View>,
+    pub state: State,
+    pub event: Transition,
+    pub view: Projection,
 }
 #[derive(Debug, Serialize)]
 pub struct Node {

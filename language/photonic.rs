@@ -68,3 +68,7 @@ mod test;
 
 #[cfg(feature = "measurement")]
 pub mod measurement;
+
+#[cfg(test)]
+#[path = "test/report.rs"]
+mod report;
