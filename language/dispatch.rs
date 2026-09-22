@@ -43,6 +43,8 @@ pub(crate) struct Network {
     generation: usize,
     cooldown: usize,
     altered: Set,
+    selected: Set,
+    demand: Vec<consumer::Request>,
     pub preparation: usize,
     pub reuse: usize,
 }
@@ -135,6 +137,8 @@ impl Network {
             generation: 0,
             cooldown: 0,
             altered: Set::default(),
+            selected: Set::default(),
+            demand: Vec::new(),
             catalog,
             sharing: std::sync::Arc::new(crate::joining::Store::new(65_536)),
             trigger,
@@ -202,7 +206,8 @@ impl Network {
             if context.binary_search(&frame).is_ok() {
                 self.frame(index, frame, None);
             } else {
-                let mut selected = self.altered.clone();
+                let mut selected = std::mem::take(&mut self.selected);
+                selected.clone_from(&self.altered);
                 if index.affected.contains(frame) {
                     selected.union(&self.empty);
                     for symbol in index.affected.symbol(frame) {
@@ -225,6 +230,7 @@ impl Network {
                 if !selected.is_empty() {
                     self.frame(index, frame, Some(&selected));
                 }
+                self.selected = selected;
             }
             self.refresh(index, frame);
             self.reuse += self.entry.count(frame) - (self.preparation - previous);

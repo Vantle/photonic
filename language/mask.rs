@@ -1,7 +1,21 @@
-#[derive(Clone, Default)]
+#[derive(Default)]
 pub(crate) struct Set {
     word: Vec<u64>,
     count: usize,
+}
+
+impl Clone for Set {
+    fn clone(&self) -> Self {
+        Self {
+            word: self.word.clone(),
+            count: self.count,
+        }
+    }
+
+    fn clone_from(&mut self, source: &Self) {
+        self.word.clone_from(&source.word);
+        self.count = source.count;
+    }
 }
 
 pub(crate) struct Traversal<'set> {

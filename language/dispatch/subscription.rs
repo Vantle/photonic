@@ -11,7 +11,8 @@ impl Network {
         let _measurement = crate::measurement::profile::Scope::new(
             crate::measurement::profile::Phase::Subscription,
         );
-        let request = self.request(index, frame, selected);
+        let mut request = std::mem::take(&mut self.demand);
+        self.request(index, frame, selected, &mut request);
         #[cfg(feature = "measurement")]
         let measurement =
             crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Removal);
@@ -46,13 +47,13 @@ impl Network {
         }
         #[cfg(feature = "measurement")]
         drop(measurement);
-        let mut request = request.into_iter().peekable();
-        while let Some(first) = request.next() {
+        let mut group = request.drain(..).peekable();
+        while let Some(first) = group.next() {
             let key = first.key;
             let mut consumer = SmallVec::new();
             consumer.push(first.consumer);
-            while request.peek().is_some_and(|next| next.key == key) {
-                consumer.push(request.next().unwrap().consumer);
+            while group.peek().is_some_and(|next| next.key == key) {
+                consumer.push(group.next().unwrap().consumer);
             }
             let plan = self.catalog.input(key.input);
             if let Some(&position) = self.entry.get(&key) {
@@ -98,5 +99,7 @@ impl Network {
                 self.preparation += 1;
             }
         }
+        drop(group);
+        self.demand = request;
     }
 }

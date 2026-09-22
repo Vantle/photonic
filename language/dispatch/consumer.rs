@@ -22,13 +22,13 @@ impl Network {
         index: &Index,
         frame: usize,
         selected: Option<&Set>,
-    ) -> Vec<Request> {
+        request: &mut Vec<Request>,
+    ) {
         #[cfg(feature = "measurement")]
         let _measurement =
             crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Request);
-        let mut request = Vec::new();
         if self.enabled.is_empty() || !index.present(frame) {
-            return request;
+            return;
         }
         let ancestry =
             std::iter::successors(Some(frame), |&frame| index.state.frame[frame].lexical)
@@ -90,6 +90,5 @@ impl Network {
             });
         }
         request.sort_by_key(|request| (request.key, request.priority));
-        request
     }
 }
