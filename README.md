@@ -52,7 +52,6 @@ A test accepts literal `source`, file `srcs`, and library `deps`. `targets` is a
 | --- | --- |
 | [frontend/](frontend/) | Syntax, parsing, lowering, source types, and frontend conformance tests. |
 | [language/](language/) | Execution, Prism verification, and runtime conformance tests. |
-| [model/](model/) | Independent structural construction reference and semantic tests; no production syntax. |
 | [command/](command/) | Native command interface, diagnostics, and process integration tests. |
 | [library/](library/) | Reusable Photonic declarations, organized by protocol. |
 | [program/](program/) | Runnable Photonic programs, organized by subject. |
