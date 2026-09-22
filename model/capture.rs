@@ -48,7 +48,10 @@ pub(crate) fn resolve(
             return Ok(Capture { address, identity });
         }
         if let Some(origin) = cursor.record()[position - 1].archive.get(&identity) {
-            address.state = origin.state;
+            address
+                .derivation
+                .extend_from_slice(&origin.address.derivation);
+            address.state = origin.address.state;
             identity = origin.context;
             continue;
         }

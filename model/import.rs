@@ -29,7 +29,7 @@ pub(crate) fn include(
     rule: &Rule,
     target: &mut Configuration,
     flow: &mut Flow,
-) -> Result<Rule, Failure> {
+) -> Result<(Rule, BTreeMap<context::Identity, crate::archive::Origin>), Failure> {
     let mut pending = BTreeSet::new();
     rule.collect(&mut pending);
     let mut imported = BTreeSet::new();
@@ -77,9 +77,23 @@ pub(crate) fn include(
             }
         }
     }
+    let address = crate::support::Address {
+        derivation: vec![],
+        state: path.record().len(),
+    };
+    let registry = crate::resource::Registry::new(path)?;
+    let mut archive = BTreeMap::new();
     for identity in imported {
         let original = &path.target().frame[&identity];
         let destination = frame[&identity];
+        let capture = crate::capture::resolve(path, &address, identity)?;
+        let cursor = crate::support::descend(path, &capture.address().derivation)?;
+        let canonical = &cursor.state()[capture.address().state].frame[&capture.identity()];
+        let mut origin = crate::archive::Origin {
+            address: capture.address().clone(),
+            context: capture.identity(),
+            resource: BTreeMap::new(),
+        };
         let mut held = BTreeMap::new();
         for value in &original.held {
             let resource = match resource.entry(value.identity) {
@@ -88,6 +102,12 @@ pub(crate) fn include(
                     occurrence::Identity(take(&mut target.allocation.occurrence)?),
                 ),
             };
+            let key = registry.resolve(path, &address, value.identity)?;
+            for source in &canonical.held {
+                if registry.resolve(path, capture.address(), source.identity)? == key {
+                    origin.resource.insert(source.identity, resource);
+                }
+            }
             let occurrence = Occurrence {
                 identity: resource,
                 value: activation::rename(value.value.clone(), &|identity| Ok(frame[&identity]))?,
@@ -120,6 +140,7 @@ pub(crate) fn include(
             },
         );
         flow.frame.insert(destination, None);
+        archive.insert(destination, origin);
     }
-    rename(rule.clone(), &frame)
+    Ok((rename(rule.clone(), &frame)?, archive))
 }

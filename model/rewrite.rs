@@ -152,5 +152,6 @@ pub(crate) fn apply(
         read,
         consumed: footprint.clone(),
         owner,
+        archive: BTreeMap::new(),
     })
 }

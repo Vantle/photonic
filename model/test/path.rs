@@ -490,7 +490,7 @@ fn capture() {
     assert_eq!(restored.target().frame().count(), 2);
     let archive = &restored.record()[1].archive;
     assert_eq!(archive.len(), 1);
-    assert_eq!(archive[&context::Identity(2)].state, 0);
+    assert_eq!(archive[&context::Identity(2)].address.state, 0);
     assert_eq!(archive[&context::Identity(2)].context, context::Identity(1));
     assert!(archive[&context::Identity(2)].resource.is_empty());
     let expected = super::rule(0, "A", super::rule(2, "A", Value::Atom("Private".into())));

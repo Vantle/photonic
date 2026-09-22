@@ -40,6 +40,7 @@ impl Projection<'_> {
         let source = self.path.source();
         let mut target = source.clone();
         let mut flow = crate::flow::Flow::identity(source);
+        let mut archive = std::collections::BTreeMap::new();
         let (rule, owner) = match self.request.code {
             Code::Declaration { context, position } => (
                 source.frame[&context].declaration[position].clone(),
@@ -49,12 +50,14 @@ impl Projection<'_> {
                 let endpoint = self.path.target();
                 let (site, selected) = application::select(endpoint, &self.request)?;
                 let (rule, _, _) = application::code(endpoint, self.request.code, site, &selected)?;
-                let rule = crate::import::include(self.path, rule, &mut target, &mut flow)?;
+                let (rule, origin) =
+                    crate::import::include(self.path, rule, &mut target, &mut flow)?;
+                archive = origin;
                 let owner = rule.context;
                 (rule, owner)
             }
         };
-        crate::rewrite::apply(
+        let mut event = crate::rewrite::apply(
             crate::rewrite::Request {
                 source,
                 rule: &rule,
@@ -67,7 +70,9 @@ impl Projection<'_> {
             },
             target,
             flow,
-        )
+        )?;
+        event.archive = archive;
+        Ok(event)
     }
 }
 

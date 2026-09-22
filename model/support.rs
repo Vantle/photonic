@@ -125,6 +125,36 @@ pub(crate) fn descend<'a>(path: &'a Path, derivation: &[usize]) -> Result<&'a Pa
     Ok(cursor)
 }
 
+pub(crate) fn flow(path: &Path, address: &Address) -> Result<Flow, Failure> {
+    let mut cursor = path;
+    let mut flow = Flow::identity(path.source());
+    for (depth, &position) in address.derivation.iter().enumerate() {
+        let next = child(cursor, depth, position)?;
+        flow = flow
+            .compose(cursor.prefix(position)?)
+            .map_err(Failure::Flow)?;
+        cursor = next;
+    }
+    flow.compose(cursor.prefix(address.state)?)
+        .map_err(Failure::Flow)
+}
+
+pub(crate) fn lineage(
+    path: &Path,
+    world: world::Identity,
+    state: usize,
+) -> Result<BTreeSet<world::Identity>, Failure> {
+    let mut result = BTreeSet::from([world]);
+    let suffix = path.record().get(state..).ok_or(Failure::State(state))?;
+    if !path.target().world.contains_key(&world) {
+        return Err(Failure::World(world));
+    }
+    for record in suffix.iter().rev() {
+        result = project(&record.flow, &result)?;
+    }
+    Ok(result)
+}
+
 pub fn resolve<'a>(
     path: &'a Path,
     world: world::Identity,
@@ -161,10 +191,7 @@ pub fn resolve<'a>(
         cursor = source;
         position = anchor;
     }
-    let mut lineage = BTreeSet::from([world]);
-    for record in path.record()[position..].iter().rev() {
-        lineage = project(&record.flow, &lineage)?;
-    }
+    let lineage = lineage(path, world, position)?;
     if let Some(&source) = basis.difference(&lineage).next() {
         return Err(Failure::Lineage {
             source,

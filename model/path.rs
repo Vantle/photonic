@@ -12,6 +12,7 @@ use std::collections::{BTreeMap, BTreeSet};
 pub enum Step {
     Application(application::Request),
     Historical(crate::admission::Request),
+    Construction(crate::publication::Request),
     Inference {
         path: Box<Path>,
         request: application::Request,
@@ -86,6 +87,17 @@ impl Path {
 
     pub fn advance(&self, step: Step) -> Result<Self, Failure> {
         let (target, flow, read, consumed, context, archive) = match &step {
+            Step::Construction(request) => {
+                let event = crate::publication::apply(self, request)?;
+                (
+                    event.target,
+                    event.flow,
+                    event.read,
+                    event.consumed,
+                    event.context,
+                    event.archive,
+                )
+            }
             Step::Historical(request) => {
                 let event = crate::admission::apply(self, request)?;
                 (
@@ -102,14 +114,17 @@ impl Path {
                     return Err(Failure::Source);
                 }
                 let projection = crate::projection::project(path, request.clone())?;
-                let event = projection.apply()?;
+                let mut event = projection.apply()?;
+                for origin in event.archive.values_mut() {
+                    origin.address.derivation.insert(0, self.record.len());
+                }
                 (
                     event.target,
                     event.flow,
                     event.read,
                     event.consumed,
                     BTreeSet::from([event.owner]),
-                    BTreeMap::new(),
+                    event.archive,
                 )
             }
             Step::Application(request) => {
@@ -141,7 +156,7 @@ impl Path {
         };
         flow.validate(self.target(), &target)
             .map_err(Failure::Flow)?;
-        let composed = crate::transport::compose(self, &flow, &archive)?;
+        let composed = crate::transport::compose(self, &step, &flow, &archive)?;
         composed
             .validate(self.source(), &target)
             .map_err(Failure::Flow)?;

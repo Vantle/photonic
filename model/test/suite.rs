@@ -4,6 +4,7 @@ mod generator;
 mod machine;
 mod path;
 mod projection;
+mod publication;
 mod qualification;
 mod support;
 mod template;

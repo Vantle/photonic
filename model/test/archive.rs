@@ -418,7 +418,7 @@ fn equivalence() {
     assert_eq!(result.record()[3].archive.len(), 1);
     assert_eq!(
         result.record()[3].archive[&context::Identity(3)].context,
-        context::Identity(2)
+        context::Identity(1)
     );
     validate(&result);
 }

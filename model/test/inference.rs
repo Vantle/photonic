@@ -551,6 +551,76 @@ fn coalescence() {
         result.target.history().clone(),
     )
     .unwrap();
+    let checked = Path::new(path.source().clone())
+        .advance(Step::Inference {
+            path: Box::new(path.clone()),
+            request: projected.request().clone(),
+        })
+        .unwrap();
+    assert_eq!(checked.target(), &result.target);
+    assert_eq!(checked.flow(), &result.flow);
+    let world = checked.target().world().next().unwrap();
+    let code = world
+        .occurrence
+        .iter()
+        .find(|value| matches!(value.value, Value::Rule(_)))
+        .unwrap();
+    let qualification =
+        model::qualification::Qualification::new(checked.clone(), world.identity).unwrap();
+    let value = qualification
+        .inspect(model::support::Request {
+            address: model::support::Address {
+                derivation: vec![],
+                state: 1,
+            },
+            world: world.identity,
+            place: model::flow::Place::World(world.identity, code.identity),
+        })
+        .unwrap();
+    let erased = checked
+        .advance(Step::Introduction {
+            world: world.identity,
+            consumed: vec![code.identity],
+            value: model::construction::Construction::new(
+                context::Identity(0),
+                checked.target().history().clone(),
+            )
+            .literal("Bridge"),
+        })
+        .unwrap();
+    assert_eq!(erased.target().frame().count(), 1);
+    let restored = erased
+        .advance(Step::Construction(model::publication::Request {
+            world: erased.target().world().next().unwrap().identity,
+            consumed: vec![],
+            value,
+        }))
+        .unwrap();
+    let frame = restored.target().frame().nth(1).unwrap();
+    assert_eq!(frame.held, *held);
+    let origin = &restored.record().last().unwrap().archive[&frame.identity];
+    assert_eq!(origin.resource.len(), 2);
+    assert!(
+        origin
+            .resource
+            .values()
+            .all(|&identity| identity == held[0].identity)
+    );
+    assert_eq!(
+        restored.flow().resource[&model::flow::Place::Held(frame.identity, held[0].identity)],
+        BTreeSet::from([model::flow::Place::World(
+            model::world::Identity(0),
+            held[0].identity
+        )])
+    );
+    assert_eq!(
+        Path::replay(
+            restored.source().clone(),
+            restored.record().iter().map(|record| record.step.clone())
+        )
+        .unwrap(),
+        restored
+    );
 }
 
 #[test]
@@ -693,7 +763,12 @@ fn archive() {
         path.record()[3].archive[&context::Identity(2)].context,
         context::Identity(1)
     );
-    assert_eq!(path.record()[3].archive[&context::Identity(2)].state, 2);
+    assert_eq!(
+        path.record()[3].archive[&context::Identity(2)]
+            .address
+            .state,
+        1
+    );
     assert_eq!(done.target.frame().count(), 2);
     assert!(
         done.target

@@ -38,6 +38,7 @@ pub struct Event {
     pub read: BTreeSet<Place>,
     pub consumed: BTreeSet<Place>,
     pub owner: context::Identity,
+    pub archive: std::collections::BTreeMap<context::Identity, crate::archive::Origin>,
 }
 
 pub(crate) fn select(

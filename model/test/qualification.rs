@@ -280,8 +280,7 @@ fn step(path: &Path, context: u64, position: usize, label: &str) -> Request {
     }
 }
 
-#[test]
-fn sibling() {
+pub(super) fn branch() -> (Path, Vec<support::Request>) {
     let Value::Rule(tick) = super::rule(0, "Tick", Value::Atom("Tick".into())) else {
         unreachable!()
     };
@@ -339,6 +338,12 @@ fn sibling() {
             })
             .unwrap();
     }
+    (path, witness)
+}
+
+#[test]
+fn sibling() {
+    let (path, witness) = branch();
     let qualification = Qualification::new(path, world::Identity(2)).unwrap();
     let left = qualification.inspect(witness[0].clone()).unwrap();
     let right = qualification.inspect(witness[1].clone()).unwrap();

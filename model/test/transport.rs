@@ -206,6 +206,9 @@ fn resource() {
             result.flow().resource[&Place::Held(frame.identity, frame.held[0].identity)],
             expected
         );
-        assert_eq!(result.record()[3].archive[&frame.identity].state, 2);
+        assert_eq!(
+            result.record()[3].archive[&frame.identity].address,
+            model::support::Address::default()
+        );
     }
 }
