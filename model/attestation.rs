@@ -215,54 +215,13 @@ fn witness(
     result == target.iter().copied().collect()
 }
 
-fn archive(
-    source: &crate::path::Record,
-    target: &crate::path::Record,
-    derivation: &Derivation,
-    mapping: &Mapping,
-) -> bool {
-    if source.archive.len() != target.archive.len() {
-        return false;
-    }
-    for (context, origin) in &source.archive {
-        let Some(context) = mapping.frame().get(context) else {
-            return false;
-        };
-        let Some(target) = target.archive.get(context) else {
-            return false;
-        };
-        if origin.address != target.address || origin.resource.len() != target.resource.len() {
-            return false;
-        }
-        let Some(original) = derivation.at(&origin.address) else {
-            return false;
-        };
-        if original.frame().get(&origin.context) != Some(&target.context) {
-            return false;
-        }
-        for (source, copy) in &origin.resource {
-            let Some(source) = original.occurrence().get(source) else {
-                return false;
-            };
-            let Some(copy) = mapping.occurrence().get(copy) else {
-                return false;
-            };
-            if target.resource.get(source) != Some(copy) {
-                return false;
-            }
-        }
-    }
-    true
-}
-
 pub(crate) fn check(left: &Path, right: &Path, derivation: &Derivation) -> bool {
-    let union = derivation.union();
+    let union = derivation.identity();
     for (position, (source, target)) in left.record().iter().zip(right.record()).enumerate() {
         let mapping = &derivation.state[position];
         if provenance::resource(mapping, &source.read).as_ref() != Some(&target.read)
             || provenance::resource(mapping, &source.consumed).as_ref() != Some(&target.consumed)
             || !set(union.frame(), &source.context, &target.context)
-            || !archive(source, target, derivation, &union)
         {
             return false;
         }
@@ -319,18 +278,18 @@ pub(crate) fn check(left: &Path, right: &Path, derivation: &Derivation) -> bool 
             ) => {
                 mapping.world().get(source) == Some(target)
                     && consumed(original, destination, mapping)
-                    && nominal(value, other, &union)
+                    && nominal(value, other, union)
             }
             (Step::Historical(source), Step::Historical(target)) => {
                 mapping.world().get(&source.world) == Some(&target.world)
                     && consumed(&source.consumed, &target.consumed, mapping)
                     && witness(&source.witness, &target.witness, derivation)
-                    && nominal(&source.value, &target.value, &union)
+                    && nominal(&source.value, &target.value, union)
             }
             (Step::Construction(source), Step::Construction(target)) => {
                 mapping.world().get(&source.world) == Some(&target.world)
                     && consumed(&source.consumed, &target.consumed, mapping)
-                    && construction(left, right, source, target, derivation, &union)
+                    && construction(left, right, source, target, derivation, union)
             }
             _ => false,
         };

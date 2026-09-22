@@ -2,7 +2,7 @@ use model::application::{Code, Request, Selection};
 use model::configuration::Configuration;
 use model::construction::Construction;
 use model::context::{self, Frame};
-use model::derivation::{self, Missing, Side, Unsupported};
+use model::derivation;
 use model::flow::Place;
 use model::history::History;
 use model::occurrence::{self, Occurrence};
@@ -292,16 +292,15 @@ fn anchor() {
     assert!(derivation::compare(&left, &right).unwrap().is_none());
 }
 
-#[test]
-fn unsupported() {
-    let (initial, witness) = super::qualification::branch();
+fn transient(base: u64, position: usize) -> Path {
+    let (initial, witness) = super::qualification::offset(base);
     let qualification = Qualification::new(
         initial.clone(),
         initial.target().world().next().unwrap().identity,
     )
     .unwrap();
     let construction = qualification.construction();
-    let value = qualification.inspect(witness[0].clone()).unwrap();
+    let value = qualification.inspect(witness[position].clone()).unwrap();
     let mut opened = construction
         .open(construction.definition(value).unwrap())
         .unwrap();
@@ -332,25 +331,37 @@ fn unsupported() {
         })
         .unwrap();
     assert_eq!(inferred.target().frame().count(), 1);
-    let result = derivation::compare(&inferred, &inferred);
-    assert!(
-        matches!(
-            result,
-            Err(Unsupported {
-                side: Side::Left,
-                missing: Missing::Context(_),
-                ..
-            })
-        ),
-        "{result:?}"
+    inferred
+}
+
+#[test]
+fn reclaimed() {
+    let left = transient(0, 0);
+    let right = transient(19, 0);
+    same(&left, &right);
+    let mapping = derivation::compare(&left, &right).unwrap().unwrap();
+    assert_eq!(
+        mapping.identity().frame()[&context::Identity(1)],
+        context::Identity(20)
     );
-    assert!(matches!(
-        derivation::compare(&initial, &inferred),
-        Err(Unsupported {
-            side: Side::Right,
-            ..
-        })
-    ));
+    assert!(
+        mapping
+            .state()
+            .iter()
+            .all(|state| !state.frame().contains_key(&context::Identity(1)))
+    );
+    assert!(
+        derivation::find(&left, &right, |mapping| mapping.identity().frame()
+            [&context::Identity(1)]
+            == context::Identity(19))
+        .unwrap()
+        .is_none()
+    );
+    let other = transient(19, 1);
+    assert_eq!(right.target(), other.target());
+    assert_eq!(right.flow(), other.flow());
+    assert_ne!(right.record()[0].archive, other.record()[0].archive);
+    assert!(derivation::compare(&right, &other).unwrap().is_none());
 }
 
 fn marker(path: &Path) -> Path {

@@ -17,6 +17,24 @@ pub fn resource(mapping: &Mapping, source: &BTreeSet<Place>) -> Option<BTreeSet<
         .collect()
 }
 
+pub fn origin(
+    source: &Mapping,
+    target: &Mapping,
+    original: &crate::archive::Origin,
+    destination: &crate::archive::Origin,
+) -> bool {
+    original.address == destination.address
+        && source.frame().get(&original.context) == Some(&destination.context)
+        && original.resource.len() == destination.resource.len()
+        && original.resource.iter().all(|(identity, copy)| {
+            source
+                .occurrence()
+                .get(identity)
+                .and_then(|identity| destination.resource.get(identity))
+                .is_some_and(|destination| target.occurrence().get(copy) == Some(destination))
+        })
+}
+
 pub fn compare(source: &Mapping, target: &Mapping, original: &Flow, destination: &Flow) -> bool {
     if original.resource.len() != destination.resource.len()
         || original.context.len() != destination.context.len()

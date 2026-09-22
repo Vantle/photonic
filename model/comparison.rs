@@ -6,7 +6,7 @@ use crate::shape::Shape;
 use crate::world;
 use std::collections::{BTreeMap, BTreeSet};
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct Mapping {
     frame: BTreeMap<context::Identity, context::Identity>,
     world: BTreeMap<world::Identity, world::Identity>,
@@ -14,8 +14,22 @@ pub struct Mapping {
 }
 
 impl Mapping {
+    pub(crate) fn extend(
+        &self,
+        frame: BTreeMap<context::Identity, context::Identity>,
+        occurrence: BTreeMap<occurrence::Identity, occurrence::Identity>,
+    ) -> Option<Self> {
+        self.join(&Self {
+            frame,
+            world: BTreeMap::new(),
+            occurrence,
+        })
+    }
+
     pub(crate) fn join(&self, other: &Self) -> Option<Self> {
-        if !crate::provenance::persistent(self, other) {
+        if !crate::provenance::persistent(self, other)
+            || !crate::provenance::persistent(other, other)
+        {
             return None;
         }
         let mut result = self.clone();

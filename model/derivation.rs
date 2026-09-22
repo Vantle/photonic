@@ -8,6 +8,7 @@ use std::collections::BTreeMap;
 pub struct Derivation {
     pub(crate) state: Vec<Mapping>,
     pub(crate) branch: BTreeMap<usize, Self>,
+    pub(crate) identity: Mapping,
 }
 
 impl Derivation {
@@ -26,13 +27,8 @@ impl Derivation {
         cursor.state.get(address.state)
     }
 
-    pub(crate) fn union(&self) -> Mapping {
-        self.state
-            .iter()
-            .skip(1)
-            .fold(self.state[0].clone(), |result, mapping| {
-                result.join(mapping).unwrap()
-            })
+    pub fn identity(&self) -> &Mapping {
+        &self.identity
     }
 }
 
@@ -42,17 +38,11 @@ pub enum Side {
     Right,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum Missing {
-    Context(crate::context::Identity),
-    Occurrence(crate::occurrence::Identity),
-}
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Unsupported {
     pub side: Side,
     pub address: Address,
-    pub missing: Missing,
+    pub context: crate::context::Identity,
 }
 
 fn domain(path: &Path, side: Side, derivation: Vec<usize>) -> Result<(), Unsupported> {
@@ -61,46 +51,16 @@ fn domain(path: &Path, side: Side, derivation: Vec<usize>) -> Result<(), Unsuppo
         .iter()
         .flat_map(|state| state.frame().map(|frame| frame.identity))
         .collect::<std::collections::BTreeSet<_>>();
-    let occurrence = path
-        .state()
-        .iter()
-        .flat_map(|state| {
-            state
-                .world()
-                .flat_map(|world| world.occurrence.iter().map(|value| value.identity))
-                .chain(
-                    state
-                        .frame()
-                        .flat_map(|frame| frame.held.iter().map(|value| value.identity)),
-                )
-        })
-        .collect::<std::collections::BTreeSet<_>>();
     for (state, record) in path.record().iter().enumerate() {
-        for &identity in record.context.iter().chain(record.archive.keys()) {
-            if !frame.contains(&identity) {
+        for &identity in &record.context {
+            if !frame.contains(&identity) && !record.archive.contains_key(&identity) {
                 return Err(Unsupported {
                     side,
                     address: Address {
                         derivation,
                         state: state + 1,
                     },
-                    missing: Missing::Context(identity),
-                });
-            }
-        }
-        for &identity in record
-            .archive
-            .values()
-            .flat_map(|origin| origin.resource.values())
-        {
-            if !occurrence.contains(&identity) {
-                return Err(Unsupported {
-                    side,
-                    address: Address {
-                        derivation,
-                        state: state + 1,
-                    },
-                    missing: Missing::Occurrence(identity),
+                    context: identity,
                 });
             }
         }
@@ -121,7 +81,11 @@ fn branch(
     accept: &mut dyn FnMut(&Derivation) -> bool,
 ) -> bool {
     if position == left.record().len() {
-        return crate::attestation::check(left, right, &mapping) && accept(&mapping);
+        return crate::correspondence::find(left, right, &mapping, &mut |identity| {
+            let mut completed = mapping.clone();
+            completed.identity = identity.clone();
+            crate::attestation::check(left, right, &completed) && accept(&completed)
+        });
     }
     match (
         &left.record()[position].step,
@@ -155,6 +119,9 @@ fn state(
             right,
             0,
             Derivation {
+                identity: mapping.iter().fold(Mapping::default(), |result, mapping| {
+                    result.join(mapping).unwrap()
+                }),
                 state: mapping,
                 branch: BTreeMap::new(),
             },

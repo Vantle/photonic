@@ -14,6 +14,7 @@ pub mod comparison;
 pub mod configuration;
 pub mod construction;
 pub mod context;
+mod correspondence;
 pub mod derivation;
 pub mod environment;
 pub mod evidence;

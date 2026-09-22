@@ -227,8 +227,8 @@ fn archive() {
     assert_eq!(combined.evidence().qualified().count(), 2);
 }
 
-fn enter(label: &str) -> Rule {
-    let Value::Rule(closure) = super::rule(0, "Call", Value::Atom("Secret".into())) else {
+fn enter(base: u64, label: &str) -> Rule {
+    let Value::Rule(closure) = super::rule(base, "Call", Value::Atom("Secret".into())) else {
         unreachable!()
     };
     let mut closure = model::activation::capture(*closure);
@@ -237,7 +237,7 @@ fn enter(label: &str) -> Rule {
         particle: Particle::new(vec![Value::Atom("Secret".into())]),
         body: Some(Body::nested(Reference::Local(0), vec![])),
     }]);
-    let Value::Rule(producer) = super::rule(0, "Make", Value::Atom("Unused".into())) else {
+    let Value::Rule(producer) = super::rule(base, "Make", Value::Atom("Unused".into())) else {
         unreachable!()
     };
     let mut producer = model::activation::capture(*producer);
@@ -246,17 +246,17 @@ fn enter(label: &str) -> Rule {
         particle: Particle::new(vec![Value::Rule(Box::new(closure))]),
         body: None,
     }]);
-    let Value::Rule(secret) = super::rule(0, "Secret", Value::Atom(label.into())) else {
+    let Value::Rule(secret) = super::rule(base, "Secret", Value::Atom(label.into())) else {
         unreachable!()
     };
     let mut secret = model::activation::capture(*secret);
     secret.context = Reference::Local(0);
-    let Value::Rule(mut enter) = super::rule(0, "Enter", Value::Atom("Make".into())) else {
+    let Value::Rule(mut enter) = super::rule(base, "Enter", Value::Atom("Make".into())) else {
         unreachable!()
     };
     enter.output = Output::new(vec![Destination {
         particle: Particle::new(vec![Value::Atom("Make".into())]),
-        body: Some(Body::bind(context::Identity(0), vec![producer, secret]).unwrap()),
+        body: Some(Body::bind(context::Identity(base), vec![producer, secret]).unwrap()),
     }]);
     *enter
 }
@@ -281,28 +281,32 @@ fn step(path: &Path, context: u64, position: usize, label: &str) -> Request {
 }
 
 pub(super) fn branch() -> (Path, Vec<support::Request>) {
-    let Value::Rule(tick) = super::rule(0, "Tick", Value::Atom("Tick".into())) else {
+    offset(0)
+}
+
+pub(super) fn offset(base: u64) -> (Path, Vec<support::Request>) {
+    let Value::Rule(tick) = super::rule(base, "Tick", Value::Atom("Tick".into())) else {
         unreachable!()
     };
     let mut path = Path::new(
         Configuration::new(
-            context::Identity(0),
+            context::Identity(base),
             vec![World {
-                identity: world::Identity(0),
-                context: context::Identity(0),
+                identity: world::Identity(base),
+                context: context::Identity(base),
                 occurrence: ["Enter", "Call", "Tick"]
                     .into_iter()
                     .enumerate()
                     .map(|(identity, label)| {
-                        super::source(identity as u64, Value::Atom(label.into()))
+                        super::source(base + identity as u64, Value::Atom(label.into()))
                     })
                     .collect(),
             }],
             vec![Frame {
-                identity: context::Identity(0),
+                identity: context::Identity(base),
                 parent: None,
                 lexical: None,
-                declaration: vec![enter("Left"), enter("Right"), *tick],
+                declaration: vec![enter(base, "Left"), enter(base, "Right"), *tick],
                 held: vec![],
             }],
             History::default(),
@@ -313,10 +317,10 @@ pub(super) fn branch() -> (Path, Vec<support::Request>) {
     for position in 0..2 {
         let auxiliary = Path::new(path.target().clone());
         let auxiliary = auxiliary
-            .advance(Step::Application(step(&auxiliary, 0, position, "Enter")))
+            .advance(Step::Application(step(&auxiliary, base, position, "Enter")))
             .unwrap();
         let auxiliary = auxiliary
-            .advance(Step::Application(step(&auxiliary, 1, 0, "Make")))
+            .advance(Step::Application(step(&auxiliary, base + 1, 0, "Make")))
             .unwrap();
         let world = auxiliary.target().world().next().unwrap();
         let code = world
@@ -330,7 +334,7 @@ pub(super) fn branch() -> (Path, Vec<support::Request>) {
             world.identity.0,
             code.identity.0,
         ));
-        let request = step(&auxiliary, 0, 2, "Tick");
+        let request = step(&auxiliary, base, 2, "Tick");
         path = path
             .advance(Step::Inference {
                 path: Box::new(auxiliary),

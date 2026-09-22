@@ -613,6 +613,30 @@ fn coalescence() {
             held[0].identity
         )])
     );
+    let mapping = model::derivation::compare(&restored, &restored)
+        .unwrap()
+        .unwrap();
+    let original = mapping.at(&origin.address).unwrap();
+    assert!(model::provenance::origin(
+        original,
+        mapping.identity(),
+        origin,
+        origin,
+    ));
+    let mut split = origin.clone();
+    *split.resource.values_mut().next().unwrap() = restored
+        .target()
+        .world()
+        .flat_map(|world| &world.occurrence)
+        .find(|value| value.value == Value::Atom("Bridge".into()))
+        .unwrap()
+        .identity;
+    assert!(!model::provenance::origin(
+        original,
+        mapping.identity(),
+        origin,
+        &split,
+    ));
     assert_eq!(
         Path::replay(
             restored.source().clone(),
