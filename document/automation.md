@@ -8,7 +8,18 @@ Every step, including pipeline upload, uses the existing `linux-small` hosted qu
 
 macOS, Windows, ARM64 Linux, and browser CI are excluded. Browser verification currently requires ARM64 macOS and can still be run locally with `bazel test --config=release //toolchain/browser:check`. The repository’s platform definitions and hermetic toolchains remain available for local builds on the other supported systems.
 
-The test job selects Bazel’s `continuous` configuration, which excludes tests tagged `memory`. Currently this excludes `//program/ternary/case:repeated`: it uses approximately 2.6 GB in isolation and was killed when running alongside other work on the 4 GB agent. Normal local test runs retain it; run it explicitly with `bazel test --config=release //program/ternary/case:repeated`.
+The test job selects Bazel’s `continuous` configuration, which excludes tests tagged `memory` and runs at most one test action at a time. Compilation retains two jobs. This reserves headroom for Bazel and build actions on the 4 GB agent while keeping ordinary semantic, native/WebAssembly and allocation checks enabled.
+
+The following fixtures exceed 2 GiB of resident memory individually and carry the `memory` tag:
+
+| Test | Peak resident memory |
+| --- | ---: |
+| `//program/ternary/case:repeated` | 6.88 GB |
+| `//program/ternary:performance` | 3.29 GB |
+| `//program/ternary/case:width` | 2.87 GB |
+| `//program/ternary:infix.check` | 2.64 GB |
+
+These are native ARM64 macOS measurements of revision `91fbf9c`, collected with `bazel test --config=release //... --run_under='/usr/bin/time -l' --jobs=1 --test_output=all`. They establish resource classification, not Linux memory equivalence. Every untagged test measured below 2 GiB; the largest was `//program/ternary:expression.check` at 1.92 GB. Run the full suite locally with `bazel test --config=release //...`; ordinary runs include all four large fixtures. Hosted CI verifies the selected suite, while full-suite and browser validation remain separate release gates.
 
 ## Pipeline configuration
 

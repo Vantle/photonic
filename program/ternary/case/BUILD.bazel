@@ -177,6 +177,7 @@ photonic_test(
     source = "",
     states = 65536,
     steps = 100000000,
+    tags = ["memory"],
     targets = ["Done.Zero"],
     deps = ["//program/ternary:formula"],
 )

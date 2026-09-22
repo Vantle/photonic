@@ -18,6 +18,7 @@ build:release --compilation_mode=opt
 
 test --test_output=errors
 test:continuous --test_tag_filters=-memory
+test:continuous --local_test_jobs=1
 
 common:refresh --lockfile_mode=update
 
