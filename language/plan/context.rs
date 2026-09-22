@@ -44,17 +44,24 @@ impl Context {
         })
     }
 
+    fn term(&self, position: usize) -> impl Iterator<Item = Term> + '_ {
+        self.shape.fragment[position]
+            .group
+            .iter()
+            .map(|group| Term::new(group.value, Some(self.owner)))
+    }
+
     pub fn candidate(
         &self,
         position: usize,
         index: &crate::index::Index,
         frame: usize,
     ) -> Vec<usize> {
-        let pattern = self.shape.fragment[position]
-            .group
-            .iter()
-            .map(|group| Term::new(group.value, Some(self.owner)));
-        index.candidate(pattern, frame)
+        index.candidate(self.term(position), frame)
+    }
+
+    pub fn possible(&self, position: usize, index: &crate::index::Index, frame: usize) -> bool {
+        index.possible(self.term(position), frame)
     }
 
     pub fn matches(&self, position: usize, index: &crate::index::Index, site: usize) -> bool {

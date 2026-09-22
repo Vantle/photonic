@@ -79,17 +79,9 @@ impl Index {
         let Some(site) = self.owner.get(frame).copied().flatten() else {
             return;
         };
-        for token in &self.state.frame[frame].particle {
-            self.retained -= 1;
-            let count = self.symbol.get_mut(&token.value).unwrap();
-            *count -= 1;
-            if *count == 0 {
-                self.symbol.remove(&token.value);
-                if !self.altered.remove(&token.value) {
-                    self.altered.insert(token.value);
-                }
-            }
-            self.lexicon.remove(&(frame, token.value));
+        let state = self.state.clone();
+        for (position, token) in state.frame[frame].particle.entry() {
+            self.leave(frame, position, token.value);
         }
         if retired {
             self.position.remove(self.rank[site]);
@@ -105,54 +97,46 @@ impl Index {
             let site = self.allocate(Location::Context(frame));
             self.owner[frame] = Some(site);
         }
-        for (position, token) in self.state.frame[frame].particle.entry() {
-            self.retained += 1;
-            let count = self.symbol.entry(token.value).or_default();
-            if *count == 0 && !self.altered.remove(&token.value) {
-                self.altered.insert(token.value);
-            }
-            *count += 1;
-            self.lexicon
-                .entry((frame, token.value))
-                .or_default()
-                .push(position);
+        let state = self.state.clone();
+        for (position, token) in state.frame[frame].particle.entry() {
+            self.enter(frame, position, token.value);
         }
     }
-}
 
-impl Index {
     pub(super) fn reconcile(&mut self, frame: usize, current: &crate::population::Set) {
-        let previous = &self.state.frame[frame].particle;
+        let state = self.state.clone();
+        let previous = &state.frame[frame].particle;
         for position in previous.removed(current) {
-            let value = previous.at(position).value;
-            self.retained -= 1;
-            let count = self.symbol.get_mut(&value).unwrap();
-            *count -= 1;
-            if *count == 0 {
-                self.symbol.remove(&value);
-                if !self.altered.remove(&value) {
-                    self.altered.insert(value);
-                }
-            }
-            let key = (frame, value);
-            let occurrence = self.lexicon.get_mut(&key).unwrap();
-            let offset = occurrence.binary_search(&position).unwrap();
-            occurrence.remove(offset);
-            if occurrence.is_empty() {
-                self.lexicon.remove(&key);
-            }
+            self.leave(frame, position, previous.at(position).value);
         }
         for position in current.removed(previous) {
-            let value = current.at(position).value;
-            self.retained += 1;
-            let count = self.symbol.entry(value).or_default();
-            if *count == 0 && !self.altered.remove(&value) {
-                self.altered.insert(value);
-            }
-            *count += 1;
-            let occurrence = self.lexicon.entry((frame, value)).or_default();
-            let offset = occurrence.binary_search(&position).unwrap_err();
-            occurrence.insert(offset, position);
+            self.enter(frame, position, current.at(position).value);
+        }
+    }
+
+    fn enter(&mut self, frame: usize, position: usize, value: crate::program::Symbol) {
+        self.retained += 1;
+        self.acquire(value);
+        *self.vocabulary.entry(value).or_default() += 1;
+        let occurrence = self.lexicon.entry((frame, value)).or_default();
+        let offset = occurrence.binary_search(&position).unwrap_err();
+        occurrence.insert(offset, position);
+    }
+
+    fn leave(&mut self, frame: usize, position: usize, value: crate::program::Symbol) {
+        self.retained -= 1;
+        self.release(value);
+        let count = self.vocabulary.get_mut(&value).unwrap();
+        *count -= 1;
+        if *count == 0 {
+            self.vocabulary.remove(&value);
+        }
+        let key = (frame, value);
+        let occurrence = self.lexicon.get_mut(&key).unwrap();
+        let offset = occurrence.binary_search(&position).unwrap();
+        occurrence.remove(offset);
+        if occurrence.is_empty() {
+            self.lexicon.remove(&key);
         }
     }
 }

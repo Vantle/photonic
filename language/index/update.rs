@@ -48,8 +48,9 @@ impl Index {
         self.removal
             .extend(removed.iter().map(|&world| self.coherence[world]));
         let mut posting = smallvec::SmallVec::<[(usize, Term); 8]>::new();
-        for (&world, &site) in removed.iter().zip(&self.removal) {
-            let value = &self.state.world[world];
+        for (offset, &world) in removed.iter().enumerate() {
+            let site = self.removal[offset];
+            let value = self.state.world[world].clone();
             self.affected
                 .entry(value.frame)
                 .or_default()
@@ -57,14 +58,7 @@ impl Index {
             self.frame[value.frame].remove(&site);
             self.retained -= 1;
             for token in &value.particle {
-                let count = self.symbol.get_mut(&token.value).unwrap();
-                *count -= 1;
-                if *count == 0 {
-                    self.symbol.remove(&token.value);
-                    if !self.altered.remove(&token.value) {
-                        self.altered.insert(token.value);
-                    }
-                }
+                self.release(token.value);
                 posting.push((value.frame, Term::new(token.value, token.capture)));
             }
             self.position.remove(self.rank[site]);

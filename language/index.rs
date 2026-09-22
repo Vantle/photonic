@@ -25,6 +25,7 @@ pub(crate) struct Index {
     coherence: Vec<usize>,
     owner: Vec<Option<usize>>,
     lexicon: HashMap<(usize, Symbol), Vec<usize>, Builder>,
+    vocabulary: HashMap<Symbol, usize, Builder>,
     reader: Vec<Vec<crate::reader::Reader>>,
     term: HashMap<(usize, Term), Vec<Occurrence>, Builder>,
     position: crate::position::Index,
@@ -58,6 +59,7 @@ impl Index {
             coherence: Vec::new(),
             owner: Vec::new(),
             lexicon: HashMap::default(),
+            vocabulary: HashMap::default(),
             reader: Vec::new(),
             term: HashMap::default(),
             position: Default::default(),
@@ -112,10 +114,30 @@ impl Index {
         site
     }
 
+    fn acquire(&mut self, value: Symbol) {
+        let count = self.symbol.entry(value).or_default();
+        *count += 1;
+        if *count == 1 && !self.altered.remove(&value) {
+            self.altered.insert(value);
+        }
+    }
+
+    fn release(&mut self, value: Symbol) {
+        let count = self.symbol.get_mut(&value).unwrap();
+        *count -= 1;
+        if *count > 0 {
+            return;
+        }
+        self.symbol.remove(&value);
+        if !self.altered.remove(&value) {
+            self.altered.insert(value);
+        }
+    }
+
     fn insert(&mut self, world: usize) {
         let site = self.allocate(Location::World(world));
         self.coherence.push(site);
-        let value = &self.state.world[world];
+        let value = self.state.world[world].clone();
         self.affected
             .entry(value.frame)
             .or_default()
@@ -131,11 +153,7 @@ impl Index {
                 });
                 self.retained += 1;
             }
-            let count = self.symbol.entry(token.value).or_default();
-            if *count == 0 && !self.altered.remove(&token.value) {
-                self.altered.insert(token.value);
-            }
-            *count += 1;
+            self.acquire(token.value);
             let key = (value.frame, Term::new(token.value, token.capture));
             let posting = self.term.entry(key).or_default();
             if let Some(occurrence) = posting
@@ -163,13 +181,14 @@ impl Index {
     }
 
     pub fn candidate(&self, pattern: impl IntoIterator<Item = Term>, frame: usize) -> Vec<usize> {
-        let pattern = pattern.into_iter().collect::<Vec<_>>();
         let mut posting = smallvec::SmallVec::<[&[Occurrence]; 4]>::new();
-        for term in &pattern {
-            if self.visible(frame, term).next().is_some() {
+        let mut empty = true;
+        for term in pattern {
+            empty = false;
+            if self.visible(frame, &term).next().is_some() {
                 continue;
             }
-            let Some(value) = self.posting(term, frame) else {
+            let Some(value) = self.posting(&term, frame) else {
                 return Vec::new();
             };
             posting.push(value);
@@ -183,13 +202,17 @@ impl Index {
             .into_iter()
             .flat_map(|frame| frame.iter().copied())
             .collect::<Vec<_>>();
-        if !pattern.is_empty()
-            && let Some(site) = self.owner.get(frame).copied().flatten()
-        {
+        if !empty && let Some(site) = self.owner.get(frame).copied().flatten() {
             candidate.push(site);
         }
         candidate.sort_unstable_by_key(|&site| self.location(site));
         candidate
+    }
+
+    pub fn possible(&self, pattern: impl IntoIterator<Item = Term>, frame: usize) -> bool {
+        pattern.into_iter().all(|term| {
+            self.posting(&term, frame).is_some() || self.visible(frame, &term).next().is_some()
+        })
     }
 
     pub(crate) fn occurrence(
@@ -197,13 +220,14 @@ impl Index {
         frame: usize,
         symbol: Symbol,
     ) -> impl Iterator<Item = (crate::flow::Place, &crate::state::Token)> {
-        std::iter::successors(self.state.frame.get(frame).map(|_| frame), |&frame| {
-            self.state.frame[frame].lexical
-        })
-        .flat_map(move |frame| {
-            self.local(frame, symbol)
-                .map(move |token| (crate::flow::Place::Context(frame, token.id), token))
-        })
+        let start = (frame < self.state.frame.len() && self.vocabulary.contains_key(&symbol))
+            .then_some(frame);
+        std::iter::successors(start, |&frame| self.state.frame[frame].lexical).flat_map(
+            move |frame| {
+                self.local(frame, symbol)
+                    .map(move |token| (crate::flow::Place::Context(frame, token.id), token))
+            },
+        )
     }
 
     pub(crate) fn local(

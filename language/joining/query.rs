@@ -77,6 +77,16 @@ impl Query {
         }
     }
 
+    pub fn possible(&self, index: &Index, frame: usize) -> bool {
+        (0..self.count()).all(|position| match self {
+            Self::Planned(context) => context.possible(position, index, frame),
+            #[cfg(test)]
+            Self::Direct { pattern, .. } => {
+                index.possible(pattern[position].iter().cloned(), frame)
+            }
+        })
+    }
+
     pub fn candidate(
         &self,
         position: usize,

@@ -67,6 +67,9 @@ impl Space {
         store: Option<&Arc<super::Store>>,
         admission: bool,
     ) -> Option<Self> {
+        if admission && !query.possible(index, frame) {
+            return None;
+        }
         let mut subscription = Vec::new();
         let mut domain = SmallVec::<[Vec<Member>; 2]>::new();
         for position in 0..query.count() {
