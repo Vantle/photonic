@@ -15,10 +15,10 @@ impl Network {
         #[cfg(feature = "measurement")]
         let measurement =
             crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Removal);
-        let interval = selected
+        let interval: SmallVec<[_; 4]> = selected
             .filter(|selected| selected.len() < self.entry.count(frame))
             .map_or_else(
-                || vec![Key::frame(frame)],
+                || smallvec::smallvec![Key::frame(frame)],
                 |selected| {
                     selected
                         .iter()

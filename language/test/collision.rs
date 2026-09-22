@@ -102,8 +102,10 @@ fn fallback() {
     search.state = vec![Record::new(ring.clone())];
     search.goal = Record::new(triangle);
     search.signature = crate::fingerprint::state(&search.goal.state);
-    search.index =
-        std::collections::HashMap::from_iter([(crate::fingerprint::state(&ring), vec![0])]);
+    search.index = std::collections::HashMap::from_iter([(
+        crate::fingerprint::state(&ring),
+        smallvec::smallvec![0],
+    )]);
     search.initial = true;
     search.reached = false;
     search.run(100_000, crate::runtime::Limit::default());

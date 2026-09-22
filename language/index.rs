@@ -36,7 +36,7 @@ pub(crate) struct Index {
     pub altered: HashSet<Symbol, Builder>,
     pub context: Vec<usize>,
     pub ownership: Vec<usize>,
-    pub affected: HashMap<usize, HashSet<Symbol, Builder>, Builder>,
+    pub affected: crate::affected::Set,
     pub removal: Vec<usize>,
     pub insertion: Vec<usize>,
 }
@@ -70,7 +70,7 @@ impl Index {
             altered: Default::default(),
             context: Vec::new(),
             ownership: Vec::new(),
-            affected: HashMap::default(),
+            affected: Default::default(),
             removal: Vec::new(),
             insertion: Vec::new(),
         };
@@ -86,6 +86,7 @@ impl Index {
             index.attach(frame);
         }
         index.context = (*index.reach.frame).clone();
+        index.affected.seal();
         index
     }
 
@@ -143,9 +144,7 @@ impl Index {
         self.coherence.push(site);
         let value = self.state.world[world].clone();
         self.affected
-            .entry(value.frame)
-            .or_default()
-            .extend(value.particle.iter().map(|token| token.value));
+            .insert(value.frame, value.particle.iter().map(|token| token.value));
         self.frame[value.frame].insert(site);
         self.retained += 1;
         for token in &value.particle {
@@ -330,8 +329,7 @@ impl Index {
             + self.symbol.len()
             + self.context.len()
             + self.ownership.len()
-            + self.affected.len()
-            + self.affected.values().map(HashSet::len).sum::<usize>()
+            + self.affected.retained()
             + self.altered.len()
             + self.removal.len()
             + self.insertion.len()

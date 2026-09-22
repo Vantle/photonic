@@ -52,9 +52,7 @@ impl Index {
             let site = self.removal[offset];
             let value = self.state.world[world].clone();
             self.affected
-                .entry(value.frame)
-                .or_default()
-                .extend(value.particle.iter().map(|token| token.value));
+                .insert(value.frame, value.particle.iter().map(|token| token.value));
             self.frame[value.frame].remove(&site);
             self.retained -= 1;
             for token in &value.particle {
@@ -150,6 +148,7 @@ impl Index {
         }
         self.context.sort_unstable();
         self.context.dedup();
+        self.affected.seal();
         self.ownership = context.frame;
     }
 }

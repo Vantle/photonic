@@ -10,6 +10,7 @@ use crate::source;
 use crate::state::{Canonical, State};
 use crate::support::Status;
 use serde::Serialize;
+use smallvec::{SmallVec, smallvec};
 use std::collections::HashMap;
 use std::sync::{Arc, OnceLock};
 
@@ -124,7 +125,7 @@ pub struct Search {
     runtime: crate::reduction::Search,
     structure: crate::structure::Structure,
     state: Vec<Record>,
-    index: HashMap<u64, Vec<usize>, Builder>,
+    index: HashMap<u64, SmallVec<[usize; 1]>, Builder>,
     event: Vec<Step>,
     pending: Option<crate::reduction::Event>,
     candidate: Option<Record>,
@@ -154,7 +155,7 @@ impl Search {
             structure: crate::structure::Structure::default(),
             compiled,
             state: vec![Record::new(initial)],
-            index: HashMap::from_iter([(fingerprint, vec![0])]),
+            index: HashMap::from_iter([(fingerprint, smallvec![0])]),
             event: Vec::new(),
             pending: None,
             candidate: None,
@@ -327,7 +328,7 @@ impl Search {
                 .iter()
                 .filter(|record| record.canonical.get().is_some())
                 .count(),
-            bucket: self.index.values().map(Vec::len).max().unwrap_or(0),
+            bucket: self.index.values().map(SmallVec::len).max().unwrap_or(0),
             preparation: self.runtime.preparation(),
             reuse: self.runtime.reuse(),
         }

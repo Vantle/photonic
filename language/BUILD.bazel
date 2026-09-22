@@ -33,6 +33,7 @@ rust_test(
     srcs = [
         "test/activation.rs",
         "test/addition.rs",
+        "test/affected.rs",
         "test/agenda.rs",
         "test/assignment.rs",
         "test/basis.rs",
@@ -138,6 +139,7 @@ filegroup(
     name = "source",
     srcs = [
         "accumulator.rs",
+        "affected.rs",
         "agenda.rs",
         "application.rs",
         "arena.rs",

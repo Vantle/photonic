@@ -23,11 +23,11 @@ impl Key {
         if index.invalidated(self.frame) {
             return true;
         }
-        index.affected.get(&self.frame).is_some_and(|symbol| {
-            self.pattern.iter().all(|term| {
-                symbol.contains(&term.value) || index.visible(self.frame, term).next().is_some()
+        index.affected.contains(self.frame)
+            && self.pattern.iter().all(|term| {
+                index.affected.includes(self.frame, term.value)
+                    || index.visible(self.frame, term).next().is_some()
             })
-        })
     }
 
     pub fn insertion(&self, index: &Index) -> Vec<usize> {

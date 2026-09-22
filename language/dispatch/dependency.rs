@@ -50,10 +50,8 @@ impl Network {
         let dependency = || {
             index
                 .affected
-                .get(&frame)
-                .into_iter()
-                .flatten()
-                .filter_map(|symbol| self.trigger.get(symbol))
+                .symbol(frame)
+                .filter_map(|symbol| self.trigger.get(&symbol))
         };
         let selected: SmallVec<[(Key, usize); 4]> = if index.invalidated(frame) {
             self.entry
@@ -68,9 +66,10 @@ impl Network {
                 .filter(|(key, _)| {
                     let plan = self.catalog.input(key.input);
                     plan.empty()
-                        || index.affected.get(&frame).is_some_and(|symbol| {
-                            plan.dependency().iter().any(|value| symbol.contains(value))
-                        })
+                        || plan
+                            .dependency()
+                            .iter()
+                            .any(|&value| index.affected.includes(frame, value))
                 })
                 .map(|(key, &position)| (key, position))
                 .collect()

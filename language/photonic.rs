@@ -3,6 +3,7 @@
 pub use frontend::{failure, lowering, parser, source, syntax};
 
 mod accumulator;
+mod affected;
 mod agenda;
 mod application;
 mod arena;

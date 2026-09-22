@@ -172,8 +172,8 @@ impl State {
     }
 
     pub(crate) fn closure(&self, root: impl IntoIterator<Item = usize>) -> Vec<usize> {
-        let mut selected = vec![false; self.frame.len()];
-        let mut pending = Vec::new();
+        let mut selected = SmallVec::<[bool; 64]>::from_elem(false, self.frame.len());
+        let mut pending = SmallVec::<[usize; 16]>::new();
         for index in root {
             if !std::mem::replace(&mut selected[index], true) {
                 pending.push(index);

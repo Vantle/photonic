@@ -33,15 +33,14 @@ impl Context {
         if index.invalidated(frame) {
             return true;
         }
-        index.affected.get(&frame).is_some_and(|symbol| {
-            self.shape.fragment[position].group.iter().all(|group| {
-                symbol.contains(&group.value)
+        index.affected.contains(frame)
+            && self.shape.fragment[position].group.iter().all(|group| {
+                index.affected.includes(frame, group.value)
                     || index
                         .visible(frame, &Term::new(group.value, Some(self.owner)))
                         .next()
                         .is_some()
             })
-        })
     }
 
     fn term(&self, position: usize) -> impl Iterator<Item = Term> + '_ {

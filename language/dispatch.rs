@@ -192,11 +192,7 @@ impl Network {
         self.entry.resize(index.state.frame.len());
         self.altered.clear();
         self.availability(index);
-        let mut affected = index
-            .affected
-            .keys()
-            .copied()
-            .collect::<SmallVec<[usize; 4]>>();
+        let mut affected = SmallVec::<[usize; 4]>::from_slice(index.affected.frame());
         let context = &index.context;
         affected.extend_from_slice(context);
         affected.sort_unstable();
@@ -207,16 +203,16 @@ impl Network {
                 self.frame(index, frame, None);
             } else {
                 let mut selected = self.altered.clone();
-                if let Some(symbol) = index.affected.get(&frame) {
+                if index.affected.contains(frame) {
                     selected.union(&self.empty);
-                    for symbol in symbol {
-                        if let Symbol::Rule(rule) = *symbol {
+                    for symbol in index.affected.symbol(frame) {
+                        if let Symbol::Rule(rule) = symbol {
                             selected.insert(self.catalog.rule(rule));
                         }
-                        if index.altered.contains(symbol) {
+                        if index.altered.contains(&symbol) {
                             continue;
                         }
-                        let Some(input) = self.trigger.get(symbol) else {
+                        let Some(input) = self.trigger.get(&symbol) else {
                             continue;
                         };
                         for &input in input {

@@ -28,22 +28,17 @@ fn particle<'token>(value: impl IntoIterator<Item = &'token Token>, frame: &[u64
 
 struct World {
     value: u64,
-    dependency: Vec<usize>,
+    dependency: crate::basis::Set<usize>,
 }
 
 impl World {
     fn new(world: &crate::state::World, frame: &[u64]) -> Self {
         let value =
             mix(frame[world.frame].wrapping_add(particle(&world.particle, frame).rotate_left(17)));
-        let mut dependency = world
-            .particle
-            .iter()
-            .filter_map(|token| token.capture)
-            .collect::<Vec<_>>();
-        dependency.push(world.frame);
-        dependency.sort_unstable();
-        dependency.dedup();
-        Self { value, dependency }
+        Self {
+            value,
+            dependency: world.reference().collect(),
+        }
     }
 }
 
