@@ -1,0 +1,2648 @@
+{
+  "revision": "0361a20e73c21cf1b65c92a15b7e6afc0b471c39",
+  "binary": "0ceab92e1893019e5ad84d13d2fbb46a7841c803640c318d12be6cfb4be7ee84",
+  "record": [
+    {
+      "source": "[] A",
+      "argument": [
+        "run",
+        "<source>",
+        "--steps",
+        "4096",
+        "--states",
+        "4",
+        "--json"
+      ],
+      "report": {
+        "closed": true,
+        "record": 10,
+        "peak": 10,
+        "queued": 0,
+        "deferred": 0,
+        "work": 1,
+        "limit": {
+          "state": 4,
+          "record": 1000000,
+          "world": 4,
+          "cell": 12,
+          "frame": 10
+        },
+        "state": [
+          {
+            "id": 0,
+            "world": [],
+            "frame": [
+              {
+                "scope": "root",
+                "parent": null,
+                "lexical": null,
+                "held": []
+              }
+            ],
+            "status": "supported"
+          }
+        ],
+        "event": [],
+        "view": [
+          {
+            "id": 0,
+            "source": 0,
+            "target": 0,
+            "status": "supported",
+            "resource": [],
+            "context": [],
+            "frame": [
+              0
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "source": "([] A)",
+      "argument": [
+        "run",
+        "<source>",
+        "--steps",
+        "4096",
+        "--states",
+        "4",
+        "--json"
+      ],
+      "report": {
+        "closed": false,
+        "record": 136,
+        "peak": 136,
+        "queued": 0,
+        "deferred": 1,
+        "work": 60,
+        "limit": {
+          "state": 4,
+          "record": 1000000,
+          "world": 4,
+          "cell": 12,
+          "frame": 10
+        },
+        "state": [
+          {
+            "id": 0,
+            "world": [
+              {
+                "frame": 0,
+                "particle": [
+                  {
+                    "id": 0,
+                    "label": "\u00a70",
+                    "display": "\u27e8[] A\u27e9",
+                    "capture": 0
+                  }
+                ]
+              }
+            ],
+            "frame": [
+              {
+                "scope": "root",
+                "parent": null,
+                "lexical": null,
+                "held": []
+              }
+            ],
+            "status": "supported"
+          },
+          {
+            "id": 1,
+            "world": [
+              {
+                "frame": 0,
+                "particle": [
+                  {
+                    "id": 0,
+                    "label": "A",
+                    "display": "A"
+                  },
+                  {
+                    "id": 1,
+                    "label": "\u00a70",
+                    "display": "\u27e8[] A\u27e9",
+                    "capture": 0
+                  }
+                ]
+              }
+            ],
+            "frame": [
+              {
+                "scope": "root",
+                "parent": null,
+                "lexical": null,
+                "held": []
+              }
+            ],
+            "status": "supported"
+          },
+          {
+            "id": 2,
+            "world": [
+              {
+                "frame": 0,
+                "particle": [
+                  {
+                    "id": 0,
+                    "label": "A",
+                    "display": "A"
+                  },
+                  {
+                    "id": 1,
+                    "label": "A",
+                    "display": "A"
+                  },
+                  {
+                    "id": 2,
+                    "label": "\u00a70",
+                    "display": "\u27e8[] A\u27e9",
+                    "capture": 0
+                  }
+                ]
+              }
+            ],
+            "frame": [
+              {
+                "scope": "root",
+                "parent": null,
+                "lexical": null,
+                "held": []
+              }
+            ],
+            "status": "supported"
+          },
+          {
+            "id": 3,
+            "world": [
+              {
+                "frame": 0,
+                "particle": [
+                  {
+                    "id": 0,
+                    "label": "A",
+                    "display": "A"
+                  },
+                  {
+                    "id": 1,
+                    "label": "A",
+                    "display": "A"
+                  },
+                  {
+                    "id": 2,
+                    "label": "A",
+                    "display": "A"
+                  },
+                  {
+                    "id": 3,
+                    "label": "\u00a70",
+                    "display": "\u27e8[] A\u27e9",
+                    "capture": 0
+                  }
+                ]
+              }
+            ],
+            "frame": [
+              {
+                "scope": "root",
+                "parent": null,
+                "lexical": null,
+                "held": []
+              }
+            ],
+            "status": "supported"
+          }
+        ],
+        "event": [
+          {
+            "id": 0,
+            "source": 0,
+            "target": 1,
+            "rule": "[] A",
+            "status": "supported",
+            "footprint": [],
+            "exact": [],
+            "read": [
+              {
+                "world": [
+                  0,
+                  0
+                ]
+              }
+            ],
+            "evidence": [
+              0,
+              4,
+              7,
+              9
+            ]
+          },
+          {
+            "id": 1,
+            "source": 1,
+            "target": 2,
+            "rule": "[] A",
+            "status": "supported",
+            "footprint": [],
+            "exact": [],
+            "read": [
+              {
+                "world": [
+                  0,
+                  1
+                ]
+              }
+            ],
+            "evidence": [
+              1,
+              5,
+              8
+            ]
+          },
+          {
+            "id": 2,
+            "source": 2,
+            "target": 3,
+            "rule": "[] A",
+            "status": "supported",
+            "footprint": [],
+            "exact": [],
+            "read": [
+              {
+                "world": [
+                  0,
+                  2
+                ]
+              }
+            ],
+            "evidence": [
+              2,
+              6
+            ]
+          }
+        ],
+        "view": [
+          {
+            "id": 0,
+            "source": 0,
+            "target": 0,
+            "status": "supported",
+            "resource": [
+              {
+                "target": {
+                  "world": [
+                    0,
+                    0
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      0,
+                      0
+                    ]
+                  }
+                ]
+              }
+            ],
+            "context": [
+              [
+                0
+              ]
+            ],
+            "frame": [
+              0
+            ]
+          },
+          {
+            "id": 1,
+            "source": 1,
+            "target": 1,
+            "status": "supported",
+            "resource": [
+              {
+                "target": {
+                  "world": [
+                    0,
+                    0
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      0,
+                      0
+                    ]
+                  }
+                ]
+              },
+              {
+                "target": {
+                  "world": [
+                    0,
+                    1
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      0,
+                      1
+                    ]
+                  }
+                ]
+              }
+            ],
+            "context": [
+              [
+                0
+              ]
+            ],
+            "frame": [
+              0
+            ]
+          },
+          {
+            "id": 2,
+            "source": 2,
+            "target": 2,
+            "status": "supported",
+            "resource": [
+              {
+                "target": {
+                  "world": [
+                    0,
+                    0
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      0,
+                      0
+                    ]
+                  }
+                ]
+              },
+              {
+                "target": {
+                  "world": [
+                    0,
+                    1
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      0,
+                      1
+                    ]
+                  }
+                ]
+              },
+              {
+                "target": {
+                  "world": [
+                    0,
+                    2
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      0,
+                      2
+                    ]
+                  }
+                ]
+              }
+            ],
+            "context": [
+              [
+                0
+              ]
+            ],
+            "frame": [
+              0
+            ]
+          },
+          {
+            "id": 3,
+            "source": 3,
+            "target": 3,
+            "status": "supported",
+            "resource": [
+              {
+                "target": {
+                  "world": [
+                    0,
+                    0
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      0,
+                      0
+                    ]
+                  }
+                ]
+              },
+              {
+                "target": {
+                  "world": [
+                    0,
+                    1
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      0,
+                      1
+                    ]
+                  }
+                ]
+              },
+              {
+                "target": {
+                  "world": [
+                    0,
+                    2
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      0,
+                      2
+                    ]
+                  }
+                ]
+              },
+              {
+                "target": {
+                  "world": [
+                    0,
+                    3
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      0,
+                      3
+                    ]
+                  }
+                ]
+              }
+            ],
+            "context": [
+              [
+                0
+              ]
+            ],
+            "frame": [
+              0
+            ]
+          },
+          {
+            "id": 4,
+            "source": 0,
+            "target": 1,
+            "status": "supported",
+            "resource": [
+              {
+                "target": {
+                  "world": [
+                    0,
+                    0
+                  ]
+                },
+                "source": []
+              },
+              {
+                "target": {
+                  "world": [
+                    0,
+                    1
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      0,
+                      0
+                    ]
+                  }
+                ]
+              }
+            ],
+            "context": [
+              [
+                0
+              ]
+            ],
+            "frame": [
+              0
+            ]
+          },
+          {
+            "id": 5,
+            "source": 1,
+            "target": 2,
+            "status": "supported",
+            "resource": [
+              {
+                "target": {
+                  "world": [
+                    0,
+                    0
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      0,
+                      0
+                    ]
+                  }
+                ]
+              },
+              {
+                "target": {
+                  "world": [
+                    0,
+                    1
+                  ]
+                },
+                "source": []
+              },
+              {
+                "target": {
+                  "world": [
+                    0,
+                    2
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      0,
+                      1
+                    ]
+                  }
+                ]
+              }
+            ],
+            "context": [
+              [
+                0
+              ]
+            ],
+            "frame": [
+              0
+            ]
+          },
+          {
+            "id": 6,
+            "source": 2,
+            "target": 3,
+            "status": "supported",
+            "resource": [
+              {
+                "target": {
+                  "world": [
+                    0,
+                    0
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      0,
+                      0
+                    ]
+                  }
+                ]
+              },
+              {
+                "target": {
+                  "world": [
+                    0,
+                    1
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      0,
+                      1
+                    ]
+                  }
+                ]
+              },
+              {
+                "target": {
+                  "world": [
+                    0,
+                    2
+                  ]
+                },
+                "source": []
+              },
+              {
+                "target": {
+                  "world": [
+                    0,
+                    3
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      0,
+                      2
+                    ]
+                  }
+                ]
+              }
+            ],
+            "context": [
+              [
+                0
+              ]
+            ],
+            "frame": [
+              0
+            ]
+          },
+          {
+            "id": 7,
+            "source": 0,
+            "target": 2,
+            "status": "supported",
+            "resource": [
+              {
+                "target": {
+                  "world": [
+                    0,
+                    0
+                  ]
+                },
+                "source": []
+              },
+              {
+                "target": {
+                  "world": [
+                    0,
+                    1
+                  ]
+                },
+                "source": []
+              },
+              {
+                "target": {
+                  "world": [
+                    0,
+                    2
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      0,
+                      0
+                    ]
+                  }
+                ]
+              }
+            ],
+            "context": [
+              [
+                0
+              ]
+            ],
+            "frame": [
+              0
+            ]
+          },
+          {
+            "id": 8,
+            "source": 1,
+            "target": 3,
+            "status": "supported",
+            "resource": [
+              {
+                "target": {
+                  "world": [
+                    0,
+                    0
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      0,
+                      0
+                    ]
+                  }
+                ]
+              },
+              {
+                "target": {
+                  "world": [
+                    0,
+                    1
+                  ]
+                },
+                "source": []
+              },
+              {
+                "target": {
+                  "world": [
+                    0,
+                    2
+                  ]
+                },
+                "source": []
+              },
+              {
+                "target": {
+                  "world": [
+                    0,
+                    3
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      0,
+                      1
+                    ]
+                  }
+                ]
+              }
+            ],
+            "context": [
+              [
+                0
+              ]
+            ],
+            "frame": [
+              0
+            ]
+          },
+          {
+            "id": 9,
+            "source": 0,
+            "target": 3,
+            "status": "supported",
+            "resource": [
+              {
+                "target": {
+                  "world": [
+                    0,
+                    0
+                  ]
+                },
+                "source": []
+              },
+              {
+                "target": {
+                  "world": [
+                    0,
+                    1
+                  ]
+                },
+                "source": []
+              },
+              {
+                "target": {
+                  "world": [
+                    0,
+                    2
+                  ]
+                },
+                "source": []
+              },
+              {
+                "target": {
+                  "world": [
+                    0,
+                    3
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      0,
+                      0
+                    ]
+                  }
+                ]
+              }
+            ],
+            "context": [
+              [
+                0
+              ]
+            ],
+            "frame": [
+              0
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "source": "([,] A)",
+      "argument": [
+        "run",
+        "<source>",
+        "--steps",
+        "4096",
+        "--states",
+        "4",
+        "--json"
+      ],
+      "report": {
+        "closed": true,
+        "record": 20,
+        "peak": 20,
+        "queued": 0,
+        "deferred": 0,
+        "work": 1,
+        "limit": {
+          "state": 4,
+          "record": 1000000,
+          "world": 4,
+          "cell": 12,
+          "frame": 10
+        },
+        "state": [
+          {
+            "id": 0,
+            "world": [
+              {
+                "frame": 0,
+                "particle": [
+                  {
+                    "id": 0,
+                    "label": "\u00a70",
+                    "display": "\u27e8[,] A\u27e9",
+                    "capture": 0
+                  }
+                ]
+              }
+            ],
+            "frame": [
+              {
+                "scope": "root",
+                "parent": null,
+                "lexical": null,
+                "held": []
+              }
+            ],
+            "status": "supported"
+          }
+        ],
+        "event": [],
+        "view": [
+          {
+            "id": 0,
+            "source": 0,
+            "target": 0,
+            "status": "supported",
+            "resource": [
+              {
+                "target": {
+                  "world": [
+                    0,
+                    0
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      0,
+                      0
+                    ]
+                  }
+                ]
+              }
+            ],
+            "context": [
+              [
+                0
+              ]
+            ],
+            "frame": [
+              0
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "source": "([,] A),()",
+      "argument": [
+        "run",
+        "<source>",
+        "--steps",
+        "4096",
+        "--states",
+        "4",
+        "--json"
+      ],
+      "report": {
+        "closed": true,
+        "record": 57,
+        "peak": 58,
+        "queued": 0,
+        "deferred": 0,
+        "work": 24,
+        "limit": {
+          "state": 4,
+          "record": 1000000,
+          "world": 4,
+          "cell": 12,
+          "frame": 10
+        },
+        "state": [
+          {
+            "id": 0,
+            "world": [
+              {
+                "frame": 0,
+                "particle": []
+              },
+              {
+                "frame": 0,
+                "particle": [
+                  {
+                    "id": 0,
+                    "label": "\u00a70",
+                    "display": "\u27e8[,] A\u27e9",
+                    "capture": 0
+                  }
+                ]
+              }
+            ],
+            "frame": [
+              {
+                "scope": "root",
+                "parent": null,
+                "lexical": null,
+                "held": []
+              }
+            ],
+            "status": "supported"
+          },
+          {
+            "id": 1,
+            "world": [
+              {
+                "frame": 0,
+                "particle": [
+                  {
+                    "id": 0,
+                    "label": "A",
+                    "display": "A"
+                  },
+                  {
+                    "id": 1,
+                    "label": "\u00a70",
+                    "display": "\u27e8[,] A\u27e9",
+                    "capture": 0
+                  }
+                ]
+              }
+            ],
+            "frame": [
+              {
+                "scope": "root",
+                "parent": null,
+                "lexical": null,
+                "held": []
+              }
+            ],
+            "status": "supported"
+          }
+        ],
+        "event": [
+          {
+            "id": 0,
+            "source": 0,
+            "target": 1,
+            "rule": "[,] A",
+            "status": "supported",
+            "footprint": [],
+            "exact": [],
+            "read": [
+              {
+                "world": [
+                  1,
+                  0
+                ]
+              }
+            ],
+            "evidence": [
+              0
+            ]
+          }
+        ],
+        "view": [
+          {
+            "id": 0,
+            "source": 0,
+            "target": 0,
+            "status": "supported",
+            "resource": [
+              {
+                "target": {
+                  "world": [
+                    1,
+                    0
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      1,
+                      0
+                    ]
+                  }
+                ]
+              }
+            ],
+            "context": [
+              [
+                0
+              ],
+              [
+                1
+              ]
+            ],
+            "frame": [
+              0
+            ]
+          },
+          {
+            "id": 1,
+            "source": 1,
+            "target": 1,
+            "status": "supported",
+            "resource": [
+              {
+                "target": {
+                  "world": [
+                    0,
+                    0
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      0,
+                      0
+                    ]
+                  }
+                ]
+              },
+              {
+                "target": {
+                  "world": [
+                    0,
+                    1
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      0,
+                      1
+                    ]
+                  }
+                ]
+              }
+            ],
+            "context": [
+              [
+                0
+              ]
+            ],
+            "frame": [
+              0
+            ]
+          },
+          {
+            "id": 2,
+            "source": 0,
+            "target": 1,
+            "status": "supported",
+            "resource": [
+              {
+                "target": {
+                  "world": [
+                    0,
+                    0
+                  ]
+                },
+                "source": []
+              },
+              {
+                "target": {
+                  "world": [
+                    0,
+                    1
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      1,
+                      0
+                    ]
+                  }
+                ]
+              }
+            ],
+            "context": [
+              [
+                0,
+                1
+              ]
+            ],
+            "frame": [
+              0
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "source": "([,,] A),(),()",
+      "argument": [
+        "run",
+        "<source>",
+        "--steps",
+        "4096",
+        "--states",
+        "4",
+        "--json"
+      ],
+      "report": {
+        "closed": true,
+        "record": 61,
+        "peak": 80,
+        "queued": 0,
+        "deferred": 0,
+        "work": 49,
+        "limit": {
+          "state": 4,
+          "record": 1000000,
+          "world": 4,
+          "cell": 12,
+          "frame": 10
+        },
+        "state": [
+          {
+            "id": 0,
+            "world": [
+              {
+                "frame": 0,
+                "particle": []
+              },
+              {
+                "frame": 0,
+                "particle": []
+              },
+              {
+                "frame": 0,
+                "particle": [
+                  {
+                    "id": 0,
+                    "label": "\u00a70",
+                    "display": "\u27e8[,,] A\u27e9",
+                    "capture": 0
+                  }
+                ]
+              }
+            ],
+            "frame": [
+              {
+                "scope": "root",
+                "parent": null,
+                "lexical": null,
+                "held": []
+              }
+            ],
+            "status": "supported"
+          },
+          {
+            "id": 1,
+            "world": [
+              {
+                "frame": 0,
+                "particle": [
+                  {
+                    "id": 0,
+                    "label": "A",
+                    "display": "A"
+                  },
+                  {
+                    "id": 1,
+                    "label": "\u00a70",
+                    "display": "\u27e8[,,] A\u27e9",
+                    "capture": 0
+                  }
+                ]
+              }
+            ],
+            "frame": [
+              {
+                "scope": "root",
+                "parent": null,
+                "lexical": null,
+                "held": []
+              }
+            ],
+            "status": "supported"
+          }
+        ],
+        "event": [
+          {
+            "id": 0,
+            "source": 0,
+            "target": 1,
+            "rule": "[,,] A",
+            "status": "supported",
+            "footprint": [],
+            "exact": [],
+            "read": [
+              {
+                "world": [
+                  2,
+                  0
+                ]
+              }
+            ],
+            "evidence": [
+              0
+            ]
+          }
+        ],
+        "view": [
+          {
+            "id": 0,
+            "source": 0,
+            "target": 0,
+            "status": "supported",
+            "resource": [
+              {
+                "target": {
+                  "world": [
+                    2,
+                    0
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      2,
+                      0
+                    ]
+                  }
+                ]
+              }
+            ],
+            "context": [
+              [
+                0
+              ],
+              [
+                1
+              ],
+              [
+                2
+              ]
+            ],
+            "frame": [
+              0
+            ]
+          },
+          {
+            "id": 1,
+            "source": 1,
+            "target": 1,
+            "status": "supported",
+            "resource": [
+              {
+                "target": {
+                  "world": [
+                    0,
+                    0
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      0,
+                      0
+                    ]
+                  }
+                ]
+              },
+              {
+                "target": {
+                  "world": [
+                    0,
+                    1
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      0,
+                      1
+                    ]
+                  }
+                ]
+              }
+            ],
+            "context": [
+              [
+                0
+              ]
+            ],
+            "frame": [
+              0
+            ]
+          },
+          {
+            "id": 2,
+            "source": 0,
+            "target": 1,
+            "status": "supported",
+            "resource": [
+              {
+                "target": {
+                  "world": [
+                    0,
+                    0
+                  ]
+                },
+                "source": []
+              },
+              {
+                "target": {
+                  "world": [
+                    0,
+                    1
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      2,
+                      0
+                    ]
+                  }
+                ]
+              }
+            ],
+            "context": [
+              [
+                0,
+                1,
+                2
+              ]
+            ],
+            "frame": [
+              0
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "source": "([A] B).A",
+      "argument": [
+        "run",
+        "<source>",
+        "--steps",
+        "4096",
+        "--states",
+        "4",
+        "--json"
+      ],
+      "report": {
+        "closed": true,
+        "record": 57,
+        "peak": 58,
+        "queued": 0,
+        "deferred": 0,
+        "work": 12,
+        "limit": {
+          "state": 4,
+          "record": 1000000,
+          "world": 4,
+          "cell": 12,
+          "frame": 10
+        },
+        "state": [
+          {
+            "id": 0,
+            "world": [
+              {
+                "frame": 0,
+                "particle": [
+                  {
+                    "id": 0,
+                    "label": "A",
+                    "display": "A"
+                  },
+                  {
+                    "id": 1,
+                    "label": "\u00a70",
+                    "display": "\u27e8[A] B\u27e9",
+                    "capture": 0
+                  }
+                ]
+              }
+            ],
+            "frame": [
+              {
+                "scope": "root",
+                "parent": null,
+                "lexical": null,
+                "held": []
+              }
+            ],
+            "status": "supported"
+          },
+          {
+            "id": 1,
+            "world": [
+              {
+                "frame": 0,
+                "particle": [
+                  {
+                    "id": 0,
+                    "label": "B",
+                    "display": "B"
+                  },
+                  {
+                    "id": 1,
+                    "label": "\u00a70",
+                    "display": "\u27e8[A] B\u27e9",
+                    "capture": 0
+                  }
+                ]
+              }
+            ],
+            "frame": [
+              {
+                "scope": "root",
+                "parent": null,
+                "lexical": null,
+                "held": []
+              }
+            ],
+            "status": "supported"
+          }
+        ],
+        "event": [
+          {
+            "id": 0,
+            "source": 0,
+            "target": 1,
+            "rule": "[A] B",
+            "status": "supported",
+            "footprint": [
+              {
+                "world": [
+                  0,
+                  0
+                ]
+              }
+            ],
+            "exact": [
+              {
+                "world": [
+                  0,
+                  0
+                ]
+              }
+            ],
+            "read": [
+              {
+                "world": [
+                  0,
+                  1
+                ]
+              }
+            ],
+            "evidence": [
+              0
+            ]
+          }
+        ],
+        "view": [
+          {
+            "id": 0,
+            "source": 0,
+            "target": 0,
+            "status": "supported",
+            "resource": [
+              {
+                "target": {
+                  "world": [
+                    0,
+                    0
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      0,
+                      0
+                    ]
+                  }
+                ]
+              },
+              {
+                "target": {
+                  "world": [
+                    0,
+                    1
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      0,
+                      1
+                    ]
+                  }
+                ]
+              }
+            ],
+            "context": [
+              [
+                0
+              ]
+            ],
+            "frame": [
+              0
+            ]
+          },
+          {
+            "id": 1,
+            "source": 1,
+            "target": 1,
+            "status": "supported",
+            "resource": [
+              {
+                "target": {
+                  "world": [
+                    0,
+                    0
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      0,
+                      0
+                    ]
+                  }
+                ]
+              },
+              {
+                "target": {
+                  "world": [
+                    0,
+                    1
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      0,
+                      1
+                    ]
+                  }
+                ]
+              }
+            ],
+            "context": [
+              [
+                0
+              ]
+            ],
+            "frame": [
+              0
+            ]
+          },
+          {
+            "id": 2,
+            "source": 0,
+            "target": 1,
+            "status": "supported",
+            "resource": [
+              {
+                "target": {
+                  "world": [
+                    0,
+                    0
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      0,
+                      0
+                    ]
+                  }
+                ]
+              },
+              {
+                "target": {
+                  "world": [
+                    0,
+                    1
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      0,
+                      1
+                    ]
+                  }
+                ]
+              }
+            ],
+            "context": [
+              [
+                0
+              ]
+            ],
+            "frame": [
+              0
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "source": "([A] B),A",
+      "argument": [
+        "run",
+        "<source>",
+        "--steps",
+        "4096",
+        "--states",
+        "4",
+        "--json"
+      ],
+      "report": {
+        "closed": true,
+        "record": 31,
+        "peak": 43,
+        "queued": 0,
+        "deferred": 0,
+        "work": 5,
+        "limit": {
+          "state": 4,
+          "record": 1000000,
+          "world": 4,
+          "cell": 12,
+          "frame": 10
+        },
+        "state": [
+          {
+            "id": 0,
+            "world": [
+              {
+                "frame": 0,
+                "particle": [
+                  {
+                    "id": 0,
+                    "label": "A",
+                    "display": "A"
+                  }
+                ]
+              },
+              {
+                "frame": 0,
+                "particle": [
+                  {
+                    "id": 1,
+                    "label": "\u00a70",
+                    "display": "\u27e8[A] B\u27e9",
+                    "capture": 0
+                  }
+                ]
+              }
+            ],
+            "frame": [
+              {
+                "scope": "root",
+                "parent": null,
+                "lexical": null,
+                "held": []
+              }
+            ],
+            "status": "supported"
+          }
+        ],
+        "event": [],
+        "view": [
+          {
+            "id": 0,
+            "source": 0,
+            "target": 0,
+            "status": "supported",
+            "resource": [
+              {
+                "target": {
+                  "world": [
+                    0,
+                    0
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      0,
+                      0
+                    ]
+                  }
+                ]
+              },
+              {
+                "target": {
+                  "world": [
+                    1,
+                    1
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      1,
+                      1
+                    ]
+                  }
+                ]
+              }
+            ],
+            "context": [
+              [
+                0
+              ],
+              [
+                1
+              ]
+            ],
+            "frame": [
+              0
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "source": "([A] (B,C)).A",
+      "argument": [
+        "run",
+        "<source>",
+        "--steps",
+        "4096",
+        "--states",
+        "4",
+        "--json"
+      ],
+      "report": {
+        "closed": true,
+        "record": 68,
+        "peak": 69,
+        "queued": 0,
+        "deferred": 0,
+        "work": 12,
+        "limit": {
+          "state": 4,
+          "record": 1000000,
+          "world": 4,
+          "cell": 12,
+          "frame": 10
+        },
+        "state": [
+          {
+            "id": 0,
+            "world": [
+              {
+                "frame": 0,
+                "particle": [
+                  {
+                    "id": 0,
+                    "label": "A",
+                    "display": "A"
+                  },
+                  {
+                    "id": 1,
+                    "label": "\u00a70",
+                    "display": "\u27e8[A] (B,C)\u27e9",
+                    "capture": 0
+                  }
+                ]
+              }
+            ],
+            "frame": [
+              {
+                "scope": "root",
+                "parent": null,
+                "lexical": null,
+                "held": []
+              }
+            ],
+            "status": "supported"
+          },
+          {
+            "id": 1,
+            "world": [
+              {
+                "frame": 0,
+                "particle": [
+                  {
+                    "id": 0,
+                    "label": "B",
+                    "display": "B"
+                  },
+                  {
+                    "id": 2,
+                    "label": "\u00a70",
+                    "display": "\u27e8[A] (B,C)\u27e9",
+                    "capture": 0
+                  }
+                ]
+              },
+              {
+                "frame": 0,
+                "particle": [
+                  {
+                    "id": 1,
+                    "label": "C",
+                    "display": "C"
+                  },
+                  {
+                    "id": 2,
+                    "label": "\u00a70",
+                    "display": "\u27e8[A] (B,C)\u27e9",
+                    "capture": 0
+                  }
+                ]
+              }
+            ],
+            "frame": [
+              {
+                "scope": "root",
+                "parent": null,
+                "lexical": null,
+                "held": []
+              }
+            ],
+            "status": "supported"
+          }
+        ],
+        "event": [
+          {
+            "id": 0,
+            "source": 0,
+            "target": 1,
+            "rule": "[A] (B,C)",
+            "status": "supported",
+            "footprint": [
+              {
+                "world": [
+                  0,
+                  0
+                ]
+              }
+            ],
+            "exact": [
+              {
+                "world": [
+                  0,
+                  0
+                ]
+              }
+            ],
+            "read": [
+              {
+                "world": [
+                  0,
+                  1
+                ]
+              }
+            ],
+            "evidence": [
+              0
+            ]
+          }
+        ],
+        "view": [
+          {
+            "id": 0,
+            "source": 0,
+            "target": 0,
+            "status": "supported",
+            "resource": [
+              {
+                "target": {
+                  "world": [
+                    0,
+                    0
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      0,
+                      0
+                    ]
+                  }
+                ]
+              },
+              {
+                "target": {
+                  "world": [
+                    0,
+                    1
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      0,
+                      1
+                    ]
+                  }
+                ]
+              }
+            ],
+            "context": [
+              [
+                0
+              ]
+            ],
+            "frame": [
+              0
+            ]
+          },
+          {
+            "id": 1,
+            "source": 1,
+            "target": 1,
+            "status": "supported",
+            "resource": [
+              {
+                "target": {
+                  "world": [
+                    0,
+                    0
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      0,
+                      0
+                    ]
+                  }
+                ]
+              },
+              {
+                "target": {
+                  "world": [
+                    0,
+                    2
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      0,
+                      2
+                    ]
+                  }
+                ]
+              },
+              {
+                "target": {
+                  "world": [
+                    1,
+                    1
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      1,
+                      1
+                    ]
+                  }
+                ]
+              },
+              {
+                "target": {
+                  "world": [
+                    1,
+                    2
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      1,
+                      2
+                    ]
+                  }
+                ]
+              }
+            ],
+            "context": [
+              [
+                0
+              ],
+              [
+                1
+              ]
+            ],
+            "frame": [
+              0
+            ]
+          },
+          {
+            "id": 2,
+            "source": 0,
+            "target": 1,
+            "status": "supported",
+            "resource": [
+              {
+                "target": {
+                  "world": [
+                    0,
+                    0
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      0,
+                      0
+                    ]
+                  }
+                ]
+              },
+              {
+                "target": {
+                  "world": [
+                    0,
+                    2
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      0,
+                      1
+                    ]
+                  }
+                ]
+              },
+              {
+                "target": {
+                  "world": [
+                    1,
+                    1
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      0,
+                      0
+                    ]
+                  }
+                ]
+              },
+              {
+                "target": {
+                  "world": [
+                    1,
+                    2
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      0,
+                      1
+                    ]
+                  }
+                ]
+              }
+            ],
+            "context": [
+              [
+                0
+              ],
+              [
+                0
+              ]
+            ],
+            "frame": [
+              0
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "source": "([A]).A",
+      "argument": [
+        "run",
+        "<source>",
+        "--steps",
+        "4096",
+        "--states",
+        "4",
+        "--json"
+      ],
+      "report": {
+        "closed": true,
+        "record": 41,
+        "peak": 42,
+        "queued": 0,
+        "deferred": 0,
+        "work": 12,
+        "limit": {
+          "state": 4,
+          "record": 1000000,
+          "world": 4,
+          "cell": 12,
+          "frame": 10
+        },
+        "state": [
+          {
+            "id": 0,
+            "world": [
+              {
+                "frame": 0,
+                "particle": [
+                  {
+                    "id": 0,
+                    "label": "A",
+                    "display": "A"
+                  },
+                  {
+                    "id": 1,
+                    "label": "\u00a70",
+                    "display": "\u27e8[A]\u27e9",
+                    "capture": 0
+                  }
+                ]
+              }
+            ],
+            "frame": [
+              {
+                "scope": "root",
+                "parent": null,
+                "lexical": null,
+                "held": []
+              }
+            ],
+            "status": "supported"
+          },
+          {
+            "id": 1,
+            "world": [],
+            "frame": [
+              {
+                "scope": "root",
+                "parent": null,
+                "lexical": null,
+                "held": []
+              }
+            ],
+            "status": "supported"
+          }
+        ],
+        "event": [
+          {
+            "id": 0,
+            "source": 0,
+            "target": 1,
+            "rule": "[A]",
+            "status": "supported",
+            "footprint": [
+              {
+                "world": [
+                  0,
+                  0
+                ]
+              }
+            ],
+            "exact": [
+              {
+                "world": [
+                  0,
+                  0
+                ]
+              }
+            ],
+            "read": [
+              {
+                "world": [
+                  0,
+                  1
+                ]
+              }
+            ],
+            "evidence": [
+              0
+            ]
+          }
+        ],
+        "view": [
+          {
+            "id": 0,
+            "source": 0,
+            "target": 0,
+            "status": "supported",
+            "resource": [
+              {
+                "target": {
+                  "world": [
+                    0,
+                    0
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      0,
+                      0
+                    ]
+                  }
+                ]
+              },
+              {
+                "target": {
+                  "world": [
+                    0,
+                    1
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      0,
+                      1
+                    ]
+                  }
+                ]
+              }
+            ],
+            "context": [
+              [
+                0
+              ]
+            ],
+            "frame": [
+              0
+            ]
+          },
+          {
+            "id": 1,
+            "source": 1,
+            "target": 1,
+            "status": "supported",
+            "resource": [],
+            "context": [],
+            "frame": [
+              0
+            ]
+          },
+          {
+            "id": 2,
+            "source": 0,
+            "target": 1,
+            "status": "supported",
+            "resource": [],
+            "context": [],
+            "frame": [
+              0
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "source": "([A] ()).A",
+      "argument": [
+        "run",
+        "<source>",
+        "--steps",
+        "4096",
+        "--states",
+        "4",
+        "--json"
+      ],
+      "report": {
+        "closed": true,
+        "record": 52,
+        "peak": 53,
+        "queued": 0,
+        "deferred": 0,
+        "work": 12,
+        "limit": {
+          "state": 4,
+          "record": 1000000,
+          "world": 4,
+          "cell": 12,
+          "frame": 10
+        },
+        "state": [
+          {
+            "id": 0,
+            "world": [
+              {
+                "frame": 0,
+                "particle": [
+                  {
+                    "id": 0,
+                    "label": "A",
+                    "display": "A"
+                  },
+                  {
+                    "id": 1,
+                    "label": "\u00a70",
+                    "display": "\u27e8[A] ()\u27e9",
+                    "capture": 0
+                  }
+                ]
+              }
+            ],
+            "frame": [
+              {
+                "scope": "root",
+                "parent": null,
+                "lexical": null,
+                "held": []
+              }
+            ],
+            "status": "supported"
+          },
+          {
+            "id": 1,
+            "world": [
+              {
+                "frame": 0,
+                "particle": [
+                  {
+                    "id": 0,
+                    "label": "\u00a70",
+                    "display": "\u27e8[A] ()\u27e9",
+                    "capture": 0
+                  }
+                ]
+              }
+            ],
+            "frame": [
+              {
+                "scope": "root",
+                "parent": null,
+                "lexical": null,
+                "held": []
+              }
+            ],
+            "status": "supported"
+          }
+        ],
+        "event": [
+          {
+            "id": 0,
+            "source": 0,
+            "target": 1,
+            "rule": "[A] ()",
+            "status": "supported",
+            "footprint": [
+              {
+                "world": [
+                  0,
+                  0
+                ]
+              }
+            ],
+            "exact": [
+              {
+                "world": [
+                  0,
+                  0
+                ]
+              }
+            ],
+            "read": [
+              {
+                "world": [
+                  0,
+                  1
+                ]
+              }
+            ],
+            "evidence": [
+              0
+            ]
+          }
+        ],
+        "view": [
+          {
+            "id": 0,
+            "source": 0,
+            "target": 0,
+            "status": "supported",
+            "resource": [
+              {
+                "target": {
+                  "world": [
+                    0,
+                    0
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      0,
+                      0
+                    ]
+                  }
+                ]
+              },
+              {
+                "target": {
+                  "world": [
+                    0,
+                    1
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      0,
+                      1
+                    ]
+                  }
+                ]
+              }
+            ],
+            "context": [
+              [
+                0
+              ]
+            ],
+            "frame": [
+              0
+            ]
+          },
+          {
+            "id": 1,
+            "source": 1,
+            "target": 1,
+            "status": "supported",
+            "resource": [
+              {
+                "target": {
+                  "world": [
+                    0,
+                    0
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      0,
+                      0
+                    ]
+                  }
+                ]
+              }
+            ],
+            "context": [
+              [
+                0
+              ]
+            ],
+            "frame": [
+              0
+            ]
+          },
+          {
+            "id": 2,
+            "source": 0,
+            "target": 1,
+            "status": "supported",
+            "resource": [
+              {
+                "target": {
+                  "world": [
+                    0,
+                    0
+                  ]
+                },
+                "source": [
+                  {
+                    "world": [
+                      0,
+                      1
+                    ]
+                  }
+                ]
+              }
+            ],
+            "context": [
+              [
+                0
+              ]
+            ],
+            "frame": [
+              0
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "source": "[A] [B]",
+      "argument": [
+        "run",
+        "<source>",
+        "--steps",
+        "4096",
+        "--states",
+        "4",
+        "--json"
+      ],
+      "report": {
+        "closed": true,
+        "record": 8,
+        "peak": 8,
+        "queued": 0,
+        "deferred": 0,
+        "work": 1,
+        "limit": {
+          "state": 4,
+          "record": 1000000,
+          "world": 4,
+          "cell": 12,
+          "frame": 10
+        },
+        "state": [
+          {
+            "id": 0,
+            "world": [],
+            "frame": [
+              {
+                "scope": "root",
+                "parent": null,
+                "lexical": null,
+                "held": []
+              }
+            ],
+            "status": "supported"
+          }
+        ],
+        "event": [],
+        "view": [
+          {
+            "id": 0,
+            "source": 0,
+            "target": 0,
+            "status": "supported",
+            "resource": [],
+            "context": [],
+            "frame": [
+              0
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

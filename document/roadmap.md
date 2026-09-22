@@ -24,6 +24,8 @@ The [subscription activation audit](activation.md) now distinguishes membership 
 
 The [compiled scope membership audit](scope.md) replaces per-scope hash lookup and ordered availability sets with flat declaration groups and hierarchical availability masks at fixed local positions. Wide and heavily shared synthetic scope workloads improve index/dispatch lifecycle time about 2–5.4×; sparse enumeration skips inactive mask words. These timings exclude fixture construction and are not whole-program speedups. Arithmetic remains approximately flat. The changing-prefix control is about 4.6% slower in its longer follow-up, within the existing 5% gate. All 42 protected comparisons and eight new scope lifecycle comparisons pass, with raw failures and follow-ups retained. Search admission counts remain unchanged.
 
+The [join location audit](location.md) now separates stable sites inside matching from current world positions at delivery using distinct slot types. This tightens the boundary needed for future reuse without changing enumeration or subscription lifecycle. All 110 test targets and 82 exact reports pass; no overall speedup is claimed.
+
 No new language capability or collection demonstration is required. Each optimization must justify its maintenance cost with repeatable complete-program benefit. Stop when latency and memory meet the workload's needs; the research list is optional.
 
 The [architectural opportunity assessment](opportunity.md) now governs selection. Prefer changes that remove repeated setup, materialization or maintenance across a whole layer. Attribution is part of each architectural experiment, not a separate open-ended optimization project. Small allocation changes remain optional when their benefit is clear; the latest direct-collection probe was removed after mixed results.
@@ -65,6 +67,8 @@ The [candidate-domain implementation](candidate.md) shares presence filters and 
 The [dispatch dependency audit](dispatch.md) now removes repeated lexical-ancestor walks within each update and transient activation during coherent symbol changes. Detailed profiling showed agenda restart was a small part of arithmetic dispatch cost, so the existing progress-preserving restart remains. The subsequent [partition audit](partition.md) implements the first bounded joined-fragment maintenance slice. A persistent agenda remains unimplemented; the later [reconciliation audit](reconciliation.md) adds an incremental reverse lexical dependency index. The subsequent [interior matching audit](interior.md) extends retraction below the first input, adds immutable unfinished prefix snapshots and removes the inherited prefix regression through a cheaper symmetry check. The [CPU research review](research.md) gives the next priorities and updated primary sources.
 
 ## Semantic boundary
+
+The [initial executable rule assessment](loading.md) considers unifying declaration loading and ordinary rule values. It is a separate design and migration proposal, requested for assessment before implementation. It does not authorize changing availability, startup, rule contents, exact targets, or scope behavior during optimization.
 
 - State is unordered. Synchronization establishes a firing; planner order and scheduler order are implementation details.
 - Bindings retain resource occurrence identity, multiplicity, distinct-world constraints, captures, lexical ownership, and executable-rule read dependencies.
