@@ -77,7 +77,7 @@ impl Network {
                             plan.dependency().iter().any(|value| symbol.contains(value))
                         })
                 })
-                .map(|(&key, &position)| (key, position))
+                .map(|(key, &position)| (key, position))
                 .collect()
         } else {
             dependency()
@@ -87,7 +87,7 @@ impl Network {
                 .collect::<BTreeSet<_>>()
                 .into_iter()
                 .flat_map(|input| self.entry.range(Key::input(frame, input)))
-                .map(|(&key, &position)| (key, position))
+                .map(|(key, &position)| (key, position))
                 .collect()
         };
         for (key, position) in selected {

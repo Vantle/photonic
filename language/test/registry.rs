@@ -12,8 +12,16 @@ fn reconciliation() {
         actual.resize(frame + 1);
         let key = Key {
             frame,
-            input: (seed >> 16) as usize % 11,
-            owner: seed as usize % 5,
+            input: if iteration % 17 == 0 {
+                usize::MAX
+            } else {
+                (seed >> 16) as usize % 11
+            },
+            owner: if iteration % 19 == 0 {
+                usize::MAX
+            } else {
+                seed as usize % 5
+            },
         };
         if iteration % 3 != 0 {
             actual.insert(key, iteration);
@@ -25,9 +33,9 @@ fn reconciliation() {
                 Key::input(frame, key.input)
             };
             assert!(
-                actual
+                actual.range(interval.clone()).eq(expected
                     .range(interval.clone())
-                    .eq(expected.range(interval.clone()))
+                    .map(|(&key, value)| (key, value)))
             );
             let before = expected
                 .extract_if(interval.clone(), |_, position| *position % 2 == 0)
@@ -43,7 +51,11 @@ fn reconciliation() {
             actual.count(frame),
             expected.range(Key::frame(frame)).count()
         );
-        assert!(actual.iter().eq(expected.iter()));
+        assert!(
+            actual
+                .iter()
+                .eq(expected.iter().map(|(&key, value)| (key, value)))
+        );
         assert!(actual.values().eq(expected.values()));
     }
 }
@@ -82,7 +94,11 @@ fn extraction() {
                 assert_eq!(before.len(), after.len());
                 assert!(before == after);
                 assert_eq!(actual.len(), expected.len());
-                assert!(actual.iter().eq(expected.iter()));
+                assert!(
+                    actual
+                        .iter()
+                        .eq(expected.iter().map(|(&key, value)| (key, value)))
+                );
                 assert_eq!(
                     actual.count(frame),
                     expected.range(Key::frame(frame)).count()

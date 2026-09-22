@@ -93,7 +93,7 @@ impl Network {
                         self.entry
                             .iter()
                             .filter(|&(_, &position)| self.store[position].viable())
-                            .map(|(&key, &position)| (key, position))
+                            .map(|(key, &position)| (key, position))
                             .collect(),
                     );
                 }
