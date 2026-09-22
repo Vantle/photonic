@@ -24,7 +24,7 @@ impl Space {
     pub fn dependency(
         &self,
         site: usize,
-        binding: &[crate::slot::Slot],
+        binding: &[super::slot::Slot],
         order: &[usize],
         index: &Index,
     ) -> super::dependency::Dependency {
@@ -35,9 +35,9 @@ impl Space {
                 .filter(|slot| {
                     order[binding.len()..]
                         .iter()
-                        .any(|&position| self.query.matches(position, index, slot.world))
+                        .any(|&position| self.query.matches(position, index, slot.site))
                 })
-                .map(|slot| (slot.position, slot.world)),
+                .map(|slot| (slot.position, slot.site)),
         )
     }
 

@@ -1,4 +1,4 @@
-use crate::slot::Slot;
+use super::slot::Slot;
 use std::sync::Arc;
 
 #[derive(Clone, Eq, Hash, PartialEq)]
@@ -29,7 +29,7 @@ impl Binding {
             value
                 .iter()
                 .map(|slot| Selection {
-                    site: slot.world,
+                    site: slot.site,
                     token: slot.token.clone(),
                 })
                 .collect(),
@@ -82,7 +82,7 @@ impl Binding {
             };
             for selection in value {
                 output.push(Slot {
-                    world: selection.site,
+                    site: selection.site,
                     position: order[output.len()],
                     token: selection.token.clone(),
                 });

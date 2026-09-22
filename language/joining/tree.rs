@@ -2,10 +2,10 @@ use super::cursor::Cursor;
 use super::layer::{Active, Layer};
 use super::playback::Playback;
 use super::prefix::Prefix;
+use super::slot::Slot;
 use super::space::Space;
 use crate::factor::Budget;
 use crate::index::Index;
-use crate::slot::Slot;
 use std::sync::Arc;
 use std::task::Poll;
 

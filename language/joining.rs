@@ -11,6 +11,7 @@ mod product;
 mod query;
 mod recording;
 mod retention;
+mod slot;
 mod space;
 mod store;
 mod strategy;
@@ -306,10 +307,15 @@ impl Join {
             Traversal::Layered(product) => product.step(&mut self.space, &self.order, index),
         };
         result.map(|selection| {
-            selection.map(|mut selection| {
-                for slot in &mut selection {
-                    slot.world = index.world(slot.world);
-                }
+            selection.map(|selection| {
+                let mut selection = selection
+                    .into_iter()
+                    .map(|slot| Slot {
+                        world: index.world(slot.site),
+                        token: slot.token,
+                        position: slot.position,
+                    })
+                    .collect::<Vec<_>>();
                 selection.sort_by_key(|slot| slot.position);
                 selection
             })
@@ -370,3 +376,7 @@ pub mod segment;
 #[cfg(test)]
 #[path = "test/activation.rs"]
 mod activation;
+
+#[cfg(test)]
+#[path = "test/location.rs"]
+mod location;

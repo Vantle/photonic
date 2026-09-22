@@ -2,10 +2,10 @@ use super::cursor::Cursor;
 use super::node::Node;
 use super::playback::Playback;
 use super::recording::Recording;
+use super::slot::Slot;
 use super::space::Space;
 use super::trace::Trace;
 use crate::index::Index;
-use crate::slot::Slot;
 use std::sync::Arc;
 use std::task::Poll;
 

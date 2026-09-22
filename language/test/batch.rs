@@ -1,7 +1,7 @@
 use super::playback::Playback;
+use super::slot::Slot;
 use super::trace::Trace;
 use crate::factor::Budget;
-use crate::slot::Slot;
 use std::sync::Arc;
 use std::task::Poll;
 
@@ -14,7 +14,7 @@ fn boundary() {
         }
         assert!(trace.append(
             &Poll::Ready(Some(vec![Slot {
-                world: position,
+                site: position,
                 position: 0,
                 token: vec![position],
             }])),

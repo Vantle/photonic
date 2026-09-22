@@ -1,6 +1,6 @@
 use super::binding::{Binding, Selection};
+use super::slot::Slot;
 use crate::factor::Budget;
-use crate::slot::Slot;
 use std::sync::Arc;
 use std::task::Poll;
 
@@ -123,7 +123,7 @@ impl Trace {
             prefix
                 .iter()
                 .map(|slot| Selection {
-                    site: slot.world,
+                    site: slot.site,
                     token: slot.token.clone(),
                 })
                 .collect::<Arc<[Selection]>>()

@@ -1,7 +1,7 @@
+use super::super::slot::Slot;
 use super::{Record, Trace};
 use crate::factor::Budget;
 use crate::joining::playback::Playback;
-use crate::slot::Slot;
 use std::sync::Arc;
 use std::task::Poll;
 
@@ -10,7 +10,7 @@ fn lifetime() {
     let budget = Arc::new(Budget::new(4096));
     let mut child = Trace::new(budget.clone(), 3).unwrap();
     let suffix = vec![Slot {
-        world: 7,
+        site: 7,
         position: 0,
         token: vec![11, 13],
     }];
@@ -19,7 +19,7 @@ fn lifetime() {
     assert!(child.append(&Poll::Ready(None), 0.., 4096));
     let snapshot = child.duplicate(4096).unwrap();
     let prefix = vec![Slot {
-        world: 5,
+        site: 5,
         position: 1,
         token: vec![3],
     }];
@@ -31,7 +31,7 @@ fn lifetime() {
     drop(child);
     drop(snapshot);
     let outer = vec![Slot {
-        world: 2,
+        site: 2,
         position: 2,
         token: vec![17],
     }];
@@ -48,12 +48,12 @@ fn lifetime() {
         playback.step(&parent, &order, &[]),
         Some(Poll::Ready(Some(vec![
             Slot {
-                world: 5,
+                site: 5,
                 position: 2,
                 token: vec![3]
             },
             Slot {
-                world: 7,
+                site: 7,
                 position: 1,
                 token: vec![11, 13]
             },
@@ -92,11 +92,11 @@ fn boundary() {
         let budget = Arc::new(Budget::new(65536));
         let mut trace = Trace::new(budget.clone(), 1).unwrap();
         let expected = (0..count)
-            .map(|world| {
+            .map(|site| {
                 Poll::Ready(Some(vec![Slot {
-                    world,
+                    site,
                     position: 0,
-                    token: vec![world],
+                    token: vec![site],
                 }]))
             })
             .collect::<Vec<_>>();
@@ -123,13 +123,13 @@ fn boundary() {
 fn branching() {
     let budget = Arc::new(Budget::new(65536));
     let mut trace = Trace::new(budget.clone(), 1).unwrap();
-    for world in 0..128 {
+    for site in 0..128 {
         assert!(trace.append(&Poll::Pending, 0.., 4096));
         assert!(trace.append(
             &Poll::Ready(Some(vec![Slot {
-                world,
+                site,
                 position: 0,
-                token: vec![world],
+                token: vec![site],
             }])),
             0..,
             4096,
@@ -145,14 +145,14 @@ fn branching() {
     assert_eq!(trace.size(), trace.retained);
     assert_eq!(snapshot.size(), snapshot.retained);
     let mut playback = Playback::default();
-    for world in 0..128 {
+    for site in 0..128 {
         assert_eq!(playback.step(&snapshot, &[0], &[]), Some(Poll::Pending));
         assert_eq!(
             playback.step(&snapshot, &[0], &[]),
             Some(Poll::Ready(Some(vec![Slot {
-                world,
+                site,
                 position: 0,
-                token: vec![world],
+                token: vec![site],
             }])))
         );
     }

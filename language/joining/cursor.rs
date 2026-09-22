@@ -1,6 +1,6 @@
+use super::slot::Slot;
 use super::space::Space;
 use crate::index::Index;
-use crate::slot::Slot;
 use smallvec::{SmallVec, smallvec};
 use std::task::Poll;
 
@@ -61,8 +61,8 @@ impl Cursor {
         self.occupied = self
             .binding
             .iter()
-            .filter(|slot| slot.world < 64)
-            .fold(0, |occupied, slot| occupied | (1 << slot.world));
+            .filter(|slot| slot.site < 64)
+            .fold(0, |occupied, slot| occupied | (1 << slot.site));
     }
 
     #[cfg(test)]
@@ -104,8 +104,8 @@ impl Cursor {
                 }
                 self.depth -= 1;
                 let slot = self.binding.pop().unwrap();
-                if slot.world < 64 {
-                    self.occupied &= !(1 << slot.world);
+                if slot.site < 64 {
+                    self.occupied &= !(1 << slot.site);
                 }
                 self.retained -= slot.token.len() + 1;
                 return Poll::Pending;
@@ -119,19 +119,19 @@ impl Cursor {
                 .iter()
                 .rev()
                 .find(|slot| space.query.group()[slot.position] == space.query.group()[position])
-                .is_some_and(|slot| !index.precedes(slot.world, member.site))
+                .is_some_and(|slot| !index.precedes(slot.site, member.site))
                 || if member.site < 64 {
                     self.occupied & (1 << member.site) != 0
                 } else {
-                    self.binding.iter().any(|slot| slot.world == member.site)
+                    self.binding.iter().any(|slot| slot.site == member.site)
                 };
             #[cfg(test)]
             assert_eq!(
                 blocked,
                 self.binding.iter().any(|slot| {
-                    slot.world == member.site
+                    slot.site == member.site
                         || (space.query.group()[slot.position] == space.query.group()[position]
-                            && !index.precedes(slot.world, member.site))
+                            && !index.precedes(slot.site, member.site))
                 })
             );
             if blocked {
@@ -159,7 +159,7 @@ impl Cursor {
         match result {
             Poll::Ready(Some(token)) => {
                 let slot = Slot {
-                    world: space.domain[position][self.cursor[self.depth]].site,
+                    site: space.domain[position][self.cursor[self.depth]].site,
                     token,
                     position,
                 };
@@ -169,8 +169,8 @@ impl Cursor {
                     return Poll::Ready(Some(value.into_vec()));
                 }
                 self.retained += slot.token.len() + 1;
-                if slot.world < 64 {
-                    self.occupied |= 1 << slot.world;
+                if slot.site < 64 {
+                    self.occupied |= 1 << slot.site;
                 }
                 self.binding.push(slot);
                 self.depth += 1;

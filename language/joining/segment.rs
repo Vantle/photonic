@@ -1,7 +1,7 @@
 use super::playback::Playback;
+use super::slot::Slot;
 use super::trace::Trace;
 use crate::factor::Budget;
-use crate::slot::Slot;
 use serde::Serialize;
 use std::hint::black_box;
 use std::sync::Arc;
@@ -31,7 +31,7 @@ pub fn run() -> Vec<Measurement> {
         let budget = Arc::new(Budget::new(65536));
         let binding = (0..width)
             .map(|position| Slot {
-                world: position,
+                site: position,
                 position,
                 token: (0..token).collect(),
             })
@@ -41,7 +41,7 @@ pub fn run() -> Vec<Measurement> {
             assert!(trace.append(&Poll::Ready(Some(binding.clone())), 0.., 4096));
         }
         let prefix = [Slot {
-            world: width,
+            site: width,
             position: 0,
             token: vec![token],
         }];

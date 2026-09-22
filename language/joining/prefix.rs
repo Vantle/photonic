@@ -1,6 +1,6 @@
+use super::slot::Slot;
 use super::space::Space;
 use crate::index::Index;
-use crate::slot::Slot;
 use std::task::Poll;
 
 pub(super) trait Prefix {

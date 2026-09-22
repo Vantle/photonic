@@ -1,6 +1,6 @@
 use super::binding::Binding;
+use super::slot::Slot;
 use super::trace::{Record, Trace};
-use crate::slot::Slot;
 use std::task::Poll;
 
 #[derive(Default)]

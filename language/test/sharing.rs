@@ -347,8 +347,8 @@ fn snapshot() {
             assert!(trace.append(&Poll::Pending, 0.., 4096));
         }
         assert!(trace.append(
-            &Poll::Ready(Some(vec![crate::slot::Slot {
-                world: length,
+            &Poll::Ready(Some(vec![super::slot::Slot {
+                site: length,
                 position: 0,
                 token: vec![length, length + 1]
             }])),

@@ -3,11 +3,11 @@ use super::dependency::Dependency;
 use super::playback::Playback;
 use super::prefix::Prefix;
 use super::retention::Retention;
+use super::slot::Slot;
 use super::space::Space;
 use super::trace::Trace;
 use crate::factor::Budget;
 use crate::index::Index;
-use crate::slot::Slot;
 use std::sync::Arc;
 use std::task::Poll;
 
