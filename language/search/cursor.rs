@@ -16,12 +16,8 @@ pub(super) struct Cursor {
 }
 
 impl Cursor {
-    pub fn cost(&self) -> usize {
-        if self.particle.is_some() || self.gate.as_ref().is_some_and(Gate::pending) {
-            return 0;
-        }
-        let next = self
-            .candidate
+    fn next(&self) -> Option<(usize, usize)> {
+        self.candidate
             .iter()
             .enumerate()
             .filter_map(|(position, candidate)| {
@@ -29,8 +25,14 @@ impl Cursor {
                     .get(self.cursor[position])
                     .map(|&world| (world, position))
             })
-            .min();
-        let Some((world, position)) = next else {
+            .min()
+    }
+
+    pub fn cost(&self) -> usize {
+        if self.particle.is_some() || self.gate.as_ref().is_some_and(Gate::pending) {
+            return 0;
+        }
+        let Some((world, position)) = self.next() else {
             return 0;
         };
         let Some(world) = self.index.location(world).world() else {
@@ -111,17 +113,7 @@ impl Cursor {
             });
         }
         if self.particle.is_none() {
-            let next = self
-                .candidate
-                .iter()
-                .enumerate()
-                .filter_map(|(position, candidate)| {
-                    candidate
-                        .get(self.cursor[position])
-                        .map(|&world| (world, position))
-                })
-                .min();
-            let Some((world, position)) = next else {
+            let Some((world, position)) = self.next() else {
                 return Poll::Ready(None);
             };
             self.site = world;
