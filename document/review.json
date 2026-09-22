@@ -1,0 +1,349 @@
+{
+  "baseline": "6923c5d",
+  "revision": "c2a611f",
+  "commit": [
+    "b0a0a08 Hash internal collections with a deterministic multiplicative hasher",
+    "fa64b7b Track dispatch input sets in dense bit masks",
+    "3054fd5 Summarize population captures for reachability",
+    "d4c9705 Reject impossible admissions before building candidate domains",
+    "86d1a82 Build rewrite outputs and bindings with single allocations",
+    "91bae5e Remove redundant dispatch work and buffer command output",
+    "e4a3ef0 Intern rules by symbol form and resolve targets without copying",
+    "601f86c Trim proof clause and composition allocations",
+    "f6c0369 Consolidate duplicated search control flow and report assembly",
+    "c2a611f Share the search cursor's next-candidate scan",
+    "c83963f Document the runtime review and its measurements"
+  ],
+  "machine": "Apple M5 Max, macOS, native optimized Bazel binaries; another agent was active on the machine",
+  "method": {
+    "execution": "Alternating paired rounds of the checkpoint and review binaries; five rounds per compact workload and three for streaming export; each value is the median of round medians in milliseconds.",
+    "lifecycle": "Four alternating rounds of 2001 samples; minimum and median execution in milliseconds.",
+    "initialization": "Four alternating rounds of 21 samples; median search construction in milliseconds.",
+    "runtime": "Three alternating rounds of the exhaustive reference suite; per-case medians in microseconds.",
+    "inspection": "Three alternating rounds of 21 samples; median execution in milliseconds.",
+    "symmetry": "Three alternating rounds of the canonical symmetry controls; medians in microseconds."
+  },
+  "observation": {
+    "addition": true,
+    "product": true,
+    "nested": true,
+    "wide": true,
+    "availability-64-64": true,
+    "availability-256-16": true,
+    "availability-4096-1": true,
+    "export": true,
+    "ordinary": true,
+    "scope": true,
+    "consumption": true,
+    "runtime": true,
+    "inspection 1": true,
+    "inspection 64": true
+  },
+  "execution": {
+    "addition": {
+      "before": 9.2483,
+      "after": 5.7072,
+      "ratio": 0.6171
+    },
+    "product": {
+      "before": 77.52,
+      "after": 47.0687,
+      "ratio": 0.6072
+    },
+    "nested": {
+      "before": 31.1586,
+      "after": 19.2282,
+      "ratio": 0.6171
+    },
+    "wide": {
+      "before": 1.5242,
+      "after": 1.2517,
+      "ratio": 0.8212
+    },
+    "availability-64-64": {
+      "before": 2.0097,
+      "after": 1.3908,
+      "ratio": 0.6921
+    },
+    "availability-256-16": {
+      "before": 8.6086,
+      "after": 5.8917,
+      "ratio": 0.6844
+    },
+    "availability-4096-1": {
+      "before": 97.1903,
+      "after": 79.2393,
+      "ratio": 0.8153
+    },
+    "export": {
+      "before": 2445.0379,
+      "after": 2091.0268,
+      "ratio": 0.8552
+    }
+  },
+  "lifecycle": {
+    "ordinary": {
+      "before": {
+        "minimum": 0.117,
+        "median": 0.1289
+      },
+      "after": {
+        "minimum": 0.0906,
+        "median": 0.1014
+      },
+      "ratio": 0.7861
+    },
+    "scope": {
+      "before": {
+        "minimum": 0.163,
+        "median": 0.1802
+      },
+      "after": {
+        "minimum": 0.1358,
+        "median": 0.1496
+      },
+      "ratio": 0.8304
+    },
+    "consumption": {
+      "before": {
+        "minimum": 0.1731,
+        "median": 0.1939
+      },
+      "after": {
+        "minimum": 0.1098,
+        "median": 0.1204
+      },
+      "ratio": 0.6211
+    }
+  },
+  "initialization": {
+    "addition": {
+      "before": 4.8789,
+      "after": 2.1063,
+      "ratio": 0.4317
+    },
+    "product": {
+      "before": 5.0371,
+      "after": 2.1881,
+      "ratio": 0.4344
+    }
+  },
+  "runtime": {
+    "Concrete And through two Boolean deductions": {
+      "before": 183.959,
+      "after": 133.667,
+      "ratio": 0.7266
+    },
+    "Two inputs broadcast their leftovers": {
+      "before": 30.042,
+      "after": 23.833,
+      "ratio": 0.7933
+    },
+    "One source supports a joint sibling match": {
+      "before": 25.417,
+      "after": 20.958,
+      "ratio": 0.8246
+    },
+    "Competing histories cannot supply a joint match": {
+      "before": 17.375,
+      "after": 13.708,
+      "ratio": 0.7889
+    },
+    "Explicit duplicate outputs remain distinct": {
+      "before": 26.25,
+      "after": 22.459,
+      "ratio": 0.8556
+    },
+    "Evidence-only co-results are not source leftovers": {
+      "before": 25.25,
+      "after": 20.25,
+      "ratio": 0.802
+    },
+    "Independent branches compute independent equal results": {
+      "before": 204.541,
+      "after": 146.542,
+      "ratio": 0.7164
+    },
+    "Arbitrarily nested body expressions": {
+      "before": 100.917,
+      "after": 76.5,
+      "ratio": 0.758
+    },
+    "A finite cycle shares its configurations": {
+      "before": 23.5,
+      "after": 18.833,
+      "ratio": 0.8014
+    },
+    "Generated rule reads its concrete source": {
+      "before": 29.666,
+      "after": 23.75,
+      "ratio": 0.8006
+    },
+    "One source supplies rule and operand": {
+      "before": 22.333,
+      "after": 18.625,
+      "ratio": 0.834
+    },
+    "Competing code and data cannot interact": {
+      "before": 15.333,
+      "after": 13.375,
+      "ratio": 0.8723
+    },
+    "A meta rule replaces a whole rule value": {
+      "before": 45.125,
+      "after": 35.542,
+      "ratio": 0.7876
+    },
+    "Rule activation respects coherence locality": {
+      "before": 11.417,
+      "after": 9.417,
+      "ratio": 0.8248
+    },
+    "A generated rule enables decoherence": {
+      "before": 42.375,
+      "after": 33.167,
+      "ratio": 0.7827
+    },
+    "A whole rule acquires an abstraction": {
+      "before": 71.584,
+      "after": 54.25,
+      "ratio": 0.7579
+    },
+    "A generated rule opens a nested body": {
+      "before": 60.125,
+      "after": 45.875,
+      "ratio": 0.763
+    },
+    "An escaped rule retains its local definition": {
+      "before": 548.792,
+      "after": 404.917,
+      "ratio": 0.7378
+    },
+    "Consuming code later does not erase earlier results": {
+      "before": 25.709,
+      "after": 21.042,
+      "ratio": 0.8185
+    }
+  },
+  "inspection": {
+    "interval 1": {
+      "before": 15.0374,
+      "after": 8.3947,
+      "ratio": 0.5583
+    },
+    "interval 64": {
+      "before": 13.1668,
+      "after": 7.6444,
+      "ratio": 0.5806
+    }
+  },
+  "symmetry": [
+    {
+      "sharing": "private",
+      "coherence": 2,
+      "step": 5,
+      "complete": true,
+      "rebased": 1.917,
+      "checkpoint": 1.958
+    },
+    {
+      "sharing": "private",
+      "coherence": 4,
+      "step": 3,
+      "complete": true,
+      "rebased": 2.375,
+      "checkpoint": 2.375
+    },
+    {
+      "sharing": "private",
+      "coherence": 8,
+      "step": 3,
+      "complete": true,
+      "rebased": 3.5,
+      "checkpoint": 3.625
+    },
+    {
+      "sharing": "private",
+      "coherence": 30,
+      "step": 3,
+      "complete": true,
+      "rebased": 8.833,
+      "checkpoint": 9.5
+    },
+    {
+      "sharing": "shared",
+      "coherence": 2,
+      "step": 5,
+      "complete": true,
+      "rebased": 2.0,
+      "checkpoint": 1.916
+    },
+    {
+      "sharing": "shared",
+      "coherence": 4,
+      "step": 3,
+      "complete": true,
+      "rebased": 2.291,
+      "checkpoint": 2.208
+    },
+    {
+      "sharing": "shared",
+      "coherence": 8,
+      "step": 3,
+      "complete": true,
+      "rebased": 3.25,
+      "checkpoint": 3.208
+    },
+    {
+      "sharing": "shared",
+      "coherence": 30,
+      "step": 3,
+      "complete": true,
+      "rebased": 7.459,
+      "checkpoint": 7.5
+    },
+    {
+      "sharing": "ring",
+      "coherence": 2,
+      "step": 5,
+      "complete": true,
+      "rebased": 2.208,
+      "checkpoint": 2.167
+    },
+    {
+      "sharing": "ring",
+      "coherence": 4,
+      "step": 49,
+      "complete": true,
+      "rebased": 20.75,
+      "checkpoint": 20.208
+    },
+    {
+      "sharing": "ring",
+      "coherence": 8,
+      "step": 1000,
+      "complete": false,
+      "rebased": 551.708,
+      "checkpoint": 561.042
+    },
+    {
+      "sharing": "ring",
+      "coherence": 30,
+      "step": 1000,
+      "complete": false,
+      "rebased": 1456.333,
+      "checkpoint": 1513.541
+    }
+  ],
+  "command": [
+    "bazel test -c opt //...",
+    "bazel test --config=release //toolchain/browser:check",
+    "bazel run -c opt //:format -- --check",
+    "bazel run -c opt //benchmark:expression -- '2*2*2*2*2*2' 2101 --sample 15",
+    "bazel run -c opt //benchmark:lifecycle -- expression '2*2*2*2*2*2' 2101 --sample 3 --export view --writer",
+    "bazel run -c opt //benchmark:scope -- --width 256 --depth 16 --length 64 --sample 21",
+    "bazel run -c opt //benchmark:runtime",
+    "bazel run -c opt //benchmark:inspection -- --length 32 --interval 1 --sample 21",
+    "bazel run -c opt //benchmark:symmetry"
+  ]
+}
