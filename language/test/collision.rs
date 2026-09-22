@@ -185,3 +185,41 @@ fn eviction() {
     );
     assert_eq!(search.summary().outcome, crate::prism::Outcome::Reached);
 }
+
+#[test]
+fn reporting() {
+    for (source, target) in [
+        ("A [A] (B [B] (C [C] D))", "D"),
+        ("Seed.A [Seed] [A] B", "B.([A] B)"),
+        ("A [A] B,C [B,C] D", "D"),
+    ] {
+        let program = crate::lowering::parse(source).unwrap();
+        let target = crate::lowering::parse(target).unwrap();
+        let mut actual = Search::new(program.clone(), target.clone()).unwrap();
+        let mut expected = Search::new(program, target).unwrap();
+        for iteration in 0..1000 {
+            let budget = [0, 1, 2, 7, 31][iteration % 5];
+            let mut limit = crate::runtime::Limit::default();
+            if iteration % 17 == 0 {
+                limit.record = 1;
+            }
+            actual.run(budget, limit);
+            expected.run(budget, limit);
+            for record in &expected.state {
+                record.canonical();
+            }
+            assert_eq!(
+                serde_json::to_value(actual.report()).unwrap(),
+                serde_json::to_value(expected.report()).unwrap()
+            );
+            assert_eq!(
+                serde_json::to_value(actual.statistic()).unwrap(),
+                serde_json::to_value(expected.statistic()).unwrap()
+            );
+            if actual.reached {
+                break;
+            }
+        }
+        assert!(actual.reached, "{source}");
+    }
+}

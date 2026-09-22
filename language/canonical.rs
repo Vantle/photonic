@@ -3,6 +3,8 @@ use crate::refinement::Refinement;
 use crate::state::{Canonical, State};
 use std::sync::Arc;
 
+pub(crate) mod storage;
+
 pub struct Search {
     state: Arc<State>,
     refinement: Refinement,

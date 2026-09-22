@@ -386,6 +386,7 @@ impl Search {
     }
 
     pub fn report(&self) -> Report {
+        let mut storage = crate::canonical::storage::Store::default();
         let mut builder = crate::render::Builder::new(&self.compiled);
         Report {
             outcome: if self.reached {
@@ -402,7 +403,10 @@ impl Search {
                 .iter()
                 .enumerate()
                 .map(|(index, record)| {
-                    builder.node(index, &record.canonical().state, Status::Supported)
+                    let canonical = record
+                        .canonical
+                        .get_or_init(|| storage.insert(record.state.canonical()));
+                    builder.node(index, &canonical.state, Status::Supported)
                 })
                 .collect(),
             event: (0..self.event.len())
