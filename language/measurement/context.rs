@@ -22,7 +22,7 @@ pub fn run(configuration: Configuration) -> Vec<maintenance::Measurement> {
     } else {
         "B.E.E"
     };
-    let program = Program::new(crate::lowering::parse(&format!(
+    let program = Program::new(&crate::lowering::parse(&format!(
         "{particle},{particle},M,M,M,B.C.E,B.C.E,B.C.E,B.C.E,C [{pattern},M,B,B,B,{constraint},C] Done"
     )).unwrap());
     let symbol = Symbol::Atom(program.atom.get_index_of("M").unwrap());

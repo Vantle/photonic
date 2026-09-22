@@ -23,7 +23,7 @@ struct Measurement {
 
 fn evaluate(program: photonic::source::Program) -> Measurement {
     let start = Instant::now();
-    let mut runtime = Runtime::new(program);
+    let mut runtime = Runtime::new(&program);
     let initialization = start.elapsed().as_secs_f64();
     let start = Instant::now();
     runtime.run(

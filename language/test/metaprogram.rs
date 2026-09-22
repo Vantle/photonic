@@ -103,7 +103,7 @@ fn structure() {
 fn evidence() {
     for depth in 1..=4 {
         let (source, _) = tower(depth);
-        let mut complete = Runtime::new(parse(&source).unwrap());
+        let mut complete = Runtime::new(&parse(&source).unwrap());
         complete.run(1_000_000, Some(limit()));
         assert!(complete.closed(), "depth {depth}");
         let expected = complete.snapshot();
@@ -116,7 +116,7 @@ fn evidence() {
                         .any(|token| token.label.as_ref() == "Done")
                 })
         }));
-        let mut chunk = Runtime::new(parse(&source).unwrap());
+        let mut chunk = Runtime::new(&parse(&source).unwrap());
         chunk.run(0, Some(limit()));
         for _ in 0..1_000_000 {
             chunk.run(1, None);

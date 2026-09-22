@@ -34,7 +34,7 @@ fn fixture(width: usize, mode: Mode) -> (State, Vec<Vec<Term>>) {
         .map(|position| format!("[Value{position}] Result{position}"))
         .collect::<Vec<_>>()
         .join(" ");
-    let program = Program::new(crate::lowering::parse(&source).unwrap());
+    let program = Program::new(&crate::lowering::parse(&source).unwrap());
     let mut state = State::initial(&program);
     Arc::make_mut(&mut state.frame[0]).particle.clear();
     if matches!(mode, Mode::Context) {

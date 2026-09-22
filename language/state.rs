@@ -118,10 +118,13 @@ impl State {
     }
 
     pub fn initial(program: &Program) -> Self {
+        Self::configuration(&program.initial, &program.scope[0].rule)
+    }
+
+    pub(crate) fn configuration(initial: &[Vec<Symbol>], rule: &[usize]) -> Self {
         let mut id = 0;
         let state = Self {
-            world: program
-                .initial
+            world: initial
                 .iter()
                 .map(|particle| {
                     World {
@@ -139,8 +142,7 @@ impl State {
                     scope: 0,
                     parent: None,
                     lexical: None,
-                    particle: program.scope[0]
-                        .rule
+                    particle: rule
                         .iter()
                         .map(|&rule| Token::new(Symbol::Rule(rule), 0, &mut id))
                         .collect(),

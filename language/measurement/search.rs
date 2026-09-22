@@ -25,7 +25,7 @@ pub fn run() -> Vec<Measurement> {
         .into_iter()
         .flat_map(|width| [1, 8].map(|arity| (width, arity)))
     {
-        let program = Program::new(crate::lowering::parse("A").unwrap());
+        let program = Program::new(&crate::lowering::parse("A").unwrap());
         let mut state = State::initial(&program);
         Arc::make_mut(&mut state.world[0]).particle = (0..width)
             .map(|id| Token {

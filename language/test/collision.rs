@@ -54,7 +54,7 @@ fn permutation() {
         "Seed.A [Seed] [A] B",
         "A.X [A] (B [B] C),D [C,D] E",
     ] {
-        let mut runtime = crate::runtime::Runtime::new(crate::lowering::parse(source).unwrap());
+        let mut runtime = crate::runtime::Runtime::new(&crate::lowering::parse(source).unwrap());
         runtime.run(100_000, None);
         for state in &runtime.state {
             let expected = crate::fingerprint::signature(state);
@@ -97,7 +97,7 @@ fn fallback() {
     assert_ne!(ring.canonical().state, triangle.canonical().state);
     let source = crate::lowering::parse("A").unwrap();
     let mut search = Search::new(source.clone(), crate::lowering::parse("A").unwrap());
-    search.compiled = Arc::new(Program::new(source));
+    search.compiled = Arc::new(Program::new(&source));
     search.runtime = crate::reduction::Search::new(search.compiled.clone(), ring.clone());
     search.state = vec![Record::new(ring.clone())];
     search.goal = Record::new(triangle);

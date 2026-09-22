@@ -28,17 +28,28 @@ pub struct Scope {
     pub rule: Vec<usize>,
 }
 
+pub(crate) struct Target {
+    pub initial: Vec<Vec<Symbol>>,
+    pub rule: Vec<usize>,
+}
+
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+struct Form {
+    input: Vec<Vec<Symbol>>,
+    output: Vec<(Vec<Symbol>, Option<Vec<usize>>)>,
+}
+
 #[derive(Clone, Debug)]
 pub struct Program {
     pub atom: IndexSet<String, Builder>,
     pub rule: Vec<Instruction>,
     pub scope: Vec<Scope>,
     pub initial: Vec<Vec<Symbol>>,
-    interner: HashMap<source::Definition, usize, Builder>,
+    interner: HashMap<Form, usize, Builder>,
 }
 
 impl Program {
-    pub fn new(source: source::Program) -> Self {
+    pub fn new(source: &source::Program) -> Self {
         let mut program = Self {
             atom: IndexSet::default(),
             rule: Vec::new(),
@@ -47,49 +58,122 @@ impl Program {
             interner: HashMap::default(),
         };
         program.declare(&source.rule, "root".into());
-        program.initial = source
-            .initial
-            .iter()
-            .map(|value| program.particle(value))
-            .collect();
+        program.initial = program.input(&source.initial);
         program
     }
 
-    pub(crate) fn target(&self, source: &source::Program) -> Self {
+    pub(crate) fn target(&self, source: &source::Program) -> Target {
+        let rule = source
+            .rule
+            .iter()
+            .map(|rule| self.find(rule))
+            .collect::<Option<Vec<_>>>();
+        let initial = source
+            .initial
+            .iter()
+            .map(|particle| {
+                particle
+                    .iter()
+                    .map(|value| self.symbol(value))
+                    .collect::<Option<Vec<_>>>()
+            })
+            .collect::<Option<Vec<_>>>();
+        if let (Some(rule), Some(initial)) = (rule, initial) {
+            return Target { initial, rule };
+        }
         let mut program = self.clone();
-        program.scope[0].rule = source
+        let rule = source
             .rule
             .iter()
             .enumerate()
             .map(|(position, rule)| program.intern(rule, format!("root/{position}")))
             .collect();
-        program.initial = program.input(&source.initial);
-        program
+        Target {
+            initial: program.input(&source.initial),
+            rule,
+        }
+    }
+
+    fn symbol(&self, value: &source::Value) -> Option<Symbol> {
+        match value {
+            source::Value::Atom(atom) => self.atom.get_index_of(atom.as_str()).map(Symbol::Atom),
+            source::Value::Rule { rule } => self.find(rule).map(Symbol::Rule),
+        }
+    }
+
+    fn find(&self, value: &source::Definition) -> Option<usize> {
+        self.interner.get(&self.form(value)?).copied()
+    }
+
+    fn form(&self, value: &source::Definition) -> Option<Form> {
+        let mut input = value
+            .input
+            .iter()
+            .map(|particle| self.multiset(particle))
+            .collect::<Option<Vec<_>>>()?;
+        input.sort_unstable();
+        let mut output = value
+            .output
+            .iter()
+            .map(|output| {
+                let body = match &output.body {
+                    Some(body) => {
+                        let mut rule = body
+                            .iter()
+                            .map(|value| self.find(value))
+                            .collect::<Option<Vec<_>>>()?;
+                        rule.sort_unstable();
+                        Some(rule)
+                    }
+                    None => None,
+                };
+                Some((self.multiset(&output.particle)?, body))
+            })
+            .collect::<Option<Vec<_>>>()?;
+        output.sort_unstable();
+        Some(Form { input, output })
+    }
+
+    fn multiset(&self, particle: &[source::Value]) -> Option<Vec<Symbol>> {
+        let mut symbol = particle
+            .iter()
+            .map(|value| self.symbol(value))
+            .collect::<Option<Vec<_>>>()?;
+        symbol.sort_unstable();
+        Some(symbol)
     }
 
     fn value(&mut self, value: &source::Value) -> Symbol {
         match value {
-            source::Value::Atom(atom) => Symbol::Atom(self.atom.insert_full(atom.clone()).0),
-            source::Value::Rule { rule } => {
-                let ordinal = self.rule.len();
-                let mut rule = rule.as_ref().clone();
-                if rule.name.is_empty() {
-                    rule.name = format!("Rule {}", ordinal + 1);
-                }
-                Symbol::Rule(self.intern(&rule, format!("value/{ordinal}")))
-            }
+            source::Value::Atom(atom) => Symbol::Atom(
+                self.atom
+                    .get_index_of(atom.as_str())
+                    .unwrap_or_else(|| self.atom.insert_full(atom.clone()).0),
+            ),
+            source::Value::Rule { rule } => Symbol::Rule(self.find(rule).unwrap_or_else(|| {
+                let index = self.rule.len();
+                self.compile(
+                    rule,
+                    format!("Rule {}", index + 1),
+                    format!("value/{index}"),
+                )
+            })),
         }
     }
 
     fn intern(&mut self, value: &source::Definition, path: String) -> usize {
-        let canonical = value.canonical();
-        if let Some(&index) = self.interner.get(&canonical) {
-            return index;
-        }
+        self.find(value)
+            .unwrap_or_else(|| self.compile(value, path.clone(), path))
+    }
+
+    fn compile(&mut self, value: &source::Definition, name: String, path: String) -> usize {
         let index = self.rule.len();
         self.rule.push(Instruction::default());
-        self.interner.insert(canonical, index);
-        self.rule[index] = self.instruction(value, path);
+        self.rule[index] = self.instruction(value, name, path);
+        let form = self
+            .form(value)
+            .expect("a compiled definition resolves every symbol");
+        self.interner.insert(form, index);
         index
     }
 
@@ -97,14 +181,19 @@ impl Program {
         value.iter().map(|value| self.value(value)).collect()
     }
 
-    pub(crate) fn input(&mut self, value: &[Vec<source::Value>]) -> Vec<Vec<Symbol>> {
+    fn input(&mut self, value: &[Vec<source::Value>]) -> Vec<Vec<Symbol>> {
         value.iter().map(|value| self.particle(value)).collect()
     }
 
-    fn instruction(&mut self, value: &source::Definition, path: String) -> Instruction {
+    fn instruction(
+        &mut self,
+        value: &source::Definition,
+        name: String,
+        path: String,
+    ) -> Instruction {
         Instruction {
             name: if value.name.is_empty() {
-                path.clone()
+                name
             } else {
                 value.name.clone()
             },
@@ -144,3 +233,7 @@ impl Program {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "test/program.rs"]
+mod test;

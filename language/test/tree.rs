@@ -32,7 +32,7 @@ fn pair(program: &Program, index: &Index, store: &Arc<Store>, depth: [usize; 2])
 fn boundary() {
     for particle in [["A"; 8].join("."), "A.B.C.D.E.F.G.H.([X] Y)".to_owned()] {
         let program = Program::new(
-            crate::lowering::parse(&format!(
+            &crate::lowering::parse(&format!(
                 "{particle},{particle},I,I,J,J,K,K [{particle},I,J,K] Done"
             ))
             .unwrap(),
@@ -66,7 +66,7 @@ fn mutation() {
     let particle = ["A"; 8].join(".");
     let requirement = ["Q"; 8].join(".");
     let initial = ["Q"; 7].join(".");
-    let program = Program::new(crate::lowering::parse(&format!(
+    let program = Program::new(&crate::lowering::parse(&format!(
         "{particle},{particle},P,P,P,{initial},{initial},{initial},{initial},R,R,R,R,R,S,S,S,S,S,S [{particle},P,{requirement},R,S] Done"
     )).unwrap());
     for capacity in [0, 1, 32, 128, 4096, 65536] {
@@ -129,7 +129,7 @@ fn saturation() {
     let pattern = ["B"; 12].join(",");
     let companion = ["B.C.E"; 13].join(",");
     let program = Program::new(
-        crate::lowering::parse(&format!(
+        &crate::lowering::parse(&format!(
             "P,P,{particle},{particle},{companion},C [P,{particle},{pattern},B.E.E,C] Done"
         ))
         .unwrap(),
@@ -152,7 +152,7 @@ fn saturation() {
 fn activation() {
     let particle = ["A"; 8].join(".");
     let program = Program::new(
-        crate::lowering::parse(&format!(
+        &crate::lowering::parse(&format!(
             "{particle},{particle},I,I,I,J,J,J,J,K,K,K,K,K [{particle},I,J,K] Done"
         ))
         .unwrap(),
@@ -195,7 +195,7 @@ fn context() {
         format!("{particle},I,I,J,J,K,K [{pattern},I,J,K] Done"),
         format!("{pattern}.B,{pattern}.C,B,B,C,C,D,D,D,D [{pattern},B,C,D] Done"),
     ] {
-        let program = Program::new(crate::lowering::parse(&source).unwrap());
+        let program = Program::new(&crate::lowering::parse(&source).unwrap());
         let index = Index::new(Arc::new(State::initial(&program)));
         let store = Arc::new(Store::new(65536));
         let (mut actual, mut expected) = pair(&program, &index, &store, [1, 2]);
@@ -221,7 +221,8 @@ fn depth() {
         .collect::<Vec<_>>()
         .join(",");
     let program = Program::new(
-        crate::lowering::parse(&format!("{particle},{suffix} [{particle},{suffix}] Done")).unwrap(),
+        &crate::lowering::parse(&format!("{particle},{suffix} [{particle},{suffix}] Done"))
+            .unwrap(),
     );
     let index = Index::new(Arc::new(State::initial(&program)));
     let store = Arc::new(Store::new(65536));

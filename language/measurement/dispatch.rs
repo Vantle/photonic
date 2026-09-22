@@ -19,7 +19,7 @@ pub struct Measurement {
 
 pub fn run(width: usize, length: usize) -> Measurement {
     let start = Instant::now();
-    let program = Program::new(crate::lowering::parse("X [A] B").unwrap());
+    let program = Program::new(&crate::lowering::parse("X [A] B").unwrap());
     let mut state = State::initial(&program);
     let initial = state.world[0].clone();
     state.frame = vec![state.frame[0].clone(); width + 1].into();

@@ -206,7 +206,7 @@ fn metadata() {
         "Seed.A [Seed] [A] B",
         "A [A] (B [B] C)",
     ] {
-        let mut runtime = crate::runtime::Runtime::new(parse(source).unwrap());
+        let mut runtime = crate::runtime::Runtime::new(&parse(source).unwrap());
         for _ in 0..10 {
             runtime.run(100_000, None);
             let Some(event) = runtime.first() else {

@@ -25,7 +25,8 @@ fn scan(index: &Index, pattern: &[Term], frame: usize) -> Vec<usize> {
 
 #[test]
 fn mutation() {
-    let program = Program::new(crate::lowering::parse(&vec!["A.B,B.C,A.C"; 32].join(",")).unwrap());
+    let program =
+        Program::new(&crate::lowering::parse(&vec!["A.B,B.C,A.C"; 32].join(",")).unwrap());
     for capacity in [0, 3, 32, 65536] {
         let budget = Arc::new(Budget::new(capacity));
         let accounting = Arc::new(AtomicUsize::new(0));
@@ -87,7 +88,8 @@ fn mutation() {
 
 #[test]
 fn identity() {
-    let program = Program::new(crate::lowering::parse(&vec!["A.B.([X] Y)"; 40].join(",")).unwrap());
+    let program =
+        Program::new(&crate::lowering::parse(&vec!["A.B.([X] Y)"; 40].join(",")).unwrap());
     let mut state = State::initial(&program);
     let budget = Arc::new(Budget::new(65536));
     let accounting = Arc::new(AtomicUsize::new(0));
@@ -158,7 +160,7 @@ fn identity() {
 #[test]
 fn continuity() {
     let program =
-        Program::new(crate::lowering::parse(&format!("{},C", vec!["A.B"; 40].join(","))).unwrap());
+        Program::new(&crate::lowering::parse(&format!("{},C", vec!["A.B"; 40].join(","))).unwrap());
     let mut state = State::initial(&program);
     let mut index = Index::new(Arc::new(state.clone()));
     let budget = Arc::new(Budget::new(65536));
@@ -294,7 +296,7 @@ fn context() {
 
 #[test]
 fn saturation() {
-    let program = Program::new(crate::lowering::parse(&vec!["A.B"; 40].join(",")).unwrap());
+    let program = Program::new(&crate::lowering::parse(&vec!["A.B"; 40].join(",")).unwrap());
     let mut state = State::initial(&program);
     let mut index = Index::new(Arc::new(state.clone()));
     let budget = Arc::new(Budget::new(64));
@@ -332,7 +334,7 @@ fn saturation() {
 
 #[test]
 fn concurrency() {
-    let program = Program::new(crate::lowering::parse(&vec!["A.B,A.C"; 40].join(",")).unwrap());
+    let program = Program::new(&crate::lowering::parse(&vec!["A.B,A.C"; 40].join(",")).unwrap());
     let initial = State::initial(&program);
     let mut reversed = initial.clone();
     reversed.world = initial.world.iter().rev().cloned().collect();
@@ -376,7 +378,7 @@ fn concurrency() {
 
 #[test]
 fn growth() {
-    let program = Program::new(crate::lowering::parse(&vec!["A.B"; 40].join(",")).unwrap());
+    let program = Program::new(&crate::lowering::parse(&vec!["A.B"; 40].join(",")).unwrap());
     let mut state = State::initial(&program);
     let original = state.world[0].clone();
     let mut index = Index::new(Arc::new(state.clone()));

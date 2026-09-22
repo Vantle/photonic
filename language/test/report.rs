@@ -65,8 +65,8 @@ fn exhaustive() {
         "Seed.A [Seed] [A] B",
         "A [A] (B [B] (C [C] D))",
     ] {
-        let mut actual = Runtime::new(parse(source).unwrap());
-        let mut expected = Runtime::new(parse(source).unwrap());
+        let mut actual = Runtime::new(&parse(source).unwrap());
+        let mut expected = Runtime::new(&parse(source).unwrap());
         let mut prism = {
             let program = parse(source).unwrap();
             let target = crate::source::Program {
@@ -147,7 +147,7 @@ fn failure() {
 #[test]
 fn catalog() {
     let program = crate::lowering::parse("[A] B [A] B [([A] B)] C").unwrap();
-    let mut runtime = crate::runtime::Runtime::new(program);
+    let mut runtime = crate::runtime::Runtime::new(&program);
     runtime.run(100_000, None);
     let value = serde_json::to_value(runtime.view()).unwrap();
     assert_eq!(value["definition"].as_array().unwrap().len(), 2);

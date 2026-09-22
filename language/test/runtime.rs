@@ -4,7 +4,7 @@ use crate::runtime::{Limit, Runtime};
 fn conjunction() {
     let program =
         crate::lowering::parse(include_str!("../../program/language/conjunction.wave")).unwrap();
-    let mut runtime = Runtime::new(program);
+    let mut runtime = Runtime::new(&program);
     runtime.run(12000, Some(Limit::default()));
     let result = runtime.snapshot();
     assert!(result.closed);
@@ -95,7 +95,7 @@ fn reference() {
                 + if case["closed"] == true { 64 } else { 0 },
             frame: limit["frame"].as_u64().unwrap() as usize,
         };
-        let mut runtime = Runtime::new(program);
+        let mut runtime = Runtime::new(&program);
         runtime.run(12000, Some(limit));
         let actual = serde_json::to_value(runtime.snapshot()).unwrap();
         let name = case["name"].as_str().unwrap();
@@ -190,9 +190,9 @@ fn reference() {
 #[test]
 fn resume() {
     let program = crate::lowering::parse("Seed.A [Seed] [A] B").unwrap();
-    let mut complete = Runtime::new(program.clone());
+    let mut complete = Runtime::new(&program);
     complete.run(12000, None);
-    let mut paused = Runtime::new(program);
+    let mut paused = Runtime::new(&program);
     paused.run(
         12000,
         Some(Limit {
@@ -424,7 +424,7 @@ fn permutation() {
 fn determinism() {
     let program = crate::lowering::parse("A.A [A] B").unwrap();
     let execute = || {
-        let mut runtime = Runtime::new(program.clone());
+        let mut runtime = Runtime::new(&program);
         runtime.run(12_000, None);
         assert!(runtime.closed());
         serde_json::to_value(runtime.snapshot()).unwrap()
@@ -443,11 +443,11 @@ fn observation() {
         "A [A] (B [B] C)",
     ] {
         let program = crate::lowering::parse(source).unwrap();
-        let mut complete = Runtime::new(program.clone());
+        let mut complete = Runtime::new(&program);
         complete.run(100_000, None);
         assert!(complete.closed(), "{source}");
         let expected = serde_json::to_value(complete.snapshot()).unwrap();
-        let mut observed = Runtime::new(program);
+        let mut observed = Runtime::new(&program);
         for _ in 0..100_000 {
             observed.snapshot();
             if observed.closed() {

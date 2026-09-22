@@ -39,7 +39,7 @@ fn projection() {
         let source = format!(
             "{particle}.A,{companion},C,D,C,D,C.D [C,{particle},{companion}] First [{particle},{companion},D] Second"
         );
-        let program = Program::new(crate::lowering::parse(&source).unwrap());
+        let program = Program::new(&crate::lowering::parse(&source).unwrap());
         let mut state = State::initial(&program);
         let mut index = Index::new(Arc::new(state.clone()));
         let store = Arc::new(Store::new(65536));
@@ -152,7 +152,7 @@ fn projection() {
 
 #[test]
 fn revision() {
-    let program = Program::new(crate::lowering::parse("A,B [A] B").unwrap());
+    let program = Program::new(&crate::lowering::parse("A,B [A] B").unwrap());
     let state = Arc::new(State::initial(&program));
     let mut left = Index::new(state.clone());
     let right = Index::new(state.clone());
@@ -164,7 +164,7 @@ fn revision() {
 
 #[test]
 fn isolation() {
-    let program = Program::new(crate::lowering::parse("A").unwrap());
+    let program = Program::new(&crate::lowering::parse("A").unwrap());
     let state = Arc::new(State::initial(&program));
     let mut index = Index::new(state.clone());
     let other = Index::new(state.clone());
@@ -200,7 +200,7 @@ fn isolation() {
 
 #[test]
 fn pressure() {
-    let program = Program::new(crate::lowering::parse("A").unwrap());
+    let program = Program::new(&crate::lowering::parse("A").unwrap());
     let index = Index::new(Arc::new(State::initial(&program)));
     let store = Store::new(3);
     let space = |value| {
@@ -262,7 +262,7 @@ fn unfinished() {
                 "{particle},{content},K.L.M [{particle},{pattern},I.J.J,K] First [L,{particle},{pattern},I.J.J] Second [{particle},{pattern},I.J.J,M] Third"
             )
         };
-        let program = Program::new(crate::lowering::parse(&source).unwrap());
+        let program = Program::new(&crate::lowering::parse(&source).unwrap());
         let index = Index::new(Arc::new(State::initial(&program)));
         let store = Arc::new(Store::new(65536));
         let input = program
@@ -386,7 +386,7 @@ fn mutation() {
     let particle = format!("{}.([X] Y)", ["A"; 8].join("."));
     let content = ["I.J.K.L.M"; 8].join(",");
     let pattern = ["I"; 7].join(",");
-    let program = Program::new(crate::lowering::parse(&format!(
+    let program = Program::new(&crate::lowering::parse(&format!(
         "{particle},{content},K.L.M [{particle},{pattern},I.J.J,K] First [L,{particle},{pattern},I.J.J] Second [{particle},{pattern},I.J.J,M] Third"
     )).unwrap());
     for capacity in [0, 32, 128, 512, 65536] {

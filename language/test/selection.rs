@@ -9,7 +9,7 @@ use std::task::Poll;
 #[test]
 fn context() {
     let store = Store::new(256);
-    let program = Program::new(crate::lowering::parse("A.([A] B)").unwrap());
+    let program = Program::new(&crate::lowering::parse("A.([A] B)").unwrap());
     let mut state = State::initial(&program);
     let world = Arc::make_mut(&mut state.world[0]);
     world.particle = (0..40)
@@ -67,7 +67,7 @@ fn context() {
 
 #[test]
 fn pressure() {
-    let program = Program::new(crate::lowering::parse("A.B.C.D.E.F.G.H,X,Y").unwrap());
+    let program = Program::new(&crate::lowering::parse("A.B.C.D.E.F.G.H,X,Y").unwrap());
     let mut state = State::initial(&program);
     Arc::make_mut(&mut state.world[0])
         .particle

@@ -42,7 +42,7 @@ fn evaluate(
     program: photonic::source::Program,
     executor: &Executor,
 ) -> photonic::snapshot::Snapshot {
-    let mut runtime = Runtime::new(black_box(program));
+    let mut runtime = Runtime::new(&black_box(program));
     runtime.parallel(executor, 12_000, Some(Limit::default()));
     black_box(runtime.snapshot())
 }

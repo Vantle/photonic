@@ -46,7 +46,7 @@ fn reference() {
         "A,A,A [A,A] B",
         "Seed.A.X [Seed] ([A] B) ([A] C)",
     ] {
-        let program = Arc::new(Program::new(crate::lowering::parse(source).unwrap()));
+        let program = Arc::new(Program::new(&crate::lowering::parse(source).unwrap()));
         let initial = Arc::new(State::initial(&program));
         let mut graph = Runtime::seed(program.clone(), initial);
         graph.run(100_000, None);
@@ -101,7 +101,7 @@ fn reference() {
 #[test]
 fn fingerprint() {
     for source in ["A.X,B.X [A,B] C", "A [A] (B [B] C)", "Seed.A [Seed] [A] B"] {
-        let mut runtime = Runtime::new(crate::lowering::parse(source).unwrap());
+        let mut runtime = Runtime::new(&crate::lowering::parse(source).unwrap());
         runtime.run(100_000, None);
         for state in &runtime.state {
             let expected = crate::fingerprint::state(state);
@@ -131,7 +131,7 @@ fn incremental() {
         "A,A,B [A,B] C [A,C] D",
         "A [A] B [B] A [ ] Z",
     ] {
-        let program = Arc::new(Program::new(crate::lowering::parse(source).unwrap()));
+        let program = Arc::new(Program::new(&crate::lowering::parse(source).unwrap()));
         let mut state = Arc::new(State::initial(&program));
         let mut cached = crate::reduction::Search::new(program.clone(), state.clone());
         for _ in 0..64 {
@@ -206,7 +206,7 @@ fn scaling() {
         for index in 0..128 {
             source.push_str(&format!("[Stage.{index}] Stage.{}\n", index + 1));
         }
-        let program = Arc::new(Program::new(crate::lowering::parse(&source).unwrap()));
+        let program = Arc::new(Program::new(&crate::lowering::parse(&source).unwrap()));
         let state = Arc::new(State::initial(&program));
         let mut search = crate::reduction::Search::new(program, state);
         let mut count = 0;

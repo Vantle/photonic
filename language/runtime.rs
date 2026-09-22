@@ -105,7 +105,7 @@ pub struct Runtime {
 }
 
 impl Runtime {
-    pub fn new(source: source::Program) -> Self {
+    pub fn new(source: &source::Program) -> Self {
         let program = Program::new(source);
         let initial = State::initial(&program);
         Self::seed(Arc::new(program), Arc::new(initial))

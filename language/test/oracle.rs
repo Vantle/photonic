@@ -351,7 +351,7 @@ fn occurrence() {
 }
 
 fn verify(source: &str, maximum: usize) {
-    let program = Arc::new(Program::new(crate::lowering::parse(source).unwrap()));
+    let program = Arc::new(Program::new(&crate::lowering::parse(source).unwrap()));
     let initial = State::initial(&program);
     let mut seen = HashSet::from([initial.clone()]);
     let mut pending = VecDeque::from([(initial, 0)]);
@@ -398,7 +398,7 @@ fn incremental() {
         "A [A] B [A] B [([A] B)] C [C] (D [D] E)",
         "A.X [A] B,C [B,C] D [D] (E [E] F)",
     ] {
-        let program = Arc::new(Program::new(crate::lowering::parse(source).unwrap()));
+        let program = Arc::new(Program::new(&crate::lowering::parse(source).unwrap()));
         let mut state = Arc::new(State::initial(&program));
         let mut search = crate::reduction::Search::new(program.clone(), state.clone());
         let limit = crate::runtime::Limit {

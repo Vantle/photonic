@@ -95,7 +95,7 @@ fn load(path: &Path, execution: &Execution) -> miette::Result<Program> {
 
 fn run(path: PathBuf, execution: Execution) -> miette::Result<()> {
     let executor = photonic::executor::Executor::new(execution.worker).into_diagnostic()?;
-    let mut runtime = Runtime::new(load(&path, &execution)?);
+    let mut runtime = Runtime::new(&load(&path, &execution)?);
     runtime.parallel(&executor, execution.step, Some(limit(&execution)));
     if execution.json {
         return output::write(&runtime.view(), execution.compact);

@@ -22,7 +22,7 @@ fn scan(state: &State, changed: &[usize]) -> Vec<usize> {
 
 #[test]
 fn mutation() {
-    let program = Program::new(crate::lowering::parse("A [A] B").unwrap());
+    let program = Program::new(&crate::lowering::parse("A [A] B").unwrap());
     let mut state = State::initial(&program);
     let root = state.frame[0].clone();
     for frame in 1..96 {
@@ -52,7 +52,7 @@ fn mutation() {
 
 #[test]
 fn resizing() {
-    let program = Program::new(crate::lowering::parse("A [A] B").unwrap());
+    let program = Program::new(&crate::lowering::parse("A [A] B").unwrap());
     let initial = State::initial(&program);
     let mut state = initial.clone();
     let mut index = Index::new(&state);

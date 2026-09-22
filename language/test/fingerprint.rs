@@ -177,7 +177,7 @@ fn dependency() {
 
 #[test]
 fn retirement() {
-    let program = crate::program::Program::new(crate::lowering::parse("A [A] B").unwrap());
+    let program = crate::program::Program::new(&crate::lowering::parse("A [A] B").unwrap());
     let original = State::initial(&program);
     let mut index = Index::new(Arc::new(original.clone()));
     for iteration in 0..16 {

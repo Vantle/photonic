@@ -63,7 +63,7 @@ fn compare(source: &str, target: &str) {
         cell: 128,
         frame: 8,
     };
-    let mut current = photonic::runtime::Runtime::new(program.clone());
+    let mut current = photonic::runtime::Runtime::new(&program);
     let mut previous =
         reference::runtime::Runtime::new(reference::lowering::parse(source).unwrap());
     current.run(1, Some(photonic::runtime::Limit { record: 1, ..limit }));

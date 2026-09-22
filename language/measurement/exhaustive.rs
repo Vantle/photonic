@@ -18,7 +18,7 @@ pub struct Measurement {
 }
 
 pub fn run(width: usize, length: usize, shared: bool) -> Measurement {
-    let program = Program::new(crate::lowering::parse("A.B.C.D.E.F.G.H,X,Y").unwrap());
+    let program = Program::new(&crate::lowering::parse("A.B.C.D.E.F.G.H,X,Y").unwrap());
     let mut state = State::initial(&program);
     Arc::make_mut(&mut state.world[0])
         .particle

@@ -134,12 +134,12 @@ fn parallel() {
     {
         let program: crate::source::Program =
             serde_json::from_value(case["program"].clone()).unwrap();
-        let mut runtime = Runtime::new(program.clone());
+        let mut runtime = Runtime::new(&program);
         runtime.run(12000, None);
         assert!(runtime.closed(), "{}", case["name"]);
         let expected = serde_json::to_value(runtime.snapshot()).unwrap();
         for executor in &executor {
-            let mut runtime = Runtime::new(program.clone());
+            let mut runtime = Runtime::new(&program);
             runtime.parallel(executor, 12000, None);
             assert_eq!(
                 serde_json::to_value(runtime.snapshot()).unwrap(),
@@ -162,12 +162,12 @@ fn chunking() {
     {
         let program: crate::source::Program =
             serde_json::from_value(case["program"].clone()).unwrap();
-        let mut complete = Runtime::new(program.clone());
+        let mut complete = Runtime::new(&program);
         complete.run(12000, None);
         assert!(complete.closed());
         let expected = serde_json::to_value(complete.snapshot()).unwrap();
         for chunk in [1, 7, 32] {
-            let mut runtime = Runtime::new(program.clone());
+            let mut runtime = Runtime::new(&program);
             for _ in 0..12000 {
                 if runtime.closed() {
                     break;
@@ -191,7 +191,7 @@ fn fairness() {
         vec!["A"; 25].join("."),
         ["A"; 12].join(".")
     );
-    let mut runtime = Runtime::new(crate::lowering::parse(&source).unwrap());
+    let mut runtime = Runtime::new(&crate::lowering::parse(&source).unwrap());
     runtime.run(
         1000,
         Some(Limit {
@@ -213,11 +213,11 @@ fn fairness() {
 #[test]
 fn budget() {
     let source = crate::lowering::parse("Seed.A [Seed] [A] B").unwrap();
-    let mut complete = Runtime::new(source.clone());
+    let mut complete = Runtime::new(&source);
     complete.run(12000, None);
     let expected = serde_json::to_value(complete.snapshot()).unwrap();
     for record in [1, complete.record() / 2] {
-        let mut runtime = Runtime::new(source.clone());
+        let mut runtime = Runtime::new(&source);
         runtime.run(
             12000,
             Some(Limit {
@@ -242,7 +242,7 @@ fn initialization() {
         initial: vec![vec![crate::source::Value::Atom("A".into())]; 100],
         rule: Vec::new(),
     };
-    let runtime = Runtime::new(source);
+    let runtime = Runtime::new(&source);
     assert_eq!(runtime.snapshot().state[0].world.len(), 100);
     for mask in 0..64 {
         let initial = (0..3)
@@ -253,7 +253,7 @@ fn initialization() {
                     .collect()
             })
             .collect();
-        let program = crate::program::Program::new(crate::source::Program {
+        let program = crate::program::Program::new(&crate::source::Program {
             initial,
             rule: Vec::new(),
         });

@@ -137,9 +137,10 @@ pub struct Search {
 
 impl Search {
     pub fn new(program: source::Program, target: source::Program) -> Self {
-        let compiled = Program::new(program.clone());
+        let compiled = Program::new(&program);
         let initial = Arc::new(State::initial(&compiled));
-        let goal = State::initial(&compiled.target(&target));
+        let goal = compiled.target(&target);
+        let goal = State::configuration(&goal.initial, &goal.rule);
         let signature = crate::fingerprint::state(&goal);
         let fingerprint = crate::fingerprint::state(&initial);
         let reached = initial.as_ref() == &goal;

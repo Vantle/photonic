@@ -67,10 +67,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             || photonic::path::Search::new(program.clone(), target.clone()),
             &argument,
         ),
-        None => evaluate(
-            || photonic::runtime::Runtime::new(program.clone()),
-            &argument,
-        ),
+        None => evaluate(|| photonic::runtime::Runtime::new(&program), &argument),
     };
     let cold = measure();
     let measurement = (0..argument.sample.get())

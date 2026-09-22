@@ -36,20 +36,24 @@ pub struct Search {
     claim: source::Program,
 }
 
+fn configuration(runtime: &Runtime, source: &source::Program) -> State {
+    let target = runtime.program.target(source);
+    State::configuration(&target.initial, &target.rule)
+}
+
 impl Search {
     pub fn new(program: source::Program, target: source::Program) -> Self {
-        let runtime = Runtime::new(program.clone());
-        let configuration = State::initial(&runtime.program.target(&target));
+        let runtime = Runtime::new(&program);
         Self {
+            target: configuration(&runtime, &target),
             runtime,
-            target: configuration,
             program,
             claim: target,
         }
     }
 
     pub fn target(&mut self, target: source::Program) {
-        self.target = State::initial(&self.runtime.program.target(&target));
+        self.target = configuration(&self.runtime, &target);
         self.claim = target;
     }
 

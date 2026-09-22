@@ -11,7 +11,7 @@ fn identity() {
         "A [A] B,C [B] D [C] E",
         include_str!("../../program/language/capture.wave"),
     ] {
-        let mut runtime = Runtime::new(crate::lowering::parse(source).unwrap());
+        let mut runtime = Runtime::new(&crate::lowering::parse(source).unwrap());
         runtime.run(12000, Some(Limit::default()));
         assert!(!runtime.event.is_empty());
         for event in &runtime.event {

@@ -16,7 +16,7 @@ fn evaluate(bounded: bool, worker: usize) {
     let source =
         format!("A.B.C.D.E.F.G.H.{padding},X,Y [A.B.C.D.E.F.G.H,X] Left [A.B.C.D.E.F.G.H,Y] Right");
     let create = |capacity| {
-        let mut runtime = Runtime::new(crate::lowering::parse(&source).unwrap());
+        let mut runtime = Runtime::new(&crate::lowering::parse(&source).unwrap());
         runtime.matching.preparation = Some(Arc::new(crate::selection::Store::new(capacity)));
         runtime
     };

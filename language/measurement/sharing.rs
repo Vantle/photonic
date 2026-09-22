@@ -179,7 +179,7 @@ fn program(width: usize, count: usize) -> Program {
         .collect::<Vec<_>>()
         .join(" ");
     let source = format!("{particle},{content},C.{suffix} {rule}");
-    Program::new(crate::lowering::parse(&source).unwrap())
+    Program::new(&crate::lowering::parse(&source).unwrap())
 }
 
 pub fn partial(configuration: Configuration) -> Vec<Measurement> {

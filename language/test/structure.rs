@@ -9,7 +9,7 @@ fn equivalence() {
         "A.([A] B),A.([A] C) [B,C] D",
         "A,A,B [A,B] C [A,C] D",
     ] {
-        let mut runtime = crate::runtime::Runtime::new(crate::lowering::parse(source).unwrap());
+        let mut runtime = crate::runtime::Runtime::new(&crate::lowering::parse(source).unwrap());
         runtime.run(100_000, None);
         let mut structure = Structure::default();
         for state in runtime.state.iter().chain(runtime.state.iter().rev()) {
@@ -28,7 +28,7 @@ fn equivalence() {
 
 #[test]
 fn multiplicity() {
-    let program = crate::program::Program::new(crate::lowering::parse("A").unwrap());
+    let program = crate::program::Program::new(&crate::lowering::parse("A").unwrap());
     let mut state = crate::state::State::initial(&program);
     let mut structure = Structure::default();
     assert_eq!(

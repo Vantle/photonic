@@ -29,7 +29,7 @@ fn continuation() {
         "X,A [A.A] B",
         "X,A [ ] B",
     ] {
-        let program = Program::new(crate::lowering::parse(source).unwrap());
+        let program = Program::new(&crate::lowering::parse(source).unwrap());
         let mut state = State::initial(&program);
         let mut index = Index::new(Arc::new(state.clone()));
         let pattern = crate::plan::Input::new(&program.rule[0].input).pattern(0);
@@ -69,7 +69,7 @@ fn continuation() {
 #[test]
 fn overflow() {
     let source = format!("{} [A] B", vec!["A"; 2048].join("."));
-    let program = Program::new(crate::lowering::parse(&source).unwrap());
+    let program = Program::new(&crate::lowering::parse(&source).unwrap());
     let index = Index::new(Arc::new(State::initial(&program)));
     let pattern = crate::plan::Input::new(&program.rule[0].input).pattern(0);
     let mut search = Search::new(pattern.clone(), &index, 0);
@@ -84,7 +84,7 @@ fn overflow() {
 
 #[test]
 fn invalidation() {
-    let program = Program::new(crate::lowering::parse("A.X,A.C.C,B,B [A.C,B] Done").unwrap());
+    let program = Program::new(&crate::lowering::parse("A.X,A.C.C,B,B [A.C,B] Done").unwrap());
     let mut state = State::initial(&program);
     let mut index = Index::new(Arc::new(state.clone()));
     let pattern = crate::plan::Input::new(&program.rule[0].input).pattern(0);

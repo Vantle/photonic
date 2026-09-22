@@ -19,7 +19,7 @@ fn boundary() {
         ("A [B] Done", false, Poll::Ready(None)),
         ("[] Done", true, Poll::Ready(Some(Vec::new()))),
     ] {
-        let program = Program::new(crate::lowering::parse(source).unwrap());
+        let program = Program::new(&crate::lowering::parse(source).unwrap());
         let input = Input::new(&program.rule[0].input);
         let index = Index::new(Arc::new(State::initial(&program)));
         let store = Arc::new(Store::new(65536));
@@ -37,7 +37,7 @@ fn boundary() {
             join.reset(&index);
         }
     }
-    let program = Program::new(crate::lowering::parse("A").unwrap());
+    let program = Program::new(&crate::lowering::parse("A").unwrap());
     let index = Index::new(Arc::new(State::initial(&program)));
     let mut join = Join::new(Arc::new(Vec::new()), &index, 0);
     for _ in 0..3 {
@@ -56,7 +56,7 @@ fn activation() {
         "{},C [{particle},{particle},B] Done",
         vec![particle.clone(); 40].join(",")
     );
-    let program = Program::new(crate::lowering::parse(&source).unwrap());
+    let program = Program::new(&crate::lowering::parse(&source).unwrap());
     let input = Input::new(&program.rule[0].input);
     let mut state = State::initial(&program);
     let mut index = Index::new(Arc::new(state.clone()));

@@ -45,7 +45,7 @@ fn ownership() {
     );
     let snapshot = {
         let mut runtime =
-            crate::runtime::Runtime::new(crate::lowering::parse("A.X [A] B [B] C").unwrap());
+            crate::runtime::Runtime::new(&crate::lowering::parse("A.X [A] B [B] C").unwrap());
         runtime.run(100_000, None);
         runtime.snapshot()
     };
@@ -56,8 +56,8 @@ fn ownership() {
 
 #[test]
 fn isolation() {
-    let first = crate::program::Program::new(crate::lowering::parse("A").unwrap());
-    let second = crate::program::Program::new(crate::lowering::parse("B").unwrap());
+    let first = crate::program::Program::new(&crate::lowering::parse("A").unwrap());
+    let second = crate::program::Program::new(&crate::lowering::parse("B").unwrap());
     let render = |program: &crate::program::Program| {
         super::Builder::new(program).node(
             0,

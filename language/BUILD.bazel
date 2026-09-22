@@ -79,6 +79,7 @@ rust_test(
         "test/preservation.rs",
         "test/prism.rs",
         "test/product.rs",
+        "test/program.rs",
         "test/reachability.rs",
         "test/reduction.rs",
         "test/registry.rs",
