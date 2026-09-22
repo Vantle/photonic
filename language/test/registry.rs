@@ -47,3 +47,47 @@ fn reconciliation() {
         assert!(actual.values().eq(expected.values()));
     }
 }
+
+#[test]
+fn extraction() {
+    for (width, maximum) in [8, 32, 33, 96, 99, 384, 387, 512]
+        .into_iter()
+        .flat_map(|width| [0, 1, 7, 128].map(|maximum| (width, maximum)))
+    {
+        let mut actual = Registry::new(3);
+        let mut expected = BTreeMap::new();
+        for position in (0..width).rev() {
+            let key = Key {
+                frame: position % 3,
+                input: position / 8,
+                owner: position % 8,
+            };
+            actual.insert(key, position);
+            expected.insert(key, position);
+        }
+        for frame in 0..3 {
+            for interval in [Key::input(frame, 17), Key::frame(frame)] {
+                let predicate = |_: &Key, position: &mut usize| {
+                    *position += 1;
+                    !position.is_multiple_of(3)
+                };
+                let before = expected
+                    .extract_if(interval.clone(), predicate)
+                    .take(maximum)
+                    .collect::<Vec<_>>();
+                let after = actual
+                    .extract(interval, predicate)
+                    .take(maximum)
+                    .collect::<Vec<_>>();
+                assert_eq!(before.len(), after.len());
+                assert!(before == after);
+                assert_eq!(actual.len(), expected.len());
+                assert!(actual.iter().eq(expected.iter()));
+                assert_eq!(
+                    actual.count(frame),
+                    expected.range(Key::frame(frame)).count()
+                );
+            }
+        }
+    }
+}

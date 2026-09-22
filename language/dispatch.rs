@@ -172,6 +172,9 @@ impl Network {
             crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Restart);
         self.agenda.clear();
         self.cooldown = 0;
+        if self.entry.len() == 0 {
+            return;
+        }
         let mut reset = |&position: &usize| {
             let entry = &mut self.store[position];
             if !entry.viable() {

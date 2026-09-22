@@ -19,6 +19,9 @@ impl Network {
         let _measurement =
             crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Request);
         let mut request = Vec::new();
+        if self.enabled.is_empty() {
+            return request;
+        }
         if index.present(frame) {
             let mut owner = Some(frame);
             while let Some(current) = owner {

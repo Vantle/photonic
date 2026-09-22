@@ -623,3 +623,49 @@ fn dormancy() {
         assert_eq!(delivery.selection[1].token, [200]);
     }
 }
+
+#[test]
+fn awakening() {
+    let program = Program::new(crate::lowering::parse("B [A] C").unwrap());
+    let mut state = State::initial(&program);
+    let absent = state.world[0].particle[0].value;
+    let present = program.rule[0].input[0][0];
+    state.frame = vec![state.frame[0].clone(); 257].into();
+    Arc::make_mut(&mut state.world[0]).frame = 256;
+    let mut index = Index::new(Arc::new(state.clone()));
+    let mut network = Network::new(&program, &index);
+    assert_eq!(network.entry.len(), 0);
+    for iteration in 0..128 {
+        Arc::make_mut(&mut state.world[0]).particle[0] = Token {
+            id: iteration + 1,
+            value: if iteration % 2 == 0 { present } else { absent },
+            capture: None,
+        };
+        advance(
+            &mut network,
+            &mut index,
+            state.clone(),
+            Change {
+                world: crate::basis::Set::single(0),
+                insertion: 0..1,
+                frame: Vec::new(),
+            },
+        );
+        if iteration % 2 == 0 {
+            let delivery = (0..16)
+                .find_map(|_| match network.next(&index) {
+                    Poll::Ready(Some(delivery)) => Some(delivery),
+                    Poll::Ready(None) => panic!("newly available rule did not activate"),
+                    Poll::Pending => None,
+                })
+                .expect("newly available rule exceeded its search budget");
+            assert_eq!(delivery.frame, 256);
+            assert_eq!(delivery.rule, 0);
+            assert_eq!(delivery.selection[0].token, [iteration + 1]);
+        } else {
+            assert_eq!(network.entry.len(), 0);
+            assert!(matches!(network.next(&index), Poll::Ready(None)));
+        }
+        accounting(&network);
+    }
+}

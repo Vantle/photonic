@@ -10,6 +10,7 @@ use std::time::Instant;
 
 #[derive(Serialize)]
 pub struct Measurement {
+    pub initialization: f64,
     pub execution: f64,
     pub retained: usize,
     pub preparation: usize,
@@ -17,6 +18,7 @@ pub struct Measurement {
 }
 
 pub fn run(width: usize, length: usize) -> Measurement {
+    let start = Instant::now();
     let program = Program::new(crate::lowering::parse("X [A] B").unwrap());
     let mut state = State::initial(&program);
     let initial = state.world[0].clone();
@@ -38,6 +40,7 @@ pub fn run(width: usize, length: usize) -> Measurement {
         insertion: state.world.len()..state.world.len(),
         frame: vec![width],
     };
+    let initialization = start.elapsed().as_secs_f64();
     let start = Instant::now();
     for iteration in 0..length {
         let previous = index.state.clone();
@@ -47,6 +50,7 @@ pub fn run(width: usize, length: usize) -> Measurement {
         assert!(matches!(network.next(&index), Poll::Ready(None)));
     }
     Measurement {
+        initialization,
         execution: start.elapsed().as_secs_f64(),
         retained: network.retained(),
         preparation: network.preparation,

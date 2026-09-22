@@ -4,11 +4,13 @@ Execute the same rules and programs faster, preserving their behavior. Rule cons
 
 ## Current priority
 
+Performance acceptance targets the current development machine. Preserve hermetic multiplatform builds and native/WebAssembly semantics; timing on additional machines is not a prerequisite. Robustness, scaling under larger workloads and ownership clarity are acceptance requirements alongside latency.
+
 Scope corrected on 2026-09-21. The structural reference model and its construction, collection and reconstruction milestones have been removed. The pre-existing dynamic language proposal is archived separately and creates no implementation prerequisite. Existing production programs and rules are unchanged by this correction. The native captured-resource import fix and its regression test remain: converging imported resources retain one occurrence and the union of their provenance.
 
 The [CPU continuation](continuation.md), delivered at `b820bc3`, already includes chunked persistent transcripts, completed exhaustive query replay, parameterized flow templates and large-search CPU admission. Preserve those improvements and do not queue them again. Earlier subscription/index allocation experiments failed their acceptance gates; a new experiment needs a distinct hypothesis and fresh measurements.
 
-Next record a fresh baseline on the existing program corpus, then select one bounded experiment from the dominant measured cost. No new language capability or collection demonstration is required. Each optimization must justify its maintenance cost with repeatable complete-program benefit. Stop when latency and memory meet the workload's needs; the research list is optional.
+The [dispatch maintenance audit](maintenance.md) now removes unnecessary ancestry traversal when no input is enabled and empty-registry agenda scans. Fourteen paired workloads, full dispatch observations and the 107-target test suite pass. Contiguous and adaptive registry replacements were rejected and removed. Next measure physical allocations and the complete initialization/reporting/release lifecycle, then use those measurements to select a narrower subscription or index-maintenance experiment. No new language capability or collection demonstration is required. Each optimization must justify its maintenance cost with repeatable complete-program benefit. Stop when latency and memory meet the workload's needs; the research list is optional.
 
 | Priority | Work | Value and initial effort | Acceptance gate |
 | --- | --- | --- | --- |
