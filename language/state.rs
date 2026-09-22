@@ -1,4 +1,5 @@
 use crate::program::{Program, Symbol};
+use smallvec::SmallVec;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -176,7 +177,8 @@ impl State {
         for (position, &index) in frame.iter().enumerate() {
             mapping[index] = Some(position);
         }
-        let mut incidence = HashMap::<usize, (Symbol, Option<usize>, Vec<(bool, usize)>)>::new();
+        let mut incidence =
+            HashMap::<usize, (Symbol, Option<usize>, SmallVec<[(bool, usize); 1]>)>::new();
         for (position, &index) in world.iter().enumerate() {
             for token in &self.world[index].particle {
                 incidence
@@ -185,7 +187,7 @@ impl State {
                         (
                             token.value,
                             token.capture.and_then(|index| mapping[index]),
-                            Vec::new(),
+                            SmallVec::new(),
                         )
                     })
                     .2
@@ -200,7 +202,7 @@ impl State {
                         (
                             token.value,
                             token.capture.and_then(|index| mapping[index]),
-                            Vec::new(),
+                            SmallVec::new(),
                         )
                     })
                     .2

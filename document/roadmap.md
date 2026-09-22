@@ -14,6 +14,8 @@ The [dispatch maintenance audit](maintenance.md) now removes unnecessary ancestr
 
 The [canonical reporting audit](canonical.md) now schedules only affected nonsingleton refinement groups and builds reverse dependencies without an intermediate edge list. Complete six-factor export improves from about 808 to 747 ms, with 10.3% less requested allocation traffic; compact arithmetic is approximately unchanged and peak retained storage is unchanged. Exact reports, native/WebAssembly conformance and warmed small-state controls pass. Further work should target the remaining measured allocation or materialization cost, rather than repeat this refinement change.
 
+The [canonical resource audit](resource.md) adds inline singleton occurrence storage and one combined resource/capture index. Six-factor full reporting improves from about 563 to 525 ms, with 19.7% fewer reporting allocation calls; complete export improves from about 761 to 727 ms. Requested bytes and peak live storage are essentially unchanged. The next memory investigation should attribute retained canonical data and report materialization before adding another representation or cache.
+
 | Priority | Work | Value and initial effort | Acceptance gate |
 | --- | --- | --- | --- |
 | 1 | Reduce measured allocation traffic in the selected consumer | Native serial lifecycle measurement is delivered; attribute execution allocations or full-report canonicalization before editing; 1–2 days | Keep timing separate from allocator instrumentation; compare exact observations, cold/warm samples, peak requested bytes and complete release |

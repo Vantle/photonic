@@ -16,6 +16,11 @@ pub(crate) struct Incidence {
     pub edge: crate::graph::Graph,
 }
 
+struct Resource {
+    vertex: usize,
+    capture: Option<usize>,
+}
+
 fn connect(edge: &mut Vec<(usize, usize, u8)>, source: usize, target: usize, kind: Link) {
     edge.push((source, target, kind as u8));
     edge.push((target, source, kind.reverse() as u8));
@@ -37,17 +42,23 @@ impl Incidence {
             .flat_map(|world| &world.particle)
             .chain(retained.iter().flat_map(|&index| &state.frame[index].held))
         {
-            resource.entry(token.id).or_insert_with(|| {
-                let index = label.len();
+            let entry = resource.entry(token.id).or_insert_with(|| {
+                let vertex = label.len();
                 label.push(Label::Resource(token.value));
-                index
+                Resource {
+                    vertex,
+                    capture: None,
+                }
             });
+            if token.capture.is_some() {
+                entry.capture = token.capture;
+            }
         }
         let mut edge = Vec::new();
         for (index, world) in state.world.iter().enumerate() {
             connect(&mut edge, index, frame[world.frame], Link::Context);
             for token in &world.particle {
-                connect(&mut edge, index, resource[&token.id], Link::Member);
+                connect(&mut edge, index, resource[&token.id].vertex, Link::Member);
             }
         }
         for &index in &retained {
@@ -59,22 +70,18 @@ impl Incidence {
                 connect(&mut edge, frame[index], frame[lexical], Link::Lexical);
             }
             for token in &value.held {
-                connect(&mut edge, frame[index], resource[&token.id], Link::Held);
+                connect(
+                    &mut edge,
+                    frame[index],
+                    resource[&token.id].vertex,
+                    Link::Held,
+                );
             }
         }
-        let mut capture = HashMap::new();
-        for token in state
-            .world
-            .iter()
-            .flat_map(|world| &world.particle)
-            .chain(retained.iter().flat_map(|&index| &state.frame[index].held))
-        {
-            if let Some(frame) = token.capture {
-                capture.insert(token.id, frame);
+        for resource in resource.into_values() {
+            if let Some(captured) = resource.capture {
+                connect(&mut edge, resource.vertex, frame[captured], Link::Capture);
             }
-        }
-        for (id, captured) in capture {
-            connect(&mut edge, resource[&id], frame[captured], Link::Capture);
         }
         let edge = crate::graph::Graph::new(label.len(), edge.iter().copied());
         Self { label, frame, edge }

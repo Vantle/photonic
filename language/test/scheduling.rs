@@ -331,6 +331,68 @@ fn incidence() {
 }
 
 #[test]
+fn capture() {
+    for count in [1, 2, 4, 16, 65] {
+        let closure = Token {
+            id: 42,
+            value: Symbol::Rule(0),
+            capture: Some(1),
+        };
+        let mut state = root(vec![World {
+            frame: 0,
+            particle: vec![closure.clone(); count],
+        }]);
+        state.world.push(state.world[0].clone());
+        Arc::make_mut(&mut state.frame[0])
+            .held
+            .push(closure.clone());
+        state.frame.push(Arc::new(Frame {
+            scope: 1,
+            parent: Some(0),
+            lexical: Some(0),
+            held: vec![closure],
+        }));
+        state.frame.push(Arc::new(Frame {
+            scope: 2,
+            parent: None,
+            lexical: None,
+            held: vec![Token {
+                id: 99,
+                value: Symbol::Rule(1),
+                capture: Some(2),
+            }],
+        }));
+        let graph = crate::incidence::Incidence::new(&state);
+        assert_eq!(graph.label.len(), 5);
+        let capture = graph
+            .edge
+            .iter()
+            .flatten()
+            .filter(|&&(kind, _)| kind == crate::link::Link::Capture as u8)
+            .copied()
+            .collect::<Vec<_>>();
+        assert_eq!(
+            capture,
+            vec![(crate::link::Link::Capture as u8, graph.frame[1])]
+        );
+        let renamed = state.rename(&[1, 0], &[0, 1]);
+        assert_eq!(renamed.resource.len(), 1);
+        assert_eq!(renamed.resource[&42], 0);
+        assert_eq!(renamed.state.size(), 2 * count + 2);
+        for token in renamed
+            .state
+            .world
+            .iter()
+            .flat_map(|world| &world.particle)
+            .chain(renamed.state.frame.iter().flat_map(|frame| &frame.held))
+        {
+            assert_eq!(token.id, 0);
+            assert_eq!(token.capture, Some(1));
+        }
+    }
+}
+
+#[test]
 fn enumeration() {
     let alphabet = [
         Term {
