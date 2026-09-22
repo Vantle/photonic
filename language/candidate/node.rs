@@ -69,19 +69,14 @@ impl Node {
             return version;
         }
         let insertion = Selection::new(self.key.insertion(index), &self.budget, &self.accounting);
-        if insertion.site.is_empty()
-            && !selection
-                .site
-                .iter()
-                .any(|site| index.removal.contains(site))
-        {
+        if insertion.site.is_empty() && !selection.site.iter().any(|&site| index.removed(site)) {
             version.selection = Some(selection);
         } else {
             let mut site = selection
                 .site
                 .iter()
                 .copied()
-                .filter(|site| !index.removal.contains(site))
+                .filter(|&site| !index.removed(site))
                 .collect::<Vec<_>>();
             site.extend(&insertion.site);
             drop(selection);

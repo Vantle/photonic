@@ -47,8 +47,8 @@ impl Entry {
         }
     }
 
-    pub fn replace(&mut self, consumer: SmallVec<[Consumer; 1]>) {
-        self.consumer = consumer;
+    pub fn replace(&mut self, consumer: SmallVec<[Consumer; 1]>) -> SmallVec<[Consumer; 1]> {
+        std::mem::replace(&mut self.consumer, consumer)
     }
 
     pub fn advance(&mut self, index: &Index, generation: usize) -> bool {

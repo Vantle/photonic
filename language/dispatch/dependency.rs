@@ -88,13 +88,16 @@ impl Network {
         for (key, position) in selected {
             let entry = &mut self.store[position];
             self.storage -= entry.retained();
+            let viable = entry.viable();
             if entry.advance(index, self.generation) {
                 self.preparation += 1;
-                if let Some(ready) = &mut self.ready {
-                    if entry.viable() {
-                        ready.insert(key, position);
-                    } else {
+                if let Some(ready) = &mut self.ready
+                    && entry.viable() != viable
+                {
+                    if viable {
                         ready.remove(&key);
+                    } else {
+                        ready.insert(key, position);
                     }
                 }
             }

@@ -60,10 +60,9 @@ impl Network {
                 let _measurement = crate::measurement::profile::Scope::new(
                     crate::measurement::profile::Phase::Replacement,
                 );
-                let entry = &mut self.store[position];
-                self.storage -= entry.retained();
-                entry.replace(consumer);
-                self.storage += entry.retained();
+                let count = consumer.len();
+                let previous = self.store[position].replace(consumer);
+                self.storage = self.storage + count - previous.len();
             } else {
                 #[cfg(feature = "measurement")]
                 let _measurement = crate::measurement::profile::Scope::new(

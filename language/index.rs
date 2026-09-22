@@ -101,6 +101,10 @@ impl Index {
         self.context.binary_search(&frame).is_ok()
     }
 
+    pub(crate) fn removed(&self, site: usize) -> bool {
+        self.removal.binary_search(&site).is_ok()
+    }
+
     fn allocate(&mut self, location: Location) -> usize {
         let site = self.vacant.pop().unwrap_or_else(|| {
             let site = self.rank.len();

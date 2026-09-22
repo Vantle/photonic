@@ -16,7 +16,7 @@ pub(super) struct Space {
     pub query: Query,
     pub domain: SmallVec<[Vec<Member>; 2]>,
     shared: Option<Arc<crate::preparation::Store>>,
-    subscription: Box<[(usize, Arc<crate::candidate::Node>)]>,
+    subscription: SmallVec<[(usize, Arc<crate::candidate::Node>); 2]>,
     pub retained: usize,
 }
 
@@ -70,7 +70,7 @@ impl Space {
         if admission && !query.possible(index, frame) {
             return None;
         }
-        let mut subscription = Vec::new();
+        let mut subscription = SmallVec::<[(usize, Arc<crate::candidate::Node>); 2]>::new();
         let mut domain = SmallVec::<[Vec<Member>; 2]>::new();
         for position in 0..query.count() {
             let shared = store
@@ -113,30 +113,20 @@ impl Space {
             cached: 0,
             query,
             domain,
-            subscription: subscription.into_boxed_slice(),
+            subscription,
             retained,
         })
     }
 
     pub fn update(&mut self, index: &Index) -> SmallVec<[usize; 2]> {
-        if self.subscription.is_empty() {
-            return self.advance::<false>(index);
-        }
-        self.advance::<true>(index)
-    }
-
-    fn advance<const SHARED: bool>(&mut self, index: &Index) -> SmallVec<[usize; 2]> {
         let mut changed = SmallVec::new();
         for (position, domain) in self.domain.iter_mut().enumerate() {
-            let change = if SHARED {
-                self.subscription
-                    .iter()
-                    .find(|(input, _)| *input == position)
-                    .filter(|(_, node)| Arc::strong_count(node) > 2)
-                    .map(|(_, node)| node.change(index))
-            } else {
-                None
-            };
+            let change = self
+                .subscription
+                .iter()
+                .find(|(input, _)| *input == position)
+                .filter(|(_, node)| Arc::strong_count(node) > 2)
+                .map(|(_, node)| node.change(index));
             if domain.len() > 16
                 && change.as_ref().map_or_else(
                     || !self.query.affected(position, index, self.frame),
@@ -147,7 +137,7 @@ impl Space {
             }
             let previous = domain.len();
             domain.retain(|member| {
-                if !index.removal.contains(&member.site) {
+                if !index.removed(member.site) {
                     return true;
                 }
                 self.retained -= 1;
@@ -211,7 +201,7 @@ impl Space {
 
     pub fn evict(&mut self) {
         self.retained -= self.subscription.len() * 2;
-        self.subscription = Box::new([]);
+        self.subscription = SmallVec::new();
         if self.cached == 0 {
             return;
         }

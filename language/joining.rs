@@ -106,13 +106,17 @@ impl Join {
 
     #[cfg(test)]
     pub fn new(pattern: Arc<Vec<Vec<Term>>>, index: &Index, frame: usize) -> Self {
-        Self::construct(
-            Space::new(query::Query::direct(pattern), index, frame, None),
+        let mut join = Self::construct(Space::new(
+            query::Query::direct(pattern),
             index,
-        )
+            frame,
+            None,
+        ));
+        join.reset(index);
+        join
     }
 
-    fn construct(space: Space, index: &Index) -> Self {
+    fn construct(space: Space) -> Self {
         let mut order: SmallVec<[usize; 2]> = (0..space.query.count()).collect();
         order.sort_by_key(|&position| space.domain[position].len());
         let traversal = Traversal::Dormant(order.len());
@@ -125,7 +129,6 @@ impl Join {
             stable: false,
         };
         join.viable = join.feasible();
-        join.reset(index);
         join
     }
 
@@ -159,27 +162,23 @@ impl Join {
 
     #[cfg(any(test, feature = "measurement"))]
     pub fn planned(request: Request<'_>) -> Self {
-        Self::construct(
-            Space::new(
-                query::Query::Planned(request.input.context(request.owner)),
-                request.index,
-                request.frame,
-                Some(request.store),
-            ),
+        let mut join = Self::construct(Space::new(
+            query::Query::Planned(request.input.context(request.owner)),
             request.index,
-        )
+            request.frame,
+            Some(request.store),
+        ));
+        join.reset(request.index);
+        join
     }
 
     pub fn admit(request: Request<'_>) -> Option<Self> {
-        Some(Self::construct(
-            Space::admit(
-                query::Query::Planned(request.input.context(request.owner)),
-                request.index,
-                request.frame,
-                Some(request.store),
-            )?,
+        Some(Self::construct(Space::admit(
+            query::Query::Planned(request.input.context(request.owner)),
             request.index,
-        ))
+            request.frame,
+            Some(request.store),
+        )?))
     }
 
     #[cfg(test)]
@@ -284,7 +283,7 @@ impl Join {
         if self.space.domain.len() <= 1 {
             return true;
         }
-        let mut selected = Vec::with_capacity(self.space.domain.len());
+        let mut selected = SmallVec::<[usize; 4]>::new();
         for &position in &self.order {
             if let Some(member) = self.space.domain[position]
                 .iter()
@@ -304,7 +303,7 @@ impl Join {
             .iter()
             .map(|domain| domain.iter().map(|member| member.site).collect())
             .collect::<Vec<Vec<_>>>();
-        domain.iter().all(|domain| !domain.is_empty()) && crate::assignment::feasible(&domain)
+        crate::assignment::feasible(&domain)
     }
 
     #[inline(always)]
