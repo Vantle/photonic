@@ -30,6 +30,7 @@ fn skew() {
                 scope: 0,
                 parent: None,
                 lexical: None,
+                particle: Vec::new(),
                 held: Vec::new(),
             }
             .into(),
@@ -95,6 +96,7 @@ fn intersection() {
                     scope: 0,
                     parent: None,
                     lexical: None,
+                    particle: Vec::new(),
                     held: Vec::new(),
                 }
                 .into()

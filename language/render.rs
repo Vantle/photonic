@@ -83,6 +83,7 @@ impl<'program> Builder<'program> {
                         scope,
                         parent: frame.parent,
                         lexical: frame.lexical,
+                        particle: self.particle(&frame.particle),
                         held: self.particle(&frame.held),
                     }
                 })

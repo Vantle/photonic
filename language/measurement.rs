@@ -69,6 +69,7 @@ fn state(count: usize, sharing: Sharing) -> State {
                 scope: 0,
                 parent: None,
                 lexical: None,
+                particle: Vec::new(),
                 held: Vec::new(),
             }
             .into(),

@@ -21,6 +21,7 @@ pub struct Frame {
     pub scope: usize,
     pub parent: Option<usize>,
     pub lexical: Option<usize>,
+    pub particle: Vec<Token>,
     pub held: Vec<Token>,
 }
 
@@ -38,6 +39,37 @@ pub struct Canonical {
 }
 
 impl State {
+    pub(crate) fn token(&self, place: crate::flow::Place) -> Option<&Token> {
+        use crate::flow::Place;
+        let (particle, id) = match place {
+            Place::World(index, id) => (&self.world.get(index)?.particle, id),
+            Place::Context(index, id) => (&self.frame.get(index)?.particle, id),
+            Place::Held(index, id) => (&self.frame.get(index)?.held, id),
+        };
+        particle.iter().find(|token| token.id == id)
+    }
+
+    pub(crate) fn visible(
+        &self,
+        frame: usize,
+    ) -> impl Iterator<Item = (crate::flow::Place, &Token)> {
+        std::iter::successors(Some(frame), |&frame| self.frame[frame].lexical).flat_map(|frame| {
+            self.frame[frame]
+                .particle
+                .iter()
+                .map(move |token| (crate::flow::Place::Context(frame, token.id), token))
+        })
+    }
+
+    pub(crate) fn resolve(&self, world: usize, id: usize) -> Option<crate::flow::Place> {
+        let place = crate::flow::Place::World(world, id);
+        if self.token(place).is_some() {
+            return Some(place);
+        }
+        self.visible(self.world[world].frame)
+            .find_map(|(place, token)| (token.id == id).then_some(place))
+    }
+
     pub(crate) fn reclaim(mut self, reachable: &[usize]) -> Self {
         self.frame.truncate(reachable.last().unwrap() + 1);
         if self.frame.len() == reachable.len() {
@@ -49,7 +81,8 @@ impl State {
                 || (frame.scope == 0
                     && frame.parent.is_none()
                     && frame.lexical.is_none()
-                    && frame.held.is_empty())
+                    && frame.held.is_empty()
+                    && frame.particle.is_empty())
             {
                 continue;
             }
@@ -58,6 +91,7 @@ impl State {
             frame.parent = None;
             frame.lexical = None;
             frame.held.clear();
+            frame.particle.clear();
         }
         self
     }
@@ -92,6 +126,7 @@ impl State {
                     scope: 0,
                     parent: None,
                     lexical: None,
+                    particle: Vec::new(),
                     held: Vec::new(),
                 }
                 .into(),
@@ -132,7 +167,7 @@ impl State {
                 .parent
                 .into_iter()
                 .chain(frame.lexical)
-                .chain(frame.held.iter().filter_map(|token| token.capture))
+                .chain(frame.token().filter_map(|token| token.capture))
             {
                 if !std::mem::replace(&mut selected[target], true) {
                     pending.push(target);
@@ -178,7 +213,7 @@ impl State {
             mapping[index] = Some(position);
         }
         let mut incidence =
-            HashMap::<usize, (Symbol, Option<usize>, SmallVec<[(bool, usize); 1]>)>::new();
+            HashMap::<usize, (Symbol, Option<usize>, SmallVec<[(u8, usize); 1]>)>::new();
         for (position, &index) in world.iter().enumerate() {
             for token in &self.world[index].particle {
                 incidence
@@ -191,7 +226,7 @@ impl State {
                         )
                     })
                     .2
-                    .push((false, position));
+                    .push((0, position));
             }
         }
         for (position, &index) in frame.iter().enumerate() {
@@ -206,7 +241,22 @@ impl State {
                         )
                     })
                     .2
-                    .push((true, position));
+                    .push((1, position));
+            }
+        }
+        for (position, &index) in frame.iter().enumerate() {
+            for token in &self.frame[index].particle {
+                incidence
+                    .entry(token.id)
+                    .or_insert_with(|| {
+                        (
+                            token.value,
+                            token.capture.and_then(|index| mapping[index]),
+                            SmallVec::new(),
+                        )
+                    })
+                    .2
+                    .push((2, position));
             }
         }
         let resource = {
@@ -249,6 +299,7 @@ impl State {
                         scope: value.scope,
                         parent: value.parent.and_then(|index| mapping[index]),
                         lexical: value.lexical.and_then(|index| mapping[index]),
+                        particle: particle(&value.particle),
                         held: particle(&value.held),
                     }
                     .into()
@@ -275,7 +326,7 @@ impl State {
             + self
                 .reachable()
                 .into_iter()
-                .map(|index| self.frame[index].held.len())
+                .map(|index| self.frame[index].size())
                 .sum::<usize>()
     }
 
@@ -295,3 +346,17 @@ impl State {
         .state
     }
 }
+
+impl Frame {
+    pub(crate) fn token(&self) -> impl Iterator<Item = &Token> {
+        self.particle.iter().chain(&self.held)
+    }
+
+    pub(crate) fn size(&self) -> usize {
+        self.particle.len() + self.held.len()
+    }
+}
+
+#[cfg(test)]
+#[path = "test/occurrence.rs"]
+mod test;

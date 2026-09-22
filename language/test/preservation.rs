@@ -19,12 +19,14 @@ fn canonical() -> Canonical {
                 scope: 0,
                 parent: None,
                 lexical: None,
+                particle: Vec::new(),
                 held: Vec::new(),
             }),
             Arc::new(Frame {
                 scope: 1,
                 parent: Some(0),
                 lexical: Some(0),
+                particle: Vec::new(),
                 held: vec![Token {
                     id: 42,
                     value: Symbol::Rule(0),

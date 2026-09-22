@@ -17,7 +17,7 @@ pub fn world(state: &State) -> Vec<usize> {
         .world
         .iter()
         .flat_map(|world| &world.particle)
-        .chain(state.frame.iter().flat_map(|frame| &frame.held))
+        .chain(state.frame.iter().flat_map(|frame| frame.token()))
     {
         *occurrence.entry(token.id).or_default() += 1;
     }

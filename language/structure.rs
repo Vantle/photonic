@@ -69,10 +69,12 @@ impl Structure {
                 return false;
             }
             let vertex = frame.vertex;
-            while let Some(position) = self.graph[vertex]
-                .iter()
-                .position(|&(kind, _)| matches!(kind, Link::Parent | Link::Lexical | Link::Held))
-            {
+            while let Some(position) = self.graph[vertex].iter().position(|&(kind, _)| {
+                matches!(
+                    kind,
+                    Link::Parent | Link::Lexical | Link::Held | Link::Owned
+                )
+            }) {
                 self.graph.disconnect(vertex, position);
             }
             self.graph
@@ -105,6 +107,10 @@ impl Structure {
                 self.frame[lexical].as_ref().unwrap().vertex,
                 Link::Lexical,
             );
+        }
+        for token in &value.particle {
+            let resource = self.token(token);
+            self.graph.connect(vertex, resource, Link::Owned);
         }
         for token in &value.held {
             let resource = self.token(token);
@@ -154,7 +160,7 @@ impl Structure {
             .filter_map(|(&id, &vertex)| {
                 (!self.graph[vertex]
                     .iter()
-                    .any(|&(kind, _)| matches!(kind, Link::Particle | Link::Holder)))
+                    .any(|&(kind, _)| matches!(kind, Link::Particle | Link::Holder | Link::Owner)))
                 .then_some(id)
             })
             .collect::<Vec<_>>();

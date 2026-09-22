@@ -36,12 +36,11 @@ impl Incidence {
             label.push(Label::Frame(state.frame[index].scope, index == 0));
         }
         let mut resource = HashMap::new();
-        for token in state
-            .world
-            .iter()
-            .flat_map(|world| &world.particle)
-            .chain(retained.iter().flat_map(|&index| &state.frame[index].held))
-        {
+        for token in state.world.iter().flat_map(|world| &world.particle).chain(
+            retained
+                .iter()
+                .flat_map(|&index| state.frame[index].token()),
+        ) {
             let entry = resource.entry(token.id).or_insert_with(|| {
                 let vertex = label.len();
                 label.push(Label::Resource(token.value));
@@ -68,6 +67,14 @@ impl Incidence {
             }
             if let Some(lexical) = value.lexical {
                 connect(&mut edge, frame[index], frame[lexical], Link::Lexical);
+            }
+            for token in &value.particle {
+                connect(
+                    &mut edge,
+                    frame[index],
+                    resource[&token.id].vertex,
+                    Link::Owned,
+                );
             }
             for token in &value.held {
                 connect(

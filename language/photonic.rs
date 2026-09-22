@@ -13,6 +13,7 @@ mod candidate;
 mod canonical;
 mod catalog;
 mod change;
+mod consumption;
 mod dispatch;
 pub mod executor;
 mod factor;

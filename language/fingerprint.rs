@@ -142,9 +142,16 @@ impl Index {
             let hash = if stable[index] {
                 previous.unwrap().frame[0][index]
             } else {
-                mix(value.scope as u64).wrapping_add(Accumulator::collect(
-                    value.held.iter().map(|token| symbol(token.value)),
-                ))
+                mix(value.scope as u64)
+                    .wrapping_add(Accumulator::collect(
+                        value.held.iter().map(|token| symbol(token.value)),
+                    ))
+                    .wrapping_add(
+                        Accumulator::collect(
+                            value.particle.iter().map(|token| symbol(token.value)),
+                        )
+                        .rotate_left(7),
+                    )
             };
             frame[0].push(hash);
         }
@@ -155,7 +162,7 @@ impl Index {
                         .parent
                         .into_iter()
                         .chain(value.lexical)
-                        .chain(value.held.iter().filter_map(|token| token.capture))
+                        .chain(value.token().filter_map(|token| token.capture))
                         .all(|index| {
                             previous.unwrap().frame[phase - 1][index] == frame[phase - 1][index]
                         });
@@ -164,6 +171,7 @@ impl Index {
                 } else {
                     mix(value.scope as u64)
                         .wrapping_add(particle(&value.held, &frame[phase - 1]))
+                        .wrapping_add(particle(&value.particle, &frame[phase - 1]).rotate_left(7))
                         .wrapping_add(
                             value
                                 .parent

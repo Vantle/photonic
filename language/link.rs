@@ -13,6 +13,8 @@ pub(crate) enum Link {
     Holder = 9,
     Capture = 10,
     Reference = 11,
+    Owned = 12,
+    Owner = 13,
 }
 
 impl Link {
@@ -30,6 +32,8 @@ impl Link {
             Self::Holder => Self::Held,
             Self::Capture => Self::Reference,
             Self::Reference => Self::Capture,
+            Self::Owned => Self::Owner,
+            Self::Owner => Self::Owned,
         }
     }
 }

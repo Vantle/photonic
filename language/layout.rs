@@ -23,7 +23,7 @@ impl Layout {
                 .frame
                 .iter()
                 .filter(|frame| self.reach.frame.binary_search(frame).is_ok())
-                .map(|&frame| source.frame[frame].held.len())
+                .map(|&frame| source.frame[frame].size())
                 .sum::<usize>();
         let inserted = state
             .world
@@ -34,12 +34,19 @@ impl Layout {
                 .frame
                 .iter()
                 .filter(|frame| reach.frame.binary_search(frame).is_ok())
-                .map(|&frame| state.frame[frame].held.len())
+                .map(|&frame| state.frame[frame].size())
                 .sum::<usize>();
         let newest = state
             .world
             .range(change.insertion.clone())
             .flat_map(|world| &world.particle)
+            .chain(
+                change
+                    .frame
+                    .iter()
+                    .filter_map(|&frame| state.frame.get(frame))
+                    .flat_map(|frame| frame.token()),
+            )
             .map(|token| token.id + 1)
             .max()
             .unwrap_or(0);
@@ -54,7 +61,7 @@ impl Layout {
                     .frame
                     .iter()
                     .filter_map(|&frame| source.frame.get(frame))
-                    .flat_map(|frame| &frame.held),
+                    .flat_map(|frame| frame.token()),
             )
             .any(|token| token.id + 1 == self.resource)
         {
@@ -62,7 +69,7 @@ impl Layout {
                 .world
                 .iter()
                 .flat_map(|world| &world.particle)
-                .chain(state.frame.iter().flat_map(|frame| &frame.held))
+                .chain(state.frame.iter().flat_map(|frame| frame.token()))
                 .map(|token| token.id + 1)
                 .max()
                 .unwrap_or(0)
@@ -86,13 +93,13 @@ impl Layout {
             + reach
                 .frame
                 .iter()
-                .map(|&index| state.frame[index].held.len())
+                .map(|&index| state.frame[index].size())
                 .sum::<usize>();
         let resource = state
             .world
             .iter()
             .flat_map(|world| &world.particle)
-            .chain(state.frame.iter().flat_map(|frame| &frame.held))
+            .chain(state.frame.iter().flat_map(|frame| frame.token()))
             .map(|token| token.id)
             .max()
             .map_or(0, |id| id + 1);

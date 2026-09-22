@@ -5,6 +5,17 @@ fn observation(value: impl serde::Serialize) -> Value {
     let object = value.as_object_mut().unwrap();
     object.remove("record");
     object.remove("peak");
+    if let Some(state) = object.get_mut("state").and_then(Value::as_array_mut) {
+        for state in state {
+            for frame in state["frame"].as_array_mut().unwrap() {
+                frame
+                    .as_object_mut()
+                    .unwrap()
+                    .entry("particle")
+                    .or_insert_with(|| Value::Array(Vec::new()));
+            }
+        }
+    }
     value
 }
 

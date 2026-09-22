@@ -72,7 +72,7 @@ The [dispatch dependency audit](dispatch.md) now removes repeated lexical-ancest
 
 ## Semantic boundary
 
-The [initial executable rule assessment](loading.md) considers unifying declaration loading and ordinary rule values. It is a separate design and migration proposal, requested for assessment before implementation. It does not authorize changing availability, startup, rule contents, exact targets, or scope behavior during optimization.
+The user has now authorized the [runtime occurrence migration](occurrence.md), following the earlier [loading assessment](loading.md). This is a language migration with explicit changes to loading, visibility, ownership, and zero-input execution. It remains separate from performance optimization and preserves rule definitions. The implementation and semantic regression matrix take priority over additional performance experiments.
 
 - State is unordered. Synchronization establishes a firing; planner order and scheduler order are implementation details.
 - Bindings retain resource occurrence identity, multiplicity, distinct-world constraints, captures, lexical ownership, and executable-rule read dependencies.

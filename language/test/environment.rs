@@ -11,6 +11,7 @@ fn state() -> State {
                     scope: 0,
                     parent: None,
                     lexical: None,
+                    particle: Vec::new(),
                     held: vec![Token {
                         id: value,
                         value: crate::program::Symbol::Atom(value),

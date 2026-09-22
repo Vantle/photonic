@@ -26,6 +26,7 @@ fn differential() {
                     scope: frame,
                     parent: (frame != 0).then(|| next(frame)),
                     lexical: (frame != 0).then(|| next(300)),
+                    particle: Vec::new(),
                     held: Vec::new(),
                 }
                 .into()
@@ -111,6 +112,7 @@ fn reclamation() {
                     parent: None,
                     lexical: (frame > 0 && frame < 127)
                         .then(|| if frame % 2 == 0 { frame - 1 } else { frame + 1 }),
+                    particle: Vec::new(),
                     held: Vec::new(),
                 }
                 .into()
@@ -158,6 +160,7 @@ fn reclamation() {
                         scope: 0,
                         parent: None,
                         lexical: None,
+                        particle: Vec::new(),
                         held: Vec::new(),
                     }
                     .into(),
@@ -205,6 +208,7 @@ fn cycle() {
                         2 => Some(1),
                         _ => None,
                     },
+                    particle: Vec::new(),
                     held: Vec::new(),
                 }
                 .into()
@@ -230,6 +234,7 @@ fn cycle() {
                 scope: 0,
                 parent: None,
                 lexical: None,
+                particle: Vec::new(),
                 held: Vec::new(),
             }
             .into(),

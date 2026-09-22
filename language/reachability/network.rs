@@ -25,7 +25,7 @@ fn adjacent(state: &State, source: usize) -> impl Iterator<Item = usize> + '_ {
             .parent
             .into_iter()
             .chain(frame.lexical)
-            .chain(frame.held.iter().filter_map(|token| token.capture))
+            .chain(frame.token().filter_map(|token| token.capture))
     })
 }
 

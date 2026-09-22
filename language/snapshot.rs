@@ -42,6 +42,7 @@ pub struct Frame {
     pub scope: Arc<str>,
     pub parent: Option<usize>,
     pub lexical: Option<usize>,
+    pub particle: Vec<Token>,
     pub held: Vec<Token>,
 }
 #[derive(Debug, Serialize)]

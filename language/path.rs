@@ -355,6 +355,9 @@ impl Search {
                 Place::World(world, token) => {
                     Place::World(canonical.world[world].unwrap(), canonical.resource[&token])
                 }
+                Place::Context(frame, token) => {
+                    Place::Context(canonical.frame[frame].unwrap(), canonical.resource[&token])
+                }
                 Place::Held(frame, token) => {
                     Place::Held(canonical.frame[frame].unwrap(), canonical.resource[&token])
                 }

@@ -46,6 +46,7 @@ pub fn run() -> Vec<Measurement> {
                     scope: 0,
                     parent: None,
                     lexical: None,
+                    particle: Vec::new(),
                     held: Vec::new(),
                 }
                 .into(),

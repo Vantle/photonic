@@ -1,6 +1,6 @@
 # Initial executable rules
 
-Status: design assessment and migration proposal, not an approved semantic change. The user requested assessment before implementation. Runtime optimization continues to preserve the existing language contract. This proposal does not construct, specialize, reconstruct, or replace rule definitions.
+Status: historical design assessment. The user subsequently authorized the context-owned occurrence model and its end-to-end migration. The [runtime occurrence contract](occurrence.md) supersedes the alternatives and unresolved decisions below. The baseline observations remain historical evidence. Neither design constructs, specializes, reconstructs, or replaces rule definitions.
 
 ## Recommendation
 

@@ -22,6 +22,7 @@ pub fn run(width: usize, length: usize, productive: bool) -> Measurement {
             scope: 0,
             parent: None,
             lexical: None,
+            particle: Vec::new(),
             held: Vec::new(),
         })]
         .into(),

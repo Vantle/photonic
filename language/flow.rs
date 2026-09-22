@@ -15,6 +15,7 @@ pub(crate) use store::Store;
 #[serde(rename_all = "lowercase")]
 pub enum Place {
     World(usize, usize),
+    Context(usize, usize),
     Held(usize, usize),
 }
 
@@ -54,6 +55,10 @@ impl Flow {
             }
         }
         for (frame, value) in state.frame.iter().enumerate() {
+            for token in &value.particle {
+                let place = Place::Context(frame, token.id);
+                resource.push((place, Set::single(place)));
+            }
             for token in &value.held {
                 let place = Place::Held(frame, token.id);
                 resource.push((place, Set::single(place)));
@@ -83,25 +88,19 @@ impl Flow {
         for (index, selected) in selection {
             world.extend(&self.context[*index]);
             for &id in selected {
-                let token = target.world[*index]
-                    .particle
-                    .iter()
-                    .find(|token| token.id == id)
-                    .unwrap();
-                let basis = &self.resource[&Place::World(*index, id)];
+                let place = target.resolve(*index, id)?;
+                let token = target.token(place)?;
+                let basis = &self.resource[&place];
                 footprint.extend(basis);
                 if basis.len() != 1 {
                     continue;
                 }
-                if let Some(&Place::World(index, id)) = basis.first()
-                    && source.world[index].particle.iter().any(|value| {
-                        value.id == id
-                            && value.value == token.value
-                            && value.capture
-                                == token.capture.and_then(|capture| self.frame[capture])
-                    })
-                {
-                    exact.insert(Place::World(index, id));
+                let place = *basis.first()?;
+                if source.token(place).is_some_and(|value| {
+                    value.value == token.value
+                        && value.capture == token.capture.and_then(|capture| self.frame[capture])
+                }) {
+                    exact.insert(place);
                 }
             }
         }
@@ -110,6 +109,7 @@ impl Flow {
                 Place::World(index, _) => {
                     world.insert(*index);
                 }
+                Place::Context(_, _) => {}
                 Place::Held(_, _) => return None,
             }
         }
@@ -145,6 +145,9 @@ impl Flow {
                 let place = match place {
                     Place::World(index, id) => {
                         Place::World(canonical.world[index]?, canonical.resource[&id])
+                    }
+                    Place::Context(index, id) => {
+                        Place::Context(canonical.frame[index]?, canonical.resource[&id])
                     }
                     Place::Held(index, id) => {
                         Place::Held(canonical.frame[index]?, canonical.resource[&id])

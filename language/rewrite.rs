@@ -24,7 +24,7 @@ fn remainder(source: &State, binding: &Binding, selected: &crate::basis::Set<Pla
     let selected = selected
         .iter()
         .map(|place| match place {
-            Place::World(_, id) | Place::Held(_, id) => *id,
+            Place::World(_, id) | Place::Context(_, id) | Place::Held(_, id) => *id,
         })
         .collect::<crate::basis::Set<_>>();
     let mut value = smallvec::SmallVec::<[&Token; 8]>::new();
@@ -63,6 +63,7 @@ pub(crate) fn apply(request: Request<'_>) -> Result {
         world: source.world.clone(),
         frame: source.frame.clone(),
     };
+    let consumed = crate::consumption::Selection::new(binding);
     for &world in binding.world.iter().rev() {
         state.world.remove(world);
     }
@@ -72,22 +73,19 @@ pub(crate) fn apply(request: Request<'_>) -> Result {
         insertion: start..start + recipe.output.len(),
         frame: Vec::new(),
     };
+    for (index, frame) in source.frame.iter().enumerate() {
+        if let Some(frame) = consumed.frame(index, frame) {
+            state.frame[index] = frame;
+            change.frame.push(index);
+        }
+    }
     let remainder = remainder(source, binding, &binding.footprint);
     let enclosed = (recipe.nested && binding.exact != binding.footprint)
         .then(|| self::remainder(source, binding, &binding.exact));
     let mut reserve = BTreeMap::new();
     if recipe.nested {
         for place in &binding.exact {
-            let token = match *place {
-                Place::World(world, id) => source.world[world]
-                    .particle
-                    .iter()
-                    .find(|token| token.id == id),
-                Place::Held(frame, id) => {
-                    source.frame[frame].held.iter().find(|token| token.id == id)
-                }
-            }
-            .unwrap();
+            let token = source.token(*place).unwrap();
             reserve.entry(token.id).or_insert_with(|| token.clone());
         }
         if returning {
@@ -113,6 +111,7 @@ pub(crate) fn apply(request: Request<'_>) -> Result {
                 scope,
                 parent: Some(parent),
                 lexical: Some(owner),
+                particle: Vec::new(),
                 held: reserve.clone(),
             }
             .into();

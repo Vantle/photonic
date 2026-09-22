@@ -25,6 +25,7 @@ fn state(edge: &[(usize, usize)]) -> State {
             scope: 0,
             parent: None,
             lexical: None,
+            particle: Vec::new(),
             held: Vec::new(),
         })]
         .into(),
@@ -119,6 +120,7 @@ fn capture() {
             scope: 1,
             parent: Some(0),
             lexical: Some(0),
+            particle: Vec::new(),
             held: Vec::new(),
         })
     }));
