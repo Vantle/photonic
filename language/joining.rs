@@ -42,7 +42,8 @@ use tree::Tree;
 
 #[repr(u8)]
 enum Traversal {
-    Direct(Cursor),
+    Dormant(usize),
+    Direct(Box<Cursor>),
     Factored(Box<Product<Stream>>),
     Partitioned(Box<Product<Partition>>),
     Layered(Box<Product<Tree>>),
@@ -51,6 +52,7 @@ enum Traversal {
 impl Traversal {
     fn retained(&self) -> usize {
         match self {
+            Self::Dormant(width) => width * 2,
             Self::Direct(cursor) => cursor.retained(),
             Self::Factored(product) => product.retained(),
             Self::Partitioned(product) => product.retained(),
@@ -82,7 +84,7 @@ impl Join {
             return 0;
         }
         match &self.traversal {
-            Traversal::Direct(_) => 0,
+            Traversal::Dormant(_) | Traversal::Direct(_) => 0,
             Traversal::Factored(product) => product.waiting(),
             Traversal::Partitioned(product) => product.waiting(),
             Traversal::Layered(product) => product.waiting(),
@@ -94,7 +96,7 @@ impl Join {
             return 0;
         }
         match &mut self.traversal {
-            Traversal::Direct(_) => 0,
+            Traversal::Dormant(_) | Traversal::Direct(_) => 0,
             Traversal::Factored(product) => product.skip(maximum),
             Traversal::Partitioned(product) => product.skip(maximum),
             Traversal::Layered(product) => product.skip(maximum),
@@ -112,7 +114,7 @@ impl Join {
     fn construct(space: Space, index: &Index) -> Self {
         let mut order: SmallVec<[usize; 2]> = (0..space.query.count()).collect();
         order.sort_by_key(|&position| space.domain[position].len());
-        let traversal = Traversal::Direct(Cursor::new(order.len()));
+        let traversal = Traversal::Dormant(order.len());
         let mut join = Self {
             space,
             order,
@@ -202,7 +204,7 @@ impl Join {
             .flatten();
         if let Some(strategy) = strategy {
             let replace = match (&self.traversal, strategy) {
-                (Traversal::Direct(_), _) => self.stable,
+                (Traversal::Dormant(_) | Traversal::Direct(_), _) => self.stable,
                 (Traversal::Factored(_), Strategy::Partitioned(_)) => true,
                 (Traversal::Partitioned(_), Strategy::Layered { .. }) => true,
                 (Traversal::Partitioned(product), Strategy::Partitioned(depth)) => {
@@ -229,8 +231,10 @@ impl Join {
             {
                 product.prefix.update(index);
             }
-        } else if !matches!(self.traversal, Traversal::Direct(_)) || self.order != previous {
-            self.traversal = Traversal::Direct(Cursor::new(self.order.len()));
+        } else if !matches!(self.traversal, Traversal::Dormant(_) | Traversal::Direct(_))
+            || self.order != previous
+        {
+            self.traversal = Traversal::Dormant(self.order.len());
         }
         self.stable = strategy.is_some();
         self.viable = self.feasible();
@@ -239,13 +243,17 @@ impl Join {
     }
 
     pub fn reset(&mut self, index: &Index) {
+        self.complete = self.space.domain.iter().any(Vec::is_empty);
+        if !self.complete && matches!(self.traversal, Traversal::Dormant(_)) {
+            self.traversal = Traversal::Direct(Box::new(Cursor::new(self.order.len())));
+        }
         match &mut self.traversal {
+            Traversal::Dormant(_) => {}
             Traversal::Direct(cursor) => cursor.reset(),
             Traversal::Factored(product) => product.reset(index),
             Traversal::Partitioned(product) => product.reset(index),
             Traversal::Layered(product) => product.reset(index),
         }
-        self.complete = self.space.domain.iter().any(Vec::is_empty);
     }
 
     pub fn viable(&self) -> bool {
@@ -291,6 +299,7 @@ impl Join {
             return Poll::Ready(None);
         }
         let result = match &mut self.traversal {
+            Traversal::Dormant(_) => unreachable!(),
             Traversal::Direct(cursor) => cursor.step(&mut self.space, &self.order, index),
             Traversal::Factored(product) => product.step(&mut self.space, &self.order, index),
             Traversal::Partitioned(product) => product.step(&mut self.space, &self.order, index),
@@ -309,7 +318,7 @@ impl Join {
 
     pub fn evict(&mut self) {
         match &mut self.traversal {
-            Traversal::Direct(_) => {}
+            Traversal::Dormant(_) | Traversal::Direct(_) => {}
             Traversal::Factored(product) => product.evict(),
             Traversal::Partitioned(product) => product.evict(),
             Traversal::Layered(product) => product.evict(),
@@ -322,6 +331,7 @@ impl Join {
         self.space.size()
             + self.order.len()
             + match &self.traversal {
+                Traversal::Dormant(width) => width * 2,
                 Traversal::Direct(cursor) => cursor.size(),
                 Traversal::Factored(product) => product.size(),
                 Traversal::Partitioned(product) => product.size(),
@@ -356,3 +366,7 @@ mod hierarchy;
 
 #[cfg(feature = "measurement")]
 pub mod segment;
+
+#[cfg(test)]
+#[path = "test/activation.rs"]
+mod activation;

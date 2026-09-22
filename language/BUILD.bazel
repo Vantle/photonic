@@ -31,6 +31,7 @@ rust_test(
     name = "test",
     size = "medium",
     srcs = [
+        "test/activation.rs",
         "test/addition.rs",
         "test/agenda.rs",
         "test/assignment.rs",
@@ -87,6 +88,7 @@ rust_test(
         "test/trace.rs",
         "test/transcript.rs",
         "test/tree.rs",
+        "test/vacancy.rs",
         ":source",
     ],
     compile_data = [

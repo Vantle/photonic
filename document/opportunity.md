@@ -2,7 +2,7 @@
 
 Assessment on 2026-09-21 against `bdc4de1`. This supersedes allocation tuning as the immediate priority in the [roadmap](roadmap.md). The objective remains execution of the same rules and programs with unchanged semantics and public contracts. Scheduling may change. Rule construction, output replacement and automatic program rewriting remain outside scope.
 
-The first representation slice is now delivered in [shared matching structure](plan.md). [Incremental report materialization](view.md) is also delivered across direct-path, exhaustive and prism JSON output. General subscription lifecycle maintenance remains open. The baseline findings and estimates below record the evidence that motivated these changes.
+The first representation slice is now delivered in [shared matching structure](plan.md). [Incremental report materialization](view.md) is also delivered across direct-path, exhaustive and prism JSON output. The [activation audit](activation.md) adds lifecycle attribution and deferred enumeration for initially empty candidate domains. General subscription membership maintenance remains open. The baseline findings and estimates below record the evidence that motivated these changes.
 
 ## Assessment
 
@@ -93,6 +93,6 @@ The most distinctive research direction remains a certificate that proves the ex
 
 Maintenance work belongs inside these architectural slices: one owner for each lifetime, explicit identity distinctions at state boundaries, accounting owned by the structure it measures, and a small independent oracle. Avoid a wholesale module or crate split without a concrete dependency boundary. Preserve Bazel-only hermetic builds and native/WebAssembly semantics, while accepting performance on the current development machine.
 
-The immediate plan is priority 1, with priority 2 as the separate export project. Defer general maintained relations and lazy composition until representative workloads justify them. GPU execution, general parallel rewrite, causal pruning and a universal optimizer are not current prerequisites. There is no requirement to implement every idea to have a robust runtime.
+The immediate plan is the remaining subscription membership work in priority 1, guided by the activation audit. Priority 2 is delivered. Defer general maintained relations and lazy composition until representative workloads justify them. GPU execution, general parallel rewrite, causal pruning and a universal optimizer are not current prerequisites. There is no requirement to implement every idea to have a robust runtime.
 
 Low-cost allocation improvements remain admissible when clear and repeatable. The final preliminary direct-candidate-collection probe improved expression latency by 2.1%, regressed addition by 2.8% and improved multiplication by 0.4%. It was removed without a full acceptance audit; its patch and paired samples are archived in the artifact. This assessment changes the plan, not production execution behavior.

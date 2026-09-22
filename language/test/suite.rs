@@ -19,3 +19,4 @@ mod runtime;
 mod scheduling;
 mod sequence;
 mod support;
+mod vacancy;
