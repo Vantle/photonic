@@ -61,7 +61,12 @@ impl Runtime {
         })
     }
 
-    pub fn view(&self) -> impl Serialize + '_ {
+    fn assemble<State, Transition, Projection>(
+        &self,
+        state: State,
+        event: Transition,
+        view: Projection,
+    ) -> Snapshot<State, Transition, Projection> {
         Snapshot {
             definition: Builder::new(&self.program).definition(),
             closed: self.closed(),
@@ -71,25 +76,25 @@ impl Runtime {
             deferred: self.pending.len(),
             work: self.work,
             limit: self.limit,
-            state: Sequence::new(|| self.node()),
-            event: Sequence::new(|| self.transition()),
-            view: Sequence::new(|| self.projection()),
+            state,
+            event,
+            view,
         }
     }
 
+    pub fn view(&self) -> impl Serialize + '_ {
+        self.assemble(
+            Sequence::new(|| self.node()),
+            Sequence::new(|| self.transition()),
+            Sequence::new(|| self.projection()),
+        )
+    }
+
     pub fn snapshot(&self) -> Snapshot {
-        Snapshot {
-            definition: Builder::new(&self.program).definition(),
-            closed: self.closed(),
-            record: self.record(),
-            peak: self.peak,
-            queued: self.agenda.len(),
-            deferred: self.pending.len(),
-            work: self.work,
-            limit: self.limit,
-            state: self.node().collect(),
-            event: self.transition().collect(),
-            view: self.projection().collect(),
-        }
+        self.assemble(
+            self.node().collect(),
+            self.transition().collect(),
+            self.projection().collect(),
+        )
     }
 }

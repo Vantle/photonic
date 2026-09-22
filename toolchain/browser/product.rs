@@ -55,15 +55,15 @@ fn apply(operation: &str, left: u8, right: u8) -> Result<(u8, u8), Failure> {
     Ok((field("Digit")?, field("Carry")?))
 }
 
+fn step((digit, carry): (u8, u8), value: u8) -> Result<(u8, u8), Failure> {
+    let (digit, overflow) = apply("Add", digit, value)?;
+    Ok((digit, apply("Add", carry, overflow)?.0))
+}
+
 fn reduce(input: &[u8]) -> Result<(u8, u8), Failure> {
-    let mut digit = 0;
-    let mut carry = 0;
-    for &value in input {
-        let result = apply("Add", digit, value)?;
-        digit = result.0;
-        carry = apply("Add", carry, result.1)?.0;
-    }
-    Ok((digit, carry))
+    input
+        .iter()
+        .try_fold((0, 0), |total, &value| step(total, value))
 }
 
 pub fn run(left: u8, right: u8) -> Result<serde_json::Value, Failure> {
@@ -90,10 +90,9 @@ pub fn run(left: u8, right: u8) -> Result<serde_json::Value, Failure> {
     }
     let mut column = Vec::new();
     let mut incoming = 0;
-    for mut input in contribution {
+    for input in contribution {
         let subtotal = reduce(&input)?;
-        input.push(incoming);
-        let (digit, carry) = reduce(&input)?;
+        let (digit, carry) = step(subtotal, incoming)?;
         column.push(Column {
             contribution: subtotal.0 + 3 * subtotal.1,
             incoming,

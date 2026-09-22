@@ -60,11 +60,17 @@ fn encode(input: &str) -> Result<String, Failure> {
     Ok(source)
 }
 
+static FORMULA: std::sync::LazyLock<Result<photonic::source::Program, String>> =
+    std::sync::LazyLock::new(|| {
+        serde_json::from_str(include_str!(env!("FORMULA"))).map_err(|error| error.to_string())
+    });
+
 pub fn prepare(input: &str) -> Result<(Search, String), Failure> {
     let source = encode(input)?;
-    let mut program: photonic::source::Program =
-        serde_json::from_str(include_str!(env!("FORMULA")))
-            .map_err(|error| Failure::new(Code::Source, error))?;
+    let mut program = FORMULA
+        .as_ref()
+        .map_err(|error| Failure::new(Code::Source, error))?
+        .clone();
     let encoded =
         photonic::lowering::parse(&source).map_err(|error| Failure::new(Code::Source, error))?;
     program.initial = encoded.initial;

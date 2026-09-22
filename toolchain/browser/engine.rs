@@ -41,7 +41,7 @@ fn evaluate(input: &[u8]) -> Result<serde_json::Value, Failure> {
             Ok(target)
         })
         .collect::<Result<Vec<_>, Failure>>()?;
-    let mut search = Search::new(program, target.first().cloned().unwrap_or_default());
+    let mut search = Search::new(program, Default::default());
     search.run(
         20000,
         Some(Limit {
@@ -52,7 +52,7 @@ fn evaluate(input: &[u8]) -> Result<serde_json::Value, Failure> {
             record: 100000,
         }),
     );
-    let execution = search.report().execution;
+    let execution = search.snapshot();
     let mut verdict = Vec::new();
     for target in target {
         search.target(target);

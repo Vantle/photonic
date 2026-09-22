@@ -13,6 +13,14 @@ pub(crate) struct Event {
     pub fingerprint: crate::fingerprint::Index,
 }
 
+impl Event {
+    fn admitted(&self, limit: Limit) -> bool {
+        self.state.world.len() <= limit.world
+            && self.fingerprint.layout.cell <= limit.cell
+            && self.fingerprint.layout.reach.frame.len() <= limit.frame
+    }
+}
+
 pub(crate) struct Search {
     program: Arc<Program>,
     state: Arc<State>,
@@ -95,11 +103,7 @@ impl Search {
     }
 
     pub(crate) fn run(&mut self, limit: Limit) -> Option<Event> {
-        if let Some(index) = self.pending.iter().position(|event| {
-            event.state.world.len() <= limit.world
-                && event.fingerprint.layout.cell <= limit.cell
-                && event.fingerprint.layout.reach.frame.len() <= limit.frame
-        }) {
+        if let Some(index) = self.pending.iter().position(|event| event.admitted(limit)) {
             return Some(self.pending.remove(index));
         }
         if !self.initialized {
@@ -151,10 +155,7 @@ impl Search {
             rule: candidate.rule,
             binding,
         };
-        if event.state.world.len() > limit.world
-            || event.fingerprint.layout.cell > limit.cell
-            || event.fingerprint.layout.reach.frame.len() > limit.frame
-        {
+        if !event.admitted(limit) {
             self.pending.push(event);
             return None;
         }

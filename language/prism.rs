@@ -90,6 +90,10 @@ impl Search {
         }
     }
 
+    pub fn snapshot(&self) -> Snapshot {
+        self.runtime.snapshot()
+    }
+
     pub fn report(&self) -> Report {
         let verdict = self.verdict();
         Report {

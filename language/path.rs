@@ -250,36 +250,14 @@ impl Search {
                         .iter()
                         .any(|&index| self.state[index].compatible(&record))
                 });
-            if comparison && self.work != work {
-                self.pending = Some(event);
-                self.candidate = Some(record);
-                continue;
-            }
-            if comparison && record.canonical.get().is_none() {
-                record.advance();
-                self.work += 1;
-                self.pending = Some(event);
-                self.candidate = Some(record);
-                continue;
-            }
-            if goal && self.goal.canonical.get().is_none() {
-                self.goal.advance();
-                self.work += 1;
-                self.pending = Some(event);
-                self.candidate = Some(record);
-                continue;
-            }
-            if let Some(index) = self.index.get(&fingerprint).and_then(|candidate| {
-                candidate.iter().copied().find(|&index| {
-                    self.state[index].compatible(&record)
-                        && self.state[index].canonical.get().is_none()
-                })
-            }) {
-                self.state[index].advance();
-                self.work += 1;
-                self.pending = Some(event);
-                self.candidate = Some(record);
-                continue;
+            if comparison {
+                let stalled = self.work != work;
+                if stalled || self.normalize(&mut record, goal, fingerprint) {
+                    self.work += usize::from(!stalled);
+                    self.pending = Some(event);
+                    self.candidate = Some(record);
+                    continue;
+                }
             }
             let known = self.index.get(&fingerprint).and_then(|candidate| {
                 candidate.iter().copied().find(|&index| {
@@ -310,6 +288,26 @@ impl Search {
             self.cursor = target;
             self.cycle = known.is_some();
         }
+    }
+
+    fn normalize(&mut self, record: &mut Record, goal: bool, fingerprint: u64) -> bool {
+        if record.canonical.get().is_none() {
+            record.advance();
+            return true;
+        }
+        if goal && self.goal.canonical.get().is_none() {
+            self.goal.advance();
+            return true;
+        }
+        let Some(index) = self.index.get(&fingerprint).and_then(|candidate| {
+            candidate.iter().copied().find(|&index| {
+                self.state[index].compatible(record) && self.state[index].canonical.get().is_none()
+            })
+        }) else {
+            return false;
+        };
+        self.state[index].advance();
+        true
     }
 
     pub fn statistic(&self) -> Statistic {
@@ -380,13 +378,17 @@ impl Search {
         self.inspect(self.cursor).unwrap()
     }
 
+    fn outcome(&self) -> Outcome {
+        if self.reached {
+            Outcome::Reached
+        } else {
+            Outcome::Unknown
+        }
+    }
+
     pub fn summary(&self) -> Summary {
         Summary {
-            outcome: if self.reached {
-                Outcome::Reached
-            } else {
-                Outcome::Unknown
-            },
+            outcome: self.outcome(),
             witness: self.reached.then(|| self.current()),
             event: self.event.len(),
             work: self.work,

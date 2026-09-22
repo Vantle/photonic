@@ -150,8 +150,9 @@ fn prism(path: PathBuf, target: PathBuf, execution: Execution, walk: bool) -> mi
         return output::write(&search.view(), execution.compact);
     }
     let mut output = std::io::stdout().lock();
-    let report = search.report();
-    let outcome = match report.outcome {
+    let verdict = search.verdict();
+    let snapshot = search.snapshot();
+    let outcome = match verdict.outcome {
         photonic::prism::Outcome::Reached => "Reached",
         photonic::prism::Outcome::Unreachable => "Unreachable",
         photonic::prism::Outcome::Unknown => "Unknown",
@@ -161,21 +162,21 @@ fn prism(path: PathBuf, target: PathBuf, execution: Execution, walk: bool) -> mi
         "{outcome}: exact target configuration under the supplied program"
     )
     .into_diagnostic()?;
-    if let Some(witness) = report.witness {
+    if let Some(witness) = verdict.witness {
         writeln!(
             output,
             "Witness s{witness}: {}",
-            display(&report.execution.state[witness])
+            display(&snapshot.state[witness])
         )
         .into_diagnostic()?;
     }
     writeln!(
         output,
         "{} configurations; {} queued, {} deferred; exploration {}",
-        report.execution.state.len(),
-        report.execution.queued,
-        report.execution.deferred,
-        if report.execution.closed {
+        snapshot.state.len(),
+        snapshot.queued,
+        snapshot.deferred,
+        if snapshot.closed {
             "closed"
         } else {
             "unfinished"

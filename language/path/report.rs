@@ -1,5 +1,4 @@
 use super::{Event, Report, Search};
-use crate::prism::Outcome;
 use crate::render::{Builder, Sequence};
 use crate::snapshot::Node;
 use crate::support::Status;
@@ -28,11 +27,7 @@ impl Search {
     pub fn view(&self) -> impl Serialize + '_ {
         Report {
             definition: self.definition(),
-            outcome: if self.reached {
-                Outcome::Reached
-            } else {
-                Outcome::Unknown
-            },
+            outcome: self.outcome(),
             witness: self.reached.then_some(self.cursor),
             work: self.work,
             program: &self.program,
@@ -45,11 +40,7 @@ impl Search {
     pub fn report(&self) -> Report {
         Report {
             definition: self.definition(),
-            outcome: if self.reached {
-                Outcome::Reached
-            } else {
-                Outcome::Unknown
-            },
+            outcome: self.outcome(),
             witness: self.reached.then_some(self.cursor),
             work: self.work,
             program: self.program.clone(),
