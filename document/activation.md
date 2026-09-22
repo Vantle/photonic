@@ -63,6 +63,8 @@ bazel run -c opt //benchmark:allocation -- expression '2*2*2*2*2*2' 2101 --sampl
 
 ## Next architectural slice
 
+The subsequent [subscription retention experiment](subscription.md) shows why this must separate membership from candidate state. A bounded whole-search cache achieves many potential hits but requires repeated updates while queries are inactive; its actual prototype is about 83–93% slower on four complete expression workloads and was removed. Do not treat the admission counts below as authorization for eager dormant-query maintenance.
+
 Keep coherent subscription membership as the first priority. Investigate how the existing availability, reverse lexical dependency and frame-local registry layers can update affected memberships directly, avoiding rediscovery and reconstruction of a full requested consumer list. Separate lightweight membership and exact dependency state from enumeration that only an active search needs. Do not add an independent registry or cache keyed only by recycled numeric coordinates.
 
 Validate one bounded family before broadening it. Cover global enable/disable transitions, captures, context replacement, new consumers, occurrence reuse and eviction. Preserve exact logical accounting and every interrupted continuation. Measure cold installation, sustained activation churn and complete program execution, including release. Substantial new reuse machinery should target at least 10% lower complete execution latency; current diagnostics are not a speedup forecast.
