@@ -2,7 +2,14 @@ use crate::lowering::parse;
 use crate::prism::{Outcome, Search};
 
 fn check(source: &str, target: &str, expected: Outcome) {
-    let mut search = Search::new(parse(source).unwrap(), parse(target).unwrap()).unwrap();
+    let mut search = {
+        let program = parse(source).unwrap();
+        let target = crate::source::Program {
+            rule: program.rule.clone(),
+            ..parse(target).unwrap()
+        };
+        Search::new(program, target)
+    };
     search.run(50_000, None);
     let report = search.report();
     assert!(report.execution.closed, "{source}");
@@ -87,12 +94,12 @@ fn evidence() {
     }
     check("Unit.Extra [Unit.Extra] Number", "Number", Outcome::Reached);
     check(
-        "Pair(Seed,Other) [Seed] Kind [Other] Kind [Pair(Kind,Kind)] ([] Result)",
+        "Pair(Seed,Other) [Seed] Kind [Other] Kind [Pair(Kind,Kind)] ([()] Result)",
         "Result.Seed.Other",
         Outcome::Reached,
     );
     check(
-        "Pair(Seed.Extra,Other) [Seed] Kind [Other] Kind [Pair(Kind,Kind)] ([] Result)",
+        "Pair(Seed.Extra,Other) [Seed] Kind [Other] Kind [Pair(Kind,Kind)] ([()] Result)",
         "Result.Seed.Extra.Other",
         Outcome::Reached,
     );

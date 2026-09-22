@@ -84,14 +84,14 @@ fn lifecycle() {
     let path = directory.join("lifecycle.wave");
     std::fs::write(&path, "A [A] B [B] C").unwrap();
     let source = path.to_str().unwrap();
-    verify(&["direct", source, "C", "--sample", "2"]);
+    verify(&["direct", source, "C [A] B [B] C", "--sample", "2"]);
     verify(&["exhaustive", source, "--sample", "2"]);
     verify(&["expression", "2+2", "11", "--sample", "2"]);
     for name in ["LIFECYCLE", "ALLOCATION"] {
         for argument in [
-            vec!["direct", source, "C", "--sample", "0"],
-            vec!["direct", source, "C", "--budget", "0"],
-            vec!["direct", source, "C", "--budget", "1"],
+            vec!["direct", source, "C [A] B [B] C", "--sample", "0"],
+            vec!["direct", source, "C [A] B [B] C", "--budget", "0"],
+            vec!["direct", source, "C [A] B [B] C", "--budget", "1"],
             vec!["direct", source, "Missing"],
             vec!["expression", "3+1", "11"],
             vec!["expression", "2+2", "3"],
@@ -107,7 +107,10 @@ fn export() {
     let path = directory.join("export.wave");
     std::fs::write(&path, "A [A] B [B] C").unwrap();
     let source = path.to_str().unwrap();
-    for case in [vec!["direct", source, "C"], vec!["exhaustive", source]] {
+    for case in [
+        vec!["direct", source, "C [A] B [B] C"],
+        vec!["exhaustive", source],
+    ] {
         let mut expected = None;
         for name in ["LIFECYCLE", "ALLOCATION"] {
             for mode in ["owned", "view"] {

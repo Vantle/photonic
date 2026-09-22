@@ -61,12 +61,18 @@ impl State {
         })
     }
 
-    pub(crate) fn resolve(&self, world: usize, id: usize) -> Option<crate::flow::Place> {
-        let place = crate::flow::Place::World(world, id);
-        if self.token(place).is_some() {
-            return Some(place);
+    pub(crate) fn resolve(
+        &self,
+        location: crate::location::Location,
+        id: usize,
+    ) -> Option<crate::flow::Place> {
+        if let Some(world) = location.world() {
+            let place = crate::flow::Place::World(world, id);
+            if self.token(place).is_some() {
+                return Some(place);
+            }
         }
-        self.visible(self.world[world].frame)
+        self.visible(location.frame(self))
             .find_map(|(place, token)| (token.id == id).then_some(place))
     }
 
@@ -107,15 +113,7 @@ impl State {
                         frame: 0,
                         particle: particle
                             .iter()
-                            .map(|&value| {
-                                let token = Token {
-                                    id,
-                                    value,
-                                    capture: matches!(value, Symbol::Rule(_)).then_some(0),
-                                };
-                                id += 1;
-                                token
-                            })
+                            .map(|&value| Token::new(value, 0, &mut id))
                             .collect(),
                     }
                     .into()
@@ -126,7 +124,11 @@ impl State {
                     scope: 0,
                     parent: None,
                     lexical: None,
-                    particle: Vec::new(),
+                    particle: program.scope[0]
+                        .rule
+                        .iter()
+                        .map(|&rule| Token::new(Symbol::Rule(rule), 0, &mut id))
+                        .collect(),
                     held: Vec::new(),
                 }
                 .into(),
@@ -360,3 +362,15 @@ impl Frame {
 #[cfg(test)]
 #[path = "test/occurrence.rs"]
 mod test;
+
+impl Token {
+    pub(crate) fn new(value: Symbol, capture: usize, next: &mut usize) -> Self {
+        let token = Self {
+            id: *next,
+            value,
+            capture: matches!(value, Symbol::Rule(_)).then_some(capture),
+        };
+        *next += 1;
+        token
+    }
+}

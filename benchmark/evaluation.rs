@@ -28,7 +28,7 @@ pub fn evaluate(
         frame: 2048,
     });
     let start = Instant::now();
-    let mut search = Search::new(program, target).unwrap();
+    let mut search = Search::new(program, target);
     let initialization = start.elapsed().as_secs_f64();
     #[cfg(feature = "measurement")]
     photonic::measurement::profile::take();

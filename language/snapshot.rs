@@ -6,6 +6,7 @@ use std::sync::Arc;
 
 #[derive(Debug, Serialize)]
 pub struct Snapshot<State = Vec<Node>, Transition = Vec<Event>, Projection = Vec<View>> {
+    pub definition: Vec<Definition>,
     pub closed: bool,
     pub record: usize,
     pub peak: usize,
@@ -17,6 +18,28 @@ pub struct Snapshot<State = Vec<Node>, Transition = Vec<Event>, Projection = Vec
     pub event: Transition,
     pub view: Projection,
 }
+#[derive(Debug, Serialize)]
+pub struct Definition {
+    pub label: String,
+    pub display: String,
+}
+
+#[derive(Serialize)]
+struct Occurrence<'source> {
+    id: usize,
+    label: &'source str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    capture: Option<usize>,
+}
+
+fn particle<S: serde::Serializer>(value: &[Token], serializer: S) -> Result<S::Ok, S::Error> {
+    serializer.collect_seq(value.iter().map(|token| Occurrence {
+        id: token.id,
+        label: &token.label,
+        capture: token.capture,
+    }))
+}
+
 #[derive(Debug, Serialize)]
 pub struct Node {
     pub id: usize,
@@ -42,6 +65,7 @@ pub struct Frame {
     pub scope: Arc<str>,
     pub parent: Option<usize>,
     pub lexical: Option<usize>,
+    #[serde(serialize_with = "particle")]
     pub particle: Vec<Token>,
     pub held: Vec<Token>,
 }

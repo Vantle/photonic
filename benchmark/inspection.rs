@@ -19,13 +19,12 @@ fn evaluate(program: &photonic::source::Program, argument: &Argument) -> serde_j
     let mut search = Search::new(
         program.clone(),
         photonic::lowering::parse("Stage0").unwrap(),
-    )
-    .unwrap();
+    );
     let limit = Limit {
         state: argument.length.get() + 1,
         record: 100_000_000,
         world: 1,
-        cell: 1,
+        cell: program.rule.len() + 1,
         frame: 1,
     };
     let start = Instant::now();

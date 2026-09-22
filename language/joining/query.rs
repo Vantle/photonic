@@ -66,10 +66,13 @@ impl Query {
             Self::Planned(context) => context.matches(position, index, site),
             #[cfg(test)]
             Self::Direct { pattern, .. } => {
-                let world = &index.state.world[index.world(site)];
+                let location = index.location(site);
+                if pattern[position].is_empty() {
+                    return location.world().is_some();
+                }
                 pattern[position]
                     .iter()
-                    .all(|term| world.particle.iter().any(|token| term.matches(token)))
+                    .all(|term| index.quantity(term, location.frame(&index.state), site) > 0)
             }
         }
     }
@@ -119,7 +122,7 @@ impl Query {
             #[cfg(test)]
             Self::Direct { pattern, .. } => crate::particle::Match::new(
                 &pattern[position],
-                &index.state.world[index.world(site)].particle,
+                &index.particle(site, pattern[position].iter().cloned()),
             ),
         }
     }

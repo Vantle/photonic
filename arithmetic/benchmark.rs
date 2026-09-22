@@ -20,7 +20,7 @@ fn measure(radix: u8, operation: &str, source: String, target: String) {
         let start = Instant::now();
         let program = parse(&source).unwrap();
         let count = program.rule.len();
-        let mut search = Search::new(program, parse(&target).unwrap()).unwrap();
+        let mut search = Search::new(program, parse(&target).unwrap());
         search.run(
             20_000_000,
             Limit {

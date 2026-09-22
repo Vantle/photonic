@@ -17,7 +17,7 @@ fn main() -> Result<ExitCode, Error> {
     };
     let argument = argument.collect::<Vec<_>>();
     let operation = argument.first().and_then(|value| value.to_str());
-    let explicit = matches!(operation, Some("run" | "prism"));
+    let explicit = matches!(operation, Some("run" | "prism" | "lower"));
     let mut command = Command::new(resolve(&executable.to_string_lossy())?);
     command
         .arg(if explicit { operation.unwrap() } else { "run" })

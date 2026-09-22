@@ -75,7 +75,7 @@
         }
         const item = report.state[selected];
         find('evaluation-state').textContent = label(item);
-        find('evaluation-detail').textContent = JSON.stringify(item, null, 2);
+        find('evaluation-detail').textContent = JSON.stringify({ ...item, definition: report.definition }, null, 2);
         find('evaluation-summary').textContent = `${report.closed ? 'Closed exploration' : 'Exploration suspended'} · ${report.state.length} configurations · ${report.event.length} events · ${report.work} work steps${report.state.length > 32 ? ' · drawing shows the first 32 configurations' : ''}`;
         const event = find('evaluation-event');
         event.replaceChildren();
@@ -105,7 +105,7 @@
             targets = JSON.parse(find('evaluation-target').value);
             if (!Array.isArray(targets) || targets.some(value => typeof value !== 'string')) throw new Error();
         } catch {
-            find('evaluation-status').textContent = 'Write targets as a JSON list of strings, such as ["D", "C.D"].';
+            find('evaluation-status').textContent = 'Write targets as a JSON list of strings, such as ["D [A] B.C [B] D", "C.D [A] B.C [B] D"].';
             return;
         }
         const source = find('evaluation-source').value;
@@ -140,7 +140,7 @@
         find('evaluation-used').textContent = globalThis.evaluation.source;
         selected = 0;
         find('evaluation-source').value = globalThis.evaluation.source;
-        find('evaluation-target').value = '["D", "C.D"]';
+        find('evaluation-target').value = '["D [A] B.C [B] D", "C.D [A] B.C [B] D"]';
         find('evaluation-verdict').replaceChildren();
         find('evaluation-status').textContent = 'Recorded Rust execution. Run the source to explore it live.';
         render();

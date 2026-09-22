@@ -202,7 +202,7 @@ fn batch() {
             .iter()
             .enumerate()
             .map(|(index, _)| Symbol::Atom(index))
-            .chain(program.code.keys().copied().map(Symbol::Rule))
+            .chain((0..program.rule.len()).map(Symbol::Rule))
         {
             for capture in [None, Some(0), Some(1)] {
                 let pattern = [Term::new(symbol, capture)];
@@ -253,14 +253,7 @@ fn batch() {
             let mut value = index
                 .reader(0)
                 .iter()
-                .map(|reader| {
-                    (
-                        index.world(reader.read.site),
-                        reader.read.resource,
-                        reader.rule,
-                        reader.owner,
-                    )
-                })
+                .map(|reader| (reader.read.place(index), reader.rule, reader.owner))
                 .collect::<Vec<_>>();
             value.sort_unstable();
             value

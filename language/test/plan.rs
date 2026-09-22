@@ -84,7 +84,7 @@ fn predicate() {
             .map(|position| match (encoding >> (position * 2)) & 3 {
                 0 => Symbol::Atom(0),
                 1 => Symbol::Atom(1),
-                _ => Symbol::Rule(*program.code.keys().next().unwrap()),
+                _ => Symbol::Rule(0),
             })
             .collect::<Vec<_>>();
         let input = Input::new(&[value]);
@@ -128,7 +128,7 @@ fn mutation() {
         world.particle.extend((0..64).map(|offset| Token {
             id: 1000 + position * 64 + offset,
             value: if offset % 3 == 0 {
-                Symbol::Rule(*program.code.keys().next().unwrap())
+                Symbol::Rule(0)
             } else {
                 Symbol::Atom(offset % 2)
             },
@@ -143,7 +143,7 @@ fn mutation() {
                     .map(|position| match (position + iteration) % 4 {
                         0 => Symbol::Atom(0),
                         1 => Symbol::Atom(1),
-                        2 => Symbol::Rule(*program.code.keys().next().unwrap()),
+                        2 => Symbol::Rule(0),
                         _ => Symbol::Atom(100),
                     })
                     .collect::<Vec<_>>();
@@ -181,10 +181,7 @@ fn summary() {
     let index = crate::index::Index::new(state.clone());
     for width in 0..10 {
         for count in 0..=width {
-            for symbol in [
-                Symbol::Atom(1),
-                Symbol::Rule(*program.code.keys().next().unwrap()),
-            ] {
+            for symbol in [Symbol::Atom(1), Symbol::Rule(0)] {
                 let value = std::iter::repeat_n(Symbol::Atom(0), count)
                     .chain(std::iter::repeat_n(symbol, width - count))
                     .collect::<Vec<_>>();
@@ -223,7 +220,7 @@ fn rejection() {
         (seed >> 32) as usize % bound
     };
     let symbol = |value| match value {
-        0 => Symbol::Rule(*program.code.keys().next().unwrap()),
+        0 => Symbol::Rule(0),
         value => Symbol::Atom(value),
     };
     for iteration in 0..512 {

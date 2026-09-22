@@ -23,7 +23,14 @@ fn program(source: &str, library: &[&str]) -> photonic::source::Program {
 }
 
 fn check(source: &str, target: &str, library: &[&str], expected: Outcome) {
-    let mut search = Search::new(program(source, library), parse(target).unwrap()).unwrap();
+    let mut search = {
+        let program = program(source, library);
+        let target = photonic::source::Program {
+            rule: program.rule.clone(),
+            ..parse(target).unwrap()
+        };
+        Search::new(program, target)
+    };
     search.run(
         2_000_000,
         Some(Limit {
@@ -45,8 +52,14 @@ fn check(source: &str, target: &str, library: &[&str], expected: Outcome) {
 }
 
 fn witness(source: &str, target: &str, library: &[&str]) {
-    let mut search =
-        photonic::path::Search::new(program(source, library), parse(target).unwrap()).unwrap();
+    let mut search = {
+        let program = program(source, library);
+        let target = photonic::source::Program {
+            rule: program.rule.clone(),
+            ..parse(target).unwrap()
+        };
+        photonic::path::Search::new(program, target)
+    };
     search.run(
         2_000_000,
         Limit {
@@ -324,11 +337,14 @@ fn scheduling() {
     let mut baseline = None;
     for worker in [1, 2, 4] {
         let executor = photonic::executor::Executor::new(worker).unwrap();
-        let mut search = Search::new(
-            program(source, &[APPLICATION, BOOLEAN]),
-            parse("False,True").unwrap(),
-        )
-        .unwrap();
+        let mut search = {
+            let program = program(source, &[APPLICATION, BOOLEAN]);
+            let target = photonic::source::Program {
+                rule: program.rule.clone(),
+                ..parse("False,True").unwrap()
+            };
+            Search::new(program, target)
+        };
         search.parallel(&executor, 1, None);
         assert!(!search.report().execution.closed);
         search.parallel(&executor, 100_000, None);
@@ -754,9 +770,14 @@ fn invocation() {
         &[APPLICATION],
         Outcome::Unreachable,
     );
-    let mut search =
-        photonic::path::Search::new(program(&source, &[APPLICATION]), parse(&target).unwrap())
-            .unwrap();
+    let mut search = {
+        let program = program(&source, &[APPLICATION]);
+        let target = photonic::source::Program {
+            rule: program.rule.clone(),
+            ..parse(&target).unwrap()
+        };
+        photonic::path::Search::new(program, target)
+    };
     search.run(
         100_000,
         Limit {
@@ -806,8 +827,14 @@ fn continuation() {
     let mut baseline = None;
     for worker in [1, 2, 4] {
         let executor = photonic::executor::Executor::new(worker).unwrap();
-        let mut search =
-            Search::new(program(&source, &[APPLICATION]), parse(&target).unwrap()).unwrap();
+        let mut search = {
+            let program = program(&source, &[APPLICATION]);
+            let target = photonic::source::Program {
+                rule: program.rule.clone(),
+                ..parse(&target).unwrap()
+            };
+            Search::new(program, target)
+        };
         search.parallel(&executor, 1, None);
         assert!(!search.report().execution.closed);
         search.parallel(

@@ -16,7 +16,14 @@ fn numeral(value: u64) -> String {
 }
 
 fn check(source: &str, target: &str) {
-    let mut search = Search::new(parse(source).unwrap(), parse(target).unwrap()).unwrap();
+    let mut search = {
+        let program = parse(source).unwrap();
+        let target = crate::source::Program {
+            rule: program.rule.clone(),
+            ..parse(target).unwrap()
+        };
+        Search::new(program, target)
+    };
     search.run(
         1_000_000,
         Some(Limit {
@@ -121,7 +128,14 @@ fn gate() {
 #[test]
 fn conservation() {
     let source = include_str!("../../program/binary/addition.wave");
-    let mut search = Search::new(parse(source).unwrap(), parse(&numeral(1622)).unwrap()).unwrap();
+    let mut search = {
+        let program = parse(source).unwrap();
+        let target = crate::source::Program {
+            rule: program.rule.clone(),
+            ..parse(&numeral(1622)).unwrap()
+        };
+        Search::new(program, target)
+    };
     search.run(
         1_000_000,
         Some(Limit {
@@ -148,11 +162,14 @@ fn conservation() {
         "\n",
         include_str!("../../library/binary.particle")
     );
-    let mut search = Search::new(
-        parse(&format!("Invoke.Binary.Sum.1.1.0\n{rule}")).unwrap(),
-        parse("([Digit] 1).([Carry] 1)").unwrap(),
-    )
-    .unwrap();
+    let mut search = {
+        let program = parse(&format!("Invoke.Binary.Sum.1.1.0\n{rule}")).unwrap();
+        let target = crate::source::Program {
+            rule: program.rule.clone(),
+            ..parse("([Digit] 1).([Carry] 1)").unwrap()
+        };
+        Search::new(program, target)
+    };
     search.run(12_000, None);
     let report = search.report();
     assert!(report.execution.closed);

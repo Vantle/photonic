@@ -14,13 +14,13 @@ fn collect(join: &mut Join, index: &Index) -> Vec<Vec<usize>> {
                 let mut selection = Vec::new();
                 for (position, slot) in binding.iter().enumerate() {
                     assert_eq!(slot.position, position);
-                    let world = &index.state.world[slot.world];
+                    let world = &index.state.world[slot.location.world().unwrap()];
                     assert!(
                         slot.token
                             .iter()
                             .all(|id| { world.particle.iter().any(|token| token.id == *id) })
                     );
-                    selection.push(slot.world);
+                    selection.push(slot.location.world().unwrap());
                 }
                 result.push(selection);
             }

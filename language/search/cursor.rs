@@ -8,7 +8,7 @@ pub(super) struct Cursor {
     pub(super) index: Arc<crate::index::Index>,
     pub(super) candidate: Vec<Vec<usize>>,
     cursor: Vec<usize>,
-    world: usize,
+    site: usize,
     position: usize,
     particle: Option<crate::particle::Match>,
     gate: Option<Gate>,
@@ -33,6 +33,9 @@ impl Cursor {
         let Some((world, position)) = next else {
             return 0;
         };
+        let Some(world) = self.index.location(world).world() else {
+            return 0;
+        };
         self.selection.cost(
             self.selection.order[position],
             &self.index.state.world[world],
@@ -48,11 +51,8 @@ impl Cursor {
             .iter()
             .map(|&position| {
                 let candidate = &selection.candidate[position];
-                let mut candidate = candidate
-                    .iter()
-                    .map(|&site| index.world(site))
-                    .collect::<Vec<_>>();
-                candidate.sort_unstable();
+                let mut candidate = candidate.to_vec();
+                candidate.sort_unstable_by_key(|&site| index.location(site));
                 candidate
             })
             .collect();
@@ -63,7 +63,7 @@ impl Cursor {
             cursor: vec![0; pattern.len()],
             selection,
             index,
-            world: 0,
+            site: 0,
             position: 0,
             particle: None,
             empty: false,
@@ -124,18 +124,19 @@ impl Cursor {
             let Some((world, position)) = next else {
                 return Poll::Ready(None);
             };
-            self.world = world;
+            self.site = world;
             self.position = position;
             self.particle = Some(self.selection.prepare(
                 self.selection.order[position],
-                &self.index.state.world[world],
+                &self.index,
+                world,
             ));
         }
         let particle = self.particle.as_mut().unwrap();
         match particle.step() {
             Poll::Ready(Some(token)) => {
                 let slot = Slot {
-                    world: self.world,
+                    location: self.index.location(self.site),
                     position: self.position,
                     token,
                 };

@@ -26,9 +26,14 @@ fn apply(operation: &str, left: u8, right: u8) -> Result<(u8, u8), Failure> {
     );
     let program =
         photonic::lowering::parse(&source).map_err(|error| Failure::new(Code::Source, error))?;
-    let mut search = Search::new(program, Default::default())
-        .map_err(|error| Failure::new(Code::Source, error))?;
-    search.run(1000, Limit::default());
+    let mut search = Search::new(program, Default::default());
+    search.run(
+        1000,
+        Limit {
+            cell: 256,
+            ..Limit::default()
+        },
+    );
     let state = search.current();
     let field = |name| {
         state

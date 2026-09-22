@@ -77,8 +77,24 @@ impl Selection {
     pub(crate) fn prepare(
         &self,
         position: usize,
-        world: &Arc<crate::state::World>,
+        index: &crate::index::Index,
+        site: usize,
     ) -> crate::particle::Match {
+        let location = index.location(site);
+        if location.world().is_none()
+            || self.pattern[position]
+                .iter()
+                .any(|term| matches!(term.value, crate::program::Symbol::Rule(_)))
+        {
+            if self.pattern[position].is_empty() {
+                return crate::particle::Match::impossible();
+            }
+            return crate::particle::Match::new(
+                &self.pattern[position],
+                &index.particle(site, self.pattern[position].iter().cloned()),
+            );
+        }
+        let world = &index.state.world[index.world(site)];
         let particle = &world.particle;
         if self.pattern[position].len() < 8 {
             return crate::particle::Match::new(&self.pattern[position], particle);

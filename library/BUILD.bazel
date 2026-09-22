@@ -114,6 +114,7 @@ photonic_library(
 
 photonic_test(
     name = "boolean.check",
+    preserve = True,
     source = "Invoke.Not.True",
     targets = ["False"],
     deps = [":boolean"],
@@ -122,6 +123,7 @@ photonic_test(
 photonic_test(
     name = "boolean.reject",
     expect = "unreachable",
+    preserve = True,
     source = "Invoke.Not.True",
     targets = ["True"],
     deps = [":boolean"],
@@ -130,6 +132,7 @@ photonic_test(
 photonic_test(
     name = "boolean.alternative",
     match = "any",
+    preserve = True,
     source = "Invoke.Not.True",
     targets = [
         "True",
@@ -140,6 +143,7 @@ photonic_test(
 
 photonic_test(
     name = "boolean.history",
+    preserve = True,
     source = "Invoke.Not.True",
     targets = [
         "Invoke.Not.True",
@@ -157,6 +161,7 @@ photonic_library(
 
 photonic_test(
     name = "binary.check",
+    preserve = True,
     source = "Invoke.Binary.Sum.1.1.0",
     targets = ["([Digit] 0).([Carry] 1)"],
     deps = [":binary"],

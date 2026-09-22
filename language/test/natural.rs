@@ -14,7 +14,13 @@ fn target(particle: Vec<Value>) -> Program {
 }
 
 fn outcome(program: Program, target: Program) -> Outcome {
-    let mut search = Search::new(program, target).unwrap();
+    let mut search = {
+        let target = crate::source::Program {
+            rule: program.rule.clone(),
+            ..target
+        };
+        Search::new(program, target)
+    };
     search.run(12_000, None);
     let report = search.report();
     assert!(report.execution.closed);

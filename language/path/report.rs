@@ -6,6 +6,10 @@ use crate::support::Status;
 use serde::Serialize;
 
 impl Search {
+    pub fn definition(&self) -> Vec<crate::snapshot::Definition> {
+        Builder::new(&self.compiled).definition()
+    }
+
     fn node(&self) -> impl Iterator<Item = Node> + '_ {
         let mut storage = crate::canonical::storage::Store::default();
         let mut builder = Builder::new(&self.compiled);
@@ -23,6 +27,7 @@ impl Search {
 
     pub fn view(&self) -> impl Serialize + '_ {
         Report {
+            definition: self.definition(),
             outcome: if self.reached {
                 Outcome::Reached
             } else {
@@ -39,6 +44,7 @@ impl Search {
 
     pub fn report(&self) -> Report {
         Report {
+            definition: self.definition(),
             outcome: if self.reached {
                 Outcome::Reached
             } else {

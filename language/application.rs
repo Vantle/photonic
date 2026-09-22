@@ -1,11 +1,12 @@
 use crate::basis::Set;
 use crate::flow::{Applied, Binding, Closure, Flow, Place};
-use crate::program::{Instruction, Symbol};
-use crate::state::{Frame, State, Token, World};
+use crate::program::Instruction;
+use crate::state::{Frame, State, Token};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 pub(crate) struct Request<'source> {
     pub source: &'source State,
+    pub scope: &'source [crate::program::Scope],
     pub frame: usize,
     pub owner: Option<usize>,
     pub rule: &'source Instruction,
@@ -123,6 +124,7 @@ pub(crate) fn apply(request: Request<'_>) -> Applied {
         crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Application);
     let Request {
         source,
+        scope: catalog,
         frame,
         owner,
         rule,
@@ -130,15 +132,9 @@ pub(crate) fn apply(request: Request<'_>) -> Applied {
         closure,
     } = request;
     let mut state = State {
-        world: crate::sequence::List::new(),
+        world: source.world.clone(),
         frame: source.frame.clone(),
     };
-    let selection = crate::consumption::Selection::new(binding);
-    for index in 0..state.frame.len() {
-        if let Some(frame) = selection.frame(index, &state.frame[index]) {
-            state.frame[index] = frame;
-        }
-    }
     let mut flow = Draft {
         resource: state
             .frame
@@ -161,14 +157,8 @@ pub(crate) fn apply(request: Request<'_>) -> Applied {
         context: Vec::new(),
         frame: (0..source.frame.len()).map(Some).collect(),
     };
-    let mut next = source
-        .world
-        .iter()
-        .flat_map(|world| &world.particle)
-        .chain(source.frame.iter().flat_map(|frame| frame.token()))
-        .map(|token| token.id)
-        .max()
-        .map_or(0, |id| id + 1);
+    let layout = crate::layout::Layout::new(source);
+    let mut next = layout.resource;
     let owner = if let Some(closure) = closure {
         let mut resource = HashMap::new();
         for (index, frame) in closure.state.frame.iter().enumerate() {
@@ -214,25 +204,32 @@ pub(crate) fn apply(request: Request<'_>) -> Applied {
         owner.expect("lexical rule has an owner")
     };
     let returning = owner == frame && frame != 0;
-    let parent = if returning {
-        source.frame[frame].parent.unwrap()
-    } else {
-        frame
-    };
+    let result = crate::evaluation::apply(crate::evaluation::Request {
+        source,
+        scope: catalog,
+        frame,
+        owner,
+        rule,
+        binding,
+        state,
+        next,
+        layout: &layout,
+    });
+    let state = result.state;
+    flow.frame.resize(state.frame.len(), None);
+    let mut target = 0;
     for (index, world) in source.world.iter().enumerate() {
         if binding.world.contains(&index) {
             continue;
         }
-        let target = state.world.len();
-        let remaining = world.clone();
-        for token in &remaining.particle {
+        flow.context.push(Set::single(index));
+        for token in &world.particle {
             flow.resource.push((
                 Place::World(target, token.id),
                 Set::single(Place::World(index, token.id)),
             ));
         }
-        state.world.push(remaining);
-        flow.context.push(Set::single(index));
+        target += 1;
     }
     let consumed = if returning {
         source.frame[frame]
@@ -248,96 +245,53 @@ pub(crate) fn apply(request: Request<'_>) -> Applied {
         .union(&consumed)
         .copied()
         .collect::<Set<_>>();
+    let mut reserve = BTreeMap::<usize, BTreeSet<Place>>::new();
+    if rule.output.iter().any(|output| output.body.is_some()) {
+        for &place in binding.exact.union(&consumed) {
+            let token = source.token(place).unwrap();
+            reserve.entry(token.id).or_default().insert(place);
+        }
+    }
     for output in &rule.output {
         let selected = if output.body.is_some() {
             &binding.exact
         } else {
             &binding.footprint
         };
-        let removed = selected
-            .iter()
-            .map(|place| match place {
-                Place::World(_, id) | Place::Context(_, id) | Place::Held(_, id) => *id,
-            })
-            .collect::<BTreeSet<_>>();
-        let mut remainder = BTreeMap::<usize, (Token, BTreeSet<Place>)>::new();
+        let mut remainder = BTreeMap::<usize, BTreeSet<Place>>::new();
         for &index in &binding.world {
             for token in &source.world[index].particle {
-                if removed.contains(&token.id) {
-                    continue;
+                let place = Place::World(index, token.id);
+                if !selected.contains(&place) {
+                    remainder.entry(token.id).or_default().insert(place);
                 }
-                let entry = remainder
-                    .entry(token.id)
-                    .or_insert_with(|| (token.clone(), BTreeSet::new()));
-
-                entry.1.insert(Place::World(index, token.id));
             }
         }
-        let target = if let Some(scope) = output.body {
-            let target = state.frame.len();
-            let mut reserve = BTreeMap::<usize, (Token, BTreeSet<Place>)>::new();
-            for &place in binding.exact.union(&consumed) {
-                let token = source.token(place).unwrap();
-                let entry = reserve
-                    .entry(token.id)
-                    .or_insert_with(|| (token.clone(), BTreeSet::new()));
-
-                entry.1.insert(place);
+        let world = &state.world[target];
+        if output.body.is_some() {
+            let frame = world.frame;
+            flow.frame[frame] = None;
+            for token in &state.frame[frame].held {
+                flow.resource.push((
+                    Place::Held(frame, token.id),
+                    reserve[&token.id].iter().copied().collect(),
+                ));
             }
-            let created = Frame {
-                scope,
-                parent: Some(parent),
-                lexical: Some(owner),
-                particle: Vec::new(),
-                held: reserve.values().map(|(token, _)| token.clone()).collect(),
+            for token in &state.frame[frame].particle {
+                flow.resource
+                    .push((Place::Context(frame, token.id), basis.clone()));
             }
-            .into();
-            state.frame.push(created);
-
-            flow.frame.push(None);
-            for (id, (_, basis)) in reserve {
-                flow.resource.push((Place::Held(target, id), basis.into()));
-            }
-
-            target
-        } else {
-            parent
-        };
-        let index = state.world.len();
-        let mut particle = Vec::new();
-        for (_, (token, basis)) in remainder {
-            flow.resource
-                .push((Place::World(index, token.id), basis.into()));
-
-            particle.push(token);
         }
-        for &value in &output.particle {
-            let token = Token {
-                id: next,
-                value,
-                capture: matches!(value, Symbol::Rule(_)).then_some(owner),
+        for token in &world.particle {
+            let origin = if token.id >= next {
+                basis.clone()
+            } else {
+                remainder[&token.id].iter().copied().collect()
             };
-            next += 1;
-
-            flow.resource
-                .push((Place::World(index, token.id), basis.clone()));
-
-            particle.push(token);
+            flow.resource.push((Place::World(target, token.id), origin));
         }
-        state.world.push(
-            World {
-                frame: target,
-                particle,
-            }
-            .into(),
-        );
-
-        flow.context.push(binding.world.iter().copied().collect());
-    }
-    for index in 0..state.frame.len() {
-        if let Some(frame) = selection.frame(index, &state.frame[index]) {
-            state.frame[index] = frame;
-        }
+        flow.context.push(binding.world.clone());
+        target += 1;
     }
     flow.resource
         .retain(|(place, _)| state.token(*place).is_some());

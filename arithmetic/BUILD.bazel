@@ -24,6 +24,7 @@ rust_binary(
         ":library",
         "//language:photonic",
         "@crate//:clap",
+        "@crate//:serde_json",
         "@crate//:thiserror",
     ],
 )
@@ -48,6 +49,7 @@ rust_test(
         ":library",
         "//language:photonic",
         "@crate//:clap",
+        "@crate//:serde_json",
         "@crate//:thiserror",
         "@rules_rust//rust/runfiles",
     ],

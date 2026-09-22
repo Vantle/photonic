@@ -96,7 +96,7 @@ fn fallback() {
     );
     assert_ne!(ring.canonical().state, triangle.canonical().state);
     let source = crate::lowering::parse("A").unwrap();
-    let mut search = Search::new(source.clone(), crate::lowering::parse("A").unwrap()).unwrap();
+    let mut search = Search::new(source.clone(), crate::lowering::parse("A").unwrap());
     search.compiled = Arc::new(Program::new(source));
     search.runtime = crate::reduction::Search::new(search.compiled.clone(), ring.clone());
     search.state = vec![Record::new(ring.clone())];
@@ -168,9 +168,8 @@ fn capture() {
 fn eviction() {
     let mut search = Search::new(
         crate::lowering::parse("A [A] B [B] C").unwrap(),
-        crate::lowering::parse("C").unwrap(),
-    )
-    .unwrap();
+        crate::lowering::parse("C [A] B [B] C").unwrap(),
+    );
     let graph = state(
         &(0..100)
             .map(|index| (index, (index + 1) % 100))
@@ -196,9 +195,12 @@ fn reporting() {
         ("A [A] B,C [B,C] D", "D"),
     ] {
         let program = crate::lowering::parse(source).unwrap();
-        let target = crate::lowering::parse(target).unwrap();
-        let mut actual = Search::new(program.clone(), target.clone()).unwrap();
-        let mut expected = Search::new(program, target).unwrap();
+        let target = crate::source::Program {
+            rule: program.rule.clone(),
+            ..crate::lowering::parse(target).unwrap()
+        };
+        let mut actual = Search::new(program.clone(), target.clone());
+        let mut expected = Search::new(program, target);
         for iteration in 0..1000 {
             let budget = [0, 1, 2, 7, 31][iteration % 5];
             let mut limit = crate::runtime::Limit::default();

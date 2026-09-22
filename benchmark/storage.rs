@@ -32,6 +32,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     context.push_str(&format!("Stage{}", argument.length));
     let program = photonic::lowering::parse(&source)?;
     let target = photonic::lowering::parse(&context)?;
+    let target = photonic::source::Program {
+        rule: program.rule.clone(),
+        ..target
+    };
     let limit = Limit {
         state: argument.length + 1,
         record: 100_000_000,

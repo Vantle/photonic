@@ -499,10 +499,11 @@ fn enumeration() {
                         );
                     }
                 }
-                let state = root(vec![World {
+                let mut state = root(vec![World {
                     frame: 0,
                     particle: particle.clone(),
                 }]);
+                state.frame.push(state.frame[0].clone());
                 let mut search = Search::new(
                     vec![pattern],
                     Arc::new(crate::index::Index::new(Arc::new(state))),
@@ -626,13 +627,18 @@ fn joining() {
             let mut actual = std::collections::BTreeSet::new();
             for index in order {
                 let slot = crate::slot::Slot {
-                    world: index / 2,
+                    location: crate::location::Location::World(index / 2),
                     position: index % 2,
                     token: vec![index / 2],
                 };
                 for binding in gate.arrive(slot) {
                     assert!(
-                        actual.insert(binding.iter().map(|slot| slot.world).collect::<Vec<_>>())
+                        actual.insert(
+                            binding
+                                .iter()
+                                .map(|slot| slot.location.world().unwrap())
+                                .collect::<Vec<_>>()
+                        )
                     );
                 }
             }
@@ -669,13 +675,18 @@ fn factorization() {
                     arrival
                 };
                 let slot = crate::slot::Slot {
-                    world: index,
+                    location: crate::location::Location::World(index),
                     position: index / 2,
                     token: vec![index],
                 };
                 for binding in gate.arrive(slot) {
                     assert!(
-                        actual.insert(binding.iter().map(|slot| slot.world).collect::<Vec<_>>())
+                        actual.insert(
+                            binding
+                                .iter()
+                                .map(|slot| slot.location.world().unwrap())
+                                .collect::<Vec<_>>()
+                        )
                     );
                 }
             }

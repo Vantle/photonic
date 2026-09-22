@@ -79,16 +79,22 @@ impl Flow {
         &self,
         source: &State,
         target: &State,
-        selection: &[(usize, Vec<usize>)],
+        selection: &[crate::slot::Slot],
         frame: usize,
     ) -> Option<Binding> {
         let mut footprint = BTreeSet::new();
         let mut exact = BTreeSet::new();
         let mut world = BTreeSet::new();
-        for (index, selected) in selection {
-            world.extend(&self.context[*index]);
-            for &id in selected {
-                let place = target.resolve(*index, id)?;
+        let mut selected = BTreeSet::new();
+        for slot in selection {
+            if let Some(index) = slot.location.world() {
+                world.extend(&self.context[index]);
+            }
+            for &id in &slot.token {
+                let place = target.resolve(slot.location, id)?;
+                if !selected.insert(place) {
+                    return None;
+                }
                 let token = target.token(place)?;
                 let basis = &self.resource[&place];
                 footprint.extend(basis);
@@ -182,3 +188,27 @@ impl Flow {
 #[cfg(test)]
 #[path = "test/flow.rs"]
 mod test;
+
+impl Binding {
+    pub(crate) fn select(state: &State, selection: &[crate::slot::Slot]) -> Option<Self> {
+        let mut footprint = BTreeSet::new();
+        for slot in selection {
+            for &id in &slot.token {
+                let place = state.resolve(slot.location, id)?;
+                if !footprint.insert(place) {
+                    return None;
+                }
+            }
+        }
+        let footprint = Set::from(footprint);
+        Some(Self {
+            world: selection
+                .iter()
+                .filter_map(|slot| slot.location.world())
+                .collect(),
+            exact: footprint.clone(),
+            footprint,
+            read: Set::default(),
+        })
+    }
+}

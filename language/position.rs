@@ -51,28 +51,6 @@ impl Index {
         rank
     }
 
-    pub fn select(&self, rank: usize) -> usize {
-        assert!(rank < self.length);
-        if self.tree.is_empty() {
-            if self.value.len() == self.length {
-                return self.value[rank].unwrap();
-            }
-            return *self.value.iter().flatten().nth(rank).unwrap();
-        }
-        let mut remaining = rank;
-        let mut position = 0;
-        let mut stride = self.tree.len().next_power_of_two();
-        while stride != 0 {
-            let next = position + stride;
-            if next <= self.tree.len() && self.tree[next - 1] <= remaining {
-                remaining -= self.tree[next - 1];
-                position = next;
-            }
-            stride >>= 1;
-        }
-        self.value[position].unwrap()
-    }
-
     pub fn compact(&mut self, position: &mut [usize]) {
         if !self.tree.is_empty() && self.length > 16 && self.value.len() <= self.length * 2 + 64 {
             return;

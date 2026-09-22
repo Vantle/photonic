@@ -13,6 +13,15 @@ pub struct Argument {
 pub enum Operation {
     #[command(about = "Parse source structure and print its syntax tree")]
     Parse { path: PathBuf },
+    #[command(about = "Lower Photonic source into a program value as JSON")]
+    Lower {
+        path: PathBuf,
+        #[arg(
+            long,
+            help = "Append the root rules from this program; repeat for each context source"
+        )]
+        context: Vec<PathBuf>,
+    },
     #[command(about = "Execute a Photonic program with bounded graph exploration")]
     Run {
         path: PathBuf,
@@ -22,10 +31,7 @@ pub enum Operation {
     #[command(about = "Check exact configuration reachability with Prism")]
     Prism {
         path: PathBuf,
-        #[arg(
-            long,
-            help = "Target configuration file, without additional declarations"
-        )]
+        #[arg(long, help = "Complete target state, including live rule occurrences")]
         target: PathBuf,
         #[arg(
             long = "path",
@@ -52,7 +58,7 @@ pub struct Execution {
     pub record: usize,
     #[arg(long = "states", default_value_t = 80)]
     pub state: usize,
-    #[arg(long = "cells", default_value_t = 12)]
+    #[arg(long = "cells", default_value_t = 64)]
     pub cell: usize,
     #[arg(long = "frames", default_value_t = 10)]
     pub frame: usize,
@@ -60,6 +66,8 @@ pub struct Execution {
     pub coherence: usize,
     #[arg(long, help = "Print the complete execution report as JSON")]
     pub json: bool,
+    #[arg(long, requires = "json", help = "Serialize JSON without indentation")]
+    pub compact: bool,
     #[arg(
         long,
         value_enum,

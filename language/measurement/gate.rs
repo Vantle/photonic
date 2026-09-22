@@ -40,7 +40,9 @@ pub fn run() -> Vec<Measurement> {
                     };
                     for position in 0..width {
                         gate.enqueue(Slot {
-                            world: position + usize::from(position + 1 == width) * (iteration % 2),
+                            location: crate::location::Location::World(
+                                position + usize::from(position + 1 == width) * (iteration % 2),
+                            ),
                             position,
                             token: vec![iteration],
                         });

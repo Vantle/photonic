@@ -91,7 +91,8 @@ fn reference() {
             record: Limit::default().record,
             state: limit["state"].as_u64().unwrap() as usize,
             world: limit["world"].as_u64().unwrap() as usize,
-            cell: limit["cell"].as_u64().unwrap() as usize,
+            cell: limit["cell"].as_u64().unwrap() as usize
+                + if case["closed"] == true { 64 } else { 0 },
             frame: limit["frame"].as_u64().unwrap() as usize,
         };
         let mut runtime = Runtime::new(program);
@@ -226,12 +227,12 @@ fn gate() {
         }],
     ]);
     let first = Slot {
-        world: 0,
+        location: crate::location::Location::World(0),
         token: vec![0],
         position: 0,
     };
     let second = Slot {
-        world: 1,
+        location: crate::location::Location::World(1),
         token: vec![1],
         position: 1,
     };
@@ -331,6 +332,7 @@ fn capture() {
             read: BTreeSet::from([basis]).into(),
         };
         let output = crate::application::apply(crate::application::Request {
+            scope: &[],
             source: &state,
             frame: 0,
             owner: None,
@@ -553,6 +555,7 @@ fn inheritance() {
                     read: BTreeSet::from([basis]).into(),
                 };
                 let result = crate::application::apply(crate::application::Request {
+                    scope: &[],
                     source: &source,
                     frame: 0,
                     owner: None,

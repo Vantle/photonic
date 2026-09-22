@@ -14,6 +14,7 @@ photonic_test(
     coherences = 512,
     frames = 1024,
     path = True,
+    preserve = True,
     records = 10000000,
     source = "",
     steps = 10000000,
@@ -45,6 +46,7 @@ photonic_test(
     coherences = 128,
     frames = 128,
     path = True,
+    preserve = True,
     source = "",
     targets = ["Done.Zero"],
     deps = [":reverse"],
@@ -53,6 +55,7 @@ photonic_test(
 photonic_test(
     name = "reverse.zero",
     path = True,
+    preserve = True,
     source = "Function.Reverse.Zero",
     targets = ["Return.Reverse.Zero"],
     deps = [":reverse"],
@@ -72,6 +75,7 @@ photonic_test(
     coherences = 256,
     frames = 512,
     path = True,
+    preserve = True,
     records = 5000000,
     source = "",
     states = 8192,
@@ -126,6 +130,7 @@ photonic_test(
     name = "local.check",
     srcs = ["local.wave"],
     path = True,
+    preserve = True,
     source = "",
     targets = ["First.([Digit] 2).([Carry] 1), Second.([Digit] 0).([Borrow] 1)"],
     deps = ["//library:ternary"],
@@ -137,6 +142,7 @@ photonic_test(
         "position.wave",
         "word.particle",
     ],
+    preserve = True,
     source = "",
     targets = ["([Base] 3).([Value] 2).([1] 0).([2] 2).([3] 1)"],
     deps = ["//library:position"],
@@ -150,6 +156,7 @@ photonic_binary(
 photonic_test(
     name = "sum.check",
     srcs = ["sum.wave"],
+    preserve = True,
     source = "",
     targets = ["3^1.3^4.3^4.3^6.3^6"],
 )
@@ -182,6 +189,7 @@ photonic_test(
     coherences = 256,
     frames = 512,
     path = True,
+    preserve = True,
     records = 10000000,
     source = "",
     steps = 10000000,
@@ -196,6 +204,7 @@ photonic_test(
     coherences = 256,
     frames = 512,
     path = True,
+    preserve = True,
     records = 10000000,
     source = "",
     steps = 10000000,
@@ -239,6 +248,7 @@ photonic_test(
     coherences = 512,
     frames = 1024,
     path = True,
+    preserve = True,
     records = 20000000,
     source = "",
     states = 16384,
@@ -265,6 +275,7 @@ photonic_test(
     coherences = 512,
     frames = 1024,
     path = True,
+    preserve = True,
     records = 50000000,
     source = "",
     states = 32768,
@@ -306,6 +317,7 @@ photonic_test(
     coherences = 1024,
     frames = 2048,
     path = True,
+    preserve = True,
     records = 100000000,
     source = "",
     states = 65536,
@@ -321,6 +333,7 @@ photonic_test(
     coherences = 1024,
     frames = 2048,
     path = True,
+    preserve = True,
     records = 100000000,
     source = "",
     states = 65536,
@@ -365,6 +378,7 @@ photonic_test(
     coherences = 1024,
     frames = 2048,
     path = True,
+    preserve = True,
     records = 100000000,
     source = "",
     states = 65536,
@@ -380,6 +394,7 @@ photonic_test(
     coherences = 1024,
     frames = 2048,
     path = True,
+    preserve = True,
     records = 100000000,
     source = "",
     states = 65536,
@@ -457,6 +472,7 @@ photonic_library(
 
 photonic_test(
     name = "column.fork",
+    preserve = True,
     source = "Column.Step",
     targets = ["Column.Request.([Side] Left), Column.Request.([Side] Right)"],
     deps = [":column"],
@@ -464,6 +480,7 @@ photonic_test(
 
 photonic_test(
     name = "column.read",
+    preserve = True,
     source = "Read.Zero.Column.Reader.([Side] Left), Read.Zero.Column.Reader.([Side] Right)",
     targets = ["Column.Left.Zero, Column.Right.Zero, Clean.Column.Value.([First] End), Clean.Column.Value.([Second] End)"],
     deps = [":column"],
@@ -471,6 +488,7 @@ photonic_test(
 
 photonic_test(
     name = "column.association",
+    preserve = True,
     source = "Yield.([Digit] 1).Zero.Column.Reader.([Side] Left), Yield.([Digit] 2).Zero.Column.Reader.([Side] Right)",
     targets = ["Column.Left.Zero, Column.Right.Zero, Clean.Column.Value.([First] 1), Clean.Column.Value.([Second] 2)"],
     deps = [":column"],
@@ -479,6 +497,7 @@ photonic_test(
 photonic_test(
     name = "column.exchange",
     expect = "unreachable",
+    preserve = True,
     source = "Yield.([Digit] 1).Zero.Column.Reader.([Side] Left), Yield.([Digit] 2).Zero.Column.Reader.([Side] Right)",
     targets = ["Column.Left.Zero, Column.Right.Zero, Clean.Column.Value.([First] 2), Clean.Column.Value.([Second] 1)"],
     deps = [":column"],
@@ -510,6 +529,7 @@ hermetic_test(
 photonic_test(
     name = "column.completion",
     expect = "unreachable",
+    preserve = True,
     source = "Return.Column.Positive.Zero, Evaluate.Pending.Add",
     targets = ["Return.Add.Zero.Evaluate"],
     deps = [":add"],
@@ -517,6 +537,7 @@ photonic_test(
 
 photonic_test(
     name = "column.begin",
+    preserve = True,
     source = "Function.Column, Operand.Left.Zero, Operand.Right.Zero",
     targets = ["Column.Left.Zero, Column.Right.Zero, Clean.Column.Value.([First] End), Clean.Column.Value.([Second] End), Column.Output.Zero, Column.Carry.0"],
     deps = [":column"],
@@ -524,6 +545,7 @@ photonic_test(
 
 photonic_test(
     name = "copy.left",
+    preserve = True,
     source = "Yield.End.Copy.Wait.Zero, Copy.Left.Zero",
     targets = ["Return.Copy.Left.Zero, Copy.End.([Side] Right)"],
     deps = [":copy"],
@@ -531,6 +553,7 @@ photonic_test(
 
 photonic_test(
     name = "copy.right",
+    preserve = True,
     source = "Yield.End.Copy.Wait.Zero, Copy.Right.Zero",
     targets = ["Copy.End.([Side] Left), Return.Copy.Right.Zero"],
     deps = [":copy"],
@@ -549,6 +572,7 @@ photonic_test(
     coherences = 1024,
     frames = 2048,
     path = True,
+    preserve = True,
     records = 100000000,
     source = "",
     states = 65536,
@@ -570,6 +594,7 @@ photonic_test(
     coherences = 1024,
     frames = 2048,
     path = True,
+    preserve = True,
     records = 100000000,
     source = "",
     states = 65536,
@@ -591,6 +616,7 @@ photonic_test(
     coherences = 1024,
     frames = 2048,
     path = True,
+    preserve = True,
     records = 100000000,
     source = "",
     states = 65536,
@@ -612,6 +638,7 @@ photonic_test(
     coherences = 1024,
     frames = 2048,
     path = True,
+    preserve = True,
     records = 100000000,
     source = "",
     states = 65536,

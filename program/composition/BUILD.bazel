@@ -15,6 +15,7 @@ photonic_test(
     name = "pipeline.check",
     srcs = ["pipeline.wave"],
     path = True,
+    preserve = True,
     source = "",
     targets = ["First.False, Second.True"],
     deps = [
@@ -50,6 +51,7 @@ photonic_binary(
 photonic_test(
     name = "function.check",
     srcs = ["function.wave"],
+    preserve = True,
     source = "",
     targets = ["""Left.Flower.([First.Seed] Return.Bud).([Second.Bud] Return.Flower),
 Right.Grove.([First.Seed] (

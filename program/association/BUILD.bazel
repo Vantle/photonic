@@ -73,6 +73,7 @@ photonic_binary(
 photonic_test(
     name = "addition.check",
     srcs = ["addition.wave"],
+    preserve = True,
     source = "",
     targets = ["Unit.Unit.Unit.Unit.Unit.Unit.Unit.Unit.Unit.Unit"],
 )

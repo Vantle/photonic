@@ -23,46 +23,40 @@ impl Network {
             return request;
         }
         if index.present(frame) {
-            let mut owner = Some(frame);
-            while let Some(current) = owner {
-                let scope = index.state.frame[current].scope;
-                let available = &self.scope[scope];
-                let mut insert = |position| {
-                    let (input, rule) = self.catalog.scope(scope, position);
-                    let plan = self.catalog.input(input);
-                    for &rule in rule {
-                        request.push(Request {
-                            key: Key {
-                                frame,
-                                input,
-                                owner: plan.owner(current),
-                            },
-                            consumer: Consumer {
-                                rule,
-                                owner: current,
-                                read: None,
-                            },
-                        });
-                    }
+            for (place, token) in selected
+                .unwrap_or(&self.enabled)
+                .iter()
+                .filter(|input| self.enabled.contains(input))
+                .flat_map(|&input| self.catalog.member(input))
+                .flat_map(|&rule| index.occurrence(frame, crate::program::Symbol::Rule(rule)))
+            {
+                let crate::program::Symbol::Rule(rule) = token.value else {
+                    continue;
                 };
-                if let Some(selected) = selected.filter(|selected| selected.len() < available.len())
+                let crate::flow::Place::Context(current, resource) = place else {
+                    unreachable!()
+                };
+                let input = self.catalog.rule(rule);
+                let plan = self.catalog.input(input);
+                if !self.enabled.contains(&input)
+                    || selected.is_some_and(|selected| !selected.contains(&input))
+                    || (plan.arity() == 0 && frame != current)
                 {
-                    for &input in selected {
-                        if let Some(position) = self.catalog.position(scope, input)
-                            && available.contains(&position)
-                        {
-                            insert(position);
-                        }
-                    }
-                } else {
-                    for position in available.iter() {
-                        let (input, _) = self.catalog.scope(scope, position);
-                        if selected.is_none_or(|selected| selected.contains(&input)) {
-                            insert(position);
-                        }
-                    }
+                    continue;
                 }
-                owner = index.state.frame[current].lexical;
+                let owner = token.capture.unwrap();
+                request.push(Request {
+                    key: Key {
+                        frame,
+                        input,
+                        owner: plan.owner(owner),
+                    },
+                    consumer: Consumer {
+                        rule,
+                        owner,
+                        read: Some(crate::reader::Read::Context(current, resource)),
+                    },
+                });
             }
             for reader in index.reader(frame) {
                 let input = self.catalog.rule(reader.rule);
@@ -85,7 +79,20 @@ impl Network {
                 });
             }
         }
-        request.sort_by_key(|request| request.key);
+        let ancestry = std::iter::successors(index.present(frame).then_some(frame), |&frame| {
+            index.state.frame[frame].lexical
+        })
+        .collect::<smallvec::SmallVec<[usize; 4]>>();
+        request.sort_by_key(|request| {
+            let priority = match request.consumer.read {
+                Some(crate::reader::Read::Context(frame, resource)) => (
+                    ancestry.iter().position(|&owner| owner == frame).unwrap(),
+                    resource,
+                ),
+                _ => (usize::MAX, 0),
+            };
+            (request.key, priority)
+        });
         request
     }
 }

@@ -105,6 +105,7 @@ def _check(ctx):
         "expect": ctx.attr.expect,
         "match": ctx.attr.match,
         "path": ctx.attr.path,
+        "preserve": ctx.attr.preserve,
         "step": ctx.attr.steps,
         "state": ctx.attr.states,
         "cell": ctx.attr.cells,
@@ -124,6 +125,7 @@ _case = rule(
         "match": attr.string(default = "all", values = ["all", "any"]),
         "expect": attr.string(default = "reached", values = ["reached", "unreachable"]),
         "path": attr.bool(default = False),
+        "preserve": attr.bool(default = False),
         "steps": attr.int(default = 2000000),
         "states": attr.int(default = 4096),
         "cells": attr.int(default = 256),
@@ -134,7 +136,7 @@ _case = rule(
     },
 )
 
-def photonic_test(name, source, targets, srcs = [], deps = [], match = "all", expect = "reached", path = False, steps = 2000000, states = 4096, cells = 256, frames = 64, coherences = 64, records = 2000000, size = "small", visibility = None, tags = []):
+def photonic_test(name, source, targets, srcs = [], deps = [], match = "all", expect = "reached", path = False, preserve = False, steps = 2000000, states = 4096, cells = 256, frames = 64, coherences = 64, records = 2000000, size = "small", visibility = None, tags = []):
     """Check an exact configuration with Prism; Unknown always fails.
 
     Args:
@@ -146,6 +148,7 @@ def photonic_test(name, source, targets, srcs = [], deps = [], match = "all", ex
         match: Require all targets or any target to satisfy the expectation.
         expect: Required reached or unreachable outcome for each target.
         path: Follow one path to witness a reachable target.
+        preserve: Explicitly expect all loaded root rule occurrences in each target.
         steps: Work budget.
         states: Configuration limit.
         cells: Occurrence limit.
@@ -156,7 +159,7 @@ def photonic_test(name, source, targets, srcs = [], deps = [], match = "all", ex
         visibility: Packages allowed to depend on the test.
         tags: Bazel test tags.
     """
-    _case(name = name + ".case", source = source, targets = targets, srcs = srcs, deps = deps, match = match, expect = expect, path = path, steps = steps, states = states, cells = cells, frames = frames, coherences = coherences, records = records, visibility = ["//visibility:private"], testonly = True)
+    _case(name = name + ".case", source = source, targets = targets, srcs = srcs, deps = deps, match = match, expect = expect, path = path, preserve = preserve, steps = steps, states = states, cells = cells, frames = frames, coherences = coherences, records = records, visibility = ["//visibility:private"], testonly = True)
     hermetic_test(
         name = name,
         entrypoint = "//photonic:check",

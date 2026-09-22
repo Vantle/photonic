@@ -26,6 +26,7 @@ fn identity() {
     use crate::state::{Token, World};
     let program = Program::new(crate::lowering::parse("A").unwrap());
     let mut state = State::initial(&program);
+    state.frame.push(state.frame[0].clone());
     state.world = (0..3)
         .map(|position| {
             Arc::new(World {

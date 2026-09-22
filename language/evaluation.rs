@@ -1,7 +1,7 @@
 use crate::change::Change;
 use crate::flow::{Binding, Place};
 use crate::layout::Layout;
-use crate::recipe::Recipe;
+use crate::program::{Instruction, Scope, Symbol};
 use crate::state::{Frame, State, Token, World};
 use std::collections::BTreeMap;
 
@@ -15,22 +15,19 @@ pub(crate) struct Request<'source> {
     pub source: &'source State,
     pub frame: usize,
     pub owner: usize,
-    pub recipe: &'source Recipe,
+    pub rule: &'source Instruction,
+    pub scope: &'source [Scope],
+    pub state: State,
+    pub next: usize,
     pub binding: &'source Binding,
     pub layout: &'source Layout,
 }
 
 fn remainder(source: &State, binding: &Binding, selected: &crate::basis::Set<Place>) -> Vec<Token> {
-    let selected = selected
-        .iter()
-        .map(|place| match place {
-            Place::World(_, id) | Place::Context(_, id) | Place::Held(_, id) => *id,
-        })
-        .collect::<crate::basis::Set<_>>();
     let mut value = smallvec::SmallVec::<[&Token; 8]>::new();
     for &world in &binding.world {
         for token in &source.world[world].particle {
-            if selected.contains(&token.id) {
+            if selected.contains(&Place::World(world, token.id)) {
                 continue;
             }
             value.push(token);
@@ -49,7 +46,10 @@ pub(crate) fn apply(request: Request<'_>) -> Result {
         source,
         frame,
         owner,
-        recipe,
+        rule,
+        scope,
+        mut state,
+        next,
         binding,
         layout,
     } = request;
@@ -59,10 +59,7 @@ pub(crate) fn apply(request: Request<'_>) -> Result {
     } else {
         frame
     };
-    let mut state = State {
-        world: source.world.clone(),
-        frame: source.frame.clone(),
-    };
+    let nested = rule.output.iter().any(|output| output.body.is_some());
     let consumed = crate::consumption::Selection::new(binding);
     for &world in binding.world.iter().rev() {
         state.world.remove(world);
@@ -70,8 +67,8 @@ pub(crate) fn apply(request: Request<'_>) -> Result {
     let start = state.world.len();
     let mut change = Change {
         world: binding.world.clone(),
-        insertion: start..start + recipe.output.len(),
-        frame: Vec::new(),
+        insertion: start..start + rule.output.len(),
+        frame: (source.frame.len()..state.frame.len()).collect(),
     };
     for (index, frame) in source.frame.iter().enumerate() {
         if let Some(frame) = consumed.frame(index, frame) {
@@ -80,10 +77,10 @@ pub(crate) fn apply(request: Request<'_>) -> Result {
         }
     }
     let remainder = remainder(source, binding, &binding.footprint);
-    let enclosed = (recipe.nested && binding.exact != binding.footprint)
+    let enclosed = (nested && binding.exact != binding.footprint)
         .then(|| self::remainder(source, binding, &binding.exact));
     let mut reserve = BTreeMap::new();
-    if recipe.nested {
+    if nested {
         for place in &binding.exact {
             let token = source.token(*place).unwrap();
             reserve.entry(token.id).or_insert_with(|| token.clone());
@@ -95,7 +92,7 @@ pub(crate) fn apply(request: Request<'_>) -> Result {
         }
     }
     let reserve = reserve.into_values().collect::<Vec<_>>();
-    let mut vacant = if recipe.nested {
+    let mut vacant = if nested {
         (1..source.frame.len())
             .rev()
             .filter(|index| layout.reach.frame.binary_search(index).is_err())
@@ -103,15 +100,19 @@ pub(crate) fn apply(request: Request<'_>) -> Result {
     } else {
         Vec::new()
     };
-    let mut next = layout.resource;
-    for output in &recipe.output {
-        let target = if let Some(scope) = output.scope {
+    let mut next = next;
+    for output in &rule.output {
+        let target = if let Some(body) = output.body {
             let target = vacant.pop().unwrap_or(state.frame.len());
             let value = Frame {
-                scope,
+                scope: body,
                 parent: Some(parent),
                 lexical: Some(owner),
-                particle: Vec::new(),
+                particle: scope[body]
+                    .rule
+                    .iter()
+                    .map(|&rule| Token::new(Symbol::Rule(rule), target, &mut next))
+                    .collect(),
                 held: reserve.clone(),
             }
             .into();
@@ -125,19 +126,14 @@ pub(crate) fn apply(request: Request<'_>) -> Result {
         } else {
             parent
         };
-        let mut particle = if output.scope.is_some() {
+        let mut particle = if output.body.is_some() {
             enclosed.as_ref().unwrap_or(&remainder).clone()
         } else {
             remainder.clone()
         };
-        particle.reserve(output.emission.len());
-        for emission in &output.emission {
-            particle.push(Token {
-                id: next,
-                value: emission.value,
-                capture: emission.capture.then_some(owner),
-            });
-            next += 1;
+        particle.reserve(output.particle.len());
+        for &value in &output.particle {
+            particle.push(Token::new(value, owner, &mut next));
         }
         state.world.push(
             World {

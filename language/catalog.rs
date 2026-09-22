@@ -2,19 +2,11 @@ use crate::plan::Input;
 use crate::program::Program;
 use std::collections::HashMap;
 
-mod scope;
-
-pub(crate) struct Location {
-    pub scope: usize,
-    pub position: usize,
-}
-
 pub(crate) struct Catalog {
     input: Vec<Input>,
     rule: Vec<usize>,
+    member: Vec<Vec<usize>>,
     retained: usize,
-    scope: Vec<scope::Scope>,
-    owner: Vec<Vec<Location>>,
 }
 
 impl Catalog {
@@ -33,55 +25,30 @@ impl Catalog {
                 })
             })
             .collect::<Vec<_>>();
-        let scope = program
-            .scope
-            .iter()
-            .map(|scope| scope::Scope::new(&scope.rule, &rule))
-            .collect::<Vec<_>>();
-        let mut owner = (0..input.len()).map(|_| Vec::new()).collect::<Vec<_>>();
-        for (index, scope) in scope.iter().enumerate() {
-            for (position, input) in scope.iter().enumerate() {
-                owner[input].push(Location {
-                    scope: index,
-                    position,
-                });
-            }
+        let mut member = vec![Vec::new(); input.len()];
+        for (index, &input) in rule.iter().enumerate() {
+            member[input].push(index);
         }
-        let retained = input.iter().map(Input::retained).sum::<usize>() + rule.len();
-        let retained = retained
-            + owner.iter().map(Vec::len).sum::<usize>()
-            + scope.iter().map(scope::Scope::retained).sum::<usize>();
+        let retained =
+            input.iter().map(Input::retained).sum::<usize>() + rule.len() * 2 + member.len();
         Self {
             input,
             rule,
+            member,
             retained,
-            scope,
-            owner,
         }
-    }
-
-    pub fn owner(&self, input: usize) -> &[Location] {
-        &self.owner[input]
     }
 
     pub fn count(&self) -> usize {
         self.input.len()
     }
 
-    pub fn scope(&self, scope: usize, position: usize) -> (usize, &[usize]) {
-        self.scope[scope].get(position)
-    }
-
-    pub fn width(&self, scope: usize) -> usize {
-        self.scope[scope].len()
-    }
-
-    pub fn position(&self, scope: usize, input: usize) -> Option<usize> {
-        self.scope[scope].position(input)
-    }
-
     pub fn rule(&self, rule: usize) -> usize {
         self.rule[rule]
+    }
+
+    pub fn member(&self, input: usize) -> &[usize] {
+        &self.member[input]
     }
 
     pub fn input(&self, index: usize) -> &Input {
@@ -92,7 +59,3 @@ impl Catalog {
         self.retained
     }
 }
-
-#[cfg(test)]
-#[path = "test/catalog.rs"]
-mod test;

@@ -4,7 +4,14 @@ use crate::prism::Outcome;
 use crate::runtime::Limit;
 
 fn search(source: &str, target: &str) -> Search {
-    Search::new(parse(source).unwrap(), parse(target).unwrap()).unwrap()
+    {
+        let program = parse(source).unwrap();
+        let target = crate::source::Program {
+            rule: program.rule.clone(),
+            ..parse(target).unwrap()
+        };
+        Search::new(program, target)
+    }
 }
 
 #[test]
@@ -63,8 +70,14 @@ fn execution() {
         let mut path = search(source, target);
         path.run(100_000, Limit::default());
         assert_eq!(path.report().outcome, Outcome::Reached, "{source}");
-        let mut exhaustive =
-            crate::prism::Search::new(parse(source).unwrap(), parse(target).unwrap()).unwrap();
+        let mut exhaustive = {
+            let program = parse(source).unwrap();
+            let target = crate::source::Program {
+                rule: program.rule.clone(),
+                ..parse(target).unwrap()
+            };
+            crate::prism::Search::new(program, target)
+        };
         exhaustive.run(100_000, None);
         assert_eq!(exhaustive.report().outcome, Outcome::Reached);
     }
@@ -77,7 +90,19 @@ fn unknown() {
         path.run(10_000, Limit::default());
         assert_eq!(path.report().outcome, Outcome::Unknown);
     }
-    assert!(Search::new(parse("A").unwrap(), parse("[A] B").unwrap()).is_err());
+    assert_eq!(
+        {
+            let program = parse("A").unwrap();
+            let target = crate::source::Program {
+                rule: program.rule.clone(),
+                ..parse("[A] B").unwrap()
+            };
+            Search::new(program, target)
+        }
+        .summary()
+        .outcome,
+        Outcome::Unknown
+    );
 }
 
 #[test]
@@ -127,7 +152,7 @@ fn factor() {
     }
     let target = format!("{particle},Stage32.B");
     let limit = Limit {
-        cell: 32,
+        cell: 64,
         ..Limit::default()
     };
     let mut complete = search(&source, &target);
@@ -161,8 +186,14 @@ fn inference() {
     let mut path = search(source, "Seed.B");
     path.run(100_000, Limit::default());
     assert_eq!(path.report().outcome, Outcome::Unknown);
-    let mut exhaustive =
-        crate::prism::Search::new(parse(source).unwrap(), parse("Seed.B").unwrap()).unwrap();
+    let mut exhaustive = {
+        let program = parse(source).unwrap();
+        let target = crate::source::Program {
+            rule: program.rule.clone(),
+            ..parse("Seed.B").unwrap()
+        };
+        crate::prism::Search::new(program, target)
+    };
     exhaustive.run(100_000, None);
     assert_eq!(exhaustive.report().outcome, Outcome::Reached);
 }
@@ -269,8 +300,14 @@ fn collision() {
     }
     assert_eq!(path.summary().outcome, Outcome::Unknown);
     assert_eq!(path.current().world.len(), 2);
-    let mut exhaustive =
-        crate::prism::Search::new(parse(source).unwrap(), parse(target).unwrap()).unwrap();
+    let mut exhaustive = {
+        let program = parse(source).unwrap();
+        let target = crate::source::Program {
+            rule: program.rule.clone(),
+            ..parse(target).unwrap()
+        };
+        crate::prism::Search::new(program, target)
+    };
     exhaustive.run(10000, None);
     assert_eq!(exhaustive.report().outcome, Outcome::Unreachable);
 }

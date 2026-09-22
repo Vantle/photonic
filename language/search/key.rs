@@ -43,8 +43,10 @@ impl Key {
                     domain
                         .iter()
                         .map(|&position| Occurrence {
-                            position,
-                            world: Arc::downgrade(&cursor.index.state.world[position]),
+                            position: cursor.index.world(position),
+                            world: Arc::downgrade(
+                                &cursor.index.state.world[cursor.index.world(position)],
+                            ),
                         })
                         .collect()
                 })

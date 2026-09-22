@@ -157,14 +157,7 @@
         find('trace-source').textContent = fixture.source;
         find('trace-position').textContent = `Configuration ${stateIndex} · ${state.status}`;
         find('trace-back').disabled = history.length === 0;
-        find('trace-world').replaceChildren();
-        state.world.forEach((world, index) => {
-            const box = element('article', undefined, 'world');
-            box.append(element('h4', `COHERENCE ${index} · FRAME ${world.frame}`));
-            box.append(element('pre', world.particle.map(value => `${value.display}  #${value.id}${value.capture === undefined ? '' : ` · capture ${value.capture}`}`).join('\n') || '()'));
-            find('trace-world').append(box);
-        });
-        if (!state.world.length) find('trace-world').append(element('p', 'No coherences in this configuration.'));
+        globalThis.inspection.render(find('trace-world'), state, event, false, report.definition);
         const outgoing = report.event.filter(value => value.source === stateIndex);
         find('trace-event').replaceChildren();
         outgoing.forEach(value => {
@@ -198,7 +191,7 @@
         find('natural-output').replaceChildren(...unit(left).map(() => token('U')), ...unit(right).map(() => token('U', 'gold')));
         if (left + right === 0) find('natural-output').append(element('code', '()'));
         find('natural-equation').textContent = `${left} + ${right} = ${left + right}`;
-        find('natural-source').textContent = `${['Add', ...unit(left)].join('.')},\n${['Add', ...unit(right)].join('.')}\n[Add, Add] ()\n\nExact target: ${unit(left + right).join('.') || '()'}`;
+        find('natural-source').textContent = `${['Add', ...unit(left)].join('.')},\n${['Add', ...unit(right)].join('.')}\n[Add, Add] ()\n\nExact target: ${unit(left + right).join('.') || '()'} [Add, Add] ()`;
     };
     ['natural-left', 'natural-right'].forEach(id => find(id).addEventListener('input', natural));
     natural();
@@ -262,7 +255,7 @@
         const event = fixture.event[eventIndex];
         find('operation-position').textContent = `Event ${eventIndex + 1} / ${fixture.events}`;
         find('operation-rule').textContent = `Configuration ${event.source} → ${event.target}\n${event.rule}`;
-        find('operation-target').textContent = fixture.target;
+        find('operation-target').textContent = JSON.stringify(fixture.target, null, 2);
         find('operation-source').href = fixture.source;
         find('operation-back').disabled = eventIndex === 0;
         find('operation-next').disabled = eventIndex === fixture.events - 1;

@@ -26,20 +26,14 @@ enum Step {
         rule: usize,
         frame: usize,
         owner: usize,
-        read: Option<Read>,
+        read: Option<crate::flow::Place>,
         selection: Vec<Selection>,
     },
 }
 
 #[derive(Serialize)]
-struct Read {
-    world: usize,
-    resource: usize,
-}
-
-#[derive(Serialize)]
 struct Selection {
-    world: usize,
+    location: crate::location::Location,
     position: usize,
     token: Vec<usize>,
 }
@@ -95,15 +89,12 @@ pub fn run() -> Vec<Observation> {
                         rule: delivery.rule,
                         frame: delivery.frame,
                         owner: delivery.owner,
-                        read: delivery.read.map(|read| Read {
-                            world: index.world(read.site),
-                            resource: read.resource,
-                        }),
+                        read: delivery.read.map(|read| read.place(&index)),
                         selection: delivery
                             .selection
                             .into_iter()
                             .map(|slot| Selection {
-                                world: slot.world,
+                                location: slot.location,
                                 position: slot.position,
                                 token: slot.token,
                             })

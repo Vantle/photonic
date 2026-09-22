@@ -30,7 +30,7 @@ struct Measurement {
 
 fn evaluate(program: Program, target: Program, state: usize) -> Measurement {
     let start = Instant::now();
-    let mut search = Search::new(program, target).unwrap();
+    let mut search = Search::new(program, target);
     let initialization = start.elapsed().as_secs_f64();
     let start = Instant::now();
     search.run(

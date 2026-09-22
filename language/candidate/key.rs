@@ -20,10 +20,11 @@ impl Key {
     }
 
     pub fn affected(&self, index: &Index) -> bool {
-        index
-            .affected
-            .get(&self.frame)
-            .is_some_and(|symbol| self.pattern.iter().all(|term| symbol.contains(&term.value)))
+        index.affected.get(&self.frame).is_some_and(|symbol| {
+            self.pattern.iter().all(|term| {
+                symbol.contains(&term.value) || index.visible(self.frame, term).next().is_some()
+            })
+        })
     }
 
     pub fn insertion(&self, index: &Index) -> Vec<usize> {
@@ -32,15 +33,13 @@ impl Key {
             .iter()
             .copied()
             .filter(|&site| {
-                let world = &index.state.world[index.world(site)];
-                world.frame == self.frame
-                    && self.pattern.iter().all(|term| {
-                        if world.particle.len() <= 16 {
-                            world.particle.iter().any(|token| term.matches(token))
-                        } else {
-                            index.quantity(term, self.frame, site) > 0
-                        }
-                    })
+                let location = index.location(site);
+                location.frame(&index.state) == self.frame
+                    && (!self.pattern.is_empty() || location.world().is_some())
+                    && self
+                        .pattern
+                        .iter()
+                        .all(|term| index.quantity(term, self.frame, site) > 0)
             })
             .collect()
     }

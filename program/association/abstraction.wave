@@ -2,4 +2,4 @@ Pair(Seed, Other)
 [Seed] Intermediate
 [Intermediate] Kind
 [Other] Kind
-[Pair(Kind, Kind)] ([] Result)
+[Pair(Kind, Kind)] ([()] Result)

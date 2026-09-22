@@ -80,6 +80,7 @@ fn coalescence() {
         read: Set::default(),
     };
     let result = application::apply(Request {
+        scope: &[],
         source: &source,
         frame: 0,
         owner: None,

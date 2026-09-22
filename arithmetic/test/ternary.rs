@@ -173,11 +173,14 @@ fn exhaustive() {
                         left * right,
                     ),
                 ] {
-                    let mut search = photonic::prism::Search::new(
-                        parse(&source).unwrap(),
-                        parse(&encoding::unsigned(3, 2, expected).unwrap()).unwrap(),
-                    )
-                    .unwrap();
+                    let mut search = {
+                        let program = parse(&source).unwrap();
+                        let target = photonic::source::Program {
+                            rule: program.rule.clone(),
+                            ..parse(&encoding::unsigned(3, 2, expected).unwrap()).unwrap()
+                        };
+                        photonic::prism::Search::new(program, target)
+                    };
                     search.run(100_000, None);
                     let report = search.report();
                     assert!(report.execution.closed);
@@ -288,8 +291,14 @@ fn notation() {
         ("3^3.3^2.3^2.3^1", Outcome::Reached),
         (numeral, Outcome::Unreachable),
     ] {
-        let mut search =
-            photonic::prism::Search::new(parse(&source).unwrap(), parse(target).unwrap()).unwrap();
+        let mut search = {
+            let program = parse(&source).unwrap();
+            let target = photonic::source::Program {
+                rule: program.rule.clone(),
+                ..parse(target).unwrap()
+            };
+            photonic::prism::Search::new(program, target)
+        };
         search.run(100_000, None);
         let report = search.report();
         assert!(report.execution.closed);

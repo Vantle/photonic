@@ -1,5 +1,4 @@
-use crate::basis::Set;
-use crate::flow::{Binding, Place};
+use crate::flow::Binding;
 use crate::program::Program;
 use crate::runtime::Limit;
 use crate::state::State;
@@ -15,8 +14,7 @@ pub(crate) struct Event {
 }
 
 pub(crate) struct Search {
-    recipe: Vec<crate::recipe::Recipe>,
-    retained: usize,
+    program: Arc<Program>,
     state: Arc<State>,
     pending: Vec<Event>,
     initialized: bool,
@@ -38,17 +36,10 @@ impl Search {
 
     pub(crate) fn new(program: Arc<Program>, state: Arc<State>) -> Self {
         let index = crate::index::Index::new(state.clone());
-        let recipe = program
-            .rule
-            .iter()
-            .map(crate::recipe::Recipe::new)
-            .collect::<Vec<_>>();
-        let retained = recipe.iter().map(crate::recipe::Recipe::retained).sum();
         Self {
             network: crate::dispatch::Network::new(&program, &index),
             fingerprint: crate::fingerprint::Index::new(state.clone()),
-            recipe,
-            retained,
+            program,
             state,
             pending: Vec::new(),
             initialized: false,
@@ -81,7 +72,6 @@ impl Search {
             .iter()
             .map(|event| event.fingerprint.retained() + event.change.retained() + 1)
             .sum::<usize>()
-            + self.retained
             + self.index.retained()
             + self.fingerprint.retained()
             + self.network.retained()
@@ -123,36 +113,28 @@ impl Search {
         self.work += 1;
         let candidate = candidate?;
         let selection = candidate.selection;
-        if let Some(read) = candidate.read
-            && !selection
-                .iter()
-                .any(|slot| slot.world == self.index.world(read.site))
+        if let Some(crate::reader::Read::World(site, _)) = candidate.read
+            && !selection.is_empty()
+            && !selection.iter().any(|slot| {
+                slot.location == crate::location::Location::World(self.index.world(site))
+            })
         {
             return None;
         }
-        let footprint = selection
-            .iter()
-            .flat_map(|slot| {
-                slot.token
-                    .iter()
-                    .map(|&token| Place::World(slot.world, token))
-            })
-            .collect::<Set<_>>();
-        let binding = Binding {
-            world: selection.iter().map(|slot| slot.world).collect(),
-            exact: footprint.clone(),
-            footprint,
-            read: candidate
-                .read
-                .map(|read| Place::World(self.index.world(read.site), read.resource))
-                .into_iter()
-                .collect(),
-        };
-        let result = crate::rewrite::apply(crate::rewrite::Request {
+        let mut binding = Binding::select(&self.state, &selection)?;
+        binding.read = candidate
+            .read
+            .map(|read| read.place(&self.index))
+            .into_iter()
+            .collect();
+        let result = crate::evaluation::apply(crate::evaluation::Request {
             source: &self.state,
             frame: candidate.frame,
             owner: candidate.owner,
-            recipe: &self.recipe[candidate.rule],
+            rule: &self.program.rule[candidate.rule],
+            scope: &self.program.scope,
+            state: self.state.as_ref().clone(),
+            next: self.fingerprint.layout.resource,
             binding: &binding,
             layout: &self.fingerprint.layout,
         });

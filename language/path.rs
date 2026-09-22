@@ -1,7 +1,7 @@
 mod report;
 
 use crate::flow::Place;
-use crate::prism::{Failure, Outcome};
+use crate::prism::Outcome;
 use crate::program::Program;
 use crate::runtime::Limit;
 use crate::snapshot::Node;
@@ -27,8 +27,9 @@ pub struct Report<
     State = Vec<Node>,
     Transition = Vec<Event>,
     Program = source::Program,
-    Target = Vec<Vec<source::Value>>,
+    Target = source::Program,
 > {
+    pub definition: Vec<crate::snapshot::Definition>,
     pub outcome: Outcome,
     pub witness: Option<usize>,
     pub work: usize,
@@ -116,7 +117,7 @@ struct Step {
 pub struct Search {
     program: source::Program,
     compiled: Arc<Program>,
-    claim: Vec<Vec<source::Value>>,
+    claim: source::Program,
     goal: Record,
     signature: u64,
     runtime: crate::reduction::Search,
@@ -134,22 +135,17 @@ pub struct Search {
 }
 
 impl Search {
-    pub fn new(program: source::Program, target: source::Program) -> Result<Self, Failure> {
-        if !target.rule.is_empty() {
-            return Err(Failure::Declaration);
-        }
+    pub fn new(program: source::Program, target: source::Program) -> Self {
         let compiled = Program::new(program.clone());
         let initial = Arc::new(State::initial(&compiled));
-        let mut goal = compiled.clone();
-        goal.initial = goal.input(&target.initial);
-        let goal = State::initial(&goal);
+        let goal = State::initial(&compiled.target(&target));
         let signature = crate::fingerprint::state(&goal);
         let fingerprint = crate::fingerprint::state(&initial);
         let reached = initial.as_ref() == &goal;
         let compiled = Arc::new(compiled);
-        Ok(Self {
+        Self {
             program,
-            claim: target.initial,
+            claim: target,
             goal: Record::new(Arc::new(goal)),
             signature,
             runtime: crate::reduction::Search::new(compiled.clone(), initial.clone()),
@@ -165,7 +161,7 @@ impl Search {
             work: 0,
             cycle: false,
             reached,
-        })
+        }
     }
 
     pub fn run(&mut self, budget: usize, limit: Limit) {

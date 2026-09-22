@@ -31,7 +31,14 @@ fn tower(depth: usize) -> (String, String) {
 }
 
 fn execute(source: &str, target: &str) -> Search {
-    let mut search = Search::new(parse(source).unwrap(), parse(target).unwrap()).unwrap();
+    let mut search = {
+        let program = parse(source).unwrap();
+        let target = crate::source::Program {
+            rule: program.rule.clone(),
+            ..parse(target).unwrap()
+        };
+        Search::new(program, target)
+    };
     search.run(1_000_000, limit());
     assert_eq!(search.summary().outcome, Outcome::Reached, "{source}");
     search
@@ -43,7 +50,14 @@ fn generation() {
         let (source, target) = tower(depth);
         let complete = execute(&source, &target);
         assert_eq!(complete.summary().event, depth);
-        let mut chunk = Search::new(parse(&source).unwrap(), parse(&target).unwrap()).unwrap();
+        let mut chunk = {
+            let program = parse(&source).unwrap();
+            let target = crate::source::Program {
+                rule: program.rule.clone(),
+                ..parse(&target).unwrap()
+            };
+            Search::new(program, target)
+        };
         for _ in 0..1_000_000 {
             chunk.run(1, limit());
             if chunk.summary().outcome == Outcome::Reached {
@@ -125,7 +139,14 @@ fn recursion() {
         "Seed [Seed] (First [First] Second [Second] First)",
         "Again [Again] Again.([Absent] Done)",
     ] {
-        let mut search = Search::new(parse(source).unwrap(), parse("Missing").unwrap()).unwrap();
+        let mut search = {
+            let program = parse(source).unwrap();
+            let target = crate::source::Program {
+                rule: program.rule.clone(),
+                ..parse("Missing").unwrap()
+            };
+            Search::new(program, target)
+        };
         search.run(10_000, limit());
         assert_eq!(search.summary().outcome, Outcome::Unknown);
         assert!(search.summary().work <= 10_000);
@@ -148,7 +169,14 @@ fn capture() {
             body = format!("Enter{position} [Enter{position}] ({body})");
         }
         let source = format!("Enter0.Make.Call [Enter0] ({body}) [A] Global");
-        let mut search = Search::new(parse(&source).unwrap(), parse("Missing").unwrap()).unwrap();
+        let mut search = {
+            let program = parse(&source).unwrap();
+            let target = crate::source::Program {
+                rule: program.rule.clone(),
+                ..parse("Missing").unwrap()
+            };
+            Search::new(program, target)
+        };
         let bound = Limit {
             cell: (depth + 4) * (depth + 4),
             ..limit()
@@ -178,8 +206,14 @@ fn capture() {
             "depth {depth}"
         );
         if depth == 32 {
-            let mut paused =
-                Search::new(parse(&source).unwrap(), parse("Missing").unwrap()).unwrap();
+            let mut paused = {
+                let program = parse(&source).unwrap();
+                let target = crate::source::Program {
+                    rule: program.rule.clone(),
+                    ..parse("Missing").unwrap()
+                };
+                Search::new(program, target)
+            };
             paused.run(1_000_000, limit());
             let current = paused.current();
             let cell = current
@@ -190,9 +224,16 @@ fn capture() {
                 + current
                     .frame
                     .iter()
-                    .map(|frame| frame.held.len())
+                    .map(|frame| frame.particle.len() + frame.held.len())
                     .sum::<usize>();
-            assert_eq!(cell, limit().cell);
+            assert!(cell <= limit().cell);
+            assert!(
+                !current
+                    .world
+                    .iter()
+                    .flat_map(|world| &world.particle)
+                    .any(|token| token.label.as_ref() == "Done")
+            );
             paused.run(1_000_000, bound);
             let mut actual = serde_json::to_value(paused.report()).unwrap();
             let mut expected = serde_json::to_value(report).unwrap();

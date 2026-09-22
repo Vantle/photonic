@@ -139,8 +139,8 @@ impl Space {
                 });
             for &site in candidate {
                 let eligible = change.is_some() || {
-                    let world = &index.state.world[index.world(site)];
-                    world.frame == self.frame && self.query.matches(position, index, site)
+                    index.location(site).frame(&index.state) == self.frame
+                        && self.query.matches(position, index, site)
                 };
                 if eligible {
                     affected = true;

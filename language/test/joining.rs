@@ -18,7 +18,7 @@ fn collect(
                 result.insert(
                     value
                         .into_iter()
-                        .map(|slot| (slot.world, slot.token, slot.position))
+                        .map(|slot| (slot.location.world().unwrap(), slot.token, slot.position))
                         .collect(),
                 );
             }
@@ -69,6 +69,7 @@ fn differential() {
             ]
             .into(),
         };
+        state.frame.push(state.frame[0].clone());
         let pattern = Arc::new(
             (0..next(3) + 1)
                 .map(|_| {

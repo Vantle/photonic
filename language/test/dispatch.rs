@@ -7,15 +7,8 @@ use std::sync::Arc;
 use std::task::Poll;
 
 fn accounting(network: &Network) {
-    for (scope, available) in network.scope.iter().enumerate() {
-        let expected = (0..network.catalog.width(scope))
-            .filter(|&position| {
-                let (input, _) = network.catalog.scope(scope, position);
-                network.enabled.contains(&input)
-            })
-            .collect::<Vec<_>>();
-        assert_eq!(available.len(), expected.len());
-        assert_eq!(available.iter().collect::<Vec<_>>(), expected);
+    for (input, &missing) in network.missing.iter().enumerate() {
+        assert_eq!(network.enabled.contains(&input), missing == 0);
     }
     assert_eq!(
         network.storage,
@@ -55,7 +48,7 @@ fn batching() {
                     delivery.rule,
                     delivery.frame,
                     delivery.owner,
-                    delivery.read.map(|read| (read.site, read.resource)),
+                    delivery.read,
                     delivery.selection,
                 )
             })
@@ -189,13 +182,11 @@ fn mutation() {
                     delivery.rule,
                     delivery.frame,
                     delivery.owner,
-                    delivery
-                        .read
-                        .map(|read| (index.world(read.site), read.resource)),
+                    delivery.read.map(|read| read.place(index)),
                     delivery
                         .selection
                         .into_iter()
-                        .map(|slot| (slot.world, slot.position, slot.token))
+                        .map(|slot| (slot.location, slot.position, slot.token))
                         .collect::<Vec<_>>(),
                 )
             })
@@ -368,8 +359,8 @@ fn multiplicity() {
     let delivery = drain(&mut network, &index);
     assert_eq!(delivery.len(), 1);
     assert_ne!(
-        delivery[0].selection[0].world,
-        delivery[0].selection[1].world
+        delivery[0].selection[0].location,
+        delivery[0].selection[1].location
     );
 }
 
@@ -399,7 +390,9 @@ fn empty() {
             frame: Vec::new(),
         },
     );
-    assert!(drain(&mut network, &index).is_empty());
+    let delivery = drain(&mut network, &index);
+    assert_eq!(delivery.len(), 1);
+    assert!(delivery[0].selection.is_empty());
 }
 
 #[test]
@@ -444,6 +437,14 @@ fn capture() {
     let mut state = State::initial(&program);
     state.frame.push(state.frame[0].clone());
     Arc::make_mut(&mut state.frame[0]).lexical = Some(1);
+    for frame in 0..2 {
+        let value = Arc::make_mut(&mut state.frame[frame]);
+        value
+            .particle
+            .retain(|token| token.value == Symbol::Rule(0));
+        value.particle[0].id = frame + 1;
+        value.particle[0].capture = Some(frame);
+    }
     state.world = vec![
         World {
             frame: 0,

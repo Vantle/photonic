@@ -33,7 +33,6 @@ pub(crate) struct Network {
     empty: Vec<usize>,
     missing: Vec<usize>,
     enabled: Set,
-    scope: Vec<crate::bitmap::Set>,
     entry: registry::Registry,
     ready: Option<BTreeMap<Key, usize>>,
     agenda: VecDeque<usize>,
@@ -122,21 +121,11 @@ impl Network {
                 trigger.entry(symbol).or_default().push(input);
             }
         }
-        let mut scope = (0..program.scope.len())
-            .map(|scope| crate::bitmap::Set::new(catalog.width(scope)))
-            .collect::<Vec<_>>();
-        for &input in &enabled {
-            for owner in catalog.owner(input) {
-                scope[owner.scope].insert(owner.position);
-            }
-        }
         let retained = catalog.retained()
             + empty.len()
             + trigger.len()
             + trigger.values().map(Vec::len).sum::<usize>()
-            + missing.len()
-            + scope.len()
-            + scope.iter().map(crate::bitmap::Set::len).sum::<usize>();
+            + missing.len();
         let mut network = Self {
             retained,
             storage: 0,
@@ -149,7 +138,6 @@ impl Network {
             sharing: std::sync::Arc::new(crate::joining::Store::new(65_536)),
             trigger,
             empty,
-            scope,
             missing,
             enabled,
             entry: registry::Registry::new(index.state.frame.len()),
@@ -214,7 +202,9 @@ impl Network {
             .filter(
                 |&frame| match (previous.frame.get(frame), index.state.frame.get(frame)) {
                     (Some(left), Some(right)) => {
-                        left.scope != right.scope || left.lexical != right.lexical
+                        left.scope != right.scope
+                            || left.lexical != right.lexical
+                            || left.particle != right.particle
                     }
                     _ => true,
                 },
@@ -225,6 +215,7 @@ impl Network {
         let mut context = changed.clone();
         context.extend_from_slice(&index.context);
         affected.extend_from_slice(&changed);
+        affected.extend_from_slice(&index.context);
         if !changed.is_empty() {
             let descendant = self.context.select(index, previous, &changed);
             affected.extend_from_slice(&descendant);

@@ -6,6 +6,7 @@ rust_binary(
     srcs = [
         "argument.rs",
         "main.rs",
+        "output.rs",
     ],
     crate_root = "main.rs",
     lint_config = "//:lint",
@@ -18,6 +19,7 @@ rust_binary(
         "//language:photonic",
         "@crate//:clap",
         "@crate//:miette",
+        "@crate//:serde",
         "@crate//:serde_json",
     ],
 )

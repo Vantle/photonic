@@ -14,7 +14,14 @@ fn operand(label: &str, count: usize) -> String {
 }
 
 fn check(source: &str, target: &str) -> Outcome {
-    let mut search = Search::new(parse(source).unwrap(), parse(target).unwrap()).unwrap();
+    let mut search = {
+        let program = parse(source).unwrap();
+        let target = crate::source::Program {
+            rule: program.rule.clone(),
+            ..parse(target).unwrap()
+        };
+        Search::new(program, target)
+    };
     search.run(
         12_000,
         Some(Limit {

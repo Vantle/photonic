@@ -64,12 +64,23 @@ fn assembly() {
 #[test]
 fn binary() {
     let root = directory();
-    let target = root.join("target.particle");
-    std::fs::write(
-        &target,
-        "First.([Digit] 2).([Carry] 1), Second.([Digit] 0).([Borrow] 1)",
-    )
-    .unwrap();
+    let target = root.join("target.json");
+    let output = Command::new(executable("LOCAL"))
+        .current_dir(&root)
+        .arg("lower")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let source: photonic::source::Program = serde_json::from_slice(&output.stdout).unwrap();
+    assert!(!source.rule.is_empty());
+    let value = photonic::source::Program {
+        rule: source.rule,
+        ..photonic::lowering::parse(
+            "First.([Digit] 2).([Carry] 1), Second.([Digit] 0).([Borrow] 1)",
+        )
+        .unwrap()
+    };
+    std::fs::write(&target, serde_json::to_vec(&value).unwrap()).unwrap();
     let output = Command::new(executable("LOCAL"))
         .current_dir(&root)
         .args(["prism", "--target"])
@@ -185,6 +196,7 @@ fn verification() {
                 "expect": expect,
                 "match": "all",
                 "path": path,
+            "preserve": true,
                 "step": step,
                 "state": 128,
                 "cell": 32,
@@ -249,6 +261,7 @@ fn matching() {
                 "match": mode,
                 "expect": expect,
                 "path": false,
+            "preserve": true,
                 "step": step,
                 "state": 128,
                 "cell": 32,

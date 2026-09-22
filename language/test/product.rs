@@ -27,8 +27,14 @@ fn boundary() {
     for left in 0..=1 {
         for right in 0..=1 {
             for result in 0..=2 {
-                let mut search =
-                    Search::new(program(left, right), target(left, right, result)).unwrap();
+                let mut search = {
+                    let program = program(left, right);
+                    let target = crate::source::Program {
+                        rule: program.rule.clone(),
+                        ..target(left, right, result)
+                    };
+                    Search::new(program, target)
+                };
                 search.run(
                     3_000_000,
                     Some(Limit {
@@ -64,7 +70,13 @@ fn composition() {
     program
         .rule
         .extend(parse("[Product,Add] Product").unwrap().rule);
-    let mut search = Search::new(program, target(1, 1, 2)).unwrap();
+    let mut search = {
+        let target = crate::source::Program {
+            rule: program.rule.clone(),
+            ..target(1, 1, 2)
+        };
+        Search::new(program, target)
+    };
     search.run(
         3_000_000,
         Some(Limit {

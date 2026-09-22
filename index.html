@@ -9,6 +9,8 @@
 <link rel="stylesheet" href="document/book.css">
 <script defer src="document/native.js"></script>
 <script defer src="document/record.js"></script>
+<script defer src="document/syntax.js"></script>
+<script defer src="document/inspection.js"></script>
 <script defer src="document/book.js"></script>
 <script defer src="document/evaluation.js"></script>
 <script defer src="document/graph.js"></script>
@@ -16,8 +18,6 @@
 <script defer src="document/expression.record.js"></script>
 <script defer src="document/demo.record.js"></script>
 <script defer src="document/expression.js"></script>
-<script defer src="document/syntax.js"></script>
-<script defer src="document/inspection.js"></script>
 <script defer src="document/sandbox.js"></script>
 </head>
 <body>
@@ -70,6 +70,7 @@
 </section>
 <section class="chapter" id="grammar" data-title="Grammar syntax particle wave brackets dots commas parentheses whitespace">
 <div class="chapter-number">02 / GRAMMAR</div><h2>Reading <em>Photonic source.</em></h2>
+<p>Rules are runtime values. Loading initializes each written rule occurrence in its lexical context; entering a body initializes its nested rules. Executing a rule reads it, while explicitly matching it as an operand consumes that occurrence. Consumption affects only the selected owner. <code>[] A</code> has zero input positions and starts without an initial coherence. <code>[()] A</code> selects one actual coherence; <code>[,] A</code> selects two distinct coherences. Nonempty positions can also match visible context-owned rules. Equal rule code does not merge independently introduced resources. See the <a href="document/occurrence.md">ownership and migration contract</a>.</p>
 <p class="lead">Dots join values in a particle. Commas separate coherences. Brackets introduce rule inputs.</p>
 <p>The fundamental grammar recognizes concepts, dots, commas, parenthesized groups, bracketed source contexts, and whitespace. These describe source structure. Matching, execution, and lowering behavior are explained in the following chapters.</p>
 <p>Both <code>.particle</code> and <code>.wave</code> use this grammar. By convention, <code>.particle</code> holds reusable rules or data and <code>.wave</code> holds scripts.</p>
@@ -124,7 +125,7 @@ Pair.Other
 [Seed] Intermediate
 [Intermediate] Kind
 [Other] Kind
-[Pair.Kind, Pair.Kind] ([] Result)</code></pre></div><p>Both operands establish Kind, through different derivations. The body can receive Seed and Other and introduce Result. Repeated Kind positions do not require the concrete witnesses to be equal. Two source positions still require two compatible witness coherences.</p>
+[Pair.Kind, Pair.Kind] ([()] Result)</code></pre></div><p>Both operands establish Kind, through different derivations. The body can receive Seed and Other and introduce Result. Repeated Kind positions do not require the concrete witnesses to be equal. Two source positions still require two compatible witness coherences.</p>
 <h3>Conjunction</h3><div class="example"><pre><code>And.True.False.Extra
 [True] Boolean
 [False] Boolean
@@ -198,7 +199,7 @@ Pair.Other
 <p>The path through B.C can retain C and reach C.D. Source inference can also reach D directly from A. Those are alternative results, not two contributions to combine. Cycles, when present, remain cycles in the drawing.</p>
 <div class="graph-editor"><h4>Try a different rule</h4><p>Change a concept, add a rule, or ask for a different target. The live version runs the Rust evaluator compiled to WebAssembly, with generated wasm-bindgen bindings, in a separate worker. It uses bounded exploration, just like the command-line tool.</p>
 <label for="evaluation-source">Photonic source</label><textarea id="evaluation-source" rows="5" spellcheck="false"></textarea>
-<label for="evaluation-target">Target configurations · JSON list</label><textarea id="evaluation-target" rows="2" spellcheck="false">["D", "C.D"]</textarea>
+<label for="evaluation-target">Complete targets, including rules · JSON list</label><textarea id="evaluation-target" rows="2" spellcheck="false">["D [A] B.C [B] D", "C.D [A] B.C [B] D"]</textarea>
 <div class="graph-action"><button id="evaluation-run" type="button">Run in Rust</button><button id="evaluation-stop" type="button" disabled>Stop</button><button id="evaluation-reset" type="button">Restore example</button></div>
 <p id="evaluation-status" role="status">Recorded Rust execution. Run the source to explore it live.</p><ul id="evaluation-verdict"></ul>
 <details><summary>Run the live webbook locally</summary><pre><code>bazel run -c opt //toolchain/browser:serve</code></pre><p>Open <a href="http://127.0.0.1:8080">http://127.0.0.1:8080</a>. The preview serves the compiled module alongside this book. Opening the HTML file directly keeps the recorded diagrams available offline.</p><p>The browser allows 20,000 work steps, 128 configurations and occurrences per runtime limit, 16 coherences and frames, and 100,000 records. A five-second watchdog or the Stop button terminates the worker. Stopping does not establish unreachability. The diagram shows at most 32 configurations; the inspector and target verdicts use the full recorded result.</p></details>
@@ -214,12 +215,14 @@ Pair.Other
 [Step] Unit</code></pre></div><p>Step is consumed, the existing two Units remain, and the rule introduces one more. The result is three. Zero is <code>()</code>, one empty coherence; an empty file has no coherence.</p>
 <h3>Membership is a derivation</h3><div class="example"><pre><code>Check.Unit.Unit
 [Check] Natural
-[Natural.Unit] Natural</code></pre></div><p>The first rule starts the recognition process. Each remaining Unit can participate in a rule with Natural. The exact target Natural contains no unprocessed Unit or extra information.</p>
+[Natural.Unit] Natural</code></pre></div><p>The first rule starts the recognition process. Each remaining Unit can participate in a rule with Natural. The complete target contains Natural and the two surviving root rules, with no unprocessed Unit.</p>
 <h3>Addition is reunion</h3><p>Label two independent numeral coherences with Add. The rule consumes their labels and unites their disjoint numerical remainders.</p>
 <div class="lab"><div class="lab-heading"><span class="tag">NUMERAL ILLUSTRATION</span><h3>Build a sum</h3></div><div class="grid two"><label>First numeral <input id="natural-left" type="range" min="0" max="12" value="3"><output id="natural-left-value">3</output></label><label>Second numeral <input id="natural-right" type="range" min="0" max="12" value="7"><output id="natural-right-value">7</output></label></div><div id="natural-input" class="world-grid"></div><div class="rule-divider"><code>[Add, Add] ()</code><span>↓</span></div><div id="natural-output" class="token-row"></div><p id="natural-equation" class="equation" aria-live="polite"></p><details><summary>Read the generated example</summary><pre id="natural-source"></pre></details><p class="caption">An illustration of disjoint Unit union. Run the saved 3 + 7 source below to check its exact target with Rust.</p></div>
-<div class="example"><pre><code>bazel run -c opt //command:photonic -- prism \
+<div class="example"><pre><code>bazel run -c opt //command:photonic -- lower "$PWD/program/natural/ten.particle" \
+  --context "$PWD/program/natural/sum.wave" &gt; /tmp/photonic-target.json
+bazel run -c opt //command:photonic -- prism \
   "$PWD/program/natural/sum.wave" \
-  --target "$PWD/program/natural/ten.particle"</code></pre></div>
+  --target /tmp/photonic-target.json</code></pre></div>
 <h3>Why the addition laws hold</h3><p>Define addition on numeral classes as disjoint union. Empty contributes no occurrences, exchanging operands changes only order, and regrouping three operands preserves all their occurrences. These give identity, commutativity, and associativity. Adding a fresh Unit commutes with that union, giving successor compatibility.</p><p>Cancellation follows by removing the same number of indistinguishable Units from equal finite counts. The carrier’s least-closure definition supplies the mathematical induction argument. The library pairs these written arguments with finite executable checks.</p>
 <div class="law-grid"><div><code>a + 0 = a</code><span>Identity</span></div><div><code>a + b = b + a</code><span>Commutativity</span></div><div><code>(a + b) + c = a + (b + c)</code><span>Associativity</span></div><div><code>a + S(b) = S(a + b)</code><span>Successor compatibility</span></div></div>
 <p class="source-link"><a href="#guide-arithmetic-natural">Carrier and written proofs</a> · <a href="#guide-arithmetic-addition">Addition laws</a> · <a href="language/test/natural.rs">Executable checks</a></p>
@@ -312,8 +315,11 @@ Pair.Other
 <p id="expression-state" class="caption"></p><p id="expression-count" class="caption"></p>
 <div class="example"><div class="example-bar"><span>Run the complete native expression</span><a id="expression-link" href="program/ternary/infix.wave">Input and result check ↗</a></div><pre><code id="expression-command">bazel test -c opt //program/ternary:infix.check --test_output=all</code></pre></div>
 <details id="expression-source-panel"><summary>Read this localized native program</summary><pre id="expression-source"></pre></details>
-<details><summary>Inspect the full original 50 × 3 ÷ 2 + 4 − 1 execution</summary><pre><code>bazel run -c opt //program/ternary:infix -- prism \
-  --target "$PWD/program/ternary/result.particle" --path \
+<details><summary>Inspect the full original 50 × 3 ÷ 2 + 4 − 1 execution</summary><pre><code>bazel run -c opt //program/ternary:infix -- lower &gt; /tmp/photonic-program.json
+bazel run -c opt //command:photonic -- lower "$PWD/program/ternary/result.particle" \
+  --context "/tmp/photonic-program.json" &gt; /tmp/photonic-target.json
+bazel run -c opt //program/ternary:infix -- prism \
+  --target /tmp/photonic-target.json --path \
   --steps 100000000 --states 65536 --cells 16384 \
   --frames 2048 --coherences 1024 --records 100000000 --json</code></pre><p>The fixture reads every result trit before accepting <code>Done.Zero</code>. This verifies the full linked result and its cleanup. Remove its inspection rules to retain <code>Return.Expression.Number.Positive</code> with the numeral head and cells for another native operation.</p></details>
 <p class="caption">This viewer navigates a saved native execution. The browser’s small live sandbox has lower budgets. The recorder runs the existing engine and formats its results; parsing, precedence, and arithmetic all execute in Photonic. A reached target proves this path, not that every possible path has been explored.</p>
@@ -387,10 +393,12 @@ bazel test -c opt //program/ternary:position.check</code></pre></div>
 <p class="lead">Prism checks whether an exact target configuration can be reached from a supplied program.</p>
 <p>A target includes its complete particle contents, coherence arrangement, and sharing. This makes an arithmetic result a concrete configuration claim. The arithmetic command accepts the proposed answer and encodes it as that target.</p>
 <div class="status-grid"><div><strong>Reached</strong><p>A supported witness reaches the exact target.</p></div><div><strong>Unreachable</strong><p>Finite exhaustive exploration closed without that target.</p></div><div><strong>Unknown</strong><p>The exploration has not established a verdict. A failed direct path also reports Unknown.</p></div></div>
-<div class="lab workshop"><div class="lab-heading"><span class="tag verified">VERIFIED RUST WITNESSES</span><h3>1500 and 123, four ways</h3></div><label for="operation">Operation</label><select id="operation"><option value="add">Addition</option><option value="subtract">Subtraction</option><option value="multiply" selected>Multiplication</option><option value="divide">Division</option></select><div class="answer"><span id="operation-equation"></span><strong id="operation-result"></strong><small id="operation-remainder"></small></div><div class="metrics"><div><strong id="operation-event"></strong><span>events</span></div><div><strong id="operation-work"></strong><span>work steps</span></div><div><strong>Reached</strong><span>exact target</span></div></div><div class="example"><div class="example-bar"><span>Run this claim locally</span><button id="command-copy" type="button">Copy command</button></div><pre id="operation-command"></pre></div><p id="copy-status" role="status"></p><div class="stepper"><button id="operation-back" type="button">← Previous event</button><output id="operation-position"></output><button id="operation-next" type="button">Next event →</button></div><pre id="operation-rule" class="event-rule"></pre><details><summary>Inspect the complete target particle</summary><pre id="operation-target"></pre></details><a id="operation-source" href="program/circuit/multiply.wave">Open the generated source ↗</a><p class="caption">Recorded by the Rust direct-path evaluator from the checked-in source programs. Counts describe these runs. The buttons navigate stored events, and the proposed arithmetic answer is supplied by the caller.</p></div>
-<h3>Use the same source directly</h3><div class="example"><pre><code>bazel run -c opt //command:photonic -- prism \
+<div class="lab workshop"><div class="lab-heading"><span class="tag verified">VERIFIED RUST WITNESSES</span><h3>1500 and 123, four ways</h3></div><label for="operation">Operation</label><select id="operation"><option value="add">Addition</option><option value="subtract">Subtraction</option><option value="multiply" selected>Multiplication</option><option value="divide">Division</option></select><div class="answer"><span id="operation-equation"></span><strong id="operation-result"></strong><small id="operation-remainder"></small></div><div class="metrics"><div><strong id="operation-event"></strong><span>events</span></div><div><strong id="operation-work"></strong><span>work steps</span></div><div><strong>Reached</strong><span>exact target</span></div></div><div class="example"><div class="example-bar"><span>Run this claim locally</span><button id="command-copy" type="button">Copy command</button></div><pre id="operation-command"></pre></div><p id="copy-status" role="status"></p><div class="stepper"><button id="operation-back" type="button">← Previous event</button><output id="operation-position"></output><button id="operation-next" type="button">Next event →</button></div><pre id="operation-rule" class="event-rule"></pre><details><summary>Inspect the complete target state</summary><pre id="operation-target"></pre></details><a id="operation-source" href="program/circuit/multiply.wave">Open the generated source ↗</a><p class="caption">Recorded by the Rust direct-path evaluator from the checked-in source programs. Counts describe these runs. The buttons navigate stored events, and the proposed arithmetic answer is supplied by the caller.</p></div>
+<h3>Use the same source directly</h3><div class="example"><pre><code>bazel run -c opt //command:photonic -- lower "$PWD/program/circuit/multiply.particle" \
+  --context "$PWD/program/circuit/multiply.wave" &gt; /tmp/photonic-target.json
+bazel run -c opt //command:photonic -- prism \
   "$PWD/program/circuit/multiply.wave" \
-  --target "$PWD/program/circuit/multiply.particle" \
+  --target /tmp/photonic-target.json \
   --path --steps 20000000 --states 4096 --cells 4096</code></pre></div>
 <p>The external arithmetic tool accepts decimal, binary, ternary, octal, and hexadecimal input spellings. For example, <code>--left 0t2001120</code> encodes 1500 into ternary circuit inputs. In a Photonic source file, that same spelling is simply an ordinary concept name.</p>
 <details class="exercise"><summary>Does the generated target influence the computation rules?</summary><p>No. The operation and operand width determine the circuit rules. Input values determine initial facts. The supplied expected result determines the separate proof target.</p></details>
@@ -469,22 +477,22 @@ bazel test //language:test</code></pre>
 <p>Tests cover the original alphabet, Unicode spans, grouping, nested rule production and replacement, the historical bracket example, original-style Boolean declarations, empty results, malformed composition, and runtime reachability. They do not establish that every previously unresolved historical expression has a unique intended semantics.</p>
 <a id="guide-language-semantics"></a>
 <h3 id="guide-language-configuration-semantics">Configuration semantics</h3>
-<p>This contract describes the native configuration runtime. The <a href="#guide-runtime-runtime">runtime guide</a> describes its implementation, and the <a href="#guide-language-binding">binding contract</a> summarizes projection. The Rust runtime implements this bounded configuration contract, with <a href="#guide-language-syntax">native source lowering</a> and a CLI. A separate generic Rust rule kernel provides literal multiset replacement. The configuration runtime executes finite ground generated rule values, lexical captures, read-supported source inference, and positive evidence.</p>
+<p>This contract describes the native configuration runtime. The <a href="#guide-runtime-runtime">runtime guide</a> describes its implementation, and the <a href="#guide-language-binding">binding contract</a> summarizes projection. The Rust runtime implements this bounded configuration contract, with <a href="#guide-language-syntax">native source lowering</a> and a CLI. Direct and exhaustive search share one transition evaluator. The configuration runtime executes finite ground generated rule values, lexical captures, read-supported source inference, and positive evidence.</p>
 <a id="guide-language-semantics-state"></a>
 <h4 id="guide-language-state">State</h4>
-<p>A configuration contains a multiset of coherences and their reachable lexical environments and continuations. A coherence contains a multiset of live occurrences. Each occurrence references an introduction identity and a concept value. Within a coherence, an introduction appears at most once; across coherences, the same introduction can be shared. Equal values with different introductions retain multiplicity.</p>
+<p>A configuration contains a multiset of coherences and their reachable lexical contexts and continuations, including live context-owned rule occurrences. A coherence contains a multiset of live occurrences. Each occurrence references an introduction identity and a concept value. Within a coherence, an introduction appears at most once; across coherences, the same introduction can be shared. Equal values with different introductions retain multiplicity.</p>
 <p>Anonymous identity is not observable spelling. Canonicalization renames introductions and frames and orders coherences while preserving their incidence graph, lexical links, continuation links, and held resources. Equal labels alone do not establish equal configurations. An empty coherence differs from no coherence.</p>
-<p>The reference fixes immutable lexical declarations and the finite ground code constructors for one model instance. Executable rule availability evolves with each configuration. Live rule values and their captured environments participate in canonical state identity. Code is structurally interned within the model, so caches cannot be shared across unrelated model instances without including their code universe.</p>
+<p>The model fixes immutable rule code for one instance; loading and body entry introduce separate live occurrences of that code. Executable rule availability evolves with each configuration. Live rule values and their captured environments participate in canonical state identity. Code is structurally interned within the model, so caches cannot be shared across unrelated model instances without including their code universe.</p>
 <a id="guide-language-semantics-witness"></a>
 <h4 id="guide-language-witness">Witness</h4>
 <p>A relative view <code>V : S ⇒ T</code> records a joint derivation from a source configuration S to a witness configuration T. Its flow maps each live or continuation-held target occurrence to a set of source occurrences. Its context map tracks the participating source coherences, including empty ones. Its frame map tracks surviving source environments; newly created frames do not masquerade as earlier frames.</p>
 <p>The identity view supplies direct matching. Composing a view with an event substitutes the event&#x27;s flow through the earlier flow and interns the result. Different equivalent paths can support the same relative view. Provenance describes causal support, not exclusive global ownership.</p>
-<p>Matching selects distinct occurrences for repeated particle positions and distinct witness coherences for distinct coherence positions. The reference requires participating coherences to share a frame. A local executable rule must reside in one of its participating coherences; an unrelated coherence cannot lend its code implicitly. Zero-input applications still bind an execution-site coherence, for both lexical declarations and local rule values. A joint sibling match may project several witness coherences to one concrete source coherence. This noninjective backward mapping does not duplicate the source.</p>
+<p>Matching selects distinct occurrences for repeated particle operands and distinct locations for separate input positions. Participating locations share an execution frame. Nonempty positions can select coherences or the lexical context; empty patterns require actual coherences. A coherence-owned rule with nonzero input must reside in a participating coherence. A zero-input application reads its enabling occurrence in its execution context without selecting an input coherence. A joint sibling match may project several witness coherences to one concrete source coherence. This noninjective backward mapping does not duplicate the source.</p>
 <p>Separate paths from incompatible alternatives are not a joint view. Given <code>A → B</code> and <code>A → C</code>, the historical presence of both results cannot enable a two-coherence B/C match. Given <code>A → [B,C]</code>, both results are present in one configuration and can enable that match.</p>
 <a id="guide-language-semantics-application"></a>
 <h4 id="guide-language-application">Application</h4>
 <p>Project the complete witness binding to its union of concrete live source occurrences, the footprint F. Preserve source coherences required by the context map, even when they contain no selected occurrence. Projection cannot borrow hidden continuation resources as additional live operands.</p>
-<p>For literal output, remove introductions in F from the participating source coherences. Combine their remaining introductions by identity into remainder R. Each output receives R plus fresh introductions for its explicit result. Shared untouched remainder is reconciled once; independent equal introductions remain separate. Coherences outside the binding are unchanged.</p>
+<p>For literal output, remove the selected occurrences in F from their participating source coherences. An unselected occurrence sharing an introduction with a consumed occurrence survives, even when their coherences merge. Combine their remaining introductions by identity into remainder R. Each output receives R plus fresh introductions for its explicit result. Shared untouched remainder is reconciled once; independent equal introductions remain separate. Coherences outside the binding are unchanged.</p>
 <p>For a body output, the exact footprint E consists of witness positions whose source mapping is a singleton occurrence carrying the same value. Consume E; transfer the remaining concrete witness and R into the new body. Store exact consumption in its continuation. The return destination and lexical definition environment are separate links. Applying a rule owned by the current body returns its output to the parent; applying an inherited rule operates in the current body.</p>
 <p>A return associates explicit output with the body&#x27;s consumed input and the enclosing held consumption. This allows aggregate inference to replace the entire original operator and operands. A local rule still preserves any unmatched operand: operator arity is described by program rules, not inferred from Boolean labels.</p>
 <p>For <code>And.True.False.Extra</code>, deriving the witness <code>And.Boolean.Boolean.Extra</code> enables the outer body at the concrete source. Exact And is consumed, True.False.Extra transfers, and a body rule matching True.False produces False.Extra. Deriving an aggregate Boolean replaces And and both operands, preserving only Extra. Intermediate Boolean evidence never accumulates beside its concrete operands.</p>
@@ -509,7 +517,7 @@ bazel test //language:test</code></pre>
 <h4 id="guide-language-nested-rule-values">Nested rule values</h4>
 <p>A ground value is an atom string or <code>{rule: {input, output}}</code>. A whole rule occupies one pattern position. The code interner normalizes particle/coherence order and ignores diagnostic names. Every active rule occurrence also carries a capture edge to its immutable defining frame. A pattern containing a whole rule resolves its expected capture in the pattern’s lexical environment. Equal code with a different capture is not silently an exact match.</p>
 <p>Output <code>{particle: [{rule: ...}]}</code> returns a rule value; <code>{body: [...]}</code> enters a body. These intermediate-representation forms are explicit and executable. Native lowering uses <code>[Seed] [A] B</code> for produced rule values and <code>[Enter] ([Payload] Result)</code> for entered bodies. It reads the original grammar; see <a href="#guide-language-generalization">generalization</a>. The same lossless tree is used for executable lowering. The current constructors describe finite ground code, not arbitrary unknown subterm extraction or native wildcard substitution.</p>
-<p>A rule exposed in a coherence becomes eligible there. The active rule index is consulted only in a compatible joint witness that also supplies its operands. Lexical declarations remain immutable within the model instance. Applying a local rule reads its availability; explicitly matching a rule as an operand consumes it by ordinary replacement. Applying a rule with an empty input vector is anchored to an existing execution-site coherence, just like an empty particle pattern.</p>
+<p>A rule occurrence becomes eligible through its coherence or lexical ownership. The active rule index is consulted only in a compatible joint witness that also supplies its operands. Applying a rule reads its occurrence; explicitly selecting it as an operand consumes it at that owner. Context consumption removes every lexical path to the same occurrence. Zero-input rules can execute with only their loaded context; empty particle patterns still require actual coherences.</p>
 <p>An application records consuming footprint C and rule-read support R separately. Literal output replaces C and preserves R minus C as concrete remainder. Consumption wins on overlap. Rule availability and its derivation are retained in event support; output flow contains consuming dependencies rather than the union of all causal support.</p>
 <p>For Seed → R, where R is A → B, actual execution from Seed.A reaches R.B. Inferred application at Seed.A produces Seed.B. If Seed jointly produces R.A, inferred application instead produces B: the source consumed through A is also the source that justified reading R. Separate competing Seed → R and Seed → A cannot provide a joint application.</p>
 <p>Read support establishes an event at its historical source. Removing the rule later does not erase an already produced result. An inferred dynamic body retains the executable capture as frame metadata without allocating a consumable copy of a witness-only rule or adding read-only resources to its held consuming footprint.</p>
@@ -626,7 +634,7 @@ Pair.Other
 [Seed] Intermediate
 [Intermediate] Kind
 [Other] Kind
-[Pair.Kind, Pair.Kind] ([] Result)</code></pre>
+[Pair.Kind, Pair.Kind] ([()] Result)</code></pre>
 <p>This executable example reaches Result.Seed.Other. The two Kind occurrences are ordinary literal patterns, enabled by the program&#x27;s derivations. Seed and Other need not be equal. Their evidence can require different numbers of steps. The joint application can open its body at the concrete source, preserving Seed and Other; the local rule adds Result and returns. Removing Other&#x27;s derivation prevents this application. Putting both operands in one coherence also prevents this two-coherence match.</p>
 <p><code>language/test/prism.rs</code> checks these claims, including operand permutation. This example demonstrates abstraction and concrete witness preservation across flat coherences. It does not implement nested groups, copy either operand, or compute multiplication.</p>
 <p>The intended <code>Multiply(Number,Number)</code> abbreviates <code>Multiply.Number, Multiply.Number</code>; it does not introduce a private operand container. There are no implicit variables, no requirement that both numbers be equal, and no builtin numerical type. The distinction between partial pattern matching and evidence for a complete operand is recorded in <a href="#guide-language">shared-prefix groups</a>.</p>
@@ -709,13 +717,16 @@ Pair.Other
 <p><a href="program/composition/pipeline.wave">pipeline.wave</a> runs two independent invocations:</p>
 <pre><code>First.Invoke.Copy.Pair.([Value] True).Map.([Each] Not).Reduce.([Operation] And),
 Second.Invoke.Copy.Pair.([Value] False).Map.([Each] Not).Reduce.([Operation] And)</code></pre>
-<p>Each invocation produces two fresh scalar values in separate coherences, maps Not over both, and reduces the completed results with And. The target is <code>First.False, Second.True</code>.</p>
+<p>Each invocation produces two fresh scalar values in separate coherences, maps Not over both, and reduces the completed results with And. The data result is <code>First.False, Second.True</code>; the complete target also retains the loaded root rules.</p>
 <p>From the repository root:</p>
-<pre><code>bazel run -c opt //program/composition:pipeline -- prism \
-  --target &quot;$PWD/program/composition/pipeline.particle&quot; \
+<pre><code>bazel run -c opt //program/composition:pipeline -- lower &gt; /tmp/photonic-program.json
+bazel run -c opt //command:photonic -- lower "$PWD/program/composition/pipeline.particle" \
+  --context "/tmp/photonic-program.json" &gt; /tmp/photonic-target.json
+bazel run -c opt //program/composition:pipeline -- prism \
+  --target /tmp/photonic-target.json \
   --path --steps 2000000 --states 4096 --cells 256 --frames 64 --coherences 64</code></pre>
 <p>The direct-path check reaches this target through a program containing parallel coherences. It demonstrates an execution, not a measurement of parallel speedup. Full exploration and worker execution remain available through the existing command options; a suspended search reports Unknown.</p>
-<p><code>--library</code> loads declaration-only Photonic files into the same program. It preserves source-file diagnostics and introduces no namespace, import grammar, computation, or initial data. Repeat the option for each dependency. Dependencies are explicit: collection uses application plus the selected function implementation, and production supplies the producer implementation.</p>
+<p><code>--library</code> loads declaration-only Photonic files into the same program. It preserves source-file diagnostics and introduces no namespace or import grammar. Its declarations initialize live root rule occurrences without adding initial coherences. Repeat the option for each dependency. Dependencies are explicit: collection uses application plus the selected function implementation, and production supplies the producer implementation.</p>
 <p>See <a href="#guide-library-structure">atomic fields and explicit order</a> for the numeral convention and finite Pack/Unpack adapters. <a href="#guide-build-rule">Bazel rules</a> load multiple sources and transitive native dependencies.</p>
 <a id="guide-library-library-layers"></a>
 <h4 id="guide-library-layers">Layers</h4>
@@ -917,7 +928,7 @@ Function.Produce.([Value] True)
 <p>To check a candidate flat atom particle p, place exactly one fresh Check beside p in one root coherence and use only these two rules:</p>
 <pre><code>[Check] Natural
 [Natural.Unit] Natural</code></pre>
-<p>Ask Prism for the exact target <code>Natural</code>. Check and Natural are control labels outside the numerical carrier. The fixed rules are the trusted program for this claim; candidate executable rule values or extra declarations are outside this interface.</p>
+<p>Ask Prism for a target containing <code>Natural</code> and the two surviving root rules. Check and Natural are control labels outside the numerical carrier. The fixed rules are the trusted program for this claim; candidate executable rule values or extra declarations are outside this interface.</p>
 <p><strong>Completeness for numerals.</strong> With zero Units, <code>[Check] Natural</code> reaches the target. For a successor numeral, the first rule exposes Natural alongside its Units; the second removes one Unit and preserves the marker. Repeating this finite step reaches exactly Natural.</p>
 <p><strong>Soundness for the stated atom interface.</strong> Unknown atoms are never consumed by either rule and remain in the exact target comparison. The total number of Check and Natural markers is preserved. Since the interface supplies one Check, a candidate containing either control label leaves too many markers to equal singleton Natural. The remaining accepted candidates consist entirely of Units, which are precisely the carrier presentations.</p>
 <p>This reasoning also respects source inference: every derived Natural has exactly one marker ancestor and zero or more Unit ancestors; Unit itself is never produced by these rules. Projecting an application back to its source can consume several Units at once but cannot consume unknown atoms or combine distinct marker ancestries. It may shorten a path without broadening the accepted atom inputs.</p>
@@ -1003,7 +1014,9 @@ Function.Produce.([Value] True)
 <p>With only this rule, after j direct applications there are n − j Repeat occurrences and m × j Units. Each application strictly decreases the Repeat count and emits fresh Units. At n applications the result is exactly the product. No rule produces Repeat, and the action&#x27;s input cannot be derived from its Unit outputs, so source inference cannot create extra applications beyond the remaining repetition resources. This establishes termination and the unique terminal numerical result for the stated interface.</p>
 <p>Intermediate configurations remain reachable, as usual. “Terminal” is an external description, not a language test for absence. Prism checks the exact product configuration; no negative premise is used.</p>
 <p>Run <a href="program/natural/multiplication.wave">multiplication.wave</a>:</p>
-<pre><code>bazel run -c opt //command:photonic -- prism &quot;$PWD/program/natural/multiplication.wave&quot; --target &quot;$PWD/program/natural/six.particle&quot; --cells 32</code></pre>
+<pre><code>bazel run -c opt //command:photonic -- lower "$PWD/program/natural/six.particle" \
+  --context "$PWD/program/natural/multiplication.wave" &gt; /tmp/photonic-target.json
+bazel run -c opt //command:photonic -- prism "$PWD/program/natural/multiplication.wave" --target /tmp/photonic-target.json --cells 32</code></pre>
 <a id="guide-arithmetic-repetition-an-easy-composed-proof"></a>
 <h4 id="guide-arithmetic-an-easy-composed-proof">An easy composed proof</h4>
 <p><a href="program/natural/composition.wave">composition.wave</a> checks (2 × 3) + 1 = 7:</p>
@@ -1013,7 +1026,9 @@ Add.Unit
 [Add, Add] ()</code></pre>
 <p>Both operands use Add because addition is commutative. The two input contexts select distinct coherences; two Add occurrences in one coherence do not satisfy this two-coherence interface.</p>
 <p>The multiplication steps may happen before or after reunion. The addition consumes only the Add labels, preserving the three repetitions and the independently supplied Unit. Exactly three repetition applications produce six further Units. Thus either schedule reaches seven. The runtime checks that concrete reachability claim; the preceding invariant explains why the two operations compose.</p>
-<pre><code>bazel run -c opt //command:photonic -- prism &quot;$PWD/program/natural/composition.wave&quot; --target &quot;$PWD/program/natural/seven.particle&quot; --cells 32</code></pre>
+<pre><code>bazel run -c opt //command:photonic -- lower "$PWD/program/natural/seven.particle" \
+  --context "$PWD/program/natural/composition.wave" &gt; /tmp/photonic-target.json
+bazel run -c opt //command:photonic -- prism "$PWD/program/natural/composition.wave" --target /tmp/photonic-target.json --cells 32</code></pre>
 <p>This is a concrete proof under the supplied program, not a reusable universal equality certificate.</p>
 <a id="guide-arithmetic-repetition-the-action-can-be-a-value"></a>
 <h4 id="guide-arithmetic-the-action-can-be-a-value">The action can be a value</h4>
@@ -1021,8 +1036,10 @@ Add.Unit
 <pre><code>([Repeat] Unit.Unit).Repeat.Repeat.Repeat</code></pre>
 <p>Invocation reads the rule&#x27;s availability and consumes a Repeat. The rule value remains alongside the six-Unit result. The <a href="program/natural/retained.particle">target</a> therefore retains it explicitly:</p>
 <pre><code>([Repeat] Unit.Unit).Unit.Unit.Unit.Unit.Unit.Unit</code></pre>
-<pre><code>bazel run -c opt //command:photonic -- prism &quot;$PWD/program/natural/action.wave&quot; --target &quot;$PWD/program/natural/retained.particle&quot; --cells 32</code></pre>
-<p>This demonstrates reusable code as data through the ordinary matcher, without opening an unknown rule or substituting its fields. The result contains code and is not a plain numeral. The declaration form above yields a plain numeral; the value form intentionally keeps its reusable action.</p>
+<pre><code>bazel run -c opt //command:photonic -- lower "$PWD/program/natural/retained.particle" \
+  --context "$PWD/program/natural/action.wave" &gt; /tmp/photonic-target.json
+bazel run -c opt //command:photonic -- prism "$PWD/program/natural/action.wave" --target /tmp/photonic-target.json --cells 32</code></pre>
+<p>This demonstrates reusable code as data through the ordinary matcher, without opening an unknown rule or substituting its fields. The result contains code and is not a plain numeral. The declaration form keeps its reusable action in the root context and the numeral in a coherence. The explicitly embedded value keeps the action alongside the numeral in that coherence. Both actions are live rule occurrences, and exact targets include their respective owners.</p>
 <a id="guide-arithmetic-repetition-first-laws"></a>
 <h4 id="guide-arithmetic-first-laws">First laws</h4>
 <p>Let 1 = S(0).</p>
@@ -1052,9 +1069,11 @@ Add.Unit
 <a id="guide-arithmetic-product-run-the-example"></a>
 <h4 id="guide-arithmetic-run-the-example">Run the example</h4>
 <p>From the repository root:</p>
-<pre><code>bazel run -c opt //command:photonic -- prism \
-  &quot;$PWD/program/natural/product.wave&quot; \
-  --target &quot;$PWD/program/natural/archive.particle&quot; \
+<pre><code>bazel run -c opt //command:photonic -- lower "$PWD/program/natural/archive.particle" \
+  --context "$PWD/program/natural/product.wave" &gt; /tmp/photonic-target.json
+bazel run -c opt //command:photonic -- prism \
+  "$PWD/program/natural/product.wave" \
+  --target /tmp/photonic-target.json \
   --steps 15000000 --states 100000 --records 6000000 \
   --cells 128 --frames 128 --coherences 16</code></pre>
 <p>Recorded result:</p>
@@ -1065,8 +1084,10 @@ Witness s45095: [Archive.Unit.Unit]@root [Archive.Unit.Unit]@root [Unit.Unit.Uni
 <p>For addition, the existing simpler protocol remains:</p>
 <pre><code>Add(Unit.Unit.Unit, Unit.Unit.Unit.Unit.Unit.Unit.Unit)
 [Add, Add] ()</code></pre>
-<pre><code>bazel run -c opt //command:photonic -- prism \
-  &quot;$PWD/program/association/addition.wave&quot; --target &quot;$PWD/program/natural/ten.particle&quot;</code></pre>
+<pre><code>bazel run -c opt //command:photonic -- lower "$PWD/program/natural/ten.particle" \
+  --context "$PWD/program/association/addition.wave" &gt; /tmp/photonic-target.json
+bazel run -c opt //command:photonic -- prism \
+  "$PWD/program/association/addition.wave" --target /tmp/photonic-target.json</code></pre>
 <a id="guide-arithmetic-product-input-and-result"></a>
 <h4 id="guide-arithmetic-input-and-result">Input and result</h4>
 <p>The first two coherences in product.wave each contain one fixed preparation rule value, a Multiply label, and the supplied Unit occurrences. Change only those two initial Unit counts to supply other operands; leave every rule body unchanged. One helper prepares the factor role and the other prepares the count role. Both input numerals use Unit. For zero, omit the Unit occurrences while retaining the helper and Multiply.</p>
@@ -1144,9 +1165,11 @@ bazel run -c opt //arithmetic:word -- \
 <tr><td>Divide</td><td><a href="program/circuit/divide.wave">program</a></td><td><a href="program/circuit/divide.particle">target</a></td></tr>
 </table></div>
 <p>For example, execute the saved multiplication program directly, without the generator:</p>
-<pre><code>bazel run -c opt //command:photonic -- prism \
-  &quot;$PWD/program/circuit/multiply.wave&quot; \
-  --target &quot;$PWD/program/circuit/multiply.particle&quot; \
+<pre><code>bazel run -c opt //command:photonic -- lower "$PWD/program/circuit/multiply.particle" \
+  --context "$PWD/program/circuit/multiply.wave" &gt; /tmp/photonic-target.json
+bazel run -c opt //command:photonic -- prism \
+  "$PWD/program/circuit/multiply.wave" \
+  --target /tmp/photonic-target.json \
   --path --steps 20000000 --states 4096 --records 1000000 --cells 4096</code></pre>
 <p>Add <code>--directory &quot;$PWD/program/ternary/example&quot;</code> to a generator command to emit its program and target. A fixed operation and width always generate the same rule bodies; only the initial digit facts change with the operands. Expected values do not influence the program or its width.</p>
 <a id="guide-arithmetic-word-readable-digit-rules"></a>
@@ -1260,14 +1283,17 @@ value(digit, tail) = digit + 3 × value(tail)</code></pre>
 <a id="guide-arithmetic-stream-run"></a>
 <h4 id="guide-arithmetic-run">Run</h4>
 <p>From the repository root:</p>
-<pre><code>bazel run -c opt //program/ternary:stream -- prism \
-  --target &quot;$PWD/program/ternary/done.particle&quot; \
+<pre><code>bazel run -c opt //program/ternary:stream -- lower &gt; /tmp/photonic-program.json
+bazel run -c opt //command:photonic -- lower "$PWD/program/ternary/done.particle" \
+  --context "/tmp/photonic-program.json" &gt; /tmp/photonic-target.json
+bazel run -c opt //program/ternary:stream -- prism \
+  --target /tmp/photonic-target.json \
   --path --json --steps 100000 --states 1024 --cells 4096 --frames 128</code></pre>
-<p>The JSON event list includes acknowledgements for 0, 0, 2 in that order. The terminal target is Done; it is not a numeral certificate. The three acknowledgement rules consume the emitted code values, so those values do not remain as a result in the final configuration.</p>
+<p>The JSON event list includes acknowledgements for 0, 0, 2 in that order. The terminal target contains Done and all surviving root rules; it is not a numeral certificate. The three acknowledgement rules consume the emitted code values, so those values do not remain as a result in the final configuration.</p>
 <a id="guide-arithmetic-stream-validation-and-cost"></a>
 <h4 id="guide-arithmetic-validation-and-cost">Validation and cost</h4>
 <p>The <a href="arithmetic/test/stream.rs">regression suite</a> checks every input from zero through 242, unchanged suffixes, leading zeros, carries through one to forty 2 digits, and the successor of the largest unsigned 64-bit integer. It checks the actual acknowledgement sequence against an independent numerical oracle. It also verifies that the twelve arithmetic declarations are unchanged across different input widths and values.</p>
-<p>On the tested direct paths, a numeral with n digits takes 3n + 2 events, or 3n + 4 when a final carry appends 1. The twenty-to-twenty-one example takes 11 events and 171 work steps. Forty 2 digits take 124 events and 4934 work steps in the recorded run.</p>
+<p>On the tested direct paths, a numeral with n digits takes 3n + 2 events, or 3n + 4 when a final carry appends 1. The current twenty-to-twenty-one record takes 11 events and 28 work steps. Historical work counts for other widths predate the occurrence migration; event-count checks remain in the regression suite.</p>
 <p>Constant arithmetic code and linear event count do not imply constant memory or linear total execution cost. The forty-digit run retains up to 820 held occurrences across lexical frames. Input syntax depth, retained contexts, matching, canonicalization, and stored path history remain costs. Earlier smaller cell limits changed which successor paths were available; increasing the work budget alone did not address that constraint.</p>
 <a id="guide-arithmetic-stream-remaining-contract"></a>
 <h4 id="guide-arithmetic-remaining-contract">Remaining contract</h4>
@@ -1376,7 +1402,9 @@ Add.Unit.Unit.Unit.Unit.Unit.Unit.Unit,
 Scale.Place
 [Add, Add] Coefficient</code></pre>
 <p>The two Add coherences hold independently introduced coefficients. The rule rejoins them as Coefficient; the unrelated Scale coherence stays intact. The <a href="program/decimal/result.particle">exact target</a> has ten Units and one Place: 1.0. This program accepts coefficients already at a common scale. It neither verifies two independently supplied scales nor normalizes 1.0 to 1.</p>
-<pre><code>bazel run -c opt //command:photonic -- prism &quot;$PWD/program/decimal/addition.wave&quot; --target &quot;$PWD/program/decimal/result.particle&quot; --cells 32</code></pre>
+<pre><code>bazel run -c opt //command:photonic -- lower "$PWD/program/decimal/result.particle" \
+  --context "$PWD/program/decimal/addition.wave" &gt; /tmp/photonic-target.json
+bazel run -c opt //command:photonic -- prism "$PWD/program/decimal/addition.wave" --target /tmp/photonic-target.json --cells 32</code></pre>
 <p>The explicit cell budget accommodates both coefficient occurrences and scale metadata; the default budget of twelve is too small for this example.</p>
 <p>The scale must not be broadcast into both operands and accidentally counted twice; keeping one separate Scale coherence makes its ownership explicit. No special metaprogramming is necessary for this concrete operation. A reusable decimal scaling implementation is not supplied.</p>
 <a id="guide-arithmetic-decimal-boundary"></a>
@@ -1396,8 +1424,10 @@ Scale.Place
 <p>Write this schematically as <code>program ⊢ initial ↝* target</code>. The star permits zero or more applications, so an initial configuration proves its own reachability. The program includes its declared rules and any code those rules legitimately expose. This is a statement relative to that program, not an assertion that its rules are mathematically valid axioms.</p>
 <a id="guide-verification-prism-run-the-first-claim"></a>
 <h4 id="guide-verification-run-the-first-claim">Run the first claim</h4>
-<pre><code>bazel run -c opt //command:photonic -- prism &quot;$PWD/program/natural/addition.wave&quot; --target &quot;$PWD/program/natural/result.particle&quot; --json</code></pre>
-<p>The initial configuration encodes two plus three. The target is the numeral five. The target file contains only a configuration in the original grammar. It introduces no additional declarations. Native and structured JSON files are supported with the same format selection as <code>run</code>.</p>
+<pre><code>bazel run -c opt //command:photonic -- lower "$PWD/program/natural/result.particle" \
+  --context "$PWD/program/natural/addition.wave" &gt; /tmp/photonic-target.json
+bazel run -c opt //command:photonic -- prism "$PWD/program/natural/addition.wave" --target /tmp/photonic-target.json --json</code></pre>
+<p>The initial configuration encodes two plus three. The target is the numeral five. The data fixture describes the numeral. The explicit lowering step includes the surviving root rule occurrences in the complete target. Native and structured JSON files are supported with the same format selection as <code>run</code>.</p>
 <a id="guide-verification-prism-results"></a>
 <h4 id="guide-verification-results">Results</h4>
 <div class="table-scroll"><table>
@@ -1410,8 +1440,9 @@ Scale.Place
 <p><code>--steps</code>, <code>--states</code>, <code>--records</code>, <code>--coherences</code>, <code>--cells</code>, <code>--frames</code>, and <code>--workers</code> retain their existing meanings. A limit is not a refutation. Library callers can resume a <code>prism::Search</code> with <code>run</code> or <code>parallel</code>, then inspect <code>report</code>.</p>
 <a id="guide-verification-prism-exact-target-meaning"></a>
 <h4 id="guide-verification-exact-target-meaning">Exact target meaning</h4>
+<p>To preserve written root rules explicitly, <code>lower data.particle --context program.wave</code> emits a complete target as JSON. Repeat <code>--context</code> for library sources, or export an assembled binary with <code>lower</code> first. A target for a consuming program must instead list only surviving rules. The evaluator never infers this choice.</p>
 <p>The target is a complete configuration, not a fragment to find somewhere in another configuration. <code>B.Extra</code> does not establish a target of just <code>B</code>. Particle and coherence order do not matter, but multiplicity, sharing, captured environments, and continuations do.</p>
-<p>Textual targets describe root coherences and independently introduced occurrences, using the supplied program&#x27;s root declarations. A displayed <code>Goal</code> inside an unfinished body does not establish root-level <code>Goal</code>. Likewise, two independently specified target occurrences do not match one inherited occurrence shared across coherences. Textual targets cannot yet describe arbitrary captured-frame graphs or shared introductions; an encoding using the existing language remains future work.</p>
+<p>Textual targets describe root coherences and independently introduced occurrences. Their top-level rules specify the live root context exactly; no source rules are inherited implicitly. For <code>A [A] B</code>, <code>B [A] B</code> is reachable and <code>B</code> is not. A displayed <code>Goal</code> inside an unfinished body does not establish root-level <code>Goal</code>. Likewise, two independently specified target occurrences do not match one inherited occurrence shared across coherences. Textual targets cannot yet describe arbitrary captured-frame graphs or shared introductions; an encoding using the existing language remains future work.</p>
 <p>Target compilation uses an isolated clone of the program interner and does not install declarations or alter execution. Targets are exact values, not wildcard patterns or quantified statements.</p>
 <a id="guide-verification-prism-what-is-proved-today"></a>
 <h4 id="guide-verification-what-is-proved-today">What is proved today</h4>
@@ -1428,7 +1459,9 @@ Scale.Place
 [Add, Add] ()</code></pre>
 <p>The first line expands to two coherences, each carrying Add. The rule consumes their Add occurrences and reunites their ten independently introduced units.</p>
 <p>Run from the repository root:</p>
-<pre><code>bazel run //command:photonic -- prism &quot;$PWD/program/association/addition.wave&quot; --target &quot;$PWD/program/natural/ten.particle&quot;</code></pre>
+<pre><code>bazel run -c opt //command:photonic -- lower "$PWD/program/natural/ten.particle" \
+  --context "$PWD/program/association/addition.wave" &gt; /tmp/photonic-target.json
+bazel run //command:photonic -- prism "$PWD/program/association/addition.wave" --target /tmp/photonic-target.json</code></pre>
 <p>Expected: <code>Reached</code>, with closed exploration. Add <code>--json</code> for the source, target, witness, and execution graph, or <code>--workers 4</code> to run matching work through the worker pool. Parallel execution preserves the result.</p>
 <a id="guide-verification-group-match-through-abstractions"></a>
 <h4 id="guide-verification-match-through-abstractions">Match through abstractions</h4>
@@ -1437,9 +1470,11 @@ Scale.Place
 [Seed] Intermediate
 [Intermediate] Kind
 [Other] Kind
-[Pair(Kind, Kind)] ([] Result)</code></pre>
+[Pair(Kind, Kind)] ([()] Result)</code></pre>
 <p>Each Kind is an ordinary concept derived by rules. The two operands have different concrete contents and different derivation lengths. The joint rule can apply at their concrete source; its body retains Seed and Other. Prism reaches <code>Result.Seed.Other</code>.</p>
-<pre><code>bazel run //command:photonic -- prism &quot;$PWD/program/association/abstraction.wave&quot; --target &quot;$PWD/program/association/concrete.particle&quot;</code></pre>
+<pre><code>bazel run -c opt //command:photonic -- lower "$PWD/program/association/concrete.particle" \
+  --context "$PWD/program/association/abstraction.wave" &gt; /tmp/photonic-target.json
+bazel run //command:photonic -- prism "$PWD/program/association/abstraction.wave" --target /tmp/photonic-target.json</code></pre>
 <p>This is open pattern matching. Adding Extra to Seed does not prevent that pattern from matching; Extra follows the normal remainder law. It is not a complete-operand check.</p>
 <a id="guide-verification-group-choose-among-parallel-coherences"></a>
 <h4 id="guide-verification-choose-among-parallel-coherences">Choose among parallel coherences</h4>
@@ -1447,14 +1482,20 @@ Scale.Place
 <pre><code>Pair(A, B, C, D)
 [Pair, Pair] Result</code></pre>
 <p>Every unordered pair is eligible: AB, AC, AD, BC, BD, CD. A selected event consumes two Pair labels and reunites their remainders. The other coherences remain available. Source order establishes no preferred partner.</p>
-<pre><code>bazel run //command:photonic -- prism &quot;$PWD/program/association/pair.wave&quot; --target &quot;$PWD/program/association/selected.particle&quot;</code></pre>
+<pre><code>bazel run -c opt //command:photonic -- lower "$PWD/program/association/selected.particle" \
+  --context "$PWD/program/association/pair.wave" &gt; /tmp/photonic-target.json
+bazel run //command:photonic -- prism "$PWD/program/association/pair.wave" --target /tmp/photonic-target.json</code></pre>
 <p>This reaches <code>Result.A.C, Pair.B, Pair.D</code>. The tests check all six selections. Overlapping matches are alternative events; the existence of six matches does not duplicate each operand into six simultaneous products.</p>
 <p>To specify particular independent pairs, <a href="program/association/isolated.wave">isolated.wave</a> uses ordinary distinguishing labels:</p>
 <pre><code>First(A, B), Second(C, D)
 [First, First] Result
 [Second, Second] Result</code></pre>
-<pre><code>bazel run //command:photonic -- prism &quot;$PWD/program/association/isolated.wave&quot; --target &quot;$PWD/program/association/separate.particle&quot;
-bazel run //command:photonic -- prism &quot;$PWD/program/association/isolated.wave&quot; --target &quot;$PWD/program/association/crossed.particle&quot;</code></pre>
+<pre><code>bazel run -c opt //command:photonic -- lower "$PWD/program/association/separate.particle" \
+  --context "$PWD/program/association/isolated.wave" &gt; /tmp/photonic-target.json
+bazel run //command:photonic -- prism "$PWD/program/association/isolated.wave" --target /tmp/photonic-target.json
+bazel run -c opt //command:photonic -- lower "$PWD/program/association/crossed.particle" \
+  --context "$PWD/program/association/isolated.wave" &gt; /tmp/photonic-target.json
+bazel run //command:photonic -- prism "$PWD/program/association/isolated.wave" --target /tmp/photonic-target.json</code></pre>
 <p>The intended pairing is reached; the crossed pairing is unreachable after closed exploration. First and Second are ordinary concepts supplied by this program, not runtime identifiers.</p>
 <a id="guide-verification-group-check-a-complete-numeral"></a>
 <h4 id="guide-verification-check-a-complete-numeral">Check a complete numeral</h4>
@@ -1463,8 +1504,12 @@ bazel run //command:photonic -- prism &quot;$PWD/program/association/isolated.wa
 [Check] Number
 [Number.Unit] Number</code></pre>
 <p>The same two rules accept any finite count of Unit, including zero represented by Check alone. Each Unit can be consumed into Number. Check and Number are ordinary concepts; no numeral parser or builtin numerical type participates.</p>
-<pre><code>bazel run //command:photonic -- prism &quot;$PWD/program/association/natural.wave&quot; --target &quot;$PWD/program/association/number.particle&quot;
-bazel run //command:photonic -- prism &quot;$PWD/program/association/extra.wave&quot; --target &quot;$PWD/program/association/number.particle&quot;</code></pre>
+<pre><code>bazel run -c opt //command:photonic -- lower "$PWD/program/association/number.particle" \
+  --context "$PWD/program/association/natural.wave" &gt; /tmp/photonic-target.json
+bazel run //command:photonic -- prism "$PWD/program/association/natural.wave" --target /tmp/photonic-target.json
+bazel run -c opt //command:photonic -- lower "$PWD/program/association/number.particle" \
+  --context "$PWD/program/association/extra.wave" &gt; /tmp/photonic-target.json
+bazel run //command:photonic -- prism "$PWD/program/association/extra.wave" --target /tmp/photonic-target.json</code></pre>
 <p>The first reaches exactly Number. The second starts with an additional Extra and cannot reach exactly Number: it can reach Number.Extra. This is an exact positive reachability question about the complete state, not a negative premise in a language rule. A program can explicitly add a rule accounting for Extra if that is the desired definition.</p>
 <p>Prism is a proof interface, not an implicit rule guard. A later ordinary <code>[Number] Result</code> could still act on Number.Extra and preserve Extra. Integrating complete-operand recognition into rule application requires a general boundary contract that the current flat syntax does not express. No hidden Number-specific check was added.</p>
 <a id="guide-verification-group-preserve-resource-identity"></a>
@@ -1474,8 +1519,12 @@ bazel run //command:photonic -- prism &quot;$PWD/program/association/extra.wave&
 [Seed] A((), ())
 [A, A] ()</code></pre>
 <p>X is inherited by both outputs of the split. Reunion reaches one X. Conversely, <a href="program/association/independent.wave">independent.wave</a> begins with <code>A(X,X)</code>: those are two independent source introductions, and reunion reaches X.X.</p>
-<pre><code>bazel run //command:photonic -- prism &quot;$PWD/program/association/broadcast.wave&quot; --target &quot;$PWD/program/association/shared.particle&quot;
-bazel run //command:photonic -- prism &quot;$PWD/program/association/independent.wave&quot; --target &quot;$PWD/program/association/double.particle&quot;</code></pre>
+<pre><code>bazel run -c opt //command:photonic -- lower "$PWD/program/association/shared.particle" \
+  --context "$PWD/program/association/broadcast.wave" &gt; /tmp/photonic-target.json
+bazel run //command:photonic -- prism "$PWD/program/association/broadcast.wave" --target /tmp/photonic-target.json
+bazel run -c opt //command:photonic -- lower "$PWD/program/association/double.particle" \
+  --context "$PWD/program/association/independent.wave" &gt; /tmp/photonic-target.json
+bazel run //command:photonic -- prism "$PWD/program/association/independent.wave" --target /tmp/photonic-target.json</code></pre>
 <p>Both are reached. The tests also establish that swapping those targets is unreachable. Shared spelling does not erase the distinction between inheritance and independent introduction.</p>
 <a id="guide-verification-group-verification-and-remaining-work"></a>
 <h4 id="guide-verification-verification-and-remaining-work">Verification and remaining work</h4>
@@ -1494,9 +1543,11 @@ bazel run //command:photonic -- prism &quot;$PWD/program/association/independent
 <p>The candidate reaches two Units for the supplied one-times-one input. Its preparation scopes can return before converting any Unit. Consequently Factor.Unit and Count.Unit can reach the main scope. With no Y, that scope can finish without making a product, passing through the two unconverted Units as its apparent numerical result.</p>
 <p>This already invalidates the construction through ordinary execution. Source inference is an additional obligation, not the cause of this particular failure. Scheduling the converter first would conceal an allowed path rather than repair the program&#x27;s semantics.</p>
 <p>Reproduce from the repository root:</p>
-<pre><code>bazel run -c opt //command:photonic -- prism \
-  &quot;$PWD/program/natural/preparation.wave&quot; \
-  --target &quot;$PWD/program/natural/preparation.particle&quot; \
+<pre><code>bazel run -c opt //command:photonic -- lower "$PWD/program/natural/preparation.particle" \
+  --context "$PWD/program/natural/preparation.wave" &gt; /tmp/photonic-target.json
+bazel run -c opt //command:photonic -- prism \
+  "$PWD/program/natural/preparation.wave" \
+  --target /tmp/photonic-target.json \
   --steps 100000 --states 3000 --cells 24 --frames 30 --coherences 8</code></pre>
 <p>The run reported:</p>
 <pre><code>Reached: exact target configuration under the supplied program
@@ -1651,7 +1702,7 @@ bazel run -c opt //benchmark:runtime -- --workers 4</code></pre>
 <a id="guide-runtime-performance-immutable-programs-and-necessary-symbol-indexing"></a>
 <h4 id="guide-runtime-immutable-programs-and-necessary-symbol-indexing">Immutable programs and necessary-symbol indexing</h4>
 <p>Runtime instances share the compiled Program through Arc. A direct-path successor reuses the same compiled code instead of cloning its complete catalog. The program is immutable during execution; target compilation uses a separate mutable copy.</p>
-<p>Each lexical scope indexes declarations by one required symbol, preferring the least frequent symbol in that scope. Empty-input patterns remain unconditional candidates. At inspection time, collect symbols from particles in the derived view&#x27;s target, obtain candidate rule IDs, and sort them back into declaration order. A further check requires every pattern symbol to be present somewhere in that target before allocating a matching request. Live rule values receive the same presence filter.</p>
+<p>Immutable catalogs group compiled input plans. Dispatch resolves eligible plans to live rule occurrences through indexed coherence and lexical-context ownership. Catalog membership alone never authorizes execution. Matching indexes include visible context resources; context consumption and retirement invalidate dependent queries. Direct traversal and exhaustive proof exploration share one state-transition implementation in <code>language/evaluation.rs</code>.</p>
 <p>Presence is only a necessary condition: full matching still checks multiplicity, distinct coherences, frame eligibility, and rule captures. No match can exist when a required symbol is absent from all target particles. Held frame resources are not pattern candidates in the matcher, so they are not included. Using the view target rather than its source preserves rule-derived abstraction. This optimization is internal to positive matching; it adds no absence premise to the language.</p>
 <p>The indexed order is deterministic despite hash-set iteration. Scoped declarations, live code, empty patterns, inference, resumption, scheduling, and the semantic reference suite remain covered. An added regression verifies that 1000 irrelevant declarations do not change a source-inferred proof&#x27;s reached states. The <a href="#guide-arithmetic-word">arithmetic benchmark</a> records current measurements separately from earlier runtime versions.</p>
 <h3 id="guide-runtime-query-cost-and-browser-execution">Query cost and browser execution</h3>
@@ -1681,13 +1732,17 @@ photonic_test(
     name = &quot;negation&quot;,
     source = &quot;Invoke.Not.True&quot;,
     targets = [&quot;Invoke.Not.True&quot;, &quot;False&quot;],
+    preserve = True,
     deps = [&quot;:logic&quot;],
 )</code></pre>
-<p>List files explicitly. Bazel visibility controls consumers. <code>photonic_library</code> validates declaration-only files and exports their transitive source dependencies. Including a library introduces no initial data. Empty source lists support dependency aggregation when that is useful; avoid a target that merely renames another module. Diamond dependencies include a shared file once. Different files with identical rules are distinct declarations.</p>
-<p><code>photonic_binary</code> combines initial configurations and declarations from N independently parsed <code>srcs</code>, then loads the library closure. A file cannot be both a source and a dependency. The assembler emits existing Photonic JSON without evaluating, specializing, or generating library behavior. Syntax errors identify their source file. The native launcher resolves Bazel runfiles without a workspace-relative path, shell, or installed interpreter. The default operation is <code>run</code>; explicit <code>prism</code> and runtime arguments retain CLI semantics. The generated <code>&lt;name&gt;.program</code> target exposes the assembled artifact with the binary&#x27;s visibility.</p>
+<p>List files explicitly. Bazel visibility controls consumers. <code>photonic_library</code> validates declaration-only files and exports their transitive source dependencies. Including a library introduces its live root rule occurrences and no initial coherences. Empty source lists support dependency aggregation when that is useful; avoid a target that merely renames another module. Diamond dependencies include a shared file once. Different files with identical rules are distinct declarations.</p>
+<p><code>photonic_binary</code> combines initial configurations and declarations from N independently parsed <code>srcs</code>, then loads the library closure. A file cannot be both a source and a dependency. The assembler emits existing Photonic JSON without evaluating, specializing, or generating library behavior. Syntax errors identify their source file. The native launcher resolves Bazel runfiles without a workspace-relative path, shell, or installed interpreter. The default operation is <code>run</code>; explicit <code>prism</code> and runtime arguments retain CLI semantics. <code>lower</code> exports the assembled program as JSON, including all transitive library rules. The generated <code>&lt;name&gt;.program</code> target exposes the assembled artifact with the binary&#x27;s visibility.</p>
 <pre><code>bazel run -c opt //program/composition:pipeline -- --json
+bazel run -c opt //program/ternary:position -- lower &gt; /tmp/photonic-program.json
+bazel run -c opt //command:photonic -- lower "$PWD/program/ternary/position.particle" \
+  --context "/tmp/photonic-program.json" &gt; /tmp/photonic-target.json
 bazel run -c opt //program/ternary:position -- prism \
-  --target &quot;$PWD/program/ternary/position.particle&quot; --path --cells 128
+  --target /tmp/photonic-target.json --path --cells 128
 bazel test -c opt //program/ternary:position.check</code></pre>
 <a id="guide-build-test"></a>
 <h3 id="guide-build-prism-tests">Prism tests</h3>
@@ -1697,7 +1752,8 @@ bazel test -c opt //program/ternary:position.check</code></pre>
 <tr><td><code>source</code></td><td>Literal Photonic code containing initial data and/or declarations; use <code>&quot;&quot;</code> with file-only tests.</td></tr>
 <tr><td><code>srcs</code></td><td>Optional native source files, combined with <code>source</code>.</td></tr>
 <tr><td><code>deps</code></td><td>Optional declaration libraries.</td></tr>
-<tr><td><code>targets</code></td><td>Nonempty list of complete configurations in literal Photonic syntax; no target declarations.</td></tr>
+<tr><td><code>targets</code></td><td>Nonempty list of complete configurations in literal Photonic syntax, including surviving root rule occurrences.</td></tr>
+<tr><td><code>preserve</code></td><td><code>False</code> by default. Explicitly append all loaded root rules to each target when <code>True</code>.</td></tr>
 <tr><td><code>match</code></td><td><code>&quot;all&quot;</code> by default; <code>&quot;any&quot;</code> accepts one matching target.</td></tr>
 <tr><td><code>expect</code></td><td><code>&quot;reached&quot;</code> by default, or <code>&quot;unreachable&quot;</code>.</td></tr>
 <tr><td><code>path</code></td><td><code>False</code> by default; <code>True</code> requests direct-path reachability witnesses.</td></tr>
@@ -1708,12 +1764,14 @@ bazel test -c opt //program/ternary:position.check</code></pre>
     name = &quot;choice&quot;,
     source = &quot;A [A] B [A] C&quot;,
     targets = [&quot;B&quot;, &quot;C&quot;],
+    preserve = True,
 )
 
 photonic_test(
     name = &quot;alternative&quot;,
     source = &quot;A [A] B&quot;,
     targets = [&quot;B&quot;, &quot;C&quot;],
+    preserve = True,
     match = &quot;any&quot;,
 )
 
@@ -1721,6 +1779,7 @@ photonic_test(
     name = &quot;exclusion&quot;,
     source = &quot;A [A] B&quot;,
     targets = [&quot;C&quot;, &quot;D&quot;],
+    preserve = True,
     expect = &quot;unreachable&quot;,
 )</code></pre>
 <p>All targets are parsed and validated before execution. Full exploration runs once, then queries that shared graph for every target. <code>all</code> requires each query to satisfy <code>expect</code>; <code>any</code> stops at the first satisfying query. Unknown satisfies neither expectation. A closed graph can establish unreachability; a direct path cannot, so <code>path = True</code> with <code>expect = &quot;unreachable&quot;</code> is rejected during analysis. In direct-path mode each target receives its own path search and budget.</p>
@@ -1836,10 +1895,13 @@ bazel test -c opt //toolchain/browser:test</code></pre>
 <p>From the repository root, with Bazel as the only required installed build toolchain:</p>
 <pre><code>bazel test -c opt //program/ternary:infix.check --test_output=all
 bazel test -c opt //program/ternary:all --test_output=errors</code></pre>
-<p>The <a href="program/ternary/infix.wave">input fixture</a> constructs a token tape, calls <code>Function.Expression</code>, reads the four result trits in least-significant-first order, and reaches exactly <code>Done.Zero</code>. The result check consumes the numeral; it is separate from expression evaluation. The evaluator itself returns a reusable linked numeral. Remove the inspection declarations when retaining that result for further computation.</p>
+<p>The <a href="program/ternary/infix.wave">input fixture</a> constructs a token tape, calls <code>Function.Expression</code>, reads the four result trits in least-significant-first order, and reaches <code>Done.Zero</code> with the loaded root rules preserved. The result check consumes the numeral; it is separate from expression evaluation. The evaluator itself returns a reusable linked numeral. Remove the inspection declarations when retaining that result for further computation.</p>
 <p>To inspect the complete execution:</p>
-<pre><code>bazel run -c opt //program/ternary:infix -- prism \
-  --target &quot;$PWD/program/ternary/result.particle&quot; --path \
+<pre><code>bazel run -c opt //program/ternary:infix -- lower &gt; /tmp/photonic-program.json
+bazel run -c opt //command:photonic -- lower "$PWD/program/ternary/result.particle" \
+  --context "/tmp/photonic-program.json" &gt; /tmp/photonic-target.json
+bazel run -c opt //program/ternary:infix -- prism \
+  --target /tmp/photonic-target.json --path \
   --steps 100000000 --states 65536 --cells 16384 \
   --frames 2048 --coherences 1024 --records 100000000 --json</code></pre>
 <p>The <a href="index.html#expression">webbook</a> shows the four intermediate results decoded from that native execution. Regenerate its small record with:</p>
@@ -1929,8 +1991,11 @@ bazel test -c opt //program/ternary:demo.division.check --test_output=all</code>
 <p>Success reports:</p>
 <pre><code>Reached; Addition.([Trit] 21), Multiplication.([Trit] 101), Division.([Trit] 2)</code></pre>
 <p>To run the executable directly:</p>
-<pre><code>bazel run -c opt //program/ternary:demo -- prism \
-  --target &quot;$PWD/program/ternary/demo.particle&quot; --path \
+<pre><code>bazel run -c opt //program/ternary:demo -- lower &gt; /tmp/photonic-program.json
+bazel run -c opt //command:photonic -- lower "$PWD/program/ternary/demo.particle" \
+  --context "/tmp/photonic-program.json" &gt; /tmp/photonic-target.json
+bazel run -c opt //program/ternary:demo -- prism \
+  --target /tmp/photonic-target.json --path \
   --steps 100000000 --states 65536 --cells 16384 \
   --frames 2048 --coherences 1024 --records 100000000</code></pre>
 <h3 id="guide-demo-reading-the-input">Reading the input</h3>
@@ -2064,8 +2129,11 @@ output=$(bazel info -c opt bazel-bin)
 <p>Build and test with the pinned Bazel toolchain:</p>
 <pre><code>bazel test -c opt //language:test //program/ternary:all //toolchain/browser:check --test_output=errors
 bazel run -c opt //benchmark:runtime
+bazel run -c opt //program/ternary:infix -- lower &gt; /tmp/photonic-program.json
+bazel run -c opt //command:photonic -- lower "$PWD/program/ternary/result.particle" \
+  --context "/tmp/photonic-program.json" &gt; /tmp/photonic-target.json
 bazel run -c opt //program/ternary:infix -- prism \
-  --target &quot;$PWD/program/ternary/result.particle&quot; --path \
+  --target /tmp/photonic-target.json --path \
   --steps 100000000 --states 65536 --cells 16384 --frames 2048 \
   --coherences 1024 --records 100000000</code></pre>
 <p>For elapsed-time comparisons, build each revision first and invoke its compiled command directly with the same assembled program and budgets. Exclude Bazel build time, use a warm-up, rotate revision order, and retain individual samples. Compact CLI measurements include process startup, input decoding, execution, final path-report construction, and compact output. They exclude full JSON trace encoding. Measure that reporting workload separately when it matters.</p>

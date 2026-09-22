@@ -14,6 +14,7 @@ struct Case {
     #[serde(rename = "match")]
     mode: String,
     path: bool,
+    preserve: bool,
     step: usize,
     state: usize,
     cell: usize,
@@ -45,9 +46,9 @@ fn main() -> Result<ExitCode, Box<dyn std::error::Error>> {
         .targets
         .iter()
         .map(|source| {
-            let target = photonic::lowering::parse(source)?;
-            if !target.rule.is_empty() {
-                return Err("a target contains a configuration without declarations".into());
+            let mut target = photonic::lowering::parse(source)?;
+            if case.preserve {
+                target.rule.extend(program.rule.iter().cloned());
             }
             Ok(target)
         })
@@ -72,7 +73,7 @@ fn main() -> Result<ExitCode, Box<dyn std::error::Error>> {
     let mut exploration = if case.path {
         None
     } else {
-        let mut search = Search::new(program.clone(), target[0].clone())?;
+        let mut search = Search::new(program.clone(), target[0].clone());
         search.run(case.step, Some(limit));
         Some(search)
     };
@@ -86,7 +87,7 @@ fn main() -> Result<ExitCode, Box<dyn std::error::Error>> {
     let mut success = every;
     for (index, target) in target.into_iter().enumerate() {
         let (result, report) = if let Some(search) = &mut exploration {
-            search.target(target)?;
+            search.target(target);
             let verdict = search.verdict();
             (
                 verdict.outcome,
@@ -97,7 +98,7 @@ fn main() -> Result<ExitCode, Box<dyn std::error::Error>> {
                 }))?,
             )
         } else {
-            let mut search = photonic::path::Search::new(program.clone(), target)?;
+            let mut search = photonic::path::Search::new(program.clone(), target);
             search.run(case.step, limit);
             let report = search.report();
             (report.outcome, serde_json::to_vec_pretty(&report)?)

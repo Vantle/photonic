@@ -26,7 +26,12 @@ impl Search {
     }
 
     pub(crate) fn eligible(pattern: &[Vec<Term>]) -> bool {
-        pattern.len() > 1 && pattern.iter().map(Vec::len).sum::<usize>() >= 32
+        pattern.len() > 1
+            && pattern.iter().map(Vec::len).sum::<usize>() >= 32
+            && pattern
+                .iter()
+                .flatten()
+                .all(|term| matches!(term.value, crate::program::Symbol::Atom(_)))
     }
 
     pub fn new(pattern: Vec<Vec<Term>>, index: Arc<crate::index::Index>, frame: usize) -> Self {
@@ -60,7 +65,14 @@ impl Search {
         let selection =
             crate::selection::Selection::shared(Arc::new(pattern), &index, frame, store);
         let mut search = Self::prepared(Arc::new(selection), index);
-        if eligible {
+        if eligible
+            && search
+                .cursor
+                .candidate
+                .iter()
+                .flatten()
+                .all(|&site| search.cursor.index.location(site).world().is_some())
+        {
             search.replay = Some(Box::new(replay::Replay::new(
                 &search.cursor,
                 store.transcript().clone(),

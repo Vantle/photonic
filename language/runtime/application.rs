@@ -41,6 +41,7 @@ impl Runtime {
         });
         let result = crate::application::apply(crate::application::Request {
             source: &self.state[view.source],
+            scope: &self.program.scope,
             frame: application.frame,
             owner: application.owner,
             rule: &self.program.rule[application.rule],

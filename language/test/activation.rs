@@ -17,7 +17,7 @@ fn boundary() {
     for (source, viable, result) in [
         ("A [A,A] Done", false, Poll::Pending),
         ("A [B] Done", false, Poll::Ready(None)),
-        ("[] Done", false, Poll::Ready(None)),
+        ("[] Done", true, Poll::Ready(Some(Vec::new()))),
     ] {
         let program = Program::new(crate::lowering::parse(source).unwrap());
         let input = Input::new(&program.rule[0].input);

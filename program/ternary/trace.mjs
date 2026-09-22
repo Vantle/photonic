@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 const contains = (world, label) => world.particle.some(value => value.display === label);
 const method = world => world.particle.find(value => value.display.startsWith('⟨[Read.Head.'));
@@ -32,11 +35,21 @@ const decode = (state, head) => {
 };
 
 export const record = (command, program, target) => {
-    const report = JSON.parse(execFileSync(command, [
-        'prism', program, '--target', target, '--path', '--json',
+    const source = JSON.parse(readFileSync(program, 'utf8'));
+    const value = JSON.parse(execFileSync(command, ['lower', target], { encoding: 'utf8' }));
+    const directory = mkdtempSync(join(tmpdir(), 'photonic-target-'));
+    const configuration = join(directory, 'target.json');
+    writeFileSync(configuration, JSON.stringify({ initial: value.initial, rule: [...value.rule, ...source.rule] }));
+    let report;
+    try {
+        report = JSON.parse(execFileSync(command, [
+        'prism', program, '--target', configuration, '--path', '--json', '--compact',
         '--steps', '100000000', '--states', '65536', '--cells', '16384',
         '--frames', '2048', '--coherences', '1024', '--records', '100000000',
     ], { encoding: 'utf8', maxBuffer: 536870912 }));
+    } finally {
+        rmSync(directory, { recursive: true, force: true });
+    }
     assert.equal(report.outcome, 'reached');
     const begin = report.event.find(event => event.rule.startsWith('[Function.Expression]'));
     assert.ok(begin);

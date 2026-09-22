@@ -63,6 +63,7 @@ impl Runtime {
 
     pub fn view(&self) -> impl Serialize + '_ {
         Snapshot {
+            definition: Builder::new(&self.program).definition(),
             closed: self.closed(),
             record: self.record(),
             peak: self.peak,
@@ -78,6 +79,7 @@ impl Runtime {
 
     pub fn snapshot(&self) -> Snapshot {
         Snapshot {
+            definition: Builder::new(&self.program).definition(),
             closed: self.closed(),
             record: self.record(),
             peak: self.peak,

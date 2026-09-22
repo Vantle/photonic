@@ -1,46 +1,80 @@
 # Runtime rule occurrences
 
-Implementation contract authorized September 22, 2026. This supersedes the alternatives in [the loading assessment](loading.md); its recorded observations remain evidence of the previous behavior. This migration preserves rule definitions. It changes loading, executable availability, resource ownership, and zero-input application.
+Contract authorized September 22, 2026. This supersedes the alternatives in the [loading assessment](loading.md). Loading, executable availability, ownership, and exact targets have migrated to live rule occurrences. The grammar is unchanged. The runtime preserves rule definitions; it does not construct replacement rules or specialize their outputs.
 
 ## Values and ownership
 
-Immutable rule code is interned. Every introduction creates a separate occurrence with a resource identity and lexical capture. Equal code does not imply equal occurrences or captures. A live occurrence belongs to a coherence or an execution context. Captured operands retained as evidence are separate from live context members.
+Immutable code and live resources have separate identities. Loading introduces one root context occurrence for every written rule, including repeated equal definitions. Entering an output body introduces that body's rules with captures of the new context. Neither operation introduces atoms mentioned inside rule inputs or outputs. Written and dynamically emitted rules share code interning and occurrence construction. Interning uses normalized definitions as keys while compiling the original definition.
 
-Loading initializes the root context with the written rule occurrences. Entering an output body initializes that body's context. Neither operation introduces the atoms mentioned inside a rule. A compiled scope describes initialization; it never independently authorizes execution.
+Every live occurrence belongs to a coherence or a lexical context. Context members are visible in lexical descendants. Visibility exposes the original occurrence; it does not copy it. Held operands are retained evidence, separate from live members. A compiled catalog supplies immutable matching plans and initialization metadata, never executable authority.
 
-Context members are visible in their lexical descendants. Visibility exposes the original resource; it does not introduce copies. Coherence members retain their explicit local ownership. Executing reads an eligible live rule occurrence. Explicit inputs consume selected resources, including rule occurrences. Consumption wins over reading and removes access through every live visibility path in the resulting state. Existing histories and other branches retain their own immutable states.
+Executing a rule reads its live occurrence. Explicit input selection consumes operands, including rule values. If an occurrence is both read and consumed, consumption wins. Removing a context-owned occurrence removes every lexical access path to it in the resulting state. Historical states and independent execution branches are immutable and remain intact.
 
-Unmatched context members remain in their owner. They do not join coherence remainders. Ordinary splitting preserves the identities of shared resources; introducing two values creates two identities. A context retires when it is no longer reachable from execution or captures. A retained immutable instruction cannot keep a consumed occurrence executable.
+Consumption is per owning location. If coherences share resource X, selecting X in one coherence does not consume X in another. This also applies when both coherences participate in the same application: an unselected X survives into the merged remainder. Unconsumed shared identities coalesce when their owners merge; independently introduced equal values remain distinct. Provenance records the surviving occurrence's actual owner. Context members stay in their context rather than joining coherence remainders.
 
-## Input locations
+Contexts remain reachable through active coherences, lexical ownership, and captures. A context retires when those references disappear. Retaining immutable code cannot retain executable availability after occurrence consumption or context retirement.
 
-Nonempty input positions can bind values in a coherence or a lexical context. In particular, a rule-valued operand does not require an unrelated coherence. Bindings retain the actual ownership location of every selected resource. Matching through lexical visibility does not allow one resource to fill repeated operands.
+## Matching locations and startup
 
-Empty particle positions bind actual coherences, including nonempty coherences whose particles remain unmatched. Distinct coherence positions require distinct coherences. Zero positions are different: `[] A` has no operand positions and can execute in the loaded root context. Its application records the enabling occurrence and context, without manufacturing an input coherence. Repeated applications are permitted. A local zero-input rule is read without implicitly selecting its containing coherence as an operand.
+Nonempty input positions can bind a coherence or a lexical context. Each reachable context supplies one matching location. Rule-valued operands can therefore match without unrelated data or an artificial coherence. A coherence exposes its local values plus visible context members. Bindings retain each operand's actual ownership location, even when it is accessed through another context or coherence.
 
-The parser's existing interpretation of `[A] [B]` is unchanged. This migration does not introduce bidirectional syntax.
+Distinct input positions require distinct locations. Multiple operands inside one particle can select distinct occurrences in the same location. Multiple visibility paths to one context occurrence cannot satisfy repeated operands. Sharing an identity across different coherence owners supplies distinct occurrences under the consumption contract.
 
-## Migration inventory
-
-| Layer | Required change and evidence |
+| Input | Contract |
 | --- | --- |
-| Compilation and loading | Intern written and emitted rules through one code path; introduce separate live occurrences at root and body entry; test equal code and distinct captures |
-| State and identity | Add context members alongside retained operands; include ownership and capture in canonicalization, fingerprints, graph refinement, resource allocation, and reachability |
-| Direct evaluation | Replace declaration consumers with live occurrence consumers; support context operands and genuine zero-input searches; invalidate subscriptions after consumption and context reuse |
-| Exhaustive evaluation | Discover rules from occurrences; project context operands and rule reads through views; import live captured environments without reviving consumed resources |
-| Application and provenance | Consume live aliases consistently, preserve historical evidence, initialize nested occurrences, and account for context resources under limits |
-| Exact targets | Specify context membership explicitly in the target contract; audit target construction instead of silently projecting rules out of state equality |
-| Reports and inspection | Expose context particles and context resource locations; update native and browser consumers together |
-| Programs and libraries | Preserve textual rule contents; audit expected configurations, labels, limits, empty inputs, and library occurrence multiplicity individually |
-| Validation | Exercise direct and exhaustive execution, chunked budgets, cache eviction, capture/import, branch preservation, native and WebAssembly builds |
-| Measurement | Record initialization, ordinary execution, scope-heavy execution, occurrence churn, retained memory, and release cost against the previous implementation |
+| `[] A` | Zero input positions. The loaded rule's owning execution context is sufficient to produce A. |
+| `[()] A` | One empty particle pattern. Selects an actual coherence and preserves its unmatched members. |
+| `[,] A` | Two empty particle patterns. Requires two distinct actual coherences. |
+| `[A,()] B` | One A-containing location and one distinct actual coherence. |
+| `[([A] B)] C` | Selects a matching rule occurrence from a context or coherence and consumes it. |
 
-## Implementation evidence
+These rules generalize to arbitrary arity within explicit resource limits. Zero-input execution does not manufacture an input coherence or impose a one-shot restriction. A context-owned zero-input rule executes at its owning context, not once per visibility path. A coherence-owned zero-input rule reads its occurrence without implicitly selecting the containing coherence as an operand.
 
-The state representation now distinguishes live context particles from held operands. Identity flows, canonical renaming, incidence graphs, structural fingerprints, reachability, resource allocation, and report nodes represent this distinction. Focused regression cases cover equal-code occurrence identity, capture differences, lexical visibility, context projection, retirement, and incremental allocation.
+The existing interpretation of `[A] [B]` is unchanged: an A-input rule produces a rule value. It does not introduce bidirectional syntax. Report notation such as `⟨…⟩`, `§0`, and `@f0` is diagnostic labeling, not additional source grammar; capture and ownership are explicit structured report fields.
 
-Validation of the representation stage: all 110 Bazel test targets passed across the full run and the targeted report-schema comparison rerun; the kernel now contains 240 passing tests. The pinned-runtime comparison normalizes only the newly introduced empty `frame.particle` field in historical reports. Its other comparisons remain unchanged. Native and browser test targets are included. No loading or executable-availability change is claimed by this checkpoint.
+## One evaluator
 
-One ownership question is pending: whether consumption should additionally disable shared rule resources in sibling coherences. The broader suite demonstrated that doing so breaks existing map, repeat, and arithmetic programs. This checkpoint preserves their current behavior while implementing removal from an explicitly selected context owner.
+`language/evaluation.rs` implements the state transition used by both direct traversal and exhaustive exploration: input consumption, remainder, output introduction, body entry, held evidence, reachability, and reclamation. The duplicated `rewrite.rs` and `recipe.rs` implementations have been deleted.
 
-The migration remains in progress. This document does not claim that loading, both evaluators, report consumers, or the complete validation matrix have migrated until their checks are recorded.
+The two search strategies serve different queries. Direct traversal follows one execution path and can witness reachability. Exhaustive exploration also discovers applications through supported derived views, projects bindings to concrete sources, imports captured environments, and maintains proof support. Its application adapter prepares those inputs and records provenance around the same transition kernel. Direct failure remains Unknown; a closed exhaustive search can establish Unreachable. Neither strategy independently defines consumption or output semantics.
+
+Dispatch resolves indexed eligible plans to live occurrences. Lexically nearer consumers retain scheduling priority within shared input groups. Index updates preserve resource ownership, capture, and reachability dependencies. Mixed atom/rule candidate updates account for unchanged visible context operands. Context changes conservatively rebuild affected index state; completed rule-sensitive exhaustive transcripts are not reused across snapshots. This prioritizes correctness and leaves a measured maintenance opportunity.
+
+## Exact targets and migration
+
+Targets specify the complete state, including live rules. `A [A] B` reaches `B [A] B`; it does not reach bare `B`. After `[A] B [([A] B)] C` consumes the first occurrence, the complete target is `C [([A] B)] C`. Target compilation uses an isolated program interner and never alters execution.
+
+Textual targets describe root coherences and independently introduced root rule occurrences. They cannot yet encode arbitrary shared occurrence graphs or captured nested contexts. Canonical equality still accounts for those structures; this limitation concerns expressing a target, not ignoring parts of state.
+
+The `path::Search::new` and `prism::Search::new` constructors now return searches directly; target declarations are valid and the old declaration rejection error is removed. `prism::Search::target` no longer returns that error. Report targets contain the full source program shape rather than only initial particles.
+
+Tests that intend all loaded root rules to survive use explicit `photonic_test(preserve = True)`. The default is false. Existing data fixtures remain useful for arithmetic and protocol assertions, but are not implicitly complete runtime targets. The command `lower data.particle --context program.wave` explicitly appends the selected source's root rules to its emitted JSON. Repeat the option for library sources, or export an assembled program using the binary's `lower` command first. This operation copies unchanged definitions; it does not infer which rules should survive. Consuming programs must specify their surviving rule occurrences themselves.
+
+The arithmetic runner exports `program.wave` and complete `target.json` files. The webbook's command examples construct explicit targets, and its live queries include surviving rules. Recorded inspection views include context particles and resolve immutable rule text through the report's `definition` catalog. Context occurrence references serialize identity, label, and capture without repeating large rule bodies in every state. Owned Rust token views retain their display text.
+
+The one source fixture formerly using `[]` to select an existing empty particle now explicitly uses `[()]`. Legacy reference changes are narrow: the shared-resource merge case gains exactly one supported state and two events required by consumption per selected occurrence. Interned instruction labels and body scope labels move, and preserved original rule names replace prior normalized placeholders. Unrelated expected states were not accepted through wholesale snapshot replacement.
+
+## Validation
+
+The final `bazel test -c opt //... //toolchain/browser:check` run passes all 111 test targets, including native execution, WebAssembly, frontend conformance, programs, arithmetic, libraries, the pinned-runtime comparison, and headless Chrome. The runtime suite contains 249 passing tests. Interface checks cover explicit target export, context inspection, and live complete-state WebAssembly queries. `bazel run -c opt //:format -- --check` passes.
+
+Regression coverage includes zero-input startup and repetition; empty and mixed input arities; loaded and emitted rule matching; equal code with distinct occurrence and capture identities; lexical visibility without duplication; consumption, read-plus-consume, and merge remainders; surviving provenance and immutable history; captured environment import; context retirement; incremental matching versus rebuilt search; eviction and recycled storage; tight limits, interruption, and resumption. Exact-target cases run through direct and exhaustive searches.
+
+The differential oracle compares 540 finite atom programs against the pinned older evaluator. Those programs deliberately exclude changed loading observations, context operands, and capture semantics; the comparison checks the unchanged data behavior, supported states, and events within that domain. It is not an independent oracle for the newly authorized semantics. Dedicated occurrence regressions establish those contracts.
+
+The expression record retains its arithmetic results and 10,017 events, with work changing from 24,690 to 24,768. Smaller expression records retain their results and event counts. Six native graph records retain their state/event counts. The four circuit records retain their arithmetic results and event counts; division has a permitted event-order change with the same multiset of rule applications. The stream record retains its eleven acknowledgements/events. Older circuit and graph work counts predate intervening optimizations and are not used as migration speedup evidence.
+
+## Measurements and remaining architecture work
+
+[Raw measurements](occurrence.json) compare the former declaration model at `ec6d707` against live occurrences on the development Apple M5 Max. Native optimized binaries run sequentially. Ordinary and scope cases use six allocation-instrumented samples in alternating paired batches; availability, inert-rule, and consumption cases use five samples. Medians below are descriptive measurements, not cross-machine guarantees. Allocation instrumentation affects timings. Requested allocation bytes are not resident memory.
+
+| Workload | Previous execution | Current execution | Current / previous |
+| --- | ---: | ---: | ---: |
+| 64 ordinary transitions | 79.2 µs | 140.4 µs | 1.77× |
+| 32 body entries and returns | 111.1 µs | 566.3 µs | 5.10× |
+| 256 rule codes, 16 contexts, 64 availability updates | 8.73 ms | 9.45 ms | 1.08× |
+| 1,024 inactive rules and 128 transitions | 190.5 µs | 1,231.0 µs | 6.46× |
+
+Ordinary initialization changes from 64.2 to 107.8 µs and release from 28.0 to 53.5 µs; peak requested storage changes from 319,194 to 956,459 bytes. Scope initialization changes from 68.1 to 112.5 µs and release from 28.9 to 58.8 µs; peak requested storage changes from 329,995 to 705,059 bytes. Thirty-two context-rule consumptions take 264.0 µs after 464.9 µs initialization, with 102.0 µs release and 1,274,680 peak requested bytes. That new operation has no equivalent in the previous runtime. Every allocation-instrumented run releases its tracked allocations to zero.
+
+The additional resources and complete targets do observable work the declaration model did not perform. These costs are real; this migration is not a performance improvement or a claim of superoptimization. The highest-value follow-up is incremental context membership and reachability maintenance, followed by persistent context occurrence storage and lower-cost identity/capture accounting for large rule sets. Measure initialization, traversal, churn, memory, and release together. Preserve occurrence-level invalidation and one transition kernel; do not regain speed by treating consumed rules as executable declarations or changing rule contents.

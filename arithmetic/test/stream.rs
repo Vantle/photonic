@@ -27,7 +27,14 @@ fn source(digit: &[usize]) -> String {
 }
 
 fn execute(source: &str) -> Report {
-    let mut search = Search::new(parse(source).unwrap(), parse("Done").unwrap()).unwrap();
+    let mut search = {
+        let program = parse(source).unwrap();
+        let target = photonic::source::Program {
+            rule: program.rule.clone(),
+            ..parse("Done").unwrap()
+        };
+        Search::new(program, target)
+    };
     search.run(
         100_000,
         Limit {
@@ -118,7 +125,7 @@ fn library() {
     assert_eq!(report.event.len(), 11);
     assert!(report.work < 1000);
     assert_eq!(
-        report.target,
+        report.target.initial,
         parse(include_str!("../../program/ternary/done.particle"))
             .unwrap()
             .initial

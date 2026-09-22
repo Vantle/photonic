@@ -69,8 +69,7 @@ pub fn prepare(input: &str) -> Result<(Search, String), Failure> {
         photonic::lowering::parse(&source).map_err(|error| Failure::new(Code::Source, error))?;
     program.initial = encoded.initial;
     program.rule.extend(encoded.rule);
-    let search = Search::new(program, photonic::source::Program::default())
-        .map_err(|error| Failure::new(Code::Source, error))?;
+    let search = Search::new(program, photonic::source::Program::default());
     Ok((search, source))
 }
 

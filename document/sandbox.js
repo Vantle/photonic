@@ -31,8 +31,8 @@
         find('next').disabled = index + 1 === count;
         find('transition').textContent = `Configuration ${data.event.source} → Configuration ${data.event.target}`;
         globalThis.syntax.highlight(find('rule'), data.event.rule);
-        globalThis.inspection.render(find('before'), data.before, data.event, true);
-        globalThis.inspection.render(find('after'), data.after, data.event, false);
+        globalThis.inspection.render(find('before'), data.before, data.event, true, data.definition);
+        globalThis.inspection.render(find('after'), data.after, data.event, false, data.definition);
         find('path').replaceChildren(...Array.from({ length: Math.min(count, 7) }, (_, offset) => {
             const value = Math.max(0, Math.min(index - 3, count - 7)) + offset;
             const button = document.createElement('button');

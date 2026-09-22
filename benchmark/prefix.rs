@@ -49,6 +49,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     let program = photonic::lowering::parse(&source)?;
     let target = photonic::lowering::parse(&world(argument.length.get()))?;
+    let target = photonic::source::Program {
+        rule: program.rule.clone(),
+        ..target
+    };
     let limit = Limit {
         state: argument.length.get() * 2 + 2,
         record: 100_000_000,

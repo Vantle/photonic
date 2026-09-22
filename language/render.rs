@@ -29,6 +29,15 @@ impl<'program> Builder<'program> {
         }
     }
 
+    pub(crate) fn definition(&self) -> Vec<crate::snapshot::Definition> {
+        (0..self.program.rule.len())
+            .map(|index| crate::snapshot::Definition {
+                label: format!("§{index}"),
+                display: self.program.label(Symbol::Rule(index)),
+            })
+            .collect()
+    }
+
     fn particle(&mut self, value: &[crate::state::Token]) -> Vec<Token> {
         value
             .iter()
@@ -45,7 +54,7 @@ impl<'program> Builder<'program> {
                             }
                         }
                         Symbol::Rule(index) => Text {
-                            label: format!("§{}", self.program.code[&index]).into(),
+                            label: format!("§{index}").into(),
                             display: self.program.label(token.value).into(),
                         },
                     });

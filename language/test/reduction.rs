@@ -212,7 +212,10 @@ fn scaling() {
         let mut count = 0;
         for _ in 0..10_000 {
             let work = search.work;
-            if let Some(event) = search.run(Limit::default()) {
+            if let Some(event) = search.run(Limit {
+                cell: width + 131,
+                ..Limit::default()
+            }) {
                 count += 1;
                 search.advance(event.state, &event.change, event.fingerprint);
             }

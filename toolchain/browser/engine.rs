@@ -38,17 +38,10 @@ fn evaluate(input: &[u8]) -> Result<serde_json::Value, Failure> {
         .map(|source| {
             let target = photonic::lowering::parse(source)
                 .map_err(|error| Failure::new(Code::Target, error))?;
-            if !target.rule.is_empty() {
-                return Err(Failure::new(
-                    Code::Target,
-                    "targets contain configurations without declarations",
-                ));
-            }
             Ok(target)
         })
         .collect::<Result<Vec<_>, Failure>>()?;
-    let mut search = Search::new(program, target.first().cloned().unwrap_or_default())
-        .map_err(|error| Failure::new(Code::Target, error))?;
+    let mut search = Search::new(program, target.first().cloned().unwrap_or_default());
     search.run(
         20000,
         Some(Limit {
@@ -62,9 +55,7 @@ fn evaluate(input: &[u8]) -> Result<serde_json::Value, Failure> {
     let execution = search.report().execution;
     let mut verdict = Vec::new();
     for target in target {
-        search
-            .target(target)
-            .map_err(|error| Failure::new(Code::Target, error))?;
+        search.target(target);
         verdict.push(search.verdict());
     }
     Ok(serde_json::json!({"version": 1, "execution": execution, "verdict": verdict}))

@@ -25,21 +25,6 @@ pub struct Output {
 pub struct Scope {
     pub name: String,
     pub rule: Vec<usize>,
-    anchor: HashMap<Symbol, Vec<usize>>,
-    empty: Vec<usize>,
-}
-
-impl Scope {
-    pub(crate) fn candidate(&self, available: impl IntoIterator<Item = Symbol>) -> Vec<usize> {
-        let mut candidate = self.empty.clone();
-        for symbol in available {
-            if let Some(rule) = self.anchor.get(&symbol) {
-                candidate.extend_from_slice(rule);
-            }
-        }
-        candidate.sort_unstable();
-        candidate
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -48,7 +33,6 @@ pub struct Program {
     pub rule: Vec<Instruction>,
     pub scope: Vec<Scope>,
     pub initial: Vec<Vec<Symbol>>,
-    pub code: HashMap<usize, usize>,
     interner: HashMap<source::Definition, usize>,
 }
 
@@ -59,7 +43,6 @@ impl Program {
             rule: Vec::new(),
             scope: Vec::new(),
             initial: Vec::new(),
-            code: HashMap::new(),
             interner: HashMap::new(),
         };
         program.declare(&source.rule, "root".into());
@@ -68,25 +51,18 @@ impl Program {
             .iter()
             .map(|value| program.particle(value))
             .collect();
-        for scope in &mut program.scope {
-            let mut frequency = HashMap::<Symbol, usize>::new();
-            for &rule in &scope.rule {
-                for &symbol in program.rule[rule].input.iter().flatten() {
-                    *frequency.entry(symbol).or_default() += 1;
-                }
-            }
-            for &rule in &scope.rule {
-                match program.rule[rule]
-                    .input
-                    .iter()
-                    .flatten()
-                    .min_by_key(|&&symbol| (frequency[&symbol], symbol))
-                {
-                    Some(&symbol) => scope.anchor.entry(symbol).or_default().push(rule),
-                    None => scope.empty.push(rule),
-                }
-            }
-        }
+        program
+    }
+
+    pub(crate) fn target(&self, source: &source::Program) -> Self {
+        let mut program = self.clone();
+        program.scope[0].rule = source
+            .rule
+            .iter()
+            .enumerate()
+            .map(|(position, rule)| program.intern(rule, format!("root/{position}")))
+            .collect();
+        program.initial = program.input(&source.initial);
         program
     }
 
@@ -94,26 +70,26 @@ impl Program {
         match value {
             source::Value::Atom(atom) => Symbol::Atom(self.atom.insert_full(atom.clone()).0),
             source::Value::Rule { rule } => {
-                let canonical = rule.canonical();
-                if let Some(index) = self.interner.get(&canonical) {
-                    return Symbol::Rule(*index);
+                let ordinal = self.rule.len();
+                let mut rule = rule.as_ref().clone();
+                if rule.name.is_empty() {
+                    rule.name = format!("Rule {}", ordinal + 1);
                 }
-                let ordinal = self.interner.len();
-                let index = self.rule.len();
-                self.rule.push(Instruction::default());
-                self.interner.insert(canonical.clone(), index);
-                self.code.insert(index, ordinal);
-                let mut value = canonical;
-                value.name = if rule.name.is_empty() {
-                    format!("Rule {}", ordinal + 1)
-                } else {
-                    rule.name.clone()
-                };
-                let compiled = self.instruction(&value, format!("value/{ordinal}"));
-                self.rule[index] = compiled;
-                Symbol::Rule(index)
+                Symbol::Rule(self.intern(&rule, format!("value/{ordinal}")))
             }
         }
+    }
+
+    fn intern(&mut self, value: &source::Definition, path: String) -> usize {
+        let canonical = value.canonical();
+        if let Some(&index) = self.interner.get(&canonical) {
+            return index;
+        }
+        let index = self.rule.len();
+        self.rule.push(Instruction::default());
+        self.interner.insert(canonical, index);
+        self.rule[index] = self.instruction(value, path);
+        index
     }
 
     fn particle(&mut self, value: &[source::Value]) -> Vec<Symbol> {
@@ -152,14 +128,9 @@ impl Program {
         self.scope.push(Scope {
             name: name.clone(),
             rule: Vec::new(),
-            anchor: HashMap::new(),
-            empty: Vec::new(),
         });
         for (position, value) in value.iter().enumerate() {
-            let index = self.rule.len();
-            self.rule.push(Instruction::default());
-            let compiled = self.instruction(value, format!("{name}/{position}"));
-            self.rule[index] = compiled;
+            let index = self.intern(value, format!("{name}/{position}"));
             self.scope[scope].rule.push(index);
         }
         scope

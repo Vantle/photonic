@@ -22,11 +22,14 @@ fn verify(state: &[Node]) {
 #[test]
 fn ownership() {
     let report = {
-        let mut search = crate::path::Search::new(
-            crate::lowering::parse("A.X [A] B [B] C").unwrap(),
-            crate::lowering::parse("C.X").unwrap(),
-        )
-        .unwrap();
+        let mut search = {
+            let program = crate::lowering::parse("A.X [A] B [B] C").unwrap();
+            let target = crate::source::Program {
+                rule: program.rule.clone(),
+                ..crate::lowering::parse("C.X").unwrap()
+            };
+            crate::path::Search::new(program, target)
+        };
         search.run(100_000, crate::runtime::Limit::default());
         search.report()
     };

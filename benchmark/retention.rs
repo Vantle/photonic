@@ -23,6 +23,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     let program = photonic::lowering::parse(&source)?;
     let target = photonic::lowering::parse(&format!("A,Stage.{}", argument.length))?;
+    let target = photonic::source::Program {
+        rule: program.rule.clone(),
+        ..target
+    };
     evaluation::warm(&program, &target, None);
     let measurement = (0..argument.sample)
         .map(|_| evaluation::evaluate(program.clone(), target.clone(), None))

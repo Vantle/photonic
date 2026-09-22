@@ -13,7 +13,7 @@ use crate::state::State;
 use crate::support::{Atom, Clause};
 use indexmap::IndexSet;
 use serde::Serialize;
-use std::collections::{BTreeSet, HashMap};
+use std::collections::BTreeSet;
 use std::sync::Arc;
 
 #[derive(Clone, Copy, Debug, Serialize)]
@@ -30,7 +30,7 @@ impl Default for Limit {
             state: 80,
             record: 1_000_000,
             world: 4,
-            cell: 12,
+            cell: 64,
             frame: 10,
         }
     }
@@ -94,7 +94,6 @@ pub struct Runtime {
     proof: crate::proof::Store,
     composition: crate::flow::Store,
     matching: table::Table,
-    candidate: HashMap<(usize, usize), Arc<Vec<usize>>>,
     outgoing: Vec<Vec<usize>>,
     incoming: Vec<Vec<usize>>,
     agenda: crate::agenda::Queue<Task>,
@@ -124,7 +123,6 @@ impl Runtime {
             proof: crate::proof::Store::default(),
             composition: crate::flow::Store::new(65_536),
             matching: table::Table::default(),
-            candidate: HashMap::new(),
             outgoing: Vec::new(),
             incoming: Vec::new(),
             agenda: crate::agenda::Queue::new(),
@@ -284,7 +282,6 @@ impl Runtime {
             + self.proof.retained()
             + self.composition.retained()
             + self.matching.retained()
-            + self.candidate.len()
             + self.flying
             + self.normalization.retained()
             + self.agenda.len()

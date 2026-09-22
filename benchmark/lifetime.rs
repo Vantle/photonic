@@ -47,7 +47,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let encoded = photonic::lowering::parse(&formula::source(input, expected))?;
             program.initial = encoded.initial;
             program.rule.extend(encoded.rule);
-            (program, Some(photonic::lowering::parse("Done.Zero")?))
+            let target = photonic::source::Program {
+                rule: program.rule.clone(),
+                ..photonic::lowering::parse("Done.Zero")?
+            };
+            (program, Some(target))
         }
         Case::Direct { source, target } => (
             photonic::lowering::parse(&std::fs::read_to_string(source)?)?,
@@ -60,7 +64,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     let measure = || match &target {
         Some(target) => evaluate(
-            || photonic::path::Search::new(program.clone(), target.clone()).unwrap(),
+            || photonic::path::Search::new(program.clone(), target.clone()),
             &argument,
         ),
         None => evaluate(

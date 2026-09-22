@@ -176,7 +176,7 @@ impl Cache {
                     let selection = selection
                         .iter()
                         .map(|selection| Slot {
-                            world: index.world(selection.site),
+                            location: index.location(selection.site),
                             position: selection.position,
                             token: selection.token.clone(),
                         })
@@ -207,7 +207,7 @@ impl Cache {
                     let selection = selection
                         .iter()
                         .map(|slot| Selection {
-                            site: index.site(slot.world),
+                            site: index.locate(slot.location),
                             position: slot.position,
                             token: slot.token.clone(),
                         })

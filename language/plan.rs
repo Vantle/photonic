@@ -31,11 +31,7 @@ impl Input {
         value: &[Vec<Symbol>],
         shared: &mut std::collections::HashMap<Vec<Symbol>, Arc<crate::pattern::Pattern>>,
     ) -> Self {
-        let pattern = if value.is_empty() {
-            vec![Vec::new()]
-        } else {
-            value.to_vec()
-        };
+        let pattern = value.to_vec();
         let mut dependency = value
             .iter()
             .flatten()
@@ -65,6 +61,10 @@ impl Input {
             empty: value.is_empty() || value.iter().any(Vec::is_empty),
             dependency,
         }
+    }
+
+    pub fn arity(&self) -> usize {
+        self.arity
     }
 
     pub fn owner(&self, owner: usize) -> usize {

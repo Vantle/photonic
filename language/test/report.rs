@@ -22,10 +22,22 @@ fn resume() {
         ("Seed.A [Seed] [A] B", "B.([A] B)"),
         ("A.X,B.X [A,B] C", "C.X,X"),
     ] {
-        let mut actual =
-            crate::path::Search::new(parse(source).unwrap(), parse(target).unwrap()).unwrap();
-        let mut expected =
-            crate::path::Search::new(parse(source).unwrap(), parse(target).unwrap()).unwrap();
+        let mut actual = {
+            let program = parse(source).unwrap();
+            let target = crate::source::Program {
+                rule: program.rule.clone(),
+                ..parse(target).unwrap()
+            };
+            crate::path::Search::new(program, target)
+        };
+        let mut expected = {
+            let program = parse(source).unwrap();
+            let target = crate::source::Program {
+                rule: program.rule.clone(),
+                ..parse(target).unwrap()
+            };
+            crate::path::Search::new(program, target)
+        };
         for budget in [0, 1, 2, 7, 31, 128] {
             for record in [1, 1_000_000] {
                 let limit = Limit {
@@ -55,8 +67,14 @@ fn exhaustive() {
     ] {
         let mut actual = Runtime::new(parse(source).unwrap());
         let mut expected = Runtime::new(parse(source).unwrap());
-        let mut prism =
-            crate::prism::Search::new(parse(source).unwrap(), parse("C").unwrap()).unwrap();
+        let mut prism = {
+            let program = parse(source).unwrap();
+            let target = crate::source::Program {
+                rule: program.rule.clone(),
+                ..parse("C").unwrap()
+            };
+            crate::prism::Search::new(program, target)
+        };
         for budget in [0, 1, 2, 7, 31, 128] {
             actual.run(budget, None);
             expected.run(budget, None);
@@ -94,8 +112,22 @@ fn failure() {
     for remaining in [0, 1, 8, 64, 512, 1024] {
         let source = parse("A [A] (B [B] (C [C] D))").unwrap();
         let target = parse("D").unwrap();
-        let mut actual = crate::path::Search::new(source.clone(), target.clone()).unwrap();
-        let mut expected = crate::path::Search::new(source, target).unwrap();
+        let mut actual = {
+            let program = source.clone();
+            let target = crate::source::Program {
+                rule: program.rule.clone(),
+                ..target.clone()
+            };
+            crate::path::Search::new(program, target)
+        };
+        let mut expected = {
+            let program = source;
+            let target = crate::source::Program {
+                rule: program.rule.clone(),
+                ..target
+            };
+            crate::path::Search::new(program, target)
+        };
         actual.run(31, Limit::default());
         expected.run(31, Limit::default());
         let mut writer = Writer { remaining };
@@ -109,5 +141,30 @@ fn failure() {
         expected.run(128, Limit::default());
         compare(&actual.view(), &expected.report());
         compare(&actual.statistic(), &expected.statistic());
+    }
+}
+
+#[test]
+fn catalog() {
+    let program = crate::lowering::parse("[A] B [A] B [([A] B)] C").unwrap();
+    let mut runtime = crate::runtime::Runtime::new(program);
+    runtime.run(100_000, None);
+    let value = serde_json::to_value(runtime.view()).unwrap();
+    assert_eq!(value["definition"].as_array().unwrap().len(), 2);
+    assert_eq!(value, serde_json::to_value(runtime.snapshot()).unwrap());
+    for state in value["state"].as_array().unwrap() {
+        for frame in state["frame"].as_array().unwrap() {
+            for token in frame["particle"].as_array().unwrap() {
+                assert!(token.get("display").is_none());
+                assert!(
+                    value["definition"]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .any(|definition| definition["label"] == token["label"])
+                );
+                assert_eq!(token["capture"], 0);
+            }
+        }
     }
 }

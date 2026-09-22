@@ -31,10 +31,13 @@ impl Context {
 
     pub fn affected(&self, position: usize, index: &crate::index::Index, frame: usize) -> bool {
         index.affected.get(&frame).is_some_and(|symbol| {
-            self.shape.fragment[position]
-                .group
-                .iter()
-                .all(|group| symbol.contains(&group.value))
+            self.shape.fragment[position].group.iter().all(|group| {
+                symbol.contains(&group.value)
+                    || index
+                        .visible(frame, &Term::new(group.value, Some(self.owner)))
+                        .next()
+                        .is_some()
+            })
         })
     }
 
@@ -52,14 +55,13 @@ impl Context {
     }
 
     pub fn matches(&self, position: usize, index: &crate::index::Index, site: usize) -> bool {
-        let world = &index.state.world[index.world(site)];
+        let location = index.location(site);
+        if self.shape.fragment[position].width == 0 {
+            return location.world().is_some();
+        }
         self.shape.fragment[position].group.iter().all(|group| {
             let term = Term::new(group.value, Some(self.owner));
-            if world.particle.len() <= 16 {
-                world.particle.iter().any(|token| term.matches(token))
-            } else {
-                index.quantity(&term, world.frame, site) > 0
-            }
+            index.quantity(&term, location.frame(&index.state), site) > 0
         })
     }
 
@@ -70,6 +72,16 @@ impl Context {
         site: usize,
         shared: Option<&crate::preparation::Store>,
     ) -> crate::particle::Match {
+        let location = index.location(site);
+        if location.world().is_none()
+            || self.shape.fragment[position]
+                .group
+                .iter()
+                .any(|group| matches!(group.value, crate::program::Symbol::Rule(_)))
+        {
+            let particle = index.particle(site, self.pattern(position));
+            return self.prepare(position, &particle);
+        }
         let world = &index.state.world[index.world(site)];
         let pattern = &self.shape.fragment[position];
         if world.particle.len() < pattern.width

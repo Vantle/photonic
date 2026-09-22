@@ -311,7 +311,7 @@ impl Join {
                 let mut selection = selection
                     .into_iter()
                     .map(|slot| Slot {
-                        world: index.world(slot.site),
+                        location: index.location(slot.site),
                         token: slot.token,
                         position: slot.position,
                     })

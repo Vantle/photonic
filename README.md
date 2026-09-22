@@ -38,13 +38,29 @@ photonic_test(
     name = "negation",
     source = "Invoke.Not.True",
     targets = ["Invoke.Not.True", "False"],
+    preserve = True,
     deps = [":logic"],
 )
 ```
 
-The example `logic.particle` must supply the application and Boolean rules. A library contains declarations only. A binary combines the initial configurations from its sources and loads each transitive dependency file once. Both `.particle` and `.wave` use the same grammar; the extensions distinguish reusable definitions/data from executable examples by convention.
+The example `logic.particle` must supply the application and Boolean rules. A library contains declarations only; loading them introduces live root rule occurrences. A binary combines the initial configurations from its sources and loads each transitive dependency file once. Both `.particle` and `.wave` use the same grammar; the extensions distinguish reusable definitions/data from executable examples by convention.
 
-A test accepts literal `source`, file `srcs`, and library `deps`. `targets` is a list of complete configurations. The default `match = "all"` requires every target to be reachable; `match = "any"` accepts any one. `expect = "unreachable"` checks non-reachability instead. Unknown never satisfies either expectation. Full exploration shares one execution graph across the targets. Optional `path = True` follows direct paths and can only establish reachability. Reaching all targets does not claim they occur together or exhaust all possible outcomes.
+A test accepts literal `source`, file `srcs`, and library `deps`. `targets` is a list of complete configurations, including live rules. The explicit `preserve = True` option appends the loaded root rules to each expected target; its default is false. The default `match = "all"` requires every target to be reachable; `match = "any"` accepts any one. `expect = "unreachable"` checks non-reachability instead. Unknown never satisfies either expectation. Full exploration shares one execution graph across the targets. Optional `path = True` follows direct paths and can only establish reachability. Reaching all targets does not claim they occur together or exhaust all possible outcomes.
+
+## Runtime values and exact targets
+
+Loading introduces each written rule as a live value in its lexical context. Matching can consume that occurrence; execution reads it. Consumption is local to the selected owner, including when coherences sharing a resource merge. `[] A` starts without initial data; `[()] A` selects an actual coherence. See the [complete occurrence contract and migration evidence](document/occurrence.md).
+
+An exact target includes every surviving root rule. For `A [A] B`, the target `B [A] B` is reachable; `B` alone is not. Targets never inherit rules implicitly. To explicitly construct a target that preserves all written root rules:
+
+```sh
+bazel run -c opt //command:photonic -- lower program/natural/result.particle \
+  --context program/natural/addition.wave > /tmp/photonic-target.json
+bazel run -c opt //command:photonic -- prism program/natural/addition.wave \
+  --target /tmp/photonic-target.json --json
+```
+
+`lower --context` copies the selected source's root rules into the emitted JSON without copying its initial data or modifying rule contents. Use a hand-written complete target when rules are consumed or introduced. Repeat `--context` to explicitly include additional library sources. The arithmetic runner's `--directory` exports `program.wave` and a complete `target.json`.
 
 ## Find the implementation
 

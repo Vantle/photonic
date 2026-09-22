@@ -22,10 +22,10 @@ for (const source of [
     assert.equal(response.error, undefined);
     assert.deepEqual(response.execution, JSON.parse(native.stdout), source);
 }
-assert.deepEqual(invoke({ version: 1, source: 'A [A] B', targets: ['B', 'C'] }).verdict.map(value => value.outcome), ['reached', 'unreachable']);
+assert.deepEqual(invoke({ version: 1, source: 'A [A] B', targets: ['B [A] B', 'C [A] B'] }).verdict.map(value => value.outcome), ['reached', 'unreachable']);
 assert.equal(invoke({ version: 2, source: 'A' }).error.code, 'version');
 assert.equal(invoke({ version: 1, source: '[', targets: [] }).error.code, 'source');
-assert.ok(invoke({ version: 1, source: 'A', targets: ['A [A] B'] }).error);
+assert.equal(invoke({ version: 1, source: 'A', targets: ['A [A] B'] }).verdict[0].outcome, 'unreachable');
 assert.ok(invoke({ version: 1, source: 'A', targets: Array(17).fill('A') }).error);
 assert.equal(invoke({ version: 1, source: 'A', extra: true }).error.code, 'request');
 assert.equal(JSON.parse(engine.execute('[')).error.code, 'request');

@@ -30,10 +30,16 @@ pub fn run(width: usize, depth: usize, length: usize, stride: usize) -> Measurem
     program.scope = vec![program.scope[0].clone(); depth];
     let mut state = State::initial(&program);
     let initial = state.world[0].clone();
+    let mut next = depth;
     state.frame = (0..depth)
         .map(|scope| {
             let mut frame = (*state.frame[0]).clone();
             frame.scope = scope;
+            frame.particle = program.scope[scope]
+                .rule
+                .iter()
+                .map(|&rule| Token::new(Symbol::Rule(rule), scope, &mut next))
+                .collect();
             Arc::new(frame)
         })
         .collect();
@@ -78,7 +84,7 @@ pub fn run(width: usize, depth: usize, length: usize, stride: usize) -> Measurem
                 .iter()
                 .enumerate()
                 .map(|(offset, &value)| Token {
-                    id: depth + iteration * width + offset,
+                    id: next + iteration * width + offset,
                     value,
                     capture: None,
                 })
@@ -98,7 +104,15 @@ pub fn run(width: usize, depth: usize, length: usize, stride: usize) -> Measurem
                     delivery += 1;
                     for value in [value.rule, value.frame, value.owner].into_iter().chain(
                         value.selection.into_iter().flat_map(|slot| {
-                            [slot.world, slot.position].into_iter().chain(slot.token)
+                            [
+                                match slot.location {
+                                    crate::location::Location::World(world) => world * 2,
+                                    crate::location::Location::Context(frame) => frame * 2 + 1,
+                                },
+                                slot.position,
+                            ]
+                            .into_iter()
+                            .chain(slot.token)
                         }),
                     ) {
                         fingerprint = fingerprint

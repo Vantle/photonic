@@ -11,7 +11,7 @@ pub(crate) use store::Store;
 #[derive(Eq, Hash, PartialEq)]
 pub(super) struct Constraint {
     group: usize,
-    world: usize,
+    location: crate::location::Location,
 }
 
 enum Task {
@@ -75,11 +75,11 @@ impl Gate {
     fn accepts(&self, binding: Option<usize>, slot: &Slot) -> bool {
         let mut equivalent = false;
         for prefix in self.binding.iter(binding) {
-            if prefix.world == slot.world {
+            if prefix.location == slot.location {
                 return false;
             }
             if !equivalent && self.group[prefix.position] == self.group[slot.position] {
-                if prefix.world >= slot.world {
+                if prefix.location >= slot.location {
                     return false;
                 }
                 equivalent = true;
@@ -148,7 +148,7 @@ impl Gate {
                     binding,
                     Constraint {
                         group: self.group[slot.position],
-                        world: slot.world,
+                        location: slot.location,
                     },
                     || self.accepts(binding, &slot),
                 )

@@ -1,9 +1,16 @@
 use crate::lowering::parse;
-use crate::prism::{Failure, Outcome, Search};
+use crate::prism::{Outcome, Search};
 use crate::runtime::Limit;
 
 fn search(program: &str, target: &str) -> Search {
-    Search::new(parse(program).unwrap(), parse(target).unwrap()).unwrap()
+    {
+        let program = parse(program).unwrap();
+        let target = crate::source::Program {
+            rule: program.rule.clone(),
+            ..parse(target).unwrap()
+        };
+        Search::new(program, target)
+    }
 }
 
 #[test]
@@ -50,7 +57,7 @@ fn abstraction() {
     for initial in ["Pair.Seed, Pair.Other", "Pair.Other, Pair.Seed"] {
         let program = format!(
             "{initial} [Seed] Intermediate [Intermediate] Kind [Other] Kind \
-             [Pair.Kind, Pair.Kind] ([] Result)"
+             [Pair.Kind, Pair.Kind] ([()] Result)"
         );
         let mut search = search(&program, "Result.Seed.Other");
         search.run(12_000, None);
@@ -60,7 +67,7 @@ fn abstraction() {
     }
     assert_eq!(
         outcome(
-            "Pair.Seed, Pair.Other [Seed] Kind [Pair.Kind, Pair.Kind] ([] Result)",
+            "Pair.Seed, Pair.Other [Seed] Kind [Pair.Kind, Pair.Kind] ([()] Result)",
             "Result.Seed.Other",
         ),
         Outcome::Unreachable,
@@ -68,7 +75,7 @@ fn abstraction() {
     assert_eq!(
         outcome(
             "Pair.Pair.Seed.Other [Seed] Kind [Other] Kind \
-             [Pair.Kind, Pair.Kind] ([] Result)",
+             [Pair.Kind, Pair.Kind] ([()] Result)",
             "Result.Seed.Other",
         ),
         Outcome::Unreachable,
@@ -114,10 +121,16 @@ fn uncertainty() {
 
 #[test]
 fn target() {
-    assert!(matches!(
-        Search::new(parse("A").unwrap(), parse("B [B] A").unwrap()),
-        Err(Failure::Declaration)
-    ));
+    let mut search = {
+        let program = parse("A").unwrap();
+        let target = crate::source::Program {
+            rule: program.rule.clone(),
+            ..parse("B [B] A").unwrap()
+        };
+        Search::new(program, target)
+    };
+    search.run(12_000, None);
+    assert_eq!(search.verdict().outcome, Outcome::Unreachable);
     assert_eq!(outcome("A [A]", ""), Outcome::Reached);
     assert_eq!(outcome("A [A] ()", ""), Outcome::Unreachable);
 }
@@ -184,13 +197,31 @@ fn indexing() {
         .map(|index| format!("[Absent{index}] Unused{index} "))
         .collect::<String>();
     let mut indexed = search(&format!("{source} {noise}"), "Done");
-    indexed.run(100_000, None);
+    indexed.run(
+        100_000,
+        Some(Limit {
+            cell: 1100,
+            ..Limit::default()
+        }),
+    );
     let indexed = indexed.report();
     assert!(indexed.execution.closed);
     assert_eq!(indexed.outcome, Outcome::Reached);
-    assert_eq!(
-        serde_json::to_value(indexed.execution.state).unwrap(),
-        serde_json::to_value(clean.execution.state).unwrap()
+    assert_eq!(indexed.execution.state.len(), clean.execution.state.len());
+    assert_eq!(indexed.execution.event.len(), clean.execution.event.len());
+    assert!(
+        indexed
+            .execution
+            .state
+            .iter()
+            .all(|state| state.frame[0].particle.len() == 1002)
+    );
+    assert!(
+        clean
+            .execution
+            .state
+            .iter()
+            .all(|state| state.frame[0].particle.len() == 2)
     );
     assert_eq!(outcome("A,B [A,B] C", "C"), Outcome::Reached);
     assert_eq!(
@@ -213,12 +244,15 @@ fn verdict() {
         ("D", Outcome::Unreachable),
         ("B", Outcome::Reached),
     ] {
-        search.target(parse(target).unwrap()).unwrap();
+        search.target(crate::source::Program {
+            rule: parse("[A] B [B] C").unwrap().rule,
+            ..parse(target).unwrap()
+        });
         assert_eq!(search.verdict().outcome, expected);
         assert_eq!(search.report().execution.work, work);
     }
-    assert!(search.target(parse("B [B] C").unwrap()).is_err());
-    assert_eq!(search.verdict().outcome, Outcome::Reached);
-    search.target(parse("D").unwrap()).unwrap();
+    search.target(parse("B [B] C").unwrap());
+    assert_eq!(search.verdict().outcome, Outcome::Unreachable);
+    search.target(parse("D").unwrap());
     assert_eq!(search.verdict().witness, None);
 }

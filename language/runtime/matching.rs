@@ -53,18 +53,17 @@ impl Runtime {
         let selection = delivery.selection;
         let view = self.view[consumer.view].clone();
         if let Some(Place::World(site, _)) = consumer.read
-            && !selection.iter().any(|slot| slot.world == site)
+            && !selection.is_empty()
+            && !selection
+                .iter()
+                .any(|slot| slot.location == crate::location::Location::World(site))
         {
             return;
         }
-        let selected = selection
-            .iter()
-            .map(|slot| (slot.world, slot.token.clone()))
-            .collect::<Vec<_>>();
         let Some(mut binding) = view.flow.project(
             &self.state[view.source],
             &self.state[view.target],
-            &selected,
+            &selection,
             consumer.frame,
         ) else {
             return;
@@ -84,66 +83,44 @@ impl Runtime {
 
     pub(super) fn inspect(&mut self, index: usize) {
         let view = self.view[index].clone();
-        let source = self.state[view.source].clone();
         let target = self.state[view.target].clone();
         let available = self.index(view.target);
-        let origin = self.index(view.source);
-        let mut destination = vec![Vec::new(); source.frame.len()];
-        for (frame, &source) in view.flow.frame.iter().enumerate() {
-            if let Some(source) = source {
-                destination[source].push(frame);
-            }
-        }
-        for frame in origin.frame() {
-            let mut owner = Some(frame);
-            while let Some(current) = owner {
-                let scope = source.frame[current].scope;
-                let rule = self
-                    .candidate
-                    .entry((view.target, scope))
-                    .or_insert_with(|| {
-                        let candidate = self.program.scope[scope]
-                            .candidate(available.available())
-                            .into_iter()
-                            .filter(|&rule| {
-                                self.program.rule[rule]
-                                    .input
-                                    .iter()
-                                    .flatten()
-                                    .all(|symbol| available.contains(symbol))
-                            })
-                            .collect::<Vec<_>>();
-                        self.indexed += candidate.len();
-                        Arc::new(candidate)
-                    })
-                    .clone();
-                let capture = destination[current].first().copied();
-                for &rule in rule.iter() {
-                    let input = if self.program.rule[rule].input.is_empty() {
-                        vec![Vec::new()]
-                    } else {
-                        self.program.rule[rule].input.clone()
-                    };
-                    let pattern = plan::pattern(&input, capture);
-                    for &destination in &destination[frame] {
-                        self.subscribe(
-                            Query {
-                                target: view.target,
-                                frame: destination,
-                                pattern: pattern.clone(),
-                            },
-                            Consumer {
-                                view: index,
-                                frame,
-                                owner: Some(current),
-                                rule,
-                                capture: None,
-                                read: None,
-                            },
-                        );
-                    }
+        for frame in available.frame() {
+            let Some(source) = view.flow.frame[frame] else {
+                continue;
+            };
+            for (place, token) in target.visible(frame) {
+                let Symbol::Rule(rule) = token.value else {
+                    continue;
+                };
+                let Place::Context(owner, _) = place else {
+                    unreachable!()
+                };
+                let input = &self.program.rule[rule].input;
+                if (input.is_empty() && owner != frame)
+                    || input
+                        .iter()
+                        .flatten()
+                        .any(|symbol| !available.contains(symbol))
+                {
+                    continue;
                 }
-                owner = source.frame[current].lexical;
+                let pattern = plan::pattern(input, token.capture);
+                self.subscribe(
+                    Query {
+                        target: view.target,
+                        frame,
+                        pattern,
+                    },
+                    Consumer {
+                        view: index,
+                        frame: source,
+                        owner: token.capture.and_then(|capture| view.flow.frame[capture]),
+                        rule,
+                        capture: token.capture,
+                        read: Some(place),
+                    },
+                );
             }
         }
         for (site, world) in target.world.iter().enumerate() {
@@ -162,12 +139,7 @@ impl Runtime {
                 {
                     continue;
                 }
-                let input = if self.program.rule[rule].input.is_empty() {
-                    vec![Vec::new()]
-                } else {
-                    self.program.rule[rule].input.clone()
-                };
-                let pattern = plan::pattern(&input, token.capture);
+                let pattern = plan::pattern(&self.program.rule[rule].input, token.capture);
                 self.subscribe(
                     Query {
                         target: view.target,

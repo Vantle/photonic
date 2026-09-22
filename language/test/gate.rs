@@ -20,7 +20,7 @@ fn sharing() {
         let mut shared = Gate::shared(&pattern, &store);
         for position in 0..512 {
             let slot = Slot {
-                world: position,
+                location: crate::location::Location::World(position),
                 position,
                 token: vec![iteration],
             };
@@ -37,7 +37,7 @@ fn sharing() {
         }
         for position in (0..512).rev() {
             let slot = Slot {
-                world: position % 31,
+                location: crate::location::Location::World(position % 31),
                 position,
                 token: vec![iteration + 1],
             };
@@ -65,7 +65,7 @@ fn saturation() {
         let mut count = 0;
         for position in 0..512 {
             gate.enqueue(Slot {
-                world: position,
+                location: crate::location::Location::World(position),
                 position,
                 token: vec![position],
             });

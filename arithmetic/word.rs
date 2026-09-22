@@ -23,11 +23,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             argument.remainder, argument.undefined
         );
     }
-    if let Some(directory) = &argument.directory {
-        std::fs::create_dir_all(directory)?;
-        std::fs::write(directory.join("program.wave"), &source)?;
-        std::fs::write(directory.join("target.particle"), &target)?;
-    }
     let start = Instant::now();
     let program = parse(&source)?;
     println!(
@@ -35,7 +30,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         program.rule.len(),
         source.len()
     );
-    let mut search = Search::new(program, parse(&target)?)?;
+    let target = photonic::source::Program {
+        rule: program.rule.clone(),
+        ..parse(&target)?
+    };
+    if let Some(directory) = &argument.directory {
+        std::fs::create_dir_all(directory)?;
+        std::fs::write(directory.join("program.wave"), &source)?;
+        std::fs::write(
+            directory.join("target.json"),
+            serde_json::to_vec_pretty(&target)?,
+        )?;
+    }
+    let mut search = Search::new(program, target);
     search.run(
         argument.step,
         Limit {

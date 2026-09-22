@@ -27,6 +27,6 @@ impl Evaluation {
         let Some(event) = self.search.transition(index) else {
             return serde_json::json!({"error": "No such transition."}).to_string();
         };
-        serde_json::json!({"index": index, "event": event, "before": self.search.inspect(event.source), "after": self.search.inspect(event.target)}).to_string()
+        serde_json::json!({"definition": self.search.definition(), "index": index, "event": event, "before": self.search.inspect(event.source), "after": self.search.inspect(event.target)}).to_string()
     }
 }

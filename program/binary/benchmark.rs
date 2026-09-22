@@ -32,8 +32,7 @@ fn main() {
             let mut count = 0;
             for _ in 0..3 {
                 let start = Instant::now();
-                let mut search =
-                    Search::new(parse(&source).unwrap(), parse(&target).unwrap()).unwrap();
+                let mut search = Search::new(parse(&source).unwrap(), parse(&target).unwrap());
                 search.run(
                     1_000_000,
                     Some(Limit {

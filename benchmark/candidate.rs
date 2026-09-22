@@ -57,6 +57,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         "{content},Stage{}.{particle}{separator}{gate}",
         argument.length.get()
     ))?;
+    let target = photonic::source::Program {
+        rule: program.rule.clone(),
+        ..target
+    };
     let limit = Limit {
         state: argument.length.get() + 1,
         record: 100_000_000,

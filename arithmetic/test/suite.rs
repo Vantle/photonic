@@ -15,7 +15,14 @@ fn check(width: usize, left: u64, right: u64, expected: u64) -> Outcome {
 }
 
 fn execute(source: &str, target: &str) -> Outcome {
-    let mut search = Search::new(parse(source).unwrap(), parse(target).unwrap()).unwrap();
+    let mut search = {
+        let program = parse(source).unwrap();
+        let target = photonic::source::Program {
+            rule: program.rule.clone(),
+            ..parse(target).unwrap()
+        };
+        Search::new(program, target)
+    };
     search.run(
         20_000_000,
         Limit {
@@ -70,12 +77,17 @@ fn exhaustive() {
     for left in 0..2 {
         for right in 0..2 {
             for expected in 0..2 {
-                let mut search = photonic::prism::Search::new(
-                    parse(&circuit::multiply(2, 1, left, right, circuit::Layout::Column).unwrap())
-                        .unwrap(),
-                    parse(&encoding::unsigned(2, 2, expected).unwrap()).unwrap(),
-                )
-                .unwrap();
+                let mut search = {
+                    let program = parse(
+                        &circuit::multiply(2, 1, left, right, circuit::Layout::Column).unwrap(),
+                    )
+                    .unwrap();
+                    let target = photonic::source::Program {
+                        rule: program.rule.clone(),
+                        ..parse(&encoding::unsigned(2, 2, expected).unwrap()).unwrap()
+                    };
+                    photonic::prism::Search::new(program, target)
+                };
                 search.run(100_000, None);
                 let report = search.report();
                 assert!(report.execution.closed);
@@ -370,11 +382,14 @@ fn radix() {
                     arithmetic::power::numeral(left, radix).unwrap(),
                     arithmetic::power::numeral(right, radix).unwrap()
                 );
-                let mut search = photonic::prism::Search::new(
-                    parse(&source).unwrap(),
-                    parse(&arithmetic::power::numeral(left + right, radix).unwrap()).unwrap(),
-                )
-                .unwrap();
+                let mut search = {
+                    let program = parse(&source).unwrap();
+                    let target = photonic::source::Program {
+                        rule: program.rule.clone(),
+                        ..parse(&arithmetic::power::numeral(left + right, radix).unwrap()).unwrap()
+                    };
+                    photonic::prism::Search::new(program, target)
+                };
                 search.run(100_000, None);
                 let report = search.report();
                 assert_eq!(report.outcome, Outcome::Reached);
@@ -407,7 +422,14 @@ fn stream() {
             body = format!("({} [Next] {body})", if *value { "1" } else { "0" });
         }
         let source = format!("Read [Read] {body} [0] Next [1] Next");
-        let mut search = Search::new(parse(&source).unwrap(), parse("End").unwrap()).unwrap();
+        let mut search = {
+            let program = parse(&source).unwrap();
+            let target = photonic::source::Program {
+                rule: program.rule.clone(),
+                ..parse("End").unwrap()
+            };
+            Search::new(program, target)
+        };
         search.run(
             100_000,
             Limit {
@@ -438,6 +460,8 @@ fn command() {
         .expect("Bazel runfiles")
         .rlocation_from(path, "")
         .expect("Arithmetic executable");
+    let directory =
+        std::path::PathBuf::from(std::env::var_os("TEST_TMPDIR").unwrap()).join("arithmetic");
     let output = std::process::Command::new(command)
         .args([
             "--operation",
@@ -449,6 +473,8 @@ fn command() {
             "--expected",
             "10",
         ])
+        .arg("--directory")
+        .arg(&directory)
         .output()
         .unwrap();
     assert!(
@@ -459,6 +485,19 @@ fn command() {
     let text = String::from_utf8(output.stdout).unwrap();
     assert!(text.contains("Claim: 3 + 7 = 10; 2-trit operands"));
     assert!(text.contains("Reached:"));
+    let program = parse(&std::fs::read_to_string(directory.join("program.wave")).unwrap()).unwrap();
+    let target: photonic::source::Program =
+        serde_json::from_slice(&std::fs::read(directory.join("target.json")).unwrap()).unwrap();
+    assert_eq!(target.rule, program.rule);
+    let mut search = Search::new(program, target);
+    search.run(
+        100_000,
+        Limit {
+            cell: 4096,
+            ..Limit::default()
+        },
+    );
+    assert_eq!(search.summary().outcome, Outcome::Reached);
     assert_eq!(argument::Operation::Add.symbol(), "+");
 }
 

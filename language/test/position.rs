@@ -18,16 +18,13 @@ fn mutation() {
             index.remove(position[value]);
         }
         if let Some(&value) = expected.first() {
-            assert_eq!(index.select(0), value);
             assert_eq!(index.rank(position[value]), 0);
         }
         if let Some(&value) = expected.last() {
-            assert_eq!(index.select(expected.len() - 1), value);
             assert_eq!(index.rank(position[value]), expected.len() - 1);
         }
         index.compact(&mut position);
         for (rank, &value) in expected.iter().enumerate() {
-            assert_eq!(index.select(rank), value);
             assert_eq!(index.rank(position[value]), rank);
         }
     }
@@ -36,7 +33,6 @@ fn mutation() {
         index.compact(&mut position);
     }
     position.push(index.insert(position.len()));
-    assert_eq!(index.select(0), position.len() - 1);
     assert_eq!(index.rank(*position.last().unwrap()), 0);
     assert!(index.retained() < 140);
 }

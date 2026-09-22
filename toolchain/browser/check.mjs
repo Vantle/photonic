@@ -103,14 +103,14 @@ try {
         await new Promise(resolve => setTimeout(resolve, 50));
     }
     assert.match(await evaluate("return document.getElementById('evaluation-status').textContent"), /Executed here/);
-    assert.match(await evaluate("return document.getElementById('evaluation-verdict').textContent"), /D: reached/);
-    assert.match(await evaluate("return document.getElementById('evaluation-verdict').textContent"), /C.D: reached/);
-    await evaluate("document.getElementById('evaluation-source').value = 'A [A] B'; document.getElementById('evaluation-target').value = '[\"B\", \"C\"]'; document.getElementById('evaluation-run').click()");
+    assert.match(await evaluate("return document.getElementById('evaluation-verdict').textContent"), /D \[A\] B.C \[B\] D: reached/);
+    assert.match(await evaluate("return document.getElementById('evaluation-verdict').textContent"), /C.D \[A\] B.C \[B\] D: reached/);
+    await evaluate("document.getElementById('evaluation-source').value = 'A [A] B'; document.getElementById('evaluation-target').value = '[\"B [A] B\", \"B\", \"C [A] B\"]'; document.getElementById('evaluation-run').click()");
     for (let attempt = 0; attempt < 200; attempt++) {
         if (await evaluate("return !document.getElementById('evaluation-run').disabled")) break;
         await new Promise(resolve => setTimeout(resolve, 50));
     }
-    assert.match(await evaluate("return document.getElementById('evaluation-verdict').textContent"), /B: reached.*C: unreachable/);
+    assert.match(await evaluate("return document.getElementById('evaluation-verdict').textContent"), /B \[A\] B: reached.*B: unreachable.*C \[A\] B: unreachable/);
     await evaluate("document.getElementById('evaluation-run').click(); document.getElementById('evaluation-stop').click()");
     assert.match(await evaluate("return document.getElementById('evaluation-status').textContent"), /^Stopped/);
     await command(`/session/${session}/window/rect`, { width: 1440, height: 1000 });

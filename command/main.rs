@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 
 mod argument;
+mod output;
 
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -17,6 +18,7 @@ use argument::{Argument, Execution, Format, Operation};
 fn main() -> miette::Result<()> {
     match Argument::parse().operation {
         Operation::Parse { path } => parse(path),
+        Operation::Lower { path, context } => lower(path, context),
         Operation::Run { path, execution } => run(path, execution),
         Operation::Prism {
             path,
@@ -31,6 +33,14 @@ fn read(path: &Path) -> miette::Result<String> {
     std::fs::read_to_string(path)
         .into_diagnostic()
         .wrap_err_with(|| format!("could not read {}", path.display()))
+}
+
+fn lower(path: PathBuf, context: Vec<PathBuf>) -> miette::Result<()> {
+    let mut source = program(&path, None)?;
+    for path in context {
+        source.rule.extend(program(&path, None)?.rule);
+    }
+    output::write(&source, false)
 }
 
 fn parse(path: PathBuf) -> miette::Result<()> {
@@ -87,11 +97,10 @@ fn run(path: PathBuf, execution: Execution) -> miette::Result<()> {
     let executor = photonic::executor::Executor::new(execution.worker).into_diagnostic()?;
     let mut runtime = Runtime::new(load(&path, &execution)?);
     runtime.parallel(&executor, execution.step, Some(limit(&execution)));
-    let mut output = std::io::stdout().lock();
     if execution.json {
-        serde_json::to_writer_pretty(&mut output, &runtime.view()).into_diagnostic()?;
-        return writeln!(output).into_diagnostic();
+        return output::write(&runtime.view(), execution.compact);
     }
+    let mut output = std::io::stdout().lock();
     let snapshot = runtime.snapshot();
     writeln!(
         output,
@@ -135,13 +144,12 @@ fn prism(path: PathBuf, target: PathBuf, execution: Execution, walk: bool) -> mi
     let mut search = photonic::prism::Search::new(
         load(&path, &execution)?,
         program(&target, execution.format)?,
-    )?;
+    );
     search.parallel(&executor, execution.step, Some(limit(&execution)));
-    let mut output = std::io::stdout().lock();
     if execution.json {
-        serde_json::to_writer_pretty(&mut output, &search.view()).into_diagnostic()?;
-        return writeln!(output).into_diagnostic();
+        return output::write(&search.view(), execution.compact);
     }
+    let mut output = std::io::stdout().lock();
     let report = search.report();
     let outcome = match report.outcome {
         photonic::prism::Outcome::Reached => "Reached",
@@ -180,13 +188,12 @@ fn trace(path: PathBuf, target: PathBuf, execution: Execution) -> miette::Result
     let mut search = photonic::path::Search::new(
         load(&path, &execution)?,
         program(&target, execution.format)?,
-    )?;
+    );
     search.run(execution.step, limit(&execution));
-    let mut output = std::io::stdout().lock();
     if execution.json {
-        serde_json::to_writer_pretty(&mut output, &search.view()).into_diagnostic()?;
-        return writeln!(output).into_diagnostic();
+        return output::write(&search.view(), execution.compact);
     }
+    let mut output = std::io::stdout().lock();
     let report = search.summary();
     writeln!(output, "{:?}: one direct execution path", report.outcome).into_diagnostic()?;
     if let Some(witness) = &report.witness {
@@ -208,10 +215,8 @@ fn status(value: Status) -> &'static str {
 }
 
 fn display(node: &Node) -> String {
-    if node.world.is_empty() {
-        return "∅".to_owned();
-    }
-    node.world
+    let value = node
+        .world
         .iter()
         .map(|world| {
             let particle = if world.particle.is_empty() {
@@ -220,15 +225,40 @@ fn display(node: &Node) -> String {
                 world
                     .particle
                     .iter()
-                    .map(|token| match token.capture {
-                        Some(frame) => format!("{}@f{frame}", token.display),
-                        None => token.display.to_string(),
-                    })
+                    .map(token)
                     .collect::<Vec<_>>()
                     .join(".")
             };
             format!("[{particle}]@{}", node.frame[world.frame].scope)
         })
+        .chain(
+            node.frame
+                .iter()
+                .filter(|frame| !frame.particle.is_empty())
+                .map(|frame| {
+                    format!(
+                        "{{{}}}@{}",
+                        frame
+                            .particle
+                            .iter()
+                            .map(token)
+                            .collect::<Vec<_>>()
+                            .join("."),
+                        frame.scope
+                    )
+                }),
+        )
         .collect::<Vec<_>>()
-        .join(" ")
+        .join(" ");
+    if value.is_empty() {
+        return "∅".to_owned();
+    }
+    value
+}
+
+fn token(token: &photonic::snapshot::Token) -> String {
+    match token.capture {
+        Some(frame) => format!("{}@f{frame}", token.display),
+        None => token.display.to_string(),
+    }
 }
