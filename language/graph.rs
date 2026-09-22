@@ -4,16 +4,19 @@ pub(crate) struct Graph {
 }
 
 impl Graph {
-    pub(crate) fn new(vertex: usize, connection: Vec<(usize, usize, u8)>) -> Self {
+    pub(crate) fn new(
+        vertex: usize,
+        connection: impl Iterator<Item = (usize, usize, u8)> + Clone,
+    ) -> Self {
         let mut offset = vec![0; vertex + 1];
-        for &(source, _, _) in &connection {
+        for (source, _, _) in connection.clone() {
             offset[source + 1] += 1;
         }
         for index in 1..offset.len() {
             offset[index] += offset[index - 1];
         }
         let mut cursor = offset[..vertex].to_vec();
-        let mut edge = vec![(0, 0); connection.len()];
+        let mut edge = vec![(0, 0); offset[vertex]];
         for (source, target, kind) in connection {
             edge[cursor[source]] = (kind, target);
             cursor[source] += 1;
@@ -21,7 +24,7 @@ impl Graph {
         Self { offset, edge }
     }
 
-    pub(crate) fn iter(&self) -> impl Iterator<Item = &[(u8, usize)]> {
+    pub(crate) fn iter(&self) -> impl Iterator<Item = &[(u8, usize)]> + Clone {
         self.offset
             .windows(2)
             .map(|range| &self.edge[range[0]..range[1]])

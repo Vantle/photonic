@@ -23,7 +23,7 @@ use crate::state::{Frame, State, Token, World};
 use serde::Serialize;
 use std::hint::black_box;
 use std::sync::Arc;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 #[derive(Clone, Copy, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -93,6 +93,10 @@ pub fn run() -> Vec<Measurement> {
         for count in [2, 4, 8, 30] {
             let state = Arc::new(state(count, sharing));
             let (step, complete) = evaluate(state.clone());
+            let start = Instant::now();
+            while start.elapsed() < Duration::from_millis(100) {
+                assert_eq!(evaluate(state.clone()), (step, complete));
+            }
             let mut duration = Vec::new();
             for _ in 0..25 {
                 let state = state.clone();

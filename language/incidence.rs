@@ -76,7 +76,7 @@ impl Incidence {
         for (id, captured) in capture {
             connect(&mut edge, resource[&id], frame[captured], Link::Capture);
         }
-        let edge = crate::graph::Graph::new(label.len(), edge);
+        let edge = crate::graph::Graph::new(label.len(), edge.iter().copied());
         Self { label, frame, edge }
     }
 }

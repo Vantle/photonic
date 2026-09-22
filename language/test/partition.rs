@@ -73,14 +73,11 @@ fn verify(edge: &[Vec<(u8, usize)>], color: Vec<usize>) {
     }
     let graph = crate::graph::Graph::new(
         edge.len(),
-        edge.iter()
-            .enumerate()
-            .flat_map(|(source, adjacent)| {
-                adjacent
-                    .iter()
-                    .map(move |&(kind, target)| (source, target, kind))
-            })
-            .collect(),
+        edge.iter().enumerate().flat_map(|(source, adjacent)| {
+            adjacent
+                .iter()
+                .map(move |&(kind, target)| (source, target, kind))
+        }),
     );
     for (index, adjacent) in edge.iter().enumerate() {
         assert_eq!(&graph[index], adjacent);
@@ -118,5 +115,42 @@ fn propagation() {
             }
             verify(&edge, (0..length).map(|index| index % 3).collect());
         }
+    }
+}
+
+#[test]
+fn scheduling() {
+    for length in [2, 7, 32, 65, 128] {
+        let edge = (0..length)
+            .map(|index| {
+                let next = (index + 1) % length;
+                vec![(0, next), (0, next), (1, index), (2, length - 1)]
+            })
+            .collect::<Vec<_>>();
+        verify(&edge, (0..length).map(|index| usize::MAX - index).collect());
+        verify(
+            &edge,
+            (0..length)
+                .map(|index| usize::from(index == 0) * 91)
+                .collect(),
+        );
+        verify(&edge, (0..length).map(|index| (index % 7) * 91).collect());
+        let reverse = edge
+            .iter()
+            .rev()
+            .map(|adjacent| {
+                adjacent
+                    .iter()
+                    .rev()
+                    .map(|&(kind, target)| (kind, length - 1 - target))
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>();
+        verify(
+            &reverse,
+            (0..length)
+                .map(|index| usize::from(index + 1 == length) * 91)
+                .collect(),
+        );
     }
 }
