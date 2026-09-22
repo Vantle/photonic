@@ -22,18 +22,23 @@ pub(crate) struct Index {
     pub frame: Arc<Vec<usize>>,
 }
 
-fn reference(world: &crate::state::World) -> impl Iterator<Item = usize> + '_ {
-    std::iter::once(world.frame).chain(world.particle.iter().filter_map(|token| token.capture))
+fn closure(state: &State, anchor: &List<usize>) -> Vec<usize> {
+    state.closure(
+        anchor
+            .iter()
+            .enumerate()
+            .filter_map(|(frame, &count)| (count > 0).then_some(frame)),
+    )
 }
 
 impl Index {
     pub fn new(state: &State) -> Self {
         let mut anchor = std::iter::repeat_n(0, state.frame.len()).collect::<List<_>>();
         anchor[0] = 1;
-        for frame in state.world.iter().flat_map(|world| reference(world)) {
+        for frame in state.world.iter().flat_map(|world| world.reference()) {
             anchor[frame] += 1;
         }
-        let frame = Arc::new(state.reachable());
+        let frame = Arc::new(closure(state, &anchor));
         Self {
             storage: admitted(state)
                 .then(|| Arc::new(Storage::Retained(network::Network::new(state, &frame)))),
@@ -51,7 +56,7 @@ impl Index {
         for frame in change
             .world
             .iter()
-            .flat_map(|&world| reference(&source.world[world]))
+            .flat_map(|&world| source.world[world].reference())
         {
             anchor[frame] -= 1;
             affected.push(frame);
@@ -59,7 +64,7 @@ impl Index {
         for frame in state
             .world
             .range(change.insertion.clone())
-            .flat_map(|world| reference(world))
+            .flat_map(|world| world.reference())
         {
             anchor[frame] += 1;
             affected.push(frame);
@@ -91,7 +96,7 @@ impl Index {
             });
             (Some(Arc::new(Storage::Retained(network))), frame)
         } else {
-            let frame = Arc::new(state.reachable());
+            let frame = Arc::new(closure(state, &anchor));
             let storage = if !enabled {
                 self.storage.clone()
             } else {

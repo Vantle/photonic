@@ -356,6 +356,11 @@ fn verify(source: &str, maximum: usize) {
     let mut seen = HashSet::from([initial.clone()]);
     let mut pending = VecDeque::from([(initial, 0)]);
     while let Some((state, depth)) = pending.pop_front() {
+        assert_eq!(
+            state.reachable().into_iter().collect::<BTreeSet<_>>(),
+            reachable(&state),
+            "{source}, depth {depth}"
+        );
         let state = Arc::new(state);
         let expected = expected(&program, &state);
         assert_eq!(

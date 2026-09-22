@@ -20,13 +20,11 @@ pub(super) struct Network {
 }
 
 fn adjacent(state: &State, source: usize) -> impl Iterator<Item = usize> + '_ {
-    state.frame.get(source).into_iter().flat_map(|frame| {
-        frame
-            .parent
-            .into_iter()
-            .chain(frame.lexical)
-            .chain(frame.token().filter_map(|token| token.capture))
-    })
+    state
+        .frame
+        .get(source)
+        .into_iter()
+        .flat_map(|frame| frame.reference())
 }
 
 impl Network {

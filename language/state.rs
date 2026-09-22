@@ -164,28 +164,21 @@ impl State {
     }
 
     pub fn reachable(&self) -> Vec<usize> {
+        self.closure(
+            std::iter::once(0).chain(self.world.iter().flat_map(|world| world.reference())),
+        )
+    }
+
+    pub(crate) fn closure(&self, root: impl IntoIterator<Item = usize>) -> Vec<usize> {
         let mut selected = vec![false; self.frame.len()];
         let mut pending = Vec::new();
-        let mut insert = |index| {
+        for index in root {
             if !std::mem::replace(&mut selected[index], true) {
                 pending.push(index);
             }
-        };
-        insert(0);
-        for world in &self.world {
-            insert(world.frame);
-            for capture in world.particle.iter().filter_map(|token| token.capture) {
-                insert(capture);
-            }
         }
         while let Some(index) = pending.pop() {
-            let frame = &self.frame[index];
-            for target in frame
-                .parent
-                .into_iter()
-                .chain(frame.lexical)
-                .chain(frame.token().filter_map(|token| token.capture))
-            {
+            for target in self.frame[index].reference() {
                 if !std::mem::replace(&mut selected[target], true) {
                     pending.push(target);
                 }
@@ -380,9 +373,29 @@ impl State {
     }
 }
 
+impl World {
+    pub(crate) fn reference(&self) -> impl Iterator<Item = usize> + '_ {
+        std::iter::once(self.frame).chain(self.particle.iter().filter_map(|token| token.capture))
+    }
+}
+
 impl Frame {
     pub(crate) fn token(&self) -> impl Iterator<Item = &Token> {
         self.particle.iter().chain(&self.held)
+    }
+
+    pub(crate) fn reference(&self) -> impl Iterator<Item = usize> + '_ {
+        let capture = self.particle.capture();
+        let scanned = capture
+            .is_none()
+            .then(|| self.particle.iter())
+            .into_iter()
+            .flatten();
+        self.parent
+            .into_iter()
+            .chain(self.lexical)
+            .chain(capture.filter(|_| !self.particle.is_empty()))
+            .chain(scanned.chain(&self.held).filter_map(|token| token.capture))
     }
 
     pub(crate) fn size(&self) -> usize {

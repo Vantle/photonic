@@ -11,6 +11,7 @@ use selection::Selection;
 pub(crate) struct Set {
     value: Option<Arc<[Token]>>,
     selection: Option<Arc<Selection>>,
+    capture: Option<usize>,
 }
 
 pub(crate) struct Entry<'set> {
@@ -49,6 +50,10 @@ impl Set {
 
     pub fn at(&self, position: usize) -> &Token {
         &self.value.as_ref().unwrap()[position]
+    }
+
+    pub fn capture(&self) -> Option<usize> {
+        self.capture
     }
 
     pub fn retain(&mut self, mut selected: impl FnMut(&Token) -> bool) {
@@ -113,6 +118,7 @@ impl Set {
         if self.selection.is_some() {
             *self = self.iter().cloned().collect();
         }
+        self.capture = None;
         Arc::make_mut(self.value.get_or_insert_with(|| Arc::from([])))
     }
 
@@ -165,12 +171,16 @@ impl ExactSizeIterator for Entry<'_> {}
 
 impl From<Vec<Token>> for Set {
     fn from(value: Vec<Token>) -> Self {
-        if value.is_empty() {
+        let Some(first) = value.first() else {
             return Self::default();
-        }
+        };
+        let capture = first
+            .capture
+            .filter(|&capture| value.iter().all(|token| token.capture == Some(capture)));
         Self {
             value: Some(value.into()),
             selection: None,
+            capture,
         }
     }
 }

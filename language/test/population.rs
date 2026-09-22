@@ -173,3 +173,26 @@ fn equality() {
         right.entry().next().unwrap().0
     );
 }
+
+#[test]
+fn capture() {
+    let owned = (0..130)
+        .map(|identity| Token {
+            id: identity,
+            value: Symbol::Rule(identity % 4),
+            capture: Some(5),
+        })
+        .collect::<Vec<_>>();
+    let mut uniform = Set::from(owned.clone());
+    assert_eq!(uniform.capture(), Some(5));
+    uniform.retain(|token| token.id % 3 == 0);
+    assert_eq!(uniform.capture(), Some(5));
+    assert!(uniform.iter().all(|token| token.capture == Some(5)));
+    uniform.clear();
+    assert_eq!(uniform.capture(), None);
+    assert_eq!(Set::default().capture(), None);
+    assert_eq!(Set::from(population(3)).capture(), None);
+    let mut mutated = Set::from(owned);
+    mutated[7].capture = Some(6);
+    assert_eq!(mutated.capture(), None);
+}
