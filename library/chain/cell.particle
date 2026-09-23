@@ -1,5 +1,6 @@
 [Forget.Zero] Clean
 [Read.Zero] Yield.End.Zero
+[Peek.Zero] Seen.End.Zero
 
 [Push] (
     Build
@@ -8,14 +9,46 @@
             .([Prepare.Head.([Seal] ()).([Request] ())] (Drop [Clean] Restore))
             .([Restore.([Handle] ())] Built.Head.([Seal] ()))
             .([Forget.Head.([Seal] ())] (Discard [Free] Clean))
-            .([Read.Head.([Seal] ()), Cell.([Seal] ())] (Discard [Free] Yield))
+            .([Read.Head.([Seal] ()), Cell.([Seal] ())] (Purge [Free] Yield))
     ) (
         Cell.([Seal] ())
+            .([
+                Peek.Head.([Seal] ())
+                    .([Prepare.Head.([Seal] ()).([Request] ())] (Drop [Clean] Restore))
+                    .([Restore.([Handle] ())] Built.Head.([Seal] ()))
+                    .([Forget.Head.([Seal] ())] (Discard [Free] Clean))
+                    .([Read.Head.([Seal] ()), Cell.([Seal] ())] (Purge [Free] Yield)),
+                Cell.([Seal] ())
+            ] (Cell.([Seal] ())) (Shed [Free] Seen))
     )
     [Discard
         .([Prepare.Head.([Seal] ()).([Request] ())] (Drop [Clean] Restore))
         .([Restore.([Handle] ())] Built.Head.([Seal] ()))
         .([Forget.Head.([Seal] ())] (Discard [Free] Clean))
-        .([Read.Head.([Seal] ()), Cell.([Seal] ())] (Discard [Free] Yield))
+        .([Read.Head.([Seal] ()), Cell.([Seal] ())] (Purge [Free] Yield))
+    ] Free
+    [Purge
+        .([Prepare.Head.([Seal] ()).([Request] ())] (Drop [Clean] Restore))
+        .([Restore.([Handle] ())] Built.Head.([Seal] ()))
+        .([Forget.Head.([Seal] ())] (Discard [Free] Clean))
+        .([Read.Head.([Seal] ()), Cell.([Seal] ())] (Purge [Free] Yield))
+        .([
+            Peek.Head.([Seal] ())
+                .([Prepare.Head.([Seal] ()).([Request] ())] (Drop [Clean] Restore))
+                .([Restore.([Handle] ())] Built.Head.([Seal] ()))
+                .([Forget.Head.([Seal] ())] (Discard [Free] Clean))
+                .([Read.Head.([Seal] ()), Cell.([Seal] ())] (Purge [Free] Yield)),
+            Cell.([Seal] ())
+        ] (Cell.([Seal] ())) (Shed [Free] Seen))
+    ] Free
+    [Shed
+        .([
+            Peek.Head.([Seal] ())
+                .([Prepare.Head.([Seal] ()).([Request] ())] (Drop [Clean] Restore))
+                .([Restore.([Handle] ())] Built.Head.([Seal] ()))
+                .([Forget.Head.([Seal] ())] (Discard [Free] Clean))
+                .([Read.Head.([Seal] ()), Cell.([Seal] ())] (Purge [Free] Yield)),
+            Cell.([Seal] ())
+        ] (Cell.([Seal] ())) (Shed [Free] Seen))
     ] Free
 )

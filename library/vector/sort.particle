@@ -1,0 +1,102 @@
+[Function.Vector.Sort] Take.Sort.Front
+[Taken.End.Empty.Sort.Front] Return.Vector.Sort.Empty
+[Taken.Item.Sort.Front] (Forget.Sort.Input) (Release.Sort.Seed)
+[Released.Sort.Seed] (Operand.Left) (Forget.Sort.Primed)
+[Clean.Sort.Primed] (Sort.Pile.Zero) (Sort.Tally.Sole) (Sort.Trend.Start) (Sort.Pull) (Released.Sort.Idle)
+
+[Sort.Pull, Clean.Sort.Input] Take.Sort.Draw
+[Taken.End.Empty.Sort.Draw] Sort.Drained
+[Taken.Item.Sort.Draw] (Forget.Sort.Input) (Release.Sort.Arrival)
+[Released.Sort.Arrival] (Operand.Right) (Forget.Sort.Ready)
+[Clean.Sort.Ready, Released.Sort.Idle] Function.Natural.Compare
+
+[Return.Natural.Compare.Less, Sort.Trend.Start] (Sort.Trend.Rise) (Sort.Found) (Sort.Placed) (Sort.Shift) (Sort.Pull)
+[Return.Natural.Compare.Equal, Sort.Trend.Start] (Sort.Trend.Rise) (Sort.Found) (Sort.Placed) (Sort.Shift) (Sort.Pull)
+[Return.Natural.Compare.Greater, Sort.Trend.Start] (Sort.Trend.Fall) (Sort.Found) (Sort.Placed) (Sort.Shift) (Sort.Pull)
+[Return.Natural.Compare.Less, Sort.Trend.Rise] (Sort.Trend.Rise) (Sort.Extend) (Sort.Placed) (Sort.Shift) (Sort.Pull)
+[Return.Natural.Compare.Equal, Sort.Trend.Rise] (Sort.Trend.Rise) (Sort.Extend) (Sort.Placed) (Sort.Shift) (Sort.Pull)
+[Return.Natural.Compare.Greater, Sort.Trend.Rise] (Sort.Trend.Start) (Sort.Extend) (Sort.Closing.Down) (Sort.Stacking) (Sort.Shift) (Sort.Pull)
+[Return.Natural.Compare.Less, Sort.Trend.Fall] (Sort.Trend.Start) (Sort.Extend) (Sort.Closing.Up) (Sort.Flip) (Sort.Stacking) (Sort.Shift) (Sort.Pull)
+[Return.Natural.Compare.Equal, Sort.Trend.Fall] (Sort.Trend.Start) (Sort.Extend) (Sort.Closing.Up) (Sort.Flip) (Sort.Stacking) (Sort.Shift) (Sort.Pull)
+[Return.Natural.Compare.Greater, Sort.Trend.Fall] (Sort.Trend.Fall) (Sort.Extend) (Sort.Placed) (Sort.Shift) (Sort.Pull)
+[Sort.Found, Return.Natural.Compare.Left] Insert.Empty
+[Sort.Extend, Return.Natural.Compare.Left, Sort.Segment] Insert
+[Sort.Shift, Return.Natural.Compare.Right] Operand.Left
+[Stored, Sort.Placed] (Sort.Segment) (Release.Sort.Idle)
+
+[Stored, Sort.Closing.Down] Sort.Finished
+[Stored, Sort.Closing.Up] Function.Vector.Reverse
+[Return.Vector.Reverse, Sort.Flip] Sort.Finished
+[Sort.Finished, Sort.Pile] Push
+[Built, Sort.Stacking] (Sort.Pile) (Forget.Sort.Idle)
+[Clean.Sort.Idle, Sort.Tally.Sole] (Sort.Tally.Many) (Released.Sort.Idle)
+[Clean.Sort.Idle, Sort.Tally.Many] (Sort.Tally.Many) (Released.Sort.Idle)
+
+[Sort.Drained, Sort.Trend.Start, Released.Sort.Idle, Sort.Tally.Many] Sort.Last.Single
+[Sort.Drained, Sort.Trend.Rise, Released.Sort.Idle, Sort.Tally.Many] Sort.Last.Down
+[Sort.Drained, Sort.Trend.Fall, Released.Sort.Idle, Sort.Tally.Many] Sort.Last.Up
+[Sort.Last.Single] (Sort.Lead) (Sort.Closing.Down) (Sort.Launch)
+[Sort.Last.Down] (Sort.Trail) (Sort.Closing.Down) (Sort.Launch)
+[Sort.Last.Up] (Sort.Trail) (Sort.Closing.Up) (Sort.Flip) (Sort.Launch)
+[Sort.Drained, Sort.Trend.Start, Released.Sort.Idle, Sort.Tally.Sole, Sort.Pile.Zero] (Sort.Lead) (Sort.Alone)
+[Sort.Drained, Sort.Trend.Rise, Released.Sort.Idle, Sort.Tally.Sole, Sort.Pile.Zero] (Sort.Trail) (Sort.Backward) (Sort.Deliver)
+[Sort.Drained, Sort.Trend.Fall, Released.Sort.Idle, Sort.Tally.Sole, Sort.Pile.Zero] (Sort.Trail) (Sort.Alone)
+[Sort.Lead, Operand.Left] Insert.Empty
+[Sort.Trail, Operand.Left, Sort.Segment] Insert
+[Stored, Sort.Alone] Return.Vector.Sort
+[Stored, Sort.Backward] Function.Vector.Reverse
+[Built, Sort.Launch] (Sort.Pile) (Forget.Sort.Begin)
+[Clean.Sort.Begin] (Sort.Heap.Zero) (Sort.Round.Down.Fresh)
+
+[Sort.Round.Down.Fresh, Sort.Pile] Read.Sort.Pick.Down.Fresh
+[Yield.Node.Sort.Pick.Down.Fresh] (Forget.Merge.Lane.Left.Node) (Release.Sort.Then.Down.Fresh.Node)
+[Released.Sort.Then.Down.Fresh] Read.Sort.Partner.Down.Fresh
+[Yield.Node.Sort.Partner.Down.Fresh] (Forget.Merge.Lane.Right.Node) (Release.Sort.Rest.Down.Fresh.Node)
+[Released.Sort.Rest.Down.Fresh] (Sort.Pile) (Forget.Merge.Begin.Down.Fresh)
+[Sort.Round.Down.Stale, Sort.Pile] Read.Sort.Pick.Down.Stale
+[Yield.Node.Sort.Pick.Down.Stale] (Forget.Merge.Lane.Stale.Node) (Release.Sort.Then.Down.Stale.Node)
+[Released.Sort.Then.Down.Stale] Read.Sort.Partner.Down.Stale
+[Yield.Node.Sort.Partner.Down.Stale] (Forget.Merge.Lane.Right.Node) (Release.Sort.Rest.Down.Stale.Node)
+[Released.Sort.Rest.Down.Stale] (Sort.Pile) (Forget.Merge.Begin.Down.Stale)
+[Yield.End.Sort.Pick.Down.Fresh.Zero] (Sort.Pile.Zero) (Sort.Round.Up.Fresh)
+[Yield.End.Sort.Partner.Down.Fresh.Zero] (Sort.Lone.Down) (Sort.Carried.Down)
+[Sort.Lone.Down, Sort.Heap.Zero, Sort.Carried.Down] Sort.Result.Down
+[Sort.Lone.Down, Sort.Heap.Head, Clean.Merge.Lane.Left] Push.Head
+[Built, Sort.Carried.Down] (Sort.Heap) (Forget.Sort.Swap.Down)
+[Clean.Sort.Swap.Down] (Sort.Pile.Zero) (Sort.Round.Up.Stale)
+[Clean.Merge.Begin.Down.Fresh] (Merge.Mode.Down) (Merge.Output.Empty) (Released.Merge.Idle) (Merge.Pull.Left) (Merge.Pull.Right) (Merge.Await.Both)
+[Clean.Merge.Begin.Down.Stale] (Merge.Mode.Down) (Merge.Output.Empty) (Released.Merge.Idle) (Merge.Turn) (Merge.Turned) (Merge.Pull.Right) (Merge.Await.Both)
+[Merge.Complete.Down] (Merge.Store.Down) (Sort.Stacked.Down)
+[Merge.Store.Down, Merge.Output, Sort.Heap] Push
+[Built, Sort.Stacked.Down] (Sort.Heap) (Forget.Sort.Again.Down)
+[Clean.Sort.Again.Down] Sort.Round.Down.Fresh
+
+[Sort.Round.Up.Fresh, Sort.Heap] Read.Sort.Pick.Up.Fresh
+[Yield.Node.Sort.Pick.Up.Fresh] (Forget.Merge.Lane.Left.Node) (Release.Sort.Then.Up.Fresh.Node)
+[Released.Sort.Then.Up.Fresh] Read.Sort.Partner.Up.Fresh
+[Yield.Node.Sort.Partner.Up.Fresh] (Forget.Merge.Lane.Right.Node) (Release.Sort.Rest.Up.Fresh.Node)
+[Released.Sort.Rest.Up.Fresh] (Sort.Heap) (Forget.Merge.Begin.Up.Fresh)
+[Sort.Round.Up.Stale, Sort.Heap] Read.Sort.Pick.Up.Stale
+[Yield.Node.Sort.Pick.Up.Stale] (Forget.Merge.Lane.Stale.Node) (Release.Sort.Then.Up.Stale.Node)
+[Released.Sort.Then.Up.Stale] Read.Sort.Partner.Up.Stale
+[Yield.Node.Sort.Partner.Up.Stale] (Forget.Merge.Lane.Right.Node) (Release.Sort.Rest.Up.Stale.Node)
+[Released.Sort.Rest.Up.Stale] (Sort.Heap) (Forget.Merge.Begin.Up.Stale)
+[Yield.End.Sort.Pick.Up.Fresh.Zero] (Sort.Heap.Zero) (Sort.Round.Down.Fresh)
+[Yield.End.Sort.Partner.Up.Fresh.Zero] (Sort.Lone.Up) (Sort.Carried.Up)
+[Sort.Lone.Up, Sort.Pile.Zero, Sort.Carried.Up] Sort.Result.Up
+[Sort.Lone.Up, Sort.Pile.Head, Clean.Merge.Lane.Left] Push.Head
+[Built, Sort.Carried.Up] (Sort.Pile) (Forget.Sort.Swap.Up)
+[Clean.Sort.Swap.Up] (Sort.Heap.Zero) (Sort.Round.Down.Stale)
+[Clean.Merge.Begin.Up.Fresh] (Merge.Mode.Up) (Merge.Output.Empty) (Released.Merge.Idle) (Merge.Pull.Left) (Merge.Pull.Right) (Merge.Await.Both)
+[Clean.Merge.Begin.Up.Stale] (Merge.Mode.Up) (Merge.Output.Empty) (Released.Merge.Idle) (Merge.Turn) (Merge.Turned) (Merge.Pull.Right) (Merge.Await.Both)
+[Merge.Complete.Up] (Merge.Store.Up) (Sort.Stacked.Up)
+[Merge.Store.Up, Merge.Output, Sort.Pile] Push
+[Built, Sort.Stacked.Up] (Sort.Pile) (Forget.Sort.Again.Up)
+[Clean.Sort.Again.Up] Sort.Round.Up.Fresh
+
+[Merge.Turn, Clean.Merge.Lane.Stale] Function.Vector.Reverse
+[Return.Vector.Reverse, Merge.Turned] Take.Merge.Draw.Left
+[Sort.Result.Up, Clean.Merge.Lane.Left] Return.Vector.Sort
+[Sort.Result.Down] (Sort.Unwind) (Sort.Deliver)
+[Sort.Unwind, Clean.Merge.Lane.Left] Function.Vector.Reverse
+[Return.Vector.Reverse, Sort.Deliver] Return.Vector.Sort

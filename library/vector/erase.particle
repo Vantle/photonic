@@ -1,0 +1,5 @@
+[Function.Vector.Erase] Take.Wipe.Draw
+[Taken.Item.Wipe.Draw] (Forget.Wipe.Source) (Release.Wipe.Item)
+[Released.Wipe.Item] Function.Chain.Erase.Wipe.Next
+[Return.Chain.Erase.Wipe.Next, Clean.Wipe.Source] Take.Wipe.Draw
+[Taken.End.Empty.Wipe.Draw] Return.Vector.Erase

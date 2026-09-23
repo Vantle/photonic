@@ -1,0 +1,44 @@
+[Return.Natural.Compare.Less, Merge.Mode.Down] (Merge.Mode.Down) (Merge.Emit.Right) (Merge.Placed) (Merge.Hold.Left) (Merge.Pull.Right) (Merge.Await.Right)
+[Return.Natural.Compare.Equal, Merge.Mode.Down] (Merge.Mode.Down) (Merge.Emit.Left) (Merge.Placed) (Merge.Hold.Right) (Merge.Pull.Left) (Merge.Await.Left)
+[Return.Natural.Compare.Greater, Merge.Mode.Down] (Merge.Mode.Down) (Merge.Emit.Left) (Merge.Placed) (Merge.Hold.Right) (Merge.Pull.Left) (Merge.Await.Left)
+[Return.Natural.Compare.Less, Merge.Mode.Up] (Merge.Mode.Up) (Merge.Emit.Left) (Merge.Placed) (Merge.Hold.Right) (Merge.Pull.Left) (Merge.Await.Left)
+[Return.Natural.Compare.Equal, Merge.Mode.Up] (Merge.Mode.Up) (Merge.Emit.Left) (Merge.Placed) (Merge.Hold.Right) (Merge.Pull.Left) (Merge.Await.Left)
+[Return.Natural.Compare.Greater, Merge.Mode.Up] (Merge.Mode.Up) (Merge.Emit.Right) (Merge.Placed) (Merge.Hold.Left) (Merge.Pull.Right) (Merge.Await.Right)
+[Clean.Merge.Ready.Left, Clean.Merge.Ready.Right, Merge.Await.Both, Released.Merge.Idle] Function.Natural.Compare
+[Stored, Merge.Placed] (Merge.Output) (Release.Merge.Idle)
+
+[Merge.Emit.Left, Return.Natural.Compare.Left, Merge.Output] Insert
+[Merge.Hold.Left, Return.Natural.Compare.Left] Operand.Left
+[Merge.Pull.Left, Clean.Merge.Lane.Left] Take.Merge.Draw.Left
+[Taken.Item.Merge.Draw.Left] (Forget.Merge.Lane.Left) (Release.Merge.Arrival.Left)
+[Released.Merge.Arrival.Left] (Operand.Left) (Forget.Merge.Ready.Left)
+[Clean.Merge.Ready.Left, Merge.Await.Left, Released.Merge.Idle] Function.Natural.Compare
+[Taken.End.Empty.Merge.Draw.Left, Merge.Await.Left, Merge.Mode.Down, Released.Merge.Idle] (Merge.Flush.Right) (Merge.Placed) (Merge.Draining.Right.Down)
+[Taken.End.Empty.Merge.Draw.Left, Merge.Await.Left, Merge.Mode.Up, Released.Merge.Idle] (Merge.Flush.Right) (Merge.Placed) (Merge.Draining.Right.Up)
+
+[Merge.Emit.Right, Return.Natural.Compare.Right, Merge.Output] Insert
+[Merge.Hold.Right, Return.Natural.Compare.Right] Operand.Right
+[Merge.Pull.Right, Clean.Merge.Lane.Right] Take.Merge.Draw.Right
+[Taken.Item.Merge.Draw.Right] (Forget.Merge.Lane.Right) (Release.Merge.Arrival.Right)
+[Released.Merge.Arrival.Right] (Operand.Right) (Forget.Merge.Ready.Right)
+[Clean.Merge.Ready.Right, Merge.Await.Right, Released.Merge.Idle] Function.Natural.Compare
+[Taken.End.Empty.Merge.Draw.Right, Merge.Await.Right, Merge.Mode.Down, Released.Merge.Idle] (Merge.Flush.Left) (Merge.Placed) (Merge.Draining.Left.Down)
+[Taken.End.Empty.Merge.Draw.Right, Merge.Await.Right, Merge.Mode.Up, Released.Merge.Idle] (Merge.Flush.Left) (Merge.Placed) (Merge.Draining.Left.Up)
+
+[Merge.Flush.Left, Operand.Left, Merge.Output] Insert
+[Released.Merge.Idle, Merge.Draining.Left.Down] (Merge.Draining.Left.Down) (Merge.Spill.Left) (Merge.Placed)
+[Released.Merge.Idle, Merge.Draining.Left.Up] (Merge.Draining.Left.Up) (Merge.Spill.Left) (Merge.Placed)
+[Merge.Spill.Left, Clean.Merge.Lane.Left] Take.Merge.Pour.Left
+[Taken.Item.Merge.Pour.Left] (Forget.Merge.Lane.Left) (Release.Merge.Poured.Left)
+[Released.Merge.Poured.Left, Merge.Output] Insert
+[Taken.End.Empty.Merge.Pour.Left, Merge.Draining.Left.Down, Merge.Placed] Merge.Complete.Down
+[Taken.End.Empty.Merge.Pour.Left, Merge.Draining.Left.Up, Merge.Placed] Merge.Complete.Up
+
+[Merge.Flush.Right, Operand.Right, Merge.Output] Insert
+[Released.Merge.Idle, Merge.Draining.Right.Down] (Merge.Draining.Right.Down) (Merge.Spill.Right) (Merge.Placed)
+[Released.Merge.Idle, Merge.Draining.Right.Up] (Merge.Draining.Right.Up) (Merge.Spill.Right) (Merge.Placed)
+[Merge.Spill.Right, Clean.Merge.Lane.Right] Take.Merge.Pour.Right
+[Taken.Item.Merge.Pour.Right] (Forget.Merge.Lane.Right) (Release.Merge.Poured.Right)
+[Released.Merge.Poured.Right, Merge.Output] Insert
+[Taken.End.Empty.Merge.Pour.Right, Merge.Draining.Right.Down, Merge.Placed] Merge.Complete.Down
+[Taken.End.Empty.Merge.Pour.Right, Merge.Draining.Right.Up, Merge.Placed] Merge.Complete.Up

@@ -1,0 +1,28 @@
+load("//photonic:defs.bzl", "photonic_binary", "photonic_test")
+
+photonic_binary(
+    name = "sort",
+    srcs = ["sort.wave"],
+    deps = ["//library/vector:sort"],
+)
+
+photonic_test(
+    name = "sort.check",
+    srcs = ["sort.wave"],
+    cells = 4096,
+    coherences = 512,
+    frames = 1024,
+    path = True,
+    preserve = True,
+    records = 10000000,
+    source = "",
+    steps = 10000000,
+    targets = ["Done"],
+    deps = ["//library/vector:sort"],
+)
+
+filegroup(
+    name = "build",
+    srcs = ["BUILD.bazel"],
+    visibility = ["//:__pkg__"],
+)

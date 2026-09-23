@@ -1,0 +1,121 @@
+load("//photonic:defs.bzl", "photonic_library", "photonic_test")
+
+photonic_library(
+    name = "erase",
+    srcs = ["erase.particle"],
+    deps = [
+        ":node",
+        "//library/chain:erase",
+    ],
+)
+
+photonic_library(
+    name = "merge",
+    srcs = ["merge.particle"],
+    deps = [
+        ":node",
+        "//library/natural:compare",
+    ],
+)
+
+photonic_library(
+    name = "node",
+    srcs = ["node.particle"],
+    deps = ["//library/chain:cell"],
+)
+
+photonic_library(
+    name = "reverse",
+    srcs = ["reverse.particle"],
+    deps = [":node"],
+)
+
+photonic_library(
+    name = "sort",
+    srcs = ["sort.particle"],
+    visibility = ["//program/vector:__pkg__"],
+    deps = [
+        ":merge",
+        ":reverse",
+        "//library/natural:compare",
+    ],
+)
+
+photonic_test(
+    name = "node.end",
+    preserve = True,
+    source = "Take.Empty",
+    targets = ["Taken.End.Empty"],
+    deps = [":node"],
+)
+
+photonic_test(
+    name = "node.item",
+    path = True,
+    preserve = True,
+    source = "Insert.Zero.Empty, Stage [Stored, Stage] Take",
+    targets = ["Taken.Item.Zero.Empty"],
+    deps = [":node"],
+)
+
+photonic_test(
+    name = "node.release",
+    path = True,
+    preserve = True,
+    source = "Insert.Zero.Empty, Stage [Stored, Stage] (Release.Alias) (Take)",
+    targets = ["Released.Alias, Taken.Item.Zero.Empty"],
+    deps = [":node"],
+)
+
+photonic_test(
+    name = "erase.empty",
+    preserve = True,
+    source = "Function.Vector.Erase.Empty",
+    targets = ["Return.Vector.Erase"],
+    deps = [":erase"],
+)
+
+photonic_test(
+    name = "reverse.empty",
+    preserve = True,
+    source = "Function.Vector.Reverse.Empty",
+    targets = ["Return.Vector.Reverse.Empty"],
+    deps = [":reverse"],
+)
+
+photonic_test(
+    name = "sort.empty",
+    cells = 1024,
+    preserve = True,
+    source = "Function.Vector.Sort.Empty",
+    targets = ["Return.Vector.Sort.Empty"],
+    deps = [":sort"],
+)
+
+photonic_test(
+    name = "sort.single",
+    cells = 1024,
+    path = True,
+    preserve = True,
+    source = "Insert.Zero.Empty, Stage [Stored, Stage] Function.Vector.Sort [Return.Vector.Sort] Take",
+    targets = ["Taken.Item.Zero.Empty"],
+    deps = [":sort"],
+)
+
+filegroup(
+    name = "source",
+    srcs = [
+        "erase.particle",
+        "merge.particle",
+        "node.particle",
+        "reverse.particle",
+        "sort.particle",
+    ],
+    visibility = ["//library:__pkg__"],
+)
+
+filegroup(
+    name = "build",
+    srcs = ["BUILD.bazel"],
+    visibility = ["//:__pkg__"],
+)

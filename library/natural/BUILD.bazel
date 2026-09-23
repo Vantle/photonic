@@ -23,6 +23,16 @@ photonic_library(
 )
 
 photonic_library(
+    name = "compare",
+    srcs = ["compare.particle"],
+    visibility = [
+        "//library/vector:__pkg__",
+        "//program/ternary:__pkg__",
+    ],
+    deps = [":digit"],
+)
+
+photonic_library(
     name = "complement",
     srcs = ["complement.particle"],
     deps = [
@@ -166,6 +176,68 @@ photonic_test(
 )
 
 photonic_test(
+    name = "compare.order",
+    preserve = True,
+    source = "Seen.([Digit] 1).Zero, Compare.Wait.Right.Equal.([Digit] 2)",
+    targets = ["Compare.Cursor.Right.Zero, Compare.Go.Left, Compare.Wait.Left.Greater"],
+    deps = [":compare"],
+)
+
+photonic_test(
+    name = "compare.exchange",
+    expect = "unreachable",
+    preserve = True,
+    source = "Seen.([Digit] 1).Zero, Compare.Wait.Right.Equal.([Digit] 2)",
+    targets = ["Compare.Cursor.Right.Zero, Compare.Go.Left, Compare.Wait.Left.Less"],
+    deps = [":compare"],
+)
+
+photonic_test(
+    name = "compare.length",
+    preserve = True,
+    source = "Seen.([Digit] 1).Zero, Compare.Wait.Right.Equal.End",
+    targets = ["Clean.Compare.Close.Less"],
+    deps = [":compare"],
+)
+
+photonic_test(
+    name = "compare.padding",
+    expect = "unreachable",
+    preserve = True,
+    source = "Seen.([Digit] 1).Zero, Compare.Wait.Right.Equal.End",
+    targets = ["Clean.Compare.Close.Equal"],
+    deps = [":compare"],
+)
+
+photonic_test(
+    name = "compare.drain",
+    preserve = True,
+    source = "Seen.End.Zero, Compare.Wait.Right.Equal.([Digit] 2), Compare.Cursor.Left.Zero",
+    targets = ["Compare.Answer.Left, Compare.Answer.Right, Return.Natural.Compare.Greater"],
+    deps = [":compare"],
+)
+
+photonic_test(
+    name = "compare.zero",
+    preserve = True,
+    source = "Function.Natural.Compare, Operand.Left.Zero, Operand.Right.Zero",
+    targets = ["Return.Natural.Compare.Left.Zero, Return.Natural.Compare.Right.Zero, Return.Natural.Compare.Equal"],
+    deps = [":compare"],
+)
+
+photonic_test(
+    name = "compare.verdict",
+    expect = "unreachable",
+    preserve = True,
+    source = "Function.Natural.Compare, Operand.Left.Zero, Operand.Right.Zero",
+    targets = [
+        "Return.Natural.Compare.Left.Zero, Return.Natural.Compare.Right.Zero, Return.Natural.Compare.Less",
+        "Return.Natural.Compare.Left.Zero, Return.Natural.Compare.Right.Zero, Return.Natural.Compare.Greater",
+    ],
+    deps = [":compare"],
+)
+
+photonic_test(
     name = "copy.left",
     preserve = True,
     source = "Yield.End.Copy.Wait.Zero, Copy.Left.Zero",
@@ -187,6 +259,7 @@ filegroup(
         "add.particle",
         "borrow.particle",
         "column.particle",
+        "compare.particle",
         "complement.particle",
         "copy.particle",
         "difference.particle",

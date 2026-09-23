@@ -1,0 +1,89 @@
+[Function.Natural.Compare] (Compare.Begin.Left) (Compare.Begin.Right) (Compare.Go.Left) (Compare.Wait.Left.Equal)
+[Compare.Begin.Left, Operand.Left] (Compare.Hold.Left) (Compare.Cursor.Left)
+[Compare.Begin.Right, Operand.Right] (Compare.Hold.Right) (Compare.Cursor.Right)
+[Compare.Go.Left, Compare.Cursor.Left] Peek
+[Compare.Go.Right, Compare.Cursor.Right] Peek
+
+[Seen.([Digit] 0), Compare.Wait.Left.Less] (Compare.Cursor.Left) (Forget.Compare.Next.Less.([Digit] 0))
+[Seen.([Digit] 1), Compare.Wait.Left.Less] (Compare.Cursor.Left) (Forget.Compare.Next.Less.([Digit] 1))
+[Seen.([Digit] 2), Compare.Wait.Left.Less] (Compare.Cursor.Left) (Forget.Compare.Next.Less.([Digit] 2))
+[Seen.End.Zero, Compare.Wait.Left.Less] (Compare.Cursor.Left.Zero) (Compare.Go.Right) (Compare.Wait.Right.Less.End)
+[Seen.([Digit] 0), Compare.Wait.Left.Equal] (Compare.Cursor.Left) (Forget.Compare.Next.Equal.([Digit] 0))
+[Seen.([Digit] 1), Compare.Wait.Left.Equal] (Compare.Cursor.Left) (Forget.Compare.Next.Equal.([Digit] 1))
+[Seen.([Digit] 2), Compare.Wait.Left.Equal] (Compare.Cursor.Left) (Forget.Compare.Next.Equal.([Digit] 2))
+[Seen.End.Zero, Compare.Wait.Left.Equal] (Compare.Cursor.Left.Zero) (Compare.Go.Right) (Compare.Wait.Right.Equal.End)
+[Seen.([Digit] 0), Compare.Wait.Left.Greater] (Compare.Cursor.Left) (Forget.Compare.Next.Greater.([Digit] 0))
+[Seen.([Digit] 1), Compare.Wait.Left.Greater] (Compare.Cursor.Left) (Forget.Compare.Next.Greater.([Digit] 1))
+[Seen.([Digit] 2), Compare.Wait.Left.Greater] (Compare.Cursor.Left) (Forget.Compare.Next.Greater.([Digit] 2))
+[Seen.End.Zero, Compare.Wait.Left.Greater] (Compare.Cursor.Left.Zero) (Compare.Go.Right) (Compare.Wait.Right.Greater.End)
+
+[Clean.Compare.Next.Less.([Digit] 0)] (Compare.Go.Right) (Compare.Wait.Right.Less.([Digit] 0))
+[Clean.Compare.Next.Less.([Digit] 1)] (Compare.Go.Right) (Compare.Wait.Right.Less.([Digit] 1))
+[Clean.Compare.Next.Less.([Digit] 2)] (Compare.Go.Right) (Compare.Wait.Right.Less.([Digit] 2))
+[Clean.Compare.Next.Equal.([Digit] 0)] (Compare.Go.Right) (Compare.Wait.Right.Equal.([Digit] 0))
+[Clean.Compare.Next.Equal.([Digit] 1)] (Compare.Go.Right) (Compare.Wait.Right.Equal.([Digit] 1))
+[Clean.Compare.Next.Equal.([Digit] 2)] (Compare.Go.Right) (Compare.Wait.Right.Equal.([Digit] 2))
+[Clean.Compare.Next.Greater.([Digit] 0)] (Compare.Go.Right) (Compare.Wait.Right.Greater.([Digit] 0))
+[Clean.Compare.Next.Greater.([Digit] 1)] (Compare.Go.Right) (Compare.Wait.Right.Greater.([Digit] 1))
+[Clean.Compare.Next.Greater.([Digit] 2)] (Compare.Go.Right) (Compare.Wait.Right.Greater.([Digit] 2))
+
+[Seen.([Digit] 0), Compare.Wait.Right.Less.([Digit] 0)] (Compare.Cursor.Right) (Forget.Compare.Step.Less)
+[Seen.([Digit] 1), Compare.Wait.Right.Less.([Digit] 0)] (Compare.Cursor.Right) (Forget.Compare.Step.Less)
+[Seen.([Digit] 2), Compare.Wait.Right.Less.([Digit] 0)] (Compare.Cursor.Right) (Forget.Compare.Step.Less)
+[Seen.End.Zero, Compare.Wait.Right.Less.([Digit] 0)] (Compare.Cursor.Right.Zero) (Compare.Go.Left) (Compare.Wait.Left.Less)
+[Seen.([Digit] 0), Compare.Wait.Right.Less.([Digit] 1)] (Compare.Cursor.Right) (Forget.Compare.Step.Greater)
+[Seen.([Digit] 1), Compare.Wait.Right.Less.([Digit] 1)] (Compare.Cursor.Right) (Forget.Compare.Step.Less)
+[Seen.([Digit] 2), Compare.Wait.Right.Less.([Digit] 1)] (Compare.Cursor.Right) (Forget.Compare.Step.Less)
+[Seen.End.Zero, Compare.Wait.Right.Less.([Digit] 1)] Compare.Drain.Greater
+[Seen.([Digit] 0), Compare.Wait.Right.Less.([Digit] 2)] (Compare.Cursor.Right) (Forget.Compare.Step.Greater)
+[Seen.([Digit] 1), Compare.Wait.Right.Less.([Digit] 2)] (Compare.Cursor.Right) (Forget.Compare.Step.Greater)
+[Seen.([Digit] 2), Compare.Wait.Right.Less.([Digit] 2)] (Compare.Cursor.Right) (Forget.Compare.Step.Less)
+[Seen.End.Zero, Compare.Wait.Right.Less.([Digit] 2)] Compare.Drain.Greater
+[Seen.([Digit] 0), Compare.Wait.Right.Less.End] (Compare.Cursor.Right) (Forget.Compare.Step.Less)
+[Seen.([Digit] 1), Compare.Wait.Right.Less.End] Forget.Compare.Close.Less
+[Seen.([Digit] 2), Compare.Wait.Right.Less.End] Forget.Compare.Close.Less
+[Seen.End.Zero, Compare.Wait.Right.Less.End] Clean.Compare.Close.Less
+[Seen.([Digit] 0), Compare.Wait.Right.Equal.([Digit] 0)] (Compare.Cursor.Right) (Forget.Compare.Step.Equal)
+[Seen.([Digit] 1), Compare.Wait.Right.Equal.([Digit] 0)] (Compare.Cursor.Right) (Forget.Compare.Step.Less)
+[Seen.([Digit] 2), Compare.Wait.Right.Equal.([Digit] 0)] (Compare.Cursor.Right) (Forget.Compare.Step.Less)
+[Seen.End.Zero, Compare.Wait.Right.Equal.([Digit] 0)] (Compare.Cursor.Right.Zero) (Compare.Go.Left) (Compare.Wait.Left.Equal)
+[Seen.([Digit] 0), Compare.Wait.Right.Equal.([Digit] 1)] (Compare.Cursor.Right) (Forget.Compare.Step.Greater)
+[Seen.([Digit] 1), Compare.Wait.Right.Equal.([Digit] 1)] (Compare.Cursor.Right) (Forget.Compare.Step.Equal)
+[Seen.([Digit] 2), Compare.Wait.Right.Equal.([Digit] 1)] (Compare.Cursor.Right) (Forget.Compare.Step.Less)
+[Seen.End.Zero, Compare.Wait.Right.Equal.([Digit] 1)] Compare.Drain.Greater
+[Seen.([Digit] 0), Compare.Wait.Right.Equal.([Digit] 2)] (Compare.Cursor.Right) (Forget.Compare.Step.Greater)
+[Seen.([Digit] 1), Compare.Wait.Right.Equal.([Digit] 2)] (Compare.Cursor.Right) (Forget.Compare.Step.Greater)
+[Seen.([Digit] 2), Compare.Wait.Right.Equal.([Digit] 2)] (Compare.Cursor.Right) (Forget.Compare.Step.Equal)
+[Seen.End.Zero, Compare.Wait.Right.Equal.([Digit] 2)] Compare.Drain.Greater
+[Seen.([Digit] 0), Compare.Wait.Right.Equal.End] (Compare.Cursor.Right) (Forget.Compare.Step.Equal)
+[Seen.([Digit] 1), Compare.Wait.Right.Equal.End] Forget.Compare.Close.Less
+[Seen.([Digit] 2), Compare.Wait.Right.Equal.End] Forget.Compare.Close.Less
+[Seen.End.Zero, Compare.Wait.Right.Equal.End] Clean.Compare.Close.Equal
+[Seen.([Digit] 0), Compare.Wait.Right.Greater.([Digit] 0)] (Compare.Cursor.Right) (Forget.Compare.Step.Greater)
+[Seen.([Digit] 1), Compare.Wait.Right.Greater.([Digit] 0)] (Compare.Cursor.Right) (Forget.Compare.Step.Less)
+[Seen.([Digit] 2), Compare.Wait.Right.Greater.([Digit] 0)] (Compare.Cursor.Right) (Forget.Compare.Step.Less)
+[Seen.End.Zero, Compare.Wait.Right.Greater.([Digit] 0)] (Compare.Cursor.Right.Zero) (Compare.Go.Left) (Compare.Wait.Left.Greater)
+[Seen.([Digit] 0), Compare.Wait.Right.Greater.([Digit] 1)] (Compare.Cursor.Right) (Forget.Compare.Step.Greater)
+[Seen.([Digit] 1), Compare.Wait.Right.Greater.([Digit] 1)] (Compare.Cursor.Right) (Forget.Compare.Step.Greater)
+[Seen.([Digit] 2), Compare.Wait.Right.Greater.([Digit] 1)] (Compare.Cursor.Right) (Forget.Compare.Step.Less)
+[Seen.End.Zero, Compare.Wait.Right.Greater.([Digit] 1)] Compare.Drain.Greater
+[Seen.([Digit] 0), Compare.Wait.Right.Greater.([Digit] 2)] (Compare.Cursor.Right) (Forget.Compare.Step.Greater)
+[Seen.([Digit] 1), Compare.Wait.Right.Greater.([Digit] 2)] (Compare.Cursor.Right) (Forget.Compare.Step.Greater)
+[Seen.([Digit] 2), Compare.Wait.Right.Greater.([Digit] 2)] (Compare.Cursor.Right) (Forget.Compare.Step.Greater)
+[Seen.End.Zero, Compare.Wait.Right.Greater.([Digit] 2)] Compare.Drain.Greater
+[Seen.([Digit] 0), Compare.Wait.Right.Greater.End] (Compare.Cursor.Right) (Forget.Compare.Step.Greater)
+[Seen.([Digit] 1), Compare.Wait.Right.Greater.End] Forget.Compare.Close.Less
+[Seen.([Digit] 2), Compare.Wait.Right.Greater.End] Forget.Compare.Close.Less
+[Seen.End.Zero, Compare.Wait.Right.Greater.End] Clean.Compare.Close.Greater
+
+[Clean.Compare.Step.Less] (Compare.Go.Left) (Compare.Wait.Left.Less)
+[Clean.Compare.Step.Equal] (Compare.Go.Left) (Compare.Wait.Left.Equal)
+[Clean.Compare.Step.Greater] (Compare.Go.Left) (Compare.Wait.Left.Greater)
+
+[Compare.Drain.Greater, Compare.Cursor.Left] Forget.Compare.Finish.Greater
+[Clean.Compare.Close.Less, Compare.Cursor.Left.Zero] (Compare.Answer.Left) (Compare.Answer.Right) (Return.Natural.Compare.Less)
+[Clean.Compare.Close.Equal, Compare.Cursor.Left.Zero] (Compare.Answer.Left) (Compare.Answer.Right) (Return.Natural.Compare.Equal)
+[Clean.Compare.Close.Greater, Compare.Cursor.Left.Zero] (Compare.Answer.Left) (Compare.Answer.Right) (Return.Natural.Compare.Greater)
+[Clean.Compare.Finish.Greater] (Compare.Answer.Left) (Compare.Answer.Right) (Return.Natural.Compare.Greater)
+[Compare.Answer.Left, Compare.Hold.Left] Return.Natural.Compare.Left
+[Compare.Answer.Right, Compare.Hold.Right] Return.Natural.Compare.Right

@@ -4,10 +4,13 @@ mod catalog;
 mod collection;
 mod composition;
 mod field;
+mod fixture;
 mod function;
 mod isolation;
+mod natural;
 mod selection;
 mod ternary;
+mod vector;
 
 use photonic::lowering::parse;
 use photonic::prism::{Outcome, Search};

@@ -1,0 +1,8 @@
+[Function.Vector.Reverse] (Clean.Turn.Source) (Release.Turn.Begin)
+[Released.Turn.Begin] (Turn.Target.Empty) (Turn.Pull) (Turn.Wait)
+[Turn.Pull, Clean.Turn.Source] Take.Turn.Draw
+[Taken.Item.Turn.Draw] (Forget.Turn.Source) (Release.Turn.Item)
+[Released.Turn.Item, Turn.Target] Insert
+[Stored, Turn.Wait] (Turn.Target) (Release.Turn.Loop)
+[Released.Turn.Loop] (Turn.Pull) (Turn.Wait)
+[Taken.End.Empty.Turn.Draw, Turn.Target, Turn.Wait] Return.Vector.Reverse

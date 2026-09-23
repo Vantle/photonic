@@ -166,6 +166,27 @@ photonic_test(
     deps = ["//library/natural:add"],
 )
 
+photonic_binary(
+    name = "comparison",
+    srcs = ["comparison.wave"],
+    deps = ["//library/natural:compare"],
+)
+
+photonic_test(
+    name = "comparison.check",
+    srcs = ["comparison.wave"],
+    cells = 4096,
+    coherences = 256,
+    frames = 512,
+    path = True,
+    preserve = True,
+    records = 10000000,
+    source = "",
+    steps = 10000000,
+    targets = ["Return.Natural.Compare.Greater, Done.Left, Done.Right"],
+    deps = ["//library/natural:compare"],
+)
+
 photonic_test(
     name = "subtraction.check",
     srcs = ["subtraction.wave"],

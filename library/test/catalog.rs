@@ -1,4 +1,4 @@
-pub const LIBRARY: [(&str, &str, &str); 61] = [
+pub const LIBRARY: [(&str, &str, &str); 67] = [
     (
         "binary",
         "multiply",
@@ -156,6 +156,11 @@ pub const LIBRARY: [(&str, &str, &str); 61] = [
     ),
     (
         "natural",
+        "compare",
+        include_str!("../natural/compare.particle"),
+    ),
+    (
+        "natural",
         "complement",
         include_str!("../natural/complement.particle"),
     ),
@@ -248,6 +253,15 @@ pub const LIBRARY: [(&str, &str, &str); 61] = [
         include_str!("../ternary/successor.particle"),
     ),
     ("ternary", "sum", include_str!("../ternary/sum.particle")),
+    ("vector", "erase", include_str!("../vector/erase.particle")),
+    ("vector", "merge", include_str!("../vector/merge.particle")),
+    ("vector", "node", include_str!("../vector/node.particle")),
+    (
+        "vector",
+        "reverse",
+        include_str!("../vector/reverse.particle"),
+    ),
+    ("vector", "sort", include_str!("../vector/sort.particle")),
 ];
 
 pub fn source(package: &str, name: &str) -> &'static str {

@@ -1,4 +1,5 @@
 use crate::catalog::LIBRARY;
+use crate::fixture::{Fixture, digit, trace, value};
 use crate::{check, witness};
 use photonic::prism::Outcome;
 
@@ -69,4 +70,21 @@ fn linked() {
         "Done",
         &library(),
     );
+}
+
+#[test]
+fn sort() {
+    let item = [7, 0, 25, 7, 3].map(digit);
+    let mut expected = item.to_vec();
+    expected.sort_by_key(|digit| value(digit));
+    let mut fixture = Fixture::new();
+    let made = fixture.stage();
+    let built = fixture.stage();
+    let check = fixture.stage();
+    fixture.vector(&item, fixture.start(), &made, &built);
+    fixture.rule(format!("[Released.{built}, {made}] Function.Vector.Sort"));
+    fixture.rule(format!("[Return.Vector.Sort] {check}"));
+    fixture.inspect(&expected, &check, "Done");
+    let summary = trace(&fixture.source(), "Done", &library());
+    assert_eq!(summary.outcome, Outcome::Reached);
 }

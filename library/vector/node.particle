@@ -1,0 +1,24 @@
+[Release.Empty] Released
+[Take.Empty] Taken.End.Empty
+[Drop.Empty] Forget
+
+[Insert] (
+    Build
+    [Build] (
+        Prepare.Node.([Seal] ()).([Request] ()).([Handle] ())
+            .([Prepare.Node.([Seal] ()).([Request] ())] (Forget [Clean] (Release [Released] Restore)))
+            .([Restore.([Handle] ())] Stored.Node.([Seal] ()))
+            .([Release.Node.([Seal] ())] (Discard [Free] Released))
+            .([Take.Node.([Seal] ()), Slot.([Seal] ())] (Discard [Free] Taken.Item))
+            .([Drop.Node.([Seal] ())] (Discard [Free] Forget))
+    ) (
+        Slot.([Seal] ())
+    )
+    [Discard
+        .([Prepare.Node.([Seal] ()).([Request] ())] (Forget [Clean] (Release [Released] Restore)))
+        .([Restore.([Handle] ())] Stored.Node.([Seal] ()))
+        .([Release.Node.([Seal] ())] (Discard [Free] Released))
+        .([Take.Node.([Seal] ()), Slot.([Seal] ())] (Discard [Free] Taken.Item))
+        .([Drop.Node.([Seal] ())] (Discard [Free] Forget))
+    ] Free
+)

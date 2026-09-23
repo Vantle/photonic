@@ -3,6 +3,7 @@ load("//photonic:defs.bzl", "photonic_library", "photonic_test")
 photonic_library(
     name = "cell",
     srcs = ["cell.particle"],
+    visibility = ["//library/vector:__pkg__"],
 )
 
 photonic_library(
@@ -11,6 +12,7 @@ photonic_library(
     visibility = [
         "//library/expression:__pkg__",
         "//library/natural:__pkg__",
+        "//library/vector:__pkg__",
     ],
     deps = [":cell"],
 )
@@ -31,6 +33,23 @@ photonic_test(
     preserve = True,
     source = "Push.Item.Zero [Drop.Item] Forget [Built] Read",
     targets = ["Yield.Item.Zero"],
+    deps = [":cell"],
+)
+
+photonic_test(
+    name = "cell.peek",
+    path = True,
+    preserve = True,
+    source = "Push.Item.Zero [Drop.Item] Forget [Built] (Peek) (Keep) [Seen.Item.Zero, Keep] Read",
+    targets = ["Yield.Item.Zero"],
+    deps = [":cell"],
+)
+
+photonic_test(
+    name = "cell.end",
+    preserve = True,
+    source = "Peek.Zero",
+    targets = ["Seen.End.Zero"],
     deps = [":cell"],
 )
 

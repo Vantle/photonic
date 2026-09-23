@@ -1,0 +1,61 @@
+Push.([Digit] 2).Zero, Stage.1, Wait.1, Wait.2, Wait.3, Wait.4, Wait.5, Wait.6
+[Built, Stage.1] Insert.Empty
+[Stored, Wait.1] (Draft) (Release.Stage.2)
+[Released.Stage.2] (Push.([Digit] 1).Zero) (Stage.3)
+[Built, Stage.3] (Push.([Digit] 0)) (Forget.Stage.4)
+[Built, Clean.Stage.4] (Push.([Digit] 0)) (Forget.Stage.5)
+[Built, Clean.Stage.5, Draft] Insert
+[Stored, Wait.2] (Draft) (Release.Stage.6)
+[Released.Stage.6] (Push.([Digit] 1).Zero) (Stage.7)
+[Built, Stage.7, Draft] Insert
+[Stored, Wait.3] (Draft) (Release.Stage.8)
+[Released.Stage.8] (Push.([Digit] 1).Zero) (Stage.9)
+[Built, Stage.9] (Push.([Digit] 2)) (Forget.Stage.10)
+[Built, Clean.Stage.10, Draft] Insert
+[Stored, Wait.4] (Draft) (Release.Stage.11)
+[Released.Stage.11] (Push.([Digit] 1).Zero) (Stage.12)
+[Built, Stage.12] (Push.([Digit] 0)) (Forget.Stage.13)
+[Built, Clean.Stage.13, Draft] Insert
+[Stored, Wait.5] (Draft) (Release.Stage.14)
+[Released.Stage.14] (Push.([Digit] 2).Zero) (Stage.15)
+[Built, Stage.15] (Push.([Digit] 2)) (Forget.Stage.16)
+[Built, Clean.Stage.16, Draft] Insert
+[Stored, Wait.6] (Draft) (Release.Stage.17)
+[Released.Stage.17, Draft] Function.Vector.Sort
+[Return.Vector.Sort] Take.Inspect.1
+[Taken.Item.Inspect.1] (Forget.Inspect.Rest.1) (Release.Inspect.Number.1)
+[Released.Inspect.Number.1] Read.Look.1
+[Yield.([Digit] 1).Look.1] Read.Look.2
+[Yield.End.Look.2.Zero] Inspect.Checked.1
+[Clean.Inspect.Rest.1, Inspect.Checked.1] Take.Inspect.2
+[Taken.Item.Inspect.2] (Forget.Inspect.Rest.2) (Release.Inspect.Number.2)
+[Released.Inspect.Number.2] Read.Look.3
+[Yield.([Digit] 2).Look.3] Read.Look.4
+[Yield.End.Look.4.Zero] Inspect.Checked.2
+[Clean.Inspect.Rest.2, Inspect.Checked.2] Take.Inspect.3
+[Taken.Item.Inspect.3] (Forget.Inspect.Rest.3) (Release.Inspect.Number.3)
+[Released.Inspect.Number.3] Read.Look.5
+[Yield.([Digit] 0).Look.5] Read.Look.6
+[Yield.([Digit] 1).Look.6] Read.Look.7
+[Yield.End.Look.7.Zero] Inspect.Checked.3
+[Clean.Inspect.Rest.3, Inspect.Checked.3] Take.Inspect.4
+[Taken.Item.Inspect.4] (Forget.Inspect.Rest.4) (Release.Inspect.Number.4)
+[Released.Inspect.Number.4] Read.Look.8
+[Yield.([Digit] 2).Look.8] Read.Look.9
+[Yield.([Digit] 1).Look.9] Read.Look.10
+[Yield.End.Look.10.Zero] Inspect.Checked.4
+[Clean.Inspect.Rest.4, Inspect.Checked.4] Take.Inspect.5
+[Taken.Item.Inspect.5] (Forget.Inspect.Rest.5) (Release.Inspect.Number.5)
+[Released.Inspect.Number.5] Read.Look.11
+[Yield.([Digit] 2).Look.11] Read.Look.12
+[Yield.([Digit] 2).Look.12] Read.Look.13
+[Yield.End.Look.13.Zero] Inspect.Checked.5
+[Clean.Inspect.Rest.5, Inspect.Checked.5] Take.Inspect.6
+[Taken.Item.Inspect.6] (Forget.Inspect.Rest.6) (Release.Inspect.Number.6)
+[Released.Inspect.Number.6] Read.Look.14
+[Yield.([Digit] 0).Look.14] Read.Look.15
+[Yield.([Digit] 0).Look.15] Read.Look.16
+[Yield.([Digit] 1).Look.16] Read.Look.17
+[Yield.End.Look.17.Zero] Inspect.Checked.6
+[Clean.Inspect.Rest.6, Inspect.Checked.6] Take.Inspect.7
+[Taken.End.Empty.Inspect.7] Done

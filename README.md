@@ -70,7 +70,7 @@ bazel run -c opt //command:photonic -- prism program/natural/addition.wave \
 | [frontend/](frontend/) | Syntax, parsing, lowering, source types, and frontend conformance tests. |
 | [language/](language/) | Execution, Prism verification, and runtime conformance tests. |
 | [command/](command/) | Native command interface, diagnostics, and process integration tests. |
-| [library/](library/) | The standard library: thirteen Photonic packages with collision-free namespaces. |
+| [library/](library/) | The standard library: fourteen Photonic packages with collision-free namespaces. |
 | [program/](program/) | Runnable Photonic programs, organized by subject. |
 | [arithmetic/](arithmetic/) | Host circuit construction and conformance checks. |
 | [benchmark/](benchmark/) | Runtime performance, symmetry, and execution measurements. |
@@ -80,7 +80,7 @@ bazel run -c opt //command:photonic -- prism program/natural/addition.wave \
 | [platform/](platform/) | Native platform definitions and toolchain patch. |
 | [document/](document/) | Webbook assets and benchmark evidence. |
 
-Programs belong to a subject: `language/`, `association/`, `composition/`, `natural/`, `binary/`, `decimal/`, `ternary/`, or `circuit/`. Keep a program's expected configurations and regression tests beside its source. A counterexample is a tested outcome, not a separate category of program: `program/natural/preparation.wave` retains the rejected multiplication construction and checks its incorrect result. Generated circuit programs live in `program/circuit/`; their Rust generator lives in `arithmetic/`.
+Programs belong to a subject: `language/`, `association/`, `composition/`, `natural/`, `binary/`, `decimal/`, `ternary/`, `circuit/`, or `vector/`. Keep a program's expected configurations and regression tests beside its source. A counterexample is a tested outcome, not a separate category of program: `program/natural/preparation.wave` retains the rejected multiplication construction and checks its incorrect result. Generated circuit programs live in `program/circuit/`; their Rust generator lives in `arithmetic/`.
 
 Use `library/` for reusable declarations, one package per type, and `program/` for executable applications. Local declarations that serve one subject stay with that subject. Test-only inputs live in `case/`; recorded demonstrations live in `demo/`. Runtime reference data stays in `language/test/`.
 
@@ -97,7 +97,7 @@ rg --files library program
 | Guide | Contents |
 | --- | --- |
 | [Language](index.html#guide-language) | Syntax, configuration semantics, identity, binding, and terminology. |
-| [Native library](index.html#guide-library) | Packages, namespaces, protocols, chains and alphabets, atomic fields, evidence, and remaining work. |
+| [Native library](index.html#guide-library) | Packages, namespaces, protocols, chains and alphabets, vectors and sorting, atomic fields, evidence, and remaining work. |
 | [Arithmetic](index.html#guide-arithmetic) | Number representations, written arguments, algorithms, and host circuit interface. |
 | [Verification](index.html#guide-verification) | Prism, exact configurations, and retained counterexamples. |
 | [Dynamic code proposal](document/dynamic.md) | Research, contextual rule construction, capture, recursive growth, and implementation gates. |
