@@ -69,8 +69,10 @@ pub fn parse(source: &str) -> Result<Tree<'_>, Failure> {
     Ok(Tree { source, node })
 }
 
+pub const DEPTH: usize = 128;
+
 fn depth(source: &str) -> Result<(), Failure> {
-    let limit = 128;
+    let limit = DEPTH;
     let mut depth = 0usize;
     for (position, byte) in source.bytes().enumerate() {
         match byte {

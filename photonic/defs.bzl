@@ -101,17 +101,19 @@ def _check(ctx):
     ctx.actions.write(output, json.encode({
         "program": _runfile(ctx, program),
         "source": ctx.attr.source,
-        "targets": ctx.attr.targets,
+        "target": ctx.attr.targets,
         "expect": ctx.attr.expect,
         "match": ctx.attr.match,
         "path": ctx.attr.path,
         "preserve": ctx.attr.preserve,
         "step": ctx.attr.steps,
-        "state": ctx.attr.states,
-        "cell": ctx.attr.cells,
-        "frame": ctx.attr.frames,
-        "coherence": ctx.attr.coherences,
-        "record": ctx.attr.records,
+        "limit": {
+            "state": ctx.attr.states,
+            "record": ctx.attr.records,
+            "world": ctx.attr.coherences,
+            "cell": ctx.attr.cells,
+            "frame": ctx.attr.frames,
+        },
     }))
     return [DefaultInfo(files = depset([output]), runfiles = ctx.runfiles(files = [output, program]))]
 

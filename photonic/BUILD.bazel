@@ -15,6 +15,7 @@ rust_binary(
     deps = [
         "//frontend",
         "@crate//:clap",
+        "@crate//:miette",
         "@crate//:serde_json",
     ],
 )
@@ -79,6 +80,7 @@ rust_binary(
     ],
     deps = [
         "//language:photonic",
+        "@crate//:miette",
         "@crate//:serde",
         "@crate//:serde_json",
         "@rules_rust//rust/runfiles",

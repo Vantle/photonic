@@ -12,11 +12,12 @@ use crate::source;
 use crate::state::State;
 use crate::support::{Atom, Clause};
 use indexmap::IndexSet;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
-#[derive(Clone, Copy, Debug, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct Limit {
     pub state: usize,
     pub record: usize,

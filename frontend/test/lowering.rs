@@ -109,7 +109,9 @@ fn unicode() {
     let source = lowering::parse("人.世界 [人] 🌋").unwrap();
     assert_eq!(source.initial, [atom(&["人", "世界"])]);
     assert_eq!(source.rule[0].output[0].particle, atom(&["🌋"]));
-    let Failure::Syntax { span, .. } = lowering::parse("人]").unwrap_err() else {
+    let Failure::Parse(frontend::failure::Failure::Syntax { span, .. }) =
+        lowering::parse("人]").unwrap_err()
+    else {
         panic!("expected diagnostic");
     };
     assert_eq!(span.offset(), 3);
@@ -123,7 +125,10 @@ fn malformed() {
     }
     assert!(matches!(
         lowering::parse(&"[".repeat(129)),
-        Err(Failure::Depth { limit: 128, .. })
+        Err(Failure::Parse(frontend::failure::Failure::Depth {
+            limit: frontend::parser::DEPTH,
+            ..
+        }))
     ));
     assert!(lowering::parse(&format!("{}A{}", "(".repeat(128), ")".repeat(128))).is_ok());
 }

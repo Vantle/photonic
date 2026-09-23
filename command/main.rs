@@ -53,7 +53,6 @@ fn parse(path: PathBuf) -> miette::Result<()> {
 }
 
 fn program(path: &Path, format: Option<Format>) -> miette::Result<Program> {
-    let source = read(path)?;
     let format = format.unwrap_or_else(|| {
         if path
             .extension()
@@ -65,31 +64,20 @@ fn program(path: &Path, format: Option<Format>) -> miette::Result<Program> {
             Format::Photonic
         }
     });
-    if matches!(format, Format::Json) {
-        return serde_json::from_str(&source)
-            .into_diagnostic()
-            .wrap_err_with(|| format!("invalid JSON program in {}", path.display()));
+    if matches!(format, Format::Photonic) {
+        return photonic::lowering::read(path);
     }
-    match photonic::lowering::parse(&source) {
-        Ok(program) => Ok(program),
-        Err(failure) => Err(miette::Report::new(failure)
-            .with_source_code(NamedSource::new(path.display().to_string(), source))),
-    }
+    serde_json::from_str(&read(path)?)
+        .into_diagnostic()
+        .wrap_err_with(|| format!("invalid JSON program in {}", path.display()))
 }
 
 fn load(path: &Path, execution: &Execution) -> miette::Result<Program> {
-    let mut source = program(path, execution.format)?;
-    for path in &execution.library {
-        let library = program(path, Some(Format::Photonic))?;
-        if !library.initial.is_empty() {
-            return Err(miette::miette!(
-                code = "photonic::library",
-                "library {} contains initial coherences; supply declarations only",
-                path.display()
-            ));
-        }
-        source.rule.extend(library.rule);
+    let mut source = Program::default();
+    for library in &execution.library {
+        source.declare(photonic::lowering::read(library)?, library.display())?;
     }
+    source.append(program(path, execution.format)?);
     Ok(source)
 }
 

@@ -1,5 +1,6 @@
 use clap::Parser;
 use frontend::source::Program;
+use miette::IntoDiagnostic;
 use std::path::PathBuf;
 
 #[derive(Parser)]
@@ -12,31 +13,15 @@ struct Argument {
     output: PathBuf,
 }
 
-fn read(path: &PathBuf) -> Result<Program, Box<dyn std::error::Error>> {
-    let source = std::fs::read_to_string(path)?;
-    frontend::lowering::parse(&source)
-        .map_err(|failure| format!("{}: {failure}", path.display()).into())
-}
-
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> miette::Result<()> {
     let argument = Argument::parse();
     let mut program = Program::default();
     for path in &argument.library {
-        let library = read(path)?;
-        if !library.initial.is_empty() {
-            return Err(format!(
-                "{}: a library must contain declarations only",
-                path.display()
-            )
-            .into());
-        }
-        program.rule.extend(library.rule);
+        program.declare(frontend::lowering::read(path)?, path.display())?;
     }
     for path in &argument.source {
-        let source = read(path)?;
-        program.initial.extend(source.initial);
-        program.rule.extend(source.rule);
+        program.append(frontend::lowering::read(path)?);
     }
-    std::fs::write(argument.output, serde_json::to_vec(&program)?)?;
-    Ok(())
+    let encoded = serde_json::to_vec(&program).into_diagnostic()?;
+    std::fs::write(argument.output, encoded).into_diagnostic()
 }

@@ -1,75 +1,87 @@
+use miette::{IntoDiagnostic, WrapErr};
 use photonic::prism::{Outcome, Search};
 use photonic::runtime::Limit;
 use photonic::source::Program;
 use serde::Deserialize;
 use std::process::ExitCode;
 
+#[derive(Clone, Copy, Deserialize)]
+#[serde(rename_all = "lowercase")]
+enum Expect {
+    Reached,
+    Unreachable,
+}
+
+#[derive(Clone, Copy, Deserialize)]
+#[serde(rename_all = "lowercase")]
+enum Mode {
+    All,
+    Any,
+}
+
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Case {
     program: String,
     source: String,
-    targets: Vec<String>,
-    expect: String,
+    target: Vec<String>,
+    expect: Expect,
     #[serde(rename = "match")]
-    mode: String,
+    mode: Mode,
     path: bool,
     preserve: bool,
     step: usize,
-    state: usize,
-    cell: usize,
-    frame: usize,
-    coherence: usize,
-    record: usize,
+    limit: Limit,
 }
 
-fn main() -> Result<ExitCode, Box<dyn std::error::Error>> {
-    let runfile = runfiles::Runfiles::create()?;
+fn lower(source: &str) -> miette::Result<Program> {
+    photonic::lowering::parse(source)
+        .map_err(|failure| miette::Report::new(failure).with_source_code(source.to_string()))
+}
+
+fn main() -> miette::Result<ExitCode> {
+    let runfile = runfiles::Runfiles::create().into_diagnostic()?;
     let resolve = |name: &str| {
         runfile
             .rlocation_from(name, "")
-            .ok_or_else(|| format!("missing runfile: {name}"))
+            .ok_or_else(|| miette::miette!("missing runfile: {name}"))
     };
     let argument = std::env::args().skip(1).collect::<Vec<_>>();
-    if argument.len() != 1 {
-        return Err("expected one test configuration runfile".into());
+    let [configuration] = argument.as_slice() else {
+        miette::bail!("expected one test configuration runfile");
+    };
+    let case: Case =
+        serde_json::from_slice(&std::fs::read(resolve(configuration)?).into_diagnostic()?)
+            .into_diagnostic()
+            .wrap_err("invalid test configuration")?;
+    if case.target.is_empty() {
+        miette::bail!("a test needs at least one target configuration");
     }
-    let case: Case = serde_json::from_slice(&std::fs::read(resolve(&argument[0])?)?)?;
-    if case.targets.is_empty() {
-        return Err("a test needs at least one target configuration".into());
-    }
-    let mut program: Program = serde_json::from_slice(&std::fs::read(resolve(&case.program)?)?)?;
-    let source = photonic::lowering::parse(&case.source)?;
-    program.initial.extend(source.initial);
-    program.rule.extend(source.rule);
+    let mut program: Program =
+        serde_json::from_slice(&std::fs::read(resolve(&case.program)?).into_diagnostic()?)
+            .into_diagnostic()
+            .wrap_err("invalid assembled program")?;
+    program.append(lower(&case.source)?);
     let target = case
-        .targets
+        .target
         .iter()
         .map(|source| {
-            let mut target = photonic::lowering::parse(source)?;
+            let mut target = lower(source)?;
             if case.preserve {
                 target.rule.extend(program.rule.iter().cloned());
             }
             Ok(target)
         })
-        .collect::<Result<Vec<_>, Box<dyn std::error::Error>>>()?;
-    let expected = match case.expect.as_str() {
-        "reached" => Outcome::Reached,
-        "unreachable" if !case.path => Outcome::Unreachable,
-        _ => return Err("expected reached, or unreachable with full exploration".into()),
+        .collect::<miette::Result<Vec<_>>>()?;
+    let expected = match (case.expect, case.path) {
+        (Expect::Reached, _) => Outcome::Reached,
+        (Expect::Unreachable, false) => Outcome::Unreachable,
+        (Expect::Unreachable, true) => {
+            miette::bail!("a direct path can witness reachability but cannot prove unreachability")
+        }
     };
-    let every = match case.mode.as_str() {
-        "all" => true,
-        "any" => false,
-        _ => return Err("match must be all or any".into()),
-    };
-    let limit = Limit {
-        state: case.state,
-        cell: case.cell,
-        frame: case.frame,
-        world: case.coherence,
-        record: case.record,
-    };
+    let every = matches!(case.mode, Mode::All);
+    let limit = case.limit;
     let mut exploration = if case.path {
         None
     } else {
@@ -81,8 +93,9 @@ fn main() -> Result<ExitCode, Box<dyn std::error::Error>> {
     if let (Some(search), Some(directory)) = (&exploration, &directory) {
         std::fs::write(
             directory.join("execution.json"),
-            serde_json::to_vec_pretty(&search.report())?,
-        )?;
+            serde_json::to_vec_pretty(&search.report()).into_diagnostic()?,
+        )
+        .into_diagnostic()?;
     }
     let mut success = every;
     for (index, target) in target.into_iter().enumerate() {
@@ -92,24 +105,29 @@ fn main() -> Result<ExitCode, Box<dyn std::error::Error>> {
             (
                 verdict.outcome,
                 serde_json::to_vec_pretty(&serde_json::json!({
-                    "target": case.targets[index],
+                    "target": case.target[index],
                     "outcome": verdict.outcome,
                     "witness": verdict.witness,
-                }))?,
+                }))
+                .into_diagnostic()?,
             )
         } else {
             let mut search = photonic::path::Search::new(program.clone(), target);
             search.run(case.step, limit);
             let report = search.report();
-            (report.outcome, serde_json::to_vec_pretty(&report)?)
+            (
+                report.outcome,
+                serde_json::to_vec_pretty(&report).into_diagnostic()?,
+            )
         };
         if let Some(directory) = &directory {
             std::fs::write(
                 std::path::Path::new(&directory).join(format!("{index}.json")),
                 &report,
-            )?;
+            )
+            .into_diagnostic()?;
         }
-        println!("Prism target {index}: {result:?}; {}", case.targets[index]);
+        println!("Prism target {index}: {result:?}; {}", case.target[index]);
         let matched = result == expected;
         success = if every {
             success && matched
@@ -122,7 +140,7 @@ fn main() -> Result<ExitCode, Box<dyn std::error::Error>> {
     }
     println!(
         "Prism: match {}; expected {expected:?}; {}",
-        case.mode,
+        if every { "all" } else { "any" },
         if success { "passed" } else { "failed" }
     );
     Ok(if success {

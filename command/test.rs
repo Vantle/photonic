@@ -143,7 +143,7 @@ fn diagnostic() {
     let output = execute("run", &path, &[]);
     assert!(!output.status.success());
     let error = String::from_utf8(output.stderr).unwrap();
-    assert!(error.contains("photonic::lowering"));
+    assert!(error.contains("photonic::syntax"));
     assert!(error.contains("invalid.wave"));
     assert!(error.contains("人]"));
     let path = fixture.write("structure.wave", "人.世界 [人]");

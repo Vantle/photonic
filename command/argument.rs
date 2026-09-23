@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use clap::{Args, Parser, Subcommand, ValueEnum};
+use photonic::runtime::Limit;
 
 #[derive(Parser)]
 #[command(version, about = "Photonic language tools")]
@@ -54,15 +55,15 @@ pub struct Execution {
     pub step: usize,
     #[arg(long = "workers", default_value_t = 1)]
     pub worker: usize,
-    #[arg(long = "records", default_value_t = 1_000_000)]
+    #[arg(long = "records", default_value_t = Limit::default().record)]
     pub record: usize,
-    #[arg(long = "states", default_value_t = 80)]
+    #[arg(long = "states", default_value_t = Limit::default().state)]
     pub state: usize,
-    #[arg(long = "cells", default_value_t = 64)]
+    #[arg(long = "cells", default_value_t = Limit::default().cell)]
     pub cell: usize,
-    #[arg(long = "frames", default_value_t = 10)]
+    #[arg(long = "frames", default_value_t = Limit::default().frame)]
     pub frame: usize,
-    #[arg(long = "coherences", default_value_t = 4)]
+    #[arg(long = "coherences", default_value_t = Limit::default().world)]
     pub coherence: usize,
     #[arg(long, help = "Print the complete execution report as JSON")]
     pub json: bool,

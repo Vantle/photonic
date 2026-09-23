@@ -192,17 +192,13 @@ fn verification() {
             serde_json::to_vec(&serde_json::json!({
                 "program": program,
                 "source": input,
-                "targets": [target],
+                "target": [target],
                 "expect": expect,
                 "match": "all",
                 "path": path,
-            "preserve": true,
+                "preserve": true,
                 "step": step,
-                "state": 128,
-                "cell": 32,
-                "frame": 16,
-                "coherence": 8,
-                "record": 10000,
+                "limit": {"state": 128, "record": 10000, "world": 8, "cell": 32, "frame": 16},
             }))
             .unwrap(),
         )
@@ -257,17 +253,13 @@ fn matching() {
             serde_json::to_vec(&serde_json::json!({
                 "program": program,
                 "source": "A [A] C",
-                "targets": target,
+                "target": target,
                 "match": mode,
                 "expect": expect,
                 "path": false,
-            "preserve": true,
+                "preserve": true,
                 "step": step,
-                "state": 128,
-                "cell": 32,
-                "frame": 16,
-                "coherence": 8,
-                "record": 10000,
+                "limit": {"state": 128, "record": 10000, "world": 8, "cell": 32, "frame": 16},
             }))
             .unwrap(),
         )

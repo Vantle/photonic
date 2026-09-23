@@ -1,13 +1,18 @@
 use std::cell::Cell;
 
-use miette::{Diagnostic, SourceSpan};
+use miette::{Diagnostic, IntoDiagnostic, NamedSource, SourceSpan, WrapErr};
 use thiserror::Error;
 
 use crate::source::{Definition, Output, Program, Value};
 use crate::syntax::{Kind, Tree};
 
+const BUDGET: usize = 1_000_000;
+
 #[derive(Debug, Diagnostic, Error)]
 pub enum Failure {
+    #[error(transparent)]
+    #[diagnostic(transparent)]
+    Parse(#[from] crate::failure::Failure),
     #[error("invalid Photonic expression: {message}")]
     #[diagnostic(code(photonic::lowering))]
     Syntax {
@@ -47,18 +52,25 @@ struct Reader<'tree, 'source> {
     budget: &'tree Cell<usize>,
 }
 
+pub fn read(path: &std::path::Path) -> miette::Result<Program> {
+    let source = std::fs::read_to_string(path)
+        .into_diagnostic()
+        .wrap_err_with(|| format!("could not read {}", path.display()))?;
+    parse(&source).map_err(|failure| {
+        miette::Report::new(failure)
+            .with_source_code(NamedSource::new(path.display().to_string(), source))
+    })
+}
+
 pub fn parse(source: &str) -> Result<Program, Failure> {
-    let tree = crate::parser::parse(source).map_err(|error| match error {
-        crate::failure::Failure::Syntax { message, span } => Failure::Syntax { message, span },
-        crate::failure::Failure::Depth { limit, span } => Failure::Depth { limit, span },
-    })?;
+    let tree = crate::parser::parse(source)?;
     let mut index = vec![Vec::new(); tree.node().len()];
     for (position, node) in tree.node().iter().enumerate() {
         if let Some(parent) = node.parent {
             index[parent].push(position);
         }
     }
-    let budget = Cell::new(1_000_000);
+    let budget = Cell::new(BUDGET);
     Reader::new(&tree, &index, 0, 0, &budget).program()
 }
 
@@ -159,11 +171,11 @@ impl<'tree, 'source> Reader<'tree, 'source> {
     }
 
     fn bound(&self, index: usize) -> Result<(), Failure> {
-        if self.depth < 128 {
+        if self.depth < crate::parser::DEPTH {
             return Ok(());
         }
         Err(Failure::Depth {
-            limit: 128,
+            limit: crate::parser::DEPTH,
             span: (self.tree.node()[index].span.start, 1).into(),
         })
     }
@@ -279,7 +291,7 @@ impl<'tree, 'source> Reader<'tree, 'source> {
                 .map(|&index| self.tree.node()[index].span.clone())
                 .unwrap_or(0..0);
             Failure::Expansion {
-                limit: 1_000_000,
+                limit: BUDGET,
                 span: (span.start, span.len()).into(),
             }
         })
