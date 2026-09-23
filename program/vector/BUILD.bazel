@@ -1,6 +1,33 @@
 load("//photonic:defs.bzl", "photonic_binary", "photonic_test")
 
 photonic_binary(
+    name = "rows",
+    srcs = ["rows.wave"],
+    deps = [
+        "//library/vector:reverse",
+        "//library/vector:sort",
+    ],
+)
+
+photonic_test(
+    name = "rows.check",
+    srcs = ["rows.wave"],
+    cells = 4096,
+    coherences = 512,
+    frames = 1024,
+    path = True,
+    preserve = True,
+    records = 10000000,
+    source = "",
+    steps = 10000000,
+    targets = ["Done"],
+    deps = [
+        "//library/vector:reverse",
+        "//library/vector:sort",
+    ],
+)
+
+photonic_binary(
     name = "sort",
     srcs = ["sort.wave"],
     deps = ["//library/vector:sort"],

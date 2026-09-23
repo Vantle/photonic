@@ -1,5 +1,5 @@
 use crate::catalog::source;
-use crate::fixture::{Fixture, Random, digit, trace, value};
+use crate::fixture::{Fixture, Random, Value, digit, trace, value};
 use photonic::prism::Outcome;
 
 fn library() -> [&'static str; 10] {
@@ -17,15 +17,15 @@ fn library() -> [&'static str; 10] {
     ]
 }
 
-fn apply(item: &[Vec<u64>], request: &str, answer: &str, expected: &[Vec<u64>]) {
+fn apply(item: &[Value], request: &str, answer: &str, expected: &[Value]) {
     let mut fixture = Fixture::new();
     let made = fixture.stage();
     let built = fixture.stage();
     let check = fixture.stage();
     fixture.vector(item, fixture.start(), &made, &built);
-    fixture.rule(format!("[Released.{built}, {made}] {request}"));
+    fixture.rule(format!("[Clean.{built}, {made}] {request}"));
     fixture.rule(format!("[{answer}] {check}"));
-    fixture.inspect(expected, &check, "Done");
+    fixture.inspect(&Value::Vector(expected.to_vec()), &check, "Done");
     let summary = trace(&fixture.source(), "Done", &library());
     assert_eq!(summary.outcome, Outcome::Reached, "{request} {item:?}");
 }
@@ -34,11 +34,18 @@ fn sort(item: &[Vec<u64>]) {
     let mut expected = item.to_vec();
     expected.sort_by_key(|digit| value(digit));
     apply(
-        item,
+        &natural(item),
         "Function.Vector.Sort",
         "Return.Vector.Sort",
-        &expected,
+        &natural(&expected),
     );
+}
+
+fn natural(digit: &[Vec<u64>]) -> Vec<Value> {
+    digit
+        .iter()
+        .map(|digit| Value::Natural(digit.clone()))
+        .collect()
 }
 
 fn numeral(value: &[u64]) -> Vec<Vec<u64>> {
@@ -63,10 +70,32 @@ fn permutation(item: &[u64]) -> Vec<Vec<u64>> {
     result
 }
 
+fn nest() -> Vec<Vec<Value>> {
+    let number = Value::number;
+    let vector = Value::Vector;
+    vec![
+        vec![],
+        vec![vector(vec![])],
+        vec![vector(vec![number(1), number(2)]), vector(vec![number(3)])],
+        vec![
+            number(7),
+            vector(vec![number(8), vector(vec![])]),
+            vector(vec![vector(vec![vector(vec![number(9)])])]),
+        ],
+        vec![vector(vec![
+            number(1),
+            vector(vec![number(2), vector(vec![number(3)])]),
+        ])],
+    ]
+}
+
 #[test]
 fn reverse() {
-    for value in [vec![], vec![5], vec![4, 0, 7, 13, 2]] {
-        let item = numeral(&value);
+    for item in [0, 1, 5]
+        .map(|length| natural(&numeral(&[4, 0, 7, 13, 2][..length])))
+        .into_iter()
+        .chain(nest())
+    {
         let expected = item.iter().rev().cloned().collect::<Vec<_>>();
         apply(
             &item,
@@ -79,14 +108,18 @@ fn reverse() {
 
 #[test]
 fn erase() {
-    for value in [vec![], vec![0], vec![4, 0, 7, 13, 2]] {
+    for item in [vec![], vec![0], vec![4, 0, 7, 13, 2]]
+        .map(|number| natural(&numeral(&number)))
+        .into_iter()
+        .chain(nest())
+    {
         let mut fixture = Fixture::new();
         let made = fixture.stage();
         let built = fixture.stage();
-        fixture.vector(&numeral(&value), fixture.start(), &made, &built);
-        fixture.rule(format!("[Released.{built}, {made}] Function.Vector.Erase"));
+        fixture.vector(&item, fixture.start(), &made, &built);
+        fixture.rule(format!("[Clean.{built}, {made}] Function.Vector.Erase"));
         let summary = trace(&fixture.source(), "Return.Vector.Erase", &library());
-        assert_eq!(summary.outcome, Outcome::Reached, "{value:?}");
+        assert_eq!(summary.outcome, Outcome::Reached, "{item:?}");
     }
 }
 

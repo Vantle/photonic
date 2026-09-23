@@ -15,8 +15,19 @@ pub fn value(digit: &[u64]) -> u64 {
     digit.iter().rev().fold(0, |value, digit| value * 3 + digit)
 }
 
+#[derive(Clone, Debug)]
+pub enum Value {
+    Natural(Vec<u64>),
+    Vector(Vec<Self>),
+}
+
+impl Value {
+    pub fn number(value: u64) -> Self {
+        Self::Natural(digit(value))
+    }
+}
+
 pub struct Fixture {
-    initial: Vec<String>,
     rule: Vec<String>,
     stage: usize,
 }
@@ -24,7 +35,6 @@ pub struct Fixture {
 impl Fixture {
     pub fn new() -> Self {
         Self {
-            initial: vec!["Setup.0".into()],
             rule: Vec::new(),
             stage: 0,
         }
@@ -41,6 +51,13 @@ impl Fixture {
 
     pub fn rule(&mut self, rule: String) {
         self.rule.push(rule);
+    }
+
+    pub fn build(&mut self, value: &Value, start: &str, label: &str, done: &str) {
+        match value {
+            Value::Natural(digit) => self.natural(digit, start, label, done),
+            Value::Vector(item) => self.vector(item, start, label, done),
+        }
     }
 
     pub fn natural(&mut self, digit: &[u64], start: &str, label: &str, done: &str) {
@@ -63,26 +80,28 @@ impl Fixture {
             .push(format!("[Built, {stage}] ({label}) (Forget.{done})"));
     }
 
-    pub fn vector(&mut self, item: &[Vec<u64>], start: &str, label: &str, done: &str) {
+    pub fn vector(&mut self, item: &[Value], start: &str, label: &str, done: &str) {
         let holder = self.stage();
         let mut next = self.stage();
         self.rule
             .push(format!("[{start}] ({holder}.Empty) ({next})"));
-        for digit in item.iter().rev() {
-            let value = self.stage();
+        for value in item.iter().rev() {
+            let piece = self.stage();
             let built = self.stage();
-            self.natural(digit, &next, &value, &built);
+            self.build(value, &next, &piece, &built);
             let wait = self.stage();
-            self.initial.push(wait.clone());
-            self.rule
-                .push(format!("[Clean.{built}, {value}, {holder}] Insert"));
+            let go = self.stage();
+            let link = self.stage();
+            self.rule.push(format!("[Clean.{built}] ({wait}) ({go})"));
+            self.rule.push(format!("[{go}, {holder}] Link.{link}"));
+            self.rule.push(format!("[Linked.{link}, {piece}] Insert"));
             let after = self.stage();
             self.rule
-                .push(format!("[Stored, {wait}] ({holder}) (Release.{after})"));
-            next = format!("Released.{after}");
+                .push(format!("[Stored, {wait}] ({holder}) (Forget.{after})"));
+            next = format!("Clean.{after}");
         }
         self.rule
-            .push(format!("[{next}, {holder}] ({label}) (Release.{done})"));
+            .push(format!("[{next}, {holder}] ({label}) (Forget.{done})"));
     }
 
     pub fn number(&mut self, digit: &[u64], label: &str, done: &str) {
@@ -97,27 +116,34 @@ impl Fixture {
         self.rule.push(format!("[Yield.End.{read}.Zero] {done}"));
     }
 
-    pub fn inspect(&mut self, item: &[Vec<u64>], label: &str, done: &str) {
-        let mut take = self.stage();
-        self.rule.push(format!("[{label}] Take.{take}"));
-        for digit in item {
-            let rest = self.stage();
-            let value = self.stage();
-            let checked = self.stage();
-            let next = self.stage();
-            self.rule.push(format!(
-                "[Taken.Item.{take}] (Forget.{rest}) (Release.{value})"
-            ));
-            self.number(digit, &format!("Released.{value}"), &checked);
-            self.rule
-                .push(format!("[Clean.{rest}, {checked}] Take.{next}"));
-            take = next;
+    pub fn inspect(&mut self, value: &Value, label: &str, done: &str) {
+        match value {
+            Value::Natural(digit) => self.number(digit, label, done),
+            Value::Vector(item) => self.walk(item, label, done),
         }
+    }
+
+    fn walk(&mut self, item: &[Value], label: &str, done: &str) {
+        let mut current = label.to_string();
+        for value in item {
+            let take = self.stage();
+            let piece = self.stage();
+            let checked = self.stage();
+            let hold = self.stage();
+            self.rule.push(format!("[{current}] Take.{take}"));
+            self.rule.push(format!("[Taken.Item.{take}] {piece}"));
+            self.inspect(value, &piece, &checked);
+            self.rule
+                .push(format!("[Taken.Rest.{take}, {checked}] {hold}"));
+            current = hold;
+        }
+        let take = self.stage();
+        self.rule.push(format!("[{current}] Take.{take}"));
         self.rule.push(format!("[Taken.End.Empty.{take}] {done}"));
     }
 
     pub fn source(&self) -> String {
-        format!("{}\n{}", self.initial.join(", "), self.rule.join("\n"))
+        format!("{}\n{}", self.start(), self.rule.join("\n"))
     }
 }
 

@@ -1,24 +1,36 @@
-[Release.Empty] Released
+[Forget.Empty] Clean
 [Take.Empty] Taken.End.Empty
-[Drop.Empty] Forget
+[Link.Empty] Linked.Nil
+[Lift.Nil] Lifted.Empty
+[Unlink.Nil] Unlinked
+[Sever.Nil] Taken.Item
+[Surface.Nil] Taken.Rest.Empty
 
 [Insert] (
     Build
     [Build] (
         Prepare.Node.([Seal] ()).([Request] ()).([Handle] ())
-            .([Prepare.Node.([Seal] ()).([Request] ())] (Forget [Clean] (Release [Released] Restore)))
-            .([Restore.([Handle] ())] Stored.Node.([Seal] ()))
-            .([Release.Node.([Seal] ())] (Discard [Free] Released))
-            .([Take.Node.([Seal] ()), Slot.([Seal] ())] (Discard [Free] Taken.Item))
-            .([Drop.Node.([Seal] ())] (Discard [Free] Forget))
+            .([Prepare.Node.([Seal] ()).([Request] ())] (Forget [Clean] Unlink))
+            .([Unlinked.([Handle] ())] Stored.Node.([Seal] ()))
+            .([Link.Node.([Seal] ())] Linked.Tail.([Tie] ()))
+            .([Lift.Tail.([Tie] ())] Lifted.Node.([Seal] ()))
+            .([Unlink.Tail.([Tie] ())] (Discard [Free] Unlinked))
+            .([Sever.Tail.([Tie] ())] (Discard [Free] Taken.Item))
+            .([Surface.Tail.([Tie] ())] Taken.Rest.Node.([Seal] ()))
+            .([Take.Node.([Seal] ()), Slot.([Seal] ())] (Discard [Free] (Sever) (Forget [Clean] Surface)))
+            .([Forget.Node.([Seal] ())] (Discard [Free] Clean))
     ) (
         Slot.([Seal] ())
     )
     [Discard
-        .([Prepare.Node.([Seal] ()).([Request] ())] (Forget [Clean] (Release [Released] Restore)))
-        .([Restore.([Handle] ())] Stored.Node.([Seal] ()))
-        .([Release.Node.([Seal] ())] (Discard [Free] Released))
-        .([Take.Node.([Seal] ()), Slot.([Seal] ())] (Discard [Free] Taken.Item))
-        .([Drop.Node.([Seal] ())] (Discard [Free] Forget))
+        .([Prepare.Node.([Seal] ()).([Request] ())] (Forget [Clean] Unlink))
+        .([Unlinked.([Handle] ())] Stored.Node.([Seal] ()))
+        .([Link.Node.([Seal] ())] Linked.Tail.([Tie] ()))
+        .([Lift.Tail.([Tie] ())] Lifted.Node.([Seal] ()))
+        .([Unlink.Tail.([Tie] ())] (Discard [Free] Unlinked))
+        .([Sever.Tail.([Tie] ())] (Discard [Free] Taken.Item))
+        .([Surface.Tail.([Tie] ())] Taken.Rest.Node.([Seal] ()))
+        .([Take.Node.([Seal] ()), Slot.([Seal] ())] (Discard [Free] (Sever) (Forget [Clean] Surface)))
+        .([Forget.Node.([Seal] ())] (Discard [Free] Clean))
     ] Free
 )

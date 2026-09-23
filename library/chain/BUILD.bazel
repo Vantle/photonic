@@ -3,7 +3,6 @@ load("//photonic:defs.bzl", "photonic_library", "photonic_test")
 photonic_library(
     name = "cell",
     srcs = ["cell.particle"],
-    visibility = ["//library/vector:__pkg__"],
 )
 
 photonic_library(

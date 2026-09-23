@@ -1,6 +1,6 @@
 # Photonic standard library
 
-The standard library is written entirely in Photonic. Rust loads the sources and checks their behavior; every operation runs through ordinary rules. Fourteen packages cover calling conventions, scalar tables, finite collections, linked storage, unbounded arithmetic, ordered vectors, and expression evaluation. Any combination of them can be loaded together.
+The standard library is written entirely in Photonic. Rust loads the sources and checks their behavior; every operation runs through ordinary rules. Fourteen packages cover calling conventions, scalar tables, finite collections, linked storage, unbounded arithmetic, recursive vectors, and expression evaluation. Any combination of them can be loaded together.
 
 ```sh
 bazel test -c opt //library/...
@@ -12,7 +12,7 @@ bazel test -c opt //library/...
 2. **One calling vocabulary.** A request carries `Function`; its answer carries `Return`. Scoped calls use `Invoke`; linked calls tag each answer with the operation that produced it.
 3. **Collision-free by construction.** `//library:test` proves that no root rule of one package can match the input of another package's rule, then runs checks with every package loaded at once.
 4. **Explicit values.** Roles travel as fields such as `([Digit] 2).([Carry] 1)`. Alternatives are variants of the answer, and failures are `Error.<Kind>`.
-5. **Generic storage, declared alphabets.** A chain stores any symbol, including a vector. Each alphabet states how chains drop, reverse, and erase its symbols. A vector stores linked values, such as naturals, by reference.
+5. **Generic storage, declared alphabets.** A chain stores the symbols of declared alphabets, and each alphabet states how chains drop, reverse, and erase its symbols. A vector stores any value that answers `Forget`, including naturals, chains, and other vectors, by reference and to any depth.
 6. **One responsibility per file, one target per file.** Programs depend on exactly what they use.
 
 ## Packages
@@ -41,7 +41,8 @@ function ── boolean, ternary, binary, carry, field
          └─ collection ── selection
 chain ── natural ── integer ── expression
      │         └── vector sort
-     └── vector
+     └── vector erase
+vector
 stream
 ```
 
@@ -104,7 +105,7 @@ Linked values span several coherences in one frame, so linked operations run in 
 | `Function.Integer.<Verb>` | `Operand.Left.<Sign>`, `Operand.Right.<Sign>` | `Return.Integer.<Verb>.Positive`, `Return.Integer.<Verb>.Negative`, `Return.Integer.Divide.Error.Divisor` |
 | `Function.Expression.Evaluate` | beside the token tape | `Return.Expression.Evaluate.Positive`, `Return.Expression.Evaluate.Negative`, `Return.Expression.Evaluate.Error.Syntax`, `.Error.Stack`, `.Error.Divisor` |
 | `Function.Vector.Reverse` | beside the vector | `Return.Vector.Reverse` |
-| `Function.Vector.Erase` | beside the vector | `Return.Vector.Erase` |
+| `Function.Vector.Erase` | beside a vector of chains and vectors | `Return.Vector.Erase` |
 | `Function.Vector.Sort` | beside a vector of naturals | `Return.Vector.Sort` |
 
 Numerals store base-three digits least significant first. Arithmetic answers carry no leading zeros; integers carry `Positive` or `Negative`, zero is always `Positive`, and integer division truncates toward zero.
@@ -145,34 +146,44 @@ Push.([Digit] 1).Zero, Stage.1
 
 ## Vectors
 
-A vector handle is `Empty` or a `Node` coherence carrying a private seal and its methods. Each node's `Slot` holds one item and the rest of the vector. Items are linked values that answer the chain's `Forget`, such as naturals, and a vector holds only their handles: inserting, taking, sorting, and reversing move references, never digits.
+A vector handle is `Empty` or a `Node` coherence carrying a private seal and its methods. Each node's `Slot` holds one item and the rest of the vector in its tail form. Items are any values that answer `Forget` with `Clean`, such as naturals, chains, and vectors, so vectors nest to any depth. A vector holds only handles: inserting, taking, sorting, and reversing move references, never digits.
 
 | Request | Answer |
 | --- | --- |
-| `Insert` beside an item and a vector | `Stored` beside the extended vector |
-| `Take` beside a vector | `Taken.Item` beside the front item and the rest, or `Taken.End.Empty` |
-| `Release` beside a vector | `Released` once this reference is dropped |
-| `Drop` beside a vector | `Forget`, so a chain can store vectors as symbols |
+| `Link` beside a vector | `Linked` beside its tail |
+| `Insert` beside a tail and an item | `Stored` beside the extended vector |
+| `Take` beside a vector | `Taken.Item` beside the front item and `Taken.Rest` beside the rest, or `Taken.End` beside `Empty` |
+| `Forget` beside a vector | `Clean` once this reference is dropped |
+| `Lift` beside a tail | `Lifted` beside the vector |
+| `Unlink` beside a tail | `Unlinked` once this reference is dropped |
 
-Like `Push`, `Insert` builds its slot from the remainder of its request, so that coherence must hold nothing but `Insert`, the item, and the vector. `Take` carries any other atoms into its answer. Split the item from the rest by forgetting one and releasing the other:
+A tail is `Tail` with a private tie, or `Nil` for the empty vector. It answers only `Lift` and `Unlink`, never an item's `Forget`, so every slot tells its item from its tail, even when the item is itself a vector. Link the vector, then join its tail with the item; `Insert.Nil` beside an item builds a one-item vector. Like `Push`, `Insert` builds its slot from the remainder of its request, so that coherence must hold nothing but `Insert`, the tail, and the item:
 
 ```
-[Built, Stage.1] Insert.Empty
-[Stored, Stage.2] Take.Next
-[Taken.Item.Next] (Forget.Rest) (Release.Value)
+[Built, Stage.1] Insert.Nil
+[Stored, Stage.2] Link.Draft
+[Linked.Draft, Item] Insert
 ```
 
-`Clean.Rest` then holds the rest and `Released.Value` holds the item. `Function.Vector.Erase` erases every item with `Function.Chain.Erase`, so their alphabets must declare erase hooks.
+`Take` answers in two coherences, each carrying the request's other atoms, so the item and the rest are already apart:
+
+```
+[Stored, Stage.3] Take.Front
+[Taken.Item.Front] Value
+[Taken.Rest.Front] Rest
+```
+
+An accumulator can stay linked between inserts and be lifted once it is complete. `Function.Vector.Erase` erases a vector and everything it holds: nested vectors wait on a vector of their own, and chains go to `Function.Chain.Erase`, so their alphabets must declare erase hooks.
 
 ### Sorting
 
 `Function.Vector.Sort` orders a vector of naturals ascending with a stable, adaptive merge sort:
 
 1. **Runs.** One pass splits the input into maximal non-decreasing runs and strictly decreasing runs, comparing each neighbouring pair once. Strictness keeps equal items in input order when a decreasing run is reversed.
-2. **Balanced passes.** Runs wait on a chain of vectors. Each pass merges them pairwise into a second chain, so `r` runs take `⌈log₂ r⌉` passes. An odd run is carried into the next pass unmerged.
+2. **Balanced passes.** Runs wait on a vector of vectors. Each pass merges them pairwise into a second vector of vectors, so `r` runs take `⌈log₂ r⌉` passes. An odd run is carried into the next pass unmerged.
 3. **Alternating orientation.** A merge pushes onto the front of its output, which reverses its order. Passes therefore alternate between merging descending runs by taking the larger front and ascending runs by taking the smaller, and no merge result is ever reversed. Only a carried run is turned before its next merge, and the result is turned once if it ends descending.
 
-A tie takes the item from the earlier run, which makes the sort stable. Sorted and strictly decreasing inputs form a single run and finish after `n − 1` comparisons with no merge pass. Otherwise the sort makes at most `n − 1 + n⌈log₂ r⌉` comparisons, close to the `log₂ n!` bound on random input, and `O(n log r)` reference moves. Comparisons dominate the cost; beyond its comparison, a merge step moves one item for about thirty-five events.
+A tie takes the item from the earlier run, which makes the sort stable. Sorted and strictly decreasing inputs form a single run and finish after `n − 1` comparisons with no merge pass. Otherwise the sort makes at most `n − 1 + n⌈log₂ r⌉` comparisons, close to the `log₂ n!` bound on random input, and `O(n log r)` reference moves. Comparisons dominate the cost; beyond its comparison, a merge step moves one item for about thirty-seven events.
 
 Powersort and Timsort choose each merge from run lengths or positions, which also balances runs of very different lengths. Tracking lengths here needs natural arithmetic at every run boundary, so the passes balance merges by run count instead, which is optimal when runs have similar lengths.
 
@@ -195,7 +206,7 @@ The successor writes each output digit as a `([Write] d)` value, acknowledges it
 - `isolation::vocabulary` requires single-word concepts everywhere and at most two input and output coherences in the scalar packages.
 - `composition` runs scalar checks, the pair pipeline, linked addition, and a sort with all fourteen packages loaded.
 - `natural` compares every pair below 27, operands with high zeros, and wide random pairs against Rust's ordering, reading both operands back afterwards.
-- `vector` sorts every permutation of four items, repeated items, sorted, decreasing, and constant inputs, and seeded random vectors of up to twelve items against Rust's stable sort. Equal numerals with different high zeros check stability. It also reverses and erases vectors.
+- `vector` sorts every permutation of four items, repeated items, sorted, decreasing, and constant inputs, and seeded random vectors of up to twelve items against Rust's stable sort. Equal numerals with different high zeros check stability. It also reverses and erases vectors of naturals and vectors nested three deep.
 - The scalar tables are checked exhaustively against independent Rust oracles, including rejected targets, here and in the `arithmetic` and `language` suites.
 
 Linked arithmetic, comparison, and vectors are verified along direct execution paths by these generated checks, the package checks in `//library/natural` and `//library/vector`, and the programs in `//program/ternary` and `//program/vector`.
@@ -206,4 +217,4 @@ Add an operation as its own file in the package that owns its type, give it a `p
 
 ## Limits
 
-Collections are finite pairs with enumerated payloads, and `Field` covers positions 0 through 3 with values 0 through 2. Photonic has no variables, so each alphabet enumerates its symbols. Linked values cannot enter an `Invoke` scope, because joins require one frame. For the same reason, linked calls in one frame run one at a time: `Insert`, `Function.Vector.Sort`, and `Function.Natural.Compare` use fixed labels and must not overlap. A vector cannot hold vectors, because a take could not tell an item from the rest; a chain can hold vectors. `Function.Vector.Sort` orders naturals only. General repetition and parallel prefix networks remain open work.
+Collections are finite pairs with enumerated payloads, and `Field` covers positions 0 through 3 with values 0 through 2. Photonic has no variables, so each alphabet enumerates its symbols. Linked values cannot enter an `Invoke` scope, because joins require one frame. For the same reason, linked calls in one frame run one at a time: `Insert`, `Function.Vector.Sort`, and `Function.Natural.Compare` use fixed labels and must not overlap, and a caller guards each answer with a token of its own, because the sort answers `Stored` and `Return.Vector.Reverse` internally too. A chain holds only alphabet symbols; store other values, including vectors, in a vector. `Function.Vector.Sort` orders naturals only, and `Function.Vector.Erase` erases chains and vectors. General repetition and parallel prefix networks remain open work.

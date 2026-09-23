@@ -21,12 +21,12 @@ photonic_library(
 photonic_library(
     name = "node",
     srcs = ["node.particle"],
-    deps = ["//library/chain:cell"],
 )
 
 photonic_library(
     name = "reverse",
     srcs = ["reverse.particle"],
+    visibility = ["//program/vector:__pkg__"],
     deps = [":node"],
 )
 
@@ -53,17 +53,43 @@ photonic_test(
     name = "node.item",
     path = True,
     preserve = True,
-    source = "Insert.Zero.Empty, Stage [Stored, Stage] Take",
-    targets = ["Taken.Item.Zero.Empty"],
+    source = "Insert.Empty.Nil, Stage [Stored, Stage] Take",
+    targets = ["Taken.Item.Empty, Taken.Rest.Empty"],
     deps = [":node"],
 )
 
 photonic_test(
-    name = "node.release",
+    name = "node.forget",
     path = True,
     preserve = True,
-    source = "Insert.Zero.Empty, Stage [Stored, Stage] (Release.Alias) (Take)",
-    targets = ["Released.Alias, Taken.Item.Zero.Empty"],
+    source = "Insert.Empty.Nil, Stage [Stored, Stage] (Forget.Alias) (Take)",
+    targets = ["Clean.Alias, Taken.Item.Empty, Taken.Rest.Empty"],
+    deps = [":node"],
+)
+
+photonic_test(
+    name = "node.link",
+    preserve = True,
+    source = "Link.Empty",
+    targets = ["Linked.Nil"],
+    deps = [":node"],
+)
+
+photonic_test(
+    name = "node.lift",
+    path = True,
+    preserve = True,
+    source = "Insert.Empty.Nil, Stage [Stored, Stage] Link [Linked] Lift [Lifted] Take",
+    targets = ["Taken.Item.Empty, Taken.Rest.Empty"],
+    deps = [":node"],
+)
+
+photonic_test(
+    name = "node.nest",
+    path = True,
+    preserve = True,
+    source = "Insert.Empty.Nil, Inner [Stored, Inner] (Outer) (Forget.Nested) [Clean.Nested] (Wait) (Go) [Go, Outer] Insert.Nil [Stored, Wait] Take.Outside [Taken.Item.Outside] Take.Inside [Taken.Item.Inside.Empty, Taken.Rest.Inside.Empty, Taken.Rest.Outside.Empty] Done",
+    targets = ["Done"],
     deps = [":node"],
 )
 
@@ -71,6 +97,15 @@ photonic_test(
     name = "erase.empty",
     preserve = True,
     source = "Function.Vector.Erase.Empty",
+    targets = ["Return.Vector.Erase"],
+    deps = [":erase"],
+)
+
+photonic_test(
+    name = "erase.nest",
+    path = True,
+    preserve = True,
+    source = "Insert.Empty.Nil, Inner [Stored, Inner] (Outer) (Forget.Nested) [Clean.Nested] (Wait) (Go) [Go, Outer] Insert.Nil [Stored, Wait] Function.Vector.Erase",
     targets = ["Return.Vector.Erase"],
     deps = [":erase"],
 )
@@ -97,8 +132,8 @@ photonic_test(
     cells = 1024,
     path = True,
     preserve = True,
-    source = "Insert.Zero.Empty, Stage [Stored, Stage] Function.Vector.Sort [Return.Vector.Sort] Take",
-    targets = ["Taken.Item.Zero.Empty"],
+    source = "Insert.Zero.Nil, Stage [Stored, Stage] Function.Vector.Sort [Return.Vector.Sort] Take",
+    targets = ["Taken.Item.Zero, Taken.Rest.Empty"],
     deps = [":sort"],
 )
 

@@ -1,0 +1,147 @@
+Origin
+[Origin] (Push.([Digit] 1).Zero) (Stage.2)
+[Built, Stage.2] (Push.([Digit] 1)) (Forget.Stage.3)
+[Built, Clean.Stage.3] (Piece.2) (Forget.Stage.1)
+[Clean.Stage.1] (Wait.1) (Go.1)
+[Go.1, Piece.2] Insert.Nil
+[Stored, Wait.1] (Draft.2) (Forget.Stage.4)
+[Clean.Stage.4] (Push.([Digit] 1).Zero) (Stage.6)
+[Built, Stage.6] (Push.([Digit] 2)) (Forget.Stage.7)
+[Built, Clean.Stage.7] (Piece.3) (Forget.Stage.5)
+[Clean.Stage.5] (Wait.2) (Go.2)
+[Go.2, Draft.2] Link.Draft.2
+[Linked.Draft.2, Piece.3] Insert
+[Stored, Wait.2] (Draft.2) (Forget.Stage.8)
+[Clean.Stage.8, Draft.2] (Piece.1) (Forget.Stage.9)
+[Clean.Stage.9] (Wait.3) (Go.3)
+[Go.3, Piece.1] Insert.Nil
+[Stored, Wait.3] (Draft.1) (Forget.Stage.10)
+[Clean.Stage.10] (Piece.4.Empty) (Clean.Stage.11)
+[Clean.Stage.11] (Wait.4) (Go.4)
+[Go.4, Draft.1] Link.Draft.1
+[Linked.Draft.1, Piece.4] Insert
+[Stored, Wait.4] (Draft.1) (Forget.Stage.12)
+[Clean.Stage.12] (Push.([Digit] 2).Zero) (Stage.14)
+[Built, Stage.14] (Push.([Digit] 2)) (Forget.Stage.15)
+[Built, Clean.Stage.15] (Piece.6) (Forget.Stage.13)
+[Clean.Stage.13] (Wait.5) (Go.5)
+[Go.5, Piece.6] Insert.Nil
+[Stored, Wait.5] (Draft.4) (Forget.Stage.16)
+[Clean.Stage.16] (Push.([Digit] 1).Zero) (Stage.18)
+[Built, Stage.18] (Push.([Digit] 0)) (Forget.Stage.19)
+[Built, Clean.Stage.19] (Push.([Digit] 0)) (Forget.Stage.20)
+[Built, Clean.Stage.20] (Piece.7) (Forget.Stage.17)
+[Clean.Stage.17] (Wait.6) (Go.6)
+[Go.6, Draft.4] Link.Draft.4
+[Linked.Draft.4, Piece.7] Insert
+[Stored, Wait.6] (Draft.4) (Forget.Stage.21)
+[Clean.Stage.21, Draft.4] (Piece.5) (Forget.Stage.22)
+[Clean.Stage.22] (Wait.7) (Go.7)
+[Go.7, Draft.1] Link.Draft.1
+[Linked.Draft.1, Piece.5] Insert
+[Stored, Wait.7] (Draft.1) (Forget.Stage.23)
+[Clean.Stage.23] (Push.([Digit] 2).Zero) (Stage.25)
+[Built, Stage.25] (Piece.9) (Forget.Stage.24)
+[Clean.Stage.24] (Wait.8) (Go.8)
+[Go.8, Piece.9] Insert.Nil
+[Stored, Wait.8] (Draft.5) (Forget.Stage.26)
+[Clean.Stage.26] (Push.([Digit] 1).Zero) (Stage.28)
+[Built, Stage.28] (Piece.10) (Forget.Stage.27)
+[Clean.Stage.27] (Wait.9) (Go.9)
+[Go.9, Draft.5] Link.Draft.5
+[Linked.Draft.5, Piece.10] Insert
+[Stored, Wait.9] (Draft.5) (Forget.Stage.29)
+[Clean.Stage.29] (Push.([Digit] 1).Zero) (Stage.31)
+[Built, Stage.31] (Push.([Digit] 0)) (Forget.Stage.32)
+[Built, Clean.Stage.32] (Piece.11) (Forget.Stage.30)
+[Clean.Stage.30] (Wait.10) (Go.10)
+[Go.10, Draft.5] Link.Draft.5
+[Linked.Draft.5, Piece.11] Insert
+[Stored, Wait.10] (Draft.5) (Forget.Stage.33)
+[Clean.Stage.33, Draft.5] (Piece.8) (Forget.Stage.34)
+[Clean.Stage.34] (Wait.11) (Go.11)
+[Go.11, Draft.1] Link.Draft.1
+[Linked.Draft.1, Piece.8] Insert
+[Stored, Wait.11] (Draft.1) (Forget.Stage.35)
+[Clean.Stage.35, Draft.1] (Table) (Forget.Stage.36)
+[Clean.Stage.36] (Linked.Result.Nil) (Scan.Next)
+[Scan.Next, Table] Take.Scan
+[Taken.Item.Scan] Function.Vector.Sort
+[Taken.Rest.Scan] Table
+[Return.Vector.Sort] (Scan.Sorted) (Forget.Scan.Wait)
+[Scan.Sorted, Linked.Result] Insert
+[Stored, Clean.Scan.Wait] (Link.Result) (Forget.Scan.Stored)
+[Clean.Scan.Stored] Scan.Next
+[Taken.End.Empty.Scan] (Scan.Finish) (Scan.Reversing)
+[Scan.Finish, Linked.Result] Lift.Scan.Done
+[Lifted.Scan.Done] Function.Vector.Reverse
+[Return.Vector.Reverse, Scan.Reversing] Take.Look.1
+[Taken.Item.Look.1] Part.1
+[Part.1] Take.Look.2
+[Taken.Item.Look.2] Part.2
+[Part.2] Read.Look.3
+[Yield.([Digit] 1).Look.3] Read.Look.4
+[Yield.End.Look.4.Zero] Checked.2
+[Taken.Rest.Look.2, Checked.2] Hold.1
+[Hold.1] Take.Look.5
+[Taken.Item.Look.5] Part.3
+[Part.3] Read.Look.6
+[Yield.([Digit] 2).Look.6] Read.Look.7
+[Yield.End.Look.7.Zero] Checked.3
+[Taken.Rest.Look.5, Checked.3] Hold.2
+[Hold.2] Take.Look.8
+[Taken.Item.Look.8] Part.4
+[Part.4] Read.Look.9
+[Yield.([Digit] 0).Look.9] Read.Look.10
+[Yield.([Digit] 1).Look.10] Read.Look.11
+[Yield.End.Look.11.Zero] Checked.4
+[Taken.Rest.Look.8, Checked.4] Hold.3
+[Hold.3] Take.Look.12
+[Taken.End.Empty.Look.12] Checked.1
+[Taken.Rest.Look.1, Checked.1] Hold.4
+[Hold.4] Take.Look.13
+[Taken.Item.Look.13] Part.5
+[Part.5] Take.Look.14
+[Taken.Item.Look.14] Part.6
+[Part.6] Read.Look.15
+[Yield.([Digit] 2).Look.15] Read.Look.16
+[Yield.([Digit] 2).Look.16] Read.Look.17
+[Yield.End.Look.17.Zero] Checked.6
+[Taken.Rest.Look.14, Checked.6] Hold.5
+[Hold.5] Take.Look.18
+[Taken.Item.Look.18] Part.7
+[Part.7] Read.Look.19
+[Yield.([Digit] 0).Look.19] Read.Look.20
+[Yield.([Digit] 0).Look.20] Read.Look.21
+[Yield.([Digit] 1).Look.21] Read.Look.22
+[Yield.End.Look.22.Zero] Checked.7
+[Taken.Rest.Look.18, Checked.7] Hold.6
+[Hold.6] Take.Look.23
+[Taken.End.Empty.Look.23] Checked.5
+[Taken.Rest.Look.13, Checked.5] Hold.7
+[Hold.7] Take.Look.24
+[Taken.Item.Look.24] Part.8
+[Part.8] Take.Look.25
+[Taken.End.Empty.Look.25] Checked.8
+[Taken.Rest.Look.24, Checked.8] Hold.8
+[Hold.8] Take.Look.26
+[Taken.Item.Look.26] Part.9
+[Part.9] Take.Look.27
+[Taken.Item.Look.27] Part.10
+[Part.10] Read.Look.28
+[Yield.([Digit] 1).Look.28] Read.Look.29
+[Yield.([Digit] 1).Look.29] Read.Look.30
+[Yield.End.Look.30.Zero] Checked.10
+[Taken.Rest.Look.27, Checked.10] Hold.9
+[Hold.9] Take.Look.31
+[Taken.Item.Look.31] Part.11
+[Part.11] Read.Look.32
+[Yield.([Digit] 2).Look.32] Read.Look.33
+[Yield.([Digit] 1).Look.33] Read.Look.34
+[Yield.End.Look.34.Zero] Checked.11
+[Taken.Rest.Look.31, Checked.11] Hold.10
+[Hold.10] Take.Look.35
+[Taken.End.Empty.Look.35] Checked.9
+[Taken.Rest.Look.26, Checked.9] Hold.11
+[Hold.11] Take.Look.36
+[Taken.End.Empty.Look.36] Done
