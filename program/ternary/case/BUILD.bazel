@@ -1,10 +1,5 @@
 load("//photonic:defs.bzl", "photonic_test")
 
-exports_files(
-    ["repeated.wave"],
-    visibility = ["//program/ternary:__pkg__"],
-)
-
 photonic_test(
     name = "precedence",
     srcs = ["precedence.wave"],

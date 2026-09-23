@@ -1,6 +1,12 @@
 load("//photonic:defs.bzl", "photonic_binary", "photonic_test")
 load("//toolchain:defs.bzl", "hermetic_binary", "hermetic_test")
 
+photonic_binary(
+    name = "carry",
+    srcs = ["carry.wave"],
+    deps = ["//library/natural:successor"],
+)
+
 photonic_test(
     name = "carry.check",
     srcs = ["carry.wave"],
@@ -144,6 +150,12 @@ photonic_test(
     targets = ["3^1.3^4.3^4.3^6.3^6"],
 )
 
+photonic_binary(
+    name = "addition",
+    srcs = ["addition.wave"],
+    deps = ["//library/natural:add"],
+)
+
 photonic_test(
     name = "addition.check",
     srcs = ["addition.wave"],
@@ -178,6 +190,12 @@ photonic_test(
     deps = ["//library/natural:compare"],
 )
 
+photonic_binary(
+    name = "subtraction",
+    srcs = ["subtraction.wave"],
+    deps = ["//library/natural:subtract"],
+)
+
 photonic_test(
     name = "subtraction.check",
     srcs = ["subtraction.wave"],
@@ -190,6 +208,12 @@ photonic_test(
     steps = 10000000,
     targets = ["Done.Zero"],
     deps = ["//library/natural:subtract"],
+)
+
+photonic_binary(
+    name = "multiplication",
+    srcs = ["multiplication.wave"],
+    deps = ["//library/natural:multiply"],
 )
 
 photonic_test(
@@ -205,6 +229,12 @@ photonic_test(
     steps = 20000000,
     targets = ["Done.Zero"],
     deps = ["//library/natural:multiply"],
+)
+
+photonic_binary(
+    name = "division",
+    srcs = ["division.wave"],
+    deps = ["//library/natural:divide"],
 )
 
 photonic_test(
@@ -234,6 +264,12 @@ photonic_test(
     states = 65536,
     steps = 100000000,
     targets = ["Done.Zero"],
+    deps = ["//library/expression:execute"],
+)
+
+photonic_binary(
+    name = "composition",
+    srcs = ["composition.wave"],
     deps = ["//library/expression:execute"],
 )
 
@@ -271,6 +307,12 @@ photonic_test(
     steps = 100000000,
     tags = ["memory"],
     targets = ["Done.Zero"],
+    deps = ["//library/expression:evaluate"],
+)
+
+photonic_binary(
+    name = "parenthesis",
+    srcs = ["parenthesis.wave"],
     deps = ["//library/expression:evaluate"],
 )
 
@@ -491,10 +533,4 @@ hermetic_test(
         "//toolchain:node",
     ],
     entrypoint = "//toolchain:execute",
-)
-
-photonic_binary(
-    name = "repeated",
-    srcs = ["//program/ternary/case:repeated.wave"],
-    deps = ["//library/expression:evaluate"],
 )

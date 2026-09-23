@@ -88,7 +88,7 @@ Every runnable `.wave` has a `photonic_binary` target. Discover programs and tes
 
 ```sh
 bazel query 'kind(".*_test rule", //...)'
-bazel query 'kind("rust_binary rule", //program/...)'
+bazel query 'kind("hermetic_binary rule", //program/...)'
 rg --files library program
 ```
 
