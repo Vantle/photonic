@@ -4,7 +4,7 @@ use crate::{check, witness};
 use photonic::prism::Outcome;
 
 fn library() -> Vec<&'static str> {
-    LIBRARY.iter().map(|entry| entry.2).collect()
+    LIBRARY.iter().map(|entry| entry.source.as_str()).collect()
 }
 
 #[test]

@@ -18,7 +18,9 @@ rust_test(
         "test/ternary.rs",
         "test/vector.rs",
     ],
-    compile_data = [
+    compile_data = ["//program/composition:fixture"],
+    crate_root = "test/suite.rs",
+    data = [
         "//library/binary:source",
         "//library/boolean:source",
         "//library/carry:source",
@@ -33,11 +35,28 @@ rust_test(
         "//library/stream:source",
         "//library/ternary:source",
         "//library/vector:source",
-        "//program/composition:fixture",
     ],
-    crate_root = "test/suite.rs",
+    env = {"PHOTONIC_LIBRARY": " ".join([
+        "$(rlocationpaths //library/binary:source)",
+        "$(rlocationpaths //library/boolean:source)",
+        "$(rlocationpaths //library/carry:source)",
+        "$(rlocationpaths //library/chain:source)",
+        "$(rlocationpaths //library/collection:source)",
+        "$(rlocationpaths //library/expression:source)",
+        "$(rlocationpaths //library/field:source)",
+        "$(rlocationpaths //library/function:source)",
+        "$(rlocationpaths //library/integer:source)",
+        "$(rlocationpaths //library/natural:source)",
+        "$(rlocationpaths //library/selection:source)",
+        "$(rlocationpaths //library/stream:source)",
+        "$(rlocationpaths //library/ternary:source)",
+        "$(rlocationpaths //library/vector:source)",
+    ])},
     lint_config = "//:lint",
-    deps = ["//language:photonic"],
+    deps = [
+        "//language:photonic",
+        "@rules_rust//rust/runfiles",
+    ],
 )
 
 filegroup(

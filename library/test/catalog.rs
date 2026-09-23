@@ -1,273 +1,36 @@
-pub const LIBRARY: [(&str, &str, &str); 67] = [
-    (
-        "binary",
-        "multiply",
-        include_str!("../binary/multiply.particle"),
-    ),
-    ("binary", "sum", include_str!("../binary/sum.particle")),
-    ("boolean", "and", include_str!("../boolean/and.particle")),
-    (
-        "boolean",
-        "equal",
-        include_str!("../boolean/equal.particle"),
-    ),
-    ("boolean", "not", include_str!("../boolean/not.particle")),
-    ("boolean", "or", include_str!("../boolean/or.particle")),
-    (
-        "carry",
-        "combine",
-        include_str!("../carry/combine.particle"),
-    ),
-    (
-        "carry",
-        "evaluate",
-        include_str!("../carry/evaluate.particle"),
-    ),
-    ("chain", "cell", include_str!("../chain/cell.particle")),
-    ("chain", "erase", include_str!("../chain/erase.particle")),
-    (
-        "chain",
-        "reverse",
-        include_str!("../chain/reverse.particle"),
-    ),
-    (
-        "collection",
-        "broadcast",
-        include_str!("../collection/broadcast.particle"),
-    ),
-    (
-        "collection",
-        "choose",
-        include_str!("../collection/choose.particle"),
-    ),
-    (
-        "collection",
-        "copy",
-        include_str!("../collection/copy.particle"),
-    ),
-    (
-        "collection",
-        "gather",
-        include_str!("../collection/gather.particle"),
-    ),
-    (
-        "collection",
-        "map",
-        include_str!("../collection/map.particle"),
-    ),
-    (
-        "collection",
-        "produce",
-        include_str!("../collection/produce.particle"),
-    ),
-    (
-        "collection",
-        "reduce",
-        include_str!("../collection/reduce.particle"),
-    ),
-    (
-        "collection",
-        "repeat",
-        include_str!("../collection/repeat.particle"),
-    ),
-    (
-        "collection",
-        "unpack",
-        include_str!("../collection/unpack.particle"),
-    ),
-    (
-        "expression",
-        "evaluate",
-        include_str!("../expression/evaluate.particle"),
-    ),
-    (
-        "expression",
-        "execute",
-        include_str!("../expression/execute.particle"),
-    ),
-    (
-        "expression",
-        "join",
-        include_str!("../expression/join.particle"),
-    ),
-    (
-        "expression",
-        "parse",
-        include_str!("../expression/parse.particle"),
-    ),
-    (
-        "expression",
-        "split",
-        include_str!("../expression/split.particle"),
-    ),
-    (
-        "expression",
-        "token",
-        include_str!("../expression/token.particle"),
-    ),
-    ("field", "pack", include_str!("../field/pack.particle")),
-    ("field", "unpack", include_str!("../field/unpack.particle")),
-    (
-        "function",
-        "compose",
-        include_str!("../function/compose.particle"),
-    ),
-    (
-        "function",
-        "identity",
-        include_str!("../function/identity.particle"),
-    ),
-    (
-        "function",
-        "invoke",
-        include_str!("../function/invoke.particle"),
-    ),
-    ("integer", "add", include_str!("../integer/add.particle")),
-    (
-        "integer",
-        "divide",
-        include_str!("../integer/divide.particle"),
-    ),
-    (
-        "integer",
-        "multiply",
-        include_str!("../integer/multiply.particle"),
-    ),
-    (
-        "integer",
-        "result",
-        include_str!("../integer/result.particle"),
-    ),
-    (
-        "integer",
-        "subtract",
-        include_str!("../integer/subtract.particle"),
-    ),
-    ("natural", "add", include_str!("../natural/add.particle")),
-    (
-        "natural",
-        "borrow",
-        include_str!("../natural/borrow.particle"),
-    ),
-    (
-        "natural",
-        "column",
-        include_str!("../natural/column.particle"),
-    ),
-    (
-        "natural",
-        "compare",
-        include_str!("../natural/compare.particle"),
-    ),
-    (
-        "natural",
-        "complement",
-        include_str!("../natural/complement.particle"),
-    ),
-    ("natural", "copy", include_str!("../natural/copy.particle")),
-    (
-        "natural",
-        "difference",
-        include_str!("../natural/difference.particle"),
-    ),
-    (
-        "natural",
-        "digit",
-        include_str!("../natural/digit.particle"),
-    ),
-    (
-        "natural",
-        "divide",
-        include_str!("../natural/divide.particle"),
-    ),
-    (
-        "natural",
-        "multiply",
-        include_str!("../natural/multiply.particle"),
-    ),
-    (
-        "natural",
-        "normalize",
-        include_str!("../natural/normalize.particle"),
-    ),
-    (
-        "natural",
-        "subtract",
-        include_str!("../natural/subtract.particle"),
-    ),
-    (
-        "natural",
-        "successor",
-        include_str!("../natural/successor.particle"),
-    ),
-    ("natural", "trim", include_str!("../natural/trim.particle")),
-    (
-        "selection",
-        "check",
-        include_str!("../selection/check.particle"),
-    ),
-    (
-        "selection",
-        "count",
-        include_str!("../selection/count.particle"),
-    ),
-    (
-        "selection",
-        "filter",
-        include_str!("../selection/filter.particle"),
-    ),
-    (
-        "selection",
-        "reduce",
-        include_str!("../selection/reduce.particle"),
-    ),
-    (
-        "stream",
-        "successor",
-        include_str!("../stream/successor.particle"),
-    ),
-    ("ternary", "add", include_str!("../ternary/add.particle")),
-    (
-        "ternary",
-        "compare",
-        include_str!("../ternary/compare.particle"),
-    ),
-    (
-        "ternary",
-        "multiply",
-        include_str!("../ternary/multiply.particle"),
-    ),
-    (
-        "ternary",
-        "select",
-        include_str!("../ternary/select.particle"),
-    ),
-    (
-        "ternary",
-        "subtract",
-        include_str!("../ternary/subtract.particle"),
-    ),
-    (
-        "ternary",
-        "successor",
-        include_str!("../ternary/successor.particle"),
-    ),
-    ("ternary", "sum", include_str!("../ternary/sum.particle")),
-    ("vector", "erase", include_str!("../vector/erase.particle")),
-    ("vector", "merge", include_str!("../vector/merge.particle")),
-    ("vector", "node", include_str!("../vector/node.particle")),
-    (
-        "vector",
-        "reverse",
-        include_str!("../vector/reverse.particle"),
-    ),
-    ("vector", "sort", include_str!("../vector/sort.particle")),
-];
+use std::path::Path;
+use std::sync::LazyLock;
+
+pub struct Entry {
+    pub package: String,
+    pub name: String,
+    pub source: String,
+}
+
+pub static LIBRARY: LazyLock<Vec<Entry>> = LazyLock::new(|| {
+    let runfile = runfiles::Runfiles::create().unwrap();
+    let mut entry = std::env::var("PHOTONIC_LIBRARY")
+        .unwrap()
+        .split_whitespace()
+        .map(|path| {
+            let file = Path::new(path);
+            let text =
+                |value: Option<&std::ffi::OsStr>| value.unwrap().to_str().unwrap().to_owned();
+            Entry {
+                package: text(file.parent().and_then(Path::file_name)),
+                name: text(file.file_stem()),
+                source: std::fs::read_to_string(runfile.rlocation_from(path, "").unwrap()).unwrap(),
+            }
+        })
+        .collect::<Vec<_>>();
+    entry.sort_by(|left, right| (&left.package, &left.name).cmp(&(&right.package, &right.name)));
+    entry
+});
 
 pub fn source(package: &str, name: &str) -> &'static str {
-    LIBRARY
+    &LIBRARY
         .iter()
-        .find(|entry| entry.0 == package && entry.1 == name)
-        .map(|entry| entry.2)
+        .find(|entry| entry.package == package && entry.name == name)
         .unwrap()
+        .source
 }

@@ -58,11 +58,11 @@ fn subsumes(pattern: &[Vec<Value>], input: &[Vec<Value>], used: &mut [bool]) -> 
 fn root() -> Vec<(&'static str, &'static str, Vec<Vec<Value>>)> {
     LIBRARY
         .iter()
-        .flat_map(|&(package, name, source)| {
-            parse(source).unwrap().rule.into_iter().map(move |rule| {
+        .flat_map(|entry| {
+            parse(&entry.source).unwrap().rule.into_iter().map(|rule| {
                 (
-                    package,
-                    name,
+                    entry.package.as_str(),
+                    entry.name.as_str(),
                     rule.input.iter().map(|value| particle(value)).collect(),
                 )
             })
@@ -73,14 +73,14 @@ fn root() -> Vec<(&'static str, &'static str, Vec<Vec<Value>>)> {
 #[test]
 fn boundary() {
     let rule = root();
-    for (package, name, pattern) in &rule {
-        for (other, file, input) in &rule {
-            if package == other {
+    for (position, (package, name, pattern)) in rule.iter().enumerate() {
+        for (other, (owner, file, input)) in rule.iter().enumerate() {
+            if position == other {
                 continue;
             }
             assert!(
                 !subsumes(pattern, input, &mut vec![false; input.len()]),
-                "{package}/{name} {pattern:?} can match {other}/{file} {input:?}"
+                "{package}/{name} {pattern:?} can match {owner}/{file} {input:?}"
             );
         }
     }
@@ -120,11 +120,11 @@ fn declaration(rule: &Definition, bounded: bool) {
 
 #[test]
 fn vocabulary() {
-    for &(package, _, source) in &LIBRARY {
-        let library = parse(source).unwrap();
+    for entry in LIBRARY.iter() {
+        let library = parse(&entry.source).unwrap();
         assert!(library.initial.is_empty());
         for rule in &library.rule {
-            declaration(rule, BOUNDED.contains(&package));
+            declaration(rule, BOUNDED.contains(&entry.package.as_str()));
         }
     }
 }
