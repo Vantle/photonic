@@ -40,6 +40,17 @@ pub struct Canonical {
     pub resource: crate::relation::Map<usize, usize>,
 }
 
+impl Canonical {
+    pub(crate) fn place(&self, place: crate::place::Place) -> Option<crate::place::Place> {
+        use crate::place::Place;
+        Some(match place {
+            Place::World(index, id) => Place::World(self.world[index]?, self.resource[&id]),
+            Place::Context(index, id) => Place::Context(self.frame[index]?, self.resource[&id]),
+            Place::Held(index, id) => Place::Held(self.frame[index]?, self.resource[&id]),
+        })
+    }
+}
+
 impl State {
     pub(crate) fn token(&self, place: crate::place::Place) -> Option<&Token> {
         use crate::place::Place;

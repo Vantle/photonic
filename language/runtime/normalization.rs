@@ -27,8 +27,7 @@ pub(super) struct Completion {
 pub(super) struct Store {
     environment: super::environment::Store,
     identity: HashMap<Identity, Status, Builder>,
-    job: Vec<Option<Job>>,
-    vacant: Vec<usize>,
+    job: crate::arena::Store<Job>,
 }
 
 impl Store {
@@ -44,11 +43,7 @@ impl Store {
     }
 
     pub fn attach(&mut self, index: usize, application: Application) {
-        self.job[index]
-            .as_mut()
-            .unwrap()
-            .application
-            .push(application);
+        self.job[index].application.push(application);
     }
 
     pub fn insert(
@@ -57,33 +52,26 @@ impl Store {
         application: Application,
         result: Applied,
     ) -> usize {
-        let index = self.vacant.pop().unwrap_or_else(|| {
-            let index = self.job.len();
-            self.job.push(None);
-            index
-        });
-        self.identity
-            .insert(identity.clone(), Status::Pending(index));
-        self.job[index] = Some(Job {
-            identity,
+        let index = self.job.insert(Job {
+            identity: identity.clone(),
             application: vec![application],
             flow: result.flow,
             search: Some(Search::new(std::sync::Arc::new(result.state))),
         });
+        self.identity.insert(identity, Status::Pending(index));
         index
     }
 
     pub fn take(&mut self, index: usize) -> Search {
-        self.job[index].as_mut().unwrap().search.take().unwrap()
+        self.job[index].search.take().unwrap()
     }
 
     pub fn advance(&mut self, index: usize, search: Search, complete: bool) -> Option<Completion> {
         if !complete {
-            self.job[index].as_mut().unwrap().search = Some(search);
+            self.job[index].search = Some(search);
             return None;
         }
-        let job = self.job[index].take().unwrap();
-        self.vacant.push(index);
+        let job = self.job.remove(index);
         self.identity.remove(&job.identity);
         Some(Completion {
             identity: job.identity,
@@ -97,6 +85,6 @@ impl Store {
     }
 
     pub fn retained(&self) -> usize {
-        self.job.len() + self.vacant.len()
+        self.job.retained()
     }
 }

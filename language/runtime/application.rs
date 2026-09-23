@@ -48,10 +48,11 @@ impl Runtime {
             binding: &application.binding,
             closure,
         });
-        if result.state.world.len() > self.limit.world
-            || result.state.size() > self.limit.cell
-            || result.state.reachable().len() > self.limit.frame
-        {
+        if !self.limit.admits(
+            result.state.world.len(),
+            result.state.size(),
+            result.state.reachable().len(),
+        ) {
             self.pending.insert(application);
             return;
         }

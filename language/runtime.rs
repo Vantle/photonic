@@ -36,6 +36,12 @@ impl Default for Limit {
     }
 }
 
+impl Limit {
+    pub(crate) fn admits(&self, world: usize, cell: usize, frame: usize) -> bool {
+        world <= self.world && cell <= self.cell && frame <= self.frame
+    }
+}
+
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 struct View {
     source: usize,

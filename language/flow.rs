@@ -139,20 +139,7 @@ impl Flow {
         let resource = self
             .resource
             .into_iter()
-            .filter_map(|(place, basis)| {
-                let place = match place {
-                    Place::World(index, id) => {
-                        Place::World(canonical.world[index]?, canonical.resource[&id])
-                    }
-                    Place::Context(index, id) => {
-                        Place::Context(canonical.frame[index]?, canonical.resource[&id])
-                    }
-                    Place::Held(index, id) => {
-                        Place::Held(canonical.frame[index]?, canonical.resource[&id])
-                    }
-                };
-                Some((place, basis))
-            })
+            .filter_map(|(place, basis)| Some((canonical.place(place)?, basis)))
             .collect();
         let mut context = vec![Set::default(); canonical.state.world.len()];
         for (index, target) in canonical.world.iter().enumerate() {

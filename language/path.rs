@@ -348,17 +348,7 @@ impl Search {
         let step = self.event.get(index)?;
         Some(step.event.get_or_init(|| {
             let canonical = self.state[step.source].canonical();
-            let place = |place: &Place| match *place {
-                Place::World(world, token) => {
-                    Place::World(canonical.world[world].unwrap(), canonical.resource[&token])
-                }
-                Place::Context(frame, token) => {
-                    Place::Context(canonical.frame[frame].unwrap(), canonical.resource[&token])
-                }
-                Place::Held(frame, token) => {
-                    Place::Held(canonical.frame[frame].unwrap(), canonical.resource[&token])
-                }
-            };
+            let place = |place: &Place| canonical.place(*place).unwrap();
             let selection = |value: &crate::basis::Set<Place>| {
                 let mut value = value.iter().map(place).collect::<Vec<_>>();
                 value.sort_unstable();

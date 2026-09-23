@@ -15,9 +15,11 @@ pub(crate) struct Event {
 
 impl Event {
     fn admitted(&self, limit: Limit) -> bool {
-        self.state.world.len() <= limit.world
-            && self.fingerprint.layout.cell <= limit.cell
-            && self.fingerprint.layout.reach.frame.len() <= limit.frame
+        limit.admits(
+            self.state.world.len(),
+            self.fingerprint.layout.cell,
+            self.fingerprint.layout.reach.frame.len(),
+        )
     }
 }
 

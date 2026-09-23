@@ -37,6 +37,12 @@ impl<Value> Store<Value> {
     }
 }
 
+impl<Value> Default for Store<Value> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<Value> std::ops::Index<usize> for Store<Value> {
     type Output = Value;
 
