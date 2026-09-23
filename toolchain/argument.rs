@@ -15,10 +15,5 @@ fn main() -> Result<ExitCode, Error> {
         .args(embedded)
         .args(argument)
         .status()?;
-    Ok(ExitCode::from(
-        status
-            .code()
-            .and_then(|value| u8::try_from(value).ok())
-            .unwrap_or(1),
-    ))
+    Ok(relay::code(status))
 }

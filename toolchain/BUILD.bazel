@@ -1,4 +1,5 @@
 load("@rules_rs//rs:rust_binary.bzl", "rust_binary")
+load("@rules_rs//rs:rust_library.bzl", "rust_library")
 load("@rules_rs//rs:rust_test.bzl", "rust_test")
 load(":defs.bzl", "hermetic_binary")
 load(":node.bzl", "node")
@@ -43,7 +44,18 @@ rust_binary(
         "//program/ternary:__pkg__",
         "//toolchain/browser:__pkg__",
     ],
-    deps = ["@rules_rust//rust/runfiles"],
+    deps = [
+        ":relay",
+        "@rules_rust//rust/runfiles",
+    ],
+)
+
+rust_library(
+    name = "relay",
+    srcs = ["relay.rs"],
+    crate_root = "relay.rs",
+    lint_config = "//:lint",
+    visibility = ["//photonic:__pkg__"],
 )
 
 rust_test(
@@ -97,7 +109,10 @@ rust_binary(
     srcs = ["argument.rs"],
     crate_root = "argument.rs",
     lint_config = "//:lint",
-    deps = ["@crate//:serde_json"],
+    deps = [
+        ":relay",
+        "@crate//:serde_json",
+    ],
 )
 
 rust_binary(
@@ -105,6 +120,7 @@ rust_binary(
     srcs = ["verify.rs"],
     crate_root = "verify.rs",
     lint_config = "//:lint",
+    deps = [":relay"],
 )
 
 rust_binary(
@@ -113,5 +129,8 @@ rust_binary(
     crate_root = "format.rs",
     lint_config = "//:lint",
     visibility = ["//:__pkg__"],
-    deps = ["@rules_rust//rust/runfiles"],
+    deps = [
+        ":relay",
+        "@rules_rust//rust/runfiles",
+    ],
 )

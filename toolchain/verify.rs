@@ -11,12 +11,7 @@ fn main() -> Result<ExitCode, Error> {
         .ok_or_else(|| Error::new(ErrorKind::InvalidInput, "an executable is required"))?;
     let status = Command::new(executable).args(argument).status()?;
     if !status.success() {
-        return Ok(ExitCode::from(
-            status
-                .code()
-                .and_then(|code| code.try_into().ok())
-                .unwrap_or(1),
-        ));
+        return Ok(relay::code(status));
     }
     std::fs::write(output, [])?;
     Ok(ExitCode::SUCCESS)

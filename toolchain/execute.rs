@@ -24,10 +24,5 @@ fn main() -> Result<ExitCode, Error> {
         );
     }
     let status = command.args(file).args(argument).status()?;
-    Ok(ExitCode::from(
-        status
-            .code()
-            .and_then(|code| code.try_into().ok())
-            .unwrap_or(1),
-    ))
+    Ok(relay::code(status))
 }

@@ -27,7 +27,10 @@ rust_binary(
     crate_root = "launch.rs",
     lint_config = "//:lint",
     visibility = ["//program:__subpackages__"],
-    deps = ["@rules_rust//rust/runfiles"],
+    deps = [
+        "//toolchain:relay",
+        "@rules_rust//rust/runfiles",
+    ],
 )
 
 filegroup(
