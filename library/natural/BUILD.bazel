@@ -44,7 +44,10 @@ photonic_library(
 photonic_library(
     name = "copy",
     srcs = ["copy.particle"],
-    deps = [":digit"],
+    deps = [
+        ":digit",
+        "//library/chain:reverse",
+    ],
 )
 
 photonic_library(
@@ -81,6 +84,8 @@ photonic_library(
         ":copy",
         ":normalize",
         ":subtract",
+        "//library/chain:erase",
+        "//library/chain:reverse",
     ],
 )
 
@@ -95,6 +100,8 @@ photonic_library(
         ":add",
         ":copy",
         ":normalize",
+        "//library/chain:erase",
+        "//library/chain:reverse",
     ],
 )
 
@@ -102,14 +109,20 @@ photonic_library(
     name = "normalize",
     srcs = ["normalize.particle"],
     visibility = ["//library/expression:__pkg__"],
-    deps = [":trim"],
+    deps = [
+        ":trim",
+        "//library/chain:reverse",
+    ],
 )
 
 photonic_library(
     name = "subtract",
     srcs = ["subtract.particle"],
     visibility = ["//program/ternary:__pkg__"],
-    deps = [":borrow"],
+    deps = [
+        ":borrow",
+        "//library/chain:erase",
+    ],
 )
 
 photonic_library(
@@ -122,7 +135,10 @@ photonic_library(
 photonic_library(
     name = "trim",
     srcs = ["trim.particle"],
-    deps = [":digit"],
+    deps = [
+        ":digit",
+        "//library/chain:reverse",
+    ],
 )
 
 photonic_test(

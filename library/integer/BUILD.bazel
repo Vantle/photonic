@@ -17,6 +17,7 @@ photonic_library(
     visibility = ["//library/expression:__pkg__"],
     deps = [
         ":result",
+        "//library/chain:erase",
         "//library/natural:divide",
     ],
 )

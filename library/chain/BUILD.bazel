@@ -10,6 +10,7 @@ photonic_library(
     srcs = ["erase.particle"],
     visibility = [
         "//library/expression:__pkg__",
+        "//library/integer:__pkg__",
         "//library/natural:__pkg__",
         "//library/vector:__pkg__",
     ],

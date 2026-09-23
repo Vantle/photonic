@@ -25,6 +25,7 @@ photonic_library(
     deps = [
         ":join",
         ":split",
+        "//library/chain:erase",
         "//library/integer:add",
         "//library/integer:divide",
         "//library/integer:multiply",
@@ -38,6 +39,7 @@ photonic_library(
     srcs = ["join.particle"],
     deps = [
         ":token",
+        "//library/chain:reverse",
         "//library/natural:digit",
     ],
 )
@@ -47,6 +49,8 @@ photonic_library(
     srcs = ["parse.particle"],
     deps = [
         ":token",
+        "//library/chain:erase",
+        "//library/chain:reverse",
         "//library/natural:digit",
     ],
 )
@@ -56,6 +60,8 @@ photonic_library(
     srcs = ["split.particle"],
     deps = [
         ":token",
+        "//library/chain:erase",
+        "//library/chain:reverse",
         "//library/natural:digit",
     ],
 )
