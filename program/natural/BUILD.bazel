@@ -74,7 +74,6 @@ photonic_test(
     name = "successor.check",
     srcs = ["successor.wave"],
     preserve = True,
-    source = "",
     targets = ["Unit.Unit.Unit"],
 )
 
@@ -82,7 +81,6 @@ photonic_test(
     name = "membership.check",
     srcs = ["membership.wave"],
     preserve = True,
-    source = "",
     targets = ["Natural"],
 )
 
@@ -90,7 +88,6 @@ photonic_test(
     name = "addition.check",
     srcs = ["addition.wave"],
     preserve = True,
-    source = "",
     targets = ["Unit.Unit.Unit.Unit.Unit"],
 )
 
@@ -98,7 +95,6 @@ photonic_test(
     name = "sum.check",
     srcs = ["sum.wave"],
     preserve = True,
-    source = "",
     targets = ["Unit.Unit.Unit.Unit.Unit.Unit.Unit.Unit.Unit.Unit"],
 )
 
@@ -114,7 +110,6 @@ photonic_test(
     coherences = 8,
     frames = 30,
     preserve = True,
-    source = "",
     states = 3000,
     steps = 100000,
     targets = ["Unit.Unit"],

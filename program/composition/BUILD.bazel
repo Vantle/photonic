@@ -18,7 +18,6 @@ photonic_test(
     srcs = ["pipeline.wave"],
     path = True,
     preserve = True,
-    source = "",
     targets = ["First.False, Second.True"],
     deps = [
         "//library/boolean:and",
@@ -56,7 +55,6 @@ photonic_test(
     name = "function.check",
     srcs = ["function.wave"],
     preserve = True,
-    source = "",
     targets = ["""Left.Flower.([First.Seed] Return.Bud).([Second.Bud] Return.Flower),
 Right.Grove.([First.Seed] (
     Function.Compose.Sapling.([First.Sapling] Return.Trunk).([Second.Trunk] Return.Tree)

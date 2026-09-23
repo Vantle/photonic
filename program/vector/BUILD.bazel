@@ -18,7 +18,6 @@ photonic_test(
     path = True,
     preserve = True,
     records = 10000000,
-    source = "",
     steps = 10000000,
     targets = ["Done"],
     deps = [
@@ -42,7 +41,6 @@ photonic_test(
     path = True,
     preserve = True,
     records = 10000000,
-    source = "",
     steps = 10000000,
     targets = ["Done"],
     deps = ["//library/vector:sort"],

@@ -1818,11 +1818,11 @@ bazel test -c opt //program/ternary:position.check</code></pre>
 <p><code>photonic_test</code> accepts:</p>
 <div class="table-scroll"><table>
 <tr><th>Attribute</th><th>Meaning</th></tr>
-<tr><td><code>source</code></td><td>Literal Photonic code containing initial data and/or declarations; use <code>&quot;&quot;</code> with file-only tests.</td></tr>
+<tr><td><code>source</code></td><td>Optional literal Photonic code containing initial data and/or declarations.</td></tr>
 <tr><td><code>srcs</code></td><td>Optional native source files, combined with <code>source</code>.</td></tr>
 <tr><td><code>deps</code></td><td>Optional declaration libraries.</td></tr>
 <tr><td><code>targets</code></td><td>Nonempty list of complete configurations in literal Photonic syntax, including surviving root rule occurrences.</td></tr>
-<tr><td><code>preserve</code></td><td><code>False</code> by default. Explicitly append all loaded root rules to each target when <code>True</code>.</td></tr>
+<tr><td><code>preserve</code></td><td>Required. <code>True</code> appends all loaded root rules to each target; <code>False</code> compares each target exactly as written.</td></tr>
 <tr><td><code>match</code></td><td><code>&quot;all&quot;</code> by default; <code>&quot;any&quot;</code> accepts one matching target.</td></tr>
 <tr><td><code>expect</code></td><td><code>&quot;reached&quot;</code> by default, or <code>&quot;unreachable&quot;</code>.</td></tr>
 <tr><td><code>path</code></td><td><code>False</code> by default; <code>True</code> requests direct-path reachability witnesses.</td></tr>
@@ -2127,7 +2127,7 @@ bazel run -c opt //benchmark:matching -- "$PWD/benchmark/case/coherence.wave" --
 bazel run -c opt //benchmark:browser -- '2*2*2*2*2*2' 6
 bazel run -c opt //benchmark:browser -- '2*2*2*2*2*2*2*2*2*2' 6
 output=$(bazel info -c opt bazel-bin)
-"$output/benchmark/trace" "$output/program/ternary/infix.assembly.json" "$PWD/program/ternary/result.particle" --sample 9</code></pre>
+"$output/benchmark/trace" "$output/program/ternary/infix.program.json" "$PWD/program/ternary/result.particle" --sample 9</code></pre>
 <p>To reproduce the reference, use an isolated checkout of <code>5b6cc53</code>. Copy the new <code>benchmark/matching.rs</code> harness and its Rust target into that checkout without changing its language implementation. Build its existing trace and browser targets. Run each revision's compiled artifacts through the same harness with identical inputs, rotate their order, and exclude concurrent builds and tests. The new browser harness also accepts explicit WebAssembly, JavaScript, and numeral-module paths when invoked through the pinned Node executable.</p>
 <p>These changes do not make every expression thousands of times faster. They remove exponential wasted work from particular matching failures and reduce repeated graph maintenance on ordinary evaluation. Full trace extraction still pays to canonicalize every inspected state. Highly symmetric fingerprints may trigger exact comparison often, valid match output can itself be combinatorial, and exhaustive exploration can still have an enormous graph. Fusing protocol steps, discarding alternative histories, or replacing arithmetic rules with host computation would require different semantic commitments and is not part of this implementation.</p>
 </details>
@@ -2263,7 +2263,7 @@ bazel run -c opt //program/ternary:infix -- prism \
 <pre><code>bazel test -c opt //... --test_output=errors
 bazel build -c opt //program/ternary:infix.program
 bazel run -c opt //benchmark:trace -- \
-  &quot;$(bazel info -c opt bazel-bin)/program/ternary/infix.assembly.json&quot; \
+  &quot;$(bazel info -c opt bazel-bin)/program/ternary/infix.program.json&quot; \
   &quot;$PWD/program/ternary/result.particle&quot; --sample 5</code></pre>
 <p>The trace benchmark decodes its inputs before measurement and performs one warm-up. It separately measures initialization, direct execution, compact summary construction, and release of retained execution history. Durations are seconds. Source-program clones happen before each measured call. It uses the same explicit resource budgets as the expression recorder and requires a reached target; it does not encode full JSON traces during timing.</p>
 <p>Compare compiled CLI executables separately when process startup and input decoding matter. Use the same assembled program, output format, budgets, warm-up, and rotated revision order. Full trace serialization and browser playback are different workloads and must not be substituted into a compact execution latency comparison.</p>
@@ -2304,7 +2304,7 @@ bazel run -c opt //benchmark:trace -- \
 <pre><code>bazel build -c opt //program/ternary:infix.program
 output=$(bazel info -c opt bazel-bin)
 bazel run -c opt //benchmark:trace -- \
-  &quot;$output/program/ternary/infix.assembly.json&quot; \
+  &quot;$output/program/ternary/infix.program.json&quot; \
   &quot;$PWD/program/ternary/result.particle&quot; --sample 5</code></pre>
 <p>The benchmark performs one warm-up, then five measured evaluations. It separates initialization, execution, compact summary, and history release. Full JSON trace rendering is excluded. Run timing comparisons after builds and tests finish, with competing workloads stopped. Results here are measurements on one development machine, not cross-platform latency guarantees.</p>
 </details>
@@ -2336,7 +2336,7 @@ bazel run -c opt //benchmark:trace -- \
 <pre><code>bazel build -c opt //program/ternary:infix.program
 output=$(bazel info -c opt bazel-bin)
 bazel run -c opt //benchmark:trace -- \
-  &quot;$output/program/ternary/infix.assembly.json&quot; \
+  &quot;$output/program/ternary/infix.program.json&quot; \
   &quot;$PWD/program/ternary/result.particle&quot; --sample 5</code></pre>
 <p>This measures initialization, direct execution, compact summary, and history release separately. Full JSON trace serialization is excluded. The reported timings are development-host measurements, not guarantees for other machines or programs.</p>
 </details>

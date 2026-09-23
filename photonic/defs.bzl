@@ -68,27 +68,22 @@ _program = rule(
     },
 )
 
-def photonic_binary(name, srcs, deps = [], visibility = None, testonly = False, tags = []):
+def photonic_binary(name, srcs, deps = [], visibility = None):
     """Build an executable from N native sources and transitive libraries.
 
     Args:
         name: Executable target name.
         srcs: Native source files containing initial data or declarations.
         deps: Photonic libraries supplying declarations.
-        visibility: Packages allowed to depend on the executable.
-        testonly: Whether this target is restricted to tests.
-        tags: Bazel tags attached to the executable.
+        visibility: Packages allowed to depend on the executable and its assembled program.
     """
-    _program(name = name + ".assembly", srcs = srcs, deps = deps, visibility = ["//visibility:private"], testonly = testonly)
-    native.filegroup(name = name + ".program", srcs = [":" + name + ".assembly"], visibility = visibility, testonly = testonly)
+    _program(name = name + ".program", srcs = srcs, deps = deps, visibility = visibility)
     hermetic_binary(
         name = name,
         entrypoint = "//photonic:launch",
         argument = ["$(rlocationpath //command:photonic)", "$(rlocationpath :" + name + ".program)"],
         data = [":" + name + ".program", "//command:photonic"],
         visibility = visibility,
-        testonly = testonly,
-        tags = tags,
     )
 
 def _check(ctx):
@@ -124,33 +119,33 @@ _case = rule(
         "deps": attr.label_list(providers = [Info]),
         "source": attr.string(),
         "targets": attr.string_list(mandatory = True, allow_empty = False),
-        "match": attr.string(default = "all", values = ["all", "any"]),
-        "expect": attr.string(default = "reached", values = ["reached", "unreachable"]),
-        "path": attr.bool(default = False),
-        "preserve": attr.bool(default = False),
-        "steps": attr.int(default = 2000000),
-        "states": attr.int(default = 4096),
-        "cells": attr.int(default = 256),
-        "frames": attr.int(default = 64),
-        "coherences": attr.int(default = 64),
-        "records": attr.int(default = 2000000),
+        "match": attr.string(mandatory = True, values = ["all", "any"]),
+        "expect": attr.string(mandatory = True, values = ["reached", "unreachable"]),
+        "path": attr.bool(mandatory = True),
+        "preserve": attr.bool(mandatory = True),
+        "steps": attr.int(mandatory = True),
+        "states": attr.int(mandatory = True),
+        "cells": attr.int(mandatory = True),
+        "frames": attr.int(mandatory = True),
+        "coherences": attr.int(mandatory = True),
+        "records": attr.int(mandatory = True),
         "_assemble": attr.label(default = "//photonic:assemble", executable = True, cfg = "exec"),
     },
 )
 
-def photonic_test(name, source, targets, srcs = [], deps = [], match = "all", expect = "reached", path = False, preserve = False, steps = 2000000, states = 4096, cells = 256, frames = 64, coherences = 64, records = 2000000, size = "small", visibility = None, tags = []):
+def photonic_test(name, targets, preserve, source = "", srcs = [], deps = [], match = "all", expect = "reached", path = False, steps = 2000000, states = 4096, cells = 256, frames = 64, coherences = 64, records = 2000000, size = "small", visibility = None, tags = []):
     """Check an exact configuration with Prism; Unknown always fails.
 
     Args:
         name: Test target name.
-        source: Literal Photonic source, including data and declarations.
         targets: Accepted configurations in literal Photonic syntax.
+        preserve: Whether each target also expects every loaded root rule occurrence.
+        source: Literal Photonic source, including data and declarations.
         srcs: Native source files containing data or declarations.
         deps: Photonic declaration libraries.
         match: Require all targets or any target to satisfy the expectation.
         expect: Required reached or unreachable outcome for each target.
         path: Follow one path to witness a reachable target.
-        preserve: Explicitly expect all loaded root rule occurrences in each target.
         steps: Work budget.
         states: Configuration limit.
         cells: Occurrence limit.

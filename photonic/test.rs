@@ -164,15 +164,35 @@ fn manifest() {
     assert_eq!(report["closed"], false);
 }
 
-#[test]
-fn verification() {
-    let root = directory();
+fn check(root: &std::path::Path, case: &serde_json::Value) -> std::process::Output {
+    let path = root.join("case.json");
+    std::fs::write(&path, serde_json::to_vec(case).unwrap()).unwrap();
+    Command::new(executable("CHECK"))
+        .arg(&path)
+        .current_dir(root)
+        .env("TEST_UNDECLARED_OUTPUTS_DIR", root)
+        .output()
+        .unwrap()
+}
+
+fn limit() -> serde_json::Value {
+    serde_json::json!({"state": 128, "record": 10000, "world": 8, "cell": 32, "frame": 16})
+}
+
+fn program(root: &std::path::Path, source: &str) -> PathBuf {
     let program = root.join("program.json");
     std::fs::write(
         &program,
-        serde_json::to_vec(&photonic::lowering::parse("[A] B").unwrap()).unwrap(),
+        serde_json::to_vec(&photonic::lowering::parse(source).unwrap()).unwrap(),
     )
     .unwrap();
+    program
+}
+
+#[test]
+fn verification() {
+    let root = directory();
+    let program = program(&root, "[A] B");
     for (input, target, expect, path, step, success) in [
         ("A", "B", "reached", false, 1000, true),
         ("A", "C", "unreachable", false, 1000, true),
@@ -186,10 +206,9 @@ fn verification() {
         ("A", "B [B] C", "reached", false, 1000, false),
         ("[", "B", "reached", false, 1000, false),
     ] {
-        let case = root.join("case.json");
-        std::fs::write(
-            &case,
-            serde_json::to_vec(&serde_json::json!({
+        let output = check(
+            &root,
+            &serde_json::json!({
                 "program": program,
                 "source": input,
                 "target": [target],
@@ -198,17 +217,9 @@ fn verification() {
                 "path": path,
                 "preserve": true,
                 "step": step,
-                "limit": {"state": 128, "record": 10000, "world": 8, "cell": 32, "frame": 16},
-            }))
-            .unwrap(),
-        )
-        .unwrap();
-        let output = Command::new(executable("CHECK"))
-            .arg(&case)
-            .current_dir(&root)
-            .env("TEST_UNDECLARED_OUTPUTS_DIR", &root)
-            .output()
-            .unwrap();
+                "limit": limit(),
+            }),
+        );
         assert_eq!(
             output.status.success(),
             success,
@@ -223,12 +234,7 @@ fn verification() {
 #[test]
 fn matching() {
     let root = directory();
-    let program = root.join("program.json");
-    std::fs::write(
-        &program,
-        serde_json::to_vec(&photonic::lowering::parse("[A] B").unwrap()).unwrap(),
-    )
-    .unwrap();
+    let program = program(&root, "[A] B");
     for (target, mode, expect, step, success) in [
         (vec!["B", "C"], "all", "reached", 1000, true),
         (vec!["B", "D"], "all", "reached", 1000, false),
@@ -247,10 +253,9 @@ fn matching() {
         (vec!["B"], "invalid", "reached", 1000, false),
         (vec!["B"], "all", "unknown", 1000, false),
     ] {
-        let case = root.join("case.json");
-        std::fs::write(
-            &case,
-            serde_json::to_vec(&serde_json::json!({
+        let output = check(
+            &root,
+            &serde_json::json!({
                 "program": program,
                 "source": "A [A] C",
                 "target": target,
@@ -259,21 +264,48 @@ fn matching() {
                 "path": false,
                 "preserve": true,
                 "step": step,
-                "limit": {"state": 128, "record": 10000, "world": 8, "cell": 32, "frame": 16},
-            }))
-            .unwrap(),
-        )
-        .unwrap();
-        let output = Command::new(executable("CHECK"))
-            .arg(&case)
-            .current_dir(&root)
-            .env("TEST_UNDECLARED_OUTPUTS_DIR", &root)
-            .output()
-            .unwrap();
+                "limit": limit(),
+            }),
+        );
         assert_eq!(
             output.status.success(),
             success,
             "{mode} {expect} {target:?} step={step}: {} {}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+}
+
+#[test]
+fn preservation() {
+    let root = directory();
+    let program = program(&root, "");
+    for (target, preserve, expect, success) in [
+        ("C", true, "reached", true),
+        ("C", false, "reached", false),
+        ("C", false, "unreachable", true),
+        ("C [A] C", false, "reached", true),
+        ("C [A] C", true, "reached", false),
+    ] {
+        let output = check(
+            &root,
+            &serde_json::json!({
+                "program": program,
+                "source": "A [A] C",
+                "target": [target],
+                "match": "all",
+                "expect": expect,
+                "path": false,
+                "preserve": preserve,
+                "step": 1000,
+                "limit": limit(),
+            }),
+        );
+        assert_eq!(
+            output.status.success(),
+            success,
+            "{target} preserve={preserve} {expect}: {} {}",
             String::from_utf8_lossy(&output.stdout),
             String::from_utf8_lossy(&output.stderr)
         );
