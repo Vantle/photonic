@@ -23,4 +23,8 @@ impl Failure {
             message: message.to_string(),
         }
     }
+
+    pub fn message(&self) -> &str {
+        &self.message
+    }
 }

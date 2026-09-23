@@ -6,7 +6,9 @@ self.onmessage = async ({ data }) => {
         await initialize();
         if (data.kind === 'inspect') {
             if (!session) throw Error('Run an expression first.');
-            self.postMessage({ kind: 'inspect', ...JSON.parse(session.inspect(data.index)) });
+            const reply = JSON.parse(session.inspect(data.index));
+            if (reply.error) throw Error(reply.error.message);
+            self.postMessage({ kind: 'inspect', ...reply });
             return;
         }
         session?.free();
@@ -17,8 +19,6 @@ self.onmessage = async ({ data }) => {
         try { value = decode(result.state); } catch (error) { value = { error: error.message }; }
         self.postMessage({ kind: 'run', ...value, work: result.work, event: result.event, source: result.source });
     } catch (error) {
-        let message = error.message ?? String(error);
-        try { message = JSON.parse(message).message; } catch {}
-        self.postMessage({ kind: data.kind, error: message });
+        self.postMessage({ kind: data.kind, error: error.message ?? String(error) });
     }
 };

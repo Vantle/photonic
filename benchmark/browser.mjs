@@ -15,7 +15,7 @@ function evaluate() {
     const value = decode(result.state).ternary;
     const inspecting = performance.now();
     const transition = JSON.parse(session.inspect(result.event - 1));
-    if (transition.error) throw new Error(transition.error);
+    if (transition.error) throw new Error(transition.error.message);
     const inspected = performance.now();
     session.free();
     return {

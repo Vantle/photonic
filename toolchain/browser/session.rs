@@ -1,6 +1,19 @@
-use crate::expression;
-use photonic::path::Search;
-use wasm_bindgen::prelude::{JsValue, wasm_bindgen};
+use crate::expression::{self, Calculation};
+use crate::failure::{Code, Failure};
+use crate::response;
+use photonic::path::{Event, Search};
+use photonic::snapshot::{Definition, Node};
+use serde::Serialize;
+use wasm_bindgen::prelude::{JsError, wasm_bindgen};
+
+#[derive(Serialize)]
+struct Inspection<'search> {
+    definition: Vec<Definition>,
+    index: usize,
+    event: &'search Event,
+    before: Option<Node>,
+    after: Option<Node>,
+}
 
 #[wasm_bindgen]
 pub struct Evaluation {
@@ -11,22 +24,29 @@ pub struct Evaluation {
 #[wasm_bindgen]
 impl Evaluation {
     #[wasm_bindgen(constructor)]
-    pub fn new(input: &str) -> Result<Self, JsValue> {
-        let (search, source) = expression::prepare(input)
-            .map_err(|error| JsValue::from_str(&serde_json::to_string(&error).unwrap()))?;
+    pub fn new(input: &str) -> Result<Self, JsError> {
+        let (search, source) =
+            expression::prepare(input).map_err(|failure| JsError::new(failure.message()))?;
         Ok(Self { search, source })
     }
 
     pub fn run(&mut self) -> String {
         expression::advance(&mut self.search);
-        let summary = self.search.summary();
-        serde_json::json!({"state": self.search.current(), "source": self.source, "work": summary.work, "event": summary.event}).to_string()
+        response::encode(Calculation::new(&self.search, self.source.clone()))
     }
 
     pub fn inspect(&self, index: usize) -> String {
-        let Some(event) = self.search.transition(index) else {
-            return serde_json::json!({"error": "No such transition."}).to_string();
-        };
-        serde_json::json!({"definition": self.search.definition(), "index": index, "event": event, "before": self.search.inspect(event.source), "after": self.search.inspect(event.target)}).to_string()
+        response::respond(
+            self.search
+                .transition(index)
+                .map(|event| Inspection {
+                    definition: self.search.definition(),
+                    index,
+                    event,
+                    before: self.search.inspect(event.source),
+                    after: self.search.inspect(event.target),
+                })
+                .ok_or_else(|| Failure::new(Code::Request, "No such transition.")),
+        )
     }
 }

@@ -1,6 +1,28 @@
 use crate::failure::{Code, Failure};
 use photonic::path::Search;
 use photonic::runtime::Limit;
+use photonic::snapshot::Node;
+use serde::Serialize;
+
+#[derive(Serialize)]
+pub struct Calculation {
+    state: Node,
+    work: usize,
+    event: usize,
+    source: String,
+}
+
+impl Calculation {
+    pub fn new(search: &Search, source: String) -> Self {
+        let summary = search.summary();
+        Self {
+            state: search.current(),
+            work: summary.work,
+            event: summary.event,
+            source,
+        }
+    }
+}
 
 fn encode(input: &str) -> Result<String, Failure> {
     if input.len() > 256 {
@@ -102,11 +124,8 @@ pub fn advance(search: &mut Search) {
     );
 }
 
-pub fn run(input: &str) -> Result<serde_json::Value, Failure> {
+pub fn run(input: &str) -> Result<Calculation, Failure> {
     let (mut search, source) = prepare(input)?;
     advance(&mut search);
-    let summary = search.summary();
-    Ok(
-        serde_json::json!({"version": 1, "state": search.current(), "work": summary.work, "event": summary.event, "source": source}),
-    )
+    Ok(Calculation::new(&search, source))
 }

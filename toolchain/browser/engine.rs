@@ -1,12 +1,14 @@
 mod expression;
 mod failure;
 mod product;
+mod response;
 mod session;
 
 use failure::{Code, Failure};
-use photonic::prism::Search;
+use photonic::prism::{Search, Verdict};
 use photonic::runtime::Limit;
-use serde::Deserialize;
+use photonic::snapshot::Snapshot;
+use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::wasm_bindgen;
 
 #[derive(Deserialize)]
@@ -18,7 +20,13 @@ struct Request {
     targets: Vec<String>,
 }
 
-fn evaluate(input: &[u8]) -> Result<serde_json::Value, Failure> {
+#[derive(Serialize)]
+struct Execution {
+    execution: Snapshot,
+    verdict: Vec<Verdict>,
+}
+
+fn evaluate(input: &[u8]) -> Result<Execution, Failure> {
     let request: Request =
         serde_json::from_slice(input).map_err(|error| Failure::new(Code::Request, error))?;
     if request.version != 1 {
@@ -58,20 +66,12 @@ fn evaluate(input: &[u8]) -> Result<serde_json::Value, Failure> {
         search.target(target);
         verdict.push(search.verdict());
     }
-    Ok(serde_json::json!({"version": 1, "execution": execution, "verdict": verdict}))
-}
-
-fn respond(result: Result<serde_json::Value, Failure>) -> String {
-    let response = match result {
-        Ok(value) => value,
-        Err(error) => serde_json::json!({"version": 1, "error": error}),
-    };
-    serde_json::to_string(&response).unwrap()
+    Ok(Execution { execution, verdict })
 }
 
 #[wasm_bindgen]
 pub fn execute(input: &str) -> String {
-    respond(if input.len() > 32768 {
+    response::respond(if input.len() > 32768 {
         Err(Failure::new(Code::Size, "keep the request below 32 KiB"))
     } else {
         evaluate(input.as_bytes())
@@ -80,10 +80,10 @@ pub fn execute(input: &str) -> String {
 
 #[wasm_bindgen]
 pub fn calculate(input: &str) -> String {
-    respond(expression::run(input))
+    response::respond(expression::run(input))
 }
 
 #[wasm_bindgen]
 pub fn multiply(left: u8, right: u8) -> String {
-    respond(product::run(left, right))
+    response::respond(product::run(left, right))
 }

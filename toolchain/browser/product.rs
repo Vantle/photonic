@@ -19,6 +19,13 @@ struct Column {
     carry: u8,
 }
 
+#[derive(Serialize)]
+pub struct Product {
+    pair: Vec<Pair>,
+    column: Vec<Column>,
+    ternary: String,
+}
+
 fn apply(operation: &str, left: u8, right: u8) -> Result<(u8, u8), Failure> {
     let source = format!(
         "Function.Ternary.{operation}.{left}.{right}\n{}\n{}",
@@ -67,7 +74,7 @@ fn reduce(input: &[u8]) -> Result<(u8, u8), Failure> {
         .try_fold((0, 0), |total, &value| step(total, value))
 }
 
-pub fn run(left: u8, right: u8) -> Result<serde_json::Value, Failure> {
+pub fn run(left: u8, right: u8) -> Result<Product, Failure> {
     if left > 8 || right > 8 {
         return Err(Failure::new(
             Code::Request,
@@ -108,7 +115,9 @@ pub fn run(left: u8, right: u8) -> Result<serde_json::Value, Failure> {
         .map(|value| char::from(b'0' + value.digit))
         .collect::<String>();
     let ternary = ternary.trim_start_matches('0');
-    Ok(
-        serde_json::json!({"pair": pair, "column": column, "ternary": if ternary.is_empty() { "0" } else { ternary }}),
-    )
+    Ok(Product {
+        pair,
+        column,
+        ternary: if ternary.is_empty() { "0" } else { ternary }.into(),
+    })
 }
