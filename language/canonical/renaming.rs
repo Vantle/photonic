@@ -31,19 +31,15 @@ pub(super) fn rename(
                     unreachable!()
                 };
                 let mut capture = None;
-                let mut membership = SmallVec::<[(u8, usize); 1]>::new();
+                let mut membership = SmallVec::<[(Link, usize); 1]>::new();
                 for &(kind, target) in &incidence.edge[vertex] {
-                    let kind = match kind {
-                        value if value == Link::Particle as u8 => 0,
-                        value if value == Link::Holder as u8 => 1,
-                        value if value == Link::Owner as u8 => 2,
-                        value if value == Link::Capture as u8 => {
-                            capture = Some(position[target]);
-                            continue;
+                    match kind {
+                        Link::Capture => capture = Some(position[target]),
+                        Link::Particle | Link::Holder | Link::Owner => {
+                            membership.push((kind, position[target]));
                         }
                         _ => unreachable!(),
-                    };
-                    membership.push((kind, position[target]));
+                    }
                 }
                 membership.sort_unstable();
                 (identity, (symbol, capture, membership))

@@ -67,6 +67,6 @@ pub(crate) fn value(value: &impl Hash) -> u64 {
     std::hash::Hasher::finish(&hash)
 }
 
-pub(crate) fn edge(kind: u8, value: u64) -> u64 {
+pub(crate) fn edge(kind: crate::link::Link, value: u64) -> u64 {
     mix(value.wrapping_add(mix(kind as u64)))
 }

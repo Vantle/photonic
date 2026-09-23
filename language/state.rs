@@ -1,4 +1,5 @@
 use crate::hashing::Builder;
+use crate::link::Link;
 use crate::program::{Program, Symbol};
 use smallvec::SmallVec;
 use std::collections::HashMap;
@@ -230,7 +231,7 @@ impl State {
         self.remap(world, frame, |mapping| {
             let mut incidence = HashMap::<
                 usize,
-                (Symbol, Option<usize>, SmallVec<[(u8, usize); 1]>),
+                (Symbol, Option<usize>, SmallVec<[(Link, usize); 1]>),
                 Builder,
             >::default();
             for (position, &index) in world.iter().enumerate() {
@@ -245,7 +246,7 @@ impl State {
                             )
                         })
                         .2
-                        .push((0, position));
+                        .push((Link::Particle, position));
                 }
             }
             for (position, &index) in frame.iter().enumerate() {
@@ -260,7 +261,7 @@ impl State {
                             )
                         })
                         .2
-                        .push((1, position));
+                        .push((Link::Holder, position));
                 }
             }
             for (position, &index) in frame.iter().enumerate() {
@@ -275,7 +276,7 @@ impl State {
                             )
                         })
                         .2
-                        .push((2, position));
+                        .push((Link::Owner, position));
                 }
             }
             let mut resource = incidence.into_iter().collect::<Vec<_>>();

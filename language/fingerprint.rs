@@ -163,7 +163,7 @@ pub(crate) fn state(state: &State) -> u64 {
 }
 
 pub(crate) fn signature(state: &State) -> u64 {
-    refine(state, 4)
+    refine(state, crate::propagation::DEPTH)
 }
 
 pub(crate) fn resolution(state: &State) -> u64 {

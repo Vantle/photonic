@@ -411,13 +411,10 @@ fn capture() {
             .edge
             .iter()
             .flatten()
-            .filter(|&&(kind, _)| kind == crate::link::Link::Capture as u8)
+            .filter(|&&(kind, _)| kind == crate::link::Link::Capture)
             .copied()
             .collect::<Vec<_>>();
-        assert_eq!(
-            capture,
-            vec![(crate::link::Link::Capture as u8, graph.frame[1])]
-        );
+        assert_eq!(capture, vec![(crate::link::Link::Capture, graph.frame[1])]);
         let renamed = state.rename(&[1, 0], &[0, 1]);
         assert_eq!(renamed.resource.len(), 1);
         assert_eq!(renamed.resource[&42], 0);

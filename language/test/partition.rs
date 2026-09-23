@@ -1,3 +1,7 @@
+use crate::link::Link;
+
+const KIND: [Link; 4] = [Link::Context, Link::World, Link::Member, Link::Particle];
+
 #[test]
 fn classification() {
     for count in 0..=6 {
@@ -30,7 +34,7 @@ fn graph() {
             .map(|source| {
                 (0..3)
                     .filter(|&target| encoding & (1 << (source * 3 + target)) != 0)
-                    .map(|target| ((source % 2) as u8, target))
+                    .map(|target| (KIND[source % 2], target))
                     .collect::<Vec<_>>()
             })
             .collect::<Vec<_>>();
@@ -41,7 +45,7 @@ fn graph() {
     }
 }
 
-fn verify(edge: &[Vec<(u8, usize)>], color: Vec<usize>) {
+fn verify(edge: &[Vec<(Link, usize)>], color: Vec<usize>) {
     let mut expected = color.clone();
     loop {
         let signature = edge
@@ -93,7 +97,11 @@ fn propagation() {
         let edge = (0..length)
             .map(|index| {
                 if index + 1 < length {
-                    vec![(0, index + 1), (0, index + 1), (1, index + 1)]
+                    vec![
+                        (KIND[0], index + 1),
+                        (KIND[0], index + 1),
+                        (KIND[1], index + 1),
+                    ]
                 } else {
                     Vec::new()
                 }
@@ -109,7 +117,7 @@ fn propagation() {
                 for target in 0..length {
                     seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1);
                     if seed >> 60 < 3 {
-                        adjacent.push(((seed >> 32) as u8 % 4, target));
+                        adjacent.push((KIND[(seed >> 32) as usize % 4], target));
                     }
                 }
             }
@@ -124,7 +132,12 @@ fn scheduling() {
         let edge = (0..length)
             .map(|index| {
                 let next = (index + 1) % length;
-                vec![(0, next), (0, next), (1, index), (2, length - 1)]
+                vec![
+                    (KIND[0], next),
+                    (KIND[0], next),
+                    (KIND[1], index),
+                    (KIND[2], length - 1),
+                ]
             })
             .collect::<Vec<_>>();
         verify(&edge, (0..length).map(|index| usize::MAX - index).collect());

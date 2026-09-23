@@ -60,7 +60,7 @@ pub(crate) fn refine(edge: &crate::graph::Graph, mut color: Vec<usize>) -> Vec<u
             start..length
         })
         .collect::<Vec<_>>();
-    let mut signature = vec![(0, 0); length];
+    let mut signature = vec![(crate::link::Link::Context, 0); length];
     let incoming = crate::graph::Graph::new(
         color.len(),
         edge.iter().enumerate().flat_map(|(source, adjacent)| {

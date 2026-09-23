@@ -23,9 +23,9 @@ struct Resource {
     capture: Option<usize>,
 }
 
-fn connect(edge: &mut Vec<(usize, usize, u8)>, source: usize, target: usize, kind: Link) {
-    edge.push((source, target, kind as u8));
-    edge.push((target, source, kind.reverse() as u8));
+fn connect(edge: &mut Vec<(usize, usize, Link)>, source: usize, target: usize, kind: Link) {
+    edge.push((source, target, kind));
+    edge.push((target, source, kind.reverse()));
 }
 
 impl Incidence {
