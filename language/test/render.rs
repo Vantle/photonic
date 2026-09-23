@@ -62,7 +62,7 @@ fn isolation() {
         super::Builder::new(program).node(
             0,
             &crate::state::State::initial(program),
-            crate::support::Status::Supported,
+            crate::status::Status::Supported,
         )
     };
     let first = render(&first);

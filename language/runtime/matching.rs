@@ -1,6 +1,6 @@
 use super::table::{Consumer, Query};
 use super::{Application, Runtime, Task};
-use crate::flow::Place;
+use crate::place::Place;
 use crate::plan;
 use crate::program::Symbol;
 use crate::slot::Slot;

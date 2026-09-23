@@ -1,4 +1,5 @@
-use crate::flow::{Binding, Place};
+use crate::flow::Binding;
+use crate::place::Place;
 use crate::program::Program;
 use crate::runtime::{Limit, Runtime};
 use crate::state::State;

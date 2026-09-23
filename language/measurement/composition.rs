@@ -1,5 +1,6 @@
 use crate::basis::Set;
-use crate::flow::{Flow, Place, Store};
+use crate::flow::{Flow, Store};
+use crate::place::Place;
 use serde::Serialize;
 use std::hint::black_box;
 use std::sync::Arc;

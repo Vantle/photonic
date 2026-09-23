@@ -1,4 +1,5 @@
-use crate::flow::{Binding, Place};
+use crate::flow::Binding;
+use crate::place::Place;
 use crate::state::State;
 use smallvec::SmallVec;
 use std::sync::Arc;

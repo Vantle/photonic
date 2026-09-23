@@ -1,5 +1,6 @@
 use crate::basis::Set;
-use crate::flow::{Flow, Place};
+use crate::flow::Flow;
+use crate::place::Place;
 use crate::program::Symbol;
 use crate::state::{Frame, State, Token, World};
 use std::sync::Arc;

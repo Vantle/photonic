@@ -5,7 +5,7 @@ pub(crate) use sequence::Sequence;
 use crate::program::{Program, Symbol};
 use crate::snapshot::{Frame, Node, Token, World};
 use crate::state::State;
-use crate::support::Status;
+use crate::status::Status;
 use std::collections::HashMap;
 use std::sync::Arc;
 

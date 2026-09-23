@@ -1,5 +1,5 @@
-use crate::flow::Place;
 use crate::location::Location;
+use crate::place::Place;
 use crate::program::{Program, Symbol};
 use crate::state::{Frame, State, Token, World};
 use std::collections::{BTreeMap, BTreeSet, HashSet, VecDeque};

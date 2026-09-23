@@ -1,5 +1,5 @@
 use crate::hashing::Builder;
-use serde::Serialize;
+use crate::status::Status;
 use smallvec::SmallVec;
 use std::collections::{HashMap, HashSet};
 
@@ -13,7 +13,7 @@ pub enum Atom {
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Clause {
     pub head: Atom,
-    premise: SmallVec<[Atom; 2]>,
+    pub premise: SmallVec<[Atom; 2]>,
 }
 
 impl Clause {
@@ -23,17 +23,6 @@ impl Clause {
         premise.dedup();
         Self { head, premise }
     }
-
-    pub fn premise(&self) -> &[Atom] {
-        &self.premise
-    }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "lowercase")]
-pub enum Status {
-    Supported,
-    Unsupported,
 }
 
 struct Pending {

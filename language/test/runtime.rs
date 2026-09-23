@@ -244,7 +244,8 @@ fn gate() {
 
 #[test]
 fn capture() {
-    use crate::flow::{Binding, Closure, Flow, Place};
+    use crate::flow::{Binding, Closure, Flow};
+    use crate::place::Place;
     use crate::program::{Instruction, Output, Symbol};
     use crate::state::{Frame, State, Token, World};
     use std::collections::BTreeSet;
@@ -465,7 +466,8 @@ fn observation() {
 
 #[test]
 fn inheritance() {
-    use crate::flow::{Binding, Closure, Flow, Place};
+    use crate::flow::{Binding, Closure, Flow};
+    use crate::place::Place;
     use crate::program::{Instruction, Output, Symbol};
     use crate::state::{Frame, State, Token, World};
     use std::collections::BTreeSet;

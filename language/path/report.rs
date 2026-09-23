@@ -1,7 +1,7 @@
 use super::{Event, Report, Search};
 use crate::render::{Builder, Sequence};
 use crate::snapshot::Node;
-use crate::support::Status;
+use crate::status::Status;
 use serde::Serialize;
 
 impl Search {

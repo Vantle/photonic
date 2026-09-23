@@ -1,6 +1,6 @@
 use crate::basis::Set;
+use crate::place::Place;
 use crate::state::State;
-use serde::Serialize;
 use std::collections::BTreeSet;
 
 mod composition;
@@ -10,14 +10,6 @@ mod template;
 mod union;
 
 pub(crate) use store::Store;
-
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
-#[serde(rename_all = "lowercase")]
-pub enum Place {
-    World(usize, usize),
-    Context(usize, usize),
-    Held(usize, usize),
-}
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub(crate) struct Flow {

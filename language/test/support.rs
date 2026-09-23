@@ -1,4 +1,5 @@
-use crate::support::{Atom, Clause, Status, Support};
+use crate::status::Status;
+use crate::support::{Atom, Clause, Support};
 use std::collections::HashSet;
 
 fn verify(clause: Vec<Clause>) {
@@ -9,7 +10,7 @@ fn verify(clause: Vec<Clause>) {
         let reference = Support::new(&clause[..=position]);
         for value in &clause {
             assert_eq!(incremental.status(value.head), reference.status(value.head));
-            for &atom in value.premise() {
+            for &atom in &value.premise {
                 assert_eq!(incremental.status(atom), reference.status(atom));
             }
         }
@@ -18,7 +19,7 @@ fn verify(clause: Vec<Clause>) {
     loop {
         let previous = expected.len();
         for clause in &clause {
-            if clause.premise().iter().all(|atom| expected.contains(atom)) {
+            if clause.premise.iter().all(|atom| expected.contains(atom)) {
                 expected.insert(clause.head);
             }
         }
@@ -28,7 +29,7 @@ fn verify(clause: Vec<Clause>) {
     }
     for atom in clause
         .iter()
-        .flat_map(|clause| std::iter::once(clause.head).chain(clause.premise().iter().copied()))
+        .flat_map(|clause| std::iter::once(clause.head).chain(clause.premise.iter().copied()))
     {
         assert_eq!(
             support.status(atom),

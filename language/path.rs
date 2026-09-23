@@ -1,14 +1,14 @@
 mod report;
 
-use crate::flow::Place;
 use crate::hashing::Builder;
+use crate::place::Place;
 use crate::prism::Outcome;
 use crate::program::Program;
 use crate::runtime::Limit;
 use crate::snapshot::Node;
 use crate::source;
 use crate::state::{Canonical, State};
-use crate::support::Status;
+use crate::status::Status;
 use serde::Serialize;
 use smallvec::{SmallVec, smallvec};
 use std::collections::HashMap;

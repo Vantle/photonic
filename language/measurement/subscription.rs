@@ -26,7 +26,7 @@ enum Step {
         rule: usize,
         frame: usize,
         owner: usize,
-        read: Option<crate::flow::Place>,
+        read: Option<crate::place::Place>,
         selection: Vec<Selection>,
     },
 }

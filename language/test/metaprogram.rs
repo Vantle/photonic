@@ -2,7 +2,7 @@ use crate::lowering::parse;
 use crate::path::Search;
 use crate::prism::Outcome;
 use crate::runtime::{Limit, Runtime};
-use crate::support::Status;
+use crate::status::Status;
 
 fn limit() -> Limit {
     Limit {

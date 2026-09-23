@@ -1,6 +1,6 @@
-use crate::flow::Place;
 use crate::hashing::Builder;
 use crate::index::Index;
+use crate::place::Place;
 use crate::search::Search;
 use crate::slot::Slot;
 use crate::term::Term;

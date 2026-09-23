@@ -1,6 +1,7 @@
 use crate::application::{self, Request};
 use crate::basis::Set;
-use crate::flow::{Binding, Closure, Flow, Place};
+use crate::flow::{Binding, Closure, Flow};
+use crate::place::Place;
 use crate::program::{Instruction, Output, Symbol};
 use crate::state::{Frame, State, Token, World};
 

@@ -5,10 +5,10 @@ pub(crate) enum Read {
 }
 
 impl Read {
-    pub fn place(self, index: &crate::index::Index) -> crate::flow::Place {
+    pub fn place(self, index: &crate::index::Index) -> crate::place::Place {
         match self {
-            Self::World(site, resource) => crate::flow::Place::World(index.world(site), resource),
-            Self::Context(frame, resource) => crate::flow::Place::Context(frame, resource),
+            Self::World(site, resource) => crate::place::Place::World(index.world(site), resource),
+            Self::Context(frame, resource) => crate::place::Place::Context(frame, resource),
         }
     }
 }

@@ -1,4 +1,5 @@
-use crate::support::{Atom, Clause, Status, Support};
+use crate::status::Status;
+use crate::support::{Atom, Clause, Support};
 use indexmap::IndexSet;
 use std::sync::OnceLock;
 

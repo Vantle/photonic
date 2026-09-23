@@ -223,13 +223,13 @@ impl Index {
         &self,
         frame: usize,
         symbol: Symbol,
-    ) -> impl Iterator<Item = (crate::flow::Place, &crate::state::Token)> {
+    ) -> impl Iterator<Item = (crate::place::Place, &crate::state::Token)> {
         let start = (frame < self.state.frame.len() && self.vocabulary.contains_key(&symbol))
             .then_some(frame);
         std::iter::successors(start, |&frame| self.state.frame[frame].lexical).flat_map(
             move |frame| {
                 self.local(frame, symbol)
-                    .map(move |token| (crate::flow::Place::Context(frame, token.id), token))
+                    .map(move |token| (crate::place::Place::Context(frame, token.id), token))
             },
         )
     }

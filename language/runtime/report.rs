@@ -1,7 +1,8 @@
 use super::Runtime;
 use crate::render::{Builder, Sequence};
 use crate::snapshot::{Event, Link, Node, Snapshot, View};
-use crate::support::{Atom, Status};
+use crate::status::Status;
+use crate::support::Atom;
 use serde::Serialize;
 
 impl Runtime {

@@ -41,8 +41,8 @@ pub struct Canonical {
 }
 
 impl State {
-    pub(crate) fn token(&self, place: crate::flow::Place) -> Option<&Token> {
-        use crate::flow::Place;
+    pub(crate) fn token(&self, place: crate::place::Place) -> Option<&Token> {
+        use crate::place::Place;
         match place {
             Place::World(index, id) => self
                 .world
@@ -68,12 +68,12 @@ impl State {
     pub(crate) fn visible(
         &self,
         frame: usize,
-    ) -> impl Iterator<Item = (crate::flow::Place, &Token)> {
+    ) -> impl Iterator<Item = (crate::place::Place, &Token)> {
         std::iter::successors(Some(frame), |&frame| self.frame[frame].lexical).flat_map(|frame| {
             self.frame[frame]
                 .particle
                 .iter()
-                .map(move |token| (crate::flow::Place::Context(frame, token.id), token))
+                .map(move |token| (crate::place::Place::Context(frame, token.id), token))
         })
     }
 
@@ -81,9 +81,9 @@ impl State {
         &self,
         location: crate::location::Location,
         id: usize,
-    ) -> Option<crate::flow::Place> {
+    ) -> Option<crate::place::Place> {
         if let Some(world) = location.world() {
-            let place = crate::flow::Place::World(world, id);
+            let place = crate::place::Place::World(world, id);
             if self.token(place).is_some() {
                 return Some(place);
             }

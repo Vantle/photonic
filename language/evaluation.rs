@@ -1,6 +1,7 @@
 use crate::change::Change;
-use crate::flow::{Binding, Place};
+use crate::flow::Binding;
 use crate::layout::Layout;
+use crate::place::Place;
 use crate::program::{Instruction, Scope, Symbol};
 use crate::state::{Frame, State, Token, World};
 use smallvec::SmallVec;

@@ -11,7 +11,7 @@ use miette::{IntoDiagnostic, NamedSource, WrapErr};
 use photonic::runtime::{Limit, Runtime};
 use photonic::snapshot::Node;
 use photonic::source::Program;
-use photonic::support::Status;
+use photonic::status::Status;
 
 use argument::{Argument, Execution, Format, Operation};
 
