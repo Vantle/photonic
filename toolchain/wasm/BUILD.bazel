@@ -1,8 +1,6 @@
 load("@rules_rust_wasm_bindgen//:defs.bzl", "rust_wasm_bindgen_toolchain")
 load(":binary.bzl", "binary")
 
-exports_files(["extension.bzl"])
-
 filegroup(
     name = "build",
     srcs = [

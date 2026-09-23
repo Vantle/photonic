@@ -5,8 +5,6 @@ load(":defs.bzl", "hermetic_binary")
 load(":node.bzl", "node")
 load(":starlark.bzl", "starlark")
 
-exports_files(["defs.bzl"])
-
 starlark(
     name = "check",
     source = "//:build",

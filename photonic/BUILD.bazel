@@ -1,17 +1,11 @@
 load("@rules_rs//rs:rust_binary.bzl", "rust_binary")
 load("@rules_rs//rs:rust_test.bzl", "rust_test")
 
-exports_files(["defs.bzl"])
-
 rust_binary(
     name = "assemble",
     srcs = ["assemble.rs"],
     crate_root = "assemble.rs",
     lint_config = "//:lint",
-    visibility = [
-        "//library:__subpackages__",
-        "//program:__subpackages__",
-    ],
     deps = [
         "//frontend",
         "@crate//:clap",
