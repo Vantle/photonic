@@ -31,8 +31,6 @@ photonic_test(
 filegroup(
     name = "fixture",
     srcs = [
-        "function.particle",
-        "function.wave",
         "pipeline.particle",
         "pipeline.wave",
     ],
@@ -43,6 +41,28 @@ filegroup(
     name = "build",
     srcs = ["BUILD.bazel"],
     visibility = ["//:__pkg__"],
+)
+
+photonic_test(
+    name = "function.reject",
+    srcs = ["function.wave"],
+    expect = "unreachable",
+    preserve = True,
+    targets = [
+        """Left.Grove.([First.Seed] Return.Bud).([Second.Bud] Return.Flower),
+Right.Grove.([First.Seed] (
+    Function.Compose.Sapling.([First.Sapling] Return.Trunk).([Second.Trunk] Return.Tree)
+    [Return] Return
+)).([Second.Tree] Return.Grove).([First.Sapling] Return.Trunk).([Second.Trunk] Return.Tree)
+""",
+        """Left.Flower.([First.Seed] Return.Bud).([Second.Bud] Return.Flower),
+Right.Flower.([First.Seed] (
+    Function.Compose.Sapling.([First.Sapling] Return.Trunk).([Second.Trunk] Return.Tree)
+    [Return] Return
+)).([Second.Tree] Return.Grove).([First.Sapling] Return.Trunk).([Second.Trunk] Return.Tree)
+""",
+    ],
+    deps = ["//library/function:compose"],
 )
 
 photonic_binary(

@@ -11,23 +11,6 @@ fn collection(name: &str) -> &'static str {
 }
 
 #[test]
-fn pipeline() {
-    witness(
-        include_str!("../../program/composition/pipeline.wave"),
-        include_str!("../../program/composition/pipeline.particle"),
-        &[
-            invoke(),
-            source("boolean", "not"),
-            source("boolean", "and"),
-            collection("produce"),
-            collection("copy"),
-            collection("map"),
-            collection("reduce"),
-        ],
-    );
-}
-
-#[test]
 fn freshness() {
     let produce = "Function.Pair.Produce.([Value] True), Function.Pair.Produce.([Value] True)";
     let reunion = "[Return.True, Return.True] True.True";

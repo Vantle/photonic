@@ -153,19 +153,6 @@ fn conflict() {
 }
 
 #[test]
-fn nested() {
-    let source = include_str!("../../program/composition/function.wave");
-    let target = include_str!("../../program/composition/function.particle");
-    check(source, target, &compose(), Outcome::Reached);
-    for wrong in [
-        target.replace("Left.Flower", "Left.Grove"),
-        target.replace("Right.Grove", "Right.Flower"),
-    ] {
-        check(source, &wrong, &compose(), Outcome::Unreachable);
-    }
-}
-
-#[test]
 fn incomplete() {
     let definition = "([Function.Seed] Flower)";
     check(
