@@ -109,7 +109,7 @@ Linked values span several coherences in one frame, so linked operations run in 
 
 Numerals store base-three digits least significant first. Arithmetic answers carry no leading zeros, except that `Successor` increments in place and keeps its operand's high zeros; integers carry `Positive` or `Negative`, zero is always `Positive`, and integer division truncates toward zero.
 
-`Function.Natural.Compare` reads both operands without consuming them. It peeks one column at a time, least significant first; the most significant differing column decides, and a finished operand reads as zero, so high zeros compare equal to none. Each column costs about twenty events, and the verdict arrives only after both operands are released unchanged.
+`Function.Natural.Compare` reads both operands without consuming them. It peeks one column at a time, least significant first; the most significant differing column decides, and a finished operand reads as zero, so high zeros compare equal to none. Each column costs 18 events, and the verdict arrives only after both operands are released unchanged.
 
 ## Chains
 
