@@ -1,6 +1,6 @@
 # Photonic
 
-[Read the interactive webbook](index.html). Photonic programs describe how data changes through rules. Data lives in coherences that can evolve independently or interact when a rule joins them. The native standard library is written in Photonic; Rust supplies the language runtime, build tooling, and verification harness.
+[Read the interactive webbook](index.html). Photonic programs describe how data changes through rules. Data lives in coherences that can evolve independently or interact when a rule combines them. The native standard library is written in Photonic; Rust supplies the language runtime, build tooling, and verification harness.
 
 ## Run and test
 
@@ -16,7 +16,7 @@ Open http://127.0.0.1:8080 after starting the preview. The live examples run the
 
 Use `bazel test --config=release //toolchain/browser:check` on ARM64 macOS for the webbook and its Wasm sandbox.
 
-See [build organization and performance](document/build.md) for caching, toolchains, and incremental-build measurements.
+[Continuous verification](document/automation.md) builds and tests Linux x86-64 on Buildkite. See [build organization and performance](document/build.md) for caching, toolchains, and incremental-build measurements.
 
 ## Build native programs
 
@@ -44,7 +44,7 @@ photonic_test(
 )
 ```
 
-`//library/boolean:not` brings `Invoke` and the Boolean negation table; the [standard library reference](library/README.md) lists every package, request, and answer. A library contains declarations only; loading them introduces live root rule occurrences. A binary combines the initial configurations from its sources and loads each transitive dependency file once. Both `.particle` and `.wave` use the same grammar; the extensions distinguish reusable definitions/data from executable examples by convention.
+`//library/boolean:not` brings `Invoke` and the Boolean negation table; the [standard library reference](library/README.md) lists every package, request, and answer. Library targets are visible only to the packages that use them, so a new consumer first adds its package to the target's `visibility`. A library contains declarations only; loading them introduces live root rule occurrences. A binary combines the initial configurations from its sources and loads each transitive dependency file once. Both `.particle` and `.wave` use the same grammar; the extensions distinguish reusable definitions/data from executable examples by convention.
 
 A test accepts literal `source`, file `srcs`, and library `deps`. `targets` is a list of complete configurations, including live rules. Every test states `preserve`: when true, each expected target also includes the loaded root rules. The default `match = "all"` requires every target to be reachable; `match = "any"` accepts any one. `expect = "unreachable"` checks non-reachability instead. Unknown never satisfies either expectation. Full exploration shares one execution graph across the targets. Optional `path = True` follows direct paths and can only establish reachability. Reaching all targets does not claim they occur together or exhaust all possible outcomes.
 
@@ -55,11 +55,13 @@ Loading introduces each written rule as a live value in its lexical context. Mat
 An exact target includes every surviving root rule. For `A [A] B`, the target `B [A] B` is reachable; `B` alone is not. Targets never inherit rules implicitly. To explicitly construct a target that preserves all written root rules:
 
 ```sh
-bazel run -c opt //command:photonic -- lower program/natural/result.particle \
-  --context program/natural/addition.wave > /tmp/photonic-target.json
-bazel run -c opt //command:photonic -- prism program/natural/addition.wave \
+bazel run -c opt //command:photonic -- lower "$PWD/program/natural/result.particle" \
+  --context "$PWD/program/natural/addition.wave" > /tmp/photonic-target.json
+bazel run -c opt //command:photonic -- prism "$PWD/program/natural/addition.wave" \
   --target /tmp/photonic-target.json --json
 ```
+
+`bazel run` starts the command in its runfiles directory, so pass absolute paths.
 
 `lower --context` copies the selected source's root rules into the emitted JSON without copying its initial data or modifying rule contents. Use a hand-written complete target when rules are consumed or introduced. Repeat `--context` to explicitly include additional library sources. The arithmetic runner's `--directory` exports `program.wave` and a complete `target.json`.
 
@@ -78,7 +80,7 @@ bazel run -c opt //command:photonic -- prism program/natural/addition.wave \
 | [toolchain/](toolchain/) | Pinned tool execution and build checks. |
 | [toolchain/browser/](toolchain/browser/) | WebAssembly adapter, preview server, and browser verification. |
 | [platform/](platform/) | Native platform definitions and toolchain patch. |
-| [document/](document/) | Webbook assets and benchmark evidence. |
+| [document/](document/) | Contracts, the runtime roadmap, dated runtime records, and webbook assets; see its [index](document/README.md). |
 
 Programs belong to a subject: `language/`, `association/`, `composition/`, `natural/`, `binary/`, `decimal/`, `ternary/`, `circuit/`, or `vector/`. Keep a program's expected configurations and regression tests beside its source. A counterexample is a tested outcome, not a separate category of program: `program/natural/preparation.wave` retains the rejected multiplication construction and checks its incorrect result. Generated circuit programs live in `program/circuit/`; their Rust generator lives in `arithmetic/`.
 
@@ -100,9 +102,9 @@ rg --files library program
 | [Native library](index.html#guide-library) | Packages, namespaces, protocols, chains and alphabets, vectors and sorting, atomic fields, evidence, and remaining work. |
 | [Arithmetic](index.html#guide-arithmetic) | Number representations, written arguments, algorithms, and host circuit interface. |
 | [Verification](index.html#guide-verification) | Prism, exact configurations, and retained counterexamples. |
-| [Dynamic code proposal](document/dynamic.md) | Research, contextual rule construction, capture, recursive growth, and implementation gates. |
 | [Runtime](index.html#guide-runtime) | Implementation and reproducible performance measurements. |
-| [Architecture audit](document/architecture.md) | Graph models, ownership, incremental matching and proof support, measurements, and remaining work. |
+| [Runtime roadmap](document/roadmap.md) | Current runtime priorities, acceptance gates, and the semantic boundary. |
+| [Documentation index](document/README.md) | Contracts, plans, dated runtime records, and archived proposals. |
 | [Build and development](index.html#guide-build) | Bazel interfaces, contributions, and platform verification. |
 
-The webbook is the single maintained guide. Its technical reference includes the full contracts, written arithmetic arguments, current limitations, and reproducible benchmark evidence. Prism checks concrete reachability; it does not provide universal mathematical certificates. Native linked ternary expressions support arbitrary finite widths with sufficient execution budgets.
+The webbook is the main guide; the [standard library reference](library/README.md), the [occurrence contract](document/occurrence.md), and the other contracts in the [documentation index](document/README.md) are maintained with it. The webbook's technical reference includes the full contracts, written arithmetic arguments, current limitations, and reproducible benchmark evidence. Prism checks concrete reachability; it does not provide universal mathematical certificates. Native linked ternary expressions support arbitrary finite widths with sufficient execution budgets.

@@ -1,6 +1,6 @@
 # Runtime rule occurrences
 
-Contract authorized September 22, 2026. This supersedes the alternatives in the [loading assessment](loading.md). Loading, executable availability, ownership, and exact targets have migrated to live rule occurrences. The grammar is unchanged. The runtime preserves rule definitions; it does not construct replacement rules or specialize their outputs.
+Contract authorized September 22, 2026. This supersedes the alternatives in the [loading assessment](loading.md). The contract sections below are current; the [migration record](#migration-record) describes the change as it landed. Loading, executable availability, ownership, and exact targets have migrated to live rule occurrences. The grammar is unchanged. The runtime preserves rule definitions; it does not construct replacement rules or specialize their outputs.
 
 ## Values and ownership
 
@@ -40,21 +40,23 @@ The two search strategies serve different queries. Direct traversal follows one 
 
 Dispatch resolves indexed eligible plans to live occurrences. Lexically nearer consumers retain scheduling priority within shared input groups. Index updates preserve resource ownership, capture, and reachability dependencies. Mixed atom/rule candidate updates account for unchanged visible context operands. The subsequent [incremental occurrence maintenance](invalidation.md) preserves unaffected index state and explicitly invalidates changed lexical contexts. Completed rule-sensitive exhaustive transcripts are not reused across snapshots; that extension remains a separate equivalence and measurement obligation.
 
-## Exact targets and migration
+## Exact targets
 
-Targets specify the complete state, including live rules. `A [A] B` reaches `B [A] B`; it does not reach bare `B`. After `[A] B [([A] B)] C` consumes the first occurrence, the complete target is `C [([A] B)] C`. Target compilation uses an isolated program interner and never alters execution.
+Targets specify the complete state, including live rules. `A [A] B` reaches `B [A] B`; it does not reach bare `B`. After `[A] B [([A] B)] C` consumes the first occurrence, the complete target is `C [([A] B)] C`. Target compilation resolves rules and atoms by lookup, copies the program interner only for a target that mentions a symbol the program never interned, and never alters execution.
 
 Textual targets describe root coherences and independently introduced root rule occurrences. They cannot yet encode arbitrary shared occurrence graphs or captured nested contexts. Canonical equality still accounts for those structures; this limitation concerns expressing a target, not ignoring parts of state.
 
-The `path::Search::new` and `prism::Search::new` constructors now return searches directly; target declarations are valid and the old declaration rejection error is removed. `prism::Search::target` no longer returns that error. Report targets contain the full source program shape rather than only initial particles.
+Every `photonic_test` states `preserve`: when true, each expected target also includes the loaded root rules. Existing data fixtures remain useful for arithmetic and protocol assertions, but are not implicitly complete runtime targets. The command `lower data.particle --context program.wave` explicitly appends the selected source's root rules to its emitted JSON. Repeat the option for library sources, or export an assembled program using the binary's `lower` command first. This operation copies unchanged definitions; it does not infer which rules should survive. Consuming programs must specify their surviving rule occurrences themselves.
 
-Tests that intend all loaded root rules to survive use explicit `photonic_test(preserve = True)`. The default is false. Existing data fixtures remain useful for arithmetic and protocol assertions, but are not implicitly complete runtime targets. The command `lower data.particle --context program.wave` explicitly appends the selected source's root rules to its emitted JSON. Repeat the option for library sources, or export an assembled program using the binary's `lower` command first. This operation copies unchanged definitions; it does not infer which rules should survive. Consuming programs must specify their surviving rule occurrences themselves.
+## Migration record
+
+The `path::Search::new` and `prism::Search::new` constructors now return searches directly; target declarations are valid and the old declaration rejection error is removed. `prism::Search::target` no longer returns that error. Report targets contain the full source program shape rather than only initial particles.
 
 The arithmetic runner exports `program.wave` and complete `target.json` files. The webbook's command examples construct explicit targets, and its live queries include surviving rules. Recorded inspection views include context particles and resolve immutable rule text through the report's `definition` catalog. Context occurrence references serialize identity, label, and capture without repeating large rule bodies in every state. Owned Rust token views retain their display text.
 
 The one source fixture formerly using `[]` to select an existing empty particle now explicitly uses `[()]`. Legacy reference changes are narrow: the shared-resource merge case gains exactly one supported state and two events required by consumption per selected occurrence. Interned instruction labels and body scope labels move, and preserved original rule names replace prior normalized placeholders. Unrelated expected states were not accepted through wholesale snapshot replacement.
 
-## Validation
+### Validation
 
 The final `bazel test -c opt //... //toolchain/browser:check` run passes all 111 test targets, including native execution, WebAssembly, frontend conformance, programs, arithmetic, libraries, the pinned-runtime comparison, and headless Chrome. The runtime suite contains 249 passing tests. Interface checks cover explicit target export, context inspection, and live complete-state WebAssembly queries. `bazel run -c opt //:format -- --check` passes.
 
@@ -64,7 +66,7 @@ The differential oracle compares 540 finite atom programs against the pinned old
 
 The expression record retains its arithmetic results and 10,017 events, with work changing from 24,690 to 24,768. Smaller expression records retain their results and event counts. Six native graph records retain their state/event counts. The four circuit records retain their arithmetic results and event counts; division has a permitted event-order change with the same multiset of rule applications. The stream record retains its eleven acknowledgements/events. Older circuit and graph work counts predate intervening optimizations and are not used as migration speedup evidence.
 
-## Measurements and remaining architecture work
+### Measurements and remaining architecture work
 
 [Raw measurements](occurrence.json) compare the former declaration model at `ec6d707` against live occurrences on the development Apple M5 Max. Native optimized binaries run sequentially. Ordinary and scope cases use six allocation-instrumented samples in alternating paired batches; availability, inert-rule, and consumption cases use five samples. Medians below are descriptive measurements, not cross-machine guarantees. Allocation instrumentation affects timings. Requested allocation bytes are not resident memory.
 

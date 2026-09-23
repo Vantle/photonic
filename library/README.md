@@ -10,7 +10,7 @@ bazel test -c opt //library/...
 
 1. **One namespace per type.** Every operation is named `<Type>.<Verb>`: `Boolean.Not`, `Ternary.Add`, `Natural.Divide`, `Expression.Evaluate`. The namespace belongs to exactly one package. Only the core combinators `Identity` and `Compose` are bare.
 2. **One calling vocabulary.** A request carries `Function`; its answer carries `Return`. Scoped calls use `Invoke`; linked calls tag each answer with the operation that produced it.
-3. **Collision-free by construction.** `//library:test` proves that no root rule of one package can match the input of another package's rule, then runs checks with every package loaded at once.
+3. **Collision-free by construction.** `//library:test` proves that no root rule can match the input of another root rule, then runs checks with every package loaded at once.
 4. **Explicit values.** Roles travel as fields such as `([Digit] 2).([Carry] 1)`. Alternatives are variants of the answer, and failures are `Error.<Kind>`.
 5. **Generic storage, declared alphabets.** A chain stores the symbols of declared alphabets, and each alphabet states how chains drop, reverse, and erase its symbols. A vector stores any value that answers `Forget`, including naturals, chains, and other vectors, by reference and to any depth.
 6. **One responsibility per file, one target per file.** Programs depend on exactly what they use.
@@ -82,7 +82,7 @@ Invoke.Pair.Choose.False.([Left] True).([Right] False)                          
 Invoke.Empty.Reduce.([Operation] Boolean.And)                                            → True
 ```
 
-`Pair.Copy` produces fresh values in two scopes, `Pair.Broadcast` shares one inherited value, and `Map` runs `Each` on both sides independently. `Gather` and `Reduce` join both completed payloads, never completion markers alone. Each operation declares its own identity for `Empty.Reduce`, as `Boolean.And` answers `True`. Payload shapes are finite: Booleans and trits for `Reduce`, Booleans for `Gather`, and `Keep`/`Discard` selections through `//library/selection:reduce`.
+`Pair.Copy` produces fresh values in two scopes, `Pair.Broadcast` shares one inherited value, and `Map` runs `Each` on both sides independently. `Gather` and `Reduce` combine both completed payloads, never completion markers alone. Each operation declares its own identity for `Empty.Reduce`, as `Boolean.And` answers `True`. Payload shapes are finite: Booleans and trits for `Reduce`, Booleans for `Gather`, and `Keep`/`Discard` selections through `//library/selection:reduce`.
 
 ## Linked calls
 
@@ -122,7 +122,7 @@ A chain handle is `Zero` or a `Head` coherence carrying a private seal and its m
 | `Forget` | `Clean` once this reference is dropped |
 | `Peek` | `Seen.<symbol>` beside a reference to the tail, or `Seen.End.Zero`; the cells are unchanged |
 
-A join hands its unmatched remainder to every output, so moving a chain means forgetting it everywhere else. The move idiom sends the chain to its next use and resumes once the old reference is clean:
+An application hands its unmatched remainder to every output, so moving a chain means forgetting it everywhere else. The move idiom sends the chain to its next use and resumes once the old reference is clean:
 
 ```
 Push.([Digit] 1).Zero, Stage.1
@@ -156,7 +156,7 @@ A vector handle is `Empty` or a `Node` coherence carrying a private seal and its
 | `Lift` beside a tail | `Lifted` beside the vector |
 | `Unlink` beside a tail | `Unlinked` once this reference is dropped |
 
-A tail is `Tail` with a private tie, or `Nil` for the empty vector. It answers only `Lift` and `Unlink`, never an item's `Forget`, so every slot tells its item from its tail, even when the item is itself a vector. Link the vector, then join its tail with the item; `Insert.Nil` beside an item builds a one-item vector. Like `Push`, `Insert` builds its slot from the remainder of its request, so that coherence must hold nothing but `Insert`, the tail, and the item:
+A tail is `Tail` with a private tie, or `Nil` for the empty vector. It answers only `Lift` and `Unlink`, never an item's `Forget`, so every slot tells its item from its tail, even when the item is itself a vector. Link the vector, then place its tail beside the item; `Insert.Nil` beside an item builds a one-item vector. Like `Push`, `Insert` builds its slot from the remainder of its request, so that coherence must hold nothing but `Insert`, the tail, and the item:
 
 ```
 [Built, Stage.1] Insert.Nil
@@ -212,8 +212,8 @@ Linked arithmetic, comparison, and vectors are verified along direct execution p
 
 ## Extending
 
-Add an operation as its own file in the package that owns its type, give it a `photonic_library` target with explicit dependencies and visibility, list it in the package's `source` filegroup, and add it to [`test/catalog.rs`](test/catalog.rs) so the isolation and composition checks cover it. A new type gets its own package and namespace. Callbacks register themselves with a dispatch rule such as `[Boolean.Not.([Each] Boolean.Not)] Function.Boolean.Not`, and a new chain alphabet declares its `Drop`, Reverse, and Erase rules without editing the chain package.
+Add an operation as its own file in the package that owns its type, give it a `photonic_library` target with explicit dependencies and visibility, and list it in the package's `source` filegroup; the library suite loads every `source` filegroup, so the isolation and composition checks cover it. A new type gets its own package and namespace, and its `source` filegroup joins the `data` and `PHOTONIC_LIBRARY` lists of `//library:test` in [BUILD.bazel](BUILD.bazel). A consumer outside the library adds its package to each target's `visibility`. Callbacks register themselves with a dispatch rule such as `[Boolean.Not.([Each] Boolean.Not)] Function.Boolean.Not`, and a new chain alphabet declares its `Drop`, Reverse, and Erase rules without editing the chain package.
 
 ## Limits
 
-Collections are finite pairs with enumerated payloads, and `Field` covers positions 0 through 3 with values 0 through 2. Photonic has no variables, so each alphabet enumerates its symbols. Linked values cannot enter an `Invoke` scope, because joins require one frame. For the same reason, linked calls in one frame run one at a time: `Insert`, `Function.Vector.Sort`, and `Function.Natural.Compare` use fixed labels and must not overlap, and a caller guards each answer with a token of its own, because the sort answers `Stored` and `Return.Vector.Reverse` internally too. A chain holds only alphabet symbols; store other values, including vectors, in a vector. `Function.Vector.Sort` orders naturals only, and `Function.Vector.Erase` erases chains and vectors. General repetition and parallel prefix networks remain open work.
+Collections are finite pairs with enumerated payloads, and `Field` covers positions 0 through 3 with values 0 through 2. Photonic has no variables, so each alphabet enumerates its symbols. Linked values cannot enter an `Invoke` scope, because a rule combines coherences only within one frame. For the same reason, linked calls in one frame run one at a time: `Insert`, `Function.Vector.Sort`, and `Function.Natural.Compare` use fixed labels and must not overlap, and a caller guards each answer with a token of its own, because the sort answers `Stored` and `Return.Vector.Reverse` internally too. A chain holds only alphabet symbols; store other values, including vectors, in a vector. `Function.Vector.Sort` orders naturals only, and `Function.Vector.Erase` erases chains and vectors. General repetition and parallel prefix networks remain open work.

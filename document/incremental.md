@@ -15,7 +15,7 @@ This is an in-process Rust implementation over Photonic's typed incidence graph.
 | Enumerate synchronized bindings lazily | [joining.rs](../language/joining.rs), [particle.rs](../language/particle.rs), [assignment.rs](../language/assignment.rs) |
 | Index worlds, symbols, captures, and executable rule tokens | [index.rs](../language/index.rs), [reader.rs](../language/reader.rs) |
 | Maintain stable sites and current world positions | [position.rs](../language/position.rs), [membership.rs](../language/membership.rs) |
-| Compile output construction and perform a rewrite | [recipe.rs](../language/recipe.rs), [rewrite.rs](../language/rewrite.rs) |
+| Compile output construction and perform a rewrite | [recipe.rs](https://github.com/Vantle/photonic/blob/0d161dd5ba800a665ebe50db2512db255c4d3d06/language/recipe.rs), [rewrite.rs](https://github.com/Vantle/photonic/blob/0d161dd5ba800a665ebe50db2512db255c4d3d06/language/rewrite.rs) |
 | Describe changed worlds and frames | [change.rs](../language/change.rs) |
 | Share immutable state and fingerprint collections | [sequence.rs](../language/sequence.rs) |
 | Maintain reachability and resource accounting | [reachability.rs](../language/reachability.rs), [layout.rs](../language/layout.rs) |
