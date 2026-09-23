@@ -53,7 +53,7 @@ fn mutation() {
                 let insertion = node.change(&index).insertion;
                 let expected = scan(&index, &pattern, 0)
                     .into_iter()
-                    .filter(|site| index.insertion.contains(site))
+                    .filter(|site| index.delta().insertion.contains(site))
                     .collect::<Vec<_>>();
                 assert_eq!(insertion.site, expected);
                 let repeated = node.change(&index).insertion;
@@ -185,7 +185,7 @@ fn continuity() {
     let world = state.world.remove(0);
     state.world.push(world);
     index.advance(Arc::new(state.clone()), &crate::basis::Set::single(0));
-    assert_eq!(node.change(&index).insertion.site, index.insertion);
+    assert_eq!(node.change(&index).insertion.site, index.delta().insertion);
     let current = node.select(&index);
     assert_eq!(current.site, scan(&index, &pattern, 0));
     assert!(!Arc::ptr_eq(&previous, &current));
@@ -282,7 +282,7 @@ fn context() {
                 expected
                     .iter()
                     .copied()
-                    .filter(|site| index.insertion.contains(site))
+                    .filter(|site| index.delta().insertion.contains(site))
                     .collect::<Vec<_>>()
             );
             assert_eq!(node.select(&index).site, expected);
@@ -399,7 +399,7 @@ fn growth() {
     }));
     index.advance(Arc::new(state.clone()), &Default::default());
     let change = node.change(&index);
-    assert_eq!(change.insertion.site, index.insertion);
+    assert_eq!(change.insertion.site, index.delta().insertion);
     assert!(!change.insertion.admitted());
     let selection = node.select(&index);
     assert_eq!(selection.site, scan(&index, &pattern, 0));

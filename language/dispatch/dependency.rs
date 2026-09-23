@@ -11,7 +11,7 @@ impl Network {
             crate::measurement::profile::Phase::Availability,
         );
         let mut insertion = SmallVec::<[Symbol; 4]>::new();
-        for &symbol in &index.altered {
+        for &symbol in &index.delta().toggled {
             if index.contains(&symbol) {
                 insertion.push(symbol);
             } else {
@@ -49,6 +49,7 @@ impl Network {
         let count = self.entry.count(frame);
         let dependency = || {
             index
+                .delta()
                 .affected
                 .symbol(frame)
                 .filter_map(|symbol| self.trigger.get(&symbol))
@@ -69,7 +70,7 @@ impl Network {
                         || plan
                             .dependency()
                             .iter()
-                            .any(|&value| index.affected.includes(frame, value))
+                            .any(|&value| index.delta().affected.includes(frame, value))
                 })
                 .map(|(key, &position)| (key, position))
                 .collect()

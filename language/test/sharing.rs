@@ -157,9 +157,9 @@ fn revision() {
     let mut left = Index::new(state.clone());
     let right = Index::new(state.clone());
     let previous = left.revision().clone();
-    assert!(!Arc::ptr_eq(&previous, right.revision()));
+    assert!(previous != *right.revision());
     left.advance(state, &crate::basis::Set::default());
-    assert!(!Arc::ptr_eq(&previous, left.revision()));
+    assert!(previous != *left.revision());
 }
 
 #[test]

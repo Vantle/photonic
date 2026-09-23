@@ -85,7 +85,7 @@ impl Network {
                 consumer: Consumer {
                     rule: reader.rule,
                     owner: reader.owner,
-                    read: Some(reader.read),
+                    read: Some(reader.read()),
                 },
             });
         }

@@ -15,6 +15,13 @@ impl Read {
 
 pub(crate) struct Reader {
     pub rule: usize,
-    pub read: Read,
+    pub site: usize,
+    pub resource: usize,
     pub owner: usize,
+}
+
+impl Reader {
+    pub fn read(&self) -> Read {
+        Read::World(self.site, self.resource)
+    }
 }

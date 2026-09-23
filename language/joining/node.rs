@@ -1,10 +1,11 @@
 use super::trace::Trace;
 use crate::budget::Reservation;
 use crate::index::Index;
+use crate::revision::Revision;
 use std::sync::{Arc, Mutex, Weak};
 
 struct Version {
-    revision: Arc<()>,
+    revision: Revision,
     trace: Weak<Trace>,
 }
 
@@ -24,7 +25,7 @@ impl Node {
     pub fn find(&self, index: &Index) -> Option<Arc<Trace>> {
         let version = self.version.lock().unwrap();
         let version = version.as_ref()?;
-        if !Arc::ptr_eq(&version.revision, index.revision()) {
+        if version.revision != *index.revision() {
             return None;
         }
         version.trace.upgrade()
@@ -34,7 +35,7 @@ impl Node {
         let mut version = self.version.lock().unwrap();
         if let Some(previous) = version
             .as_ref()
-            .filter(|version| Arc::ptr_eq(&version.revision, index.revision()))
+            .filter(|version| version.revision == *index.revision())
             .and_then(|version| version.trace.upgrade())
             && (previous.complete || previous.length > trace.length)
         {

@@ -154,7 +154,7 @@ impl Space {
             let mut affected = previous != domain.len();
             let candidate = change
                 .as_ref()
-                .map_or(index.insertion.as_slice(), |change| {
+                .map_or(index.delta().insertion.as_slice(), |change| {
                     change.insertion.site.as_slice()
                 });
             for &site in candidate {

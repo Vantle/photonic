@@ -196,25 +196,25 @@ impl Network {
         self.entry.resize(index.state.frame.len());
         self.altered.clear();
         self.availability(index);
-        let mut affected = SmallVec::<[usize; 4]>::from_slice(index.affected.frame());
-        let context = &index.context;
-        affected.extend_from_slice(context);
+        let delta = index.delta();
+        let mut affected = SmallVec::<[usize; 4]>::from_slice(delta.affected.frame());
+        affected.extend_from_slice(&delta.invalidated);
         affected.sort_unstable();
         affected.dedup();
         for frame in affected {
             let previous = self.preparation;
-            if context.binary_search(&frame).is_ok() {
+            if index.invalidated(frame) {
                 self.frame(index, frame, None);
             } else {
                 let mut selected = std::mem::take(&mut self.selected);
                 selected.clone_from(&self.altered);
-                if index.affected.contains(frame) {
+                if delta.affected.contains(frame) {
                     selected.union(&self.empty);
-                    for symbol in index.affected.symbol(frame) {
+                    for symbol in delta.affected.symbol(frame) {
                         if let Symbol::Rule(rule) = symbol {
                             selected.insert(self.catalog.rule(rule));
                         }
-                        if index.altered.contains(&symbol) {
+                        if delta.toggled.contains(&symbol) {
                             continue;
                         }
                         let Some(input) = self.trigger.get(&symbol) else {

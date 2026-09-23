@@ -22,12 +22,9 @@ impl Index {
             crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Index);
         self.previous = self.revision.take();
         let removed = &change.world;
-        self.altered.clear();
-        self.affected.clear();
-        self.removal.clear();
-        self.insertion.clear();
+        self.delta.clear();
         let context = self.contextual(&state, change, &reach);
-        self.context = context.affected;
+        self.delta.invalidated = context.invalidated;
         let mut affected = change
             .world
             .iter()
@@ -45,14 +42,16 @@ impl Index {
             .iter()
             .map(|&frame| self.present(frame))
             .collect::<Vec<_>>();
-        self.removal
+        self.delta
+            .removal
             .extend(removed.iter().map(|&world| self.coherence[world]));
         let mut posting = smallvec::SmallVec::<[(usize, Term); 8]>::new();
         let prior = self.state.clone();
         for (offset, &world) in removed.iter().enumerate() {
-            let site = self.removal[offset];
+            let site = self.delta.removal[offset];
             let value = &prior.world[world];
-            self.affected
+            self.delta
+                .affected
                 .insert(value.frame, value.particle.iter().map(|token| token.value));
             self.frame[value.frame].remove(&site);
             self.retained -= 1;
@@ -60,20 +59,14 @@ impl Index {
                 self.release(token.value);
                 posting.push((value.frame, Term::new(token.value, token.capture)));
             }
-            self.position.remove(self.rank[site]);
-            self.rank[site] = usize::MAX;
-            self.location[site] = None;
-            self.vacant.push(site);
+            self.retire(site);
         }
         for &frame in &affected {
             let Some(reader) = self.reader.get_mut(frame) else {
                 continue;
             };
             let previous = reader.len();
-            reader.retain(|reader| match reader.read {
-                crate::reader::Read::World(site, _) => self.rank[site] != usize::MAX,
-                crate::reader::Read::Context(_, _) => unreachable!(),
-            });
+            reader.retain(|reader| self.location[reader.site].is_some());
             self.retained -= previous - reader.len();
         }
         posting.sort_unstable();
@@ -81,7 +74,7 @@ impl Index {
         for key in posting {
             let posting = self.term.get_mut(&key).unwrap();
             let previous = posting.len();
-            posting.retain(|occurrence| self.rank[occurrence.site] != usize::MAX);
+            posting.retain(|occurrence| self.location[occurrence.site].is_some());
             self.retained -= previous - posting.len();
             if posting.is_empty() {
                 self.term.remove(&key);
@@ -92,16 +85,16 @@ impl Index {
         for (world, &site) in self.coherence.iter().enumerate() {
             self.location[site] = Some(Location::World(world));
         }
-        for &frame in &self.context {
+        for &frame in &self.delta.invalidated {
             if let Some(site) = self.owner.get(frame).copied().flatten() {
-                self.removal.push(site);
+                self.delta.removal.push(site);
             }
             if let Some(member) = self.frame.get(frame) {
-                self.removal.extend(member.iter().copied());
+                self.delta.removal.extend(member.iter().copied());
             }
         }
         let mut replacement = Vec::new();
-        for &frame in &context.frame {
+        for &frame in &context.repopulated {
             if self.present(frame)
                 && reach.frame.binary_search(&frame).is_ok()
                 && self.state.frame[frame]
@@ -128,28 +121,32 @@ impl Index {
         for world in change.insertion.clone() {
             self.insert(world);
         }
-        for &frame in &self.context {
+        for &frame in &self.delta.invalidated {
             if !self.present(frame) {
                 continue;
             }
-            self.insertion.extend(self.frame[frame].iter().copied());
-            self.insertion.extend(self.owner[frame]);
+            self.delta
+                .insertion
+                .extend(self.frame[frame].iter().copied());
+            self.delta.insertion.extend(self.owner[frame]);
         }
-        self.removal.sort_unstable();
-        self.removal.dedup();
-        if !self.context.is_empty() {
+        self.delta.removal.sort_unstable();
+        self.delta.removal.dedup();
+        if !self.delta.invalidated.is_empty() {
             let location = &self.location;
-            self.insertion.sort_unstable_by_key(|&site| location[site]);
-            self.insertion.dedup();
+            self.delta
+                .insertion
+                .sort_unstable_by_key(|&site| location[site]);
+            self.delta.insertion.dedup();
         }
         for (frame, previous) in affected.into_iter().zip(previous) {
             if previous != self.present(frame) {
-                self.context.push(frame);
+                self.delta.invalidated.push(frame);
             }
         }
-        self.context.sort_unstable();
-        self.context.dedup();
-        self.affected.seal();
-        self.ownership = context.frame;
+        self.delta.invalidated.sort_unstable();
+        self.delta.invalidated.dedup();
+        self.delta.affected.seal();
+        self.delta.repopulated = context.repopulated;
     }
 }

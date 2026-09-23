@@ -25,6 +25,7 @@ impl Key {
 
     pub fn insertion(&self, index: &Index) -> Vec<usize> {
         index
+            .delta()
             .insertion
             .iter()
             .copied()

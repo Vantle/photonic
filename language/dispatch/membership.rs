@@ -105,7 +105,7 @@ impl Index {
             return;
         };
         frame.resize_with(frame.len().max(index.state.frame.len()), || None);
-        for &position in &index.ownership {
+        for &position in &index.delta().repopulated {
             if !index.present(position) {
                 if let Some(population) = frame[position].take() {
                     self.retained -= population.retained;

@@ -1,11 +1,13 @@
 #[cfg(test)]
 use crate::basis::Set;
+use crate::delta::Delta;
 use crate::hashing::Builder;
 use crate::location::Location;
 use crate::program::Symbol;
+use crate::revision::Revision;
 use crate::state::State;
 use crate::term::Term;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::sync::{Arc, OnceLock};
 
 mod context;
@@ -16,8 +18,8 @@ use posting::Occurrence;
 
 pub(crate) struct Index {
     pub state: Arc<State>,
-    revision: OnceLock<Arc<()>>,
-    previous: Option<Arc<()>>,
+    revision: OnceLock<Revision>,
+    previous: Option<Revision>,
     frame: Vec<crate::membership::Set>,
     reach: crate::reachability::Index,
     lexical: crate::lexical::Index,
@@ -33,12 +35,7 @@ pub(crate) struct Index {
     vacant: Vec<usize>,
     retained: usize,
     symbol: HashMap<Symbol, usize, Builder>,
-    pub altered: HashSet<Symbol, Builder>,
-    pub context: Vec<usize>,
-    pub ownership: Vec<usize>,
-    pub affected: crate::affected::Set,
-    pub removal: Vec<usize>,
-    pub insertion: Vec<usize>,
+    delta: Delta,
 }
 
 impl Index {
@@ -67,12 +64,7 @@ impl Index {
             vacant: Vec::new(),
             retained: 0,
             symbol: HashMap::default(),
-            altered: Default::default(),
-            context: Vec::new(),
-            ownership: Vec::new(),
-            affected: Default::default(),
-            removal: Vec::new(),
-            insertion: Vec::new(),
+            delta: Delta::default(),
         };
         index
             .frame
@@ -85,25 +77,30 @@ impl Index {
         for &frame in index.reach.frame.clone().iter() {
             index.attach(frame);
         }
-        index.context = (*index.reach.frame).clone();
-        index.affected.seal();
+        index.delta.invalidated = (*index.reach.frame).clone();
+        index.delta.affected.seal();
         index
     }
 
-    pub fn revision(&self) -> &Arc<()> {
-        self.revision.get_or_init(|| Arc::new(()))
+    pub fn revision(&self) -> &Revision {
+        self.revision.get_or_init(Revision::default)
     }
 
-    pub fn previous(&self) -> Option<&Arc<()>> {
+    pub fn previous(&self) -> Option<&Revision> {
         self.previous.as_ref()
     }
 
+    #[inline]
+    pub(crate) fn delta(&self) -> &Delta {
+        &self.delta
+    }
+
     pub(crate) fn invalidated(&self, frame: usize) -> bool {
-        self.context.binary_search(&frame).is_ok()
+        self.delta.invalidated.binary_search(&frame).is_ok()
     }
 
     pub(crate) fn removed(&self, site: usize) -> bool {
-        self.removal.binary_search(&site).is_ok()
+        self.delta.removal.binary_search(&site).is_ok()
     }
 
     fn allocate(&mut self, location: Location) -> usize {
@@ -115,15 +112,21 @@ impl Index {
         });
         self.location[site] = Some(location);
         self.rank[site] = self.position.insert(site);
-        self.insertion.push(site);
+        self.delta.insertion.push(site);
         site
+    }
+
+    fn retire(&mut self, site: usize) {
+        self.position.remove(self.rank[site]);
+        self.location[site] = None;
+        self.vacant.push(site);
     }
 
     fn acquire(&mut self, value: Symbol) {
         let count = self.symbol.entry(value).or_default();
         *count += 1;
-        if *count == 1 && !self.altered.remove(&value) {
-            self.altered.insert(value);
+        if *count == 1 && !self.delta.toggled.remove(&value) {
+            self.delta.toggled.insert(value);
         }
     }
 
@@ -134,8 +137,8 @@ impl Index {
             return;
         }
         self.symbol.remove(&value);
-        if !self.altered.remove(&value) {
-            self.altered.insert(value);
+        if !self.delta.toggled.remove(&value) {
+            self.delta.toggled.insert(value);
         }
     }
 
@@ -144,7 +147,8 @@ impl Index {
         self.coherence.push(site);
         let state = self.state.clone();
         let value = &state.world[world];
-        self.affected
+        self.delta
+            .affected
             .insert(value.frame, value.particle.iter().map(|token| token.value));
         self.frame[value.frame].insert(site);
         self.retained += 1;
@@ -152,7 +156,8 @@ impl Index {
             if let Symbol::Rule(rule) = token.value {
                 self.reader[value.frame].push(crate::reader::Reader {
                     rule,
-                    read: crate::reader::Read::World(site, token.id),
+                    site,
+                    resource: token.id,
                     owner: token.capture.unwrap(),
                 });
                 self.retained += 1;
@@ -279,9 +284,9 @@ impl Index {
         if self.invalidated(frame) {
             return true;
         }
-        self.affected.contains(frame)
+        self.delta.affected.contains(frame)
             && term.into_iter().all(|term| {
-                self.affected.includes(frame, term.value)
+                self.delta.affected.includes(frame, term.value)
                     || self.visible(frame, &term).next().is_some()
             })
     }
@@ -367,12 +372,7 @@ impl Index {
             + self.rank.len()
             + self.vacant.len()
             + self.symbol.len()
-            + self.context.len()
-            + self.ownership.len()
-            + self.affected.retained()
-            + self.altered.len()
-            + self.removal.len()
-            + self.insertion.len()
+            + self.delta.retained()
     }
 
     pub(crate) fn reader(&self, frame: usize) -> &[crate::reader::Reader] {

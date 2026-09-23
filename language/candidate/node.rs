@@ -3,10 +3,11 @@ use super::selection::Selection;
 use crate::budget::Account;
 use crate::budget::Reservation;
 use crate::index::Index;
+use crate::revision::Revision;
 use std::sync::{Arc, Mutex};
 
 struct Version {
-    revision: Arc<()>,
+    revision: Revision,
     affected: bool,
     selection: Option<Arc<Selection>>,
     insertion: Option<Arc<Selection>>,
@@ -32,7 +33,7 @@ impl Node {
     fn version<'a>(&self, version: &'a mut Option<Version>, index: &Index) -> &'a mut Version {
         if version
             .as_ref()
-            .is_none_or(|version| !Arc::ptr_eq(&version.revision, index.revision()))
+            .is_none_or(|version| version.revision != *index.revision())
         {
             *version = Some(self.advance(version.take(), index));
         }
@@ -46,11 +47,9 @@ impl Node {
             selection: None,
             insertion: None,
         };
-        let Some(previous) = previous.filter(|previous| {
-            index
-                .previous()
-                .is_some_and(|revision| Arc::ptr_eq(&previous.revision, revision))
-        }) else {
+        let Some(previous) =
+            previous.filter(|previous| index.previous() == Some(&previous.revision))
+        else {
             return version;
         };
         let Some(selection) = previous.selection else {

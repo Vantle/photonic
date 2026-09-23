@@ -107,7 +107,7 @@ fn population() {
         Arc::make_mut(&mut state.frame[0]).particle = particle;
         index.update(Arc::new(state.clone()), &change);
         verify(&index);
-        assert!(index.context.is_empty());
+        assert!(index.delta().invalidated.is_empty());
         assert_eq!(index.locate(crate::location::Location::Context(0)), site);
         state.frame[0] = original.clone();
         index.update(Arc::new(state.clone()), &change);
@@ -194,8 +194,11 @@ fn context() {
         assert_eq!(index.coherence, original);
         for (world, &site) in original.iter().enumerate() {
             assert_eq!(
-                index.removal.contains(&site),
-                index.context.contains(&state.world[world].frame)
+                index.delta().removal.contains(&site),
+                index
+                    .delta()
+                    .invalidated
+                    .contains(&state.world[world].frame)
             );
         }
     }
@@ -487,7 +490,7 @@ fn batch() {
             let mut value = index
                 .reader(0)
                 .iter()
-                .map(|reader| (reader.read.place(index), reader.rule, reader.owner))
+                .map(|reader| (reader.read().place(index), reader.rule, reader.owner))
                 .collect::<Vec<_>>();
             value.sort_unstable();
             value

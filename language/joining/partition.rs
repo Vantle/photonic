@@ -64,7 +64,7 @@ impl Partition {
 
     pub fn update(&mut self, index: &Index) {
         self.reset(index);
-        for site in &index.removal {
+        for site in &index.delta().removal {
             self.cached -= self.record.remove(*site);
         }
     }

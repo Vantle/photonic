@@ -110,7 +110,7 @@ impl Layer {
             self.clear();
             return;
         }
-        for site in &index.removal {
+        for site in &index.delta().removal {
             self.cached -= self.record.remove(*site);
         }
     }

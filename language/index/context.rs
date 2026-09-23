@@ -4,8 +4,8 @@ use crate::location::Location;
 use crate::state::State;
 
 pub(super) struct Context {
-    pub frame: Vec<usize>,
-    pub affected: Vec<usize>,
+    pub repopulated: Vec<usize>,
+    pub invalidated: Vec<usize>,
 }
 
 impl Index {
@@ -70,8 +70,8 @@ impl Index {
         selected.sort_unstable();
         selected.dedup();
         Context {
-            frame,
-            affected: selected,
+            repopulated: frame,
+            invalidated: selected,
         }
     }
 
@@ -84,10 +84,7 @@ impl Index {
             self.leave(frame, position, token.value);
         }
         if retired {
-            self.position.remove(self.rank[site]);
-            self.rank[site] = usize::MAX;
-            self.location[site] = None;
-            self.vacant.push(site);
+            self.retire(site);
             self.owner[frame] = None;
         }
     }

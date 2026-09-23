@@ -57,8 +57,8 @@ pub(super) fn select(request: Request<'_>) -> Option<Strategy> {
     {
         let domain = &request.space.domain[position];
         if domain.is_empty()
-            || (domain.len() <= request.index.insertion.len()
-                && request.index.insertion.contains(&domain[0].site))
+            || (domain.len() <= request.index.delta().insertion.len()
+                && request.index.delta().insertion.contains(&domain[0].site))
         {
             return None;
         }
