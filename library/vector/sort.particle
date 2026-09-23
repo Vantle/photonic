@@ -65,8 +65,6 @@
 [Sort.Lone.Down, Linked.Sort.Heap.Tail, Merge.Lane.Left] Insert.Tail
 [Stored, Sort.Carried.Down] (Sort.Heap) (Forget.Sort.Swap.Down)
 [Clean.Sort.Swap.Down] (Linked.Sort.Pile.Nil) (Sort.Round.Up.Stale)
-[Clean.Merge.Begin.Down.Fresh] (Merge.Mode.Down) (Linked.Merge.Output.Nil) (Clean.Merge.Idle) (Merge.Pull.Left) (Merge.Pull.Right) (Merge.Await.Both)
-[Clean.Merge.Begin.Down.Stale] (Merge.Mode.Down) (Linked.Merge.Output.Nil) (Clean.Merge.Idle) (Merge.Turn) (Merge.Turned) (Merge.Pull.Right) (Merge.Await.Both)
 [Merge.Complete.Down] (Merge.Store.Down) (Sort.Stacked.Down)
 [Merge.Store.Down, Linked.Merge.Output] Lift.Sort.Merged.Down
 [Lifted.Sort.Merged.Down, Linked.Sort.Heap] Insert
@@ -89,16 +87,12 @@
 [Sort.Lone.Up, Linked.Sort.Pile.Tail, Merge.Lane.Left] Insert.Tail
 [Stored, Sort.Carried.Up] (Sort.Pile) (Forget.Sort.Swap.Up)
 [Clean.Sort.Swap.Up] (Linked.Sort.Heap.Nil) (Sort.Round.Down.Stale)
-[Clean.Merge.Begin.Up.Fresh] (Merge.Mode.Up) (Linked.Merge.Output.Nil) (Clean.Merge.Idle) (Merge.Pull.Left) (Merge.Pull.Right) (Merge.Await.Both)
-[Clean.Merge.Begin.Up.Stale] (Merge.Mode.Up) (Linked.Merge.Output.Nil) (Clean.Merge.Idle) (Merge.Turn) (Merge.Turned) (Merge.Pull.Right) (Merge.Await.Both)
 [Merge.Complete.Up] (Merge.Store.Up) (Sort.Stacked.Up)
 [Merge.Store.Up, Linked.Merge.Output] Lift.Sort.Merged.Up
 [Lifted.Sort.Merged.Up, Linked.Sort.Pile] Insert
 [Stored, Sort.Stacked.Up] (Link.Sort.Pile) (Forget.Sort.Again.Up)
 [Clean.Sort.Again.Up] Sort.Round.Up.Fresh
 
-[Merge.Turn, Merge.Lane.Stale] Function.Vector.Reverse
-[Return.Vector.Reverse, Merge.Turned] Take.Merge.Draw.Left
 [Sort.Result.Up, Merge.Lane.Left] Return.Vector.Sort
 [Sort.Result.Down] (Sort.Unwind) (Sort.Deliver)
 [Sort.Unwind, Merge.Lane.Left] Function.Vector.Reverse

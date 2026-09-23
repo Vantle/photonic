@@ -13,7 +13,7 @@ photonic_library(
     name = "merge",
     srcs = ["merge.particle"],
     deps = [
-        ":node",
+        ":reverse",
         "//library/natural:compare",
     ],
 )

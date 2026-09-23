@@ -1,3 +1,10 @@
+[Clean.Merge.Begin.Down.Fresh] (Merge.Mode.Down) (Linked.Merge.Output.Nil) (Clean.Merge.Idle) (Merge.Pull.Left) (Merge.Pull.Right) (Merge.Await.Both)
+[Clean.Merge.Begin.Down.Stale] (Merge.Mode.Down) (Linked.Merge.Output.Nil) (Clean.Merge.Idle) (Merge.Turn) (Merge.Turned) (Merge.Pull.Right) (Merge.Await.Both)
+[Clean.Merge.Begin.Up.Fresh] (Merge.Mode.Up) (Linked.Merge.Output.Nil) (Clean.Merge.Idle) (Merge.Pull.Left) (Merge.Pull.Right) (Merge.Await.Both)
+[Clean.Merge.Begin.Up.Stale] (Merge.Mode.Up) (Linked.Merge.Output.Nil) (Clean.Merge.Idle) (Merge.Turn) (Merge.Turned) (Merge.Pull.Right) (Merge.Await.Both)
+[Merge.Turn, Merge.Lane.Stale] Function.Vector.Reverse
+[Return.Vector.Reverse, Merge.Turned] Take.Merge.Draw.Left
+
 [Return.Natural.Compare.Less, Merge.Mode.Down] (Merge.Mode.Down) (Merge.Emit.Right) (Merge.Placed) (Merge.Hold.Left) (Merge.Pull.Right) (Merge.Await.Right)
 [Return.Natural.Compare.Equal, Merge.Mode.Down] (Merge.Mode.Down) (Merge.Emit.Left) (Merge.Placed) (Merge.Hold.Right) (Merge.Pull.Left) (Merge.Await.Left)
 [Return.Natural.Compare.Greater, Merge.Mode.Down] (Merge.Mode.Down) (Merge.Emit.Left) (Merge.Placed) (Merge.Hold.Right) (Merge.Pull.Left) (Merge.Await.Left)

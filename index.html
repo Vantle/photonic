@@ -851,9 +851,9 @@ bazel test -c opt //program/composition:function.check //library:test</code></pr
 <p>A tie takes the item from the earlier run, which makes the sort stable. Sorted and strictly decreasing inputs form one run and finish after <em>n</em> − 1 comparisons. Otherwise the sort makes at most <em>n</em> − 1 + <em>n</em>⌈log₂ <em>r</em>⌉ comparisons and O(<em>n</em> log <em>r</em>) reference moves. Powersort and Timsort choose merges from run lengths or positions, which also balances runs of very different lengths; tracking lengths here needs natural arithmetic at every run boundary, so the passes balance merges by run count, which is optimal when runs have similar lengths. Each merge passes one idle token from insert to insert, so vector acknowledgements never race.</p>
 <div class="table-scroll"><table>
 <tr><th>Input, values below 1000 unless noted</th><th>Items</th><th>Comparisons</th><th>⌈log₂ n!⌉</th><th>Events</th></tr>
-<tr><td>Seeded random</td><td>16</td><td>47</td><td>45</td><td>8,335</td></tr>
-<tr><td>Seeded random</td><td>32</td><td>129</td><td>118</td><td>23,349</td></tr>
-<tr><td>Seeded random below 10</td><td>32</td><td>129</td><td>118</td><td>13,647</td></tr>
+<tr><td>Seeded random</td><td>16</td><td>47</td><td>45</td><td>8,332</td></tr>
+<tr><td>Seeded random</td><td>32</td><td>129</td><td>118</td><td>23,346</td></tr>
+<tr><td>Seeded random below 10</td><td>32</td><td>129</td><td>118</td><td>13,643</td></tr>
 <tr><td>Sorted</td><td>32</td><td>31</td><td>—</td><td>5,756</td></tr>
 <tr><td>Strictly decreasing</td><td>32</td><td>31</td><td>—</td><td>5,034</td></tr>
 <tr><td>Constant</td><td>32</td><td>31</td><td>—</td><td>5,772</td></tr>
