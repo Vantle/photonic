@@ -1,6 +1,5 @@
 use crate::catalog::source;
-use crate::fixture::{Fixture, Random, Value, digit, trace, value};
-use photonic::prism::Outcome;
+use crate::fixture::{Fixture, Random, Value, digit, reach, value};
 
 fn library() -> [&'static str; 10] {
     [
@@ -26,8 +25,12 @@ fn apply(item: &[Value], request: &str, answer: &str, expected: &[Value]) {
     fixture.rule(format!("[Clean.{built}, {made}] {request}"));
     fixture.rule(format!("[{answer}] {check}"));
     fixture.inspect(&Value::Vector(expected.to_vec()), &check, "Done");
-    let summary = trace(&fixture.source(), "Done", &library());
-    assert_eq!(summary.outcome, Outcome::Reached, "{request} {item:?}");
+    reach(
+        &fixture.source(),
+        "Done",
+        &library(),
+        format_args!("{request} {item:?}"),
+    );
 }
 
 fn sort(item: &[Vec<u64>]) {
@@ -118,8 +121,12 @@ fn erase() {
         let built = fixture.stage();
         fixture.vector(&item, fixture.start(), &made, &built);
         fixture.rule(format!("[Clean.{built}, {made}] Function.Vector.Erase"));
-        let summary = trace(&fixture.source(), "Return.Vector.Erase", &library());
-        assert_eq!(summary.outcome, Outcome::Reached, "{item:?}");
+        reach(
+            &fixture.source(),
+            "Return.Vector.Erase",
+            &library(),
+            format_args!("{item:?}"),
+        );
     }
 }
 

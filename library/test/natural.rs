@@ -1,6 +1,5 @@
 use crate::catalog::LIBRARY;
-use crate::fixture::{Fixture, Random, digit, trace, value};
-use photonic::prism::Outcome;
+use crate::fixture::{Fixture, Random, digit, reach, value};
 use std::cmp::Ordering;
 
 fn library() -> Vec<&'static str> {
@@ -23,8 +22,12 @@ fn verify(source: String, answer: &[(&str, Option<Vec<u64>>)], fixture: &mut Fix
             checked
         })
         .collect::<Vec<_>>();
-    let summary = trace(&fixture.source(), &checked.join(", "), &library());
-    assert_eq!(summary.outcome, Outcome::Reached, "{source} => {answer:?}");
+    reach(
+        &fixture.source(),
+        &checked.join(", "),
+        &library(),
+        format_args!("{source} => {answer:?}"),
+    );
 }
 
 fn binary(operation: &str, left: &[u64], right: &[u64], answer: &[(&str, Option<Vec<u64>>)]) {

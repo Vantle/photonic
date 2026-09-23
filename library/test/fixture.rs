@@ -1,5 +1,7 @@
-use photonic::path::{Search, Summary};
+use photonic::path::Search;
+use photonic::prism::Outcome;
 use photonic::runtime::Limit;
+use std::fmt::Display;
 
 pub fn digit(mut value: u64) -> Vec<u64> {
     let mut digit = Vec::new();
@@ -146,7 +148,7 @@ impl Fixture {
     }
 }
 
-pub fn trace(source: &str, target: &str, library: &[&str]) -> Summary {
+pub fn reach(source: &str, target: &str, library: &[&str], context: impl Display) {
     let program = crate::program(source, library);
     let target = crate::target(&program, target);
     let mut search = Search::new(program, target);
@@ -160,7 +162,7 @@ pub fn trace(source: &str, target: &str, library: &[&str]) -> Summary {
             frame: 2048,
         },
     );
-    search.summary()
+    assert_eq!(search.summary().outcome, Outcome::Reached, "{context}");
 }
 
 pub struct Random(u64);

@@ -1,5 +1,5 @@
 use crate::catalog::LIBRARY;
-use crate::fixture::{Fixture, Value, digit, trace, value};
+use crate::fixture::{Fixture, Value, digit, reach, value};
 use crate::{check, witness};
 use photonic::prism::Outcome;
 
@@ -89,6 +89,5 @@ fn sort() {
         &check,
         "Done",
     );
-    let summary = trace(&fixture.source(), "Done", &library());
-    assert_eq!(summary.outcome, Outcome::Reached);
+    reach(&fixture.source(), "Done", &library(), "sort");
 }
