@@ -340,7 +340,7 @@ fn unfinished() {
 
 #[test]
 fn snapshot() {
-    let budget = Arc::new(crate::factor::Budget::new(65536));
+    let budget = Arc::new(crate::budget::Budget::new(65536));
     let mut trace = super::trace::Trace::new(budget.clone(), 1).unwrap();
     for length in [3, 1, 5, 2] {
         for _ in 0..length {

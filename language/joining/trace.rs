@@ -1,6 +1,6 @@
 use super::binding::{Binding, Selection};
 use super::slot::Slot;
-use crate::factor::Budget;
+use crate::budget::Budget;
 use std::sync::Arc;
 use std::task::Poll;
 

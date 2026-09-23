@@ -1,8 +1,6 @@
-use super::key::Key;
 use super::trace::Trace;
-use crate::factor::Budget;
+use crate::budget::Reservation;
 use crate::index::Index;
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, Weak};
 
 struct Version {
@@ -11,20 +9,15 @@ struct Version {
 }
 
 pub(super) struct Node {
-    key: Arc<Key>,
-    budget: Arc<Budget>,
-    accounting: Arc<AtomicUsize>,
     version: Mutex<Option<Version>>,
+    _reservation: Reservation,
 }
 
 impl Node {
-    pub fn new(key: Arc<Key>, budget: Arc<Budget>, accounting: Arc<AtomicUsize>) -> Self {
-        accounting.fetch_add(key.retained(), Ordering::Relaxed);
+    pub fn new(reservation: Reservation) -> Self {
         Self {
-            key,
-            budget,
-            accounting,
             version: Mutex::new(None),
+            _reservation: reservation,
         }
     }
 
@@ -51,13 +44,5 @@ impl Node {
             revision: index.revision().clone(),
             trace: Arc::downgrade(trace),
         });
-    }
-}
-
-impl Drop for Node {
-    fn drop(&mut self) {
-        let retained = self.key.retained();
-        self.budget.release(retained);
-        self.accounting.fetch_sub(retained, Ordering::Relaxed);
     }
 }

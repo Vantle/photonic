@@ -1,6 +1,6 @@
 use super::super::slot::Slot;
 use super::{Record, Trace};
-use crate::factor::Budget;
+use crate::budget::Budget;
 use crate::joining::playback::Playback;
 use std::sync::Arc;
 use std::task::Poll;

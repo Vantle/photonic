@@ -1,18 +1,17 @@
 use super::{Request, Store};
-use crate::factor::Budget;
+use crate::budget::Account;
 use crate::particle::Match;
 use crate::pattern::Pattern;
 use crate::program::Symbol;
 use crate::state::{Token, World};
 use crate::term::Term;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::task::Poll;
 
 #[test]
 fn isolation() {
-    let accounting = Arc::new(AtomicUsize::new(0));
-    let store = Store::new(Arc::new(Budget::new(4096)), accounting.clone());
+    let account = Account::new(4096);
+    let store = Store::new(account.clone());
     let mut seed = 43u64;
     let mut next = |bound| {
         seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1);
@@ -62,7 +61,7 @@ fn isolation() {
                     assert_eq!(left.step(), expected);
                     if pass == 1 {
                         store.evict();
-                        assert_eq!(accounting.load(Ordering::Relaxed), 0);
+                        assert_eq!(account.retained(), 0);
                     }
                     assert_eq!(right.step(), expected);
                     if matches!(expected, Poll::Ready(None)) {
@@ -76,13 +75,13 @@ fn isolation() {
         }
     }
     store.evict();
-    assert_eq!(accounting.load(Ordering::Relaxed), 0);
+    assert_eq!(account.retained(), 0);
 }
 
 #[test]
 fn identity() {
-    let accounting = Arc::new(AtomicUsize::new(0));
-    let store = Store::new(Arc::new(Budget::new(4096)), accounting.clone());
+    let account = Account::new(4096);
+    let store = Store::new(account.clone());
     let pattern = Arc::new(Pattern::new(&[Symbol::Rule(0)]));
     let mut world = Arc::new(World {
         frame: 0,
@@ -118,14 +117,14 @@ fn identity() {
     original.reset();
     assert_eq!(original.step(), Poll::Ready(Some(vec![0])));
     store.evict();
-    assert_eq!(accounting.load(Ordering::Relaxed), 0);
+    assert_eq!(account.retained(), 0);
 }
 
 #[test]
 fn saturation() {
     for capacity in [0, 1, 4, 16, 64] {
-        let accounting = Arc::new(AtomicUsize::new(0));
-        let store = Store::new(Arc::new(Budget::new(capacity)), accounting.clone());
+        let account = Account::new(capacity);
+        let store = Store::new(account.clone());
         let pattern = Arc::new(Pattern::new(&[Symbol::Atom(0); 2]));
         for id in 0..128 {
             let world = Arc::new(World {
@@ -151,10 +150,10 @@ fn saturation() {
                     break;
                 }
             }
-            assert!(accounting.load(Ordering::Relaxed) <= capacity);
+            assert!(account.retained() <= capacity);
         }
         store.evict();
-        assert_eq!(accounting.load(Ordering::Relaxed), 0);
+        assert_eq!(account.retained(), 0);
     }
 }
 

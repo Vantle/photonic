@@ -19,14 +19,14 @@ enum Mode {
 
 pub(super) struct Stream {
     source: Cursor,
-    budget: Arc<crate::factor::Budget>,
+    budget: Arc<crate::budget::Budget>,
     node: Option<Arc<Node>>,
     mode: Mode,
     restoration: Option<usize>,
 }
 
 impl Stream {
-    pub fn new(width: usize, budget: Arc<crate::factor::Budget>, node: Option<Arc<Node>>) -> Self {
+    pub fn new(width: usize, budget: Arc<crate::budget::Budget>, node: Option<Arc<Node>>) -> Self {
         Self {
             source: Cursor::new(width),
             budget,

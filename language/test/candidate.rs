@@ -1,11 +1,10 @@
 use super::{Request, Store};
-use crate::factor::Budget;
+use crate::budget::Account;
 use crate::index::Index;
 use crate::program::{Program, Symbol};
 use crate::state::State;
 use crate::term::Term;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicUsize, Ordering};
 
 fn scan(index: &Index, pattern: &[Term], frame: usize) -> Vec<usize> {
     index
@@ -28,9 +27,8 @@ fn mutation() {
     let program =
         Program::new(&crate::lowering::parse(&vec!["A.B,B.C,A.C"; 32].join(",")).unwrap());
     for capacity in [0, 3, 32, 65536] {
-        let budget = Arc::new(Budget::new(capacity));
-        let accounting = Arc::new(AtomicUsize::new(0));
-        let store = Store::new(budget.clone(), accounting.clone());
+        let account = Account::new(capacity);
+        let store = Store::new(account.clone());
         let mut state = State::initial(&program);
         let mut index = Index::new(Arc::new(state.clone()));
         let pattern = [
@@ -76,13 +74,13 @@ fn mutation() {
             if iteration % 5 == 0 {
                 store.evict();
             }
-            assert!(accounting.load(Ordering::Relaxed) <= capacity);
+            assert!(account.retained() <= capacity);
         }
         drop(initial);
         store.evict();
-        assert_eq!(accounting.load(Ordering::Relaxed), 0);
-        assert!(budget.reserve(capacity));
-        budget.release(capacity);
+        assert_eq!(account.retained(), 0);
+        assert!(account.budget().reserve(capacity));
+        account.budget().release(capacity);
     }
 }
 
@@ -91,9 +89,8 @@ fn identity() {
     let program =
         Program::new(&crate::lowering::parse(&vec!["A.B.([X] Y)"; 40].join(",")).unwrap());
     let mut state = State::initial(&program);
-    let budget = Arc::new(Budget::new(65536));
-    let accounting = Arc::new(AtomicUsize::new(0));
-    let store = Store::new(budget, accounting);
+    let account = Account::new(65536);
+    let store = Store::new(account);
     let pattern = [
         Term::new(Symbol::Atom(0), None),
         Term::new(Symbol::Atom(1), None),
@@ -163,9 +160,8 @@ fn continuity() {
         Program::new(&crate::lowering::parse(&format!("{},C", vec!["A.B"; 40].join(","))).unwrap());
     let mut state = State::initial(&program);
     let mut index = Index::new(Arc::new(state.clone()));
-    let budget = Arc::new(Budget::new(65536));
-    let accounting = Arc::new(AtomicUsize::new(0));
-    let store = Store::new(budget, accounting);
+    let account = Account::new(65536);
+    let store = Store::new(account);
     let pattern = [
         Term::new(Symbol::Atom(0), None),
         Term::new(Symbol::Atom(1), None),
@@ -240,7 +236,7 @@ fn context() {
             .collect(),
     };
     let mut index = Index::new(Arc::new(state.clone()));
-    let store = Store::new(Arc::new(Budget::new(65536)), Arc::new(AtomicUsize::new(0)));
+    let store = Store::new(Account::new(65536));
     let mut subscription = Vec::new();
     for frame in 0..2 {
         for capture in 0..2 {
@@ -299,9 +295,8 @@ fn saturation() {
     let program = Program::new(&crate::lowering::parse(&vec!["A.B"; 40].join(",")).unwrap());
     let mut state = State::initial(&program);
     let mut index = Index::new(Arc::new(state.clone()));
-    let budget = Arc::new(Budget::new(64));
-    let accounting = Arc::new(AtomicUsize::new(0));
-    let store = Store::new(budget.clone(), accounting.clone());
+    let account = Account::new(64);
+    let store = Store::new(account.clone());
     let pattern = [
         Term::new(Symbol::Atom(0), None),
         Term::new(Symbol::Atom(1), None),
@@ -322,14 +317,14 @@ fn saturation() {
     let current = node.select(&index);
     assert_eq!(current.site, scan(&index, &pattern, 0));
     assert!(!current.admitted());
-    assert!(accounting.load(Ordering::Relaxed) <= 64);
+    assert!(account.retained() <= 64);
     drop(previous);
     assert!(node.select(&index).admitted());
     store.evict();
     drop(node);
     drop(current);
-    assert_eq!(accounting.load(Ordering::Relaxed), 0);
-    assert!(budget.reserve(64));
+    assert_eq!(account.retained(), 0);
+    assert!(account.budget().reserve(64));
 }
 
 #[test]
@@ -338,13 +333,12 @@ fn concurrency() {
     let initial = State::initial(&program);
     let mut reversed = initial.clone();
     reversed.world = initial.world.iter().rev().cloned().collect();
-    let budget = Arc::new(Budget::new(128));
-    let accounting = Arc::new(AtomicUsize::new(0));
-    let store = Store::new(budget.clone(), accounting.clone());
+    let account = Account::new(128);
+    let store = Store::new(account.clone());
     std::thread::scope(|scope| {
         for state in [initial, reversed] {
             let store = &store;
-            let accounting = &accounting;
+            let account = &account;
             scope.spawn(move || {
                 let index = Index::new(Arc::new(state));
                 let pattern = [
@@ -366,14 +360,14 @@ fn concurrency() {
                     if iteration % 17 == 0 {
                         store.evict();
                     }
-                    assert!(accounting.load(Ordering::Relaxed) <= 128);
+                    assert!(account.retained() <= 128);
                 }
             });
         }
     });
     store.evict();
-    assert_eq!(accounting.load(Ordering::Relaxed), 0);
-    assert!(budget.reserve(128));
+    assert_eq!(account.retained(), 0);
+    assert!(account.budget().reserve(128));
 }
 
 #[test]
@@ -382,9 +376,8 @@ fn growth() {
     let mut state = State::initial(&program);
     let original = state.world[0].clone();
     let mut index = Index::new(Arc::new(state.clone()));
-    let budget = Arc::new(Budget::new(65536));
-    let accounting = Arc::new(AtomicUsize::new(0));
-    let store = Store::new(budget.clone(), accounting.clone());
+    let account = Account::new(65536);
+    let store = Store::new(account.clone());
     let pattern = [
         Term::new(Symbol::Atom(0), None),
         Term::new(Symbol::Atom(1), None),
@@ -424,6 +417,6 @@ fn growth() {
     drop(change);
     drop(node);
     store.evict();
-    assert_eq!(accounting.load(Ordering::Relaxed), 0);
-    assert!(budget.reserve(65536));
+    assert_eq!(account.retained(), 0);
+    assert!(account.budget().reserve(65536));
 }

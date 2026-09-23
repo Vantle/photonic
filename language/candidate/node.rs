@@ -1,9 +1,8 @@
 use super::key::Key;
 use super::selection::Selection;
-use crate::factor::Budget;
+use crate::budget::Account;
+use crate::budget::Reservation;
 use crate::index::Index;
-use crate::reservation::Reservation;
-use std::sync::atomic::AtomicUsize;
 use std::sync::{Arc, Mutex};
 
 struct Version {
@@ -15,23 +14,16 @@ struct Version {
 
 pub(crate) struct Node {
     key: Arc<Key>,
-    budget: Arc<Budget>,
-    accounting: Arc<AtomicUsize>,
+    account: Account,
     version: Mutex<Option<Version>>,
     _reservation: Reservation,
 }
 
 impl Node {
-    pub(super) fn new(
-        key: Arc<Key>,
-        budget: Arc<Budget>,
-        accounting: Arc<AtomicUsize>,
-        reservation: Reservation,
-    ) -> Self {
+    pub(super) fn new(key: Arc<Key>, account: Account, reservation: Reservation) -> Self {
         Self {
             key,
-            budget,
-            accounting,
+            account,
             version: Mutex::new(None),
             _reservation: reservation,
         }
@@ -68,7 +60,7 @@ impl Node {
             version.selection = Some(selection);
             return version;
         }
-        let insertion = Selection::new(self.key.insertion(index), &self.budget, &self.accounting);
+        let insertion = Selection::new(self.key.insertion(index), &self.account);
         if insertion.site.is_empty() && !selection.site.iter().any(|&site| index.removed(site)) {
             version.selection = Some(selection);
         } else {
@@ -80,7 +72,7 @@ impl Node {
                 .collect::<Vec<_>>();
             site.extend(&insertion.site);
             drop(selection);
-            let selection = Selection::new(site, &self.budget, &self.accounting);
+            let selection = Selection::new(site, &self.account);
             if selection.admitted() {
                 version.selection = Some(selection);
             }
@@ -97,7 +89,7 @@ impl Node {
         if let Some(selection) = &version.selection {
             return selection.clone();
         }
-        let selection = Selection::new(self.key.select(index), &self.budget, &self.accounting);
+        let selection = Selection::new(self.key.select(index), &self.account);
         if selection.admitted() {
             version.selection = Some(selection.clone());
         }
@@ -122,7 +114,7 @@ impl Node {
             } else {
                 Vec::new()
             };
-            let selection = Selection::new(site, &self.budget, &self.accounting);
+            let selection = Selection::new(site, &self.account);
             if selection.admitted() {
                 version.insertion = Some(selection.clone());
             }

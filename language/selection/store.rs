@@ -1,13 +1,12 @@
-use crate::factor::Budget;
+use crate::budget::{Account, Reservation};
 use crate::hashing::Builder;
 use crate::particle::Match;
 use crate::pattern::Pattern;
 use crate::preparation::cache::{Cache, Request};
-use crate::reservation::Reservation;
 use crate::state::World;
 use crate::term::Term;
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 
 struct Entry {
@@ -84,20 +83,17 @@ impl Store {
 }
 
 struct Storage {
-    budget: Arc<Budget>,
-    accounting: Arc<AtomicUsize>,
+    account: Account,
     preparation: Cache<Pattern<Term>>,
     fragment: Mutex<HashMap<Vec<Term>, Entry, Builder>>,
 }
 
 impl Storage {
     pub fn new(capacity: usize) -> Self {
-        let budget = Arc::new(Budget::new(capacity));
-        let accounting = Arc::new(AtomicUsize::new(0));
+        let account = Account::new(capacity);
         Self {
-            preparation: Cache::new(budget.clone(), accounting.clone()),
-            budget,
-            accounting,
+            preparation: Cache::new(account.clone()),
+            account,
             fragment: Mutex::new(HashMap::default()),
         }
     }
@@ -116,11 +112,10 @@ impl Storage {
             return entry.pattern.clone();
         }
         let retained = value.len() * 2 + pattern.width + pattern.group.len() * 2 + 4;
-        let reservation =
-            Reservation::new(&self.budget, &self.accounting, retained).or_else(|| {
-                fragment.retain(|_, entry| Arc::strong_count(&entry.pattern) > 1);
-                Reservation::new(&self.budget, &self.accounting, retained)
-            });
+        let reservation = self.account.reserve(retained).or_else(|| {
+            fragment.retain(|_, entry| Arc::strong_count(&entry.pattern) > 1);
+            self.account.reserve(retained)
+        });
         if let Some(reservation) = reservation {
             fragment.insert(
                 value,
@@ -150,6 +145,6 @@ impl Storage {
     }
 
     pub fn retained(&self) -> usize {
-        self.accounting.load(Ordering::Relaxed)
+        self.account.retained()
     }
 }

@@ -1,7 +1,7 @@
 use super::playback::Playback;
 use super::slot::Slot;
 use super::trace::Trace;
-use crate::factor::Budget;
+use crate::budget::Budget;
 use serde::Serialize;
 use std::hint::black_box;
 use std::sync::Arc;

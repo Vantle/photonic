@@ -1,11 +1,9 @@
 use super::key::Key;
-use crate::factor::Budget;
+use crate::budget::{Account, Reservation};
 use crate::hashing::Builder;
 use crate::particle::{Match, Preparation};
-use crate::reservation::Reservation;
 use crate::state::World;
 use std::collections::HashMap;
-use std::sync::atomic::AtomicUsize;
 use std::sync::{Arc, Mutex};
 
 pub(crate) struct Request<'a, Value> {
@@ -20,16 +18,14 @@ struct Entry {
 }
 
 pub(crate) struct Cache<Value> {
-    budget: Arc<Budget>,
-    accounting: Arc<AtomicUsize>,
+    account: Account,
     entry: Mutex<HashMap<Key<Value>, Entry, Builder>>,
 }
 
 impl<Value> Cache<Value> {
-    pub fn new(budget: Arc<Budget>, accounting: Arc<AtomicUsize>) -> Self {
+    pub fn new(account: Account) -> Self {
         Self {
-            budget,
-            accounting,
+            account,
             entry: Mutex::new(HashMap::default()),
         }
     }
@@ -47,11 +43,10 @@ impl<Value> Cache<Value> {
         }
         let preparation = search.preparation();
         let retained = preparation.retained() + 4;
-        let reservation =
-            Reservation::new(&self.budget, &self.accounting, retained).or_else(|| {
-                entry.retain(|key, _| key.alive());
-                Reservation::new(&self.budget, &self.accounting, retained)
-            });
+        let reservation = self.account.reserve(retained).or_else(|| {
+            entry.retain(|key, _| key.alive());
+            self.account.reserve(retained)
+        });
         if let Some(reservation) = reservation {
             entry.insert(
                 key,

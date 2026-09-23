@@ -1,34 +1,7 @@
+use crate::budget::Budget;
 use crate::particle::Match;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::task::Poll;
-
-pub(crate) struct Budget {
-    capacity: usize,
-    retained: AtomicUsize,
-}
-
-impl Budget {
-    pub fn new(capacity: usize) -> Self {
-        Self {
-            capacity,
-            retained: AtomicUsize::new(0),
-        }
-    }
-
-    pub fn reserve(&self, size: usize) -> bool {
-        self.retained
-            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |retained| {
-                retained
-                    .checked_add(size)
-                    .filter(|&next| next <= self.capacity)
-            })
-            .is_ok()
-    }
-    pub fn release(&self, size: usize) {
-        self.retained.fetch_sub(size, Ordering::Relaxed);
-    }
-}
 
 enum Mode {
     Fresh,

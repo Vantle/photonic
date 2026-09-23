@@ -1,10 +1,8 @@
 use super::key::Key;
 use super::transcript::Transcript;
-use crate::factor::Budget;
+use crate::budget::{Account, Reservation};
 use crate::hashing::Builder;
-use crate::reservation::Reservation;
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
 pub(super) struct Entry {
@@ -15,8 +13,7 @@ pub(super) struct Entry {
 pub(crate) struct Store {
     entry: Mutex<HashMap<Key, Arc<Entry>, Builder>>,
     capacity: usize,
-    budget: Arc<Budget>,
-    accounting: Arc<AtomicUsize>,
+    account: Account,
 }
 
 impl Store {
@@ -24,8 +21,7 @@ impl Store {
         Self {
             entry: Mutex::new(HashMap::default()),
             capacity,
-            budget: Arc::new(Budget::new(capacity)),
-            accounting: Arc::new(AtomicUsize::new(0)),
+            account: Account::new(capacity),
         }
     }
 
@@ -44,7 +40,7 @@ impl Store {
         }
         entry.retain(|key, _| key.alive());
         let size = key.retained() + transcript.retained + 1;
-        let Some(reservation) = Reservation::new(&self.budget, &self.accounting, size) else {
+        let Some(reservation) = self.account.reserve(size) else {
             return;
         };
         entry.insert(
@@ -57,7 +53,7 @@ impl Store {
     }
 
     pub fn retained(&self) -> usize {
-        self.accounting.load(Ordering::Relaxed)
+        self.account.retained()
     }
 
     pub fn evict(&self) {

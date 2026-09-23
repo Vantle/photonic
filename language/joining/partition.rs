@@ -6,7 +6,7 @@ use super::retention::Retention;
 use super::slot::Slot;
 use super::space::Space;
 use super::trace::{self, Trace};
-use crate::factor::Budget;
+use crate::budget::Budget;
 use crate::index::Index;
 use std::sync::Arc;
 use std::task::Poll;

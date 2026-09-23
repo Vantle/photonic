@@ -4,15 +4,13 @@ mod selection;
 
 pub(crate) use node::Node;
 
-use crate::factor::Budget;
+use crate::budget::Account;
 use crate::hashing::Builder;
 use crate::index::Index;
-use crate::reservation::Reservation;
 use crate::term::Term;
 use key::Key;
 use selection::Selection;
 use std::collections::HashMap;
-use std::sync::atomic::AtomicUsize;
 use std::sync::{Arc, Mutex};
 
 pub(crate) struct Request<'a, Pattern> {
@@ -32,16 +30,14 @@ pub(crate) struct Domain {
 }
 
 pub(crate) struct Store {
-    budget: Arc<Budget>,
-    accounting: Arc<AtomicUsize>,
+    account: Account,
     node: Mutex<HashMap<Arc<Key>, Arc<Node>, Builder>>,
 }
 
 impl Store {
-    pub fn new(budget: Arc<Budget>, accounting: Arc<AtomicUsize>) -> Self {
+    pub fn new(account: Account) -> Self {
         Self {
-            budget,
-            accounting,
+            account,
             node: Mutex::new(HashMap::default()),
         }
     }
@@ -66,22 +62,16 @@ impl Store {
                 node: Some(node.clone()),
             };
         }
-        let reservation =
-            Reservation::new(&self.budget, &self.accounting, key.retained()).or_else(|| {
-                node.retain(|_, node| Arc::strong_count(node) > 1);
-                Reservation::new(&self.budget, &self.accounting, key.retained())
-            });
+        let reservation = self.account.reserve(key.retained()).or_else(|| {
+            node.retain(|_, node| Arc::strong_count(node) > 1);
+            self.account.reserve(key.retained())
+        });
         let Some(reservation) = reservation else {
             return Domain { site, node: None };
         };
         let key = Arc::new(key);
-        let entry = Arc::new(Node::new(
-            key.clone(),
-            self.budget.clone(),
-            self.accounting.clone(),
-            reservation,
-        ));
-        let selection = Selection::new(site, &self.budget, &self.accounting);
+        let entry = Arc::new(Node::new(key.clone(), self.account.clone(), reservation));
+        let selection = Selection::new(site, &self.account);
         entry.publish(request.index, &selection);
         node.insert(key, entry.clone());
         Domain {

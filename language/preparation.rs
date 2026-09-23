@@ -1,14 +1,13 @@
 pub(crate) mod cache;
 mod key;
 
-use crate::factor::Budget;
+use crate::budget::Account;
 use crate::particle::Match;
 use crate::pattern::Pattern;
 use crate::program::Symbol;
 use crate::state::World;
 use cache::Cache;
 use std::sync::Arc;
-use std::sync::atomic::AtomicUsize;
 
 pub(crate) struct Request<'a> {
     pub pattern: &'a Arc<Pattern>,
@@ -19,8 +18,8 @@ pub(crate) struct Request<'a> {
 pub(crate) struct Store(Cache<Pattern>);
 
 impl Store {
-    pub fn new(budget: Arc<Budget>, accounting: Arc<AtomicUsize>) -> Self {
-        Self(Cache::new(budget, accounting))
+    pub fn new(account: Account) -> Self {
+        Self(Cache::new(account))
     }
 
     pub fn select(&self, request: Request<'_>) -> Match {
