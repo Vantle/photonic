@@ -162,6 +162,11 @@ fn empty() {
             "False",
             source("boolean", "or"),
         ),
+        (
+            "Invoke.Empty.Reduce.([Operation] Boolean.Equal)",
+            "True",
+            source("boolean", "equal"),
+        ),
     ] {
         check(source, target, &[invoke(), library], Outcome::Reached);
     }

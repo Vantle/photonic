@@ -2,3 +2,4 @@
 [Function.Boolean.Equal.True.False] Return.False
 [Function.Boolean.Equal.False.False] Return.True
 [Boolean.Equal.([Operation] Boolean.Equal)] Function.Boolean.Equal
+[Function.Empty.Reduce.([Operation] Boolean.Equal)] Return.True
