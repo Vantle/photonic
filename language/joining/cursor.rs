@@ -149,7 +149,7 @@ impl Cursor {
             .unwrap();
         let result = if space.store.is_some() {
             let previous = particle.cached();
-            let result = particle.step(4096 - space.cached);
+            let result = particle.step(super::trace::CAPACITY - space.cached);
             space.cached = space.cached - previous + particle.cached();
             space.retained = space.retained - previous + particle.cached();
             result

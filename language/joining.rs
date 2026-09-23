@@ -137,7 +137,7 @@ impl Join {
             && order.len() >= 3
             && order[..order.len() - 1]
                 .iter()
-                .any(|&position| space.query.width(position) >= 8)
+                .any(|&position| crate::particle::wide(space.query.width(position)))
         {
             let width = order.len() - 1;
             return Some(match strategy {

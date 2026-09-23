@@ -5,7 +5,7 @@ use super::prefix::Prefix;
 use super::retention::Retention;
 use super::slot::Slot;
 use super::space::Space;
-use super::trace::Trace;
+use super::trace::{self, Trace};
 use crate::factor::Budget;
 use crate::index::Index;
 use std::sync::Arc;
@@ -82,7 +82,7 @@ impl Partition {
         let dependency = space.dependency(member.site, self.source.binding(), order, index);
         let record = self.record.take(&dependency).or_else(|| {
             let retained = dependency.retained();
-            if retained > 4096 - self.cached {
+            if retained > trace::CAPACITY - self.cached {
                 return None;
             }
             let trace = Trace::new(self.budget.clone(), retained)?;
@@ -126,10 +126,10 @@ impl Partition {
             return result;
         };
         let previous = active.trace.retained;
-        if self.playback.progress == 65536
+        if self.playback.progress == trace::LENGTH
             || !active
                 .trace
-                .append(&result, self.depth.., 4096 - self.cached)
+                .append(&result, self.depth.., trace::CAPACITY - self.cached)
         {
             self.finish();
             return result;

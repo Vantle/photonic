@@ -44,7 +44,10 @@ impl Selection {
         order.sort_by_key(|&position| candidate[position].len());
         Self {
             shared: None,
-            fragment: if pattern.iter().any(|particle| particle.len() >= 8) {
+            fragment: if pattern
+                .iter()
+                .any(|particle| crate::particle::wide(particle.len()))
+            {
                 (0..pattern.len())
                     .map(|_| std::sync::OnceLock::new())
                     .collect()
@@ -96,7 +99,7 @@ impl Selection {
         }
         let world = &index.state.world[index.world(site)];
         let particle = &world.particle;
-        if self.pattern[position].len() < 8 {
+        if !crate::particle::wide(self.pattern[position].len()) {
             return crate::particle::Match::new(&self.pattern[position], particle);
         }
         let pattern = self.fragment[position].get_or_init(|| {

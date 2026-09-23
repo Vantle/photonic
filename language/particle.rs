@@ -7,6 +7,10 @@ use smallvec::SmallVec;
 use std::sync::Arc;
 use std::task::Poll;
 
+pub(crate) fn wide(width: usize) -> bool {
+    width >= 8
+}
+
 pub(crate) struct Preparation {
     group: SmallVec<[Group; 1]>,
     width: usize,

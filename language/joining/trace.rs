@@ -4,6 +4,9 @@ use crate::factor::Budget;
 use std::sync::Arc;
 use std::task::Poll;
 
+pub(super) const CAPACITY: usize = 4096;
+pub(super) const LENGTH: usize = 65_536;
+
 #[derive(Clone)]
 pub(super) enum Record {
     Waiting(usize),
@@ -22,7 +25,7 @@ pub(super) struct Trace {
 
 impl Trace {
     pub fn new(budget: Arc<Budget>, header: usize) -> Option<Self> {
-        (header <= 4096 && budget.reserve(header)).then(|| Self {
+        (header <= CAPACITY && budget.reserve(header)).then(|| Self {
             budget,
             header: header.try_into().unwrap(),
             binding: 0,
@@ -34,7 +37,7 @@ impl Trace {
     }
 
     fn reserve(&mut self, size: usize, allowance: usize) -> bool {
-        if size > allowance || size > 4096 - self.retained || !self.budget.reserve(size) {
+        if size > allowance || size > CAPACITY - self.retained || !self.budget.reserve(size) {
             return false;
         }
         self.retained += size;
@@ -101,7 +104,7 @@ impl Trace {
         let Some(length) = self
             .length
             .checked_add(trace.length)
-            .filter(|&length| length <= 65536)
+            .filter(|&length| length <= LENGTH)
         else {
             return false;
         };

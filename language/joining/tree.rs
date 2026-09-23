@@ -92,7 +92,7 @@ impl Tree {
             layer.prepare(
                 space.dependency(member.site, self.source.binding(), order, index),
                 &self.budget,
-                4096 - self.cached,
+                super::trace::CAPACITY - self.cached,
             );
             self.cached = self.cached - previous + layer.cached;
             if let Some(active) = layer.take() {
@@ -115,7 +115,7 @@ impl Tree {
             layer.extend(
                 trace,
                 &self.source.binding()[layer.depth..depth],
-                4096 - self.cached,
+                super::trace::CAPACITY - self.cached,
             );
             self.cached = self.cached - previous + layer.cached;
         }
@@ -124,7 +124,7 @@ impl Tree {
     fn emit(&mut self, result: &Poll<Option<Vec<Slot>>>) {
         for layer in &mut self.layer {
             let previous = layer.cached;
-            layer.append(result, 4096 - self.cached);
+            layer.append(result, super::trace::CAPACITY - self.cached);
             if self.source.boundary(layer.depth).is_some() {
                 layer.seal();
             }

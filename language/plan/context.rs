@@ -115,7 +115,7 @@ impl Context {
         {
             return crate::particle::Match::impossible();
         }
-        if pattern.width >= 8
+        if crate::particle::wide(pattern.width)
             && world.particle.len() >= 32
             && let Some(shared) = shared
         {

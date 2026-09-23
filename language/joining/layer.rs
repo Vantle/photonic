@@ -1,7 +1,7 @@
 use super::dependency::Dependency;
 use super::retention::Retention;
 use super::slot::Slot;
-use super::trace::Trace;
+use super::trace::{self, Trace};
 use crate::factor::Budget;
 use crate::index::Index;
 use std::sync::Arc;
@@ -66,7 +66,9 @@ impl Layer {
             return;
         };
         let previous = active.trace.retained;
-        if active.trace.length >= 65536 || !active.trace.append(result, self.depth.., allowance) {
+        if active.trace.length >= trace::LENGTH
+            || !active.trace.append(result, self.depth.., allowance)
+        {
             self.finish();
             return;
         }
@@ -85,7 +87,7 @@ impl Layer {
             return;
         };
         let previous = active.trace.retained;
-        if active.trace.length >= 65536 || !active.trace.extend(trace, prefix, allowance) {
+        if active.trace.length >= trace::LENGTH || !active.trace.extend(trace, prefix, allowance) {
             self.finish();
             return;
         }

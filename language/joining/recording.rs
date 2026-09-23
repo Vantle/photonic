@@ -1,7 +1,7 @@
 use super::node::Node;
 use super::playback::Playback;
 use super::slot::Slot;
-use super::trace::Trace;
+use super::trace::{self, Trace};
 use crate::index::Index;
 use std::sync::Arc;
 use std::task::Poll;
@@ -40,15 +40,15 @@ impl Recording {
     }
 
     pub fn append(&mut self, result: &Poll<Option<Vec<Slot>>>) -> bool {
-        if self.playback.progress == 65536 {
+        if self.playback.progress == trace::LENGTH {
             return false;
         }
-        let allowance = 4096 - self.retained();
+        let allowance = trace::CAPACITY - self.retained();
         let mut recorded = Arc::get_mut(&mut self.trace)
             .unwrap()
             .append(result, 0.., allowance);
         if !recorded && self.publication.take().is_some() {
-            let allowance = 4096 - self.trace.retained;
+            let allowance = trace::CAPACITY - self.trace.retained;
             recorded = Arc::get_mut(&mut self.trace)
                 .unwrap()
                 .append(result, 0.., allowance);
@@ -75,7 +75,7 @@ impl Recording {
         }
         self.threshold *= 2;
         self.publication = None;
-        if let Some(trace) = self.trace.duplicate(4096 - self.trace.retained) {
+        if let Some(trace) = self.trace.duplicate(trace::CAPACITY - self.trace.retained) {
             let trace = Arc::new(trace);
             node.publish(index, &trace);
             self.publication = Some(trace);

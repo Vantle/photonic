@@ -99,11 +99,15 @@ impl Space {
             + query.retained()
             + domain.iter().map(|member| member.len() + 1).sum::<usize>();
         let shared = store
-            .filter(|_| (0..query.count()).any(|position| query.width(position) >= 8))
+            .filter(|_| {
+                (0..query.count()).any(|position| crate::particle::wide(query.width(position)))
+            })
             .map(|store| store.preparation.clone());
         let store = store
             .filter(|_| {
-                query.count() > 1 && (0..query.count()).any(|position| query.width(position) >= 8)
+                query.count() > 1
+                    && (0..query.count())
+                        .any(|position| crate::particle::wide(query.width(position)))
             })
             .cloned();
         Some(Self {
@@ -191,7 +195,7 @@ impl Space {
             let budget = self
                 .store
                 .as_ref()
-                .filter(|_| self.query.width(position) >= 8)
+                .filter(|_| crate::particle::wide(self.query.width(position)))
                 .map(|store| store.budget().clone());
             member.rejected = !particle.viable();
             member.particle = Some(crate::factor::Cursor::new(particle, budget));
