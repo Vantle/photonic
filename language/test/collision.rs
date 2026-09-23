@@ -1,4 +1,4 @@
-use super::{Record, Search};
+use super::{Record, Search, Stage};
 use crate::program::{Program, Symbol};
 use crate::state::{Frame, State, Token, World};
 use std::sync::Arc;
@@ -106,11 +106,9 @@ fn fallback() {
         crate::fingerprint::state(&ring),
         smallvec::smallvec![0],
     )]);
-    search.initial = true;
-    search.reached = false;
+    search.stage = Stage::Initial;
     search.run(100_000, crate::runtime::Limit::default());
-    assert!(!search.reached);
-    assert!(!search.cycle);
+    assert!(search.stage == Stage::Walk);
     assert_eq!(search.event.len(), 0);
     assert!(search.state[0].canonical.get().is_some());
 }
@@ -223,10 +221,10 @@ fn reporting() {
                 serde_json::to_value(actual.statistic()).unwrap(),
                 serde_json::to_value(expected.statistic()).unwrap()
             );
-            if actual.reached {
+            if actual.reached() {
                 break;
             }
         }
-        assert!(actual.reached, "{source}");
+        assert!(actual.reached(), "{source}");
     }
 }

@@ -116,6 +116,19 @@ struct Step {
     event: OnceLock<Event>,
 }
 
+struct Pending {
+    event: crate::reduction::Event,
+    record: Record,
+}
+
+#[derive(Clone, Copy, Eq, PartialEq)]
+enum Stage {
+    Initial,
+    Walk,
+    Reached,
+    Cycle,
+}
+
 pub struct Search {
     program: source::Program,
     compiled: Arc<Program>,
@@ -127,13 +140,10 @@ pub struct Search {
     state: Vec<Record>,
     index: HashMap<u64, SmallVec<[usize; 1]>, Builder>,
     event: Vec<Step>,
-    pending: Option<crate::reduction::Event>,
-    candidate: Option<Record>,
-    initial: bool,
+    pending: Option<Pending>,
+    stage: Stage,
     cursor: usize,
     work: usize,
-    cycle: bool,
-    reached: bool,
 }
 
 impl Search {
@@ -144,7 +154,13 @@ impl Search {
         let goal = State::configuration(&goal.initial, &goal.rule);
         let signature = crate::fingerprint::state(&goal);
         let fingerprint = crate::fingerprint::state(&initial);
-        let reached = initial.as_ref() == &goal;
+        let stage = if initial.as_ref() == &goal {
+            Stage::Reached
+        } else if signature == fingerprint {
+            Stage::Initial
+        } else {
+            Stage::Walk
+        };
         let compiled = Arc::new(compiled);
         Self {
             program,
@@ -158,12 +174,9 @@ impl Search {
             index: HashMap::from_iter([(fingerprint, smallvec![0])]),
             event: Vec::new(),
             pending: None,
-            candidate: None,
-            initial: signature == fingerprint,
+            stage,
             cursor: 0,
             work: 0,
-            cycle: false,
-            reached,
         }
     }
 
@@ -172,56 +185,22 @@ impl Search {
         while remaining > 0 {
             remaining -= 1;
             let work = self.work;
-            if self.reached || self.cycle {
+            if matches!(self.stage, Stage::Reached | Stage::Cycle) || !self.fits(limit.record) {
                 return;
             }
-            let mut retained = self.state.len()
-                + self.event.len()
-                + self.runtime.record()
-                + self.structure.retained()
-                + self
-                    .pending
-                    .as_ref()
-                    .map_or(0, |event| event.fingerprint.retained() + 1)
-                + usize::from(self.candidate.is_some());
-            if retained >= limit.record {
-                retained -= self.runtime.evict();
-                retained -= self
-                    .pending
-                    .as_mut()
-                    .map_or(0, |event| event.fingerprint.evict());
-                retained -= self.structure.retained();
-                self.structure = crate::structure::Structure::default();
-                if retained >= limit.record {
-                    return;
-                }
-            }
-            if self.initial {
-                if self.goal.canonical.get().is_none() {
-                    self.goal.advance();
-                    self.work += 1;
-                    continue;
-                }
-                if self.state[0].canonical.get().is_none() {
-                    self.state[0].advance();
-                    self.work += 1;
-                    continue;
-                }
-                self.reached = self.goal.canonical().state == self.state[0].canonical().state;
-                self.initial = false;
+            if self.stage == Stage::Initial {
+                self.initialize();
                 continue;
             }
-            if self.pending.is_none() && self.candidate.is_none() {
+            let (event, mut record) = if let Some(Pending { event, record }) = self.pending.take() {
+                (event, record)
+            } else {
                 let skipped = self.runtime.skip(remaining + 1);
                 if skipped > 0 {
                     self.work += skipped;
                     remaining -= skipped - 1;
                     continue;
                 }
-            }
-            let event = if let Some(event) = self.pending.take() {
-                event
-            } else {
                 let work = self.runtime.work;
                 let event = self.runtime.run(limit);
                 self.work += self.runtime.work - work;
@@ -231,13 +210,10 @@ impl Search {
                     }
                     continue;
                 };
-                event
+                let record = Record::new(event.state.clone());
+                (event, record)
             };
             let fingerprint = event.fingerprint.value;
-            let mut record = self
-                .candidate
-                .take()
-                .unwrap_or_else(|| Record::new(event.state.clone()));
             if record.signature.get().is_none()
                 && (self.signature == fingerprint || self.index.contains_key(&fingerprint))
             {
@@ -245,34 +221,21 @@ impl Search {
                 record.signature.set(signature).unwrap();
             }
             let goal = self.signature == fingerprint && record.compatible(&self.goal);
-            let comparison = goal
-                || self.index.get(&fingerprint).is_some_and(|candidate| {
-                    candidate
-                        .iter()
-                        .any(|&index| self.state[index].compatible(&record))
-                });
-            if comparison {
+            if goal || self.comparable(&record, fingerprint) {
                 let stalled = self.work != work;
                 if stalled || self.normalize(&mut record, goal, fingerprint) {
                     self.work += usize::from(!stalled);
-                    self.pending = Some(event);
-                    self.candidate = Some(record);
+                    self.pending = Some(Pending { event, record });
                     continue;
                 }
             }
-            let known = self.index.get(&fingerprint).and_then(|candidate| {
-                candidate.iter().copied().find(|&index| {
-                    self.state[index].compatible(&record)
-                        && self.state[index].canonical().state == record.canonical().state
-                })
-            });
+            let known = self.known(&record, fingerprint);
             if known.is_none() && self.state.len() >= limit.state {
-                self.pending = Some(event);
-                self.candidate = Some(record);
+                self.pending = Some(Pending { event, record });
                 return;
             }
             let target = known.unwrap_or(self.state.len());
-            self.reached = goal && record.canonical().state == self.goal.canonical().state;
+            let reached = goal && record.canonical().state == self.goal.canonical().state;
             if known.is_none() {
                 self.state.push(record);
                 self.index.entry(fingerprint).or_default().push(target);
@@ -287,8 +250,79 @@ impl Search {
                 event: OnceLock::new(),
             });
             self.cursor = target;
-            self.cycle = known.is_some();
+            self.stage = if reached {
+                Stage::Reached
+            } else if known.is_some() {
+                Stage::Cycle
+            } else {
+                Stage::Walk
+            };
         }
+    }
+
+    fn retained(&self) -> usize {
+        self.state.len()
+            + self.event.len()
+            + self.runtime.record()
+            + self.structure.retained()
+            + self
+                .pending
+                .as_ref()
+                .map_or(0, |pending| pending.event.fingerprint.retained() + 2)
+    }
+
+    fn fits(&mut self, record: usize) -> bool {
+        let mut retained = self.retained();
+        if retained < record {
+            return true;
+        }
+        retained -= self.runtime.evict();
+        retained -= self
+            .pending
+            .as_mut()
+            .map_or(0, |pending| pending.event.fingerprint.evict());
+        retained -= self.structure.retained();
+        self.structure = crate::structure::Structure::default();
+        retained < record
+    }
+
+    fn initialize(&mut self) {
+        if self.goal.canonical.get().is_none() {
+            self.goal.advance();
+            self.work += 1;
+            return;
+        }
+        if self.state[0].canonical.get().is_none() {
+            self.state[0].advance();
+            self.work += 1;
+            return;
+        }
+        self.stage = if self.goal.canonical().state == self.state[0].canonical().state {
+            Stage::Reached
+        } else {
+            Stage::Walk
+        };
+    }
+
+    fn comparable(&self, record: &Record, fingerprint: u64) -> bool {
+        self.index.get(&fingerprint).is_some_and(|candidate| {
+            candidate
+                .iter()
+                .any(|&index| self.state[index].compatible(record))
+        })
+    }
+
+    fn known(&self, record: &Record, fingerprint: u64) -> Option<usize> {
+        self.index.get(&fingerprint).and_then(|candidate| {
+            candidate.iter().copied().find(|&index| {
+                self.state[index].compatible(record)
+                    && self.state[index].canonical().state == record.canonical().state
+            })
+        })
+    }
+
+    fn reached(&self) -> bool {
+        self.stage == Stage::Reached
     }
 
     fn normalize(&mut self, record: &mut Record, goal: bool, fingerprint: u64) -> bool {
@@ -370,7 +404,7 @@ impl Search {
     }
 
     fn outcome(&self) -> Outcome {
-        if self.reached {
+        if self.reached() {
             Outcome::Reached
         } else {
             Outcome::Unknown
@@ -380,7 +414,7 @@ impl Search {
     pub fn summary(&self) -> Summary {
         Summary {
             outcome: self.outcome(),
-            witness: self.reached.then(|| self.current()),
+            witness: self.reached().then(|| self.current()),
             event: self.event.len(),
             work: self.work,
         }

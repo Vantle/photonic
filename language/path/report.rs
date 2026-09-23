@@ -28,7 +28,7 @@ impl Search {
         Report {
             definition: self.definition(),
             outcome: self.outcome(),
-            witness: self.reached.then_some(self.cursor),
+            witness: self.reached().then_some(self.cursor),
             work: self.work,
             program: &self.program,
             target: &self.claim,
@@ -41,7 +41,7 @@ impl Search {
         Report {
             definition: self.definition(),
             outcome: self.outcome(),
-            witness: self.reached.then_some(self.cursor),
+            witness: self.reached().then_some(self.cursor),
             work: self.work,
             program: self.program.clone(),
             target: self.claim.clone(),
