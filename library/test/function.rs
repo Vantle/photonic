@@ -1,6 +1,5 @@
 use crate::catalog::source;
 use crate::{check, program, witness};
-use photonic::lowering::parse;
 use photonic::prism::{Outcome, Search};
 use photonic::runtime::Limit;
 
@@ -196,10 +195,7 @@ fn deterministic(source: &str, target: &str, library: &[&str]) {
         let executor = photonic::executor::Executor::new(worker).unwrap();
         let mut search = {
             let program = program(source, library);
-            let target = photonic::source::Program {
-                rule: program.rule.clone(),
-                ..parse(target).unwrap()
-            };
+            let target = crate::target(&program, target);
             Search::new(program, target)
         };
         search.parallel(&executor, 1, None);

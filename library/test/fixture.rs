@@ -1,4 +1,3 @@
-use photonic::lowering::parse;
 use photonic::path::{Search, Summary};
 use photonic::runtime::Limit;
 
@@ -149,10 +148,7 @@ impl Fixture {
 
 pub fn trace(source: &str, target: &str, library: &[&str]) -> Summary {
     let program = crate::program(source, library);
-    let target = photonic::source::Program {
-        rule: program.rule.clone(),
-        ..parse(target).unwrap()
-    };
+    let target = crate::target(&program, target);
     let mut search = Search::new(program, target);
     search.run(
         200_000_000,

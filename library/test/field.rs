@@ -1,5 +1,5 @@
 use crate::catalog::source;
-use crate::check;
+use crate::{answer, check};
 use photonic::prism::Outcome;
 
 fn library() -> [&'static str; 3] {
@@ -50,25 +50,18 @@ fn boundary() {
 fn table() {
     for index in 0..4 {
         for value in 0..3 {
-            for expected in 0..3 {
-                let outcome = if expected == value {
-                    Outcome::Reached
-                } else {
-                    Outcome::Unreachable
-                };
-                check(
-                    &format!("Invoke.Field.Unpack.([Position] {index}).([{index}] {value})"),
-                    &format!("([Value] {expected})"),
-                    &library(),
-                    outcome,
-                );
-                check(
-                    &format!("Invoke.Field.Pack.([Position] {index}).([Value] {value})"),
-                    &format!("([{index}] {expected})"),
-                    &library(),
-                    outcome,
-                );
-            }
+            answer(
+                &format!("Invoke.Field.Unpack.([Position] {index}).([{index}] {value})"),
+                &format!("([Value] {value})"),
+                (0..3).map(|candidate| format!("([Value] {candidate})")),
+                &library(),
+            );
+            answer(
+                &format!("Invoke.Field.Pack.([Position] {index}).([Value] {value})"),
+                &format!("([{index}] {value})"),
+                (0..3).map(|candidate| format!("([{index}] {candidate})")),
+                &library(),
+            );
         }
     }
 }

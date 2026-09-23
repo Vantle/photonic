@@ -1,6 +1,8 @@
 use crate::catalog::source;
-use crate::check;
+use crate::{answer, check};
 use photonic::prism::Outcome;
+
+const VALUE: [&str; 2] = ["False", "True"];
 
 fn library() -> [&'static str; 5] {
     [
@@ -14,43 +16,27 @@ fn library() -> [&'static str; 5] {
 
 #[test]
 fn table() {
-    let value = ["False", "True"];
-    for left in 0..2 {
-        let source = format!("Invoke.Boolean.Not.{}", value[left]);
-        for (index, &target) in value.iter().enumerate() {
-            check(
-                &source,
-                target,
-                &library(),
-                if index == 1 - left {
-                    Outcome::Reached
-                } else {
-                    Outcome::Unreachable
-                },
-            );
-        }
-        for right in 0..2 {
+    for left in [false, true] {
+        let first = VALUE[usize::from(left)];
+        answer(
+            &format!("Invoke.Boolean.Not.{first}"),
+            VALUE[usize::from(!left)],
+            VALUE,
+            &library(),
+        );
+        for right in [false, true] {
+            let second = VALUE[usize::from(right)];
             for (operation, result) in [
-                ("And", left == 1 && right == 1),
-                ("Or", left == 1 || right == 1),
+                ("And", left && right),
+                ("Or", left || right),
                 ("Equal", left == right),
             ] {
-                let source = format!(
-                    "Invoke.Boolean.{operation}.{}.{}",
-                    value[left], value[right]
+                answer(
+                    &format!("Invoke.Boolean.{operation}.{first}.{second}"),
+                    VALUE[usize::from(result)],
+                    VALUE,
+                    &library(),
                 );
-                for (index, &target) in value.iter().enumerate() {
-                    check(
-                        &source,
-                        target,
-                        &library(),
-                        if index == usize::from(result) {
-                            Outcome::Reached
-                        } else {
-                            Outcome::Unreachable
-                        },
-                    );
-                }
             }
         }
     }

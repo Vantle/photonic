@@ -1,6 +1,7 @@
 use crate::catalog::source;
-use crate::check;
+use crate::{answer, check};
 use photonic::prism::Outcome;
+use std::cmp::Ordering;
 
 const DIGIT: [&str; 3] = ["0", "1", "2"];
 
@@ -25,24 +26,21 @@ fn result(value: usize) -> String {
     )
 }
 
+fn difference(digit: &str, borrow: &str) -> String {
+    format!("([Digit] {digit}).([Borrow] {borrow})")
+}
+
 #[test]
 fn product() {
     for (left, first) in DIGIT.iter().enumerate() {
         for (right, second) in DIGIT.iter().enumerate() {
             for (operation, expected) in [("Add", left + right), ("Multiply", left * right)] {
-                let source = format!("Invoke.Ternary.{operation}.{first}.{second}");
-                for value in 0..9 {
-                    check(
-                        &source,
-                        &result(value),
-                        &library(),
-                        if value == expected {
-                            Outcome::Reached
-                        } else {
-                            Outcome::Unreachable
-                        },
-                    );
-                }
+                answer(
+                    &format!("Invoke.Ternary.{operation}.{first}.{second}"),
+                    &result(expected),
+                    (0..9).map(result),
+                    &library(),
+                );
             }
         }
     }
@@ -53,19 +51,12 @@ fn sum() {
     for (left, first) in DIGIT.iter().enumerate() {
         for (right, second) in DIGIT.iter().enumerate() {
             for (carry, third) in DIGIT.iter().enumerate() {
-                let source = format!("Invoke.Ternary.Sum.{first}.{second}.{third}");
-                for value in 0..9 {
-                    check(
-                        &source,
-                        &result(value),
-                        &library(),
-                        if value == left + right + carry {
-                            Outcome::Reached
-                        } else {
-                            Outcome::Unreachable
-                        },
-                    );
-                }
+                answer(
+                    &format!("Invoke.Ternary.Sum.{first}.{second}.{third}"),
+                    &result(left + right + carry),
+                    (0..9).map(result),
+                    &library(),
+                );
             }
         }
     }
@@ -76,26 +67,19 @@ fn subtract() {
     for (left, first) in DIGIT.iter().enumerate() {
         for (right, second) in DIGIT.iter().enumerate() {
             for (borrow, third) in DIGIT[..2].iter().enumerate() {
-                let value = left as isize - right as isize - borrow as isize;
-                let source = format!(
-                    "Invoke.Ternary.Subtract.([Left] {first}).([Right] {second}).([Borrow] {third})"
+                let value = left + 3 - right - borrow;
+                answer(
+                    &format!(
+                        "Invoke.Ternary.Subtract.([Left] {first}).([Right] {second}).([Borrow] {third})"
+                    ),
+                    &difference(DIGIT[value % 3], DIGIT[usize::from(value < 3)]),
+                    DIGIT.iter().flat_map(|digit| {
+                        DIGIT[..2]
+                            .iter()
+                            .map(move |borrow| difference(digit, borrow))
+                    }),
+                    &library(),
                 );
-                for (digit, name) in DIGIT.iter().enumerate() {
-                    for (negative, flag) in DIGIT[..2].iter().enumerate() {
-                        check(
-                            &source,
-                            &format!("([Digit] {name}).([Borrow] {flag})"),
-                            &library(),
-                            if digit as isize == value.rem_euclid(3)
-                                && (negative == 1) == (value < 0)
-                            {
-                                Outcome::Reached
-                            } else {
-                                Outcome::Unreachable
-                            },
-                        );
-                    }
-                }
             }
         }
     }
@@ -103,25 +87,17 @@ fn subtract() {
 
 #[test]
 fn select() {
-    for (left, first) in DIGIT.iter().enumerate() {
-        for (right, second) in DIGIT.iter().enumerate() {
-            for (choice, third) in DIGIT[..2].iter().enumerate() {
-                let source = format!(
-                    "Invoke.Ternary.Select.([Left] {first}).([Right] {second}).([Choice] {third})"
+    for first in DIGIT {
+        for second in DIGIT {
+            for (choice, chosen) in [("0", first), ("1", second)] {
+                answer(
+                    &format!(
+                        "Invoke.Ternary.Select.([Left] {first}).([Right] {second}).([Choice] {choice})"
+                    ),
+                    &format!("([Digit] {chosen})"),
+                    DIGIT.map(|digit| format!("([Digit] {digit})")),
+                    &library(),
                 );
-                let expected = if choice == 0 { left } else { right };
-                for (digit, name) in DIGIT.iter().enumerate() {
-                    check(
-                        &source,
-                        &format!("([Digit] {name})"),
-                        &library(),
-                        if digit == expected {
-                            Outcome::Reached
-                        } else {
-                            Outcome::Unreachable
-                        },
-                    );
-                }
             }
         }
     }
@@ -143,24 +119,16 @@ fn successor() {
 fn compare() {
     for (left, first) in DIGIT.iter().enumerate() {
         for (right, second) in DIGIT.iter().enumerate() {
-            let source = format!("Invoke.Ternary.Compare.([Left] {first}).([Right] {second})");
-            let expected = match left.cmp(&right) {
-                std::cmp::Ordering::Less => "Less",
-                std::cmp::Ordering::Equal => "Equal",
-                std::cmp::Ordering::Greater => "Greater",
-            };
-            for target in ["Less", "Equal", "Greater"] {
-                check(
-                    &source,
-                    target,
-                    &library(),
-                    if target == expected {
-                        Outcome::Reached
-                    } else {
-                        Outcome::Unreachable
-                    },
-                );
-            }
+            answer(
+                &format!("Invoke.Ternary.Compare.([Left] {first}).([Right] {second})"),
+                match left.cmp(&right) {
+                    Ordering::Less => "Less",
+                    Ordering::Equal => "Equal",
+                    Ordering::Greater => "Greater",
+                },
+                ["Less", "Equal", "Greater"],
+                &library(),
+            );
         }
     }
 }

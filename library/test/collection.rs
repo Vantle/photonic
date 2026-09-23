@@ -1,5 +1,5 @@
 use crate::catalog::source;
-use crate::{check, witness};
+use crate::{answer, check, witness};
 use photonic::prism::Outcome;
 
 fn invoke() -> &'static str {
@@ -74,16 +74,11 @@ fn order() {
     for left in ["True", "False"] {
         for right in ["True", "False"] {
             for condition in ["True", "False"] {
-                let source =
-                    format!("Invoke.Pair.Choose.{condition}.([Left] {left}).([Right] {right})");
-                let expected = if condition == "True" { left } else { right };
-                let library = [invoke(), collection("choose")];
-                check(&source, expected, &library, Outcome::Reached);
-                check(
-                    &source,
-                    if expected == "True" { "False" } else { "True" },
-                    &library,
-                    Outcome::Unreachable,
+                answer(
+                    &format!("Invoke.Pair.Choose.{condition}.([Left] {left}).([Right] {right})"),
+                    if condition == "True" { left } else { right },
+                    ["True", "False"],
+                    &[invoke(), collection("choose")],
                 );
             }
         }

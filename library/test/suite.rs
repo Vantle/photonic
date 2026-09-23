@@ -27,14 +27,18 @@ pub fn program(source: &str, library: &[&str]) -> photonic::source::Program {
     .unwrap()
 }
 
+pub fn target(program: &photonic::source::Program, text: &str) -> photonic::source::Program {
+    photonic::source::Program {
+        rule: program.rule.clone(),
+        ..parse(text).unwrap()
+    }
+}
+
 pub fn check(source: &str, target: &str, library: &[&str], expected: Outcome) {
     let program = program(source, library);
     let cell = 128 + program.rule.len();
     let mut search = {
-        let target = photonic::source::Program {
-            rule: program.rule.clone(),
-            ..parse(target).unwrap()
-        };
+        let target = self::target(&program, target);
         Search::new(program, target)
     };
     search.run(
@@ -57,14 +61,35 @@ pub fn check(source: &str, target: &str, library: &[&str], expected: Outcome) {
     assert_eq!(report.outcome, expected, "{source} => {target}");
 }
 
+pub fn answer(
+    source: &str,
+    expected: &str,
+    candidate: impl IntoIterator<Item = impl AsRef<str>>,
+    library: &[&str],
+) {
+    let mut found = false;
+    for target in candidate {
+        let target = target.as_ref();
+        found |= target == expected;
+        check(
+            source,
+            target,
+            library,
+            if target == expected {
+                Outcome::Reached
+            } else {
+                Outcome::Unreachable
+            },
+        );
+    }
+    assert!(found, "{source}: {expected} is not a candidate");
+}
+
 pub fn witness(source: &str, target: &str, library: &[&str]) -> photonic::path::Report {
     let program = program(source, library);
     let cell = 256 + program.rule.len();
     let mut search = {
-        let target = photonic::source::Program {
-            rule: program.rule.clone(),
-            ..parse(target).unwrap()
-        };
+        let target = self::target(&program, target);
         photonic::path::Search::new(program, target)
     };
     search.run(
