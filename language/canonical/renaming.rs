@@ -1,5 +1,6 @@
 use crate::incidence::{Incidence, Label};
 use crate::link::Link;
+use crate::profile;
 use crate::state::{Canonical, State};
 use smallvec::SmallVec;
 
@@ -9,9 +10,7 @@ pub(super) fn rename(
     world: &[usize],
     frame: &[usize],
 ) -> Canonical {
-    #[cfg(feature = "measurement")]
-    let _measurement =
-        crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Renaming);
+    let _scope = profile::Scope::new(profile::Phase::Renaming);
     state.remap(world, frame, |_| {
         let mut position = vec![0; incidence.label.len() - incidence.resource.len()];
         for (ordinal, &index) in world.iter().enumerate() {

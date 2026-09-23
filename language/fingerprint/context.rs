@@ -1,6 +1,7 @@
 use super::{particle, symbol};
 use crate::accumulator::Accumulator;
 use crate::hashing::mix;
+use crate::profile;
 use crate::state::{Frame, State};
 use std::sync::Arc;
 
@@ -11,9 +12,7 @@ pub(super) struct Index {
 }
 
 fn initial(frame: &Frame) -> u64 {
-    #[cfg(feature = "measurement")]
-    let _measurement =
-        crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Color);
+    let _scope = profile::Scope::new(profile::Phase::Color);
     mix(frame.scope as u64)
         .wrapping_add(Accumulator::collect(
             frame.held.iter().map(|token| symbol(token.value)),
@@ -25,9 +24,7 @@ fn initial(frame: &Frame) -> u64 {
 }
 
 fn refine(frame: &Frame, previous: &[u64]) -> u64 {
-    #[cfg(feature = "measurement")]
-    let _measurement =
-        crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Color);
+    let _scope = profile::Scope::new(profile::Phase::Color);
     mix(frame.scope as u64)
         .wrapping_add(particle(&frame.held, previous))
         .wrapping_add(particle(&frame.particle, previous).rotate_left(7))

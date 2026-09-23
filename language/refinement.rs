@@ -1,3 +1,4 @@
+use crate::profile;
 use crate::state::State;
 
 pub struct Refinement {
@@ -8,9 +9,7 @@ pub struct Refinement {
 
 impl Refinement {
     pub fn new(state: &State) -> Self {
-        #[cfg(feature = "measurement")]
-        let _measurement =
-            crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Refinement);
+        let _scope = profile::Scope::new(profile::Phase::Refinement);
         let incidence = crate::incidence::Incidence::new(state);
         let color = crate::partition::refine(
             &incidence.edge,

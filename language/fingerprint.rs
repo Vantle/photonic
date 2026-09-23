@@ -1,5 +1,6 @@
 use crate::accumulator::Accumulator;
 use crate::hashing::mix;
+use crate::profile;
 use crate::program::Symbol;
 use crate::state::{State, Token};
 use std::sync::Arc;
@@ -91,10 +92,7 @@ impl Index {
         change: &crate::change::Change,
         layout: crate::layout::Layout,
     ) -> Self {
-        #[cfg(feature = "measurement")]
-        let _measurement = crate::measurement::profile::Scope::new(
-            crate::measurement::profile::Phase::Fingerprint,
-        );
+        let _scope = profile::Scope::new(profile::Phase::Fingerprint);
         let (frame, changed) = self.frame.advance(&state, &change.frame);
         let mut world = self.world.clone();
         let mut aggregate = self.aggregate;

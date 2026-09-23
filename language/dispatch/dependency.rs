@@ -1,15 +1,13 @@
 use super::{Key, Network};
 use crate::index::Index;
+use crate::profile;
 use crate::program::Symbol;
 use smallvec::SmallVec;
 use std::collections::BTreeSet;
 
 impl Network {
     pub(super) fn availability(&mut self, index: &Index) {
-        #[cfg(feature = "measurement")]
-        let _measurement = crate::measurement::profile::Scope::new(
-            crate::measurement::profile::Phase::Availability,
-        );
+        let _scope = profile::Scope::new(profile::Phase::Availability);
         let mut insertion = SmallVec::<[Symbol; 4]>::new();
         for &symbol in &index.delta().toggled {
             if index.contains(&symbol) {
@@ -43,9 +41,7 @@ impl Network {
     }
 
     pub(super) fn refresh(&mut self, index: &Index, frame: usize) {
-        #[cfg(feature = "measurement")]
-        let _measurement =
-            crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Refresh);
+        let _scope = profile::Scope::new(profile::Phase::Refresh);
         let count = self.entry.count(frame);
         let dependency = || {
             index

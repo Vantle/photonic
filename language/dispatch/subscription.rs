@@ -1,52 +1,18 @@
+use super::consumer::Request;
 use super::entry::Entry;
 use super::{Key, Network};
 use crate::index::Index;
 use crate::mask::Set;
+use crate::profile;
 use crate::replay::Search;
 use smallvec::SmallVec;
 
 impl Network {
     pub(super) fn frame(&mut self, index: &Index, frame: usize, selected: Option<&Set>) {
-        #[cfg(feature = "measurement")]
-        let _measurement = crate::measurement::profile::Scope::new(
-            crate::measurement::profile::Phase::Subscription,
-        );
+        let _scope = profile::Scope::new(profile::Phase::Subscription);
         let mut request = std::mem::take(&mut self.demand);
         self.request(index, frame, selected, &mut request);
-        #[cfg(feature = "measurement")]
-        let measurement =
-            crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Removal);
-        let interval: SmallVec<[_; 4]> = selected
-            .filter(|selected| selected.len() < self.entry.count(frame))
-            .map_or_else(
-                || smallvec::smallvec![Key::frame(frame)],
-                |selected| {
-                    selected
-                        .iter()
-                        .map(|input| Key::input(frame, input))
-                        .collect()
-                },
-            );
-        let mut expected = request.iter().peekable();
-        for interval in interval {
-            let removal = self.entry.extract(interval, |key, _| {
-                if selected.is_some_and(|selected| !selected.contains(key.input)) {
-                    return false;
-                }
-                while expected.peek().is_some_and(|request| request.key < *key) {
-                    expected.next();
-                }
-                expected.peek().is_none_or(|request| request.key != *key)
-            });
-            for (key, position) in removal {
-                if let Some(ready) = &mut self.ready {
-                    ready.remove(&key);
-                }
-                self.storage -= self.store.remove(position).retained();
-            }
-        }
-        #[cfg(feature = "measurement")]
-        drop(measurement);
+        self.prune(frame, selected, &request);
         let mut group = request.drain(..).peekable();
         while let Some(first) = group.next() {
             let key = first.key;
@@ -57,18 +23,12 @@ impl Network {
             }
             let plan = self.catalog.input(key.input);
             if let Some(&position) = self.entry.get(&key) {
-                #[cfg(feature = "measurement")]
-                let _measurement = crate::measurement::profile::Scope::new(
-                    crate::measurement::profile::Phase::Replacement,
-                );
+                let _scope = profile::Scope::new(profile::Phase::Replacement);
                 let count = consumer.len();
                 let previous = self.store[position].replace(consumer);
                 self.storage = self.storage + count - previous.len();
             } else {
-                #[cfg(feature = "measurement")]
-                let _measurement = crate::measurement::profile::Scope::new(
-                    crate::measurement::profile::Phase::Admission,
-                );
+                let _scope = profile::Scope::new(profile::Phase::Admission);
                 let Some(search) = Search::admit(crate::joining::Request {
                     input: plan,
                     index,
@@ -101,5 +61,38 @@ impl Network {
         }
         drop(group);
         self.demand = request;
+    }
+
+    fn prune(&mut self, frame: usize, selected: Option<&Set>, request: &[Request]) {
+        let _scope = profile::Scope::new(profile::Phase::Removal);
+        let interval: SmallVec<[_; 4]> = selected
+            .filter(|selected| selected.len() < self.entry.count(frame))
+            .map_or_else(
+                || smallvec::smallvec![Key::frame(frame)],
+                |selected| {
+                    selected
+                        .iter()
+                        .map(|input| Key::input(frame, input))
+                        .collect()
+                },
+            );
+        let mut expected = request.iter().peekable();
+        for interval in interval {
+            let removal = self.entry.extract(interval, |key, _| {
+                if selected.is_some_and(|selected| !selected.contains(key.input)) {
+                    return false;
+                }
+                while expected.peek().is_some_and(|request| request.key < *key) {
+                    expected.next();
+                }
+                expected.peek().is_none_or(|request| request.key != *key)
+            });
+            for (key, position) in removal {
+                if let Some(ready) = &mut self.ready {
+                    ready.remove(&key);
+                }
+                self.storage -= self.store.remove(position).retained();
+            }
+        }
     }
 }

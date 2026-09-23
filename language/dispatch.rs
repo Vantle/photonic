@@ -2,6 +2,7 @@ use crate::catalog::Catalog;
 use crate::hashing::Builder;
 use crate::index::Index;
 use crate::mask::Set;
+use crate::profile;
 use crate::program::Symbol;
 use crate::slot::Slot;
 use entry::Entry;
@@ -84,9 +85,7 @@ impl Network {
         if prefix == 0 {
             return 0;
         }
-        #[cfg(feature = "measurement")]
-        let _measurement =
-            crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Matching);
+        let _scope = profile::Scope::new(profile::Phase::Matching);
         let count = if prefix == width {
             minimum.min(maximum / width)
         } else {
@@ -162,9 +161,7 @@ impl Network {
     }
 
     fn reset(&mut self, index: &Index) {
-        #[cfg(feature = "measurement")]
-        let _measurement =
-            crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Restart);
+        let _scope = profile::Scope::new(profile::Phase::Restart);
         self.agenda.clear();
         self.cooldown = 0;
         if self.entry.len() == 0 {
@@ -188,9 +185,7 @@ impl Network {
     }
 
     pub fn advance(&mut self, index: &Index) {
-        #[cfg(feature = "measurement")]
-        let _measurement =
-            crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Dispatch);
+        let _scope = profile::Scope::new(profile::Phase::Dispatch);
         self.generation += 1;
         self.membership.advance(index, &self.catalog);
         self.entry.resize(index.state.frame.len());
@@ -240,9 +235,7 @@ impl Network {
 
     #[inline]
     pub fn next(&mut self, index: &Index) -> Poll<Option<Delivery>> {
-        #[cfg(feature = "measurement")]
-        let _measurement =
-            crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Matching);
+        let _scope = profile::Scope::new(profile::Phase::Matching);
         let Some(position) = self.agenda.pop_front() else {
             return Poll::Ready(None);
         };

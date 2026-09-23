@@ -2,6 +2,7 @@ use crate::basis::Set;
 use crate::flow::{Applied, Binding, Closure, Flow};
 use crate::hashing::Builder;
 use crate::place::Place;
+use crate::profile;
 use crate::program::Instruction;
 use crate::state::{Frame, State, Token};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
@@ -121,9 +122,7 @@ impl Import<'_> {
 }
 
 pub(crate) fn apply(request: Request<'_>) -> Applied {
-    #[cfg(feature = "measurement")]
-    let _measurement =
-        crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Application);
+    let _scope = profile::Scope::new(profile::Phase::Application);
     let Request {
         source,
         scope: catalog,

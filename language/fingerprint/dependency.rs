@@ -1,4 +1,5 @@
 use crate::basis::Set;
+use crate::profile;
 use crate::sequence::List;
 use crate::state::State;
 use imbl::OrdMap;
@@ -39,9 +40,7 @@ struct Change {
 
 impl Index {
     pub fn advance(&self, state: &State, changed: &[usize]) -> Self {
-        #[cfg(feature = "measurement")]
-        let _measurement =
-            crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Dependency);
+        let _scope = profile::Scope::new(profile::Phase::Dependency);
         let mut index = self.clone();
         while index.incoming.len() < state.frame.len() {
             index.incoming.push(Set::default());

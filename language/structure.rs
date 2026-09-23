@@ -1,6 +1,7 @@
 use crate::hashing::Builder;
 use crate::incidence::Label;
 use crate::link::Link;
+use crate::profile;
 use crate::state::{State, Token};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
@@ -172,9 +173,7 @@ impl Structure {
     }
 
     pub fn advance(&mut self, state: &State) -> u64 {
-        #[cfg(feature = "measurement")]
-        let _measurement =
-            crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Structure);
+        let _scope = profile::Scope::new(profile::Phase::Structure);
         let current = state
             .world
             .iter()

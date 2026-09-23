@@ -2,6 +2,7 @@ use crate::change::Change;
 use crate::flow::Binding;
 use crate::layout::Layout;
 use crate::place::Place;
+use crate::profile;
 use crate::program::{Instruction, Scope, Symbol};
 use crate::state::{Frame, State, Token, World};
 use smallvec::SmallVec;
@@ -45,9 +46,7 @@ fn remainder<'source>(
 }
 
 pub(crate) fn apply(request: Request<'_>) -> Result {
-    #[cfg(feature = "measurement")]
-    let _measurement =
-        crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Rewrite);
+    let _scope = profile::Scope::new(profile::Phase::Rewrite);
     let Request {
         source,
         frame,

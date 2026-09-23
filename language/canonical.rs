@@ -1,4 +1,5 @@
 use crate::ordering::Ordering;
+use crate::profile;
 use crate::refinement::Refinement;
 use crate::state::{Canonical, State};
 use std::sync::{Arc, OnceLock};
@@ -56,10 +57,7 @@ impl Search {
     }
 
     pub fn step(&mut self) -> bool {
-        #[cfg(feature = "measurement")]
-        let _measurement = crate::measurement::profile::Scope::new(
-            crate::measurement::profile::Phase::Canonicalization,
-        );
+        let _scope = profile::Scope::new(profile::Phase::Canonicalization);
         if self.complete {
             return true;
         }

@@ -1,6 +1,7 @@
 use super::union::Union;
 use super::{Flow, Place};
 use crate::basis::Set;
+use crate::profile;
 
 #[derive(Default)]
 pub(super) struct Composition {
@@ -34,10 +35,7 @@ impl Composition {
     }
 
     pub fn compose(&mut self, parent: &Flow, event: &Flow) -> Flow {
-        #[cfg(feature = "measurement")]
-        let _measurement = crate::measurement::profile::Scope::new(
-            crate::measurement::profile::Phase::Composition,
-        );
+        let _scope = profile::Scope::new(profile::Phase::Composition);
         Flow {
             resource: event
                 .resource

@@ -1,5 +1,6 @@
 use crate::index::Index;
 use crate::joining::Join;
+use crate::profile;
 use crate::slot::Slot;
 #[cfg(test)]
 use crate::term::Term;
@@ -66,10 +67,6 @@ impl Search {
 
     #[cfg(test)]
     pub fn planned(request: crate::joining::Request<'_>) -> Self {
-        #[cfg(feature = "measurement")]
-        let _measurement = crate::measurement::profile::Scope::new(
-            crate::measurement::profile::Phase::Preparation,
-        );
         Self {
             join: Join::planned(request),
             mode: Mode::Dormant,
@@ -77,10 +74,7 @@ impl Search {
     }
 
     pub fn admit(request: crate::joining::Request<'_>) -> Option<Self> {
-        #[cfg(feature = "measurement")]
-        let _measurement = crate::measurement::profile::Scope::new(
-            crate::measurement::profile::Phase::Preparation,
-        );
+        let _scope = profile::Scope::new(profile::Phase::Preparation);
         Some(Self {
             join: Join::admit(request)?,
             mode: Mode::Dormant,

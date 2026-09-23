@@ -1,5 +1,6 @@
 use crate::hashing::Builder;
 use crate::link::Link;
+use crate::profile;
 use crate::program::{Program, Symbol};
 use smallvec::SmallVec;
 use std::collections::HashMap;
@@ -224,10 +225,7 @@ impl State {
     }
 
     pub fn canonical(&self) -> Canonical {
-        #[cfg(feature = "measurement")]
-        let _measurement = crate::measurement::profile::Scope::new(
-            crate::measurement::profile::Phase::Normalization,
-        );
+        let _scope = profile::Scope::new(profile::Phase::Normalization);
         let mut search = crate::canonical::Search::new(std::sync::Arc::new(self.clone()));
         while !search.step() {}
         search
@@ -236,9 +234,7 @@ impl State {
     }
 
     pub(crate) fn rename(&self, world: &[usize], frame: &[usize]) -> Canonical {
-        #[cfg(feature = "measurement")]
-        let _measurement =
-            crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Renaming);
+        let _scope = profile::Scope::new(profile::Phase::Renaming);
         self.remap(world, frame, |mapping| {
             let mut incidence = HashMap::<
                 usize,

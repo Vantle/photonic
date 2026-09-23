@@ -12,7 +12,7 @@ pub struct Measurement {
     work: usize,
     statistic: photonic::path::Statistic,
     #[cfg(feature = "measurement")]
-    phase: Vec<photonic::measurement::profile::Measurement>,
+    phase: Vec<photonic::profile::Measurement>,
 }
 
 pub fn evaluate(
@@ -31,7 +31,7 @@ pub fn evaluate(
     let mut search = Search::new(program, target);
     let initialization = start.elapsed().as_secs_f64();
     #[cfg(feature = "measurement")]
-    photonic::measurement::profile::take();
+    photonic::profile::take();
     let start = Instant::now();
     search.run(100_000_000, limit);
     let execution = start.elapsed().as_secs_f64();
@@ -45,7 +45,7 @@ pub fn evaluate(
         work: summary.work,
         statistic,
         #[cfg(feature = "measurement")]
-        phase: photonic::measurement::profile::take(),
+        phase: photonic::profile::take(),
     }
 }
 

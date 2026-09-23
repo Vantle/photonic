@@ -1,6 +1,7 @@
 use super::Index;
 use crate::change::Change;
 use crate::location::Location;
+use crate::profile;
 use crate::state::State;
 
 pub(super) struct Context {
@@ -15,9 +16,7 @@ impl Index {
         change: &Change,
         reach: &crate::reachability::Index,
     ) -> Context {
-        #[cfg(feature = "measurement")]
-        let _measurement =
-            crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Context);
+        let _scope = profile::Scope::new(profile::Phase::Context);
         let changed = change
             .frame
             .iter()

@@ -46,6 +46,7 @@ mod position;
 mod prefix;
 mod preparation;
 pub mod prism;
+pub mod profile;
 mod program;
 mod proof;
 mod propagation;

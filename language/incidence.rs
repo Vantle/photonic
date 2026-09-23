@@ -1,5 +1,6 @@
 use crate::hashing::Builder;
 use crate::link::Link;
+use crate::profile;
 use crate::program::Symbol;
 use crate::state::State;
 use std::collections::HashMap;
@@ -30,9 +31,7 @@ fn connect(edge: &mut Vec<(usize, usize, Link)>, source: usize, target: usize, k
 
 impl Incidence {
     pub fn new(state: &State) -> Self {
-        #[cfg(feature = "measurement")]
-        let _measurement =
-            crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Incidence);
+        let _scope = profile::Scope::new(profile::Phase::Incidence);
         let retained = state.reachable();
         let mut label = vec![Label::World; state.world.len()];
         let mut frame = vec![0; state.frame.len()];

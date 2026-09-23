@@ -2,6 +2,7 @@ mod sequence;
 
 pub(crate) use sequence::Sequence;
 
+use crate::profile;
 use crate::program::{Program, Symbol};
 use crate::snapshot::{Frame, Node, Token, World};
 use crate::state::State;
@@ -72,9 +73,7 @@ impl<'program> Builder<'program> {
     }
 
     pub(crate) fn node(&mut self, id: usize, state: &State, status: Status) -> Node {
-        #[cfg(feature = "measurement")]
-        let _measurement =
-            crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Rendering);
+        let _scope = profile::Scope::new(profile::Phase::Rendering);
         Node {
             id,
             world: state

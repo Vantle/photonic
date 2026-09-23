@@ -1,5 +1,6 @@
 use super::Index;
 use crate::location::Location;
+use crate::profile;
 use crate::state::State;
 use crate::term::Term;
 use std::sync::Arc;
@@ -17,9 +18,7 @@ impl Index {
         change: &crate::change::Change,
         reach: crate::reachability::Index,
     ) {
-        #[cfg(feature = "measurement")]
-        let _measurement =
-            crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Index);
+        let _scope = profile::Scope::new(profile::Phase::Index);
         self.previous = self.revision.take();
         let removed = &change.world;
         self.delta.clear();

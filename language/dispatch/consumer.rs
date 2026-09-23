@@ -2,6 +2,7 @@ use super::entry::Consumer;
 use super::{Key, Network};
 use crate::index::Index;
 use crate::mask::Set;
+use crate::profile;
 use crate::reader::Read;
 
 #[derive(Clone, Copy, Eq, Ord, PartialEq, PartialOrd)]
@@ -24,9 +25,7 @@ impl Network {
         selected: Option<&Set>,
         request: &mut Vec<Request>,
     ) {
-        #[cfg(feature = "measurement")]
-        let _measurement =
-            crate::measurement::profile::Scope::new(crate::measurement::profile::Phase::Request);
+        let _scope = profile::Scope::new(profile::Phase::Request);
         if self.enabled.is_empty() || !index.present(frame) {
             return;
         }

@@ -2,6 +2,7 @@ use super::composition::Composition;
 use super::{Flow, Place};
 use crate::basis::Set;
 use crate::hashing::Builder;
+use crate::profile;
 use std::collections::HashMap;
 
 pub(super) struct Template {
@@ -57,10 +58,7 @@ impl Template {
     }
 
     pub fn compose(&self, parent: &Flow, composition: &mut Composition) -> Flow {
-        #[cfg(feature = "measurement")]
-        let _measurement = crate::measurement::profile::Scope::new(
-            crate::measurement::profile::Phase::Composition,
-        );
+        let _scope = profile::Scope::new(profile::Phase::Composition);
         let resource = self
             .resource
             .iter()
