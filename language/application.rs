@@ -121,6 +121,23 @@ impl Import<'_> {
     }
 }
 
+fn origin(
+    source: &State,
+    binding: &Binding,
+    selected: &Set<Place>,
+) -> BTreeMap<usize, BTreeSet<Place>> {
+    let mut origin = BTreeMap::<usize, BTreeSet<Place>>::new();
+    for &index in &binding.world {
+        for token in &source.world[index].particle {
+            let place = Place::World(index, token.id);
+            if !selected.contains(&place) {
+                origin.entry(token.id).or_default().insert(place);
+            }
+        }
+    }
+    origin
+}
+
 pub(crate) fn apply(request: Request<'_>) -> Applied {
     let _scope = profile::Scope::new(profile::Phase::Application);
     let Request {
@@ -246,28 +263,21 @@ pub(crate) fn apply(request: Request<'_>) -> Applied {
         .union(&consumed)
         .copied()
         .collect::<Set<_>>();
+    let nested = rule.output.iter().any(|output| output.body.is_some());
     let mut reserve = BTreeMap::<usize, BTreeSet<Place>>::new();
-    if rule.output.iter().any(|output| output.body.is_some()) {
+    if nested {
         for &place in binding.exact.union(&consumed) {
             let token = source.token(place).unwrap();
             reserve.entry(token.id).or_default().insert(place);
         }
     }
+    let flat = origin(source, binding, &binding.footprint);
+    let scoped = nested.then(|| origin(source, binding, &binding.exact));
     for output in &rule.output {
-        let selected = if output.body.is_some() {
-            &binding.exact
-        } else {
-            &binding.footprint
+        let remainder = match (&output.body, &scoped) {
+            (Some(_), Some(scoped)) => scoped,
+            _ => &flat,
         };
-        let mut remainder = BTreeMap::<usize, BTreeSet<Place>>::new();
-        for &index in &binding.world {
-            for token in &source.world[index].particle {
-                let place = Place::World(index, token.id);
-                if !selected.contains(&place) {
-                    remainder.entry(token.id).or_default().insert(place);
-                }
-            }
-        }
         let world = &state.world[target];
         if output.body.is_some() {
             let frame = world.frame;
