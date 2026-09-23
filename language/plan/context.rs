@@ -30,20 +30,10 @@ impl Context {
     }
 
     pub fn affected(&self, position: usize, index: &crate::index::Index, frame: usize) -> bool {
-        if index.invalidated(frame) {
-            return true;
-        }
-        index.affected.contains(frame)
-            && self.shape.fragment[position].group.iter().all(|group| {
-                index.affected.includes(frame, group.value)
-                    || index
-                        .visible(frame, &Term::new(group.value, Some(self.owner)))
-                        .next()
-                        .is_some()
-            })
+        index.affects(frame, self.term(position))
     }
 
-    fn term(&self, position: usize) -> impl Iterator<Item = Term> + '_ {
+    fn term(&self, position: usize) -> impl ExactSizeIterator<Item = Term> + '_ {
         self.shape.fragment[position]
             .group
             .iter()
@@ -64,14 +54,7 @@ impl Context {
     }
 
     pub fn matches(&self, position: usize, index: &crate::index::Index, site: usize) -> bool {
-        let location = index.location(site);
-        if self.shape.fragment[position].width == 0 {
-            return location.world().is_some();
-        }
-        self.shape.fragment[position].group.iter().all(|group| {
-            let term = Term::new(group.value, Some(self.owner));
-            index.quantity(&term, location.frame(&index.state), site) > 0
-        })
+        index.matches(site, self.term(position))
     }
 
     pub fn select(

@@ -20,14 +20,7 @@ impl Key {
     }
 
     pub fn affected(&self, index: &Index) -> bool {
-        if index.invalidated(self.frame) {
-            return true;
-        }
-        index.affected.contains(self.frame)
-            && self.pattern.iter().all(|term| {
-                index.affected.includes(self.frame, term.value)
-                    || index.visible(self.frame, term).next().is_some()
-            })
+        index.affects(self.frame, self.pattern.iter().cloned())
     }
 
     pub fn insertion(&self, index: &Index) -> Vec<usize> {
@@ -35,15 +28,7 @@ impl Key {
             .insertion
             .iter()
             .copied()
-            .filter(|&site| {
-                let location = index.location(site);
-                location.frame(&index.state) == self.frame
-                    && (!self.pattern.is_empty() || location.world().is_some())
-                    && self
-                        .pattern
-                        .iter()
-                        .all(|term| index.quantity(term, self.frame, site) > 0)
-            })
+            .filter(|&site| index.admits(site, self.frame, self.pattern.iter().cloned()))
             .collect()
     }
 

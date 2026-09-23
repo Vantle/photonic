@@ -275,6 +275,45 @@ impl Index {
         particle
     }
 
+    pub(crate) fn affects(&self, frame: usize, term: impl IntoIterator<Item = Term>) -> bool {
+        if self.invalidated(frame) {
+            return true;
+        }
+        self.affected.contains(frame)
+            && term.into_iter().all(|term| {
+                self.affected.includes(frame, term.value)
+                    || self.visible(frame, &term).next().is_some()
+            })
+    }
+
+    pub(crate) fn matches(&self, site: usize, term: impl ExactSizeIterator<Item = Term>) -> bool {
+        let location = self.location(site);
+        self.holds(location, location.frame(&self.state), site, term)
+    }
+
+    pub(crate) fn admits(
+        &self,
+        site: usize,
+        frame: usize,
+        term: impl ExactSizeIterator<Item = Term>,
+    ) -> bool {
+        let location = self.location(site);
+        location.frame(&self.state) == frame && self.holds(location, frame, site, term)
+    }
+
+    fn holds(
+        &self,
+        location: Location,
+        frame: usize,
+        site: usize,
+        mut term: impl ExactSizeIterator<Item = Term>,
+    ) -> bool {
+        if term.len() == 0 {
+            return location.world().is_some();
+        }
+        term.all(|term| self.quantity(&term, frame, site) > 0)
+    }
+
     pub(crate) fn quantity(&self, term: &Term, frame: usize, site: usize) -> usize {
         let local = self.posting(term, frame).map_or(0, |posting| {
             posting

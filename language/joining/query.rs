@@ -65,15 +65,7 @@ impl Query {
         match self {
             Self::Planned(context) => context.matches(position, index, site),
             #[cfg(test)]
-            Self::Direct { pattern, .. } => {
-                let location = index.location(site);
-                if pattern[position].is_empty() {
-                    return location.world().is_some();
-                }
-                pattern[position]
-                    .iter()
-                    .all(|term| index.quantity(term, location.frame(&index.state), site) > 0)
-            }
+            Self::Direct { pattern, .. } => index.matches(site, pattern[position].iter().cloned()),
         }
     }
 
