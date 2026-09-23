@@ -21,6 +21,7 @@ photonic_library(
 photonic_library(
     name = "node",
     srcs = ["node.particle"],
+    visibility = ["//program/vector:__pkg__"],
 )
 
 photonic_library(

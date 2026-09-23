@@ -4,6 +4,8 @@ photonic_binary(
     name = "rows",
     srcs = ["rows.wave"],
     deps = [
+        "//library/natural:digit",
+        "//library/vector:node",
         "//library/vector:reverse",
         "//library/vector:sort",
     ],
@@ -21,6 +23,8 @@ photonic_test(
     steps = 10000000,
     targets = ["Done"],
     deps = [
+        "//library/natural:digit",
+        "//library/vector:node",
         "//library/vector:reverse",
         "//library/vector:sort",
     ],
@@ -29,7 +33,11 @@ photonic_test(
 photonic_binary(
     name = "sort",
     srcs = ["sort.wave"],
-    deps = ["//library/vector:sort"],
+    deps = [
+        "//library/natural:digit",
+        "//library/vector:node",
+        "//library/vector:sort",
+    ],
 )
 
 photonic_test(
@@ -43,7 +51,11 @@ photonic_test(
     records = 10000000,
     steps = 10000000,
     targets = ["Done"],
-    deps = ["//library/vector:sort"],
+    deps = [
+        "//library/natural:digit",
+        "//library/vector:node",
+        "//library/vector:sort",
+    ],
 )
 
 filegroup(
