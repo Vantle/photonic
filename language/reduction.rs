@@ -122,10 +122,7 @@ impl Search {
         let candidate = candidate?;
         let selection = candidate.selection;
         if let Some(crate::reader::Read::World(site, _)) = candidate.read
-            && !selection.is_empty()
-            && !selection.iter().any(|slot| {
-                slot.location == crate::location::Location::World(self.index.world(site))
-            })
+            && !crate::slot::admits(&selection, self.index.world(site))
         {
             return None;
         }

@@ -52,11 +52,8 @@ impl Runtime {
         let consumer = delivery.consumer;
         let selection = delivery.selection;
         let view = self.view[consumer.view].clone();
-        if let Some(Place::World(site, _)) = consumer.read
-            && !selection.is_empty()
-            && !selection
-                .iter()
-                .any(|slot| slot.location == crate::location::Location::World(site))
+        if let Some(Place::World(world, _)) = consumer.read
+            && !crate::slot::admits(&selection, world)
         {
             return;
         }
