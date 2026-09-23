@@ -1,3 +1,4 @@
+mod binary;
 mod boolean;
 mod carry;
 mod catalog;

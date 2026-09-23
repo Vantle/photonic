@@ -87,49 +87,6 @@ fn example() {
 }
 
 #[test]
-fn gate() {
-    let rule = concat!(
-        include_str!("../../library/function/invoke.particle"),
-        "\n",
-        include_str!("../../library/binary/sum.particle"),
-        "\n",
-        include_str!("../../library/binary/multiply.particle")
-    );
-    for mask in 0..8u8 {
-        let source = (0..3)
-            .map(|bit| if mask & (1 << bit) == 0 { "0" } else { "1" })
-            .collect::<Vec<_>>()
-            .join(".");
-        let count = mask.count_ones();
-        let sum = if count % 2 == 0 { "0" } else { "1" };
-        let carry = if count < 2 { "0" } else { "1" };
-        check(
-            &format!("Invoke.Binary.Sum.{source}\n{rule}"),
-            &format!("([Digit] {sum}).([Carry] {carry})"),
-        );
-    }
-    let rule = concat!(
-        include_str!("../../library/function/invoke.particle"),
-        "\n",
-        include_str!("../../library/binary/sum.particle"),
-        "\n",
-        include_str!("../../library/binary/multiply.particle")
-    );
-    for left in ["0", "1"] {
-        for right in ["0", "1"] {
-            check(
-                &format!("Invoke.Binary.Multiply.{left}.{right}\n{rule}"),
-                if left == "1" && right == "1" {
-                    "1"
-                } else {
-                    "0"
-                },
-            );
-        }
-    }
-}
-
-#[test]
 fn conservation() {
     let source = include_str!("../../program/binary/addition.wave");
     let mut search = {
@@ -161,23 +118,4 @@ fn conservation() {
             .sum();
         assert_eq!(total, 1623);
     }
-    let rule = concat!(
-        include_str!("../../library/function/invoke.particle"),
-        "\n",
-        include_str!("../../library/binary/sum.particle"),
-        "\n",
-        include_str!("../../library/binary/multiply.particle")
-    );
-    let mut search = {
-        let program = parse(&format!("Invoke.Binary.Sum.1.1.0\n{rule}")).unwrap();
-        let target = crate::source::Program {
-            rule: program.rule.clone(),
-            ..parse("([Digit] 1).([Carry] 1)").unwrap()
-        };
-        Search::new(program, target)
-    };
-    search.run(12_000, None);
-    let report = search.report();
-    assert!(report.execution.closed);
-    assert_eq!(report.outcome, Outcome::Unreachable);
 }

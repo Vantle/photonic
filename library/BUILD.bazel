@@ -3,6 +3,7 @@ load("@rules_rs//rs:rust_test.bzl", "rust_test")
 rust_test(
     name = "test",
     srcs = [
+        "test/binary.rs",
         "test/boolean.rs",
         "test/carry.rs",
         "test/catalog.rs",

@@ -34,11 +34,7 @@ filegroup(
         "identity.particle",
         "invoke.particle",
     ],
-    visibility = [
-        "//arithmetic:__pkg__",
-        "//language:__pkg__",
-        "//library:__pkg__",
-    ],
+    visibility = ["//library:__pkg__"],
 )
 
 filegroup(

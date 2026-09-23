@@ -37,9 +37,7 @@ rust_test(
         ":conformance",
     ],
     compile_data = [
-        "//library/function:source",
         "//library/stream:source",
-        "//library/ternary:source",
         "//program/circuit:fixture",
         "//program/ternary:fixture",
     ],

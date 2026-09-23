@@ -63,10 +63,7 @@ filegroup(
         "successor.particle",
         "sum.particle",
     ],
-    visibility = [
-        "//arithmetic:__pkg__",
-        "//library:__pkg__",
-    ],
+    visibility = ["//library:__pkg__"],
 )
 
 filegroup(

@@ -108,8 +108,6 @@ rust_test(
         "//program/language:fixture",
         "//program/association:fixture",
         "//program/binary:fixture",
-        "//library/binary:source",
-        "//library/function:source",
         "//program/decimal:fixture",
         "//program/natural:fixture",
     ],
