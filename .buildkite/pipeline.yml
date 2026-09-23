@@ -5,9 +5,9 @@ steps:
   - label: Build · Linux x86-64
     key: build
     command:
-      - bazel build --config=release //... --host_platform=//platform:x86_64-unknown-linux-gnu --platforms=//platform:x86_64-unknown-linux-gnu
-      - bazel run --config=release //:format --host_platform=//platform:x86_64-unknown-linux-gnu --platforms=//platform:x86_64-unknown-linux-gnu -- --check
-      - bazel run --config=release //:update --host_platform=//platform:x86_64-unknown-linux-gnu --platforms=//platform:x86_64-unknown-linux-gnu -- --help
+      - bazel build --config=ci //...
+      - bazel run --config=ci //:format -- --check
+      - bazel run --config=ci //:update -- --help
     timeout_in_minutes: 60
     notify:
       - github_commit_status:
@@ -15,7 +15,7 @@ steps:
 
   - label: Test · Linux x86-64
     key: test
-    command: bazel test --config=release --config=continuous //... --host_platform=//platform:x86_64-unknown-linux-gnu --platforms=//platform:x86_64-unknown-linux-gnu
+    command: bazel test --config=ci --config=continuous //...
     timeout_in_minutes: 60
     notify:
       - github_commit_status:

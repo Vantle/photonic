@@ -16,6 +16,10 @@ build --guard_against_concurrent_changes
 
 build:release --compilation_mode=opt
 
+common:ci --config=release
+common:ci --host_platform=//platform:x86_64-unknown-linux-gnu
+common:ci --platforms=//platform:x86_64-unknown-linux-gnu
+
 test --test_output=errors
 test:continuous --test_tag_filters=-memory
 test:continuous --local_test_jobs=1
