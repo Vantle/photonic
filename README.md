@@ -74,7 +74,7 @@ bazel run -c opt //command:photonic -- prism "$PWD/program/natural/addition.wave
 | [command/](command/) | Native command interface, diagnostics, and process integration tests. |
 | [library/](library/) | The standard library: fourteen Photonic packages with collision-free namespaces. |
 | [program/](program/) | Runnable Photonic programs, organized by subject. |
-| [arithmetic/](arithmetic/) | Host circuit construction and conformance checks. |
+| [arithmetic/](arithmetic/) | Host circuit construction, infix expression encoding, and conformance checks. |
 | [benchmark/](benchmark/) | Runtime performance, symmetry, and execution measurements. |
 | [photonic/](photonic/) | Bazel rules, source assembly, portable launcher, and Prism test runner. |
 | [toolchain/](toolchain/) | Pinned tool execution and build checks. |

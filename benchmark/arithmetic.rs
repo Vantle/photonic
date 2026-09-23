@@ -47,7 +47,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     let input = format!("{}{operator}{}", numeral(left), numeral(right));
     let ternary = numeral(expected);
-    let source = formula::source(&input, &ternary);
+    let source = formula::source(&input, &ternary)?;
     let mut program: photonic::source::Program =
         serde_json::from_str(include_str!(env!("FORMULA")))?;
     let encoded = photonic::lowering::parse(&source)?;

@@ -25,7 +25,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     {
         return Err("use a nonnegative ternary expected result".into());
     }
-    let source = formula::source(&argument.input, &argument.expected);
+    let source = formula::source(&argument.input, &argument.expected)?;
     let mut program: photonic::source::Program =
         serde_json::from_str(include_str!(env!("FORMULA")))?;
     let encoded = photonic::lowering::parse(&source)?;

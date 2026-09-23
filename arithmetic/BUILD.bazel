@@ -12,6 +12,17 @@ rust_library(
     deps = ["@crate//:thiserror"],
 )
 
+rust_library(
+    name = "infix",
+    srcs = ["infix.rs"],
+    crate_root = "infix.rs",
+    lint_config = "//:lint",
+    visibility = [
+        "//benchmark:__pkg__",
+        "//toolchain/browser:__pkg__",
+    ],
+)
+
 rust_binary(
     name = "word",
     srcs = [

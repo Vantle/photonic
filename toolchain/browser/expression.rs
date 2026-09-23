@@ -31,65 +31,9 @@ fn encode(input: &str) -> Result<String, Failure> {
             "Use at most 256 bytes of expression input.",
         ));
     }
-    let mut token = Vec::new();
-    let mut gap = false;
-    for character in input.chars() {
-        if character.is_whitespace() {
-            gap = true;
-            continue;
-        }
-        if gap
-            && matches!(character, '0'..='2')
-            && token
-                .last()
-                .is_some_and(|value: &String| value.starts_with("([Digit]"))
-        {
-            return Err(Failure::new(
-                Code::Source,
-                "Keep each numeral together; spaces separate operators, not digits.",
-            ));
-        }
-        gap = false;
-        token.push(match character {
-            '0'..='2' => format!("([Digit] {character})"),
-            '+' => "Add".into(),
-            '-' | '−' => "Subtract".into(),
-            '*' | '×' => "Multiply".into(),
-            '/' | '÷' => "Divide".into(),
-            '(' => "Open".into(),
-            ')' => "Close".into(),
-            _ => {
-                return Err(Failure::new(
-                    Code::Source,
-                    "Use base-three digits 0, 1, 2, operators + − × ÷, and parentheses.",
-                ));
-            }
-        });
-    }
-    token.reverse();
-    let Some(first) = token.first() else {
-        return Ok("Function.Expression.Evaluate.Zero".into());
-    };
-    let mut source = format!("Push.{first}.Zero, Stage.1\n");
-    for (index, value) in token.iter().enumerate().skip(1) {
-        source.push_str(&format!(
-            "[Built, {}] (Push.{value}) (Forget.Stage.{})\n",
-            stage(index),
-            index + 1
-        ));
-    }
-    source.push_str(&format!(
-        "[Built, {}] Function.Expression.Evaluate\n",
-        stage(token.len())
-    ));
-    Ok(source)
-}
-
-fn stage(index: usize) -> String {
-    if index == 1 {
-        return "Stage.1".into();
-    }
-    format!("Clean.Stage.{index}")
+    let token = infix::token(input).map_err(|rejection| Failure::new(Code::Source, rejection))?;
+    Ok(infix::stack(&token, "Function.Expression.Evaluate")
+        .unwrap_or_else(|| "Function.Expression.Evaluate.Zero".into()))
 }
 
 static FORMULA: std::sync::LazyLock<Result<photonic::source::Program, String>> =

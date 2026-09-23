@@ -28,6 +28,7 @@ rust_shared_library(
     },
     target_compatible_with = ["@platforms//cpu:wasm32"],
     deps = [
+        "//arithmetic:infix",
         "//language:photonic",
         "@crate//:serde",
         "@crate//:serde_json",

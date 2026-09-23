@@ -44,7 +44,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
             let mut program: photonic::source::Program =
                 serde_json::from_str(include_str!(env!("FORMULA")))?;
-            let encoded = photonic::lowering::parse(&formula::source(input, expected))?;
+            let encoded = photonic::lowering::parse(&formula::source(input, expected)?)?;
             program.initial = encoded.initial;
             program.rule.extend(encoded.rule);
             let target = photonic::source::Program {
