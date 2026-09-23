@@ -1,5 +1,0 @@
-[Function.Difference] (Function.Borrow) (Difference.Wait)
-[Return.Borrow.Positive,Difference.Wait] Return.Difference.Positive
-[Return.Borrow.Negative,Difference.Wait] (Function.Complement) (Forget.Difference.Finish)
-[Clean.Difference.Finish] Difference.Finish
-[Return.Complement,Difference.Finish] Return.Difference.Negative

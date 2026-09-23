@@ -1,9 +1,6 @@
 Push.([Digit] 1).Zero, Stage.1
-[Built,Stage.1] (Push.Multiply) (Forget.Stage.2)
-[Clean.Stage.2] Stage.2
-[Built,Stage.2] (Push.([Digit] 2)) (Forget.Stage.3)
-[Clean.Stage.3] Stage.3
-[Built,Stage.3] Function.Expression
-[Return.Expression.Number.Positive] (Read) (Forget.Inspect.0)
-[Clean.Inspect.0] Inspect.0
-[Yield.([Digit] 2),Inspect.0] Done
+[Built, Stage.1] (Push.Multiply) (Forget.Stage.2)
+[Built, Clean.Stage.2] (Push.([Digit] 2)) (Forget.Stage.3)
+[Built, Clean.Stage.3] Function.Expression.Evaluate
+[Return.Expression.Evaluate.Positive] (Read) (Forget.Inspect.0)
+[Yield.([Digit] 2), Clean.Inspect.0] Done

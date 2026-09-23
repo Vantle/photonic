@@ -1,5 +1,0 @@
-[Function.Normalize] (Function.Reverse) (Forget.Normalize.Wait)
-[Clean.Normalize.Wait] Normalize.Wait
-[Return.Reverse,Normalize.Wait] (Function.Trim) (Forget.Normalize.Finish)
-[Clean.Normalize.Finish] Normalize.Finish
-[Return.Trim,Normalize.Finish] Return.Normalize

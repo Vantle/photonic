@@ -1,0 +1,6 @@
+[Function.Pair.Produce.([Value] True)] Return.True
+[Function.Pair.Produce.([Value] False)] Return.False
+[Function.Pair.Produce.([Value] 0)] Return.0
+[Function.Pair.Produce.([Value] 1)] Return.1
+[Function.Pair.Produce.([Value] 2)] Return.2
+[Pair.Produce.([Each] Pair.Produce)] Function.Pair.Produce

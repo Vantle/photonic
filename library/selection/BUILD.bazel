@@ -1,0 +1,42 @@
+load("//photonic:defs.bzl", "photonic_library")
+
+photonic_library(
+    name = "check",
+    srcs = ["check.particle"],
+    deps = ["//library/function:invoke"],
+)
+
+photonic_library(
+    name = "count",
+    srcs = ["count.particle"],
+    deps = ["//library/function:invoke"],
+)
+
+photonic_library(
+    name = "filter",
+    srcs = ["filter.particle"],
+    deps = ["//library/function:invoke"],
+)
+
+photonic_library(
+    name = "reduce",
+    srcs = ["reduce.particle"],
+    deps = ["//library/collection:reduce"],
+)
+
+filegroup(
+    name = "source",
+    srcs = [
+        "check.particle",
+        "count.particle",
+        "filter.particle",
+        "reduce.particle",
+    ],
+    visibility = ["//library:__pkg__"],
+)
+
+filegroup(
+    name = "build",
+    srcs = ["BUILD.bazel"],
+    visibility = ["//:__pkg__"],
+)

@@ -1,0 +1,18 @@
+[Function.Integer.Divide, Operand.Left.Positive] (Operand.Left) (Forget.Integer.Begin.([Operation] Divide).([Sign] Positive))
+[Function.Integer.Divide, Operand.Left.Negative] (Operand.Left) (Forget.Integer.Begin.([Operation] Divide).([Sign] Negative))
+[Clean.Integer.Begin.([Operation] Divide).([Sign] Positive), Operand.Right.Positive] (Operand.Right) (Forget.Integer.Start.([Operation] Divide).([First] Positive).([Second] Positive))
+[Clean.Integer.Begin.([Operation] Divide).([Sign] Positive), Operand.Right.Negative] (Operand.Right) (Forget.Integer.Start.([Operation] Divide).([First] Positive).([Second] Negative))
+[Clean.Integer.Begin.([Operation] Divide).([Sign] Negative), Operand.Right.Positive] (Operand.Right) (Forget.Integer.Start.([Operation] Divide).([First] Negative).([Second] Positive))
+[Clean.Integer.Begin.([Operation] Divide).([Sign] Negative), Operand.Right.Negative] (Operand.Right) (Forget.Integer.Start.([Operation] Divide).([First] Negative).([Second] Negative))
+[Clean.Integer.Start.([Operation] Divide).([First] Positive).([Second] Positive)] (Function.Natural.Divide) (Integer.Pending.([Operation] Divide).([Sign] Positive))
+[Clean.Integer.Start.([Operation] Divide).([First] Positive).([Second] Negative)] (Function.Natural.Divide) (Integer.Pending.([Operation] Divide).([Sign] Negative))
+[Clean.Integer.Start.([Operation] Divide).([First] Negative).([Second] Positive)] (Function.Natural.Divide) (Integer.Pending.([Operation] Divide).([Sign] Negative))
+[Clean.Integer.Start.([Operation] Divide).([First] Negative).([Second] Negative)] (Function.Natural.Divide) (Integer.Pending.([Operation] Divide).([Sign] Positive))
+[Return.Natural.Divide.Quotient, Integer.Pending.([Operation] Divide).([Sign] Positive)] (Integer.Quotient.Positive) (Forget.Integer.Remainder)
+[Return.Natural.Divide.Quotient, Integer.Pending.([Operation] Divide).([Sign] Negative)] (Integer.Quotient.Negative) (Forget.Integer.Remainder)
+[Return.Natural.Divide.Error.Divisor, Integer.Pending.([Operation] Divide).([Sign] Positive)] Return.Integer.Divide.Error.Divisor
+[Return.Natural.Divide.Error.Divisor, Integer.Pending.([Operation] Divide).([Sign] Negative)] Return.Integer.Divide.Error.Divisor
+[Return.Natural.Divide.Remainder, Clean.Integer.Remainder] (Function.Chain.Erase) (Forget.Integer.Erase)
+[Return.Chain.Erase, Clean.Integer.Erase, Integer.Quotient.Positive] Integer.Result.Positive.([Operation] Divide)
+[Return.Chain.Erase, Clean.Integer.Erase, Integer.Quotient.Negative] Integer.Result.Negative.([Operation] Divide)
+[Integer.Final.([Operation] Divide)] Return.Integer.Divide

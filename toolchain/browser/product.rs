@@ -21,8 +21,9 @@ struct Column {
 
 fn apply(operation: &str, left: u8, right: u8) -> Result<(u8, u8), Failure> {
     let source = format!(
-        "Function.{operation}.{left}.{right}\n{}",
-        include_str!(env!("DIGIT"))
+        "Function.Ternary.{operation}.{left}.{right}\n{}\n{}",
+        include_str!(env!("ADD")),
+        include_str!(env!("MULTIPLY"))
     );
     let program =
         photonic::lowering::parse(&source).map_err(|error| Failure::new(Code::Source, error))?;

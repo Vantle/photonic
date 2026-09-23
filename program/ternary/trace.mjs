@@ -6,6 +6,8 @@ import { join } from 'node:path';
 
 const contains = (world, label) => world.particle.some(value => value.display === label);
 const method = world => world.particle.find(value => value.display.startsWith('⟨[Read.Head.'));
+const symbol = value => value.display.match(/^⟨\[Digit\] ([012])⟩$/)?.[1] ??
+    ['Add', 'Subtract', 'Multiply', 'Divide', 'Open', 'Close'].find(name => name === value.display);
 const walk = (state, head) => {
     let current = head;
     const token = [];
@@ -15,13 +17,13 @@ const walk = (state, head) => {
         assert.ok(read);
         assert.ok(!visited.has(read.capture));
         visited.add(read.capture);
-        const value = read.display.match(/(?:Emit\.([012])|Yield\.(Add|Subtract|Multiply|Divide|Open|Close))\)/);
-        assert.ok(value);
-        token.push(value[1] ?? value[2]);
         const cell = state.world.filter(world => contains(world, 'Cell') &&
             world.particle.some(value => value.display === '⟨[Seal] ()⟩' && value.capture === read.capture) &&
             method(world)?.capture !== read.capture);
         assert.equal(cell.length, 1);
+        const value = cell[0].particle.map(symbol).filter(Boolean);
+        assert.equal(value.length, 1);
+        token.push(value[0]);
         current = cell[0];
     }
     return token;
@@ -51,17 +53,18 @@ export const record = (command, program, target) => {
         rmSync(directory, { recursive: true, force: true });
     }
     assert.equal(report.outcome, 'reached');
-    const begin = report.event.find(event => event.rule.startsWith('[Function.Expression]'));
+    const begin = report.event.find(event => event.rule.startsWith('[Function.Expression.Evaluate]'));
     assert.ok(begin);
     const state = report.state[begin.source];
-    const head = state.world.filter(world => ['Function', 'Expression'].every(label => contains(world, label)));
+    const head = state.world.filter(world => ['Function', 'Expression', 'Evaluate'].every(label => contains(world, label)));
     assert.equal(head.length, 1);
     const input = walk(state, head[0]);
-    const event = report.event.filter(event => event.rule.startsWith('[Return.Integer.Number.Positive,Evaluate.Pending.')).map(event => {
+    const event = report.event.filter(event => /^\[Return\.Integer\.\w+\.Positive, Execute\.Pending\./.test(event.rule)).map(event => {
+        const operation = event.rule.match(/Execute\.Pending\.(\w+)/)[1];
         const state = report.state[event.source];
-        const head = state.world.filter(world => ['Return', 'Integer', 'Number', 'Positive'].every(label => contains(world, label)));
+        const head = state.world.filter(world => ['Return', 'Integer', operation, 'Positive'].every(label => contains(world, label)));
         assert.equal(head.length, 1);
-        return { operation: event.rule.match(/Evaluate\.Pending\.(\w+)/)[1], ...decode(state, head[0]), source: event.source, target: event.target, rule: event.rule };
+        return { operation, ...decode(state, head[0]), source: event.source, target: event.target, rule: event.rule };
     });
     return { outcome: report.outcome, work: report.work, count: report.event.length, input, event };
 };

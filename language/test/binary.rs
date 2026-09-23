@@ -89,9 +89,11 @@ fn example() {
 #[test]
 fn gate() {
     let rule = concat!(
-        include_str!("../../library/application.particle"),
+        include_str!("../../library/function/invoke.particle"),
         "\n",
-        include_str!("../../library/binary.particle")
+        include_str!("../../library/binary/sum.particle"),
+        "\n",
+        include_str!("../../library/binary/multiply.particle")
     );
     for mask in 0..8u8 {
         let source = (0..3)
@@ -107,9 +109,11 @@ fn gate() {
         );
     }
     let rule = concat!(
-        include_str!("../../library/application.particle"),
+        include_str!("../../library/function/invoke.particle"),
         "\n",
-        include_str!("../../library/binary.particle")
+        include_str!("../../library/binary/sum.particle"),
+        "\n",
+        include_str!("../../library/binary/multiply.particle")
     );
     for left in ["0", "1"] {
         for right in ["0", "1"] {
@@ -158,9 +162,11 @@ fn conservation() {
         assert_eq!(total, 1623);
     }
     let rule = concat!(
-        include_str!("../../library/application.particle"),
+        include_str!("../../library/function/invoke.particle"),
         "\n",
-        include_str!("../../library/binary.particle")
+        include_str!("../../library/binary/sum.particle"),
+        "\n",
+        include_str!("../../library/binary/multiply.particle")
     );
     let mut search = {
         let program = parse(&format!("Invoke.Binary.Sum.1.1.0\n{rule}")).unwrap();

@@ -14,20 +14,35 @@ pub fn source(input: &str, expected: &str) -> String {
         .collect::<Vec<_>>();
     let mut source = format!("Push.{}.Zero, Stage.1\n", token[0]);
     for (index, value) in token.iter().enumerate().skip(1) {
-        let next = index + 1;
-        source.push_str(&format!("[Built,Stage.{index}] (Push.{value}) (Forget.Stage.{next})\n[Clean.Stage.{next}] Stage.{next}\n"));
+        source.push_str(&format!(
+            "[Built, {}] (Push.{value}) (Forget.Stage.{})\n",
+            stage(index),
+            index + 1
+        ));
     }
-    source.push_str(&format!("[Built,Stage.{}] (Function.Expression) (Forget.Inspect.0)\n[Clean.Inspect.0] Inspect.0\n[Return.Expression.Number.Positive,Inspect.0] (Read) (Forget.Inspect.1)\n[Clean.Inspect.1] Inspect.1\n", token.len()));
+    source.push_str(&format!(
+        "[Built, {}] (Function.Expression.Evaluate) (Forget.Inspect.0)\n[Return.Expression.Evaluate.Positive, Clean.Inspect.0] (Read) (Forget.Inspect.1)\n",
+        stage(token.len())
+    ));
     for (index, digit) in expected.chars().rev().enumerate() {
         let current = index + 1;
-        let next = current + 1;
         if current == expected.len() {
             source.push_str(&format!(
-                "[Yield.([Digit] {digit}).Zero,Inspect.{current}] Done.Zero\n"
+                "[Yield.([Digit] {digit}).Zero, Clean.Inspect.{current}] Done.Zero\n"
             ));
         } else {
-            source.push_str(&format!("[Yield.([Digit] {digit}),Inspect.{current}] (Read) (Forget.Inspect.{next})\n[Clean.Inspect.{next}] Inspect.{next}\n"));
+            source.push_str(&format!(
+                "[Yield.([Digit] {digit}), Clean.Inspect.{current}] (Read) (Forget.Inspect.{})\n",
+                current + 1
+            ));
         }
     }
     source
+}
+
+fn stage(index: usize) -> String {
+    if index == 1 {
+        return "Stage.1".into();
+    }
+    format!("Clean.Stage.{index}")
 }

@@ -14,14 +14,16 @@ rust_shared_library(
         "session.rs",
     ],
     compile_data = [
-        "//program/ternary:formula",
-        "//library:digit",
+        "//library/expression:evaluate",
+        "//library/ternary:add.particle",
+        "//library/ternary:multiply.particle",
     ],
     crate_root = "engine.rs",
     lint_config = "//:lint",
     rustc_env = {
-        "FORMULA": "$(execpath //program/ternary:formula)",
-        "DIGIT": "$(execpath //library:digit)",
+        "FORMULA": "$(execpath //library/expression:evaluate)",
+        "ADD": "$(execpath //library/ternary:add.particle)",
+        "MULTIPLY": "$(execpath //library/ternary:multiply.particle)",
     },
     target_compatible_with = ["@platforms//cpu:wasm32"],
     deps = [

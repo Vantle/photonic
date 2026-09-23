@@ -5,9 +5,11 @@ photonic_binary(
     srcs = ["pipeline.wave"],
     visibility = ["//photonic:__pkg__"],
     deps = [
-        "//library:boolean",
-        "//library:collection",
-        "//library:production",
+        "//library/boolean:and",
+        "//library/boolean:not",
+        "//library/collection:copy",
+        "//library/collection:map",
+        "//library/collection:reduce",
     ],
 )
 
@@ -19,9 +21,11 @@ photonic_test(
     source = "",
     targets = ["First.False, Second.True"],
     deps = [
-        "//library:boolean",
-        "//library:collection",
-        "//library:production",
+        "//library/boolean:and",
+        "//library/boolean:not",
+        "//library/collection:copy",
+        "//library/collection:map",
+        "//library/collection:reduce",
     ],
 )
 
@@ -45,7 +49,7 @@ filegroup(
 photonic_binary(
     name = "function",
     srcs = ["function.wave"],
-    deps = ["//library:composition"],
+    deps = ["//library/function:compose"],
 )
 
 photonic_test(
@@ -59,5 +63,5 @@ Right.Grove.([First.Seed] (
     [Return] Return
 )).([Second.Tree] Return.Grove).([First.Sapling] Return.Trunk).([Second.Trunk] Return.Tree)
 """],
-    deps = ["//library:composition"],
+    deps = ["//library/function:compose"],
 )

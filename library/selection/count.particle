@@ -1,0 +1,4 @@
+[Function.Selection.Count.False.False] Return.0
+[Function.Selection.Count.True.False] Return.1
+[Function.Selection.Count.True.True] Return.2
+[Selection.Count.([Operation] Selection.Count)] Function.Selection.Count

@@ -1,0 +1,6 @@
+[Function.Chain.Reverse] (Reverse.Left) (Forget.Reverse.Begin)
+[Clean.Reverse.Begin] (Reverse.Right.Zero) (Reverse.Step)
+[Reverse.Step, Reverse.Left] Read.Reverse.Wait
+[Yield.End.Reverse.Wait.Zero, Reverse.Right] Return.Chain.Reverse
+[Built, Clean.Reverse.Await] (Reverse.Right) (Forget.Reverse.Step)
+[Clean.Reverse.Step] Reverse.Step

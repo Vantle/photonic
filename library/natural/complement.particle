@@ -1,0 +1,15 @@
+[Function.Natural.Complement] (Complement.Input) (Forget.Complement.Begin)
+[Clean.Complement.Begin] (Complement.Output.Zero) (Complement.Step)
+[Complement.Step, Complement.Input] Read.Complement.Wait
+[Yield.([Digit] 0).Complement.Wait] (Complement.Input) (Forget.Complement.Write.0)
+[Clean.Complement.Write.0, Complement.Output] (Push.([Digit] 2)) (Forget.Complement.Await)
+[Yield.([Digit] 1).Complement.Wait] (Complement.Input) (Forget.Complement.Write.1)
+[Clean.Complement.Write.1, Complement.Output] (Push.([Digit] 1)) (Forget.Complement.Await)
+[Yield.([Digit] 2).Complement.Wait] (Complement.Input) (Forget.Complement.Write.2)
+[Clean.Complement.Write.2, Complement.Output] (Push.([Digit] 0)) (Forget.Complement.Await)
+[Built, Clean.Complement.Await] (Complement.Output) (Forget.Complement.Step)
+[Clean.Complement.Step] Complement.Step
+[Yield.End.Complement.Wait.Zero] Clean.Complement.End
+[Clean.Complement.End, Complement.Output] (Function.Natural.Successor) (Forget.Complement.Next)
+[Return.Natural.Successor, Clean.Complement.Next] (Function.Natural.Normalize) (Forget.Complement.Finish)
+[Return.Natural.Normalize, Clean.Complement.Finish] Return.Natural.Complement

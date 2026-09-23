@@ -1,0 +1,29 @@
+load("//photonic:defs.bzl", "photonic_library")
+
+photonic_library(
+    name = "pack",
+    srcs = ["pack.particle"],
+    deps = ["//library/function:invoke"],
+)
+
+photonic_library(
+    name = "unpack",
+    srcs = ["unpack.particle"],
+    visibility = ["//program/ternary:__pkg__"],
+    deps = ["//library/function:invoke"],
+)
+
+filegroup(
+    name = "source",
+    srcs = [
+        "pack.particle",
+        "unpack.particle",
+    ],
+    visibility = ["//library:__pkg__"],
+)
+
+filegroup(
+    name = "build",
+    srcs = ["BUILD.bazel"],
+    visibility = ["//:__pkg__"],
+)

@@ -26,6 +26,7 @@ load("//photonic:defs.bzl", "photonic_binary", "photonic_library", "photonic_tes
 photonic_library(
     name = "logic",
     srcs = ["logic.particle"],
+    deps = ["//library/boolean:not"],
 )
 
 photonic_binary(
@@ -36,14 +37,14 @@ photonic_binary(
 
 photonic_test(
     name = "negation",
-    source = "Invoke.Not.True",
-    targets = ["Invoke.Not.True", "False"],
+    source = "Invoke.Boolean.Not.True",
+    targets = ["Invoke.Boolean.Not.True", "False"],
     preserve = True,
-    deps = [":logic"],
+    deps = ["//library/boolean:not"],
 )
 ```
 
-The example `logic.particle` must supply the application and Boolean rules. A library contains declarations only; loading them introduces live root rule occurrences. A binary combines the initial configurations from its sources and loads each transitive dependency file once. Both `.particle` and `.wave` use the same grammar; the extensions distinguish reusable definitions/data from executable examples by convention.
+`//library/boolean:not` brings `Invoke` and the Boolean negation table; the [standard library reference](library/README.md) lists every package, request, and answer. A library contains declarations only; loading them introduces live root rule occurrences. A binary combines the initial configurations from its sources and loads each transitive dependency file once. Both `.particle` and `.wave` use the same grammar; the extensions distinguish reusable definitions/data from executable examples by convention.
 
 A test accepts literal `source`, file `srcs`, and library `deps`. `targets` is a list of complete configurations, including live rules. The explicit `preserve = True` option appends the loaded root rules to each expected target; its default is false. The default `match = "all"` requires every target to be reachable; `match = "any"` accepts any one. `expect = "unreachable"` checks non-reachability instead. Unknown never satisfies either expectation. Full exploration shares one execution graph across the targets. Optional `path = True` follows direct paths and can only establish reachability. Reaching all targets does not claim they occur together or exhaust all possible outcomes.
 
@@ -69,7 +70,7 @@ bazel run -c opt //command:photonic -- prism program/natural/addition.wave \
 | [frontend/](frontend/) | Syntax, parsing, lowering, source types, and frontend conformance tests. |
 | [language/](language/) | Execution, Prism verification, and runtime conformance tests. |
 | [command/](command/) | Native command interface, diagnostics, and process integration tests. |
-| [library/](library/) | Reusable Photonic declarations, organized by protocol. |
+| [library/](library/) | The standard library: thirteen Photonic packages with collision-free namespaces. |
 | [program/](program/) | Runnable Photonic programs, organized by subject. |
 | [arithmetic/](arithmetic/) | Host circuit construction and conformance checks. |
 | [benchmark/](benchmark/) | Runtime performance, symmetry, and execution measurements. |
@@ -81,7 +82,7 @@ bazel run -c opt //command:photonic -- prism program/natural/addition.wave \
 
 Programs belong to a subject: `language/`, `association/`, `composition/`, `natural/`, `binary/`, `decimal/`, `ternary/`, or `circuit/`. Keep a program's expected configurations and regression tests beside its source. A counterexample is a tested outcome, not a separate category of program: `program/natural/preparation.wave` retains the rejected multiplication construction and checks its incorrect result. Generated circuit programs live in `program/circuit/`; their Rust generator lives in `arithmetic/`.
 
-Use `library/` for reusable protocols and `program/` for executable applications. Local declarations that serve one subject stay with that subject. Test-only inputs live in `case/`; recorded demonstrations live in `demo/`. Runtime reference data stays in `language/test/`.
+Use `library/` for reusable declarations, one package per type, and `program/` for executable applications. Local declarations that serve one subject stay with that subject. Test-only inputs live in `case/`; recorded demonstrations live in `demo/`. Runtime reference data stays in `language/test/`.
 
 Every runnable `.wave` has a `photonic_binary` target. Discover programs and tests with:
 
@@ -96,7 +97,7 @@ rg --files library program
 | Guide | Contents |
 | --- | --- |
 | [Language](index.html#guide-language) | Syntax, configuration semantics, identity, binding, and terminology. |
-| [Native library](index.html#guide-library) | Protocols, atomic fields, dependency layers, evidence, and remaining work. |
+| [Native library](index.html#guide-library) | Packages, namespaces, protocols, chains and alphabets, atomic fields, evidence, and remaining work. |
 | [Arithmetic](index.html#guide-arithmetic) | Number representations, written arguments, algorithms, and host circuit interface. |
 | [Verification](index.html#guide-verification) | Prism, exact configurations, and retained counterexamples. |
 | [Dynamic code proposal](document/dynamic.md) | Research, contextual rule construction, capture, recursive growth, and implementation gates. |

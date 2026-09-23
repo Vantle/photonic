@@ -18,7 +18,7 @@ photonic_test(
     states = 65536,
     steps = 100000000,
     targets = ["Done.Zero"],
-    deps = ["//program/ternary:formula"],
+    deps = ["//library/expression:evaluate"],
 )
 
 photonic_test(
@@ -34,7 +34,7 @@ photonic_test(
     states = 65536,
     steps = 100000000,
     targets = ["Done.Zero"],
-    deps = ["//program/ternary:formula"],
+    deps = ["//library/expression:evaluate"],
 )
 
 photonic_test(
@@ -50,7 +50,7 @@ photonic_test(
     states = 65536,
     steps = 100000000,
     targets = ["Done.Zero"],
-    deps = ["//program/ternary:formula"],
+    deps = ["//library/expression:evaluate"],
 )
 
 photonic_test(
@@ -66,7 +66,7 @@ photonic_test(
     states = 65536,
     steps = 100000000,
     targets = ["Done.Zero"],
-    deps = ["//program/ternary:formula"],
+    deps = ["//library/expression:evaluate"],
 )
 
 photonic_test(
@@ -82,7 +82,7 @@ photonic_test(
     states = 65536,
     steps = 100000000,
     targets = ["Done.Zero"],
-    deps = ["//program/ternary:formula"],
+    deps = ["//library/expression:evaluate"],
 )
 
 photonic_test(
@@ -98,7 +98,7 @@ photonic_test(
     states = 65536,
     steps = 100000000,
     targets = ["Done.Zero"],
-    deps = ["//program/ternary:formula"],
+    deps = ["//library/expression:evaluate"],
 )
 
 photonic_test(
@@ -114,7 +114,7 @@ photonic_test(
     states = 65536,
     steps = 100000000,
     targets = ["Done.Zero"],
-    deps = ["//program/ternary:formula"],
+    deps = ["//library/expression:evaluate"],
 )
 
 photonic_test(
@@ -130,7 +130,7 @@ photonic_test(
     states = 65536,
     steps = 100000000,
     targets = ["Done.Zero"],
-    deps = ["//program/ternary:formula"],
+    deps = ["//library/expression:evaluate"],
 )
 
 photonic_test(
@@ -146,7 +146,7 @@ photonic_test(
     states = 65536,
     steps = 100000000,
     targets = ["Done.Zero"],
-    deps = ["//program/ternary:formula"],
+    deps = ["//library/expression:evaluate"],
 )
 
 photonic_test(
@@ -162,7 +162,7 @@ photonic_test(
     states = 65536,
     steps = 100000000,
     targets = ["Done.Zero"],
-    deps = ["//program/ternary:formula"],
+    deps = ["//library/expression:evaluate"],
 )
 
 photonic_test(
@@ -179,7 +179,7 @@ photonic_test(
     steps = 100000000,
     tags = ["memory"],
     targets = ["Done.Zero"],
-    deps = ["//program/ternary:formula"],
+    deps = ["//library/expression:evaluate"],
 )
 
 photonic_test(
@@ -194,8 +194,8 @@ photonic_test(
     source = "",
     states = 65536,
     steps = 100000000,
-    targets = ["Return.Expression.Error.Divisor"],
-    deps = ["//program/ternary:formula"],
+    targets = ["Return.Expression.Evaluate.Error.Divisor"],
+    deps = ["//library/expression:evaluate"],
 )
 
 photonic_test(
@@ -210,8 +210,8 @@ photonic_test(
     source = "",
     states = 65536,
     steps = 100000000,
-    targets = ["Return.Expression.Error.Syntax"],
-    deps = ["//program/ternary:formula"],
+    targets = ["Return.Expression.Evaluate.Error.Syntax"],
+    deps = ["//library/expression:evaluate"],
 )
 
 photonic_test(
@@ -226,8 +226,8 @@ photonic_test(
     source = "",
     states = 65536,
     steps = 100000000,
-    targets = ["Return.Expression.Error.Syntax"],
-    deps = ["//program/ternary:formula"],
+    targets = ["Return.Expression.Evaluate.Error.Syntax"],
+    deps = ["//library/expression:evaluate"],
 )
 
 photonic_test(
@@ -242,8 +242,8 @@ photonic_test(
     source = "",
     states = 65536,
     steps = 100000000,
-    targets = ["Return.Expression.Error.Syntax"],
-    deps = ["//program/ternary:formula"],
+    targets = ["Return.Expression.Evaluate.Error.Syntax"],
+    deps = ["//library/expression:evaluate"],
 )
 
 photonic_test(
@@ -258,8 +258,8 @@ photonic_test(
     source = "",
     states = 65536,
     steps = 100000000,
-    targets = ["Return.Expression.Error.Syntax"],
-    deps = ["//program/ternary:formula"],
+    targets = ["Return.Expression.Evaluate.Error.Syntax"],
+    deps = ["//library/expression:evaluate"],
 )
 
 photonic_test(
@@ -274,8 +274,8 @@ photonic_test(
     source = "",
     states = 65536,
     steps = 100000000,
-    targets = ["Return.Expression.Error.Syntax"],
-    deps = ["//program/ternary:formula"],
+    targets = ["Return.Expression.Evaluate.Error.Syntax"],
+    deps = ["//library/expression:evaluate"],
 )
 
 photonic_test(
@@ -290,8 +290,8 @@ photonic_test(
     source = "",
     states = 65536,
     steps = 100000000,
-    targets = ["Return.Evaluate.Error.Stack"],
-    deps = ["//program/ternary:evaluate"],
+    targets = ["Return.Expression.Execute.Error.Stack"],
+    deps = ["//library/expression:execute"],
 )
 
 photonic_test(
@@ -306,8 +306,8 @@ photonic_test(
     source = "",
     states = 65536,
     steps = 100000000,
-    targets = ["Return.Evaluate.Error.Stack"],
-    deps = ["//program/ternary:evaluate"],
+    targets = ["Return.Expression.Execute.Error.Stack"],
+    deps = ["//library/expression:execute"],
 )
 
 photonic_test(
@@ -322,8 +322,8 @@ photonic_test(
     source = "",
     states = 65536,
     steps = 100000000,
-    targets = ["Return.Evaluate.Error.Stack"],
-    deps = ["//program/ternary:evaluate"],
+    targets = ["Return.Expression.Execute.Error.Stack"],
+    deps = ["//library/expression:execute"],
 )
 
 photonic_test(
@@ -339,7 +339,7 @@ photonic_test(
     states = 65536,
     steps = 100000000,
     targets = ["Done.Zero"],
-    deps = ["//program/ternary:formula"],
+    deps = ["//library/expression:evaluate"],
 )
 
 photonic_test(
@@ -355,7 +355,7 @@ photonic_test(
     states = 65536,
     steps = 100000000,
     targets = ["Done.Zero"],
-    deps = ["//program/ternary:formula"],
+    deps = ["//library/expression:evaluate"],
 )
 
 photonic_test(
@@ -371,7 +371,7 @@ photonic_test(
     states = 65536,
     steps = 100000000,
     targets = ["Done.Zero"],
-    deps = ["//program/ternary:formula"],
+    deps = ["//library/expression:evaluate"],
 )
 
 photonic_test(
@@ -387,7 +387,7 @@ photonic_test(
     states = 65536,
     steps = 100000000,
     targets = ["Done.Zero"],
-    deps = ["//program/ternary:formula"],
+    deps = ["//library/expression:evaluate"],
 )
 
 photonic_test(
@@ -403,7 +403,7 @@ photonic_test(
     states = 65536,
     steps = 100000000,
     targets = ["Done.Zero"],
-    deps = ["//program/ternary:formula"],
+    deps = ["//library/expression:evaluate"],
 )
 
 photonic_test(
@@ -419,7 +419,7 @@ photonic_test(
     states = 65536,
     steps = 100000000,
     targets = ["Done.Zero"],
-    deps = ["//program/ternary:formula"],
+    deps = ["//library/expression:evaluate"],
 )
 
 photonic_test(
@@ -435,7 +435,7 @@ photonic_test(
     states = 65536,
     steps = 100000000,
     targets = ["Done.Zero"],
-    deps = ["//program/ternary:formula"],
+    deps = ["//library/expression:evaluate"],
 )
 
 photonic_test(
@@ -451,7 +451,7 @@ photonic_test(
     states = 65536,
     steps = 100000000,
     targets = ["Done.Zero"],
-    deps = ["//program/ternary:formula"],
+    deps = ["//library/expression:evaluate"],
 )
 
 photonic_test(
@@ -467,7 +467,7 @@ photonic_test(
     states = 65536,
     steps = 100000000,
     targets = ["Done.Zero"],
-    deps = ["//program/ternary:formula"],
+    deps = ["//library/expression:evaluate"],
 )
 
 photonic_test(
@@ -483,7 +483,7 @@ photonic_test(
     states = 65536,
     steps = 100000000,
     targets = ["Done.Zero"],
-    deps = ["//program/ternary:formula"],
+    deps = ["//library/expression:evaluate"],
 )
 
 photonic_test(
@@ -499,7 +499,7 @@ photonic_test(
     states = 65536,
     steps = 100000000,
     targets = ["Done.Zero"],
-    deps = ["//program/ternary:formula"],
+    deps = ["//library/expression:evaluate"],
 )
 
 photonic_test(
@@ -515,7 +515,7 @@ photonic_test(
     states = 65536,
     steps = 100000000,
     targets = ["Done.Zero"],
-    deps = ["//program/ternary:formula"],
+    deps = ["//library/expression:evaluate"],
 )
 
 photonic_test(
@@ -531,7 +531,7 @@ photonic_test(
     states = 65536,
     steps = 100000000,
     targets = ["Done.Zero"],
-    deps = ["//program/ternary:formula"],
+    deps = ["//library/expression:evaluate"],
 )
 
 photonic_test(
@@ -547,7 +547,7 @@ photonic_test(
     states = 65536,
     steps = 100000000,
     targets = ["Done.Zero"],
-    deps = ["//program/ternary:formula"],
+    deps = ["//library/expression:evaluate"],
 )
 
 photonic_test(
@@ -563,7 +563,7 @@ photonic_test(
     states = 65536,
     steps = 100000000,
     targets = ["Done.Zero"],
-    deps = ["//program/ternary:formula"],
+    deps = ["//library/expression:evaluate"],
 )
 
 photonic_test(
@@ -579,7 +579,7 @@ photonic_test(
     states = 65536,
     steps = 100000000,
     targets = ["Done.Zero"],
-    deps = ["//program/ternary:formula"],
+    deps = ["//library/expression:evaluate"],
 )
 
 photonic_test(
@@ -595,7 +595,7 @@ photonic_test(
     states = 65536,
     steps = 100000000,
     targets = ["Done.Zero"],
-    deps = ["//program/ternary:formula"],
+    deps = ["//library/expression:evaluate"],
 )
 
 photonic_test(
@@ -611,7 +611,7 @@ photonic_test(
     states = 65536,
     steps = 100000000,
     targets = ["Done.Zero"],
-    deps = ["//program/ternary:formula"],
+    deps = ["//library/expression:evaluate"],
 )
 
 photonic_test(
@@ -627,7 +627,7 @@ photonic_test(
     states = 65536,
     steps = 100000000,
     targets = ["Done.Zero"],
-    deps = ["//program/ternary:formula"],
+    deps = ["//library/expression:evaluate"],
 )
 
 photonic_test(
@@ -643,7 +643,7 @@ photonic_test(
     states = 65536,
     steps = 100000000,
     targets = ["Done.Zero"],
-    deps = ["//program/ternary:formula"],
+    deps = ["//library/expression:evaluate"],
 )
 
 photonic_test(
@@ -659,7 +659,7 @@ photonic_test(
     states = 65536,
     steps = 100000000,
     targets = ["Done.Zero"],
-    deps = ["//program/ternary:formula"],
+    deps = ["//library/expression:evaluate"],
 )
 
 photonic_test(
@@ -675,7 +675,7 @@ photonic_test(
     states = 65536,
     steps = 100000000,
     targets = ["Done.Zero"],
-    deps = ["//program/ternary:formula"],
+    deps = ["//library/expression:evaluate"],
 )
 
 photonic_test(
@@ -691,7 +691,7 @@ photonic_test(
     states = 65536,
     steps = 100000000,
     targets = ["Done.Zero"],
-    deps = ["//program/ternary:formula"],
+    deps = ["//library/expression:evaluate"],
 )
 
 photonic_test(
@@ -707,7 +707,7 @@ photonic_test(
     states = 65536,
     steps = 100000000,
     targets = ["Done.Zero"],
-    deps = ["//program/ternary:formula"],
+    deps = ["//library/expression:evaluate"],
 )
 
 photonic_test(
@@ -723,7 +723,7 @@ photonic_test(
     states = 65536,
     steps = 100000000,
     targets = ["Done.Zero"],
-    deps = ["//program/ternary:formula"],
+    deps = ["//library/expression:evaluate"],
 )
 
 photonic_test(
@@ -739,7 +739,7 @@ photonic_test(
     states = 65536,
     steps = 100000000,
     targets = ["Done.Zero"],
-    deps = ["//program/ternary:formula"],
+    deps = ["//library/expression:evaluate"],
 )
 
 photonic_test(
@@ -756,7 +756,7 @@ photonic_test(
     steps = 1000000,
     tags = ["memory"],
     targets = ["Done.Zero"],
-    deps = ["//program/ternary:formula"],
+    deps = ["//library/expression:evaluate"],
 )
 
 filegroup(

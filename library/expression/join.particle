@@ -1,0 +1,18 @@
+[Function.Expression.Join, Operand.Number.Positive] (Function.Chain.Reverse) (Forget.Join.Begin.Positive)
+[Function.Expression.Join, Operand.Number.Negative] (Function.Chain.Reverse) (Forget.Join.Begin.Negative)
+[Clean.Join.Begin.Positive] (Join.Begin) (Join.Sign.Positive)
+[Clean.Join.Begin.Negative] (Join.Begin) (Join.Sign.Negative)
+[Return.Chain.Reverse, Join.Begin] (Join.Input) (Forget.Join.Start)
+[Clean.Join.Start, Operand.Stack] (Push.Mark) (Forget.Join.Await)
+[Built, Clean.Join.Await] (Join.Output) (Forget.Join.Step)
+[Clean.Join.Step, Join.Input] Read.Join.Wait
+[Yield.End.Join.Wait.Zero] Clean.Join.End
+[Clean.Join.End, Join.Output, Join.Sign.Positive] Return.Expression.Join
+[Clean.Join.End, Join.Output, Join.Sign.Negative] (Push.Negative) (Forget.Join.Finish)
+[Built, Clean.Join.Finish] Return.Expression.Join
+[Yield.([Digit] 0).Join.Wait] (Join.Input) (Forget.Join.Write.0)
+[Clean.Join.Write.0, Join.Output] (Push.([Digit] 0)) (Forget.Join.Await)
+[Yield.([Digit] 1).Join.Wait] (Join.Input) (Forget.Join.Write.1)
+[Clean.Join.Write.1, Join.Output] (Push.([Digit] 1)) (Forget.Join.Await)
+[Yield.([Digit] 2).Join.Wait] (Join.Input) (Forget.Join.Write.2)
+[Clean.Join.Write.2, Join.Output] (Push.([Digit] 2)) (Forget.Join.Await)

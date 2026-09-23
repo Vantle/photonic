@@ -1,0 +1,4 @@
+[Reduce.Done.Left.Keep.([Value] True), Reduce.Done.Right.Keep.([Value] True)] Operation.True.True
+[Reduce.Done.Left.Keep.([Value] True), Reduce.Done.Right.Discard] Operation.True.False
+[Reduce.Done.Left.Discard, Reduce.Done.Right.Keep.([Value] True)] Operation.False.True
+[Reduce.Done.Left.Discard, Reduce.Done.Right.Discard] Operation.False.False

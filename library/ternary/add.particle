@@ -1,0 +1,7 @@
+[Function.Ternary.Add.0.0] Return.([Digit] 0).([Carry] 0)
+[Function.Ternary.Add.0.1] Return.([Digit] 1).([Carry] 0)
+[Function.Ternary.Add.0.2] Return.([Digit] 2).([Carry] 0)
+[Function.Ternary.Add.1.1] Return.([Digit] 2).([Carry] 0)
+[Function.Ternary.Add.1.2] Return.([Digit] 0).([Carry] 1)
+[Function.Ternary.Add.2.2] Return.([Digit] 1).([Carry] 1)
+[Ternary.Add.([Operation] Ternary.Add)] Function.Ternary.Add

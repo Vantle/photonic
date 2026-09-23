@@ -1,0 +1,4 @@
+[Function.Pair.Unpack.([Left] True).([Right] True)] (Ready.Left.True, Ready.Right.True)
+[Function.Pair.Unpack.([Left] True).([Right] False)] (Ready.Left.True, Ready.Right.False)
+[Function.Pair.Unpack.([Left] False).([Right] True)] (Ready.Left.False, Ready.Right.True)
+[Function.Pair.Unpack.([Left] False).([Right] False)] (Ready.Left.False, Ready.Right.False)

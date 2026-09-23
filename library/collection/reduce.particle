@@ -1,0 +1,14 @@
+[Reduce.Done.Left.True, Reduce.Done.Right.True] Operation.True.True
+[Reduce.Done.Left.True, Reduce.Done.Right.False] Operation.True.False
+[Reduce.Done.Left.False, Reduce.Done.Right.True] Operation.False.True
+[Reduce.Done.Left.False, Reduce.Done.Right.False] Operation.False.False
+
+[Reduce.Done.Left.0, Reduce.Done.Right.0] Operation.0.0
+[Reduce.Done.Left.0, Reduce.Done.Right.1] Operation.0.1
+[Reduce.Done.Left.0, Reduce.Done.Right.2] Operation.0.2
+[Reduce.Done.Left.1, Reduce.Done.Right.0] Operation.1.0
+[Reduce.Done.Left.1, Reduce.Done.Right.1] Operation.1.1
+[Reduce.Done.Left.1, Reduce.Done.Right.2] Operation.1.2
+[Reduce.Done.Left.2, Reduce.Done.Right.0] Operation.2.0
+[Reduce.Done.Left.2, Reduce.Done.Right.1] Operation.2.1
+[Reduce.Done.Left.2, Reduce.Done.Right.2] Operation.2.2

@@ -1,0 +1,48 @@
+load("//photonic:defs.bzl", "photonic_library")
+
+photonic_library(
+    name = "compose",
+    srcs = ["compose.particle"],
+    visibility = ["//program/composition:__pkg__"],
+    deps = [":invoke"],
+)
+
+photonic_library(
+    name = "identity",
+    srcs = ["identity.particle"],
+    deps = [":invoke"],
+)
+
+photonic_library(
+    name = "invoke",
+    srcs = ["invoke.particle"],
+    visibility = [
+        "//library/binary:__pkg__",
+        "//library/boolean:__pkg__",
+        "//library/carry:__pkg__",
+        "//library/collection:__pkg__",
+        "//library/field:__pkg__",
+        "//library/selection:__pkg__",
+        "//library/ternary:__pkg__",
+    ],
+)
+
+filegroup(
+    name = "source",
+    srcs = [
+        "compose.particle",
+        "identity.particle",
+        "invoke.particle",
+    ],
+    visibility = [
+        "//arithmetic:__pkg__",
+        "//language:__pkg__",
+        "//library:__pkg__",
+    ],
+)
+
+filegroup(
+    name = "build",
+    srcs = ["BUILD.bazel"],
+    visibility = ["//:__pkg__"],
+)

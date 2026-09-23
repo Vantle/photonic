@@ -37,9 +37,11 @@ rust_test(
         ":conformance",
     ],
     compile_data = [
-        "//program/ternary:fixture",
+        "//library/function:source",
+        "//library/stream:source",
+        "//library/ternary:source",
         "//program/circuit:fixture",
-        "//library:source",
+        "//program/ternary:fixture",
     ],
     crate_root = "test/suite.rs",
     data = [":word"],

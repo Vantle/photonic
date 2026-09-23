@@ -1,0 +1,66 @@
+load("//photonic:defs.bzl", "photonic_library")
+
+photonic_library(
+    name = "add",
+    srcs = ["add.particle"],
+    visibility = ["//library/expression:__pkg__"],
+    deps = [
+        ":result",
+        "//library/natural:add",
+        "//library/natural:difference",
+    ],
+)
+
+photonic_library(
+    name = "divide",
+    srcs = ["divide.particle"],
+    visibility = ["//library/expression:__pkg__"],
+    deps = [
+        ":result",
+        "//library/natural:divide",
+    ],
+)
+
+photonic_library(
+    name = "multiply",
+    srcs = ["multiply.particle"],
+    visibility = ["//library/expression:__pkg__"],
+    deps = [
+        ":result",
+        "//library/natural:multiply",
+    ],
+)
+
+photonic_library(
+    name = "result",
+    srcs = ["result.particle"],
+)
+
+photonic_library(
+    name = "subtract",
+    srcs = ["subtract.particle"],
+    visibility = ["//library/expression:__pkg__"],
+    deps = [
+        ":result",
+        "//library/natural:add",
+        "//library/natural:difference",
+    ],
+)
+
+filegroup(
+    name = "source",
+    srcs = [
+        "add.particle",
+        "divide.particle",
+        "multiply.particle",
+        "result.particle",
+        "subtract.particle",
+    ],
+    visibility = ["//library:__pkg__"],
+)
+
+filegroup(
+    name = "build",
+    srcs = ["BUILD.bazel"],
+    visibility = ["//:__pkg__"],
+)

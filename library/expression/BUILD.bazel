@@ -1,0 +1,89 @@
+load("//photonic:defs.bzl", "photonic_library")
+
+photonic_library(
+    name = "evaluate",
+    srcs = ["evaluate.particle"],
+    visibility = [
+        "//benchmark:__pkg__",
+        "//program/ternary:__pkg__",
+        "//program/ternary/case:__pkg__",
+        "//toolchain/browser:__pkg__",
+    ],
+    deps = [
+        ":execute",
+        ":parse",
+    ],
+)
+
+photonic_library(
+    name = "execute",
+    srcs = ["execute.particle"],
+    visibility = [
+        "//program/ternary:__pkg__",
+        "//program/ternary/case:__pkg__",
+    ],
+    deps = [
+        ":join",
+        ":split",
+        "//library/integer:add",
+        "//library/integer:divide",
+        "//library/integer:multiply",
+        "//library/integer:subtract",
+        "//library/natural:normalize",
+    ],
+)
+
+photonic_library(
+    name = "join",
+    srcs = ["join.particle"],
+    deps = [
+        ":token",
+        "//library/natural:digit",
+    ],
+)
+
+photonic_library(
+    name = "parse",
+    srcs = ["parse.particle"],
+    deps = [
+        ":token",
+        "//library/natural:digit",
+    ],
+)
+
+photonic_library(
+    name = "split",
+    srcs = ["split.particle"],
+    deps = [
+        ":token",
+        "//library/natural:digit",
+    ],
+)
+
+photonic_library(
+    name = "token",
+    srcs = ["token.particle"],
+    deps = [
+        "//library/chain:erase",
+        "//library/chain:reverse",
+    ],
+)
+
+filegroup(
+    name = "source",
+    srcs = [
+        "evaluate.particle",
+        "execute.particle",
+        "join.particle",
+        "parse.particle",
+        "split.particle",
+        "token.particle",
+    ],
+    visibility = ["//library:__pkg__"],
+)
+
+filegroup(
+    name = "build",
+    srcs = ["BUILD.bazel"],
+    visibility = ["//:__pkg__"],
+)

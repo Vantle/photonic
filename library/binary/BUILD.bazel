@@ -1,0 +1,39 @@
+load("//photonic:defs.bzl", "photonic_library", "photonic_test")
+
+photonic_library(
+    name = "multiply",
+    srcs = ["multiply.particle"],
+    deps = ["//library/function:invoke"],
+)
+
+photonic_library(
+    name = "sum",
+    srcs = ["sum.particle"],
+    deps = ["//library/function:invoke"],
+)
+
+photonic_test(
+    name = "sum.check",
+    preserve = True,
+    source = "Invoke.Binary.Sum.1.1.0",
+    targets = ["([Digit] 0).([Carry] 1)"],
+    deps = [":sum"],
+)
+
+filegroup(
+    name = "source",
+    srcs = [
+        "multiply.particle",
+        "sum.particle",
+    ],
+    visibility = [
+        "//language:__pkg__",
+        "//library:__pkg__",
+    ],
+)
+
+filegroup(
+    name = "build",
+    srcs = ["BUILD.bazel"],
+    visibility = ["//:__pkg__"],
+)

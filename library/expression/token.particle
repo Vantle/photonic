@@ -1,0 +1,42 @@
+[Drop.Mark] Forget
+[Drop.Literal] Forget
+[Drop.Add] Forget
+[Drop.Subtract] Forget
+[Drop.Multiply] Forget
+[Drop.Divide] Forget
+[Drop.Open] Forget
+[Drop.Close] Forget
+[Drop.Negative] Forget
+[Drop.Negate] Forget
+
+[Yield.Mark.Reverse.Wait] (Reverse.Left) (Forget.Reverse.Write.Mark)
+[Clean.Reverse.Write.Mark, Reverse.Right] (Push.Mark) (Forget.Reverse.Await)
+[Yield.Literal.Reverse.Wait] (Reverse.Left) (Forget.Reverse.Write.Literal)
+[Clean.Reverse.Write.Literal, Reverse.Right] (Push.Literal) (Forget.Reverse.Await)
+[Yield.Add.Reverse.Wait] (Reverse.Left) (Forget.Reverse.Write.Add)
+[Clean.Reverse.Write.Add, Reverse.Right] (Push.Add) (Forget.Reverse.Await)
+[Yield.Subtract.Reverse.Wait] (Reverse.Left) (Forget.Reverse.Write.Subtract)
+[Clean.Reverse.Write.Subtract, Reverse.Right] (Push.Subtract) (Forget.Reverse.Await)
+[Yield.Multiply.Reverse.Wait] (Reverse.Left) (Forget.Reverse.Write.Multiply)
+[Clean.Reverse.Write.Multiply, Reverse.Right] (Push.Multiply) (Forget.Reverse.Await)
+[Yield.Divide.Reverse.Wait] (Reverse.Left) (Forget.Reverse.Write.Divide)
+[Clean.Reverse.Write.Divide, Reverse.Right] (Push.Divide) (Forget.Reverse.Await)
+[Yield.Open.Reverse.Wait] (Reverse.Left) (Forget.Reverse.Write.Open)
+[Clean.Reverse.Write.Open, Reverse.Right] (Push.Open) (Forget.Reverse.Await)
+[Yield.Close.Reverse.Wait] (Reverse.Left) (Forget.Reverse.Write.Close)
+[Clean.Reverse.Write.Close, Reverse.Right] (Push.Close) (Forget.Reverse.Await)
+[Yield.Negative.Reverse.Wait] (Reverse.Left) (Forget.Reverse.Write.Negative)
+[Clean.Reverse.Write.Negative, Reverse.Right] (Push.Negative) (Forget.Reverse.Await)
+[Yield.Negate.Reverse.Wait] (Reverse.Left) (Forget.Reverse.Write.Negate)
+[Clean.Reverse.Write.Negate, Reverse.Right] (Push.Negate) (Forget.Reverse.Await)
+
+[Yield.Mark.Erase.Wait] Read.Erase.Wait
+[Yield.Literal.Erase.Wait] Read.Erase.Wait
+[Yield.Add.Erase.Wait] Read.Erase.Wait
+[Yield.Subtract.Erase.Wait] Read.Erase.Wait
+[Yield.Multiply.Erase.Wait] Read.Erase.Wait
+[Yield.Divide.Erase.Wait] Read.Erase.Wait
+[Yield.Open.Erase.Wait] Read.Erase.Wait
+[Yield.Close.Erase.Wait] Read.Erase.Wait
+[Yield.Negative.Erase.Wait] Read.Erase.Wait
+[Yield.Negate.Erase.Wait] Read.Erase.Wait

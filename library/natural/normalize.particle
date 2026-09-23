@@ -1,0 +1,3 @@
+[Function.Natural.Normalize] (Function.Chain.Reverse) (Forget.Normalize.Wait)
+[Return.Chain.Reverse, Clean.Normalize.Wait] (Function.Natural.Trim) (Forget.Normalize.Finish)
+[Return.Natural.Trim, Clean.Normalize.Finish] Return.Natural.Normalize

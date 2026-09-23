@@ -1,0 +1,12 @@
+[Function.Stream.Successor.0] Stream.Copy.([Write] 1)
+[Function.Stream.Successor.1] Stream.Copy.([Write] 2)
+[Function.Stream.Successor.2] Function.Stream.Successor.([Write] 0)
+[Function.Stream.Successor.End] Stream.Finish.([Write] 1)
+[Stream.Copy.0] Stream.Copy.([Write] 0)
+[Stream.Copy.1] Stream.Copy.([Write] 1)
+[Stream.Copy.2] Stream.Copy.([Write] 2)
+[Stream.Copy.End] Return.Stream.Successor
+[([Write] 0)] Next
+[([Write] 1)] Next
+[([Write] 2)] Next
+[Next.Stream.Finish] Return.Stream.Successor

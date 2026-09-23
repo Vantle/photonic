@@ -1,27 +1,15 @@
 Push.([Digit] 0).Zero, Stage.1
-[Built,Stage.1] (Push.([Digit] 0)) (Forget.Stage.2)
-[Clean.Stage.2] Stage.2
-[Built,Stage.2] (Push.([Digit] 0)) (Forget.Stage.3)
-[Clean.Stage.3] Stage.3
-[Built,Stage.3] (Push.([Digit] 0)) (Forget.Stage.4)
-[Clean.Stage.4] Stage.4
-[Built,Stage.4] (Push.([Digit] 0)) (Forget.Stage.5)
-[Clean.Stage.5] Stage.5
-[Built,Stage.5] (Push.([Digit] 1)) (Forget.Stage.6)
-[Clean.Stage.6] Stage.6
-[Built,Stage.6] (Push.Subtract) (Forget.Stage.7)
-[Clean.Stage.7] Stage.7
-[Built,Stage.7] (Push.([Digit] 1)) (Forget.Stage.8)
-[Clean.Stage.8] Stage.8
-[Built,Stage.8] Function.Expression
-[Return.Expression.Number.Negative] (Read) (Forget.Inspect.0)
-[Clean.Inspect.0] Inspect.0
-[Yield.([Digit] 2),Inspect.0] (Read) (Forget.Inspect.1)
-[Clean.Inspect.1] Inspect.1
-[Yield.([Digit] 2),Inspect.1] (Read) (Forget.Inspect.2)
-[Clean.Inspect.2] Inspect.2
-[Yield.([Digit] 2),Inspect.2] (Read) (Forget.Inspect.3)
-[Clean.Inspect.3] Inspect.3
-[Yield.([Digit] 2),Inspect.3] (Read) (Forget.Inspect.4)
-[Clean.Inspect.4] Inspect.4
-[Yield.([Digit] 2),Inspect.4] Done
+[Built, Stage.1] (Push.([Digit] 0)) (Forget.Stage.2)
+[Built, Clean.Stage.2] (Push.([Digit] 0)) (Forget.Stage.3)
+[Built, Clean.Stage.3] (Push.([Digit] 0)) (Forget.Stage.4)
+[Built, Clean.Stage.4] (Push.([Digit] 0)) (Forget.Stage.5)
+[Built, Clean.Stage.5] (Push.([Digit] 1)) (Forget.Stage.6)
+[Built, Clean.Stage.6] (Push.Subtract) (Forget.Stage.7)
+[Built, Clean.Stage.7] (Push.([Digit] 1)) (Forget.Stage.8)
+[Built, Clean.Stage.8] Function.Expression.Evaluate
+[Return.Expression.Evaluate.Negative] (Read) (Forget.Inspect.0)
+[Yield.([Digit] 2), Clean.Inspect.0] (Read) (Forget.Inspect.1)
+[Yield.([Digit] 2), Clean.Inspect.1] (Read) (Forget.Inspect.2)
+[Yield.([Digit] 2), Clean.Inspect.2] (Read) (Forget.Inspect.3)
+[Yield.([Digit] 2), Clean.Inspect.3] (Read) (Forget.Inspect.4)
+[Yield.([Digit] 2), Clean.Inspect.4] Done

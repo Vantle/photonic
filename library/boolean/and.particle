@@ -1,0 +1,5 @@
+[Function.Boolean.And.True.True] Return.True
+[Function.Boolean.And.True.False] Return.False
+[Function.Boolean.And.False.False] Return.False
+[Boolean.And.([Operation] Boolean.And)] Function.Boolean.And
+[Function.Empty.Reduce.([Operation] Boolean.And)] Return.True

@@ -3,7 +3,7 @@ use photonic::path::{Report, Search};
 use photonic::prism::Outcome;
 use photonic::runtime::Limit;
 
-const RULE: &str = include_str!("../../library/stream.particle");
+const RULE: &str = include_str!("../../library/stream/successor.particle");
 
 fn digit(mut value: u128) -> Vec<usize> {
     let mut result = Vec::new();
@@ -21,7 +21,7 @@ fn source(digit: &[usize]) -> String {
         body = format!("({name} [Next] {body})");
     }
     format!(
-        "Read.Carry [Read] {body}
+        "Tape.Function.Stream.Successor [Tape] {body}
 {RULE}"
     )
 }
@@ -31,7 +31,7 @@ fn execute(source: &str) -> Report {
         let program = parse(source).unwrap();
         let target = photonic::source::Program {
             rule: program.rule.clone(),
-            ..parse("Done").unwrap()
+            ..parse("Return.Stream.Successor").unwrap()
         };
         Search::new(program, target)
     };
@@ -126,7 +126,7 @@ fn library() {
     assert!(report.work < 1000);
     assert_eq!(
         report.target.initial,
-        parse(include_str!("../../program/ternary/done.particle"))
+        parse(include_str!("../../program/ternary/stream.particle"))
             .unwrap()
             .initial
     );

@@ -76,9 +76,9 @@ try {
     assert.match(await evaluate("return document.getElementById('function-interface').textContent"), /Invoke activates the supplied Function rule/);
     assert.match(await evaluate("return document.getElementById('packing').textContent"), /Without the library rules/);
     await evaluate("const select = document.getElementById('lowering-select'); select.selectedIndex = 2; select.dispatchEvent(new Event('change'));");
-    assert.equal(await evaluate("return document.getElementById('lowering-output').textContent"), 'Pack.Position.0, Pack.Value.2');
+    assert.equal(await evaluate("return document.getElementById('lowering-output').textContent"), 'Field.Pack.Position.0, Field.Pack.Value.2');
     await evaluate("const select = document.getElementById('lowering-select'); select.selectedIndex = 3; select.dispatchEvent(new Event('change'));");
-    assert.equal(await evaluate("return document.getElementById('lowering-output').textContent"), 'Invoke.Pack.([Position] 0).([Value] 2)');
+    assert.equal(await evaluate("return document.getElementById('lowering-output').textContent"), 'Invoke.Field.Pack.([Position] 0).([Value] 2)');
     assert.match(await evaluate("return document.getElementById('lowering-description').textContent"), /does not execute/);
     await evaluate("document.getElementById('theme').click()");
     assert.equal(await evaluate('return document.documentElement.dataset.theme'), 'dark');
@@ -151,7 +151,7 @@ try {
         assert.equal(await evaluate("return document.getElementById('expression-result').textContent"), expected);
     }
     assert.equal(await evaluate("return document.getElementById('expression-next').disabled"), true);
-    assert.match(await evaluate("return document.getElementById('expression-rule').textContent"), /Evaluate.Pending.Subtract/);
+    assert.match(await evaluate("return document.getElementById('expression-rule').textContent"), /Execute.Pending.Subtract/);
     await evaluate("document.getElementById('expression-back').click()");
     assert.equal(await evaluate("return document.getElementById('expression-result').textContent"), '2221 (base 3) = 79 (decimal)');
     assert.equal(await evaluate("return document.getElementById('expression-select').options.length"), 4);
@@ -161,7 +161,7 @@ try {
         assert.equal(await evaluate("return document.querySelectorAll('#expression-trit .trit-card').length"), count);
         assert.equal(await evaluate("return document.getElementById('expression-back').disabled"), true);
         assert.equal(await evaluate("return document.getElementById('expression-source-panel').hidden"), false);
-        assert.ok(await evaluate("return document.getElementById('expression-source').textContent.includes('[Built,Stage.')"));
+        assert.ok(await evaluate("return document.getElementById('expression-source').textContent.includes('[Built, Stage.')"));
         assert.equal(await evaluate("return document.getElementById('expression-source').textContent.includes('Result.')"), false);
     }
     assert.match(await evaluate("return document.getElementById('expression-note').textContent"), /truncates toward zero/);

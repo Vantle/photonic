@@ -201,9 +201,15 @@ fn exhaustive() {
 #[test]
 fn digit() {
     let rule = concat!(
-        include_str!("../../library/application.particle"),
+        include_str!("../../library/function/invoke.particle"),
         "\n",
-        include_str!("../../library/ternary.particle")
+        include_str!("../../library/ternary/sum.particle"),
+        "\n",
+        include_str!("../../library/ternary/multiply.particle"),
+        "\n",
+        include_str!("../../library/ternary/subtract.particle"),
+        "\n",
+        include_str!("../../library/ternary/select.particle")
     );
     let name = ["0", "1", "2"];
     for left in 0..3 {
@@ -213,7 +219,7 @@ fn digit() {
                 assert_eq!(
                     execute(
                         &format!(
-                            "Invoke.Sum.{}.{}.{}
+                            "Invoke.Ternary.Sum.{}.{}.{}
 {rule}",
                             name[left], name[right], name[carry]
                         ),
@@ -230,7 +236,7 @@ fn digit() {
             assert_eq!(
                 execute(
                     &format!(
-                        "Invoke.Multiply.{}.{}
+                        "Invoke.Ternary.Multiply.{}.{}
 {rule}",
                         name[left], name[right]
                     ),
@@ -247,7 +253,7 @@ fn digit() {
                 assert_eq!(
                     execute(
                         &format!(
-                            "Invoke.Subtract.([Left] {}).([Right] {}).([Borrow] {})
+                            "Invoke.Ternary.Subtract.([Left] {}).([Right] {}).([Borrow] {})
 {rule}",
                             name[left], name[right], name[borrow]
                         ),
@@ -262,7 +268,7 @@ fn digit() {
                 assert_eq!(
                     execute(
                         &format!(
-                            "Invoke.Select.([Left] {}).([Right] {}).([Choice] {})
+                            "Invoke.Ternary.Select.([Left] {}).([Right] {}).([Choice] {})
 {rule}",
                             name[left], name[right], name[borrow]
                         ),

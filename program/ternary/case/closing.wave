@@ -1,4 +1,3 @@
 Push.Close.Zero, Stage.1
-[Built,Stage.1] (Push.([Digit] 1)) (Forget.Stage.2)
-[Clean.Stage.2] Stage.2
-[Built,Stage.2] Function.Expression
+[Built, Stage.1] (Push.([Digit] 1)) (Forget.Stage.2)
+[Built, Clean.Stage.2] Function.Expression.Evaluate

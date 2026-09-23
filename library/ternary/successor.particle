@@ -1,0 +1,4 @@
+[Function.Ternary.Successor.0] Return.([Digit] 1).([Carry] 0)
+[Function.Ternary.Successor.1] Return.([Digit] 2).([Carry] 0)
+[Function.Ternary.Successor.2] Return.([Digit] 0).([Carry] 1)
+[Ternary.Successor.([Each] Ternary.Successor)] Function.Ternary.Successor

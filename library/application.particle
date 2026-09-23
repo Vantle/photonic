@@ -1,7 +1,0 @@
-[Invoke] (
-    Function
-    [Return] ()
-)
-
-[Function.Identity] Return
-[Identity.([Each] Identity)] Function.Identity

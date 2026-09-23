@@ -1,5 +1,0 @@
-[Function.Subtract] (Function.Borrow) (Subtract.Wait)
-[Return.Borrow.Positive,Subtract.Wait] Return.Subtract.Number
-[Return.Borrow.Negative,Subtract.Wait] (Function.Erase) (Forget.Subtract.Failure)
-[Clean.Subtract.Failure] Subtract.Failure
-[Return.Erase,Subtract.Failure] Return.Subtract.Error.Underflow

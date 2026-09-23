@@ -46,18 +46,28 @@ fn encode(input: &str) -> Result<String, Failure> {
     }
     token.reverse();
     let Some(first) = token.first() else {
-        return Ok("Function.Expression.Zero".into());
+        return Ok("Function.Expression.Evaluate.Zero".into());
     };
     let mut source = format!("Push.{first}.Zero, Stage.1\n");
     for (index, value) in token.iter().enumerate().skip(1) {
-        let next = index + 1;
-        source.push_str(&format!("[Built,Stage.{index}] (Push.{value}) (Forget.Stage.{next})\n[Clean.Stage.{next}] Stage.{next}\n"));
+        source.push_str(&format!(
+            "[Built, {}] (Push.{value}) (Forget.Stage.{})\n",
+            stage(index),
+            index + 1
+        ));
     }
     source.push_str(&format!(
-        "[Built,Stage.{}] Function.Expression\n",
-        token.len()
+        "[Built, {}] Function.Expression.Evaluate\n",
+        stage(token.len())
     ));
     Ok(source)
+}
+
+fn stage(index: usize) -> String {
+    if index == 1 {
+        return "Stage.1".into();
+    }
+    format!("Clean.Stage.{index}")
 }
 
 static FORMULA: std::sync::LazyLock<Result<photonic::source::Program, String>> =

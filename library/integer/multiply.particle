@@ -1,0 +1,13 @@
+[Function.Integer.Multiply, Operand.Left.Positive] (Operand.Left) (Forget.Integer.Begin.([Operation] Multiply).([Sign] Positive))
+[Function.Integer.Multiply, Operand.Left.Negative] (Operand.Left) (Forget.Integer.Begin.([Operation] Multiply).([Sign] Negative))
+[Clean.Integer.Begin.([Operation] Multiply).([Sign] Positive), Operand.Right.Positive] (Operand.Right) (Forget.Integer.Start.([Operation] Multiply).([First] Positive).([Second] Positive))
+[Clean.Integer.Begin.([Operation] Multiply).([Sign] Positive), Operand.Right.Negative] (Operand.Right) (Forget.Integer.Start.([Operation] Multiply).([First] Positive).([Second] Negative))
+[Clean.Integer.Begin.([Operation] Multiply).([Sign] Negative), Operand.Right.Positive] (Operand.Right) (Forget.Integer.Start.([Operation] Multiply).([First] Negative).([Second] Positive))
+[Clean.Integer.Begin.([Operation] Multiply).([Sign] Negative), Operand.Right.Negative] (Operand.Right) (Forget.Integer.Start.([Operation] Multiply).([First] Negative).([Second] Negative))
+[Clean.Integer.Start.([Operation] Multiply).([First] Positive).([Second] Positive)] (Function.Natural.Multiply) (Integer.Pending.([Operation] Multiply).([Sign] Positive))
+[Clean.Integer.Start.([Operation] Multiply).([First] Positive).([Second] Negative)] (Function.Natural.Multiply) (Integer.Pending.([Operation] Multiply).([Sign] Negative))
+[Clean.Integer.Start.([Operation] Multiply).([First] Negative).([Second] Positive)] (Function.Natural.Multiply) (Integer.Pending.([Operation] Multiply).([Sign] Negative))
+[Clean.Integer.Start.([Operation] Multiply).([First] Negative).([Second] Negative)] (Function.Natural.Multiply) (Integer.Pending.([Operation] Multiply).([Sign] Positive))
+[Return.Natural.Multiply, Integer.Pending.([Operation] Multiply).([Sign] Positive)] Integer.Result.Positive.([Operation] Multiply)
+[Return.Natural.Multiply, Integer.Pending.([Operation] Multiply).([Sign] Negative)] Integer.Result.Negative.([Operation] Multiply)
+[Integer.Final.([Operation] Multiply)] Return.Integer.Multiply

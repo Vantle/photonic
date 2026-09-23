@@ -1,0 +1,76 @@
+load("//photonic:defs.bzl", "photonic_library")
+
+exports_files(
+    [
+        "add.particle",
+        "multiply.particle",
+    ],
+    visibility = ["//toolchain/browser:__pkg__"],
+)
+
+photonic_library(
+    name = "add",
+    srcs = ["add.particle"],
+    deps = ["//library/function:invoke"],
+)
+
+photonic_library(
+    name = "compare",
+    srcs = ["compare.particle"],
+    deps = ["//library/function:invoke"],
+)
+
+photonic_library(
+    name = "multiply",
+    srcs = ["multiply.particle"],
+    deps = ["//library/function:invoke"],
+)
+
+photonic_library(
+    name = "select",
+    srcs = ["select.particle"],
+    deps = ["//library/function:invoke"],
+)
+
+photonic_library(
+    name = "subtract",
+    srcs = ["subtract.particle"],
+    visibility = ["//program/ternary:__pkg__"],
+    deps = ["//library/function:invoke"],
+)
+
+photonic_library(
+    name = "successor",
+    srcs = ["successor.particle"],
+    deps = ["//library/function:invoke"],
+)
+
+photonic_library(
+    name = "sum",
+    srcs = ["sum.particle"],
+    visibility = ["//program/ternary:__pkg__"],
+    deps = ["//library/function:invoke"],
+)
+
+filegroup(
+    name = "source",
+    srcs = [
+        "add.particle",
+        "compare.particle",
+        "multiply.particle",
+        "select.particle",
+        "subtract.particle",
+        "successor.particle",
+        "sum.particle",
+    ],
+    visibility = [
+        "//arithmetic:__pkg__",
+        "//library:__pkg__",
+    ],
+)
+
+filegroup(
+    name = "build",
+    srcs = ["BUILD.bazel"],
+    visibility = ["//:__pkg__"],
+)
