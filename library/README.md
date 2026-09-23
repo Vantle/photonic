@@ -95,7 +95,6 @@ Linked values span several coherences in one frame, so linked operations run in 
 | `Function.Natural.Copy` | beside the numeral | `Return.Natural.Copy.Left`, `Return.Natural.Copy.Right` |
 | `Function.Natural.Normalize` | beside the numeral | `Return.Natural.Normalize` |
 | `Function.Natural.Successor` | beside the numeral | `Return.Natural.Successor` |
-| `Function.Natural.Complement` | beside the numeral | `Return.Natural.Complement` |
 | `Function.Natural.Add` | `Operand.Left`, `Operand.Right` | `Return.Natural.Add` |
 | `Function.Natural.Subtract` | `Operand.Left`, `Operand.Right` | `Return.Natural.Subtract.Number`, `Return.Natural.Subtract.Error.Underflow` |
 | `Function.Natural.Difference` | `Operand.Left`, `Operand.Right` | `Return.Natural.Difference.Positive`, `Return.Natural.Difference.Negative` |
@@ -108,7 +107,7 @@ Linked values span several coherences in one frame, so linked operations run in 
 | `Function.Vector.Erase` | beside a vector of chains and vectors | `Return.Vector.Erase` |
 | `Function.Vector.Sort` | beside a vector of naturals | `Return.Vector.Sort` |
 
-Numerals store base-three digits least significant first. Arithmetic answers carry no leading zeros; integers carry `Positive` or `Negative`, zero is always `Positive`, and integer division truncates toward zero.
+Numerals store base-three digits least significant first. Arithmetic answers carry no leading zeros, except that `Successor` increments in place and keeps its operand's high zeros; integers carry `Positive` or `Negative`, zero is always `Positive`, and integer division truncates toward zero.
 
 `Function.Natural.Compare` reads both operands without consuming them. It peeks one column at a time, least significant first; the most significant differing column decides, and a finished operand reads as zero, so high zeros compare equal to none. Each column costs about twenty events, and the verdict arrives only after both operands are released unchanged.
 
@@ -205,7 +204,7 @@ The successor writes each output digit as a `([Write] d)` value, acknowledges it
 - `isolation::boundary` parses every package and fails if any root rule could match the input of a root rule in a different package. It rejects the collisions this layout removed: natural `[Function.Add]` matching ternary `Function.Add.1.2`, ternary multiplication matching binary requests, `[Function.Compose]` matching carry composition, the stream's `[Carry.0]` matching the column engine, and `[Invoke]` matching internal states once named `Multiply.Invoke`.
 - `isolation::vocabulary` requires single-word concepts everywhere and at most two input and output coherences in the scalar packages.
 - `composition` runs scalar checks, the pair pipeline, linked addition, and a sort with all fourteen packages loaded.
-- `natural` compares every pair below 27, operands with high zeros, and wide random pairs against Rust's ordering, reading both operands back afterwards.
+- `natural` checks every linked natural operation against Rust arithmetic: comparison of every pair below 27 and of wide random pairs, reading both operands back; addition, multiplication, subtraction with underflow, signed difference, and division with remainder and a zero divisor for every pair below 9 and seeded pairs up to six trits; successor, normalization, copying, and the difference's complement for every value below 27; and all of them on operands with high zeros.
 - `vector` sorts every permutation of four items, repeated items, sorted, decreasing, and constant inputs, and seeded random vectors of up to twelve items against Rust's stable sort. Equal numerals with different high zeros check stability. It also reverses and erases vectors of naturals and vectors nested three deep.
 - The scalar tables are checked exhaustively against independent Rust oracles, including rejected targets, here and in the `arithmetic` and `language` suites.
 
