@@ -1,6 +1,6 @@
 # Continuous verification
 
-[Photonic on Buildkite](https://buildkite.com/vantle-labs/photonic) runs two independent jobs: **Build · Linux x86-64** and **Test · Linux x86-64**. Both select Bazel's `ci` configuration: release mode with `//platform:x86_64-unknown-linux-gnu` as the host and target platform. The build job compiles with lint aspects, checks formatting, and exercises the dependency command. The test job runs the release test suite. Both have a 60-minute timeout.
+[Photonic on Buildkite](https://buildkite.com/vantle-labs/photonic) runs two independent jobs: **Build · Linux x86-64** and **Test · Linux x86-64**. Both select Bazel's `ci` configuration: release mode with `//platform:x86_64-unknown-linux-gnu` as the host and target platform. The build job compiles with lint aspects, checks formatting and documentation links, and exercises the dependency command. The test job runs the release test suite. Both have a 60-minute timeout.
 
 ## Hosted capacity
 

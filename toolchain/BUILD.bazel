@@ -122,6 +122,14 @@ rust_binary(
 )
 
 rust_binary(
+    name = "link",
+    srcs = ["link.rs"],
+    crate_root = "link.rs",
+    lint_config = "//:lint",
+    visibility = ["//:__pkg__"],
+)
+
+rust_binary(
     name = "format",
     srcs = ["format.rs"],
     crate_root = "format.rs",

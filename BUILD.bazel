@@ -19,6 +19,13 @@ hermetic_binary(
 )
 
 hermetic_binary(
+    name = "link",
+    argument = ["README.md"],
+    entrypoint = "//toolchain:link",
+    tags = ["manual"],
+)
+
+hermetic_binary(
     name = "update",
     argument = [
         "$(rlocationpath {})".format(rust_toolchain_component_label("@rules_rust//tools/upstream_wrapper:cargo")),
