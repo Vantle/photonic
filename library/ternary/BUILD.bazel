@@ -11,6 +11,7 @@ exports_files(
 photonic_library(
     name = "add",
     srcs = ["add.particle"],
+    visibility = ["//theorem/ternary:__pkg__"],
     deps = ["//library/function:invoke"],
 )
 
@@ -36,6 +37,7 @@ photonic_library(
 photonic_library(
     name = "multiply",
     srcs = ["multiply.particle"],
+    visibility = ["//theorem/ternary:__pkg__"],
     deps = ["//library/function:invoke"],
 )
 
@@ -51,6 +53,7 @@ photonic_library(
     visibility = [
         "//program/ternary:__pkg__",
         "//theorem/induction:__pkg__",
+        "//theorem/ternary:__pkg__",
     ],
     deps = ["//library/function:invoke"],
 )

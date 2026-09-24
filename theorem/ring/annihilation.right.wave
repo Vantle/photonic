@@ -1,0 +1,17 @@
+Equation.([Side] Plus.([Of] Zero).([Of] Zero)).([Side] Zero),
+Equation.([Side] Times.([Left] X).([Right] Plus.([Of] Zero).([Of] Zero))).([Side] Plus.([Of] Times.([Left] X).([Right] Zero)).([Of] Times.([Left] X).([Right] Zero))),
+Equation.([Side] Plus.([Of] Times.([Left] X).([Right] Zero)).([Of] Opposite.([Of] Times.([Left] X).([Right] Zero)))).([Side] Zero),
+Equation.([Side] Plus.([Of] Plus.([Of] Times.([Left] X).([Right] Zero)).([Of] Times.([Left] X).([Right] Zero))).([Of] Opposite.([Of] Times.([Left] X).([Right] Zero)))).([Side] Plus.([Of] Times.([Left] X).([Right] Zero)).([Of] Plus.([Of] Times.([Left] X).([Right] Zero)).([Of] Opposite.([Of] Times.([Left] X).([Right] Zero))))),
+Equation.([Side] Plus.([Of] Times.([Left] X).([Right] Zero)).([Of] Opposite.([Of] Times.([Left] X).([Right] Zero)))).([Side] Zero),
+Equation.([Side] Plus.([Of] Times.([Left] X).([Right] Zero)).([Of] Zero)).([Side] Times.([Left] X).([Right] Zero))
+
+[Equation.([Side] Plus.([Of] Zero).([Of] Zero)).([Side] Zero)] Equation.([Side] Times.([Left] X).([Right] Plus.([Of] Zero).([Of] Zero))).([Side] Times.([Left] X).([Right] Zero))
+[Equation.([Side] Times.([Left] X).([Right] Zero)).([Side] Plus.([Of] Times.([Left] X).([Right] Zero)).([Of] Times.([Left] X).([Right] Zero)))] Equation.([Side] Plus.([Of] Times.([Left] X).([Right] Zero)).([Of] Opposite.([Of] Times.([Left] X).([Right] Zero)))).([Side] Plus.([Of] Plus.([Of] Times.([Left] X).([Right] Zero)).([Of] Times.([Left] X).([Right] Zero))).([Of] Opposite.([Of] Times.([Left] X).([Right] Zero))))
+[Equation.([Side] Plus.([Of] Times.([Left] X).([Right] Zero)).([Of] Opposite.([Of] Times.([Left] X).([Right] Zero)))).([Side] Zero)] Equation.([Side] Plus.([Of] Times.([Left] X).([Right] Zero)).([Of] Plus.([Of] Times.([Left] X).([Right] Zero)).([Of] Opposite.([Of] Times.([Left] X).([Right] Zero))))).([Side] Plus.([Of] Times.([Left] X).([Right] Zero)).([Of] Zero))
+[Equation.([Side] Times.([Left] X).([Right] Plus.([Of] Zero).([Of] Zero))), Equation.([Side] Times.([Left] X).([Right] Plus.([Of] Zero).([Of] Zero)))] Equation
+[Equation.([Side] Plus.([Of] Times.([Left] X).([Right] Zero)).([Of] Opposite.([Of] Times.([Left] X).([Right] Zero)))), Equation.([Side] Plus.([Of] Times.([Left] X).([Right] Zero)).([Of] Opposite.([Of] Times.([Left] X).([Right] Zero))))] Equation
+[Equation.([Side] Plus.([Of] Plus.([Of] Times.([Left] X).([Right] Zero)).([Of] Times.([Left] X).([Right] Zero))).([Of] Opposite.([Of] Times.([Left] X).([Right] Zero)))), Equation.([Side] Plus.([Of] Plus.([Of] Times.([Left] X).([Right] Zero)).([Of] Times.([Left] X).([Right] Zero))).([Of] Opposite.([Of] Times.([Left] X).([Right] Zero))))] Equation
+[Equation.([Side] Plus.([Of] Times.([Left] X).([Right] Zero)).([Of] Plus.([Of] Times.([Left] X).([Right] Zero)).([Of] Opposite.([Of] Times.([Left] X).([Right] Zero))))), Equation.([Side] Plus.([Of] Times.([Left] X).([Right] Zero)).([Of] Plus.([Of] Times.([Left] X).([Right] Zero)).([Of] Opposite.([Of] Times.([Left] X).([Right] Zero)))))] Equation
+[Equation.([Side] Plus.([Of] Times.([Left] X).([Right] Zero)).([Of] Zero)), Equation.([Side] Plus.([Of] Times.([Left] X).([Right] Zero)).([Of] Zero))] Equation
+
+[Equation.([Side] Times.([Left] X).([Right] Zero)).([Side] Zero)] Theorem

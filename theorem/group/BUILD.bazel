@@ -1,0 +1,42 @@
+load("//theorem:defs.bzl", "theorem")
+
+theorem(
+    name = "cancellation",
+    srcs = ["cancellation.wave"],
+    path = False,
+    deps = [],
+)
+
+theorem(
+    name = "inverse",
+    srcs = ["inverse.wave"],
+    path = False,
+    deps = [],
+)
+
+theorem(
+    name = "involution",
+    srcs = ["involution.wave"],
+    path = False,
+    deps = [],
+)
+
+theorem(
+    name = "reversal",
+    srcs = ["reversal.wave"],
+    path = False,
+    deps = [],
+)
+
+theorem(
+    name = "unit",
+    srcs = ["unit.wave"],
+    path = False,
+    deps = [],
+)
+
+filegroup(
+    name = "build",
+    srcs = ["BUILD.bazel"],
+    visibility = ["//:__pkg__"],
+)

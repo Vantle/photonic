@@ -1,0 +1,14 @@
+load("//theorem:defs.bzl", "theorem")
+
+theorem(
+    name = "identity",
+    srcs = ["identity.wave"],
+    path = False,
+    deps = [],
+)
+
+filegroup(
+    name = "build",
+    srcs = ["BUILD.bazel"],
+    visibility = ["//:__pkg__"],
+)

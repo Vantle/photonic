@@ -8,6 +8,7 @@ photonic_library(
         "//theorem/boolean:__pkg__",
         "//theorem/carry:__pkg__",
         "//theorem/induction:__pkg__",
+        "//theorem/ternary:__pkg__",
     ],
     deps = ["//library/function:invoke"],
 )
@@ -37,6 +38,7 @@ photonic_library(
         "//theorem/boolean:__pkg__",
         "//theorem/coloring:__pkg__",
         "//theorem/induction:__pkg__",
+        "//theorem/ternary:__pkg__",
     ],
     deps = ["//library/function:invoke"],
 )

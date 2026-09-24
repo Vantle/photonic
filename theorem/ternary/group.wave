@@ -1,0 +1,21 @@
+Case.(([A] 0), ([A] 1), ([A] 2)).(([B] 0), ([B] 1), ([B] 2)).(([C] 0), ([C] 1), ([C] 2))
+
+[Claim] (Function.Ternary.Add.Joined.A.B) (Function.Ternary.Add.Paired.B.C) (Function.Ternary.Add.Neutral.0.A) (Former.0.Opposite) (Latter.A.Opposite) (Owed.0.Opposite)
+[Low.Joined] Function.Ternary.Add.Grouped.C
+[Low.Paired] Function.Ternary.Add.Nested.A
+[Low.Grouped, Low.Nested] Function.Ternary.Equal.Associative
+[Low.Neutral] Function.Ternary.Equal.Identity.A
+[Packed.Opposite, Packed.Opposite, Packed.Opposite] Function.Ternary.Subtract.Opposite
+[Low.Opposite] Function.Ternary.Add.Cancel.A
+[Low.Cancel] Function.Ternary.Equal.Inverse.0
+[Return.Identity, Return.Inverse] Function.Boolean.And.Unit
+[Return.Associative, Return.Unit] Function.Boolean.And.Verdict
+[High.Joined],
+[High.Grouped],
+[High.Paired],
+[High.Nested],
+[High.Neutral],
+[High.Opposite],
+[High.Cancel],
+
+[Holds.(([A] 0), ([A] 1), ([A] 2)).(([B] 0), ([B] 1), ([B] 2)).(([C] 0), ([C] 1), ([C] 2))] Theorem

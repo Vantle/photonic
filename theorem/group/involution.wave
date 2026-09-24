@@ -1,0 +1,5 @@
+Equation.([Side] Times.([Left] Inverse.([Of] X)).([Right] X)).([Side] One)
+
+[Equation.([Side] Times.([Left] Inverse.([Of] X)).([Right] X)).([Side] One)] Equation.([Side] X).([Side] Inverse.([Of] Inverse.([Of] X)))
+
+[Equation.([Side] Inverse.([Of] Inverse.([Of] X))).([Side] X)] Theorem

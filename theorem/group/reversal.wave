@@ -1,0 +1,16 @@
+Equation.([Side] Times.([Left] Times.([Left] X).([Right] Y)).([Right] Times.([Left] Inverse.([Of] Y)).([Right] Inverse.([Of] X)))).([Side] Times.([Left] X).([Right] Times.([Left] Y).([Right] Times.([Left] Inverse.([Of] Y)).([Right] Inverse.([Of] X))))),
+Equation.([Side] Times.([Left] Times.([Left] Y).([Right] Inverse.([Of] Y))).([Right] Inverse.([Of] X))).([Side] Times.([Left] Y).([Right] Times.([Left] Inverse.([Of] Y)).([Right] Inverse.([Of] X)))),
+Equation.([Side] Times.([Left] Y).([Right] Inverse.([Of] Y))).([Side] One),
+Equation.([Side] Times.([Left] One).([Right] Inverse.([Of] X))).([Side] Inverse.([Of] X)),
+Equation.([Side] Times.([Left] X).([Right] Inverse.([Of] X))).([Side] One)
+
+[Equation.([Side] Times.([Left] Times.([Left] Y).([Right] Inverse.([Of] Y))).([Right] Inverse.([Of] X))).([Side] Times.([Left] Y).([Right] Times.([Left] Inverse.([Of] Y)).([Right] Inverse.([Of] X))))] Equation.([Side] Times.([Left] X).([Right] Times.([Left] Times.([Left] Y).([Right] Inverse.([Of] Y))).([Right] Inverse.([Of] X)))).([Side] Times.([Left] X).([Right] Times.([Left] Y).([Right] Times.([Left] Inverse.([Of] Y)).([Right] Inverse.([Of] X)))))
+[Equation.([Side] Times.([Left] Y).([Right] Inverse.([Of] Y))).([Side] One)] Equation.([Side] Times.([Left] X).([Right] Times.([Left] Times.([Left] Y).([Right] Inverse.([Of] Y))).([Right] Inverse.([Of] X)))).([Side] Times.([Left] X).([Right] Times.([Left] One).([Right] Inverse.([Of] X))))
+[Equation.([Side] Times.([Left] One).([Right] Inverse.([Of] X))).([Side] Inverse.([Of] X))] Equation.([Side] Times.([Left] X).([Right] Times.([Left] One).([Right] Inverse.([Of] X)))).([Side] Times.([Left] X).([Right] Inverse.([Of] X)))
+[Equation.([Side] Times.([Left] Times.([Left] X).([Right] Y)).([Right] Times.([Left] Inverse.([Of] Y)).([Right] Inverse.([Of] X)))).([Side] One)] Equation.([Side] Times.([Left] Inverse.([Of] Y)).([Right] Inverse.([Of] X))).([Side] Inverse.([Of] Times.([Left] X).([Right] Y)))
+[Equation.([Side] Times.([Left] X).([Right] Times.([Left] Y).([Right] Times.([Left] Inverse.([Of] Y)).([Right] Inverse.([Of] X))))), Equation.([Side] Times.([Left] X).([Right] Times.([Left] Y).([Right] Times.([Left] Inverse.([Of] Y)).([Right] Inverse.([Of] X)))))] Equation
+[Equation.([Side] Times.([Left] X).([Right] Times.([Left] Times.([Left] Y).([Right] Inverse.([Of] Y))).([Right] Inverse.([Of] X)))), Equation.([Side] Times.([Left] X).([Right] Times.([Left] Times.([Left] Y).([Right] Inverse.([Of] Y))).([Right] Inverse.([Of] X))))] Equation
+[Equation.([Side] Times.([Left] X).([Right] Times.([Left] One).([Right] Inverse.([Of] X)))), Equation.([Side] Times.([Left] X).([Right] Times.([Left] One).([Right] Inverse.([Of] X))))] Equation
+[Equation.([Side] Times.([Left] X).([Right] Inverse.([Of] X))), Equation.([Side] Times.([Left] X).([Right] Inverse.([Of] X)))] Equation
+
+[Equation.([Side] Inverse.([Of] Times.([Left] X).([Right] Y))).([Side] Times.([Left] Inverse.([Of] Y)).([Right] Inverse.([Of] X)))] Theorem

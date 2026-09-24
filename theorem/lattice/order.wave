@@ -1,0 +1,7 @@
+Equation.([Side] Meet.([Of] X).([Of] Y)).([Side] X),
+Equation.([Side] Join.([Of] Y).([Of] Meet.([Of] Y).([Of] X))).([Side] Y)
+
+[Equation.([Side] Meet.([Of] X).([Of] Y)).([Side] X)] Equation.([Side] Join.([Of] Y).([Of] Meet.([Of] X).([Of] Y))).([Side] Join.([Of] Y).([Of] X))
+[Equation.([Side] Join.([Of] Y).([Of] Meet.([Of] X).([Of] Y))), Equation.([Side] Join.([Of] Y).([Of] Meet.([Of] X).([Of] Y)))] Equation
+
+[Equation.([Side] Join.([Of] X).([Of] Y)).([Side] Y)] Theorem

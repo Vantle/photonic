@@ -1,0 +1,42 @@
+load("//theorem:defs.bzl", "theorem")
+
+theorem(
+    name = "annihilation.left",
+    srcs = ["annihilation.left.wave"],
+    path = False,
+    deps = [],
+)
+
+theorem(
+    name = "annihilation.right",
+    srcs = ["annihilation.right.wave"],
+    path = False,
+    deps = [],
+)
+
+theorem(
+    name = "negation",
+    srcs = ["negation.wave"],
+    path = False,
+    deps = [],
+)
+
+theorem(
+    name = "sign",
+    srcs = ["sign.wave"],
+    path = False,
+    deps = [],
+)
+
+theorem(
+    name = "unit",
+    srcs = ["unit.wave"],
+    path = False,
+    deps = [],
+)
+
+filegroup(
+    name = "build",
+    srcs = ["BUILD.bazel"],
+    visibility = ["//:__pkg__"],
+)

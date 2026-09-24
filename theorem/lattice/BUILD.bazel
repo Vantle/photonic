@@ -1,0 +1,63 @@
+load("//theorem:defs.bzl", "theorem")
+
+theorem(
+    name = "antisymmetry",
+    srcs = ["antisymmetry.wave"],
+    path = False,
+    deps = [],
+)
+
+theorem(
+    name = "complement",
+    srcs = ["complement.wave"],
+    path = False,
+    deps = [],
+)
+
+theorem(
+    name = "converse",
+    srcs = ["converse.wave"],
+    path = False,
+    deps = [],
+)
+
+theorem(
+    name = "distributivity",
+    srcs = ["distributivity.wave"],
+    path = False,
+    deps = [],
+)
+
+theorem(
+    name = "idempotence",
+    srcs = ["idempotence.wave"],
+    path = False,
+    deps = [],
+)
+
+theorem(
+    name = "modularity",
+    srcs = ["modularity.wave"],
+    path = False,
+    deps = [],
+)
+
+theorem(
+    name = "order",
+    srcs = ["order.wave"],
+    path = False,
+    deps = [],
+)
+
+theorem(
+    name = "transitivity",
+    srcs = ["transitivity.wave"],
+    path = False,
+    deps = [],
+)
+
+filegroup(
+    name = "build",
+    srcs = ["BUILD.bazel"],
+    visibility = ["//:__pkg__"],
+)

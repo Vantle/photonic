@@ -2,7 +2,7 @@
 
 Photonic proves a claim by executing it. A theorem program states its claim in Photonic values, checks it, and concludes `Theorem` only when the claim holds. Prism checks the proof: the program must reach exactly `Theorem`, with every loaded rule.
 
-Theorems are stated as generally as a finite check allows. The Boolean laws hold in every Boolean algebra; the relation and type theorems hold for every domain, every relation satisfying their hypotheses and every choice of component types; and the arithmetic laws hold at every width. Only the coloring theorems are specific numbers.
+Theorems are stated as generally as a finite check allows. The Boolean laws hold in every Boolean algebra; the relation and type theorems hold for every domain, every relation satisfying their hypotheses and every choice of component types; the group, lattice and ring laws hold in every group, lattice and ring; and the arithmetic laws hold at every width. Only the coloring theorems are specific numbers.
 
 ```sh
 bazel test -c opt //theorem/...
@@ -14,12 +14,15 @@ Every mathematical object is Photonic structure, so every part of a term is a va
 
 | Object | Written | Example |
 | --- | --- | --- |
-| Element or constant | an atom | `X`, `True`, `Generate` |
+| Element or constant | an atom | `X`, `One`, `Top` |
+| Operation | a particle led by the operation, with ordered operands in `Left` and `Right` fields | `Times.([Left] X).([Right] Y)` |
+| Commutative or unary operation | operands in `Of` fields | `Meet.([Of] X).([Of] Y)`, `Inverse.([Of] X)` |
 | Proposition | a particle led by the relation | `Less.([Left] X).([Right] Y)` |
+| Equation | two `Side` fields | `Equation.([Side] Times.([Left] One).([Right] Y)).([Side] Y)` |
 | Sequence extended by an element | `Then` with the sequence and the element | `Then.([Left] X).([Right] A)` |
 | Variable | a field keyed by what it names | `([P] True)`, `([Less.([Left] X).([Right] Y)] True)` |
 
-An edge of a graph is the value `([Edge] A.B)`, one occurrence holding an unordered pair, so that a field keyed by it can replace it.
+Two `Of` fields form a multiset, so `Meet.([Of] X).([Of] Y)` and `Meet.([Of] Y).([Of] X)` are one value and commutativity needs no proof; likewise the two sides of an equation make symmetry free. An edge of a graph is the value `([Edge] A.B)`, one occurrence holding an unordered pair, so that a field keyed by it can replace it.
 
 ## Cases
 
@@ -72,7 +75,7 @@ Every rule that matches a field is written at the root. A value produced by a ro
 
 ## Claims
 
-A claim reaches its verdict in one of three ways.
+A claim reaches its verdict in one of four ways.
 
 ### Evaluated claims
 
@@ -104,33 +107,54 @@ A judged claim computes derived values from definitions before judging them, suc
 
 If the next elements compare Equal and the sequences so far compare Less, the extended sequences compare Less. A judge table over every combination of the derived fields answers `Upheld` or `Overturned`. The judge consumes every derived field, so none leaks into the next case's report. [judge.particle](judge.particle) holds a case when it is upheld, or when it is overturned but a `Vacuous` rule closes it.
 
+### Derived claims
+
+A derived claim is an equational proof. Each fact is a coherence holding one equation: an instance of an axiom, a premise of the theorem, or an instance of an earlier theorem. Each rule is congruence, which puts both sides of an equation into the same context, or transitivity. From [group/inverse.wave](group/inverse.wave), which proves that xy = 1 implies y = x⁻¹ in every group:
+
+```
+Equation.([Side] Times.([Left] X).([Right] Y)).([Side] One),
+Equation.([Side] Times.([Left] One).([Right] Y)).([Side] Y),
+Equation.([Side] Times.([Left] Inverse.([Of] X)).([Right] X)).([Side] One),
+...
+
+[Equation.([Side] Times.([Left] X).([Right] Y)).([Side] One)] Equation.([Side] Times.([Left] Inverse.([Of] X)).([Right] Times.([Left] X).([Right] Y))).([Side] Times.([Left] Inverse.([Of] X)).([Right] One))
+[Equation.([Side] Times.([Left] One).([Right] Y)), Equation.([Side] Times.([Left] One).([Right] Y))] Equation
+...
+
+[Equation.([Side] Y).([Side] Inverse.([Of] X))] Theorem
+```
+
+The first rule multiplies both sides of xy = 1 on the left by x⁻¹. The second is transitivity through 1y: it joins two equations that share that side, consumes the shared side from both, and the remainder law leaves the two outer sides in one equation. A transitivity rule therefore names only its middle term. The last rule states the conclusion.
+
+Every fact is true in every structure of the kind, for every choice of the generic elements satisfying the premises, and every rule turns true equations into a true one, so the conclusion holds in every such structure. Rules consume their premises, so reaching exactly `Theorem` also shows every listed fact was used; a fact needed twice is listed twice. A proof may need its rules in a particular order, so derived claims are checked by Prism's full exploration: reaching `Theorem` means some order of the rules derives it. Reviewing one means checking that each fact is an axiom instance, a premise or a cited theorem, and that each congruence rule applies one context to both sides of its premise.
+
 ### Induction
 
 Where a statement is about sequences of every length or numbers of every width, the claim is an induction step. Its cases are every state the computation carries between positions and every next element, and it checks that an invariant over the state holds after the position whenever it held before. The invariant holds for the empty sequence, so induction on the length, argued here rather than executed, gives every length.
 
 ## What a proof establishes
 
-Reaching `Theorem` means every case closed with a true verdict, because:
+Reaching `Theorem` means every case closed with a true verdict, or the equations derived the conclusion, because:
 
 - **Cases are isolated.** A rule combines coherences within one frame, and each case runs in its own scope, so no rule can pair values from different cases.
 - **Evaluations are functions.** Every library operation and definition table a claim uses has one rule per combination of operands, and every call coherence holds exactly its operands, so each call has exactly one answer.
 - **The domain is complete.** A flat domain is written twice, as the initial cases and as the conclusion's premises. A nested quantifier writes each variable's values once as the chain that tries them and once as the report that completes it.
-- **Nothing is left over.** The target is exact, so a stray value in any case prevents the proof.
+- **Nothing is left over.** The target is exact, so a stray value in any case, or an unused fact, prevents the proof.
 
-The runtime and Prism are trusted to execute the rules, and the library's rules are the definitions an evaluated theorem is about. Prism itself checks one concrete reachability claim; the arguments above turn reaching `Theorem` into a statement about every case, and the covering and induction arguments turn that into the general statement. Every direct execution of a case-based claim reaches `Theorem`, so following one path suffices there.
+The runtime and Prism are trusted to execute the rules, and the library's rules are the definitions an evaluated theorem is about. Prism itself checks one concrete reachability claim; the arguments above turn reaching `Theorem` into a statement about every case, and the covering, derivation and induction arguments turn that into the general statement. Every direct execution of a case-based claim reaches `Theorem`, so following one path suffices there.
 
 A false claim reaches `Counterexample` instead, and a refutation test checks that configuration exactly. [boolean/negation.wave](boolean/negation.wave) claims ¬(p ∧ q) = ¬p ∧ ¬q and ends with counterexamples at (True, False) and (False, True) beside the two cases that hold. A nested claim stops at its first counterexample, so its refutation names one assignment.
 
 ## Writing a theorem
 
-- Write every term and proposition in the notation above; never name a structured object with one atom. Only elements and constants are atoms.
+- Write every term, proposition and equation in the notation above; never name a structured object with one atom. Only elements and constants are atoms.
 - Write each variable's domain once in the cases and once in the conclusion: `(([X] Kill), ([X] Propagate), ([X] Generate))`. Use a nested quantifier once a flat domain would need more than a few dozen cases.
 - A variable that is substituted, rather than matched by a covering rule, must be one occurrence: an atom such as `P` or a value such as `([Edge] A.B)`. A field whose input is a particle fires on atoms meant for other variables.
 - Tag every call with words the loaded libraries do not use. A pattern matches any coherence containing its atoms, so no tag may contain another. Theorems stating two laws use `Lower` and `Upper` as namespaces.
 - Keep each value that still has to meet another in its own coherence. Every output of a rule receives its unmatched remainder, so splitting a coherence that holds a computed value copies that value.
 - Pass role operands through an adapter. [carry/role.particle](carry/role.particle) packs a status after `Former` into `([Left] …)` and after `Latter` into `([Right] …)`, marking each `Packed`; a joint rule over two `Packed` coherences then makes the call. [ternary/role.particle](ternary/role.particle) does the same for trits and borrows.
 - Consume every value. A result that is not needed still has to be matched, or discarded by a rule with no output such as `[High.Joined],`; otherwise it remains in the final configuration and the proof fails.
-- Declare the theorem with `theorem` from [defs.bzl](defs.bzl), which builds the program and its `.proof` test. `refutation` builds a `.refutation` test that checks the configuration a false claim ends in. Raise `cells` as the claim grows and `states` as the path grows: a direct path retains every configuration it visits.
+- Declare the theorem with `theorem` from [defs.bzl](defs.bzl), which builds the program and its `.proof` test; `path = False` checks a derivation by full exploration. `refutation` builds a `.refutation` test that checks the configuration a false claim ends in. Raise `cells` as the claim grows and `states` as the path grows: a direct path retains every configuration it visits.
 
 ## Order
 
@@ -143,6 +167,7 @@ Each layer is more abstract than the definitions below it, or lifts laws proved 
 | 3. Constructed types | [componentwise](componentwise/), [lexicographic](lexicographic/), [sum](sum/), [sequence](sequence/), [ternary](ternary/) | 14 |
 | 4. Arithmetic at every width | [carry](carry/), [induction](induction/) | 6 |
 | 5. Exact combinatorics | [coloring](coloring/) | 8 |
+| 6. Algebraic structures | [monoid](monoid/), [group](group/), [lattice](lattice/), [ring](ring/), [ternary](ternary/) | 21 |
 
 ### 1. Propositional logic
 
@@ -233,3 +258,32 @@ Schur's, van der Waerden's and Ramsey's theorems need arguments beyond a finite 
 Together they establish the Schur number S(2) = 4, the van der Waerden number W(2,3) = 9 and the Ramsey number R(3,3) = 6. A triple is uniform when its three colors agree, which the claims define with four rules over the unordered triple; a verdict is the disjunction of the triples' uniformity, folded with `Boolean.Or`.
 
 The triangle theorems close branches early. K6 has 32,768 colorings, but a partial coloring that already contains a uniform triangle settles every coloring extending it. Each edge's scope first tests the triangles its predecessor completed, in an order that visits edges by their larger vertex; a uniform one reports `Proved` without splitting further. The proof is then a tree of 651 scopes whose 326 leaves each name a uniform triangle, and it runs 9,573 events. W(2,3) enumerates all 512 colorings in 52,219 events.
+
+### 6. Algebraic structures
+
+Derived theorems about every monoid, group, lattice and ring, and the library's structures as instances. A theorem cited by a later one appears there as a fact or rule instantiating it.
+
+| Theorem | Claim | Cites |
+| --- | --- | --- |
+| [monoid.identity](monoid/identity.wave) | an element e with ex = x for every x equals 1 | |
+| [group.inverse](group/inverse.wave) | xy = 1 implies y = x⁻¹ | |
+| [group.cancellation](group/cancellation.wave) | xy = xz implies y = z | |
+| [group.involution](group/involution.wave) | (x⁻¹)⁻¹ = x | inverse |
+| [group.unit](group/unit.wave) | 1⁻¹ = 1 | inverse |
+| [group.reversal](group/reversal.wave) | (xy)⁻¹ = y⁻¹x⁻¹ | inverse |
+| [lattice.idempotence](lattice/idempotence.wave) | x ∧ x = x, x ∨ x = x | |
+| [lattice.order](lattice/order.wave), [lattice.converse](lattice/converse.wave) | x ∧ y = x exactly when x ∨ y = y, so both define one order x ≤ y | |
+| [lattice.antisymmetry](lattice/antisymmetry.wave), [lattice.transitivity](lattice/transitivity.wave) | that order is antisymmetric and transitive; idempotence makes it reflexive | |
+| [lattice.distributivity](lattice/distributivity.wave) | if meet distributes over join, join distributes over meet | |
+| [lattice.modularity](lattice/modularity.wave) | a distributive lattice is modular: x ≤ z implies (x ∨ y) ∧ z = x ∨ (y ∧ z) | |
+| [lattice.complement](lattice/complement.wave) | in a bounded distributive lattice, a complement is unique | |
+| [ring.annihilation.right](ring/annihilation.right.wave), [ring.annihilation.left](ring/annihilation.left.wave) | x · 0 = 0 and 0 · x = 0 | |
+| [ring.negation](ring/negation.wave) | (−x) · y = −(x · y) = x · (−y) | annihilation, inverse |
+| [ring.sign](ring/sign.wave) | (−x) · (−y) = x · y | negation, involution |
+| [ring.unit](ring/unit.wave) | (−1) · x = −x in a ring with identity | negation |
+| [ternary.group](ternary/group.wave) | the trits under the digit of `Ternary.Add` form the group of order 3, with inverses from `Ternary.Subtract` | |
+| [ternary.field](ternary/field.wave) | with the digit of `Ternary.Multiply` they form the field of order 3: multiplication is associative and distributes over addition, 1 is its identity, and every nonzero trit is its own inverse | |
+
+A ring's addition is a commutative group, so the ring theorems cite the group theorems in additive notation: `inverse` reads a + b = 0 implies b = −a, and `involution` reads −(−a) = a.
+
+The instances connect these to the library. `ternary.group` and `ternary.field` make every group and ring theorem hold for the trits. The carry theorems of layer 4 make the statuses a monoid under `Carry.Combine`, so `monoid.identity` shows Propagate is its only identity. The Boolean laws of layer 1 include absorption, associativity, idempotence and both distributive laws for `Boolean.And` and `Boolean.Or`, so the Booleans are a distributive lattice and every lattice theorem holds for them.

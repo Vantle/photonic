@@ -115,7 +115,7 @@ bazel run -c opt //learning:learning -- curriculum --duration 7200
 
 ## Prove theorems
 
-A [theorem](theorem/README.md) lists every case of a finite domain, checks its claim in each case, and concludes `Theorem` only when every case holds; its proof test checks that the program reaches exactly `Theorem`. Claims are stated as generally as a finite check allows, with every term and proposition written as Photonic structure: laws of every Boolean algebra, of every relation on any domain, of orders on every type built from products, sums and sequences, and of arithmetic at every width:
+A [theorem](theorem/README.md) lists every case of a finite domain, checks its claim in each case, and concludes `Theorem` only when every case holds; its proof test checks that the program reaches exactly `Theorem`. Claims are stated as generally as a finite check allows, with every term and proposition written as Photonic structure: laws of every Boolean algebra, of every relation on any domain, of orders on every type built from products, sums and sequences, of every group, lattice and ring, and of arithmetic at every width:
 
 ```sh
 bazel test -c opt //theorem/...

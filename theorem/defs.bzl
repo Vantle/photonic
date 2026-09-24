@@ -2,7 +2,7 @@
 
 load("//photonic:defs.bzl", "photonic_binary", "photonic_test")
 
-def theorem(name, srcs, deps, cells = 256, states = 4096):
+def theorem(name, srcs, deps, cells = 256, states = 4096, path = True):
     """Prove a claim by reaching exactly Theorem, with every loaded rule.
 
     Args:
@@ -11,13 +11,15 @@ def theorem(name, srcs, deps, cells = 256, states = 4096):
         deps: Libraries defining the operations the claim evaluates.
         cells: Occurrence limit, which grows with the claim and its cases.
         states: Configuration limit; a direct path retains every configuration it visits.
+        path: Follow one direct execution, which suffices when every execution reaches Theorem;
+            otherwise Prism explores every order of the rules.
     """
     photonic_binary(name = name, srcs = srcs, deps = deps + ["//theorem:case"])
     photonic_test(
         name = name + ".proof",
         srcs = srcs,
         cells = cells,
-        path = True,
+        path = path,
         preserve = True,
         states = states,
         targets = ["Theorem"],

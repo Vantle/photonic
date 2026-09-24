@@ -1,0 +1,19 @@
+Equation.([Side] Times.([Left] X).([Right] Y)).([Side] Times.([Left] X).([Right] Z)),
+Equation.([Side] Times.([Left] One).([Right] Y)).([Side] Y),
+Equation.([Side] Times.([Left] One).([Right] Z)).([Side] Z),
+Equation.([Side] Times.([Left] Inverse.([Of] X)).([Right] X)).([Side] One),
+Equation.([Side] Times.([Left] Inverse.([Of] X)).([Right] X)).([Side] One),
+Equation.([Side] Times.([Left] Times.([Left] Inverse.([Of] X)).([Right] X)).([Right] Y)).([Side] Times.([Left] Inverse.([Of] X)).([Right] Times.([Left] X).([Right] Y))),
+Equation.([Side] Times.([Left] Times.([Left] Inverse.([Of] X)).([Right] X)).([Right] Z)).([Side] Times.([Left] Inverse.([Of] X)).([Right] Times.([Left] X).([Right] Z)))
+
+[Equation.([Side] Times.([Left] Inverse.([Of] X)).([Right] X)).([Side] One)] Equation.([Side] Times.([Left] Times.([Left] Inverse.([Of] X)).([Right] X)).([Right] Y)).([Side] Times.([Left] One).([Right] Y))
+[Equation.([Side] Times.([Left] Inverse.([Of] X)).([Right] X)).([Side] One)] Equation.([Side] Times.([Left] Times.([Left] Inverse.([Of] X)).([Right] X)).([Right] Z)).([Side] Times.([Left] One).([Right] Z))
+[Equation.([Side] Times.([Left] X).([Right] Y)).([Side] Times.([Left] X).([Right] Z))] Equation.([Side] Times.([Left] Inverse.([Of] X)).([Right] Times.([Left] X).([Right] Y))).([Side] Times.([Left] Inverse.([Of] X)).([Right] Times.([Left] X).([Right] Z)))
+[Equation.([Side] Times.([Left] One).([Right] Y)), Equation.([Side] Times.([Left] One).([Right] Y))] Equation
+[Equation.([Side] Times.([Left] Times.([Left] Inverse.([Of] X)).([Right] X)).([Right] Y)), Equation.([Side] Times.([Left] Times.([Left] Inverse.([Of] X)).([Right] X)).([Right] Y))] Equation
+[Equation.([Side] Times.([Left] Inverse.([Of] X)).([Right] Times.([Left] X).([Right] Y))), Equation.([Side] Times.([Left] Inverse.([Of] X)).([Right] Times.([Left] X).([Right] Y)))] Equation
+[Equation.([Side] Times.([Left] Inverse.([Of] X)).([Right] Times.([Left] X).([Right] Z))), Equation.([Side] Times.([Left] Inverse.([Of] X)).([Right] Times.([Left] X).([Right] Z)))] Equation
+[Equation.([Side] Times.([Left] Times.([Left] Inverse.([Of] X)).([Right] X)).([Right] Z)), Equation.([Side] Times.([Left] Times.([Left] Inverse.([Of] X)).([Right] X)).([Right] Z))] Equation
+[Equation.([Side] Times.([Left] One).([Right] Z)), Equation.([Side] Times.([Left] One).([Right] Z))] Equation
+
+[Equation.([Side] Y).([Side] Z)] Theorem

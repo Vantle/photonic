@@ -19,6 +19,34 @@ theorem(
 )
 
 theorem(
+    name = "field",
+    srcs = ["field.wave"],
+    cells = 512,
+    deps = [
+        ":unpack",
+        "//library/boolean:and",
+        "//library/boolean:or",
+        "//library/ternary:add",
+        "//library/ternary:equal",
+        "//library/ternary:multiply",
+    ],
+)
+
+theorem(
+    name = "group",
+    srcs = ["group.wave"],
+    cells = 512,
+    deps = [
+        ":role",
+        ":unpack",
+        "//library/boolean:and",
+        "//library/ternary:add",
+        "//library/ternary:equal",
+        "//library/ternary:subtract",
+    ],
+)
+
+theorem(
     name = "order",
     srcs = ["order.wave"],
     cells = 512,
