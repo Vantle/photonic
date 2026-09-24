@@ -90,43 +90,33 @@ fn main() -> miette::Result<ExitCode> {
         Some(search)
     };
     let directory = std::env::var_os("TEST_UNDECLARED_OUTPUTS_DIR").map(std::path::PathBuf::from);
-    if let (Some(search), Some(directory)) = (&exploration, &directory) {
-        std::fs::write(
-            directory.join("execution.json"),
-            serde_json::to_vec_pretty(&search.report()).into_diagnostic()?,
-        )
-        .into_diagnostic()?;
-    }
     let mut success = every;
     for (index, target) in target.into_iter().enumerate() {
-        let (result, report) = if let Some(search) = &mut exploration {
+        let name = format!("{index}.json");
+        let result = if let Some(search) = &mut exploration {
             search.target(target);
             let verdict = search.verdict();
-            (
-                verdict.outcome,
-                serde_json::to_vec_pretty(&serde_json::json!({
-                    "target": case.target[index],
-                    "outcome": verdict.outcome,
-                    "witness": verdict.witness,
-                }))
-                .into_diagnostic()?,
-            )
+            if verdict.outcome != expected {
+                record(
+                    &directory,
+                    &name,
+                    &serde_json::json!({
+                        "target": case.target[index],
+                        "outcome": verdict.outcome,
+                        "witness": verdict.witness,
+                    }),
+                )?;
+            }
+            verdict.outcome
         } else {
             let mut search = photonic::path::Search::new(program.clone(), target);
             search.run(case.step, limit);
-            let report = search.report();
-            (
-                report.outcome,
-                serde_json::to_vec_pretty(&report).into_diagnostic()?,
-            )
+            let outcome = search.summary().outcome;
+            if outcome != expected {
+                record(&directory, &name, &search.report())?;
+            }
+            outcome
         };
-        if let Some(directory) = &directory {
-            std::fs::write(
-                std::path::Path::new(&directory).join(format!("{index}.json")),
-                &report,
-            )
-            .into_diagnostic()?;
-        }
         println!("Prism target {index}: {result:?}; {}", case.target[index]);
         let matched = result == expected;
         success = if every {
@@ -143,9 +133,27 @@ fn main() -> miette::Result<ExitCode> {
         if every { "all" } else { "any" },
         if success { "passed" } else { "failed" }
     );
+    if let (false, Some(search)) = (success, &exploration) {
+        record(&directory, "execution.json", &search.report())?;
+    }
     Ok(if success {
         ExitCode::SUCCESS
     } else {
         ExitCode::FAILURE
     })
+}
+
+fn record(
+    directory: &Option<std::path::PathBuf>,
+    name: &str,
+    report: &impl serde::Serialize,
+) -> miette::Result<()> {
+    let Some(directory) = directory else {
+        return Ok(());
+    };
+    std::fs::write(
+        directory.join(name),
+        serde_json::to_vec_pretty(report).into_diagnostic()?,
+    )
+    .into_diagnostic()
 }
