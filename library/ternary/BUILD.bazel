@@ -21,6 +21,12 @@ photonic_library(
 )
 
 photonic_library(
+    name = "equal",
+    srcs = ["equal.particle"],
+    deps = ["//library/function:invoke"],
+)
+
+photonic_library(
     name = "multiply",
     srcs = ["multiply.particle"],
     deps = ["//library/function:invoke"],
@@ -57,6 +63,7 @@ filegroup(
     srcs = [
         "add.particle",
         "compare.particle",
+        "equal.particle",
         "multiply.particle",
         "select.particle",
         "subtract.particle",

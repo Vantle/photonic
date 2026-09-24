@@ -3,10 +3,11 @@ use crate::catalog::source;
 
 const STATE: [&str; 3] = ["Kill", "Propagate", "Generate"];
 
-fn library() -> [&'static str; 3] {
+fn library() -> [&'static str; 4] {
     [
         source("function", "invoke"),
         source("carry", "combine"),
+        source("carry", "equal"),
         source("carry", "evaluate"),
     ]
 }
@@ -19,6 +20,20 @@ fn combine() {
                 &format!("Invoke.Carry.Combine.([Left] {first}).([Right] {second})"),
                 if second == "Propagate" { first } else { second },
                 STATE,
+                &library(),
+            );
+        }
+    }
+}
+
+#[test]
+fn equal() {
+    for first in STATE {
+        for second in STATE {
+            answer(
+                &format!("Invoke.Carry.Equal.{first}.{second}"),
+                if first == second { "True" } else { "False" },
+                ["True", "False"],
                 &library(),
             );
         }

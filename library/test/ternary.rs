@@ -5,10 +5,11 @@ use std::cmp::Ordering;
 
 const DIGIT: [&str; 3] = ["0", "1", "2"];
 
-fn library() -> [&'static str; 8] {
+fn library() -> [&'static str; 9] {
     [
         source("function", "invoke"),
         source("ternary", "add"),
+        source("ternary", "equal"),
         source("ternary", "multiply"),
         source("ternary", "successor"),
         source("ternary", "compare"),
@@ -112,6 +113,20 @@ fn successor() {
             &library(),
             Outcome::Reached,
         );
+    }
+}
+
+#[test]
+fn equal() {
+    for first in DIGIT {
+        for second in DIGIT {
+            answer(
+                &format!("Invoke.Ternary.Equal.{first}.{second}"),
+                if first == second { "True" } else { "False" },
+                ["True", "False"],
+                &library(),
+            );
+        }
     }
 }
 

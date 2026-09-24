@@ -1,0 +1,6 @@
+[Function.Ternary.Equal.0.0] Return.True
+[Function.Ternary.Equal.0.1] Return.False
+[Function.Ternary.Equal.0.2] Return.False
+[Function.Ternary.Equal.1.1] Return.True
+[Function.Ternary.Equal.1.2] Return.False
+[Function.Ternary.Equal.2.2] Return.True

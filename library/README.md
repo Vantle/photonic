@@ -21,9 +21,9 @@ bazel test -c opt //library/...
 | --- | --- | --- |
 | [function](function/) | `Invoke`, `Identity`, `Compose` | `invoke`, `identity`, `compose` |
 | [boolean](boolean/) | `Boolean` | `not`, `and`, `or`, `equal` |
-| [ternary](ternary/) | `Ternary` | `add`, `sum`, `multiply`, `successor`, `compare`, `subtract`, `select` |
+| [ternary](ternary/) | `Ternary` | `add`, `sum`, `multiply`, `successor`, `compare`, `equal`, `subtract`, `select` |
 | [binary](binary/) | `Binary` | `sum`, `multiply` |
-| [carry](carry/) | `Carry` | `combine`, `evaluate` |
+| [carry](carry/) | `Carry` | `combine`, `equal`, `evaluate` |
 | [collection](collection/) | `Pair`, `Empty` | `produce`, `copy`, `repeat`, `broadcast`, `unpack`, `choose`, `map`, `gather`, `reduce` |
 | [selection](selection/) | `Selection` | `filter`, `check`, `count`, `reduce` |
 | [field](field/) | `Field` | `pack`, `unpack` |
