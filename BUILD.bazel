@@ -93,6 +93,7 @@ filegroup(
         "//theorem/lattice:build",
         "//theorem/lexicographic:build",
         "//theorem/monoid:build",
+        "//theorem/natural:build",
         "//theorem/relation:build",
         "//theorem/ring:build",
         "//theorem/sequence:build",

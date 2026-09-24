@@ -24,6 +24,7 @@ photonic_library(
     visibility = [
         "//library/expression:__pkg__",
         "//library/natural:__pkg__",
+        "//theorem/natural:__pkg__",
     ],
     deps = [":cell"],
 )

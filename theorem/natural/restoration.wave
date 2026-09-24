@@ -1,0 +1,9 @@
+Case.(([A] 0), ([A] End))
+
+[Claim] (Successor.Back) (Successor.Left.Prior) (Successor.Right.Feed.A) (Scheme.A)
+[Successor.Left.Head, Read.Successor.Check.Remnant] Read.Probe.Head
+[Yield.Probe.Prior] Engine
+[Engine.([Digit] 0), Scheme.0] Return.Verdict.True
+[Return.Natural.Successor.Prior, Scheme.End] Return.Verdict.True
+
+[Holds.(([A] 0), ([A] End))] Theorem

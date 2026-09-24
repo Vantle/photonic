@@ -210,6 +210,8 @@ The successor writes each output digit as a `([Write] d)` value, acknowledges it
 
 Linked arithmetic, comparison, and vectors are verified along direct execution paths by these generated checks, the package checks in `//library/natural` and `//library/vector`, and the programs in `//program/ternary` and `//program/vector`.
 
+The [theorems](../theorem/README.md#7-counting) prove more than these bounded checks. Every digit table of `ternary` is counting with the successor. A chain cell returns exactly its item and the chain below, for every item. Each step of the column engine, `Natural.Compare`, `Natural.Trim`, `Chain.Reverse` and `Natural.Successor`, run by the library's own rules, does what the digit tables require. Together these make linked addition, subtraction, comparison and successor correct at every width.
+
 ## Extending
 
 Add an operation as its own file in the package that owns its type, give it a `photonic_library` target with explicit dependencies and visibility, and list it in the package's `source` filegroup; the library suite loads every `source` filegroup, so the isolation and composition checks cover it. A new type gets its own package and namespace, and its `source` filegroup joins the `data` and `PHOTONIC_LIBRARY` lists of `//library:test` in [BUILD.bazel](BUILD.bazel). A consumer outside the library adds its package to each target's `visibility`. Callbacks register themselves with a dispatch rule such as `[Boolean.Not.([Each] Boolean.Not)] Function.Boolean.Not`, and a new chain alphabet declares its `Drop`, Reverse, and Erase rules without editing the chain package.

@@ -1,0 +1,17 @@
+Case.(([A] 0), ([A] 1), ([A] 2), ([A] End))
+
+[Claim] (Successor.Step) (Successor.Left.Feed.A) (Successor.Right.Prior) (Increment.A)
+[Increment.0] Function.Ternary.Successor.Expected.0
+[Increment.1] Function.Ternary.Successor.Expected.1
+[Increment.2] Function.Ternary.Successor.Expected.2
+[Increment.End] Function.Ternary.Successor.Expected.0
+[Successor.Right.Head, Read.Successor.Wait.Remnant] Read.Probe.Head
+[Successor.Left.Head, Read.Successor.Check.Prior] Read.Probe.Head
+[Yield.Probe.Prior] Engine.Carries
+[Yield.Probe.Remnant] Engine.Writes
+[Yield.Probe.Zero] Engine.Writes
+[Engine.Carries.([Digit] 0), Low.0.Expected, High.1.Expected] Return.Verdict.True
+[Engine.Writes.([Digit] 1), Low.1.Expected, High.0.Expected] Return.Verdict.True
+[Engine.Writes.([Digit] 2), Low.2.Expected, High.0.Expected] Return.Verdict.True
+
+[Holds.(([A] 0), ([A] 1), ([A] 2), ([A] End))] Theorem

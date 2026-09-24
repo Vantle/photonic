@@ -6,6 +6,7 @@ photonic_library(
     visibility = [
         "//library/integer:__pkg__",
         "//program/ternary:__pkg__",
+        "//theorem/natural:__pkg__",
     ],
     deps = [":column"],
 )
@@ -19,6 +20,7 @@ photonic_library(
 photonic_library(
     name = "column",
     srcs = ["column.particle"],
+    visibility = ["//theorem/natural:__pkg__"],
     deps = [":trim"],
 )
 
@@ -28,6 +30,7 @@ photonic_library(
     visibility = [
         "//library/vector:__pkg__",
         "//program/ternary:__pkg__",
+        "//theorem/natural:__pkg__",
     ],
     deps = [":digit"],
 )
@@ -67,6 +70,7 @@ photonic_library(
         "//library/expression:__pkg__",
         "//program/ternary:__pkg__",
         "//program/vector:__pkg__",
+        "//theorem/natural:__pkg__",
     ],
     deps = [
         "//library/chain:erase",
@@ -129,13 +133,17 @@ photonic_library(
 photonic_library(
     name = "successor",
     srcs = ["successor.particle"],
-    visibility = ["//program/ternary:__pkg__"],
+    visibility = [
+        "//program/ternary:__pkg__",
+        "//theorem/natural:__pkg__",
+    ],
     deps = [":digit"],
 )
 
 photonic_library(
     name = "trim",
     srcs = ["trim.particle"],
+    visibility = ["//theorem/natural:__pkg__"],
     deps = [
         ":digit",
         "//library/chain:reverse",

@@ -1,0 +1,107 @@
+load("//photonic:defs.bzl", "photonic_library")
+load("//theorem:defs.bzl", "theorem")
+
+theorem(
+    name = "addition",
+    srcs = ["addition.wave"],
+    cells = 512,
+    deps = [
+        ":feed",
+        "//library/natural:column",
+        "//library/ternary:sum",
+        "//theorem/ternary:unpack",
+    ],
+)
+
+theorem(
+    name = "comparison",
+    srcs = ["comparison.wave"],
+    cells = 1024,
+    deps = [
+        ":feed",
+        "//library/natural:compare",
+        "//library/ternary:compare",
+        "//theorem/ternary:role",
+    ],
+)
+
+theorem(
+    name = "ending",
+    srcs = ["ending.wave"],
+    deps = ["//library/natural:column"],
+)
+
+photonic_library(
+    name = "feed",
+    srcs = ["feed.particle"],
+)
+
+theorem(
+    name = "opening",
+    srcs = ["opening.wave"],
+    cells = 1024,
+    deps = [
+        ":feed",
+        "//library/natural:add",
+        "//library/ternary:sum",
+        "//theorem/ternary:unpack",
+    ],
+)
+
+theorem(
+    name = "restoration",
+    srcs = ["restoration.wave"],
+    deps = [
+        ":feed",
+        "//library/natural:successor",
+    ],
+)
+
+theorem(
+    name = "reversal",
+    srcs = ["reversal.wave"],
+    deps = [
+        ":feed",
+        "//library/chain:reverse",
+        "//library/natural:digit",
+    ],
+)
+
+theorem(
+    name = "subtraction",
+    srcs = ["subtraction.wave"],
+    cells = 512,
+    deps = [
+        ":feed",
+        "//library/natural:column",
+        "//library/ternary:subtract",
+        "//theorem/ternary:role",
+        "//theorem/ternary:unpack",
+    ],
+)
+
+theorem(
+    name = "successor",
+    srcs = ["successor.wave"],
+    deps = [
+        ":feed",
+        "//library/natural:successor",
+        "//library/ternary:successor",
+        "//theorem/ternary:unpack",
+    ],
+)
+
+theorem(
+    name = "trim",
+    srcs = ["trim.wave"],
+    deps = [
+        ":feed",
+        "//library/natural:trim",
+    ],
+)
+
+filegroup(
+    name = "build",
+    srcs = ["BUILD.bazel"],
+    visibility = ["//:__pkg__"],
+)

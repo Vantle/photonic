@@ -4,7 +4,7 @@ Photonic proves a claim by executing it. A theorem program states its claim in P
 
 Theorems are stated as generally as a finite check allows. The Boolean laws hold in every Boolean algebra; the relation and type theorems hold for every domain, every relation satisfying their hypotheses and every choice of component types; the group, lattice and ring laws hold in every group, lattice and ring; and the arithmetic laws hold at every width. Only the coloring theorems are specific numbers.
 
-The last two layers turn to the standard library itself. They ground its digit tables in counting and prove its chain cells for every item.
+The last three layers prove the standard library itself. They ground its digit tables in counting, prove its chain cells for every item, and check its linked arithmetic one step at a time by running the library's own rules.
 
 ```sh
 bazel test -c opt //theorem/...
@@ -134,6 +134,10 @@ Every fact is true in every structure of the kind, for every choice of the gener
 
 Where a statement is about sequences of every length or numbers of every width, the claim is an induction step. Its cases are every state the computation carries between positions and every next element, and it checks that an invariant over the state holds after the position whenever it held before. The invariant holds for the empty sequence, so induction on the length, argued here rather than executed, gives every length.
 
+### Rules about rules
+
+A claim can take another program's rules as its subject. The layer 9 claims start a library engine in a state its own rules reach between two steps, let those rules take one step, and meet what they did with what the digit tables require. Rules stand in for the data the step never reaches: a feed answers the chain protocol with the case's next digit, followed by a remnant that answers nothing but `Forget`. A case can assign a whole piece of engine state, so `([M] Mode.([Operation] Add))` turns `Column.M` into the column engine's add mode, itself a rule value. The claim reads the engine's output back through the chain's own methods, rule values that the chain handle carries. Layer 8 proves those methods correct.
+
 ## What a proof establishes
 
 Reaching `Theorem` means every case closed with a true verdict, or the equations derived the conclusion, because:
@@ -143,7 +147,9 @@ Reaching `Theorem` means every case closed with a true verdict, or the equations
 - **The domain is complete.** A flat domain is written twice, as the initial cases and as the conclusion's premises. A nested quantifier writes each variable's values once as the chain that tries them and once as the report that completes it.
 - **Nothing is left over.** The target is exact, so a stray value in any case, or an unused fact, prevents the proof.
 
-The runtime and Prism are trusted to execute the rules. In layers 1 to 6 the library's rules are the definitions an evaluated theorem is about; layer 7 proves its digit tables in turn, down to the successor of each trit, and layer 8 proves its chain cells. Prism itself checks one concrete reachability claim; the arguments above turn reaching `Theorem` into a statement about every case, and the covering, derivation and induction arguments turn that into the general statement. Every direct execution of a case-based claim reaches `Theorem`, so following one path suffices there.
+The runtime and Prism are trusted to execute the rules. In layers 1 to 6 the library's rules are the definitions an evaluated theorem is about; layers 7 to 9 prove those definitions in turn, down to the successor of each trit. Prism itself checks one concrete reachability claim; the arguments above turn reaching `Theorem` into a statement about every case, and the covering, derivation and induction arguments turn that into the general statement. Every direct execution of a case-based claim reaches `Theorem`, so following one path suffices there.
+
+A layer 9 claim also relies on two facts about the engine it runs, both visible in the engine's rules. Its starting state is one the engine reaches between steps, and a feed behaves as a chain for one step. The engines touch an operand only by sending `Read`, `Peek` and `Forget`, and they test only for the empty chain `Zero`, which `Feed.End` answers as.
 
 A false claim reaches `Counterexample` instead, and a refutation test checks that configuration exactly. [boolean/negation.wave](boolean/negation.wave) claims ¬(p ∧ q) = ¬p ∧ ¬q and ends with counterexamples at (True, False) and (False, True) beside the two cases that hold. A nested claim stops at its first counterexample, so its refutation names one assignment.
 
@@ -156,11 +162,12 @@ A false claim reaches `Counterexample` instead, and a refutation test checks tha
 - Keep each value that still has to meet another in its own coherence. Every output of a rule receives its unmatched remainder, so splitting a coherence that holds a computed value copies that value.
 - Pass role operands through an adapter. [carry/role.particle](carry/role.particle) packs a status after `Former` into `([Left] …)` and after `Latter` into `([Right] …)`, marking each `Packed`; a joint rule over two `Packed` coherences then makes the call. [ternary/role.particle](ternary/role.particle) does the same for trits and borrows.
 - Consume every value. A result that is not needed still has to be matched, or discarded by a rule with no output such as `[High.Joined],`; otherwise it remains in the final configuration and the proof fails.
+- Guard every rule that observes a running engine with a value that exists only after the step, such as a read blocked on a feed's remnant or an output that now holds a cell. An observer that could fire earlier takes the engine's own inputs and stalls it.
 - Declare the theorem with `theorem` from [defs.bzl](defs.bzl), which builds the program and its `.proof` test; `path = False` checks a derivation by full exploration. `refutation` builds a `.refutation` test that checks the configuration a false claim ends in. Raise `cells` as the claim grows and `states` as the path grows: a direct path retains every configuration it visits.
 
 ## Order
 
-Layers 1 to 6 climb from propositional logic to algebraic structures. Each is more abstract than the definitions below it, or lifts laws proved below it to every size. Layers 7 and 8 turn to the standard library itself. They ground its digit tables in counting and prove its chain cells.
+Layers 1 to 6 climb from propositional logic to algebraic structures. Each is more abstract than the definitions below it, or lifts laws proved below it to every size. Layers 7 to 9 turn to the standard library itself. They ground its digit tables in counting and build up to its linked arithmetic.
 
 | Layer | Packages | Theorems |
 | --- | --- | ---: |
@@ -172,6 +179,7 @@ Layers 1 to 6 climb from propositional logic to algebraic structures. Each is mo
 | 6. Algebraic structures | [monoid](monoid/), [group](group/), [lattice](lattice/), [ring](ring/), [ternary](ternary/) | 21 |
 | 7. Counting | [counting](counting/) | 6 |
 | 8. Linked storage | [chain](chain/) | 3 |
+| 9. Linked arithmetic | [natural](natural/) | 9 |
 
 ### 1. Propositional logic
 
@@ -220,7 +228,7 @@ The sequence theorems are induction steps whose state is the verdict so far, one
 
 Induction over type expressions, argued rather than executed, combines these: every type built from trits with lexicographic products, sums and equal-length sequences is strictly totally ordered, and componentwise products of such types are partially ordered. Unfolding A* as 1 + A × A* and applying the sum and lexicographic theorems at each length orders sequences of different lengths too, with a proper prefix first.
 
-In particular, `Natural.Compare`'s scheme orders the naturals. It compares digits least significant first, the most significant difference decides, and a finished operand reads as zero, which pads both numerals to one width; with the trits ordered by `Ternary.Compare`, the sequence theorems apply. This concerns the scheme, not yet the linked implementation.
+In particular, `Natural.Compare`'s scheme orders the naturals. It compares digits least significant first, the most significant difference decides, and a finished operand reads as zero, which pads both numerals to one width; with the trits ordered by `Ternary.Compare`, the sequence theorems apply. Layer 9 proves that the linked implementation follows this scheme.
 
 ### 4. Arithmetic at every width
 
@@ -343,3 +351,41 @@ Push.Item.Below
 | [read](chain/read.wave) | reading a pushed cell returns exactly its item and the chain below, and destroys the handle's methods |
 | [peek](chain/peek.wave) | peeking returns the same and keeps the cell, so another reference still reads it |
 | [forget](chain/forget.wave) | forgetting one reference to a cell leaves the cell for another |
+
+### 9. Linked arithmetic
+
+The linked engines read numbers of any width, so their theorems are induction steps like those of layer 4. The difference is what they run: the library's own rules, not a scheme. Each claim starts an engine in a state it holds between two steps, and hands it feeds instead of chains. From [natural/feed.particle](natural/feed.particle):
+
+```
+[Read.Feed.1] Yield.([Digit] 1).Remnant
+[Read.Feed.End] Yield.End.Zero
+[Forget.Remnant] Clean
+[Forget.Prior] Clean
+```
+
+A feed answers `Read` or `Peek` with the case's next digit, followed by a `Remnant` that answers nothing but `Forget`. `Prior` stands for the output built so far. A step reads at most one digit from each operand, so a feed stands for every chain with that next digit. `Feed.End` answers as the empty chain `Zero`, which it stands for. The engine's rules take one step and block on the remnants, and the claim reads the output back through the real chain. From [natural/addition.wave](natural/addition.wave):
+
+```
+[Claim] (Column.Step) (Column.Mode.([Operation] Add)) (Column.Carry.K) (Column.Left.Feed.A) (Column.Right.Feed.B) (Column.Output.Prior) (Worth.A) (Worth.B) (Function.Ternary.Sum.Expected.K)
+[Column.Output.Head, Read.Column.Reader.([Side] Left).Remnant] Read.Probe.Head
+[Yield.Probe.Prior, Column.Carry, Column.Mode.([Operation] Add), Read.Column.Reader.([Side] Right).Remnant] Engine
+[Engine.([Digit] 1).1, Low.1.Expected, High.1.Expected] Return.Verdict.True
+```
+
+The probe fires only once the output holds a new cell and the engine has begun the next column. The digit under the probe must be the digit of `Ternary.Sum`, with `End` read as 0, and the engine's new carry must be Sum's carry. The tail `Prior` shows that the engine pushed exactly one digit onto whatever the output already held. An operand that has ended reads `End` again at the next column instead of blocking, and two more observers cover those states.
+
+| Theorem | Step | Cases |
+| --- | --- | ---: |
+| [opening](natural/opening.wave) | the first column of `Natural.Add`, run from the call itself, pushes the digit of `Ternary.Sum` of the two digits and no carry onto an empty output and passes on Sum's carry; 0 + 0 answers zero | 16 |
+| [addition](natural/addition.wave) | a column of `Natural.Add` pushes the digit of `Ternary.Sum` of the two digits read and the carry, and passes on Sum's carry | 30 |
+| [subtraction](natural/subtraction.wave) | a column in the borrow mode behind `Natural.Subtract` and `Natural.Difference` pushes the digit of `Ternary.Subtract` and passes on its borrow | 30 |
+| [ending](natural/ending.wave) | once both operands have ended, a final carry becomes the leading digit and a final borrow reports a negative difference | 4 |
+| [comparison](natural/comparison.wave) | a position of `Natural.Compare` carries on the verdict of the layer 3 scheme, or answers it once one operand has ended and the other shows a nonzero digit, or both have ended | 48 |
+| [trim](natural/trim.wave) | `Natural.Trim` skips a leading zero, answers zero once only zeros remain, and otherwise keeps the leading digit and reverses the chain | 4 |
+| [reversal](natural/reversal.wave) | each step of `Chain.Reverse` moves one digit onto its result, which it returns at the end | 4 |
+| [successor](natural/successor.wave) | `Natural.Successor` turns a trailing 2 into a pending 0, and otherwise writes the digit's successor | 4 |
+| [restoration](natural/restoration.wave) | each pending 0 then returns beneath the new digit, and the number is returned | 2 |
+
+With layer 7 these give the library's linked arithmetic at every width, by induction on the steps. `opening` shows that `Natural.Add` starts with carry 0 and an empty output. After each column, `addition` and `sum` keep the output equal to the low digits of a + b, most significant on top, with the carry owed to the next column. `ending` pushes the last carry, and `trim` and `reversal` return the numeral least significant first with no leading zeros. The same argument with `subtraction` and `subtract` gives a − b, and `ending` reports a negative difference exactly when b > a. `comparison` shows that `Natural.Compare` follows the scheme that layer 3 proved orders the naturals, and `compare` orders its digits by the sign of their difference. Its early answers are final. Once the left operand has ended, every later position compares 0 with a digit, which can turn Equal into Less but never undoes Less, and symmetrically for Greater. `successor`, `restoration` and `cycle` give n + 1.
+
+`comparison` pins down the engine's exact stopping rule. Consider an engine that answers Less one position earlier, where the left operand has ended and the right shows 0 after an earlier Less. It would still be correct, but it fails this theorem.

@@ -23,6 +23,7 @@ photonic_library(
     srcs = ["compare.particle"],
     visibility = [
         "//theorem/counting:__pkg__",
+        "//theorem/natural:__pkg__",
         "//theorem/ternary:__pkg__",
     ],
     deps = ["//library/function:invoke"],
@@ -63,6 +64,7 @@ photonic_library(
         "//program/ternary:__pkg__",
         "//theorem/counting:__pkg__",
         "//theorem/induction:__pkg__",
+        "//theorem/natural:__pkg__",
         "//theorem/ternary:__pkg__",
     ],
     deps = ["//library/function:invoke"],
@@ -71,7 +73,10 @@ photonic_library(
 photonic_library(
     name = "successor",
     srcs = ["successor.particle"],
-    visibility = ["//theorem/counting:__pkg__"],
+    visibility = [
+        "//theorem/counting:__pkg__",
+        "//theorem/natural:__pkg__",
+    ],
     deps = ["//library/function:invoke"],
 )
 
@@ -82,6 +87,7 @@ photonic_library(
         "//program/ternary:__pkg__",
         "//theorem/counting:__pkg__",
         "//theorem/induction:__pkg__",
+        "//theorem/natural:__pkg__",
     ],
     deps = ["//library/function:invoke"],
 )
