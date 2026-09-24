@@ -1,0 +1,60 @@
+load("@rules_rs//rs:rust_library.bzl", "rust_library")
+load("@rules_rs//rs:rust_test.bzl", "rust_test")
+
+filegroup(
+    name = "source",
+    srcs = [
+        "absent.rs",
+        "adam.rs",
+        "batch.rs",
+        "delta.rs",
+        "engine.rs",
+        "failure.rs",
+        "gpu.rs",
+        "occurrence.rs",
+        "pipeline.rs",
+        "plain.rs",
+        "runtime.rs",
+        "seal.rs",
+        "trace.rs",
+    ],
+)
+
+rust_library(
+    name = "gpu",
+    srcs = [":source"],
+    compile_data = ["kernel.metal"],
+    crate_root = "gpu.rs",
+    lint_config = "//:lint",
+    visibility = ["//learning:__pkg__"],
+    deps = [
+        "//network",
+        "@crate//:thiserror",
+    ],
+)
+
+rust_test(
+    name = "test",
+    size = "small",
+    srcs = [
+        "test/engine.rs",
+        "test/runtime.rs",
+        "test/suite.rs",
+        "test/support.rs",
+        ":source",
+    ],
+    compile_data = ["kernel.metal"],
+    crate_root = "gpu.rs",
+    lint_config = "//:lint",
+    deps = [
+        "//network",
+        "//random",
+        "@crate//:thiserror",
+    ],
+)
+
+filegroup(
+    name = "build",
+    srcs = ["BUILD.bazel"],
+    visibility = ["//:__pkg__"],
+)

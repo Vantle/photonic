@@ -1,0 +1,74 @@
+load("@rules_rs//rs:rust_library.bzl", "rust_library")
+load("@rules_rs//rs:rust_test.bzl", "rust_test")
+
+filegroup(
+    name = "source",
+    srcs = [
+        "attention.rs",
+        "block.rs",
+        "checkpoint.rs",
+        "configuration.rs",
+        "embedding.rs",
+        "feed.rs",
+        "grow.rs",
+        "head.rs",
+        "input.rs",
+        "layout.rs",
+        "linear.rs",
+        "loss.rs",
+        "matrix.rs",
+        "model.rs",
+        "network.rs",
+        "norm.rs",
+        "optimizer.rs",
+        "pack.rs",
+    ],
+)
+
+rust_library(
+    name = "network",
+    srcs = [":source"],
+    crate_root = "network.rs",
+    lint_config = "//:lint",
+    visibility = [
+        "//gpu:__pkg__",
+        "//learning:__pkg__",
+    ],
+    deps = [
+        "//random",
+        "@crate//:ndarray",
+        "@crate//:serde",
+        "@crate//:serde_json",
+        "@crate//:thiserror",
+    ],
+)
+
+rust_test(
+    name = "test",
+    size = "medium",
+    srcs = [
+        "test/checkpoint.rs",
+        "test/gradient.rs",
+        "test/grow.rs",
+        "test/pack.rs",
+        "test/suite.rs",
+        "test/support.rs",
+        "test/training.rs",
+        ":source",
+    ],
+    crate_root = "network.rs",
+    lint_config = "//:lint",
+    deps = [
+        "//random",
+        "@crate//:ndarray",
+        "@crate//:serde",
+        "@crate//:serde_json",
+        "@crate//:thiserror",
+    ],
+)
+
+filegroup(
+    name = "build",
+    srcs = ["BUILD.bazel"],
+    visibility = ["//:__pkg__"],
+)

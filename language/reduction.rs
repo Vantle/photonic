@@ -59,6 +59,10 @@ impl Search {
         }
     }
 
+    pub(crate) fn deferred(&self) -> usize {
+        self.pending.len()
+    }
+
     pub(crate) fn preparation(&self) -> usize {
         self.network.preparation
     }

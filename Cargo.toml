@@ -24,6 +24,7 @@ clap = { version = "4", features = ["derive"] }
 indexmap = "2"
 imbl = "7.0.1"
 miette = { version = "7", features = ["fancy-no-backtrace"] }
+ndarray = "0.17"
 pest = "2.9"
 pest_derive = "2.9"
 rayon = "1"

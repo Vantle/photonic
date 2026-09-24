@@ -1,0 +1,59 @@
+load("@rules_rs//rs:rust_library.bzl", "rust_library")
+load("@rules_rs//rs:rust_test.bzl", "rust_test")
+
+filegroup(
+    name = "source",
+    srcs = [
+        "emit.rs",
+        "execution.rs",
+        "failure.rs",
+        "lift.rs",
+        "text.rs",
+        "translation.rs",
+        "vocabulary.rs",
+    ],
+)
+
+rust_library(
+    name = "translation",
+    srcs = [":source"],
+    crate_root = "translation.rs",
+    lint_config = "//:lint",
+    visibility = ["//learning:__pkg__"],
+    deps = [
+        "//code",
+        "//language:photonic",
+        "@crate//:miette",
+        "@crate//:serde",
+        "@crate//:thiserror",
+    ],
+)
+
+rust_test(
+    name = "test",
+    size = "medium",
+    srcs = [
+        "test/differential.rs",
+        "test/roundtrip.rs",
+        "test/suite.rs",
+        "test/support.rs",
+        ":source",
+    ],
+    crate_root = "translation.rs",
+    lint_config = "//:lint",
+    deps = [
+        "//code",
+        "//language:photonic",
+        "//machine",
+        "//random",
+        "@crate//:miette",
+        "@crate//:serde",
+        "@crate//:thiserror",
+    ],
+)
+
+filegroup(
+    name = "build",
+    srcs = ["BUILD.bazel"],
+    visibility = ["//:__pkg__"],
+)

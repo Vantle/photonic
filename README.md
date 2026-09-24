@@ -81,6 +81,13 @@ bazel run -c opt //command:photonic -- prism "$PWD/program/natural/addition.wave
 | [toolchain/browser/](toolchain/browser/) | WebAssembly adapter, preview server, and browser verification. |
 | [platform/](platform/) | Native platform definitions and toolchain patch. |
 | [document/](document/) | Contracts, the runtime roadmap, dated runtime records, and webbook assets; see its [index](document/README.md). |
+| [code/](code/) | Label-free program representation for the whole grammar, canonical identity, rule analogy, distance, and tree navigation. |
+| [machine/](machine/) | Exact exhaustive and parallel execution of flat programs. |
+| [translation/](translation/) | Conversion between `code`, runtime source values, and Photonic text. |
+| [network/](network/) | Pointer transformer, gradients, optimizer, checkpoints, and function-preserving growth. |
+| [gpu/](gpu/) | Metal inference and training for the network; its only unsafe code is the runtime binding. |
+| [learning/](learning/) | The [program optimization learner](document/learning.md): edits, objective and goals, planning, self-play, lessons, training, exhaustive and guided solving, and the curriculum. |
+| [random/](random/) | Seeded random generation shared by the learning layers. |
 
 Programs belong to a subject: `language/`, `association/`, `composition/`, `natural/`, `binary/`, `decimal/`, `ternary/`, `circuit/`, or `vector/`. Keep a program's expected configurations and regression tests beside its source. A counterexample is a tested outcome, not a separate category of program: `program/natural/preparation.wave` retains the rejected multiplication construction and checks its incorrect result. Generated circuit programs live in `program/circuit/`; their Rust generator lives in `arithmetic/`.
 
@@ -92,6 +99,17 @@ Every runnable `.wave` has a `photonic_binary` target. Discover programs and tes
 bazel query 'kind(".*_test rule", //...)'
 bazel query 'kind("hermetic_binary rule", //program/...)'
 rg --files library program
+```
+
+## Learn to optimize programs
+
+The [program optimization learner](document/learning.md) edits a program's rules with a planner guided by a label-free transformer, keeps every example correct under all schedules, and minimizes parallel time and program size under each task's goal. Its network, task pool, and discoveries persist in `~/.cache/photonic/learning`, so every use continues training. `solve` finds the cheapest small program for a task, even one defined only by its tests, and proves it optimal by searching every flat program that could beat it; `improve` and `curriculum` generate new behaviors, solve them and learn from every solution:
+
+```sh
+bazel run -c opt //learning:learning -- train --duration 3600
+bazel run -c opt //learning:learning -- optimize --program "$PWD/rules.particle" --input "$PWD/input.wave"
+bazel run -c opt //learning:learning -- solve --task boolean.and
+bazel run -c opt //learning:learning -- curriculum --duration 7200
 ```
 
 ## Read by subject

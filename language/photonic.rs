@@ -18,6 +18,7 @@ mod consumption;
 mod delta;
 mod dispatch;
 mod evaluation;
+pub mod execution;
 pub mod executor;
 mod factor;
 mod fingerprint;

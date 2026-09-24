@@ -1,0 +1,120 @@
+load("@rules_rs//rs:rust_binary.bzl", "rust_binary")
+load("@rules_rs//rs:rust_library.bzl", "rust_library")
+load("@rules_rs//rs:rust_test.bzl", "rust_test")
+
+filegroup(
+    name = "source",
+    srcs = [
+        "archive.rs",
+        "corpus.rs",
+        "curriculum.rs",
+        "demonstration.rs",
+        "edit.rs",
+        "encoding.rs",
+        "export.rs",
+        "guide.rs",
+        "home.rs",
+        "import.rs",
+        "judge.rs",
+        "learning.rs",
+        "objective.rs",
+        "play.rs",
+        "pool.rs",
+        "problem.rs",
+        "replay.rs",
+        "search.rs",
+        "server.rs",
+        "session.rs",
+        "solution.rs",
+        "synthetic.rs",
+        "task.rs",
+        "train.rs",
+    ],
+)
+
+rust_library(
+    name = "library",
+    srcs = [":source"],
+    crate_name = "learning",
+    crate_root = "learning.rs",
+    lint_config = "//:lint",
+    deps = [
+        "//code",
+        "//gpu",
+        "//language:photonic",
+        "//machine",
+        "//network",
+        "//random",
+        "//translation",
+        "@crate//:rayon",
+        "@crate//:serde",
+        "@crate//:serde_json",
+        "@crate//:thiserror",
+    ],
+)
+
+rust_binary(
+    name = "learning",
+    srcs = [
+        "argument.rs",
+        "course.rs",
+        "improve.rs",
+        "inspect.rs",
+        "main.rs",
+        "output.rs",
+        "practice.rs",
+        "setup.rs",
+        "solve.rs",
+    ],
+    crate_root = "main.rs",
+    lint_config = "//:lint",
+    deps = [
+        ":library",
+        "//code",
+        "@crate//:clap",
+        "@crate//:miette",
+    ],
+)
+
+rust_test(
+    name = "test",
+    size = "medium",
+    srcs = [
+        "test/archive.rs",
+        "test/corpus.rs",
+        "test/curriculum.rs",
+        "test/demonstration.rs",
+        "test/edit.rs",
+        "test/encoding.rs",
+        "test/guide.rs",
+        "test/home.rs",
+        "test/import.rs",
+        "test/objective.rs",
+        "test/search.rs",
+        "test/session.rs",
+        "test/solution.rs",
+        "test/suite.rs",
+        ":source",
+    ],
+    crate_root = "learning.rs",
+    lint_config = "//:lint",
+    deps = [
+        "//code",
+        "//gpu",
+        "//language:photonic",
+        "//machine",
+        "//network",
+        "//random",
+        "//translation",
+        "@crate//:rayon",
+        "@crate//:serde",
+        "@crate//:serde_json",
+        "@crate//:thiserror",
+    ],
+)
+
+filegroup(
+    name = "build",
+    srcs = ["BUILD.bazel"],
+    visibility = ["//:__pkg__"],
+)

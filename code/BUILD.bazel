@@ -1,0 +1,58 @@
+load("@rules_rs//rs:rust_library.bzl", "rust_library")
+load("@rules_rs//rs:rust_test.bzl", "rust_test")
+
+filegroup(
+    name = "source",
+    srcs = [
+        "analogy.rs",
+        "atom.rs",
+        "canonical.rs",
+        "code.rs",
+        "configuration.rs",
+        "distance.rs",
+        "hashing.rs",
+        "observation.rs",
+        "output.rs",
+        "particle.rs",
+        "program.rs",
+        "rule.rs",
+        "tree.rs",
+        "value.rs",
+    ],
+)
+
+rust_library(
+    name = "code",
+    srcs = [":source"],
+    crate_root = "code.rs",
+    lint_config = "//:lint",
+    visibility = [
+        "//learning:__pkg__",
+        "//machine:__pkg__",
+        "//translation:__pkg__",
+    ],
+    deps = ["@crate//:serde"],
+)
+
+rust_test(
+    name = "test",
+    size = "small",
+    srcs = [
+        "test/analogy.rs",
+        "test/canonical.rs",
+        "test/distance.rs",
+        "test/suite.rs",
+        "test/support.rs",
+        "test/tree.rs",
+        ":source",
+    ],
+    crate_root = "code.rs",
+    lint_config = "//:lint",
+    deps = ["@crate//:serde"],
+)
+
+filegroup(
+    name = "build",
+    srcs = ["BUILD.bazel"],
+    visibility = ["//:__pkg__"],
+)
