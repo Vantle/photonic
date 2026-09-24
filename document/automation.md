@@ -18,8 +18,9 @@ The following fixtures exceed 2 GiB of resident memory individually and carry th
 | `//program/ternary:performance` | 3.29 GB |
 | `//program/ternary/case:width` | 2.87 GB |
 | `//program/ternary:infix.check` | 2.64 GB |
+| `//theorem/coloring:progression.nine.proof` | 3.96 GB |
 
-These are native ARM64 macOS measurements of revision `91fbf9c`, collected with `bazel test --config=release //... --run_under='/usr/bin/time -l' --jobs=1 --test_output=all`. They establish resource classification, not Linux memory equivalence. Every untagged test measured below 2 GiB; the largest was `//program/ternary:expression.check` at 1.92 GB. Run the full suite locally with `bazel test --config=release //...`; ordinary runs include all four large fixtures. Hosted CI verifies the selected suite, while full-suite and browser validation remain separate release gates.
+These are native ARM64 macOS measurements of revision `91fbf9c`, and of revision `5781490` for the theorem, collected with `bazel test --config=release //... --run_under='/usr/bin/time -l' --jobs=1 --test_output=all`. They establish resource classification, not Linux memory equivalence. Every untagged test measured below 2 GiB; the largest was `//program/ternary:expression.check` at 1.92 GB. Run the full suite locally with `bazel test --config=release //...`; ordinary runs include all four large fixtures. Hosted CI verifies the selected suite, while full-suite and browser validation remain separate release gates.
 
 ## Pipeline configuration
 
