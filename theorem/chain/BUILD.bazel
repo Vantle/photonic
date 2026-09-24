@@ -1,0 +1,25 @@
+load("//theorem:defs.bzl", "theorem")
+
+theorem(
+    name = "forget",
+    srcs = ["forget.wave"],
+    deps = ["//library/chain:cell"],
+)
+
+theorem(
+    name = "peek",
+    srcs = ["peek.wave"],
+    deps = ["//library/chain:cell"],
+)
+
+theorem(
+    name = "read",
+    srcs = ["read.wave"],
+    deps = ["//library/chain:cell"],
+)
+
+filegroup(
+    name = "build",
+    srcs = ["BUILD.bazel"],
+    visibility = ["//:__pkg__"],
+)

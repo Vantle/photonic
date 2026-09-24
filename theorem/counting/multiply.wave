@@ -1,0 +1,17 @@
+Case.(([A] 0), ([A] 1), ([A] 2)).(([B] 0), ([B] 1), ([B] 2))
+
+[Claim] (Place.0) (Wraps.0) (Rounds.B) (Multiplicand.A) (Function.Ternary.Multiply.Expected.A.B)
+[Rounds.0, Multiplicand.0] Satisfied.Final
+[Rounds.0, Multiplicand.1] Satisfied.Final
+[Rounds.0, Multiplicand.2] Satisfied.Final
+[Rounds.1, Multiplicand] (Walk) (Need.Final)
+[Rounds.2, Multiplicand] (Walk) (Need.Further) (Multiplicand)
+[Satisfied.Further, Multiplicand] (Walk) (Need.Final)
+[Satisfied.Final, Place.0, Wraps.0, Low.0.Expected, High.0.Expected] Return.Verdict.True
+[Satisfied.Final, Place.0, Wraps.1, Low.0.Expected, High.1.Expected] Return.Verdict.True
+[Satisfied.Final, Place.1, Wraps.0, Low.1.Expected, High.0.Expected] Return.Verdict.True
+[Satisfied.Final, Place.1, Wraps.1, Low.1.Expected, High.1.Expected] Return.Verdict.True
+[Satisfied.Final, Place.2, Wraps.0, Low.2.Expected, High.0.Expected] Return.Verdict.True
+[Satisfied.Final, Place.2, Wraps.1, Low.2.Expected, High.1.Expected] Return.Verdict.True
+
+[Holds.(([A] 0), ([A] 1), ([A] 2)).(([B] 0), ([B] 1), ([B] 2))] Theorem

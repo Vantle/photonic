@@ -1,0 +1,8 @@
+Case.(([A] 0), ([A] 1), ([A] 2))
+
+[Claim] (Place.A) (Wraps.0) (Walk.1) (Walk.2) (Need.1) (Need.2) (Origin.A)
+[Satisfied, Satisfied, Place.0, Wraps.1, Origin.0] Return.Verdict.True
+[Satisfied, Satisfied, Place.1, Wraps.1, Origin.1] Return.Verdict.True
+[Satisfied, Satisfied, Place.2, Wraps.1, Origin.2] Return.Verdict.True
+
+[Holds.(([A] 0), ([A] 1), ([A] 2))] Theorem

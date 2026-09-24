@@ -4,7 +4,10 @@ load("//theorem:defs.bzl", "theorem")
 photonic_library(
     name = "role",
     srcs = ["role.particle"],
-    visibility = ["//theorem/induction:__pkg__"],
+    visibility = [
+        "//theorem/counting:__pkg__",
+        "//theorem/induction:__pkg__",
+    ],
 )
 
 theorem(
@@ -60,7 +63,10 @@ theorem(
 photonic_library(
     name = "unpack",
     srcs = ["unpack.particle"],
-    visibility = ["//theorem/induction:__pkg__"],
+    visibility = [
+        "//theorem/counting:__pkg__",
+        "//theorem/induction:__pkg__",
+    ],
 )
 
 filegroup(

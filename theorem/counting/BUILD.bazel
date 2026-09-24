@@ -1,0 +1,72 @@
+load("//photonic:defs.bzl", "photonic_library")
+load("//theorem:defs.bzl", "theorem")
+
+theorem(
+    name = "add",
+    srcs = ["add.wave"],
+    deps = [
+        ":count",
+        "//library/ternary:add",
+    ],
+)
+
+theorem(
+    name = "compare",
+    srcs = ["compare.wave"],
+    deps = [
+        "//library/ternary:compare",
+        "//library/ternary:subtract",
+        "//theorem/ternary:role",
+        "//theorem/ternary:unpack",
+    ],
+)
+
+photonic_library(
+    name = "count",
+    srcs = ["count.particle"],
+    deps = [
+        "//library/ternary:successor",
+        "//theorem/ternary:unpack",
+    ],
+)
+
+theorem(
+    name = "cycle",
+    srcs = ["cycle.wave"],
+    deps = [":count"],
+)
+
+theorem(
+    name = "multiply",
+    srcs = ["multiply.wave"],
+    deps = [
+        ":count",
+        "//library/ternary:multiply",
+    ],
+)
+
+theorem(
+    name = "subtract",
+    srcs = ["subtract.wave"],
+    deps = [
+        ":count",
+        "//library/ternary:subtract",
+        "//theorem/ternary:role",
+    ],
+)
+
+theorem(
+    name = "sum",
+    srcs = ["sum.wave"],
+    cells = 512,
+    deps = [
+        ":count",
+        "//library/ternary:sum",
+    ],
+)
+
+filegroup(
+    name = "build",
+    srcs = ["BUILD.bazel"],
+    visibility = ["//:__pkg__"],
+)

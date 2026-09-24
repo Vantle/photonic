@@ -4,6 +4,8 @@ Photonic proves a claim by executing it. A theorem program states its claim in P
 
 Theorems are stated as generally as a finite check allows. The Boolean laws hold in every Boolean algebra; the relation and type theorems hold for every domain, every relation satisfying their hypotheses and every choice of component types; the group, lattice and ring laws hold in every group, lattice and ring; and the arithmetic laws hold at every width. Only the coloring theorems are specific numbers.
 
+The last two layers turn to the standard library itself. They ground its digit tables in counting and prove its chain cells for every item.
+
 ```sh
 bazel test -c opt //theorem/...
 ```
@@ -141,7 +143,7 @@ Reaching `Theorem` means every case closed with a true verdict, or the equations
 - **The domain is complete.** A flat domain is written twice, as the initial cases and as the conclusion's premises. A nested quantifier writes each variable's values once as the chain that tries them and once as the report that completes it.
 - **Nothing is left over.** The target is exact, so a stray value in any case, or an unused fact, prevents the proof.
 
-The runtime and Prism are trusted to execute the rules, and the library's rules are the definitions an evaluated theorem is about. Prism itself checks one concrete reachability claim; the arguments above turn reaching `Theorem` into a statement about every case, and the covering, derivation and induction arguments turn that into the general statement. Every direct execution of a case-based claim reaches `Theorem`, so following one path suffices there.
+The runtime and Prism are trusted to execute the rules. In layers 1 to 6 the library's rules are the definitions an evaluated theorem is about; layer 7 proves its digit tables in turn, down to the successor of each trit, and layer 8 proves its chain cells. Prism itself checks one concrete reachability claim; the arguments above turn reaching `Theorem` into a statement about every case, and the covering, derivation and induction arguments turn that into the general statement. Every direct execution of a case-based claim reaches `Theorem`, so following one path suffices there.
 
 A false claim reaches `Counterexample` instead, and a refutation test checks that configuration exactly. [boolean/negation.wave](boolean/negation.wave) claims ¬(p ∧ q) = ¬p ∧ ¬q and ends with counterexamples at (True, False) and (False, True) beside the two cases that hold. A nested claim stops at its first counterexample, so its refutation names one assignment.
 
@@ -158,7 +160,7 @@ A false claim reaches `Counterexample` instead, and a refutation test checks tha
 
 ## Order
 
-Each layer is more abstract than the definitions below it, or lifts laws proved below it to every size.
+Layers 1 to 6 climb from propositional logic to algebraic structures. Each is more abstract than the definitions below it, or lifts laws proved below it to every size. Layers 7 and 8 turn to the standard library itself. They ground its digit tables in counting and prove its chain cells.
 
 | Layer | Packages | Theorems |
 | --- | --- | ---: |
@@ -168,6 +170,8 @@ Each layer is more abstract than the definitions below it, or lifts laws proved 
 | 4. Arithmetic at every width | [carry](carry/), [induction](induction/) | 6 |
 | 5. Exact combinatorics | [coloring](coloring/) | 8 |
 | 6. Algebraic structures | [monoid](monoid/), [group](group/), [lattice](lattice/), [ring](ring/), [ternary](ternary/) | 21 |
+| 7. Counting | [counting](counting/) | 6 |
+| 8. Linked storage | [chain](chain/) | 3 |
 
 ### 1. Propositional logic
 
@@ -287,3 +291,55 @@ Derived theorems about every monoid, group, lattice and ring, and the library's 
 A ring's addition is a commutative group, so the ring theorems cite the group theorems in additive notation: `inverse` reads a + b = 0 implies b = −a, and `involution` reads −(−a) = a.
 
 The instances connect these to the library. `ternary.group` and `ternary.field` make every group and ring theorem hold for the trits. The carry theorems of layer 4 make the statuses a monoid under `Carry.Combine`, so `monoid.identity` shows Propagate is its only identity. The Boolean laws of layer 1 include absorption, associativity, idempotence and both distributive laws for `Boolean.And` and `Boolean.Or`, so the Booleans are a distributive lattice and every lattice theorem holds for them.
+
+### 7. Counting
+
+The digit tables are definitions: nothing in layers 1 to 6 says that `Ternary.Sum` adds. This layer grounds them in counting. It trusts only two things: the successor of each trit, `Ternary.Successor`, and the meaning of a numeral as that many successor steps. [counting/count.particle](counting/count.particle) writes that meaning once:
+
+```
+[Walk.2] (Stride) (Stride)
+[Need.2, Receipt, Receipt] Satisfied
+[Stride, Place] Function.Ternary.Successor.Moving
+[Low.Moving] Place
+[High.0.Moving] Receipt
+[High.1.Moving, Wraps] Function.Ternary.Successor.Wrapping
+[Low.Wrapping] Wraps
+[High.0.Wrapping] Receipt
+```
+
+A walk of n strides moves `Place` n successors forward and counts in `Wraps` how often it passes 2. Each stride leaves a `Receipt`, and `Need.n` is satisfied by n of them. Photonic cannot observe that no stride remains, so the receipts let a claim learn positively that every stride has landed. [counting/sum.wave](counting/sum.wave) checks all 27 sums:
+
+```
+[Claim] (Place.A) (Wraps.0) (Walk.B) (Walk.C) (Need.B) (Need.C) (Function.Ternary.Sum.Expected.A.B.C)
+[Satisfied, Satisfied, Place.1, Wraps.1, Low.1.Expected, High.1.Expected] Return.Verdict.True
+```
+
+The second rule is one of nine. Sum's digit must be where b + c strides from a land, and its carry must be how often they wrapped.
+
+| Theorem | Claim |
+| --- | --- |
+| [cycle](counting/cycle.wave) | three strides from any trit return to it after exactly one wrap: the successor is one cycle through the trits |
+| [add](counting/add.wave) | `Ternary.Add` of a and b is where b strides from a land, carrying the wraps |
+| [sum](counting/sum.wave) | `Ternary.Sum` of a, b and c is b + c strides from a |
+| [subtract](counting/subtract.wave) | `Ternary.Subtract` inverts counting: b + w strides from the difference of a and b with borrow w land on a, wrapping exactly when it borrows |
+| [multiply](counting/multiply.wave) | `Ternary.Multiply` of a and b is b rounds of a strides from 0 |
+| [compare](counting/compare.wave) | `Ternary.Compare` is the sign of the difference: Less exactly when a − b borrows, Equal when it leaves 0 |
+
+### 8. Linked storage
+
+A chain handle is a coherence that carries its own methods as rule values. [cell.particle](../library/chain/cell.particle) gives each cell `Read`, `Peek` and `Forget` methods. They are sealed by the capture of the rules that built them, and a handle is destroyed by matching its methods whole. The storage theorems hold for every item and every chain below it. The cell's rules mention neither `Item` nor `Below`, so the run with these atoms is the run for any others. The item's alphabet must declare `Drop`, as the digits do, and the chain below must answer `Forget`, as every chain does. From [chain/read.wave](chain/read.wave):
+
+```
+Push.Item.Below
+
+[Drop.Item] Forget
+[Forget.Below] Clean
+[Built] Read
+[Yield.Item.Below] Theorem
+```
+
+| Theorem | Claim |
+| --- | --- |
+| [read](chain/read.wave) | reading a pushed cell returns exactly its item and the chain below, and destroys the handle's methods |
+| [peek](chain/peek.wave) | peeking returns the same and keeps the cell, so another reference still reads it |
+| [forget](chain/forget.wave) | forgetting one reference to a cell leaves the cell for another |

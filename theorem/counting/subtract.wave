@@ -1,0 +1,13 @@
+Case.(([A] 0), ([A] 1), ([A] 2)).(([B] 0), ([B] 1), ([B] 2)).(([W] 0), ([W] 1))
+
+[Claim] (Former.A.Expected) (Latter.B.Expected) (Owed.W.Expected) (Wraps.0) (Walk.B) (Walk.W) (Need.B) (Need.W) (Origin.A)
+[Packed.Expected, Packed.Expected, Packed.Expected] Function.Ternary.Subtract.Expected
+[Low.Expected] Place
+[Satisfied, Satisfied, Place.0, Wraps.0, Origin.0, High.0.Expected] Return.Verdict.True
+[Satisfied, Satisfied, Place.0, Wraps.1, Origin.0, High.1.Expected] Return.Verdict.True
+[Satisfied, Satisfied, Place.1, Wraps.0, Origin.1, High.0.Expected] Return.Verdict.True
+[Satisfied, Satisfied, Place.1, Wraps.1, Origin.1, High.1.Expected] Return.Verdict.True
+[Satisfied, Satisfied, Place.2, Wraps.0, Origin.2, High.0.Expected] Return.Verdict.True
+[Satisfied, Satisfied, Place.2, Wraps.1, Origin.2, High.1.Expected] Return.Verdict.True
+
+[Holds.(([A] 0), ([A] 1), ([A] 2)).(([B] 0), ([B] 1), ([B] 2)).(([W] 0), ([W] 1))] Theorem

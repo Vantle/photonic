@@ -11,14 +11,20 @@ exports_files(
 photonic_library(
     name = "add",
     srcs = ["add.particle"],
-    visibility = ["//theorem/ternary:__pkg__"],
+    visibility = [
+        "//theorem/counting:__pkg__",
+        "//theorem/ternary:__pkg__",
+    ],
     deps = ["//library/function:invoke"],
 )
 
 photonic_library(
     name = "compare",
     srcs = ["compare.particle"],
-    visibility = ["//theorem/ternary:__pkg__"],
+    visibility = [
+        "//theorem/counting:__pkg__",
+        "//theorem/ternary:__pkg__",
+    ],
     deps = ["//library/function:invoke"],
 )
 
@@ -37,7 +43,10 @@ photonic_library(
 photonic_library(
     name = "multiply",
     srcs = ["multiply.particle"],
-    visibility = ["//theorem/ternary:__pkg__"],
+    visibility = [
+        "//theorem/counting:__pkg__",
+        "//theorem/ternary:__pkg__",
+    ],
     deps = ["//library/function:invoke"],
 )
 
@@ -52,6 +61,7 @@ photonic_library(
     srcs = ["subtract.particle"],
     visibility = [
         "//program/ternary:__pkg__",
+        "//theorem/counting:__pkg__",
         "//theorem/induction:__pkg__",
         "//theorem/ternary:__pkg__",
     ],
@@ -61,6 +71,7 @@ photonic_library(
 photonic_library(
     name = "successor",
     srcs = ["successor.particle"],
+    visibility = ["//theorem/counting:__pkg__"],
     deps = ["//library/function:invoke"],
 )
 
@@ -69,6 +80,7 @@ photonic_library(
     srcs = ["sum.particle"],
     visibility = [
         "//program/ternary:__pkg__",
+        "//theorem/counting:__pkg__",
         "//theorem/induction:__pkg__",
     ],
     deps = ["//library/function:invoke"],
