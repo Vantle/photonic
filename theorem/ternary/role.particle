@@ -1,0 +1,8 @@
+[Former.0] Packed.([Left] 0)
+[Former.1] Packed.([Left] 1)
+[Former.2] Packed.([Left] 2)
+[Latter.0] Packed.([Right] 0)
+[Latter.1] Packed.([Right] 1)
+[Latter.2] Packed.([Right] 2)
+[Owed.0] Packed.([Borrow] 0)
+[Owed.1] Packed.([Borrow] 1)

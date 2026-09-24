@@ -74,6 +74,7 @@ bazel run -c opt //command:photonic -- prism "$PWD/program/natural/addition.wave
 | [command/](command/) | Native command interface, diagnostics, and process integration tests. |
 | [library/](library/) | The standard library: fourteen Photonic packages with collision-free namespaces. |
 | [program/](program/) | Runnable Photonic programs, organized by subject. |
+| [theorem/](theorem/) | [Theorems](theorem/README.md) about the standard library, each proved by executing its claim in every case. |
 | [arithmetic/](arithmetic/) | Host circuit construction, infix expression encoding, and conformance checks. |
 | [benchmark/](benchmark/) | Runtime performance, symmetry, and execution measurements. |
 | [photonic/](photonic/) | Bazel rules, source assembly, portable launcher, and Prism test runner. |
@@ -110,6 +111,15 @@ bazel run -c opt //learning:learning -- train --duration 3600
 bazel run -c opt //learning:learning -- optimize --program "$PWD/rules.particle" --input "$PWD/input.wave"
 bazel run -c opt //learning:learning -- solve --task boolean.and
 bazel run -c opt //learning:learning -- curriculum --duration 7200
+```
+
+## Prove theorems
+
+A [theorem](theorem/README.md) lists every case of a finite domain, checks its claim in each case, and concludes `Theorem` only when every case holds; its proof test checks that the program reaches exactly `Theorem`. Claims are stated as generally as a finite check allows, with every term and proposition written as Photonic structure: laws of every Boolean algebra, of every relation on any domain, of orders on every type built from products, sums and sequences, and of arithmetic at every width:
+
+```sh
+bazel test -c opt //theorem/...
+bazel test -c opt //theorem/sequence:transitive.proof
 ```
 
 ## Read by subject

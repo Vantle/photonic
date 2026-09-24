@@ -1,0 +1,10 @@
+Case.(([P] True), ([P] False)).(([Q] True), ([Q] False))
+
+[Claim] Function.Boolean.Not.Inner.Negation.P
+[Return.Inner.Negation] Function.Boolean.Or.Inner.Implication.Q
+[Return.Inner.Implication] Function.Boolean.Not.Middle.Negation
+[Return.Middle.Negation] Function.Boolean.Or.Middle.Implication.P
+[Return.Middle.Implication] Function.Boolean.Not.Outer.Negation
+[Return.Outer.Negation] Function.Boolean.Or.Verdict.P
+
+[Holds.(([P] True), ([P] False)).(([Q] True), ([Q] False))] Theorem

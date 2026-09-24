@@ -1,0 +1,9 @@
+Case.(([P] True), ([P] False)).(([Q] True), ([Q] False)).(([R] True), ([R] False))
+
+[Claim] (Function.Boolean.Equal.Reflexive.P.P) (Function.Boolean.Equal.Former.P.Q) (Function.Boolean.Equal.Latter.Q.R) (Function.Boolean.Equal.Conclusion.P.R)
+[Return.Former, Return.Latter] Function.Boolean.And.Premise
+[Return.Premise] Function.Boolean.Not.Denial
+[Return.Denial, Return.Conclusion] Function.Boolean.Or.Transitive
+[Return.Reflexive, Return.Transitive] Function.Boolean.And.Verdict
+
+[Holds.(([P] True), ([P] False)).(([Q] True), ([Q] False)).(([R] True), ([R] False))] Theorem

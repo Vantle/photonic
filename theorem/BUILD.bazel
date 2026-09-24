@@ -1,0 +1,28 @@
+load("//photonic:defs.bzl", "photonic_library")
+
+photonic_library(
+    name = "case",
+    srcs = ["case.particle"],
+    visibility = ["//theorem:__subpackages__"],
+)
+
+photonic_library(
+    name = "cover",
+    srcs = ["cover.particle"],
+    visibility = ["//theorem:__subpackages__"],
+)
+
+photonic_library(
+    name = "judge",
+    srcs = ["judge.particle"],
+    visibility = ["//theorem:__subpackages__"],
+)
+
+filegroup(
+    name = "build",
+    srcs = [
+        "BUILD.bazel",
+        "defs.bzl",
+    ],
+    visibility = ["//:__pkg__"],
+)

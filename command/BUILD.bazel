@@ -13,6 +13,7 @@ rust_binary(
     visibility = [
         "//photonic:__pkg__",
         "//program:__subpackages__",
+        "//theorem:__subpackages__",
         "//toolchain/browser:__pkg__",
     ],
     deps = [

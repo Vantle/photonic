@@ -1,0 +1,9 @@
+Case.(([Low] Kill), ([Low] Propagate), ([Low] Generate)).(([High] Kill), ([High] Propagate), ([High] Generate)).(([Input] 0), ([Input] 1))
+
+[Claim] (Former.Low.Block) (Latter.High.Block) (Function.Carry.Evaluate.Stepwise.Low.Input)
+[Packed.Block, Packed.Block] Function.Carry.Combine.Block
+[Return.Block] Function.Carry.Evaluate.Combined.Input
+[Return.Stepwise] Function.Carry.Evaluate.Composed.High
+[Return.Combined, Return.Composed] Function.Ternary.Equal.Verdict
+
+[Holds.(([Low] Kill), ([Low] Propagate), ([Low] Generate)).(([High] Kill), ([High] Propagate), ([High] Generate)).(([Input] 0), ([Input] 1))] Theorem

@@ -1,0 +1,25 @@
+load("//theorem:defs.bzl", "theorem")
+
+theorem(
+    name = "antisymmetric",
+    srcs = ["antisymmetric.wave"],
+    deps = ["//theorem:cover"],
+)
+
+theorem(
+    name = "reflexive",
+    srcs = ["reflexive.wave"],
+    deps = ["//theorem:cover"],
+)
+
+theorem(
+    name = "transitive",
+    srcs = ["transitive.wave"],
+    deps = ["//theorem:cover"],
+)
+
+filegroup(
+    name = "build",
+    srcs = ["BUILD.bazel"],
+    visibility = ["//:__pkg__"],
+)

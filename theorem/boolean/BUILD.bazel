@@ -1,0 +1,132 @@
+load("//theorem:defs.bzl", "refutation", "theorem")
+
+theorem(
+    name = "absorption",
+    srcs = ["absorption.wave"],
+    deps = [
+        "//library/boolean:and",
+        "//library/boolean:equal",
+        "//library/boolean:or",
+    ],
+)
+
+theorem(
+    name = "associativity",
+    srcs = ["associativity.wave"],
+    deps = [
+        "//library/boolean:and",
+        "//library/boolean:equal",
+        "//library/boolean:or",
+    ],
+)
+
+theorem(
+    name = "complement",
+    srcs = ["complement.wave"],
+    deps = [
+        "//library/boolean:and",
+        "//library/boolean:equal",
+        "//library/boolean:not",
+        "//library/boolean:or",
+    ],
+)
+
+theorem(
+    name = "distributivity",
+    srcs = ["distributivity.wave"],
+    deps = [
+        "//library/boolean:and",
+        "//library/boolean:equal",
+        "//library/boolean:or",
+    ],
+)
+
+theorem(
+    name = "domination",
+    srcs = ["domination.wave"],
+    deps = [
+        "//library/boolean:and",
+        "//library/boolean:equal",
+        "//library/boolean:or",
+    ],
+)
+
+theorem(
+    name = "duality",
+    srcs = ["duality.wave"],
+    deps = [
+        "//library/boolean:and",
+        "//library/boolean:equal",
+        "//library/boolean:not",
+        "//library/boolean:or",
+    ],
+)
+
+theorem(
+    name = "equivalence",
+    srcs = ["equivalence.wave"],
+    deps = [
+        "//library/boolean:and",
+        "//library/boolean:equal",
+        "//library/boolean:not",
+        "//library/boolean:or",
+    ],
+)
+
+theorem(
+    name = "idempotence",
+    srcs = ["idempotence.wave"],
+    deps = [
+        "//library/boolean:and",
+        "//library/boolean:equal",
+        "//library/boolean:or",
+    ],
+)
+
+theorem(
+    name = "identity",
+    srcs = ["identity.wave"],
+    deps = [
+        "//library/boolean:and",
+        "//library/boolean:equal",
+        "//library/boolean:or",
+    ],
+)
+
+theorem(
+    name = "involution",
+    srcs = ["involution.wave"],
+    deps = [
+        "//library/boolean:equal",
+        "//library/boolean:not",
+    ],
+)
+
+theorem(
+    name = "peirce",
+    srcs = ["peirce.wave"],
+    deps = [
+        "//library/boolean:not",
+        "//library/boolean:or",
+    ],
+)
+
+refutation(
+    name = "negation",
+    srcs = ["negation.wave"],
+    outcome = """Holds.([P] True).([Q] True),
+Holds.([P] False).([Q] False),
+Counterexample.([P] True).([Q] False),
+Counterexample.([P] False).([Q] True)""",
+    deps = [
+        "//library/boolean:and",
+        "//library/boolean:equal",
+        "//library/boolean:not",
+    ],
+)
+
+filegroup(
+    name = "build",
+    srcs = ["BUILD.bazel"],
+    visibility = ["//:__pkg__"],
+)

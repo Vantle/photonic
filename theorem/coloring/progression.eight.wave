@@ -1,0 +1,90 @@
+Every.1
+
+[Every.1] (
+    Split.1
+    [Both.1] Theorem
+    [Refuted.2] Counterexample
+)
+[Split.1] Every.2.([One] True)
+[Proved.2.([One] True)] Every.2.([One] False)
+[Proved.2.([One] False)] Both.1
+
+[Every.2] (
+    Split.2
+    [Both.2] Proved.2
+    [Refuted.3] Refuted.2
+)
+[Split.2] Every.3.([Two] True)
+[Proved.3.([Two] True)] Every.3.([Two] False)
+[Proved.3.([Two] False)] Both.2
+
+[Every.3] (
+    Split.3
+    [Both.3] Proved.3
+    [Refuted.4] Refuted.3
+)
+[Split.3] Every.4.([Three] True)
+[Proved.4.([Three] True)] Every.4.([Three] False)
+[Proved.4.([Three] False)] Both.3
+
+[Every.4] (
+    Split.4
+    [Both.4] Proved.4
+    [Refuted.5] Refuted.4
+)
+[Split.4] Every.5.([Four] True)
+[Proved.5.([Four] True)] Every.5.([Four] False)
+[Proved.5.([Four] False)] Both.4
+
+[Every.5] (
+    Split.5
+    [Both.5] Proved.5
+    [Refuted.6] Refuted.5
+)
+[Split.5] Every.6.([Five] True)
+[Proved.6.([Five] True)] Every.6.([Five] False)
+[Proved.6.([Five] False)] Both.5
+
+[Every.6] (
+    Split.6
+    [Both.6] Proved.6
+    [Refuted.7] Refuted.6
+)
+[Split.6] Every.7.([Six] True)
+[Proved.7.([Six] True)] Every.7.([Six] False)
+[Proved.7.([Six] False)] Both.6
+
+[Every.7] (
+    Split.7
+    [Both.7] Proved.7
+    [Refuted.8] Refuted.7
+)
+[Split.7] Every.8.([Seven] True)
+[Proved.8.([Seven] True)] Every.8.([Seven] False)
+[Proved.8.([Seven] False)] Both.7
+
+[Every.8] (
+    Split.8
+    [Both.8] Proved.8
+    [Counterexample] Refuted.8
+)
+[Split.8] Case.([Eight] True)
+[Holds.([Eight] True)] Case.([Eight] False)
+[Holds.([Eight] False)] Both.8
+
+[Claim] (Triple.1.One.Two.Three) (Triple.2.Two.Three.Four) (Triple.3.Three.Four.Five) (Triple.4.Four.Five.Six) (Triple.5.Five.Six.Seven) (Triple.6.Six.Seven.Eight) (Triple.7.One.Three.Five) (Triple.8.Two.Four.Six) (Triple.9.Three.Five.Seven) (Triple.10.Four.Six.Eight) (Triple.11.One.Four.Seven) (Triple.12.Two.Five.Eight)
+[Triple.True.True.True] Uniform.True
+[Triple.True.True.False] Uniform.False
+[Triple.True.False.False] Uniform.False
+[Triple.False.False.False] Uniform.True
+[Uniform.1, Uniform.2] Function.Boolean.Or.Some.2
+[Return.Some.2, Uniform.3] Function.Boolean.Or.Some.3
+[Return.Some.3, Uniform.4] Function.Boolean.Or.Some.4
+[Return.Some.4, Uniform.5] Function.Boolean.Or.Some.5
+[Return.Some.5, Uniform.6] Function.Boolean.Or.Some.6
+[Return.Some.6, Uniform.7] Function.Boolean.Or.Some.7
+[Return.Some.7, Uniform.8] Function.Boolean.Or.Some.8
+[Return.Some.8, Uniform.9] Function.Boolean.Or.Some.9
+[Return.Some.9, Uniform.10] Function.Boolean.Or.Some.10
+[Return.Some.10, Uniform.11] Function.Boolean.Or.Some.11
+[Return.Some.11, Uniform.12] Function.Boolean.Or.Verdict

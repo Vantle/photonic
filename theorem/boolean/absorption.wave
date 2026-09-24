@@ -1,0 +1,10 @@
+Case.(([P] True), ([P] False)).(([Q] True), ([Q] False))
+
+[Claim] (Function.Boolean.Or.Lower.Disjunction.P.Q) (Function.Boolean.And.Upper.Conjunction.P.Q)
+[Return.Lower.Disjunction] Function.Boolean.And.Lower.Conjunction.P
+[Return.Upper.Conjunction] Function.Boolean.Or.Upper.Disjunction.P
+[Return.Lower.Conjunction] Function.Boolean.Equal.Lower.Law.P
+[Return.Upper.Disjunction] Function.Boolean.Equal.Upper.Law.P
+[Return.Lower.Law, Return.Upper.Law] Function.Boolean.And.Verdict
+
+[Holds.(([P] True), ([P] False)).(([Q] True), ([Q] False))] Theorem

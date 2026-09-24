@@ -1,0 +1,68 @@
+Every.1
+
+[Every.1] (
+    Split.1
+    [Both.1] Theorem
+    [Refuted.2] Counterexample
+)
+[Split.1] Every.2.([Side.P] Left)
+[Proved.2.([Side.P] Left)] Every.2.([Side.P] Right)
+[Proved.2.([Side.P] Right)] Both.1
+
+[Every.2] (
+    Split.2
+    [Both.2] Proved.2
+    [Refuted.3] Refuted.2
+)
+[Split.2] Every.3.([Side.Q] Left)
+[Proved.3.([Side.Q] Left)] Every.3.([Side.Q] Right)
+[Proved.3.([Side.Q] Right)] Both.2
+
+[Every.3] (
+    Split.3
+    [Both.3] Proved.3
+    [Refuted.4] Refuted.3
+)
+[Split.3] Every.4.([Side.R] Left)
+[Proved.4.([Side.R] Left)] Every.4.([Side.R] Right)
+[Proved.4.([Side.R] Right)] Both.3
+
+[Every.4] (
+    Split.4
+    [Both.4] Proved.4
+    [Refuted.5] Refuted.4
+)
+[Split.4] Every.5.([Less.([Left] P).([Right] Q)] True)
+[Proved.5.([Less.([Left] P).([Right] Q)] True)] Every.5.([Less.([Left] P).([Right] Q)] False)
+[Proved.5.([Less.([Left] P).([Right] Q)] False)] Both.4
+
+[Every.5] (
+    Split.5
+    [Both.5] Proved.5
+    [Refuted.6] Refuted.5
+)
+[Split.5] Every.6.([Less.([Left] Q).([Right] R)] True)
+[Proved.6.([Less.([Left] Q).([Right] R)] True)] Every.6.([Less.([Left] Q).([Right] R)] False)
+[Proved.6.([Less.([Left] Q).([Right] R)] False)] Both.5
+
+[Every.6] (
+    Split.6
+    [Both.6] Proved.6
+    [Counterexample] Refuted.6
+)
+[Split.6] Case.([Less.([Left] P).([Right] R)] True)
+[Holds.([Less.([Left] P).([Right] R)] True)] Case.([Less.([Left] P).([Right] R)] False)
+[Holds.([Less.([Left] P).([Right] R)] False)] Both.6
+
+[Claim] (Test) (Keep)
+[Test.([Less.([Left] P).([Right] Q)] True).([Side.P] Left).([Side.Q] Right)] Vacuous
+[Test.([Less.([Left] P).([Right] Q)] True).([Side.P] Right).([Side.Q] Left)] Vacuous
+[Test.([Less.([Left] Q).([Right] R)] True).([Side.Q] Left).([Side.R] Right)] Vacuous
+[Test.([Less.([Left] Q).([Right] R)] True).([Side.Q] Right).([Side.R] Left)] Vacuous
+[Test.([Less.([Left] P).([Right] Q)] True).([Less.([Left] Q).([Right] R)] True).([Less.([Left] P).([Right] R)] False)] Vacuous
+[Test.([Side.P] Right).([Less.([Left] P).([Right] Q)] False)] Concluded
+[Test.([Side.Q] Left).([Less.([Left] P).([Right] Q)] False)] Concluded
+[Test.([Side.Q] Right).([Less.([Left] Q).([Right] R)] False)] Concluded
+[Test.([Side.R] Left).([Less.([Left] Q).([Right] R)] False)] Concluded
+[Test.([Side.P] Left).([Side.R] Right)] Concluded
+[Test.([Less.([Left] P).([Right] R)] True)] Concluded

@@ -1,0 +1,47 @@
+load("//photonic:defs.bzl", "photonic_library")
+load("//theorem:defs.bzl", "theorem")
+
+photonic_library(
+    name = "role",
+    srcs = ["role.particle"],
+    visibility = ["//theorem/induction:__pkg__"],
+)
+
+theorem(
+    name = "action",
+    srcs = ["action.wave"],
+    deps = [
+        ":role",
+        "//library/carry:combine",
+        "//library/carry:evaluate",
+        "//library/ternary:equal",
+    ],
+)
+
+theorem(
+    name = "associativity",
+    srcs = ["associativity.wave"],
+    cells = 512,
+    deps = [
+        ":role",
+        "//library/carry:combine",
+        "//library/carry:equal",
+    ],
+)
+
+theorem(
+    name = "identity",
+    srcs = ["identity.wave"],
+    deps = [
+        ":role",
+        "//library/boolean:and",
+        "//library/carry:combine",
+        "//library/carry:equal",
+    ],
+)
+
+filegroup(
+    name = "build",
+    srcs = ["BUILD.bazel"],
+    visibility = ["//:__pkg__"],
+)

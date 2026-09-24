@@ -1,0 +1,26 @@
+load("//theorem:defs.bzl", "theorem")
+
+theorem(
+    name = "converse",
+    srcs = ["converse.wave"],
+    deps = ["//theorem:judge"],
+)
+
+theorem(
+    name = "equality",
+    srcs = ["equality.wave"],
+    deps = ["//theorem:judge"],
+)
+
+theorem(
+    name = "transitive",
+    srcs = ["transitive.wave"],
+    states = 16384,
+    deps = ["//theorem:judge"],
+)
+
+filegroup(
+    name = "build",
+    srcs = ["BUILD.bazel"],
+    visibility = ["//:__pkg__"],
+)

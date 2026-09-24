@@ -20,7 +20,10 @@ rust_binary(
     crate_name = "launch",
     crate_root = "launch.rs",
     lint_config = "//:lint",
-    visibility = ["//program:__subpackages__"],
+    visibility = [
+        "//program:__subpackages__",
+        "//theorem:__subpackages__",
+    ],
     deps = [
         "//toolchain:relay",
         "@rules_rust//rust/runfiles",
@@ -74,6 +77,7 @@ rust_binary(
     visibility = [
         "//library:__subpackages__",
         "//program:__subpackages__",
+        "//theorem:__subpackages__",
     ],
     deps = [
         "//language:photonic",

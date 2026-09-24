@@ -1,0 +1,71 @@
+load("//theorem:defs.bzl", "refutation", "theorem")
+
+theorem(
+    name = "pigeonhole.four",
+    srcs = ["pigeonhole.four.wave"],
+    deps = [
+        "//library/boolean:or",
+        "//library/ternary:equal",
+    ],
+)
+
+refutation(
+    name = "pigeonhole.three",
+    srcs = ["pigeonhole.three.wave"],
+    outcome = "Counterexample.([P] 0).([Q] 1).([R] 2)",
+    deps = [
+        "//library/boolean:or",
+        "//library/ternary:equal",
+    ],
+)
+
+theorem(
+    name = "progression.nine",
+    srcs = ["progression.nine.wave"],
+    cells = 512,
+    states = 65536,
+    deps = ["//library/boolean:or"],
+)
+
+refutation(
+    name = "progression.eight",
+    srcs = ["progression.eight.wave"],
+    cells = 512,
+    outcome = "Counterexample.([One] True).([Two] True).([Three] False).([Four] False).([Five] True).([Six] True).([Seven] False).([Eight] False)",
+    states = 8192,
+    deps = ["//library/boolean:or"],
+)
+
+theorem(
+    name = "sum.five",
+    srcs = ["sum.five.wave"],
+    deps = ["//library/boolean:or"],
+)
+
+refutation(
+    name = "sum.four",
+    srcs = ["sum.four.wave"],
+    outcome = "Counterexample.([One] True).([Two] False).([Three] False).([Four] True)",
+    deps = ["//library/boolean:or"],
+)
+
+theorem(
+    name = "triangle.six",
+    srcs = ["triangle.six.wave"],
+    cells = 512,
+    states = 16384,
+    deps = ["//library/boolean:or"],
+)
+
+refutation(
+    name = "triangle.five",
+    srcs = ["triangle.five.wave"],
+    outcome = "Counterexample.([[Edge] A.B] True).([[Edge] A.C] True).([[Edge] A.D] False).([[Edge] A.E] False).([[Edge] B.C] False).([[Edge] B.D] True).([[Edge] B.E] False).([[Edge] C.D] False).([[Edge] C.E] True).([[Edge] D.E] True)",
+    deps = ["//library/boolean:or"],
+)
+
+filegroup(
+    name = "build",
+    srcs = ["BUILD.bazel"],
+    visibility = ["//:__pkg__"],
+)

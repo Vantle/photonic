@@ -12,6 +12,7 @@ These describe the repository as it is and change with it.
 | [Runtime rule occurrences](occurrence.md) | Loading, ownership, consumption, matching locations and exact targets. |
 | [Build organization](build.md) | Bazel packages, toolchains, caching and the lint policy. |
 | [Continuous verification](automation.md) | The Buildkite jobs, their agent capacity and the fixtures tagged `memory`. |
+| [Theorems](../theorem/README.md) | The proof contract, how to write a theorem, and the order in which the layers are proved. |
 | [Program optimization learner](learning.md) | Correctness under every schedule, the objective and goals, edits, planning, inferring instead of checking, solving and proving optimality, learning loops and curriculum, training and results. |
 
 ## Plan

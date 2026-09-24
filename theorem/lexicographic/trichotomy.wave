@@ -1,0 +1,74 @@
+Every.1
+
+[Every.1] (
+    Split.1
+    [Both.1] Theorem
+    [Refuted.2] Counterexample
+)
+[Split.1] Every.2.([Less.([Left] X).([Right] Y)] True)
+[Proved.2.([Less.([Left] X).([Right] Y)] True)] Every.2.([Less.([Left] X).([Right] Y)] False)
+[Proved.2.([Less.([Left] X).([Right] Y)] False)] Both.1
+
+[Every.2] (
+    Split.2
+    [Both.2] Proved.2
+    [Refuted.3] Refuted.2
+)
+[Split.2] Every.3.([Equal.([Left] X).([Right] Y)] True)
+[Proved.3.([Equal.([Left] X).([Right] Y)] True)] Every.3.([Equal.([Left] X).([Right] Y)] False)
+[Proved.3.([Equal.([Left] X).([Right] Y)] False)] Both.2
+
+[Every.3] (
+    Split.3
+    [Both.3] Proved.3
+    [Refuted.4] Refuted.3
+)
+[Split.3] Every.4.([Less.([Left] Y).([Right] X)] True)
+[Proved.4.([Less.([Left] Y).([Right] X)] True)] Every.4.([Less.([Left] Y).([Right] X)] False)
+[Proved.4.([Less.([Left] Y).([Right] X)] False)] Both.3
+
+[Every.4] (
+    Split.4
+    [Both.4] Proved.4
+    [Refuted.5] Refuted.4
+)
+[Split.4] Every.5.([Equal.([Left] Y).([Right] X)] True)
+[Proved.5.([Equal.([Left] Y).([Right] X)] True)] Every.5.([Equal.([Left] Y).([Right] X)] False)
+[Proved.5.([Equal.([Left] Y).([Right] X)] False)] Both.4
+
+[Every.5] (
+    Split.5
+    [Both.5] Proved.5
+    [Refuted.6] Refuted.5
+)
+[Split.5] Every.6.([Less.([Left] U).([Right] V)] True)
+[Proved.6.([Less.([Left] U).([Right] V)] True)] Every.6.([Less.([Left] U).([Right] V)] False)
+[Proved.6.([Less.([Left] U).([Right] V)] False)] Both.5
+
+[Every.6] (
+    Split.6
+    [Both.6] Proved.6
+    [Refuted.7] Refuted.6
+)
+[Split.6] Every.7.([Equal.([Left] U).([Right] V)] True)
+[Proved.7.([Equal.([Left] U).([Right] V)] True)] Every.7.([Equal.([Left] U).([Right] V)] False)
+[Proved.7.([Equal.([Left] U).([Right] V)] False)] Both.6
+
+[Every.7] (
+    Split.7
+    [Both.7] Proved.7
+    [Counterexample] Refuted.7
+)
+[Split.7] Case.([Less.([Left] V).([Right] U)] True)
+[Holds.([Less.([Left] V).([Right] U)] True)] Case.([Less.([Left] V).([Right] U)] False)
+[Holds.([Less.([Left] V).([Right] U)] False)] Both.7
+
+[Claim] (Test) (Keep)
+[Test.([Less.([Left] X).([Right] Y)] False).([Equal.([Left] X).([Right] Y)] False).([Less.([Left] Y).([Right] X)] False)] Vacuous
+[Test.([Less.([Left] U).([Right] V)] False).([Equal.([Left] U).([Right] V)] False).([Less.([Left] V).([Right] U)] False)] Vacuous
+[Test.([Equal.([Left] X).([Right] Y)] True).([Equal.([Left] Y).([Right] X)] False)] Vacuous
+[Test.([Less.([Left] X).([Right] Y)] True)] Concluded
+[Test.([Equal.([Left] X).([Right] Y)] True).([Less.([Left] U).([Right] V)] True)] Concluded
+[Test.([Equal.([Left] X).([Right] Y)] True).([Equal.([Left] U).([Right] V)] True)] Concluded
+[Test.([Less.([Left] Y).([Right] X)] True)] Concluded
+[Test.([Equal.([Left] Y).([Right] X)] True).([Less.([Left] V).([Right] U)] True)] Concluded

@@ -1,0 +1,48 @@
+load("//theorem:defs.bzl", "theorem")
+
+theorem(
+    name = "associativity",
+    srcs = ["associativity.wave"],
+    states = 65536,
+    deps = [
+        "//library/boolean:and",
+        "//library/boolean:not",
+        "//library/boolean:or",
+        "//library/ternary:equal",
+        "//library/ternary:sum",
+        "//theorem/ternary:unpack",
+    ],
+)
+
+theorem(
+    name = "lookahead",
+    srcs = ["lookahead.wave"],
+    deps = [
+        "//library/boolean:and",
+        "//library/boolean:not",
+        "//library/boolean:or",
+        "//library/carry:combine",
+        "//library/carry:evaluate",
+        "//library/ternary:equal",
+        "//theorem/carry:role",
+    ],
+)
+
+theorem(
+    name = "subtraction",
+    srcs = ["subtraction.wave"],
+    deps = [
+        "//library/boolean:and",
+        "//library/ternary:equal",
+        "//library/ternary:subtract",
+        "//library/ternary:sum",
+        "//theorem/ternary:role",
+        "//theorem/ternary:unpack",
+    ],
+)
+
+filegroup(
+    name = "build",
+    srcs = ["BUILD.bazel"],
+    visibility = ["//:__pkg__"],
+)

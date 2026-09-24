@@ -1,0 +1,42 @@
+load("//photonic:defs.bzl", "photonic_library")
+load("//theorem:defs.bzl", "theorem")
+
+photonic_library(
+    name = "role",
+    srcs = ["role.particle"],
+    visibility = ["//theorem/induction:__pkg__"],
+)
+
+theorem(
+    name = "converse",
+    srcs = ["converse.wave"],
+    deps = [
+        ":role",
+        "//library/ternary:compare",
+        "//library/ternary:equal",
+        "//theorem:judge",
+    ],
+)
+
+theorem(
+    name = "order",
+    srcs = ["order.wave"],
+    cells = 512,
+    deps = [
+        ":role",
+        "//library/ternary:compare",
+        "//theorem:judge",
+    ],
+)
+
+photonic_library(
+    name = "unpack",
+    srcs = ["unpack.particle"],
+    visibility = ["//theorem/induction:__pkg__"],
+)
+
+filegroup(
+    name = "build",
+    srcs = ["BUILD.bazel"],
+    visibility = ["//:__pkg__"],
+)
