@@ -37,6 +37,10 @@ impl Program {
         self.rule.extend(library.rule);
         Ok(())
     }
+
+    pub fn preserve(&mut self, program: &Self) {
+        self.rule.extend(program.rule.iter().cloned());
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]

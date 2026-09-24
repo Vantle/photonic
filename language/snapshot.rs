@@ -80,6 +80,8 @@ pub struct Event {
     pub exact: Vec<Place>,
     pub read: Vec<Place>,
     pub evidence: Vec<usize>,
+    pub world: Vec<usize>,
+    pub context: Vec<Vec<usize>>,
 }
 #[derive(Debug, Serialize)]
 pub struct View {

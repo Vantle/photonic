@@ -66,7 +66,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let argument = Argument::parse();
     let program = serde_json::from_str::<Program>(&std::fs::read_to_string(argument.program)?)?;
     let mut target = photonic::lowering::parse(&std::fs::read_to_string(argument.target)?)?;
-    target.rule.extend(program.rule.iter().cloned());
+    target.preserve(&program);
     evaluate(program.clone(), target.clone(), argument.state);
     let measurement = (0..argument.sample)
         .map(|_| evaluate(program.clone(), target.clone(), argument.state))

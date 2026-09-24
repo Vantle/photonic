@@ -9,15 +9,19 @@ struct Envelope<Body> {
 }
 
 #[derive(Serialize)]
-struct Rejection {
-    error: Failure,
+struct Rejection<'failure> {
+    error: &'failure Failure,
 }
 
 pub fn respond(result: Result<impl Serialize, Failure>) -> String {
     match result {
         Ok(body) => encode(body),
-        Err(error) => encode(Rejection { error }),
+        Err(error) => reject(&error),
     }
+}
+
+pub fn reject(error: &Failure) -> String {
+    encode(Rejection { error })
 }
 
 pub fn encode(body: impl Serialize) -> String {

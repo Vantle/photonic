@@ -12,9 +12,9 @@ bazel run -c opt //program/composition:pipeline
 bazel test -c opt //...
 ```
 
-Open http://127.0.0.1:8080 after starting the preview. The live examples run the Rust evaluator compiled to WebAssembly; Bazel builds the module and its wasm-bindgen bindings. Recorded diagrams remain available when opening the HTML file directly.
+Open http://127.0.0.1:8080 after starting the preview. Every example in the webbook runs in the Rust runtime compiled to WebAssembly. Opened directly, the page shows the runs that `bazel run -c opt //book:record` records; `//book:record.check` fails when they are stale.
 
-Use `bazel test --config=release //toolchain/browser:check` on ARM64 macOS for the webbook and its Wasm sandbox.
+Use `bazel test --config=release //toolchain/browser:check` on ARM64 macOS to drive the webbook in headless Chrome.
 
 [Continuous verification](document/automation.md) builds and tests Linux x86-64 on Buildkite. See [build organization and performance](document/build.md) for caching, toolchains, and incremental-build measurements.
 
@@ -80,8 +80,9 @@ bazel run -c opt //command:photonic -- prism "$PWD/program/natural/addition.wave
 | [photonic/](photonic/) | Bazel rules, source assembly, portable launcher, and Prism test runner. |
 | [toolchain/](toolchain/) | Pinned tool execution and build checks. |
 | [toolchain/browser/](toolchain/browser/) | WebAssembly adapter, preview server, and browser verification. |
+| [book/](book/) | The webbook's styles, scripts, WebAssembly worker, and recorded runs. |
 | [platform/](platform/) | Native platform definitions and toolchain patch. |
-| [document/](document/) | Contracts, the runtime roadmap, dated runtime records, and webbook assets; see its [index](document/README.md). |
+| [document/](document/) | Contracts, the runtime roadmap, and dated runtime records; see its [index](document/README.md). |
 | [code/](code/) | Label-free program representation for the whole grammar, canonical identity, rule analogy, distance, and tree navigation. |
 | [machine/](machine/) | Exact exhaustive and parallel execution of flat programs. |
 | [translation/](translation/) | Conversion between `code`, runtime source values, and Photonic text. |
@@ -109,7 +110,7 @@ The [program optimization learner](document/learning.md) edits a program's rules
 ```sh
 bazel run -c opt //learning:learning -- train --duration 3600
 bazel run -c opt //learning:learning -- optimize --program "$PWD/rules.particle" --input "$PWD/input.wave"
-bazel run -c opt //learning:learning -- solve --task boolean.and
+bazel run -c opt //learning:learning -- solve --input "$PWD/input.wave" --output "$PWD/output.wave"
 bazel run -c opt //learning:learning -- curriculum --duration 7200
 ```
 
@@ -126,13 +127,15 @@ bazel test -c opt //theorem/sequence:transitive.proof
 
 | Guide | Contents |
 | --- | --- |
-| [Language](index.html#guide-language) | Syntax, configuration semantics, identity, binding, and terminology. |
-| [Native library](index.html#guide-library) | Packages, namespaces, protocols, chains and alphabets, vectors and sorting, atomic fields, evidence, and remaining work. |
-| [Arithmetic](index.html#guide-arithmetic) | Number representations, written arguments, algorithms, and host circuit interface. |
-| [Verification](index.html#guide-verification) | Prism, exact configurations, and retained counterexamples. |
-| [Runtime](index.html#guide-runtime) | Implementation and reproducible performance measurements. |
+| [Language](index.html#value) | Atoms, rules, identity, exploration, scopes, inference, rule values, and fields. |
+| [Verification](index.html#prism) | Prism, exact targets, tests, and the command line. |
+| [Workbench](index.html#workbench) | The state graph, the execution hypergraph, and pattern filters for any program. |
+| [Standard library](index.html#library) | Calling conventions, linked data, and arithmetic. |
+| [Proof](index.html#proof) | Proof by execution and the layers proved. |
+| [Runtime](index.html#runtime) | The execution pipeline, support, and budgets. |
+| [Repository](index.html#repository) | Directories, the learner, and the build. |
+| [Grammar and glossary](index.html#reference) | The complete grammar, every form, and every term. |
 | [Runtime roadmap](document/roadmap.md) | Current runtime priorities, acceptance gates, and the semantic boundary. |
 | [Documentation index](document/README.md) | Contracts, plans, dated runtime records, and archived proposals. |
-| [Build and development](index.html#guide-build) | Bazel interfaces, contributions, and platform verification. |
 
-The webbook is the main guide; the [standard library reference](library/README.md), the [occurrence contract](document/occurrence.md), and the other contracts in the [documentation index](document/README.md) are maintained with it. The webbook's technical reference includes the full contracts, written arithmetic arguments, current limitations, and reproducible benchmark evidence. Prism checks concrete reachability; it does not provide universal mathematical certificates. Native linked ternary expressions support arbitrary finite widths with sufficient execution budgets.
+The webbook is the guide. The [standard library reference](library/README.md), the [theorem guide](theorem/README.md), the [occurrence contract](document/occurrence.md), and the other documents in the [documentation index](document/README.md) are maintained with it.

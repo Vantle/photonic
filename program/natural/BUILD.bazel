@@ -1,5 +1,10 @@
 load("//photonic:defs.bzl", "photonic_binary", "photonic_test")
 
+exports_files(
+    ["addition.wave"],
+    visibility = ["//book:__pkg__"],
+)
+
 filegroup(
     name = "fixture",
     srcs = [

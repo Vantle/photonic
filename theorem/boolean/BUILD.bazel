@@ -1,5 +1,10 @@
 load("//theorem:defs.bzl", "refutation", "theorem")
 
+exports_files(
+    ["involution.wave"],
+    visibility = ["//book:__pkg__"],
+)
+
 theorem(
     name = "absorption",
     srcs = ["absorption.wave"],

@@ -1,5 +1,13 @@
 load("//photonic:defs.bzl", "photonic_binary", "photonic_test")
 
+exports_files(
+    [
+        "broadcast.wave",
+        "independent.wave",
+    ],
+    visibility = ["//book:__pkg__"],
+)
+
 filegroup(
     name = "fixture",
     srcs = [

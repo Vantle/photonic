@@ -312,11 +312,11 @@ hermetic_binary(
         "$(rlocationpath browser.mjs)",
         "$(rlocationpath //toolchain/browser:webassembly)",
         "$(rlocationpath //toolchain/browser:javascript)",
-        "$(rlocationpath //document:numeral)",
+        "$(rlocationpath //book:numeral)",
     ],
     data = [
         "browser.mjs",
-        "//document:numeral",
+        "//book:numeral",
         "//toolchain:node",
         "//toolchain/browser:javascript",
         "//toolchain/browser:webassembly",

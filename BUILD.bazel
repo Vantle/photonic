@@ -44,9 +44,9 @@ filegroup(
         "MODULE.bazel",
         "//arithmetic:build",
         "//benchmark:build",
+        "//book:build",
         "//code:build",
         "//command:build",
-        "//document:build",
         "//frontend:build",
         "//gpu:build",
         "//language:build",
@@ -110,7 +110,10 @@ filegroup(
 filegroup(
     name = "page",
     srcs = ["index.html"],
-    visibility = ["//toolchain/browser:__pkg__"],
+    visibility = [
+        "//book:__pkg__",
+        "//toolchain/browser:__pkg__",
+    ],
 )
 
 alias(

@@ -8,10 +8,11 @@ engine.initSync({ module: await readFile(binary) });
 
 function evaluate() {
     const start = performance.now();
-    const session = new engine.Evaluation(input);
+    const session = engine.Path.expression(input);
     const initialized = performance.now();
     const result = JSON.parse(session.run());
     const executed = performance.now();
+    if (result.error) throw new Error(result.error.message);
     const value = decode(result.state).ternary;
     const inspecting = performance.now();
     const transition = JSON.parse(session.inspect(result.event - 1));

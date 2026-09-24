@@ -1,9 +1,17 @@
 use super::Runtime;
+use crate::flow::Flow;
 use crate::render::{Builder, Sequence};
 use crate::snapshot::{Event, Link, Node, Snapshot, View};
 use crate::status::Status;
 use crate::support::Atom;
 use serde::Serialize;
+
+fn context(flow: &Flow) -> Vec<Vec<usize>> {
+    flow.context
+        .iter()
+        .map(|value| value.iter().copied().collect())
+        .collect()
+}
 
 impl Runtime {
     pub(crate) fn status(&self, index: usize) -> Status {
@@ -33,6 +41,8 @@ impl Runtime {
                 exact: event.identity.binding.exact.iter().copied().collect(),
                 read: event.identity.binding.read.iter().copied().collect(),
                 evidence: event.evidence.iter().copied().collect(),
+                world: event.identity.binding.world.iter().copied().collect(),
+                context: context(&event.flow),
             })
     }
 
@@ -52,12 +62,7 @@ impl Runtime {
                     source: source.iter().copied().collect(),
                 })
                 .collect(),
-            context: view
-                .flow
-                .context
-                .iter()
-                .map(|value| value.iter().copied().collect())
-                .collect(),
+            context: context(&view.flow),
             frame: view.flow.frame.clone(),
         })
     }

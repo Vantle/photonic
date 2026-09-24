@@ -26,6 +26,7 @@ node(
     name = "node",
     visibility = [
         "//benchmark:__pkg__",
+        "//book:__pkg__",
         "//program/ternary:__pkg__",
         "//toolchain/browser:__pkg__",
     ],
@@ -39,6 +40,7 @@ rust_binary(
     visibility = [
         "//:__pkg__",
         "//benchmark:__pkg__",
+        "//book:__pkg__",
         "//program/ternary:__pkg__",
         "//toolchain/browser:__pkg__",
     ],

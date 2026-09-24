@@ -1,5 +1,16 @@
 load("//photonic:defs.bzl", "photonic_binary", "photonic_test")
 
+exports_files(
+    [
+        "coherence.wave",
+        "conjunction.wave",
+        "dynamic.wave",
+        "inference.wave",
+        "replacement.wave",
+    ],
+    visibility = ["//book:__pkg__"],
+)
+
 filegroup(
     name = "fixture",
     srcs = [

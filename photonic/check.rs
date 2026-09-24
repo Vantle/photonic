@@ -68,7 +68,7 @@ fn main() -> miette::Result<ExitCode> {
         .map(|source| {
             let mut target = lower(source)?;
             if case.preserve {
-                target.rule.extend(program.rule.iter().cloned());
+                target.preserve(&program);
             }
             Ok(target)
         })

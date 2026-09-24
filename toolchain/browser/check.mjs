@@ -3,13 +3,17 @@ import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { readFile, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
-import { dirname, extname, resolve, sep } from 'node:path';
-
-import { fileURLToPath } from 'node:url';
+import { dirname, extname, join, resolve, sep } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
+const [chrome, chromedriver, webassembly, javascript] = process.argv.slice(2);
 const missing = [];
 const type = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.wasm': 'application/wasm' };
+const module = new Map([
+    [resolve(root, 'toolchain/browser/module/runtime_bg.wasm'), webassembly],
+    [resolve(root, 'toolchain/browser/module/runtime.js'), javascript],
+]);
 const server = createServer(async (request, response) => {
     const path = resolve(root, `.${new URL(request.url, 'http://localhost').pathname}`);
     if (!path.startsWith(root + sep)) {
@@ -17,7 +21,7 @@ const server = createServer(async (request, response) => {
         return;
     }
     try {
-        const content = await readFile(path === resolve(root, "toolchain/browser/module/runtime_bg.wasm") ? process.argv[4] : path === resolve(root, "toolchain/browser/module/runtime.js") ? process.argv[5] : path);
+        const content = await readFile(module.get(path) ?? path);
         response.writeHead(200, { 'Content-Type': type[extname(path)] ?? 'text/plain' }).end(content);
     } catch {
         missing.push(request.url);
@@ -27,14 +31,13 @@ const server = createServer(async (request, response) => {
 server.listen(0, '127.0.0.1');
 await once(server, 'listening');
 const origin = `http://127.0.0.1:${server.address().port}`;
-const chrome = process.argv[2];
-const driver = spawn(process.argv[3], ['--port=0'], { stdio: ['ignore', 'pipe', 'pipe'] });
+const driver = spawn(chromedriver, ['--port=0'], { stdio: ['ignore', 'pipe', 'pipe'] });
 let log = '';
 driver.stdout.on('data', value => { log += value; });
 driver.stderr.on('data', value => { log += value; });
 let session;
 let endpoint;
-async function command(path, body) {
+const command = async (path, body) => {
     const response = await fetch(endpoint + path, {
         method: body === undefined ? 'GET' : 'POST',
         ...(body === undefined ? {} : { body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } }),
@@ -43,25 +46,39 @@ async function command(path, body) {
     const result = await response.json();
     assert.ok(response.ok, JSON.stringify(result));
     return result.value;
-}
+};
 const evaluate = script => command(`/session/${session}/execute/sync`, { script, args: [] });
-async function navigate(path, ready) {
-    await command(`/session/${session}/url`, { url: origin + path });
-    for (let attempt = 0; attempt < 200; attempt++) {
-        if (await evaluate(ready)) return;
+const until = async (script, limit = 600) => {
+    for (let attempt = 0; attempt < limit; attempt++) {
+        if (await evaluate(script)) return;
         await new Promise(resolve => setTimeout(resolve, 50));
     }
-    assert.fail(JSON.stringify(await command(`/session/${session}/log`, { type: 'browser' })));
-}
+    assert.fail(`${script}\n${JSON.stringify(await command(`/session/${session}/log`, { type: 'browser' }))}`);
+};
+const open = async (url, ready) => {
+    await command(`/session/${session}/url`, { url });
+    await until(ready);
+};
+const resize = (width, height) => command(`/session/${session}/window/rect`, { width, height });
+const capture = async name => {
+    const directory = process.env.TEST_UNDECLARED_OUTPUTS_DIR;
+    if (!directory) return;
+    await writeFile(join(directory, `${name}.png`), Buffer.from(await command(`/session/${session}/screenshot`), 'base64'));
+};
+const figure = name => `document.querySelector('figure[data-example="${name}"]')`;
+const ready = `return document.querySelectorAll('figure.example').length > 0 && [...document.querySelectorAll('figure.example')].every(value => value.querySelector('.graph, .stepper'))`;
+const narrow = async () => {
+    await resize(390, 844);
+    assert.ok(await evaluate('return document.documentElement.scrollWidth <= window.innerWidth + 1'));
+    await resize(1440, 1000);
+};
+
 try {
-    for (let attempt = 0; attempt < 200; attempt++) {
+    for (let attempt = 0; attempt < 200 && !endpoint; attempt++) {
         const port = /started successfully on port (\d+)/.exec(log)?.[1];
-        if (port) {
-            endpoint = `http://127.0.0.1:${port}`;
-            break;
-        }
+        if (port) endpoint = `http://127.0.0.1:${port}`;
+        else await new Promise(resolve => setTimeout(resolve, 50));
         assert.equal(driver.exitCode, null, log);
-        await new Promise(resolve => setTimeout(resolve, 50));
     }
     assert.ok(endpoint, log);
     session = (await command('/session', { capabilities: { alwaysMatch: {
@@ -69,196 +86,177 @@ try {
         'goog:chromeOptions': { binary: chrome, args: ['--headless', '--no-sandbox', '--disable-dev-shm-usage'] },
         'goog:loggingPrefs': { browser: 'ALL' },
     } } })).sessionId;
-    await navigate('/index.html', "return document.getElementById('operation-result')?.textContent === '184,500'");
-    assert.equal(await evaluate("return document.getElementById('operation-result').textContent.replaceAll(',', '')"), '184500');
-    assert.ok(await evaluate("return document.getElementById('library').textContent.includes('photonic_test')"));
-    assert.match(await evaluate("return document.getElementById('test-contract').textContent"), /Unknown never satisfies/);
-    assert.match(await evaluate("return document.getElementById('function-interface').textContent"), /Invoke activates the supplied Function rule/);
-    assert.match(await evaluate("return document.getElementById('packing').textContent"), /Without the library rules/);
-    await evaluate("const select = document.getElementById('lowering-select'); select.selectedIndex = 2; select.dispatchEvent(new Event('change'));");
-    assert.equal(await evaluate("return document.getElementById('lowering-output').textContent"), 'Field.Pack.Position.0, Field.Pack.Value.2');
-    await evaluate("const select = document.getElementById('lowering-select'); select.selectedIndex = 3; select.dispatchEvent(new Event('change'));");
-    assert.equal(await evaluate("return document.getElementById('lowering-output').textContent"), 'Invoke.Field.Pack.([Position] 0).([Value] 2)');
-    assert.match(await evaluate("return document.getElementById('lowering-description').textContent"), /does not execute/);
-    await evaluate("document.getElementById('theme').click()");
+    await resize(1440, 1000);
+
+    await open(pathToFileURL(join(root, 'index.html')).href, ready);
+    assert.equal(await evaluate("return book.engine.state"), 'recorded');
+    assert.equal(await evaluate("return document.getElementById('status').textContent"), 'Recorded runs');
+    assert.equal(await evaluate(`return ${figure('first')}.querySelector('.run').hidden`), true);
+    assert.equal(await evaluate("return document.querySelectorAll('figure.example').length"), await evaluate('return Object.keys(book.record.example).length'));
+    assert.deepEqual(await evaluate("return [...document.querySelectorAll('.message')].filter(value => !value.hidden).map(value => value.textContent)"), []);
+    assert.equal(await evaluate(`return ${figure('light')}.querySelectorAll('.state').length`), 4);
+    assert.deepEqual(await evaluate(`return [...${figure('check')}.querySelectorAll('.verdict .badge')].map(value => value.textContent)`), ['reached', 'unreachable', 'reached']);
+    assert.equal(await evaluate(`return ${figure('involution')}.querySelector('.stepper .badge').textContent`), 'reached');
+    assert.equal(await evaluate(`return Number(${figure('involution')}.querySelector('input[type=range]').max)`), await evaluate('return book.record.example.involution.result.event'));
+    await evaluate("document.querySelector('#field .lens .preset button:nth-child(3)').click()");
+    assert.match(await evaluate("return document.querySelector('#field .lens .lowered').textContent"), /2 coherences/);
+    assert.deepEqual(await evaluate(`return [...${figure('forever')}.querySelectorAll('.state .badge')].map(value => value.textContent)`), ['start']);
+    await evaluate(`${figure('forever')}.querySelector('.state[data-state="16"]').click(); return true`);
+    assert.match(await evaluate(`return ${figure('forever')}.querySelector('.departure').textContent`), /no events recorded before the budget ran out/);
+    assert.equal(await evaluate(`return ${figure('first')}.querySelector('.state[data-state="1"] .name').textContent`), 's1end');
+    assert.match(await evaluate("return document.querySelector('#calculator .result').textContent"), /2220₃= 78 in decimal/);
+    assert.equal(await evaluate("return document.querySelectorAll('#bench .graph .state').length"), 5);
+    assert.equal(await evaluate("return document.querySelectorAll('#bench button.hyperedge').length"), 3);
+    assert.equal(await evaluate("return document.querySelectorAll('#bench .capsule').length"), 5);
+    await evaluate("const input = document.querySelector('#bench .filter input'); input.value = 'C'; input.dispatchEvent(new Event('input')); return true");
+    await until("return document.querySelectorAll('#bench .graph .state').length === 3");
+    assert.deepEqual(await evaluate("return [...document.querySelectorAll('#bench .graph .state')].map(value => value.dataset.state)"), ['1', '3', '4']);
+    assert.equal(await evaluate("return document.querySelectorAll('#bench .graph .state[data-match]').length"), 2);
+    assert.equal(await evaluate("return document.querySelectorAll('#bench .capsule').length"), 3);
+    await evaluate("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true })); return true");
+    assert.equal(await evaluate("return document.querySelector('.palette').hidden"), false);
+    await evaluate("const input = document.querySelector('.palette input'); input.value = '[C, D] E'; input.dispatchEvent(new Event('input')); return true");
+    assert.match(await evaluate("return document.querySelector('.palette li').textContent"), /Filter the workbench by/);
+    await evaluate("document.querySelector('.palette input').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); return true");
+    assert.equal(await evaluate("return document.querySelector('.palette').hidden"), true);
+    await until("return document.querySelector('#bench .filter input').value === '[C, D] E'");
+    const matched = await evaluate("return [...document.querySelectorAll('#bench .graph .state')].map(value => value.dataset.state).sort()");
+    const filter = async text => {
+        await evaluate("document.querySelector('#bench .filter .tool').click(); return true");
+        await until("return document.querySelector('#bench .filter p').textContent.startsWith('Type a pattern')");
+        await evaluate(`const input = document.querySelector('#bench .filter input'); input.value = ${JSON.stringify(text)}; input.dispatchEvent(new Event('input')); return true`);
+    };
+    await filter('[D,C]E');
+    await until("return document.querySelector('#bench .filter p').textContent.startsWith('Showing')");
+    assert.deepEqual(await evaluate("return [...document.querySelectorAll('#bench .graph .state')].map(value => value.dataset.state).sort()"), matched);
+    await filter('B.');
+    await until("return document.querySelector('#bench .filter p').dataset.tone === 'error'");
+    await evaluate("[...document.querySelectorAll('#bench .preset button')].find(value => value.textContent === 'Scope').click(); return true");
+    assert.equal(await evaluate("return document.querySelector('#bench .editor textarea').value"), await evaluate('return book.record.example.brew.source'));
+    assert.equal(await evaluate("return document.querySelectorAll('#bench .graph .state').length"), await evaluate('return book.record.example.brew.result.execution.state.length'));
+    await evaluate("document.querySelector('#bench .filter .tool').click(); return true");
+    await evaluate("[...document.querySelectorAll('#bench .preset button')].find(value => value.textContent === 'Parallel').click(); return true");
+    await evaluate(`${figure('first')}.querySelector('.bar button:not(.run)').click(); return true`);
+    await until("return document.querySelector('#bench .editor textarea').value === 'A.X\\n[A] B'");
+    await narrow();
+    console.log('The recorded book renders every example, verdict, lens, expression, workbench view and filter from a local file.');
+
+    await open(`${origin}/index.html`, `${ready} && book.engine.state === 'live'`);
+    assert.equal(await evaluate("return document.getElementById('status').textContent"), 'Live engine');
+    await evaluate(`const state = ${figure('first')}.querySelector('.state[data-state="1"]'); state.click(); return true`);
+    assert.equal(await evaluate(`return ${figure('first')}.querySelector('.state[data-state="1"]').getAttribute('aria-pressed')`), 'true');
+    assert.match(await evaluate(`return ${figure('first')}.querySelector('.departure').textContent`), /no rule applies here/);
+    await evaluate(`
+        const area = ${figure('first')}.querySelector('.editor textarea');
+        area.value = 'A.X\\n[A] C';
+        area.dispatchEvent(new Event('input'));
+        ${figure('first')}.querySelector('.run').click();
+        return true`);
+    await until(`return [...${figure('first')}.querySelectorAll('.state .token')].some(value => value.textContent === 'C')`);
+    assert.equal(await evaluate(`return ${figure('first')}.querySelector('.editor pre').textContent`), 'A.X\n[A] C\n');
+    await evaluate(`
+        const area = ${figure('first')}.querySelector('.editor textarea');
+        area.value = '[A';
+        ${figure('first')}.querySelector('.run').click();
+        return true`);
+    await until(`return ${figure('first')}.querySelector('.message').dataset.tone === 'error'`);
+    assert.match(await evaluate(`return ${figure('first')}.querySelector('.message').textContent`), /at character/);
+    await evaluate(`[...${figure('first')}.querySelectorAll('.bar button')].find(value => value.textContent === 'Reset').click(); return true`);
+    assert.equal(await evaluate(`return ${figure('first')}.querySelector('.editor textarea').value`), 'A.X\n[A] B');
+    await evaluate(`
+        const area = ${figure('first')}.querySelector('.editor textarea');
+        area.value = '人 [A';
+        area.dispatchEvent(new Event('input'));
+        ${figure('first')}.querySelector('.run').click();
+        return true`);
+    await until(`return ${figure('first')}.querySelector('.message').dataset.tone === 'error'`);
+    assert.match(await evaluate(`return ${figure('first')}.querySelector('.message').textContent`), /at character 5\)/);
+    assert.equal(await evaluate(`return [...${figure('first')}.querySelectorAll('.bar button')].find(value => value.textContent === 'Reset').hidden`), false);
+    await evaluate(`[...${figure('first')}.querySelectorAll('.bar button')].find(value => value.textContent === 'Reset').click(); return true`);
+    await evaluate(`
+        const goal = ${figure('check')}.querySelector('.field textarea');
+        goal.value = 'B.X';
+        goal.dispatchEvent(new Event('input'));
+        [...${figure('check')}.querySelectorAll('.bar button')].find(value => value.textContent === 'Workbench').click();
+        return true`);
+    await until("return document.querySelectorAll('#bench .verdict .claim').length === 3");
+    assert.deepEqual(await evaluate("return [...document.querySelectorAll('#bench .verdict .claim code')].map(value => value.textContent)"), ['B.X [A] B', 'B.X', 'A.X [A] B']);
+    await evaluate(`[...${figure('check')}.querySelectorAll('.bar button')].find(value => value.textContent === 'Reset').click(); return true`);
+    await evaluate(`
+        const goal = ${figure('check')}.querySelector('.field textarea');
+        goal.value = 'B.X [A] B\\nC.X [A] B';
+        ${figure('check')}.querySelector('.run').click();
+        return true`);
+    await until(`return [...${figure('check')}.querySelectorAll('.verdict .badge')].map(value => value.textContent).join() === 'reached,unreachable'`);
+    await evaluate("const input = document.querySelector('#value .lens input'); input.value = '(A, B).(C, D)'; input.dispatchEvent(new Event('input')); return true");
+    await until("return /4 coherences/.test(document.querySelector('#value .lens .lowered').textContent)");
+    await evaluate("const input = document.querySelector('#value .lens input'); input.value = 'constructor'; input.dispatchEvent(new Event('input')); return true");
+    await until("return /1 coherence/.test(document.querySelector('#value .lens .lowered').textContent)");
+    await evaluate("const input = document.querySelector('#value .lens input'); input.value = '人 [B'; input.dispatchEvent(new Event('input')); return true");
+    await until("return /at character 5\\)/.test(document.querySelector('#value .lens .message').textContent)");
+    await evaluate("[...document.querySelectorAll('#calculator .preset button')].find(value => value.textContent === '12 + 2').click(); return true");
+    await until("return /21₃= 7 in decimal/.test(document.querySelector('#calculator .result').textContent) && document.querySelector('#calculator .stepper')");
+    await evaluate("[...document.querySelectorAll('#calculator .preset button')].find(value => value.textContent === '1 / 0').click(); return true");
+    await until("return /Division by zero/.test(document.querySelector('#calculator .message').textContent)");
+    await evaluate(`${figure('involution')}.querySelector('.run').click(); return true`);
+    await until(`return !${figure('involution')}.querySelector('.run').hasAttribute('aria-disabled') && ${figure('involution')}.querySelector('.stepper .badge')?.textContent === 'reached' && ${figure('involution')}.querySelector('.pair .state')`);
+    await evaluate(`${figure('involution')}.querySelector('[aria-label="Next event"]').click(); return true`);
+    await until(`return /^event 2 of/.test(${figure('involution')}.querySelector('.stepper .arrow').textContent) && ${figure('involution')}.querySelector('.pair .name').textContent === 's' + book.record.example.involution.result.step[1].source`);
+    await evaluate(`
+        const area = ${figure('involution')}.querySelector('.editor textarea');
+        area.value = area.value.replace('[Claim]', '[Claim');
+        area.dispatchEvent(new Event('input'));
+        ${figure('involution')}.querySelector('.run').click();
+        return true`);
+    await until(`return ${figure('involution')}.querySelector('.message').dataset.tone === 'error'`);
+    assert.match(await evaluate(`return ${figure('involution')}.querySelector('.message').textContent`), /at character/);
+    await evaluate(`${figure('involution')}.querySelector('[aria-label="Last event"]').click(); return true`);
+    await until(`return ${figure('involution')}.querySelector('.pair .state') && !/Run the program again/.test(${figure('involution')}.querySelector('.stepper pre').textContent)`);
+    await evaluate(`
+        const area = ${figure('involution')}.querySelector('.editor textarea');
+        area.value = 'A\\n[A] A.A';
+        area.dispatchEvent(new Event('input'));
+        ${figure('involution')}.querySelector('.run').click();
+        [...${figure('involution')}.querySelectorAll('.bar button')].find(value => value.textContent === 'Stop').click();
+        return true`);
+    await until(`return ${figure('involution')}.querySelector('.message').textContent === 'Stopped.'`);
+    assert.equal(await evaluate(`return ${figure('involution')}.querySelector('.run').hasAttribute('aria-disabled')`), false);
+    await evaluate(`[...${figure('involution')}.querySelectorAll('.bar button')].find(value => value.textContent === 'Reset').click(); return true`);
+    await evaluate(`
+        const area = document.querySelector('#bench .editor textarea');
+        area.value = 'A, B\\n[A] C\\n[C, B] D';
+        area.dispatchEvent(new Event('input'));
+        document.querySelector('#bench .run').click();
+        return true`);
+    await until("return document.querySelectorAll('#bench .graph .state').length === 3 && document.querySelectorAll('#bench button.hyperedge').length === 2");
+    await capture('book');
+    console.log('The live book edits and reruns programs, targets, lenses, expressions, proofs and workbench programs in WebAssembly.');
+
+    await evaluate("document.getElementById('theme').click(); return true");
+    assert.equal(await evaluate('return document.documentElement.dataset.theme'), 'light');
+    await evaluate("document.getElementById('theme').click(); return true");
     assert.equal(await evaluate('return document.documentElement.dataset.theme'), 'dark');
-    await navigate('/index.html', "return document.getElementById('operation-result')?.textContent === '184,500'");
+    await open(`${origin}/index.html`, ready);
     assert.equal(await evaluate('return document.documentElement.dataset.theme'), 'dark');
-    for (const [operation, answer, remainder] of [['add', '1623', ''], ['subtract', '1377', ''], ['multiply', '184500', ''], ['divide', '12', 'remainder 24']]) {
-        await evaluate(`const select = document.getElementById('operation'); select.value = '${operation}'; select.dispatchEvent(new Event('change'));`);
-        assert.equal(await evaluate("return document.getElementById('operation-result').textContent.replaceAll(',', '')"), answer);
-        assert.equal(await evaluate("return document.getElementById('operation-remainder').textContent"), remainder);
-        assert.equal(await evaluate("return document.getElementById('operation-back').disabled"), true);
-        await evaluate("document.getElementById('operation-next').click()");
-        assert.match(await evaluate("return document.getElementById('operation-position').textContent"), /^Event 2 /);
-        await evaluate("document.getElementById('operation-back').click()");
-        assert.equal(await evaluate("return document.getElementById('operation-back').disabled"), true);
-    }
-    assert.equal(await evaluate("return document.querySelectorAll('#evaluation-graph [data-state]').length"), 4);
-    await evaluate("document.querySelector('#evaluation-graph [data-state=\"1\"]').dispatchEvent(new MouseEvent('click'))");
-    assert.ok(await evaluate("return document.getElementById('evaluation-state').textContent.length > 0"));
-    await evaluate("document.getElementById('evaluation-run').click()");
-    for (let attempt = 0; attempt < 200; attempt++) {
-        if (await evaluate("return !document.getElementById('evaluation-run').disabled")) break;
-        await new Promise(resolve => setTimeout(resolve, 50));
-    }
-    assert.match(await evaluate("return document.getElementById('evaluation-status').textContent"), /Executed here/);
-    assert.match(await evaluate("return document.getElementById('evaluation-verdict').textContent"), /D \[A\] B.C \[B\] D: reached/);
-    assert.match(await evaluate("return document.getElementById('evaluation-verdict').textContent"), /C.D \[A\] B.C \[B\] D: reached/);
-    await evaluate("document.getElementById('evaluation-source').value = 'A [A] B'; document.getElementById('evaluation-target').value = '[\"B [A] B\", \"B\", \"C [A] B\"]'; document.getElementById('evaluation-run').click()");
-    for (let attempt = 0; attempt < 200; attempt++) {
-        if (await evaluate("return !document.getElementById('evaluation-run').disabled")) break;
-        await new Promise(resolve => setTimeout(resolve, 50));
-    }
-    assert.match(await evaluate("return document.getElementById('evaluation-verdict').textContent"), /B \[A\] B: reached.*B: unreachable.*C \[A\] B: unreachable/);
-    await evaluate("document.getElementById('evaluation-run').click(); document.getElementById('evaluation-stop').click()");
-    assert.match(await evaluate("return document.getElementById('evaluation-status').textContent"), /^Stopped/);
-    await command(`/session/${session}/window/rect`, { width: 1440, height: 1000 });
-    await evaluate("document.documentElement.style.scrollBehavior = 'auto'; document.getElementById('evaluation-reset').click(); document.getElementById('evaluation-graph').scrollIntoView({block: 'center', behavior: 'instant'})");
-    if (process.env.TEST_UNDECLARED_OUTPUTS_DIR) {
-        const screenshot = await command(`/session/${session}/screenshot`);
-        await writeFile(resolve(process.env.TEST_UNDECLARED_OUTPUTS_DIR, 'graph.png'), Buffer.from(screenshot, 'base64'));
-    }
-    assert.equal(await evaluate("return document.getElementById('product-equation').textContent"), '12 (base 3) × 21 (base 3) = 1022 (base 3) · 5 × 7 = 35');
-    assert.equal(await evaluate("return document.querySelectorAll('#product-graph path').length"), 8);
-    assert.equal(await evaluate("return document.querySelectorAll('#product-column tr').length"), 4);
-    assert.deepEqual(await evaluate(`
-        const failure = [];
-        for (let left = 0; left < 9; left++) for (let right = 0; right < 9; right++) {
-            document.getElementById('product-left').value = left;
-            const select = document.getElementById('product-right');
-            select.value = right;
-            select.dispatchEvent(new Event('change'));
-            const row = [...document.querySelectorAll('#product-column tr')].map(row => [...row.cells].slice(1).map(cell => Number(cell.textContent)));
-            const value = row.reduce((sum, cell, position) => sum + cell[2] * 3 ** position, 0);
-            if (value !== left * right || row.some(cell => cell[0] + cell[1] !== cell[2] + 3 * cell[3])) failure.push([left, right]);
-        }
-        document.getElementById('product-left').value = 5;
-        document.getElementById('product-right').value = 7;
-        document.getElementById('product-right').dispatchEvent(new Event('change'));
-        return failure;
-    `), []);
-    await evaluate("document.getElementById('product').scrollIntoView({block: 'start', behavior: 'instant'})");
-    if (process.env.TEST_UNDECLARED_OUTPUTS_DIR) {
-        const screenshot = await command(`/session/${session}/screenshot`);
-        await writeFile(resolve(process.env.TEST_UNDECLARED_OUTPUTS_DIR, 'product.png'), Buffer.from(screenshot, 'base64'));
-    }
-    assert.deepEqual(await evaluate("return [...document.querySelectorAll('#ternary h3[id]')].map(value => value.id)"), ['ternary-addition', 'ternary-subtraction', 'ternary-multiplication', 'ternary-division', 'expression']);
-    assert.equal(await evaluate("return document.getElementById('expression-result').textContent"), '12120 (base 3) = 150 (decimal)');
-    assert.equal(await evaluate("return document.getElementById('expression-back').disabled"), true);
-    for (const expected of ['2210 (base 3) = 75 (decimal)', '2221 (base 3) = 79 (decimal)', '2220 (base 3) = 78 (decimal)']) {
-        await evaluate("document.getElementById('expression-next').click()");
-        assert.equal(await evaluate("return document.getElementById('expression-result').textContent"), expected);
-    }
-    assert.equal(await evaluate("return document.getElementById('expression-next').disabled"), true);
-    assert.match(await evaluate("return document.getElementById('expression-rule').textContent"), /Execute.Pending.Subtract/);
-    await evaluate("document.getElementById('expression-back').click()");
-    assert.equal(await evaluate("return document.getElementById('expression-result').textContent"), '2221 (base 3) = 79 (decimal)');
-    assert.equal(await evaluate("return document.getElementById('expression-select').options.length"), 4);
-    for (const [selection, expected, count] of [[1, '21 (base 3) = 7 (decimal)', 2], [2, '101 (base 3) = 10 (decimal)', 3], [3, '10 (base 3) = 3 (decimal)', 2]]) {
-        await evaluate(`const select = document.getElementById('expression-select'); select.value = ${selection}; select.dispatchEvent(new Event('change'));`);
-        assert.equal(await evaluate("return document.getElementById('expression-result').textContent"), expected);
-        assert.equal(await evaluate("return document.querySelectorAll('#expression-trit .trit-card').length"), count);
-        assert.equal(await evaluate("return document.getElementById('expression-back').disabled"), true);
-        assert.equal(await evaluate("return document.getElementById('expression-source-panel').hidden"), false);
-        assert.ok(await evaluate("return document.getElementById('expression-source').textContent.includes('[Built, Stage.')"));
-        assert.equal(await evaluate("return document.getElementById('expression-source').textContent.includes('Result.')"), false);
-    }
-    assert.match(await evaluate("return document.getElementById('expression-note').textContent"), /truncates toward zero/);
-    assert.deepEqual(await evaluate("return [...document.querySelectorAll('#expression-tape .token')].map(value => value.textContent)"), ['2', '1', 'Divide', '2', 'Subtract', '1']);
-    await evaluate("document.getElementById('expression-next').click()");
-    assert.equal(await evaluate("return document.getElementById('expression-result').textContent"), '2 (base 3) = 2 (decimal)');
-    assert.equal(await evaluate("return document.getElementById('expression-next').disabled"), true);
-    await evaluate("const select = document.getElementById('expression-select'); select.value = 0; select.dispatchEvent(new Event('change'));");
-    assert.equal(await evaluate("return document.getElementById('expression-source-panel').hidden"), true);
-    assert.equal(await evaluate("return document.getElementById('expression-result').textContent"), '12120 (base 3) = 150 (decimal)');
-    await evaluate("document.getElementById('expression-lab').scrollIntoView({block: 'start', behavior: 'instant'})");
-    if (process.env.TEST_UNDECLARED_OUTPUTS_DIR) {
-        const screenshot = await command(`/session/${session}/screenshot`);
-        await writeFile(resolve(process.env.TEST_UNDECLARED_OUTPUTS_DIR, 'expression.png'), Buffer.from(screenshot, 'base64'));
-    }
-    await command(`/session/${session}/window/rect`, { width: 390, height: 844 });
-    assert.ok(await evaluate("return document.documentElement.scrollWidth <= window.innerWidth + 1"));
-    await evaluate("const select = document.getElementById('expression-select'); select.value = 3; select.dispatchEvent(new Event('change')); document.getElementById('expression-lab').scrollIntoView({block: 'start', behavior: 'instant'});");
-    assert.equal(await evaluate("return document.getElementById('expression-result').textContent"), '10 (base 3) = 3 (decimal)');
-    await command(`/session/${session}/window/rect`, { width: 1440, height: 1000 });
-    for (const [input, expected] of [['12 + 2', '21 (base 3) = 7 (decimal)'], ['-(12 + 2) * 10', '-210 (base 3) = -21 (decimal)'], ['1212 * 10 / 2 + 11 - 1', '2220 (base 3) = 78 (decimal)'], ['2*2*2*2*2*2', '2101 (base 3) = 64 (decimal)'], ['2*2*2*2*2*2*2*2*2*2', '1101221 (base 3) = 1024 (decimal)']]) {
-        await evaluate(`document.getElementById('sandbox-input').value = ${JSON.stringify(input)}; document.getElementById('sandbox-run').click();`);
-        for (let attempt = 0; attempt < 450; attempt++) {
-            if (await evaluate("return !document.getElementById('sandbox-run').disabled")) break;
-            await new Promise(resolve => setTimeout(resolve, 50));
-        }
-        assert.equal(await evaluate("return document.getElementById('sandbox-result').textContent"), expected);
-        assert.match(await evaluate("return document.getElementById('sandbox-status').textContent"), /Executed here in WebAssembly/);
-        for (let attempt = 0; attempt < 100; attempt++) {
-            if (await evaluate("return /^Event 1 of/.test(document.getElementById('sandbox-position').textContent)")) break;
-            await new Promise(resolve => setTimeout(resolve, 20));
-        }
-        assert.equal(await evaluate("return document.getElementById('sandbox-trace').hidden"), false);
-        assert.match(await evaluate("return document.getElementById('sandbox-before').textContent"), /Configuration 0/);
-        assert.ok(await evaluate("return document.querySelectorAll('#sandbox-rule .syntax-group').length > 0"));
-        assert.ok(await evaluate("return document.querySelectorAll('#sandbox-source .syntax-number').length > 0"));
-        await evaluate("document.getElementById('sandbox-last').click()");
-        for (let attempt = 0; attempt < 100; attempt++) {
-            if (await evaluate("return document.getElementById('sandbox-next').disabled")) break;
-            await new Promise(resolve => setTimeout(resolve, 20));
-        }
-        assert.match(await evaluate("return document.getElementById('sandbox-after').textContent"), /Expression/);
-        assert.equal(await evaluate("return document.getElementById('sandbox-next').disabled"), true);
-        await evaluate("document.getElementById('sandbox-step').value = 2; document.getElementById('sandbox-step').dispatchEvent(new Event('change'))");
-        for (let attempt = 0; attempt < 100; attempt++) {
-            if (await evaluate("return /^Event 2 of/.test(document.getElementById('sandbox-position').textContent)")) break;
-            await new Promise(resolve => setTimeout(resolve, 20));
-        }
-        assert.match(await evaluate("return document.getElementById('sandbox-position').textContent"), /^Event 2 of/);
-    }
-    await command(`/session/${session}/window/rect`, { width: 390, height: 844 });
-    await evaluate("document.querySelector('#sandbox-before details').open = true");
-    assert.ok(await evaluate("return document.documentElement.scrollWidth <= window.innerWidth + 1"));
-    await command(`/session/${session}/window/rect`, { width: 1440, height: 1000 });
-    await evaluate("document.getElementById('sandbox-trace').scrollIntoView({block: 'start', behavior: 'instant'})");
-    if (process.env.TEST_UNDECLARED_OUTPUTS_DIR) {
-        const screenshot = await command(`/session/${session}/screenshot`);
-        await writeFile(resolve(process.env.TEST_UNDECLARED_OUTPUTS_DIR, 'sandbox.png'), Buffer.from(screenshot, 'base64'));
-    }
-    assert.deepEqual(await evaluate(`
-        const target = document.createElement('pre');
-        const source = '<img src=x onerror=alert(1)> [A] B';
-        globalThis.syntax.highlight(target, source);
-        return [target.textContent === source, target.querySelector('img') === null];
-    `), [true, true]);
-    await evaluate("document.getElementById('sandbox-input').value = '1/0'; document.getElementById('sandbox-run').click()");
-    for (let attempt = 0; attempt < 450; attempt++) {
-        if (await evaluate("return !document.getElementById('sandbox-run').disabled")) break;
-        await new Promise(resolve => setTimeout(resolve, 50));
-    }
-    assert.match(await evaluate("return document.getElementById('sandbox-status').textContent"), /Division by zero/);
-    assert.equal(await evaluate("return document.getElementById('sandbox-trace').hidden"), false);
-    assert.equal(await evaluate("return document.getElementById('sandbox-result').textContent"), '');
-    await evaluate("document.getElementById('sandbox-run').click(); document.getElementById('sandbox-stop').click()");
-    assert.match(await evaluate("return document.getElementById('sandbox-status').textContent"), /^Stopped/);
-    await command(`/session/${session}/window/rect`, { width: 390, height: 844 });
-    assert.ok(await evaluate("return document.documentElement.scrollWidth <= window.innerWidth + 1"));
-    await command(`/session/${session}/window/rect`, { width: 1440, height: 1000 });
+    await evaluate("document.getElementById('theme').click(); return true");
+    assert.equal(await evaluate("return document.documentElement.dataset.theme ?? 'system'"), 'system');
     assert.deepEqual(await evaluate(`
         const identity = [...document.querySelectorAll('[id]')].map(value => value.id);
         return identity.filter((value, index) => identity.indexOf(value) !== index);
     `), []);
-    assert.deepEqual(await evaluate(`return [...document.querySelectorAll('a[href^="#"]')].filter(link => link.hash.length > 1 && !document.getElementById(decodeURIComponent(link.hash.slice(1)))).map(link => link.hash)`), []);
-    assert.equal(await evaluate("return document.querySelectorAll('#contents a').length === document.querySelectorAll('.chapter').length"), true);
-    await evaluate("location.hash = 'guide-language-syntax'");
-    for (let attempt = 0; attempt < 20; attempt++) {
-        if (await evaluate("return document.getElementById('guide-language').open")) break;
-        await new Promise(resolve => setTimeout(resolve, 20));
-    }
-    assert.equal(await evaluate("return document.getElementById('guide-language').open"), true);
-    await command(`/session/${session}/window/rect`, { width: 390, height: 844 });
-    await evaluate("document.querySelectorAll('.guide').forEach(value => { value.open = true; })");
-    assert.ok(await evaluate("return document.documentElement.scrollWidth <= window.innerWidth + 1"));
+    assert.deepEqual(await evaluate("return [...document.querySelectorAll('a[href^=\"#\"]')].filter(link => link.hash.length > 1 && !document.getElementById(decodeURIComponent(link.hash.slice(1)))).map(link => link.hash)"), []);
+    assert.equal(await evaluate("return [...document.querySelectorAll('#outline a')].every(link => document.getElementById(link.hash.slice(1))?.classList.contains('chapter'))"), true);
+    assert.equal(await evaluate("return document.querySelectorAll('#outline a').length === document.querySelectorAll('.chapter').length"), true);
+    assert.deepEqual(await evaluate(`
+        const pre = document.createElement('pre');
+        book.syntax.highlight(pre, '<img src=x onerror=alert(1)> [A] B');
+        return [pre.textContent, pre.querySelectorAll('img').length];
+    `), ['<img src=x onerror=alert(1)> [A] B', 0]);
+    await narrow();
     const message = await command(`/session/${session}/log`, { type: 'browser' });
     assert.deepEqual(message.filter(value => value.level === 'SEVERE'), []);
     assert.deepEqual(missing, []);
-    console.log('Browser checks passed: theme persistence, arithmetic results, event navigation, reference exploration, binding deduplication, and assets.');
+    console.log('The book keeps its theme, anchors, safe highlighting and narrow layout, with no console errors or missing assets.');
 } finally {
     if (session) await fetch(`${endpoint}/session/${session}`, { method: 'DELETE', signal: AbortSignal.timeout(5000) }).catch(() => {});
     driver.kill();

@@ -1,0 +1,140 @@
+load("//toolchain:defs.bzl", "hermetic_binary", "hermetic_test")
+
+filegroup(
+    name = "asset",
+    srcs = [
+        "book.css",
+        "book.js",
+        "calculator.js",
+        "editor.js",
+        "engine.js",
+        "example.js",
+        "graph.js",
+        "hypergraph.js",
+        "lens.js",
+        "numeral.js",
+        "palette.js",
+        "pattern.js",
+        "record.js",
+        "render.js",
+        "syntax.js",
+        "trace.js",
+        "workbench.js",
+        "worker.js",
+    ],
+    visibility = ["//toolchain/browser:__pkg__"],
+)
+
+filegroup(
+    name = "numeral",
+    srcs = ["numeral.js"],
+    visibility = [
+        "//benchmark:__pkg__",
+        "//toolchain/browser:__pkg__",
+    ],
+)
+
+filegroup(
+    name = "source",
+    srcs = [
+        "//frontend:parser.rs",
+        "//library/boolean:equal.particle",
+        "//library/boolean:not.particle",
+        "//library/function:invoke.particle",
+        "//library/ternary:add.particle",
+        "//program/association:broadcast.wave",
+        "//program/association:independent.wave",
+        "//program/language:coherence.wave",
+        "//program/language:conjunction.wave",
+        "//program/language:dynamic.wave",
+        "//program/language:inference.wave",
+        "//program/language:replacement.wave",
+        "//program/natural:addition.wave",
+        "//program/ternary:reversal.wave",
+        "//theorem:case.particle",
+        "//theorem/boolean:involution.wave",
+    ],
+)
+
+filegroup(
+    name = "build",
+    srcs = ["BUILD.bazel"],
+    visibility = ["//:__pkg__"],
+)
+
+hermetic_binary(
+    name = "record",
+    argument = [
+        "$(rlocationpath //toolchain:node)",
+        "$(rlocationpath record.mjs)",
+        "$(rlocationpath //toolchain/browser:javascript)",
+        "$(rlocationpath //toolchain/browser:webassembly)",
+        "$(rlocationpath numeral.js)",
+        "$(rlocationpath //:page)",
+        "$(rlocationpath record.js)",
+        "--",
+        "write",
+    ],
+    data = [
+        "numeral.js",
+        "record.js",
+        "record.mjs",
+        ":source",
+        "//:page",
+        "//toolchain:node",
+        "//toolchain/browser:javascript",
+        "//toolchain/browser:webassembly",
+    ],
+    entrypoint = "//toolchain:execute",
+)
+
+hermetic_test(
+    name = "record.check",
+    size = "small",
+    argument = [
+        "$(rlocationpath //toolchain:node)",
+        "$(rlocationpath record.mjs)",
+        "$(rlocationpath //toolchain/browser:javascript)",
+        "$(rlocationpath //toolchain/browser:webassembly)",
+        "$(rlocationpath numeral.js)",
+        "$(rlocationpath //:page)",
+        "$(rlocationpath record.js)",
+        "--",
+        "check",
+    ],
+    data = [
+        "numeral.js",
+        "record.js",
+        "record.mjs",
+        ":source",
+        "//:page",
+        "//toolchain:node",
+        "//toolchain/browser:javascript",
+        "//toolchain/browser:webassembly",
+    ],
+    entrypoint = "//toolchain:execute",
+)
+
+hermetic_test(
+    name = "test",
+    size = "small",
+    argument = [
+        "$(rlocationpath //toolchain:node)",
+        "$(rlocationpath test.mjs)",
+        "$(rlocationpath record.js)",
+        "$(rlocationpath syntax.js)",
+        "$(rlocationpath render.js)",
+        "$(rlocationpath graph.js)",
+        "$(rlocationpath pattern.js)",
+    ],
+    data = [
+        "graph.js",
+        "pattern.js",
+        "record.js",
+        "render.js",
+        "syntax.js",
+        "test.mjs",
+        "//toolchain:node",
+    ],
+    entrypoint = "//toolchain:execute",
+)

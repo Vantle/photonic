@@ -1,5 +1,10 @@
 load("//photonic:defs.bzl", "photonic_library")
 
+exports_files(
+    ["case.particle"],
+    visibility = ["//book:__pkg__"],
+)
+
 photonic_library(
     name = "case",
     srcs = ["case.particle"],

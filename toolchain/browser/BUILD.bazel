@@ -10,26 +10,22 @@ rust_shared_library(
         "engine.rs",
         "expression.rs",
         "failure.rs",
-        "product.rs",
+        "path.rs",
+        "request.rs",
         "response.rs",
-        "session.rs",
     ],
-    compile_data = [
-        "//library/expression:evaluate",
-        "//library/ternary:add.particle",
-        "//library/ternary:multiply.particle",
-    ],
+    compile_data = ["//library/expression:evaluate"],
     crate_root = "engine.rs",
     lint_config = "//:lint",
     rustc_env = {
         "FORMULA": "$(execpath //library/expression:evaluate)",
-        "ADD": "$(execpath //library/ternary:add.particle)",
-        "MULTIPLY": "$(execpath //library/ternary:multiply.particle)",
     },
+    rustc_flags = ["-Clink-arg=--max-memory=1073741824"],
     target_compatible_with = ["@platforms//cpu:wasm32"],
     deps = [
         "//arithmetic:infix",
         "//language:photonic",
+        "@crate//:miette",
         "@crate//:serde",
         "@crate//:serde_json",
         "@crate//:wasm-bindgen",
@@ -52,14 +48,20 @@ filegroup(
     name = "javascript",
     srcs = [":asset"],
     output_group = "javascript",
-    visibility = ["//benchmark:__pkg__"],
+    visibility = [
+        "//benchmark:__pkg__",
+        "//book:__pkg__",
+    ],
 )
 
 filegroup(
     name = "webassembly",
     srcs = [":asset"],
     output_group = "webassembly",
-    visibility = ["//benchmark:__pkg__"],
+    visibility = [
+        "//benchmark:__pkg__",
+        "//book:__pkg__",
+    ],
 )
 
 filegroup(
@@ -96,14 +98,14 @@ hermetic_test(
         "$(rlocationpath :webassembly)",
         "$(rlocationpath :javascript)",
         "$(rlocationpath //command:photonic)",
-        "$(rlocationpath //document:numeral)",
+        "$(rlocationpath //book:numeral)",
     ],
     data = [
         "test.mjs",
         ":javascript",
         ":webassembly",
+        "//book:numeral",
         "//command:photonic",
-        "//document:numeral",
         "//toolchain:node",
     ],
     entrypoint = "//toolchain:execute",
@@ -125,7 +127,7 @@ hermetic_test(
         ":javascript",
         ":webassembly",
         "//:page",
-        "//document:source",
+        "//book:asset",
         "//toolchain:node",
         "@rules_browsers_chrome_mac_arm//:chrome-headless-shell-mac-arm64/chrome-headless-shell",
         "@rules_browsers_chrome_mac_arm//:info",

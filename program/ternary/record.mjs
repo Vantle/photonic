@@ -7,6 +7,6 @@ assert.deepEqual(result.input, ['1', '2', '1', '2', 'Multiply', '1', '0', 'Divid
 assert.ok(result.work <= 250000, `Expression work regressed: ${result.work}`);
 assert.ok(result.count <= 9800, `Expression event count regressed: ${result.count}`);
 assert.deepEqual(result.event.map(value => value.ternary), ['12120', '2210', '2221', '2220']);
-const output = `globalThis.expression = ${JSON.stringify(result)};\n`;
+const output = `${JSON.stringify(result, null, 2)}\n`;
 if (process.argv[5]) assert.equal(output, readFileSync(process.argv[5], 'utf8'));
 process.stdout.write(output);

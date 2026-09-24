@@ -1,0 +1,81 @@
+[
+  {
+    "name": "Addition",
+    "expression": "12 + 2",
+    "outcome": "reached",
+    "work": 3557,
+    "count": 1446,
+    "input": [
+      "1",
+      "2",
+      "Add",
+      "2"
+    ],
+    "event": [
+      {
+        "operation": "Add",
+        "ternary": "21",
+        "decimal": "7",
+        "source": 1019,
+        "target": 1020,
+        "rule": "[Return.Integer.Add.Positive, Execute.Pending.Add] (Operand.Number.Positive) (Forget.Execute.Join)"
+      }
+    ]
+  },
+  {
+    "name": "Multiplication",
+    "expression": "12 × 2",
+    "outcome": "reached",
+    "work": 5886,
+    "count": 2408,
+    "input": [
+      "1",
+      "2",
+      "Multiply",
+      "2"
+    ],
+    "event": [
+      {
+        "operation": "Multiply",
+        "ternary": "101",
+        "decimal": "10",
+        "source": 1819,
+        "target": 1820,
+        "rule": "[Return.Integer.Multiply.Positive, Execute.Pending.Multiply] (Operand.Number.Positive) (Forget.Execute.Join)"
+      }
+    ]
+  },
+  {
+    "name": "Division and subtraction",
+    "expression": "21 ÷ 2 − 1",
+    "outcome": "reached",
+    "work": 7578,
+    "count": 3062,
+    "input": [
+      "2",
+      "1",
+      "Divide",
+      "2",
+      "Subtract",
+      "1"
+    ],
+    "event": [
+      {
+        "operation": "Divide",
+        "ternary": "10",
+        "decimal": "3",
+        "source": 2247,
+        "target": 2248,
+        "rule": "[Return.Integer.Divide.Positive, Execute.Pending.Divide] (Operand.Number.Positive) (Forget.Execute.Join)"
+      },
+      {
+        "operation": "Subtract",
+        "ternary": "2",
+        "decimal": "2",
+        "source": 2801,
+        "target": 2802,
+        "rule": "[Return.Integer.Subtract.Positive, Execute.Pending.Subtract] (Operand.Number.Positive) (Forget.Execute.Join)"
+      }
+    ]
+  }
+]

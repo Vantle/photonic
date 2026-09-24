@@ -1,89 +1,114 @@
 mod expression;
 mod failure;
-mod product;
+mod path;
+mod request;
 mod response;
-mod session;
 
 use failure::{Code, Failure};
 use photonic::prism::{Search, Verdict};
 use photonic::runtime::Limit;
-use photonic::snapshot::Snapshot;
-use serde::{Deserialize, Serialize};
+use photonic::snapshot::{Event, Node, Snapshot, View};
+use photonic::source::Program;
+use request::Request;
+use serde::Serialize;
+use std::collections::HashSet;
 use wasm_bindgen::prelude::wasm_bindgen;
 
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct Request {
-    version: u32,
-    source: String,
-    #[serde(default)]
-    targets: Vec<String>,
+#[derive(Serialize)]
+struct Lowering {
+    program: Program,
 }
 
 #[derive(Serialize)]
-struct Execution {
-    execution: Snapshot,
+struct Transition {
+    #[serde(flatten)]
+    event: Event,
+    direct: bool,
+}
+
+#[derive(Serialize)]
+struct Exploration {
+    execution: Snapshot<Vec<Node>, Vec<Transition>, Vec<View>>,
     verdict: Vec<Verdict>,
 }
 
-fn evaluate(input: &[u8]) -> Result<Execution, Failure> {
-    let request: Request =
-        serde_json::from_slice(input).map_err(|error| Failure::new(Code::Request, error))?;
-    if request.version != 1 {
-        return Err(Failure::new(Code::Version, "unsupported request version"));
-    }
-    if request.targets.len() > 16 {
-        return Err(Failure::new(
-            Code::Target,
-            "at most 16 target configurations are supported",
-        ));
-    }
-    let program = photonic::lowering::parse(&request.source)
-        .map_err(|error| Failure::new(Code::Source, error))?;
-    let target = request
-        .targets
+const LIMIT: Limit = Limit {
+    state: 128,
+    cell: 128,
+    frame: 16,
+    world: 16,
+    record: 100000,
+};
+
+fn parse(source: &str) -> Result<Lowering, Failure> {
+    let program = photonic::lowering::parse(request::bound(source)?)
+        .map_err(|error| Failure::located(Code::Source, &error, source))?;
+    Ok(Lowering { program })
+}
+
+fn mark(snapshot: Snapshot) -> Snapshot<Vec<Node>, Vec<Transition>, Vec<View>> {
+    let Snapshot {
+        definition,
+        closed,
+        record,
+        peak,
+        queued,
+        deferred,
+        work,
+        limit,
+        state,
+        event,
+        view,
+    } = snapshot;
+    let identity = view
         .iter()
-        .map(|source| {
-            let target = photonic::lowering::parse(source)
-                .map_err(|error| Failure::new(Code::Target, error))?;
-            Ok(target)
-        })
-        .collect::<Result<Vec<_>, Failure>>()?;
-    let mut search = Search::new(program, Default::default());
-    search.run(
-        20000,
-        Some(Limit {
-            state: 128,
-            cell: 128,
-            frame: 16,
-            world: 16,
-            record: 100000,
-        }),
-    );
-    let execution = search.snapshot();
-    let mut verdict = Vec::new();
-    for target in target {
-        search.target(target);
-        verdict.push(search.verdict());
+        .filter(|view| view.source == view.target)
+        .map(|view| view.id)
+        .collect::<HashSet<_>>();
+    Snapshot {
+        definition,
+        closed,
+        record,
+        peak,
+        queued,
+        deferred,
+        work,
+        limit,
+        state,
+        event: event
+            .into_iter()
+            .map(|event| Transition {
+                direct: event.evidence.iter().any(|view| identity.contains(view)),
+                event,
+            })
+            .collect(),
+        view: Vec::new(),
     }
-    Ok(Execution { execution, verdict })
+}
+
+fn exploration(input: &str) -> Result<Exploration, Failure> {
+    let request = Request::read(input)?;
+    let program = request.program()?;
+    let target = request.target(&program)?;
+    let mut search = Search::new(program, Program::default());
+    search.run(20000, Some(LIMIT));
+    let execution = mark(search.snapshot());
+    let verdict = target
+        .into_iter()
+        .map(|target| {
+            search.target(target);
+            search.verdict()
+        })
+        .collect();
+    Ok(Exploration { execution, verdict })
 }
 
 #[wasm_bindgen]
-pub fn execute(input: &str) -> String {
-    response::respond(if input.len() > 32768 {
-        Err(Failure::new(Code::Size, "keep the request below 32 KiB"))
-    } else {
-        evaluate(input.as_bytes())
-    })
+pub fn lower(source: &str) -> String {
+    response::respond(parse(source))
 }
 
 #[wasm_bindgen]
-pub fn calculate(input: &str) -> String {
-    response::respond(expression::run(input))
-}
-
-#[wasm_bindgen]
-pub fn multiply(left: u8, right: u8) -> String {
-    response::respond(product::run(left, right))
+pub fn explore(input: &str) -> String {
+    response::respond(exploration(input))
 }

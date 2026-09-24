@@ -1,5 +1,10 @@
 load("//photonic:defs.bzl", "photonic_library")
 
+exports_files(
+    ["invoke.particle"],
+    visibility = ["//book:__pkg__"],
+)
+
 photonic_library(
     name = "compose",
     srcs = ["compose.particle"],

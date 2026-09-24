@@ -1,11 +1,8 @@
 load("//photonic:defs.bzl", "photonic_library")
 
 exports_files(
-    [
-        "add.particle",
-        "multiply.particle",
-    ],
-    visibility = ["//toolchain/browser:__pkg__"],
+    ["add.particle"],
+    visibility = ["//book:__pkg__"],
 )
 
 photonic_library(

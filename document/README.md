@@ -1,6 +1,6 @@
 # Documentation
 
-The [webbook](../index.html) is the guide to the language, library, arithmetic, verification, runtime and build. This directory holds its companions: the contracts it summarizes, the current runtime plan, dated records of runtime work, and the assets the webbook loads.
+The [webbook](../index.html) is the guide to the language, its verification, the standard library, proofs, the runtime and the repository. This directory holds its companions: the contracts it summarizes, the current runtime plan, and dated records of runtime work.
 
 ## Contracts and references
 
@@ -24,7 +24,7 @@ These describe the repository as it is and change with it.
 
 ## Records
 
-Each record describes the runtime at its baseline commit. Later records supersede its measurements, and code it names may since have moved or been deleted; its baseline commit shows that code. Records are listed from oldest to newest.
+Each record describes the runtime at its baseline commit. Later records supersede its measurements, and code it names may since have moved or been deleted; its baseline commit shows that code. The JSON files beside the records hold their raw measurements. Records are listed from oldest to newest.
 
 | Record | Last revised (UTC) |
 | --- | --- |
@@ -84,7 +84,3 @@ Each record describes the runtime at its baseline commit. Later records supersed
 | [Subscription retention experiment](subscription.md) | Rejected prototype, removed from production. |
 | [Empty search representation](dormancy.md) | Both prototypes rejected and removed; regression coverage retained. |
 | [Refinement experiment checkpoint](experiment.md) | Both experiments removed; staged canonical ordering remains the baseline. |
-
-## Webbook assets
-
-`book.css`, `book.js` and the other scripts render the webbook, and the JSON files hold the raw measurements behind the records. `expression.record.js` and `demo.record.js` are generated and checked by `//program/ternary:record` and `//program/ternary:demo.record`. `record.js` holds the four recorded circuit arithmetic results and `native.js` six recorded native graphs; neither has a checked-in generator, and only `//toolchain/browser:check` exercises them.
