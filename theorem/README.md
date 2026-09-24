@@ -163,7 +163,7 @@ A false claim reaches `Counterexample` instead, and a refutation test checks tha
 - Pass role operands through an adapter. [carry/role.particle](carry/role.particle) packs a status after `Former` into `([Left] …)` and after `Latter` into `([Right] …)`, marking each `Packed`; a joint rule over two `Packed` coherences then makes the call. [ternary/role.particle](ternary/role.particle) does the same for trits and borrows.
 - Consume every value. A result that is not needed still has to be matched, or discarded by a rule with no output such as `[High.Joined],`; otherwise it remains in the final configuration and the proof fails.
 - Guard every rule that observes a running engine with a value that exists only after the step, such as a read blocked on a feed's remnant or an output that now holds a cell. An observer that could fire earlier takes the engine's own inputs and stalls it.
-- Declare the theorem with `theorem` from [defs.bzl](defs.bzl), which builds the program and its `.proof` test; `path = False` checks a derivation by full exploration. `refutation` builds a `.refutation` test that checks the configuration a false claim ends in. Raise `cells` as the claim grows and `states` as the path grows: a direct path retains every configuration it visits. A proof above 2 GiB of resident memory takes `tags = ["memory"]`, which [hosted verification](../document/automation.md) skips.
+- Declare the theorem with `theorem` from [defs.bzl](defs.bzl), which builds the program and its `.proof` test; `path = False` checks a derivation by full exploration. `refutation` builds a `.refutation` test that checks the configuration a false claim ends in. Raise `cells` as the claim grows and `states` as the path grows: a direct path retains every configuration it visits.
 
 ## Order
 
@@ -269,7 +269,7 @@ Schur's, van der Waerden's and Ramsey's theorems need arguments beyond a finite 
 
 Together they establish the Schur number S(2) = 4, the van der Waerden number W(2,3) = 9 and the Ramsey number R(3,3) = 6. A triple is uniform when its three colors agree, which the claims define with four rules over the unordered triple; a verdict is the disjunction of the triples' uniformity, folded with `Boolean.Or`.
 
-The triangle theorems close branches early. K6 has 32,768 colorings, but a partial coloring that already contains a uniform triangle settles every coloring extending it. Each edge's scope first tests the triangles its predecessor completed, in an order that visits edges by their larger vertex; a uniform one reports `Proved` without splitting further. The proof is then a tree of 651 scopes whose 326 leaves each name a uniform triangle, and it runs 9,573 events. W(2,3) enumerates all 512 colorings in 52,219 events; its direct path holds about 4 GB, so its proof carries the `memory` tag and runs outside hosted verification.
+The triangle theorems close branches early. K6 has 32,768 colorings, but a partial coloring that already contains a uniform triangle settles every coloring extending it. Each edge's scope first tests the triangles its predecessor completed, in an order that visits edges by their larger vertex; a uniform one reports `Proved` without splitting further. The proof is then a tree of 651 scopes whose 326 leaves each name a uniform triangle, and it runs 9,573 events. W(2,3) enumerates all 512 colorings in 52,219 events.
 
 ### 6. Algebraic structures
 

@@ -24,7 +24,6 @@ theorem(
     srcs = ["progression.nine.wave"],
     cells = 512,
     states = 65536,
-    tags = ["memory"],
     deps = ["//library/boolean:or"],
 )
 
