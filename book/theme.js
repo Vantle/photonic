@@ -1,5 +1,6 @@
 (() => {
     'use strict';
+    const book = globalThis.book ??= {};
     const root = document.documentElement;
     const button = document.getElementById('theme');
     const choice = ['system', 'light', 'dark'];
@@ -11,19 +12,12 @@
         button.dataset.choice = value;
     };
 
-    const stored = (() => {
-        try {
-            return localStorage.getItem('photonic-book-theme');
-        } catch {
-            return undefined;
-        }
-    })();
-    paint(choice.includes(stored) ? stored : 'system');
+    paint(root.dataset.theme ?? 'system');
     button.addEventListener('click', () => {
         const next = choice[(choice.indexOf(button.dataset.choice) + 1) % choice.length];
         paint(next);
         try {
-            localStorage.setItem('photonic-book-theme', next);
+            localStorage.setItem(book.storage.theme, next);
         } catch {}
     });
 })();

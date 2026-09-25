@@ -3,8 +3,9 @@ use crate::batch::{Batch, Extent};
 use crate::delta::Delta;
 use crate::failure::Failure;
 use crate::occurrence::Occurrence;
-use crate::pipeline::{Pipeline, dispatch, tiled};
-use crate::runtime::{Command, Device, Memory, Operand, Product};
+use crate::operand::{Operand, Product};
+use crate::pipeline::{Pipeline, TILE, dispatch, tiled};
+use crate::runtime::{Command, Device, Memory};
 use crate::trace::{Stage, Trace};
 use network::input::{Input, Output, Sample};
 use network::linear::Linear;
@@ -15,7 +16,8 @@ use network::norm::Norm;
 use network::optimizer::Optimizer;
 
 const BLOCK: usize = 256;
-const CAPACITY: usize = 128;
+const MEMORY: usize = 32_768;
+const CAPACITY: usize = (MEMORY / std::mem::size_of::<f32>() - 2 * TILE) / (2 * TILE);
 
 pub struct Engine {
     device: Device,
@@ -109,8 +111,16 @@ impl Engine {
         self.device.name()
     }
 
-    pub fn load(&mut self, parameter: &[f32]) {
-        self.parameter.edit::<f32>().copy_from_slice(parameter);
+    pub fn load(&mut self, parameter: &[f32]) -> Result<(), Failure> {
+        let target = self.parameter.edit::<f32>();
+        if target.len() != parameter.len() {
+            return Err(Failure::Length {
+                expected: target.len(),
+                actual: parameter.len(),
+            });
+        }
+        target.copy_from_slice(parameter);
+        Ok(())
     }
 
     pub fn parameter(&mut self) -> Vec<f32> {

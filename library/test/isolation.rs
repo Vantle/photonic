@@ -1,6 +1,7 @@
 use crate::catalog::LIBRARY;
 use photonic::lowering::parse;
 use photonic::source::{Definition, Value};
+use std::collections::BTreeSet;
 
 const BOUNDED: [&str; 9] = [
     "binary",
@@ -70,6 +71,38 @@ fn root() -> Vec<(&'static str, &'static str, Vec<Vec<Value>>)> {
         .collect()
 }
 
+fn nested(rule: &Definition) -> Vec<&Definition> {
+    std::iter::once(rule)
+        .chain(
+            rule.output
+                .iter()
+                .flat_map(|output| output.body.iter().flatten())
+                .flat_map(nested),
+        )
+        .collect()
+}
+
+fn every() -> Vec<(&'static str, &'static str, Definition)> {
+    LIBRARY
+        .iter()
+        .flat_map(|entry| {
+            parse(&entry.source)
+                .unwrap()
+                .rule
+                .iter()
+                .flat_map(nested)
+                .cloned()
+                .collect::<Vec<_>>()
+                .into_iter()
+                .map(|rule| (entry.package.as_str(), entry.name.as_str(), rule))
+        })
+        .collect()
+}
+
+fn returns(value: &[Value]) -> bool {
+    value.contains(&Value::Atom("Return".to_owned()))
+}
+
 #[test]
 fn boundary() {
     let rule = root();
@@ -82,6 +115,30 @@ fn boundary() {
                 !subsumes(pattern, input, &mut vec![false; input.len()]),
                 "{package}/{name} {pattern:?} can match {owner}/{file} {input:?}"
             );
+        }
+    }
+    let definition = every();
+    let reply = definition
+        .iter()
+        .flat_map(|(package, name, rule)| {
+            rule.output
+                .iter()
+                .map(|output| particle(&output.particle))
+                .filter(|value| returns(value))
+                .map(move |value| (*package, *name, value))
+        })
+        .collect::<Vec<_>>();
+    for (package, name, rule) in &definition {
+        for pattern in rule.input.iter().map(|value| particle(value)) {
+            if pattern.is_empty() || returns(&pattern) {
+                continue;
+            }
+            for (owner, file, value) in &reply {
+                assert!(
+                    !contains(value, &pattern),
+                    "{package}/{name} {pattern:?} can take the answer {value:?} of {owner}/{file}"
+                );
+            }
         }
     }
 }
@@ -127,4 +184,68 @@ fn vocabulary() {
             declaration(rule, BOUNDED.contains(&entry.package.as_str()));
         }
     }
+}
+
+// Map fires ([Each] X) and Reduce fires ([Operation] X) through a bare role on purpose, and Left and
+// Right name both the ordered operands of scalar tables and the sides of linked operands.
+const DUAL: [&str; 4] = ["Each", "Left", "Operation", "Right"];
+
+fn field(rule: &Definition) -> Option<&str> {
+    let [coherence] = rule.input.as_slice() else {
+        return None;
+    };
+    let [Value::Atom(atom)] = coherence.as_slice() else {
+        return None;
+    };
+    Some(atom)
+}
+
+fn gather(value: &[Value], role: &mut BTreeSet<String>, plain: &mut BTreeSet<String>) {
+    for value in value {
+        match value {
+            Value::Atom(atom) => {
+                plain.insert(atom.clone());
+            }
+            Value::Rule { rule } => match field(rule) {
+                Some(atom) => {
+                    role.insert(atom.to_owned());
+                    produce(rule, role, plain);
+                }
+                None => walk(rule, role, plain),
+            },
+        }
+    }
+}
+
+fn produce(rule: &Definition, role: &mut BTreeSet<String>, plain: &mut BTreeSet<String>) {
+    for output in &rule.output {
+        gather(&output.particle, role, plain);
+        for nested in output.body.iter().flatten() {
+            walk(nested, role, plain);
+        }
+    }
+}
+
+fn walk(rule: &Definition, role: &mut BTreeSet<String>, plain: &mut BTreeSet<String>) {
+    for value in &rule.input {
+        gather(value, role, plain);
+    }
+    produce(rule, role, plain);
+}
+
+#[test]
+fn role() {
+    let mut role = BTreeSet::new();
+    let mut plain = BTreeSet::new();
+    for entry in LIBRARY.iter() {
+        for rule in &parse(&entry.source).unwrap().rule {
+            walk(rule, &mut role, &mut plain);
+        }
+    }
+    assert_eq!(
+        role.intersection(&plain)
+            .map(String::as_str)
+            .collect::<Vec<_>>(),
+        DUAL
+    );
 }

@@ -17,16 +17,11 @@ pub trait Naming {
 
 impl Naming for Vocabulary {
     fn atom(&mut self, name: &str) -> Result<Atom, Failure> {
-        if self.find(name).is_none() && self.len() > usize::from(u16::MAX) {
-            return Err(Failure::Vocabulary {
-                limit: usize::from(u16::MAX) + 1,
-            });
-        }
-        Ok(self.intern(name))
+        self.intern(name)
     }
 }
 
-pub struct Fixed<'vocabulary>(pub &'vocabulary Vocabulary);
+pub(crate) struct Fixed<'vocabulary>(pub &'vocabulary Vocabulary);
 
 impl Naming for Fixed<'_> {
     fn atom(&mut self, name: &str) -> Result<Atom, Failure> {
@@ -93,7 +88,7 @@ pub fn program(
     Ok((Program::from(rule), Configuration::from(coherence)))
 }
 
-pub fn observation(
+pub(crate) fn observation(
     observation: &execution::Observation,
     naming: &mut impl Naming,
 ) -> Result<Observation, Failure> {

@@ -2,7 +2,7 @@
 
 An atom is a name and nothing more: rules compare atoms only for equality. Renaming the atoms of a program, one to one, renames every configuration it reaches and every event between them. What a program means is therefore the pattern its names form, its shape, and programs that differ only by their names are one program, whatever field their names come from.
 
-The [symmetry](../symmetry/) package decides this. For any program, together with a target or with atoms whose names must stay, it computes a canonical form shared by every renaming, the renaming between two programs when one exists, and the automorphism group: every renaming that leaves the program unchanged. It also finds local symmetries, groups of rules that repeat under other names inside one program when the program as a whole has no symmetry. `photonic compare`, `photonic symmetry` and `photonic form` expose it, the [Connections](../index.html#connection) chapter of the webbook runs it in the browser, and the workbench and the Lightbox color every graph they draw by the symmetries of the program they run.
+The [symmetry](../symmetry/) package decides this. For any program, together with a target or with atoms whose names must stay, it computes a canonical form shared by every renaming, the renaming between two programs when one exists, and the automorphism group: every renaming that leaves the program unchanged. It also finds local symmetries, groups of rules that repeat under other names inside one program when the program as a whole has no symmetry. `photonic shape` exposes it, the [Connections](../index.html#connection) chapter of the webbook runs it in the browser, and the workbench and the Lightbox color every graph they draw by the symmetries of the program they run.
 
 ## Structure as a graph
 
@@ -40,7 +40,7 @@ The canonical order of the atoms, blocks expanded, renames the program into its 
 
 ## Local symmetry
 
-A program with no symmetry as a whole can still repeat itself. The integer addition library treats a positive and a negative left operand with six rules each, the same rules with `Positive` and `Negative` exchanged, but when the signs differ it swaps the operands only if the left one is negative, so no renaming of the whole library leaves it unchanged. A local symmetry is such a repetition: a set of statements, each a rule or an initial coherence, that occurs two or more times, every copy a renaming of the first. The copies are disjoint, each renaming fixes the atoms the copies share, and the atoms it moves are the ones that tell the copies apart. Finding them is a subgraph problem: the copies are isomorphic subgraphs of the program's graph, one for each copy.
+A program with no symmetry as a whole can still repeat itself. The integer addition library treats a positive and a negative left operand with six rules each, the same rules with `Positive` and `Negative` exchanged, but when the signs differ it swaps the operands only if the left one is negative, so no renaming of the whole library leaves it unchanged. A local symmetry is such a repetition: a set of statements, each a rule or an initial coherence, that occurs two or more times, every copy a renaming of the first. The copies share no statement, and each renaming is one to one: it takes the atom in each place of the first copy to the atom in the same place of the other, and the atoms it moves are the ones that tell the copies apart. Copies may share an atom in different places, and then the renaming moves it too: in `[A] B, [B] C` the second rule is the first with A renamed B and B renamed C. Finding them is a subgraph problem: the copies are isomorphic subgraphs of the program's graph, one for each copy.
 
 **Seeds.** Every statement gets a canonical form of its own from the search above, with the atoms named by `--fix` kept apart. Statements of equal form are the seeds: each is a copy of a one-statement pattern.
 
@@ -63,35 +63,36 @@ The three colors are the yellow, magenta and green of a validated categorical pa
 ## Commands
 
 ```sh
-bazel run -c opt //command:photonic -- compare "$PWD/library/boolean/and.particle" "$PWD/library/boolean/or.particle"
-bazel run -c opt //command:photonic -- symmetry "$PWD/library/ternary/compare.particle"
-bazel run -c opt //command:photonic -- form "$PWD/library/boolean/and.particle"
+bazel run -c opt //command:photonic -- shape library/boolean/and.particle library/boolean/or.particle
+bazel run -c opt //command:photonic -- shape library/ternary/compare.particle
 ```
 
-`compare` groups its programs by shape, prints the renaming from the first of each class to the others, and fails when there is more than one class. With `--json` it prints each class's members, its dictionary and its number of symmetries.
+Given several programs, `shape` groups them by shape, prints the renaming from the first of each class to the others, and fails when there is more than one class. With `--json` it prints each class's members, its dictionary and its number of symmetries.
 
 ```
+2 programs in 1 shape
 library/boolean/and.particle
   = library/boolean/or.particle by And → Or (True False)
 ```
 
-`symmetry` prints the order of the automorphism group, the blocks, every symmetry when the group has at most 64 elements and generators otherwise, each orbit of statements that the symmetries exchange, and each local pattern with the atoms that differ between its copies:
+Given one program, `shape` prints its shape fingerprint and the order of its automorphism group, the letter that names each atom in the canonical form, the blocks, every symmetry when the group has at most 64 elements and generators otherwise, each orbit of statements that the symmetries exchange, each local pattern with the atoms that differ between its copies, and then the canonical form. For `Ternary.Compare`, everything before the canonical form is:
 
 ```
-12 atoms, 9 rules, 24 automorphisms
-Block Compare.Function.Ternary
-Symmetry (Left Right)(0 2)
-Symmetry (Left Right)(Less Greater)
-Symmetry (0 2)(Less Greater)
-Orbit
+shape 66ff0900886036d7 · 12 atoms, 9 rules, 24 automorphisms
+A Right · B Left · C Equal · D Greater · E Less · F Return · G 0 · H 2 · I 1 · J Function · K Ternary · L Compare
+block Compare.Function.Ternary
+symmetry (Left Right)(0 2)
+symmetry (Left Right)(Less Greater)
+symmetry (0 2)(Less Greater)
+orbit
     [Function.Ternary.Compare.([Left] 0).([Right] 0)] Return.Equal
     [Function.Ternary.Compare.([Left] 2).([Right] 2)] Return.Equal
-Orbit
+orbit
     [Function.Ternary.Compare.([Left] 0).([Right] 1)] Return.Less
     [Function.Ternary.Compare.([Left] 1).([Right] 0)] Return.Greater
     [Function.Ternary.Compare.([Left] 1).([Right] 2)] Return.Less
     [Function.Ternary.Compare.([Left] 2).([Right] 1)] Return.Greater
-Orbit
+orbit
     [Function.Ternary.Compare.([Left] 0).([Right] 2)] Return.Less
     [Function.Ternary.Compare.([Left] 2).([Right] 0)] Return.Greater
 ```
@@ -101,22 +102,15 @@ Comparing y with x answers the opposite of comparing x with y, and reflecting th
 `Boolean.And` has no symmetry beyond its blocks, but one law holds for each value on its own: a conjunction of a value with itself is that value.
 
 ```
-9 atoms, 5 rules, 4 automorphisms
-Block And.Boolean
-Block Empty.Reduce
-Pattern of 1 statements in 2 copies
+shape 5266e42f98dc4183 · 9 atoms, 5 rules, 4 automorphisms
+A Function · B False · C True · D Return · E Operation · F Empty · G Reduce · H Boolean · I And
+block And.Boolean
+block Empty.Reduce
+pattern of 1 statement in 2 copies
   True
     [Function.Boolean.And.True.True] True.Return
   False
     [Function.Boolean.And.False.False] Return.False
-```
-
-Each copy lists the atoms that differ from the other copies, then its statements. Particles print their atoms in the order the program first names them.
-
-`form` prints the shape with atoms named A, B, C and so on, preceded by a fingerprint of its certificate that is the same on every platform. `Boolean.And` and `Boolean.Or` print the same shape:
-
-```
-Shape 5266e42f98dc4183
 [A.B.B.H.I] B.D,
 [A.B.C.H.I] B.D,
 [A.C.C.H.I] C.D,
@@ -124,7 +118,9 @@ Shape 5266e42f98dc4183
 [H.I.([E] H.I)] A.H.I,
 ```
 
-`--library` loads rules-only files, `--target` adds a configuration every renaming must preserve, and `--fix` keeps an atom's name, in all three commands.
+Each copy lists the atoms that differ from the other copies, then its statements. Particles print their atoms in the order the program first names them. The last lines are the shape: the program with its atoms named A, B, C and so on, as the second line lists. The fingerprint on the first line comes from the shape's certificate and is the same on every platform. `Boolean.Or` prints the same shape and fingerprint.
+
+`--library` loads rules-only files, `--target` adds a configuration every renaming must preserve, and `--fix` keeps an atom's name.
 
 ## Connections between fields
 
@@ -134,11 +130,11 @@ The page calls `compare` in the WebAssembly engine ([toolchain/browser/shape.rs]
 
 ## Verification
 
-`//symmetry:test` compares the engine with brute force. On 400 random programs of up to 7 atoms with nested rule values, scopes and configurations, half of them closed under a random permutation so that they have symmetry, the group's order equals the number of permutations that leave the program unchanged, and every reported generator and block exchange is an automorphism. On 600 random pairs of up to 6 atoms, equal keys coincide exactly with the existence of a renaming found by trying every bijection, and every returned renaming maps one program onto the other. On 120 programs of up to 44 atoms and 30 rules, four random relabelings each give the same key, group order and canonical form. Vertex-transitive graphs, where refinement alone separates nothing, give the orders of their automorphism groups: 120 for the Petersen graph, 384 for the 4-cube, 144 for K3,4, 200 for two disjoint pentagons and 362,880 for K9. Comparing three programs gives the expected classes and a dictionary that maps one member onto the other.
+`//symmetry:test` compares the engine with brute force. On 400 random programs of up to 7 atoms with nested rule values, scopes and configurations, half of them closed under a random permutation so that they have symmetry, the group's order equals the number of permutations that leave the program unchanged, and every reported generator and block exchange is an automorphism. On 600 random pairs of up to 6 atoms, equal keys coincide exactly with the existence of a renaming found by trying every bijection, and every returned renaming maps one program onto the other. On 120 programs of up to 43 atoms and 30 rules, half of them extended by up to three copies renamed by one random permutation, so up to 120 rules, four random relabelings each give the same key, group order and canonical form. Vertex-transitive graphs, where refinement alone separates nothing, give the orders of their automorphism groups: 120 for the Petersen graph, 384 for the 4-cube, 144 for K3,4, 200 for two disjoint pentagons and 362,880 for K9. Comparing three programs gives the expected classes and a dictionary that maps one member onto the other.
 
 Local symmetry is checked on 300 programs that each plant a group of one to three random rules in two to four copies, sharing up to two atoms, among unrelated rules. Every reported pattern is exact: its copies are disjoint, each copy's atoms are distinct, no copy holds a statement a global symmetry moves, the copies of a one-statement pattern connect through shared atoms, and renaming the first copy by the positions of its atoms gives every other copy statement by statement. The search reports more than 60 patterns across the 300 programs; planted copies that no other rule tells apart are global symmetries instead. A program with a global orbit, a local pair and a block reports one class of each kind.
 
-`//command:test` runs the three commands, including a pattern. `//toolchain/browser:test` checks the WebAssembly comparison, including located errors, and that its dictionary equals the native command's, since the engine there runs on 32 bits; it also checks the classes that exploration reports and that they name rules as events do. `//toolchain/browser:check` drives the chapter, the workbench and the Lightbox in a browser, from recorded runs and live, including the colors, the lighting and the switch that turns the colors off.
+`//spectrum:test` asks `shape` about one program and about several, including a local pattern, and `//command:test` runs the command. `//toolchain/browser:test` checks the WebAssembly comparison, including located errors, and that its dictionary equals the native command's, since the engine there runs on 32 bits; it also checks the classes that exploration reports and that they name rules as events do. `//toolchain/browser:check` drives the chapter, the workbench and the Lightbox in a browser, from recorded runs and live, including the colors, the lighting and the switch that turns the colors off.
 
 ## Survey
 
@@ -170,9 +166,9 @@ Two optimizations the survey measured are not worth building. Contracting blocks
 ## Reproduction
 
 ```sh
-bazel test -c opt //symmetry:test //command:test //toolchain/browser:test
+bazel test -c opt //symmetry:test //spectrum:test //command:test //toolchain/browser:test
 bazel test -c opt //toolchain/browser:check
-bazel run -c opt //command:photonic -- compare $(git ls-files '*.particle' '*.wave' | sed "s|^|$PWD/|")
+bazel run -c opt //command:photonic -- shape $(git ls-files '*.particle' '*.wave')
 ```
 
 The last command prints every class of isomorphic source files and fails, because the files fall into many classes.

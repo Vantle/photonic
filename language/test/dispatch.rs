@@ -285,7 +285,7 @@ fn sharing() {
     let mut index = Index::new(Arc::new(state.clone()));
     let mut network = Network::new(&program, &index);
     assert_eq!(network.entry.len(), 1);
-    assert_eq!(network.preparation, 1);
+    assert_eq!(network.preparation(), 1);
     assert_eq!(drain(&mut network, &index).len(), 2);
     let matched = program.rule[0].input[0][0];
     let removed = state
@@ -304,8 +304,8 @@ fn sharing() {
             frame: Vec::new(),
         },
     );
-    assert_eq!(network.preparation, 1);
-    assert_eq!(network.reuse, 1);
+    assert_eq!(network.preparation(), 1);
+    assert_eq!(network.reuse(), 1);
     assert_eq!(drain(&mut network, &index).len(), 2);
     Arc::make_mut(&mut state.world[0]).particle[0].id = 100;
     advance(
@@ -661,7 +661,7 @@ fn activation() {
         );
         assert!(network.altered.is_empty());
         assert!(network.enabled.is_empty());
-        assert_eq!(network.preparation, 0);
+        assert_eq!(network.preparation(), 0);
         assert!(matches!(network.next(&index), Poll::Ready(None)));
     }
 }

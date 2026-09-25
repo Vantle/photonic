@@ -15,10 +15,10 @@ struct Replay {
     playback: Playback,
 }
 
-pub(super) struct Update<'a> {
-    pub index: &'a Index,
-    pub order: &'a [usize],
-    pub changed: &'a [usize],
+pub(super) struct Update<'update> {
+    pub index: &'update Index,
+    pub order: &'update [usize],
+    pub changed: &'update [usize],
     pub depth: Option<usize>,
 }
 

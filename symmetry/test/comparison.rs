@@ -1,4 +1,4 @@
-use super::support::{named, single};
+use super::support::{Written, named, single};
 use crate::comparison::compare;
 use code::atom::Atom;
 
@@ -9,15 +9,15 @@ fn class() {
     let mut name = Vec::new();
     let and = single(named(
         &[
-            (
+            Written(
                 vec![vec!["Boolean", "And", "True", "True"]],
                 vec![vec!["True"]],
             ),
-            (
+            Written(
                 vec![vec!["Boolean", "And", "True", "False"]],
                 vec![vec!["False"]],
             ),
-            (
+            Written(
                 vec![vec!["Boolean", "And", "False", "False"]],
                 vec![vec!["False"]],
             ),
@@ -26,15 +26,15 @@ fn class() {
     ));
     let or = single(named(
         &[
-            (
+            Written(
                 vec![vec!["Boolean", "Or", "True", "True"]],
                 vec![vec!["True"]],
             ),
-            (
+            Written(
                 vec![vec!["Boolean", "Or", "True", "False"]],
                 vec![vec!["True"]],
             ),
-            (
+            Written(
                 vec![vec!["Boolean", "Or", "False", "False"]],
                 vec![vec!["False"]],
             ),
@@ -43,15 +43,15 @@ fn class() {
     ));
     let equal = single(named(
         &[
-            (
+            Written(
                 vec![vec!["Boolean", "Equal", "True", "True"]],
                 vec![vec!["True"]],
             ),
-            (
+            Written(
                 vec![vec!["Boolean", "Equal", "True", "False"]],
                 vec![vec!["False"]],
             ),
-            (
+            Written(
                 vec![vec!["Boolean", "Equal", "False", "False"]],
                 vec![vec!["True"]],
             ),

@@ -4,7 +4,6 @@ use crate::program::{Program, Symbol};
 use crate::state::{State, Token};
 use crate::term::Term;
 use std::sync::Arc;
-use std::task::Poll;
 
 #[test]
 fn context() {
@@ -28,10 +27,7 @@ fn context() {
     assert!(Arc::ptr_eq(&compiled, &store.compile(&pattern)));
     let foreign = store.compile(&vec![Term::new(Symbol::Rule(0), Some(1)); 8]);
     assert!(!Arc::ptr_eq(&compiled, &foreign));
-    assert_eq!(
-        store.select(&foreign, &state.world[0]).step(),
-        Poll::Ready(None)
-    );
+    assert_eq!(store.select(&foreign, &state.world[0]).step(), None);
     let mut left = store.select(&compiled, &state.world[0]);
     let mut right = store.select(&compiled, &state.world[0]);
     assert!(Arc::ptr_eq(&left.preparation(), &right.preparation()));
@@ -43,7 +39,7 @@ fn context() {
             store.evict();
             assert_eq!(store.retained(), 0);
             assert_eq!(right.step(), result);
-            if matches!(result, Poll::Ready(None)) {
+            if result.is_none() {
                 break;
             }
         }
@@ -57,11 +53,11 @@ fn context() {
     }
     assert_eq!(
         store.select(&compiled, &previous).step(),
-        Poll::Ready(Some((0..8).collect()))
+        Some((0..8).collect())
     );
     assert_eq!(
         store.select(&compiled, &state.world[0]).step(),
-        Poll::Ready(Some((100..108).collect()))
+        Some((100..108).collect())
     );
 }
 
@@ -133,8 +129,8 @@ fn concurrent() {
                         .collect::<Vec<_>>();
                     let compiled = store.compile(&pattern);
                     let mut search = store.select(&compiled, &world);
-                    assert_eq!(search.step(), Poll::Ready(Some((0..8).collect())));
-                    assert_eq!(search.step(), Poll::Ready(None));
+                    assert_eq!(search.step(), Some((0..8).collect()));
+                    assert_eq!(search.step(), None);
                 }
             });
         }

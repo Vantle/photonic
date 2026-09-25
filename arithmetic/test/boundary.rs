@@ -82,8 +82,8 @@ fn encoding() {
 
 #[test]
 fn power() {
-    for base in [0, 1, 17, u32::MAX] {
-        assert!(matches!(power::numeral(1, base), Err(Failure::Base { .. })));
+    for base in [0, 1, 17, u8::MAX] {
+        assert!(matches!(power::numeral(base, 1), Err(Failure::Base { .. })));
         assert!(matches!(power::rule(base, 1), Err(Failure::Base { .. })));
     }
     assert_eq!(power::rule(2, 0).unwrap(), "");
@@ -92,5 +92,5 @@ fn power() {
         power::rule(2, usize::MAX),
         Err(Failure::Width { .. })
     ));
-    assert!(power::numeral(u64::MAX, 2).is_ok());
+    assert!(power::numeral(2, u64::MAX).is_ok());
 }

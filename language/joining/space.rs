@@ -97,7 +97,7 @@ impl Space {
         }
         let retained = subscription.len() * 2
             + query.retained()
-            + domain.iter().map(|member| member.len() + 1).sum::<usize>();
+            + domain.iter().map(|domain| domain.len() + 1).sum::<usize>();
         let shared = store
             .filter(|_| {
                 (0..query.count()).any(|position| crate::particle::wide(query.width(position)))

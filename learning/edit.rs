@@ -1,4 +1,4 @@
-use code::analogy::{classes, correspond};
+use code::analogy::{correspond, partition};
 use code::atom::Atom;
 use code::output::Output;
 use code::particle::Particle;
@@ -7,15 +7,14 @@ use code::rule::Rule;
 use code::tree::{Place, transform, walk};
 use code::value::Value;
 use random::Generator;
-use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum Side {
     Input,
     Output,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum Action {
     Stop,
     Create {
@@ -66,7 +65,7 @@ pub enum Action {
     Analogy(Local),
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum Local {
     Delete {
         rule: usize,
@@ -117,8 +116,7 @@ impl From<Local> for Action {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Bound {
     pub rule: usize,
     pub particle: usize,
@@ -144,13 +142,13 @@ pub fn seed(atom: Atom) -> Rule {
     )
 }
 
-fn inputs(rule: &Rule, change: impl FnOnce(&mut Vec<Particle>)) -> Rule {
+fn input(rule: &Rule, change: impl FnOnce(&mut Vec<Particle>)) -> Rule {
     let mut input = rule.input().to_vec();
     change(&mut input);
     Rule::new(input, rule.output().to_vec())
 }
 
-fn outputs(rule: &Rule, change: impl FnOnce(&mut Vec<Output>)) -> Rule {
+fn output(rule: &Rule, change: impl FnOnce(&mut Vec<Output>)) -> Rule {
     let mut output = rule.output().to_vec();
     change(&mut output);
     Rule::new(rule.input().to_vec(), output)
@@ -174,10 +172,10 @@ pub fn apply(program: &Program, action: Action) -> Program {
         Action::Delete { rule } => transform(program, rule, |_| Vec::new()),
         Action::Open { rule, side } => match side {
             Side::Input => modify(program, rule, |value| {
-                inputs(value, |particle| particle.push(Particle::default()))
+                input(value, |particle| particle.push(Particle::default()))
             }),
             Side::Output => modify(program, rule, |value| {
-                outputs(value, |output| {
+                output(value, |output| {
                     output.push(Output::plain(Particle::default()))
                 })
             }),
@@ -211,14 +209,18 @@ pub fn apply(program: &Program, action: Action) -> Program {
             particle,
             atom,
         } => modify(program, rule, |value| remove(value, side, particle, atom)),
-        Action::Enclose { rule, output, atom } => modify(program, rule, |value| {
-            outputs(value, |entry| {
-                let mut body = entry[output]
+        Action::Enclose {
+            rule,
+            output: index,
+            atom,
+        } => modify(program, rule, |value| {
+            output(value, |entry| {
+                let mut body = entry[index]
                     .body()
                     .map(<[Rule]>::to_vec)
                     .unwrap_or_default();
                 body.push(seed(atom));
-                entry[output] = Output::new(entry[output].particle().clone(), Some(body));
+                entry[index] = Output::new(entry[index].particle().clone(), Some(body));
             })
         }),
         Action::Detach { rule, atom } => modify(program, rule, |value| detach(value, atom)),
@@ -228,10 +230,10 @@ pub fn apply(program: &Program, action: Action) -> Program {
 
 fn close(rule: &Rule, side: Side, particle: usize) -> Rule {
     match side {
-        Side::Input => inputs(rule, |entry| {
+        Side::Input => input(rule, |entry| {
             entry.remove(particle);
         }),
-        Side::Output => outputs(rule, |output| {
+        Side::Output => output(rule, |output| {
             output.remove(particle);
         }),
     }
@@ -240,12 +242,12 @@ fn close(rule: &Rule, side: Side, particle: usize) -> Rule {
 fn remove(rule: &Rule, side: Side, particle: usize, atom: Atom) -> Rule {
     let target = Value::Atom(atom);
     match side {
-        Side::Input => inputs(rule, |entry| {
+        Side::Input => input(rule, |entry| {
             if let Some(reduced) = entry[particle].remove(&target) {
                 entry[particle] = reduced;
             }
         }),
-        Side::Output => outputs(rule, |output| {
+        Side::Output => output(rule, |output| {
             if let Some(reduced) = output[particle].particle().remove(&target) {
                 output[particle] =
                     Output::new(reduced, output[particle].body().map(<[Rule]>::to_vec));
@@ -340,10 +342,10 @@ fn analogy(program: &Program, local: Local) -> Program {
     Program::from(rule)
 }
 
-fn place(program: &Program, rule: usize, which: Side, particle: usize, value: Value) -> Program {
-    match which {
+fn place(program: &Program, rule: usize, side: Side, particle: usize, value: Value) -> Program {
+    match side {
         Side::Input => modify(program, rule, |current| {
-            inputs(current, |entry| {
+            input(current, |entry| {
                 if particle == entry.len() {
                     entry.push(Particle::from(vec![value]));
                 } else {
@@ -352,7 +354,7 @@ fn place(program: &Program, rule: usize, which: Side, particle: usize, value: Va
             })
         }),
         Side::Output => modify(program, rule, |current| {
-            outputs(current, |output| {
+            output(current, |output| {
                 if particle == output.len() {
                     output.push(Output::plain(Particle::from(vec![value])));
                 } else {
@@ -366,17 +368,17 @@ fn place(program: &Program, rule: usize, which: Side, particle: usize, value: Va
     }
 }
 
-fn particles(rule: &Rule, side: Side) -> Vec<&Particle> {
+fn particle(rule: &Rule, side: Side) -> Vec<&Particle> {
     match side {
         Side::Input => rule.input().iter().collect(),
         Side::Output => rule.output().iter().map(Output::particle).collect(),
     }
 }
 
-fn locals(index: usize, rule: &Rule) -> Vec<Local> {
+fn local(index: usize, rule: &Rule) -> Vec<Local> {
     let mut result = vec![Local::Delete { rule: index }];
     for side in [Side::Input, Side::Output] {
-        let value = particles(rule, side);
+        let value = particle(rule, side);
         for (position, particle) in value.iter().enumerate() {
             if side == Side::Output || value.len() > 1 {
                 result.push(Local::Close {
@@ -433,9 +435,9 @@ pub fn legal(program: &Program, vocabulary: usize, bound: &Bound) -> Vec<Action>
         if growth {
             result.push(Action::Duplicate { rule: index });
         }
-        result.extend(locals(index, entry.rule).into_iter().map(Action::from));
+        result.extend(local(index, entry.rule).into_iter().map(Action::from));
         for side in [Side::Input, Side::Output] {
-            let value = particles(entry.rule, side);
+            let value = particle(entry.rule, side);
             if value.len() < bound.particle {
                 result.push(Action::Open { rule: index, side });
                 result.extend(atom().map(|atom| Action::Insert {
@@ -487,11 +489,11 @@ pub fn legal(program: &Program, vocabulary: usize, bound: &Bound) -> Vec<Action>
         .iter()
         .map(|&entry| node[entry].rule)
         .collect::<Vec<_>>();
-    for class in classes(&rule) {
+    for class in partition(&rule) {
         if class.len() > 1 {
             let representative = index[class[0]];
             result.extend(
-                locals(representative, node[representative].rule)
+                local(representative, node[representative].rule)
                     .into_iter()
                     .map(Action::Analogy),
             );

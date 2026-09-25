@@ -14,6 +14,12 @@ pub enum Failure {
     Header(#[from] serde_json::Error),
     #[error("the checkpoint holds {found} parameters; its configuration needs {expected}")]
     Shape { expected: usize, found: usize },
+    #[error("the checkpoint's {head} attention heads do not divide its width of {width}")]
+    Head { width: usize, head: usize },
+    #[error("the checkpoint's judge has {0} outputs; a judge has 0 or 2")]
+    Judge(usize),
+    #[error("the checkpoint holds {found} bytes of parameters; its header promises {expected}")]
+    Length { expected: u64, found: u64 },
 }
 
 #[derive(Deserialize, Serialize)]
@@ -64,11 +70,33 @@ pub fn save(path: &Path, model: &Model, optimizer: &Optimizer) -> Result<(), Fai
     Ok(())
 }
 
+fn check(configuration: &Configuration) -> Result<(), Failure> {
+    let (width, head) = (configuration.width, configuration.head);
+    if head == 0 || width % head != 0 {
+        return Err(Failure::Head { width, head });
+    }
+    if !matches!(configuration.judge, 0 | 2) {
+        return Err(Failure::Judge(configuration.judge));
+    }
+    Ok(())
+}
+
 pub fn load(path: &Path) -> Result<(Model, Optimizer), Failure> {
-    let mut reader = BufReader::new(std::fs::File::open(path)?);
+    let file = std::fs::File::open(path)?;
+    let size = file.metadata()?.len();
+    let mut reader = BufReader::new(file);
     let mut line = String::new();
     reader.read_line(&mut line)?;
     let header: Header = serde_json::from_str(&line)?;
+    check(&header.configuration)?;
+    let found = size.saturating_sub(line.len() as u64);
+    let expected = u64::try_from(header.parameter)
+        .ok()
+        .and_then(|parameter| parameter.checked_mul(12))
+        .unwrap_or(u64::MAX);
+    if found != expected {
+        return Err(Failure::Length { expected, found });
+    }
     let expected = Model::length(&header.configuration);
     if expected != header.parameter {
         return Err(Failure::Shape {

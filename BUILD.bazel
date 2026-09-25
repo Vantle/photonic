@@ -1,6 +1,7 @@
 load("@crate//:defs.bzl", "lint_config")
 load("@default_rust_toolchains//rustc:component_labels.bzl", "rust_toolchain_component_label")
 load("//toolchain:defs.bzl", "hermetic_binary")
+load("//toolchain:release.bzl", "release")
 
 hermetic_binary(
     name = "analyze.rust",
@@ -12,9 +13,32 @@ hermetic_binary(
     name = "format",
     argument = [
         "$(rlocationpath {})".format(rust_toolchain_component_label("@rules_rust//tools/upstream_wrapper:rustfmt")),
+        "$(rlocationpath //toolchain:buildifier)",
     ],
-    data = [rust_toolchain_component_label("@rules_rust//tools/upstream_wrapper:rustfmt")],
+    data = [
+        rust_toolchain_component_label("@rules_rust//tools/upstream_wrapper:rustfmt"),
+        "//toolchain:buildifier",
+    ],
     entrypoint = "//toolchain:format",
+    tags = ["manual"],
+)
+
+exports_files(
+    ["rustfmt.toml"],
+    visibility = ["@rules_rust//rust/settings:__pkg__"],
+)
+
+release(
+    name = "release",
+    actual = "//command:photonic",
+    visibility = ["//toolchain:__pkg__"],
+)
+
+hermetic_binary(
+    name = "install",
+    argument = ["$(rlocationpath :release)"],
+    data = [":release"],
+    entrypoint = "//toolchain:install",
     tags = ["manual"],
 )
 
@@ -32,11 +56,10 @@ hermetic_binary(
     name = "update",
     argument = [
         "$(rlocationpath {})".format(rust_toolchain_component_label("@rules_rust//tools/upstream_wrapper:cargo")),
-        "--",
         "update",
     ],
     data = [rust_toolchain_component_label("@rules_rust//tools/upstream_wrapper:cargo")],
-    entrypoint = "//toolchain:execute",
+    entrypoint = "//toolchain:workspace",
     tags = ["manual"],
 )
 
@@ -84,6 +107,7 @@ filegroup(
         "//program/ternary/case:build",
         "//program/vector:build",
         "//random:build",
+        "//spectrum:build",
         "//symmetry:build",
         "//theorem:build",
         "//theorem/boolean:build",
@@ -147,6 +171,7 @@ alias(
         "//photonic:__pkg__",
         "//program/binary:__pkg__",
         "//random:__pkg__",
+        "//spectrum:__pkg__",
         "//symmetry:__pkg__",
         "//toolchain:__pkg__",
         "//toolchain/browser:__pkg__",

@@ -29,7 +29,7 @@
     let chosen = 0;
     let previous;
 
-    const chapter = () => [...document.querySelectorAll('#outline a')].map(link => ({
+    const outline = () => [...document.querySelectorAll('#outline a')].map(link => ({
         number: link.querySelector('span')?.textContent ?? '',
         title: [...link.childNodes].filter(node => node.nodeType === Node.TEXT_NODE).map(node => node.textContent).join('').trim(),
         anchor: link.hash.slice(1),
@@ -37,8 +37,13 @@
 
     const go = anchor => {
         close();
-        document.getElementById(anchor)?.scrollIntoView();
+        const chapter = document.getElementById(anchor);
+        const heading = chapter?.querySelector('h2');
         history.replaceState(null, '', `#${anchor}`);
+        if (!heading) return;
+        heading.tabIndex = -1;
+        heading.focus({ preventScroll: true });
+        chapter.scrollIntoView();
     };
 
     const collect = () => {
@@ -48,7 +53,7 @@
         if (query && book.workbench) {
             result.push({ label: 'Filter the workbench by', code: query, hint: 'pattern', run: () => { close(); book.workbench.filter(query); } });
         }
-        chapter().filter(item => !lower || item.title.toLowerCase().includes(lower)).forEach(item => {
+        outline().filter(item => !lower || item.title.toLowerCase().includes(lower)).forEach(item => {
             result.push({ label: `${item.number} · ${item.title}`, hint: 'chapter', run: () => go(item.anchor) });
         });
         const command = [

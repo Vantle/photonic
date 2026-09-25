@@ -1,0 +1,8 @@
+{
+    "mcpServers": {
+        "photonic": {
+            "command": "bazel",
+            "args": ["run", "-c", "opt", "//command:photonic", "--", "mcp"]
+        }
+    }
+}

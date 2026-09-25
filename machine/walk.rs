@@ -23,9 +23,6 @@ pub fn walk(
     mut choose: impl FnMut(usize) -> usize,
 ) -> Walk {
     let mut level = vec![0; initial.coherence().len()];
-    let mut seen: HashSet<_, Builder> = HashSet::default();
-    seen.insert(initial.key(limit.individualization));
-    let mut state = initial;
     let mut result = Walk {
         terminal: None,
         work: 0,
@@ -33,6 +30,12 @@ pub fn walk(
         cycle: false,
         overflow: false,
     };
+    let Ok(key) = initial.key(limit.individualization) else {
+        result.overflow = true;
+        return result;
+    };
+    let mut seen: HashSet<_, Builder> = HashSet::from_iter([key]);
+    let mut state = initial;
     loop {
         let mut event: Vec<Event> = Vec::new();
         let complete = enumerate(program, &state, |candidate| {
@@ -61,7 +64,11 @@ pub fn walk(
             result.overflow = true;
             return result;
         }
-        if !seen.insert(state.key(limit.individualization)) {
+        let Ok(key) = state.key(limit.individualization) else {
+            result.overflow = true;
+            return result;
+        };
+        if !seen.insert(key) {
             result.cycle = true;
             return result;
         }

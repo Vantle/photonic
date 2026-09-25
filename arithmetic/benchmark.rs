@@ -3,8 +3,9 @@ use clap::Parser;
 use photonic::lowering::parse;
 use photonic::path::Search;
 use photonic::prism::Outcome;
-use photonic::runtime::Limit;
 use std::time::Instant;
+
+mod search;
 
 #[derive(Parser)]
 struct Argument {
@@ -20,17 +21,12 @@ fn measure(radix: u8, operation: &str, source: String, target: String) {
         let start = Instant::now();
         let program = parse(&source).unwrap();
         let count = program.rule.len();
-        let mut search = Search::new(program, parse(&target).unwrap());
-        search.run(
-            20_000_000,
-            Limit {
-                state: 4096,
-                record: 1_000_000,
-                cell: 4096,
-                frame: 10,
-                world: 4,
-            },
-        );
+        let target = photonic::source::Program {
+            rule: program.rule.clone(),
+            ..parse(&target).unwrap()
+        };
+        let mut search = Search::new(program, target);
+        search.run(20_000_000, search::LIMIT);
         let report = search.report();
         assert_eq!(report.outcome, Outcome::Reached);
         if iteration == 0 {

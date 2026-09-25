@@ -6,9 +6,9 @@ filegroup(
     srcs = [
         "analysis.rs",
         "comparison.rs",
-        "forest.rs",
         "graph.rs",
         "group.rs",
+        "measure.rs",
         "partition.rs",
         "pattern.rs",
         "rename.rs",
@@ -26,7 +26,7 @@ rust_library(
     crate_root = "symmetry.rs",
     lint_config = "//:lint",
     visibility = [
-        "//command:__pkg__",
+        "//spectrum:__pkg__",
         "//toolchain/browser:__pkg__",
     ],
     deps = ["//code"],

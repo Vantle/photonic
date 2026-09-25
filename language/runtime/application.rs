@@ -8,7 +8,7 @@ use std::sync::Arc;
 impl Runtime {
     pub(super) fn apply(&mut self, application: Application) {
         let view = self.view[application.view].clone();
-        let environment = application.capture.map(|capture| {
+        let owner = application.owner.map(|capture| {
             self.normalization.environment(super::environment::Request {
                 target: view.target,
                 capture,
@@ -18,10 +18,9 @@ impl Runtime {
         let key = Identity {
             source: view.source,
             frame: application.frame,
-            owner: application.owner,
+            owner,
             rule: application.rule,
             binding: application.binding.clone(),
-            environment,
         };
         match self.normalization.find(&key) {
             Some(Status::Complete(event)) => {
@@ -34,19 +33,17 @@ impl Runtime {
             }
             None => {}
         }
-        let closure = application.capture.map(|capture| Closure {
-            state: &self.state[view.target],
-            flow: &view.flow,
-            capture,
-        });
         let result = crate::application::apply(crate::application::Request {
             source: &self.state[view.source],
             scope: &self.program.scope,
             frame: application.frame,
-            owner: application.owner,
+            owner: application.owner.map(|capture| Closure {
+                state: &self.state[view.target],
+                flow: &view.flow,
+                capture,
+            }),
             rule: &self.program.rule[application.rule],
             binding: &application.binding,
-            closure,
         });
         if !self.limit.admits(
             result.state.world.len(),
@@ -57,7 +54,7 @@ impl Runtime {
             return;
         }
         let index = self.normalization.insert(key, application, result);
-        self.agenda.push_back(Task::Normalize(index));
+        self.agenda.push(Task::Normalize(index));
     }
 
     pub(super) fn normalize(
@@ -67,7 +64,7 @@ impl Runtime {
         complete: bool,
     ) {
         let Some(normalization) = self.normalization.advance(index, search, complete) else {
-            self.agenda.push_back(Task::Normalize(index));
+            self.agenda.push(Task::Normalize(index));
             return;
         };
         let result = normalization.result;

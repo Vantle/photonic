@@ -124,8 +124,8 @@ pub fn run(width: usize, depth: usize, length: usize, stride: usize) -> Measurem
     }
     let execution = start.elapsed().as_secs_f64();
     let retained = network.retained();
-    let preparation = network.preparation;
-    let reuse = network.reuse;
+    let preparation = network.preparation();
+    let reuse = network.reuse();
     let start = Instant::now();
     drop(network);
     drop(index);

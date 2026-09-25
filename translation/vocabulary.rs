@@ -1,7 +1,10 @@
+use crate::failure::Failure;
 use code::atom::Atom;
 use serde::{Deserialize, Serialize};
 
-fn letter(index: usize) -> String {
+const LIMIT: usize = 1 << u16::BITS;
+
+pub fn letter(index: usize) -> String {
     let mut rest = index + 1;
     let mut letter = Vec::new();
     while rest > 0 {
@@ -13,26 +16,42 @@ fn letter(index: usize) -> String {
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
-#[serde(transparent)]
+#[serde(try_from = "Vec<String>", into = "Vec<String>")]
 pub struct Vocabulary {
     name: Vec<String>,
 }
 
+impl TryFrom<Vec<String>> for Vocabulary {
+    type Error = Failure;
+
+    fn try_from(name: Vec<String>) -> Result<Self, Failure> {
+        if name.len() > LIMIT {
+            return Err(Failure::Vocabulary { limit: LIMIT });
+        }
+        Ok(Self { name })
+    }
+}
+
+impl From<Vocabulary> for Vec<String> {
+    fn from(vocabulary: Vocabulary) -> Self {
+        vocabulary.name
+    }
+}
+
 impl Vocabulary {
-    pub fn new(name: Vec<String>) -> Self {
-        Self { name }
+    pub fn alphabet(count: usize) -> Result<Self, Failure> {
+        Self::try_from((0..count).map(letter).collect::<Vec<_>>())
     }
 
-    pub fn alphabet(count: usize) -> Self {
-        Self::new((0..count).map(letter).collect())
-    }
-
-    pub fn intern(&mut self, name: &str) -> Atom {
+    pub fn intern(&mut self, name: &str) -> Result<Atom, Failure> {
         if let Some(atom) = self.find(name) {
-            return atom;
+            return Ok(atom);
+        }
+        if self.name.len() == LIMIT {
+            return Err(Failure::Vocabulary { limit: LIMIT });
         }
         self.name.push(name.to_owned());
-        Atom((self.name.len() - 1) as u16)
+        Ok(Atom((self.name.len() - 1) as u16))
     }
 
     pub fn find(&self, name: &str) -> Option<Atom> {

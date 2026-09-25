@@ -171,6 +171,34 @@ fn space() {
 }
 
 #[test]
+fn earliest() {
+    for (source, offset) in [
+        ("A..B C", 2),
+        ("A.B.,\n[A] B C", 4),
+        ("(A..B", 3),
+        (".A", 0),
+        ("A.", 2),
+        ("(A.)", 3),
+    ] {
+        let (found, message) = rejected(source);
+        assert_eq!(found, offset, "{source}: {message}");
+        assert!(message.contains("dot"), "{source}: {message}");
+    }
+}
+
+#[test]
+fn separator() {
+    for character in (0..0x3001).filter_map(char::from_u32) {
+        let source = format!("A{character}B");
+        let single = parser::parse(&source)
+            .is_ok_and(|tree| text(&tree, Kind::Concept) == [source.as_str()]);
+        let separating =
+            parser::SPACE.contains(&character) || parser::DELIMITER.contains(&character);
+        assert_eq!(single, !separating, "{character:?}");
+    }
+}
+
+#[test]
 fn empty() {
     for source in ["", " \t\r\n", "()", "[]", "A,", "[A, B,]", "(A,)"] {
         assert!(parser::parse(source).is_ok(), "{source}");

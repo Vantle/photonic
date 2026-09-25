@@ -1,7 +1,7 @@
 (() => {
     'use strict';
     const book = globalThis.book ??= {};
-    const { element, series } = book.render;
+    const { element, series, count } = book.render;
 
     const tag = (host, letter, prefix) => {
         host.querySelectorAll('.atom').forEach(node => {
@@ -17,12 +17,12 @@
         const badge = element('span', 'badge', 'recorded run');
         bar.append(element('span', 'title', 'Connections'), badge);
         const body = element('div', 'body');
-        const choice = element('div', 'preset');
+        const choice = book.render.preset(preset.map(entry => entry.name), index => choose(preset[index]));
         const program = element('div', 'program');
         const message = book.render.message();
         const verdict = element('p', 'verdict');
         const output = element('div', 'output');
-        body.append(choice, program, message.element, verdict, output);
+        body.append(choice.element, program, message.element, verdict, output);
         widget.replaceChildren(bar, body);
         let field = [];
         let editor = [];
@@ -125,7 +125,7 @@
             const [only] = value.shape;
             verdict.textContent = value.shape.length === 1 && only.member.length > 1
                 ? `One shape: ${series(field)} differ only in the names of their atoms.`
-                : `${value.shape.length} shapes: ${value.shape.map(shape => {
+                : `${count(value.shape.length, 'shape')}: ${value.shape.map(shape => {
                     const member = shape.member.map(position => field[position]);
                     return member.length > 1 ? `${series(member)} share one` : `${member[0]} has its own`;
                 }).join('; ')}.`;
@@ -144,7 +144,7 @@
             const mine = ++ticket;
             message.wait('Comparing in WebAssembly…');
             try {
-                const value = await book.engine.send({ kind: 'compare', request: { version: 1, program: editor.map(item => item.value) } });
+                const value = await book.engine.send('compare', { program: editor.map(item => item.value) });
                 if (mine !== ticket) return;
                 message.say();
                 draw(value);
@@ -152,14 +152,15 @@
                 if (mine !== ticket) return;
                 clear();
                 const place = error.detail?.program;
-                message.say(place === undefined ? book.editor.describe(error) : `${field[place]}: ${book.editor.locate(editor[place].area, error)}`, 'error');
+                const text = book.editor.describe(error);
+                message.say(place === undefined ? text : `${field[place]}: ${text}`, 'error');
             }
         };
 
         const choose = entry => {
             ticket++;
             clearTimeout(timer);
-            choice.querySelectorAll('button').forEach(button => button.setAttribute('aria-pressed', String(button.textContent === entry.name)));
+            choice.press(entry.name);
             const record = book.record?.connection?.[entry.name];
             field = entry.program.map(item => item.field);
             editor = entry.program.map((item, position) => {
@@ -189,12 +190,6 @@
             else message.say('No recorded comparison. Regenerate the records with bazel run -c opt //book:record.', 'error');
         };
 
-        for (const entry of preset) {
-            const button = element('button', undefined, entry.name);
-            button.type = 'button';
-            button.addEventListener('click', () => choose(entry));
-            choice.append(button);
-        }
         book.engine.watch(state => {
             badge.textContent = state === 'live' ? 'live' : 'recorded run';
             editor.forEach(pane => { pane.area.readOnly = state !== 'live'; });

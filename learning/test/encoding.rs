@@ -10,7 +10,7 @@ use random::Generator;
 
 #[test]
 fn pointer() {
-    let task = sort(2, 3).conceal(4);
+    let task = sort(2, 3).conceal(4).unwrap();
     let shape = Shape {
         width: 16,
         depth: 1,

@@ -1,4 +1,4 @@
-use crate::snapshot::Node;
+use crate::snapshot::{Kind, Node};
 use std::sync::Arc;
 
 fn verify(state: &[Node]) {
@@ -69,4 +69,31 @@ fn isolation() {
     let second = render(&second);
     assert_eq!(first.world[0].particle[0].label.as_ref(), "A");
     assert_eq!(second.world[0].particle[0].label.as_ref(), "B");
+}
+
+#[test]
+fn kind() {
+    let snapshot = {
+        let mut runtime = crate::runtime::Runtime::new(
+            &crate::lowering::parse("⟨x⟩.Seed, [Seed] ().([A] B)").unwrap(),
+        );
+        runtime.run(100_000, None);
+        runtime.snapshot()
+    };
+    let kind = |display: &str| {
+        snapshot
+            .state
+            .iter()
+            .flat_map(|node| &node.world)
+            .flat_map(|world| &world.particle)
+            .find(|token| token.display.as_ref() == display)
+            .map(|token| token.kind)
+    };
+    assert_eq!(kind("⟨x⟩"), Some(Kind::Atom));
+    assert_eq!(kind("Seed"), Some(Kind::Atom));
+    assert_eq!(kind("⟨[A] B⟩"), Some(Kind::Rule));
+    assert_eq!(
+        serde_json::to_value([Kind::Atom, Kind::Rule]).unwrap(),
+        serde_json::json!(["atom", "rule"])
+    );
 }

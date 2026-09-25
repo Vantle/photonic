@@ -1,6 +1,6 @@
 use crate::coherence::{Coherence, Token};
 use code::atom::Atom;
-use code::canonical::{Key, key};
+use code::canonical::{Exhausted, Key, key};
 use code::configuration::Configuration;
 use code::observation::{Observation, Occurrence};
 use code::value::Value;
@@ -9,12 +9,6 @@ use code::value::Value;
 pub struct State {
     coherence: Vec<Coherence>,
     next: u32,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Membership {
-    pub id: u32,
-    pub coherence: Vec<usize>,
 }
 
 impl State {
@@ -82,7 +76,7 @@ impl State {
         )
     }
 
-    pub fn key(&self, budget: usize) -> Key<Atom> {
+    pub fn key(&self, budget: usize) -> Result<Key<Atom>, Exhausted> {
         key(
             &self
                 .coherence
@@ -99,22 +93,21 @@ impl State {
         )
     }
 
-    pub fn membership(&self) -> Vec<Membership> {
-        let mut pair = self
+    pub fn membership(&self) -> Vec<u32> {
+        let coherence = self
             .coherence
             .iter()
-            .enumerate()
-            .flat_map(|(index, coherence)| {
-                coherence.token().iter().map(move |token| (token.id, index))
+            .map(|coherence| {
+                coherence
+                    .token()
+                    .iter()
+                    .map(|token| (token.id, ()))
+                    .collect::<Vec<_>>()
             })
             .collect::<Vec<_>>();
-        pair.sort_unstable();
-        pair.chunk_by(|left, right| left.0 == right.0)
-            .filter(|chunk| chunk.len() > 1)
-            .map(|chunk| Membership {
-                id: chunk[0].0,
-                coherence: chunk.iter().map(|&(_, index)| index).collect(),
-            })
+        code::canonical::membership(&coherence)
+            .into_iter()
+            .map(|(id, _)| id)
             .collect()
     }
 }

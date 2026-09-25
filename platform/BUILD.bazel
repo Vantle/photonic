@@ -1,11 +1,3 @@
-exports_files(
-    [
-        "launcher.patch",
-        "rust.patch",
-    ],
-    visibility = ["//:__pkg__"],
-)
-
 platform(
     name = "windows",
     constraint_values = [

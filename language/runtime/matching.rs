@@ -1,5 +1,7 @@
 use super::table::{Consumer, Query};
 use super::{Application, Runtime, Task};
+use crate::application::Owner;
+use crate::flow::Flow;
 use crate::place::Place;
 use crate::plan;
 use crate::program::Symbol;
@@ -22,7 +24,7 @@ impl Runtime {
         let index = self.index(key.target);
         let schedule = self.matching.subscribe(key, consumer, index);
         if let Some(index) = schedule.search {
-            self.agenda.push_back(Task::Search(index));
+            self.agenda.push(Task::Search(index));
         }
         self.agenda
             .extend(schedule.delivery.into_iter().map(Task::Deliver));
@@ -38,7 +40,7 @@ impl Runtime {
         self.agenda
             .extend(schedule.delivery.into_iter().map(Task::Deliver));
         if let Some(index) = schedule.search {
-            self.agenda.push_back(Task::Search(index));
+            self.agenda.push(Task::Search(index));
         }
     }
 
@@ -47,7 +49,7 @@ impl Runtime {
             return;
         };
         if delivery.again {
-            self.agenda.push_back(Task::Deliver(index));
+            self.agenda.push(Task::Deliver(index));
         }
         let consumer = delivery.consumer;
         let selection = delivery.selection;
@@ -68,13 +70,12 @@ impl Runtime {
         if let Some(read) = consumer.read {
             binding.read = view.flow.resource[&read].clone();
         }
-        self.agenda.push_back(Task::Apply(Application {
+        self.agenda.push(Task::Apply(Application {
             view: consumer.view,
             frame: consumer.frame,
             owner: consumer.owner,
             rule: consumer.rule,
             binding,
-            capture: consumer.capture,
         }));
     }
 
@@ -112,9 +113,8 @@ impl Runtime {
                     Consumer {
                         view: index,
                         frame: source,
-                        owner: token.capture.and_then(|capture| view.flow.frame[capture]),
+                        owner: locate(token.capture, &view.flow),
                         rule,
-                        capture: token.capture,
                         read: Some(place),
                     },
                 );
@@ -146,13 +146,17 @@ impl Runtime {
                     Consumer {
                         view: index,
                         frame,
-                        owner: token.capture.and_then(|capture| view.flow.frame[capture]),
+                        owner: locate(token.capture, &view.flow),
                         rule,
-                        capture: token.capture,
                         read: Some(Place::World(site, token.id)),
                     },
                 );
             }
         }
     }
+}
+
+fn locate(capture: Option<usize>, flow: &Flow) -> Owner<usize> {
+    let capture = capture.expect("every rule token captures the frame it was made in");
+    flow.frame[capture].map_or(Owner::Capture(capture), Owner::Frame)
 }

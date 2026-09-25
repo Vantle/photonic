@@ -2,12 +2,12 @@
 [Drop.([Digit] 1)] Forget,
 [Drop.([Digit] 2)] Forget,
 
-[Yield.([Digit] 0).Reverse.Wait] (Reverse.Left, Forget.Reverse.Write.([Digit] 0)),
-[Clean.Reverse.Write.([Digit] 0), Reverse.Right] (Push.([Digit] 0), Forget.Reverse.Await),
-[Yield.([Digit] 1).Reverse.Wait] (Reverse.Left, Forget.Reverse.Write.([Digit] 1)),
-[Clean.Reverse.Write.([Digit] 1), Reverse.Right] (Push.([Digit] 1), Forget.Reverse.Await),
-[Yield.([Digit] 2).Reverse.Wait] (Reverse.Left, Forget.Reverse.Write.([Digit] 2)),
-[Clean.Reverse.Write.([Digit] 2), Reverse.Right] (Push.([Digit] 2), Forget.Reverse.Await),
+[Yield.([Digit] 0).Reverse.Wait] (Reverse.Left, Forget.Reverse.Put.([Digit] 0)),
+[Clean.Reverse.Put.([Digit] 0), Reverse.Right] (Push.([Digit] 0), Forget.Reverse.Await),
+[Yield.([Digit] 1).Reverse.Wait] (Reverse.Left, Forget.Reverse.Put.([Digit] 1)),
+[Clean.Reverse.Put.([Digit] 1), Reverse.Right] (Push.([Digit] 1), Forget.Reverse.Await),
+[Yield.([Digit] 2).Reverse.Wait] (Reverse.Left, Forget.Reverse.Put.([Digit] 2)),
+[Clean.Reverse.Put.([Digit] 2), Reverse.Right] (Push.([Digit] 2), Forget.Reverse.Await),
 
 [Yield.([Digit] 0).Erase.Wait] Read.Erase.Wait,
 [Yield.([Digit] 1).Erase.Wait] Read.Erase.Wait,

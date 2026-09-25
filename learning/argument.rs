@@ -1,5 +1,12 @@
-use clap::{Args, Parser, Subcommand, ValueEnum};
+use clap::{ArgGroup, Args, Parser, Subcommand, ValueEnum};
+use learning::edit::Bound;
 use learning::encoding::{DIMENSION, Shape};
+use learning::export::BUDGET;
+use learning::play;
+use learning::pool::SYNTHETIC;
+use learning::search;
+use learning::solution::Budget;
+use learning::task::Goal;
 use std::path::PathBuf;
 
 fn width(text: &str) -> Result<usize, String> {
@@ -8,6 +15,22 @@ fn width(text: &str) -> Result<usize, String> {
         return Err(format!(
             "the width must be a positive multiple of {DIMENSION}"
         ));
+    }
+    Ok(value)
+}
+
+fn processor(text: &str) -> Result<f64, String> {
+    let value = text.parse::<f64>().map_err(|error| error.to_string())?;
+    if !value.is_finite() || value <= 0.0 {
+        return Err("the processor count must be a finite number above 0".to_owned());
+    }
+    Ok(value)
+}
+
+fn weight(text: &str) -> Result<f64, String> {
+    let value = text.parse::<f64>().map_err(|error| error.to_string())?;
+    if !value.is_finite() || value < 0.0 {
+        return Err("the size weight must be a finite number of at least 0".to_owned());
     }
     Ok(value)
 }
@@ -49,6 +72,33 @@ pub enum Device {
     Cpu,
 }
 
+#[derive(Clone, Copy, Debug, Args)]
+pub struct Objective {
+    #[arg(
+        long,
+        value_parser = processor,
+        default_value_t = Goal::default().processor,
+        help = "Processors in the Brent time bound of tasks without their own goal"
+    )]
+    pub processor: f64,
+    #[arg(
+        long,
+        value_parser = weight,
+        default_value_t = Goal::default().size,
+        help = "Weight of program size against time for tasks without their own goal"
+    )]
+    pub size: f64,
+}
+
+impl Objective {
+    pub fn goal(&self) -> Goal {
+        Goal {
+            processor: self.processor,
+            size: self.size,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Args)]
 pub struct Session {
     #[arg(long, value_enum, default_value_t = Device::Auto, help = "Where the network runs for self-play and training")]
@@ -68,41 +118,39 @@ pub struct Session {
     pub trainer: usize,
     #[arg(
         long,
-        default_value_t = 8,
+        default_value_t = play::Setting::default().game,
         help = "Concurrent games per self-play thread"
     )]
     pub game: usize,
-    #[arg(long, default_value_t = 16, help = "Search simulations per decision")]
+    #[arg(
+        long,
+        default_value_t = search::Setting::default().simulation,
+        help = "Search simulations per decision"
+    )]
     pub simulation: usize,
     #[arg(
         long,
-        default_value_t = 16,
+        default_value_t = search::Setting::default().considered,
         help = "Root actions considered by sequential halving"
     )]
     pub considered: usize,
-    #[arg(long, default_value_t = 24, help = "Edits per episode")]
+    #[arg(
+        long,
+        default_value_t = search::Setting::default().step,
+        help = "Edits per episode"
+    )]
     pub step: usize,
+    #[command(flatten)]
+    pub objective: Objective,
     #[arg(
         long,
-        default_value_t = 4.0,
-        help = "Processors in the Brent time bound"
-    )]
-    pub processor: f64,
-    #[arg(
-        long,
-        default_value_t = 0.05,
-        help = "Weight of program size against time"
-    )]
-    pub size: f64,
-    #[arg(
-        long,
-        default_value_t = 0,
-        help = "Rule nesting depth the agent may create beyond the reference's own"
+        default_value_t = Bound::default().depth,
+        help = "Deepest rule nesting the agent may create; a task whose reference nests deeper keeps its reference's depth"
     )]
     pub nesting: usize,
     #[arg(
         long,
-        default_value_t = 0.05,
+        default_value_t = play::Setting::default().infer,
         help = "Largest measured share of skipped candidates that proved no worse than their parent before the learned judge may skip exact checks; 0 checks every candidate"
     )]
     pub infer: f64,
@@ -114,7 +162,7 @@ pub struct Session {
     pub teach: u64,
     #[arg(
         long,
-        default_value_t = 0,
+        default_value_t = play::Setting::default().race,
         help = "Race self-play games in pairs from the same start and train on each winner's decisions this many times; 0 plays alone"
     )]
     pub race: usize,
@@ -153,7 +201,7 @@ pub struct Train {
     pub session: Session,
     #[arg(
         long,
-        default_value_t = 48,
+        default_value_t = SYNTHETIC,
         help = "Synthetic tasks created for a new pool"
     )]
     pub synthetic: usize,
@@ -195,9 +243,12 @@ pub struct Optimize {
 }
 
 #[derive(Debug, Args)]
+#[command(group(ArgGroup::new("measure").args(["processor", "size"]).multiple(true).requires("task")))]
 pub struct Status {
     #[command(flatten)]
     pub home: Home,
+    #[command(flatten)]
+    pub objective: Objective,
     #[arg(
         long,
         help = "Show one task's reference and best programs with their measurements"
@@ -216,7 +267,7 @@ pub struct Course {
         default_value_t = 8,
         help = "Highest level to reach; level L holds behaviors of L rules"
     )]
-    pub levels: usize,
+    pub level: usize,
     #[arg(
         long,
         default_value_t = 20,
@@ -226,17 +277,17 @@ pub struct Course {
     #[arg(long, default_value_t = 40, help = "Training behaviors per level")]
     pub train: usize,
     #[arg(long, default_value_t = 300, help = "Seconds of training per round")]
-    pub round: u64,
+    pub practice: u64,
     #[arg(
         long,
         default_value_t = 5,
         help = "Seconds of exhaustive search to prove or find each new behavior's program"
     )]
-    pub grade: u64,
+    pub enumerate: u64,
     #[arg(
         long,
         default_value_t = 5,
-        help = "Seconds of guided search per training behavior left unproven"
+        help = "Seconds of guided search per training behavior that exhaustive search leaves unproven or cannot take"
     )]
     pub guide: u64,
     #[arg(
@@ -270,7 +321,7 @@ pub struct Improve {
         default_value_t = 4,
         help = "Rounds of generating, solving and training"
     )]
-    pub rounds: usize,
+    pub round: usize,
     #[arg(
         long,
         default_value_t = 50,
@@ -282,17 +333,17 @@ pub struct Improve {
         default_value_t = 600,
         help = "Seconds of training with lessons in each round"
     )]
-    pub round: u64,
+    pub practice: u64,
     #[arg(
         long,
         default_value_t = 5,
         help = "Seconds of exhaustive search per new behavior"
     )]
-    pub budget: u64,
+    pub enumerate: u64,
     #[arg(
         long,
         default_value_t = 10,
-        help = "Seconds of guided search per new behavior that exhaustive search leaves unproven"
+        help = "Seconds of guided search per new behavior that exhaustive search leaves unproven or cannot take"
     )]
     pub guide: u64,
 }
@@ -318,20 +369,29 @@ pub struct Solve {
     pub output: Vec<PathBuf>,
     #[arg(long, help = "Name of the task that --input and --output define")]
     pub name: Option<String>,
-    #[arg(long, default_value_t = 16, help = "Largest program size to examine")]
+    #[arg(
+        long,
+        default_value_t = Budget::default().size,
+        help = "Largest program size to examine"
+    )]
     pub limit: usize,
     #[arg(
         long,
-        help = "Processors in the time bound of the task that --input and --output define"
+        value_parser = processor,
+        help = "Processors in the Brent time bound: sets the goal of the task that --input and --output define, or solves a copy of each --task task under it; the rest of the goal is the task's own or the default"
     )]
     pub processor: Option<f64>,
     #[arg(
         long,
-        help = "Weight of program size against time for the task that --input and --output define"
+        value_parser = weight,
+        help = "Weight of program size against time, applied like --processor"
     )]
     pub size: Option<f64>,
-    #[arg(long, help = "Seconds allowed per task; unlimited when omitted")]
-    pub budget: Option<u64>,
+    #[arg(
+        long,
+        help = "Seconds of exhaustive search per task; unlimited when omitted"
+    )]
+    pub enumerate: Option<u64>,
     #[arg(
         long,
         help = "Ignore every known program and solve from the tests alone"
@@ -340,7 +400,7 @@ pub struct Solve {
     #[arg(
         long,
         default_value_t = 0,
-        help = "Seconds of search guided by the learned network for each task that exhaustive search leaves unproven"
+        help = "Seconds of search guided by the learned network for each task that exhaustive search leaves unproven or cannot take"
     )]
     pub guide: u64,
     #[arg(
@@ -359,7 +419,7 @@ pub struct Verify {
     pub task: Option<String>,
     #[arg(
         long,
-        default_value_t = 2_000_000,
+        default_value_t = BUDGET,
         help = "Prism work budget per example"
     )]
     pub budget: usize,

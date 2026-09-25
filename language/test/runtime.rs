@@ -336,14 +336,13 @@ fn capture() {
             scope: &[],
             source: &state,
             frame: 0,
-            owner: None,
-            rule: &rule,
-            binding: &binding,
-            closure: Some(Closure {
+            owner: crate::application::Owner::Capture(Closure {
                 state: &witness,
                 flow: &flow,
                 capture: 2,
             }),
+            rule: &rule,
+            binding: &binding,
         })
         .canonical();
         let capture = output.state.world[0]
@@ -433,6 +432,29 @@ fn determinism() {
     let expected = execute();
     for _ in 0..64 {
         assert_eq!(execute(), expected);
+    }
+}
+
+#[test]
+fn identity() {
+    for source in ["X, [X] Y, [W] V, [[W] V] U", "[A] B, [A] B, [[A] B] C"] {
+        let program = crate::lowering::parse(source).unwrap();
+        let mut runtime = Runtime::new(&program);
+        runtime.run(12_000, None);
+        assert!(runtime.closed(), "{source}");
+        let snapshot = runtime.snapshot();
+        let mut seen = std::collections::HashSet::new();
+        for event in &snapshot.event {
+            let binding = (
+                event.source,
+                &event.rule,
+                &event.footprint,
+                &event.exact,
+                &event.read,
+                &event.world,
+            );
+            assert!(seen.insert(binding), "{source}: {event:?}");
+        }
     }
 }
 
@@ -560,14 +582,13 @@ fn inheritance() {
                     scope: &[],
                     source: &source,
                     frame: 0,
-                    owner: None,
-                    rule: &rule,
-                    binding: &binding,
-                    closure: Some(Closure {
+                    owner: crate::application::Owner::Capture(Closure {
                         state: &witness,
                         flow: &flow,
                         capture: 1,
                     }),
+                    rule: &rule,
+                    binding: &binding,
                 });
                 assert_eq!(result.state.frame[1].held[0].id == 5, !transformed);
                 let expected = if transformed { 3 } else { 2 };

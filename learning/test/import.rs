@@ -98,6 +98,24 @@ fn defined() {
     assert_eq!(task.example.len(), 2);
     assert!(task.vocabulary.find("B").is_some());
     assert!(matches!(define("empty", &[]), Err(Failure::Untested)));
+    let Err(failure) = define("", &[(source("A"), source("B"))]) else {
+        panic!("an empty name was accepted");
+    };
+    assert!(failure.to_string().starts_with("'' cannot name a task"));
+    assert!(failure.to_string().contains("--name"));
+    for name in ["../escape", "nested/name", "", ".hidden", "spaced name"] {
+        assert!(
+            matches!(
+                define(name, &[(source("A"), source("B"))]),
+                Err(Failure::Name { .. })
+            ),
+            "{name}"
+        );
+    }
+    assert!(matches!(
+        import("../escape", &[source("A, [A] B")], &[], &Setting::default()),
+        Err(Failure::Name { .. })
+    ));
     assert!(matches!(
         define("ruled", &[(source("[A] B"), source("B"))]),
         Err(Failure::Input { .. })

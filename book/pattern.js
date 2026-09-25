@@ -103,27 +103,27 @@
         return { rule: canonical(item), particle: [] };
     };
 
-    const key = token => token.display?.startsWith('⟨') ? `rule:${normal(book.render.unwrap(token.display))}` : `atom:${token.label}`;
+    const key = (token, definition) => token.kind === 'rule' ? `rule:${normal(definition[token.rule])}` : `atom:${token.label}`;
 
-    const covers = (particle, world) => {
+    const covers = (particle, world, definition) => {
         const need = new Map();
         particle.forEach(value => need.set(value, (need.get(value) ?? 0) + 1));
         const used = new Set();
         for (const [value, count] of need) {
-            const found = world.particle.filter(token => key(token) === value).slice(0, count);
+            const found = world.particle.filter(token => key(token, definition) === value).slice(0, count);
             if (found.length < count) return undefined;
             found.forEach(token => used.add(token.id));
         }
         return used;
     };
 
-    const assign = (pattern, node) => {
+    const assign = (pattern, node, definition) => {
         const found = new Map();
         const place = index => {
             if (index === pattern.particle.length) return true;
             for (let world = 0; world < node.world.length; world++) {
                 if (found.has(world)) continue;
-                const used = covers(pattern.particle[index], node.world[world]);
+                const used = covers(pattern.particle[index], node.world[world], definition);
                 if (!used) continue;
                 found.set(world, used);
                 if (place(index + 1)) return true;
@@ -143,7 +143,7 @@
             });
         } else {
             data.state.forEach(node => {
-                const found = assign(pattern, node);
+                const found = assign(pattern, node, data.definition);
                 if (found) match.set(node.id, found);
             });
         }
@@ -167,11 +167,11 @@
         return { state: visible, event: shown, match };
     };
 
-    const lane = (pattern, trace) => {
+    const lane = (pattern, trace, definition) => {
         const match = new Map();
         if (!pattern.rule) {
             trace.lifeline.forEach(line => {
-                const used = pattern.particle.map(particle => covers(particle, line.world)).find(Boolean);
+                const used = pattern.particle.map(particle => covers(particle, line.world, definition)).find(Boolean);
                 if (used) match.set(line, used);
             });
         }

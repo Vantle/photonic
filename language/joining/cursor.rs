@@ -157,7 +157,7 @@ impl Cursor {
             particle.step(0)
         };
         match result {
-            Poll::Ready(Some(token)) => {
+            Some(token) => {
                 let slot = Slot {
                     site: space.domain[position][self.cursor[self.depth]].site,
                     token,
@@ -175,11 +175,10 @@ impl Cursor {
                 self.binding.push(slot);
                 self.depth += 1;
             }
-            Poll::Ready(None) => {
+            None => {
                 self.scan[self.depth] = false;
                 self.cursor[self.depth] += 1;
             }
-            Poll::Pending => {}
         }
         Poll::Pending
     }

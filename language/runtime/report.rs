@@ -13,9 +13,31 @@ fn context(flow: &Flow) -> Vec<Vec<usize>> {
         .collect()
 }
 
+fn link(flow: &Flow) -> Vec<Link> {
+    flow.resource
+        .iter()
+        .map(|(&target, source)| Link {
+            target,
+            source: source.iter().copied().collect(),
+        })
+        .collect()
+}
+
 impl Runtime {
     pub(crate) fn status(&self, index: usize) -> Status {
         self.proof.status(Atom::State(index))
+    }
+
+    pub(crate) fn rule(&self, index: usize) -> Option<usize> {
+        self.event.get(index).map(|event| event.identity.rule)
+    }
+
+    pub(crate) fn resource(&self, index: usize) -> Option<Vec<Link>> {
+        self.event.get(index).map(|event| link(&event.flow))
+    }
+
+    pub(crate) fn scope(&self, name: &str) -> Option<&[usize]> {
+        self.program.scope(name)
     }
 
     fn node(&self) -> impl Iterator<Item = Node> + '_ {
@@ -54,15 +76,7 @@ impl Runtime {
             target: view.target,
             status: support.status(Atom::View(index)),
             origin: self.origin[index],
-            resource: view
-                .flow
-                .resource
-                .iter()
-                .map(|(&target, source)| Link {
-                    target,
-                    source: source.iter().copied().collect(),
-                })
-                .collect(),
+            resource: link(&view.flow),
             context: context(&view.flow),
             frame: view.flow.frame.clone(),
         })

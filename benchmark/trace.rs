@@ -7,6 +7,8 @@ use serde::Serialize;
 use std::path::PathBuf;
 use std::time::Instant;
 
+mod directory;
+
 #[derive(Parser)]
 struct Argument {
     program: PathBuf,
@@ -63,6 +65,7 @@ fn evaluate(program: Program, target: Program, state: usize) -> Measurement {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    directory::enter()?;
     let argument = Argument::parse();
     let program = serde_json::from_str::<Program>(&std::fs::read_to_string(argument.program)?)?;
     let mut target = photonic::lowering::parse(&std::fs::read_to_string(argument.target)?)?;

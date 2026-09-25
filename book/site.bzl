@@ -1,5 +1,7 @@
 """Assemble the published webbook into one directory."""
 
+REPOSITORY = "https://github.com/Vantle/photonic"
+
 def _site(context):
     output = context.actions.declare_directory(context.label.name)
     node = context.toolchains["@rules_nodejs//nodejs:toolchain_type"].nodeinfo.node

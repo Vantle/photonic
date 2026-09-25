@@ -1,7 +1,7 @@
 (() => {
     'use strict';
     const book = globalThis.book ??= {};
-    const { element, vector, tally } = book.render;
+    const { element, vector, tally, count, coherence } = book.render;
 
     const trace = (data, route) => {
         const lifeline = [];
@@ -30,23 +30,13 @@
         return { lifeline, hyperedge, count: route.length + 1 };
     };
 
-    const coherence = (world, match, touch, index) => {
-        const node = element('div', world.particle.length ? 'coherence' : 'coherence empty');
-        world.particle.forEach(occurrence => {
-            const token = book.render.token(occurrence, undefined, touch, { world: [index, occurrence.id] });
-            if (match?.has(occurrence.id)) token.dataset.match = '';
-            node.append(token);
-        });
-        return node;
-    };
-
     const stage = (data, state, relevant, next) => {
         const item = element('div', 'stage');
         item.append(element('span', 'kind', `s${state}`));
         const touch = next && book.render.touch(next);
         [...relevant].sort((left, right) => left - right).forEach(index => {
             const world = data.state[state].world[index];
-            const node = coherence(world, undefined, touch, index);
+            const node = coherence(world, { index, touch, definition: data.definition });
             if (world.frame) node.classList.add('scoped');
             item.append(node);
         });
@@ -70,13 +60,13 @@
 
     const draw = (host, data, route, option = {}) => {
         const model = trace(data, route);
-        const filter = option.pattern ? book.pattern.lane(option.pattern, model) : undefined;
+        const filter = option.pattern ? book.pattern.lane(option.pattern, model, data.definition) : undefined;
         const visible = line => !filter || filter.lifeline.has(line);
         const shown = edge => !filter || filter.hyperedge.has(edge);
         const scroll = element('div', 'hypergraph');
         scroll.tabIndex = 0;
         scroll.setAttribute('role', 'group');
-        scroll.setAttribute('aria-label', `Execution hypergraph with ${model.hyperedge.length} events`);
+        scroll.setAttribute('aria-label', `Execution hypergraph with ${count(model.hyperedge.length, 'event')}`);
         const canvas = element('div', 'canvas');
         const drawing = vector('svg', { 'aria-hidden': 'true' });
         canvas.append(drawing);
@@ -90,7 +80,7 @@
             const match = filter?.match.get(line);
             if (match) box.dataset.match = '';
             box.title = line.world.frame ? 'A coherence inside a scope' : 'A coherence';
-            box.append(coherence(line.world, match));
+            box.append(coherence(line.world, { match, definition: data.definition }));
             canvas.append(box);
             capsule.set(line, box);
         });
@@ -111,16 +101,16 @@
         const right = x + gap.pad + 20;
         const lane = new Map();
         const free = [];
-        let count = 0;
-        const take = () => (free.length ? free.shift() : count++);
+        let used = 0;
+        const take = () => (free.length ? free.shift() : used++);
         model.lifeline.filter(line => line.start === 0 && visible(line)).forEach(line => lane.set(line, take()));
         model.hyperedge.forEach(edge => {
             free.push(...edge.input.filter(line => lane.has(line)).map(line => lane.get(line)));
             free.sort((left, right) => left - right);
             edge.output.filter(visible).forEach(line => lane.set(line, take()));
         });
-        const y = line => gap.top + lane.get(line) * row + row / 2;
-        const height = gap.top + Math.max(1, count) * row + gap.pad;
+        const level = line => gap.top + lane.get(line) * row + row / 2;
+        const height = gap.top + Math.max(1, used) * row + gap.pad;
         canvas.style.width = `${right}px`;
         canvas.style.height = `${height}px`;
         drawing.setAttribute('width', right);
@@ -134,10 +124,10 @@
         }
         const hub = new Map();
         model.hyperedge.filter(shown).forEach(edge => {
-            const level = [...edge.input, ...edge.output].filter(line => lane.has(line)).map(y);
+            const joined = [...edge.input, ...edge.output].filter(line => lane.has(line)).map(level);
             hub.set(edge, {
                 x: column[edge.column] - gap.event / 2,
-                y: level.length ? level.reduce((sum, value) => sum + value, 0) / level.length : gap.top + row / 2,
+                y: joined.length ? joined.reduce((sum, value) => sum + value, 0) / joined.length : gap.top + row / 2,
             });
         });
         const strand = new Map();
@@ -150,17 +140,17 @@
         model.lifeline.filter(line => lane.has(line)).forEach(line => {
             const box = capsule.get(line);
             box.style.left = `${column[line.start]}px`;
-            box.style.top = `${y(line) - size.get(line).height / 2}px`;
+            box.style.top = `${level(line) - size.get(line).height / 2}px`;
             const start = column[line.start] + size.get(line).width;
             const consumer = line.end === undefined ? undefined : model.hyperedge[line.end - 1];
             const end = consumer && shown(consumer) ? hub.get(consumer).x - 22 : right - gap.pad;
-            if (end > start) drawing.append(vector('path', { d: `M${start} ${y(line)}H${end}`, class: line.world.frame ? 'lane scoped' : 'lane' }));
+            if (end > start) drawing.append(vector('path', { d: `M${start} ${level(line)}H${end}`, class: line.world.frame ? 'lane scoped' : 'lane' }));
         });
         model.hyperedge.filter(shown).forEach(edge => {
             const center = hub.get(edge);
             const style = edge.event.deduction.length ? 'strand inferred' : 'strand';
-            edge.input.filter(line => lane.has(line)).forEach(line => curve([center.x - 22, y(line)], [center.x - 7, center.y], style, edge));
-            edge.output.filter(line => lane.has(line)).forEach(line => curve([center.x + 7, center.y], [column[edge.column], y(line)], style, edge));
+            edge.input.filter(line => lane.has(line)).forEach(line => curve([center.x - 22, level(line)], [center.x - 7, center.y], style, edge));
+            edge.output.filter(line => lane.has(line)).forEach(line => curve([center.x + 7, center.y], [column[edge.column], level(line)], style, edge));
         });
 
         const summary = element('p', 'summary');
@@ -189,10 +179,10 @@
             const touch = book.render.touch(edge.event);
             flow.append(element('span', 'kind', 'consumes'));
             if (!edge.event.world.length) flow.append(element('span', 'arrow', 'nothing'));
-            edge.event.world.forEach(index => flow.append(coherence(data.state[edge.event.source].world[index], undefined, touch, index)));
+            edge.event.world.forEach(index => flow.append(coherence(data.state[edge.event.source].world[index], { index, touch, definition: data.definition })));
             flow.append(element('span', 'kind', 'produces'));
             if (!edge.output.length) flow.append(element('span', 'arrow', 'nothing'));
-            edge.output.forEach(line => flow.append(coherence(line.world)));
+            edge.output.forEach(line => flow.append(coherence(line.world, { definition: data.definition })));
             focus.replaceChildren(heading, rule, flow);
             if (edge.event.deduction.length) focus.append(...deduction(data, edge.event));
             option.select?.(edge.event);

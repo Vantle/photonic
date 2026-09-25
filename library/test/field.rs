@@ -2,6 +2,8 @@ use crate::catalog::source;
 use crate::{answer, check};
 use photonic::prism::Outcome;
 
+const KEY: [&str; 4] = ["Alpha", "Beta", "Gamma", "Delta"];
+
 fn library() -> [&'static str; 3] {
     [
         source("function", "invoke"),
@@ -19,7 +21,7 @@ fn boundary() {
     ] {
         check(
             "Invoke.Field.Pack.([Position] 0).([Value] 2)",
-            "().([0] 2)",
+            "().([Alpha] 2)",
             library,
             Outcome::Unreachable,
         );
@@ -30,16 +32,16 @@ fn boundary() {
         "Invoke.Field.Pack.([Position] 0).([Value] 3)",
         "Invoke.Field.Pack.([Value] 2)",
     ] {
-        check(source, "().([0] 2)", &library(), Outcome::Unreachable);
+        check(source, "().([Alpha] 2)", &library(), Outcome::Unreachable);
     }
     check(
         "Invoke.Field.Pack.([Position] 0).([Value] 2).Extra",
-        "([0] 2).Extra",
+        "([Alpha] 2).Extra",
         &library(),
         Outcome::Reached,
     );
     check(
-        "Invoke.Field.Unpack.([Position] 0).([1] 2)",
+        "Invoke.Field.Unpack.([Position] 0).([Beta] 2)",
         "().([Value] 2)",
         &library(),
         Outcome::Unreachable,
@@ -48,18 +50,18 @@ fn boundary() {
 
 #[test]
 fn table() {
-    for index in 0..4 {
+    for (index, key) in KEY.iter().enumerate() {
         for value in 0..3 {
             answer(
-                &format!("Invoke.Field.Unpack.([Position] {index}).([{index}] {value})"),
+                &format!("Invoke.Field.Unpack.([Position] {index}).([{key}] {value})"),
                 &format!("().([Value] {value})"),
                 (0..3).map(|candidate| format!("().([Value] {candidate})")),
                 &library(),
             );
             answer(
                 &format!("Invoke.Field.Pack.([Position] {index}).([Value] {value})"),
-                &format!("().([{index}] {value})"),
-                (0..3).map(|candidate| format!("().([{index}] {candidate})")),
+                &format!("().([{key}] {value})"),
+                (0..3).map(|candidate| format!("().([{key}] {candidate})")),
                 &library(),
             );
         }
@@ -67,16 +69,42 @@ fn table() {
 }
 
 #[test]
+fn passenger() {
+    for (index, key) in KEY.iter().enumerate() {
+        for value in 0..3 {
+            for passenger in 0..3 {
+                let source =
+                    format!("Invoke.Field.Pack.([Position] {index}).([Value] {value}).{passenger}");
+                check(
+                    &source,
+                    &format!("{passenger}.([{key}] {value})"),
+                    &library(),
+                    Outcome::Reached,
+                );
+                if passenger != value {
+                    check(
+                        &source,
+                        &format!("{value}.([{key}] {value})"),
+                        &library(),
+                        Outcome::Unreachable,
+                    );
+                }
+            }
+        }
+    }
+}
+
+#[test]
 fn order() {
     check(
-        "Number.([Base] 3).([0] 2).([1] 0).([2] 2).([3] 1)",
-        "Number.([3] 1).([1] 0).([0] 2).([Base] 3).([2] 2)",
+        "Number.([Base] 3).([Alpha] 2).([Beta] 0).([Gamma] 2).([Delta] 1)",
+        "Number.([Delta] 1).([Beta] 0).([Alpha] 2).([Base] 3).([Gamma] 2)",
         &[],
         Outcome::Reached,
     );
     check(
-        "Number.([Base] 3).([0] 2).([1] 0)",
-        "Number.([Base] 3).([0] 0).([1] 2)",
+        "Number.([Base] 3).([Alpha] 2).([Beta] 0)",
+        "Number.([Base] 3).([Alpha] 0).([Beta] 2)",
         &[],
         Outcome::Unreachable,
     );

@@ -1,16 +1,16 @@
-use crate::forest::Forest;
 use crate::group::orbit;
 use crate::pattern::{Pattern, discover};
 use crate::search::Exhausted;
 use crate::statement::Statement;
 use crate::structure::{Structure, Symmetry};
 use code::atom::Atom;
+use code::forest::Forest;
 use std::cmp::Reverse;
 use std::collections::BTreeSet;
 
 pub struct Analysis {
     pub symmetry: Symmetry,
-    pub orbit: Vec<Vec<Atom>>,
+    pub(crate) orbit: Vec<Vec<Atom>>,
     pub statement: Vec<Vec<usize>>,
     pub pattern: Vec<Pattern>,
 }

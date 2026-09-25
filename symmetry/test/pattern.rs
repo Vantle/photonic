@@ -1,8 +1,8 @@
-use super::support::{Shape, named, rule};
+use super::support::{Shape, Written, named, rule};
 use crate::analysis::analyze;
-use crate::forest::Forest;
 use crate::statement::{Statement, structure};
 use code::atom::Atom;
+use code::forest::Forest;
 use random::Generator;
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -109,14 +109,14 @@ fn alphabet() {
     let mut name = Vec::new();
     let mut written = Vec::new();
     for digit in ["Zero", "One", "Two"] {
-        written.push((vec![vec!["Drop", digit]], vec![vec!["Forget"]]));
-        written.push((
+        written.push(Written(vec![vec!["Drop", digit]], vec![vec!["Forget"]]));
+        written.push(Written(
             vec![vec!["Yield", digit, "Wait"]],
             vec![vec!["Push", digit]],
         ));
     }
-    written.push((vec![vec!["Add", "Zero", "One"]], vec![vec!["One"]]));
-    written.push((vec![vec!["Add", "One", "One"]], vec![vec!["Two"]]));
+    written.push(Written(vec![vec!["Add", "Zero", "One"]], vec![vec!["One"]]));
+    written.push(Written(vec![vec!["Add", "One", "One"]], vec![vec!["Two"]]));
     let program = named(&written, &mut name);
     let statement = program
         .rule()
@@ -153,4 +153,36 @@ fn alphabet() {
                 .collect()
         ]
     );
+}
+
+#[test]
+fn chain() {
+    let mut name = Vec::new();
+    let program = named(
+        &[
+            Written(vec![vec!["A"]], vec![vec!["B"]]),
+            Written(vec![vec!["B"]], vec![vec!["C"]]),
+        ],
+        &mut name,
+    );
+    let statement = program
+        .rule()
+        .iter()
+        .cloned()
+        .map(Statement::Rule)
+        .collect::<Vec<_>>();
+    let analysis = analyze(&structure(&statement), &statement, BUDGET).expect("fits the budget");
+    assert!(analysis.statement.is_empty());
+    let [pattern] = analysis.pattern.as_slice() else {
+        panic!("the two rules are one pattern");
+    };
+    let shared = Atom(name.iter().position(|entry| entry == "B").expect("named") as u16);
+    let place = pattern
+        .occurrence
+        .iter()
+        .map(|occurrence| occurrence.atom.iter().position(|&atom| atom == shared))
+        .collect::<Vec<_>>();
+    assert_eq!(place.len(), 2);
+    assert!(place.iter().all(Option::is_some));
+    assert_ne!(place[0], place[1]);
 }

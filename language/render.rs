@@ -4,13 +4,14 @@ pub(crate) use sequence::Sequence;
 
 use crate::profile;
 use crate::program::{Program, Symbol};
-use crate::snapshot::{Frame, Node, Token, World};
+use crate::snapshot::{Frame, Kind, Node, Token, World};
 use crate::state::State;
 use crate::status::Status;
 use std::collections::HashMap;
 use std::sync::Arc;
 
 struct Text {
+    kind: Kind,
     label: Arc<str>,
     display: Arc<str>,
 }
@@ -53,17 +54,20 @@ impl<'program> Builder<'program> {
                         Symbol::Atom(index) => {
                             let label = Arc::<str>::from(self.program.atom[index].as_str());
                             Text {
+                                kind: Kind::Atom,
                                 display: label.clone(),
                                 label,
                             }
                         }
                         Symbol::Rule(index) => Text {
+                            kind: Kind::Rule,
                             label: format!("§{index}").into(),
                             display: self.program.label(token.value).into(),
                         },
                     });
                 Token {
                     id: token.id,
+                    kind: text.kind,
                     label: text.label.clone(),
                     display: text.display.clone(),
                     capture: token.capture,

@@ -4,10 +4,17 @@
     const { element } = book.render;
     const storage = 'photonic-lightbox';
 
+    const text = value => typeof value === 'string';
+
+    const valid = value => text(value?.source)
+        && Array.isArray(value.target) && value.target.every(text)
+        && Array.isArray(value.library) && value.library.every(text)
+        && typeof value.preserve === 'boolean';
+
     const remembered = () => {
         try {
             const value = JSON.parse(localStorage.getItem(storage));
-            return typeof value?.source === 'string' ? value : undefined;
+            return valid(value) ? value : undefined;
         } catch {
             return undefined;
         }
@@ -32,23 +39,15 @@
         fresh.type = 'button';
         const copy = element('button', undefined, 'Copy link');
         copy.type = 'button';
-        const run = element('button', 'run', 'Run');
-        run.type = 'button';
-        run.hidden = true;
-        run.title = 'Run (⌘ or Ctrl + Enter)';
+        const run = book.run.button();
         bar.append(element('span', 'title', 'Program'), badge, fresh, copy, run);
         const notice = element('p', 'notice', 'Write and run your own programs at photonic.vantle.org or in a served checkout. Here the examples show their recorded runs.');
         notice.hidden = true;
         const body = element('div', 'body');
-        const preset = element('div', 'preset');
-        preset.setAttribute('aria-label', 'Examples');
+        const choice = book.render.preset(sample.map(item => item.name), index => pick(sample[index]));
+        choice.element.setAttribute('aria-label', 'Examples');
         const editor = book.editor.create('Lightbox program');
-        const field = element('label', 'field');
-        field.append('Target configurations, one per line');
-        const goal = element('textarea');
-        goal.spellcheck = false;
-        goal.rows = 2;
-        field.append(goal);
+        const goal = book.editor.goal('Target configurations, one per line', 2);
         const option = element('div', 'option');
         option.append(element('span', undefined, 'Libraries'));
         const toggle = new Map(Object.keys(book.record?.library ?? {}).map(name => {
@@ -70,7 +69,7 @@
         check.append(keep, 'Targets keep the program’s rules');
         option.append(check);
         const message = book.render.message();
-        body.append(preset, editor.element, field, option, message.element);
+        body.append(choice.element, editor.element, goal.element, option, message.element);
         card.append(bar, notice, body);
         const result = element('section', 'result');
         const viewer = book.viewer.create();
@@ -79,19 +78,18 @@
 
         const setting = () => ({
             source: editor.value,
-            target: goal.value.split('\n').map(line => line.trim()).filter(Boolean),
+            target: goal.value,
             library: [...toggle].filter(([, button]) => button.getAttribute('aria-pressed') === 'true').map(([name]) => name),
             preserve: keep.checked,
         });
         const fill = value => {
             editor.value = value.source;
-            goal.value = value.target.join('\n');
+            goal.value = value.target;
             toggle.forEach((button, name) => button.setAttribute('aria-pressed', String(value.library.includes(name))));
             keep.checked = value.preserve;
             const missing = value.library.filter(name => !toggle.has(name));
             if (missing.length) message.say(`The Lightbox does not have ${missing.map(name => `${name}.particle`).join(', ')}.`, 'error');
         };
-        const mark = name => preset.querySelectorAll('button').forEach(button => button.setAttribute('aria-pressed', String(button.textContent === name)));
         const remember = () => {
             try {
                 localStorage.setItem(storage, JSON.stringify(setting()));
@@ -99,32 +97,17 @@
         };
         const address = () => history.replaceState(null, '', book.share.link(setting()));
 
-        let ticket = 0;
-        let busy = false;
+        const cycle = book.run.create({ trigger: run, message });
         let pending = false;
-        const settle = () => {
-            busy = false;
-            run.removeAttribute('aria-disabled');
-        };
-        const execute = async () => {
-            if (run.hidden || busy) return;
-            const mine = ++ticket;
+        const execute = () => {
             const value = setting();
-            busy = true;
-            run.setAttribute('aria-disabled', 'true');
-            message.wait('Running in WebAssembly…');
-            try {
-                const outcome = await book.engine.explore(value, value.source);
-                if (mine !== ticket) return;
+            const submission = book.editor.submit(root, editor, goal);
+            cycle.start(signal => book.engine.explore(value, value.source, value.target, signal), outcome => {
                 message.say(advice(outcome, value));
                 viewer.show(outcome, value.target);
                 remember();
                 address();
-            } catch (error) {
-                if (mine === ticket) message.say(book.editor.locate(editor.area, error), 'error');
-            } finally {
-                if (mine === ticket) settle();
-            }
+            }, error => message.say(book.editor.locate(error, submission), 'error'));
         };
 
         const pick = item => {
@@ -133,44 +116,32 @@
                 message.say('This example has no recorded run. Regenerate the records with bazel run -c opt //book:record.', 'error');
                 return;
             }
-            ticket++;
-            settle();
+            cycle.cancel();
             message.say();
             fill(value);
-            mark(item.name);
+            choice.press(item.name);
             viewer.show(value.result, value.target);
             remember();
             address();
         };
-        sample.forEach(item => {
-            const button = element('button', undefined, item.name);
-            button.type = 'button';
-            button.addEventListener('click', () => pick(item));
-            preset.append(button);
-        });
 
         let timer;
         const changed = () => {
-            mark();
+            choice.press();
             clearTimeout(timer);
             timer = setTimeout(remember, 300);
         };
-        for (const area of [editor.area, goal]) {
+        for (const area of [editor.area, goal.area]) {
             area.addEventListener('input', changed);
-            area.addEventListener('keydown', event => {
-                if (event.key !== 'Enter' || !(event.metaKey || event.ctrlKey)) return;
-                event.preventDefault();
-                execute();
-            });
+            book.run.shortcut(area, execute);
         }
         keep.addEventListener('change', changed);
         run.addEventListener('click', execute);
         fresh.addEventListener('click', () => {
-            ticket++;
-            settle();
+            cycle.cancel();
             message.say();
             fill({ source: '', target: [], library: [], preserve: false });
-            mark();
+            choice.press();
             viewer.blank('Write a program, then press Run.');
             remember();
             history.replaceState(null, '', 'lightbox.html');
@@ -197,7 +168,7 @@
             fill(start);
             const known = sample.find(item => entry(item) && same(entry(item), start));
             if (known) {
-                mark(known.name);
+                choice.press(known.name);
                 viewer.show(entry(known).result, entry(known).target);
                 return;
             }
@@ -212,7 +183,7 @@
             fresh.hidden = !on;
             notice.hidden = state !== 'recorded';
             editor.area.readOnly = !on;
-            goal.readOnly = !on;
+            goal.area.readOnly = !on;
             keep.disabled = !on;
             toggle.forEach(button => {
                 if (on) button.removeAttribute('aria-disabled');

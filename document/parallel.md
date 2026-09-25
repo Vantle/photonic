@@ -16,9 +16,9 @@ Three rounds alternate one, two and four workers. Every fixture warms for 100 ms
 Two workers are 1.70–3.45× slower across these small fixtures; four are 1.82–4.03× slower. Keep the existing default. These fixtures do not locate the crossover for large independent tasks, and do not establish that parallelism is always unprofitable. A future executor change needs a size/cost sweep with genuinely large independent work, cold controls and exact budgeted snapshots. Do not infer profitability from available core count alone.
 
 ```sh
-bazel run -c opt //benchmark:runtime -- --workers 1
-bazel run -c opt //benchmark:runtime -- --workers 2
-bazel run -c opt //benchmark:runtime -- --workers 4
+bazel run -c opt //benchmark:runtime -- --worker 1
+bazel run -c opt //benchmark:runtime -- --worker 2
+bazel run -c opt //benchmark:runtime -- --worker 4
 ```
 
 ## Current arithmetic profile

@@ -1,6 +1,8 @@
 load("@rules_rs//rs:rust_binary.bzl", "rust_binary")
 load("@rules_rs//rs:rust_shared_library.bzl", "rust_shared_library")
+load("@rules_rs//rs:rust_test.bzl", "rust_test")
 load("@rules_rust_wasm_bindgen//:defs.bzl", "rust_wasm_bindgen")
+load("//book:site.bzl", "REPOSITORY")
 load("//toolchain:defs.bzl", "hermetic_test")
 load(":defs.bzl", "asset")
 
@@ -8,9 +10,13 @@ rust_shared_library(
     name = "engine",
     srcs = [
         "analysis.rs",
+        "catalog.rs",
+        "configuration.rs",
         "engine.rs",
+        "execution.rs",
         "expression.rs",
         "failure.rs",
+        "limit.rs",
         "path.rs",
         "request.rs",
         "response.rs",
@@ -80,18 +86,35 @@ filegroup(
 
 rust_binary(
     name = "serve",
-    srcs = ["serve.rs"],
+    srcs = [
+        "route.rs",
+        "serve.rs",
+    ],
     crate_root = "serve.rs",
     data = [
         ":javascript",
         ":webassembly",
+        "//:lightbox",
+        "//:page",
+        "//book:asset",
     ],
     env = {
-        "JAVASCRIPT": "$(rlocationpath :javascript)",
-        "WEBASSEMBLY": "$(rlocationpath :webassembly)",
+        "BOOK": "$(rlocationpaths //book:asset) $(rlocationpath //:page) $(rlocationpath //:lightbox) $(rlocationpath :javascript) $(rlocationpath :webassembly)",
     },
     lint_config = "//:lint",
+    rustc_env = {"REPOSITORY": REPOSITORY},
     deps = ["@rules_rust//rust/runfiles"],
+)
+
+rust_test(
+    name = "route",
+    size = "small",
+    srcs = [
+        "route.rs",
+        "test/route.rs",
+    ],
+    crate_root = "route.rs",
+    lint_config = "//:lint",
 )
 
 hermetic_test(

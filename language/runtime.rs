@@ -6,6 +6,7 @@ mod normalization;
 mod report;
 mod table;
 
+use crate::application::Owner;
 use crate::flow::{Binding, Flow};
 use crate::program::Program;
 use crate::snapshot::Origin;
@@ -54,25 +55,23 @@ struct View {
 struct Application {
     view: usize,
     frame: usize,
-    owner: Option<usize>,
+    owner: Owner<usize>,
     rule: usize,
     binding: Binding,
-    capture: Option<usize>,
 }
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 struct Identity {
     source: usize,
     frame: usize,
-    owner: Option<usize>,
+    owner: Owner<Arc<State>>,
     rule: usize,
     binding: Binding,
-    environment: Option<Arc<State>>,
 }
 #[cfg(test)]
-pub(crate) struct Transition<'a> {
+pub(crate) struct Transition<'transition> {
     pub target: usize,
-    pub rule: &'a str,
-    pub binding: &'a Binding,
+    pub rule: &'transition str,
+    pub binding: &'transition Binding,
 }
 
 struct Event {
@@ -189,7 +188,7 @@ impl Runtime {
         }
         self.origin.push(origin);
         self.incoming[target].push(index);
-        self.agenda.push_back(Task::Inspect(index));
+        self.agenda.push(Task::Inspect(index));
         for &event in &self.outgoing[target] {
             self.agenda.defer(Task::Compose(index, event));
         }
@@ -241,7 +240,7 @@ impl Runtime {
                     )),
                     _ => break,
                 }
-                self.agenda.pop_front();
+                self.agenda.pop();
             }
             if !batch.is_empty() {
                 self.flying = batch.len();
@@ -268,7 +267,7 @@ impl Runtime {
                 }
                 continue;
             }
-            let Some(task) = self.agenda.pop_front() else {
+            let Some(task) = self.agenda.pop() else {
                 break;
             };
             remaining -= 1;
@@ -284,7 +283,7 @@ impl Runtime {
         }
     }
 
-    pub fn record(&self) -> usize {
+    pub(crate) fn record(&self) -> usize {
         self.state.len()
             + self.index.len()
             + self.indexed

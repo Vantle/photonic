@@ -84,14 +84,13 @@ fn coalescence() {
         scope: &[],
         source: &source,
         frame: 0,
-        owner: None,
-        rule: &rule,
-        binding: &binding,
-        closure: Some(Closure {
+        owner: crate::application::Owner::Capture(Closure {
             state: &endpoint,
             flow: &flow,
             capture: 1,
         }),
+        rule: &rule,
+        binding: &binding,
     });
     assert_eq!(result.state.frame[1].held, vec![atom]);
     assert_eq!(

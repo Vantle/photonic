@@ -1,6 +1,8 @@
 use arithmetic::{circuit, encoding, numeral};
 #[path = "../argument.rs"]
 mod argument;
+#[path = "../search.rs"]
+mod search;
 
 use photonic::lowering::parse;
 use photonic::path::Search;
@@ -23,16 +25,7 @@ fn execute(source: &str, target: &str) -> Outcome {
         };
         Search::new(program, target)
     };
-    search.run(
-        20_000_000,
-        Limit {
-            state: 4096,
-            record: 1_000_000,
-            cell: 4096,
-            frame: 10,
-            world: 4,
-        },
-    );
+    search.run(20_000_000, crate::search::LIMIT);
     search.report().outcome
 }
 
@@ -379,14 +372,14 @@ fn radix() {
             for right in 0..5 {
                 let source = format!(
                     "Add.({},{}), [Add,Add] (), {rule}",
-                    arithmetic::power::numeral(left, radix).unwrap(),
-                    arithmetic::power::numeral(right, radix).unwrap()
+                    arithmetic::power::numeral(radix, left).unwrap(),
+                    arithmetic::power::numeral(radix, right).unwrap()
                 );
                 let mut search = {
                     let program = parse(&source).unwrap();
                     let target = photonic::source::Program {
                         rule: program.rule.clone(),
-                        ..parse(&arithmetic::power::numeral(left + right, radix).unwrap()).unwrap()
+                        ..parse(&arithmetic::power::numeral(radix, left + right).unwrap()).unwrap()
                     };
                     photonic::prism::Search::new(program, target)
                 };

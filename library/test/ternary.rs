@@ -1,6 +1,5 @@
+use crate::answer;
 use crate::catalog::source;
-use crate::{answer, check};
-use photonic::prism::Outcome;
 use std::cmp::Ordering;
 
 const DIGIT: [&str; 3] = ["0", "1", "2"];
@@ -107,11 +106,11 @@ fn select() {
 #[test]
 fn successor() {
     for (value, digit) in DIGIT.iter().enumerate() {
-        check(
+        answer(
             &format!("Invoke.Ternary.Successor.{digit}"),
             &result(value + 1),
+            (0..9).map(result),
             &library(),
-            Outcome::Reached,
         );
     }
 }

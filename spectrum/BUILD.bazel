@@ -1,0 +1,91 @@
+load("@rules_rs//rs:rust_library.bzl", "rust_library")
+load("@rules_rs//rs:rust_test.bzl", "rust_test")
+
+filegroup(
+    name = "source",
+    srcs = [
+        "budget.rs",
+        "cause.rs",
+        "check.rs",
+        "claim.rs",
+        "compare.rs",
+        "context.rs",
+        "exploration.rs",
+        "explore.rs",
+        "failure.rs",
+        "handle.rs",
+        "inspect.rs",
+        "lineage.rs",
+        "matching.rs",
+        "miss.rs",
+        "order.rs",
+        "pattern.rs",
+        "recording.rs",
+        "render.rs",
+        "request.rs",
+        "resource.rs",
+        "select.rs",
+        "shape.rs",
+        "spectrum.rs",
+        "step.rs",
+        "store.rs",
+        "subject.rs",
+    ],
+)
+
+rust_library(
+    name = "spectrum",
+    srcs = [":source"],
+    compile_data = [
+        "primer.md",
+        "//library:README.md",
+    ],
+    crate_root = "spectrum.rs",
+    lint_config = "//:lint",
+    visibility = ["//command:__pkg__"],
+    deps = [
+        "//code",
+        "//language:photonic",
+        "//symmetry",
+        "//translation",
+        "@crate//:miette",
+        "@crate//:schemars",
+        "@crate//:serde",
+        "@crate//:serde_json",
+    ],
+)
+
+rust_test(
+    name = "test",
+    size = "small",
+    srcs = [
+        "test/exploration.rs",
+        "test/suite.rs",
+        "test/support.rs",
+        "test/verb.rs",
+        ":source",
+    ],
+    compile_data = [
+        "primer.md",
+        "//frontend:parser.rs",
+        "//library:README.md",
+    ],
+    crate_root = "spectrum.rs",
+    lint_config = "//:lint",
+    deps = [
+        "//code",
+        "//language:photonic",
+        "//symmetry",
+        "//translation",
+        "@crate//:miette",
+        "@crate//:schemars",
+        "@crate//:serde",
+        "@crate//:serde_json",
+    ],
+)
+
+filegroup(
+    name = "build",
+    srcs = ["BUILD.bazel"],
+    visibility = ["//:__pkg__"],
+)

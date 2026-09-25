@@ -7,9 +7,18 @@ pub enum Code {
     Request,
     Version,
     Size,
+    Budget,
     Source,
     Library,
     Target,
+    Internal,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Item {
+    Program(usize),
+    Target(usize),
 }
 
 #[derive(Serialize)]
@@ -24,14 +33,14 @@ pub struct Failure {
     message: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     span: Option<Span>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    program: Option<usize>,
+    #[serde(flatten)]
+    item: Option<Item>,
 }
 
-fn unit(source: &str, offset: usize) -> usize {
+fn character(source: &str, byte: usize) -> usize {
     source
-        .get(..offset)
-        .map_or(offset, |prefix| prefix.encode_utf16().count())
+        .get(..byte)
+        .map_or(byte, |prefix| prefix.encode_utf16().count())
 }
 
 impl Failure {
@@ -40,13 +49,13 @@ impl Failure {
             code,
             message: message.to_string(),
             span: None,
-            program: None,
+            item: None,
         }
     }
 
-    pub fn within(self, program: usize) -> Self {
+    pub fn within(self, item: Item) -> Self {
         Self {
-            program: Some(program),
+            item: Some(item),
             ..self
         }
     }
@@ -56,17 +65,24 @@ impl Failure {
             .labels()
             .and_then(|mut label| label.next())
             .map(|label| {
-                let offset = unit(source, label.offset());
+                let offset = character(source, label.offset());
                 Span {
                     offset,
-                    length: unit(source, label.offset() + label.len()) - offset,
+                    length: character(source, label.offset() + label.len()) - offset,
                 }
             });
         Self {
-            code,
-            message: error.to_string(),
             span,
-            program: None,
+            ..Self::new(code, error.to_string())
+        }
+    }
+}
+
+impl From<translation::failure::Failure> for Failure {
+    fn from(error: translation::failure::Failure) -> Self {
+        match error {
+            translation::failure::Failure::Vocabulary { .. } => Self::new(Code::Size, error),
+            translation::failure::Failure::Unknown { .. } => Self::new(Code::Internal, error),
         }
     }
 }

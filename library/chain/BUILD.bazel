@@ -34,7 +34,7 @@ photonic_test(
     path = True,
     preserve = True,
     source = "Push.Item.Zero, [Drop.Item] Forget, [Built] Read",
-    targets = ["Yield.Item.Zero"],
+    target = ["Yield.Item.Zero"],
     deps = [":cell"],
 )
 
@@ -43,7 +43,7 @@ photonic_test(
     path = True,
     preserve = True,
     source = "Push.Item.Zero, [Drop.Item] Forget, [Built] (Peek, Keep), [Seen.Item.Zero, Keep] Read",
-    targets = ["Yield.Item.Zero"],
+    target = ["Yield.Item.Zero"],
     deps = [":cell"],
 )
 
@@ -51,7 +51,7 @@ photonic_test(
     name = "cell.end",
     preserve = True,
     source = "Peek.Zero",
-    targets = ["Seen.End.Zero"],
+    target = ["Seen.End.Zero"],
     deps = [":cell"],
 )
 
@@ -60,7 +60,7 @@ photonic_test(
     path = True,
     preserve = True,
     source = "Function.Chain.Reverse.Zero",
-    targets = ["Return.Chain.Reverse.Zero"],
+    target = ["Return.Chain.Reverse.Zero"],
     deps = [":reverse"],
 )
 

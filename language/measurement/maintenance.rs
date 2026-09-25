@@ -23,7 +23,12 @@ pub(super) fn run<const SCALAR: bool>(
     state: &[(Arc<State>, Change)],
 ) -> Measurement {
     let mut index = Index::new(Arc::new(State::initial(program)));
-    let input = Input::shared(&program.rule[0].input, &mut Default::default());
+    let contextual = program.contextual();
+    let input = Input::shared(
+        &program.rule[0].input,
+        |rule| contextual[rule],
+        &mut Default::default(),
+    );
     let store = Arc::new(Store::new(65536));
     let mut join = Join::planned(Request {
         input: &input,

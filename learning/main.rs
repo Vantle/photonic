@@ -17,7 +17,7 @@ fn main() -> miette::Result<()> {
         Command::Train(argument) => practice::train(argument),
         Command::Optimize(argument) => practice::optimize(argument),
         Command::Status(argument) => inspect::status(&argument),
-        Command::Verify(argument) => inspect::check(&argument),
+        Command::Verify(argument) => inspect::verify(&argument),
         Command::Solve(argument) => solve::run(&argument),
         Command::Improve(argument) => improve::run(argument),
         Command::Curriculum(argument) => course::run(argument),

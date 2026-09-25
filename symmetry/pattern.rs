@@ -1,8 +1,9 @@
-use crate::forest::Forest;
 use crate::group::element;
 use crate::search::Exhausted;
-use crate::statement::Statement;
+use crate::statement::{Statement, structure};
+use crate::structure::Structure;
 use code::atom::Atom;
+use code::forest::Forest;
 use std::cmp::Reverse;
 use std::collections::{BTreeMap, BTreeSet, BinaryHeap};
 
@@ -56,9 +57,11 @@ struct Growth<'shape> {
 }
 
 fn shape(statement: &Statement, pin: &[Atom], budget: usize) -> Result<Shape, Exhausted> {
-    let mut structure = statement.structure();
-    structure.pin = pin.to_vec();
-    let symmetry = structure.symmetry(budget)?;
+    let symmetry = Structure {
+        pin: pin.to_vec(),
+        ..structure(std::slice::from_ref(statement))
+    }
+    .symmetry(budget)?;
     let position = symmetry
         .atom
         .iter()
@@ -297,7 +300,7 @@ impl Growth<'_> {
     }
 }
 
-pub fn discover(
+pub(crate) fn discover(
     statement: &[Statement],
     pin: &[Atom],
     fixed: &BTreeSet<usize>,

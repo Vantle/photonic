@@ -1,5 +1,5 @@
-use crate::objective::{Evaluation, Setting, evaluate, memorization};
-use crate::task::{Goal, Task};
+use crate::objective::{Setting, evaluate, memorization};
+use crate::task::Task;
 use code::tree::walk;
 use thiserror::Error;
 
@@ -15,22 +15,23 @@ pub enum Failure {
     },
     #[error("{task} has no examples")]
     Empty { task: String },
+    #[error("{task} has no room left in its vocabulary for hidden atoms")]
+    Hidden {
+        task: String,
+        source: translation::failure::Failure,
+    },
 }
 
 #[derive(Clone, Debug)]
 pub struct Problem {
     pub task: Task,
-    pub reference: Option<Evaluation>,
     pub baseline: f64,
     pub nesting: usize,
 }
 
 impl Problem {
     pub fn new(mut task: Task, setting: &Setting, limit: usize) -> Result<Self, Failure> {
-        task.goal = Some(task.goal.unwrap_or(Goal {
-            processor: setting.processor,
-            size: setting.size,
-        }));
+        task.goal = Some(task.goal.unwrap_or(setting.goal));
         let setting = &setting.aim(task.goal);
         if task.vocabulary.len() > limit {
             return Err(Failure::Vocabulary {
@@ -47,7 +48,6 @@ impl Problem {
                 baseline: memorization(&task.example, &task.vocabulary, setting).max(f64::EPSILON),
                 nesting: 0,
                 task,
-                reference: None,
             });
         };
         let reference = evaluate(program, &task.example, &task.vocabulary, setting);
@@ -63,7 +63,6 @@ impl Problem {
                 .max()
                 .unwrap_or(0),
             task,
-            reference: Some(reference),
         })
     }
 }

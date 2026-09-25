@@ -1,11 +1,9 @@
-use std::cell::Cell;
-
 use crate::source::Value;
 
 pub(crate) fn combine(
     left: Vec<Vec<Value>>,
     right: Vec<Vec<Value>>,
-    budget: &Cell<usize>,
+    budget: &mut usize,
 ) -> Option<Vec<Vec<Value>>> {
     if left.len() == 1 && right.len() == 1 {
         let mut result = left.into_iter().next()?;
@@ -24,7 +22,7 @@ pub(crate) fn combine(
                 .sum::<usize>()
                 .checked_mul(left.len())?,
         )?;
-    budget.set(budget.get().checked_sub(size)?);
+    *budget = budget.checked_sub(size)?;
     Some(
         left.iter()
             .flat_map(|left| {

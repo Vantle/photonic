@@ -6,6 +6,7 @@ mod delta;
 pub mod engine;
 pub mod failure;
 mod occurrence;
+pub mod operand;
 mod pipeline;
 pub mod plain;
 mod seal;

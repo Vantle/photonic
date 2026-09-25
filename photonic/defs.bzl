@@ -9,14 +9,14 @@ Info = provider(
     },
 )
 
-def _assemble(ctx, source, library):
-    output = ctx.actions.declare_file(ctx.label.name + ".json")
-    argument = ctx.actions.args()
+def _assemble(context, source, library):
+    output = context.actions.declare_file(context.label.name + ".json")
+    argument = context.actions.args()
     argument.add("--output", output)
     argument.add_all(source, before_each = "--source")
     argument.add_all(library, before_each = "--library")
-    ctx.actions.run(
-        executable = ctx.executable._assemble,
+    context.actions.run(
+        executable = context.executable._assemble,
         arguments = [argument],
         inputs = depset(source + library),
         outputs = [output],
@@ -25,9 +25,9 @@ def _assemble(ctx, source, library):
     )
     return output
 
-def _library(ctx):
-    source = depset(ctx.files.srcs, transitive = [dep[Info].source for dep in ctx.attr.deps], order = "postorder")
-    output = _assemble(ctx, [], source.to_list())
+def _library(context):
+    source = depset(context.files.srcs, transitive = [dependency[Info].source for dependency in context.attr.deps], order = "postorder")
+    output = _assemble(context, [], source.to_list())
     return [
         Info(source = source),
         DefaultInfo(files = depset([output])),
@@ -42,21 +42,21 @@ photonic_library = rule(
     },
 )
 
-def _runfile(ctx, file):
+def _runfile(context, file):
     if file.short_path.startswith("../"):
         return file.short_path[3:]
-    return ctx.workspace_name + "/" + file.short_path
+    return context.workspace_name + "/" + file.short_path
 
-def _load(ctx):
-    source = depset(ctx.files.srcs).to_list()
-    library = depset(transitive = [dep[Info].source for dep in ctx.attr.deps], order = "postorder").to_list()
+def _load(context):
+    source = depset(context.files.srcs).to_list()
+    library = depset(transitive = [dependency[Info].source for dependency in context.attr.deps], order = "postorder").to_list()
     overlap = {file.path: True for file in library}
     if any([file.path in overlap for file in source]):
         fail("a source cannot also be supplied by a library dependency")
-    return _assemble(ctx, source, library)
+    return _assemble(context, source, library)
 
-def _binary(ctx):
-    output = _load(ctx)
+def _binary(context):
+    output = _load(context)
     return [DefaultInfo(files = depset([output]))]
 
 _program = rule(
@@ -86,31 +86,31 @@ def photonic_binary(name, srcs, deps = [], visibility = None):
         visibility = visibility,
     )
 
-def _check(ctx):
-    if ctx.attr.path and ctx.attr.expect != "reached":
+def _check(context):
+    if context.attr.path and context.attr.expect != "reached":
         fail("a direct path can witness reachability but cannot prove unreachability")
-    if any([getattr(ctx.attr, name) < 0 for name in ["steps", "states", "cells", "frames", "coherences", "records"]]):
+    if any([getattr(context.attr, name) < 0 for name in ["work", "configuration", "occurrence", "scope", "coherence", "record"]]):
         fail("test execution limits must be nonnegative")
-    program = _load(ctx)
-    output = ctx.actions.declare_file(ctx.label.name + ".case.json")
-    ctx.actions.write(output, json.encode({
-        "program": _runfile(ctx, program),
-        "source": ctx.attr.source,
-        "target": ctx.attr.targets,
-        "expect": ctx.attr.expect,
-        "match": ctx.attr.match,
-        "path": ctx.attr.path,
-        "preserve": ctx.attr.preserve,
-        "step": ctx.attr.steps,
+    program = _load(context)
+    output = context.actions.declare_file(context.label.name + ".case.json")
+    context.actions.write(output, json.encode({
+        "program": _runfile(context, program),
+        "source": context.attr.source,
+        "target": context.attr.target,
+        "expect": context.attr.expect,
+        "match": context.attr.match,
+        "path": context.attr.path,
+        "preserve": context.attr.preserve,
+        "work": context.attr.work,
         "limit": {
-            "state": ctx.attr.states,
-            "record": ctx.attr.records,
-            "world": ctx.attr.coherences,
-            "cell": ctx.attr.cells,
-            "frame": ctx.attr.frames,
+            "state": context.attr.configuration,
+            "record": context.attr.record,
+            "world": context.attr.coherence,
+            "cell": context.attr.occurrence,
+            "frame": context.attr.scope,
         },
     }))
-    return [DefaultInfo(files = depset([output]), runfiles = ctx.runfiles(files = [output, program]))]
+    return [DefaultInfo(files = depset([output]), runfiles = context.runfiles(files = [output, program]))]
 
 _case = rule(
     implementation = _check,
@@ -118,27 +118,27 @@ _case = rule(
         "srcs": attr.label_list(allow_files = [".particle", ".wave"]),
         "deps": attr.label_list(providers = [Info]),
         "source": attr.string(),
-        "targets": attr.string_list(mandatory = True, allow_empty = False),
+        "target": attr.string_list(mandatory = True, allow_empty = False),
         "match": attr.string(mandatory = True, values = ["all", "any"]),
         "expect": attr.string(mandatory = True, values = ["reached", "unreachable"]),
         "path": attr.bool(mandatory = True),
         "preserve": attr.bool(mandatory = True),
-        "steps": attr.int(mandatory = True),
-        "states": attr.int(mandatory = True),
-        "cells": attr.int(mandatory = True),
-        "frames": attr.int(mandatory = True),
-        "coherences": attr.int(mandatory = True),
-        "records": attr.int(mandatory = True),
+        "work": attr.int(mandatory = True),
+        "configuration": attr.int(mandatory = True),
+        "occurrence": attr.int(mandatory = True),
+        "scope": attr.int(mandatory = True),
+        "coherence": attr.int(mandatory = True),
+        "record": attr.int(mandatory = True),
         "_assemble": attr.label(default = "//photonic:assemble", executable = True, cfg = "exec"),
     },
 )
 
-def photonic_test(name, targets, preserve, source = "", srcs = [], deps = [], match = "all", expect = "reached", path = False, steps = 2000000, states = 4096, cells = 256, frames = 64, coherences = 64, records = 2000000, size = "small", visibility = None, tags = []):
+def photonic_test(name, target, preserve, source = "", srcs = [], deps = [], match = "all", expect = "reached", path = False, work = 2000000, configuration = 4096, occurrence = 256, scope = 64, coherence = 64, record = 2000000, size = "small", visibility = None, tags = []):
     """Check an exact configuration with Prism; Unknown always fails.
 
     Args:
         name: Test target name.
-        targets: Accepted configurations in literal Photonic syntax.
+        target: Accepted configurations in literal Photonic syntax.
         preserve: Whether each target also expects every loaded root rule occurrence.
         source: Literal Photonic source, including data and declarations.
         srcs: Native source files containing data or declarations.
@@ -146,17 +146,17 @@ def photonic_test(name, targets, preserve, source = "", srcs = [], deps = [], ma
         match: Require all targets or any target to satisfy the expectation.
         expect: Required reached or unreachable outcome for each target.
         path: Follow one path to witness a reachable target.
-        steps: Work budget.
-        states: Configuration limit.
-        cells: Occurrence limit.
-        frames: Scope limit.
-        coherences: Coherence limit.
-        records: Event record limit.
+        work: Work budget.
+        configuration: Configuration limit.
+        occurrence: Occurrence limit.
+        scope: Scope limit.
+        coherence: Coherence limit.
+        record: Event record limit.
         size: Bazel test size.
         visibility: Packages allowed to depend on the test.
         tags: Bazel test tags.
     """
-    _case(name = name + ".case", source = source, targets = targets, srcs = srcs, deps = deps, match = match, expect = expect, path = path, preserve = preserve, steps = steps, states = states, cells = cells, frames = frames, coherences = coherences, records = records, visibility = ["//visibility:private"], testonly = True)
+    _case(name = name + ".case", source = source, target = target, srcs = srcs, deps = deps, match = match, expect = expect, path = path, preserve = preserve, work = work, configuration = configuration, occurrence = occurrence, scope = scope, coherence = coherence, record = record, visibility = ["//visibility:private"], testonly = True)
     hermetic_test(
         name = name,
         entrypoint = "//photonic:check",

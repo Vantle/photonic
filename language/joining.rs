@@ -62,12 +62,12 @@ impl Traversal {
     }
 }
 
-pub(crate) struct Request<'a> {
-    pub input: &'a crate::plan::Input,
-    pub index: &'a Index,
+pub(crate) struct Request<'request> {
+    pub input: &'request crate::plan::Input,
+    pub index: &'request Index,
     pub frame: usize,
     pub owner: usize,
-    pub store: &'a Arc<Store>,
+    pub store: &'request Arc<Store>,
 }
 
 pub(crate) struct Join {

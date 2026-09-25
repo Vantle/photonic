@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 
 pub mod archive;
+pub mod bar;
 pub mod corpus;
 pub mod curriculum;
 pub mod demonstration;
@@ -15,6 +16,7 @@ pub mod objective;
 pub mod play;
 pub mod pool;
 pub mod problem;
+pub mod renewal;
 pub mod replay;
 pub mod search;
 pub mod server;

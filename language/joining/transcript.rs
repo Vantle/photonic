@@ -2,6 +2,8 @@ use super::trace::Record;
 use imbl::Vector;
 use std::sync::Arc;
 
+const CHUNK: usize = 32;
+
 #[derive(Clone, Default)]
 pub(super) enum Transcript {
     #[default]
@@ -23,7 +25,7 @@ impl Transcript {
             Self::Empty => 0,
             Self::Single(_) => 1,
             Self::Flat(record) => record.len(),
-            Self::Tree(record) => record.prefix.len() * 32 + record.tail.len(),
+            Self::Tree(record) => record.prefix.len() * CHUNK + record.tail.len(),
         }
     }
 
@@ -38,11 +40,11 @@ impl Transcript {
             Self::Single(record) => (position == 0).then_some(record),
             Self::Flat(record) => record.get(position),
             Self::Tree(record) => {
-                let boundary = record.prefix.len() * 32;
+                let boundary = record.prefix.len() * CHUNK;
                 if position >= boundary {
                     return record.tail.get(position - boundary);
                 }
-                record.prefix.get(position / 32)?.get(position % 32)
+                record.prefix.get(position / CHUNK)?.get(position % CHUNK)
             }
         }
     }
@@ -81,21 +83,21 @@ impl Transcript {
             *self = Self::Flat(vec![record, value]);
             return;
         }
-        if matches!(self, Self::Flat(record) if record.len() == 32) {
+        if matches!(self, Self::Flat(record) if record.len() == CHUNK) {
             let Self::Flat(record) = std::mem::take(self) else {
                 unreachable!()
             };
             let mut chunk = Chunk::default();
             chunk.prefix.push_back(Arc::new(record));
-            chunk.tail = Vec::with_capacity(32);
+            chunk.tail = Vec::with_capacity(CHUNK);
             *self = Self::Tree(Box::new(chunk));
         }
         match self {
             Self::Empty | Self::Single(_) => unreachable!(),
             Self::Flat(record) => record.push(value),
             Self::Tree(record) => {
-                if record.tail.len() == 32 {
-                    let tail = std::mem::replace(&mut record.tail, Vec::with_capacity(32));
+                if record.tail.len() == CHUNK {
+                    let tail = std::mem::replace(&mut record.tail, Vec::with_capacity(CHUNK));
                     record.prefix.push_back(Arc::new(tail));
                 }
                 record.tail.push(value);
@@ -123,7 +125,7 @@ impl Extend<Record> for Transcript {
                 Self::Flat(record) => record,
                 Self::Tree(record) => &mut record.tail,
             };
-            tail.extend(source.by_ref().take(32 - tail.len()));
+            tail.extend(source.by_ref().take(CHUNK - tail.len()));
             let Some(record) = source.next() else {
                 return;
             };

@@ -1,42 +1,13 @@
-use std::cell::Cell;
 use std::ops::Range;
 
-use miette::{Diagnostic, IntoDiagnostic, NamedSource, SourceSpan, WrapErr};
-use thiserror::Error;
+use miette::NamedSource;
 
+use crate::failure::Failure;
 use crate::partition::Partition;
 use crate::source::{Definition, Output, Program, Value};
 use crate::syntax::{Kind, Tree};
 
 const BUDGET: usize = 1_000_000;
-
-#[derive(Debug, Diagnostic, Error)]
-pub enum Failure {
-    #[error(transparent)]
-    #[diagnostic(transparent)]
-    Parse(#[from] crate::failure::Failure),
-    #[error("invalid Photonic expression: {message}")]
-    #[diagnostic(code(photonic::lowering))]
-    Syntax {
-        message: String,
-        #[label("{message}")]
-        span: SourceSpan,
-    },
-    #[error("Photonic expansion exceeds its {limit}-unit frontend budget")]
-    #[diagnostic(code(photonic::expansion))]
-    Expansion {
-        limit: usize,
-        #[label("expanding this exceeds the frontend budget")]
-        span: SourceSpan,
-    },
-    #[error("a scope holds at most one coherence; found {count}")]
-    #[diagnostic(code(photonic::scope))]
-    Scope {
-        count: usize,
-        #[label("list one coherence beside the scope's rules")]
-        span: SourceSpan,
-    },
-}
 
 enum Member {
     Particle(Vec<Value>),
@@ -46,14 +17,15 @@ enum Member {
 
 struct Reader<'tree, 'source> {
     tree: &'tree Tree<'source>,
-    child: Vec<Vec<usize>>,
-    budget: Cell<usize>,
+    child: &'tree [Vec<usize>],
+    budget: usize,
 }
 
 pub fn read(path: &std::path::Path) -> miette::Result<Program> {
-    let source = std::fs::read_to_string(path)
-        .into_diagnostic()
-        .wrap_err_with(|| format!("could not read {}", path.display()))?;
+    let source = std::fs::read_to_string(path).map_err(|error| Failure::Read {
+        path: path.display().to_string(),
+        error,
+    })?;
     parse(&source).map_err(|failure| {
         miette::Report::new(failure)
             .with_source_code(NamedSource::new(path.display().to_string(), source))
@@ -70,13 +42,17 @@ pub fn parse(source: &str) -> Result<Program, Failure> {
     }
     Reader {
         tree: &tree,
-        child,
-        budget: Cell::new(BUDGET),
+        child: &child,
+        budget: BUDGET,
     }
     .program()
 }
 
-impl Reader<'_, '_> {
+impl<'tree> Reader<'tree, '_> {
+    fn child(&self, index: usize) -> &'tree [usize] {
+        &self.child[index]
+    }
+
     fn span(&self, index: usize) -> Range<usize> {
         self.tree.node()[index].span.clone()
     }
@@ -86,7 +62,7 @@ impl Reader<'_, '_> {
     }
 
     fn failure(span: Range<usize>, message: &str) -> Failure {
-        Failure::Syntax {
+        Failure::Lowering {
             message: message.into(),
             span: (span.start, span.len()).into(),
         }
@@ -99,9 +75,9 @@ impl Reader<'_, '_> {
         }
     }
 
-    fn program(&self) -> Result<Program, Failure> {
+    fn program(&mut self) -> Result<Program, Failure> {
         let mut program = Program::default();
-        for member in self.list(self.child[0][0])? {
+        for member in self.list(self.child(0)[0])? {
             match member {
                 Member::Particle(particle) => program.initial.push(particle),
                 Member::Rule(rule) => program.rule.extend(rule),
@@ -116,28 +92,29 @@ impl Reader<'_, '_> {
         Ok(program)
     }
 
-    fn list(&self, index: usize) -> Result<Vec<Member>, Failure> {
+    fn list(&mut self, index: usize) -> Result<Vec<Member>, Failure> {
         let mut result = Vec::new();
-        for &term in &self.child[index] {
+        for &term in self.child(index) {
             result.extend(self.term(term)?);
         }
         Ok(result)
     }
 
     fn bracketed(&self, index: usize) -> bool {
-        self.child[index]
+        self.child(index)
             .iter()
             .any(|&node| self.kind(node) == Kind::Rule)
     }
 
-    fn term(&self, index: usize) -> Result<Vec<Member>, Failure> {
+    fn term(&mut self, index: usize) -> Result<Vec<Member>, Failure> {
         if self.bracketed(index) {
             return Ok(vec![Member::Rule(self.partition(index)?)]);
         }
-        self.body(&self.child[index])
+        let factor = self.child(index);
+        self.body(factor)
     }
 
-    fn body(&self, factor: &[usize]) -> Result<Vec<Member>, Failure> {
+    fn body(&mut self, factor: &[usize]) -> Result<Vec<Member>, Failure> {
         match factor {
             [] => Ok(Vec::new()),
             &[group] if self.kind(group) == Kind::Group => self.group(group),
@@ -149,8 +126,8 @@ impl Reader<'_, '_> {
         }
     }
 
-    fn group(&self, index: usize) -> Result<Vec<Member>, Failure> {
-        let member = self.list(self.child[index][0])?;
+    fn group(&mut self, index: usize) -> Result<Vec<Member>, Failure> {
+        let member = self.list(self.child(index)[0])?;
         if member.is_empty() {
             return Ok(vec![Member::Particle(Vec::new())]);
         }
@@ -194,23 +171,23 @@ impl Reader<'_, '_> {
         ))
     }
 
-    fn join(&self, factor: &[usize]) -> Result<Vec<Vec<Value>>, Failure> {
+    fn join(&mut self, factor: &[usize]) -> Result<Vec<Vec<Value>>, Failure> {
         let mut result = vec![Vec::new()];
         for &factor in factor {
             let value = self.factor(factor)?;
-            result = crate::expansion::combine(result, value, &self.budget)
+            result = crate::expansion::combine(result, value, &mut self.budget)
                 .ok_or_else(|| Self::expansion(self.span(factor)))?;
         }
         Ok(result)
     }
 
-    fn factor(&self, index: usize) -> Result<Vec<Vec<Value>>, Failure> {
+    fn factor(&mut self, index: usize) -> Result<Vec<Vec<Value>>, Failure> {
         if self.kind(index) == Kind::Concept {
             return Ok(vec![vec![Value::Atom(
                 self.tree.source()[self.span(index)].into(),
             )]]);
         }
-        let term = &self.child[self.child[index][0]];
+        let term = self.child(self.child(index)[0]);
         if term.is_empty() {
             return Ok(vec![Vec::new()]);
         }
@@ -220,18 +197,20 @@ impl Reader<'_, '_> {
                 result.push(self.partition(term)?.into_iter().map(value).collect());
                 continue;
             }
-            result.extend(self.join(&self.child[term])?);
+            let factor = self.child(term);
+            result.extend(self.join(factor)?);
         }
         Ok(result)
     }
 
-    fn partition(&self, index: usize) -> Result<Vec<Definition>, Failure> {
-        let (rule, sink): (Vec<usize>, Vec<usize>) = self.child[index]
+    fn partition(&mut self, index: usize) -> Result<Vec<Definition>, Failure> {
+        let child = self.child(index);
+        let (rule, sink): (Vec<usize>, Vec<usize>) = child
             .iter()
             .partition(|&&node| self.kind(node) == Kind::Rule);
         let mut pattern = Vec::new();
         for node in rule {
-            pattern.push(self.input(self.child[node][0])?);
+            pattern.push(self.input(self.child(node)[0])?);
         }
         let mut output = Vec::new();
         for member in self.body(&sink)? {
@@ -244,7 +223,6 @@ impl Reader<'_, '_> {
                 Member::Rule(_) => unreachable!("a group that lists a rule is a scope"),
             });
         }
-        let child = &self.child[index];
         let span = self.span(child[0]).start..self.span(child[child.len() - 1]).end;
         Partition {
             source: self.tree.source(),
@@ -252,11 +230,11 @@ impl Reader<'_, '_> {
             pattern,
             output,
         }
-        .rule(&self.budget)
+        .rule(&mut self.budget)
         .ok_or_else(|| Self::expansion(span))
     }
 
-    fn input(&self, index: usize) -> Result<Vec<Vec<Value>>, Failure> {
+    fn input(&mut self, index: usize) -> Result<Vec<Vec<Value>>, Failure> {
         let mut input = Vec::new();
         for member in self.list(index)? {
             input.push(match member {

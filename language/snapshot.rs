@@ -32,7 +32,10 @@ struct Occurrence<'source> {
     capture: Option<usize>,
 }
 
-fn particle<S: serde::Serializer>(value: &[Token], serializer: S) -> Result<S::Ok, S::Error> {
+fn particle<Output: serde::Serializer>(
+    value: &[Token],
+    serializer: Output,
+) -> Result<Output::Ok, Output::Error> {
     serializer.collect_seq(value.iter().map(|token| Occurrence {
         id: token.id,
         label: &token.label,
@@ -47,9 +50,17 @@ pub struct Node {
     pub frame: Vec<Frame>,
     pub status: Status,
 }
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Kind {
+    Atom,
+    Rule,
+}
+
 #[derive(Debug, Serialize)]
 pub struct Token {
     pub id: usize,
+    pub kind: Kind,
     pub label: Arc<str>,
     pub display: Arc<str>,
     #[serde(skip_serializing_if = "Option::is_none")]

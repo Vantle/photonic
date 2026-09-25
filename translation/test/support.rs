@@ -9,7 +9,7 @@ use code::value::Value;
 use random::Generator;
 
 pub fn vocabulary() -> Vocabulary {
-    Vocabulary::new(["A", "B", "C", "D", "X"].map(str::to_owned).to_vec())
+    Vocabulary::try_from(["A", "B", "C", "D", "X"].map(str::to_owned).to_vec()).unwrap()
 }
 
 struct Shape {

@@ -55,6 +55,14 @@ pub struct Program {
 }
 
 impl Program {
+    pub(crate) fn contextual(&self) -> Vec<bool> {
+        let mut contextual = vec![false; self.rule.len()];
+        for &rule in self.scope.iter().flat_map(|scope| &scope.rule) {
+            contextual[rule] = true;
+        }
+        contextual
+    }
+
     pub fn new(source: &source::Program) -> Self {
         let mut program = Self {
             atom: IndexSet::default(),
@@ -269,6 +277,13 @@ impl Program {
             self.scope[scope].rule.push(index);
         }
         scope
+    }
+
+    pub fn scope(&self, name: &str) -> Option<&[usize]> {
+        self.scope
+            .iter()
+            .find(|scope| scope.name == name)
+            .map(|scope| scope.rule.as_slice())
     }
 
     pub fn label(&self, symbol: Symbol) -> String {

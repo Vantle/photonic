@@ -1,4 +1,4 @@
-use super::support::{named, single};
+use super::support::{Written, named, single};
 use crate::structure::Structure;
 use code::atom::Atom;
 
@@ -19,12 +19,12 @@ fn cycle(length: usize, both: bool) -> Structure {
     let mut rule = Vec::new();
     for index in 0..length {
         let next = (index + 1) % length;
-        rule.push((
+        rule.push(Written(
             vec![vec![atom[index].as_str()]],
             vec![vec![atom[next].as_str()]],
         ));
         if both {
-            rule.push((
+            rule.push(Written(
                 vec![vec![atom[next].as_str()]],
                 vec![vec![atom[index].as_str()]],
             ));
@@ -45,9 +45,9 @@ fn light() {
     let mut name = Vec::new();
     let structure = single(named(
         &[
-            (vec![vec!["Light"]], vec![vec!["Red"]]),
-            (vec![vec!["Light"]], vec![vec!["Green"]]),
-            (vec![vec!["Light"]], vec![vec!["Blue"]]),
+            Written(vec![vec!["Light"]], vec![vec!["Red"]]),
+            Written(vec![vec!["Light"]], vec![vec!["Green"]]),
+            Written(vec![vec!["Light"]], vec![vec!["Blue"]]),
         ],
         &mut name,
     ));
@@ -61,8 +61,8 @@ fn twin() {
     let mut name = Vec::new();
     let structure = single(named(
         &[
-            (vec![vec!["A", "B"]], vec![vec!["C", "D", "E"]]),
-            (vec![vec!["C", "D", "E"]], vec![vec!["F"]]),
+            Written(vec![vec!["A", "B"]], vec![vec!["C", "D", "E"]]),
+            Written(vec![vec!["C", "D", "E"]], vec![vec!["F"]]),
         ],
         &mut name,
     ));
@@ -77,15 +77,15 @@ fn duality() {
     let mut name = Vec::new();
     let and = single(named(
         &[
-            (
+            Written(
                 vec![vec!["Function", "Boolean", "And", "True", "True"]],
                 vec![vec!["Return", "True"]],
             ),
-            (
+            Written(
                 vec![vec!["Function", "Boolean", "And", "True", "False"]],
                 vec![vec!["Return", "False"]],
             ),
-            (
+            Written(
                 vec![vec!["Function", "Boolean", "And", "False", "False"]],
                 vec![vec!["Return", "False"]],
             ),
@@ -94,15 +94,15 @@ fn duality() {
     ));
     let or = single(named(
         &[
-            (
+            Written(
                 vec![vec!["Function", "Boolean", "Or", "True", "True"]],
                 vec![vec!["Return", "True"]],
             ),
-            (
+            Written(
                 vec![vec!["Function", "Boolean", "Or", "True", "False"]],
                 vec![vec!["Return", "True"]],
             ),
-            (
+            Written(
                 vec![vec!["Function", "Boolean", "Or", "False", "False"]],
                 vec![vec!["Return", "False"]],
             ),
@@ -132,6 +132,19 @@ fn duality() {
 }
 
 #[test]
+#[should_panic(expected = "a canonical form renames only the structure its symmetry describes")]
+fn foreign() {
+    let light = single(named(
+        &[Written(vec![vec!["Light"]], vec![vec!["Red"]])],
+        &mut Vec::new(),
+    ));
+    light
+        .symmetry(BUDGET)
+        .expect("examples fit the budget")
+        .form(&cycle(3, false));
+}
+
+#[test]
 fn pin() {
     let mut structure = cycle(9, true);
     structure.pin = vec![structure.atom()[0]];
@@ -152,7 +165,7 @@ fn graph(edge: &[(usize, usize)]) -> Structure {
         .iter()
         .flat_map(|&(from, to)| [(from, to), (to, from)])
         .map(|(from, to)| {
-            (
+            Written(
                 vec![vec![name[from].as_str()]],
                 vec![vec![name[to].as_str()]],
             )

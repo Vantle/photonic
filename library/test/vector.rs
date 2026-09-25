@@ -74,20 +74,26 @@ fn permutation(item: &[u64]) -> Vec<Vec<u64>> {
 }
 
 fn nest() -> Vec<Vec<Value>> {
-    let number = Value::number;
-    let vector = Value::Vector;
     vec![
         vec![],
-        vec![vector(vec![])],
-        vec![vector(vec![number(1), number(2)]), vector(vec![number(3)])],
+        vec![Value::Vector(vec![])],
         vec![
-            number(7),
-            vector(vec![number(8), vector(vec![])]),
-            vector(vec![vector(vec![vector(vec![number(9)])])]),
+            Value::Vector(vec![Value::number(1), Value::number(2)]),
+            Value::Vector(vec![Value::number(3)]),
         ],
-        vec![vector(vec![
-            number(1),
-            vector(vec![number(2), vector(vec![number(3)])]),
+        vec![
+            Value::number(7),
+            Value::Vector(vec![Value::number(8), Value::Vector(vec![])]),
+            Value::Vector(vec![Value::Vector(vec![Value::Vector(vec![
+                Value::number(9),
+            ])])]),
+        ],
+        vec![Value::Vector(vec![
+            Value::number(1),
+            Value::Vector(vec![
+                Value::number(2),
+                Value::Vector(vec![Value::number(3)]),
+            ]),
         ])],
     ]
 }

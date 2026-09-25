@@ -57,27 +57,19 @@
         const stop = element('button', undefined, 'Stop');
         stop.type = 'button';
         stop.hidden = true;
-        const run = element('button', 'run', 'Run');
-        run.type = 'button';
-        run.hidden = true;
-        run.title = 'Run (⌘ or Ctrl + Enter)';
+        const run = book.run.button();
         bar.append(badge, bench, lightbox, reset, stop, run);
         figure.insertBefore(bar, pre);
         if (setting.library.length) figure.insertBefore(shelf(setting), pre);
         const editor = book.editor.create(`Edit the ${setting.name} program`);
         editor.element.hidden = true;
-        const target = element('label', 'field');
-        target.append(setting.mode === 'path' ? 'Target configuration' : 'Target configurations, one per line');
-        const goal = element('textarea');
-        goal.spellcheck = false;
-        goal.rows = Math.max(1, setting.target.length);
-        goal.value = setting.target.join('\n');
-        goal.readOnly = true;
-        target.append(goal);
-        target.hidden = !setting.target.length;
+        const goal = book.editor.goal(setting.mode === 'path' ? 'Target configuration' : 'Target configurations, one per line', Math.max(1, setting.target.length));
+        goal.value = setting.target;
+        goal.area.readOnly = true;
+        goal.element.hidden = !setting.target.length;
         const message = book.render.message();
         const output = element('div', 'output');
-        pre.after(editor.element, target, message.element, output);
+        pre.after(editor.element, goal.element, message.element, output);
         book.syntax.highlight(pre, original);
         const recorded = record && { source: original, target: setting.target, result: record.result };
         let latest = recorded;
@@ -89,58 +81,40 @@
         else if (record.source !== original) message.say('This recorded run is stale. Regenerate it with bazel run -c opt //book:record.', 'error');
         restore();
         const channel = setting.mode === 'path' ? book.engine.open() : undefined;
-        const execute = async (source, target) => {
-            if (!channel) return book.engine.explore(setting, source, target);
-            const progress = await channel.send({ kind: 'path', request: book.engine.request(setting, source, target) }, 60000);
+        const execute = async (source, target, signal) => {
+            if (!channel) return book.engine.explore(setting, source, target, signal);
+            const progress = await channel.send('path', book.engine.request(setting, source, target), { timeout: 60000, signal });
             return {
                 outcome: progress.outcome,
                 count: progress.event,
                 work: progress.work,
                 definition: progress.definition,
-                get: index => channel.send({ kind: 'inspect', index }),
+                get: index => channel.send('inspect', { index }),
             };
         };
-        const wanted = () => goal.value.split('\n').map(line => line.trim()).filter(Boolean);
-        const changed = () => editor.value !== original || goal.value !== setting.target.join('\n');
+        const changed = () => editor.value !== original || goal.area.value !== setting.target.join('\n');
         const point = () => {
-            lightbox.href = book.share.link({ ...setting, source: editor.element.hidden ? original : editor.value, target: wanted() });
+            lightbox.href = book.share.link({ ...setting, source: editor.element.hidden ? original : editor.value, target: goal.value });
         };
         point();
-        let ticket = 0;
-        let busy = false;
-        const settle = () => {
-            busy = false;
-            run.removeAttribute('aria-disabled');
-            stop.hidden = true;
-        };
-        const start = async () => {
-            if (run.hidden || busy) return;
-            const mine = ++ticket;
+        const cycle = book.run.create({ trigger: run, stop: channel && stop, message });
+        const start = () => {
             const source = editor.value;
-            const chosen = wanted();
-            busy = true;
-            run.setAttribute('aria-disabled', 'true');
-            stop.hidden = !channel;
-            message.wait('Running in WebAssembly…');
-            try {
-                const result = await execute(source, chosen);
-                if (mine !== ticket) return;
-                message.say();
-                if (!channel) latest = { source, target: chosen, result };
-                show(output, setting, result, chosen);
-            } catch (error) {
-                if (mine !== ticket) return;
+            const target = goal.value;
+            const submission = book.editor.submit(figure, editor, goal);
+            cycle.start(signal => execute(source, target, signal), result => {
+                if (!channel) latest = { source, target, result };
+                show(output, setting, result, target);
+            }, error => {
                 if (channel && !error.detail) restore();
-                message.say(book.editor.locate(editor.area, error), 'error');
-            } finally {
-                if (mine === ticket) settle();
-            }
+                message.say(book.editor.locate(error, submission), 'error');
+            });
         };
         book.engine.watch(state => {
             const on = state === 'live';
             run.hidden = !on;
             badge.textContent = on ? 'live' : 'recorded run';
-            goal.readOnly = !on;
+            goal.area.readOnly = !on;
             editor.area.readOnly = !on;
             if (!on || !editor.element.hidden) return;
             editor.element.hidden = false;
@@ -148,24 +122,17 @@
             pre.hidden = true;
         });
         run.addEventListener('click', start);
-        stop.addEventListener('click', () => channel.stop());
-        for (const field of [editor.area, goal]) {
-            field.addEventListener('input', () => {
+        for (const area of [editor.area, goal.area]) {
+            area.addEventListener('input', () => {
                 reset.hidden = !changed();
                 point();
             });
-            field.addEventListener('keydown', event => {
-                if (event.key !== 'Enter' || !(event.metaKey || event.ctrlKey)) return;
-                event.preventDefault();
-                start();
-            });
+            book.run.shortcut(area, start);
         }
         reset.addEventListener('click', () => {
-            ticket++;
-            if (!stop.hidden) channel.stop();
-            settle();
+            cycle.cancel();
             editor.value = original;
-            goal.value = setting.target.join('\n');
+            goal.value = setting.target;
             reset.hidden = true;
             message.say();
             point();

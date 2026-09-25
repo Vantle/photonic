@@ -79,28 +79,28 @@ photonic_test(
     name = "successor.check",
     srcs = ["successor.wave"],
     preserve = True,
-    targets = ["Unit.Unit.Unit"],
+    target = ["Unit.Unit.Unit"],
 )
 
 photonic_test(
     name = "membership.check",
     srcs = ["membership.wave"],
     preserve = True,
-    targets = ["Natural"],
+    target = ["Natural"],
 )
 
 photonic_test(
     name = "addition.check",
     srcs = ["addition.wave"],
     preserve = True,
-    targets = ["Unit.Unit.Unit.Unit.Unit"],
+    target = ["Unit.Unit.Unit.Unit.Unit"],
 )
 
 photonic_test(
     name = "sum.check",
     srcs = ["sum.wave"],
     preserve = True,
-    targets = ["Unit.Unit.Unit.Unit.Unit.Unit.Unit.Unit.Unit.Unit"],
+    target = ["Unit.Unit.Unit.Unit.Unit.Unit.Unit.Unit.Unit.Unit"],
 )
 
 photonic_binary(
@@ -111,11 +111,11 @@ photonic_binary(
 photonic_test(
     name = "preparation.check",
     srcs = ["preparation.wave"],
-    cells = 24,
-    coherences = 8,
-    frames = 30,
+    coherence = 8,
+    configuration = 3000,
+    occurrence = 24,
     preserve = True,
-    states = 3000,
-    steps = 100000,
-    targets = ["Unit.Unit"],
+    scope = 30,
+    target = ["Unit.Unit"],
+    work = 100000,
 )

@@ -1,6 +1,6 @@
 use crate::coherence::{Coherence, Token};
 use crate::flat::{Flat, run};
-use crate::state::{Membership, State};
+use crate::state::State;
 use code::atom::Atom;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -13,7 +13,7 @@ pub struct Event {
 struct Enumeration<'state, Visit> {
     program: &'state Flat,
     state: &'state State,
-    membership: Vec<Membership>,
+    membership: Vec<u32>,
     visit: Visit,
 }
 
@@ -77,7 +77,7 @@ impl<Visit: FnMut(Event) -> bool> Enumeration<'_, Visit> {
             .iter()
             .zip(assignment)
             .map(|(particle, &index)| {
-                choices(&self.state.coherence()[index], particle, &self.membership)
+                selection(&self.state.coherence()[index], particle, &self.membership)
             })
             .collect::<Vec<_>>();
         let mut cursor = vec![0; choice.len()];
@@ -110,13 +110,11 @@ impl<Visit: FnMut(Event) -> bool> Enumeration<'_, Visit> {
     }
 }
 
-fn shared(id: u32, membership: &[Membership]) -> bool {
-    membership
-        .binary_search_by_key(&id, |entry| entry.id)
-        .is_ok()
+fn shared(id: u32, membership: &[u32]) -> bool {
+    membership.binary_search(&id).is_ok()
 }
 
-fn group(token: &[Token], membership: &[Membership]) -> Vec<Vec<u32>> {
+fn group(token: &[Token], membership: &[u32]) -> Vec<Vec<u32>> {
     let (shared, private): (Vec<&Token>, Vec<&Token>) =
         token.iter().partition(|token| shared(token.id, membership));
     std::iter::once(private.iter().map(|token| token.id).collect::<Vec<_>>())
@@ -145,7 +143,7 @@ fn combination(group: &[Vec<u32>], count: usize) -> Vec<Vec<u32>> {
         .collect()
 }
 
-fn choices(coherence: &Coherence, particle: &[Atom], membership: &[Membership]) -> Vec<Vec<u32>> {
+fn selection(coherence: &Coherence, particle: &[Atom], membership: &[u32]) -> Vec<Vec<u32>> {
     let mut result = vec![Vec::new()];
     for (atom, count) in run(particle) {
         let option = combination(&group(coherence.range(atom), membership), count);

@@ -7,10 +7,11 @@ use crate::task::{Goal, Task};
 use random::Generator;
 
 pub const HIDDEN: usize = 4;
+pub const SYNTHETIC: usize = 48;
 const PROCESSOR: [f64; 3] = [1.0, 4.0, 64.0];
 const SIZE: [f64; 3] = [0.0125, 0.05, 0.2];
 
-fn aim(task: Task, generator: &mut Generator) -> Task {
+fn vary(task: Task, generator: &mut Generator) -> Task {
     if generator.chance(0.5) {
         return task;
     }
@@ -23,7 +24,17 @@ fn aim(task: Task, generator: &mut Generator) -> Task {
     }
 }
 
-pub fn initial(synthetic: usize, seed: u64, setting: &Setting) -> Vec<Task> {
+pub fn conceal(task: Task) -> Result<Task, problem::Failure> {
+    let name = task.name.clone();
+    task.conceal(HIDDEN)
+        .map_err(|source| problem::Failure::Hidden { task: name, source })
+}
+
+pub fn initial(
+    synthetic: usize,
+    seed: u64,
+    setting: &Setting,
+) -> Result<Vec<Task>, problem::Failure> {
     let mut generator = Generator::new(seed);
     curated()
         .into_iter()
@@ -35,22 +46,27 @@ pub fn initial(synthetic: usize, seed: u64, setting: &Setting) -> Vec<Task> {
                 &setting.limit,
                 rule,
             );
-            aim(task, &mut generator)
+            vary(task, &mut generator)
         }))
-        .map(|task| task.conceal(HIDDEN))
+        .map(conceal)
         .collect()
 }
 
-pub fn merge(mut pool: Vec<Task>) -> Vec<Task> {
+pub fn merge(mut pool: Vec<Task>) -> Result<Vec<Task>, problem::Failure> {
     for task in curated() {
         if pool.iter().all(|known| known.name != task.name) {
-            pool.push(task.conceal(HIDDEN));
+            pool.push(conceal(task)?);
         }
     }
-    pool
+    Ok(pool)
 }
 
-pub fn grow(mut pool: Vec<Task>, count: usize, seed: u64, setting: &Setting) -> Vec<Task> {
+pub fn grow(
+    mut pool: Vec<Task>,
+    count: usize,
+    seed: u64,
+    setting: &Setting,
+) -> Result<Vec<Task>, problem::Failure> {
     let mut generator = Generator::new(seed ^ pool.len() as u64);
     let start = pool
         .iter()
@@ -66,26 +82,35 @@ pub fn grow(mut pool: Vec<Task>, count: usize, seed: u64, setting: &Setting) -> 
             &setting.limit,
             rule,
         );
-        pool.push(aim(task, &mut generator).conceal(HIDDEN));
+        pool.push(conceal(vary(task, &mut generator))?);
     }
-    pool
+    Ok(pool)
 }
 
-pub fn admit(pool: Vec<Task>, task: Task) -> Vec<Task> {
+fn pose(task: &Task, setting: &Setting) -> Result<Problem, problem::Failure> {
+    Problem::new(task.clone(), &setting.thorough(), ATOM)
+}
+
+pub fn admit(
+    pool: Vec<Task>,
+    task: Task,
+    setting: &Setting,
+) -> Result<Vec<Task>, problem::Failure> {
+    let task = conceal(task)?;
+    pose(&task, setting)?;
     let mut pool = pool
         .into_iter()
         .filter(|known| known.name != task.name)
         .collect::<Vec<_>>();
-    pool.push(task.conceal(HIDDEN));
-    pool
+    pool.push(task);
+    Ok(pool)
 }
 
 pub fn prepare(pool: &[Task], setting: &Setting) -> (Vec<Problem>, Vec<problem::Failure>) {
     let mut ready = Vec::new();
     let mut failure = Vec::new();
-    let thorough = setting.thorough();
     for task in pool {
-        match Problem::new(task.clone(), &thorough, ATOM) {
+        match pose(task, setting) {
             Ok(problem) => ready.push(problem),
             Err(error) => failure.push(error),
         }

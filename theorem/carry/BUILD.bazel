@@ -15,17 +15,19 @@ theorem(
         "//library/carry:combine",
         "//library/carry:evaluate",
         "//library/ternary:equal",
+        "//theorem:case",
     ],
 )
 
 theorem(
     name = "associativity",
     srcs = ["associativity.wave"],
-    cells = 512,
+    occurrence = 512,
     deps = [
         ":role",
         "//library/carry:combine",
         "//library/carry:equal",
+        "//theorem:case",
     ],
 )
 
@@ -37,6 +39,7 @@ theorem(
         "//library/boolean:and",
         "//library/carry:combine",
         "//library/carry:equal",
+        "//theorem:case",
     ],
 )
 

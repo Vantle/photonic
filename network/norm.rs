@@ -13,7 +13,7 @@ pub struct Norm {
 #[derive(Clone, Debug)]
 pub struct Trace {
     normal: Array2<f32>,
-    deviation: Vec<f32>,
+    inverse: Vec<f32>,
 }
 
 impl Norm {
@@ -32,20 +32,20 @@ impl Norm {
     pub fn forward(&self, parameter: &[f32], input: &ArrayView2<'_, f32>) -> (Array2<f32>, Trace) {
         let width = input.ncols() as f32;
         let mut normal = input.to_owned();
-        let mut deviation = Vec::with_capacity(input.nrows());
+        let mut inverse = Vec::with_capacity(input.nrows());
         for mut row in normal.rows_mut() {
             let mean = row.sum() / width;
             let variance = row.iter().map(|value| (value - mean).powi(2)).sum::<f32>() / width;
-            let inverse = 1.0 / (variance + EPSILON).sqrt();
-            row.mapv_inplace(|value| (value - mean) * inverse);
-            deviation.push(inverse);
+            let factor = 1.0 / (variance + EPSILON).sqrt();
+            row.mapv_inplace(|value| (value - mean) * factor);
+            inverse.push(factor);
         }
         let scale = self.scale.view(parameter);
         let shift = self.shift.view(parameter);
         let mut output = normal.clone();
         output *= &scale.row(0);
         output += &shift.row(0);
-        (output, Trace { normal, deviation })
+        (output, Trace { normal, inverse })
     }
 
     pub fn backward(
@@ -80,14 +80,14 @@ impl Norm {
             .into_iter()
             .zip(delta.rows())
             .zip(trace.normal.rows())
-            .zip(&trace.deviation)
+            .zip(&trace.inverse)
         {
             let scaled = &delta * &scale.row(0);
             let mean = scaled.sum() / width;
             let projection = scaled
                 .iter()
                 .zip(normal.iter())
-                .map(|(a, b)| a * b)
+                .map(|(one, other)| one * other)
                 .sum::<f32>()
                 / width;
             Zip::from(&mut target).and(&scaled).and(&normal).for_each(

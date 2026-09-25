@@ -14,7 +14,7 @@ pub fn discovery(improvement: &Improvement) -> String {
         .before
         .map_or_else(|| "none".to_owned(), |cost| format!("{cost:.3}"));
     format!(
-        "discovery {}: cost {before} -> {:.3} ({saving:+.1}% vs baseline {:.3}), size {}, time {:.3}, {}{}",
+        "discovery {}: cost {before} -> {:.3} ({saving:+.1}% vs baseline {:.3}), size {}, time {:.3}, {}",
         improvement.task,
         improvement.after,
         improvement.baseline,
@@ -24,11 +24,6 @@ pub fn discovery(improvement: &Improvement) -> String {
             "exhaustive"
         } else {
             "sampled"
-        },
-        if improvement.record.general {
-            ""
-        } else {
-            ", fails holdout"
         },
     )
 }
@@ -69,8 +64,8 @@ pub fn observe(event: Event) {
             report.policy,
             report.value,
             report.entropy,
-            report.fit,
             report.judge,
+            report.fit,
             report.risk * 100.0,
             report.reward,
             report.correct * 100.0,

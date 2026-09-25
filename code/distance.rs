@@ -4,20 +4,23 @@ use crate::particle::Particle;
 const EXACT: usize = 10;
 
 pub fn distance(left: &Configuration, right: &Configuration) -> f64 {
-    let left = left.coherence();
-    let right = right.coherence();
-    let total = left
+    let (large, small) = if (left.coherence().len(), left) < (right.coherence().len(), right) {
+        (right.coherence(), left.coherence())
+    } else {
+        (left.coherence(), right.coherence())
+    };
+    let total = large
         .iter()
-        .chain(right)
+        .chain(small)
         .map(|particle| particle.len() + 1)
         .sum::<usize>();
     if total == 0 {
         return 0.0;
     }
-    let cost = if right.len() <= EXACT {
-        exact(left, right)
+    let cost = if small.len() <= EXACT {
+        exact(large, small)
     } else {
-        greedy(left, right)
+        greedy(large, small)
     };
     cost as f64 / total as f64
 }

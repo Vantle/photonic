@@ -83,7 +83,6 @@ fn improvement() {
     assert_eq!(tree.action()[chosen], Action::Create { atom: Atom(0) });
     let policy = tree.policy();
     assert!(policy[2] > policy[0] && policy[0] > policy[1]);
-    assert!(tree.value() > 0.0);
 }
 
 struct Blind {

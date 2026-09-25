@@ -9,11 +9,6 @@ use smallvec::SmallVec;
 use std::ops::Range;
 use std::sync::Arc;
 
-struct Presence {
-    frame: usize,
-    present: bool,
-}
-
 impl Index {
     #[cfg(any(test, feature = "measurement"))]
     pub(crate) fn update(&mut self, state: Arc<State>, change: &Change) {
@@ -32,19 +27,19 @@ impl Index {
         self.delta.clear();
         let context = self.contextual(&state, change, &reach);
         self.delta.invalidated = context.invalidated;
-        let affected = self.presence(&state, change);
+        let touched = self.touched(&state, change);
         let posting = self.withdraw(&change.world);
-        self.prune(&affected, posting);
+        self.prune(&touched, posting);
         self.renumber();
         self.invalidate();
         let replacement = self.replace(&state, &reach, &context.repopulated);
         self.install(state, reach);
         self.admit(replacement, change.insertion.clone());
-        self.seal(affected);
+        self.seal();
         self.delta.repopulated = context.repopulated;
     }
 
-    fn presence(&self, state: &State, change: &Change) -> Vec<Presence> {
+    fn touched(&self, state: &State, change: &Change) -> Vec<usize> {
         let mut frame = change
             .world
             .iter()
@@ -59,12 +54,6 @@ impl Index {
         frame.sort_unstable();
         frame.dedup();
         frame
-            .into_iter()
-            .map(|frame| Presence {
-                frame,
-                present: self.present(frame),
-            })
-            .collect()
     }
 
     fn withdraw(&mut self, removed: &Set<usize>) -> SmallVec<[(usize, Term); 8]> {
@@ -90,9 +79,9 @@ impl Index {
         posting
     }
 
-    fn prune(&mut self, affected: &[Presence], mut posting: SmallVec<[(usize, Term); 8]>) {
-        for presence in affected {
-            let Some(reader) = self.reader.get_mut(presence.frame) else {
+    fn prune(&mut self, touched: &[usize], mut posting: SmallVec<[(usize, Term); 8]>) {
+        for &frame in touched {
+            let Some(reader) = self.reader.get_mut(frame) else {
                 continue;
             };
             let previous = reader.len();
@@ -183,7 +172,7 @@ impl Index {
         }
     }
 
-    fn seal(&mut self, affected: Vec<Presence>) {
+    fn seal(&mut self) {
         self.delta.removal.sort_unstable();
         self.delta.removal.dedup();
         if !self.delta.invalidated.is_empty() {
@@ -192,11 +181,6 @@ impl Index {
                 .insertion
                 .sort_unstable_by_key(|&site| location[site]);
             self.delta.insertion.dedup();
-        }
-        for presence in affected {
-            if presence.present != self.present(presence.frame) {
-                self.delta.invalidated.push(presence.frame);
-            }
         }
         self.delta.invalidated.sort_unstable();
         self.delta.invalidated.dedup();

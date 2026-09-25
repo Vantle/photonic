@@ -1,6 +1,6 @@
 #![forbid(unsafe_code)]
 
-pub use frontend::{failure, lowering, parser, source, syntax, text};
+pub use frontend::{lowering, parser, source, syntax, text};
 
 mod accumulator;
 mod affected;
@@ -47,7 +47,10 @@ mod position;
 mod prefix;
 mod preparation;
 pub mod prism;
+#[cfg(feature = "measurement")]
 pub mod profile;
+#[cfg(not(feature = "measurement"))]
+mod profile;
 mod program;
 mod proof;
 mod propagation;

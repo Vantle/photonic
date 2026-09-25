@@ -1,4 +1,4 @@
-use super::support::named;
+use super::support::{Written, named};
 use crate::analysis::{Kind, analyze};
 use crate::statement::{Statement, structure};
 use std::collections::BTreeSet;
@@ -8,13 +8,13 @@ fn category() {
     let mut name = Vec::new();
     let program = named(
         &[
-            (vec![vec!["Light"]], vec![vec!["Red"]]),
-            (vec![vec!["Light"]], vec![vec!["Green"]]),
-            (vec![vec!["Light"]], vec![vec!["Blue"]]),
-            (vec![vec!["Not", "True"]], vec![vec!["False"]]),
-            (vec![vec!["Not", "False"]], vec![vec!["True"]]),
-            (vec![vec!["Start"]], vec![vec!["Not", "True", "Boolean"]]),
-            (vec![vec!["Go", "Fast"]], vec![vec!["Stop"]]),
+            Written(vec![vec!["Light"]], vec![vec!["Red"]]),
+            Written(vec![vec!["Light"]], vec![vec!["Green"]]),
+            Written(vec![vec!["Light"]], vec![vec!["Blue"]]),
+            Written(vec![vec!["Not", "True"]], vec![vec!["False"]]),
+            Written(vec![vec!["Not", "False"]], vec![vec!["True"]]),
+            Written(vec![vec!["Start"]], vec![vec!["Not", "True", "Boolean"]]),
+            Written(vec![vec!["Go", "Fast"]], vec![vec!["Stop"]]),
         ],
         &mut name,
     );

@@ -169,7 +169,11 @@ impl Flow {
 mod test;
 
 impl Binding {
-    pub(crate) fn select(state: &State, selection: &[crate::slot::Slot]) -> Option<Self> {
+    pub(crate) fn select(
+        state: &State,
+        selection: &[crate::slot::Slot],
+        frame: usize,
+    ) -> Option<Self> {
         let place = selection
             .iter()
             .flat_map(|slot| {
@@ -182,11 +186,15 @@ impl Binding {
         if footprint.len() != place.len() {
             return None;
         }
+        let world = selection
+            .iter()
+            .filter_map(|slot| slot.location.world())
+            .collect::<Set<_>>();
+        if world.iter().any(|&index| state.world[index].frame != frame) {
+            return None;
+        }
         Some(Self {
-            world: selection
-                .iter()
-                .filter_map(|slot| slot.location.world())
-                .collect(),
+            world,
             exact: footprint.clone(),
             footprint,
             read: Set::default(),

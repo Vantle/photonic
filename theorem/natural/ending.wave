@@ -1,10 +1,10 @@
-Case.(([M] Mode.([Operation] Add)), ([M] Mode.([Operation] Borrow))).(([K] 0), ([K] 1)),
+Case.(([M] Mode.([Operation] Add)), ([M] Mode.([Operation] Deduct))).(([K] 0), ([K] 1)),
 
-[Claim] (Column.Step, Column.M, Column.Carry.K, Column.Left.Zero, Column.Right.Zero, Column.Output.Zero, Outcome.M.K),
+[Claim] (Column.Step, Column.M, Column.Carried.K, Column.Left.Zero, Column.Right.Zero, Column.Output.Zero, Outcome.M.K),
 [Outcome.Mode.([Operation] Add).0] Scheme.Positive.Empty,
 [Outcome.Mode.([Operation] Add).1] Scheme.Positive.One,
-[Outcome.Mode.([Operation] Borrow).0] Scheme.Positive.Empty,
-[Outcome.Mode.([Operation] Borrow).1] Scheme.Negative,
+[Outcome.Mode.([Operation] Deduct).0] Scheme.Positive.Empty,
+[Outcome.Mode.([Operation] Deduct).1] Scheme.Negative,
 [Return.Natural.Column.Positive] Read.Probe,
 [Yield.End.Probe.Zero] Engine.Positive.Empty,
 [Yield.([Digit] 1).Probe] Read.Again,
@@ -14,4 +14,4 @@ Case.(([M] Mode.([Operation] Add)), ([M] Mode.([Operation] Borrow))).(([K] 0), (
 [Engine.Positive.One, Scheme.Positive.One] Return.Verdict.True,
 [Engine.Negative, Scheme.Negative] Return.Verdict.True,
 
-[Holds.(([M] Mode.([Operation] Add)), ([M] Mode.([Operation] Borrow))).(([K] 0), ([K] 1))] Theorem
+[Holds.(([M] Mode.([Operation] Add)), ([M] Mode.([Operation] Deduct))).(([K] 0), ([K] 1))] Theorem

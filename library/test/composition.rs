@@ -33,13 +33,13 @@ fn scalar() {
             Outcome::Unreachable,
         ),
         (
-            "Invoke.Carry.Combine.([Left] Kill).([Right] Generate)",
+            "Invoke.Signal.Combine.([Left] Kill).([Right] Generate)",
             "Generate",
             Outcome::Reached,
         ),
         (
             "Invoke.Field.Pack.([Position] 1).([Value] 2)",
-            "().([1] 2)",
+            "().([Beta] 2)",
             Outcome::Reached,
         ),
     ] {

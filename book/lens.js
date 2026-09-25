@@ -1,11 +1,11 @@
 (() => {
     'use strict';
     const book = globalThis.book ??= {};
-    const { element } = book.render;
+    const { element, count } = book.render;
 
     const value = item => typeof item === 'string'
-        ? book.render.token({ label: item })
-        : book.render.token({}, item.rule.name);
+        ? book.render.token('atom', item)
+        : book.render.token('rule', item.rule.name);
 
     const particle = (content, style = 'coherence') => {
         const node = element('div', content.length ? style : `${style} empty`);
@@ -39,12 +39,12 @@
 
     const draw = (host, program) => {
         const result = element('div', 'lowered');
-        result.append(element('h4', undefined, program.initial.length === 1 ? '1 coherence' : `${program.initial.length} coherences`));
+        result.append(element('h4', undefined, count(program.initial.length, 'coherence')));
         const row = element('div', 'row');
         program.initial.forEach(content => row.append(particle(content)));
         if (!program.initial.length) row.append(element('span', 'summary', 'none'));
         result.append(row);
-        result.append(element('h4', undefined, program.rule.length === 1 ? '1 rule' : `${program.rule.length} rules`));
+        result.append(element('h4', undefined, count(program.rule.length, 'rule')));
         program.rule.forEach(definition => result.append(rule(definition)));
         if (!program.rule.length) result.append(element('span', 'summary', 'none'));
         host.replaceChildren(result);
@@ -55,7 +55,7 @@
         const bar = element('div', 'bar');
         bar.append(element('span', 'title', 'Syntax lens'), element('span', 'badge', 'what the source means'));
         const body = element('div', 'body');
-        const preset = element('div', 'preset');
+        const choice = book.render.preset(sample, index => show(sample[index]));
         const field = element('label', 'field');
         field.append('Photonic source');
         const input = element('input');
@@ -64,13 +64,13 @@
         field.append(input);
         const message = book.render.message();
         const output = element('div');
-        body.append(preset, field, message.element, output);
+        body.append(choice.element, field, message.element, output);
         widget.replaceChildren(bar, body);
         let ticket = 0;
         const show = async source => {
             const mine = ++ticket;
             input.value = source;
-            preset.querySelectorAll('button').forEach(button => button.setAttribute('aria-pressed', String(button.textContent === source)));
+            choice.press(source);
             const recorded = book.record?.lower?.[source];
             if (recorded) {
                 message.say();
@@ -78,25 +78,21 @@
                 return;
             }
             if (book.engine.state !== 'live') {
+                output.replaceChildren();
                 message.say('Serve the book to lower new source: bazel run -c opt //toolchain/browser:serve');
                 return;
             }
             try {
-                const result = await book.engine.send({ kind: 'lower', source });
+                const result = await book.engine.send('lower', { source });
                 if (mine !== ticket) return;
                 message.say();
                 draw(output, result.program);
             } catch (error) {
                 if (mine !== ticket) return;
+                output.replaceChildren();
                 message.say(book.editor.describe(error), 'error');
             }
         };
-        sample.forEach(source => {
-            const button = element('button', undefined, source);
-            button.type = 'button';
-            button.addEventListener('click', () => show(source));
-            preset.append(button);
-        });
         let timer;
         input.addEventListener('input', () => {
             clearTimeout(timer);

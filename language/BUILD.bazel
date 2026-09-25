@@ -14,6 +14,7 @@ rust_library(
         "//library:__pkg__",
         "//photonic:__pkg__",
         "//program/binary:__pkg__",
+        "//spectrum:__pkg__",
         "//toolchain/browser:__pkg__",
         "//translation:__pkg__",
     ],

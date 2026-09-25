@@ -28,7 +28,7 @@ enum Task {
     },
 }
 
-pub struct Gate {
+pub(crate) struct Gate {
     shared: Option<sharing::Sharing>,
     group: Vec<usize>,
     candidate: Vec<IndexSet<Slot, crate::hashing::Builder>>,

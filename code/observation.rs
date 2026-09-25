@@ -1,4 +1,4 @@
-use crate::canonical::{Key, key, membership};
+use crate::canonical::{Exhausted, Key, key, membership};
 use crate::configuration::Configuration;
 use crate::particle::Particle;
 use crate::value::Value;
@@ -47,10 +47,6 @@ impl Observation {
         Self { coherence }
     }
 
-    pub fn coherence(&self) -> &[Vec<Occurrence>] {
-        &self.coherence
-    }
-
     fn pair(&self) -> Vec<Vec<(u32, Value)>> {
         self.coherence
             .iter()
@@ -67,8 +63,15 @@ impl Observation {
         !membership(&self.pair()).is_empty()
     }
 
-    pub fn key(&self, budget: usize) -> Key<Value> {
+    pub fn key(&self, budget: usize) -> Result<Key<Value>, Exhausted> {
         key(&self.pair(), budget)
+    }
+
+    pub fn same(&self, other: &Self, budget: usize) -> bool {
+        if self == other {
+            return true;
+        }
+        matches!((self.key(budget), other.key(budget)), (Ok(left), Ok(right)) if left == right)
     }
 
     pub fn configuration(&self) -> Configuration {

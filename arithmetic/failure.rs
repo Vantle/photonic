@@ -14,4 +14,12 @@ pub enum Failure {
     },
     #[error("the value does not fit the selected representation")]
     Capacity,
+    #[error(
+        "expected decimal digits or a 0b, 0t, 0o, or 0x prefix; underscores may separate digits"
+    )]
+    Syntax,
+    #[error("the numeral exceeds the supported integer range")]
+    Range,
+    #[error("this operand must be nonnegative")]
+    Sign,
 }

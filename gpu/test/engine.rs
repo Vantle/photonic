@@ -39,7 +39,11 @@ fn agreement() {
     for value in &mut model.parameter {
         *value *= 0.5;
     }
-    engine.load(&model.parameter);
+    engine.load(&model.parameter).unwrap();
+    assert!(matches!(
+        engine.load(&model.parameter[1..]),
+        Err(Failure::Length { .. })
+    ));
     let expected = model.infer(&reference);
     let actual = engine.infer(&reference).unwrap();
     assert!((expected[0].value - actual[0].value).abs() < 1e-3);

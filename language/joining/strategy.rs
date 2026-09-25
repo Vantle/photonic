@@ -32,11 +32,11 @@ impl History {
     }
 }
 
-pub(super) struct Request<'a> {
-    pub space: &'a Space,
-    pub order: &'a [usize],
-    pub changed: &'a [usize],
-    pub index: &'a Index,
+pub(super) struct Request<'request> {
+    pub space: &'request Space,
+    pub order: &'request [usize],
+    pub changed: &'request [usize],
+    pub index: &'request Index,
     pub history: Option<History>,
 }
 

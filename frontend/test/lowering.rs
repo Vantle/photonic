@@ -1,4 +1,5 @@
-use frontend::lowering::{self, Failure};
+use frontend::failure::Failure;
+use frontend::lowering;
 use frontend::source::{Program, Value};
 
 fn atom(value: &[&str]) -> Vec<Value> {
@@ -27,10 +28,7 @@ fn same(left: &str, right: &str) {
 
 fn syntax(source: &str) -> String {
     match lowering::parse(source) {
-        Err(
-            Failure::Syntax { message, .. }
-            | Failure::Parse(frontend::failure::Failure::Syntax { message, .. }),
-        ) => message,
+        Err(Failure::Syntax { message, .. } | Failure::Lowering { message, .. }) => message,
         other => panic!("expected a syntax failure for {source}, found {other:?}"),
     }
 }
@@ -199,9 +197,7 @@ fn unicode() {
     let source = lowering::parse("人.世界, [人] 🌋").unwrap();
     assert_eq!(source.initial, [atom(&["人", "世界"])]);
     assert_eq!(source.rule[0].output[0].particle, atom(&["🌋"]));
-    let Failure::Parse(frontend::failure::Failure::Syntax { span, .. }) =
-        lowering::parse("人]").unwrap_err()
-    else {
+    let Failure::Syntax { span, .. } = lowering::parse("人]").unwrap_err() else {
         panic!("expected diagnostic");
     };
     assert_eq!(span.offset(), 3);
@@ -212,10 +208,7 @@ fn unicode() {
 fn malformed() {
     for source in ["A..B", ".A", "[A] B.", "A,.", "[A] B.,", "(A]", "[A"] {
         assert!(
-            matches!(
-                lowering::parse(source),
-                Err(Failure::Parse(frontend::failure::Failure::Syntax { .. }))
-            ),
+            matches!(lowering::parse(source), Err(Failure::Syntax { .. })),
             "{source}"
         );
     }
@@ -257,7 +250,7 @@ fn depth() {
     assert!(lowering::parse(&nested(limit)).is_ok());
     assert!(matches!(
         lowering::parse(&nested(limit + 1)),
-        Err(Failure::Parse(frontend::failure::Failure::Depth { .. }))
+        Err(Failure::Depth { .. })
     ));
     for count in [limit, limit + 1] {
         assert_eq!(
@@ -272,12 +265,12 @@ fn depth() {
     let mixed = format!("{}({})", "(".repeat(limit - 1), "[B] ".repeat(2));
     assert!(matches!(
         lowering::parse(&format!("{mixed}{}", ")".repeat(limit - 1))),
-        Err(Failure::Parse(frontend::failure::Failure::Depth { .. }))
+        Err(Failure::Depth { .. })
     ));
     assert!(lowering::parse(&"[A] B, ".repeat(10_000)).is_ok());
     assert!(matches!(
         lowering::parse(&"[".repeat(limit + 1)),
-        Err(Failure::Parse(frontend::failure::Failure::Depth { .. }))
+        Err(Failure::Depth { .. })
     ));
     assert!(lowering::parse(&format!("{}A{}", "(".repeat(limit), ")".repeat(limit))).is_ok());
 }

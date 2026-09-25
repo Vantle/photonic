@@ -65,7 +65,7 @@ impl Head {
         self.judge.initialize(parameter, generator, 0.0);
     }
 
-    fn columns(&self, head: u16) -> std::ops::Range<usize> {
+    fn column(&self, head: u16) -> std::ops::Range<usize> {
         let start = usize::from(head) * self.dimension;
         start..start + self.dimension
     }
@@ -110,12 +110,12 @@ impl Head {
                             unary[[token as usize, usize::from(head)]]
                         }
                         Pointer::Binary { head, left, right } => {
-                            let columns = self.columns(head);
+                            let column = self.column(head);
                             let (left, right) = (left as usize, right as usize);
-                            view(&query, left..left + 1, columns.clone())
+                            view(&query, left..left + 1, column.clone())
                                 .iter()
-                                .zip(view(&key, right..right + 1, columns).iter())
-                                .map(|(a, b)| a * b)
+                                .zip(view(&key, right..right + 1, column).iter())
+                                .map(|(one, other)| one * other)
                                 .sum::<f32>()
                                 * scale
                         }
@@ -182,14 +182,13 @@ impl Head {
                         unary[[token as usize, usize::from(head)]] += delta;
                     }
                     Pointer::Binary { head, left, right } => {
-                        let columns = self.columns(head);
+                        let column = self.column(head);
                         let (left, right) = (left as usize, right as usize);
-                        let source = view(&trace.key, right..right + 1, columns.clone());
-                        edit(&mut query, left..left + 1, columns.clone())
+                        let source = view(&trace.key, right..right + 1, column.clone());
+                        edit(&mut query, left..left + 1, column.clone())
                             .scaled_add(delta * scale, &source);
-                        let source = view(&trace.query, left..left + 1, columns.clone());
-                        edit(&mut key, right..right + 1, columns)
-                            .scaled_add(delta * scale, &source);
+                        let source = view(&trace.query, left..left + 1, column.clone());
+                        edit(&mut key, right..right + 1, column).scaled_add(delta * scale, &source);
                     }
                 }
             }

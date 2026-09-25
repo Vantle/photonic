@@ -17,7 +17,6 @@ rust_binary(
 rust_binary(
     name = "launch",
     srcs = ["launch.rs"],
-    crate_name = "launch",
     crate_root = "launch.rs",
     lint_config = "//:lint",
     visibility = [

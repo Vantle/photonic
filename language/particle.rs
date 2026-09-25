@@ -5,7 +5,6 @@ use crate::term::Term;
 use group::Group;
 use smallvec::SmallVec;
 use std::sync::Arc;
-use std::task::Poll;
 
 pub(crate) fn wide(width: usize) -> bool {
     width >= 8
@@ -176,9 +175,9 @@ impl Match {
         self.preparation.viable
     }
 
-    pub(crate) fn step(&mut self) -> Poll<Option<Vec<usize>>> {
+    pub(crate) fn step(&mut self) -> Option<Vec<usize>> {
         if self.complete {
-            return Poll::Ready(None);
+            return None;
         }
         if !self.fresh
             && !self
@@ -189,7 +188,7 @@ impl Match {
                 .any(|group| group.advance(&mut self.selected))
         {
             self.complete = true;
-            return Poll::Ready(None);
+            return None;
         }
         self.fresh = false;
         let mut result = vec![0; self.preparation.width];
@@ -198,7 +197,7 @@ impl Match {
                 result[position] = group.candidate[self.selected[position]];
             }
         }
-        Poll::Ready(Some(result))
+        Some(result)
     }
 
     pub(crate) fn preparation(&self) -> Arc<Preparation> {

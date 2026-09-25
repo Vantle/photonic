@@ -5,7 +5,6 @@ load("//toolchain:defs.bzl", "hermetic_binary")
 rust_binary(
     name = "scope",
     srcs = ["scope.rs"],
-    crate_features = ["measurement"],
     crate_root = "scope.rs",
     lint_config = "//:lint",
     deps = [
@@ -18,7 +17,6 @@ rust_binary(
 rust_binary(
     name = "fingerprint",
     srcs = ["fingerprint.rs"],
-    crate_features = ["measurement"],
     crate_root = "fingerprint.rs",
     lint_config = "//:lint",
     deps = [
@@ -31,7 +29,6 @@ rust_binary(
 rust_binary(
     name = "layout",
     srcs = ["layout.rs"],
-    crate_features = ["measurement"],
     crate_root = "layout.rs",
     lint_config = "//:lint",
     deps = [
@@ -48,7 +45,6 @@ rust_test(
         "scope.rs",
         "test/scope.rs",
     ],
-    crate_features = ["measurement"],
     crate_root = "scope.rs",
     lint_config = "//:lint",
     deps = [
@@ -326,7 +322,10 @@ hermetic_binary(
 
 rust_binary(
     name = "runtime",
-    srcs = ["runtime.rs"],
+    srcs = [
+        "directory.rs",
+        "runtime.rs",
+    ],
     compile_data = ["//language:fixture"],
     crate_root = "runtime.rs",
     lint_config = "//:lint",
@@ -340,7 +339,10 @@ rust_binary(
 
 rust_binary(
     name = "proof",
-    srcs = ["runtime.rs"],
+    srcs = [
+        "directory.rs",
+        "runtime.rs",
+    ],
     compile_data = ["//language:fixture"],
     crate_features = ["measurement"],
     crate_root = "runtime.rs",
@@ -367,7 +369,10 @@ rust_binary(
 
 rust_binary(
     name = "trace",
-    srcs = ["trace.rs"],
+    srcs = [
+        "directory.rs",
+        "trace.rs",
+    ],
     crate_root = "trace.rs",
     lint_config = "//:lint",
     deps = [
@@ -386,7 +391,10 @@ filegroup(
 
 rust_binary(
     name = "matching",
-    srcs = ["matching.rs"],
+    srcs = [
+        "directory.rs",
+        "matching.rs",
+    ],
     crate_root = "matching.rs",
     data = [
         "case/coherence.wave",
@@ -599,6 +607,7 @@ rust_binary(
 rust_binary(
     name = "lifecycle",
     srcs = [
+        "directory.rs",
         "export.rs",
         "formula.rs",
         "lifecycle.rs",
@@ -621,6 +630,7 @@ rust_binary(
 rust_binary(
     name = "reporting",
     srcs = [
+        "directory.rs",
         "export.rs",
         "formula.rs",
         "lifecycle.rs",
@@ -645,6 +655,7 @@ rust_binary(
     name = "allocation",
     srcs = [
         "allocation.rs",
+        "directory.rs",
         "export.rs",
         "formula.rs",
         "lifecycle.rs",

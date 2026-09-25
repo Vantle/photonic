@@ -3,19 +3,28 @@ load("//theorem:defs.bzl", "theorem")
 theorem(
     name = "antisymmetric",
     srcs = ["antisymmetric.wave"],
-    deps = ["//theorem:cover"],
+    deps = [
+        "//theorem:case",
+        "//theorem:cover",
+    ],
 )
 
 theorem(
     name = "reflexive",
     srcs = ["reflexive.wave"],
-    deps = ["//theorem:cover"],
+    deps = [
+        "//theorem:case",
+        "//theorem:cover",
+    ],
 )
 
 theorem(
     name = "transitive",
     srcs = ["transitive.wave"],
-    deps = ["//theorem:cover"],
+    deps = [
+        "//theorem:case",
+        "//theorem:cover",
+    ],
 )
 
 filegroup(

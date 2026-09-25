@@ -6,9 +6,9 @@ use crate::state::World;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-pub(crate) struct Request<'a, Value> {
-    pub identity: &'a Arc<Value>,
-    pub world: &'a Arc<World>,
+pub(crate) struct Request<'request, Value> {
+    pub identity: &'request Arc<Value>,
+    pub world: &'request Arc<World>,
     pub context: usize,
 }
 

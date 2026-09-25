@@ -1,98 +1,148 @@
+use crate::catalog::Catalog;
+use crate::configuration::Configuration;
 use crate::failure::{Code, Failure};
-use crate::request::Request;
+use crate::limit;
+use crate::request::{self, Request};
 use crate::response;
 use photonic::path::{Event, Search};
+use photonic::place::Place;
 use photonic::prism::Outcome;
-use photonic::runtime::Limit;
-use photonic::snapshot::{Definition, Node};
 use photonic::source::Program;
 use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
 
-const BUDGET: usize = 1000000;
-
-const LIMIT: Limit = Limit {
-    state: 32768,
-    cell: 8192,
-    frame: 1024,
-    world: 512,
-    record: 2000000,
-};
+#[derive(Serialize)]
+struct Evaluation<'path> {
+    state: Configuration,
+    source: &'path str,
+}
 
 #[derive(Serialize)]
 struct Progress<'path> {
     #[serde(skip_serializing_if = "Option::is_none")]
     outcome: Option<Outcome>,
-    state: Node,
     work: usize,
     event: usize,
-    source: &'path str,
-    definition: Vec<Definition>,
+    definition: &'path Catalog,
+    #[serde(flatten)]
+    evaluation: Option<Evaluation<'path>>,
+}
+
+#[derive(Serialize)]
+struct Step<'search> {
+    source: usize,
+    target: usize,
+    rule: &'search str,
+    footprint: &'search [Place],
+    exact: &'search [Place],
 }
 
 #[derive(Serialize)]
 struct Inspection<'search> {
-    event: &'search Event,
-    before: Option<Node>,
-    after: Option<Node>,
+    event: Step<'search>,
+    before: Option<Configuration>,
+    after: Option<Configuration>,
+}
+
+impl<'search> From<&'search Event> for Step<'search> {
+    fn from(event: &'search Event) -> Self {
+        Self {
+            source: event.source,
+            target: event.target,
+            rule: &event.rule,
+            footprint: &event.footprint,
+            exact: &event.exact,
+        }
+    }
+}
+
+enum Mode {
+    Follow { target: bool },
+    Evaluate { source: String },
 }
 
 struct Session {
     search: Search,
-    source: String,
-    target: bool,
+    definition: Catalog,
+    mode: Mode,
 }
 
 impl Session {
+    fn new(search: Search, mode: Mode) -> Self {
+        Self {
+            definition: Catalog::from(search.definition()),
+            search,
+            mode,
+        }
+    }
+
     fn follow(input: &str) -> Result<Self, Failure> {
-        let request = Request::read(input)?;
-        let program = request.program()?;
-        let mut target = request.target(&program)?;
+        let query: Request = request::read(input)?;
+        let program = query.program()?;
+        let mut target = query.target(&program)?;
         if target.len() > 1 {
             return Err(Failure::new(
                 Code::Target,
-                "a path follows at most one target",
+                "A path follows at most one target.",
             ));
         }
         let goal = target.pop();
-        Ok(Self {
+        let mode = Mode::Follow {
             target: goal.is_some(),
-            search: Search::new(program, goal.unwrap_or_default()),
-            source: request.source().to_owned(),
-        })
+        };
+        Ok(Self::new(
+            Search::new(program, goal.unwrap_or_default()),
+            mode,
+        ))
     }
 
     fn evaluate(input: &str) -> Result<Self, Failure> {
         let (program, source) = crate::expression::prepare(input)?;
-        Ok(Self {
-            search: Search::new(program, Program::default()),
-            source,
-            target: false,
+        Ok(Self::new(
+            Search::new(program, Program::default()),
+            Mode::Evaluate { source },
+        ))
+    }
+
+    fn run(&mut self) -> Result<Progress<'_>, Failure> {
+        self.search.run(limit::PATH.work, limit::PATH.bound);
+        let summary = self.search.summary();
+        let (outcome, evaluation) = match &self.mode {
+            Mode::Follow { target } => (target.then_some(summary.outcome), None),
+            Mode::Evaluate { source } => (
+                None,
+                Some(Evaluation {
+                    state: Configuration::new(self.search.current(), &self.definition)?,
+                    source,
+                }),
+            ),
+        };
+        Ok(Progress {
+            outcome,
+            work: summary.work,
+            event: summary.event,
+            definition: &self.definition,
+            evaluation,
         })
     }
 
-    fn run(&mut self) -> Progress<'_> {
-        self.search.run(BUDGET, LIMIT);
-        let summary = self.search.summary();
-        Progress {
-            outcome: self.target.then_some(summary.outcome),
-            state: self.search.current(),
-            work: summary.work,
-            event: summary.event,
-            source: &self.source,
-            definition: self.search.definition(),
-        }
+    fn state(&self, index: usize) -> Result<Option<Configuration>, Failure> {
+        self.search
+            .inspect(index)
+            .map(|node| Configuration::new(node, &self.definition))
+            .transpose()
     }
 
     fn inspect(&self, index: usize) -> Result<Inspection<'_>, Failure> {
-        self.search
+        let event = self
+            .search
             .transition(index)
-            .map(|event| Inspection {
-                event,
-                before: self.search.inspect(event.source),
-                after: self.search.inspect(event.target),
-            })
-            .ok_or_else(|| Failure::new(Code::Request, "No such transition."))
+            .ok_or_else(|| Failure::new(Code::Request, "No such transition."))?;
+        Ok(Inspection {
+            event: Step::from(event),
+            before: self.state(event.source)?,
+            after: self.state(event.target)?,
+        })
     }
 }
 
@@ -118,7 +168,7 @@ impl Path {
 
     pub fn run(&mut self) -> String {
         match &mut self.session {
-            Ok(session) => response::encode(session.run()),
+            Ok(session) => response::respond(session.run()),
             Err(failure) => response::reject(failure),
         }
     }

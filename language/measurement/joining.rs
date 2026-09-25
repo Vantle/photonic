@@ -27,7 +27,12 @@ struct Sample {
 
 fn evaluate(program: &Program, state: &[(Arc<State>, Change)]) -> Sample {
     let mut index = Index::new(Arc::new(State::initial(program)));
-    let input = crate::plan::Input::shared(&program.rule[0].input, &mut Default::default());
+    let contextual = program.contextual();
+    let input = crate::plan::Input::shared(
+        &program.rule[0].input,
+        |rule| contextual[rule],
+        &mut Default::default(),
+    );
     let store = Arc::new(crate::joining::Store::new(65536));
     let mut join = Join::planned(crate::joining::Request {
         input: &input,

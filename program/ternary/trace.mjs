@@ -46,8 +46,8 @@ export const record = (command, program, target) => {
     try {
         report = JSON.parse(execFileSync(command, [
         'prism', program, '--target', configuration, '--path', '--json', '--compact',
-        '--steps', '100000000', '--states', '65536', '--cells', '16384',
-        '--frames', '2048', '--coherences', '1024', '--records', '100000000',
+        '--work', '100000000', '--configuration', '65536', '--occurrence', '16384',
+        '--scope', '2048', '--coherence', '1024', '--record', '100000000',
     ], { encoding: 'utf8', maxBuffer: 536870912 }));
     } finally {
         rmSync(directory, { recursive: true, force: true });

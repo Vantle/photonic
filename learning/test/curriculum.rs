@@ -1,21 +1,35 @@
 use crate::curriculum::{Curriculum, focus, grade, prefix};
 use crate::objective::Setting;
-use crate::task::Task;
+use crate::solution::Failure;
+use crate::task::{Goal, Task};
 use std::time::Duration;
 
 #[test]
 fn breed() {
     let setting = Setting::default();
     let mut curriculum = Curriculum::default();
-    let first = curriculum.breed(1, 7, &setting);
-    let second = curriculum.breed(2, 7, &setting);
+    let first = curriculum.breed(1, 7, &setting).unwrap();
+    let second = curriculum.breed(2, 7, &setting).unwrap();
     assert_eq!(first.name, format!("{}0", prefix(1)));
     assert_eq!(second.name, format!("{}1", prefix(2)));
     assert!(first.reference.is_none() && second.reference.is_none());
-    assert_eq!(first.hidden, 4);
     assert_eq!(curriculum.bred, 2);
-    let exam = grade(first, &setting, Duration::from_secs(30)).unwrap();
+    let exam = grade(first.clone(), &setting, Duration::from_secs(30))
+        .unwrap()
+        .unwrap();
     assert!(exam.cost.is_finite() && exam.size > 0);
+    assert_eq!(exam.task.goal, Some(setting.goal));
+    let unbounded = Setting {
+        goal: Goal {
+            size: 0.0,
+            ..setting.goal
+        },
+        ..setting
+    };
+    assert_eq!(
+        grade(first, &unbounded, Duration::from_secs(1)),
+        Err(Failure::Unbounded)
+    );
 }
 
 #[test]
@@ -23,7 +37,6 @@ fn rehearse() {
     let named = |name: &str| Task {
         name: name.to_owned(),
         vocabulary: translation::vocabulary::Vocabulary::default(),
-        hidden: 0,
         example: Vec::new(),
         holdout: Vec::new(),
         reference: None,

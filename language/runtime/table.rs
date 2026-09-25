@@ -1,3 +1,4 @@
+use crate::application::Owner;
 use crate::hashing::Builder;
 use crate::index::Index;
 use crate::place::Place;
@@ -20,9 +21,8 @@ pub(super) struct Query {
 pub(super) struct Consumer {
     pub view: usize,
     pub frame: usize,
-    pub owner: Option<usize>,
+    pub owner: Owner<usize>,
     pub rule: usize,
-    pub capture: Option<usize>,
     pub read: Option<Place>,
 }
 

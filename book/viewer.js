@@ -1,7 +1,7 @@
 (() => {
     'use strict';
     const book = globalThis.book ??= {};
-    const { element } = book.render;
+    const { element, count } = book.render;
 
     const panel = (title, extra) => {
         const box = element('section', 'panel');
@@ -53,7 +53,7 @@
         };
 
         const follow = path => {
-            label.textContent = path.length ? `s0 → s${path.at(-1).target} · ${path.length} event${path.length === 1 ? '' : 's'}` : 's0';
+            label.textContent = path.length ? `s0 → s${path.at(-1).target} · ${count(path.length, 'event')}` : 's0';
             explain();
             book.hypergraph.draw(flow.host, data, path, { pattern, select: explain });
         };
@@ -83,7 +83,7 @@
             if (chosen !== undefined && !visible(chosen)) chosen = undefined;
             chosen ??= deepest(visible);
             note.textContent = problem ?? (match
-                ? `Showing ${match.state.size} of ${data.state.length} configurations: the matches and everything computed after them.`
+                ? `Showing ${match.state.size} of ${count(data.state.length, 'configuration')}: the matches and everything computed after them.`
                 : 'Type a pattern to keep what matches and everything computed after it.');
             if (problem) note.dataset.tone = 'error';
             else delete note.dataset.tone;

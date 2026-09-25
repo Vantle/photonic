@@ -1,14 +1,13 @@
+use crate::structure::Part;
 use code::atom::Atom;
-use code::configuration::Configuration;
 use code::output::Output;
 use code::particle::Particle;
-use code::program::Program;
 use code::rule::Rule;
 use code::value::Value;
 use std::collections::HashMap;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub enum Kind {
+pub enum Relation {
     Member,
     Input,
     Output,
@@ -20,7 +19,7 @@ pub enum Kind {
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct Edge {
-    pub kind: Kind,
+    pub relation: Relation,
     pub vertex: u32,
     pub count: u32,
 }
@@ -52,12 +51,6 @@ pub struct Graph {
     pub child: Vec<Vec<Edge>>,
     pub parent: Vec<Vec<Edge>>,
     pub atom: usize,
-}
-
-pub struct Part<'part> {
-    pub role: u32,
-    pub program: &'part Program,
-    pub configuration: &'part Configuration,
 }
 
 struct Builder<'atom> {
@@ -96,7 +89,7 @@ impl Builder<'_> {
     fn particle(&mut self, particle: &Particle) -> u32 {
         let child = run(particle.value())
             .map(|(value, count)| Edge {
-                kind: Kind::Member,
+                relation: Relation::Member,
                 vertex: self.value(value),
                 count,
             })
@@ -106,13 +99,13 @@ impl Builder<'_> {
 
     fn output(&mut self, output: &Output) -> u32 {
         let mut child = vec![Edge {
-            kind: Kind::Product,
+            relation: Relation::Product,
             vertex: self.particle(output.particle()),
             count: 1,
         }];
         for (rule, count) in run(output.body().unwrap_or_default()) {
             child.push(Edge {
-                kind: Kind::Body,
+                relation: Relation::Body,
                 vertex: self.rule(rule),
                 count,
             });
@@ -124,14 +117,14 @@ impl Builder<'_> {
         let mut child = Vec::new();
         for (particle, count) in run(rule.input()) {
             child.push(Edge {
-                kind: Kind::Input,
+                relation: Relation::Input,
                 vertex: self.particle(particle),
                 count,
             });
         }
         for (output, count) in run(rule.output()) {
             child.push(Edge {
-                kind: Kind::Output,
+                relation: Relation::Output,
                 vertex: self.output(output),
                 count,
             });
@@ -139,18 +132,18 @@ impl Builder<'_> {
         self.intern(Color::Rule, child)
     }
 
-    fn part(&mut self, part: &Part<'_>) {
+    fn part(&mut self, part: &Part) {
         let mut child = Vec::new();
         for (rule, count) in run(part.program.rule()) {
             child.push(Edge {
-                kind: Kind::Rule,
+                relation: Relation::Rule,
                 vertex: self.rule(rule),
                 count,
             });
         }
         for (particle, count) in run(part.configuration.coherence()) {
             child.push(Edge {
-                kind: Kind::Coherence,
+                relation: Relation::Coherence,
                 vertex: self.particle(particle),
                 count,
             });
@@ -162,7 +155,7 @@ impl Builder<'_> {
 }
 
 impl Graph {
-    pub fn new(atom: &[Atom], pin: &[Atom], part: &[Part<'_>]) -> Self {
+    pub fn new(atom: &[Atom], pin: &[Atom], part: &[Part]) -> Self {
         let index = atom
             .iter()
             .enumerate()
@@ -195,7 +188,7 @@ impl Graph {
         for (vertex, edge) in child.iter().enumerate() {
             for edge in edge {
                 parent[edge.vertex as usize].push(Edge {
-                    kind: edge.kind,
+                    relation: edge.relation,
                     vertex: vertex as u32,
                     count: edge.count,
                 });

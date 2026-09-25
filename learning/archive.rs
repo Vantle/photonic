@@ -1,4 +1,5 @@
-use crate::objective::{Evaluation, Size};
+use crate::objective::{Evaluation, Size, TOLERANCE};
+use crate::task::Goal;
 use code::program::Program;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -21,8 +22,7 @@ pub struct Record {
     pub size: usize,
     pub verified: bool,
     pub general: bool,
-    #[serde(default)]
-    pub proven: bool,
+    pub proof: Option<Goal>,
     pub moment: u64,
 }
 
@@ -38,15 +38,25 @@ impl Record {
             size: Size::total(&evaluation.size),
             verified: evaluation.verified,
             general,
-            proven: false,
+            proof: None,
             moment,
         }
     }
 
-    pub fn prove(self) -> Self {
+    pub fn prove(self, goal: Goal) -> Self {
         Self {
-            proven: true,
+            proof: Some(goal),
             ..self
+        }
+    }
+
+    pub fn revise(self, evaluation: &Evaluation, general: bool, goal: Goal) -> Self {
+        let proof = self
+            .proof
+            .filter(|proven| *proven == goal && (evaluation.cost - self.cost).abs() <= TOLERANCE);
+        Self {
+            proof,
+            ..Self::new(self.program, evaluation, general, self.moment)
         }
     }
 }
@@ -93,23 +103,16 @@ impl Archive {
             .map_or(0.0, |record| record.correctness)
     }
 
-    pub fn forget(&mut self, task: &str) -> Option<Record> {
-        self.entry.get_mut(task).and_then(|entry| entry.best.take())
-    }
-
-    pub fn register(&mut self, task: &str, baseline: f64, reference: Option<Record>) {
-        let entry = self.entry.entry(task.to_owned()).or_default();
-        entry.baseline = baseline;
-        let Some(reference) = reference else {
-            return;
-        };
-        if entry
-            .best
-            .as_ref()
-            .is_none_or(|known| known.cost > reference.cost)
-        {
-            entry.best = Some(reference);
-        }
+    pub fn register(&mut self, task: &str, baseline: f64) -> Entry {
+        self.entry
+            .insert(
+                task.to_owned(),
+                Entry {
+                    baseline,
+                    ..Entry::default()
+                },
+            )
+            .unwrap_or_default()
     }
 
     pub fn offer(&mut self, task: &str, record: Record) -> Option<Improvement> {
@@ -128,15 +131,15 @@ impl Archive {
             return None;
         }
         if let Some(known) = entry.best.as_mut()
-            && record.proven
-            && !known.proven
-            && (record.cost - known.cost).abs() <= 1e-9
+            && record.proof.is_some()
+            && known.proof.is_none()
+            && (record.cost - known.cost).abs() <= TOLERANCE
         {
-            known.proven = true;
+            known.proof = record.proof;
             return None;
         }
         let before = entry.best.as_ref().map(|known| known.cost);
-        if before.is_some_and(|known| record.cost >= known - 1e-9) {
+        if before.is_some_and(|known| record.cost >= known - TOLERANCE) {
             return None;
         }
         entry.best = Some(record.clone());

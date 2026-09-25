@@ -57,7 +57,7 @@ photonic_test(
     name = "not.check",
     preserve = True,
     source = "Invoke.Boolean.Not.True",
-    targets = ["False"],
+    target = ["False"],
     deps = [":not"],
 )
 
@@ -66,30 +66,7 @@ photonic_test(
     expect = "unreachable",
     preserve = True,
     source = "Invoke.Boolean.Not.True",
-    targets = ["True"],
-    deps = [":not"],
-)
-
-photonic_test(
-    name = "not.alternative",
-    match = "any",
-    preserve = True,
-    source = "Invoke.Boolean.Not.True",
-    targets = [
-        "False",
-        "True",
-    ],
-    deps = [":not"],
-)
-
-photonic_test(
-    name = "not.history",
-    preserve = True,
-    source = "Invoke.Boolean.Not.True",
-    targets = [
-        "False",
-        "Invoke.Boolean.Not.True",
-    ],
+    target = ["True"],
     deps = [":not"],
 )
 

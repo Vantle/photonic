@@ -9,7 +9,7 @@
         const badge = element('span', 'badge', 'recorded runs');
         bar.append(element('span', 'title', 'Expression evaluator'), badge);
         const body = element('div', 'body');
-        const preset = element('div', 'preset');
+        const choice = book.render.preset(sample, index => evaluate(sample[index]));
         const form = element('form', 'row');
         const field = element('label', 'field');
         field.append('Base-three expression: digits 0 1 2, + − × ÷ (or - * /), parentheses');
@@ -30,9 +30,10 @@
         const code = element('pre', 'code');
         tape.append(summary, code);
         const trace = element('div');
-        body.append(preset, form, result, message.element, tape, trace);
+        body.append(choice.element, form, result, message.element, tape, trace);
         widget.replaceChildren(bar, body);
         const channel = book.engine.open();
+        const cycle = book.run.create({ trigger: run, stop, message, text: 'Evaluating in WebAssembly…' });
         const clear = () => {
             result.replaceChildren();
             code.replaceChildren();
@@ -40,13 +41,13 @@
         };
         const draw = (outcome, live) => {
             clear();
-            if (outcome.value?.error) {
-                message.say(outcome.value.error, 'error');
+            if (outcome.answer.error) {
+                message.say(outcome.answer.error, 'error');
             } else {
                 message.say();
-                const sign = outcome.value.ternary.startsWith('-') ? '−' : '';
-                result.append(element('strong', undefined, `${sign}${outcome.value.ternary.replace('-', '')}₃`));
-                result.append(element('span', undefined, `= ${sign}${outcome.value.decimal.replace('-', '')} in decimal`));
+                const sign = outcome.answer.ternary.startsWith('-') ? '−' : '';
+                result.append(element('strong', undefined, `${sign}${outcome.answer.ternary.replace('-', '')}₃`));
+                result.append(element('span', undefined, `= ${sign}${outcome.answer.decimal.replace('-', '')} in decimal`));
             }
             const count = element('span', 'summary');
             count.append(tally(outcome.event, 'event'), ' · ', tally(outcome.work, 'work step'));
@@ -59,12 +60,12 @@
                 work: outcome.work,
                 definition: outcome.definition,
                 start: Math.max(0, outcome.event - 1),
-                get: index => channel.send({ kind: 'inspect', index }),
+                get: index => channel.send('inspect', { index }),
             });
         };
         const choose = value => {
             input.value = value;
-            preset.querySelectorAll('button').forEach(button => button.setAttribute('aria-pressed', String(button.textContent === value)));
+            choice.press(value);
         };
         const recorded = value => {
             const outcome = book.record?.expression?.[value];
@@ -72,46 +73,22 @@
             draw(outcome, false);
             return true;
         };
-        let ticket = 0;
-        let busy = false;
-        const evaluate = async value => {
+        const evaluate = value => {
             choose(value);
             if (book.engine.state !== 'live') {
                 if (!recorded(value)) message.say('Serve the book to evaluate new expressions: bazel run -c opt //toolchain/browser:serve');
                 return;
             }
-            const mine = ++ticket;
-            if (busy) channel.stop();
-            busy = true;
-            run.setAttribute('aria-disabled', 'true');
-            stop.hidden = false;
-            message.wait('Evaluating in WebAssembly…');
-            try {
-                const outcome = await channel.send({ kind: 'expression', input: value }, 30000);
-                if (mine === ticket) draw(outcome, true);
-            } catch (error) {
-                if (mine !== ticket) return;
+            if (cycle.busy) cycle.cancel();
+            cycle.start(signal => channel.send('expression', { source: value }, { timeout: 30000, signal }), outcome => draw(outcome, true), error => {
                 clear();
                 message.say(error.message, 'error');
-            } finally {
-                if (mine === ticket) {
-                    busy = false;
-                    run.removeAttribute('aria-disabled');
-                    stop.hidden = true;
-                }
-            }
+            });
         };
-        sample.forEach(value => {
-            const button = element('button', undefined, value);
-            button.type = 'button';
-            button.addEventListener('click', () => evaluate(value));
-            preset.append(button);
-        });
         form.addEventListener('submit', event => {
             event.preventDefault();
-            if (!busy) evaluate(input.value);
+            if (!cycle.busy) evaluate(input.value);
         });
-        stop.addEventListener('click', () => channel.stop());
         book.engine.watch(state => {
             const on = state === 'live';
             badge.textContent = on ? 'live · Photonic in WebAssembly' : 'recorded runs';

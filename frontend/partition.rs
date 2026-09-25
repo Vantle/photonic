@@ -1,4 +1,3 @@
-use std::cell::Cell;
 use std::ops::Range;
 
 use crate::source::{Definition, Output, Value};
@@ -11,7 +10,7 @@ pub(crate) struct Partition<'source> {
 }
 
 impl Partition<'_> {
-    pub(crate) fn rule(self, budget: &Cell<usize>) -> Option<Vec<Definition>> {
+    pub(crate) fn rule(self, budget: &mut usize) -> Option<Vec<Definition>> {
         if self.pattern.len() == 1 {
             let name = self.source[self.span.clone()].to_owned();
             let input = self.pattern.into_iter().next()?;
@@ -29,11 +28,7 @@ impl Partition<'_> {
                     input: input.clone(),
                     output,
                 };
-                budget.set(
-                    budget
-                        .get()
-                        .checked_sub(crate::size::definition(&definition))?,
-                );
+                *budget = budget.checked_sub(crate::size::definition(&definition))?;
                 rule.push(definition);
             }
         }

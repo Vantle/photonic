@@ -1,13 +1,15 @@
-use crate::task::{Example, Goal};
+use crate::task::{Example, Goal, Task};
+use code::atom::Atom;
 use code::canonical::Key;
 use code::configuration::Configuration;
 use code::distance::distance;
 use code::hashing::value;
 use code::observation::Observation;
 use code::output::Output;
+use code::particle::Particle;
 use code::program::Program;
 use code::rule::Rule;
-use code::tree::walk;
+use code::tree::{Node, walk};
 use code::value::Value;
 use machine::exploration::explore;
 use machine::flat::Flat;
@@ -15,16 +17,15 @@ use machine::limit::Limit;
 use machine::schedule::schedule;
 use machine::state::State;
 use random::Generator;
-use serde::Serialize;
 use translation::execution;
 use translation::vocabulary::Vocabulary;
 
+pub const TOLERANCE: f64 = 1e-9;
 const FLOOR: f64 = 0.05;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Setting {
-    pub processor: f64,
-    pub size: f64,
+    pub goal: Goal,
     pub limit: Limit,
     pub admission: photonic::runtime::Limit,
     pub bound: photonic::execution::Bound,
@@ -35,10 +36,10 @@ pub struct Setting {
 impl Default for Setting {
     fn default() -> Self {
         Self {
-            processor: 4.0,
-            size: 0.05,
+            goal: Goal::default(),
             limit: Limit {
                 state: 512,
+                round: 512,
                 coherence: 32,
                 cell: 256,
                 event: 1_024,
@@ -63,17 +64,17 @@ impl Default for Setting {
 
 impl Setting {
     pub fn aim(&self, goal: Option<Goal>) -> Self {
-        goal.map_or(*self, |goal| Self {
-            processor: goal.processor,
-            size: goal.size,
+        Self {
+            goal: goal.unwrap_or(self.goal),
             ..*self
-        })
+        }
     }
 
     pub fn thorough(&self) -> Self {
         Self {
             limit: Limit {
                 state: 16_384,
+                round: 16_384,
                 coherence: 64,
                 cell: 1_024,
                 event: 65_536,
@@ -96,7 +97,7 @@ impl Setting {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Outcome {
     Exact {
         work: usize,
@@ -131,7 +132,24 @@ impl Outcome {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize)]
+fn particle(rule: &Rule) -> impl Iterator<Item = &Particle> {
+    rule.input()
+        .iter()
+        .chain(rule.output().iter().map(Output::particle))
+}
+
+pub fn atom(node: &[Node<'_>]) -> Vec<Atom> {
+    let mut atom = node
+        .iter()
+        .flat_map(|node| particle(node.rule))
+        .flat_map(|particle| particle.value().iter().filter_map(Value::atom))
+        .collect::<Vec<_>>();
+    atom.sort_unstable();
+    atom.dedup();
+    atom
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct Size {
     pub atom: usize,
     pub rule: usize,
@@ -142,28 +160,8 @@ pub struct Size {
 impl Size {
     pub fn new(program: &Program) -> Self {
         let node = walk(program);
-        let particle = |rule: &code::rule::Rule| {
-            rule.input()
-                .iter()
-                .chain(rule.output().iter().map(code::output::Output::particle))
-                .cloned()
-                .collect::<Vec<_>>()
-        };
-        let mut atom = node
-            .iter()
-            .flat_map(|node| particle(node.rule))
-            .flat_map(|particle| {
-                particle
-                    .value()
-                    .iter()
-                    .filter_map(Value::atom)
-                    .collect::<Vec<_>>()
-            })
-            .collect::<Vec<_>>();
-        atom.sort_unstable();
-        atom.dedup();
         Self {
-            atom: atom.len(),
+            atom: atom(&node).len(),
             rule: node.len(),
             particle: node
                 .iter()
@@ -172,7 +170,7 @@ impl Size {
             occurrence: node
                 .iter()
                 .flat_map(|node| particle(node.rule))
-                .map(|particle| particle.len())
+                .map(Particle::len)
                 .sum(),
         }
     }
@@ -182,7 +180,7 @@ impl Size {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Evaluation {
     pub outcome: Vec<Outcome>,
     pub correctness: f64,
@@ -224,8 +222,10 @@ impl Context<'_> {
         expected: Option<&Key<Value>>,
     ) -> Trial {
         let budget = self.setting.limit.individualization;
-        let wrong =
-            |observation: &Observation| expected.is_some_and(|key| observation.key(budget) != *key);
+        let wrong = |observation: &Observation| {
+            expected
+                .is_some_and(|expected| observation.key(budget).is_ok_and(|key| key != *expected))
+        };
         if let (Some(flat), Some(initial)) = (&self.flat, State::new(input)) {
             let limit = Limit {
                 state: self.setting.limit.state.min(remaining),
@@ -296,8 +296,8 @@ impl Context<'_> {
 
     fn cost(&self, input: &Configuration) -> Option<(usize, usize)> {
         if let (Some(flat), Some(initial)) = (&self.flat, State::new(input)) {
-            let result = schedule(flat, initial, &self.setting.limit)?;
-            return Some((result.work(), result.span()));
+            let result = schedule(flat, initial, &self.setting.limit).ok()?;
+            return Some((result.work(), result.depth));
         }
         let result = self.run(input, |_| 0)?;
         Some((result.work, result.depth))
@@ -322,13 +322,15 @@ impl Context<'_> {
     }
 
     fn outcome(&self, example: &Example, index: usize, remaining: usize) -> (Outcome, usize) {
-        let budget = self.setting.limit.individualization;
-        let expected = example.output.key(budget);
-        let trial = self.trial(&example.input, remaining, Some(&expected));
-        {
-            let state = trial.state;
-            (self.judge(example, index, &expected, trial), state)
+        let Ok(expected) = example.output.key(self.setting.limit.individualization) else {
+            return (Outcome::Divergent, 0);
+        };
+        if remaining == 0 {
+            return (self.sampled(example, index, &expected, 0), 0);
         }
+        let trial = self.trial(&example.input, remaining, Some(&expected));
+        let state = trial.state;
+        (self.judge(example, index, &expected, trial), state)
     }
 
     fn judge(
@@ -357,7 +359,7 @@ impl Context<'_> {
             let Some(terminal) = trial.terminal.first() else {
                 return Outcome::Divergent;
             };
-            if terminal.key(budget) != *expected {
+            if !terminal.key(budget).is_ok_and(|key| key == *expected) {
                 return self.different(terminal, example);
             }
             return match self.cost(&example.input) {
@@ -369,17 +371,23 @@ impl Context<'_> {
                 None => Outcome::Divergent,
             };
         }
-        self.sampled(example, index, expected)
+        self.sampled(example, index, expected, self.setting.sample)
     }
 
-    fn sampled(&self, example: &Example, index: usize, expected: &Key<Value>) -> Outcome {
+    fn sampled(
+        &self,
+        example: &Example,
+        index: usize,
+        expected: &Key<Value>,
+        sample: usize,
+    ) -> Outcome {
         let budget = self.setting.limit.individualization;
         let Some(first) = self.run(&example.input, |_| 0) else {
             return Outcome::Divergent;
         };
         let mut generator = Generator::new(value(&(self.program, index)));
         let mut terminal = vec![first.terminal.clone()];
-        for _ in 0..self.setting.sample {
+        for _ in 0..sample {
             let Some(run) = self.run(&example.input, |count| generator.below(count)) else {
                 return Outcome::Divergent;
             };
@@ -392,13 +400,13 @@ impl Context<'_> {
         for observation in observed {
             if distinct
                 .iter()
-                .all(|known| known.key(budget) != observation.key(budget))
+                .all(|known| !known.same(&observation, budget))
             {
                 distinct.push(observation);
             }
         }
         match distinct.as_slice() {
-            [single] if single.key(budget) == *expected => Outcome::Exact {
+            [single] if single.key(budget).is_ok_and(|key| key == *expected) => Outcome::Exact {
                 work: first.work,
                 span: first.depth,
                 verified: false,
@@ -426,9 +434,6 @@ pub fn evaluate(
         .iter()
         .enumerate()
         .map(|(index, example)| {
-            if remaining == 0 {
-                return Outcome::Divergent;
-            }
             let (outcome, state) = context.outcome(example, index, remaining);
             remaining = remaining.saturating_sub(state);
             outcome
@@ -458,7 +463,7 @@ pub fn evaluate(
         });
     let time = outcome
         .iter()
-        .map(|outcome| outcome.time(setting.processor))
+        .map(|outcome| outcome.time(setting.goal.processor))
         .sum::<f64>()
         / count;
     let size = Size::new(program);
@@ -471,8 +476,18 @@ pub fn evaluate(
         work: work / count,
         span: span / count,
         size,
-        cost: time + setting.size * size.total() as f64,
+        cost: time + setting.goal.size * size.total() as f64,
     }
+}
+
+pub fn general(program: &Program, task: &Task, setting: &Setting) -> bool {
+    evaluate(
+        program,
+        &task.holdout,
+        &task.vocabulary,
+        &setting.thorough(),
+    )
+    .correct
 }
 
 pub fn behavior(
@@ -499,9 +514,9 @@ pub fn behavior(
         input: input.clone(),
         output: reference.clone(),
     };
-    let expected = reference.key(setting.limit.individualization);
+    let expected = reference.key(setting.limit.individualization).ok()?;
     matches!(
-        context.sampled(&example, usize::MAX, &expected),
+        context.sampled(&example, usize::MAX, &expected, setting.sample),
         Outcome::Exact { .. }
     )
     .then_some(reference)
@@ -523,7 +538,7 @@ fn changed<'example>(
 
 pub fn floor(example: &[Example], vocabulary: &Vocabulary, setting: &Setting) -> f64 {
     let changed = changed(example, vocabulary, setting).len();
-    changed as f64 * (1.0 + 1.0 / setting.processor) / example.len().max(1) as f64
+    changed as f64 * (1.0 + 1.0 / setting.goal.processor) / example.len().max(1) as f64
 }
 
 pub fn memorization(example: &[Example], vocabulary: &Vocabulary, setting: &Setting) -> f64 {
@@ -545,7 +560,7 @@ pub fn memorization(example: &[Example], vocabulary: &Vocabulary, setting: &Sett
             })
             .collect::<Vec<_>>(),
     );
-    floor(example, vocabulary, setting) + setting.size * Size::new(&table).total() as f64
+    floor(example, vocabulary, setting) + setting.goal.size * Size::new(&table).total() as f64
 }
 
 pub fn potential(evaluation: &Evaluation, baseline: f64) -> f64 {

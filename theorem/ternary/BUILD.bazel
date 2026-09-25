@@ -18,6 +18,7 @@ theorem(
         ":role",
         "//library/ternary:compare",
         "//library/ternary:equal",
+        "//theorem:case",
         "//theorem:judge",
     ],
 )
@@ -25,7 +26,7 @@ theorem(
 theorem(
     name = "field",
     srcs = ["field.wave"],
-    cells = 512,
+    occurrence = 512,
     deps = [
         ":unpack",
         "//library/boolean:and",
@@ -33,13 +34,14 @@ theorem(
         "//library/ternary:add",
         "//library/ternary:equal",
         "//library/ternary:multiply",
+        "//theorem:case",
     ],
 )
 
 theorem(
     name = "group",
     srcs = ["group.wave"],
-    cells = 512,
+    occurrence = 512,
     deps = [
         ":role",
         ":unpack",
@@ -47,16 +49,18 @@ theorem(
         "//library/ternary:add",
         "//library/ternary:equal",
         "//library/ternary:subtract",
+        "//theorem:case",
     ],
 )
 
 theorem(
     name = "order",
     srcs = ["order.wave"],
-    cells = 512,
+    occurrence = 512,
     deps = [
         ":role",
         "//library/ternary:compare",
+        "//theorem:case",
         "//theorem:judge",
     ],
 )

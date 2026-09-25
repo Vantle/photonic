@@ -4,4 +4,5 @@
 [Function.Ternary.Add.1.1] Return.([Digit] 2).([Carry] 0),
 [Function.Ternary.Add.1.2] Return.([Digit] 0).([Carry] 1),
 [Function.Ternary.Add.2.2] Return.([Digit] 1).([Carry] 1),
-[Ternary.Add.([Operation] Ternary.Add)] Function.Ternary.Add
+[Ternary.Add.([Operation] Ternary.Add)] Function.Ternary.Add,
+[Function.Empty.Reduce.([Operation] Ternary.Add)] Return.([Digit] 0).([Carry] 0)

@@ -17,18 +17,19 @@ pub(crate) struct Input {
     shape: Arc<Shape>,
     capture: bool,
     arity: usize,
-    empty: bool,
+    broad: bool,
     dependency: SmallVec<[Symbol; 2]>,
 }
 
 impl Input {
     #[cfg(test)]
     pub fn new(value: &[Vec<Symbol>]) -> Self {
-        Self::shared(value, &mut Default::default())
+        Self::shared(value, |_| true, &mut Default::default())
     }
 
     pub fn shared(
         value: &[Vec<Symbol>],
+        contextual: impl Fn(usize) -> bool,
         shared: &mut std::collections::HashMap<
             Vec<Symbol>,
             Arc<crate::pattern::Pattern>,
@@ -62,7 +63,12 @@ impl Input {
             }),
             capture,
             arity: value.len(),
-            empty: value.is_empty() || value.iter().any(Vec::is_empty),
+            broad: value.is_empty()
+                || value.iter().any(|particle| {
+                    particle
+                        .iter()
+                        .all(|&symbol| matches!(symbol, Symbol::Rule(rule) if contextual(rule)))
+                }),
             dependency,
         }
     }
@@ -84,8 +90,8 @@ impl Input {
         Context::new(self.shape.clone(), owner)
     }
 
-    pub fn empty(&self) -> bool {
-        self.empty
+    pub fn broad(&self) -> bool {
+        self.broad
     }
 
     pub fn dependency(&self) -> &[Symbol] {

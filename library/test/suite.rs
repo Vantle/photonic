@@ -4,6 +4,7 @@ mod carry;
 mod catalog;
 mod collection;
 mod composition;
+mod expression;
 mod field;
 mod fixture;
 mod function;

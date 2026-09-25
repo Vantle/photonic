@@ -3,6 +3,14 @@ use crate::corpus::addition;
 use crate::objective::{Setting, evaluate};
 use code::program::Program;
 
+fn program(text: &str) -> Program {
+    let mut vocabulary = addition(2).vocabulary;
+    let (program, _) =
+        translation::lift::program(&photonic::lowering::parse(text).unwrap(), &mut vocabulary)
+            .unwrap();
+    program
+}
+
 fn record(program: Program, general: bool) -> Record {
     let task = addition(2);
     let evaluation = evaluate(
@@ -19,16 +27,15 @@ fn improvement() {
     let task = addition(2);
     let reference = record(task.reference.clone().unwrap(), true);
     let mut archive = Archive::default();
-    archive.register(&task.name, reference.cost, Some(reference.clone()));
+    archive.register(&task.name, reference.cost);
+    assert!(archive.offer(&task.name, reference.clone()).is_some());
     assert!((archive.best(&task.name) - reference.cost).abs() < 1e-12);
     assert!(archive.offer(&task.name, reference.clone()).is_none());
-    let merged = photonic::lowering::parse("[Left, Right] ()").unwrap();
-    let mut vocabulary = task.vocabulary.clone();
-    let (program, _) = translation::lift::program(&merged, &mut vocabulary).unwrap();
-    let better = record(program, true);
+    let better = record(program("[Left, Right] ()"), true);
     assert!(better.cost < reference.cost);
     let improvement = archive.offer(&task.name, better.clone()).unwrap();
     assert_eq!(improvement.before, Some(reference.cost));
+    assert!((improvement.baseline - reference.cost).abs() < 1e-12);
     assert!((archive.best(&task.name) - better.cost).abs() < 1e-12);
     let mut overfit = better;
     overfit.general = false;
@@ -45,5 +52,19 @@ fn partial() {
     assert!(archive.offer(&task.name, empty.clone()).is_none());
     assert!((archive.partial(&task.name) - empty.correctness).abs() < 1e-12);
     assert!(archive.best(&task.name).is_infinite());
-    assert_eq!(archive.forget(&task.name), None);
+}
+
+#[test]
+fn registration() {
+    let task = addition(2);
+    let mut archive = Archive::default();
+    let known = record(program("[Left, Right] ()"), true);
+    archive.register(&task.name, 3.0);
+    archive.offer(&task.name, known.clone());
+    let prior = archive.register(&task.name, 2.0);
+    assert_eq!(prior.best, Some(known));
+    assert!((prior.baseline - 3.0).abs() < 1e-12);
+    let entry = archive.entry(&task.name).unwrap();
+    assert!(entry.best.is_none() && entry.partial.is_none());
+    assert!((entry.baseline - 2.0).abs() < 1e-12);
 }

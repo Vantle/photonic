@@ -3,9 +3,9 @@ use photonic::prism::{Outcome, Search};
 use photonic::runtime::Limit;
 use std::time::Instant;
 
-fn numeral(value: u64, radix: u32) -> String {
+fn numeral(radix: u8, value: u64) -> String {
     if radix != 1 {
-        return arithmetic::power::numeral(value, radix).unwrap();
+        return arithmetic::power::numeral(radix, value).unwrap();
     }
     if value == 0 {
         "()".into()
@@ -24,15 +24,20 @@ fn main() {
             };
             let source = format!(
                 "Add.({},{}), [Add,Add] (), {rule}",
-                numeral(left, radix),
-                numeral(right, radix)
+                numeral(radix, left),
+                numeral(radix, right)
             );
-            let target = numeral(left + right, radix);
+            let target = numeral(radix, left + right);
             let mut duration = Vec::new();
             let mut count = 0;
             for _ in 0..3 {
                 let start = Instant::now();
-                let mut search = Search::new(parse(&source).unwrap(), parse(&target).unwrap());
+                let program = parse(&source).unwrap();
+                let target = photonic::source::Program {
+                    rule: program.rule.clone(),
+                    ..parse(&target).unwrap()
+                };
+                let mut search = Search::new(program, target);
                 search.run(
                     1_000_000,
                     Some(Limit {

@@ -178,7 +178,7 @@ pub fn correspond(source: &Rule, target: &Rule) -> Option<Correspondence> {
     )
 }
 
-pub fn classes(rule: &[&Rule]) -> Vec<Vec<usize>> {
+pub fn partition(rule: &[&Rule]) -> Vec<Vec<usize>> {
     let mut bucket: BTreeMap<Profile, Vec<usize>> = BTreeMap::new();
     for (index, rule) in rule.iter().enumerate() {
         if let Some(shape) = shape(rule) {

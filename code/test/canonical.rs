@@ -1,5 +1,5 @@
 use super::support::{A, B, C, X, Y};
-use crate::canonical::{Key, key};
+use crate::canonical::{Exhausted, Key, key};
 
 fn shared(coherence: &[&[(u16, u32)]]) -> Key<u16> {
     key(
@@ -9,6 +9,7 @@ fn shared(coherence: &[&[(u16, u32)]]) -> Key<u16> {
             .collect::<Vec<Vec<_>>>(),
         64,
     )
+    .unwrap()
 }
 
 fn plain(coherence: &[&[u16]]) -> Key<u16> {
@@ -28,6 +29,7 @@ fn plain(coherence: &[&[u16]]) -> Key<u16> {
             .collect::<Vec<Vec<_>>>(),
         64,
     )
+    .unwrap()
 }
 
 #[test]
@@ -134,9 +136,9 @@ fn orbit() {
         })
         .collect::<Vec<_>>();
     for graph in [star, component] {
-        let expected = key(&graph, 4_096);
+        let expected = key(&graph, 4_096).unwrap();
         for order in permutation(graph.len()) {
-            assert_eq!(key(&relabel(&graph, &order), 4_096), expected);
+            assert_eq!(key(&relabel(&graph, &order), 4_096).unwrap(), expected);
         }
     }
 }
@@ -157,10 +159,10 @@ fn ring() {
     let uniform = ring(6, &|_| A);
     let alternating = ring(6, &|index| if index % 2 == 0 { A } else { B });
     let paired = ring(6, &|index| if index % 3 == 0 { A } else { B });
-    let expected = [&uniform, &alternating, &paired].map(|graph| key(graph, 4_096));
+    let expected = [&uniform, &alternating, &paired].map(|graph| key(graph, 4_096).unwrap());
     for (graph, expected) in [&uniform, &alternating, &paired].iter().zip(&expected) {
         for order in permutation(graph.len()) {
-            assert_eq!(key(&relabel(graph, &order), 4_096), *expected);
+            assert_eq!(key(&relabel(graph, &order), 4_096).unwrap(), *expected);
         }
     }
     assert_ne!(expected[0], expected[1]);
@@ -177,5 +179,6 @@ fn ring() {
             })
         })
         .collect::<Vec<_>>();
-    assert_ne!(key(&split, 4_096), expected[0]);
+    assert_ne!(key(&split, 4_096).unwrap(), expected[0]);
+    assert_eq!(key(&uniform, 0), Err(Exhausted));
 }

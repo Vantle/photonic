@@ -15,13 +15,18 @@ impl Catalog {
         let mut identity = HashMap::<_, _, Builder>::default();
         let mut fragment = HashMap::default();
         let mut input = Vec::new();
+        let contextual = program.contextual();
         let rule = program
             .rule
             .iter()
             .map(|rule| {
                 *identity.entry(&rule.input).or_insert_with(|| {
                     let index = input.len();
-                    input.push(Input::shared(&rule.input, &mut fragment));
+                    input.push(Input::shared(
+                        &rule.input,
+                        |rule| contextual[rule],
+                        &mut fragment,
+                    ));
                     index
                 })
             })

@@ -1,5 +1,5 @@
 use crate::emit;
-use crate::lift::{Fixed, observation};
+use crate::lift::{self, Fixed};
 use crate::vocabulary::Vocabulary;
 use code::configuration::Configuration;
 use code::observation::Observation;
@@ -31,6 +31,11 @@ pub struct Walk {
     pub overflow: bool,
 }
 
+fn observe(terminal: &execution::Observation, vocabulary: &Vocabulary) -> Observation {
+    lift::observation(terminal, &mut Fixed(vocabulary))
+        .expect("the runtime names only atoms of the program it was given")
+}
+
 pub fn explore(
     program: &Program,
     input: &Configuration,
@@ -43,20 +48,17 @@ pub fn explore(
         &emit::program(program, input, vocabulary),
         limit,
         bound,
-        |terminal| {
-            observation(terminal, &mut Fixed(vocabulary)).map_or(true, |terminal| stop(&terminal))
-        },
+        |terminal| stop(&observe(terminal, vocabulary)),
     );
-    let terminal = result
-        .terminal
-        .iter()
-        .map(|entry| observation(entry, &mut Fixed(vocabulary)))
-        .collect::<Result<Vec<_>, _>>();
     Exploration {
-        overflow: result.overflow || terminal.is_err(),
-        terminal: terminal.unwrap_or_default(),
+        terminal: result
+            .terminal
+            .iter()
+            .map(|entry| observe(entry, vocabulary))
+            .collect(),
         state: result.state,
         cycle: result.cycle,
+        overflow: result.overflow,
         truncated: result.truncated,
     }
 }
@@ -75,16 +77,14 @@ pub fn walk(
         bound,
         choose,
     );
-    let terminal = result
-        .terminal
-        .as_ref()
-        .map(|entry| observation(entry, &mut Fixed(vocabulary)))
-        .transpose();
     Walk {
-        overflow: result.overflow || terminal.is_err(),
-        terminal: terminal.unwrap_or_default(),
+        terminal: result
+            .terminal
+            .as_ref()
+            .map(|entry| observe(entry, vocabulary)),
         work: result.work,
         depth: result.depth,
         cycle: result.cycle,
+        overflow: result.overflow,
     }
 }

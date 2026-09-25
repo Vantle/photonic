@@ -1,4 +1,4 @@
-use crate::objective::{Evaluation, Setting, evaluate, floor};
+use crate::objective::{Evaluation, Setting, TOLERANCE, evaluate, floor};
 use crate::task::{Example, Task};
 use code::atom::Atom;
 use code::output::Output;
@@ -14,7 +14,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 use thiserror::Error;
 
-const TOLERANCE: f64 = 1e-9;
 const ALPHABET: usize = 24;
 
 #[derive(Debug, Error, PartialEq)]
@@ -33,6 +32,15 @@ pub struct Budget {
     pub time: Option<Duration>,
 }
 
+impl Default for Budget {
+    fn default() -> Self {
+        Self {
+            size: 16,
+            time: None,
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct Solution {
     pub floor: f64,
@@ -47,6 +55,14 @@ pub struct Solution {
 
 fn reach(floor: f64, weight: f64, size: Option<usize>) -> f64 {
     floor + weight * size.map_or(0, |size| size + 1) as f64
+}
+
+pub fn least(task: &Task, setting: &Setting) -> f64 {
+    let setting = setting.aim(task.goal);
+    if setting.goal.size < 0.0 {
+        return f64::NEG_INFINITY;
+    }
+    floor(&task.example, &task.vocabulary, &setting)
 }
 
 impl Solution {
@@ -132,7 +148,7 @@ fn walk(flat: &Flat, example: &Example, setting: &Setting) -> bool {
         }
         let Some(event) = first else {
             let budget = limit.individualization;
-            return state.observation().key(budget) == example.output.key(budget);
+            return state.observation().same(&example.output, budget);
         };
         if work >= limit.state {
             return false;
@@ -330,24 +346,19 @@ impl Scope<'_> {
             .reduce(Tally::empty, Tally::merge)
     }
 
-    fn level(&self, size: usize, bound: f64) -> Option<Tally> {
-        if self.expired() {
-            return None;
-        }
-        let tally = if size == 0 {
+    fn level(&self, size: usize, bound: f64) -> Tally {
+        if size == 0 {
             let mut tally = Tally::empty();
             tally.examined += 1;
             self.visit(Program::default(), bound, &mut tally);
-            tally
-        } else {
-            (0..=size.min(self.task.vocabulary.len()))
-                .flat_map(|used| choose(self.task.vocabulary.len(), used))
-                .collect::<Vec<_>>()
-                .into_par_iter()
-                .map(|full| self.explore(full, size, bound))
-                .reduce(Tally::empty, Tally::merge)
-        };
-        (!self.expired()).then_some(tally)
+            return tally;
+        }
+        (0..=size.min(self.task.vocabulary.len()))
+            .flat_map(|used| choose(self.task.vocabulary.len(), used))
+            .collect::<Vec<_>>()
+            .into_par_iter()
+            .map(|full| self.explore(full, size, bound))
+            .reduce(Tally::empty, Tally::merge)
     }
 }
 
@@ -388,7 +399,7 @@ pub fn solve(
     budget: Budget,
 ) -> Result<Solution, Failure> {
     let setting = &setting.aim(task.goal);
-    if setting.size <= 0.0 {
+    if setting.goal.size <= 0.0 {
         return Err(Failure::Unbounded);
     }
     let count = task.vocabulary.len();
@@ -411,22 +422,22 @@ pub fn solve(
     let mut size = None;
     for level in 0..=budget.size {
         let bound = incumbent.min(tally.cost);
-        if floor + setting.size * level as f64 > bound + TOLERANCE {
+        if floor + setting.goal.size * level as f64 > bound + TOLERANCE || scope.expired() {
             break;
         }
-        let Some(found) = scope.level(level, bound) else {
+        tally = tally.merge(scope.level(level, bound));
+        if scope.expired() {
             break;
-        };
-        tally = tally.merge(found);
+        }
         size = Some(level);
     }
     let bound = incumbent.min(tally.cost);
-    let least = reach(floor, setting.size, size);
+    let least = reach(floor, setting.goal.size, size);
     let mut optimal = tally.optimal;
     optimal.sort_by(|left, right| left.0.cmp(&right.0));
     Ok(Solution {
         floor,
-        weight: setting.size,
+        weight: setting.goal.size,
         size,
         examined: tally.examined,
         cost: tally.cost,

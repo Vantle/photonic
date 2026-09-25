@@ -8,10 +8,10 @@ bazel test -c opt //library/...
 
 ## Principles
 
-1. **One namespace per type.** Every operation is named `<Type>.<Verb>`: `Boolean.Not`, `Ternary.Add`, `Natural.Divide`, `Expression.Evaluate`. The namespace belongs to exactly one package. Only the core combinators `Identity` and `Compose` are bare.
-2. **One calling vocabulary.** A request carries `Function`; its answer carries `Return`. Scoped calls use `Invoke`; linked calls tag each answer with the operation that produced it.
-3. **Collision-free by construction.** `//library:test` proves that no root rule can match the input of another root rule, then runs checks with every package loaded at once.
-4. **Explicit values.** Roles travel as fields such as `([Digit] 2).([Carry] 1)`. Alternatives are variants of the answer, and failures are `Error.<Kind>`.
+1. **One namespace per type.** Every operation is named `<Type>.<Verb>`: `Boolean.Not`, `Ternary.Add`, `Natural.Divide`, `Expression.Evaluate`. The namespace belongs to exactly one package. The core combinators `Identity` and `Compose` are bare, and so are the methods of chains and vectors: `Push`, `Read`, `Peek`, `Forget`, `Insert`, `Take`, `Link`, `Lift`, `Unlink`, an alphabet's `Drop`, and the node's internal `Sever` and `Surface`.
+2. **One calling vocabulary.** A request carries `Function`; its answer carries `Return`. Scoped calls use `Invoke`; linked calls tag each answer with the operation that produced it. Chain and vector methods answer in their own words instead: `Built`, `Yield`, `Seen`, `Clean`, `Stored`, `Linked`, `Taken`, `Lifted`, and `Unlinked`.
+3. **Collision-free by construction.** `//library:test` proves that no root rule can match the input of another root rule and that no working label fits inside an answer, then runs checks with every package loaded at once.
+4. **Explicit values.** Roles travel as fields such as `([Digit] 2).([Carry] 1)`. Alternatives are variants of the answer, and failures are `Error.<Kind>`. A role is never also a plain atom, except that `Map` and `Reduce` fire callbacks through a bare `Each` and `Operation`, and `Left` and `Right` name both the ordered operands of scalar tables and the sides of linked operands, as in `Operand.Left`.
 5. **Generic storage, declared alphabets.** A chain stores the symbols of declared alphabets, and each alphabet states how chains drop, reverse, and erase its symbols. A vector stores any value that answers `Forget`, including naturals, chains, and other vectors, by reference and to any depth.
 6. **One responsibility per file, one target per file.** Programs depend on exactly what they use.
 
@@ -23,13 +23,13 @@ bazel test -c opt //library/...
 | [boolean](boolean/) | `Boolean` | `not`, `and`, `or`, `equal` |
 | [ternary](ternary/) | `Ternary` | `add`, `sum`, `multiply`, `successor`, `compare`, `equal`, `subtract`, `select` |
 | [binary](binary/) | `Binary` | `sum`, `multiply` |
-| [carry](carry/) | `Carry` | `combine`, `equal`, `evaluate` |
+| [carry](carry/) | `Signal` | `combine`, `equal`, `evaluate` |
 | [collection](collection/) | `Pair`, `Empty` | `produce`, `copy`, `repeat`, `broadcast`, `unpack`, `choose`, `map`, `gather`, `reduce` |
 | [selection](selection/) | `Selection` | `filter`, `check`, `count`, `reduce` |
 | [field](field/) | `Field` | `pack`, `unpack` |
 | [stream](stream/) | `Stream` | `successor` |
 | [chain](chain/) | `Chain` | `cell`, `reverse`, `erase` |
-| [natural](natural/) | `Natural` | `digit`, `copy`, `trim`, `normalize`, `successor`, `complement`, `column`, `add`, `borrow`, `subtract`, `difference`, `multiply`, `divide`, `compare` |
+| [natural](natural/) | `Natural` | `digit`, `copy`, `trim`, `normalize`, `successor`, `complement`, `column`, `add`, `deduct`, `subtract`, `difference`, `multiply`, `divide`, `compare` |
 | [integer](integer/) | `Integer` | `add`, `subtract`, `multiply`, `divide`, `result` |
 | [expression](expression/) | `Expression` | `token`, `split`, `join`, `parse`, `execute`, `evaluate` |
 | [vector](vector/) | `Vector` | `node`, `reverse`, `erase`, `merge`, `sort` |
@@ -51,15 +51,17 @@ stream
 `Invoke` opens a scope, activates `Function` inside it, and releases whatever follows `Return`:
 
 ```
-Invoke.Boolean.And.True.False                      → False
-Invoke.Ternary.Add.2.2                             → ([Digit] 1).([Carry] 1)
-Invoke.Ternary.Compare.([Left] 0).([Right] 2)      → Less
-Invoke.Carry.Combine.([Left] Kill).([Right] Generate) → Generate
-Invoke.Field.Pack.([Position] 1).([Value] 2)       → ([1] 2)
-Invoke.Identity.Payload                            → Payload
+Invoke.Boolean.And.True.False                           → False
+Invoke.Ternary.Add.2.2                                  → ([Digit] 1).([Carry] 1)
+Invoke.Ternary.Compare.([Left] 0).([Right] 2)           → Less
+Invoke.Signal.Combine.([Left] Kill).([Right] Generate)  → Generate
+Invoke.Field.Pack.([Position] 1).([Value] 2)            → ().([Beta] 2)
+Invoke.Identity.Payload                                 → Payload
 ```
 
-An implementation answers with `[Function.<Type>.<Verb>.<arguments>] Return.<result>`. Unmatched operands follow the ordinary remainder law, so `Return` alone never certifies a complete result; consumers match the payload they require.
+An arrow shows where a direct path ends. Exhaustive exploration also reaches an end in which the call's answer is lost, such as `()` for `Invoke.Boolean.And.True.False`, so a check that must hold for every run cannot rely on the answer arriving.
+
+An implementation answers with `[Function.<Type>.<Verb>.<arguments>] Return.<result>`. Unmatched operands follow the ordinary remainder law, so `Return` alone never certifies a complete result; consumers match the payload they require. Extra atoms beside a request travel with it, and what they become depends on the operation: a scalar answer carries them, so `Invoke.Field.Pack.([Position] 0).([Value] 2).Extra` answers `([Alpha] 2).Extra`; `Function.Chain.Erase.X` answers `Return.Chain.Erase.X`; and `Function.Chain.Reverse.Tag` copies `Tag` into every cell it builds.
 
 `Compose` sequences two supplied callables and keeps both:
 
@@ -70,7 +72,7 @@ Invoke.Compose.Seed.([First.Seed] Return.Bud).([Second.Bud] Return.Flower)
 
 ## Callbacks and pipelines
 
-A callback is a descriptor rule whose output names an operation: `([Each] Boolean.Not)`, `([Operation] Boolean.And)`, `([First] Function.Boolean.Not)`. Each implementation owns the dispatch rule that consumes its descriptor, so adding an operation never edits the collection protocol.
+Callbacks come in two forms. A collection descriptor names an operation, `([Each] Boolean.Not)` for `Map` or `([Operation] Boolean.And)` for `Reduce`. The collection fires it with a bare `Each` or `Operation`, and each implementation owns the dispatch rule that turns the name into its request, `[Boolean.Not.([Each] Boolean.Not)] Function.Boolean.Not`, so adding an operation never edits the collection protocol. A `Compose` callable is a rule keyed by `First` or `Second`, which `Compose` fires with a bare `First` or `Second`: `([First.Seed] Return.Bud)` answers itself, and `([First] Function.Boolean.Not)` turns the trigger into a request.
 
 The collection package implements a finite pipeline over pairs:
 
@@ -82,7 +84,7 @@ Invoke.Pair.Choose.False.([Left] True).([Right] False)                          
 Invoke.Empty.Reduce.([Operation] Boolean.And)                                            → True
 ```
 
-`Pair.Copy` produces fresh values in two scopes, `Pair.Broadcast` shares one inherited value, and `Map` runs `Each` on both sides independently. `Gather` and `Reduce` combine both completed payloads, never completion markers alone. Each operation declares its own identity for `Empty.Reduce`, as `Boolean.And` answers `True`. Payload shapes are finite: Booleans and trits for `Reduce`, Booleans for `Gather`, and `Keep`/`Discard` selections through `//library/selection:reduce`.
+`Pair.Copy` produces fresh values in two scopes, `Pair.Broadcast` shares one inherited value, and `Map` runs `Each` on both sides independently. `Gather` and `Reduce` combine both completed payloads, never completion markers alone. `Reduce` joins the two payloads into one particle, so its operation receives them unordered, `Operation.True.False` being `Operation.False.True`; only commutative operations reduce correctly. Each reduce operation declares its identity for `Empty.Reduce`: `Boolean.And` and `Boolean.Equal` answer `True`, `Boolean.Or` `False`, `Ternary.Add` `([Digit] 0).([Carry] 0)`, and `Selection.Count` `0`. Payload shapes are finite: Booleans and trits for `Reduce`, Booleans for `Gather`, and `Keep`/`Discard` selections through `//library/selection:reduce`.
 
 ## Linked calls
 
@@ -106,6 +108,8 @@ Linked values span several coherences in one frame, so linked operations run in 
 | `Function.Vector.Reverse` | beside the vector | `Return.Vector.Reverse` |
 | `Function.Vector.Erase` | beside a vector of chains and vectors | `Return.Vector.Erase` |
 | `Function.Vector.Sort` | beside a vector of naturals | `Return.Vector.Sort` |
+
+Linked answers are shared vocabulary. Chain and vector answers and most linked `Return` labels are also produced and consumed inside other operations: division copies, subtracts, and normalizes; the sort compares, reverses, and inserts; and nearly every engine waits on `Built` and `Clean`. A caller therefore guards each answer it waits for with a token that exists only while its own call is in flight, and gives its own labels atoms that no answer contains, because a pattern takes any coherence that contains it.
 
 Numerals store base-three digits least significant first. Arithmetic answers carry no leading zeros, except that `Successor` increments in place and keeps its operand's high zeros; integers carry `Positive` or `Negative`, zero is always `Positive`, and integer division truncates toward zero.
 
@@ -136,8 +140,8 @@ Push.([Digit] 1).Zero, Stage.1,
 
 ```
 [Drop.([Digit] 0)] Forget,
-[Yield.([Digit] 0).Reverse.Wait] (Reverse.Left, Forget.Reverse.Write.([Digit] 0)),
-[Clean.Reverse.Write.([Digit] 0), Reverse.Right] (Push.([Digit] 0), Forget.Reverse.Await),
+[Yield.([Digit] 0).Reverse.Wait] (Reverse.Left, Forget.Reverse.Put.([Digit] 0)),
+[Clean.Reverse.Put.([Digit] 0), Reverse.Right] (Push.([Digit] 0), Forget.Reverse.Await),
 [Yield.([Digit] 0).Erase.Wait] Read.Erase.Wait
 ```
 
@@ -201,11 +205,13 @@ The successor writes each output digit as a `([Write] d)` value, acknowledges it
 
 `//library:test` holds the library's composition contract:
 
-- `isolation::boundary` parses every package and fails if any root rule could match the input of a root rule in a different package. It rejects the collisions this layout removed: natural `[Function.Add]` matching ternary `Function.Add.1.2`, ternary multiplication matching binary requests, `[Function.Compose]` matching carry composition, the stream's `[Carry.0]` matching the column engine, and `[Invoke]` matching internal states once named `Multiply.Invoke`.
+- `isolation::boundary` parses every package and fails if the inputs of any root rule could match the inputs of another root rule, in the same package or another, or if an input coherence of any rule that does not name `Return` fits inside an answer of any rule, so a caller that still holds one answer never lends it to the next call. It rejects the collisions this layout removed: natural `[Function.Add]` matching ternary `Function.Add.1.2`, ternary multiplication matching binary requests, `[Invoke]` matching internal states once named `Multiply.Invoke`, and working labels such as `Copy.Left` inside `Return.Natural.Copy.Left`.
 - `isolation::vocabulary` requires single-word concepts everywhere and at most two input and output coherences in the scalar packages.
+- `isolation::role` fails unless the atoms that are both a field role and a plain atom are exactly the callback triggers `Each` and `Operation` and the operand sides `Left` and `Right`.
 - `composition` runs scalar checks, the pair pipeline, linked addition, and a sort with all fourteen packages loaded.
 - `natural` checks every linked natural operation against Rust arithmetic: comparison of every pair below 27 and of wide random pairs, reading both operands back; addition, multiplication, subtraction with underflow, signed difference, and division with remainder and a zero divisor for every pair below 9 and seeded pairs up to six trits; successor, normalization, copying, and the difference's complement for every value below 27; and all of them on operands with high zeros.
 - `vector` sorts every permutation of four items, repeated items, sorted, decreasing, and constant inputs, and seeded random vectors of up to twelve items against Rust's stable sort. Equal numerals with different high zeros check stability. It also reverses and erases vectors of naturals and vectors nested three deep.
+- `expression` runs the executor on malformed token tapes, one for each token that is invalid where it is read and a missing operand for every operator, and checks that `Expression.Evaluate` forwards each error of the executor.
 - The scalar tables are checked exhaustively against independent Rust oracles, including rejected targets, here and in the `arithmetic` and `language` suites.
 
 Linked arithmetic, comparison, and vectors are verified along direct execution paths by these generated checks, the package checks in `//library/natural` and `//library/vector`, and the programs in `//program/ternary` and `//program/vector`.
@@ -218,4 +224,4 @@ Add an operation as its own file in the package that owns its type, give it a `p
 
 ## Limits
 
-Collections are finite pairs with enumerated payloads, and `Field` covers positions 0 through 3 with values 0 through 2. Photonic has no variables, so each alphabet enumerates its symbols. Linked values cannot enter an `Invoke` scope, because a rule combines coherences only within one frame. For the same reason, linked calls in one frame run one at a time: `Insert`, `Function.Vector.Sort`, and `Function.Natural.Compare` use fixed labels and must not overlap, and a caller guards each answer with a token of its own, because the sort answers `Stored` and `Return.Vector.Reverse` internally too. A chain holds only alphabet symbols; store other values, including vectors, in a vector. `Function.Vector.Sort` orders naturals only, and `Function.Vector.Erase` erases chains and vectors. General repetition and parallel prefix networks remain open work.
+Collections are finite pairs with enumerated payloads, and `Field` covers positions 0 through 3, keyed `Alpha` through `Delta`, with values 0 through 2. Photonic has no variables, so each alphabet enumerates its symbols. Linked values cannot enter an `Invoke` scope, because a rule combines coherences only within one frame. For the same reason, linked calls in one frame run one at a time: `Insert`, `Function.Vector.Sort`, and `Function.Natural.Compare` use fixed labels and must not overlap, and a caller guards each answer with a token of its own, because the library produces the same answers internally. A chain holds only alphabet symbols; store other values, including vectors, in a vector. `Function.Vector.Sort` orders naturals only, and `Function.Vector.Erase` erases chains and vectors. General repetition and parallel prefix networks remain open work.

@@ -34,7 +34,12 @@ pub fn run(width: usize, length: usize, shared: bool) -> Measurement {
             capture: None,
         }));
     let index = Index::new(Arc::new(state));
-    let input = Input::shared(&program.rule[0].input, &mut Default::default());
+    let contextual = program.contextual();
+    let input = Input::shared(
+        &program.rule[0].input,
+        |rule| contextual[rule],
+        &mut Default::default(),
+    );
     let store = Arc::new(Store::new(65_536));
     let mut work = 0;
     let mut binding = 0;

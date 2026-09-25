@@ -1,11 +1,11 @@
-use crate::archive::{Archive, Improvement, Record};
+use crate::archive::{Archive, Improvement};
 use crate::demonstration::Lesson;
 use crate::encoding::Shape;
 use crate::home::{self, Home};
 use crate::judge::Judge;
-use crate::objective::evaluate;
 use crate::play::{self, Shared, Statistic, Tally, Worker};
 use crate::problem::Problem;
+use crate::renewal::renew;
 use crate::replay::Replay;
 use crate::server::{Server, serve};
 use crate::train::{self, Device, Progress, Trainer};
@@ -247,8 +247,8 @@ fn report(
         value: progress.value,
         entropy: progress.entropy,
         norm: progress.norm,
-        fit: progress.judge,
-        judge,
+        fit: judge,
+        judge: progress.judge,
         risk,
         reward: tally.reward / episode,
         correct: tally.correct as f64 / episode,
@@ -295,34 +295,8 @@ pub fn run(
     });
     let (server, receiver) = Server::new();
     let mut archive: Archive = home.load(home::ARCHIVE)?.unwrap_or_default();
-    let thorough = setting.play.objective.thorough();
     for entry in &problem {
-        let task = &entry.task;
-        let prior = archive.forget(&task.name);
-        archive.register(
-            &task.name,
-            entry.baseline,
-            task.reference
-                .clone()
-                .zip(entry.reference.as_ref())
-                .map(|(program, evaluation)| Record::new(program, evaluation, true, 0)),
-        );
-        if let Some(record) = prior {
-            let evaluation = evaluate(
-                &record.program,
-                &task.example,
-                &task.vocabulary,
-                &thorough.aim(task.goal),
-            );
-            let general =
-                evaluate(&record.program, &task.holdout, &task.vocabulary, &thorough).correct;
-            if evaluation.correct {
-                archive.offer(
-                    &task.name,
-                    Record::new(record.program, &evaluation, general, record.moment),
-                );
-            }
-        }
+        renew(&mut archive, entry, &setting.play.objective);
     }
     let shared = Arc::new(Shared {
         model: RwLock::new(Arc::new(model.clone())),

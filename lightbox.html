@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Write a Photonic program in your browser and explore every configuration it can reach.">
 <meta name="color-scheme" content="light dark">
+<script>globalThis.book = { storage: { theme: 'photonic-book-theme' } }; try { const choice = localStorage.getItem(book.storage.theme); if (choice === 'light' || choice === 'dark') document.documentElement.dataset.theme = choice; } catch {}</script>
 <title>Photonic Lightbox</title>
 <link rel="icon" href="book/icon.svg">
 <link rel="stylesheet" href="book/book.css">
@@ -13,6 +14,7 @@
 <script defer src="book/render.js"></script>
 <script defer src="book/engine.js"></script>
 <script defer src="book/editor.js"></script>
+<script defer src="book/run.js"></script>
 <script defer src="book/graph.js"></script>
 <script defer src="book/pattern.js"></script>
 <script defer src="book/hypergraph.js"></script>

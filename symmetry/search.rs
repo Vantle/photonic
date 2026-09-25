@@ -1,5 +1,6 @@
 use crate::graph::Graph;
 use crate::partition::Partition;
+use code::forest::Forest;
 use code::hashing::combine;
 use std::cmp::Ordering;
 
@@ -59,37 +60,23 @@ fn certificate(graph: &Graph, partition: &Partition) -> Vec<u64> {
         edge.extend(graph.child[vertex as usize].iter().map(|entry| {
             (
                 partition.position(entry.vertex),
-                entry.kind as u64,
+                entry.relation as u64,
                 entry.count,
             )
         }));
         edge.sort_unstable();
         word.push(edge.len() as u64);
-        for &(position, kind, count) in &edge {
-            word.extend([u64::from(position), kind << 32 | u64::from(count)]);
+        for &(position, relation, count) in &edge {
+            word.extend([u64::from(position), relation << 32 | u64::from(count)]);
         }
     }
     word
 }
 
-fn find(parent: &mut [u32], index: u32) -> u32 {
-    let mut root = index;
-    while parent[root as usize] != root {
-        root = parent[root as usize];
-    }
-    let mut current = index;
-    while parent[current as usize] != root {
-        let next = parent[current as usize];
-        parent[current as usize] = root;
-        current = next;
-    }
-    root
-}
-
 impl Search<'_> {
-    fn orbit(&self, path: &[u32], node: &Node<'_>) -> Vec<u32> {
-        let mut parent = (0..node.cell.len() as u32).collect::<Vec<_>>();
-        let local = |vertex: u32| node.partition.position(vertex) - node.target;
+    fn orbit(&self, path: &[u32], node: &Node<'_>) -> Vec<usize> {
+        let mut forest = Forest::new(node.cell.len());
+        let local = |vertex: u32| (node.partition.position(vertex) - node.target) as usize;
         for generator in &self.generator {
             if path
                 .iter()
@@ -98,16 +85,12 @@ impl Search<'_> {
                 continue;
             }
             for &vertex in node.cell {
-                let (left, right) = (
-                    find(&mut parent, local(vertex)),
-                    find(&mut parent, local(generator[vertex as usize])),
-                );
-                parent[left.max(right) as usize] = left.min(right);
+                forest.join(local(vertex), local(generator[vertex as usize]));
             }
         }
         node.cell
             .iter()
-            .map(|&vertex| find(&mut parent, local(vertex)))
+            .map(|&vertex| forest.root(local(vertex)))
             .collect()
     }
 

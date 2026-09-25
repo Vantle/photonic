@@ -14,4 +14,6 @@ pub enum Failure {
     Execution(String),
     #[error("GPU training needs optimizer state before its first step")]
     Unprepared,
+    #[error("the model holds {expected} parameters but {actual} were given")]
+    Length { expected: usize, actual: usize },
 }

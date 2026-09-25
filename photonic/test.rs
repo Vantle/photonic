@@ -86,7 +86,14 @@ fn binary() {
         .args(["prism", "--target"])
         .arg(&target)
         .args([
-            "--json", "--path", "--steps", "100000", "--cells", "128", "--states", "1024",
+            "--json",
+            "--path",
+            "--work",
+            "100000",
+            "--occurrence",
+            "128",
+            "--configuration",
+            "1024",
         ])
         .output()
         .unwrap();
@@ -99,7 +106,7 @@ fn binary() {
     assert_eq!(report["outcome"], "reached");
     let output = Command::new(executable("LOCAL"))
         .current_dir(&root)
-        .args(["--json", "--steps", "0"])
+        .args(["--json", "--work", "0"])
         .output()
         .unwrap();
     assert!(output.status.success());
@@ -152,7 +159,7 @@ fn manifest() {
         .current_dir(&root)
         .env("RUNFILES_MANIFEST_FILE", &manifest)
         .env_remove("RUNFILES_DIR")
-        .args(["--json", "--steps", "0"])
+        .args(["--json", "--work", "0"])
         .output()
         .unwrap();
     assert!(
@@ -193,7 +200,7 @@ fn program(root: &std::path::Path, source: &str) -> PathBuf {
 fn verification() {
     let root = directory();
     let program = program(&root, "[A] B");
-    for (input, target, expect, path, step, success) in [
+    for (input, target, expect, path, work, success) in [
         ("A", "B", "reached", false, 1000, true),
         ("A", "C", "unreachable", false, 1000, true),
         ("A", "C", "reached", false, 1000, false),
@@ -216,14 +223,14 @@ fn verification() {
                 "match": "all",
                 "path": path,
                 "preserve": true,
-                "step": step,
+                "work": work,
                 "limit": limit(),
             }),
         );
         assert_eq!(
             output.status.success(),
             success,
-            "{input} => {target} ({expect}, path={path}, step={step}): {} {}",
+            "{input} => {target} ({expect}, path={path}, work={work}): {} {}",
             String::from_utf8_lossy(&output.stdout),
             String::from_utf8_lossy(&output.stderr)
         );
@@ -235,7 +242,7 @@ fn verification() {
 fn matching() {
     let root = directory();
     let program = program(&root, "[A] B");
-    for (target, mode, expect, step, success) in [
+    for (target, mode, expect, work, success) in [
         (vec!["B", "C"], "all", "reached", 1000, true),
         (vec!["B", "D"], "all", "reached", 1000, false),
         (vec!["D", "B"], "any", "reached", 1000, true),
@@ -263,14 +270,14 @@ fn matching() {
                 "expect": expect,
                 "path": false,
                 "preserve": true,
-                "step": step,
+                "work": work,
                 "limit": limit(),
             }),
         );
         assert_eq!(
             output.status.success(),
             success,
-            "{mode} {expect} {target:?} step={step}: {} {}",
+            "{mode} {expect} {target:?} work={work}: {} {}",
             String::from_utf8_lossy(&output.stdout),
             String::from_utf8_lossy(&output.stderr)
         );
@@ -298,7 +305,7 @@ fn preservation() {
                 "expect": expect,
                 "path": false,
                 "preserve": preserve,
-                "step": 1000,
+                "work": 1000,
                 "limit": limit(),
             }),
         );

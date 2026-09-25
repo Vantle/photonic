@@ -30,7 +30,7 @@ struct Case {
     mode: Mode,
     path: bool,
     preserve: bool,
-    step: usize,
+    work: usize,
     limit: Limit,
 }
 
@@ -86,7 +86,7 @@ fn main() -> miette::Result<ExitCode> {
         None
     } else {
         let mut search = Search::new(program.clone(), target[0].clone());
-        search.run(case.step, Some(limit));
+        search.run(case.work, Some(limit));
         Some(search)
     };
     let directory = std::env::var_os("TEST_UNDECLARED_OUTPUTS_DIR").map(std::path::PathBuf::from);
@@ -110,7 +110,7 @@ fn main() -> miette::Result<ExitCode> {
             verdict.outcome
         } else {
             let mut search = photonic::path::Search::new(program.clone(), target);
-            search.run(case.step, limit);
+            search.run(case.work, limit);
             let outcome = search.summary().outcome;
             if outcome != expected {
                 record(&directory, &name, &search.report())?;

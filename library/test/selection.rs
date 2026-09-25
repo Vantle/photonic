@@ -1,12 +1,13 @@
 use crate::catalog::source;
-use crate::{check, witness};
+use crate::{answer, check, witness};
 use photonic::prism::Outcome;
 
-fn library() -> [&'static str; 8] {
+fn library() -> [&'static str; 9] {
     [
         source("function", "invoke"),
         source("collection", "produce"),
         source("collection", "copy"),
+        source("collection", "unpack"),
         source("collection", "map"),
         source("selection", "filter"),
         source("selection", "check"),
@@ -23,6 +24,20 @@ fn count() {
                 "Invoke.Pair.Copy.([Value] {value}).Map.([Each] Selection.Filter).Reduce.([Operation] Selection.Count)"
             ),
             expected,
+            &library(),
+        );
+    }
+}
+
+#[test]
+fn mixed() {
+    for (left, right) in [("True", "False"), ("False", "True")] {
+        answer(
+            &format!(
+                "Invoke.Pair.Unpack.([Left] {left}).([Right] {right}).Map.([Each] Selection.Filter).Reduce.([Operation] Selection.Count)"
+            ),
+            "1",
+            ["0", "1", "2"],
             &library(),
         );
     }

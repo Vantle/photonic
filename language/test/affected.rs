@@ -13,9 +13,9 @@ fn reconciliation() {
             seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1);
             let frame = (seed >> 40) as usize % 5;
             let symbol = (0..(seed >> 58) as usize)
-                .map(|offset| match (seed >> (offset * 3)) % 3 {
-                    0 => Symbol::Atom((seed >> (offset * 5)) as usize % 7),
-                    _ => Symbol::Rule((seed >> (offset * 7)) as usize % 4),
+                .map(|offset| match seed.wrapping_shr(offset as u32 * 3) % 3 {
+                    0 => Symbol::Atom(seed.wrapping_shr(offset as u32 * 5) as usize % 7),
+                    _ => Symbol::Rule(seed.wrapping_shr(offset as u32 * 7) as usize % 4),
                 })
                 .collect::<Vec<_>>();
             expected

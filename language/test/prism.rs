@@ -123,10 +123,8 @@ fn uncertainty() {
 fn target() {
     let mut search = {
         let program = parse("A").unwrap();
-        let target = crate::source::Program {
-            rule: program.rule.clone(),
-            ..parse("B, [B] A").unwrap()
-        };
+        let mut target = parse("B, [B] A").unwrap();
+        target.preserve(&program);
         Search::new(program, target)
     };
     search.run(12_000, None);

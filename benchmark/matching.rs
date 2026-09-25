@@ -4,6 +4,8 @@ use serde::Serialize;
 use std::path::PathBuf;
 use std::time::Instant;
 
+mod directory;
+
 #[derive(Parser)]
 struct Argument {
     source: PathBuf,
@@ -50,6 +52,7 @@ fn evaluate(program: photonic::source::Program) -> Measurement {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    directory::enter()?;
     let argument = Argument::parse();
     let program = photonic::lowering::parse(&std::fs::read_to_string(argument.source)?)?;
     evaluate(program.clone());

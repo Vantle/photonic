@@ -2,11 +2,11 @@
 
 load("@rules_rust_wasm_bindgen//:defs.bzl", "RustWasmBindgenInfo")
 
-def _asset(ctx):
-    info = ctx.attr.source[RustWasmBindgenInfo]
+def _asset(context):
+    info = context.attr.source[RustWasmBindgenInfo]
     return [
-        DefaultInfo(files = depset([info.wasm], transitive = [info.js, info.ts])),
-        OutputGroupInfo(javascript = info.js, webassembly = depset([info.wasm]), typescript = info.ts),
+        DefaultInfo(files = depset([info.wasm], transitive = [info.js])),
+        OutputGroupInfo(javascript = info.js, webassembly = depset([info.wasm])),
     ]
 
 asset = rule(

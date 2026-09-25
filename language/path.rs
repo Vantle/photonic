@@ -184,7 +184,7 @@ impl Search {
         let mut remaining = budget;
         while remaining > 0 {
             remaining -= 1;
-            let work = self.work;
+            let start = self.work;
             if matches!(self.stage, Stage::Reached | Stage::Cycle) || !self.fits(limit.record) {
                 return;
             }
@@ -201,11 +201,11 @@ impl Search {
                     remaining -= skipped - 1;
                     continue;
                 }
-                let work = self.runtime.work;
+                let before = self.runtime.work;
                 let event = self.runtime.run(limit);
-                self.work += self.runtime.work - work;
+                self.work += self.runtime.work - before;
                 let Some(event) = event else {
-                    if self.runtime.work == work {
+                    if self.runtime.work == before {
                         return;
                     }
                     continue;
@@ -222,9 +222,9 @@ impl Search {
             }
             let goal = self.signature == fingerprint && record.compatible(&self.goal);
             if goal || self.comparable(&record, fingerprint) {
-                let stalled = self.work != work;
-                if stalled || self.normalize(&mut record, goal, fingerprint) {
-                    self.work += usize::from(!stalled);
+                let worked = self.work != start;
+                if worked || self.normalize(&mut record, goal, fingerprint) {
+                    self.work += usize::from(!worked);
                     self.pending = Some(Pending { event, record });
                     continue;
                 }
@@ -401,6 +401,14 @@ impl Search {
 
     pub fn current(&self) -> Node {
         self.inspect(self.cursor).unwrap()
+    }
+
+    pub fn rule(&self, index: usize) -> Option<usize> {
+        self.event.get(index).map(|step| step.rule)
+    }
+
+    pub fn scope(&self, name: &str) -> Option<&[usize]> {
+        self.compiled.scope(name)
     }
 
     fn outcome(&self) -> Outcome {

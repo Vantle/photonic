@@ -3,7 +3,10 @@ load("@rules_rs//rs:rust_test.bzl", "rust_test")
 
 exports_files(
     ["parser.rs"],
-    visibility = ["//book:__pkg__"],
+    visibility = [
+        "//book:__pkg__",
+        "//spectrum:__pkg__",
+    ],
 )
 
 rust_library(

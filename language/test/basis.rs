@@ -31,7 +31,6 @@ fn canonical() {
             assert_eq!(actual.first(), expected.first());
             assert_eq!(actual, canonical);
             assert_eq!(digest(&actual), digest(&canonical));
-            assert_eq!(actual.clone(), actual);
         }
     }
     assert_eq!(Set::<usize>::default(), [].into_iter().collect());

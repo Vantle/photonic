@@ -58,3 +58,44 @@ fn composition() {
         assert_eq!(store.retained(), 0);
     }
 }
+
+#[test]
+fn frame() {
+    use crate::location::Location;
+    use crate::program::Symbol;
+    use crate::slot::Slot;
+    use crate::state::{Frame, State, Token, World};
+
+    let world = |frame, id| {
+        Arc::new(World {
+            frame,
+            particle: vec![Token {
+                id,
+                value: Symbol::Atom(0),
+                capture: None,
+            }],
+        })
+    };
+    let scope = |scope, parent| {
+        Arc::new(Frame {
+            scope,
+            parent,
+            lexical: parent,
+            particle: Default::default(),
+            held: Vec::new(),
+        })
+    };
+    let state = State {
+        world: vec![world(0, 0), world(1, 1)].into(),
+        frame: vec![scope(0, None), scope(1, Some(0))].into(),
+    };
+    let slot = |world, id| Slot {
+        location: Location::World(world),
+        token: vec![id],
+        position: 0,
+    };
+    assert!(super::Binding::select(&state, &[slot(0, 0)], 0).is_some());
+    assert!(super::Binding::select(&state, &[slot(1, 1)], 1).is_some());
+    assert!(super::Binding::select(&state, &[slot(1, 1)], 0).is_none());
+    assert!(super::Binding::select(&state, &[slot(0, 0), slot(1, 1)], 0).is_none());
+}

@@ -177,18 +177,6 @@ fn incomplete() {
     );
 }
 
-#[test]
-fn obsolete() {
-    for request in ["Apply.Boolean.Not.True", "Call.Boolean.Not.True"] {
-        check(
-            request,
-            "False",
-            &[invoke(), source("boolean", "not")],
-            Outcome::Unreachable,
-        );
-    }
-}
-
 fn deterministic(source: &str, target: &str, library: &[&str]) {
     let mut baseline = None;
     for worker in [1, 2, 4] {

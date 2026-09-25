@@ -2,7 +2,6 @@ use super::Input;
 use crate::program::Symbol;
 use crate::state::Token;
 use std::sync::Arc;
-use std::task::Poll;
 
 #[test]
 fn ownership() {
@@ -33,11 +32,8 @@ fn ownership() {
         value: Symbol::Rule(7),
         capture: Some(1),
     }];
-    assert_eq!(
-        left.prepare(1, &particle).step(),
-        Poll::Ready(Some(vec![19]))
-    );
-    assert_eq!(right.prepare(1, &particle).step(), Poll::Ready(None));
+    assert_eq!(left.prepare(1, &particle).step(), Some(vec![19]));
+    assert_eq!(right.prepare(1, &particle).step(), None);
     drop(left);
     assert_eq!(shape.strong_count(), 1);
     assert!(fragment.upgrade().is_some());
@@ -49,8 +45,16 @@ fn ownership() {
 #[test]
 fn sharing() {
     let mut shared = Default::default();
-    let left = Input::shared(&[vec![Symbol::Rule(0)], vec![Symbol::Atom(0)]], &mut shared);
-    let right = Input::shared(&[vec![Symbol::Rule(0)], vec![Symbol::Atom(1)]], &mut shared);
+    let left = Input::shared(
+        &[vec![Symbol::Rule(0)], vec![Symbol::Atom(0)]],
+        |_| true,
+        &mut shared,
+    );
+    let right = Input::shared(
+        &[vec![Symbol::Rule(0)], vec![Symbol::Atom(1)]],
+        |_| true,
+        &mut shared,
+    );
     assert!(Arc::ptr_eq(
         &left.shape.fragment[0],
         &right.shape.fragment[0]
@@ -66,10 +70,10 @@ fn sharing() {
     }];
     let mut accepted = left.context(1).prepare(0, &particle);
     let mut rejected = right.context(2).prepare(0, &particle);
-    assert_eq!(accepted.step(), Poll::Ready(Some(vec![7])));
-    assert_eq!(rejected.step(), Poll::Ready(None));
+    assert_eq!(accepted.step(), Some(vec![7]));
+    assert_eq!(rejected.step(), None);
     let mut later = right.context(1).prepare(0, &particle);
-    assert_eq!(later.step(), Poll::Ready(Some(vec![7])));
+    assert_eq!(later.step(), Some(vec![7]));
 }
 
 #[test]
@@ -197,7 +201,7 @@ fn summary() {
                             loop {
                                 let next = actual.step();
                                 assert_eq!(next, expected.step());
-                                if matches!(next, Poll::Ready(None)) {
+                                if next.is_none() {
                                     break;
                                 }
                             }
@@ -253,7 +257,7 @@ fn rejection() {
                 for _ in 0..512 {
                     let result = expected.step();
                     assert_eq!(actual.step(), result);
-                    if matches!(result, Poll::Ready(None)) {
+                    if result.is_none() {
                         break;
                     }
                 }

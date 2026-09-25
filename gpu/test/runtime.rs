@@ -1,4 +1,5 @@
-use crate::runtime::{Device, Operand, Product};
+use crate::operand::{Operand, Product};
+use crate::runtime::Device;
 use random::Generator;
 
 fn product(left: &[f32], right: &[f32], shape: [usize; 3], transpose: [bool; 2]) -> Vec<f32> {
@@ -11,12 +12,12 @@ fn product(left: &[f32], right: &[f32], shape: [usize; 3], transpose: [bool; 2])
         }
     };
     let mut result = vec![0.0; row * column];
-    for i in 0..row {
-        for j in 0..column {
-            result[i * column + j] = (0..interior)
-                .map(|k| {
-                    get(left, transpose[0], [i, k], [interior, row])
-                        * get(right, transpose[1], [k, j], [column, interior])
+    for down in 0..row {
+        for across in 0..column {
+            result[down * column + across] = (0..interior)
+                .map(|inner| {
+                    get(left, transpose[0], [down, inner], [interior, row])
+                        * get(right, transpose[1], [inner, across], [column, interior])
                 })
                 .sum();
         }

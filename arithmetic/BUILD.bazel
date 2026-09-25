@@ -27,6 +27,7 @@ rust_binary(
     name = "word",
     srcs = [
         "argument.rs",
+        "search.rs",
         "word.rs",
     ],
     crate_root = "word.rs",
@@ -45,6 +46,7 @@ rust_test(
     size = "medium",
     srcs = [
         "argument.rs",
+        "search.rs",
         ":conformance",
     ],
     compile_data = [
@@ -68,7 +70,10 @@ rust_test(
 
 rust_binary(
     name = "benchmark",
-    srcs = ["benchmark.rs"],
+    srcs = [
+        "benchmark.rs",
+        "search.rs",
+    ],
     crate_root = "benchmark.rs",
     lint_config = "//:lint",
     deps = [

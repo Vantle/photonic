@@ -1,27 +1,32 @@
 use crate::argument::Solve;
 use crate::output::{discovery, line};
-use crate::setup::{export, open, read};
+use crate::setup::{archive, export, open, read};
+use code::program::Program;
 use learning::archive::{Archive, Record, moment};
 use learning::edit::Bound;
 use learning::export::source;
 use learning::guide::{self, Effort, Guidance, Network};
 use learning::home::{self, Home};
 use learning::import;
-use learning::objective;
+use learning::objective::{self, TOLERANCE};
 use learning::play;
 use learning::pool;
 use learning::problem::Problem;
+use learning::renewal::renew;
 use learning::solution::{self, Budget, Solution};
-use learning::task::{self, Task};
+use learning::task::{Goal, Task};
 use miette::{IntoDiagnostic, miette};
 use std::time::{Duration, Instant};
 
-fn goal(argument: &Solve) -> Option<task::Goal> {
-    let known = task::Goal::default();
-    (argument.processor.is_some() || argument.size.is_some()).then(|| task::Goal {
-        processor: argument.processor.unwrap_or(known.processor),
-        size: argument.size.unwrap_or(known.size),
-    })
+fn aimed(argument: &Solve) -> bool {
+    argument.processor.is_some() || argument.size.is_some()
+}
+
+fn goal(argument: &Solve, fallback: Goal) -> Goal {
+    Goal {
+        processor: argument.processor.unwrap_or(fallback.processor),
+        size: argument.size.unwrap_or(fallback.size),
+    }
 }
 
 fn tested(argument: &Solve) -> miette::Result<Option<Task>> {
@@ -40,7 +45,7 @@ fn tested(argument: &Solve) -> miette::Result<Option<Task>> {
     let name = argument.name.clone().unwrap_or_else(|| "tests".to_owned());
     let task = import::define(&name, &pair).into_diagnostic()?;
     Ok(Some(Task {
-        goal: goal(argument),
+        goal: aimed(argument).then(|| goal(argument, Goal::default())),
         ..task
     }))
 }
@@ -76,7 +81,7 @@ fn describe(task: &Task, known: f64, solution: &Solution, elapsed: Duration) -> 
         || "before any size was complete".to_owned(),
         |size| format!("every program up to size {size}"),
     );
-    let found = solution.cost <= known + 1e-9;
+    let found = solution.cost <= known + TOLERANCE;
     match (solution.proven, found) {
         (true, true) if solution.complete => format!(
             "{}: optimal cost {:.3}, reached by {} of {examined}",
@@ -127,6 +132,8 @@ fn guided(task: &Task, guidance: &Guidance) -> String {
 }
 
 pub struct Attempt {
+    pub objective: objective::Setting,
+    pub bound: Bound,
     pub budget: Budget,
     pub guide: u64,
     pub blind: bool,
@@ -141,126 +148,214 @@ pub struct Count {
     pub general: usize,
 }
 
+fn network(home: &Home, guide: u64) -> miette::Result<Option<Network>> {
+    if guide == 0 {
+        return Ok(None);
+    }
+    let checkpoint = home.file(home::CHECKPOINT);
+    if !checkpoint.exists() {
+        line(&format!(
+            "guided search skipped: no trained network is saved in {} yet",
+            home.path().display()
+        ));
+        return Ok(None);
+    }
+    Network::load(&checkpoint).map(Some).into_diagnostic()
+}
+
+struct Finding {
+    candidate: Vec<(Program, objective::Evaluation)>,
+    proven: bool,
+}
+
+struct Cover {
+    size: Option<usize>,
+    gap: f64,
+}
+
+impl Cover {
+    fn reason(&self) -> String {
+        match self.size {
+            Some(size) => format!(
+                "every program above size {size} costs at least {:.3}",
+                self.gap
+            ),
+            None => format!("every correct program costs at least {:.3}", self.gap),
+        }
+    }
+}
+
+fn exhaust(task: &Task, known: f64, option: &Attempt) -> (Finding, Option<Cover>) {
+    let begun = Instant::now();
+    let solution = match solution::solve(task, known, &option.objective, option.budget) {
+        Ok(solution) => solution,
+        Err(failure) => {
+            line(&format!("{}: {failure}", task.name));
+            let finding = Finding {
+                candidate: Vec::new(),
+                proven: false,
+            };
+            let cover = Cover {
+                size: None,
+                gap: solution::least(task, &option.objective),
+            };
+            return (finding, Some(cover));
+        }
+    };
+    line(&describe(task, known, &solution, begun.elapsed()));
+    let cover = (!solution.proven).then(|| Cover {
+        size: solution.size,
+        gap: solution.gap(),
+    });
+    let finding = Finding {
+        proven: solution.proven && solution.cost <= known + TOLERANCE,
+        candidate: solution.optimal,
+    };
+    (finding, cover)
+}
+
+fn find(entry: &Problem, known: f64, network: Option<&mut Network>, option: &Attempt) -> Finding {
+    let task = &entry.task;
+    let (mut finding, cover) = exhaust(task, known, option);
+    if let (Some(network), Some(cover)) = (network, cover) {
+        let guidance = guide::search(
+            task,
+            &play::bound(&option.bound, entry),
+            &option.objective,
+            Effort {
+                time: Duration::from_secs(option.guide),
+                expansion: u64::MAX,
+            },
+            cover.gap,
+            network,
+        );
+        line(&guided(task, &guidance));
+        if let Some((_, evaluation)) = &guidance.best
+            && evaluation.cost <= cover.gap + TOLERANCE
+            && evaluation.cost <= known + TOLERANCE
+        {
+            finding.proven = true;
+            line(&format!(
+                "{}: optimal, because {}",
+                task.name,
+                cover.reason()
+            ));
+        }
+        finding.candidate.extend(guidance.best);
+    }
+    finding.candidate.sort_by(|left, right| {
+        left.1
+            .cost
+            .total_cmp(&right.1.cost)
+            .then_with(|| left.0.cmp(&right.0))
+    });
+    finding.candidate.dedup_by(|left, right| left.0 == right.0);
+    finding
+}
+
+fn keep(entry: &Problem, finding: &Finding, archive: &mut Archive, option: &Attempt) -> bool {
+    let task = &entry.task;
+    let goal = option.objective.aim(task.goal).goal;
+    for (program, evaluation) in finding.candidate.iter().take(option.show) {
+        line(&format!(
+            "size {}, work {:.2}, span {:.2}\n{}",
+            evaluation.size.total(),
+            evaluation.work,
+            evaluation.span,
+            source(task, program)
+        ));
+    }
+    let least = finding
+        .candidate
+        .first()
+        .map_or(f64::INFINITY, |(_, evaluation)| evaluation.cost);
+    let mut held = false;
+    for (program, evaluation) in &finding.candidate {
+        let passes = objective::general(program, task, &option.objective);
+        held |= passes;
+        let record = Record::new(program.clone(), evaluation, passes, moment());
+        let record = if finding.proven && evaluation.cost <= least + TOLERANCE {
+            record.prove(goal)
+        } else {
+            record
+        };
+        if let Some(improvement) = archive.offer(&task.name, record) {
+            line(&discovery(&improvement));
+        }
+    }
+    if !task.holdout.is_empty() && !finding.candidate.is_empty() {
+        line(&format!(
+            "{}: {} {} held-out tests",
+            task.name,
+            if held { "passes" } else { "fails" },
+            task.holdout.len()
+        ));
+    }
+    held
+}
+
+fn settle(
+    entry: &Problem,
+    archive: &mut Archive,
+    network: Option<&mut Network>,
+    option: &Attempt,
+    count: &mut Count,
+) {
+    count.total += 1;
+    let known = if option.blind {
+        f64::INFINITY
+    } else {
+        incumbent(entry, archive, &option.objective)
+    };
+    let finding = find(entry, known, network, option);
+    let held = keep(entry, &finding, archive, option);
+    count.found += usize::from(!finding.candidate.is_empty());
+    count.proven += usize::from(finding.proven);
+    count.general += usize::from(held);
+}
+
 pub fn attempt(
     home: &Home,
     pool: &[Task],
     chosen: &[String],
     option: &Attempt,
 ) -> miette::Result<Count> {
-    let setting = objective::Setting::default();
-    let checkpoint = home.file(home::CHECKPOINT);
-    let mut network = (option.guide > 0 && checkpoint.exists())
-        .then(|| Network::load(&checkpoint))
-        .transpose()
-        .into_diagnostic()?;
-    let (problem, failure) = pool::prepare(pool, &setting);
+    if let Some(name) = chosen
+        .iter()
+        .find(|name| pool.iter().all(|task| task.name != **name))
+    {
+        return Err(miette!("no task is named {name}"));
+    }
+    let selected = pool
+        .iter()
+        .filter(|task| chosen.contains(&task.name))
+        .cloned()
+        .collect::<Vec<_>>();
+    let (problem, failure) = pool::prepare(&selected, &option.objective);
     for error in failure {
         line(&format!("skipped: {error}"));
     }
-    if let Some(name) = chosen
-        .iter()
-        .find(|name| problem.iter().all(|entry| entry.task.name != **name))
-    {
-        return Err(miette!("no usable task is named {name}"));
+    if problem.is_empty() {
+        return Ok(Count::default());
     }
-    let mut archive: Archive = home
-        .load(home::ARCHIVE)
-        .into_diagnostic()?
-        .unwrap_or_default();
-    let mut count = Count::default();
-    for entry in problem
-        .iter()
-        .filter(|entry| chosen.is_empty() || chosen.contains(&entry.task.name))
-    {
-        let task = &entry.task;
-        let known = if option.blind {
-            f64::INFINITY
-        } else {
-            incumbent(entry, &archive, &setting)
-        };
-        let begun = Instant::now();
-        let solution = solution::solve(task, known, &setting, option.budget).into_diagnostic()?;
-        line(&describe(task, known, &solution, begun.elapsed()));
-        let mut candidate = solution.optimal.clone();
-        let mut proven = solution.proven && solution.cost <= known + 1e-9;
-        if let Some(network) = network.as_mut()
-            && !solution.proven
-        {
-            let gap = solution.gap();
-            let guidance = guide::search(
-                task,
-                &play::bound(&Bound::default(), entry),
-                &setting,
-                Effort {
-                    time: Duration::from_secs(option.guide),
-                    expansion: u64::MAX,
-                },
-                gap,
-                network,
-            );
-            line(&guided(task, &guidance));
-            if let Some((_, evaluation)) = &guidance.best
-                && evaluation.cost <= gap + 1e-9
-                && evaluation.cost <= known + 1e-9
-            {
-                proven = true;
-                line(&format!(
-                    "{}: optimal, because every program above size {} costs at least {gap:.3}",
-                    task.name,
-                    solution.size.unwrap_or(0)
-                ));
-            }
-            candidate.extend(guidance.best);
-        }
-        count.total += 1;
-        count.found += usize::from(!candidate.is_empty());
-        count.proven += usize::from(proven);
-        for (program, evaluation) in solution.optimal.iter().take(option.show) {
-            line(&format!(
-                "size {}, work {:.2}, span {:.2}\n{}",
-                evaluation.size.total(),
-                evaluation.work,
-                evaluation.span,
-                source(task, program)
-            ));
-        }
-        archive.register(&task.name, entry.baseline, None);
-        let least = candidate
-            .iter()
-            .map(|(_, evaluation)| evaluation.cost)
-            .fold(f64::INFINITY, f64::min);
-        let mut held = false;
-        for (program, evaluation) in &candidate {
-            let passes = task.holdout.is_empty()
-                || objective::evaluate(program, &task.holdout, &task.vocabulary, &setting).correct;
-            held |= passes;
-            let record = Record::new(program.clone(), evaluation, passes, moment());
-            let record = if proven && evaluation.cost <= least + 1e-9 {
-                record.prove()
-            } else {
-                record
-            };
-            if let Some(improvement) = archive.offer(&task.name, record) {
-                line(&discovery(&improvement));
-            }
-        }
-        count.general += usize::from(held);
-        if !task.holdout.is_empty() && !candidate.is_empty() {
-            line(&format!(
-                "{}: {} {} held-out tests",
-                task.name,
-                if held { "passes" } else { "fails" },
-                task.holdout.len()
-            ));
-        }
+    let mut network = network(home, option.guide)?;
+    let mut archive = archive(home)?;
+    for entry in &problem {
+        renew(&mut archive, entry, &option.objective);
     }
     home.save(home::ARCHIVE, &archive).into_diagnostic()?;
+    let mut count = Count::default();
+    for entry in &problem {
+        settle(entry, &mut archive, network.as_mut(), option, &mut count);
+        home.save(home::ARCHIVE, &archive).into_diagnostic()?;
+    }
     export(home, pool)?;
     Ok(count)
 }
 
 pub fn run(argument: &Solve) -> miette::Result<()> {
     let home = open(&argument.home)?;
+    let objective = objective::Setting::default();
     let mut pool = home
         .load::<Vec<Task>>(home::POOL)
         .into_diagnostic()?
@@ -268,9 +363,9 @@ pub fn run(argument: &Solve) -> miette::Result<()> {
     let mut chosen = argument.task.clone();
     if let Some(task) = tested(argument)? {
         chosen.push(task.name.clone());
-        pool = pool::admit(pool, task);
+        pool = pool::admit(pool, task, &objective).into_diagnostic()?;
         home.save(home::POOL, &pool).into_diagnostic()?;
-    } else if let Some(goal) = goal(argument) {
+    } else if aimed(argument) {
         if chosen.is_empty() {
             return Err(miette!(
                 "name the tasks to solve under --processor or --size with --task"
@@ -282,6 +377,7 @@ pub fn run(argument: &Solve) -> miette::Result<()> {
                 .iter()
                 .find(|task| task.name == *name)
                 .ok_or_else(|| miette!("no task is named {name}"))?;
+            let goal = goal(argument, task.goal.unwrap_or_default());
             variant.push(Task {
                 name: format!("{name}.p{}.s{}", goal.processor, goal.size),
                 goal: Some(goal),
@@ -293,15 +389,20 @@ pub fn run(argument: &Solve) -> miette::Result<()> {
         pool.extend(variant);
         home.save(home::POOL, &pool).into_diagnostic()?;
     }
+    if chosen.is_empty() {
+        chosen = pool.iter().map(|task| task.name.clone()).collect();
+    }
     let start = Instant::now();
     let count = attempt(
         &home,
         &pool,
         &chosen,
         &Attempt {
+            objective,
+            bound: Bound::default(),
             budget: Budget {
                 size: argument.limit,
-                time: argument.budget.map(Duration::from_secs),
+                time: argument.enumerate.map(Duration::from_secs),
             },
             guide: argument.guide,
             blind: argument.blind,

@@ -52,7 +52,7 @@ pub fn run(width: usize, length: usize) -> Measurement {
         initialization,
         execution: start.elapsed().as_secs_f64(),
         retained: network.retained(),
-        preparation: network.preparation,
-        reuse: network.reuse,
+        preparation: network.preparation(),
+        reuse: network.reuse(),
     }
 }

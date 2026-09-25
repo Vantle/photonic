@@ -1,4 +1,5 @@
-use frontend::lowering::{self, Failure};
+use frontend::failure::Failure;
+use frontend::lowering;
 use frontend::source::{Definition, Value};
 
 fn value(value: &Value) -> Value {
@@ -48,10 +49,7 @@ fn permutation(piece: &[&str]) -> Vec<String> {
 
 fn syntax(source: &str) -> String {
     match lowering::parse(source) {
-        Err(
-            Failure::Syntax { message, .. }
-            | Failure::Parse(frontend::failure::Failure::Syntax { message, .. }),
-        ) => message,
+        Err(Failure::Syntax { message, .. } | Failure::Lowering { message, .. }) => message,
         other => panic!("expected a syntax failure for {source}, found {other:?}"),
     }
 }

@@ -17,15 +17,18 @@ WHITESPACE = _{ " " | "\t" | "\r" | "\n" | "\u{000B}" | "\u{000C}" }
 "#]
 struct Grammar;
 
+pub const SPACE: [char; 6] = [' ', '\t', '\r', '\n', '\u{000B}', '\u{000C}'];
+pub const DELIMITER: [char; 6] = ['(', ')', '[', ']', '.', ','];
+
 pub fn parse(source: &str) -> Result<Tree<'_>, Failure> {
     depth(source)?;
     let parsed = Grammar::parse(Rule::module, source).map_err(|error| {
-        let (position, message) = advice(source).unwrap_or_else(|| {
-            let position = match error.location {
-                InputLocation::Pos(position) | InputLocation::Span((position, _)) => position,
-            };
-            (position, error.variant.message().into_owned())
-        });
+        let position = match error.location {
+            InputLocation::Pos(position) | InputLocation::Span((position, _)) => position,
+        };
+        let (position, message) = advice(source)
+            .filter(|&(advised, _)| advised <= position)
+            .unwrap_or_else(|| (position, error.variant.message().into_owned()));
         let length = source[position..].chars().next().map_or(0, char::len_utf8);
         Failure::Syntax {
             message,
@@ -70,17 +73,16 @@ pub fn parse(source: &str) -> Result<Tree<'_>, Failure> {
 }
 
 fn advice(source: &str) -> Option<(usize, String)> {
-    let space = [' ', '\t', '\r', '\n', '\u{000B}', '\u{000C}'];
     let mut open = Vec::new();
     let mut sink = false;
     let mut previous = None;
     let mut word = false;
     for (position, character) in source.char_indices() {
-        if space.contains(&character) {
+        if SPACE.contains(&character) {
             word = false;
             continue;
         }
-        let current = if "()[].,".contains(character) {
+        let current = if DELIMITER.contains(&character) {
             word = false;
             character
         } else if word {
@@ -105,6 +107,9 @@ fn advice(source: &str) -> Option<(usize, String)> {
             (Some('.'), '[') | (Some(']'), '.') => {
                 Some("a rule joins a particle inside parentheses, as in X.([A] B)")
             }
+            (Some('.'), '.' | ',' | ')' | ']') | (None | Some(',' | '(' | '['), '.') => {
+                Some("a dot joins two things; put something on each side")
+            }
             (None | Some(',' | '(' | '['), ',') => {
                 Some("a comma separates two things; put something on each side")
             }
@@ -124,6 +129,12 @@ fn advice(source: &str) -> Option<(usize, String)> {
             _ => {}
         }
         previous = Some(current);
+    }
+    if previous == Some('.') {
+        return Some((
+            source.len(),
+            "a dot joins two things; put something on each side".into(),
+        ));
     }
     (!open.is_empty()).then(|| (source.len(), "close what is still open".into()))
 }

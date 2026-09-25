@@ -82,5 +82,5 @@ photonic_test(
     name = "addition.check",
     srcs = ["addition.wave"],
     preserve = True,
-    targets = ["Unit.Unit.Unit.Unit.Unit.Unit.Unit.Unit.Unit.Unit"],
+    target = ["Unit.Unit.Unit.Unit.Unit.Unit.Unit.Unit.Unit.Unit"],
 )

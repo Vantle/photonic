@@ -1,4 +1,4 @@
-[Function.Natural.Difference] (Function.Natural.Borrow, Difference.Wait),
-[Return.Natural.Borrow.Positive, Difference.Wait] Return.Natural.Difference.Positive,
-[Return.Natural.Borrow.Negative, Difference.Wait] (Function.Natural.Complement, Forget.Difference.Finish),
+[Function.Natural.Difference] (Function.Natural.Deduct, Difference.Wait),
+[Return.Natural.Deduct.Positive, Difference.Wait] Return.Natural.Difference.Positive,
+[Return.Natural.Deduct.Negative, Difference.Wait] (Function.Natural.Complement, Forget.Difference.Finish),
 [Return.Natural.Complement, Clean.Difference.Finish] Return.Natural.Difference.Negative

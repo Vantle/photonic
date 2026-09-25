@@ -61,7 +61,7 @@ impl Optimizer {
             1.0
         };
         self.step += 1;
-        let step = self.step as i32;
+        let step = i32::try_from(self.step).unwrap_or(i32::MAX);
         let first = 1.0 - self.setting.first.powi(step);
         let second = 1.0 - self.setting.second.powi(step);
         for range in decay {

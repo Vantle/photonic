@@ -1,10 +1,9 @@
 use crate::argument::Improve;
 use crate::output::line;
-use crate::setup::{open, pool, session, setting};
+use crate::setup::{archive, open, pool, session, setting};
 use crate::solve::{Attempt, attempt};
-use learning::archive::Archive;
 use learning::home;
-use learning::pool;
+use learning::pool::{self, SYNTHETIC};
 use learning::session;
 use learning::solution::Budget;
 use learning::task::Task;
@@ -15,23 +14,32 @@ pub fn run(argument: Improve) -> miette::Result<()> {
     let home = open(&argument.home)?;
     let setting = setting(&argument.session);
     let option = Attempt {
+        objective: setting.play.objective,
+        bound: setting.play.bound,
         budget: Budget {
-            size: 16,
-            time: Some(Duration::from_secs(argument.budget)),
+            time: Some(Duration::from_secs(argument.enumerate)),
+            ..Budget::default()
         },
         guide: argument.guide,
         blind: true,
         show: 0,
     };
-    for round in 0..argument.rounds {
-        let known = pool(&home, 48, 0, argument.session.seed, &setting.play.objective)?;
+    for round in 0..argument.round {
+        let known = pool(
+            &home,
+            SYNTHETIC,
+            0,
+            argument.session.seed,
+            &setting.play.objective,
+        )?;
         let before = known.len();
         let grown = pool::grow(
             known,
             argument.fresh,
             argument.session.seed ^ round as u64,
             &setting.play.objective,
-        );
+        )
+        .into_diagnostic()?;
         let fresh = grown[before..]
             .iter()
             .map(|task| task.name.clone())
@@ -61,10 +69,7 @@ pub fn run(argument: Improve) -> miette::Result<()> {
             count.general,
             start.elapsed().as_secs_f64()
         ));
-        let archive: Archive = home
-            .load(home::ARCHIVE)
-            .into_diagnostic()?
-            .unwrap_or_default();
+        let archive = archive(&home)?;
         let focus = pool
             .iter()
             .filter(|task| {
@@ -78,7 +83,7 @@ pub fn run(argument: Improve) -> miette::Result<()> {
         line(&format!(
             "round {}: training for {}s, focused on the {} tasks still unsolved",
             round + 1,
-            argument.round,
+            argument.practice,
             focus.len()
         ));
         session(
@@ -86,7 +91,7 @@ pub fn run(argument: Improve) -> miette::Result<()> {
             &pool,
             &focus,
             &session::Setting {
-                duration: Some(Duration::from_secs(argument.round)),
+                duration: Some(Duration::from_secs(argument.practice)),
                 ..setting
             },
         )?;

@@ -241,49 +241,32 @@ impl State {
                 (Symbol, Option<usize>, SmallVec<[(Link, usize); 1]>),
                 Builder,
             >::default();
+            let mut link = |token: &Token, kind: Link, position: usize| {
+                incidence
+                    .entry(token.id)
+                    .or_insert_with(|| {
+                        (
+                            token.value,
+                            token.capture.and_then(|index| mapping[index]),
+                            SmallVec::new(),
+                        )
+                    })
+                    .2
+                    .push((kind, position));
+            };
             for (position, &index) in world.iter().enumerate() {
                 for token in &self.world[index].particle {
-                    incidence
-                        .entry(token.id)
-                        .or_insert_with(|| {
-                            (
-                                token.value,
-                                token.capture.and_then(|index| mapping[index]),
-                                SmallVec::new(),
-                            )
-                        })
-                        .2
-                        .push((Link::Particle, position));
+                    link(token, Link::Particle, position);
                 }
             }
             for (position, &index) in frame.iter().enumerate() {
                 for token in &self.frame[index].held {
-                    incidence
-                        .entry(token.id)
-                        .or_insert_with(|| {
-                            (
-                                token.value,
-                                token.capture.and_then(|index| mapping[index]),
-                                SmallVec::new(),
-                            )
-                        })
-                        .2
-                        .push((Link::Holder, position));
+                    link(token, Link::Holder, position);
                 }
             }
             for (position, &index) in frame.iter().enumerate() {
                 for token in &self.frame[index].particle {
-                    incidence
-                        .entry(token.id)
-                        .or_insert_with(|| {
-                            (
-                                token.value,
-                                token.capture.and_then(|index| mapping[index]),
-                                SmallVec::new(),
-                            )
-                        })
-                        .2
-                        .push((Link::Owner, position));
+                    link(token, Link::Owner, position);
                 }
             }
             let mut resource = incidence.into_iter().collect::<Vec<_>>();

@@ -8,19 +8,40 @@ exports_files(
 photonic_library(
     name = "case",
     srcs = ["case.particle"],
-    visibility = ["//theorem:__subpackages__"],
+    visibility = [
+        "//theorem/boolean:__pkg__",
+        "//theorem/carry:__pkg__",
+        "//theorem/coloring:__pkg__",
+        "//theorem/componentwise:__pkg__",
+        "//theorem/counting:__pkg__",
+        "//theorem/induction:__pkg__",
+        "//theorem/lexicographic:__pkg__",
+        "//theorem/natural:__pkg__",
+        "//theorem/relation:__pkg__",
+        "//theorem/sequence:__pkg__",
+        "//theorem/sum:__pkg__",
+        "//theorem/ternary:__pkg__",
+    ],
 )
 
 photonic_library(
     name = "cover",
     srcs = ["cover.particle"],
-    visibility = ["//theorem:__subpackages__"],
+    visibility = [
+        "//theorem/componentwise:__pkg__",
+        "//theorem/lexicographic:__pkg__",
+        "//theorem/relation:__pkg__",
+        "//theorem/sum:__pkg__",
+    ],
 )
 
 photonic_library(
     name = "judge",
     srcs = ["judge.particle"],
-    visibility = ["//theorem:__subpackages__"],
+    visibility = [
+        "//theorem/sequence:__pkg__",
+        "//theorem/ternary:__pkg__",
+    ],
 )
 
 filegroup(

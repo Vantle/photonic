@@ -1,14 +1,4 @@
-#[derive(Debug, thiserror::Error)]
-pub enum Failure {
-    #[error(
-        "expected decimal digits or a 0b, 0t, 0o, or 0x prefix; underscores may separate digits"
-    )]
-    Syntax,
-    #[error("the numeral exceeds the supported integer range")]
-    Range,
-    #[error("this operand must be nonnegative")]
-    Sign,
-}
+use crate::failure::Failure;
 
 fn magnitude(source: &str) -> Result<u128, Failure> {
     let (radix, digit) = match source.as_bytes().get(..2) {

@@ -1,4 +1,4 @@
-[Function.Natural.Subtract] (Function.Natural.Borrow, Subtract.Wait),
-[Return.Natural.Borrow.Positive, Subtract.Wait] Return.Natural.Subtract.Number,
-[Return.Natural.Borrow.Negative, Subtract.Wait] (Function.Chain.Erase, Forget.Subtract.Failure),
+[Function.Natural.Subtract] (Function.Natural.Deduct, Subtract.Wait),
+[Return.Natural.Deduct.Positive, Subtract.Wait] Return.Natural.Subtract.Number,
+[Return.Natural.Deduct.Negative, Subtract.Wait] (Function.Chain.Erase, Forget.Subtract.Failure),
 [Return.Chain.Erase, Clean.Subtract.Failure] Return.Natural.Subtract.Error.Underflow

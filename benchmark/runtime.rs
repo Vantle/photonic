@@ -6,9 +6,11 @@ use photonic::executor::Executor;
 use photonic::runtime::{Limit, Runtime};
 use serde::{Deserialize, Serialize};
 
+mod directory;
+
 #[derive(Parser)]
 struct Argument {
-    #[arg(long = "workers", default_value_t = 1)]
+    #[arg(long, default_value_t = 1)]
     worker: usize,
     #[arg(long)]
     source: Option<std::path::PathBuf>,
@@ -48,6 +50,7 @@ fn evaluate(
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    directory::enter()?;
     let argument = Argument::parse();
     let executor = Executor::new(argument.worker)?;
     let fixture = if let Some(path) = &argument.source {

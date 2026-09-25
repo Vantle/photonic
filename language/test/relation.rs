@@ -41,7 +41,6 @@ fn canonical() {
             }
             assert_eq!(actual, canonical);
             assert_eq!(digest(&actual), digest(&canonical));
-            assert_eq!(actual.clone(), actual);
         }
     }
 }

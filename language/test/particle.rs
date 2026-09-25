@@ -3,7 +3,6 @@ use crate::program::Symbol;
 use crate::state::Token;
 use crate::term::Term;
 use std::collections::BTreeSet;
-use std::task::Poll;
 
 fn enumerate(
     pattern: &[Term],
@@ -71,12 +70,8 @@ fn combination() {
         let mut search = Match::new(&pattern, &particle);
         for _ in 0..3 {
             let mut actual = BTreeSet::new();
-            loop {
-                match search.step() {
-                    Poll::Ready(Some(value)) => assert!(actual.insert(value)),
-                    Poll::Ready(None) => break,
-                    Poll::Pending => {}
-                }
+            while let Some(value) = search.step() {
+                assert!(actual.insert(value));
             }
             assert_eq!(actual, expected);
             search.reset();
@@ -123,9 +118,8 @@ fn preparation() {
                     assert_eq!(value, reference.step());
                     assert_eq!(prepared.retained(), reference.retained());
                     match value {
-                        Poll::Ready(Some(value)) => assert!(actual.insert(value)),
-                        Poll::Ready(None) => break,
-                        Poll::Pending => {}
+                        Some(value) => assert!(actual.insert(value)),
+                        None => break,
                     }
                 }
                 assert_eq!(actual, expected);

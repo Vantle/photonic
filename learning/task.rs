@@ -2,6 +2,7 @@ use code::configuration::Configuration;
 use code::observation::Observation;
 use code::program::Program;
 use serde::{Deserialize, Serialize};
+use translation::failure::Failure;
 use translation::vocabulary::Vocabulary;
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -32,31 +33,27 @@ impl Default for Goal {
 pub struct Task {
     pub name: String,
     pub vocabulary: Vocabulary,
-    pub hidden: usize,
     pub example: Vec<Example>,
     pub holdout: Vec<Example>,
     pub reference: Option<Program>,
-    #[serde(default)]
     pub goal: Option<Goal>,
 }
 
-pub const HIDDEN: [&str; 8] = [
+const SPARE: [&str; 8] = [
     "Amber", "Basil", "Cider", "Dusk", "Ember", "Flint", "Grove", "Haze",
 ];
 
 impl Task {
-    pub fn conceal(mut self, count: usize) -> Self {
-        let mut added = 0;
-        for name in HIDDEN {
-            if added == count {
-                break;
-            }
-            if self.vocabulary.find(name).is_none() {
-                self.vocabulary.intern(name);
-                added += 1;
-            }
+    pub fn conceal(self, count: usize) -> Result<Self, Failure> {
+        let spare = SPARE
+            .into_iter()
+            .filter(|name| self.vocabulary.find(name).is_none())
+            .take(count)
+            .collect::<Vec<_>>();
+        let mut vocabulary = self.vocabulary;
+        for name in spare {
+            vocabulary.intern(name)?;
         }
-        self.hidden = added;
-        self
+        Ok(Self { vocabulary, ..self })
     }
 }

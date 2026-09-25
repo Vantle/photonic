@@ -3,11 +3,16 @@ load("@rules_rs//rs:rust_library.bzl", "rust_library")
 load("@rules_rs//rs:rust_test.bzl", "rust_test")
 load(":defs.bzl", "hermetic_binary")
 load(":node.bzl", "node")
-load(":starlark.bzl", "starlark")
+load(":starlark.bzl", "buildifier", "starlark")
 
 starlark(
     name = "check",
     source = "//:build",
+)
+
+buildifier(
+    name = "buildifier",
+    visibility = ["//:__pkg__"],
 )
 
 filegroup(
@@ -17,6 +22,7 @@ filegroup(
         "check.bzl",
         "defs.bzl",
         "node.bzl",
+        "release.bzl",
         "starlark.bzl",
     ],
     visibility = ["//:__pkg__"],
@@ -38,7 +44,6 @@ rust_binary(
     crate_root = "execute.rs",
     lint_config = "//:lint",
     visibility = [
-        "//:__pkg__",
         "//benchmark:__pkg__",
         "//book:__pkg__",
         "//program/ternary:__pkg__",
@@ -129,6 +134,44 @@ rust_binary(
     crate_root = "link.rs",
     lint_config = "//:lint",
     visibility = ["//:__pkg__"],
+)
+
+rust_binary(
+    name = "install",
+    srcs = ["install.rs"],
+    crate_root = "install.rs",
+    lint_config = "//:lint",
+    visibility = ["//:__pkg__"],
+    deps = ["@rules_rust//rust/runfiles"],
+)
+
+rust_test(
+    name = "installation",
+    size = "small",
+    srcs = ["installation.rs"],
+    crate_root = "installation.rs",
+    data = [
+        ":install",
+        "//:release",
+    ],
+    env = {
+        "INSTALL": "$(rlocationpath :install)",
+        "RELEASE": "$(rlocationpath //:release)",
+    },
+    lint_config = "//:lint",
+    deps = ["@rules_rust//rust/runfiles"],
+)
+
+rust_binary(
+    name = "workspace",
+    srcs = ["workspace.rs"],
+    crate_root = "workspace.rs",
+    lint_config = "//:lint",
+    visibility = ["//:__pkg__"],
+    deps = [
+        ":relay",
+        "@rules_rust//rust/runfiles",
+    ],
 )
 
 rust_binary(

@@ -1,12 +1,12 @@
 use crate::edit::{Action, Bound, apply, legal};
 use crate::encoding::{Permutation, Shape, encode};
-use crate::objective::{Evaluation, Setting, evaluate};
+use crate::objective::{Evaluation, Setting, TOLERANCE, evaluate};
 use crate::task::Task;
 use code::program::Program;
 use gpu::engine::Engine;
 use network::checkpoint;
 use network::configuration::Configuration;
-use network::grow::grow;
+use network::grow::{self, grow};
 use network::input::{Input, Output};
 use network::model::Model;
 use random::Generator;
@@ -25,10 +25,8 @@ const BATCH: usize = 64;
 pub enum Failure {
     #[error(transparent)]
     Checkpoint(#[from] checkpoint::Failure),
-    #[error(
-        "the saved network reads an older encoding; one training run grows it to the current one"
-    )]
-    Interface,
+    #[error("the saved network cannot read the current encoding: {0}")]
+    Interface(grow::Failure),
 }
 
 pub struct Network {
@@ -50,7 +48,7 @@ impl Network {
         let model = if target == *saved.configuration() {
             saved
         } else {
-            grow(&saved, target, &mut Generator::new(0)).map_err(|_| Failure::Interface)?
+            grow(&saved, target, &mut Generator::new(0)).map_err(Failure::Interface)?
         };
         let engine = Engine::new(&model).ok();
         Ok(Self { model, engine })
@@ -134,6 +132,10 @@ pub fn search(
 ) -> Guidance {
     let deadline = Instant::now() + effort.time;
     let setting = &setting.aim(task.goal);
+    let task = &Task {
+        goal: Some(setting.goal),
+        ..task.clone()
+    };
     let mut generator = Generator::new(task.example.len() as u64);
     let vocabulary = task.vocabulary.len();
     let mut arena: Vec<Node> = Vec::new();
@@ -155,10 +157,11 @@ pub fn search(
         && guidance
             .best
             .as_ref()
-            .is_none_or(|(_, best)| best.cost > goal + 1e-9)
+            .is_none_or(|(_, best)| best.cost > goal + TOLERANCE)
     {
-        let mut batch = Vec::with_capacity(BATCH);
-        while batch.len() < BATCH {
+        let capacity = (effort.expansion - guidance.expanded).min(BATCH as u64) as usize;
+        let mut batch = Vec::with_capacity(capacity);
+        while batch.len() < capacity {
             let Some(entry) = frontier.pop() else {
                 break;
             };
@@ -185,7 +188,7 @@ pub fn search(
             let better = guidance
                 .best
                 .as_ref()
-                .is_none_or(|(_, best)| evaluation.cost < best.cost - 1e-9);
+                .is_none_or(|(_, best)| evaluation.cost < best.cost - TOLERANCE);
             if evaluation.correct && better {
                 guidance.first.get_or_insert(guidance.expanded);
                 guidance.best = Some((node.program.clone(), evaluation.clone()));

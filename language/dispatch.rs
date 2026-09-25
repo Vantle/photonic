@@ -1,4 +1,5 @@
 use crate::catalog::Catalog;
+use crate::delta::Delta;
 use crate::hashing::Builder;
 use crate::index::Index;
 use crate::mask::Set;
@@ -32,7 +33,7 @@ pub(crate) struct Network {
     membership: membership::Index,
     sharing: std::sync::Arc<crate::joining::Store>,
     trigger: HashMap<Symbol, Vec<usize>, Builder>,
-    empty: Set,
+    broad: Set,
     missing: Vec<usize>,
     enabled: Set,
     entry: registry::Registry,
@@ -46,11 +47,19 @@ pub(crate) struct Network {
     altered: Set,
     selected: Set,
     demand: Vec<consumer::Request>,
-    pub preparation: usize,
-    pub reuse: usize,
+    preparation: usize,
+    reuse: usize,
 }
 
 impl Network {
+    pub fn preparation(&self) -> usize {
+        self.preparation
+    }
+
+    pub fn reuse(&self) -> usize {
+        self.reuse
+    }
+
     #[inline]
     pub fn skip(&mut self, maximum: usize) -> usize {
         if maximum < 2 {
@@ -108,10 +117,10 @@ impl Network {
         let mut trigger: HashMap<_, Vec<_>, Builder> = HashMap::default();
         let mut missing = Vec::new();
         let mut enabled = Set::default();
-        let mut empty = Set::default();
+        let mut broad = Set::default();
         for input in 0..catalog.count() {
-            if catalog.input(input).empty() {
-                empty.insert(input);
+            if catalog.input(input).broad() {
+                broad.insert(input);
             }
             let symbol = catalog.input(input).dependency();
             missing.push(symbol.len());
@@ -123,7 +132,7 @@ impl Network {
             }
         }
         let retained = catalog.retained()
-            + empty.len()
+            + broad.len()
             + trigger.len()
             + trigger.values().map(Vec::len).sum::<usize>()
             + missing.len();
@@ -141,7 +150,7 @@ impl Network {
             catalog,
             sharing: std::sync::Arc::new(crate::joining::Store::new(65_536)),
             trigger,
-            empty,
+            broad,
             missing,
             enabled,
             entry: registry::Registry::new(index.state.frame.len()),
@@ -201,36 +210,40 @@ impl Network {
             if index.invalidated(frame) {
                 self.frame(index, frame, None);
             } else {
-                let mut selected = std::mem::take(&mut self.selected);
-                selected.clone_from(&self.altered);
-                if delta.affected.contains(frame) {
-                    selected.union(&self.empty);
-                    for symbol in delta.affected.symbol(frame) {
-                        if let Symbol::Rule(rule) = symbol {
-                            selected.insert(self.catalog.rule(rule));
-                        }
-                        if delta.toggled.contains(&symbol) {
-                            continue;
-                        }
-                        let Some(input) = self.trigger.get(&symbol) else {
-                            continue;
-                        };
-                        for &input in input {
-                            if self.enabled.contains(input) {
-                                selected.insert(input);
-                            }
-                        }
-                    }
-                }
-                if !selected.is_empty() {
-                    self.frame(index, frame, Some(&selected));
-                }
-                self.selected = selected;
+                self.change(index, frame, delta);
             }
             self.refresh(index, frame);
             self.reuse += self.entry.count(frame) - (self.preparation - previous);
         }
         self.reset(index);
+    }
+
+    fn change(&mut self, index: &Index, frame: usize, delta: &Delta) {
+        let mut selected = std::mem::take(&mut self.selected);
+        selected.clone_from(&self.altered);
+        if delta.affected.contains(frame) {
+            selected.union(&self.broad);
+            for symbol in delta.affected.symbol(frame) {
+                if let Symbol::Rule(rule) = symbol {
+                    selected.insert(self.catalog.rule(rule));
+                }
+                if delta.toggled.contains(&symbol) {
+                    continue;
+                }
+                let Some(input) = self.trigger.get(&symbol) else {
+                    continue;
+                };
+                for &input in input {
+                    if self.enabled.contains(input) {
+                        selected.insert(input);
+                    }
+                }
+            }
+        }
+        if !selected.is_empty() {
+            self.frame(index, frame, Some(&selected));
+        }
+        self.selected = selected;
     }
 
     #[inline]

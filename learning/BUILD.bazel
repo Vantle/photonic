@@ -6,6 +6,7 @@ filegroup(
     name = "source",
     srcs = [
         "archive.rs",
+        "bar.rs",
         "corpus.rs",
         "curriculum.rs",
         "demonstration.rs",
@@ -21,6 +22,7 @@ filegroup(
         "play.rs",
         "pool.rs",
         "problem.rs",
+        "renewal.rs",
         "replay.rs",
         "search.rs",
         "server.rs",
@@ -81,6 +83,7 @@ rust_test(
     size = "medium",
     srcs = [
         "test/archive.rs",
+        "test/bar.rs",
         "test/corpus.rs",
         "test/curriculum.rs",
         "test/demonstration.rs",
@@ -90,10 +93,13 @@ rust_test(
         "test/home.rs",
         "test/import.rs",
         "test/objective.rs",
+        "test/pool.rs",
+        "test/renewal.rs",
         "test/search.rs",
         "test/session.rs",
         "test/solution.rs",
         "test/suite.rs",
+        "test/task.rs",
         ":source",
     ],
     crate_root = "learning.rs",
@@ -110,6 +116,22 @@ rust_test(
         "@crate//:serde",
         "@crate//:serde_json",
         "@crate//:thiserror",
+    ],
+)
+
+rust_test(
+    name = "command",
+    size = "medium",
+    srcs = ["test/command.rs"],
+    crate_root = "test/command.rs",
+    data = [":learning"],
+    env = {"LEARNING_COMMAND": "$(rlocationpath :learning)"},
+    lint_config = "//:lint",
+    deps = [
+        ":library",
+        "//network",
+        "//random",
+        "@rules_rust//rust/runfiles",
     ],
 )
 

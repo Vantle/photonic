@@ -1,4 +1,4 @@
-use crate::graph::{Edge, Graph, Kind};
+use crate::graph::{Edge, Graph, Relation};
 use code::hashing::combine;
 use std::collections::VecDeque;
 
@@ -17,18 +17,20 @@ enum Direction {
     Parent,
 }
 
+impl Direction {
+    fn code(self, relation: Relation) -> u64 {
+        let side = match self {
+            Self::Child => 0,
+            Self::Parent => 1,
+        };
+        side << 8 | relation as u64
+    }
+}
+
 struct Refinement {
     queue: VecDeque<u32>,
     queued: Vec<bool>,
     trace: u64,
-}
-
-fn relation(direction: Direction, kind: Kind) -> u64 {
-    let side = match direction {
-        Direction::Child => 0,
-        Direction::Parent => 1,
-    };
-    side << 8 | kind as u64
 }
 
 impl Partition {
@@ -153,9 +155,9 @@ impl Partition {
                     };
                     contribution.extend(edge.iter().copied());
                 }
-                contribution.sort_unstable_by_key(|edge| (edge.kind, edge.vertex));
-                for group in contribution.chunk_by(|left, right| left.kind == right.kind) {
-                    let tag = combine(u64::from(start), relation(direction, group[0].kind));
+                contribution.sort_unstable_by_key(|edge| (edge.relation, edge.vertex));
+                for group in contribution.chunk_by(|left, right| left.relation == right.relation) {
+                    let tag = combine(u64::from(start), direction.code(group[0].relation));
                     self.split(group, tag, &mut refinement);
                 }
             }

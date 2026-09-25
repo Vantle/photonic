@@ -42,13 +42,21 @@ The standard library is written in Photonic, and its theorems are proved by runn
 
 The [Lightbox](https://photonic.vantle.org/lightbox.html) runs Photonic in your browser: write a program, run it, and explore every configuration it reaches, with nothing to install. Its links carry the whole program, so you can share what you write.
 
-To work from a checkout, Bazel is the only thing to install. It fetches the pinned compilers and dependencies.
-
-Save the program above as `light.wave` and run it:
+To work from a checkout, Bazel is the only thing to install. It fetches the pinned compilers and dependencies, and `//:install` puts an optimized `photonic` command in `~/.local/bin`:
 
 ```sh
-bazel run -c opt //command:photonic -- run "$PWD/light.wave"
+bazel run //:install
 ```
+
+Save the program above as `light.wave`, then run it and ask Spectrum what it does, and why:
+
+```sh
+photonic run light.wave
+photonic explore light.wave
+photonic check light.wave --reach Red --avoid Red.Green
+```
+
+Every command also runs from the checkout without installing, as `bazel run -c opt //command:photonic -- explore light.wave`. Agents ask the same questions over the Model Context Protocol; the repository's `.mcp.json` starts the server, and [the Spectrum contract](document/spectrum.md) describes every question and answer.
 
 Serve the webbook from a checkout, then open http://127.0.0.1:8080:
 

@@ -7,6 +7,7 @@ theorem(
     deps = [
         ":count",
         "//library/ternary:add",
+        "//theorem:case",
     ],
 )
 
@@ -16,6 +17,7 @@ theorem(
     deps = [
         "//library/ternary:compare",
         "//library/ternary:subtract",
+        "//theorem:case",
         "//theorem/ternary:role",
         "//theorem/ternary:unpack",
     ],
@@ -33,7 +35,10 @@ photonic_library(
 theorem(
     name = "cycle",
     srcs = ["cycle.wave"],
-    deps = [":count"],
+    deps = [
+        ":count",
+        "//theorem:case",
+    ],
 )
 
 theorem(
@@ -42,6 +47,7 @@ theorem(
     deps = [
         ":count",
         "//library/ternary:multiply",
+        "//theorem:case",
     ],
 )
 
@@ -51,6 +57,7 @@ theorem(
     deps = [
         ":count",
         "//library/ternary:subtract",
+        "//theorem:case",
         "//theorem/ternary:role",
     ],
 )
@@ -58,10 +65,11 @@ theorem(
 theorem(
     name = "sum",
     srcs = ["sum.wave"],
-    cells = 512,
+    occurrence = 512,
     deps = [
         ":count",
         "//library/ternary:sum",
+        "//theorem:case",
     ],
 )
 

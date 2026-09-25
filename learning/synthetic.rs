@@ -55,7 +55,7 @@ fn run(program: &Flat, input: &Configuration, limit: &Limit) -> Option<(Observat
     if !exploration.complete() || exploration.terminal.len() != 1 {
         return None;
     }
-    let work = schedule(program, initial, limit)?.work();
+    let work = schedule(program, initial, limit).ok()?.work();
     Some((exploration.terminal[0].observation(), work))
 }
 
@@ -83,8 +83,7 @@ pub fn generate(generator: &mut Generator, name: String, limit: &Limit, rule: us
         let changed = example
             .iter()
             .filter(|example| {
-                Observation::from(&example.input).key(limit.individualization)
-                    != example.output.key(limit.individualization)
+                !Observation::from(&example.input).same(&example.output, limit.individualization)
             })
             .count();
         if example.len() < 16 || changed < 8 || work < 16 {
@@ -93,10 +92,13 @@ pub fn generate(generator: &mut Generator, name: String, limit: &Limit, rule: us
         let holdout = example.split_off(10);
         return Task {
             name,
-            vocabulary: Vocabulary::new(
-                NAME[..atom].iter().map(|name| (*name).to_owned()).collect(),
-            ),
-            hidden: 0,
+            vocabulary: Vocabulary::try_from(
+                NAME[..atom]
+                    .iter()
+                    .map(|name| (*name).to_owned())
+                    .collect::<Vec<_>>(),
+            )
+            .expect("the synthetic names fit a vocabulary"),
             example,
             holdout,
             reference: Some(candidate),

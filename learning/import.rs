@@ -22,11 +22,31 @@ pub enum Failure {
     Behavior { origin: String },
     #[error("a task defined by tests needs at least one test")]
     Untested,
+    #[error(
+        "'{name}' cannot name a task: use letters, digits, '.', '-' and '_', starting with a letter or digit, and choose another name with --name"
+    )]
+    Name { name: String },
 }
 
 pub struct Source {
     pub origin: String,
     pub text: String,
+}
+
+fn validate(name: &str) -> Result<(), Failure> {
+    let valid = name
+        .chars()
+        .next()
+        .is_some_and(|first| first.is_ascii_alphanumeric())
+        && name
+            .chars()
+            .all(|character| character.is_ascii_alphanumeric() || "._-".contains(character));
+    if !valid {
+        return Err(Failure::Name {
+            name: name.to_owned(),
+        });
+    }
+    Ok(())
 }
 
 fn parse(source: &Source) -> Result<photonic::source::Program, Failure> {
@@ -47,6 +67,7 @@ fn configuration(source: &Source, vocabulary: &mut Vocabulary) -> Result<Configu
 }
 
 pub fn define(name: &str, pair: &[(Source, Source)]) -> Result<Task, Failure> {
+    validate(name)?;
     if pair.is_empty() {
         return Err(Failure::Untested);
     }
@@ -63,7 +84,6 @@ pub fn define(name: &str, pair: &[(Source, Source)]) -> Result<Task, Failure> {
     Ok(Task {
         name: name.to_owned(),
         vocabulary,
-        hidden: 0,
         example,
         holdout: Vec::new(),
         reference: None,
@@ -77,6 +97,7 @@ pub fn import(
     input: &[Source],
     setting: &Setting,
 ) -> Result<Task, Failure> {
+    validate(name)?;
     let mut vocabulary = Vocabulary::default();
     let mut rule = Vec::new();
     let mut initial: Vec<Particle> = Vec::new();
@@ -117,7 +138,6 @@ pub fn import(
     Ok(Task {
         name: name.to_owned(),
         vocabulary,
-        hidden: 0,
         example,
         holdout: Vec::new(),
         reference: Some(reference),

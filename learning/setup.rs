@@ -82,8 +82,7 @@ pub fn setting(session: &argument::Session) -> session::Setting {
                 ..Bound::default()
             },
             objective: objective::Setting {
-                processor: session.processor,
-                size: session.size,
+                goal: session.objective.goal(),
                 ..objective::Setting::default()
             },
             infer: session.infer,
@@ -102,18 +101,23 @@ pub fn pool(
     objective: &objective::Setting,
 ) -> miette::Result<Vec<Task>> {
     let pool = match home.load::<Vec<Task>>(home::POOL).into_diagnostic()? {
-        Some(pool) => pool::grow(pool::merge(pool), grow, seed, objective),
+        Some(pool) => pool::grow(pool::merge(pool).into_diagnostic()?, grow, seed, objective),
         None => pool::initial(synthetic, seed, objective),
-    };
+    }
+    .into_diagnostic()?;
     home.save(home::POOL, &pool).into_diagnostic()?;
     Ok(pool)
 }
 
-pub fn export(home: &Home, pool: &[Task]) -> miette::Result<()> {
-    let archive: Archive = home
+pub fn archive(home: &Home) -> miette::Result<Archive> {
+    Ok(home
         .load(home::ARCHIVE)
         .into_diagnostic()?
-        .unwrap_or_default();
+        .unwrap_or_default())
+}
+
+pub fn export(home: &Home, pool: &[Task]) -> miette::Result<()> {
+    let archive = archive(home)?;
     for task in pool {
         let Some(record) = archive
             .entry(&task.name)
@@ -136,17 +140,27 @@ pub fn session(
     focus: &[String],
     setting: &session::Setting,
 ) -> miette::Result<()> {
+    if let Some(name) = focus
+        .iter()
+        .find(|name| pool.iter().all(|task| task.name != **name))
+    {
+        return Err(miette!("no task is named {name}"));
+    }
     let (problem, failure) = pool::prepare(pool, &setting.play.objective);
     for error in failure {
         line(&format!("skipped: {error}"));
     }
-    let mut chosen = Vec::new();
-    for name in focus {
-        let index = problem
-            .iter()
-            .position(|entry| entry.task.name == *name)
-            .ok_or_else(|| miette!("no usable task is named {name}"))?;
-        chosen.push(index);
+    let chosen = problem
+        .iter()
+        .enumerate()
+        .filter(|(_, entry)| focus.contains(&entry.task.name))
+        .map(|(index, _)| index)
+        .collect::<Vec<_>>();
+    if !focus.is_empty() && chosen.is_empty() {
+        return Err(miette!(
+            "none of the {} tasks to focus on can be trained on",
+            focus.len()
+        ));
     }
     line(&format!(
         "pool: {} problems, {} games per self-play thread",

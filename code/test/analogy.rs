@@ -1,5 +1,5 @@
 use super::support::{A, B, C, D, X, Y, rule};
-use crate::analogy::{classes, correspond};
+use crate::analogy::{correspond, partition};
 use crate::atom::Atom;
 
 #[test]
@@ -13,5 +13,8 @@ fn correspondence() {
     assert_eq!(map.atom[&Atom(B)], Atom(C));
     assert_eq!(map.atom[&Atom(Y)], Atom(Y));
     assert!(correspond(&near, &forward).is_none());
-    assert_eq!(classes(&[&near, &forward, &far]), vec![vec![0, 2], vec![1]]);
+    assert_eq!(
+        partition(&[&near, &forward, &far]),
+        vec![vec![0, 2], vec![1]]
+    );
 }

@@ -1,7 +1,7 @@
 use crate::corpus::curated;
 use crate::encoding::ATOM;
 use crate::export::verify;
-use crate::objective::Setting;
+use crate::objective::{Setting, evaluate};
 use crate::pool::initial;
 use crate::problem::Problem;
 
@@ -10,15 +10,15 @@ fn reference() {
     let setting = Setting::default();
     for task in curated() {
         let name = task.name.clone();
+        let reference = evaluate(
+            task.reference.as_ref().unwrap(),
+            &task.example,
+            &task.vocabulary,
+            &setting.aim(task.goal),
+        );
+        assert!(reference.verified, "{name}");
         let problem = Problem::new(task, &setting, ATOM)
             .unwrap_or_else(|failure| panic!("{name}: {failure}"));
-        assert!(
-            problem
-                .reference
-                .as_ref()
-                .is_some_and(|reference| reference.verified),
-            "{name}"
-        );
         assert!(problem.baseline > 0.0, "{name}");
     }
 }
@@ -39,7 +39,7 @@ fn kernel() {
 #[test]
 fn synthetic() {
     let setting = Setting::default();
-    let pool = initial(6, 3, &setting);
+    let pool = initial(6, 3, &setting).unwrap();
     assert_eq!(
         pool.iter()
             .filter(|task| task.name.starts_with("synthetic."))
@@ -48,7 +48,6 @@ fn synthetic() {
     );
     for task in pool {
         let name = task.name.clone();
-        assert_eq!(task.hidden, crate::pool::HIDDEN, "{name}");
         Problem::new(task, &setting, ATOM).unwrap_or_else(|failure| panic!("{name}: {failure}"));
     }
 }

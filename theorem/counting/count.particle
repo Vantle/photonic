@@ -7,6 +7,6 @@
 [Stride, Place] Function.Ternary.Successor.Moving,
 [Low.Moving] Place,
 [High.0.Moving] Receipt,
-[High.1.Moving, Wraps] Function.Ternary.Successor.Wrapping,
-[Low.Wrapping] Wraps,
+[High.1.Moving, Wrap] Function.Ternary.Successor.Wrapping,
+[Low.Wrapping] Wrap,
 [High.0.Wrapping] Receipt

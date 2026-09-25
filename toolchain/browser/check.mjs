@@ -93,7 +93,7 @@ try {
     assert.equal(await evaluate("return document.getElementById('status').textContent"), 'Recorded runs');
     assert.equal(await evaluate(`return ${figure('first')}.querySelector('.run').hidden`), true);
     assert.equal(await evaluate("return document.querySelectorAll('figure.example').length"), await evaluate('return Object.keys(book.record.example).length'));
-    assert.deepEqual(await evaluate("return [...document.querySelectorAll('.message')].filter(value => !value.hidden).map(value => value.textContent)"), []);
+    assert.deepEqual(await evaluate("return [...document.querySelectorAll('.message')].filter(value => value.hidden || value.textContent).map(value => value.textContent)"), []);
     assert.equal(await evaluate(`return ${figure('light')}.querySelectorAll('.state').length`), 4);
     assert.deepEqual(await evaluate(`return [...${figure('check')}.querySelectorAll('.verdict .badge')].map(value => value.textContent)`), ['reached', 'unreachable', 'reached']);
     assert.equal(await evaluate(`return ${figure('involution')}.querySelector('.stepper .badge').textContent`), 'reached');
@@ -119,6 +119,8 @@ try {
     assert.match(await evaluate("return document.querySelector('.palette li').textContent"), /Filter the workbench by/);
     await evaluate("document.querySelector('.palette input').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); return true");
     assert.equal(await evaluate("return document.querySelector('.palette').hidden"), true);
+    await evaluate("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true })); const input = document.querySelector('.palette input'); input.value = 'Prism'; input.dispatchEvent(new Event('input')); input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })); input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); return true");
+    assert.equal(await evaluate("return document.activeElement === document.querySelector('#prism h2')"), true);
     await until("return document.querySelector('#bench .filter input').value === '[C, D] E'");
     const matched = await evaluate("return [...document.querySelectorAll('#bench .graph .state')].map(value => value.dataset.state).sort()");
     const filter = async text => {
@@ -162,7 +164,7 @@ try {
     assert.equal(await evaluate(`return ${connection}.querySelector('.output .code').textContent`), '[Compose.Keep.Keep] Keep,\n[Compose.Keep.Flip] Flip,\n[Compose.Flip.Flip] Keep');
     for (const name of await evaluate(`return [...${connection}.querySelectorAll('.preset button')].map(value => value.textContent)`)) {
         await evaluate(`[...${connection}.querySelectorAll('.preset button')].find(value => value.textContent === ${JSON.stringify(name)}).click(); return true`);
-        assert.equal(await evaluate(`return ${connection}.querySelector('.message').hidden`), true, name);
+        assert.equal(await evaluate(`return ${connection}.querySelector('.message').textContent`), '', name);
         assert.equal(await evaluate(`return ${connection}.querySelectorAll('.output .panel').length`), await evaluate(`return book.record.connection[${JSON.stringify(name)}].result.shape.length`), name);
     }
     assert.match(await evaluate(`return ${connection}.querySelector('.verdict').textContent`), /^One shape: lattice\.converse and lattice\.order/);
@@ -239,6 +241,28 @@ try {
         ${figure('check')}.querySelector('.run').click();
         return true`);
     await until(`return [...${figure('check')}.querySelectorAll('.verdict .badge')].map(value => value.textContent).join() === 'reached,unreachable'`);
+    await until(`return !${figure('check')}.querySelector('.run').hasAttribute('aria-disabled')`);
+    const submit = (edit = '') => evaluate(`
+        [...${figure('check')}.querySelectorAll('.bar button')].find(value => value.textContent === 'Reset').click();
+        const goal = ${figure('check')}.querySelector('.field textarea');
+        goal.value = 'B.X, [A] B\\n  C.[';
+        goal.focus();
+        goal.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', metaKey: true, bubbles: true }));
+        ${edit}
+        return true`);
+    const settled = `return ${figure('check')}.querySelector('.message').dataset.tone === 'error'`;
+    await submit();
+    await until(settled);
+    assert.match(await evaluate(`return ${figure('check')}.querySelector('.message').textContent`), /^Target 2: .*\(at character 3\)$/);
+    assert.deepEqual(await evaluate(`const goal = ${figure('check')}.querySelector('.field textarea'); return [document.activeElement === goal, goal.selectionStart, goal.selectionEnd]`), [true, 15, 16]);
+    await submit("document.querySelector('#value .lens input').focus();");
+    await until(settled);
+    assert.match(await evaluate(`return ${figure('check')}.querySelector('.message').textContent`), /^Target 2: /);
+    assert.equal(await evaluate("return document.activeElement === document.querySelector('#value .lens input')"), true);
+    await submit("goal.value += ' D'; goal.setSelectionRange(goal.value.length, goal.value.length);");
+    await until(settled);
+    assert.deepEqual(await evaluate(`const goal = ${figure('check')}.querySelector('.field textarea'); return [document.activeElement === goal, goal.selectionStart, goal.selectionEnd, goal.value.length]`), [true, 18, 18, 18]);
+    await evaluate(`[...${figure('check')}.querySelectorAll('.bar button')].find(value => value.textContent === 'Reset').click(); return true`);
     await evaluate("const input = document.querySelector('#value .lens input'); input.value = '(A, B).(C, D)'; input.dispatchEvent(new Event('input')); return true");
     await until("return /4 coherences/.test(document.querySelector('#value .lens .lowered').textContent)");
     await evaluate("const input = document.querySelector('#value .lens input'); input.value = 'constructor'; input.dispatchEvent(new Event('input')); return true");
@@ -249,6 +273,20 @@ try {
     await until("return /21₃= 7 in decimal/.test(document.querySelector('#calculator .result').textContent) && document.querySelector('#calculator .stepper')");
     await evaluate("[...document.querySelectorAll('#calculator .preset button')].find(value => value.textContent === '1 / 0').click(); return true");
     await until("return /Division by zero/.test(document.querySelector('#calculator .message').textContent)");
+    await evaluate(`
+        window.settled = [];
+        const channel = book.engine.open();
+        const track = (name, promise) => promise.then(value => settled.push(name + ' ' + value.answer.ternary), error => settled.push(name + ' ' + error.message));
+        const queued = new AbortController();
+        const running = new AbortController();
+        track('first', channel.send('expression', { source: '12+2' })).then(() => running.abort());
+        track('queued', channel.send('expression', { source: '1+1' }, { signal: queued.signal }));
+        track('running', channel.send('expression', { source: '2*2' }, { signal: running.signal }));
+        track('resent', channel.send('expression', { source: '2+1' }));
+        queued.abort();
+        return true`);
+    await until('return window.settled.length === 4');
+    assert.deepEqual(await evaluate('return window.settled'), ['queued Stopped.', 'first 21', 'running Stopped.', 'resent 10']);
     await evaluate(`${figure('involution')}.querySelector('.run').click(); return true`);
     await until(`return !${figure('involution')}.querySelector('.run').hasAttribute('aria-disabled') && ${figure('involution')}.querySelector('.stepper .badge')?.textContent === 'reached' && ${figure('involution')}.querySelector('.pair .state')`);
     await evaluate(`${figure('involution')}.querySelector('[aria-label="Next event"]').click(); return true`);
@@ -281,6 +319,14 @@ try {
         return true`);
     await until("return document.querySelectorAll('#bench .graph .state').length === 3 && document.querySelectorAll('#bench button.hyperedge').length === 2");
     await evaluate(`
+        const area = document.querySelector('#bench .editor textarea');
+        area.value = 'X.([A] B),\\n[X.([A] B)] (Y, [Y] Z)';
+        area.dispatchEvent(new Event('input'));
+        document.querySelector('#bench .run').click();
+        return true`);
+    await until("return document.querySelectorAll('#bench .graph .held .token').length === 2");
+    assert.deepEqual(await evaluate("return [...document.querySelectorAll('#bench .graph .held .token')].map(value => [value.className, value.textContent, value.querySelectorAll('.atom').length]).sort()"), [['token rule', '[A] B', 2], ['token', 'X', 0]]);
+    await evaluate(`
         const area = ${connection}.querySelectorAll('.program textarea')[1];
         area.value = area.value.replace('[Xor.True.True] False', '[Xor.True.True] True');
         area.dispatchEvent(new Event('input'));
@@ -293,6 +339,7 @@ try {
         return true`);
     await until(`return ${connection}.querySelector('.message').dataset.tone === 'error'`);
     assert.match(await evaluate(`return ${connection}.querySelector('.message').textContent`), /^Geometry: .*at character/);
+    assert.equal(await evaluate(`return document.activeElement === ${connection}.querySelectorAll('.program textarea')[2]`), false);
     await capture('book');
     console.log('The live book edits and reruns programs, targets, lenses, expressions, proofs, workbench programs and comparisons in WebAssembly.');
 

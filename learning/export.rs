@@ -1,10 +1,11 @@
 use crate::objective::Setting;
 use crate::task::Task;
 use code::program::Program;
-use serde::Serialize;
 use translation::{emit, execution, text};
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize)]
+pub const BUDGET: usize = 2_000_000;
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct Verification {
     pub total: usize,
     pub kernel: usize,
@@ -33,7 +34,7 @@ pub fn verify(task: &Task, program: &Program, setting: &Setting, budget: usize) 
         );
         if exploration.complete()
             && exploration.terminal.len() == 1
-            && exploration.terminal[0].key(key) == example.output.key(key)
+            && exploration.terminal[0].same(&example.output, key)
         {
             verification.kernel += 1;
         }

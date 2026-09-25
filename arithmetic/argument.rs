@@ -42,8 +42,8 @@ pub struct Argument {
     pub undefined: bool,
     #[arg(long)]
     pub directory: Option<PathBuf>,
-    #[arg(long = "steps", default_value_t = 20_000_000)]
-    pub step: usize,
+    #[arg(long, default_value_t = 20_000_000)]
+    pub work: usize,
 }
 
 #[derive(Debug, thiserror::Error)]

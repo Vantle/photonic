@@ -1,6 +1,6 @@
 # Continuous verification
 
-[Photonic on Buildkite](https://buildkite.com/vantle-labs/photonic) runs two independent jobs: **Build · Linux x86-64** and **Test · Linux x86-64**. Both select Bazel's `ci` configuration: release mode with `//platform:x86_64-unknown-linux-gnu` as the host and target platform. The build job compiles with lint aspects, checks formatting and documentation links, and exercises the dependency command. The test job runs the release test suite. Both have a 60-minute timeout.
+[Photonic on Buildkite](https://buildkite.com/vantle-labs/photonic) runs two independent jobs: **Build · Linux x86-64** and **Test · Linux x86-64**. Both select Bazel's `ci` configuration: release mode with `//platform:x86_64-unknown-linux-gnu` as the host and target platform. The build job compiles with lint aspects, checks Rust and Starlark formatting and documentation links, and exercises the dependency command. The test job runs the release test suite. Both have a 60-minute timeout.
 
 ## Hosted capacity
 
@@ -28,6 +28,10 @@ The pipeline editor contains [bootstrap.yml](../.buildkite/bootstrap.yml). It pu
 Repository hooks install checksum-verified Bazelisk 1.28.1, which reads the Bazel version from `.bazelversion`. Bazel supplies the compiler and every build dependency. The generated, ignored `user.bazelrc` limits Bazel to two jobs and a 1 GB server heap for the small agent. Post-command hooks upload test logs and XML reports as build artifacts and shut down Bazel even when verification fails.
 
 Bazel and Bazelisk caches live outside the checkout under `/tmp/photonic`. They are local to the ephemeral agent and are discarded with it. Persistent cache volumes are not included in the Free plan and are not requested. Builds therefore work from an empty cache without any external cache service.
+
+## Webbook
+
+The [Book workflow](../.github/workflows/book.yml) builds `//book:site` with the `ci` configuration on every push to `main` and publishes it with GitHub Pages. It installs the same checksum-verified Bazelisk as the Buildkite hooks. Its cache holds Bazel's action and repository caches, keyed by `.bazelversion`, `MODULE.bazel.lock` and `Cargo.lock`, so it is saved once per dependency set instead of growing with every commit.
 
 ## GitHub integration
 

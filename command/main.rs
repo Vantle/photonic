@@ -2,10 +2,12 @@
 
 mod argument;
 mod output;
-mod shape;
+mod server;
+mod verb;
 
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::process::ExitCode;
 
 use clap::Parser;
 use miette::{IntoDiagnostic, NamedSource, WrapErr};
@@ -16,20 +18,31 @@ use photonic::status::Status;
 
 use argument::{Argument, Execution, Format, Operation};
 
-fn main() -> miette::Result<()> {
+fn main() -> miette::Result<ExitCode> {
+    if let Some(directory) = std::env::var_os("BUILD_WORKING_DIRECTORY") {
+        std::env::set_current_dir(directory).into_diagnostic()?;
+    }
+    let success = |()| ExitCode::SUCCESS;
     match Argument::parse().operation {
-        Operation::Parse { path } => parse(path),
-        Operation::Lower { path, context } => lower(path, context),
-        Operation::Run { path, execution } => run(path, execution),
+        Operation::Parse { path } => parse(path).map(success),
+        Operation::Lower { path, context } => lower(path, context).map(success),
+        Operation::Run { path, execution } => run(path, execution).map(success),
         Operation::Prism {
             path,
             target,
             walk,
             execution,
-        } => prism(path, target, execution, walk),
-        Operation::Symmetry { path, analysis } => shape::symmetry(path, analysis),
-        Operation::Compare { path, analysis } => shape::compare(path, analysis),
-        Operation::Form { path, analysis } => shape::form(path, analysis),
+        } => prism(path, target, execution, walk).map(success),
+        Operation::Check(question) => verb::question("check", question),
+        Operation::Explore(question) => verb::question("explore", question),
+        Operation::Select(select) => verb::select(select),
+        Operation::Inspect(pointer) => verb::pointer("inspect", pointer),
+        Operation::Cause(pointer) => verb::pointer("cause", pointer),
+        Operation::Miss(miss) => verb::miss(miss),
+        Operation::Step(pointer) => verb::pointer("step", pointer),
+        Operation::Compare(compare) => verb::compare(compare),
+        Operation::Shape(shape) => verb::shape(shape),
+        Operation::Mcp => server::serve(),
     }
 }
 
@@ -88,7 +101,7 @@ fn load(path: &Path, execution: &Execution) -> miette::Result<Program> {
 fn run(path: PathBuf, execution: Execution) -> miette::Result<()> {
     let executor = photonic::executor::Executor::new(execution.worker).into_diagnostic()?;
     let mut runtime = Runtime::new(&load(&path, &execution)?);
-    runtime.parallel(&executor, execution.step, Some(limit(&execution)));
+    runtime.parallel(&executor, execution.work, Some(limit(&execution)));
     if execution.json {
         return output::write(&runtime.view(), execution.compact);
     }
@@ -120,11 +133,11 @@ fn run(path: PathBuf, execution: Execution) -> miette::Result<()> {
 
 fn limit(execution: &Execution) -> Limit {
     Limit {
-        state: execution.state,
+        state: execution.configuration,
         record: execution.record,
         world: execution.coherence,
-        cell: execution.cell,
-        frame: execution.frame,
+        cell: execution.occurrence,
+        frame: execution.scope,
     }
 }
 
@@ -137,7 +150,7 @@ fn prism(path: PathBuf, target: PathBuf, execution: Execution, walk: bool) -> mi
         load(&path, &execution)?,
         program(&target, execution.format)?,
     );
-    search.parallel(&executor, execution.step, Some(limit(&execution)));
+    search.parallel(&executor, execution.work, Some(limit(&execution)));
     if execution.json {
         return output::write(&search.view(), execution.compact);
     }
@@ -182,7 +195,7 @@ fn trace(path: PathBuf, target: PathBuf, execution: Execution) -> miette::Result
         load(&path, &execution)?,
         program(&target, execution.format)?,
     );
-    search.run(execution.step, limit(&execution));
+    search.run(execution.work, limit(&execution));
     if execution.json {
         return output::write(&search.view(), execution.compact);
     }

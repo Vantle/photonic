@@ -29,7 +29,7 @@ fn bounded() {
 }
 
 #[test]
-fn moments() {
+fn moment() {
     let mut generator = Generator::new(3);
     let sample = (0..100_000).map(|_| generator.normal()).collect::<Vec<_>>();
     let mean = sample.iter().sum::<f64>() / sample.len() as f64;
@@ -53,16 +53,4 @@ fn permutation() {
     sorted.sort_unstable();
     assert_eq!(sorted, (0..32).collect::<Vec<_>>());
     assert_ne!(value, sorted);
-}
-
-#[test]
-fn weighted() {
-    let mut generator = Generator::new(9);
-    let mut seen = [0usize; 3];
-    for _ in 0..30_000 {
-        seen[generator.weighted(&[1.0, 0.0, 3.0]).unwrap()] += 1;
-    }
-    assert_eq!(seen[1], 0);
-    assert!((6_500..8_500).contains(&seen[0]));
-    assert_eq!(generator.weighted(&[0.0, 0.0]), None);
 }

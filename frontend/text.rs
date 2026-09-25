@@ -1,6 +1,6 @@
 use crate::source::{Definition, Output, Value};
 
-pub fn rule(input: &[Vec<Value>], output: &[Output]) -> String {
+pub(crate) fn rule(input: &[Vec<Value>], output: &[Output]) -> String {
     std::iter::once(pattern(input))
         .chain(product(output))
         .collect::<Vec<_>>()

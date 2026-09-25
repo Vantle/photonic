@@ -163,7 +163,7 @@ A false claim reaches `Counterexample` instead, and a refutation test checks tha
 - Pass role operands through an adapter. [carry/role.particle](carry/role.particle) packs a status after `Former` into `([Left] …)` and after `Latter` into `([Right] …)`, marking each `Packed`; a joint rule over two `Packed` coherences then makes the call. [ternary/role.particle](ternary/role.particle) does the same for trits and borrows.
 - Consume every value. A result that is not needed still has to be matched, or discarded by a rule with no output such as `[High.Joined],`; otherwise it remains in the final configuration and the proof fails.
 - Guard every rule that observes a running engine with a value that exists only after the step, such as a read blocked on a feed's remnant or an output that now holds a cell. An observer that could fire earlier takes the engine's own inputs and stalls it.
-- Declare the theorem with `theorem` from [defs.bzl](defs.bzl), which builds the program and its `.proof` test; `path = False` checks a derivation by full exploration. `refutation` builds a `.refutation` test that checks the configuration a false claim ends in. Raise `cells` as the claim grows and `states` as the path grows: a direct path retains every configuration it visits.
+- Declare the theorem with `theorem` from [defs.bzl](defs.bzl), which builds the program and its `.proof` test; `path = False` checks a derivation by full exploration. `refutation` builds a `.refutation` test that checks the configuration a false claim ends in. A claim stated as cases lists `//theorem:case` among its `deps`. Raise `occurrence` as the claim grows and `configuration` as the path grows: a direct path retains every configuration it visits.
 
 ## Order
 
@@ -232,7 +232,7 @@ In particular, `Natural.Compare`'s scheme orders the naturals. It compares digit
 
 ### 4. Arithmetic at every width
 
-A block of digits kills, propagates or generates a carry. `Carry.Combine` joins a lower block, its `Left` operand, with a higher one, its `Right` operand; `Carry.Evaluate` applies a block to an incoming carry. The carry theorems show the statuses form a monoid acting on carries:
+A block of digits kills, propagates or generates a carry. `Signal.Combine` joins a lower block, its `Left` operand, with a higher one, its `Right` operand; `Signal.Evaluate` applies a block to an incoming carry. The carry theorems show the statuses form a monoid acting on carries:
 
 | Theorem | Claim |
 | --- | --- |
@@ -244,7 +244,7 @@ The induction theorems carry digit laws to numbers of every width. Each names an
 
 | Theorem | Claim at every width | Invariant | Cases |
 | --- | --- | --- | ---: |
-| [lookahead](induction/lookahead.wave) | combining blocks with `Carry.Combine` and applying the result gives the ripple carry | the combined prefix takes the entry carry to the ripple carry | 36 |
+| [lookahead](induction/lookahead.wave) | combining blocks with `Signal.Combine` and applying the result gives the ripple carry | the combined prefix takes the entry carry to the ripple carry | 36 |
 | [subtraction](induction/subtraction.wave) | subtracting b from a + b with `Ternary.Subtract` returns a | the adder's carry equals the subtractor's borrow | 18 |
 | [associativity](induction/associativity.wave) | (a + b) + c = a + (b + c) with `Ternary.Sum` | both groupings hold the same total pending carry | 432 |
 
@@ -298,7 +298,7 @@ Derived theorems about every monoid, group, lattice and ring, and the library's 
 
 A ring's addition is a commutative group, so the ring theorems cite the group theorems in additive notation: `inverse` reads a + b = 0 implies b = −a, and `involution` reads −(−a) = a.
 
-The instances connect these to the library. `ternary.group` and `ternary.field` make every group and ring theorem hold for the trits. The carry theorems of layer 4 make the statuses a monoid under `Carry.Combine`, so `monoid.identity` shows Propagate is its only identity. The Boolean laws of layer 1 include absorption, associativity, idempotence and both distributive laws for `Boolean.And` and `Boolean.Or`, so the Booleans are a distributive lattice and every lattice theorem holds for them.
+The instances connect these to the library. `ternary.group` and `ternary.field` make every group and ring theorem hold for the trits. The carry theorems of layer 4 make the statuses a monoid under `Signal.Combine`, so `monoid.identity` shows Propagate is its only identity. The Boolean laws of layer 1 include absorption, associativity, idempotence and both distributive laws for `Boolean.And` and `Boolean.Or`, so the Booleans are a distributive lattice and every lattice theorem holds for them.
 
 ### 7. Counting
 
@@ -310,16 +310,16 @@ The digit tables are definitions: nothing in layers 1 to 6 says that `Ternary.Su
 [Stride, Place] Function.Ternary.Successor.Moving,
 [Low.Moving] Place,
 [High.0.Moving] Receipt,
-[High.1.Moving, Wraps] Function.Ternary.Successor.Wrapping,
-[Low.Wrapping] Wraps,
+[High.1.Moving, Wrap] Function.Ternary.Successor.Wrapping,
+[Low.Wrapping] Wrap,
 [High.0.Wrapping] Receipt
 ```
 
-A walk of n strides moves `Place` n successors forward and counts in `Wraps` how often it passes 2. Each stride leaves a `Receipt`, and `Need.n` is satisfied by n of them. Photonic cannot observe that no stride remains, so the receipts let a claim learn positively that every stride has landed. [counting/sum.wave](counting/sum.wave) checks all 27 sums:
+A walk of n strides moves `Place` n successors forward and counts in `Wrap` how often it passes 2. Each stride leaves a `Receipt`, and `Need.n` is satisfied by n of them. Photonic cannot observe that no stride remains, so the receipts let a claim learn positively that every stride has landed. [counting/sum.wave](counting/sum.wave) checks all 27 sums:
 
 ```
-[Claim] (Place.A, Wraps.0, Walk.B, Walk.C, Need.B, Need.C, Function.Ternary.Sum.Expected.A.B.C),
-[Satisfied, Satisfied, Place.1, Wraps.1, Low.1.Expected, High.1.Expected] Return.Verdict.True
+[Claim] (Place.A, Wrap.0, Walk.B, Walk.C, Need.B, Need.C, Function.Ternary.Sum.Expected.A.B.C),
+[Satisfied, Satisfied, Place.1, Wrap.1, Low.1.Expected, High.1.Expected] Return.Verdict.True
 ```
 
 The second rule is one of nine. Sum's digit must be where b + c strides from a land, and its carry must be how often they wrapped.
@@ -366,9 +366,9 @@ The linked engines read numbers of any width, so their theorems are induction st
 A feed answers `Read` or `Peek` with the case's next digit, followed by a `Remnant` that answers nothing but `Forget`. `Prior` stands for the output built so far. A step reads at most one digit from each operand, so a feed stands for every chain with that next digit. `Feed.End` answers as the empty chain `Zero`, which it stands for. The engine's rules take one step and block on the remnants, and the claim reads the output back through the real chain. From [natural/addition.wave](natural/addition.wave):
 
 ```
-[Claim] (Column.Step, Column.Mode.([Operation] Add), Column.Carry.K, Column.Left.Feed.A, Column.Right.Feed.B, Column.Output.Prior, Worth.A, Worth.B, Function.Ternary.Sum.Expected.K),
+[Claim] (Column.Step, Column.Mode.([Operation] Add), Column.Carried.K, Column.Left.Feed.A, Column.Right.Feed.B, Column.Output.Prior, Worth.A, Worth.B, Function.Ternary.Sum.Expected.K),
 [Column.Output.Head, Read.Column.Reader.([Side] Left).Remnant] Read.Probe.Head,
-[Yield.Probe.Prior, Column.Carry, Column.Mode.([Operation] Add), Read.Column.Reader.([Side] Right).Remnant] Engine,
+[Yield.Probe.Prior, Column.Carried, Column.Mode.([Operation] Add), Read.Column.Reader.([Side] Right).Remnant] Engine,
 [Engine.([Digit] 1).1, Low.1.Expected, High.1.Expected] Return.Verdict.True
 ```
 
@@ -378,7 +378,7 @@ The probe fires only once the output holds a new cell and the engine has begun t
 | --- | --- | ---: |
 | [opening](natural/opening.wave) | the first column of `Natural.Add`, run from the call itself, pushes the digit of `Ternary.Sum` of the two digits and no carry onto an empty output and passes on Sum's carry; 0 + 0 answers zero | 16 |
 | [addition](natural/addition.wave) | a column of `Natural.Add` pushes the digit of `Ternary.Sum` of the two digits read and the carry, and passes on Sum's carry | 30 |
-| [subtraction](natural/subtraction.wave) | a column in the borrow mode behind `Natural.Subtract` and `Natural.Difference` pushes the digit of `Ternary.Subtract` and passes on its borrow | 30 |
+| [subtraction](natural/subtraction.wave) | a column in the `Deduct` mode behind `Natural.Subtract` and `Natural.Difference` pushes the digit of `Ternary.Subtract` and passes on its borrow | 30 |
 | [ending](natural/ending.wave) | once both operands have ended, a final carry becomes the leading digit and a final borrow reports a negative difference | 4 |
 | [comparison](natural/comparison.wave) | a position of `Natural.Compare` carries on the verdict of the layer 3 scheme, or answers it once one operand has ended and the other shows a nonzero digit, or both have ended | 48 |
 | [trim](natural/trim.wave) | `Natural.Trim` skips a leading zero, answers zero once only zeros remain, and otherwise keeps the leading digit and reverses the chain | 4 |

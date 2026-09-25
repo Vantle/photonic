@@ -1,5 +1,7 @@
 use std::collections::VecDeque;
 
+const CREDIT: usize = 4096;
+
 pub(crate) struct Queue<Value> {
     ready: VecDeque<Value>,
     deferred: VecDeque<Value>,
@@ -11,11 +13,11 @@ impl<Value> Queue<Value> {
         Self {
             ready: VecDeque::new(),
             deferred: VecDeque::new(),
-            credit: 4096,
+            credit: CREDIT,
         }
     }
 
-    pub(crate) fn push_back(&mut self, value: Value) {
+    pub(crate) fn push(&mut self, value: Value) {
         self.ready.push_back(value);
     }
 
@@ -39,12 +41,12 @@ impl<Value> Queue<Value> {
         }
     }
 
-    pub(crate) fn pop_front(&mut self) -> Option<Value> {
+    pub(crate) fn pop(&mut self) -> Option<Value> {
         if self.immediate() {
             self.credit = self.credit.saturating_sub(1);
             self.ready.pop_front()
         } else {
-            self.credit = 4096;
+            self.credit = CREDIT;
             self.deferred.pop_front()
         }
     }

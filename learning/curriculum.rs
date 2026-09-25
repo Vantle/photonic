@@ -1,8 +1,9 @@
 use crate::edit::Bound;
 use crate::guide::{Effort, Network, search};
-use crate::objective::Setting;
-use crate::pool::HIDDEN;
-use crate::solution::{Budget, solve};
+use crate::objective::{Setting, TOLERANCE};
+use crate::pool::conceal;
+use crate::problem;
+use crate::solution::{Budget, Failure, solve};
 use crate::synthetic::generate;
 use crate::task::Task;
 use random::Generator;
@@ -50,16 +51,20 @@ pub fn prefix(level: usize) -> String {
 }
 
 impl Curriculum {
-    pub fn breed(&mut self, level: usize, seed: u64, setting: &Setting) -> Task {
+    pub fn breed(
+        &mut self,
+        level: usize,
+        seed: u64,
+        setting: &Setting,
+    ) -> Result<Task, problem::Failure> {
         let mut generator = Generator::new(seed ^ (self.bred as u64 + 1).wrapping_mul(0x9e37_79b9));
         let name = format!("{}{}", prefix(level), self.bred);
         self.bred += 1;
         let task = generate(&mut generator, name, &setting.limit, level);
-        Task {
+        conceal(Task {
             reference: None,
             ..task
-        }
-        .conceal(HIDDEN)
+        })
     }
 
     pub fn exam(&mut self, level: usize) -> &mut Vec<Exam> {
@@ -70,21 +75,27 @@ impl Curriculum {
     }
 }
 
-pub fn grade(task: Task, setting: &Setting, time: Duration) -> Option<Exam> {
-    let budget = Budget {
-        size: 16,
-        time: Some(time),
+pub fn grade(task: Task, setting: &Setting, time: Duration) -> Result<Option<Exam>, Failure> {
+    let task = Task {
+        goal: Some(setting.aim(task.goal).goal),
+        ..task
     };
-    let solution = solve(&task, f64::INFINITY, setting, budget).ok()?;
+    let budget = Budget {
+        time: Some(time),
+        ..Budget::default()
+    };
+    let solution = solve(&task, f64::INFINITY, setting, budget)?;
     if !solution.proven {
-        return None;
+        return Ok(None);
     }
-    let (_, evaluation) = solution.optimal.first()?;
-    Some(Exam {
+    let Some((_, evaluation)) = solution.optimal.first() else {
+        return Ok(None);
+    };
+    Ok(Some(Exam {
         cost: solution.cost,
         size: evaluation.size.total(),
         task,
-    })
+    }))
 }
 
 pub fn examine(exam: &[Exam], network: &mut Network, setting: &Setting, expansion: u64) -> f64 {
@@ -108,7 +119,7 @@ pub fn examine(exam: &[Exam], network: &mut Network, setting: &Setting, expansio
             guidance
                 .best
                 .as_ref()
-                .is_some_and(|(_, evaluation)| evaluation.cost <= exam.cost + 1e-9)
+                .is_some_and(|(_, evaluation)| evaluation.cost <= exam.cost + TOLERANCE)
         })
         .count();
     passed as f64 / exam.len() as f64

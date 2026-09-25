@@ -117,8 +117,8 @@ pub fn run() -> Vec<Observation> {
             work,
             binding,
             retained: network.retained(),
-            preparation: network.preparation,
-            reuse: network.reuse,
+            preparation: network.preparation(),
+            reuse: network.reuse(),
         });
         let removal = if state.world.len() == 0 {
             Default::default()

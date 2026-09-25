@@ -1,6 +1,6 @@
-use miette::Diagnostic;
 use serde::{Deserialize, Serialize};
-use thiserror::Error;
+
+use crate::failure::Failure;
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -11,26 +11,15 @@ pub struct Program {
     pub rule: Vec<Definition>,
 }
 
-#[derive(Debug, Diagnostic, Error)]
-#[error("library {library} contains initial coherences; supply declarations only")]
-#[diagnostic(code(photonic::library))]
-pub struct Declaration {
-    pub library: String,
-}
-
 impl Program {
     pub fn append(&mut self, program: Self) {
         self.initial.extend(program.initial);
         self.rule.extend(program.rule);
     }
 
-    pub fn declare(
-        &mut self,
-        library: Self,
-        name: impl std::fmt::Display,
-    ) -> Result<(), Declaration> {
+    pub fn declare(&mut self, library: Self, name: impl std::fmt::Display) -> Result<(), Failure> {
         if !library.initial.is_empty() {
-            return Err(Declaration {
+            return Err(Failure::Library {
                 library: name.to_string(),
             });
         }

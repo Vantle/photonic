@@ -145,6 +145,16 @@ fn empty() {
             "True",
             source("boolean", "equal"),
         ),
+        (
+            "Invoke.Empty.Reduce.([Operation] Ternary.Add)",
+            "([Digit] 0).([Carry] 0)",
+            source("ternary", "add"),
+        ),
+        (
+            "Invoke.Empty.Reduce.([Operation] Selection.Count)",
+            "0",
+            source("selection", "count"),
+        ),
     ] {
         check(source, target, &[invoke(), library], Outcome::Reached);
     }

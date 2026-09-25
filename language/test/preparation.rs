@@ -64,7 +64,7 @@ fn isolation() {
                         assert_eq!(account.retained(), 0);
                     }
                     assert_eq!(right.step(), expected);
-                    if matches!(expected, Poll::Ready(None)) {
+                    if expected.is_none() {
                         break;
                     }
                 }
@@ -101,21 +101,21 @@ fn identity() {
         world: &world,
         owner: 1,
     });
-    assert_eq!(original.step(), Poll::Ready(Some(vec![0])));
-    assert_eq!(foreign.step(), Poll::Ready(None));
+    assert_eq!(original.step(), Some(vec![0]));
+    assert_eq!(foreign.step(), None);
     Arc::make_mut(&mut world).particle[0].id = 100;
     let mut replacement = store.select(Request {
         pattern: &pattern,
         world: &world,
         owner: 0,
     });
-    assert_eq!(replacement.step(), Poll::Ready(Some(vec![100])));
+    assert_eq!(replacement.step(), Some(vec![100]));
     assert!(!Arc::ptr_eq(
         &original.preparation(),
         &replacement.preparation()
     ));
     original.reset();
-    assert_eq!(original.step(), Poll::Ready(Some(vec![0])));
+    assert_eq!(original.step(), Some(vec![0]));
     store.evict();
     assert_eq!(account.retained(), 0);
 }
@@ -146,7 +146,7 @@ fn saturation() {
             loop {
                 let expected = reference.step();
                 assert_eq!(search.step(), expected);
-                if matches!(expected, Poll::Ready(None)) {
+                if expected.is_none() {
                     break;
                 }
             }
@@ -187,10 +187,11 @@ fn subscription() {
     let mut index = Index::new(Arc::new(state.clone()));
     let store = Arc::new(crate::joining::Store::new(65536));
     let mut fragment = Default::default();
+    let contextual = program.contextual();
     let input = program
         .rule
         .iter()
-        .map(|rule| Input::shared(&rule.input, &mut fragment))
+        .map(|rule| Input::shared(&rule.input, |rule| contextual[rule], &mut fragment))
         .collect::<Vec<_>>();
     let mut search = input
         .iter()

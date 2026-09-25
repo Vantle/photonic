@@ -30,9 +30,9 @@ fn persistence() {
 #[test]
 fn growth() {
     let setting = Setting::default();
-    let pool = initial(2, 5, &setting);
+    let pool = initial(2, 5, &setting).unwrap();
     let before = pool.len();
-    let grown = grow(pool, 3, 5, &setting);
+    let grown = grow(pool, 3, 5, &setting).unwrap();
     assert_eq!(grown.len(), before + 3);
     let mut name = grown
         .iter()

@@ -30,7 +30,11 @@ impl Node {
         }
     }
 
-    fn version<'a>(&self, version: &'a mut Option<Version>, index: &Index) -> &'a mut Version {
+    fn version<'version>(
+        &self,
+        version: &'version mut Option<Version>,
+        index: &Index,
+    ) -> &'version mut Version {
         if version
             .as_ref()
             .is_none_or(|version| version.revision != *index.revision())

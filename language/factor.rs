@@ -1,7 +1,6 @@
 use crate::budget::Budget;
 use crate::particle::Match;
 use std::sync::Arc;
-use std::task::Poll;
 
 enum Mode {
     Fresh,
@@ -47,7 +46,7 @@ impl Cursor {
         }
     }
 
-    pub fn step(&mut self, allowance: usize) -> Poll<Option<Vec<usize>>> {
+    pub fn step(&mut self, allowance: usize) -> Option<Vec<usize>> {
         match &mut self.0 {
             Storage::Direct(search) => search.step(),
             Storage::Retained(stream) => stream.step(allowance),
@@ -101,7 +100,7 @@ impl Stream {
         }
     }
 
-    fn step(&mut self, allowance: usize) -> Poll<Option<Vec<usize>>> {
+    fn step(&mut self, allowance: usize) -> Option<Vec<usize>> {
         if matches!(self.mode, Mode::Fresh) {
             self.mode = Mode::Visited;
         }
@@ -123,31 +122,29 @@ impl Stream {
         self.advance(allowance)
     }
 
-    fn advance(&mut self, allowance: usize) -> Poll<Option<Vec<usize>>> {
+    fn advance(&mut self, allowance: usize) -> Option<Vec<usize>> {
         let Mode::Recording(cache) = &mut self.mode else {
             return self.search.step();
         };
         if let Some(binding) = cache.binding.get(cache.cursor) {
             cache.cursor += 1;
-            return Poll::Ready(Some(binding.clone()));
+            return Some(binding.clone());
         }
         if cache.complete {
-            return Poll::Ready(None);
+            return None;
         }
         let result = self.search.step();
-        match &result {
-            Poll::Ready(Some(binding)) => {
-                let size = binding.len() + 1;
-                if size <= allowance && cache.budget.reserve(size) {
-                    cache.retained += size;
-                    cache.binding.push(binding.clone());
-                    cache.cursor += 1;
-                } else {
-                    self.mode = Mode::Streaming;
-                }
-            }
-            Poll::Ready(None) => cache.complete = true,
-            Poll::Pending => self.mode = Mode::Streaming,
+        let Some(binding) = &result else {
+            cache.complete = true;
+            return result;
+        };
+        let size = binding.len() + 1;
+        if size <= allowance && cache.budget.reserve(size) {
+            cache.retained += size;
+            cache.binding.push(binding.clone());
+            cache.cursor += 1;
+        } else {
+            self.mode = Mode::Streaming;
         }
         result
     }

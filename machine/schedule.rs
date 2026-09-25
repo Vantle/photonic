@@ -1,7 +1,7 @@
 use crate::event::{Event, apply, enumerate};
 use crate::exploration::fits;
 use crate::flat::Flat;
-use crate::limit::Limit;
+use crate::limit::{Limit, Overflow};
 use crate::state::State;
 
 #[derive(Clone, Debug)]
@@ -14,10 +14,6 @@ pub struct Schedule {
 impl Schedule {
     pub fn work(&self) -> usize {
         self.round.iter().sum()
-    }
-
-    pub fn span(&self) -> usize {
-        self.depth
     }
 }
 
@@ -51,7 +47,7 @@ pub fn lineage(program: &Flat, level: &[usize], event: &[Event]) -> (Vec<usize>,
     (result, deepest)
 }
 
-pub fn schedule(program: &Flat, initial: State, limit: &Limit) -> Option<Schedule> {
+pub fn schedule(program: &Flat, initial: State, limit: &Limit) -> Result<Schedule, Overflow> {
     let mut level = vec![0; initial.coherence().len()];
     let mut state = initial;
     let mut round = Vec::new();
@@ -74,17 +70,17 @@ pub fn schedule(program: &Flat, initial: State, limit: &Limit) -> Option<Schedul
             !used.iter().all(|&value| value)
         });
         if count > limit.event {
-            return None;
+            return Err(Overflow::Event);
         }
         if chosen.is_empty() {
-            return Some(Schedule {
+            return Ok(Schedule {
                 round,
                 depth,
                 terminal: state,
             });
         }
         if round.len() >= limit.round {
-            return None;
+            return Err(Overflow::Round);
         }
         round.push(chosen.len());
         let (next, deepest) = lineage(program, &level, &chosen);
@@ -92,7 +88,7 @@ pub fn schedule(program: &Flat, initial: State, limit: &Limit) -> Option<Schedul
         depth = depth.max(deepest);
         state = apply(program, &state, &chosen);
         if !fits(program, &state, limit) {
-            return None;
+            return Err(Overflow::Size);
         }
     }
 }

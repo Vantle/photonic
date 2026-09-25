@@ -55,8 +55,8 @@ fn policy(output: &Output, sample: &Sample, weight: Weight, loss: &mut Loss) -> 
     let probability = softmax(&output.logit);
     let total = sample.policy.iter().sum::<f32>().max(f32::MIN_POSITIVE);
     let mut delta = Vec::with_capacity(probability.len());
-    for (&probability, &target) in probability.iter().zip(&sample.policy) {
-        let target = target / total;
+    for (index, &probability) in probability.iter().enumerate() {
+        let target = sample.policy.get(index).copied().unwrap_or_default() / total;
         if target > 0.0 {
             loss.policy -= f64::from(target * probability.max(1e-12).ln());
         }

@@ -4,11 +4,12 @@ load("//theorem:defs.bzl", "theorem")
 theorem(
     name = "addition",
     srcs = ["addition.wave"],
-    cells = 512,
+    occurrence = 512,
     deps = [
         ":feed",
         "//library/natural:column",
         "//library/ternary:sum",
+        "//theorem:case",
         "//theorem/ternary:unpack",
     ],
 )
@@ -16,11 +17,12 @@ theorem(
 theorem(
     name = "comparison",
     srcs = ["comparison.wave"],
-    cells = 1024,
+    occurrence = 1024,
     deps = [
         ":feed",
         "//library/natural:compare",
         "//library/ternary:compare",
+        "//theorem:case",
         "//theorem/ternary:role",
     ],
 )
@@ -28,7 +30,10 @@ theorem(
 theorem(
     name = "ending",
     srcs = ["ending.wave"],
-    deps = ["//library/natural:column"],
+    deps = [
+        "//library/natural:column",
+        "//theorem:case",
+    ],
 )
 
 photonic_library(
@@ -39,11 +44,12 @@ photonic_library(
 theorem(
     name = "opening",
     srcs = ["opening.wave"],
-    cells = 1024,
+    occurrence = 1024,
     deps = [
         ":feed",
         "//library/natural:add",
         "//library/ternary:sum",
+        "//theorem:case",
         "//theorem/ternary:unpack",
     ],
 )
@@ -54,6 +60,7 @@ theorem(
     deps = [
         ":feed",
         "//library/natural:successor",
+        "//theorem:case",
     ],
 )
 
@@ -64,17 +71,19 @@ theorem(
         ":feed",
         "//library/chain:reverse",
         "//library/natural:digit",
+        "//theorem:case",
     ],
 )
 
 theorem(
     name = "subtraction",
     srcs = ["subtraction.wave"],
-    cells = 512,
+    occurrence = 512,
     deps = [
         ":feed",
         "//library/natural:column",
         "//library/ternary:subtract",
+        "//theorem:case",
         "//theorem/ternary:role",
         "//theorem/ternary:unpack",
     ],
@@ -87,6 +96,7 @@ theorem(
         ":feed",
         "//library/natural:successor",
         "//library/ternary:successor",
+        "//theorem:case",
         "//theorem/ternary:unpack",
     ],
 )
@@ -97,6 +107,7 @@ theorem(
     deps = [
         ":feed",
         "//library/natural:trim",
+        "//theorem:case",
     ],
 )
 

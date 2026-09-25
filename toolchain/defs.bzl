@@ -2,21 +2,21 @@
 
 load("@hermetic_launcher//launcher:lib.bzl", "launcher")
 
-def _launch(ctx):
-    suffix = ".exe" if ctx.target_platform_has_constraint(ctx.attr._windows[platform_common.ConstraintValueInfo]) else ""
-    argument = [ctx.expand_location(value, targets = [ctx.attr.entrypoint] + ctx.attr.data) for value in ctx.attr.argument]
-    output = ctx.actions.declare_file(ctx.label.name + suffix)
+def _launch(context):
+    suffix = ".exe" if context.target_platform_has_constraint(context.attr._windows[platform_common.ConstraintValueInfo]) else ""
+    argument = [context.expand_location(value, targets = [context.attr.entrypoint] + context.attr.data) for value in context.attr.argument]
+    output = context.actions.declare_file(context.label.name + suffix)
     extra = []
-    dependency = [ctx.attr.entrypoint] + ctx.attr.data
+    dependency = [context.attr.entrypoint] + context.attr.data
     if len(argument) > 9 or "" in argument:
-        configuration = ctx.actions.declare_file(ctx.label.name + ".json")
-        ctx.actions.write(configuration, json.encode(argument))
-        launcher.entrypoint(ctx.executable._argument).runfiles(ctx.executable.entrypoint, configuration).compile(ctx, output_file = output)
-        extra = [configuration, ctx.executable._argument]
-        dependency.append(ctx.attr._argument)
+        configuration = context.actions.declare_file(context.label.name + ".json")
+        context.actions.write(configuration, json.encode(argument))
+        launcher.entrypoint(context.executable._argument).runfiles(context.executable.entrypoint, configuration).compile(context, output_file = output)
+        extra = [configuration, context.executable._argument]
+        dependency.append(context.attr._argument)
     else:
-        launcher.entrypoint(ctx.executable.entrypoint).embedded_args(*argument).compile(ctx, output_file = output)
-    runfile = ctx.runfiles(files = ctx.files.data + [ctx.executable.entrypoint] + extra)
+        launcher.entrypoint(context.executable.entrypoint).embedded_args(*argument).compile(context, output_file = output)
+    runfile = context.runfiles(files = context.files.data + [context.executable.entrypoint] + extra)
     runfile = runfile.merge_all([target[DefaultInfo].default_runfiles for target in dependency])
     return [DefaultInfo(executable = output, runfiles = runfile)]
 

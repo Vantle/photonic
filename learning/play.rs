@@ -1,8 +1,9 @@
 use crate::archive::{Archive, Improvement, Record, moment};
+use crate::bar::Bar;
 use crate::edit::{self, Action, Bound};
 use crate::encoding::{Permutation, encode};
 use crate::judge::{EXPLORE, Infer, Judge, MARGIN, PROBE};
-use crate::objective::{self, Evaluation, evaluate, potential};
+use crate::objective::{self, Evaluation, TOLERANCE, evaluate, potential};
 use crate::problem::Problem;
 use crate::replay::Replay;
 use crate::search::{self, Environment, Leaf, Position, Tree};
@@ -134,8 +135,7 @@ struct Simulator<'worker> {
     cache: &'worker mut Cache,
     setting: &'worker Setting,
     statistic: &'worker Statistic,
-    best: &'worker mut [f64],
-    partial: &'worker mut [f64],
+    bar: &'worker mut Bar,
     found: &'worker mut Vec<Found>,
     label: &'worker mut Vec<Label>,
     generator: &'worker mut Generator,
@@ -152,20 +152,7 @@ impl Simulator<'_> {
             &self.setting.objective,
             self.statistic,
         );
-        let improved = if evaluation.correct {
-            let better = evaluation.cost < self.best[self.index] - 1e-9;
-            if better {
-                self.best[self.index] = evaluation.cost;
-            }
-            better
-        } else {
-            let better = evaluation.correctness > self.partial[self.index] + 1e-9;
-            if better {
-                self.partial[self.index] = evaluation.correctness;
-            }
-            better
-        };
-        if improved {
+        if self.bar.raise(self.index, &program, &evaluation) {
             self.found.push(Found {
                 problem: self.index,
                 program: program.clone(),
@@ -269,7 +256,7 @@ struct Game {
 
 fn outcome(left: &Game, right: &Game) -> std::cmp::Ordering {
     let difference = left.position.potential - right.position.potential;
-    if difference.abs() > 1e-9 {
+    if difference.abs() > TOLERANCE {
         return difference.total_cmp(&0.0);
     }
     right.depth.cmp(&left.depth)
@@ -280,8 +267,7 @@ pub struct Worker {
     setting: Setting,
     generator: Generator,
     cache: Cache,
-    best: Vec<f64>,
-    partial: Vec<f64>,
+    bar: Bar,
     found: Vec<Found>,
     label: Vec<Label>,
     sample: Vec<Sample>,
@@ -299,8 +285,7 @@ impl Worker {
                 entry: HashMap::new(),
                 capacity: setting.cache,
             },
-            best: vec![f64::INFINITY; count],
-            partial: vec![0.0; count],
+            bar: Bar::new(count, setting.cache),
             found: Vec::new(),
             label: Vec::new(),
             sample: Vec::new(),
@@ -323,10 +308,7 @@ impl Worker {
             .archive
             .lock()
             .expect("the archive lock is never poisoned");
-        for (index, problem) in self.shared.problem.iter().enumerate() {
-            self.best[index] = self.best[index].min(archive.best(&problem.task.name));
-            self.partial[index] = self.partial[index].max(archive.partial(&problem.task.name));
-        }
+        self.bar.refresh(&archive, &self.shared.problem);
     }
 
     fn choose(&mut self) -> usize {
@@ -504,43 +486,34 @@ impl Worker {
         }
     }
 
+    fn simulator(&mut self, index: usize, infer: Infer) -> Simulator<'_> {
+        Simulator {
+            problem: &self.shared.problem,
+            index,
+            cache: &mut self.cache,
+            setting: &self.setting,
+            statistic: &self.shared.statistic,
+            bar: &mut self.bar,
+            found: &mut self.found,
+            label: &mut self.label,
+            generator: &mut self.generator,
+            infer,
+        }
+    }
+
     fn select(&mut self, infer: Infer) -> Vec<(usize, Leaf)> {
         let mut result = Vec::new();
-        let Self {
-            shared,
-            setting,
-            generator,
-            cache,
-            best,
-            partial,
-            found,
-            label,
-            game,
-            ..
-        } = self;
-        for (index, entry) in game.iter_mut().enumerate() {
-            let Some(tree) = entry.tree.as_mut() else {
+        for index in 0..self.game.len() {
+            let Some(mut tree) = self.game[index].tree.take() else {
                 continue;
             };
-            if tree.finished() {
-                continue;
-            }
-            let mut simulator = Simulator {
-                problem: &shared.problem,
-                index: entry.problem,
-                cache: &mut *cache,
-                setting: &*setting,
-                statistic: &shared.statistic,
-                best: &mut *best,
-                partial: &mut *partial,
-                found: &mut *found,
-                label: &mut *label,
-                generator: &mut *generator,
-                infer,
-            };
-            if let Some(leaf) = tree.simulate(&mut simulator) {
+            let problem = self.game[index].problem;
+            if !tree.finished()
+                && let Some(leaf) = tree.simulate(&mut self.simulator(problem, infer))
+            {
                 result.push((index, leaf));
             }
+            self.game[index].tree = Some(tree);
         }
         result
     }
@@ -628,19 +601,6 @@ impl Worker {
         let Some(mut tree) = self.game[index].tree.take() else {
             return;
         };
-        let mut simulator = Simulator {
-            problem: &self.shared.problem,
-            index: self.game[index].problem,
-            cache: &mut self.cache,
-            setting: &self.setting,
-            statistic: &self.shared.statistic,
-            best: &mut self.best,
-            partial: &mut self.partial,
-            found: &mut self.found,
-            label: &mut self.label,
-            generator: &mut self.generator,
-            infer: Infer::Never,
-        };
         let proposed = Position {
             potential: output
                 .judge
@@ -648,7 +608,10 @@ impl Worker {
                 .map_or(f64::NAN, |&median| f64::from(median)),
             ..tree.leaf(leaf).0.clone()
         };
-        let checked = simulator.verify(tree.parent(leaf), &proposed);
+        let problem = self.game[index].problem;
+        let checked = self
+            .simulator(problem, Infer::Never)
+            .verify(tree.parent(leaf), &proposed);
         if checked.potential >= parent - MARGIN {
             self.shared
                 .statistic
@@ -665,7 +628,7 @@ impl Worker {
         let estimate = output
             .judge
             .first()
-            .map_or(f64::NAN, |&mean| f64::from(mean));
+            .map_or(f64::NAN, |&median| f64::from(median));
         if let Some(tree) = self.game[index].tree.as_mut() {
             tree.expand(leaf, output.logit, f64::from(output.value), estimate);
         }
@@ -714,20 +677,8 @@ impl Worker {
             let action = tree.action()[chosen];
             let policy = tree.policy();
             let next = {
-                let entry = &self.game[index];
-                let mut simulator = Simulator {
-                    problem: &self.shared.problem,
-                    index: entry.problem,
-                    cache: &mut self.cache,
-                    setting: &self.setting,
-                    statistic: &self.shared.statistic,
-                    best: &mut self.best,
-                    partial: &mut self.partial,
-                    found: &mut self.found,
-                    label: &mut self.label,
-                    generator: &mut self.generator,
-                    infer: Infer::Never,
-                };
+                let problem = self.game[index].problem;
+                let mut simulator = self.simulator(problem, Infer::Never);
                 match tree.successor(chosen) {
                     Some(position) => simulator.verify(tree.position(), position),
                     None => simulator.transition(tree.position(), action),
@@ -747,7 +698,7 @@ impl Worker {
                     .evaluation
                     .as_ref()
                     .is_some_and(|evaluation| evaluation.correct)
-                    && next.potential > entry.position.potential + 1e-9,
+                    && next.potential > entry.position.potential + TOLERANCE,
             });
             entry.depth += 1;
             entry.position = next;
@@ -859,14 +810,11 @@ impl Worker {
         for entry in found {
             let task = &self.shared.problem[entry.problem].task;
             let general = entry.evaluation.correct
-                && (task.holdout.is_empty()
-                    || evaluate(
-                        &entry.program,
-                        &task.holdout,
-                        &task.vocabulary,
-                        &self.setting.objective,
-                    )
-                    .correct);
+                && objective::general(&entry.program, task, &self.setting.objective);
+            if entry.evaluation.correct && !general {
+                self.bar.reject(entry.problem, entry.program);
+                continue;
+            }
             let record = Record::new(
                 entry.program.as_ref().clone(),
                 &entry.evaluation,

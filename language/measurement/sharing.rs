@@ -55,10 +55,11 @@ fn evaluate(program: &Program, shared: bool, demand: Option<&Configuration>) -> 
         .map(|_| Arc::new(Store::new(65536)))
         .collect::<Vec<_>>();
     let mut fragment = Default::default();
+    let contextual = program.contextual();
     let input = program
         .rule
         .iter()
-        .map(|rule| Input::shared(&rule.input, &mut fragment))
+        .map(|rule| Input::shared(&rule.input, |rule| contextual[rule], &mut fragment))
         .collect::<Vec<_>>();
     let mut query = input
         .iter()

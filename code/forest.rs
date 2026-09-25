@@ -11,7 +11,7 @@ impl Forest {
         }
     }
 
-    fn root(&mut self, index: usize) -> usize {
+    pub fn root(&mut self, index: usize) -> usize {
         let mut root = index;
         while self.parent[root] != root {
             root = self.parent[root];

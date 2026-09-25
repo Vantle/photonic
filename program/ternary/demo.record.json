@@ -3,7 +3,7 @@
     "name": "Addition",
     "expression": "12 + 2",
     "outcome": "reached",
-    "work": 3557,
+    "work": 3563,
     "count": 1446,
     "input": [
       "1",
@@ -26,7 +26,7 @@
     "name": "Multiplication",
     "expression": "12 × 2",
     "outcome": "reached",
-    "work": 5886,
+    "work": 5901,
     "count": 2408,
     "input": [
       "1",
@@ -49,7 +49,7 @@
     "name": "Division and subtraction",
     "expression": "21 ÷ 2 − 1",
     "outcome": "reached",
-    "work": 7578,
+    "work": 7635,
     "count": 3062,
     "input": [
       "2",

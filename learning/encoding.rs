@@ -10,7 +10,6 @@ use code::tree::{Place, walk};
 use code::value::Value;
 use network::input::{Input, Pointer};
 use random::Generator;
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 pub const ATOM: usize = 128;
@@ -46,7 +45,7 @@ enum Role {
 }
 
 #[derive(Clone, Copy)]
-enum Position {
+enum Location {
     Program = 1,
     Value,
     Body,
@@ -102,8 +101,7 @@ const FIELD: [usize; 12] = [
     WEIGHT + 1,
 ];
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Shape {
     pub width: usize,
     pub depth: usize,
@@ -239,7 +237,7 @@ impl Writer {
         index
     }
 
-    fn members(
+    fn member(
         &mut self,
         particle: &Particle,
         template: Token,
@@ -264,7 +262,7 @@ impl Writer {
         self.push(Token {
             kind: Kind::Rule as u16,
             depth: depth(level),
-            place: Position::Value as u16,
+            place: Location::Value as u16,
             ..template
         });
         let particle = rule
@@ -281,7 +279,7 @@ impl Writer {
                 kind: Kind::Particle as u16,
                 ..inner
             });
-            self.members(particle, inner, permutation, level);
+            self.member(particle, inner, permutation, level);
         }
     }
 
@@ -302,7 +300,7 @@ impl Writer {
                 kind: Kind::Coherence as u16,
                 ..inner
             });
-            self.members(coherence, inner, permutation, 0);
+            self.member(coherence, inner, permutation, 0);
         }
     }
 }
@@ -345,9 +343,9 @@ fn program(writer: &mut Writer, program: &Program, permutation: &Permutation) ->
     let node = walk(program);
     for (index, entry) in node.iter().enumerate() {
         let (parent, place) = match entry.place {
-            Place::Program => (0, Position::Program),
-            Place::Value { parent } => (permutation.rule(parent), Position::Value),
-            Place::Body { parent } => (permutation.rule(parent), Position::Body),
+            Place::Program => (0, Location::Program),
+            Place::Value { parent } => (permutation.rule(parent), Location::Value),
+            Place::Body { parent } => (permutation.rule(parent), Location::Body),
         };
         let template = Token {
             rule: permutation.rule(index),

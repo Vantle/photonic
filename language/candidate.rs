@@ -13,9 +13,11 @@ use selection::Selection;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-pub(crate) struct Request<'a, Pattern> {
+const SHARED: std::ops::Range<usize> = 17..4096;
+
+pub(crate) struct Request<'request, Pattern> {
     pub pattern: Pattern,
-    pub index: &'a Index,
+    pub index: &'request Index,
     pub frame: usize,
 }
 
@@ -52,7 +54,7 @@ impl Store {
             };
         }
         let site = key.select(request.index);
-        if site.len() <= 16 || site.len() >= 4096 {
+        if !SHARED.contains(&site.len()) {
             return Domain { site, node: None };
         }
         let mut node = self.node.lock().unwrap();

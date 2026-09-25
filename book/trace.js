@@ -21,7 +21,6 @@
             host.replaceChildren(box);
             return;
         }
-        const definition = book.render.catalog(source.definition);
         const control = element('div', 'row');
         const button = (label, text) => {
             const node = element('button', 'tool', text);
@@ -54,10 +53,10 @@
             book.syntax.highlight(rule, step.event.rule);
             const before = element('div');
             before.append(element('span', 'label', 'before · consumed tokens outlined'));
-            before.append(card(`s${step.event.source}`, step.before, definition, book.render.touch(step.event)));
+            before.append(card(`s${step.event.source}`, step.before, source.definition, book.render.touch(step.event)));
             const after = element('div');
             after.append(element('span', 'label', 'after'));
-            after.append(card(`s${step.event.target}`, step.after, definition));
+            after.append(card(`s${step.event.target}`, step.after, source.definition));
             pair.replaceChildren(before, after);
         };
         const load = async () => {

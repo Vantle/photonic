@@ -62,16 +62,28 @@ fn crawl(workspace: &Path, root: Vec<PathBuf>) -> Result<BTreeMap<PathBuf, Strin
 }
 
 fn reference(text: &str) -> impl Iterator<Item = &str> {
-    ["](", "href=\"", "src=\""]
+    ["](", "href=\"", "src=\"", "srcset=\""]
         .into_iter()
         .flat_map(move |opening| {
             let closing = if opening == "](" { ')' } else { '"' };
-            text.match_indices(opening).filter_map(move |(start, _)| {
-                let rest = &text[start + opening.len()..];
-                rest.find(closing).map(|end| &rest[..end])
-            })
+            text.match_indices(opening)
+                .filter_map(move |(start, _)| {
+                    let rest = &text[start + opening.len()..];
+                    rest.find(closing).map(|end| &rest[..end])
+                })
+                .flat_map(move |value| candidate(opening, value))
         })
         .filter(|target| !target.is_empty() && !external(target))
+}
+
+fn candidate<'text>(opening: &str, value: &'text str) -> Vec<&'text str> {
+    if opening != "srcset=\"" {
+        return vec![value];
+    }
+    value
+        .split(',')
+        .filter_map(|entry| entry.split_whitespace().next())
+        .collect()
 }
 
 fn external(target: &str) -> bool {

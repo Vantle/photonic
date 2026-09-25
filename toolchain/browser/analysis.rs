@@ -2,12 +2,10 @@ use code::particle::Particle;
 use photonic::source::{Definition, Program, Value};
 use serde::Serialize;
 use std::collections::{BTreeMap, BTreeSet};
-use symmetry::analysis::{Kind, analyze};
+use symmetry::analysis::analyze;
 use symmetry::statement::{self, Statement};
 use translation::lift;
 use translation::vocabulary::Vocabulary;
-
-const BUDGET: usize = 100_000;
 
 #[derive(Serialize)]
 pub struct Analysis {
@@ -16,44 +14,54 @@ pub struct Analysis {
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "lowercase")]
+enum Kind {
+    Global,
+    Local,
+    Block,
+}
+
+#[derive(Serialize)]
 struct Class {
-    kind: &'static str,
+    kind: Kind,
     part: Vec<Vec<String>>,
     rule: Vec<String>,
 }
 
-fn definition<'source>(definition: &'source Definition, name: &mut Vec<&'source str>) {
-    if !definition.name.is_empty() {
-        name.push(&definition.name);
-    }
-    for particle in &definition.input {
-        self::particle(particle, name);
-    }
-    for output in &definition.output {
-        self::particle(&output.particle, name);
-        for nested in output.body.iter().flatten() {
-            self::definition(nested, name);
+impl From<symmetry::analysis::Kind> for Kind {
+    fn from(kind: symmetry::analysis::Kind) -> Self {
+        match kind {
+            symmetry::analysis::Kind::Global => Self::Global,
+            symmetry::analysis::Kind::Local => Self::Local,
+            symmetry::analysis::Kind::Block => Self::Block,
         }
     }
 }
 
-fn particle<'source>(particle: &'source [Value], name: &mut Vec<&'source str>) {
+fn visit<'source>(rule: &'source Definition, name: &mut Vec<&'source str>) {
+    if !rule.name.is_empty() {
+        name.push(&rule.name);
+    }
+    for particle in &rule.input {
+        scan(particle, name);
+    }
+    for output in &rule.output {
+        scan(&output.particle, name);
+        for nested in output.body.iter().flatten() {
+            visit(nested, name);
+        }
+    }
+}
+
+fn scan<'source>(particle: &'source [Value], name: &mut Vec<&'source str>) {
     for value in particle {
         if let Value::Rule { rule } = value {
-            definition(rule, name);
+            visit(rule, name);
         }
     }
 }
 
-fn kind(kind: Kind) -> &'static str {
-    match kind {
-        Kind::Global => "global",
-        Kind::Local => "local",
-        Kind::Block => "block",
-    }
-}
-
-fn statement(program: &Program, vocabulary: &mut Vocabulary) -> Option<Vec<Statement>> {
+fn translate(program: &Program, vocabulary: &mut Vocabulary) -> Option<Vec<Statement>> {
     let mut statement = Vec::new();
     for entry in &program.rule {
         statement.push(Statement::Rule(lift::rule(entry, vocabulary).ok()?));
@@ -69,30 +77,30 @@ fn statement(program: &Program, vocabulary: &mut Vocabulary) -> Option<Vec<State
     Some(statement)
 }
 
-fn name(program: &Program) -> Vec<Vec<&str>> {
+fn mention(program: &Program) -> Vec<Vec<&str>> {
     let rule = program.rule.iter().map(|entry| {
-        let mut text = Vec::new();
-        definition(entry, &mut text);
-        text
+        let mut name = Vec::new();
+        visit(entry, &mut name);
+        name
     });
     let coherence = program.initial.iter().map(|entry| {
-        let mut text = Vec::new();
-        particle(entry, &mut text);
-        text
+        let mut name = Vec::new();
+        scan(entry, &mut name);
+        name
     });
     rule.chain(coherence).collect()
 }
 
-fn rule(class: &[symmetry::analysis::Class], name: &[Vec<&str>]) -> Vec<Vec<String>> {
+fn attribute(class: &[symmetry::analysis::Class], name: &[Vec<&str>]) -> Vec<Vec<String>> {
     let mut member = vec![None; name.len()];
-    for (index, class) in class.iter().enumerate() {
-        for &position in &class.statement {
+    for (index, entry) in class.iter().enumerate() {
+        for &position in &entry.statement {
             member[position] = Some(index);
         }
     }
     let mut owner = BTreeMap::<&str, BTreeSet<Option<usize>>>::new();
-    for (position, text) in name.iter().enumerate() {
-        for &text in text {
+    for (position, entry) in name.iter().enumerate() {
+        for &text in entry {
             owner.entry(text).or_default().insert(member[position]);
         }
     }
@@ -107,18 +115,23 @@ fn rule(class: &[symmetry::analysis::Class], name: &[Vec<&str>]) -> Vec<Vec<Stri
 
 pub fn analysis(program: &Program) -> Option<Analysis> {
     let mut vocabulary = Vocabulary::default();
-    let statement = self::statement(program, &mut vocabulary)?;
-    let result = analyze(&statement::structure(&statement), &statement, BUDGET).ok()?;
+    let statement = translate(program, &mut vocabulary)?;
+    let result = analyze(
+        &statement::structure(&statement),
+        &statement,
+        crate::limit::SYMMETRY,
+    )
+    .ok()?;
     let class = result.class(&statement);
-    let rule = self::rule(&class, &name(program));
+    let rule = attribute(&class, &mention(program));
     Some(Analysis {
         size: result.symmetry.size.to_string(),
         class: class
             .iter()
             .zip(rule)
-            .map(|(class, rule)| Class {
-                kind: kind(class.kind),
-                part: class
+            .map(|(entry, name)| Class {
+                kind: Kind::from(entry.kind),
+                part: entry
                     .part
                     .iter()
                     .map(|part| {
@@ -127,7 +140,7 @@ pub fn analysis(program: &Program) -> Option<Analysis> {
                             .collect()
                     })
                     .collect(),
-                rule,
+                rule: name,
             })
             .collect(),
     })

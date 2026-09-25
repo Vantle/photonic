@@ -16,7 +16,7 @@ photonic_test(
     name = "sum.check",
     preserve = True,
     source = "Invoke.Binary.Sum.1.1.0",
-    targets = ["([Digit] 0).([Carry] 1)"],
+    target = ["([Digit] 0).([Carry] 1)"],
     deps = [":sum"],
 )
 

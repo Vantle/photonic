@@ -24,6 +24,10 @@ pub fn reject(error: &Failure) -> String {
     encode(Rejection { error })
 }
 
-pub fn encode(body: impl Serialize) -> String {
-    serde_json::to_string(&Envelope { version: 1, body }).unwrap()
+fn encode(body: impl Serialize) -> String {
+    serde_json::to_string(&Envelope {
+        version: crate::VERSION,
+        body,
+    })
+    .unwrap()
 }

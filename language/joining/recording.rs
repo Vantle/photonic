@@ -6,6 +6,8 @@ use crate::index::Index;
 use std::sync::Arc;
 use std::task::Poll;
 
+const THRESHOLD: usize = 256;
+
 pub(super) struct Recording {
     pub trace: Arc<Trace>,
     publication: Option<Arc<Trace>>,
@@ -21,7 +23,7 @@ impl Recording {
             publication: None,
             playback: Playback::default(),
             writable: true,
-            threshold: 256,
+            threshold: THRESHOLD,
         }
     }
 
@@ -31,7 +33,7 @@ impl Recording {
             publication: None,
             playback: Playback::default(),
             writable: false,
-            threshold: 256,
+            threshold: THRESHOLD,
         }
     }
 

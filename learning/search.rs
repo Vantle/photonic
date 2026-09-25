@@ -2,11 +2,9 @@ use crate::edit::Action;
 use crate::objective::Evaluation;
 use code::program::Program;
 use random::Generator;
-use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Setting {
     pub simulation: usize,
     pub considered: usize,
@@ -131,13 +129,13 @@ fn softmax(logit: &[f64]) -> Vec<f64> {
     exponent.into_iter().map(|value| value / total).collect()
 }
 
-fn argmax(score: impl Iterator<Item = (usize, f64)>) -> Option<usize> {
+fn best(score: impl Iterator<Item = (usize, f64)>) -> Option<usize> {
     score
         .filter(|(_, value)| value.is_finite())
         .fold(
             None,
-            |best: Option<(usize, f64)>, (index, value)| match best {
-                Some((_, known)) if known >= value => best,
+            |leader: Option<(usize, f64)>, (index, value)| match leader {
+                Some((_, known)) if known >= value => leader,
                 _ => Some((index, value)),
             },
         )
@@ -249,12 +247,12 @@ impl Tree {
         let score = |index: usize| {
             self.gumbel[index] + f64::from(root.logit[index] - maximum) + quality[index]
         };
-        argmax(
+        best(
             (0..root.action.len())
                 .filter(|&index| admit(root.visit[index]))
                 .map(|index| (index, score(index))),
         )
-        .or_else(|| argmax((0..root.action.len()).map(|index| (index, score(index)))))
+        .or_else(|| best((0..root.action.len()).map(|index| (index, score(index)))))
         .unwrap_or(0)
     }
 
@@ -270,7 +268,7 @@ impl Tree {
                 .collect::<Vec<_>>(),
         );
         let total = f64::from(node.visit.iter().sum::<u32>());
-        argmax(probability.iter().zip(&node.visit).enumerate().map(
+        best(probability.iter().zip(&node.visit).enumerate().map(
             |(index, (probability, &visit))| {
                 (index, probability - f64::from(visit) / (1.0 + total))
             },
@@ -399,9 +397,5 @@ impl Tree {
 
     pub fn successor(&self, action: usize) -> Option<&Position> {
         self.node[0].child[action].map(|child| &self.node[child].position)
-    }
-
-    pub fn value(&self) -> f64 {
-        self.node[0].value()
     }
 }

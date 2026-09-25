@@ -56,7 +56,7 @@ impl Attention {
         self.width / self.head
     }
 
-    fn columns(&self, part: usize, head: usize) -> Range<usize> {
+    fn column(&self, part: usize, head: usize) -> Range<usize> {
         let start = part * self.width + head * self.dimension();
         start..start + self.dimension()
     }
@@ -73,13 +73,13 @@ impl Attention {
         let mut weight = Vec::with_capacity(boundary.len() * self.head);
         for range in boundary {
             for head in 0..self.head {
-                let query = view(&mixed, range.clone(), self.columns(0, head));
-                let key = view(&mixed, range.clone(), self.columns(1, head));
-                let value = view(&mixed, range.clone(), self.columns(2, head));
+                let query = view(&mixed, range.clone(), self.column(0, head));
+                let key = view(&mixed, range.clone(), self.column(1, head));
+                let value = view(&mixed, range.clone(), self.column(2, head));
                 let mut score = product(&query, &key.t());
                 score *= scale;
                 softmax(&mut score);
-                let mut target = edit(&mut context, range.clone(), self.columns(0, head));
+                let mut target = edit(&mut context, range.clone(), self.column(0, head));
                 general_mat_mul(1.0, &score, &value, 0.0, &mut target);
                 weight.push(score);
             }
@@ -113,16 +113,16 @@ impl Attention {
         for range in boundary {
             for head in 0..self.head {
                 let probability = weight.next().expect("one weight per sample head");
-                let query = view(&trace.mixed, range.clone(), self.columns(0, head));
-                let key = view(&trace.mixed, range.clone(), self.columns(1, head));
-                let value = view(&trace.mixed, range.clone(), self.columns(2, head));
-                let outer = view(&context, range.clone(), self.columns(0, head));
+                let query = view(&trace.mixed, range.clone(), self.column(0, head));
+                let key = view(&trace.mixed, range.clone(), self.column(1, head));
+                let value = view(&trace.mixed, range.clone(), self.column(2, head));
+                let outer = view(&context, range.clone(), self.column(0, head));
                 let mut score = product(&outer, &value.t());
                 for (mut row, probability) in score.rows_mut().into_iter().zip(probability.rows()) {
                     let inner = row
                         .iter()
                         .zip(probability.iter())
-                        .map(|(a, b)| a * b)
+                        .map(|(one, other)| one * other)
                         .sum::<f32>();
                     row.zip_mut_with(&probability, |delta, &probability| {
                         *delta = probability * (*delta - inner) * scale;
@@ -133,21 +133,21 @@ impl Attention {
                     &probability.t(),
                     &outer,
                     1.0,
-                    &mut edit(&mut mixed, range.clone(), self.columns(2, head)),
+                    &mut edit(&mut mixed, range.clone(), self.column(2, head)),
                 );
                 general_mat_mul(
                     1.0,
                     &score,
                     &key,
                     1.0,
-                    &mut edit(&mut mixed, range.clone(), self.columns(0, head)),
+                    &mut edit(&mut mixed, range.clone(), self.column(0, head)),
                 );
                 general_mat_mul(
                     1.0,
                     &score.t(),
                     &query,
                     1.0,
-                    &mut edit(&mut mixed, range.clone(), self.columns(1, head)),
+                    &mut edit(&mut mixed, range.clone(), self.column(1, head)),
                 );
             }
         }

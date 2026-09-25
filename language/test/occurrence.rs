@@ -215,10 +215,9 @@ fn consumption() {
             scope: &[],
             source: &source,
             frame: 0,
-            owner: Some(0),
+            owner: crate::application::Owner::Frame(0),
             rule: &rule,
             binding: &binding,
-            closure: None,
         });
         let layout = crate::layout::Layout::new(&source);
         let direct = crate::evaluation::apply(crate::evaluation::Request {
@@ -299,14 +298,13 @@ fn import() {
         scope: &[],
         source: &source,
         frame: 0,
-        owner: None,
-        rule: &rule,
-        binding: &binding,
-        closure: Some(crate::flow::Closure {
+        owner: crate::application::Owner::Capture(crate::flow::Closure {
             state: &endpoint,
             flow: &flow,
             capture: 2,
         }),
+        rule: &rule,
+        binding: &binding,
     });
     assert_eq!(result.state.frame.len(), 3);
     assert_eq!(result.state.frame[2].particle.len(), 1);
@@ -573,10 +571,9 @@ fn remainder() {
         source: &source,
         scope: &[],
         frame: 0,
-        owner: Some(0),
+        owner: crate::application::Owner::Frame(0),
         rule: &rule,
         binding: &binding,
-        closure: None,
     });
     assert_eq!(result.state.world[0].particle, vec![token(31, 0)]);
     assert_eq!(

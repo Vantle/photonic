@@ -1,7 +1,7 @@
 (() => {
     'use strict';
     const book = globalThis.book ??= {};
-    const { element, vector, tally } = book.render;
+    const { element, vector, tally, count } = book.render;
     let serial = 0;
 
     const model = execution => {
@@ -20,7 +20,7 @@
             return previous;
         };
         const tree = [search(value => !value.deduction.length), search(() => true)];
-        return { ...execution, definition: book.render.catalog(execution.definition), outgoing, tree };
+        return { ...execution, outgoing, tree };
     };
 
     const route = (data, target) => {
@@ -103,7 +103,7 @@
         const scroll = element('div', 'graph');
         scroll.tabIndex = 0;
         scroll.setAttribute('role', 'group');
-        scroll.setAttribute('aria-label', `Execution graph with ${node.length} configurations and ${event.length} events`);
+        scroll.setAttribute('aria-label', `Execution graph with ${count(node.length, 'configuration')} and ${count(event.length, 'event')}`);
         const sizer = element('div');
         const canvas = element('div', 'canvas');
         const drawing = vector('svg', { 'aria-hidden': 'true' });
@@ -188,14 +188,14 @@
             }
             return low;
         };
-        const clear = (control, from, to) => Array.from({ length: 33 }, (_, step) => {
-            const t = step / 32;
-            const s = 1 - t;
-            return [0, 1].map(axis => s * s * s * control[0][axis] + 3 * s * s * t * control[1][axis] + 3 * s * t * t * control[2][axis] + t * t * t * control[3][axis]);
-        }).every(([x, y]) => {
-            const index = locate(x);
+        const sample = (control, ratio) => {
+            const rest = 1 - ratio;
+            return [0, 1].map(axis => rest ** 3 * control[0][axis] + 3 * rest ** 2 * ratio * control[1][axis] + 3 * rest * ratio ** 2 * control[2][axis] + ratio ** 3 * control[3][axis]);
+        };
+        const unobstructed = (control, from, to) => Array.from({ length: 33 }, (_, step) => sample(control, step / 32)).every(([across, down]) => {
+            const index = locate(across);
             if (index <= from || index >= to) return true;
-            return stack[index].every(box => x < box.x - 8 || x > box.x + box.width + 8 || y < box.y - 8 || y > box.y + box.height + 8);
+            return stack[index].every(box => across < box.x - 8 || across > box.x + box.width + 8 || down < box.y - 8 || down > box.y + box.height + 8);
         });
         const forward = (from, to, exit, offset) => {
             const entry = [to.x - 2, to.y + to.height / 2 + offset];
@@ -204,7 +204,7 @@
             const bend = Math.max(28, (inlet - outlet) / 2);
             const direct = [[outlet, exit[1]], [outlet + bend, exit[1]], [inlet - bend, entry[1]], [inlet, entry[1]]];
             const path = [];
-            if (!clear(direct, from.column, to.column)) {
+            if (!unobstructed(direct, from.column, to.column)) {
                 const obstacle = stack.slice(from.column + 1, to.column).flat();
                 const above = Math.min(...obstacle.map(box => box.y)) - 18 - Math.abs(offset);
                 const below = Math.max(...obstacle.map(box => box.y + box.height)) + 18 + Math.abs(offset);
@@ -373,9 +373,8 @@
             lit.forEach(value => activate(value, true));
             const leaving = data.outgoing.get(state).filter(value => !filter || filter.event.has(value.id));
             const heading = element('p');
-            const count = leaving.length === 1 ? '1 event leaves' : `${leaving.length} events leave`;
             heading.append(element('b', undefined, `s${state}`), leaving.length
-                ? ` · ${count} this configuration`
+                ? ` · ${count(leaving.length, 'event')} ${leaving.length === 1 ? 'leaves' : 'leave'} this configuration`
                 : data.closed ? ' · no rule applies here' : ' · no events recorded before the budget ran out');
             departure.replaceChildren(heading);
             leaving.forEach(value => {

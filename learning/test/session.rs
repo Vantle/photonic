@@ -10,7 +10,10 @@ use std::time::Duration;
 fn session() {
     let path = std::env::temp_dir().join(format!("learning-session-{}", std::process::id()));
     let home = Home::open(path.clone()).unwrap();
-    let pool = vec![addition(2).conceal(2), boolean().remove(0).conceal(2)];
+    let pool = vec![
+        addition(2).conceal(2).unwrap(),
+        boolean().remove(0).conceal(2).unwrap(),
+    ];
     let objective = crate::objective::Setting::default();
     let (problem, failure) = prepare(&pool, &objective);
     assert!(failure.is_empty());

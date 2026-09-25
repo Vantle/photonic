@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="The Photonic webbook: the rule language, its runtime, standard library and proofs, with every example executed by the Rust runtime.">
 <meta name="color-scheme" content="light dark">
+<script>globalThis.book = { storage: { theme: 'photonic-book-theme' } }; try { const choice = localStorage.getItem(book.storage.theme); if (choice === 'light' || choice === 'dark') document.documentElement.dataset.theme = choice; } catch {}</script>
 <title>Photonic Webbook</title>
 <link rel="icon" href="book/icon.svg">
 <link rel="stylesheet" href="book/book.css">
@@ -13,6 +14,7 @@
 <script defer src="book/render.js"></script>
 <script defer src="book/engine.js"></script>
 <script defer src="book/editor.js"></script>
+<script defer src="book/run.js"></script>
 <script defer src="book/graph.js"></script>
 <script defer src="book/pattern.js"></script>
 <script defer src="book/hypergraph.js"></script>
@@ -127,7 +129,7 @@
 <p class="lead">Photonic has one kind of data: occurrences of atoms, grouped into particles, living in coherences.</p>
 <p>An <strong>atom</strong> is any run of characters other than <code>( ) [ ] . ,</code> and whitespace. <code>True</code>, <code>0</code>, <code>-&gt;</code>, <code>$x</code> and <code>人</code> are atoms. Atoms mean nothing by themselves; rules give them meaning.</p>
 <p>A dot joins occurrences into a <strong>particle</strong>, and only a dot joins. A particle is unordered and counts repeats: <code>A.B</code> and <code>B.A</code> are the same particle, and <code>A.A</code> holds two occurrences of <code>A</code>.</p>
-<p>A comma separates <strong>coherences</strong>, the independent places where particles live. <code>A.B, C</code> is two coherences. A space means nothing, so two things side by side need a dot or a comma between them. <code>()</code> is one empty coherence; an empty program has none.</p>
+<p>A comma separates <strong>coherences</strong>, the independent places where particles live. <code>A.B, C</code> is two coherences. A space means nothing, so two particles side by side need a dot or a comma between them. <code>()</code> is one empty coherence; an empty program has none.</p>
 <p>A <strong>configuration</strong> is everything that exists at one moment: its coherences and the rules that are live.</p>
 <div class="widget lens wide" data-lens='["A.B", "B.A", "A.A", "A.B, C", "()", "$x.-&gt;.人"]'></div>
 <p class="onward"><a href="#rule">Next: Rules consume and produce</a></p>
@@ -454,7 +456,7 @@ photonic_binary(
 photonic_test(
     name = "negation",
     source = "Invoke.Boolean.Not.True",
-    targets = ["False"],
+    target = ["False"],
     preserve = True,
     deps = ["//library/boolean:not"],
 )</pre>
@@ -464,24 +466,47 @@ photonic_test(
 <thead><tr><th>Test attribute</th><th>Meaning</th></tr></thead>
 <tbody>
 <tr><td><code>source</code>, <code>srcs</code>, <code>deps</code></td><td>The program: literal source, files and libraries.</td></tr>
-<tr><td><code>targets</code></td><td>Complete configurations. <code>"A, B"</code> is one target with two coherences; <code>["A", "B"]</code> is two targets.</td></tr>
+<tr><td><code>target</code></td><td>Complete configurations. <code>"A, B"</code> is one target with two coherences; <code>["A", "B"]</code> is two targets.</td></tr>
 <tr><td><code>preserve</code></td><td>Required. <code>True</code> adds every loaded root rule to each target.</td></tr>
 <tr><td><code>expect</code></td><td><code>"reached"</code>, the default, or <code>"unreachable"</code>.</td></tr>
 <tr><td><code>match</code></td><td><code>"all"</code>, the default: every target meets the expectation. <code>"any"</code>: at least one does.</td></tr>
 <tr><td><code>path</code></td><td><code>True</code> follows a direct path per target, which can only expect reached.</td></tr>
-<tr><td><code>steps</code>, <code>states</code>, <code>cells</code>, <code>frames</code>, <code>coherences</code>, <code>records</code></td><td>Budgets for work, configurations, occurrences, scopes, coherences and records.</td></tr>
+<tr><td><code>work</code>, <code>configuration</code>, <code>occurrence</code>, <code>scope</code>, <code>coherence</code>, <code>record</code></td><td>Budgets for work, configurations, occurrences, scopes, coherences and records.</td></tr>
 </tbody>
 </table>
 </div>
 <h3>Command line</h3>
-<pre class="listing">bazel run -c opt //command:photonic -- parse "$PWD/program/language/inference.wave"
-bazel run -c opt //command:photonic -- lower "$PWD/program/language/inference.wave"
-bazel run -c opt //command:photonic -- run "$PWD/program/language/inference.wave"
-bazel run -c opt //command:photonic -- prism "$PWD/program/language/inference.wave" --target "$PWD/target.json"</pre>
-<p><code>parse</code> prints the syntax tree, <code>lower</code> the program as JSON, <code>run</code> the explored configurations, and <code>prism</code> a verdict for a target in lowered JSON. <code>lower --context</code> copies a source's root rules into a target; <code>--library</code> loads a rules-only file; <code>--path</code> follows a direct path. <code>compare</code>, <code>symmetry</code> and <code>form</code> find programs, and parts of one program, that differ only in the names of their atoms, as <a href="#connection">chapter 16</a> shows. <code>bazel run</code> starts in its runfiles directory, so pass absolute paths.</p>
+<pre class="listing">bazel run -c opt //command:photonic -- parse program/language/inference.wave
+bazel run -c opt //command:photonic -- lower program/language/inference.wave
+bazel run -c opt //command:photonic -- run program/language/inference.wave
+bazel run -c opt //command:photonic -- prism program/language/inference.wave --target target.json</pre>
+<p><code>parse</code> prints the syntax tree, <code>lower</code> the program as JSON, <code>run</code> the explored configurations, and <code>prism</code> a verdict for a target in lowered JSON. <code>lower --context</code> copies a source's root rules into a target; <code>--library</code> loads a rules-only file; <code>--path</code> follows a direct path. Every command reads paths relative to where <code>bazel run</code> started.</p>
 <pre class="listing">bazel test -c opt //...
 bazel run -c opt //program/language:inference
 bazel test -c opt //program/language:conjunction.check</pre>
+<h3>Asking questions</h3>
+<pre class="listing">bazel run -c opt //command:photonic -- check program/language/conjunction.wave --reach False.Extra --exact --preserve
+bazel run -c opt //command:photonic -- explore program/language/conjunction.wave
+bazel run -c opt //command:photonic -- cause program/language/conjunction.wave s9
+bazel run -c opt //command:photonic -- mcp</pre>
+<p>Spectrum answers questions about a program and every configuration it reaches. Answers name things by handle: <code>r2</code> is a rule, <code>s9</code> a configuration, <code>e10</code> an event and <code>s9.o0</code> an occurrence. The first command claims that the conjunction reaches exactly <code>False.Extra</code> with its rules, and the third shows the two events that get there.</p>
+<div class="table">
+<table>
+<thead><tr><th>Command</th><th>Answer</th></tr></thead>
+<tbody>
+<tr><td><code>check</code></td><td>Diagnostics, then a verdict for each claim: <code>--reach</code>, <code>--avoid</code>, <code>--always</code>, <code>--inevitable</code> or <code>--outcome</code>.</td></tr>
+<tr><td><code>explore</code></td><td>Counts, end configurations and how often each rule fires.</td></tr>
+<tr><td><code>select</code></td><td>The configurations or events that match a pattern.</td></tr>
+<tr><td><code>inspect</code></td><td>A rule, configuration, coherence, occurrence, scope or event.</td></tr>
+<tr><td><code>cause</code></td><td>Why something is there: a path, a match and its deduction, or where an occurrence came from.</td></tr>
+<tr><td><code>miss</code></td><td>Why a target is not reached, or why a rule never fires.</td></tr>
+<tr><td><code>step</code></td><td>The events that can happen at a configuration.</td></tr>
+<tr><td><code>compare</code></td><td>The configurations and events one program reaches and another does not.</td></tr>
+<tr><td><code>shape</code></td><td>Programs grouped by shape, or one program's symmetries, as <a href="#connection">chapter 16</a> shows.</td></tr>
+</tbody>
+</table>
+</div>
+<p>A claim holds, fails or is unknown, and unknown means a budget stopped the search. <code>--json</code> prints each answer as data. <code>mcp</code> serves the same questions to agents over the Model Context Protocol, and the repository's <code>.mcp.json</code> starts it. <a href="document/spectrum.md">Spectrum</a> is the full contract.</p>
 <h3>This book</h3>
 <pre class="listing">bazel run -c opt //toolchain/browser:serve
 bazel run -c opt //book:record
@@ -645,17 +670,16 @@ bazel run -c opt //program/vector:sort</pre>
 <p class="eyebrow">Proof · 16</p>
 <h2>Connections between fields</h2>
 <p class="lead">An atom is a name and nothing more. Programs that differ only in their names are one program, and Photonic finds them even when they come from different fields.</p>
-<p>Rules compare atoms only for equality, so renaming the atoms of a program, one name for another, renames every configuration it reaches and every event between them. What a program means is the pattern its names form: its shape. <code>photonic compare</code> finds programs that share a shape, and the renaming between two of them is a dictionary from one vocabulary to the other. Hover a row of a dictionary to see its atom in every program.</p>
+<p>Rules compare atoms only for equality, so renaming the atoms of a program, one name for another, renames every configuration it reaches and every event between them. What a program means is the pattern its names form: its shape. <code>photonic shape</code> finds programs that share a shape, and the renaming between two of them is a dictionary from one vocabulary to the other. Hover a row of a dictionary to see its atom in every program.</p>
 <div class="widget connection wide" data-preset='[{"name": "Two elements", "shape": 1, "program": [{"field": "Arithmetic", "source": "[Add.0.0] 0,\n[Add.0.1] 1,\n[Add.1.1] 0"}, {"field": "Logic", "source": "[Xor.False.False] False,\n[Xor.False.True] True,\n[Xor.True.True] False"}, {"field": "Geometry", "source": "[Compose.Keep.Keep] Keep,\n[Compose.Keep.Flip] Flip,\n[Compose.Flip.Flip] Keep"}]}, {"name": "Four elements", "shape": 1, "program": [{"field": "Arithmetic", "source": "[Times.1.1] 1,\n[Times.1.3] 3,\n[Times.1.5] 5,\n[Times.1.7] 7,\n[Times.3.3] 1,\n[Times.5.5] 1,\n[Times.7.7] 1,\n[Times.3.5] 7,\n[Times.3.7] 5,\n[Times.5.7] 3"}, {"field": "Logic", "source": "[Toggle.Off.Off] Off,\n[Toggle.Off.First] First,\n[Toggle.Off.Second] Second,\n[Toggle.Off.Both] Both,\n[Toggle.First.First] Off,\n[Toggle.Second.Second] Off,\n[Toggle.Both.Both] Off,\n[Toggle.First.Second] Both,\n[Toggle.First.Both] Second,\n[Toggle.Second.Both] First"}, {"field": "Geometry", "source": "[Compose.Keep.Keep] Keep,\n[Compose.Keep.Across] Across,\n[Compose.Keep.Along] Along,\n[Compose.Keep.Turn] Turn,\n[Compose.Across.Across] Keep,\n[Compose.Along.Along] Keep,\n[Compose.Turn.Turn] Keep,\n[Compose.Across.Along] Turn,\n[Compose.Across.Turn] Along,\n[Compose.Along.Turn] Across"}]}, {"name": "Four turns", "shape": 2, "program": [{"field": "Arithmetic", "source": "[Add.0.0] 0,\n[Add.0.1] 1,\n[Add.0.2] 2,\n[Add.0.3] 3,\n[Add.1.1] 2,\n[Add.1.2] 3,\n[Add.1.3] 0,\n[Add.2.2] 0,\n[Add.2.3] 1,\n[Add.3.3] 2"}, {"field": "Geometry", "source": "[Compose.Keep.Keep] Keep,\n[Compose.Keep.Quarter] Quarter,\n[Compose.Keep.Half] Half,\n[Compose.Keep.Back] Back,\n[Compose.Quarter.Quarter] Half,\n[Compose.Quarter.Half] Back,\n[Compose.Quarter.Back] Keep,\n[Compose.Half.Half] Keep,\n[Compose.Half.Back] Quarter,\n[Compose.Back.Back] Half"}, {"field": "Logic", "source": "[Toggle.Off.Off] Off,\n[Toggle.Off.First] First,\n[Toggle.Off.Second] Second,\n[Toggle.Off.Both] Both,\n[Toggle.First.First] Off,\n[Toggle.Second.Second] Off,\n[Toggle.Both.Both] Off,\n[Toggle.First.Second] Both,\n[Toggle.First.Both] Second,\n[Toggle.Second.Both] First"}]}, {"name": "And and Or", "shape": 1, "program": [{"field": "Boolean.And", "file": "library/boolean/and.particle"}, {"field": "Boolean.Or", "file": "library/boolean/or.particle"}]}, {"name": "Meet and join", "shape": 1, "program": [{"field": "lattice.converse", "file": "theorem/lattice/converse.wave"}, {"field": "lattice.order", "file": "theorem/lattice/order.wave"}]}]'></div>
 <p>Adding modulo 2, exclusive or and turning a card over are one structure: <code>0</code>, <code>False</code> and <code>Keep</code> play one part, and <code>1</code>, <code>True</code> and <code>Flip</code> the other. Multiplying the odd numbers modulo 8, toggling two switches and the symmetries of a rectangle share another shape. The quarter turns of a square also have four elements, but they are counting modulo 4, and no dictionary joins them to the switches: renaming leaves the switches' shape unchanged in 6 ways and the turns' in 2, and renaming a program never changes that number.</p>
 <p>The renamings that leave a shape unchanged are its symmetries, and each gives another dictionary: any of <code>Across</code>, <code>Along</code> and <code>Turn</code> can stand for 3 modulo 8. Within one field, a dictionary shows a duality. <code>Boolean.Or</code> is <code>Boolean.And</code> with <code>True</code> and <code>False</code> exchanged, which is De Morgan's law. The lattice theorem that x ∨ y = y implies x ∧ y = x, with meet and join exchanged and x and y exchanged, is the theorem that x ∧ y = x implies x ∨ y = y.</p>
 <h3>How it works</h3>
 <p>Each program becomes a graph in which only the atoms are unnamed. Identical parts share one vertex, so only atoms can be interchangeable. Refinement splits the atoms by how they are used until no split remains, and a search tries each remaining choice. Whenever it finds a symmetry, it skips every choice that symmetry makes redundant, as the graph isomorphism programs nauty, bliss and Traces do. The least labeling it reaches names the atoms A, B, C and so on. That renamed program is the shape, and two programs are connected exactly when their shapes are equal. The dictionaries above come from the same search, run in this page.</p>
-<p>A connection can also run inside one program. A group of rules may recur under other names although the program as a whole has no symmetry: the addition library moves its digits through the same rules that borrowing uses, with <code>Add</code> renamed <code>Borrow</code>, and the sorting library merges upward and downward with the same 61 rules. <code>photonic symmetry</code> finds these local symmetries by growing groups one rule at a time from rules of equal shape and extending every copy the same way, as the frequent subgraph miners gSpan and GraMi grow patterns, and keeps the groups that account for the most of the program, as the compression heuristics of SUBDUE and Stitch do. The <a href="#workbench">workbench</a> and the <a href="lightbox.html">Lightbox</a> run the same analysis on every program and color the global symmetries, the local ones and the atoms that always travel together in both graphs.</p>
-<pre class="listing">bazel run -c opt //command:photonic -- compare "$PWD/library/boolean/and.particle" "$PWD/library/boolean/or.particle"
-bazel run -c opt //command:photonic -- symmetry "$PWD/library/ternary/compare.particle"
-bazel run -c opt //command:photonic -- form "$PWD/library/boolean/and.particle"</pre>
-<p><code>compare</code> groups programs by shape and prints each renaming, <code>symmetry</code> prints a program's symmetries, the rules they exchange and the groups of rules that repeat under other names, and <code>form</code> prints its shape. <code>--library</code> loads rules, <code>--target</code> adds a configuration every renaming must keep, and <code>--fix</code> keeps the name of an atom that something outside the program relies on. The <a href="document/symmetry.md">symmetry record</a> describes the algorithm and what it finds in this repository.</p>
+<p>A connection can also run inside one program. A group of rules may recur under other names although the program as a whole has no symmetry: the addition library moves its digits through the same rules that borrowing uses, with <code>Add</code> renamed <code>Borrow</code>, and the sorting library merges upward and downward with the same 61 rules. <code>photonic shape</code> finds these local symmetries by growing groups one rule at a time from rules of equal shape and extending every copy the same way, as the frequent subgraph miners gSpan and GraMi grow patterns, and keeps the groups that account for the most of the program, as the compression heuristics of SUBDUE and Stitch do. The <a href="#workbench">workbench</a> and the <a href="lightbox.html">Lightbox</a> run the same analysis on every program and color the global symmetries, the local ones and the atoms that always travel together in both graphs.</p>
+<pre class="listing">bazel run -c opt //command:photonic -- shape library/boolean/and.particle library/boolean/or.particle
+bazel run -c opt //command:photonic -- shape library/ternary/compare.particle</pre>
+<p>Given several programs, <code>shape</code> groups them by shape and prints each renaming. Given one, it prints the program's shape and canonical form, its symmetries, the rules they exchange, and the groups of rules that repeat under other names. <code>--library</code> loads rules, <code>--target</code> adds a configuration every renaming must keep, and <code>--fix</code> keeps the name of an atom that something outside the program relies on. The <a href="document/symmetry.md">symmetry record</a> describes the algorithm and what it finds in this repository.</p>
 <p class="onward"><a href="#runtime">Next: Inside the runtime</a></p>
 </section>
 
@@ -669,7 +693,7 @@ bazel run -c opt //command:photonic -- form "$PWD/library/boolean/and.particle"<
 <h2>Inside the runtime</h2>
 <p class="lead">The runtime is Rust. One transition kernel applies every rule; two searches decide which rules to apply.</p>
 <div class="pipeline wide">
-<div><strong>Parse</strong>An eight-line pest grammar builds a lossless syntax tree with byte spans.</div>
+<div><strong>Parse</strong>A nine-rule pest grammar builds a lossless syntax tree with byte spans.</div>
 <div><strong>Lower</strong>Shorthand expands; particles, rules and scopes become a program.</div>
 <div><strong>Compile</strong>Atoms and rules are interned; rules with equal inputs share plans.</div>
 <div><strong>Match</strong>Indexes and incremental joins deliver every binding.</div>
@@ -706,6 +730,7 @@ bazel run -c opt //command:photonic -- form "$PWD/library/boolean/and.particle"<
 <tr><td><a href="frontend/">frontend</a></td><td>Grammar, parsing and lowering</td></tr>
 <tr><td><a href="language/">language</a></td><td>Execution, exploration, canonical states and Prism</td></tr>
 <tr><td><a href="command/">command</a></td><td>The <code>photonic</code> command</td></tr>
+<tr><td><a href="spectrum/">spectrum</a></td><td>Spectrum, the analyzer and debugger behind the command's questions and its MCP server, documented in <a href="document/spectrum.md">document/spectrum.md</a></td></tr>
 <tr><td><a href="library/">library</a></td><td>The standard library, in Photonic</td></tr>
 <tr><td><a href="program/">program</a></td><td>Runnable programs by subject, with their tests</td></tr>
 <tr><td><a href="theorem/">theorem</a></td><td>Theorems proved by execution</td></tr>

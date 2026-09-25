@@ -1,9 +1,9 @@
 mod argument;
+mod search;
 
 use clap::Parser;
 use photonic::lowering::parse;
 use photonic::path::Search;
-use photonic::runtime::Limit;
 use std::time::Instant;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -43,16 +43,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         )?;
     }
     let mut search = Search::new(program, target);
-    search.run(
-        argument.step,
-        Limit {
-            state: 4096,
-            record: 1_000_000,
-            cell: 4096,
-            frame: 10,
-            world: 4,
-        },
-    );
+    search.run(argument.work, search::LIMIT);
     let report = search.report();
     println!(
         "{:?}: {} events; {} work steps; {} ms",

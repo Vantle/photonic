@@ -1,19 +1,24 @@
 mod analysis;
+mod catalog;
+mod configuration;
+mod execution;
 mod expression;
 mod failure;
+mod limit;
 mod path;
 mod request;
 mod response;
 mod shape;
 
+use execution::Execution;
 use failure::{Code, Failure};
 use photonic::prism::{Search, Verdict};
-use photonic::runtime::Limit;
-use photonic::snapshot::{Event, Node, Snapshot, View};
 use photonic::source::Program;
-use request::Request;
+use request::{Request, Text};
 use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
+
+const VERSION: u32 = 2;
 
 #[derive(Serialize)]
 struct Lowering {
@@ -21,97 +26,32 @@ struct Lowering {
 }
 
 #[derive(Serialize)]
-struct Transition {
-    #[serde(flatten)]
-    event: Event,
-    deduction: Vec<usize>,
-}
-
-#[derive(Serialize)]
 struct Exploration {
-    execution: Snapshot<Vec<Node>, Vec<Transition>, Vec<View>>,
+    execution: Execution,
     verdict: Vec<Verdict>,
     #[serde(skip_serializing_if = "Option::is_none")]
     symmetry: Option<analysis::Analysis>,
 }
 
-const LIMIT: Limit = Limit {
-    state: 128,
-    cell: 128,
-    frame: 16,
-    world: 16,
-    record: 100000,
-};
-
-fn parse(source: &str) -> Result<Lowering, Failure> {
-    let program = photonic::lowering::parse(request::bound(source)?)
-        .map_err(|error| Failure::located(Code::Source, &error, source))?;
+fn lowering(input: &str) -> Result<Lowering, Failure> {
+    let text: Text = request::read(input)?;
+    let program = photonic::lowering::parse(&text.source)
+        .map_err(|error| Failure::located(Code::Source, &error, &text.source))?;
     Ok(Lowering { program })
 }
 
-fn mark(snapshot: Snapshot) -> Snapshot<Vec<Node>, Vec<Transition>, Vec<View>> {
-    let Snapshot {
-        definition,
-        closed,
-        record,
-        peak,
-        queued,
-        deferred,
-        work,
-        limit,
-        state,
-        event,
-        view,
-    } = snapshot;
-    let deduction = |evidence: &[usize]| {
-        if evidence
-            .iter()
-            .any(|&index| view[index].source == view[index].target)
-        {
-            return Vec::new();
-        }
-        let mut chain = Vec::new();
-        let mut cursor = view[evidence[0]].origin;
-        while let Some(origin) = cursor {
-            chain.push(origin.event);
-            cursor = view[origin.view].origin;
-        }
-        chain.reverse();
-        chain
-    };
-    Snapshot {
-        definition,
-        closed,
-        record,
-        peak,
-        queued,
-        deferred,
-        work,
-        limit,
-        state,
-        event: event
-            .into_iter()
-            .map(|event| Transition {
-                deduction: deduction(&event.evidence),
-                event,
-            })
-            .collect(),
-        view: Vec::new(),
-    }
-}
-
 fn exploration(input: &str) -> Result<Exploration, Failure> {
-    let request = Request::read(input)?;
-    let program = request.program()?;
-    let target = request.target(&program)?;
+    let query: Request = request::read(input)?;
+    let program = query.program()?;
+    let target = query.target(&program)?;
     let symmetry = analysis::analysis(&program);
     let mut search = Search::new(program, Program::default());
-    search.run(20000, Some(LIMIT));
-    let execution = mark(search.snapshot());
+    search.run(limit::EXPLORATION.work, Some(limit::EXPLORATION.bound));
+    let execution = Execution::try_from(search.snapshot())?;
     let verdict = target
         .into_iter()
-        .map(|target| {
-            search.target(target);
+        .map(|goal| {
+            search.target(goal);
             search.verdict()
         })
         .collect();
@@ -123,8 +63,8 @@ fn exploration(input: &str) -> Result<Exploration, Failure> {
 }
 
 #[wasm_bindgen]
-pub fn lower(source: &str) -> String {
-    response::respond(parse(source))
+pub fn lower(input: &str) -> String {
+    response::respond(lowering(input))
 }
 
 #[wasm_bindgen]
@@ -134,5 +74,5 @@ pub fn explore(input: &str) -> String {
 
 #[wasm_bindgen]
 pub fn compare(input: &str) -> String {
-    response::respond(shape::comparison(input))
+    response::respond(shape::partition(input))
 }

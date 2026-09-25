@@ -1,3 +1,0 @@
-[Function.Natural.Borrow] (Function.Natural.Column, Column.Mode.([Operation] Borrow), Borrow.([Await] ())),
-[Return.Natural.Column.Positive, Borrow.([Await] ())] Return.Natural.Borrow.Positive,
-[Return.Natural.Column.Negative, Borrow.([Await] ())] Return.Natural.Borrow.Negative

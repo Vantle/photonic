@@ -31,8 +31,8 @@ fn sharing() {
     let program = program(vec![rule(&[&[A]], &[&[B], &[C]])]);
     let exploration = explore(&program, state(&[&[A, X]]), &Limit::default(), |_| false);
     assert_eq!(exploration.terminal.len(), 1);
-    let shared = exploration.terminal[0].key(64);
-    let independent = state(&[&[B, X], &[C, X]]).key(64);
+    let shared = exploration.terminal[0].key(64).unwrap();
+    let independent = state(&[&[B, X], &[C, X]]).key(64).unwrap();
     assert_ne!(shared, independent);
     assert_eq!(
         exploration.terminal[0].configuration(),

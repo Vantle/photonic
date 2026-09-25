@@ -23,7 +23,7 @@ fn particle(particle: &Particle, vocabulary: &Vocabulary) -> Vec<source::Value> 
         .collect()
 }
 
-pub fn definition(rule: &Rule, vocabulary: &Vocabulary) -> Definition {
+pub(crate) fn definition(rule: &Rule, vocabulary: &Vocabulary) -> Definition {
     Definition {
         name: String::new(),
         input: rule
@@ -46,7 +46,7 @@ pub fn definition(rule: &Rule, vocabulary: &Vocabulary) -> Definition {
     }
 }
 
-pub fn rule(program: &Program, vocabulary: &Vocabulary) -> Vec<Definition> {
+fn rule(program: &Program, vocabulary: &Vocabulary) -> Vec<Definition> {
     program
         .rule()
         .iter()

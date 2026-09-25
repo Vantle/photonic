@@ -38,7 +38,6 @@ fn task(name: &str, reference: &str, example: &[(String, String)]) -> Task {
     Task {
         name: name.to_owned(),
         vocabulary,
-        hidden: 0,
         example,
         holdout: Vec::new(),
         reference: Some(reference),

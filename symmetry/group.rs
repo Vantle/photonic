@@ -1,5 +1,5 @@
-use crate::forest::Forest;
 use code::atom::Atom;
+use code::forest::Forest;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
@@ -14,25 +14,25 @@ pub struct Size {
 }
 
 impl Permutation {
-    pub fn new(pair: impl IntoIterator<Item = (Atom, Atom)>) -> Self {
+    pub(crate) fn new(pair: impl IntoIterator<Item = (Atom, Atom)>) -> Self {
         Self {
             map: pair.into_iter().filter(|(from, to)| from != to).collect(),
         }
     }
 
-    pub fn image(&self, atom: Atom) -> Atom {
+    pub(crate) fn image(&self, atom: Atom) -> Atom {
         self.map.get(&atom).copied().unwrap_or(atom)
     }
 
-    pub fn identity(&self) -> bool {
+    pub(crate) fn identity(&self) -> bool {
         self.map.is_empty()
     }
 
-    pub fn support(&self) -> usize {
+    pub(crate) fn support(&self) -> usize {
         self.map.len()
     }
 
-    pub fn compose(&self, other: &Self) -> Self {
+    pub(crate) fn compose(&self, other: &Self) -> Self {
         let atom = self
             .map
             .keys()
@@ -63,7 +63,7 @@ impl Permutation {
         result
     }
 
-    pub fn rename(&self, map: impl Fn(Atom) -> Atom) -> Self {
+    pub(crate) fn rename(&self, map: impl Fn(Atom) -> Atom) -> Self {
         Self::new(self.map.iter().map(|(&from, &to)| (map(from), map(to))))
     }
 }
@@ -141,7 +141,7 @@ pub fn element(generator: &[Permutation], limit: usize) -> Option<Vec<Permutatio
     Some(element)
 }
 
-pub fn orbit<Item: Clone + Ord>(
+pub(crate) fn orbit<Item: Clone + Ord>(
     item: &[Item],
     generator: &[Permutation],
     apply: impl Fn(&Item, &Permutation) -> Item,

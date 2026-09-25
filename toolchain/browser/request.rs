@@ -1,6 +1,8 @@
-use crate::failure::{Code, Failure};
+use crate::failure::{Code, Failure, Item};
 use photonic::source::Program;
 use serde::Deserialize;
+use serde::de::DeserializeOwned;
+use serde_json::{Map, Value};
 
 const SIZE: usize = 131072;
 const TARGET: usize = 16;
@@ -14,8 +16,13 @@ struct Library {
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
+pub struct Text {
+    pub source: String,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Request {
-    version: u32,
     source: String,
     #[serde(default)]
     library: Vec<Library>,
@@ -25,33 +32,29 @@ pub struct Request {
     preserve: bool,
 }
 
-pub fn bound(input: &str) -> Result<&str, Failure> {
+fn bound(input: &str) -> Result<&str, Failure> {
     if input.len() > SIZE {
-        return Err(Failure::new(Code::Size, "keep the request below 128 KiB"));
+        return Err(Failure::new(Code::Size, "Keep the request below 128 KiB."));
     }
     Ok(input)
 }
 
+pub fn read<Body: DeserializeOwned>(input: &str) -> Result<Body, Failure> {
+    let mut body: Map<String, Value> =
+        serde_json::from_str(bound(input)?).map_err(|error| Failure::new(Code::Request, error))?;
+    if body.remove("version") != Some(Value::from(crate::VERSION)) {
+        return Err(Failure::new(
+            Code::Version,
+            format!(
+                "Reload the page: this engine answers version {} requests.",
+                crate::VERSION
+            ),
+        ));
+    }
+    serde_json::from_value(Value::Object(body)).map_err(|error| Failure::new(Code::Request, error))
+}
+
 impl Request {
-    pub fn read(input: &str) -> Result<Self, Failure> {
-        let request: Self = serde_json::from_str(bound(input)?)
-            .map_err(|error| Failure::new(Code::Request, error))?;
-        if request.version != 1 {
-            return Err(Failure::new(Code::Version, "unsupported request version"));
-        }
-        if request.target.len() > TARGET {
-            return Err(Failure::new(
-                Code::Target,
-                "at most 16 target configurations are supported",
-            ));
-        }
-        Ok(request)
-    }
-
-    pub fn source(&self) -> &str {
-        &self.source
-    }
-
     pub fn program(&self) -> Result<Program, Failure> {
         let mut program = Program::default();
         for library in &self.library {
@@ -69,11 +72,19 @@ impl Request {
     }
 
     pub fn target(&self, program: &Program) -> Result<Vec<Program>, Failure> {
+        if self.target.len() > TARGET {
+            return Err(Failure::new(
+                Code::Target,
+                "Use at most 16 target configurations.",
+            ));
+        }
         self.target
             .iter()
-            .map(|source| {
-                let mut target = photonic::lowering::parse(source)
-                    .map_err(|error| Failure::located(Code::Target, &error, source))?;
+            .enumerate()
+            .map(|(index, source)| {
+                let mut target = photonic::lowering::parse(source).map_err(|error| {
+                    Failure::located(Code::Target, &error, source).within(Item::Target(index))
+                })?;
                 if self.preserve {
                     target.preserve(program);
                 }

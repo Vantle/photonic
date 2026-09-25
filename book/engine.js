@@ -1,6 +1,8 @@
 (() => {
     'use strict';
     const book = globalThis.book ??= {};
+    const version = 2;
+    const stale = 'This page and its engine come from different versions of the book. Reload the page.';
     const served = /^https?:$/.test(location.protocol);
     const listener = new Set();
     let state = served ? 'unknown' : 'recorded';
@@ -13,59 +15,98 @@
 
     const open = () => {
         let worker;
+        let flight;
         let serial = 0;
         let watchdog;
         const pending = new Map();
-        const arm = () => {
-            clearTimeout(watchdog);
-            const [head] = pending.values();
-            if (head) watchdog = setTimeout(() => halt(`Stopped after ${head.timeout / 1000} seconds without a result.`), head.timeout);
+        const dispatch = () => {
+            if (flight !== undefined) return;
+            const [number] = pending.keys();
+            if (number === undefined) return;
+            const entry = pending.get(number);
+            flight = number;
+            worker ??= start();
+            worker.postMessage({ serial: number, kind: entry.kind, request: entry.request });
+            watchdog = setTimeout(() => halt(number, `Stopped after ${entry.timeout / 1000} seconds without a result.`), entry.timeout);
         };
-        const halt = message => {
+        const land = () => {
+            clearTimeout(watchdog);
+            const entry = pending.get(flight);
+            pending.delete(flight);
+            flight = undefined;
+            return entry;
+        };
+        const abandon = message => {
             clearTimeout(watchdog);
             worker?.terminate();
             worker = undefined;
+            flight = undefined;
             const waiting = [...pending.values()];
             pending.clear();
             waiting.forEach(({ reject }) => reject(new Error(message)));
         };
+        const halt = (number, message) => {
+            if (number !== flight) return;
+            const { reject } = land();
+            worker.terminate();
+            worker = undefined;
+            dispatch();
+            reject(new Error(message));
+        };
+        const withdraw = number => {
+            if (number === flight) {
+                halt(number, 'Stopped.');
+                return;
+            }
+            const entry = pending.get(number);
+            if (!entry) return;
+            pending.delete(number);
+            entry.reject(new Error('Stopped.'));
+        };
         const start = () => {
-            worker = new Worker('book/worker.js', { type: 'module' });
-            worker.onmessage = ({ data }) => {
-                const waiting = pending.get(data.serial);
-                if (!waiting) return;
-                if (data.error?.code === 'engine') {
-                    halt(`The WebAssembly engine did not start: ${data.error.message}`);
+            const current = new Worker('book/worker.js', { type: 'module' });
+            current.onmessage = ({ data }) => {
+                if (current !== worker || data.serial !== flight) return;
+                if (data.failure?.code === 'engine') {
+                    abandon(`The WebAssembly engine did not start: ${data.failure.message}`);
                     announce('recorded');
                     return;
                 }
-                if (data.error?.code === 'crash') {
-                    halt(`The engine stopped with ${data.error.message}, usually because the program ran out of memory. The next run starts a fresh engine.`);
+                if (data.failure?.code === 'crash') {
+                    halt(flight, `The engine stopped with ${data.failure.message}, usually because the program ran out of memory. The next run starts a fresh engine.`);
                     return;
                 }
-                pending.delete(data.serial);
-                arm();
+                if (!data.failure && data.reply?.version !== version) {
+                    abandon(stale);
+                    announce('stale');
+                    return;
+                }
+                const { resolve, reject } = land();
+                dispatch();
                 announce('live');
-                if (data.error) waiting.reject(Object.assign(new Error(data.error.message), { detail: data.error }));
-                else waiting.resolve(data);
+                if (data.failure) reject(new Error(data.failure.message));
+                else if (data.reply.error) reject(Object.assign(new Error(data.reply.error.message), { detail: data.reply.error }));
+                else resolve(data.reply);
             };
-            worker.onerror = event => {
+            current.onerror = event => {
                 event.preventDefault();
-                halt('The WebAssembly engine did not load. Serve the book with bazel run -c opt //toolchain/browser:serve.');
+                if (current !== worker) return;
+                abandon('The WebAssembly engine did not load. Serve the book with bazel run -c opt //toolchain/browser:serve.');
                 announce('recorded');
             };
+            return current;
         };
-        const send = (message, timeout = 20000) => {
+        const send = (kind, body, { timeout = 20000, signal } = {}) => {
             if (!served) return Promise.reject(new Error('Live execution needs the local server: bazel run -c opt //toolchain/browser:serve'));
-            if (!worker) start();
+            if (signal?.aborted) return Promise.reject(new Error('Stopped.'));
             const number = ++serial;
             return new Promise((resolve, reject) => {
-                pending.set(number, { resolve, reject, timeout });
-                if (pending.size === 1) arm();
-                worker.postMessage({ ...message, serial: number });
+                pending.set(number, { kind, request: { version, ...body }, timeout, resolve, reject });
+                signal?.addEventListener('abort', () => withdraw(number), { once: true });
+                dispatch();
             });
         };
-        return { send, stop: () => halt('Stopped.') };
+        return { send };
     };
 
     const watch = callback => {
@@ -74,10 +115,9 @@
     };
 
     let shared;
-    const send = (message, timeout) => (shared ??= open()).send(message, timeout);
+    const send = (kind, body, option) => (shared ??= open()).send(kind, body, option);
 
-    const request = (setting, source, target = setting.target) => ({
-        version: 1,
+    const request = (setting, source, target) => ({
         source,
         library: setting.library.map(name => {
             const text = book.record?.library?.[name];
@@ -88,10 +128,12 @@
         preserve: setting.preserve,
     });
 
-    const explore = async (setting, source, target) => send({ kind: 'explore', request: request(setting, source, target) });
+    const explore = async (setting, source, target, signal) => send('explore', request(setting, source, target), { signal });
 
     if (served) {
-        const probe = () => send({ kind: 'lower', source: 'A' }, 30000).catch(() => announce('recorded'));
+        const probe = () => send('lower', { source: 'A' }, { timeout: 30000 }).catch(() => {
+            if (state === 'unknown') announce('recorded');
+        });
         if ('requestIdleCallback' in globalThis) requestIdleCallback(probe, { timeout: 3000 });
         else setTimeout(probe, 1200);
     }

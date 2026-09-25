@@ -1,5 +1,5 @@
 use crate::corpus::{addition, boolean, maximum, sort};
-use crate::objective::{Outcome, Setting, Size, evaluate, potential};
+use crate::objective::{Outcome, Setting, Size, TOLERANCE, evaluate, potential};
 use crate::task::Example;
 use code::atom::Atom;
 use code::observation::Observation;
@@ -32,7 +32,7 @@ fn agreement() {
     let setting = Setting::default();
     let task = boolean().into_iter().nth(1).unwrap();
     for task in [sort(2, 3), sort(3, 2), maximum(3, 3), addition(2), task] {
-        let task = task.conceal(1);
+        let task = task.conceal(1).unwrap();
         let silent = code::atom::Atom((task.vocabulary.len() - 1) as u16);
         for program in [task.reference.clone().unwrap(), Program::default()] {
             let flat = evaluate(&program, &task.example, &task.vocabulary, &setting);
@@ -68,7 +68,7 @@ fn ordering() {
     assert!(empty.correctness > 0.0 && empty.correctness < 1.0);
     let baseline = reference.cost;
     assert!(potential(&reference, baseline) > potential(&empty, baseline));
-    assert!((potential(&reference, baseline) - 2.0).abs() < 1e-9);
+    assert!((potential(&reference, baseline) - 2.0).abs() < TOLERANCE);
     assert!(reference.time > 0.0);
     assert_eq!(Size::new(&Program::default()).total(), 0);
 }
@@ -106,4 +106,68 @@ fn failure() {
     let (program, example, vocabulary) = single("[A] (B, C)", "A.X", "B.X, C.X");
     let result = evaluate(&program, &[example], &vocabulary, &setting);
     assert!(matches!(result.outcome[0], Outcome::Different { .. }));
+}
+
+#[test]
+fn exhaustion() {
+    let task = addition(2);
+    let setting = Setting {
+        budget: 1,
+        ..Setting::default()
+    };
+    let result = evaluate(
+        task.reference.as_ref().unwrap(),
+        &task.example,
+        &task.vocabulary,
+        &setting,
+    );
+    assert!(result.correct && !result.verified);
+}
+
+#[test]
+fn spent() {
+    let (program, example, vocabulary) = single("[A] B, [A] C", "A", "B");
+    let setting = Setting {
+        budget: 1,
+        sample: 16,
+        ..Setting::default()
+    };
+    let result = evaluate(&program, &[example.clone(), example], &vocabulary, &setting);
+    assert!(matches!(result.outcome[0], Outcome::Choice { .. }));
+    assert!(matches!(
+        result.outcome[1],
+        Outcome::Exact {
+            verified: false,
+            ..
+        }
+    ));
+}
+
+#[test]
+fn schedule() {
+    let bit = 8;
+    let program = (0..bit)
+        .map(|index| {
+            format!(
+                "[Carry.B{index}, B{index}.Zero] (B{index}.One, Carry.B0),\n[Carry.B{index}, B{index}.One] (B{index}.Zero, Carry.B{}),\n",
+                index + 1
+            )
+        })
+        .chain(std::iter::once(format!("[Carry.B{bit}]")))
+        .collect::<String>();
+    let input = std::iter::once("Carry.B0".to_owned())
+        .chain((0..bit).map(|index| {
+            let value = if index + 1 < bit { "One" } else { "Zero" };
+            format!("B{index}.{value}")
+        }))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let output = (0..bit)
+        .map(|index| format!("B{index}.Zero"))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let (program, example, vocabulary) = single(&program, &input, &output);
+    let result = evaluate(&program, &[example], &vocabulary, &Setting::default());
+    assert!(result.correct && result.verified);
+    assert!(result.span > 256.0);
 }

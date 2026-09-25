@@ -40,5 +40,5 @@ photonic_test(
     name = "addition.check",
     srcs = ["addition.wave"],
     preserve = True,
-    targets = ["2^0.2^1.2^2.2^4.2^6.2^9.2^10"],
+    target = ["2^0.2^1.2^2.2^4.2^6.2^9.2^10"],
 )

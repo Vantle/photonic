@@ -35,7 +35,7 @@ fn start(configuration: &Configuration) -> State {
 }
 
 fn reachable(program: &Flat, initial: State) -> Vec<State> {
-    let mut seen = HashSet::from([initial.key(256)]);
+    let mut seen = HashSet::from([initial.key(256).unwrap()]);
     let mut queue = vec![initial];
     let mut result = Vec::new();
     while let Some(state) = queue.pop() {
@@ -148,12 +148,12 @@ fn kernel(program: &Program, initial: &Configuration, known: &Vocabulary) {
     let expected = machine
         .terminal
         .iter()
-        .map(|state| state.observation().key(256))
+        .map(|state| state.observation().key(256).unwrap())
         .collect::<HashSet<_>>();
     let actual = runtime
         .terminal
         .iter()
-        .map(|observation| observation.key(256))
+        .map(|observation| observation.key(256).unwrap())
         .collect::<HashSet<_>>();
     assert_eq!(expected, actual, "{}", context());
 }

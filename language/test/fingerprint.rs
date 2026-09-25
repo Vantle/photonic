@@ -146,7 +146,7 @@ fn dependency() {
                 0 => frame.scope += 1,
                 1 => frame.particle.retain(|token| token.id % 2 == 1),
                 2 => frame.held[0].capture = Some((position + 5) % width),
-                3 => frame.lexical = (position > 0).then_some(position - 1),
+                3 => frame.lexical = (position > 0).then(|| position - 1),
                 4 => frame.particle = original.frame[position].particle.clone(),
                 _ => frame.held[0].value = Symbol::Atom(iteration),
             }

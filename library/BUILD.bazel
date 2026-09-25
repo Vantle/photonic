@@ -1,5 +1,10 @@
 load("@rules_rs//rs:rust_test.bzl", "rust_test")
 
+exports_files(
+    ["README.md"],
+    visibility = ["//spectrum:__pkg__"],
+)
+
 rust_test(
     name = "test",
     srcs = [
@@ -9,6 +14,7 @@ rust_test(
         "test/catalog.rs",
         "test/collection.rs",
         "test/composition.rs",
+        "test/expression.rs",
         "test/field.rs",
         "test/fixture.rs",
         "test/function.rs",

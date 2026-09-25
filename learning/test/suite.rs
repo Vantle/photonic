@@ -1,4 +1,5 @@
 mod archive;
+mod bar;
 mod corpus;
 mod curriculum;
 mod demonstration;
@@ -8,6 +9,9 @@ mod guide;
 mod home;
 mod import;
 mod objective;
+mod pool;
+mod renewal;
 mod search;
 mod session;
 mod solution;
+mod task;

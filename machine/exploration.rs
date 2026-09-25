@@ -51,7 +51,9 @@ pub fn successor(program: &Flat, state: &State, limit: &Limit) -> Option<Vec<(St
         if !fits(program, &next, limit) {
             return false;
         }
-        let identity = next.key(limit.individualization);
+        let Ok(identity) = next.key(limit.individualization) else {
+            return false;
+        };
         if known.insert(identity.clone()) {
             result.push((next, identity));
         }
@@ -74,8 +76,11 @@ pub fn explore(
         truncated: false,
     };
     let mut mark = vec![Mark::Open];
-    let mut index: HashMap<Key<Atom>, usize, Builder> = HashMap::default();
-    index.insert(initial.key(limit.individualization), 0);
+    let Ok(key) = initial.key(limit.individualization) else {
+        exploration.overflow = true;
+        return exploration;
+    };
+    let mut index: HashMap<Key<Atom>, usize, Builder> = HashMap::from_iter([(key, 0)]);
     let Some(first) = successor(program, &initial, limit) else {
         exploration.overflow = true;
         return exploration;

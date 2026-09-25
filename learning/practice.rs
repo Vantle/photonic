@@ -1,12 +1,11 @@
 use crate::argument::{Optimize, Train};
 use crate::output::line;
-use crate::setup::{open, pool, read, session, setting};
-use learning::archive::Archive;
-use learning::export::{source, verify};
+use crate::setup::{archive, open, pool, read, session, setting};
+use learning::export::{BUDGET, source, verify};
 use learning::home;
 use learning::import::import;
 use learning::objective;
-use learning::pool;
+use learning::pool::{self, SYNTHETIC};
 use miette::{IntoDiagnostic, miette};
 
 pub fn train(argument: Train) -> miette::Result<()> {
@@ -52,14 +51,17 @@ pub fn optimize(argument: Optimize) -> miette::Result<()> {
             objective::Size::new(reference).total()
         ));
     }
-    let existing = pool(&home, 48, 0, argument.session.seed, &setting.play.objective)?;
-    let pool = pool::admit(existing, task);
+    let existing = pool(
+        &home,
+        SYNTHETIC,
+        0,
+        argument.session.seed,
+        &setting.play.objective,
+    )?;
+    let pool = pool::admit(existing, task, &setting.play.objective).into_diagnostic()?;
     home.save(home::POOL, &pool).into_diagnostic()?;
     session(&home, &pool, std::slice::from_ref(&name), &setting)?;
-    let archive: Archive = home
-        .load(home::ARCHIVE)
-        .into_diagnostic()?
-        .unwrap_or_default();
+    let archive = archive(&home)?;
     let task = pool
         .iter()
         .find(|task| task.name == name)
@@ -75,7 +77,7 @@ pub fn optimize(argument: Optimize) -> miette::Result<()> {
                 task,
                 &record.program,
                 &setting.play.objective.thorough(),
-                2_000_000,
+                BUDGET,
             );
             line(&format!(
                 "verified by Photonic: kernel {}/{} examples, prism {}/{} expressible targets",

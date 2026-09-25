@@ -5,7 +5,6 @@ use crate::state::{Frame, State, Token, World};
 use serde::Serialize;
 use std::hint::black_box;
 use std::sync::Arc;
-use std::task::Poll;
 use std::time::Instant;
 
 #[derive(Serialize)]
@@ -39,7 +38,11 @@ pub fn run(width: usize, length: usize, productive: bool) -> Measurement {
         .into(),
     };
     let index = Index::new(Arc::new(state));
-    let input = Input::shared(&[vec![Symbol::Atom(0); width]], &mut Default::default());
+    let input = Input::shared(
+        &[vec![Symbol::Atom(0); width]],
+        |_| false,
+        &mut Default::default(),
+    );
     let context = input.context(0);
     let mut work = 0;
     let mut binding = 0;
@@ -51,12 +54,11 @@ pub fn run(width: usize, length: usize, productive: bool) -> Measurement {
         loop {
             work += 1;
             match black_box(search.step()) {
-                Poll::Ready(None) => break,
-                Poll::Ready(Some(token)) => {
+                None => break,
+                Some(token) => {
                     assert_eq!(token.len(), width);
                     binding += 1;
                 }
-                Poll::Pending => {}
             }
         }
     }

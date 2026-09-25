@@ -26,7 +26,7 @@ impl Generator {
         }
     }
 
-    pub fn integer(&mut self) -> u64 {
+    fn integer(&mut self) -> u64 {
         let result = self.state[0]
             .wrapping_add(self.state[3])
             .rotate_left(23)
@@ -39,10 +39,6 @@ impl Generator {
         self.state[2] ^= shifted;
         self.state[3] = self.state[3].rotate_left(45);
         result
-    }
-
-    pub fn split(&mut self) -> Self {
-        Self::new(self.integer())
     }
 
     pub fn uniform(&mut self) -> f64 {
@@ -71,31 +67,6 @@ impl Generator {
         for index in (1..value.len()).rev() {
             value.swap(index, self.below(index + 1));
         }
-    }
-
-    pub fn choose<'value, T>(&mut self, value: &'value [T]) -> Option<&'value T> {
-        if value.is_empty() {
-            return None;
-        }
-        value.get(self.below(value.len()))
-    }
-
-    pub fn weighted(&mut self, weight: &[f64]) -> Option<usize> {
-        let total = weight.iter().filter(|value| **value > 0.0).sum::<f64>();
-        if total <= 0.0 {
-            return None;
-        }
-        let mut remaining = self.uniform() * total;
-        for (index, value) in weight.iter().enumerate() {
-            if *value <= 0.0 {
-                continue;
-            }
-            if remaining < *value {
-                return Some(index);
-            }
-            remaining -= value;
-        }
-        weight.iter().rposition(|value| *value > 0.0)
     }
 }
 

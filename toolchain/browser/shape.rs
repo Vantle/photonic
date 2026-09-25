@@ -1,5 +1,5 @@
-use crate::failure::{Code, Failure};
-use crate::request::bound;
+use crate::failure::{Code, Failure, Item};
+use crate::request;
 use code::atom::Atom;
 use serde::{Deserialize, Serialize};
 use symmetry::comparison::{Class, compare};
@@ -9,18 +9,16 @@ use translation::lift;
 use translation::vocabulary::Vocabulary;
 
 const PROGRAM: usize = 4;
-const BUDGET: usize = 100_000;
 const ELEMENT: usize = 64;
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-struct Request {
-    version: u32,
+struct Comparison {
     program: Vec<String>,
 }
 
 #[derive(Serialize)]
-pub struct Comparison {
+pub struct Partition {
     shape: Vec<Shape>,
 }
 
@@ -41,15 +39,12 @@ struct Row {
     name: Vec<String>,
 }
 
-fn structure(
-    index: usize,
-    source: &str,
-    vocabulary: &mut Vocabulary,
-) -> Result<Structure, Failure> {
-    let program = photonic::lowering::parse(source)
-        .map_err(|error| Failure::located(Code::Source, &error, source).within(index))?;
+fn parse(index: usize, source: &str, vocabulary: &mut Vocabulary) -> Result<Structure, Failure> {
+    let program = photonic::lowering::parse(source).map_err(|error| {
+        Failure::located(Code::Source, &error, source).within(Item::Program(index))
+    })?;
     let (program, configuration) = lift::program(&program, vocabulary)
-        .map_err(|error| Failure::new(Code::Source, error).within(index))?;
+        .map_err(|error| Failure::from(error).within(Item::Program(index)))?;
     Ok(Structure {
         part: vec![Part {
             role: 0,
@@ -60,11 +55,11 @@ fn structure(
     })
 }
 
-fn shape(class: &Class, vocabulary: &Vocabulary) -> Shape {
-    let letter = Vocabulary::alphabet(class.atom.len());
+fn shape(class: &Class, vocabulary: &Vocabulary) -> Result<Shape, Failure> {
+    let letter = Vocabulary::alphabet(class.atom.len())?;
     let name = |atom: Atom| letter.name(atom).to_owned();
     let form = &class.form.part[0];
-    Shape {
+    Ok(Shape {
         member: class.member.clone(),
         atom: class
             .atom
@@ -105,38 +100,34 @@ fn shape(class: &Class, vocabulary: &Vocabulary) -> Shape {
                     .collect()
             })
             .collect(),
-    }
+    })
 }
 
-pub fn comparison(input: &str) -> Result<Comparison, Failure> {
-    let request: Request =
-        serde_json::from_str(bound(input)?).map_err(|error| Failure::new(Code::Request, error))?;
-    if request.version != 1 {
-        return Err(Failure::new(Code::Version, "unsupported request version"));
-    }
-    if request.program.is_empty() || request.program.len() > PROGRAM {
-        return Err(Failure::new(Code::Request, "compare one to four programs"));
+pub fn partition(input: &str) -> Result<Partition, Failure> {
+    let comparison: Comparison = request::read(input)?;
+    if comparison.program.is_empty() || comparison.program.len() > PROGRAM {
+        return Err(Failure::new(Code::Request, "Compare one to four programs."));
     }
     let mut vocabulary = Vocabulary::default();
-    let structure = request
+    let structure = comparison
         .program
         .iter()
         .enumerate()
-        .map(|(index, source)| self::structure(index, source, &mut vocabulary))
+        .map(|(index, source)| parse(index, source, &mut vocabulary))
         .collect::<Result<Vec<_>, _>>()?;
-    let class = compare(&structure, BUDGET).map_err(|exhausted| {
+    let class = compare(&structure, crate::limit::SYMMETRY).map_err(|exhausted| {
         Failure::new(
-            Code::Size,
+            Code::Budget,
             format!(
-                "the symmetry search stopped at depth {} after {} nodes",
+                "The symmetry search stopped at depth {} after {} nodes.",
                 exhausted.depth, exhausted.node
             ),
         )
     })?;
-    Ok(Comparison {
+    Ok(Partition {
         shape: class
             .iter()
-            .map(|class| shape(class, &vocabulary))
-            .collect(),
+            .map(|entry| shape(entry, &vocabulary))
+            .collect::<Result<_, _>>()?,
     })
 }

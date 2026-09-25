@@ -3,31 +3,46 @@ load("//theorem:defs.bzl", "theorem")
 theorem(
     name = "asymmetry",
     srcs = ["asymmetry.wave"],
-    deps = ["//theorem:cover"],
+    deps = [
+        "//theorem:case",
+        "//theorem:cover",
+    ],
 )
 
 theorem(
     name = "kernel",
     srcs = ["kernel.wave"],
-    deps = ["//theorem:cover"],
+    deps = [
+        "//theorem:case",
+        "//theorem:cover",
+    ],
 )
 
 theorem(
     name = "partition",
     srcs = ["partition.wave"],
-    deps = ["//theorem:cover"],
+    deps = [
+        "//theorem:case",
+        "//theorem:cover",
+    ],
 )
 
 theorem(
     name = "strict",
     srcs = ["strict.wave"],
-    deps = ["//theorem:cover"],
+    deps = [
+        "//theorem:case",
+        "//theorem:cover",
+    ],
 )
 
 theorem(
     name = "trichotomy",
     srcs = ["trichotomy.wave"],
-    deps = ["//theorem:cover"],
+    deps = [
+        "//theorem:case",
+        "//theorem:cover",
+    ],
 )
 
 filegroup(

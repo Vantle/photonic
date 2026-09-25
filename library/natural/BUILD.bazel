@@ -12,12 +12,6 @@ photonic_library(
 )
 
 photonic_library(
-    name = "borrow",
-    srcs = ["borrow.particle"],
-    deps = [":column"],
-)
-
-photonic_library(
     name = "column",
     srcs = ["column.particle"],
     visibility = ["//theorem/natural:__pkg__"],
@@ -54,12 +48,18 @@ photonic_library(
 )
 
 photonic_library(
+    name = "deduct",
+    srcs = ["deduct.particle"],
+    deps = [":column"],
+)
+
+photonic_library(
     name = "difference",
     srcs = ["difference.particle"],
     visibility = ["//library/integer:__pkg__"],
     deps = [
-        ":borrow",
         ":complement",
+        ":deduct",
     ],
 )
 
@@ -125,7 +125,7 @@ photonic_library(
     srcs = ["subtract.particle"],
     visibility = ["//program/ternary:__pkg__"],
     deps = [
-        ":borrow",
+        ":deduct",
         "//library/chain:erase",
     ],
 )
@@ -151,10 +151,19 @@ photonic_library(
 )
 
 photonic_test(
+    name = "add.completion",
+    expect = "unreachable",
+    preserve = True,
+    source = "Return.Natural.Column.Positive.Zero, Execute.Pending.Add",
+    target = ["Return.Natural.Add.Execute.Pending.Zero"],
+    deps = [":add"],
+)
+
+photonic_test(
     name = "column.fork",
     preserve = True,
     source = "Column.Step",
-    targets = ["Column.Request.([Side] Left), Column.Request.([Side] Right)"],
+    target = ["Column.Fetch.([Side] Left), Column.Fetch.([Side] Right)"],
     deps = [":column"],
 )
 
@@ -162,7 +171,7 @@ photonic_test(
     name = "column.read",
     preserve = True,
     source = "Read.Zero.Column.Reader.([Side] Left), Read.Zero.Column.Reader.([Side] Right)",
-    targets = ["Column.Left.Zero, Column.Right.Zero, Clean.Column.Value.([First] End), Clean.Column.Value.([Second] End)"],
+    target = ["Column.Left.Zero, Column.Right.Zero, Clean.Column.Figure.([Left] End), Clean.Column.Figure.([Right] End)"],
     deps = [":column"],
 )
 
@@ -170,7 +179,7 @@ photonic_test(
     name = "column.association",
     preserve = True,
     source = "Yield.([Digit] 1).Zero.Column.Reader.([Side] Left), Yield.([Digit] 2).Zero.Column.Reader.([Side] Right)",
-    targets = ["Column.Left.Zero, Column.Right.Zero, Clean.Column.Value.([First] 1), Clean.Column.Value.([Second] 2)"],
+    target = ["Column.Left.Zero, Column.Right.Zero, Clean.Column.Figure.([Left] 1), Clean.Column.Figure.([Right] 2)"],
     deps = [":column"],
 )
 
@@ -179,24 +188,15 @@ photonic_test(
     expect = "unreachable",
     preserve = True,
     source = "Yield.([Digit] 1).Zero.Column.Reader.([Side] Left), Yield.([Digit] 2).Zero.Column.Reader.([Side] Right)",
-    targets = ["Column.Left.Zero, Column.Right.Zero, Clean.Column.Value.([First] 2), Clean.Column.Value.([Second] 1)"],
+    target = ["Column.Left.Zero, Column.Right.Zero, Clean.Column.Figure.([Left] 2), Clean.Column.Figure.([Right] 1)"],
     deps = [":column"],
-)
-
-photonic_test(
-    name = "column.completion",
-    expect = "unreachable",
-    preserve = True,
-    source = "Return.Natural.Column.Positive.Zero, Execute.Pending.Add",
-    targets = ["Return.Natural.Add.Zero.Execute"],
-    deps = [":add"],
 )
 
 photonic_test(
     name = "column.begin",
     preserve = True,
     source = "Function.Natural.Column, Operand.Left.Zero, Operand.Right.Zero",
-    targets = ["Column.Left.Zero, Column.Right.Zero, Clean.Column.Value.([First] End), Clean.Column.Value.([Second] End), Column.Output.Zero, Column.Carry.0"],
+    target = ["Column.Left.Zero, Column.Right.Zero, Clean.Column.Figure.([Left] End), Clean.Column.Figure.([Right] End), Column.Output.Zero, Column.Carried.0"],
     deps = [":column"],
 )
 
@@ -204,7 +204,7 @@ photonic_test(
     name = "compare.order",
     preserve = True,
     source = "Seen.([Digit] 1).Zero, Compare.Wait.Right.Equal.([Digit] 2)",
-    targets = ["Compare.Cursor.Right.Zero, Compare.Go.Left, Compare.Wait.Left.Greater"],
+    target = ["Compare.Cursor.Right.Zero, Compare.Go.Left, Compare.Wait.Left.Greater"],
     deps = [":compare"],
 )
 
@@ -213,7 +213,7 @@ photonic_test(
     expect = "unreachable",
     preserve = True,
     source = "Seen.([Digit] 1).Zero, Compare.Wait.Right.Equal.([Digit] 2)",
-    targets = ["Compare.Cursor.Right.Zero, Compare.Go.Left, Compare.Wait.Left.Less"],
+    target = ["Compare.Cursor.Right.Zero, Compare.Go.Left, Compare.Wait.Left.Less"],
     deps = [":compare"],
 )
 
@@ -221,7 +221,7 @@ photonic_test(
     name = "compare.length",
     preserve = True,
     source = "Seen.([Digit] 1).Zero, Compare.Wait.Right.Equal.End",
-    targets = ["Clean.Compare.Close.Less"],
+    target = ["Clean.Compare.Close.Less"],
     deps = [":compare"],
 )
 
@@ -230,7 +230,7 @@ photonic_test(
     expect = "unreachable",
     preserve = True,
     source = "Seen.([Digit] 1).Zero, Compare.Wait.Right.Equal.End",
-    targets = ["Clean.Compare.Close.Equal"],
+    target = ["Clean.Compare.Close.Equal"],
     deps = [":compare"],
 )
 
@@ -238,7 +238,7 @@ photonic_test(
     name = "compare.drain",
     preserve = True,
     source = "Seen.End.Zero, Compare.Wait.Right.Equal.([Digit] 2), Compare.Cursor.Left.Zero",
-    targets = ["Compare.Answer.Left, Compare.Answer.Right, Return.Natural.Compare.Greater"],
+    target = ["Compare.Answer.Left, Compare.Answer.Right, Return.Natural.Compare.Greater"],
     deps = [":compare"],
 )
 
@@ -246,7 +246,7 @@ photonic_test(
     name = "compare.zero",
     preserve = True,
     source = "Function.Natural.Compare, Operand.Left.Zero, Operand.Right.Zero",
-    targets = ["Return.Natural.Compare.Left.Zero, Return.Natural.Compare.Right.Zero, Return.Natural.Compare.Equal"],
+    target = ["Return.Natural.Compare.Left.Zero, Return.Natural.Compare.Right.Zero, Return.Natural.Compare.Equal"],
     deps = [":compare"],
 )
 
@@ -255,7 +255,7 @@ photonic_test(
     expect = "unreachable",
     preserve = True,
     source = "Function.Natural.Compare, Operand.Left.Zero, Operand.Right.Zero",
-    targets = [
+    target = [
         "Return.Natural.Compare.Left.Zero, Return.Natural.Compare.Right.Zero, Return.Natural.Compare.Less",
         "Return.Natural.Compare.Left.Zero, Return.Natural.Compare.Right.Zero, Return.Natural.Compare.Greater",
     ],
@@ -265,28 +265,85 @@ photonic_test(
 photonic_test(
     name = "copy.left",
     preserve = True,
-    source = "Yield.End.Copy.Wait.Zero, Copy.Left.Zero",
-    targets = ["Return.Natural.Copy.Left.Zero, Copy.End.([Side] Right)"],
+    source = "Yield.End.Copy.Wait.Zero, Copy.Output.Left.Zero",
+    target = ["Return.Natural.Copy.Left.Zero, Copy.End.([Side] Right)"],
     deps = [":copy"],
 )
 
 photonic_test(
     name = "copy.right",
     preserve = True,
-    source = "Yield.End.Copy.Wait.Zero, Copy.Right.Zero",
-    targets = ["Copy.End.([Side] Left), Return.Natural.Copy.Right.Zero"],
+    source = "Yield.End.Copy.Wait.Zero, Copy.Output.Right.Zero",
+    target = ["Copy.End.([Side] Left), Return.Natural.Copy.Right.Zero"],
     deps = [":copy"],
+)
+
+photonic_test(
+    name = "copy.hold",
+    path = True,
+    preserve = True,
+    source = """Push.([Digit] 1).Zero, Stage.1, Stage.2, Stage.3,
+[Built, Stage.1] Function.Natural.Copy,
+[Return.Natural.Copy.Left, Stage.2] Function.Chain.Erase.Stage.4,
+[Return.Natural.Copy.Right, Stage.3] (Return.Natural.Copy.Right, Forget.Stage.5),
+[Return.Chain.Erase.Stage.4, Clean.Stage.5] (Push.([Digit] 2).Zero, Stage.6, Stage.7),
+[Built, Stage.6] Function.Natural.Copy,
+[Return.Natural.Copy.Left, Stage.7] Read.Stage.8,
+[Yield.([Digit] 2).Stage.8.Zero] (Stage.9, Stage.10),
+[Return.Natural.Copy.Right, Stage.9] Read.Stage.11,
+[Return.Natural.Copy.Right, Stage.10] Read.Stage.12,
+[Yield.([Digit] 1).Stage.11.Zero] One,
+[Yield.([Digit] 2).Stage.11.Zero] Two,
+[Yield.([Digit] 1).Stage.12.Zero] One,
+[Yield.([Digit] 2).Stage.12.Zero] Two,
+[One, Two] Done""",
+    target = ["Done"],
+    deps = [
+        ":copy",
+        "//library/chain:erase",
+    ],
+)
+
+photonic_test(
+    name = "divide.hold",
+    coherence = 256,
+    configuration = 8192,
+    occurrence = 2048,
+    path = True,
+    preserve = True,
+    scope = 256,
+    source = """Push.([Digit] 1).Zero, Stage.1, Stage.6, Stage.7,
+[Built, Stage.1] (Push.([Digit] 2), Forget.Stage.2),
+[Built, Clean.Stage.2] (Operand.Left, Forget.Stage.3),
+[Clean.Stage.3] (Push.([Digit] 2).Zero, Stage.4),
+[Built, Stage.4] (Operand.Right, Forget.Stage.5),
+[Clean.Stage.5] Function.Natural.Divide,
+[Return.Natural.Divide.Quotient, Stage.6] Function.Chain.Erase.Stage.8,
+[Return.Natural.Divide.Remainder, Stage.7] (Return.Natural.Divide.Remainder, Forget.Stage.9),
+[Return.Chain.Erase.Stage.8, Clean.Stage.9] (Push.([Digit] 1).Zero, Stage.10),
+[Built, Stage.10] (Push.([Digit] 0), Forget.Stage.11),
+[Built, Clean.Stage.11] (Operand.Left, Forget.Stage.12),
+[Clean.Stage.12] (Push.([Digit] 2).Zero, Stage.13),
+[Built, Stage.13] (Operand.Right, Forget.Stage.14),
+[Clean.Stage.14] (Function.Natural.Divide, Stage.15),
+[Return.Natural.Divide.Quotient, Stage.15] Read.Stage.16,
+[Yield.([Digit] 1).Stage.16.Zero] (Stage.17, Stage.18),
+[Return.Natural.Divide.Remainder, Stage.17] Read.Stage.19,
+[Return.Natural.Divide.Remainder, Stage.18] Read.Stage.20,
+[Yield.([Digit] 1).Stage.19.Zero, Yield.([Digit] 1).Stage.20.Zero] Done""",
+    target = ["Done"],
+    deps = [":divide"],
 )
 
 filegroup(
     name = "source",
     srcs = [
         "add.particle",
-        "borrow.particle",
         "column.particle",
         "compare.particle",
         "complement.particle",
         "copy.particle",
+        "deduct.particle",
         "difference.particle",
         "digit.particle",
         "divide.particle",

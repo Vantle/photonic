@@ -2,7 +2,7 @@
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
-def _binding(ctx):
+def _binding(context):
     for platform, digest in {
         "aarch64-apple-darwin": "2011b2027c3dc68616c3d3265be95f37e12fef8ef21e2dcf0011275da58d19bb",
         "x86_64-apple-darwin": "b2a465b4538f0bf11685e296ac181c92deb45434cfc849c87a4b418c79214ac6",
@@ -17,6 +17,6 @@ def _binding(ctx):
             strip_prefix = archive,
             build_file_content = 'exports_files(["wasm-bindgen"])',
         )
-    return ctx.extension_metadata(reproducible = True)
+    return context.extension_metadata(reproducible = True)
 
 binding = module_extension(implementation = _binding)

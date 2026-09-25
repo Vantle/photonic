@@ -1,15 +1,15 @@
 use crate::failure::Failure;
 
-pub fn numeral(mut value: u64, radix: u32) -> Result<String, Failure> {
+pub fn numeral(radix: u8, mut value: u64) -> Result<String, Failure> {
     base(radix)?;
     let mut particle = Vec::new();
     let mut position = 0;
     while value != 0 {
         particle.extend(std::iter::repeat_n(
             format!("{radix}^{position}"),
-            (value % radix as u64) as usize,
+            (value % u64::from(radix)) as usize,
         ));
-        value /= radix as u64;
+        value /= u64::from(radix);
         position += 1;
     }
     Ok(if particle.is_empty() {
@@ -19,7 +19,7 @@ pub fn numeral(mut value: u64, radix: u32) -> Result<String, Failure> {
     })
 }
 
-pub fn rule(radix: u32, width: usize) -> Result<String, Failure> {
+pub fn rule(radix: u8, width: usize) -> Result<String, Failure> {
     base(radix)?;
     if width > 64 {
         return Err(Failure::Width {
@@ -36,10 +36,10 @@ pub fn rule(radix: u32, width: usize) -> Result<String, Failure> {
         .collect())
 }
 
-fn base(value: u32) -> Result<(), Failure> {
+fn base(value: u8) -> Result<(), Failure> {
     if !(2..=16).contains(&value) {
         return Err(Failure::Base {
-            value,
+            value: u32::from(value),
             minimum: 2,
             maximum: 16,
         });

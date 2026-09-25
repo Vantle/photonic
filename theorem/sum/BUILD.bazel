@@ -3,19 +3,28 @@ load("//theorem:defs.bzl", "theorem")
 theorem(
     name = "irreflexive",
     srcs = ["irreflexive.wave"],
-    deps = ["//theorem:cover"],
+    deps = [
+        "//theorem:case",
+        "//theorem:cover",
+    ],
 )
 
 theorem(
     name = "transitive",
     srcs = ["transitive.wave"],
-    deps = ["//theorem:cover"],
+    deps = [
+        "//theorem:case",
+        "//theorem:cover",
+    ],
 )
 
 theorem(
     name = "trichotomy",
     srcs = ["trichotomy.wave"],
-    deps = ["//theorem:cover"],
+    deps = [
+        "//theorem:case",
+        "//theorem:cover",
+    ],
 )
 
 filegroup(

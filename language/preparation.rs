@@ -9,9 +9,9 @@ use crate::state::World;
 use cache::Cache;
 use std::sync::Arc;
 
-pub(crate) struct Request<'a> {
-    pub pattern: &'a Arc<Pattern>,
-    pub world: &'a Arc<World>,
+pub(crate) struct Request<'request> {
+    pub pattern: &'request Arc<Pattern>,
+    pub world: &'request Arc<World>,
     pub owner: usize,
 }
 

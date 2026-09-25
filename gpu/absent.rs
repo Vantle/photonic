@@ -1,4 +1,5 @@
 use crate::failure::Failure;
+use crate::operand::Product;
 use crate::plain::Plain;
 use std::marker::PhantomData;
 
@@ -45,10 +46,6 @@ pub struct Memory {
 }
 
 impl Memory {
-    pub fn length(&self) -> usize {
-        match self.never {}
-    }
-
     pub fn view<Element: Plain>(&mut self) -> &[Element] {
         match self.never {}
     }
@@ -72,24 +69,6 @@ impl Kernel {
     pub fn capacity(&self) -> usize {
         match self.never {}
     }
-}
-
-#[derive(Clone, Copy)]
-pub struct Operand<'memory> {
-    pub memory: &'memory Memory,
-    pub offset: usize,
-    pub row: usize,
-    pub column: usize,
-    pub transpose: bool,
-}
-
-#[derive(Clone, Copy)]
-pub struct Product<'memory> {
-    pub left: Operand<'memory>,
-    pub right: Operand<'memory>,
-    pub result: Operand<'memory>,
-    pub alpha: f32,
-    pub beta: f32,
 }
 
 pub struct Command<'device> {

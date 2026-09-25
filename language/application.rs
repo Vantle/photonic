@@ -7,14 +7,28 @@ use crate::program::Instruction;
 use crate::state::{Frame, State, Token};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub(crate) enum Owner<Environment> {
+    Frame(usize),
+    Capture(Environment),
+}
+
+impl<Environment> Owner<Environment> {
+    pub(crate) fn map<Other>(self, capture: impl FnOnce(Environment) -> Other) -> Owner<Other> {
+        match self {
+            Self::Frame(frame) => Owner::Frame(frame),
+            Self::Capture(value) => Owner::Capture(capture(value)),
+        }
+    }
+}
+
 pub(crate) struct Request<'source> {
     pub source: &'source State,
     pub scope: &'source [crate::program::Scope],
     pub frame: usize,
-    pub owner: Option<usize>,
+    pub owner: Owner<Closure<'source>>,
     pub rule: &'source Instruction,
     pub binding: &'source Binding,
-    pub closure: Option<Closure<'source>>,
 }
 
 struct Draft {
@@ -30,7 +44,46 @@ struct Import<'state> {
     next: usize,
 }
 
-impl Import<'_> {
+impl<'state> Import<'state> {
+    fn new(closure: Closure<'state>, source: &State, next: usize) -> Self {
+        let mut resource = HashMap::default();
+        for (index, frame) in closure.state.frame.iter().enumerate() {
+            for (place, token) in frame
+                .particle
+                .iter()
+                .map(|token| (Place::Context(index, token.id), token))
+                .chain(
+                    frame
+                        .held
+                        .iter()
+                        .map(|token| (Place::Held(index, token.id), token)),
+                )
+            {
+                let basis = &closure.flow.resource[&place];
+                if basis.len() != 1
+                    || token
+                        .capture
+                        .is_some_and(|frame| closure.flow.frame[frame].is_none())
+                {
+                    continue;
+                }
+                let Some(original) = source.token(*basis.first().unwrap()) else {
+                    continue;
+                };
+                let capture = token.capture.and_then(|frame| closure.flow.frame[frame]);
+                if original.value == token.value && original.capture == capture {
+                    resource.insert(token.id, original.id);
+                }
+            }
+        }
+        Self {
+            closure,
+            frame: HashMap::default(),
+            resource,
+            next,
+        }
+    }
+
     fn include(&mut self, index: usize, state: &mut State, flow: &mut Draft) -> usize {
         if let Some(index) = self.closure.flow.frame[index] {
             return index;
@@ -142,12 +195,11 @@ pub(crate) fn apply(request: Request<'_>) -> Applied {
     let _scope = profile::Scope::new(profile::Phase::Application);
     let Request {
         source,
-        scope: catalog,
+        scope,
         frame,
         owner,
         rule,
         binding,
-        closure,
     } = request;
     let mut state = State {
         world: source.world.clone(),
@@ -177,54 +229,19 @@ pub(crate) fn apply(request: Request<'_>) -> Applied {
     };
     let layout = crate::layout::Layout::new(source);
     let mut next = layout.resource;
-    let owner = if let Some(closure) = closure {
-        let mut resource = HashMap::default();
-        for (index, frame) in closure.state.frame.iter().enumerate() {
-            for (place, token) in frame
-                .particle
-                .iter()
-                .map(|token| (Place::Context(index, token.id), token))
-                .chain(
-                    frame
-                        .held
-                        .iter()
-                        .map(|token| (Place::Held(index, token.id), token)),
-                )
-            {
-                let basis = &closure.flow.resource[&place];
-                if basis.len() != 1
-                    || token
-                        .capture
-                        .is_some_and(|frame| closure.flow.frame[frame].is_none())
-                {
-                    continue;
-                }
-                let original = source.token(*basis.first().unwrap());
-                if let Some(original) = original {
-                    let capture = token.capture.and_then(|frame| closure.flow.frame[frame]);
-                    if original.value == token.value && original.capture == capture {
-                        resource.insert(token.id, original.id);
-                    }
-                }
-            }
+    let owner = match owner {
+        Owner::Frame(frame) => frame,
+        Owner::Capture(closure) => {
+            let mut import = Import::new(closure, source, next);
+            let owner = import.include(import.closure.capture, &mut state, &mut flow);
+            next = import.next;
+            owner
         }
-        let capture = closure.capture;
-        let mut import = Import {
-            closure,
-            frame: HashMap::default(),
-            resource,
-            next,
-        };
-        let owner = import.include(capture, &mut state, &mut flow);
-        next = import.next;
-        owner
-    } else {
-        owner.expect("lexical rule has an owner")
     };
     let returning = owner == frame && frame != 0;
     let result = crate::evaluation::apply(crate::evaluation::Request {
         source,
-        scope: catalog,
+        scope,
         frame,
         owner,
         rule,

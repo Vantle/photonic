@@ -9,80 +9,51 @@
         const badge = element('span', 'badge', 'recorded runs');
         const lightbox = element('a', undefined, 'Open in Lightbox');
         lightbox.title = 'Continue with this program in the Lightbox';
-        const run = element('button', 'run', 'Run');
-        run.type = 'button';
-        run.hidden = true;
-        run.title = 'Run (⌘ or Ctrl + Enter)';
+        const run = book.run.button();
         bar.append(element('span', 'title', 'Workbench'), badge, lightbox, run);
         const body = element('div', 'body');
-        const preset = element('div', 'preset');
+        const choice = book.render.preset(sample.map(item => item.name), index => pick(sample[index]));
         const editor = book.editor.create('Workbench program');
         editor.area.readOnly = true;
         const message = book.render.message();
         const viewer = book.viewer.create();
-        body.append(preset, editor.element, message.element, ...viewer.element);
+        body.append(choice.element, editor.element, message.element, ...viewer.element);
         widget.replaceChildren(bar, body);
 
+        const cycle = book.run.create({ trigger: run, message });
         let current;
-        let ticket = 0;
-        let busy = false;
-        const settle = () => {
-            busy = false;
-            run.removeAttribute('aria-disabled');
-        };
         const point = () => {
             lightbox.href = book.share.link({ ...current, source: editor.value });
         };
 
         const load = item => {
-            ticket++;
-            settle();
+            cycle.cancel();
             current = item;
             editor.value = item.source;
-            preset.querySelectorAll('button').forEach(button => button.setAttribute('aria-pressed', String(button.textContent === item.name)));
+            choice.press(item.name);
             message.say();
             point();
             viewer.show(item.result, item.target);
         };
 
-        sample.forEach(item => {
-            const button = element('button', undefined, item.name);
-            button.type = 'button';
-            button.addEventListener('click', () => {
-                const entry = item.example ? book.record?.example?.[item.example] : book.record?.workbench?.[item.name];
-                if (entry) load({ ...entry, name: item.name });
-                else message.say('This preset has no recorded run. Regenerate the records with bazel run -c opt //book:record.', 'error');
-            });
-            preset.append(button);
-        });
+        const pick = item => {
+            const entry = item.example ? book.record?.example?.[item.example] : book.record?.workbench?.[item.name];
+            if (entry) load({ ...entry, name: item.name });
+            else message.say('This preset has no recorded run. Regenerate the records with bazel run -c opt //book:record.', 'error');
+        };
 
-        const execute = async () => {
-            if (run.hidden || busy) return;
-            const mine = ++ticket;
+        const execute = () => {
             const source = editor.value;
-            busy = true;
-            run.setAttribute('aria-disabled', 'true');
-            message.wait('Running in WebAssembly…');
-            try {
-                const result = await book.engine.explore(current, source);
-                if (mine !== ticket) return;
+            const submission = book.editor.submit(widget, editor);
+            cycle.start(signal => book.engine.explore(current, source, current.target, signal), result => {
                 current = { ...current, name: '', source, result };
-                preset.querySelectorAll('button').forEach(button => button.setAttribute('aria-pressed', 'false'));
-                message.say();
+                choice.press();
                 viewer.show(result, current.target);
-            } catch (error) {
-                if (mine === ticket) message.say(book.editor.locate(editor.area, error), 'error');
-            } finally {
-                if (mine === ticket) settle();
-            }
+            }, error => message.say(book.editor.locate(error, submission), 'error'));
         };
         run.addEventListener('click', execute);
         editor.area.addEventListener('input', point);
-        editor.area.addEventListener('keydown', event => {
-            if (event.key !== 'Enter' || !(event.metaKey || event.ctrlKey)) return;
-            event.preventDefault();
-            execute();
-        });
+        book.run.shortcut(editor.area, execute);
         book.engine.watch(state => {
             const on = state === 'live';
             run.hidden = !on;
@@ -102,7 +73,7 @@
             },
             reveal,
         };
-        preset.querySelector('button')?.click();
+        if (sample.length) pick(sample[0]);
     };
 
     document.querySelectorAll('.workbench[data-preset]').forEach(enhance);

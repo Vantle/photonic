@@ -12,6 +12,7 @@ filegroup(
         "failure.rs",
         "gpu.rs",
         "occurrence.rs",
+        "operand.rs",
         "pipeline.rs",
         "plain.rs",
         "runtime.rs",

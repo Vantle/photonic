@@ -1,5 +1,5 @@
 load("//toolchain:defs.bzl", "hermetic_binary", "hermetic_test")
-load(":site.bzl", "site")
+load(":site.bzl", "REPOSITORY", "site")
 
 filegroup(
     name = "asset",
@@ -21,6 +21,7 @@ filegroup(
         "pattern.js",
         "record.js",
         "render.js",
+        "run.js",
         "share.js",
         "status.js",
         "symmetry.js",
@@ -87,7 +88,7 @@ site(
         "//toolchain/browser:javascript",
         "//toolchain/browser:webassembly",
     ],
-    repository = "https://github.com/Vantle/photonic",
+    repository = REPOSITORY,
     script = "site.mjs",
 )
 
@@ -155,13 +156,17 @@ hermetic_test(
         "$(rlocationpath //toolchain:node)",
         "$(rlocationpath test.mjs)",
         "$(rlocationpath record.js)",
+        "$(rlocationpath engine.js)",
         "$(rlocationpath syntax.js)",
         "$(rlocationpath render.js)",
+        "$(rlocationpath editor.js)",
         "$(rlocationpath graph.js)",
         "$(rlocationpath pattern.js)",
         "$(rlocationpath symmetry.js)",
     ],
     data = [
+        "editor.js",
+        "engine.js",
         "graph.js",
         "pattern.js",
         "record.js",

@@ -6,6 +6,7 @@ use std::path::PathBuf;
 
 #[cfg(feature = "allocation")]
 mod allocation;
+mod directory;
 mod export;
 mod formula;
 mod lifecycle;
@@ -33,6 +34,7 @@ enum Case {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    directory::enter()?;
     let argument = Argument::parse();
     let (program, target) = match &argument.case {
         Case::Expression { input, expected } => {

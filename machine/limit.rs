@@ -1,7 +1,11 @@
-use serde::{Deserialize, Serialize};
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Overflow {
+    Event,
+    Round,
+    Size,
+}
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Limit {
     pub state: usize,
     pub coherence: usize,

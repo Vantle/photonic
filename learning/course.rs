@@ -5,6 +5,7 @@ use crate::solve::{Attempt, attempt};
 use learning::curriculum::{Curriculum, Mark, examine, focus, grade, prefix};
 use learning::guide::Network;
 use learning::home;
+use learning::pool::SYNTHETIC;
 use learning::session;
 use learning::solution::Budget;
 use miette::IntoDiagnostic;
@@ -21,32 +22,35 @@ pub fn run(argument: Course) -> miette::Result<()> {
         .unwrap_or_default();
     let start = Instant::now();
     let limit = argument.session.duration.map(Duration::from_secs);
-    while limit.is_none_or(|limit| start.elapsed() < limit) && state.level <= argument.levels {
+    while limit.is_none_or(|limit| start.elapsed() < limit) && state.level <= argument.level {
         let level = state.level;
         let mut tried = 0;
         while state.exam(level).len() < argument.exam && tried < 20 * argument.exam {
             tried += 1;
-            let task = state.breed(level, seed, &objective);
-            if let Some(exam) = grade(task, &objective, Duration::from_secs(argument.grade)) {
+            let task = state.breed(level, seed, &objective).into_diagnostic()?;
+            if let Some(exam) = grade(task, &objective, Duration::from_secs(argument.enumerate))
+                .into_diagnostic()?
+            {
                 state.exam(level).push(exam);
             }
         }
         home.save(home::CURRICULUM, &state).into_diagnostic()?;
         if state.exam(level).is_empty() {
             line(&format!(
-                "level {level}: no behavior was proven optimal within {}s; raise --grade to continue",
-                argument.grade
+                "level {level}: no behavior was proven optimal within {}s; raise --enumerate to continue",
+                argument.enumerate
             ));
             break;
         }
-        let known = pool(&home, 48, 0, seed, &objective)?;
+        let known = pool(&home, SYNTHETIC, 0, seed, &objective)?;
         let have = known
             .iter()
             .filter(|task| task.name.starts_with(&prefix(level)))
             .count();
         let fresh = (have..argument.train)
             .map(|_| state.breed(level, seed, &objective))
-            .collect::<Vec<_>>();
+            .collect::<Result<Vec<_>, _>>()
+            .into_diagnostic()?;
         let named = fresh
             .iter()
             .map(|task| task.name.clone())
@@ -54,22 +58,22 @@ pub fn run(argument: Course) -> miette::Result<()> {
         let pool = known.into_iter().chain(fresh).collect::<Vec<_>>();
         home.save(home::POOL, &pool).into_diagnostic()?;
         home.save(home::CURRICULUM, &state).into_diagnostic()?;
-        if !named.is_empty() {
-            attempt(
-                &home,
-                &pool,
-                &named,
-                &Attempt {
-                    budget: Budget {
-                        size: 16,
-                        time: Some(Duration::from_secs(argument.grade)),
-                    },
-                    guide: argument.guide,
-                    blind: true,
-                    show: 0,
+        attempt(
+            &home,
+            &pool,
+            &named,
+            &Attempt {
+                objective,
+                bound: setting.play.bound,
+                budget: Budget {
+                    time: Some(Duration::from_secs(argument.enumerate)),
+                    ..Budget::default()
                 },
-            )?;
-        }
+                guide: argument.guide,
+                blind: true,
+                show: 0,
+            },
+        )?;
         let (count, focus) = focus(
             &pool,
             level,
@@ -78,7 +82,7 @@ pub fn run(argument: Course) -> miette::Result<()> {
         );
         line(&format!(
             "level {level}: training {}s on {count} behaviors of this level and {} from earlier levels",
-            argument.round,
+            argument.practice,
             focus.len() - count
         ));
         session(
@@ -86,7 +90,7 @@ pub fn run(argument: Course) -> miette::Result<()> {
             &pool,
             &focus,
             &session::Setting {
-                duration: Some(Duration::from_secs(argument.round)),
+                duration: Some(Duration::from_secs(argument.practice)),
                 ..setting
             },
         )?;

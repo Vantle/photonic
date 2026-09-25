@@ -2,14 +2,16 @@ import assert from 'node:assert/strict';
 import { readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { runInNewContext } from 'node:vm';
 
 const [javascript, webassembly, numeral, index, lightbox, output, mode] = process.argv.slice(2);
+const version = 2;
 assert.ok(mode === 'write' || mode === 'check', 'record.mjs runs in write or check mode');
 const workspace = process.env.BUILD_WORKSPACE_DIRECTORY;
 assert.ok(mode === 'check' || workspace, 'Write the record with bazel run -c opt //book:record.');
 const root = mode === 'write' ? workspace : dirname(index);
 const engine = await import(pathToFileURL(javascript));
-const { decode } = await import(pathToFileURL(numeral));
+const { answer } = await import(pathToFileURL(numeral));
 engine.initSync({ module: await readFile(webassembly) });
 
 const entity = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", '#39': "'" };
@@ -38,9 +40,11 @@ const file = async name => {
 const invoke = (name, response) => {
     const value = JSON.parse(response);
     if (value.error) throw new Error(`${name}: ${value.error.code}: ${value.error.message}`);
+    assert.equal(value.version, version, `${name} must answer version ${version}`);
     delete value.version;
     return value;
 };
+const envelope = body => JSON.stringify({ version, ...body });
 
 const library = Object.create(null);
 const example = Object.create(null);
@@ -59,8 +63,7 @@ const setting = async item => {
     for (const name of value.library) library[name] ??= await file(`${name}.particle`);
     return value;
 };
-const request = (value, source) => JSON.stringify({
-    version: 1,
+const request = (value, source) => envelope({
     source,
     library: value.library.map(name => ({ name: `${name}.particle`, source: library[name] })),
     target: value.target,
@@ -110,22 +113,16 @@ for (const item of tag.filter(value => value.name === 'pre')) {
 
 for (const item of tag.filter(value => style(value, 'lens') && value.attribute.has('data-lens'))) {
     for (const source of JSON.parse(item.attribute.get('data-lens'))) {
-        lower[source] = { program: invoke(`lens ${source}`, engine.lower(source)).program };
+        lower[source] = { program: invoke(`lens ${source}`, engine.lower(envelope({ source }))).program };
     }
 }
 
 for (const item of tag.filter(value => style(value, 'calculator') && value.attribute.has('data-preset'))) {
     for (const input of JSON.parse(item.attribute.get('data-preset'))) {
-        const path = engine.Path.expression(input);
+        const path = engine.Path.expression(envelope({ source: input }));
         const progress = invoke(`expression ${input}`, path.run());
         path.free();
-        let value;
-        try {
-            value = decode(progress.state);
-        } catch (error) {
-            value = { error: error.message };
-        }
-        expression[input] = { value, event: progress.event, work: progress.work, source: progress.source };
+        expression[input] = { answer: answer(progress.state, progress.definition), event: progress.event, work: progress.work, source: progress.source };
     }
 }
 
@@ -150,13 +147,19 @@ for (const item of tag.filter(value => style(value, 'connection') && value.attri
         assert.ok(!(entry.name in connection), `duplicate connection preset ${entry.name}`);
         const program = [];
         for (const member of entry.program) program.push({ field: member.field, source: member.file ? await file(member.file) : member.source });
-        const result = invoke(`connection ${entry.name}`, engine.compare(JSON.stringify({ version: 1, program: program.map(member => member.source) })));
+        const result = invoke(`connection ${entry.name}`, engine.compare(envelope({ program: program.map(member => member.source) })));
         assert.equal(result.shape.length, entry.shape, `connection preset ${entry.name} must find ${entry.shape} shapes`);
         connection[entry.name] = { program, result };
     }
 }
 
-const playground = parse(await readFile(mode === 'write' ? join(workspace, 'lightbox.html') : lightbox, 'utf8'));
+const companion = await readFile(mode === 'write' ? join(workspace, 'lightbox.html') : lightbox, 'utf8');
+const theme = text => /<script>([^<]*)<\/script>/.exec(text)?.[1] ?? '';
+assert.equal(theme(companion), theme(page), 'index.html and lightbox.html must set the theme with the same inline script');
+const context = { document: { documentElement: { dataset: {} } }, localStorage: { getItem: key => key === context.book?.storage?.theme ? 'dark' : null } };
+runInNewContext(theme(page), context);
+assert.equal(context.document.documentElement.dataset.theme, 'dark', 'the inline script must name the storage key that book/theme.js writes and apply the stored theme');
+const playground = parse(companion);
 for (const item of playground.filter(value => style(value, 'lightbox') && value.attribute.has('data-preset'))) {
     for (const entry of JSON.parse(item.attribute.get('data-preset'))) {
         if (entry.example) assert.ok(example[entry.example]?.result.execution, `Lightbox preset ${entry.name} must name an explored example`);

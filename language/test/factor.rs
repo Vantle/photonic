@@ -4,7 +4,6 @@ use crate::program::Symbol;
 use crate::state::Token;
 use crate::term::Term;
 use std::sync::Arc;
-use std::task::Poll;
 
 fn search() -> Match {
     Match::new(
@@ -24,7 +23,7 @@ fn impossible() {
     let budget = Arc::new(Budget::new(8192));
     let mut cursor = Cursor::new(Match::impossible(), Some(budget.clone()));
     for _ in 0..4 {
-        assert_eq!(cursor.step(8192), Poll::Ready(None));
+        assert_eq!(cursor.step(8192), None);
         assert_eq!(cursor.cached(), 0);
         assert_eq!(budget.retained(), 0);
         cursor.reset();
@@ -70,7 +69,7 @@ fn pressure() {
         reference.reset();
     }
     assert_eq!(left.cached() + right.cached(), 0);
-    assert_eq!(left.step(64), Poll::Ready(Some((0..8).collect())));
+    assert_eq!(left.step(64), Some((0..8).collect()));
 }
 
 #[test]
@@ -79,7 +78,7 @@ fn eviction() {
         let budget = Arc::new(Budget::new(8192));
         let mut cursor = Cursor::new(search(), Some(budget.clone()));
         for _ in 0..2 {
-            while cursor.step(8192 - cursor.cached()) != Poll::Ready(None) {}
+            while cursor.step(8192 - cursor.cached()).is_some() {}
             cursor.reset();
         }
         assert!(cursor.cached() > 0);

@@ -26,7 +26,7 @@ impl Dependency {
         std::iter::once(self.site).chain(
             self.binding
                 .iter()
-                .map(|slot| slot.site)
+                .map(|influence| influence.site)
                 .filter(|&site| site != self.site),
         )
     }

@@ -90,19 +90,9 @@ fn unknown() {
         path.run(10_000, Limit::default());
         assert_eq!(path.report().outcome, Outcome::Unknown);
     }
-    assert_eq!(
-        {
-            let program = parse("A").unwrap();
-            let target = crate::source::Program {
-                rule: program.rule.clone(),
-                ..parse("[A] B").unwrap()
-            };
-            Search::new(program, target)
-        }
-        .summary()
-        .outcome,
-        Outcome::Unknown
-    );
+    let mut foreign = Search::new(parse("A").unwrap(), parse("[A] B").unwrap());
+    foreign.run(10_000, Limit::default());
+    assert_eq!(foreign.summary().outcome, Outcome::Unknown);
 }
 
 #[test]
@@ -284,6 +274,29 @@ fn inspection() {
     }
     assert!(path.inspect(report.state.len()).is_none());
     assert!(path.transition(report.event.len()).is_none());
+}
+
+#[test]
+fn stale() {
+    for (source, target) in [
+        ("X, [X], [A] B, [[A] B] C", "Q"),
+        (
+            "X, Y, [X, Y] ([Q] R, P), [A] B, [D] E, [[A] B, [D] E] C",
+            "P.C, [X, Y] ([Q] R, P), [[A] B, [D] E] C",
+        ),
+    ] {
+        let mut path = Search::new(parse(source).unwrap(), parse(target).unwrap());
+        path.run(12_000, Limit::default());
+        assert_eq!(path.summary().outcome, Outcome::Unknown, "{source}");
+        let mut exhaustive =
+            crate::prism::Search::new(parse(source).unwrap(), parse(target).unwrap());
+        exhaustive.run(12_000, None);
+        assert_eq!(
+            exhaustive.report().outcome,
+            Outcome::Unreachable,
+            "{source}"
+        );
+    }
 }
 
 #[test]

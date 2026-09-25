@@ -126,7 +126,7 @@ impl Cursor {
         }
         let particle = self.particle.as_mut().unwrap();
         match particle.step() {
-            Poll::Ready(Some(token)) => {
+            Some(token) => {
                 let slot = Slot {
                     location: self.index.location(self.site),
                     position: self.position,
@@ -137,11 +137,10 @@ impl Cursor {
                 };
                 gate.enqueue(slot);
             }
-            Poll::Ready(None) => {
+            None => {
                 self.cursor[self.position] += 1;
                 self.particle = None;
             }
-            Poll::Pending => {}
         }
         Poll::Pending
     }

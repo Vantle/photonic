@@ -8,7 +8,7 @@ mod renaming;
 
 pub(crate) mod storage;
 
-pub struct Search {
+pub(crate) struct Search {
     state: Arc<State>,
     refinement: OnceLock<Box<Refinement>>,
     world: Ordering,

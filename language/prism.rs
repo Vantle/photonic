@@ -94,6 +94,18 @@ impl Search {
         self.runtime.snapshot()
     }
 
+    pub fn rule(&self, event: usize) -> Option<usize> {
+        self.runtime.rule(event)
+    }
+
+    pub fn resource(&self, event: usize) -> Option<Vec<crate::snapshot::Link>> {
+        self.runtime.resource(event)
+    }
+
+    pub fn scope(&self, name: &str) -> Option<&[usize]> {
+        self.runtime.scope(name)
+    }
+
     pub fn report(&self) -> Report {
         let verdict = self.verdict();
         Report {

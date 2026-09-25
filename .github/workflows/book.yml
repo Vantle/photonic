@@ -20,13 +20,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Bazelisk
+        run: |
+          directory="$RUNNER_TEMP/bazelisk"
+          mkdir -p "$directory"
+          curl --fail --silent --show-error --location --retry 3 \
+            https://github.com/bazelbuild/bazelisk/releases/download/v1.28.1/bazelisk-linux-amd64 \
+            --output "$directory/bazel"
+          printf '%s  %s\n' 22e7d3a188699982f661cf4687137ee52d1f24fec1ec893d91a6c4d791a75de8 "$directory/bazel" | shasum -a 256 --check
+          chmod +x "$directory/bazel"
+          echo "$directory" >> "$GITHUB_PATH"
+
       - uses: actions/cache@v4
         with:
           path: |
             ~/.cache/photonic/bazel
             ~/.cache/bazel/_bazel_runner/cache/repos
-          key: book-${{ github.sha }}
-          restore-keys: book-
+          key: book-${{ hashFiles('.bazelversion', 'MODULE.bazel.lock', 'Cargo.lock') }}
 
       - name: Build
         run: bazel build --config=ci //book:site

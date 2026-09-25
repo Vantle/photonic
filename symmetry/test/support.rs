@@ -116,7 +116,7 @@ pub fn permutation(atom: &[Atom]) -> Vec<Vec<Atom>> {
     result
 }
 
-pub type Written<'text> = (Vec<Vec<&'text str>>, Vec<Vec<&'text str>>);
+pub struct Written<'text>(pub Vec<Vec<&'text str>>, pub Vec<Vec<&'text str>>);
 
 pub fn named(program: &[Written<'_>], name: &mut Vec<String>) -> Program {
     let mut atom = |text: &str| {
@@ -140,7 +140,7 @@ pub fn named(program: &[Written<'_>], name: &mut Vec<String>) -> Program {
     Program::from(
         program
             .iter()
-            .map(|(input, output)| {
+            .map(|Written(input, output)| {
                 Rule::new(
                     input.iter().map(&mut particle).collect(),
                     output

@@ -13,6 +13,7 @@ build --disk_cache=~/.cache/photonic/bazel
 build --experimental_disk_cache_gc_max_size=20G
 build --experimental_disk_cache_gc_max_age=14d
 build --guard_against_concurrent_changes
+build --@rules_rust//rust/settings:rustfmt.toml=//:rustfmt.toml
 
 build:release --compilation_mode=opt
 
@@ -32,5 +33,6 @@ build:remote --remote_download_outputs=minimal
 
 build --aspects=//toolchain:check.bzl%check
 build --output_groups=+check
+run --output_groups=-check
 
 try-import %workspace%/user.bazelrc

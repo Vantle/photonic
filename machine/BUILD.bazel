@@ -25,10 +25,7 @@ rust_library(
         "//learning:__pkg__",
         "//translation:__pkg__",
     ],
-    deps = [
-        "//code",
-        "@crate//:serde",
-    ],
+    deps = ["//code"],
 )
 
 rust_test(
@@ -44,10 +41,7 @@ rust_test(
     ],
     crate_root = "machine.rs",
     lint_config = "//:lint",
-    deps = [
-        "//code",
-        "@crate//:serde",
-    ],
+    deps = ["//code"],
 )
 
 filegroup(

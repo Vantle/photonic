@@ -64,11 +64,11 @@ impl Search {
     }
 
     pub(crate) fn preparation(&self) -> usize {
-        self.network.preparation
+        self.network.preparation()
     }
 
     pub(crate) fn reuse(&self) -> usize {
-        self.network.reuse
+        self.network.reuse()
     }
 
     pub(crate) fn evict(&mut self) -> usize {
@@ -130,7 +130,7 @@ impl Search {
         {
             return None;
         }
-        let mut binding = Binding::select(&self.state, &selection)?;
+        let mut binding = Binding::select(&self.state, &selection, candidate.frame)?;
         binding.read = candidate
             .read
             .map(|read| read.place(&self.index))

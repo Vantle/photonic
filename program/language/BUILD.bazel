@@ -65,7 +65,7 @@ photonic_test(
     name = "conjunction.check",
     srcs = ["conjunction.wave"],
     preserve = True,
-    targets = ["False.Extra"],
+    target = ["False.Extra"],
 )
 
 photonic_binary(
@@ -77,7 +77,7 @@ photonic_test(
     name = "inference.check",
     srcs = ["inference.wave"],
     preserve = True,
-    targets = [
+    target = [
         "A",
         "B.C",
         "D",
