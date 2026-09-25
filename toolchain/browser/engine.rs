@@ -1,3 +1,4 @@
+mod analysis;
 mod expression;
 mod failure;
 mod path;
@@ -30,6 +31,8 @@ struct Transition {
 struct Exploration {
     execution: Snapshot<Vec<Node>, Vec<Transition>, Vec<View>>,
     verdict: Vec<Verdict>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    symmetry: Option<analysis::Analysis>,
 }
 
 const LIMIT: Limit = Limit {
@@ -101,6 +104,7 @@ fn exploration(input: &str) -> Result<Exploration, Failure> {
     let request = Request::read(input)?;
     let program = request.program()?;
     let target = request.target(&program)?;
+    let symmetry = analysis::analysis(&program);
     let mut search = Search::new(program, Program::default());
     search.run(20000, Some(LIMIT));
     let execution = mark(search.snapshot());
@@ -111,7 +115,11 @@ fn exploration(input: &str) -> Result<Exploration, Failure> {
             search.verdict()
         })
         .collect();
-    Ok(Exploration { execution, verdict })
+    Ok(Exploration {
+        execution,
+        verdict,
+        symmetry,
+    })
 }
 
 #[wasm_bindgen]

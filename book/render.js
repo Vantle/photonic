@@ -34,6 +34,8 @@
         return { element: node, say, wait };
     };
 
+    const series = word => word.length < 3 ? word.join(' and ') : `${word.slice(0, -1).join(', ')} and ${word.at(-1)}`;
+
     const tally = (number, word) => {
         const node = element('span');
         node.append(element('b', undefined, number.toLocaleString()), ` ${word}${number === 1 ? '' : 's'}`);
@@ -163,5 +165,5 @@
         return body;
     };
 
-    book.render = { element, vector, message, tally, legend, unwrap, catalog, touch, token, brief, deduction, signature, state };
+    book.render = { element, vector, message, series, tally, legend, unwrap, catalog, touch, token, brief, deduction, signature, state };
 })();

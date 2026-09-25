@@ -10,6 +10,9 @@
     --edge: #c9c8c3;
     --accent: #3553c1;
     --ring: rgb(53 83 193 / 16%);
+    --global: #e87ba4;
+    --local: #008300;
+    --block: #eda100;
     --shadow: 0 1px 2px rgb(24 24 28 / 4%), 0 6px 20px rgb(24 24 28 / 5%);
     --display: "Iowan Old Style", "Palatino Linotype", Palatino, ui-serif, Georgia, serif;
     --body: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -32,6 +35,9 @@
         --edge: #43454c;
         --accent: #93a9ff;
         --ring: rgb(147 169 255 / 20%);
+        --global: #d55181;
+        --local: #008300;
+        --block: #c98500;
         --shadow: none;
     }
 }
@@ -49,6 +55,9 @@
         --edge: #43454c;
         --accent: #93a9ff;
         --ring: rgb(147 169 255 / 20%);
+        --global: #d55181;
+        --local: #008300;
+        --block: #c98500;
         --shadow: none;
     }
 }
@@ -1728,6 +1737,138 @@ td code {
 
 .hyperedge.inferred[aria-pressed="true"] {
     background: var(--surface);
+}
+
+[data-symmetry="global"] {
+    --tint: var(--global);
+}
+
+[data-symmetry="local"] {
+    --tint: var(--local);
+}
+
+[data-symmetry="block"] {
+    --tint: var(--block);
+}
+
+[data-glow="global"] {
+    --glow: var(--global);
+}
+
+[data-glow="local"] {
+    --glow: var(--local);
+}
+
+[data-glow="block"] {
+    --glow: var(--block);
+}
+
+:where([data-tint]) .token:where([data-symmetry]) {
+    background: color-mix(in srgb, var(--tint) 16%, var(--surface));
+    box-shadow: inset 0 0 0 1.5px var(--tint);
+}
+
+:where([data-tint]) .token:where([data-symmetry="block"]) {
+    box-shadow: none;
+    outline: 1.5px dashed var(--tint);
+    outline-offset: -1.5px;
+}
+
+:where([data-tint]) .atom:where([data-symmetry]) {
+    box-shadow: inset 0 -1.5px 0 var(--tint);
+}
+
+:where([data-tint]) .link:where([data-symmetry]) {
+    stroke: var(--tint);
+}
+
+:where([data-tint]) .hyperedge:where([data-symmetry]) {
+    border-color: var(--tint);
+    background: var(--tint);
+}
+
+.token:where([data-glow]) {
+    background: color-mix(in srgb, var(--glow) 30%, var(--surface));
+    box-shadow: inset 0 0 0 2px var(--glow);
+    outline: none;
+}
+
+.atom:where([data-glow]) {
+    background: color-mix(in srgb, var(--glow) 22%, transparent);
+    box-shadow: inset 0 -2px 0 var(--glow);
+}
+
+.link:where([data-glow]) {
+    stroke: var(--glow);
+    stroke-width: 2.4;
+}
+
+.hyperedge:where([data-glow]) {
+    border-color: var(--glow);
+    background: var(--glow);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--glow) 28%, transparent);
+}
+
+:where([data-glow]) .token:not(.rule, [data-glow]),
+:where([data-glow]) .link:not([data-glow]),
+:where([data-glow]) .hyperedge:not([data-glow]) {
+    opacity: 0.35;
+}
+
+.symmetry .body {
+    display: grid;
+    gap: 0.7rem;
+    padding: 0.8rem 1.1rem 0.95rem;
+}
+
+.symmetry .body > p {
+    font-size: 0.82rem;
+    color: var(--muted);
+}
+
+.symmetry .class {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.symmetry .class button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.24rem 0.7rem 0.24rem 0.55rem;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    font: 400 0.78rem/1.4 var(--code);
+    color: var(--soft);
+    text-align: left;
+}
+
+.symmetry .class button:hover,
+.symmetry .class button[aria-pressed="true"] {
+    border-color: var(--ink);
+    color: var(--ink);
+}
+
+.symmetry .class b {
+    font: 500 0.6rem/1.2 var(--body);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+.symmetry .class i {
+    flex: none;
+    width: 0.7rem;
+    height: 0.7rem;
+    border-radius: 50%;
+    background: var(--tint);
+}
+
+.symmetry .class [data-symmetry="block"] i {
+    border: 1.5px dashed var(--tint);
+    background: color-mix(in srgb, var(--tint) 30%, transparent);
 }
 
 .capsule {

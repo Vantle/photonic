@@ -1,9 +1,7 @@
 (() => {
     'use strict';
     const book = globalThis.book ??= {};
-    const { element } = book.render;
-
-    const series = word => word.length < 3 ? word.join(' and ') : `${word.slice(0, -1).join(', ')} and ${word.at(-1)}`;
+    const { element, series } = book.render;
 
     const tag = (host, letter, prefix) => {
         host.querySelectorAll('.atom').forEach(node => {

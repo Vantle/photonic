@@ -201,6 +201,7 @@
             const center = hub.get(edge);
             const glyph = element('button', edge.event.deduction.length ? 'hyperedge inferred' : 'hyperedge');
             glyph.type = 'button';
+            glyph.dataset.event = edge.event.id;
             glyph.style.left = `${center.x}px`;
             glyph.style.top = `${center.y}px`;
             glyph.title = edge.event.rule;

@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { runInThisContext } from 'node:vm';
 
 for (const file of process.argv.slice(2)) runInThisContext(await readFile(file, 'utf8'), { filename: file });
-const { graph, pattern, record } = globalThis.book;
+const { graph, pattern, record, symmetry } = globalThis.book;
 
 const parallel = graph.model(record.workbench.Parallel.result.execution);
 const shown = (text, data = parallel) => [...pattern.state(pattern.read(text), data).state].sort((left, right) => left - right);
@@ -47,3 +47,15 @@ const conjunction = graph.model(record.example.conjunction.result.execution);
 const abstraction = conjunction.event.find(event => event.source === 0 && event.rule.startsWith('[And.Boolean.Boolean]') && event.deduction.length);
 assert.deepEqual(abstraction.deduction.map(index => conjunction.event[index].rule).sort(), ['[False] Boolean', '[True] Boolean']);
 console.log('Every deduction is a path from the configuration where its event happens, and And deduces both operands as Boolean.');
+
+for (const [part, text] of [
+    [[['True', 'False'], ['False', 'True']], 'True ⇄ False'],
+    [[['Up', 'Less'], ['Down', 'Greater']], 'Up → Down, Less → Greater'],
+    [[['A', 'B'], ['B', 'C']], 'A → B → C'],
+    [[['A', 'B', 'C'], ['B', 'C', 'A']], '(A B C)'],
+    [[['Zero'], ['One'], ['Two']], 'Zero / One / Two'],
+]) assert.equal(symmetry.describe({ kind: 'local', part }), text);
+assert.equal(symmetry.describe({ kind: 'global', part: [['A', 'B'], ['X', 'Y']] }), 'A and B; X and Y');
+assert.equal(symmetry.describe({ kind: 'block', part: [['Boolean', 'Not']] }), 'Boolean.Not');
+assert.equal(symmetry.describe(record.example.light.result.symmetry.class[0]), 'Red, Green and Blue');
+console.log('Symmetries read as exchanges, renamings, copies and blocks.');

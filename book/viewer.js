@@ -37,6 +37,7 @@
         const graph = panel('State graph', [out, fit, into]);
         const label = element('span');
         const flow = panel('Execution hypergraph', [label]);
+        const symmetry = book.symmetry.create([graph.box, flow.box]);
 
         let current;
         let data;
@@ -116,6 +117,7 @@
         const show = (result, target) => {
             current = { result, target };
             chosen = undefined;
+            symmetry.show(result.symmetry, result.execution);
             render();
         };
 
@@ -125,6 +127,7 @@
             explained = undefined;
             note.textContent = 'Type a pattern to keep what matches and everything computed after it.';
             label.textContent = '';
+            symmetry.show();
             graph.host.replaceChildren(element('p', 'blank', text));
             flow.host.replaceChildren();
         };
@@ -139,7 +142,7 @@
         into.addEventListener('click', () => control?.zoom(1.25));
         fit.addEventListener('click', () => control?.zoom('fit'));
 
-        return { element: [filter, graph.box, flow.box], filter: apply, show, blank };
+        return { element: [filter, symmetry.element, graph.box, flow.box], filter: apply, show, blank };
     };
 
     book.viewer = { create };

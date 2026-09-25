@@ -56,6 +56,18 @@ assert.deepEqual(shortcut.deduction.map(index => deduced.event[index].rule), ['[
 assert.ok(deduced.event.filter(value => value.rule === '[A] B.C').every(value => !value.deduction.length));
 console.log('WebAssembly exploration matches native Rust reports, including suspended exploration, generated code and deductions.');
 
+const symmetric = explore({ version: 1, source: 'Light, [Light] Red, [Light] Green, [Light] Blue' });
+assert.equal(symmetric.symmetry.size, '6');
+assert.deepEqual(symmetric.symmetry.class, [{ kind: 'global', part: [['Red', 'Green', 'Blue']], rule: ['[Light] Blue', '[Light] Green', '[Light] Red'] }]);
+assert.ok(symmetric.execution.event.every(value => symmetric.symmetry.class[0].rule.includes(value.rule)));
+const local = explore({ version: 1, source: 'Start, [Start] Not.True, [Not.True] False, [Not.False] True' }).symmetry;
+assert.equal(local.size, '1');
+assert.deepEqual(local.class.map(value => [value.kind, value.part.map(part => [...part].sort()), value.rule]), [['local', [['False', 'True'], ['False', 'True']], ['[Not.False] True', '[Not.True] False']]]);
+assert.deepEqual(explore({ version: 1, source: 'Go.Fast, [Go.Fast] Stop' }).symmetry, { size: '2', class: [{ kind: 'block', part: [['Go', 'Fast']], rule: [] }] });
+assert.deepEqual(explore({ version: 1, source: 'A, [A] B' }).symmetry, { size: '1', class: [] });
+assert.deepEqual(explore({ version: 1, source: 'A, B, [A] C, [B] D, [X] Y, [X] Y' }).symmetry.class, [{ kind: 'global', part: [['A', 'B'], ['C', 'D']], rule: ['[A] C', '[B] D'] }]);
+console.log('Exploration reports global symmetries, rules that repeat under other names and blocks, named as events name their rules.');
+
 const library = [{ name: 'not.particle', source: '[Not.True] False,\n[Not.False] True' }];
 assert.deepEqual(explore({ version: 1, source: 'Not.True', library, target: ['False'], preserve: true }).verdict.map(value => value.outcome), ['reached']);
 assert.deepEqual(explore({ version: 1, source: 'Not.True', library, target: ['False'] }).verdict.map(value => value.outcome), ['unreachable']);

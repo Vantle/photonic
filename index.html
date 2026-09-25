@@ -16,6 +16,7 @@
 <script defer src="book/graph.js"></script>
 <script defer src="book/pattern.js"></script>
 <script defer src="book/hypergraph.js"></script>
+<script defer src="book/symmetry.js"></script>
 <script defer src="book/viewer.js"></script>
 <script defer src="book/share.js"></script>
 <script defer src="book/trace.js"></script>
@@ -427,6 +428,8 @@ Add.Unit.Unit.Unit,
 </table>
 </div>
 <p>A pattern matches the way a rule's input does: a coherence matches when it contains every occurrence the pattern names, whatever else it holds. In the hypergraph, each coherence of a pattern selects lanes on its own.</p>
+<h3>Symmetry</h3>
+<p>The symmetry panel colors both graphs by the ways a program repeats itself under other names. A <em>global</em> symmetry renames the whole program into itself: in Parallel, exchanging <code>A</code> with <code>B</code> and <code>C</code> with <code>D</code> leaves every rule in place, so those atoms and the events of <code>[A] C</code> and <code>[B] D</code> share one color. A <em>local</em> symmetry is a group of rules that recurs under other names while the rest of the program tells the copies apart, like <code>[True] Boolean</code> and <code>[False] Boolean</code> in Conjunction. A <em>block</em> is a set of atoms that always appear together. Hover or select a symmetry to light what it relates, and clear the Color box for the plain graphs. <a href="#connection">Chapter 16</a> explains how they are found.</p>
 <p class="onward"><a href="#tool">Next: Tests and tools</a></p>
 </section>
 
@@ -475,7 +478,7 @@ photonic_test(
 bazel run -c opt //command:photonic -- lower "$PWD/program/language/inference.wave"
 bazel run -c opt //command:photonic -- run "$PWD/program/language/inference.wave"
 bazel run -c opt //command:photonic -- prism "$PWD/program/language/inference.wave" --target "$PWD/target.json"</pre>
-<p><code>parse</code> prints the syntax tree, <code>lower</code> the program as JSON, <code>run</code> the explored configurations, and <code>prism</code> a verdict for a target in lowered JSON. <code>lower --context</code> copies a source's root rules into a target; <code>--library</code> loads a rules-only file; <code>--path</code> follows a direct path. <code>compare</code>, <code>symmetry</code> and <code>form</code> find programs that differ only in the names of their atoms, as <a href="#connection">chapter 16</a> shows. <code>bazel run</code> starts in its runfiles directory, so pass absolute paths.</p>
+<p><code>parse</code> prints the syntax tree, <code>lower</code> the program as JSON, <code>run</code> the explored configurations, and <code>prism</code> a verdict for a target in lowered JSON. <code>lower --context</code> copies a source's root rules into a target; <code>--library</code> loads a rules-only file; <code>--path</code> follows a direct path. <code>compare</code>, <code>symmetry</code> and <code>form</code> find programs, and parts of one program, that differ only in the names of their atoms, as <a href="#connection">chapter 16</a> shows. <code>bazel run</code> starts in its runfiles directory, so pass absolute paths.</p>
 <pre class="listing">bazel test -c opt //...
 bazel run -c opt //program/language:inference
 bazel test -c opt //program/language:conjunction.check</pre>
@@ -648,10 +651,11 @@ bazel run -c opt //program/vector:sort</pre>
 <p>The renamings that leave a shape unchanged are its symmetries, and each gives another dictionary: any of <code>Across</code>, <code>Along</code> and <code>Turn</code> can stand for 3 modulo 8. Within one field, a dictionary shows a duality. <code>Boolean.Or</code> is <code>Boolean.And</code> with <code>True</code> and <code>False</code> exchanged, which is De Morgan's law. The lattice theorem that x ∨ y = y implies x ∧ y = x, with meet and join exchanged and x and y exchanged, is the theorem that x ∧ y = x implies x ∨ y = y.</p>
 <h3>How it works</h3>
 <p>Each program becomes a graph in which only the atoms are unnamed. Identical parts share one vertex, so only atoms can be interchangeable. Refinement splits the atoms by how they are used until no split remains, and a search tries each remaining choice. Whenever it finds a symmetry, it skips every choice that symmetry makes redundant, as the graph isomorphism programs nauty, bliss and Traces do. The least labeling it reaches names the atoms A, B, C and so on. That renamed program is the shape, and two programs are connected exactly when their shapes are equal. The dictionaries above come from the same search, run in this page.</p>
+<p>A connection can also run inside one program. A group of rules may recur under other names although the program as a whole has no symmetry: the addition library moves its digits through the same rules that borrowing uses, with <code>Add</code> renamed <code>Borrow</code>, and the sorting library merges upward and downward with the same 61 rules. <code>photonic symmetry</code> finds these local symmetries by growing groups one rule at a time from rules of equal shape and extending every copy the same way, as the frequent subgraph miners gSpan and GraMi grow patterns, and keeps the groups that account for the most of the program, as the compression heuristics of SUBDUE and Stitch do. The <a href="#workbench">workbench</a> and the <a href="lightbox.html">Lightbox</a> run the same analysis on every program and color the global symmetries, the local ones and the atoms that always travel together in both graphs.</p>
 <pre class="listing">bazel run -c opt //command:photonic -- compare "$PWD/library/boolean/and.particle" "$PWD/library/boolean/or.particle"
 bazel run -c opt //command:photonic -- symmetry "$PWD/library/ternary/compare.particle"
 bazel run -c opt //command:photonic -- form "$PWD/library/boolean/and.particle"</pre>
-<p><code>compare</code> groups programs by shape and prints each renaming, <code>symmetry</code> prints a program's symmetries and the rules they exchange, and <code>form</code> prints its shape. <code>--library</code> loads rules, <code>--target</code> adds a configuration every renaming must keep, and <code>--fix</code> keeps the name of an atom that something outside the program relies on. The <a href="document/symmetry.md">symmetry record</a> describes the algorithm and what it finds in this repository.</p>
+<p><code>compare</code> groups programs by shape and prints each renaming, <code>symmetry</code> prints a program's symmetries, the rules they exchange and the groups of rules that repeat under other names, and <code>form</code> prints its shape. <code>--library</code> loads rules, <code>--target</code> adds a configuration every renaming must keep, and <code>--fix</code> keeps the name of an atom that something outside the program relies on. The <a href="document/symmetry.md">symmetry record</a> describes the algorithm and what it finds in this repository.</p>
 <p class="onward"><a href="#runtime">Next: Inside the runtime</a></p>
 </section>
 

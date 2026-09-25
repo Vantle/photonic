@@ -446,6 +446,33 @@ fn symmetry() {
         result["block"][0],
         serde_json::json!(["Boolean", "Not", "True"])
     );
+    let local = fixture.write(
+        "local.wave",
+        "Start, [Start] Not.True, [Not.True] False, [Not.False] True",
+    );
+    let result = report(&execute("symmetry", &local, &["--json"]));
+    assert_eq!(result["size"], "1");
+    let mut copy = result["pattern"][0]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|copy| (copy["atom"].clone(), copy["statement"].clone()))
+        .collect::<Vec<_>>();
+    copy.sort_by_key(|(_, statement)| statement.to_string());
+    assert_eq!(
+        copy,
+        [
+            (
+                serde_json::json!(["True", "False"]),
+                serde_json::json!(["[Not.False] True"])
+            ),
+            (
+                serde_json::json!(["False", "True"]),
+                serde_json::json!(["[Not.True] False"])
+            ),
+        ]
+    );
+    assert_eq!(result["pattern"].as_array().unwrap().len(), 1);
 }
 
 #[test]

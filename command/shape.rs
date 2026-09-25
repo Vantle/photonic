@@ -6,9 +6,11 @@ use serde::Serialize;
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use symmetry::group::{Permutation, element, orbit};
-use symmetry::rename;
+use symmetry::analysis::analyze;
+use symmetry::group::{Permutation, element};
+use symmetry::pattern::Pattern;
 use symmetry::search::Exhausted;
+use symmetry::statement::Statement;
 use symmetry::structure::{Part, Structure, Symmetry};
 use translation::lift::{self, Naming};
 use translation::text;
@@ -25,6 +27,13 @@ struct Report {
     block: Vec<Vec<String>>,
     symmetry: Vec<Vec<Vec<String>>>,
     orbit: Vec<Vec<String>>,
+    pattern: Vec<Vec<Occurrence>>,
+}
+
+#[derive(Serialize)]
+struct Occurrence {
+    atom: Vec<String>,
+    statement: Vec<String>,
 }
 
 #[derive(Serialize)]
@@ -115,15 +124,64 @@ fn cycle(permutation: &Permutation, name: &BTreeMap<Atom, String>) -> Vec<Vec<St
         .collect()
 }
 
+fn statement(structure: &Structure) -> Vec<Statement> {
+    let part = &structure.part[0];
+    part.program
+        .rule()
+        .iter()
+        .cloned()
+        .map(Statement::Rule)
+        .chain(
+            part.configuration
+                .coherence()
+                .iter()
+                .cloned()
+                .map(Statement::Coherence),
+        )
+        .collect()
+}
+
+fn write(statement: &Statement, vocabulary: &Vocabulary) -> String {
+    match statement {
+        Statement::Rule(rule) => text::rule(rule, vocabulary),
+        Statement::Coherence(particle) => photonic::text::coherence(
+            &translation::emit::configuration(
+                &code::configuration::Configuration::from(vec![particle.clone()]),
+                vocabulary,
+            )[0],
+        ),
+    }
+}
+
+fn pattern(pattern: &Pattern, statement: &[Statement], vocabulary: &Vocabulary) -> Vec<Occurrence> {
+    let varying = pattern.varying();
+    pattern
+        .occurrence
+        .iter()
+        .map(|occurrence| Occurrence {
+            atom: varying
+                .iter()
+                .map(|&position| vocabulary.name(occurrence.atom[position]).to_owned())
+                .collect(),
+            statement: occurrence
+                .statement
+                .iter()
+                .map(|&index| write(&statement[index], vocabulary))
+                .collect(),
+        })
+        .collect()
+}
+
 pub fn symmetry(path: PathBuf, analysis: Analysis) -> miette::Result<()> {
     let mut vocabulary = Vocabulary::default();
     let structure = load(&path, &analysis, &mut vocabulary)?;
-    let symmetry = structure.symmetry(analysis.budget).map_err(exhausted)?;
-    let rule = structure.part[0].program.rule();
-    let name = display(&symmetry, &vocabulary);
+    let statement = self::statement(&structure);
+    let result = analyze(&structure, &statement, analysis.budget).map_err(exhausted)?;
+    let symmetry = &result.symmetry;
+    let name = display(symmetry, &vocabulary);
     let report = Report {
         atom: symmetry.atom.len(),
-        rule: rule.len(),
+        rule: structure.part[0].program.rule().len(),
         size: symmetry.size.to_string(),
         node: symmetry.node,
         block: symmetry
@@ -136,18 +194,21 @@ pub fn symmetry(path: PathBuf, analysis: Analysis) -> miette::Result<()> {
             .iter()
             .map(|permutation| cycle(permutation, &name))
             .collect(),
-        orbit: orbit(rule, &symmetry.generator, |rule, permutation| {
-            rename::rule(rule, &|atom| permutation.image(atom))
-        })
-        .into_iter()
-        .filter(|member| member.len() > 1)
-        .map(|member| {
-            member
-                .iter()
-                .map(|&index| text::rule(&rule[index], &vocabulary))
-                .collect()
-        })
-        .collect(),
+        orbit: result
+            .statement
+            .iter()
+            .map(|member| {
+                member
+                    .iter()
+                    .map(|&index| write(&statement[index], &vocabulary))
+                    .collect()
+            })
+            .collect(),
+        pattern: result
+            .pattern
+            .iter()
+            .map(|entry| pattern(entry, &statement, &vocabulary))
+            .collect(),
     };
     if analysis.json {
         return crate::output::write(&report, false);
@@ -171,8 +232,28 @@ pub fn symmetry(path: PathBuf, analysis: Analysis) -> miette::Result<()> {
     }
     for member in &report.orbit {
         writeln!(output, "Orbit").into_diagnostic()?;
-        for rule in member {
-            writeln!(output, "    {rule}").into_diagnostic()?;
+        for statement in member {
+            writeln!(output, "    {statement}").into_diagnostic()?;
+        }
+    }
+    for occurrence in &report.pattern {
+        writeln!(
+            output,
+            "Pattern of {} statements in {} copies",
+            occurrence[0].statement.len(),
+            occurrence.len()
+        )
+        .into_diagnostic()?;
+        for copy in occurrence {
+            let label = if copy.atom.is_empty() {
+                "identical".to_owned()
+            } else {
+                copy.atom.join(" ")
+            };
+            writeln!(output, "  {label}").into_diagnostic()?;
+            for statement in &copy.statement {
+                writeln!(output, "    {statement}").into_diagnostic()?;
+            }
         }
     }
     Ok(())

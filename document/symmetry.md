@@ -2,7 +2,7 @@
 
 An atom is a name and nothing more: rules compare atoms only for equality. Renaming the atoms of a program, one to one, renames every configuration it reaches and every event between them. What a program means is therefore the pattern its names form, its shape, and programs that differ only by their names are one program, whatever field their names come from.
 
-The [symmetry](../symmetry/) package decides this. For any program, together with a target or with atoms whose names must stay, it computes a canonical form shared by every renaming, the renaming between two programs when one exists, and the automorphism group: every renaming that leaves the program unchanged. `photonic compare`, `photonic symmetry` and `photonic form` expose it, and the [Connections](../index.html#connection) chapter of the webbook runs it in the browser.
+The [symmetry](../symmetry/) package decides this. For any program, together with a target or with atoms whose names must stay, it computes a canonical form shared by every renaming, the renaming between two programs when one exists, and the automorphism group: every renaming that leaves the program unchanged. It also finds local symmetries, groups of rules that repeat under other names inside one program when the program as a whole has no symmetry. `photonic compare`, `photonic symmetry` and `photonic form` expose it, the [Connections](../index.html#connection) chapter of the webbook runs it in the browser, and the workbench and the Lightbox color every graph they draw by the symmetries of the program they run.
 
 ## Structure as a graph
 
@@ -38,6 +38,28 @@ Along the first path, the size of each orbit of the first path's next vertex, un
 
 The canonical order of the atoms, blocks expanded, renames the program into its shape, itself a program: two programs are isomorphic exactly when their shapes are equal. Comparing several programs groups them into classes of one shape. Each class carries a dictionary, one row per atom of the shape naming it in every member, the shape itself, and its symmetries. Within a block the dictionary keeps an atom's name wherever it can.
 
+## Local symmetry
+
+A program with no symmetry as a whole can still repeat itself. The integer addition library treats a positive and a negative left operand with six rules each, the same rules with `Positive` and `Negative` exchanged, but when the signs differ it swaps the operands only if the left one is negative, so no renaming of the whole library leaves it unchanged. A local symmetry is such a repetition: a set of statements, each a rule or an initial coherence, that occurs two or more times, every copy a renaming of the first. The copies are disjoint, each renaming fixes the atoms the copies share, and the atoms it moves are the ones that tell the copies apart. Finding them is a subgraph problem: the copies are isomorphic subgraphs of the program's graph, one for each copy.
+
+**Seeds.** Every statement gets a canonical form of its own from the search above, with the atoms named by `--fix` kept apart. Statements of equal form are the seeds: each is a copy of a one-statement pattern.
+
+**Growth.** A pattern grows one statement at a time along its list of copies, the way the frequent subgraph miners gSpan and GraMi grow patterns with their embeddings. The first copy adds a free statement that shares an atom with it. Every other copy looks up, through an index from atoms to statements, a free statement of the same form attached to its own copy the same way: its atoms already in the copy take the places the first copy's atoms hold, and its other atoms are new to the copy. A statement's own symmetries let one form attach in several ways, so the match tries each automorphism of the new statement's form, up to 4,096 of them, with its blocks free, as the pattern-aware matchers Peregrine and GraphPi account for a pattern's symmetries. Copies that cannot follow drop out. Growth continues while (copies − 1) × size, the number of vertices the repetition accounts for beyond one copy, increases.
+
+**Selection.** Grown patterns compete by that score in a lazy greedy, like the compression heuristic of SUBDUE and the abstractions Stitch learns: the best pattern whose statements are all still free is accepted and takes its statements, and a pattern that lost a statement to another regrows from the statements it has left. The copies of a one-statement pattern must connect through shared atoms, or they would only say that two statements have the same form; copies that fall apart split into patterns of their own. Statements that a global symmetry moves are left out, since the global symmetry already says more about them. The search is bounded by a budget of match attempts, so every program gets an answer.
+
+## Three kinds of symmetry
+
+| Kind | Relates | Found by |
+| --- | --- | --- |
+| global | the atoms that renamings of the whole program exchange, and the statements they move | the automorphism group |
+| local | the copies of a repeated group of statements, and the atoms that differ between copies | pattern growth |
+| block | atoms that always appear together | contracting twins |
+
+Global classes join the orbits of atoms and statements that the symmetries exchange together; a local class is one pattern; a block is its own class. The WebAssembly engine runs the analysis with every exploration ([toolchain/browser/analysis.rs](../toolchain/browser/analysis.rs)) and returns the classes with their atoms and the names of their rules, as events name the rules they apply. The workbench and the Lightbox color the graphs by kind. An atom colors its tokens in the state graph, the hypergraph and the inspectors, and a rule colors every event it causes, including events of the rules nested in its scopes. An atom in two classes takes the first kind in the order above, and a rule name that statements of different classes share stays plain. Hovering or selecting a symmetry in the panel lights its members and dims the rest.
+
+The three colors are the yellow, magenta and green of a validated categorical palette, checked with every pair of colors adjacent, against the book's surfaces in both themes and against the blue that marks selections. Under simulated protanopia and deuteranopia every pair stays apart except local and block in the dark theme, which sit in the floor band; blocks therefore also wear a dashed ring. Labels keep the ink colors, and every symmetry in the panel names its kind in words.
+
 ## Commands
 
 ```sh
@@ -53,7 +75,7 @@ library/boolean/and.particle
   = library/boolean/or.particle by And → Or (True False)
 ```
 
-`symmetry` prints the order of the automorphism group, the blocks, every symmetry when the group has at most 64 elements and generators otherwise, and each orbit of rules that the symmetries exchange:
+`symmetry` prints the order of the automorphism group, the blocks, every symmetry when the group has at most 64 elements and generators otherwise, each orbit of statements that the symmetries exchange, and each local pattern with the atoms that differ between its copies:
 
 ```
 12 atoms, 9 rules, 24 automorphisms
@@ -75,6 +97,21 @@ Orbit
 ```
 
 Comparing y with x answers the opposite of comparing x with y, and reflecting the trits through 1 reverses their order: each symmetry is a law of the table that holds for every input at once. The table's nine rules fall into four orbits, and the rule comparing 1 with 1 forms an orbit of its own. The three atoms of the request always travel together, which accounts for 3! of the 24 automorphisms.
+
+`Boolean.And` has no symmetry beyond its blocks, but one law holds for each value on its own: a conjunction of a value with itself is that value.
+
+```
+9 atoms, 5 rules, 4 automorphisms
+Block And.Boolean
+Block Empty.Reduce
+Pattern of 1 statements in 2 copies
+  True
+    [Function.Boolean.And.True.True] True.Return
+  False
+    [Function.Boolean.And.False.False] Return.False
+```
+
+Each copy lists the atoms that differ from the other copies, then its statements. Particles print their atoms in the order the program first names them.
 
 `form` prints the shape with atoms named A, B, C and so on, preceded by a fingerprint of its certificate that is the same on every platform. `Boolean.And` and `Boolean.Or` print the same shape:
 
@@ -99,7 +136,9 @@ The page calls `compare` in the WebAssembly engine ([toolchain/browser/shape.rs]
 
 `//symmetry:test` compares the engine with brute force. On 400 random programs of up to 7 atoms with nested rule values, scopes and configurations, half of them closed under a random permutation so that they have symmetry, the group's order equals the number of permutations that leave the program unchanged, and every reported generator and block exchange is an automorphism. On 600 random pairs of up to 6 atoms, equal keys coincide exactly with the existence of a renaming found by trying every bijection, and every returned renaming maps one program onto the other. On 120 programs of up to 44 atoms and 30 rules, four random relabelings each give the same key, group order and canonical form. Vertex-transitive graphs, where refinement alone separates nothing, give the orders of their automorphism groups: 120 for the Petersen graph, 384 for the 4-cube, 144 for K3,4, 200 for two disjoint pentagons and 362,880 for K9. Comparing three programs gives the expected classes and a dictionary that maps one member onto the other.
 
-`//command:test` runs the three commands. `//toolchain/browser:test` checks the WebAssembly comparison, including located errors, and that its dictionary equals the native command's, since the engine there runs on 32 bits. `//toolchain/browser:check` drives the chapter in a browser, from recorded runs and live.
+Local symmetry is checked on 300 programs that each plant a group of one to three random rules in two to four copies, sharing up to two atoms, among unrelated rules. Every reported pattern is exact: its copies are disjoint, each copy's atoms are distinct, no copy holds a statement a global symmetry moves, the copies of a one-statement pattern connect through shared atoms, and renaming the first copy by the positions of its atoms gives every other copy statement by statement. The search reports more than 60 patterns across the 300 programs; planted copies that no other rule tells apart are global symmetries instead. A program with a global orbit, a local pair and a block reports one class of each kind.
+
+`//command:test` runs the three commands, including a pattern. `//toolchain/browser:test` checks the WebAssembly comparison, including located errors, and that its dictionary equals the native command's, since the engine there runs on 32 bits; it also checks the classes that exploration reports and that they name rules as events do. `//toolchain/browser:check` drives the chapter, the workbench and the Lightbox in a browser, from recorded runs and live, including the colors, the lighting and the switch that turns the colors off.
 
 ## Survey
 
@@ -123,6 +162,8 @@ Many library modules have symmetries that survive loading their dependencies. `B
 Without their libraries, more source files coincide: `polarity.10` and `polarity.14` differ only by `Multiply → Divide`, and several fixtures in `program/association` are one shape. They are not redundant. The expression library tells `Multiply` from `Divide`, and the fixtures are targets for programs that tell their atoms apart.
 
 51 tests had symmetries beyond their blocks. Some are properties of the claim: `theorem/natural:reversal` treats all three digits alike, `theorem/natural:trim` exchanges only 1 and 2, and the relation theorems exchange `Left` with `Right`. Many derived proofs share (True False)(Holds Counterexample), which comes from the case rules they load but never use.
+
+Local symmetry finds relations that no renaming of a whole library shows. In `Natural.Add` assembled with its dependencies, the column machine's addition and borrowing modes are the same ten statements, with `Add`, `Read` and `Yield` renamed `Borrow`, `Peek` and `Seen`. `Natural.Compare` handles each of the three digits with the same 19 statements, the other two digits permuted to match. `Vector.Sort` merges in both directions with the same 61 statements: exchanging `Up` with `Down`, `Less` with `Greater`, `Heap` with `Pile` and the digits 1 with 2, and naming `Rise` as `Fall`, turns one direction into the other. `Integer.Add` handles a positive and a negative left operand with six rules each. The analysis of `Expression.Evaluate`, 751 rules, takes 0.22 seconds and finds 132 patterns; `//program/circuit:divide.check`, 3,630 rules, takes 1.3 seconds.
 
 Two optimizations the survey measured are not worth building. Contracting blocks into single atoms would remove 0.1% of atom occurrences across all tests, because an atom that always travels with another inside one module rarely does once the libraries are loaded. Exploring one configuration per orbit of the automorphism group would help only programs whose symmetries move reachable configurations; in the proofs explored in full, the symmetries mostly come from the unused case rules and move nothing. The learner's exhaustive `solve` could enumerate programs up to renaming of the atoms no example mentions, but its schedule breaks ties by atom identity; a schedule that broke ties by shape would allow it.
 

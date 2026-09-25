@@ -1,3 +1,4 @@
+use crate::forest::Forest;
 use code::atom::Atom;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
@@ -150,30 +151,17 @@ pub fn orbit<Item: Clone + Ord>(
         .enumerate()
         .map(|(position, entry)| (entry.clone(), position))
         .collect::<BTreeMap<_, _>>();
-    let mut parent = (0..item.len()).collect::<Vec<_>>();
-    fn find(parent: &mut [usize], position: usize) -> usize {
-        let mut root = position;
-        while parent[root] != root {
-            root = parent[root];
-        }
-        parent[position] = root;
-        root
-    }
+    let mut forest = Forest::new(item.len());
     for permutation in generator {
         for (position, entry) in item.iter().enumerate() {
-            let Some(&image) = index.get(&apply(entry, permutation)) else {
+            let image = apply(entry, permutation);
+            if image == *entry {
                 continue;
-            };
-            let (left, right) = (find(&mut parent, position), find(&mut parent, image));
-            parent[left.max(right)] = left.min(right);
+            }
+            if let Some(&image) = index.get(&image) {
+                forest.join(position, image);
+            }
         }
     }
-    let mut group = BTreeMap::<usize, Vec<usize>>::new();
-    for position in 0..item.len() {
-        group
-            .entry(find(&mut parent, position))
-            .or_default()
-            .push(position);
-    }
-    group.into_values().collect()
+    forest.group()
 }

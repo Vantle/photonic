@@ -146,6 +146,7 @@ try {
     await evaluate(`${inferred}.dispatchEvent(new Event('mouseleave')); return true`);
     assert.equal(await evaluate(`return ${figure('conjunction')}.querySelectorAll('.link.deduction, .state[data-deduction]').length`), 0);
     await evaluate("[...document.querySelectorAll('#bench .preset button')].find(value => value.textContent === 'Parallel').click(); return true");
+    assert.deepEqual(await evaluate("return [...document.querySelectorAll('#bench .symmetry .class button')].map(value => value.textContent)"), ['Global A and B; C and D']);
     await evaluate(`${figure('first')}.querySelector('.bar button:not(.run)').click(); return true`);
     await until("return document.querySelector('#bench .editor textarea').value === 'A.X,\\n[A] B'");
     assert.match(await evaluate("return document.querySelector('#bench .bar a').getAttribute('href')"), /^lightbox\.html\?source=/);
@@ -172,11 +173,24 @@ try {
     assert.equal(await evaluate("return document.querySelector('.lightbox .run').hidden"), true);
     assert.equal(await evaluate("return document.querySelector('.lightbox .notice').hidden"), false);
     assert.equal(await evaluate("return document.querySelectorAll('.lightbox .graph .state').length"), await evaluate('return book.record.example.light.result.execution.state.length'));
+    const chip = "document.querySelector('.lightbox .symmetry .class button')";
+    assert.deepEqual(await evaluate("return [...document.querySelectorAll('.lightbox .symmetry .class button')].map(value => value.textContent)"), ['Global Red, Green and Blue']);
+    assert.deepEqual(await evaluate("return [...document.querySelectorAll('.lightbox .graph .token[data-symmetry]')].map(value => `${value.textContent} ${value.dataset.symmetry}`).sort()"), ['Blue global', 'Green global', 'Red global']);
+    assert.equal(await evaluate("return document.querySelectorAll('.lightbox .graph .link[data-symmetry=\"global\"]').length"), 3);
+    await evaluate(`${chip}.dispatchEvent(new PointerEvent('pointerenter')); return true`);
+    assert.equal(await evaluate("return document.querySelectorAll('.lightbox .graph .token[data-glow=\"global\"]').length"), 3);
+    await evaluate(`${chip}.dispatchEvent(new PointerEvent('pointerleave')); return true`);
+    assert.equal(await evaluate("return document.querySelectorAll('.lightbox [data-glow]').length"), 0);
+    await evaluate("document.querySelector('.lightbox .symmetry input').click(); return true");
+    assert.equal(await evaluate("return document.querySelectorAll('.lightbox [data-tint]').length"), 0);
+    await evaluate("document.querySelector('.lightbox .symmetry input').click(); return true");
+    assert.equal(await evaluate("return document.querySelectorAll('.lightbox [data-tint]').length"), 2);
     await evaluate("[...document.querySelectorAll('.lightbox .preset button')].find(value => value.textContent === 'Negation').click(); return true");
+    assert.deepEqual(await evaluate("return [...document.querySelectorAll('.lightbox .symmetry .class button')].map(value => value.textContent)"), ['Local False ⇄ True', 'Block Boolean.Not']);
     assert.deepEqual(await evaluate("return [...document.querySelectorAll('.lightbox .option button[aria-pressed=\"true\"]')].map(value => value.title)"), ['library/function/invoke.particle', 'library/boolean/not.particle']);
     assert.deepEqual(await evaluate("return [...document.querySelectorAll('.lightbox .verdict .badge')].map(value => value.textContent)"), ['reached']);
     await narrow();
-    console.log('The recorded Lightbox shows every example with its libraries and targets from a local file.');
+    console.log('The recorded Lightbox shows every example with its libraries, targets and symmetries from a local file.');
 
     await open(`${origin}/index.html`, `${ready} && book.engine.state === 'live'`);
     assert.equal(await evaluate("return document.getElementById('status').textContent"), 'Live engine');
@@ -290,12 +304,15 @@ try {
         document.querySelector('.lightbox .run').click();
         return true`);
     await until("return document.querySelectorAll('.lightbox .graph .state').length === 4 && document.querySelectorAll('.lightbox button.hyperedge').length === 2");
+    assert.deepEqual(await evaluate("return [...document.querySelectorAll('.lightbox .symmetry .class button')].map(value => value.textContent)"), ['Global A and B; C and D']);
+    assert.equal(await evaluate("return document.querySelectorAll('.lightbox button.hyperedge[data-symmetry=\"global\"]').length"), 2);
     assert.match(await evaluate('return new URLSearchParams(location.search).get("source")'), /\[B\] D$/);
     await open(await evaluate('return location.href'), "return book.engine.state === 'live' && document.querySelectorAll('.lightbox .graph .state').length === 4");
     await open(`${origin}/lightbox.html`, "return document.querySelector('.lightbox .editor textarea').value.endsWith('[B] D') && document.querySelectorAll('.lightbox .graph .state').length === 4");
     await evaluate("[...document.querySelectorAll('.lightbox .bar button')].find(value => value.textContent === 'New').click(); return true");
     assert.equal(await evaluate("return document.querySelector('.lightbox .editor textarea').value"), '');
     assert.equal(await evaluate("return document.querySelectorAll('.lightbox .blank').length"), 1);
+    assert.equal(await evaluate("return document.querySelector('.lightbox .symmetry').hidden"), true);
     await narrow();
     console.log('The live Lightbox runs new programs, restores shared links and drafts, and starts afresh.');
 
