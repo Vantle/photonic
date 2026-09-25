@@ -3,6 +3,7 @@ mod failure;
 mod path;
 mod request;
 mod response;
+mod shape;
 
 use failure::{Code, Failure};
 use photonic::prism::{Search, Verdict};
@@ -121,4 +122,9 @@ pub fn lower(source: &str) -> String {
 #[wasm_bindgen]
 pub fn explore(input: &str) -> String {
     response::respond(exploration(input))
+}
+
+#[wasm_bindgen]
+pub fn compare(input: &str) -> String {
+    response::respond(shape::comparison(input))
 }

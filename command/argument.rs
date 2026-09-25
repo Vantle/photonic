@@ -42,6 +42,54 @@ pub enum Operation {
         #[command(flatten)]
         execution: Execution,
     },
+    #[command(about = "Print the renamings of atoms that leave a program unchanged")]
+    Symmetry {
+        path: PathBuf,
+        #[command(flatten)]
+        analysis: Analysis,
+    },
+    #[command(about = "Group programs that differ only by the names of their atoms")]
+    Compare {
+        #[arg(required = true, num_args = 2..)]
+        path: Vec<PathBuf>,
+        #[command(flatten)]
+        analysis: Analysis,
+    },
+    #[command(about = "Print a program's canonical form, shared by every renaming of its atoms")]
+    Form {
+        path: PathBuf,
+        #[command(flatten)]
+        analysis: Analysis,
+    },
+}
+
+#[derive(Args)]
+pub struct Analysis {
+    #[arg(
+        long,
+        help = "Load a declaration-only Photonic library; repeat for each source file"
+    )]
+    pub library: Vec<PathBuf>,
+    #[arg(
+        long,
+        help = "Target configuration that every renaming must also preserve"
+    )]
+    pub target: Option<PathBuf>,
+    #[arg(
+        long,
+        help = "Keep this atom's name in every renaming; repeat for each atom"
+    )]
+    pub fix: Vec<String>,
+    #[arg(long, default_value_t = 1_000_000, help = "Search node limit")]
+    pub budget: usize,
+    #[arg(long, help = "Print the result as JSON")]
+    pub json: bool,
+    #[arg(
+        long,
+        value_enum,
+        help = "Input format; .json selects JSON, .particle and .wave use identical Photonic syntax"
+    )]
+    pub format: Option<Format>,
 }
 
 #[derive(Args)]

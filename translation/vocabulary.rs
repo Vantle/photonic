@@ -1,6 +1,17 @@
 use code::atom::Atom;
 use serde::{Deserialize, Serialize};
 
+fn letter(index: usize) -> String {
+    let mut rest = index + 1;
+    let mut letter = Vec::new();
+    while rest > 0 {
+        rest -= 1;
+        letter.push(char::from(b'A' + (rest % 26) as u8));
+        rest /= 26;
+    }
+    letter.iter().rev().collect()
+}
+
 #[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(transparent)]
 pub struct Vocabulary {
@@ -10,6 +21,10 @@ pub struct Vocabulary {
 impl Vocabulary {
     pub fn new(name: Vec<String>) -> Self {
         Self { name }
+    }
+
+    pub fn alphabet(count: usize) -> Self {
+        Self::new((0..count).map(letter).collect())
     }
 
     pub fn intern(&mut self, name: &str) -> Atom {

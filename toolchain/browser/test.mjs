@@ -145,3 +145,45 @@ const start = performance.now();
 const repeated = evaluate('2*2*2*2*2*2*2*2*2*2');
 console.log(JSON.stringify({ repeated: { elapsed: performance.now() - start, event: repeated.event, work: repeated.work, state: repeated.state?.id } }));
 assert.equal(decode(repeated.state).ternary, '1101221');
+
+const compare = request => JSON.parse(engine.compare(JSON.stringify(request)));
+const parity = '[Add.0.0] 0,\n[Add.0.1] 1,\n[Add.1.1] 0';
+const exclusive = '[Xor.False.False] False,\n[Xor.False.True] True,\n[Xor.True.True] False';
+const card = '[Compose.Keep.Keep] Keep,\n[Compose.Keep.Flip] Flip,\n[Compose.Flip.Flip] Keep';
+const connected = compare({ version: 1, program: [parity, exclusive, card] });
+assert.equal(connected.shape.length, 1);
+assert.deepEqual(connected.shape[0].member, [0, 1, 2]);
+assert.deepEqual(
+    Object.fromEntries(connected.shape[0].atom.map(row => [row.name[0], row.name.slice(1)])),
+    { Add: ['Xor', 'Compose'], 0: ['False', 'Keep'], 1: ['True', 'Flip'] },
+);
+assert.equal(connected.shape[0].rule.length, 3);
+assert.equal(connected.shape[0].size, '1');
+assert.deepEqual(connected.shape[0].symmetry, []);
+const light = compare({ version: 1, program: ['Light, [Light] Red, [Light] Green, [Light] Blue'] });
+assert.equal(light.shape[0].size, '6');
+assert.equal(light.shape[0].symmetry.length, 5);
+assert.deepEqual(light.shape[0].initial, [light.shape[0].atom.find(row => row.name[0] === 'Light').letter]);
+const apart = compare({ version: 1, program: ['A, [A] B', 'A, [A] B, [B] C'] });
+assert.deepEqual(apart.shape.map(shape => shape.member), [[0], [1]]);
+const [blocked] = compare({ version: 1, program: ['[Boolean.Not.True] False'] }).shape;
+assert.deepEqual(blocked.block[0].map(letter => blocked.atom.find(row => row.letter === letter).name[0]).sort(), ['Boolean', 'Not', 'True']);
+assert.equal(compare({ version: 1, program: [] }).error.code, 'request');
+assert.equal(compare({ version: 1, program: Array(5).fill('A') }).error.code, 'request');
+assert.equal(compare({ version: 2, program: ['A'] }).error.code, 'version');
+const broken = compare({ version: 1, program: ['A', 'B, [C'] });
+assert.equal(broken.error.code, 'source');
+assert.equal(broken.error.program, 1);
+assert.equal(broken.error.span.offset, 5);
+const file = [];
+for (const [index, source] of [parity, exclusive, card].entries()) {
+    const path = join(process.env.TEST_TMPDIR, `shape.${index}.wave`);
+    await writeFile(path, source);
+    file.push(path);
+}
+const native = spawnSync(command, ['compare', ...file, '--json'], { encoding: 'utf8' });
+assert.equal(native.status, 0, native.stderr);
+assert.deepEqual(JSON.parse(native.stdout)[0].atom, connected.shape[0].atom.map(row => row.name));
+const deep = Array.from({ length: 3500 }, (_, index) => `[a${index}] b${index},[b${index}] a${index}.b${index}`).join(',\n');
+assert.equal(compare({ version: 1, program: [deep] }).error.code, 'size');
+console.log('Comparisons group programs by shape, name every atom in each program and match the native command.');

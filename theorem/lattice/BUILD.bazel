@@ -1,5 +1,13 @@
 load("//theorem:defs.bzl", "theorem")
 
+exports_files(
+    [
+        "converse.wave",
+        "order.wave",
+    ],
+    visibility = ["//book:__pkg__"],
+)
+
 theorem(
     name = "antisymmetry",
     srcs = ["antisymmetry.wave"],

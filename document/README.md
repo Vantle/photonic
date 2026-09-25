@@ -13,6 +13,7 @@ These describe the repository as it is and change with it.
 | [Build organization](build.md) | Bazel packages, toolchains, caching and the lint policy. |
 | [Continuous verification](automation.md) | The Buildkite jobs, their agent capacity and the fixtures tagged `memory`. |
 | [Theorems](../theorem/README.md) | The proof contract, how to write a theorem, and the order in which the layers are proved. |
+| [Program symmetry](symmetry.md) | Shapes, renamings and symmetries of programs: how the engine finds them, how to use it to connect fields, and what it finds in this repository. |
 | [Program optimization learner](learning.md) | Correctness under every schedule, the objective and goals, edits, planning, inferring instead of checking, solving and proving optimality, learning loops and curriculum, training and results. |
 
 ## Plan

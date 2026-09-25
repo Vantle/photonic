@@ -10,6 +10,7 @@ rust_library(
         "//gpu:__pkg__",
         "//learning:__pkg__",
         "//network:__pkg__",
+        "//symmetry:__pkg__",
         "//translation:__pkg__",
     ],
 )

@@ -1,4 +1,4 @@
-import initialize, { lower, explore, Path } from '../toolchain/browser/module/runtime.js';
+import initialize, { lower, explore, compare, Path } from '../toolchain/browser/module/runtime.js';
 import { decode } from './numeral.js';
 
 const ready = initialize();
@@ -29,6 +29,7 @@ const refuse = message => ({ version: 1, error: { code: 'request', message } });
 const answer = data => {
     if (data.kind === 'lower') return JSON.parse(lower(data.source));
     if (data.kind === 'explore') return JSON.parse(explore(JSON.stringify(data.request)));
+    if (data.kind === 'compare') return JSON.parse(compare(JSON.stringify(data.request)));
     if (data.kind === 'path') return follow(new Path(JSON.stringify(data.request)), false);
     if (data.kind === 'expression') return follow(Path.expression(data.input), true);
     if (data.kind !== 'inspect') return refuse(`The engine does not know the request kind ${data.kind}.`);

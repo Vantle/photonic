@@ -13,6 +13,7 @@ rust_shared_library(
         "path.rs",
         "request.rs",
         "response.rs",
+        "shape.rs",
     ],
     compile_data = ["//library/expression:evaluate"],
     crate_root = "engine.rs",
@@ -24,7 +25,10 @@ rust_shared_library(
     target_compatible_with = ["@platforms//cpu:wasm32"],
     deps = [
         "//arithmetic:infix",
+        "//code",
         "//language:photonic",
+        "//symmetry",
+        "//translation",
         "@crate//:miette",
         "@crate//:serde",
         "@crate//:serde_json",

@@ -426,3 +426,74 @@ fn context() {
         );
     }
 }
+
+#[test]
+fn symmetry() {
+    let fixture = Fixture::new();
+    let path = fixture.write(
+        "light.wave",
+        "Light, [Light] Red, [Light] Green, [Light] Blue",
+    );
+    let result = report(&execute("symmetry", &path, &["--json"]));
+    assert_eq!(result["size"], "6");
+    assert_eq!(result["orbit"].as_array().unwrap().len(), 1);
+    assert_eq!(result["orbit"][0].as_array().unwrap().len(), 3);
+    let fixed = report(&execute("symmetry", &path, &["--json", "--fix", "Red"]));
+    assert_eq!(fixed["size"], "2");
+    let block = fixture.write("block.wave", "[Boolean.Not.True] False");
+    let result = report(&execute("symmetry", &block, &["--json"]));
+    assert_eq!(
+        result["block"][0],
+        serde_json::json!(["Boolean", "Not", "True"])
+    );
+}
+
+#[test]
+fn compare() {
+    let fixture = Fixture::new();
+    let and = fixture.write(
+        "and.particle",
+        "[Function.And.True.True] Return.True, [Function.And.True.False] Return.False, [Function.And.False.False] Return.False",
+    );
+    let or = fixture.write(
+        "or.particle",
+        "[Function.Or.True.True] Return.True, [Function.Or.True.False] Return.True, [Function.Or.False.False] Return.False",
+    );
+    let equal = fixture.write(
+        "equal.particle",
+        "[Function.Equal.True.True] Return.True, [Function.Equal.True.False] Return.False, [Function.Equal.False.False] Return.True",
+    );
+    let other = or.to_str().unwrap();
+    let result = report(&execute("compare", &and, &[other, "--json"]));
+    assert_eq!(result.as_array().unwrap().len(), 1);
+    let row = result[0]["atom"].as_array().unwrap();
+    assert!(row.contains(&serde_json::json!(["True", "False"])));
+    assert!(row.contains(&serde_json::json!(["False", "True"])));
+    assert!(row.contains(&serde_json::json!(["And", "Or"])));
+    assert!(row.contains(&serde_json::json!(["Function", "Function"])));
+    let text = execute("compare", &and, &[other]);
+    assert!(String::from_utf8_lossy(&text.stdout).contains("by And → Or (True False)"));
+    let apart = execute("compare", &and, &[other, equal.to_str().unwrap()]);
+    assert!(!apart.status.success());
+    assert!(String::from_utf8_lossy(&apart.stderr).contains("2 shapes"));
+    let fixed = execute("compare", &and, &[other, "--fix", "True"]);
+    assert!(!fixed.status.success());
+}
+
+#[test]
+fn form() {
+    let fixture = Fixture::new();
+    let left = fixture.write("left.wave", "Seed.A, [Seed] ().([A] B), [B] C");
+    let right = fixture.write("right.wave", "[Y] Z, Root.X, [Root] ().([X] Y)");
+    let first = execute("form", &left, &[]);
+    let second = execute("form", &right, &[]);
+    assert!(
+        first.status.success(),
+        "{}",
+        String::from_utf8_lossy(&first.stderr)
+    );
+    assert_eq!(first.stdout, second.stdout);
+    let result = report(&execute("form", &left, &["--json"]));
+    assert!(result["shape"].as_str().unwrap().len() == 16);
+    assert_eq!(result["atom"].as_array().unwrap().len(), 4);
+}

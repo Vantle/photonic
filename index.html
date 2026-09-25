@@ -22,6 +22,7 @@
 <script defer src="book/example.js"></script>
 <script defer src="book/lens.js"></script>
 <script defer src="book/calculator.js"></script>
+<script defer src="book/connection.js"></script>
 <script defer src="book/workbench.js"></script>
 <script defer src="book/palette.js"></script>
 <script defer src="book/theme.js"></script>
@@ -71,15 +72,16 @@
 <section>
 <h2>Proof</h2>
 <a href="#proof"><span>15</span>Proof by execution</a>
+<a href="#connection"><span>16</span>Connections</a>
 </section>
 <section>
 <h2>System</h2>
-<a href="#runtime"><span>16</span>Inside the runtime</a>
-<a href="#repository"><span>17</span>The repository</a>
+<a href="#runtime"><span>17</span>Inside the runtime</a>
+<a href="#repository"><span>18</span>The repository</a>
 </section>
 <section>
 <h2>Reference</h2>
-<a href="#reference"><span>18</span>Grammar and glossary</a>
+<a href="#reference"><span>19</span>Grammar and glossary</a>
 </section>
 </nav>
 <div class="foot">
@@ -96,7 +98,7 @@
 <header class="hero" id="top">
 <h1>Write the rules.<br><em>Explore every outcome.</em></h1>
 <p class="lead">Photonic is a language of rules. A program is data and the rules that change it. The runtime explores every configuration those rules can reach, and Prism checks results exactly.</p>
-<noscript><p class="note">This text reads fine without JavaScript. The graphs, the lens, the calculator and the workbench need it.</p></noscript>
+<noscript><p class="note">This text reads fine without JavaScript. The graphs, the lens, the calculator, the connections and the workbench need it.</p></noscript>
 <figure class="example wide" data-example="light">
 <pre>Light,
 [Light] Red,
@@ -473,7 +475,7 @@ photonic_test(
 bazel run -c opt //command:photonic -- lower "$PWD/program/language/inference.wave"
 bazel run -c opt //command:photonic -- run "$PWD/program/language/inference.wave"
 bazel run -c opt //command:photonic -- prism "$PWD/program/language/inference.wave" --target "$PWD/target.json"</pre>
-<p><code>parse</code> prints the syntax tree, <code>lower</code> the program as JSON, <code>run</code> the explored configurations, and <code>prism</code> a verdict for a target in lowered JSON. <code>lower --context</code> copies a source's root rules into a target; <code>--library</code> loads a rules-only file; <code>--path</code> follows a direct path. <code>bazel run</code> starts in its runfiles directory, so pass absolute paths.</p>
+<p><code>parse</code> prints the syntax tree, <code>lower</code> the program as JSON, <code>run</code> the explored configurations, and <code>prism</code> a verdict for a target in lowered JSON. <code>lower --context</code> copies a source's root rules into a target; <code>--library</code> loads a rules-only file; <code>--path</code> follows a direct path. <code>compare</code>, <code>symmetry</code> and <code>form</code> find programs that differ only in the names of their atoms, as <a href="#connection">chapter 16</a> shows. <code>bazel run</code> starts in its runfiles directory, so pass absolute paths.</p>
 <pre class="listing">bazel test -c opt //...
 bazel run -c opt //program/language:inference
 bazel test -c opt //program/language:conjunction.check</pre>
@@ -633,6 +635,23 @@ bazel run -c opt //program/vector:sort</pre>
 </div>
 <p>84 claims: 79 proofs and 5 refutations. The last three layers prove the standard library itself, so linked addition, subtraction, comparison and successor are correct at every width. The <a href="theorem/README.md">theorem guide</a> explains how to write one.</p>
 <pre class="listing">bazel test -c opt //theorem/...</pre>
+<p class="onward"><a href="#connection">Next: Connections between fields</a></p>
+</section>
+
+<section class="chapter" id="connection">
+<p class="eyebrow">Proof · 16</p>
+<h2>Connections between fields</h2>
+<p class="lead">An atom is a name and nothing more. Programs that differ only in their names are one program, and Photonic finds them even when they come from different fields.</p>
+<p>Rules compare atoms only for equality, so renaming the atoms of a program, one name for another, renames every configuration it reaches and every event between them. What a program means is the pattern its names form: its shape. <code>photonic compare</code> finds programs that share a shape, and the renaming between two of them is a dictionary from one vocabulary to the other. Hover a row of a dictionary to see its atom in every program.</p>
+<div class="widget connection wide" data-preset='[{"name": "Two elements", "shape": 1, "program": [{"field": "Arithmetic", "source": "[Add.0.0] 0,\n[Add.0.1] 1,\n[Add.1.1] 0"}, {"field": "Logic", "source": "[Xor.False.False] False,\n[Xor.False.True] True,\n[Xor.True.True] False"}, {"field": "Geometry", "source": "[Compose.Keep.Keep] Keep,\n[Compose.Keep.Flip] Flip,\n[Compose.Flip.Flip] Keep"}]}, {"name": "Four elements", "shape": 1, "program": [{"field": "Arithmetic", "source": "[Times.1.1] 1,\n[Times.1.3] 3,\n[Times.1.5] 5,\n[Times.1.7] 7,\n[Times.3.3] 1,\n[Times.5.5] 1,\n[Times.7.7] 1,\n[Times.3.5] 7,\n[Times.3.7] 5,\n[Times.5.7] 3"}, {"field": "Logic", "source": "[Toggle.Off.Off] Off,\n[Toggle.Off.First] First,\n[Toggle.Off.Second] Second,\n[Toggle.Off.Both] Both,\n[Toggle.First.First] Off,\n[Toggle.Second.Second] Off,\n[Toggle.Both.Both] Off,\n[Toggle.First.Second] Both,\n[Toggle.First.Both] Second,\n[Toggle.Second.Both] First"}, {"field": "Geometry", "source": "[Compose.Keep.Keep] Keep,\n[Compose.Keep.Across] Across,\n[Compose.Keep.Along] Along,\n[Compose.Keep.Turn] Turn,\n[Compose.Across.Across] Keep,\n[Compose.Along.Along] Keep,\n[Compose.Turn.Turn] Keep,\n[Compose.Across.Along] Turn,\n[Compose.Across.Turn] Along,\n[Compose.Along.Turn] Across"}]}, {"name": "Four turns", "shape": 2, "program": [{"field": "Arithmetic", "source": "[Add.0.0] 0,\n[Add.0.1] 1,\n[Add.0.2] 2,\n[Add.0.3] 3,\n[Add.1.1] 2,\n[Add.1.2] 3,\n[Add.1.3] 0,\n[Add.2.2] 0,\n[Add.2.3] 1,\n[Add.3.3] 2"}, {"field": "Geometry", "source": "[Compose.Keep.Keep] Keep,\n[Compose.Keep.Quarter] Quarter,\n[Compose.Keep.Half] Half,\n[Compose.Keep.Back] Back,\n[Compose.Quarter.Quarter] Half,\n[Compose.Quarter.Half] Back,\n[Compose.Quarter.Back] Keep,\n[Compose.Half.Half] Keep,\n[Compose.Half.Back] Quarter,\n[Compose.Back.Back] Half"}, {"field": "Logic", "source": "[Toggle.Off.Off] Off,\n[Toggle.Off.First] First,\n[Toggle.Off.Second] Second,\n[Toggle.Off.Both] Both,\n[Toggle.First.First] Off,\n[Toggle.Second.Second] Off,\n[Toggle.Both.Both] Off,\n[Toggle.First.Second] Both,\n[Toggle.First.Both] Second,\n[Toggle.Second.Both] First"}]}, {"name": "And and Or", "shape": 1, "program": [{"field": "Boolean.And", "file": "library/boolean/and.particle"}, {"field": "Boolean.Or", "file": "library/boolean/or.particle"}]}, {"name": "Meet and join", "shape": 1, "program": [{"field": "lattice.converse", "file": "theorem/lattice/converse.wave"}, {"field": "lattice.order", "file": "theorem/lattice/order.wave"}]}]'></div>
+<p>Adding modulo 2, exclusive or and turning a card over are one structure: <code>0</code>, <code>False</code> and <code>Keep</code> play one part, and <code>1</code>, <code>True</code> and <code>Flip</code> the other. Multiplying the odd numbers modulo 8, toggling two switches and the symmetries of a rectangle share another shape. The quarter turns of a square also have four elements, but they are counting modulo 4, and no dictionary joins them to the switches: renaming leaves the switches' shape unchanged in 6 ways and the turns' in 2, and renaming a program never changes that number.</p>
+<p>The renamings that leave a shape unchanged are its symmetries, and each gives another dictionary: any of <code>Across</code>, <code>Along</code> and <code>Turn</code> can stand for 3 modulo 8. Within one field, a dictionary shows a duality. <code>Boolean.Or</code> is <code>Boolean.And</code> with <code>True</code> and <code>False</code> exchanged, which is De Morgan's law. The lattice theorem that x ∨ y = y implies x ∧ y = x, with meet and join exchanged and x and y exchanged, is the theorem that x ∧ y = x implies x ∨ y = y.</p>
+<h3>How it works</h3>
+<p>Each program becomes a graph in which only the atoms are unnamed. Identical parts share one vertex, so only atoms can be interchangeable. Refinement splits the atoms by how they are used until no split remains, and a search tries each remaining choice. Whenever it finds a symmetry, it skips every choice that symmetry makes redundant, as the graph isomorphism programs nauty, bliss and Traces do. The least labeling it reaches names the atoms A, B, C and so on. That renamed program is the shape, and two programs are connected exactly when their shapes are equal. The dictionaries above come from the same search, run in this page.</p>
+<pre class="listing">bazel run -c opt //command:photonic -- compare "$PWD/library/boolean/and.particle" "$PWD/library/boolean/or.particle"
+bazel run -c opt //command:photonic -- symmetry "$PWD/library/ternary/compare.particle"
+bazel run -c opt //command:photonic -- form "$PWD/library/boolean/and.particle"</pre>
+<p><code>compare</code> groups programs by shape and prints each renaming, <code>symmetry</code> prints a program's symmetries and the rules they exchange, and <code>form</code> prints its shape. <code>--library</code> loads rules, <code>--target</code> adds a configuration every renaming must keep, and <code>--fix</code> keeps the name of an atom that something outside the program relies on. The <a href="document/symmetry.md">symmetry record</a> describes the algorithm and what it finds in this repository.</p>
 <p class="onward"><a href="#runtime">Next: Inside the runtime</a></p>
 </section>
 
@@ -642,7 +661,7 @@ bazel run -c opt //program/vector:sort</pre>
 </div>
 
 <section class="chapter" id="runtime">
-<p class="eyebrow">System · 16</p>
+<p class="eyebrow">System · 17</p>
 <h2>Inside the runtime</h2>
 <p class="lead">The runtime is Rust. One transition kernel applies every rule; two searches decide which rules to apply.</p>
 <div class="pipeline wide">
@@ -673,7 +692,7 @@ bazel run -c opt //program/vector:sort</pre>
 </section>
 
 <section class="chapter" id="repository">
-<p class="eyebrow">System · 17</p>
+<p class="eyebrow">System · 18</p>
 <h2>The repository</h2>
 <p class="lead">Bazel is the only dependency. It downloads pinned Rust, LLVM, Node and every crate, and it checks formatting and lints on every build.</p>
 <div class="table">
@@ -692,6 +711,7 @@ bazel run -c opt //program/vector:sort</pre>
 <tr><td><a href="arithmetic/">arithmetic</a></td><td>Generated arithmetic circuits and the infix encoder</td></tr>
 <tr><td><a href="benchmark/">benchmark</a></td><td>Runtime measurements</td></tr>
 <tr><td><a href="code/">code</a>, <a href="machine/">machine</a>, <a href="translation/">translation</a></td><td>Label-free programs, exact flat execution and conversion to Photonic text</td></tr>
+<tr><td><a href="symmetry/">symmetry</a></td><td>Shapes, renamings and symmetries of programs</td></tr>
 <tr><td><a href="network/">network</a>, <a href="gpu/">gpu</a>, <a href="learning/">learning</a>, <a href="random/">random</a></td><td>The program optimization learner</td></tr>
 <tr><td><a href="platform/">platform</a></td><td>Supported platforms</td></tr>
 <tr><td><a href="document/">document</a></td><td>Contracts, the roadmap and dated runtime records</td></tr>
@@ -712,7 +732,7 @@ bazel run -c opt //learning:learning -- solve --input "$PWD/input.wave" --output
 </div>
 
 <section class="chapter" id="reference">
-<p class="eyebrow">Reference · 18</p>
+<p class="eyebrow">Reference · 19</p>
 <h2>Grammar and glossary</h2>
 <p class="lead">The whole grammar, every form and every term.</p>
 <h3>Grammar</h3>
@@ -779,12 +799,15 @@ WHITESPACE = _{ " " | "\t" | "\r" | "\n" | "\u{000B}" | "\u{000C}" }</pre>
 <dt>Verdict</dt><dd>Reached, unreachable or unknown.</dd>
 <dt>Direct path</dt><dd>One execution, followed until it reaches the target or can go no further.</dd>
 <dt>Budget</dt><dd>A limit on exploration. Exhausting it defers work and leaves answers unknown.</dd>
+<dt>Shape</dt><dd>A program up to the names of its atoms. Programs with one shape differ only in their names.</dd>
+<dt>Symmetry</dt><dd>A renaming of atoms that leaves a program unchanged.</dd>
 </dl>
 <h3>Read next</h3>
 <ul>
 <li><a href="library/README.md">Standard library reference</a>: every package, request and answer.</li>
 <li><a href="theorem/README.md">Theorems</a>: the proof contract, notation and layers.</li>
 <li><a href="document/occurrence.md">Occurrence contract</a>: loading, ownership, consumption and exact targets.</li>
+<li><a href="document/symmetry.md">Program symmetry</a>: shapes, renamings and symmetries, and what they find in this repository.</li>
 <li><a href="document/README.md">Documentation index</a>: contracts, the roadmap and dated runtime records.</li>
 </ul>
 </section>

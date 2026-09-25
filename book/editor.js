@@ -21,6 +21,7 @@
         return {
             element: box,
             area,
+            shade,
             get value() {
                 return area.value;
             },

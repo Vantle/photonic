@@ -24,6 +24,8 @@ pub struct Failure {
     message: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     span: Option<Span>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    program: Option<usize>,
 }
 
 fn unit(source: &str, offset: usize) -> usize {
@@ -38,6 +40,14 @@ impl Failure {
             code,
             message: message.to_string(),
             span: None,
+            program: None,
+        }
+    }
+
+    pub fn within(self, program: usize) -> Self {
+        Self {
+            program: Some(program),
+            ..self
         }
     }
 
@@ -56,6 +66,7 @@ impl Failure {
             code,
             message: error.to_string(),
             span,
+            program: None,
         }
     }
 }

@@ -2,8 +2,10 @@ load("//photonic:defs.bzl", "photonic_library", "photonic_test")
 
 exports_files(
     [
+        "and.particle",
         "equal.particle",
         "not.particle",
+        "or.particle",
     ],
     visibility = ["//book:__pkg__"],
 )

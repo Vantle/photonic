@@ -47,6 +47,7 @@ const example = Object.create(null);
 const lower = Object.create(null);
 const expression = Object.create(null);
 const workbench = Object.create(null);
+const connection = Object.create(null);
 const preset = new Set();
 
 const setting = async item => {
@@ -144,6 +145,17 @@ for (const item of tag.filter(value => style(value, 'workbench') && value.attrib
     }
 }
 
+for (const item of tag.filter(value => style(value, 'connection') && value.attribute.has('data-preset'))) {
+    for (const entry of JSON.parse(item.attribute.get('data-preset'))) {
+        assert.ok(!(entry.name in connection), `duplicate connection preset ${entry.name}`);
+        const program = [];
+        for (const member of entry.program) program.push({ field: member.field, source: member.file ? await file(member.file) : member.source });
+        const result = invoke(`connection ${entry.name}`, engine.compare(JSON.stringify({ version: 1, program: program.map(member => member.source) })));
+        assert.equal(result.shape.length, entry.shape, `connection preset ${entry.name} must find ${entry.shape} shapes`);
+        connection[entry.name] = { program, result };
+    }
+}
+
 const playground = parse(await readFile(mode === 'write' ? join(workspace, 'lightbox.html') : lightbox, 'utf8'));
 for (const item of playground.filter(value => style(value, 'lightbox') && value.attribute.has('data-preset'))) {
     for (const entry of JSON.parse(item.attribute.get('data-preset'))) {
@@ -162,8 +174,9 @@ const record = `globalThis.book ??= {};\nglobalThis.book.record = {\n${[
     section('lower', lower),
     section('expression', expression),
     section('workbench', workbench),
+    section('connection', connection),
 ].join(',\n')}\n};\n`;
-const summary = `${Object.keys(example).length} examples, ${Object.keys(lower).length} lowerings, ${Object.keys(expression).length} expressions and ${Object.keys(workbench).length} workbench programs`;
+const summary = `${Object.keys(example).length} examples, ${Object.keys(lower).length} lowerings, ${Object.keys(expression).length} expressions, ${Object.keys(workbench).length} workbench programs and ${Object.keys(connection).length} comparisons`;
 
 if (mode === 'write') {
     await writeFile(join(workspace, 'book', 'record.js'), record);

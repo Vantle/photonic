@@ -7,6 +7,7 @@ rust_binary(
         "argument.rs",
         "main.rs",
         "output.rs",
+        "shape.rs",
     ],
     crate_root = "main.rs",
     lint_config = "//:lint",
@@ -17,7 +18,10 @@ rust_binary(
         "//toolchain/browser:__pkg__",
     ],
     deps = [
+        "//code",
         "//language:photonic",
+        "//symmetry",
+        "//translation",
         "@crate//:clap",
         "@crate//:miette",
         "@crate//:serde",

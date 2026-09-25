@@ -7,6 +7,7 @@ filegroup(
         "book.css",
         "book.js",
         "calculator.js",
+        "connection.js",
         "editor.js",
         "engine.js",
         "example.js",
@@ -45,8 +46,10 @@ filegroup(
     name = "source",
     srcs = [
         "//frontend:parser.rs",
+        "//library/boolean:and.particle",
         "//library/boolean:equal.particle",
         "//library/boolean:not.particle",
+        "//library/boolean:or.particle",
         "//library/function:invoke.particle",
         "//library/ternary:add.particle",
         "//program/association:broadcast.wave",
@@ -60,6 +63,8 @@ filegroup(
         "//program/ternary:reversal.wave",
         "//theorem:case.particle",
         "//theorem/boolean:involution.wave",
+        "//theorem/lattice:converse.wave",
+        "//theorem/lattice:order.wave",
     ],
 )
 

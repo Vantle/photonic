@@ -27,8 +27,11 @@ rust_library(
     crate_root = "code.rs",
     lint_config = "//:lint",
     visibility = [
+        "//command:__pkg__",
         "//learning:__pkg__",
         "//machine:__pkg__",
+        "//symmetry:__pkg__",
+        "//toolchain/browser:__pkg__",
         "//translation:__pkg__",
     ],
     deps = ["@crate//:serde"],

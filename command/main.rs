@@ -2,6 +2,7 @@
 
 mod argument;
 mod output;
+mod shape;
 
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -26,6 +27,9 @@ fn main() -> miette::Result<()> {
             walk,
             execution,
         } => prism(path, target, execution, walk),
+        Operation::Symmetry { path, analysis } => shape::symmetry(path, analysis),
+        Operation::Compare { path, analysis } => shape::compare(path, analysis),
+        Operation::Form { path, analysis } => shape::form(path, analysis),
     }
 }
 

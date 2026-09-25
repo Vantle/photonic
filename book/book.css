@@ -1231,7 +1231,8 @@ td code {
 }
 
 .preset button,
-.option button {
+.option button,
+.connection .summary button {
     padding: 0.26rem 0.7rem;
     border-radius: 999px;
     border: 1px solid var(--line);
@@ -1242,7 +1243,8 @@ td code {
 }
 
 .preset button:hover,
-.option button:hover:not([aria-disabled="true"]) {
+.option button:hover:not([aria-disabled="true"]),
+.connection .summary button:hover {
     border-color: var(--edge);
     color: var(--ink);
 }
@@ -1251,6 +1253,53 @@ td code {
 .option button[aria-pressed="true"] {
     border-color: var(--ink);
     color: var(--ink);
+}
+
+.connection .program {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+    gap: 0.75rem;
+}
+
+.connection .program .editor pre,
+.connection .program .editor textarea {
+    padding: 0.75rem 1rem;
+    font-size: 0.84rem;
+}
+
+.connection .output {
+    display: grid;
+    gap: 0.9rem;
+}
+
+.connection .verdict {
+    color: var(--ink);
+}
+
+.connection .panel > .body {
+    padding: 0.9rem 1.1rem 1rem;
+}
+
+.connection td {
+    font-family: var(--code);
+    font-size: 0.86rem;
+}
+
+.connection td:first-child {
+    color: var(--muted);
+}
+
+.connection tr[data-lit] td,
+.connection .atom[data-lit] {
+    color: var(--accent);
+}
+
+.connection tr[data-lit] td {
+    background: var(--ring);
+}
+
+.connection .atom[data-lit] {
+    box-shadow: inset 0 -1.5px 0 var(--accent);
 }
 
 .lowered {

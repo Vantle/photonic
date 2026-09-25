@@ -151,8 +151,22 @@ try {
     assert.match(await evaluate("return document.querySelector('#bench .bar a').getAttribute('href')"), /^lightbox\.html\?source=/);
     assert.equal(await evaluate(`return ${figure('first')}.querySelector('.bar a').getAttribute('href')`), 'lightbox.html?source=A.X%2C%0A%5BA%5D+B');
     assert.equal(await evaluate("return document.querySelector('.rail .launch').getAttribute('href')"), 'lightbox.html');
+    const connection = "document.querySelector('.connection')";
+    assert.equal(await evaluate(`return ${connection}.querySelector('.badge').textContent`), 'recorded run');
+    assert.equal(await evaluate(`return ${connection}.querySelector('.verdict').textContent`), 'One shape: Arithmetic, Logic and Geometry differ only in the names of their atoms.');
+    assert.deepEqual(await evaluate(`return [...${connection}.querySelectorAll('.output tbody tr')].map(row => [...row.cells].map(cell => cell.textContent))`), [['A', 'Add', 'Xor', 'Compose'], ['B', '0', 'False', 'Keep'], ['C', '1', 'True', 'Flip']]);
+    await evaluate(`${connection}.querySelectorAll('.output tbody tr')[1].dispatchEvent(new PointerEvent('pointerenter')); return true`);
+    assert.deepEqual(await evaluate(`return [...new Set([...${connection}.querySelectorAll('.program .atom[data-lit]')].map(node => node.textContent))].sort()`), ['0', 'False', 'Keep']);
+    await evaluate(`[...${connection}.querySelectorAll('.output .option button')].find(value => value.textContent === 'Geometry').click(); return true`);
+    assert.equal(await evaluate(`return ${connection}.querySelector('.output .code').textContent`), '[Compose.Keep.Keep] Keep,\n[Compose.Keep.Flip] Flip,\n[Compose.Flip.Flip] Keep');
+    for (const name of await evaluate(`return [...${connection}.querySelectorAll('.preset button')].map(value => value.textContent)`)) {
+        await evaluate(`[...${connection}.querySelectorAll('.preset button')].find(value => value.textContent === ${JSON.stringify(name)}).click(); return true`);
+        assert.equal(await evaluate(`return ${connection}.querySelector('.message').hidden`), true, name);
+        assert.equal(await evaluate(`return ${connection}.querySelectorAll('.output .panel').length`), await evaluate(`return book.record.connection[${JSON.stringify(name)}].result.shape.length`), name);
+    }
+    assert.match(await evaluate(`return ${connection}.querySelector('.verdict').textContent`), /^One shape: lattice\.converse and lattice\.order/);
     await narrow();
-    console.log('The recorded book renders every example, verdict, lens, expression, workbench view and filter from a local file.');
+    console.log('The recorded book renders every example, verdict, lens, expression, workbench view, filter and connection from a local file.');
 
     await open(pathToFileURL(join(root, 'lightbox.html')).href, "return document.querySelectorAll('.lightbox .graph .state').length > 0");
     assert.equal(await evaluate("return document.querySelector('.lightbox .run').hidden"), true);
@@ -252,8 +266,21 @@ try {
         document.querySelector('#bench .run').click();
         return true`);
     await until("return document.querySelectorAll('#bench .graph .state').length === 3 && document.querySelectorAll('#bench button.hyperedge').length === 2");
+    await evaluate(`
+        const area = ${connection}.querySelectorAll('.program textarea')[1];
+        area.value = area.value.replace('[Xor.True.True] False', '[Xor.True.True] True');
+        area.dispatchEvent(new Event('input'));
+        return true`);
+    await until(`return ${connection}.querySelector('.verdict').textContent === '2 shapes: Arithmetic and Geometry share one; Logic has its own.'`);
+    await evaluate(`
+        const area = ${connection}.querySelectorAll('.program textarea')[2];
+        area.value = '[Compose';
+        area.dispatchEvent(new Event('input'));
+        return true`);
+    await until(`return ${connection}.querySelector('.message').dataset.tone === 'error'`);
+    assert.match(await evaluate(`return ${connection}.querySelector('.message').textContent`), /^Geometry: .*at character/);
     await capture('book');
-    console.log('The live book edits and reruns programs, targets, lenses, expressions, proofs and workbench programs in WebAssembly.');
+    console.log('The live book edits and reruns programs, targets, lenses, expressions, proofs, workbench programs and comparisons in WebAssembly.');
 
     await open(`${origin}/lightbox.html`, "return book.engine.state === 'live' && document.querySelectorAll('.lightbox .graph .state').length > 0");
     await evaluate(`
