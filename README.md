@@ -14,6 +14,8 @@
 <p align="center">
   <a href="https://photonic.vantle.org"><b>Read the webbook</b></a>
   &nbsp;·&nbsp;
+  <a href="https://photonic.vantle.org/sandbox.html"><b>Open the sandbox</b></a>
+  &nbsp;·&nbsp;
   <a href="library/README.md">Standard library</a>
   &nbsp;·&nbsp;
   <a href="theorem/README.md">Theorems</a>
@@ -38,7 +40,9 @@ The standard library is written in Photonic, and its theorems are proved by runn
 
 ## Try it
 
-Bazel is the only thing to install. It fetches the pinned compilers and dependencies.
+The [sandbox](https://photonic.vantle.org/sandbox.html) runs Photonic in your browser: write a program, run it, and explore every configuration it reaches, with nothing to install. Its links carry the whole program, so you can share what you write.
+
+To work from a checkout, Bazel is the only thing to install. It fetches the pinned compilers and dependencies.
 
 Save the program above as `light.wave` and run it:
 

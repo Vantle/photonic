@@ -119,6 +119,15 @@ filegroup(
     ],
 )
 
+filegroup(
+    name = "sandbox",
+    srcs = ["sandbox.html"],
+    visibility = [
+        "//book:__pkg__",
+        "//toolchain/browser:__pkg__",
+    ],
+)
+
 alias(
     name = "lint",
     actual = lint_config(),

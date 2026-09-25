@@ -74,13 +74,27 @@
     };
 
     let shared;
-    const request = (message, timeout) => (shared ??= open()).send(message, timeout);
+    const send = (message, timeout) => (shared ??= open()).send(message, timeout);
+
+    const request = (setting, source, target = setting.target) => ({
+        version: 1,
+        source,
+        library: setting.library.map(name => {
+            const text = book.record?.library?.[name];
+            if (text === undefined) throw new Error(`${name}.particle is not recorded. Regenerate the records with bazel run -c opt //book:record.`);
+            return { name: `${name}.particle`, source: text };
+        }),
+        target,
+        preserve: setting.preserve,
+    });
+
+    const explore = async (setting, source, target) => send({ kind: 'explore', request: request(setting, source, target) });
 
     if (served) {
-        const probe = () => request({ kind: 'lower', source: 'A' }, 30000).catch(() => announce('recorded'));
+        const probe = () => send({ kind: 'lower', source: 'A' }, 30000).catch(() => announce('recorded'));
         if ('requestIdleCallback' in globalThis) requestIdleCallback(probe, { timeout: 3000 });
         else setTimeout(probe, 1200);
     }
 
-    book.engine = { open, request, watch, get state() { return state; } };
+    book.engine = { open, send, request, explore, watch, get state() { return state; } };
 })();

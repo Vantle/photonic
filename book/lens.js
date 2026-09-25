@@ -82,7 +82,7 @@
                 return;
             }
             try {
-                const result = await book.engine.request({ kind: 'lower', source });
+                const result = await book.engine.send({ kind: 'lower', source });
                 if (mine !== ticket) return;
                 message.say();
                 draw(output, result.program);

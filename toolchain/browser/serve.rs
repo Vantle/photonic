@@ -60,6 +60,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             Some("js") => "text/javascript; charset=utf-8",
             Some("css") => "text/css; charset=utf-8",
             Some("wasm") => "application/wasm",
+            Some("svg") => "image/svg+xml",
             _ => "text/plain; charset=utf-8",
         };
         let _ = write!(

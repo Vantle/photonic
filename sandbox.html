@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Write a Photonic program in your browser and explore every configuration it can reach.">
+<meta name="color-scheme" content="light dark">
+<title>Photonic Sandbox</title>
+<link rel="icon" href="book/icon.svg">
+<link rel="stylesheet" href="book/book.css">
+<script defer src="book/record.js"></script>
+<script defer src="book/syntax.js"></script>
+<script defer src="book/render.js"></script>
+<script defer src="book/engine.js"></script>
+<script defer src="book/editor.js"></script>
+<script defer src="book/graph.js"></script>
+<script defer src="book/pattern.js"></script>
+<script defer src="book/hypergraph.js"></script>
+<script defer src="book/viewer.js"></script>
+<script defer src="book/share.js"></script>
+<script defer src="book/theme.js"></script>
+<script defer src="book/status.js"></script>
+<script defer src="book/sandbox.js"></script>
+</head>
+<body>
+<a class="skip" href="#sandbox">Skip to the sandbox</a>
+<header class="top">
+<a class="brand" href="index.html">
+<svg class="prism" viewBox="0 0 40 40" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<path d="M3 23.5 15.5 21" stroke-width="2"/>
+<path d="M20 5.5 33.5 31.5H6.5Z" stroke-width="2.2"/>
+<path d="M25.5 17 38 11" stroke-width="1.8"/>
+<path d="M27.5 22 38.5 22" stroke-width="1.8" opacity="0.6"/>
+<path d="M29.5 27 38 33" stroke-width="1.8" opacity="0.35"/>
+</svg>
+<span><strong>Photonic</strong><small>Sandbox</small></span>
+</a>
+<nav aria-label="Book">
+<a href="index.html">Read the book</a>
+<a href="index.html#reference">Grammar and glossary</a>
+</nav>
+<div class="control">
+<button class="pill" id="theme" type="button">Theme · System</button>
+<span class="pill status" id="status" role="status">Recorded runs</span>
+</div>
+</header>
+<main class="sandbox" id="sandbox" data-preset='[{"name": "Light", "example": "light"}, {"name": "Parallel", "workbench": "Parallel"}, {"name": "Split and join", "workbench": "Split and join"}, {"name": "Cycle", "example": "cycle"}, {"name": "Scope", "example": "brew"}, {"name": "Inference", "example": "inference"}, {"name": "Conjunction", "example": "conjunction"}, {"name": "Rules as values", "example": "dynamic"}, {"name": "Counting", "example": "addition"}, {"name": "Negation", "example": "negation"}]'>
+<noscript><p class="note">The sandbox runs programs with JavaScript and WebAssembly. The <a href="index.html">book</a> reads without either.</p></noscript>
+</main>
+</body>
+</html>

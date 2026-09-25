@@ -6,7 +6,7 @@
 <meta name="description" content="The Photonic webbook: the rule language, its runtime, standard library and proofs, with every example executed by the Rust runtime.">
 <meta name="color-scheme" content="light dark">
 <title>Photonic Webbook</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40' fill='none' stroke='%231a1b1f' stroke-linecap='round' stroke-linejoin='round'><path d='M3 23.5 15.5 21' stroke-width='2.4'/><path d='M20 5.5 33.5 31.5H6.5Z' stroke-width='2.6'/><path d='M25.5 17 38 11' stroke-width='2.2'/><path d='M27.5 22 38.5 22' stroke-width='2.2' opacity='.6'/><path d='M29.5 27 38 33' stroke-width='2.2' opacity='.35'/></svg>">
+<link rel="icon" href="book/icon.svg">
 <link rel="stylesheet" href="book/book.css">
 <script defer src="book/record.js"></script>
 <script defer src="book/syntax.js"></script>
@@ -16,12 +16,16 @@
 <script defer src="book/graph.js"></script>
 <script defer src="book/pattern.js"></script>
 <script defer src="book/hypergraph.js"></script>
+<script defer src="book/viewer.js"></script>
+<script defer src="book/share.js"></script>
 <script defer src="book/trace.js"></script>
 <script defer src="book/example.js"></script>
 <script defer src="book/lens.js"></script>
 <script defer src="book/calculator.js"></script>
 <script defer src="book/workbench.js"></script>
 <script defer src="book/palette.js"></script>
+<script defer src="book/theme.js"></script>
+<script defer src="book/status.js"></script>
 <script defer src="book/book.js"></script>
 </head>
 <body>
@@ -83,6 +87,7 @@
 <button class="pill" id="theme" type="button">Theme · System</button>
 <span class="pill status" id="status" role="status">Recorded runs</span>
 </div>
+<a href="sandbox.html">Sandbox</a>
 <a href="https://github.com/Vantle/photonic">Source on GitHub</a>
 </div>
 </aside>
@@ -105,7 +110,7 @@
 <pre class="listing">bazel run -c opt //toolchain/browser:serve</pre>
 <p>A served checkout opens at <a href="http://127.0.0.1:8080">127.0.0.1:8080</a>. Opened as a local file, the book shows the recorded runs.</p>
 </div>
-<div class="action"><a class="button primary" href="#value">Start reading</a><a class="button" href="#reference">Grammar and glossary</a></div>
+<div class="action"><a class="button primary" href="#value">Start reading</a><a class="button" href="sandbox.html">Open the sandbox</a><a class="button" href="#reference">Grammar and glossary</a></div>
 </header>
 
 <div class="part">
@@ -381,7 +386,7 @@ Add.Unit.Unit.Unit
 <p class="lead">Two views of one program. The state graph shows every configuration; the hypergraph shows how one execution moves through its coherences.</p>
 <p>In the hypergraph each coherence is a lane that runs from the event that produced it to the event that consumes it. An event is a hyperedge: it consumes whole coherences and produces new ones, and every other lane passes it untouched. Lanes that never meet evolve independently. Select a configuration in the state graph to draw the execution that reaches it.</p>
 <div class="widget workbench wide" id="bench" data-preset='[{"name": "Parallel", "source": "A, B\n[A] C\n[B] D\n[C, D] E"}, {"name": "Split and join", "source": "A.X\n[A] B, C\n[B, C] D"}, {"name": "Scope", "example": "brew"}, {"name": "Inference", "example": "inference"}, {"name": "Conjunction", "example": "conjunction"}, {"name": "Counting", "example": "addition"}, {"name": "Rules as values", "example": "dynamic"}]'></div>
-<p>Every explored example in this book has a <strong>Workbench</strong> button that opens it here.</p>
+<p>Every explored example in this book has a <strong>Workbench</strong> button that opens it here. For your own programs, the <a href="sandbox.html">sandbox</a> gives the same views a full page, keeps your draft, and makes links that carry the whole program.</p>
 <h3>Filter by pattern</h3>
 <p>Type a pattern in the filter field, or press <kbd>⌘</kbd> <kbd>K</kbd> or <kbd>/</kbd> anywhere in the book. The workbench keeps what matches and everything computed after it, and hides the rest.</p>
 <div class="table">

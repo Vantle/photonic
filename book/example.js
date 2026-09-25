@@ -11,18 +11,6 @@
         preserve: figure.hasAttribute('data-preserve'),
     });
 
-    const request = (setting, source, target = setting.target) => ({
-        version: 1,
-        source,
-        library: setting.library.map(name => {
-            const text = book.record?.library?.[name];
-            if (text === undefined) throw new Error(`${name}.particle is not recorded. Regenerate the records with bazel run -c opt //book:record.`);
-            return { name: `${name}.particle`, source: text };
-        }),
-        target,
-        preserve: setting.preserve,
-    });
-
     const shelf = setting => {
         const row = element('div', 'library');
         row.append(element('span', undefined, 'Loads'));
@@ -99,8 +87,8 @@
         restore();
         const channel = setting.mode === 'path' ? book.engine.open() : undefined;
         const execute = async (source, target) => {
-            if (!channel) return book.engine.request({ kind: 'explore', request: request(setting, source, target) });
-            const progress = await channel.send({ kind: 'path', request: request(setting, source, target) }, 60000);
+            if (!channel) return book.engine.explore(setting, source, target);
+            const progress = await channel.send({ kind: 'path', request: book.engine.request(setting, source, target) }, 60000);
             return {
                 outcome: progress.outcome,
                 count: progress.event,
@@ -178,6 +166,5 @@
         });
     };
 
-    book.example = { request };
     document.querySelectorAll('figure.example[data-example]').forEach(enhance);
 })();

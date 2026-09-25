@@ -648,6 +648,7 @@ td code {
 }
 
 .bar button,
+.bar a,
 .tool {
     display: inline-flex;
     align-items: center;
@@ -659,9 +660,11 @@ td code {
     font-size: 0.78rem;
     font-weight: 500;
     color: var(--soft);
+    text-decoration: none;
 }
 
 .bar button:hover:not(:disabled),
+.bar a:hover,
 .tool:hover:not(:disabled) {
     border-color: var(--edge);
     color: var(--ink);
@@ -1159,7 +1162,8 @@ td code {
     gap: 0.4rem;
 }
 
-.preset button {
+.preset button,
+.option button {
     padding: 0.26rem 0.7rem;
     border-radius: 999px;
     border: 1px solid var(--line);
@@ -1169,12 +1173,14 @@ td code {
     color: var(--soft);
 }
 
-.preset button:hover {
+.preset button:hover,
+.option button:hover:not([aria-disabled="true"]) {
     border-color: var(--edge);
     color: var(--ink);
 }
 
-.preset button[aria-pressed="true"] {
+.preset button[aria-pressed="true"],
+.option button[aria-pressed="true"] {
     border-color: var(--ink);
     color: var(--ink);
 }
@@ -1388,10 +1394,101 @@ td code {
     gap: 1.1rem;
 }
 
-.workbench .editor {
+.workbench .editor,
+.sandbox .editor {
     border: 1px solid var(--line);
     border-radius: 10px;
     overflow: hidden;
+}
+
+.top {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.8rem 1.6rem;
+    padding: 0.8rem clamp(1rem, 2.5vw, 2rem);
+    border-bottom: 1px solid var(--line);
+    background: var(--paper);
+}
+
+.top .brand {
+    margin-right: auto;
+}
+
+.top nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.2rem;
+    font-size: 0.9rem;
+}
+
+.top nav a {
+    color: var(--soft);
+    text-decoration: none;
+}
+
+.top nav a:hover {
+    color: var(--ink);
+}
+
+.sandbox {
+    display: grid;
+    grid-template-columns: minmax(0, 38.2fr) minmax(0, 61.8fr);
+    align-items: start;
+    gap: clamp(1rem, 2vw, 1.6rem);
+    margin: 0;
+    padding: clamp(1rem, 2.5vw, 2rem);
+}
+
+.sandbox > .widget {
+    margin: 0;
+}
+
+.sandbox .editor pre {
+    min-height: 16rem;
+}
+
+.sandbox .result {
+    display: grid;
+    gap: 1rem;
+    min-width: 0;
+}
+
+.sandbox .panel .graph {
+    max-height: 72vh;
+}
+
+.option {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.5rem;
+    font-size: 0.8rem;
+    color: var(--muted);
+}
+
+.check {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-left: auto;
+}
+
+.notice {
+    padding: 0.7rem 1.3rem;
+    border-bottom: 1px solid var(--line);
+    background: var(--sunk);
+    font-size: 0.86rem;
+    color: var(--soft);
+}
+
+.blank {
+    padding: 3rem 1.5rem;
+    text-align: center;
+    color: var(--muted);
 }
 
 .filter {
@@ -1615,6 +1712,10 @@ td code {
 }
 
 @media (max-width: 960px) {
+    .sandbox {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
     :root {
         --rail: 0rem;
     }

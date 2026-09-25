@@ -127,6 +127,7 @@ hermetic_test(
         ":javascript",
         ":webassembly",
         "//:page",
+        "//:sandbox",
         "//book:asset",
         "//toolchain:node",
         "@rules_browsers_chrome_mac_arm//:chrome-headless-shell-mac-arm64/chrome-headless-shell",

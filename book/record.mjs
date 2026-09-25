@@ -3,7 +3,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-const [javascript, webassembly, numeral, index, output, mode] = process.argv.slice(2);
+const [javascript, webassembly, numeral, index, sandbox, output, mode] = process.argv.slice(2);
 assert.ok(mode === 'write' || mode === 'check', 'record.mjs runs in write or check mode');
 const workspace = process.env.BUILD_WORKSPACE_DIRECTORY;
 assert.ok(mode === 'check' || workspace, 'Write the record with bazel run -c opt //book:record.');
@@ -16,12 +16,13 @@ const entity = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", '#39': "'" };
 const unescape = text => text.replace(/&(amp|lt|gt|quot|apos|#39);/g, (_, name) => entity[name]);
 const page = await readFile(mode === 'write' ? join(workspace, 'index.html') : index, 'utf8');
 const pair = /([^\s=>/]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g;
-const tag = [...page.matchAll(/<([a-z][a-z0-9]*)((?:\s+[^\s=>/]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'=<>`]+))?)*)\s*\/?>/g)].map(match => ({
+const parse = text => [...text.matchAll(/<([a-z][a-z0-9]*)((?:\s+[^\s=>/]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'=<>`]+))?)*)\s*\/?>/g)].map(match => ({
     name: match[1],
     attribute: new Map([...match[2].matchAll(pair)].map(value => [value[1], unescape(value[2] ?? value[3] ?? value[4] ?? '')])),
     start: match.index,
     end: match.index + match[0].length,
 }));
+const tag = parse(page);
 const style = (item, name) => (item.attribute.get('class') ?? '').split(/\s+/).includes(name);
 const content = item => {
     const body = page.slice(item.end, page.indexOf(`</${item.name}>`, item.end));
@@ -140,6 +141,14 @@ for (const item of tag.filter(value => style(value, 'workbench') && value.attrib
         const result = invoke(`workbench ${entry.name}`, engine.explore(request(value, entry.source)));
         assert.ok(result.verdict.every(verdict => verdict.outcome === 'reached'), `workbench preset ${entry.name} must reach its targets`);
         workbench[entry.name] = { source: entry.source, ...value, result };
+    }
+}
+
+const playground = parse(await readFile(mode === 'write' ? join(workspace, 'sandbox.html') : sandbox, 'utf8'));
+for (const item of playground.filter(value => style(value, 'sandbox') && value.attribute.has('data-preset'))) {
+    for (const entry of JSON.parse(item.attribute.get('data-preset'))) {
+        if (entry.example) assert.ok(example[entry.example]?.result.execution, `sandbox preset ${entry.name} must name an explored example`);
+        else assert.ok(entry.workbench in workbench, `sandbox preset ${entry.name} must name a workbench preset`);
     }
 }
 

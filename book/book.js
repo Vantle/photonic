@@ -3,29 +3,6 @@
     const book = globalThis.book ??= {};
     const find = name => document.getElementById(name);
     const root = document.documentElement;
-    const theme = ['system', 'light', 'dark'];
-
-    const paint = choice => {
-        if (choice === 'system') delete root.dataset.theme;
-        else root.dataset.theme = choice;
-        find('theme').textContent = `Theme · ${choice[0].toUpperCase()}${choice.slice(1)}`;
-        find('theme').dataset.choice = choice;
-    };
-    const stored = (() => {
-        try {
-            return localStorage.getItem('photonic-book-theme');
-        } catch {
-            return undefined;
-        }
-    })();
-    paint(theme.includes(stored) ? stored : 'system');
-    find('theme').addEventListener('click', () => {
-        const next = theme[(theme.indexOf(find('theme').dataset.choice) + 1) % theme.length];
-        paint(next);
-        try {
-            localStorage.setItem('photonic-book-theme', next);
-        } catch {}
-    });
 
     find('menu').addEventListener('click', () => {
         const open = find('rail').dataset.open !== 'true';
@@ -78,14 +55,5 @@
 
     document.querySelectorAll('pre.code').forEach(pre => {
         if (!pre.firstElementChild && !pre.closest('figure.example')) book.syntax.highlight(pre);
-    });
-
-    book.engine.watch(state => {
-        const status = find('status');
-        status.dataset.live = String(state === 'live');
-        status.textContent = state === 'live' ? 'Live engine' : state === 'unknown' ? 'Loading engine…' : 'Recorded runs';
-        status.title = state === 'live'
-            ? 'Examples run in the Rust runtime compiled to WebAssembly.'
-            : 'Showing runs recorded by the Rust runtime. Serve the book to edit and rerun them.';
     });
 })();

@@ -9,7 +9,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const [chrome, chromedriver, webassembly, javascript] = process.argv.slice(2);
 const missing = [];
-const type = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.wasm': 'application/wasm' };
+const type = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.wasm': 'application/wasm', '.svg': 'image/svg+xml' };
 const module = new Map([
     [resolve(root, 'toolchain/browser/module/runtime_bg.wasm'), webassembly],
     [resolve(root, 'toolchain/browser/module/runtime.js'), javascript],
@@ -138,8 +138,19 @@ try {
     await evaluate("[...document.querySelectorAll('#bench .preset button')].find(value => value.textContent === 'Parallel').click(); return true");
     await evaluate(`${figure('first')}.querySelector('.bar button:not(.run)').click(); return true`);
     await until("return document.querySelector('#bench .editor textarea').value === 'A.X\\n[A] B'");
+    assert.match(await evaluate("return document.querySelector('#bench .bar a').getAttribute('href')"), /^sandbox\.html\?source=/);
     await narrow();
     console.log('The recorded book renders every example, verdict, lens, expression, workbench view and filter from a local file.');
+
+    await open(pathToFileURL(join(root, 'sandbox.html')).href, "return document.querySelectorAll('.sandbox .graph .state').length > 0");
+    assert.equal(await evaluate("return document.querySelector('.sandbox .run').hidden"), true);
+    assert.equal(await evaluate("return document.querySelector('.sandbox .notice').hidden"), false);
+    assert.equal(await evaluate("return document.querySelectorAll('.sandbox .graph .state').length"), await evaluate('return book.record.example.light.result.execution.state.length'));
+    await evaluate("[...document.querySelectorAll('.sandbox .preset button')].find(value => value.textContent === 'Negation').click(); return true");
+    assert.deepEqual(await evaluate("return [...document.querySelectorAll('.sandbox .option button[aria-pressed=\"true\"]')].map(value => value.title)"), ['library/function/invoke.particle', 'library/boolean/not.particle']);
+    assert.deepEqual(await evaluate("return [...document.querySelectorAll('.sandbox .verdict .badge')].map(value => value.textContent)"), ['reached']);
+    await narrow();
+    console.log('The recorded sandbox shows every example with its libraries and targets from a local file.');
 
     await open(`${origin}/index.html`, `${ready} && book.engine.state === 'live'`);
     assert.equal(await evaluate("return document.getElementById('status').textContent"), 'Live engine');
@@ -231,6 +242,23 @@ try {
     await until("return document.querySelectorAll('#bench .graph .state').length === 3 && document.querySelectorAll('#bench button.hyperedge').length === 2");
     await capture('book');
     console.log('The live book edits and reruns programs, targets, lenses, expressions, proofs and workbench programs in WebAssembly.');
+
+    await open(`${origin}/sandbox.html`, "return book.engine.state === 'live' && document.querySelectorAll('.sandbox .graph .state').length > 0");
+    await evaluate(`
+        const area = document.querySelector('.sandbox .editor textarea');
+        area.value = 'A, B\\n[A] C\\n[B] D';
+        area.dispatchEvent(new Event('input'));
+        document.querySelector('.sandbox .run').click();
+        return true`);
+    await until("return document.querySelectorAll('.sandbox .graph .state').length === 4 && document.querySelectorAll('.sandbox button.hyperedge').length === 2");
+    assert.match(await evaluate('return new URLSearchParams(location.search).get("source")'), /\[B\] D$/);
+    await open(await evaluate('return location.href'), "return book.engine.state === 'live' && document.querySelectorAll('.sandbox .graph .state').length === 4");
+    await open(`${origin}/sandbox.html`, "return document.querySelector('.sandbox .editor textarea').value.endsWith('[B] D') && document.querySelectorAll('.sandbox .graph .state').length === 4");
+    await evaluate("[...document.querySelectorAll('.sandbox .bar button')].find(value => value.textContent === 'New').click(); return true");
+    assert.equal(await evaluate("return document.querySelector('.sandbox .editor textarea').value"), '');
+    assert.equal(await evaluate("return document.querySelectorAll('.sandbox .blank').length"), 1);
+    await narrow();
+    console.log('The live sandbox runs new programs, restores shared links and drafts, and starts afresh.');
 
     await evaluate("document.getElementById('theme').click(); return true");
     assert.equal(await evaluate('return document.documentElement.dataset.theme'), 'light');
