@@ -1,11 +1,11 @@
 [Function.Compose] (
-    Compose.Enter
+    Compose.Enter,
     [Return] Return
-)
+),
 
 [Compose.Enter] (
-    First
+    First,
     [Return] Compose.Next
-)
+),
 
 [Compose.Next] Second

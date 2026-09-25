@@ -1,15 +1,15 @@
-Push.([Digit] 1).Zero, Stage.Left.1
-[Built, Stage.Left.1] (Push.([Digit] 2)) (Forget.Stage.Left.2)
-[Built, Clean.Stage.Left.2] (Push.([Digit] 1)) (Forget.Stage.Left.3)
-[Built, Clean.Stage.Left.3] (Push.([Digit] 2)) (Forget.Stage.Left.4)
-[Built, Clean.Stage.Left.4] (Operand.Left) (Forget.Stage.Begin)
-[Clean.Stage.Begin] (Push.([Digit] 1).Zero) (Stage.Right.1)
-[Built, Stage.Right.1] (Push.([Digit] 0)) (Forget.Stage.Right.2)
-[Built, Clean.Stage.Right.2] (Operand.Right) (Forget.Stage.Start)
-[Clean.Stage.Start] Function.Natural.Multiply
-[Return.Natural.Multiply] (Read) (Forget.Inspect.0)
-[Yield.([Digit] 0), Clean.Inspect.0] (Read) (Forget.Inspect.1)
-[Yield.([Digit] 2), Clean.Inspect.1] (Read) (Forget.Inspect.2)
-[Yield.([Digit] 1), Clean.Inspect.2] (Read) (Forget.Inspect.3)
-[Yield.([Digit] 2), Clean.Inspect.3] (Read) (Forget.Inspect.4)
+Push.([Digit] 1).Zero, Stage.Left.1,
+[Built, Stage.Left.1] (Push.([Digit] 2), Forget.Stage.Left.2),
+[Built, Clean.Stage.Left.2] (Push.([Digit] 1), Forget.Stage.Left.3),
+[Built, Clean.Stage.Left.3] (Push.([Digit] 2), Forget.Stage.Left.4),
+[Built, Clean.Stage.Left.4] (Operand.Left, Forget.Stage.Begin),
+[Clean.Stage.Begin] (Push.([Digit] 1).Zero, Stage.Right.1),
+[Built, Stage.Right.1] (Push.([Digit] 0), Forget.Stage.Right.2),
+[Built, Clean.Stage.Right.2] (Operand.Right, Forget.Stage.Start),
+[Clean.Stage.Start] Function.Natural.Multiply,
+[Return.Natural.Multiply] (Read, Forget.Inspect.0),
+[Yield.([Digit] 0), Clean.Inspect.0] (Read, Forget.Inspect.1),
+[Yield.([Digit] 2), Clean.Inspect.1] (Read, Forget.Inspect.2),
+[Yield.([Digit] 1), Clean.Inspect.2] (Read, Forget.Inspect.3),
+[Yield.([Digit] 2), Clean.Inspect.3] (Read, Forget.Inspect.4),
 [Yield.([Digit] 1), Clean.Inspect.4] Done

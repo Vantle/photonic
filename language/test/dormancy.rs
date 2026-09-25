@@ -28,11 +28,11 @@ fn compare(actual: &mut Search, expected: &mut Join, index: &Index, length: usiz
 fn activation() {
     for source in [
         "[] Done",
-        "[,] Done",
-        "[,,] Done",
+        "[(), ()] Done",
+        "[(), (), ()] Done",
         "[A] Done",
         "[A,B] Done",
-        "[A,,B] Done",
+        "[A, (),B] Done",
         "[A,A] Done",
         "[A.A.A.A.A.A.A.A,B,C] Done",
         "[[A] B] Done",
@@ -120,7 +120,7 @@ fn activation() {
 fn subscription() {
     let particle = ["A"; 8].join(".");
     let source = format!(
-        "{},{} [{particle}] Done",
+        "{},{}, [{particle}] Done",
         vec![particle.clone(); 40].join(","),
         vec!["X"; 40].join(",")
     );

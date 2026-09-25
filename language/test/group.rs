@@ -19,12 +19,12 @@ fn check(source: &str, target: &str, expected: Outcome) {
 #[test]
 fn addition() {
     check(
-        "Add(Unit.Unit.Unit,Unit.Unit.Unit.Unit.Unit.Unit.Unit) [Add,Add] ()",
+        "Add(Unit.Unit.Unit,Unit.Unit.Unit.Unit.Unit.Unit.Unit), [Add,Add] ()",
         &["Unit"; 10].join("."),
         Outcome::Reached,
     );
     check(
-        "Add(Unit.Unit.Unit,Unit.Unit.Unit.Unit.Unit.Unit.Unit.Unit) [Add,Add] ()",
+        "Add(Unit.Unit.Unit,Unit.Unit.Unit.Unit.Unit.Unit.Unit.Unit), [Add,Add] ()",
         &["Unit"; 9].join("."),
         Outcome::Unreachable,
     );
@@ -32,7 +32,7 @@ fn addition() {
 
 #[test]
 fn pairing() {
-    let source = "Pair(A,B,C,D) [Pair,Pair] Result";
+    let source = "Pair(A,B,C,D), [Pair,Pair] Result";
     let operand = ["A", "B", "C", "D"];
     for left in 0..4 {
         for right in left + 1..4 {
@@ -48,12 +48,12 @@ fn pairing() {
         }
     }
     check(
-        "First(A,B),Second(C,D) [First,First] Result [Second,Second] Result",
+        "First(A,B),Second(C,D), [First,First] Result, [Second,Second] Result",
         "Result.A.B,Result.C.D",
         Outcome::Reached,
     );
     check(
-        "First(A,B),Second(C,D) [First,First] Result [Second,Second] Result",
+        "First(A,B),Second(C,D), [First,First] Result, [Second,Second] Result",
         "Result.A.C,Result.B.D",
         Outcome::Unreachable,
     );
@@ -62,14 +62,14 @@ fn pairing() {
 #[test]
 fn provenance() {
     check("A(X,X)", "A.X,A.X", Outcome::Reached);
-    check("Seed.X [Seed] A((),()) [A,A] ()", "X", Outcome::Reached);
+    check("Seed.X, [Seed] A((),()), [A,A] ()", "X", Outcome::Reached);
     check(
-        "Seed.X [Seed] A((),()) [A,A] ()",
+        "Seed.X, [Seed] A((),()), [A,A] ()",
         "X.X",
         Outcome::Unreachable,
     );
-    check("A(X,X) [A,A] ()", "X.X", Outcome::Reached);
-    check("A(X,X) [A,A] ()", "X", Outcome::Unreachable);
+    check("A(X,X), [A,A] ()", "X.X", Outcome::Reached);
+    check("A(X,X), [A,A] ()", "X", Outcome::Unreachable);
 }
 
 #[test]
@@ -79,27 +79,31 @@ fn evidence() {
             .chain(std::iter::repeat_n("Unit", count))
             .collect::<Vec<_>>()
             .join(".");
-        let rule = "[Check] Number [Number.Unit] Number";
-        check(&format!("{input} {rule}"), "Number", Outcome::Reached);
+        let rule = "[Check] Number, [Number.Unit] Number";
+        check(&format!("{input}, {rule}"), "Number", Outcome::Reached);
         check(
-            &format!("{input}.Extra {rule}"),
+            &format!("{input}.Extra, {rule}"),
             "Number",
             Outcome::Unreachable,
         );
         check(
-            &format!("{input}.Extra {rule}"),
+            &format!("{input}.Extra, {rule}"),
             "Number.Extra",
             Outcome::Reached,
         );
     }
-    check("Unit.Extra [Unit.Extra] Number", "Number", Outcome::Reached);
     check(
-        "Pair(Seed,Other) [Seed] Kind [Other] Kind [Pair(Kind,Kind)] ([()] Result)",
+        "Unit.Extra, [Unit.Extra] Number",
+        "Number",
+        Outcome::Reached,
+    );
+    check(
+        "Pair(Seed,Other), [Seed] Kind, [Other] Kind, [Pair(Kind,Kind)] ([()] Result)",
         "Result.Seed.Other",
         Outcome::Reached,
     );
     check(
-        "Pair(Seed.Extra,Other) [Seed] Kind [Other] Kind [Pair(Kind,Kind)] ([()] Result)",
+        "Pair(Seed.Extra,Other), [Seed] Kind, [Other] Kind, [Pair(Kind,Kind)] ([()] Result)",
         "Result.Seed.Extra.Other",
         Outcome::Reached,
     );
@@ -172,7 +176,7 @@ fn example() {
 fn code() {
     check("([A] B).(A,A)", "([A] B).B,([A] B).B", Outcome::Reached);
     check(
-        "Enter [Seed] Pair(A,B) [Enter] (Seed [Pair,Pair] Result)",
+        "Enter, [Seed] Pair(A,B), [Enter] (Seed, [Pair,Pair] Result)",
         "Result.A.B",
         Outcome::Reached,
     );

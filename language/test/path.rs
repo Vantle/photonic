@@ -20,10 +20,10 @@ fn batching() {
     let content = ["B.C.E"; 6].join(",");
     let delay = ["D"; 8].join(",");
     let world = |stage| format!("{particle},{content},Stage{stage}.C,{delay}");
-    let mut source = format!("{} [{particle},B,B,B,B,B.E.E,C] Never ", world(0));
+    let mut source = format!("{}, [{particle},B,B,B,B,B.E.E,C] Never, ", world(0));
     for stage in 0..8 {
         source.push_str(&format!(
-            "[Stage{stage}.C,{delay}] Stage{}.C,{delay} ",
+            "[Stage{stage}.C,{delay}] (Stage{}.C,{delay}), ",
             stage + 1
         ));
     }
@@ -61,11 +61,11 @@ fn batching() {
 #[test]
 fn execution() {
     for (source, target) in [
-        ("A [A] B [B] C", "C"),
-        ("A,B [A,B] C", "C"),
-        ("A,A,B [A,B] C [A,C] D", "D"),
-        ("Seed.A [Seed] [A] B", "B.([A] B)"),
-        ("A [A] B,C [B,C] D", "D"),
+        ("A, [A] B, [B] C", "C"),
+        ("A,B, [A,B] C", "C"),
+        ("A,A,B, [A,B] C, [A,C] D", "D"),
+        ("Seed.A, [Seed] [A] B", "B.([A] B)"),
+        ("A, [A] (B, C), [B,C] D", "D"),
     ] {
         let mut path = search(source, target);
         path.run(100_000, Limit::default());
@@ -85,7 +85,7 @@ fn execution() {
 
 #[test]
 fn unknown() {
-    for source in ["A", "A [A] B [B] A", "A [A] B [A] C"] {
+    for source in ["A", "A, [A] B, [B] A", "A, [A] B, [A] C"] {
         let mut path = search(source, "Missing");
         path.run(10_000, Limit::default());
         assert_eq!(path.report().outcome, Outcome::Unknown);
@@ -107,7 +107,7 @@ fn unknown() {
 
 #[test]
 fn resume() {
-    let source = "A [A] B [B] C";
+    let source = "A, [A] B, [B] C";
     let mut complete = search(source, "C");
     complete.run(10_000, Limit::default());
     let expected = serde_json::to_value(complete.report()).unwrap();
@@ -146,9 +146,9 @@ fn factor() {
         .map(|index| format!("Value{index}"))
         .collect::<Vec<_>>()
         .join(".");
-    let mut source = format!("{particle},Stage0.B [{particle},B] Never\n");
+    let mut source = format!("{particle},Stage0.B, [{particle},B] Never,\n");
     for index in 0..32 {
-        source.push_str(&format!("[Stage{index}] Stage{}\n", index + 1));
+        source.push_str(&format!("[Stage{index}] Stage{},\n", index + 1));
     }
     let target = format!("{particle},Stage32.B");
     let limit = Limit {
@@ -182,7 +182,7 @@ fn factor() {
 
 #[test]
 fn inference() {
-    let source = "Seed.A [Seed] [A] B";
+    let source = "Seed.A, [Seed] [A] B";
     let mut path = search(source, "Seed.B");
     path.run(100_000, Limit::default());
     assert_eq!(path.report().outcome, Outcome::Unknown);
@@ -201,10 +201,10 @@ fn inference() {
 #[test]
 fn metadata() {
     for source in [
-        "A [A] B",
-        "A.X,B.X [A,B] C",
-        "Seed.A [Seed] [A] B",
-        "A [A] (B [B] C)",
+        "A, [A] B",
+        "A.X,B.X, [A,B] C",
+        "Seed.A, [Seed] [A] B",
+        "A, [A] (B, [B] C)",
     ] {
         let mut runtime = crate::runtime::Runtime::new(&parse(source).unwrap());
         for _ in 0..10 {
@@ -236,7 +236,7 @@ fn metadata() {
 
 #[test]
 fn summary() {
-    for (source, target) in [("A [A] B", "B"), ("A", "Missing"), ("A", "A")] {
+    for (source, target) in [("A, [A] B", "B"), ("A", "Missing"), ("A", "A")] {
         let mut path = search(source, target);
         path.run(100_000, Limit::default());
         let summary = path.summary();
@@ -253,7 +253,7 @@ fn summary() {
 
 #[test]
 fn current() {
-    let mut path = search("A [A] B", "Missing");
+    let mut path = search("A, [A] B", "Missing");
     assert_eq!(path.current().world[0].particle[0].display.as_ref(), "A");
     path.run(10000, Limit::default());
     assert_eq!(path.summary().outcome, Outcome::Unknown);
@@ -267,7 +267,7 @@ fn current() {
 
 #[test]
 fn inspection() {
-    let mut path = search("A [A] B [B] A", "Missing");
+    let mut path = search("A, [A] B, [B] A", "Missing");
     path.run(10000, Limit::default());
     let report = path.report();
     for state in &report.state {
@@ -288,7 +288,7 @@ fn inspection() {
 
 #[test]
 fn collision() {
-    let source = "X.A [X] (),()";
+    let source = "X.A, [X] ((), ())";
     let target = "A,A";
     let mut path = search(source, target);
     let mut previous = 0;
@@ -316,7 +316,7 @@ fn collision() {
 fn suspension() {
     for (source, target, limit) in [
         (
-            "A [A] B,C [B,C] D",
+            "A, [A] (B, C), [B,C] D",
             "D",
             Limit {
                 world: 1,
@@ -324,7 +324,7 @@ fn suspension() {
             },
         ),
         (
-            "A [A] (B [B] (C [C] D))",
+            "A, [A] (B, [B] (C, [C] D))",
             "D",
             Limit {
                 frame: 1,

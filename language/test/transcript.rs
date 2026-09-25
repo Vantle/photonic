@@ -140,7 +140,7 @@ fn projection() {
 fn context() {
     use crate::program::Symbol;
     use crate::state::{Token, World};
-    let program = Program::new(&crate::lowering::parse("A [A] B").unwrap());
+    let program = Program::new(&crate::lowering::parse("A, [A] B").unwrap());
     let mut state = State::initial(&program);
     Arc::make_mut(&mut state.frame[0]).particle = (0..16)
         .map(|position| Token {

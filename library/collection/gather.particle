@@ -1,5 +1,5 @@
-[Gather.Done.Left.True, Gather.Done.Right.True] Return.([Left] True).([Right] True)
-[Gather.Done.Left.True, Gather.Done.Right.False] Return.([Left] True).([Right] False)
-[Gather.Done.Left.False, Gather.Done.Right.True] Return.([Left] False).([Right] True)
-[Gather.Done.Left.False, Gather.Done.Right.False] Return.([Left] False).([Right] False)
+[Gather.Done.Left.True, Gather.Done.Right.True] Return.([Left] True).([Right] True),
+[Gather.Done.Left.True, Gather.Done.Right.False] Return.([Left] True).([Right] False),
+[Gather.Done.Left.False, Gather.Done.Right.True] Return.([Left] False).([Right] True),
+[Gather.Done.Left.False, Gather.Done.Right.False] Return.([Left] False).([Right] False),
 [Function.Empty.Gather] Return

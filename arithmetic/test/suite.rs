@@ -378,7 +378,7 @@ fn radix() {
         for left in 0..5 {
             for right in 0..5 {
                 let source = format!(
-                    "Add({},{}) [Add,Add] () {rule}",
+                    "Add({},{}), [Add,Add] (), {rule}",
                     arithmetic::power::numeral(left, radix).unwrap(),
                     arithmetic::power::numeral(right, radix).unwrap()
                 );
@@ -419,9 +419,9 @@ fn stream() {
     ] {
         let mut body = "End".to_owned();
         for value in digit.iter().rev() {
-            body = format!("({} [Next] {body})", if *value { "1" } else { "0" });
+            body = format!("({}, [Next] {body})", if *value { "1" } else { "0" });
         }
-        let source = format!("Read [Read] {body} [0] Next [1] Next");
+        let source = format!("Read, [Read] {body}, [0] Next, [1] Next");
         let mut search = {
             let program = parse(&source).unwrap();
             let target = photonic::source::Program {

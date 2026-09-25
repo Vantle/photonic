@@ -67,7 +67,7 @@ fn table(name: &str, arity: usize, operation: impl Fn(usize) -> bool) -> Task {
             .join(".");
         let input = format!("{name}.{operand}");
         let output = truth(operation(positive)).to_owned();
-        rule.push_str(&format!("[{input}] {output}\n"));
+        rule.push_str(&format!("[{input}] {output},\n"));
         example.push((input, output));
     }
     task(&format!("boolean.{}", name.to_lowercase()), &rule, &example)
@@ -115,7 +115,7 @@ fn exchange(left: usize, right: usize, value: usize) -> String {
     for high in 0..value {
         for low in 0..high {
             rule.push_str(&format!(
-                "[{first}.{high}, {second}.{low}] ({first}.{low}) ({second}.{high})\n",
+                "[{first}.{high}, {second}.{low}] ({first}.{low}, {second}.{high}),\n",
                 first = POSITION[left],
                 second = POSITION[right],
             ));
@@ -140,7 +140,7 @@ pub fn sort(length: usize, value: usize) -> Task {
 }
 
 pub fn gnome(length: usize, value: usize) -> Task {
-    let mut reference = format!("[Gnome.{}] Gnome.{}\n", POSITION[0], POSITION[1]);
+    let mut reference = format!("[Gnome.{}] Gnome.{},\n", POSITION[0], POSITION[1]);
     for index in 1..length {
         let (left, right) = (POSITION[index - 1], POSITION[index]);
         for first in 0..value {
@@ -151,7 +151,7 @@ pub fn gnome(length: usize, value: usize) -> Task {
                     (second, first, POSITION[index - 1])
                 };
                 reference.push_str(&format!(
-                    "[Gnome.{right}, {left}.{first}, {right}.{second}] (Gnome.{next}) ({left}.{low}) ({right}.{high})\n"
+                    "[Gnome.{right}, {left}.{first}, {right}.{second}] (Gnome.{next}, {left}.{low}, {right}.{high}),\n"
                 ));
             }
         }
@@ -178,7 +178,7 @@ pub fn reverse(length: usize, value: usize) -> Task {
         for first in 0..value {
             for second in 0..value {
                 reference.push_str(&format!(
-                    "[{near}.{first}.Flip, {far}.{second}.Flip] ({near}.{second}) ({far}.{first})\n"
+                    "[{near}.{first}.Flip, {far}.{second}.Flip] ({near}.{second}, {far}.{first}),\n"
                 ));
             }
         }
@@ -216,7 +216,7 @@ fn reduction(name: &str, length: usize, value: usize, choose: fn(usize, usize) -
     for high in 0..value {
         for low in 0..=high {
             reference.push_str(&format!(
-                "[{name}.{low}, {name}.{high}] {name}.{}\n",
+                "[{name}.{low}, {name}.{high}] {name}.{},\n",
                 choose(low, high)
             ));
         }
@@ -278,7 +278,7 @@ pub fn addition(limit: usize) -> Task {
     }
     task(
         &format!("addition.{limit}"),
-        "[Left, Right] Sum\n[Sum] ()\n",
+        "[Left, Right] Sum,\n[Sum] (),\n",
         &example,
     )
 }
@@ -287,7 +287,7 @@ pub fn gather(length: usize, value: usize) -> Task {
     let mut reference = String::new();
     for high in 0..value {
         for low in 0..=high {
-            reference.push_str(&format!("[Item.{low}, Item.{high}] Item.{low}.{high}\n"));
+            reference.push_str(&format!("[Item.{low}, Item.{high}] Item.{low}.{high},\n"));
         }
     }
     let example = multiset(length, value)
@@ -311,7 +311,7 @@ pub fn gather(length: usize, value: usize) -> Task {
 
 pub fn copy(value: usize) -> Task {
     let reference = (0..value)
-        .map(|value| format!("[Copy.{value}] ({value}) ({value})\n"))
+        .map(|value| format!("[Copy.{value}] ({value}, {value}),\n"))
         .collect::<String>();
     let example = (0..value)
         .map(|value| (format!("Copy.{value}"), format!("{value}, {value}")))
@@ -329,7 +329,7 @@ pub fn compare(value: usize) -> Task {
                 std::cmp::Ordering::Equal => "Equal",
                 std::cmp::Ordering::Greater => "Greater",
             };
-            reference.push_str(&format!("[Left.{left}, Right.{right}] {verdict}\n"));
+            reference.push_str(&format!("[Left.{left}, Right.{right}] {verdict},\n"));
             example.push((format!("Left.{left}, Right.{right}"), verdict.to_owned()));
         }
     }
@@ -345,7 +345,7 @@ pub fn adder() -> Task {
     .map(|(input, output)| (input.to_owned(), output.to_owned()));
     let reference = example
         .iter()
-        .map(|(input, output)| format!("[{input}] {output}\n"))
+        .map(|(input, output)| format!("[{input}] {output},\n"))
         .collect::<String>();
     task("adder.half", &reference, &example)
 }

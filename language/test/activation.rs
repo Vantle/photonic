@@ -15,8 +15,8 @@ fn eager(join: &mut Join) {
 #[test]
 fn boundary() {
     for (source, viable, result) in [
-        ("A [A,A] Done", false, Poll::Pending),
-        ("A [B] Done", false, Poll::Ready(None)),
+        ("A, [A,A] Done", false, Poll::Pending),
+        ("A, [B] Done", false, Poll::Ready(None)),
         ("[] Done", true, Poll::Ready(Some(Vec::new()))),
     ] {
         let program = Program::new(&crate::lowering::parse(source).unwrap());
@@ -53,7 +53,7 @@ fn boundary() {
 fn activation() {
     let particle = ["A"; 8].join(".");
     let source = format!(
-        "{},C [{particle},{particle},B] Done",
+        "{},C, [{particle},{particle},B] Done",
         vec![particle.clone(); 40].join(",")
     );
     let program = Program::new(&crate::lowering::parse(&source).unwrap());

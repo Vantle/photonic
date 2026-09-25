@@ -5,10 +5,10 @@ use std::sync::Arc;
 #[test]
 fn identity() {
     for source in [
-        "A [A] B [B] C",
-        "A,B [A,B] C,D [C,D] E",
-        "A [A] B [B] A",
-        "A [A] B,C [B] D [C] E",
+        "A, [A] B, [B] C",
+        "A,B, [A,B] (C, D), [C,D] E",
+        "A, [A] B, [B] A",
+        "A, [A] (B, C), [B] D, [C] E",
         include_str!("../../program/language/capture.wave"),
     ] {
         let mut runtime = Runtime::new(&crate::lowering::parse(source).unwrap());

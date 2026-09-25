@@ -1,35 +1,35 @@
-Every.1
+Every.1,
 
 [Every.1] (
-    Split.1
-    [Both.1] Theorem
+    Split.1,
+    [Both.1] Theorem,
     [Refuted.2] Counterexample
-)
-[Split.1] Every.2.([P] 0)
-[Proved.2.([P] 0)] Every.2.([P] 1)
-[Proved.2.([P] 1)] Every.2.([P] 2)
-[Proved.2.([P] 2)] Both.1
+),
+[Split.1] Every.2.([P] 0),
+[Proved.2.([P] 0)] Every.2.([P] 1),
+[Proved.2.([P] 1)] Every.2.([P] 2),
+[Proved.2.([P] 2)] Both.1,
 
 [Every.2] (
-    Split.2
-    [Both.2] Proved.2
+    Split.2,
+    [Both.2] Proved.2,
     [Refuted.3] Refuted.2
-)
-[Split.2] Every.3.([Q] 0)
-[Proved.3.([Q] 0)] Every.3.([Q] 1)
-[Proved.3.([Q] 1)] Every.3.([Q] 2)
-[Proved.3.([Q] 2)] Both.2
+),
+[Split.2] Every.3.([Q] 0),
+[Proved.3.([Q] 0)] Every.3.([Q] 1),
+[Proved.3.([Q] 1)] Every.3.([Q] 2),
+[Proved.3.([Q] 2)] Both.2,
 
 [Every.3] (
-    Split.3
-    [Both.3] Proved.3
+    Split.3,
+    [Both.3] Proved.3,
     [Counterexample] Refuted.3
-)
-[Split.3] Case.([R] 0)
-[Holds.([R] 0)] Case.([R] 1)
-[Holds.([R] 1)] Case.([R] 2)
-[Holds.([R] 2)] Both.3
+),
+[Split.3] Case.([R] 0),
+[Holds.([R] 0)] Case.([R] 1),
+[Holds.([R] 1)] Case.([R] 2),
+[Holds.([R] 2)] Both.3,
 
-[Claim] (Function.Ternary.Equal.Alpha.P.Q) (Function.Ternary.Equal.Beta.P.R) (Function.Ternary.Equal.Gamma.Q.R)
-[Return.Alpha, Return.Beta] Function.Boolean.Or.Former
+[Claim] (Function.Ternary.Equal.Alpha.P.Q, Function.Ternary.Equal.Beta.P.R, Function.Ternary.Equal.Gamma.Q.R),
+[Return.Alpha, Return.Beta] Function.Boolean.Or.Former,
 [Return.Former, Return.Gamma] Function.Boolean.Or.Verdict

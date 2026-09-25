@@ -27,7 +27,7 @@ fn tower(depth: usize) -> (String, String) {
         .map(|position| format!("Step{position}"))
         .collect::<Vec<_>>()
         .join(".");
-    (format!("{initial} {rule}"), target.join("."))
+    (format!("{initial}, {rule}"), target.join("."))
 }
 
 fn execute(source: &str, target: &str) -> Search {
@@ -81,7 +81,7 @@ fn structure() {
             value = format!("[Absent] ({value})");
             other = format!("[Absent] ({other})");
         }
-        let source = format!("({value}) [({other})] Forbidden [({value})] Accepted");
+        let source = format!("().({value}), [{other}] Forbidden, [{value}] Accepted");
         let search = execute(&source, "Accepted");
         assert_eq!(search.summary().event, 1);
         assert!(
@@ -135,9 +135,9 @@ fn evidence() {
 #[test]
 fn recursion() {
     for source in [
-        "Seed [Seed] (Again [Again] Again)",
-        "Seed [Seed] (First [First] Second [Second] First)",
-        "Again [Again] Again.([Absent] Done)",
+        "Seed, [Seed] (Again, [Again] Again)",
+        "Seed, [Seed] (First, [First] Second, [Second] First)",
+        "Again, [Again] Again.([Absent] Done)",
     ] {
         let mut search = {
             let program = parse(source).unwrap();
@@ -164,11 +164,11 @@ fn recursion() {
 #[test]
 fn capture() {
     for depth in [1, 2, 3, 8, 16, 32] {
-        let mut body = "[A] Local [Make] [Call] (A [Local] Done)".to_owned();
+        let mut body = "[A] Local, [Make] [Call] (A, [Local] Done)".to_owned();
         for position in (1..depth).rev() {
-            body = format!("Enter{position} [Enter{position}] ({body})");
+            body = format!("Enter{position}, [Enter{position}] ({body})");
         }
-        let source = format!("Enter0.Make.Call [Enter0] ({body}) [A] Global");
+        let source = format!("Enter0.Make.Call, [Enter0] ({body}), [A] Global");
         let mut search = {
             let program = parse(&source).unwrap();
             let target = crate::source::Program {

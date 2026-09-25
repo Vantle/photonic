@@ -39,7 +39,7 @@ fn scalar() {
         ),
         (
             "Invoke.Field.Pack.([Position] 1).([Value] 2)",
-            "([1] 2)",
+            "().([1] 2)",
             Outcome::Reached,
         ),
     ] {
@@ -59,13 +59,13 @@ fn pipeline() {
 #[test]
 fn linked() {
     witness(
-        "Push.([Digit] 1).Zero, Stage.1
-        [Built, Stage.1] (Operand.Left) (Forget.Stage.2)
-        [Clean.Stage.2] (Push.([Digit] 2).Zero) (Stage.3)
-        [Built, Stage.3] (Operand.Right) (Forget.Stage.4)
-        [Clean.Stage.4] Function.Natural.Add
-        [Return.Natural.Add] (Read) (Forget.Inspect.1)
-        [Yield.([Digit] 0), Clean.Inspect.1] (Read) (Forget.Inspect.2)
+        "Push.([Digit] 1).Zero, Stage.1,
+        [Built, Stage.1] (Operand.Left, Forget.Stage.2),
+        [Clean.Stage.2] (Push.([Digit] 2).Zero, Stage.3),
+        [Built, Stage.3] (Operand.Right, Forget.Stage.4),
+        [Clean.Stage.4] Function.Natural.Add,
+        [Return.Natural.Add] (Read, Forget.Inspect.1),
+        [Yield.([Digit] 0), Clean.Inspect.1] (Read, Forget.Inspect.2),
         [Yield.([Digit] 1).Zero, Clean.Inspect.2] Done",
         "Done",
         &library(),

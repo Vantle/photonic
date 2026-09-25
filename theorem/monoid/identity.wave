@@ -1,6 +1,6 @@
 Equation.([Side] Times.([Left] E).([Right] One)).([Side] One),
-Equation.([Side] Times.([Left] E).([Right] One)).([Side] E)
+Equation.([Side] Times.([Left] E).([Right] One)).([Side] E),
 
-[Equation.([Side] Times.([Left] E).([Right] One)), Equation.([Side] Times.([Left] E).([Right] One))] Equation
+[Equation.([Side] Times.([Left] E).([Right] One)), Equation.([Side] Times.([Left] E).([Right] One))] Equation,
 
 [Equation.([Side] E).([Side] One)] Theorem

@@ -1,7 +1,7 @@
-Case.(([P] True), ([P] False))
+Case.(([P] True), ([P] False)),
 
-[Claim] Function.Boolean.Not.Once.P
-[Return.Once] Function.Boolean.Not.Twice
-[Return.Twice] Function.Boolean.Equal.Verdict.P
+[Claim] Function.Boolean.Not.Once.P,
+[Return.Once] Function.Boolean.Not.Twice,
+[Return.Twice] Function.Boolean.Equal.Verdict.P,
 
 [Holds.(([P] True), ([P] False))] Theorem

@@ -1,12 +1,12 @@
-Case.(([P] True), ([P] False)).(([Q] True), ([Q] False)).(([R] True), ([R] False))
+Case.(([P] True), ([P] False)).(([Q] True), ([Q] False)).(([R] True), ([R] False)),
 
-[Claim] (Function.Boolean.Or.Lower.Inner.Q.R) (Function.Boolean.And.Lower.Former.P.Q) (Function.Boolean.And.Lower.Latter.P.R) (Function.Boolean.And.Upper.Inner.Q.R) (Function.Boolean.Or.Upper.Former.P.Q) (Function.Boolean.Or.Upper.Latter.P.R)
-[Return.Lower.Inner] Function.Boolean.And.Lower.Factored.P
-[Return.Lower.Former, Return.Lower.Latter] Function.Boolean.Or.Lower.Expanded
-[Return.Upper.Inner] Function.Boolean.Or.Upper.Factored.P
-[Return.Upper.Former, Return.Upper.Latter] Function.Boolean.And.Upper.Expanded
-[Return.Lower.Factored, Return.Lower.Expanded] Function.Boolean.Equal.Lower.Law
-[Return.Upper.Factored, Return.Upper.Expanded] Function.Boolean.Equal.Upper.Law
-[Return.Lower.Law, Return.Upper.Law] Function.Boolean.And.Verdict
+[Claim] (Function.Boolean.Or.Lower.Inner.Q.R, Function.Boolean.And.Lower.Former.P.Q, Function.Boolean.And.Lower.Latter.P.R, Function.Boolean.And.Upper.Inner.Q.R, Function.Boolean.Or.Upper.Former.P.Q, Function.Boolean.Or.Upper.Latter.P.R),
+[Return.Lower.Inner] Function.Boolean.And.Lower.Factored.P,
+[Return.Lower.Former, Return.Lower.Latter] Function.Boolean.Or.Lower.Expanded,
+[Return.Upper.Inner] Function.Boolean.Or.Upper.Factored.P,
+[Return.Upper.Former, Return.Upper.Latter] Function.Boolean.And.Upper.Expanded,
+[Return.Lower.Factored, Return.Lower.Expanded] Function.Boolean.Equal.Lower.Law,
+[Return.Upper.Factored, Return.Upper.Expanded] Function.Boolean.Equal.Upper.Law,
+[Return.Lower.Law, Return.Upper.Law] Function.Boolean.And.Verdict,
 
 [Holds.(([P] True), ([P] False)).(([Q] True), ([Q] False)).(([R] True), ([R] False))] Theorem

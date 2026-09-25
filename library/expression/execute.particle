@@ -1,127 +1,127 @@
-[Function.Expression.Execute] (Execute.Input) (Forget.Execute.Begin)
-[Clean.Execute.Begin] (Execute.Stack.Zero) (Execute.Step)
-[Execute.Step, Execute.Input] Read.Execute.Wait
-[Yield.Literal.Execute.Wait] (Execute.Input) (Forget.Execute.Literal)
-[Clean.Execute.Literal, Execute.Stack] (Push.Mark) (Forget.Execute.Read)
-[Built, Clean.Execute.Read] (Execute.Stack) (Forget.Execute.First)
-[Clean.Execute.First, Execute.Input] Read.Execute.Scan
-[Clean.Execute.More, Execute.Input] Read.Execute.Scan
-[Yield.Mark.Execute.Scan] (Execute.Input) (Forget.Execute.Step)
-[Clean.Execute.Step] Execute.Step
-[Yield.([Digit] 0).Execute.Scan] (Execute.Input) (Forget.Execute.Write.0)
-[Clean.Execute.Write.0, Execute.Stack] (Push.([Digit] 0)) (Forget.Execute.Written)
-[Yield.([Digit] 1).Execute.Scan] (Execute.Input) (Forget.Execute.Write.1)
-[Clean.Execute.Write.1, Execute.Stack] (Push.([Digit] 1)) (Forget.Execute.Written)
-[Yield.([Digit] 2).Execute.Scan] (Execute.Input) (Forget.Execute.Write.2)
-[Clean.Execute.Write.2, Execute.Stack] (Push.([Digit] 2)) (Forget.Execute.Written)
-[Built, Clean.Execute.Written] (Execute.Stack) (Forget.Execute.More)
-[Yield.Add.Execute.Wait] (Execute.Input) (Forget.Execute.Operator.Add)
-[Clean.Execute.Operator.Add, Execute.Stack] (Function.Expression.Split) (Forget.Execute.Right.Add)
-[Return.Expression.Split.Tail, Clean.Execute.Right.Add] (Execute.Stack) (Forget.Execute.Number.Add)
-[Return.Expression.Split.Positive, Clean.Execute.Number.Add] (Operand.Right.Positive) (Forget.Execute.Left.Add)
-[Return.Expression.Split.Negative, Clean.Execute.Number.Add] (Operand.Right.Negative) (Forget.Execute.Left.Add)
-[Clean.Execute.Left.Add, Execute.Stack] (Function.Expression.Split) (Forget.Execute.Second.Add)
-[Return.Expression.Split.Tail, Clean.Execute.Second.Add] (Execute.Stack) (Forget.Execute.Value.Add)
-[Return.Expression.Split.Positive, Clean.Execute.Value.Add] (Operand.Left.Positive) (Forget.Execute.Call.Add)
-[Return.Expression.Split.Negative, Clean.Execute.Value.Add] (Operand.Left.Negative) (Forget.Execute.Call.Add)
-[Clean.Execute.Call.Add] (Function.Integer.Add) (Execute.Pending.Add)
-[Return.Integer.Add.Positive, Execute.Pending.Add] (Operand.Number.Positive) (Forget.Execute.Join)
-[Return.Integer.Add.Negative, Execute.Pending.Add] (Operand.Number.Negative) (Forget.Execute.Join)
-[Yield.Subtract.Execute.Wait] (Execute.Input) (Forget.Execute.Operator.Subtract)
-[Clean.Execute.Operator.Subtract, Execute.Stack] (Function.Expression.Split) (Forget.Execute.Right.Subtract)
-[Return.Expression.Split.Tail, Clean.Execute.Right.Subtract] (Execute.Stack) (Forget.Execute.Number.Subtract)
-[Return.Expression.Split.Positive, Clean.Execute.Number.Subtract] (Operand.Right.Positive) (Forget.Execute.Left.Subtract)
-[Return.Expression.Split.Negative, Clean.Execute.Number.Subtract] (Operand.Right.Negative) (Forget.Execute.Left.Subtract)
-[Clean.Execute.Left.Subtract, Execute.Stack] (Function.Expression.Split) (Forget.Execute.Second.Subtract)
-[Return.Expression.Split.Tail, Clean.Execute.Second.Subtract] (Execute.Stack) (Forget.Execute.Value.Subtract)
-[Return.Expression.Split.Positive, Clean.Execute.Value.Subtract] (Operand.Left.Positive) (Forget.Execute.Call.Subtract)
-[Return.Expression.Split.Negative, Clean.Execute.Value.Subtract] (Operand.Left.Negative) (Forget.Execute.Call.Subtract)
-[Clean.Execute.Call.Subtract] (Function.Integer.Subtract) (Execute.Pending.Subtract)
-[Return.Integer.Subtract.Positive, Execute.Pending.Subtract] (Operand.Number.Positive) (Forget.Execute.Join)
-[Return.Integer.Subtract.Negative, Execute.Pending.Subtract] (Operand.Number.Negative) (Forget.Execute.Join)
-[Yield.Multiply.Execute.Wait] (Execute.Input) (Forget.Execute.Operator.Multiply)
-[Clean.Execute.Operator.Multiply, Execute.Stack] (Function.Expression.Split) (Forget.Execute.Right.Multiply)
-[Return.Expression.Split.Tail, Clean.Execute.Right.Multiply] (Execute.Stack) (Forget.Execute.Number.Multiply)
-[Return.Expression.Split.Positive, Clean.Execute.Number.Multiply] (Operand.Right.Positive) (Forget.Execute.Left.Multiply)
-[Return.Expression.Split.Negative, Clean.Execute.Number.Multiply] (Operand.Right.Negative) (Forget.Execute.Left.Multiply)
-[Clean.Execute.Left.Multiply, Execute.Stack] (Function.Expression.Split) (Forget.Execute.Second.Multiply)
-[Return.Expression.Split.Tail, Clean.Execute.Second.Multiply] (Execute.Stack) (Forget.Execute.Value.Multiply)
-[Return.Expression.Split.Positive, Clean.Execute.Value.Multiply] (Operand.Left.Positive) (Forget.Execute.Call.Multiply)
-[Return.Expression.Split.Negative, Clean.Execute.Value.Multiply] (Operand.Left.Negative) (Forget.Execute.Call.Multiply)
-[Clean.Execute.Call.Multiply] (Function.Integer.Multiply) (Execute.Pending.Multiply)
-[Return.Integer.Multiply.Positive, Execute.Pending.Multiply] (Operand.Number.Positive) (Forget.Execute.Join)
-[Return.Integer.Multiply.Negative, Execute.Pending.Multiply] (Operand.Number.Negative) (Forget.Execute.Join)
-[Yield.Divide.Execute.Wait] (Execute.Input) (Forget.Execute.Operator.Divide)
-[Clean.Execute.Operator.Divide, Execute.Stack] (Function.Expression.Split) (Forget.Execute.Right.Divide)
-[Return.Expression.Split.Tail, Clean.Execute.Right.Divide] (Execute.Stack) (Forget.Execute.Number.Divide)
-[Return.Expression.Split.Positive, Clean.Execute.Number.Divide] (Operand.Right.Positive) (Forget.Execute.Left.Divide)
-[Return.Expression.Split.Negative, Clean.Execute.Number.Divide] (Operand.Right.Negative) (Forget.Execute.Left.Divide)
-[Clean.Execute.Left.Divide, Execute.Stack] (Function.Expression.Split) (Forget.Execute.Second.Divide)
-[Return.Expression.Split.Tail, Clean.Execute.Second.Divide] (Execute.Stack) (Forget.Execute.Value.Divide)
-[Return.Expression.Split.Positive, Clean.Execute.Value.Divide] (Operand.Left.Positive) (Forget.Execute.Call.Divide)
-[Return.Expression.Split.Negative, Clean.Execute.Value.Divide] (Operand.Left.Negative) (Forget.Execute.Call.Divide)
-[Clean.Execute.Call.Divide] (Function.Integer.Divide) (Execute.Pending.Divide)
-[Return.Integer.Divide.Positive, Execute.Pending.Divide] (Operand.Number.Positive) (Forget.Execute.Join)
-[Return.Integer.Divide.Negative, Execute.Pending.Divide] (Operand.Number.Negative) (Forget.Execute.Join)
-[Clean.Execute.Join, Execute.Stack] (Operand.Stack) (Forget.Execute.Combine)
-[Clean.Execute.Combine] (Function.Expression.Join) (Execute.Join)
-[Return.Expression.Join, Execute.Join] (Execute.Stack) (Forget.Execute.Step)
-[Yield.End.Execute.Wait] Forget.Execute.End
-[Clean.Execute.End, Execute.Stack] (Function.Expression.Split) (Forget.Execute.Finish)
-[Return.Expression.Split.Tail.Zero, Clean.Execute.Finish] Execute.Complete
-[Return.Expression.Split.Positive, Execute.Complete] (Function.Natural.Normalize) (Forget.Execute.Normalize.Positive)
-[Return.Expression.Split.Negative, Execute.Complete] (Function.Natural.Normalize) (Forget.Execute.Normalize.Negative)
+[Function.Expression.Execute] (Execute.Input, Forget.Execute.Begin),
+[Clean.Execute.Begin] (Execute.Stack.Zero, Execute.Step),
+[Execute.Step, Execute.Input] Read.Execute.Wait,
+[Yield.Literal.Execute.Wait] (Execute.Input, Forget.Execute.Literal),
+[Clean.Execute.Literal, Execute.Stack] (Push.Mark, Forget.Execute.Read),
+[Built, Clean.Execute.Read] (Execute.Stack, Forget.Execute.First),
+[Clean.Execute.First, Execute.Input] Read.Execute.Scan,
+[Clean.Execute.More, Execute.Input] Read.Execute.Scan,
+[Yield.Mark.Execute.Scan] (Execute.Input, Forget.Execute.Step),
+[Clean.Execute.Step] Execute.Step,
+[Yield.([Digit] 0).Execute.Scan] (Execute.Input, Forget.Execute.Write.0),
+[Clean.Execute.Write.0, Execute.Stack] (Push.([Digit] 0), Forget.Execute.Written),
+[Yield.([Digit] 1).Execute.Scan] (Execute.Input, Forget.Execute.Write.1),
+[Clean.Execute.Write.1, Execute.Stack] (Push.([Digit] 1), Forget.Execute.Written),
+[Yield.([Digit] 2).Execute.Scan] (Execute.Input, Forget.Execute.Write.2),
+[Clean.Execute.Write.2, Execute.Stack] (Push.([Digit] 2), Forget.Execute.Written),
+[Built, Clean.Execute.Written] (Execute.Stack, Forget.Execute.More),
+[Yield.Add.Execute.Wait] (Execute.Input, Forget.Execute.Operator.Add),
+[Clean.Execute.Operator.Add, Execute.Stack] (Function.Expression.Split, Forget.Execute.Right.Add),
+[Return.Expression.Split.Tail, Clean.Execute.Right.Add] (Execute.Stack, Forget.Execute.Number.Add),
+[Return.Expression.Split.Positive, Clean.Execute.Number.Add] (Operand.Right.Positive, Forget.Execute.Left.Add),
+[Return.Expression.Split.Negative, Clean.Execute.Number.Add] (Operand.Right.Negative, Forget.Execute.Left.Add),
+[Clean.Execute.Left.Add, Execute.Stack] (Function.Expression.Split, Forget.Execute.Second.Add),
+[Return.Expression.Split.Tail, Clean.Execute.Second.Add] (Execute.Stack, Forget.Execute.Value.Add),
+[Return.Expression.Split.Positive, Clean.Execute.Value.Add] (Operand.Left.Positive, Forget.Execute.Call.Add),
+[Return.Expression.Split.Negative, Clean.Execute.Value.Add] (Operand.Left.Negative, Forget.Execute.Call.Add),
+[Clean.Execute.Call.Add] (Function.Integer.Add, Execute.Pending.Add),
+[Return.Integer.Add.Positive, Execute.Pending.Add] (Operand.Number.Positive, Forget.Execute.Join),
+[Return.Integer.Add.Negative, Execute.Pending.Add] (Operand.Number.Negative, Forget.Execute.Join),
+[Yield.Subtract.Execute.Wait] (Execute.Input, Forget.Execute.Operator.Subtract),
+[Clean.Execute.Operator.Subtract, Execute.Stack] (Function.Expression.Split, Forget.Execute.Right.Subtract),
+[Return.Expression.Split.Tail, Clean.Execute.Right.Subtract] (Execute.Stack, Forget.Execute.Number.Subtract),
+[Return.Expression.Split.Positive, Clean.Execute.Number.Subtract] (Operand.Right.Positive, Forget.Execute.Left.Subtract),
+[Return.Expression.Split.Negative, Clean.Execute.Number.Subtract] (Operand.Right.Negative, Forget.Execute.Left.Subtract),
+[Clean.Execute.Left.Subtract, Execute.Stack] (Function.Expression.Split, Forget.Execute.Second.Subtract),
+[Return.Expression.Split.Tail, Clean.Execute.Second.Subtract] (Execute.Stack, Forget.Execute.Value.Subtract),
+[Return.Expression.Split.Positive, Clean.Execute.Value.Subtract] (Operand.Left.Positive, Forget.Execute.Call.Subtract),
+[Return.Expression.Split.Negative, Clean.Execute.Value.Subtract] (Operand.Left.Negative, Forget.Execute.Call.Subtract),
+[Clean.Execute.Call.Subtract] (Function.Integer.Subtract, Execute.Pending.Subtract),
+[Return.Integer.Subtract.Positive, Execute.Pending.Subtract] (Operand.Number.Positive, Forget.Execute.Join),
+[Return.Integer.Subtract.Negative, Execute.Pending.Subtract] (Operand.Number.Negative, Forget.Execute.Join),
+[Yield.Multiply.Execute.Wait] (Execute.Input, Forget.Execute.Operator.Multiply),
+[Clean.Execute.Operator.Multiply, Execute.Stack] (Function.Expression.Split, Forget.Execute.Right.Multiply),
+[Return.Expression.Split.Tail, Clean.Execute.Right.Multiply] (Execute.Stack, Forget.Execute.Number.Multiply),
+[Return.Expression.Split.Positive, Clean.Execute.Number.Multiply] (Operand.Right.Positive, Forget.Execute.Left.Multiply),
+[Return.Expression.Split.Negative, Clean.Execute.Number.Multiply] (Operand.Right.Negative, Forget.Execute.Left.Multiply),
+[Clean.Execute.Left.Multiply, Execute.Stack] (Function.Expression.Split, Forget.Execute.Second.Multiply),
+[Return.Expression.Split.Tail, Clean.Execute.Second.Multiply] (Execute.Stack, Forget.Execute.Value.Multiply),
+[Return.Expression.Split.Positive, Clean.Execute.Value.Multiply] (Operand.Left.Positive, Forget.Execute.Call.Multiply),
+[Return.Expression.Split.Negative, Clean.Execute.Value.Multiply] (Operand.Left.Negative, Forget.Execute.Call.Multiply),
+[Clean.Execute.Call.Multiply] (Function.Integer.Multiply, Execute.Pending.Multiply),
+[Return.Integer.Multiply.Positive, Execute.Pending.Multiply] (Operand.Number.Positive, Forget.Execute.Join),
+[Return.Integer.Multiply.Negative, Execute.Pending.Multiply] (Operand.Number.Negative, Forget.Execute.Join),
+[Yield.Divide.Execute.Wait] (Execute.Input, Forget.Execute.Operator.Divide),
+[Clean.Execute.Operator.Divide, Execute.Stack] (Function.Expression.Split, Forget.Execute.Right.Divide),
+[Return.Expression.Split.Tail, Clean.Execute.Right.Divide] (Execute.Stack, Forget.Execute.Number.Divide),
+[Return.Expression.Split.Positive, Clean.Execute.Number.Divide] (Operand.Right.Positive, Forget.Execute.Left.Divide),
+[Return.Expression.Split.Negative, Clean.Execute.Number.Divide] (Operand.Right.Negative, Forget.Execute.Left.Divide),
+[Clean.Execute.Left.Divide, Execute.Stack] (Function.Expression.Split, Forget.Execute.Second.Divide),
+[Return.Expression.Split.Tail, Clean.Execute.Second.Divide] (Execute.Stack, Forget.Execute.Value.Divide),
+[Return.Expression.Split.Positive, Clean.Execute.Value.Divide] (Operand.Left.Positive, Forget.Execute.Call.Divide),
+[Return.Expression.Split.Negative, Clean.Execute.Value.Divide] (Operand.Left.Negative, Forget.Execute.Call.Divide),
+[Clean.Execute.Call.Divide] (Function.Integer.Divide, Execute.Pending.Divide),
+[Return.Integer.Divide.Positive, Execute.Pending.Divide] (Operand.Number.Positive, Forget.Execute.Join),
+[Return.Integer.Divide.Negative, Execute.Pending.Divide] (Operand.Number.Negative, Forget.Execute.Join),
+[Clean.Execute.Join, Execute.Stack] (Operand.Stack, Forget.Execute.Combine),
+[Clean.Execute.Combine] (Function.Expression.Join, Execute.Join),
+[Return.Expression.Join, Execute.Join] (Execute.Stack, Forget.Execute.Step),
+[Yield.End.Execute.Wait] Forget.Execute.End,
+[Clean.Execute.End, Execute.Stack] (Function.Expression.Split, Forget.Execute.Finish),
+[Return.Expression.Split.Tail.Zero, Clean.Execute.Finish] Execute.Complete,
+[Return.Expression.Split.Positive, Execute.Complete] (Function.Natural.Normalize, Forget.Execute.Normalize.Positive),
+[Return.Expression.Split.Negative, Execute.Complete] (Function.Natural.Normalize, Forget.Execute.Normalize.Negative),
 
-[Return.Expression.Split.Error.Stack, Clean.Execute.Right.Add] (Execute.Stack.Zero) (Execute.Fail.Stack)
-[Return.Expression.Split.Error.Stack, Clean.Execute.Second.Add, Operand.Right.Positive] (Function.Chain.Erase) (Forget.Execute.Missing)
-[Return.Expression.Split.Error.Stack, Clean.Execute.Second.Add, Operand.Right.Negative] (Function.Chain.Erase) (Forget.Execute.Missing)
-[Return.Expression.Split.Error.Stack, Clean.Execute.Right.Subtract] (Execute.Stack.Zero) (Execute.Fail.Stack)
-[Return.Expression.Split.Error.Stack, Clean.Execute.Second.Subtract, Operand.Right.Positive] (Function.Chain.Erase) (Forget.Execute.Missing)
-[Return.Expression.Split.Error.Stack, Clean.Execute.Second.Subtract, Operand.Right.Negative] (Function.Chain.Erase) (Forget.Execute.Missing)
-[Return.Expression.Split.Error.Stack, Clean.Execute.Right.Multiply] (Execute.Stack.Zero) (Execute.Fail.Stack)
-[Return.Expression.Split.Error.Stack, Clean.Execute.Second.Multiply, Operand.Right.Positive] (Function.Chain.Erase) (Forget.Execute.Missing)
-[Return.Expression.Split.Error.Stack, Clean.Execute.Second.Multiply, Operand.Right.Negative] (Function.Chain.Erase) (Forget.Execute.Missing)
-[Return.Expression.Split.Error.Stack, Clean.Execute.Right.Divide] (Execute.Stack.Zero) (Execute.Fail.Stack)
-[Return.Expression.Split.Error.Stack, Clean.Execute.Second.Divide, Operand.Right.Positive] (Function.Chain.Erase) (Forget.Execute.Missing)
-[Return.Expression.Split.Error.Stack, Clean.Execute.Second.Divide, Operand.Right.Negative] (Function.Chain.Erase) (Forget.Execute.Missing)
-[Return.Chain.Erase, Clean.Execute.Missing] (Execute.Stack.Zero) (Execute.Fail.Stack)
-[Return.Integer.Divide.Error.Divisor, Execute.Pending.Divide] Execute.Fail.Divisor
-[Return.Expression.Split.Error.Stack, Clean.Execute.Finish] (Execute.Input.Zero) (Execute.Stack.Zero) (Execute.Fail.Stack)
-[Return.Expression.Split.Tail.Head, Clean.Execute.Finish] (Execute.Stack.Head) (Forget.Execute.Excess.Head)
-[Return.Expression.Split.Positive, Clean.Execute.Excess] (Function.Chain.Erase) (Forget.Execute.Extra)
-[Return.Chain.Erase, Clean.Execute.Extra] (Execute.Input.Zero) (Execute.Fail.Stack)
-[Yield.([Digit] 0).Execute.Wait] (Execute.Input) (Forget.Execute.Invalid)
-[Yield.([Digit] 1).Execute.Wait] (Execute.Input) (Forget.Execute.Invalid)
-[Yield.([Digit] 2).Execute.Wait] (Execute.Input) (Forget.Execute.Invalid)
-[Yield.Mark.Execute.Wait] (Execute.Input) (Forget.Execute.Invalid)
-[Yield.Open.Execute.Wait] (Execute.Input) (Forget.Execute.Invalid)
-[Yield.Close.Execute.Wait] (Execute.Input) (Forget.Execute.Invalid)
-[Yield.Literal.Execute.Scan] (Execute.Input) (Forget.Execute.Invalid)
-[Yield.Add.Execute.Scan] (Execute.Input) (Forget.Execute.Invalid)
-[Yield.Subtract.Execute.Scan] (Execute.Input) (Forget.Execute.Invalid)
-[Yield.Multiply.Execute.Scan] (Execute.Input) (Forget.Execute.Invalid)
-[Yield.Divide.Execute.Scan] (Execute.Input) (Forget.Execute.Invalid)
-[Yield.Open.Execute.Scan] (Execute.Input) (Forget.Execute.Invalid)
-[Yield.Close.Execute.Scan] (Execute.Input) (Forget.Execute.Invalid)
-[Yield.End.Execute.Scan] (Execute.Input) (Forget.Execute.Invalid)
-[Clean.Execute.Invalid] Execute.Fail.Syntax
-[Execute.Fail.Syntax, Execute.Input] (Function.Chain.Erase) (Forget.Execute.Failure.Syntax)
-[Return.Chain.Erase, Clean.Execute.Failure.Syntax, Execute.Stack] (Function.Chain.Erase) (Forget.Execute.Abort.Syntax)
-[Return.Chain.Erase, Clean.Execute.Abort.Syntax] Return.Expression.Execute.Error.Syntax
-[Execute.Fail.Stack, Execute.Input] (Function.Chain.Erase) (Forget.Execute.Failure.Stack)
-[Return.Chain.Erase, Clean.Execute.Failure.Stack, Execute.Stack] (Function.Chain.Erase) (Forget.Execute.Abort.Stack)
-[Return.Chain.Erase, Clean.Execute.Abort.Stack] Return.Expression.Execute.Error.Stack
-[Execute.Fail.Divisor, Execute.Input] (Function.Chain.Erase) (Forget.Execute.Failure.Divisor)
-[Return.Chain.Erase, Clean.Execute.Failure.Divisor, Execute.Stack] (Function.Chain.Erase) (Forget.Execute.Abort.Divisor)
-[Return.Chain.Erase, Clean.Execute.Abort.Divisor] Return.Expression.Execute.Error.Divisor
-[Return.Natural.Normalize.Zero, Clean.Execute.Normalize.Positive] Return.Expression.Execute.Positive.Zero
-[Return.Natural.Normalize.Head, Clean.Execute.Normalize.Positive] Return.Expression.Execute.Positive.Head
-[Return.Natural.Normalize.Zero, Clean.Execute.Normalize.Negative] Return.Expression.Execute.Positive.Zero
-[Return.Natural.Normalize.Head, Clean.Execute.Normalize.Negative] Return.Expression.Execute.Negative.Head
-[Return.Expression.Split.Negative, Clean.Execute.Excess] (Function.Chain.Erase) (Forget.Execute.Extra)
-[Yield.Negate.Execute.Wait] (Execute.Input) (Forget.Execute.Unary)
-[Clean.Execute.Unary, Execute.Stack] (Function.Expression.Split) (Forget.Execute.Negate)
-[Return.Expression.Split.Tail, Clean.Execute.Negate] (Execute.Stack) (Forget.Execute.Sign)
-[Return.Expression.Split.Positive, Clean.Execute.Sign] (Operand.Number.Negative) (Forget.Execute.Join)
-[Return.Expression.Split.Negative, Clean.Execute.Sign] (Operand.Number.Positive) (Forget.Execute.Join)
-[Return.Expression.Split.Error.Stack, Clean.Execute.Negate] (Execute.Stack.Zero) (Execute.Fail.Stack)
+[Return.Expression.Split.Error.Stack, Clean.Execute.Right.Add] (Execute.Stack.Zero, Execute.Fail.Stack),
+[Return.Expression.Split.Error.Stack, Clean.Execute.Second.Add, Operand.Right.Positive] (Function.Chain.Erase, Forget.Execute.Missing),
+[Return.Expression.Split.Error.Stack, Clean.Execute.Second.Add, Operand.Right.Negative] (Function.Chain.Erase, Forget.Execute.Missing),
+[Return.Expression.Split.Error.Stack, Clean.Execute.Right.Subtract] (Execute.Stack.Zero, Execute.Fail.Stack),
+[Return.Expression.Split.Error.Stack, Clean.Execute.Second.Subtract, Operand.Right.Positive] (Function.Chain.Erase, Forget.Execute.Missing),
+[Return.Expression.Split.Error.Stack, Clean.Execute.Second.Subtract, Operand.Right.Negative] (Function.Chain.Erase, Forget.Execute.Missing),
+[Return.Expression.Split.Error.Stack, Clean.Execute.Right.Multiply] (Execute.Stack.Zero, Execute.Fail.Stack),
+[Return.Expression.Split.Error.Stack, Clean.Execute.Second.Multiply, Operand.Right.Positive] (Function.Chain.Erase, Forget.Execute.Missing),
+[Return.Expression.Split.Error.Stack, Clean.Execute.Second.Multiply, Operand.Right.Negative] (Function.Chain.Erase, Forget.Execute.Missing),
+[Return.Expression.Split.Error.Stack, Clean.Execute.Right.Divide] (Execute.Stack.Zero, Execute.Fail.Stack),
+[Return.Expression.Split.Error.Stack, Clean.Execute.Second.Divide, Operand.Right.Positive] (Function.Chain.Erase, Forget.Execute.Missing),
+[Return.Expression.Split.Error.Stack, Clean.Execute.Second.Divide, Operand.Right.Negative] (Function.Chain.Erase, Forget.Execute.Missing),
+[Return.Chain.Erase, Clean.Execute.Missing] (Execute.Stack.Zero, Execute.Fail.Stack),
+[Return.Integer.Divide.Error.Divisor, Execute.Pending.Divide] Execute.Fail.Divisor,
+[Return.Expression.Split.Error.Stack, Clean.Execute.Finish] (Execute.Input.Zero, Execute.Stack.Zero, Execute.Fail.Stack),
+[Return.Expression.Split.Tail.Head, Clean.Execute.Finish] (Execute.Stack.Head, Forget.Execute.Excess.Head),
+[Return.Expression.Split.Positive, Clean.Execute.Excess] (Function.Chain.Erase, Forget.Execute.Extra),
+[Return.Chain.Erase, Clean.Execute.Extra] (Execute.Input.Zero, Execute.Fail.Stack),
+[Yield.([Digit] 0).Execute.Wait] (Execute.Input, Forget.Execute.Invalid),
+[Yield.([Digit] 1).Execute.Wait] (Execute.Input, Forget.Execute.Invalid),
+[Yield.([Digit] 2).Execute.Wait] (Execute.Input, Forget.Execute.Invalid),
+[Yield.Mark.Execute.Wait] (Execute.Input, Forget.Execute.Invalid),
+[Yield.Open.Execute.Wait] (Execute.Input, Forget.Execute.Invalid),
+[Yield.Close.Execute.Wait] (Execute.Input, Forget.Execute.Invalid),
+[Yield.Literal.Execute.Scan] (Execute.Input, Forget.Execute.Invalid),
+[Yield.Add.Execute.Scan] (Execute.Input, Forget.Execute.Invalid),
+[Yield.Subtract.Execute.Scan] (Execute.Input, Forget.Execute.Invalid),
+[Yield.Multiply.Execute.Scan] (Execute.Input, Forget.Execute.Invalid),
+[Yield.Divide.Execute.Scan] (Execute.Input, Forget.Execute.Invalid),
+[Yield.Open.Execute.Scan] (Execute.Input, Forget.Execute.Invalid),
+[Yield.Close.Execute.Scan] (Execute.Input, Forget.Execute.Invalid),
+[Yield.End.Execute.Scan] (Execute.Input, Forget.Execute.Invalid),
+[Clean.Execute.Invalid] Execute.Fail.Syntax,
+[Execute.Fail.Syntax, Execute.Input] (Function.Chain.Erase, Forget.Execute.Failure.Syntax),
+[Return.Chain.Erase, Clean.Execute.Failure.Syntax, Execute.Stack] (Function.Chain.Erase, Forget.Execute.Abort.Syntax),
+[Return.Chain.Erase, Clean.Execute.Abort.Syntax] Return.Expression.Execute.Error.Syntax,
+[Execute.Fail.Stack, Execute.Input] (Function.Chain.Erase, Forget.Execute.Failure.Stack),
+[Return.Chain.Erase, Clean.Execute.Failure.Stack, Execute.Stack] (Function.Chain.Erase, Forget.Execute.Abort.Stack),
+[Return.Chain.Erase, Clean.Execute.Abort.Stack] Return.Expression.Execute.Error.Stack,
+[Execute.Fail.Divisor, Execute.Input] (Function.Chain.Erase, Forget.Execute.Failure.Divisor),
+[Return.Chain.Erase, Clean.Execute.Failure.Divisor, Execute.Stack] (Function.Chain.Erase, Forget.Execute.Abort.Divisor),
+[Return.Chain.Erase, Clean.Execute.Abort.Divisor] Return.Expression.Execute.Error.Divisor,
+[Return.Natural.Normalize.Zero, Clean.Execute.Normalize.Positive] Return.Expression.Execute.Positive.Zero,
+[Return.Natural.Normalize.Head, Clean.Execute.Normalize.Positive] Return.Expression.Execute.Positive.Head,
+[Return.Natural.Normalize.Zero, Clean.Execute.Normalize.Negative] Return.Expression.Execute.Positive.Zero,
+[Return.Natural.Normalize.Head, Clean.Execute.Normalize.Negative] Return.Expression.Execute.Negative.Head,
+[Return.Expression.Split.Negative, Clean.Execute.Excess] (Function.Chain.Erase, Forget.Execute.Extra),
+[Yield.Negate.Execute.Wait] (Execute.Input, Forget.Execute.Unary),
+[Clean.Execute.Unary, Execute.Stack] (Function.Expression.Split, Forget.Execute.Negate),
+[Return.Expression.Split.Tail, Clean.Execute.Negate] (Execute.Stack, Forget.Execute.Sign),
+[Return.Expression.Split.Positive, Clean.Execute.Sign] (Operand.Number.Negative, Forget.Execute.Join),
+[Return.Expression.Split.Negative, Clean.Execute.Sign] (Operand.Number.Positive, Forget.Execute.Join),
+[Return.Expression.Split.Error.Stack, Clean.Execute.Negate] (Execute.Stack.Zero, Execute.Fail.Stack)

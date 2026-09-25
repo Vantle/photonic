@@ -1,4 +1,4 @@
-Push.([Digit] 0).Zero, Stage.1
-[Built, Stage.1] (Push.Divide) (Forget.Stage.2)
-[Built, Clean.Stage.2] (Push.([Digit] 1)) (Forget.Stage.3)
+Push.([Digit] 0).Zero, Stage.1,
+[Built, Stage.1] (Push.Divide, Forget.Stage.2),
+[Built, Clean.Stage.2] (Push.([Digit] 1), Forget.Stage.3),
 [Built, Clean.Stage.3] Function.Expression.Evaluate

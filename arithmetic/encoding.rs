@@ -4,7 +4,11 @@ use crate::format::Format;
 
 pub fn unsigned(radix: u8, width: usize, value: u64) -> Result<String, Failure> {
     let format = Format::new(radix, width)?;
-    Ok(word(format, "Digit", value)? + "\n")
+    let word = word(format, "Digit", value)?;
+    if width == 1 {
+        return Ok(format!("().{word}\n"));
+    }
+    Ok(word + "\n")
 }
 
 fn word(format: Format, label: &'static str, value: u64) -> Result<String, Failure> {

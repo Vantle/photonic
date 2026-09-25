@@ -36,7 +36,7 @@ fn check(source: &str, target: &str) -> Outcome {
 
 fn sum(left: usize, right: usize) -> String {
     format!(
-        "{}, {} [Add, Add] ()",
+        "{}, {}, [Add, Add] ()",
         operand("Add", left),
         operand("Add", right)
     )
@@ -65,7 +65,7 @@ fn successor() {
             assert_eq!(check(&sum(left + 1, right), &target), Outcome::Reached);
             assert_eq!(check(&sum(left, right + 1), &target), Outcome::Reached);
             let source = format!(
-                "{}, {} [Add, Add] Step [Step] Unit",
+                "{}, {}, [Add, Add] Step, [Step] Unit",
                 operand("Add", left),
                 operand("Add", right)
             );
@@ -87,11 +87,11 @@ fn associativity() {
                 );
                 let target = numeral(left + middle + right);
                 for rule in [
-                    "[Left, Middle] Partial [Partial, Right] ()",
-                    "[Middle, Right] Partial [Left, Partial] ()",
+                    "[Left, Middle] Partial, [Partial, Right] ()",
+                    "[Middle, Right] Partial, [Left, Partial] ()",
                 ] {
                     assert_eq!(
-                        check(&format!("{initial} {rule}"), &target),
+                        check(&format!("{initial}, {rule}"), &target),
                         Outcome::Reached
                     );
                 }
@@ -102,7 +102,7 @@ fn associativity() {
 
 #[test]
 fn independence() {
-    let source = "Seed.Unit [Seed] (Add, Add) [Add, Add] ()";
+    let source = "Seed.Unit, [Seed] (Add, Add), [Add, Add] ()";
     assert_eq!(check(source, "Unit"), Outcome::Reached);
     assert_eq!(check(source, "Unit.Unit"), Outcome::Unreachable);
 }

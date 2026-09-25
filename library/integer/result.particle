@@ -1,4 +1,4 @@
-[Integer.Result.Positive.Zero] Integer.Final.Positive.Zero
-[Integer.Result.Positive.Head] Integer.Final.Positive.Head
-[Integer.Result.Negative.Zero] Integer.Final.Positive.Zero
+[Integer.Result.Positive.Zero] Integer.Final.Positive.Zero,
+[Integer.Result.Positive.Head] Integer.Final.Positive.Head,
+[Integer.Result.Negative.Zero] Integer.Final.Positive.Zero,
 [Integer.Result.Negative.Head] Integer.Final.Negative.Head

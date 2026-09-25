@@ -42,16 +42,15 @@ fn expansion() {
     for input in 1..=6 {
         let initial = vec!["()"; input].join(",");
         let pattern = vec!["()"; input].join(",");
-        for output in 0..=4 {
+        check(&format!("{initial}, [{pattern}]"), "");
+        for output in 1..=4 {
             let target = (0..output)
                 .map(|position| format!("Value{position}"))
                 .collect::<Vec<_>>()
                 .join(",");
-            check(&format!("{initial} [{pattern}] {target}"), &target);
-            if output > 0 {
-                let target = vec!["()"; output].join(",");
-                check(&format!("{initial} [{pattern}] {target}"), &target);
-            }
+            check(&format!("{initial}, [{pattern}] ({target})"), &target);
+            let target = vec!["()"; output].join(",");
+            check(&format!("{initial}, [{pattern}] ({target})"), &target);
         }
     }
 }
@@ -62,10 +61,10 @@ fn mixture() {
         let mut initial = vec!["()"; width];
         initial[0] = "Gate.Extra";
         for position in 0..width {
-            let mut pattern = vec![""; width];
+            let mut pattern = vec!["()"; width];
             pattern[position] = "Gate";
             check(
-                &format!("{} [{}] Result", initial.join(","), pattern.join(",")),
+                &format!("{}, [{}] Result", initial.join(","), pattern.join(",")),
                 "Result.Extra",
             );
         }
@@ -80,7 +79,7 @@ fn remainder() {
             .collect::<Vec<_>>();
         check(
             &format!(
-                "{} [{}] Result",
+                "{}, [{}] Result",
                 initial.join(","),
                 vec!["()"; width].join(",")
             ),
@@ -94,7 +93,7 @@ fn absence() {
     for width in 1..=6 {
         for count in 0..width {
             let source = format!(
-                "{} [{}] Result",
+                "{}, [{}] Result",
                 vec!["()"; count].join(","),
                 vec!["()"; width].join(",")
             );

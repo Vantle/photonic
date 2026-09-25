@@ -1,21 +1,21 @@
-[Function.Expression.Split] (Split.Input) (Forget.Split.Begin)
-[Clean.Split.Begin] (Split.Output.Zero) (Split.Sign.Positive) (Split.Step)
-[Split.Step, Split.Input] Read.Split.Wait
-[Yield.([Digit] 0).Split.Wait] (Split.Input) (Forget.Split.Write.0)
-[Clean.Split.Write.0, Split.Output] (Push.([Digit] 0)) (Forget.Split.Await)
-[Yield.([Digit] 1).Split.Wait] (Split.Input) (Forget.Split.Write.1)
-[Clean.Split.Write.1, Split.Output] (Push.([Digit] 1)) (Forget.Split.Await)
-[Yield.([Digit] 2).Split.Wait] (Split.Input) (Forget.Split.Write.2)
-[Clean.Split.Write.2, Split.Output] (Push.([Digit] 2)) (Forget.Split.Await)
-[Built, Clean.Split.Await] (Split.Output) (Forget.Split.Step)
-[Clean.Split.Step] Split.Step
-[Yield.Mark.Split.Wait] (Return.Expression.Split.Tail) (Forget.Split.End)
-[Clean.Split.End, Split.Output] (Function.Chain.Reverse) (Forget.Split.Finish)
-[Return.Chain.Reverse, Clean.Split.Finish, Split.Sign.Positive] Return.Expression.Split.Positive
-[Return.Chain.Reverse, Clean.Split.Finish, Split.Sign.Negative] Return.Expression.Split.Negative
-[Yield.End.Split.Wait.Zero] Clean.Split.Failure
-[Clean.Split.Failure, Split.Output] (Function.Chain.Erase) (Forget.Split.Error)
-[Return.Chain.Erase, Clean.Split.Error, Split.Sign.Positive] Return.Expression.Split.Error.Stack
-[Yield.Negative.Split.Wait, Split.Sign.Positive] (Split.Input) (Forget.Split.Negative)
-[Clean.Split.Negative] (Split.Sign.Negative) (Split.Step)
+[Function.Expression.Split] (Split.Input, Forget.Split.Begin),
+[Clean.Split.Begin] (Split.Output.Zero, Split.Sign.Positive, Split.Step),
+[Split.Step, Split.Input] Read.Split.Wait,
+[Yield.([Digit] 0).Split.Wait] (Split.Input, Forget.Split.Write.0),
+[Clean.Split.Write.0, Split.Output] (Push.([Digit] 0), Forget.Split.Await),
+[Yield.([Digit] 1).Split.Wait] (Split.Input, Forget.Split.Write.1),
+[Clean.Split.Write.1, Split.Output] (Push.([Digit] 1), Forget.Split.Await),
+[Yield.([Digit] 2).Split.Wait] (Split.Input, Forget.Split.Write.2),
+[Clean.Split.Write.2, Split.Output] (Push.([Digit] 2), Forget.Split.Await),
+[Built, Clean.Split.Await] (Split.Output, Forget.Split.Step),
+[Clean.Split.Step] Split.Step,
+[Yield.Mark.Split.Wait] (Return.Expression.Split.Tail, Forget.Split.End),
+[Clean.Split.End, Split.Output] (Function.Chain.Reverse, Forget.Split.Finish),
+[Return.Chain.Reverse, Clean.Split.Finish, Split.Sign.Positive] Return.Expression.Split.Positive,
+[Return.Chain.Reverse, Clean.Split.Finish, Split.Sign.Negative] Return.Expression.Split.Negative,
+[Yield.End.Split.Wait.Zero] Clean.Split.Failure,
+[Clean.Split.Failure, Split.Output] (Function.Chain.Erase, Forget.Split.Error),
+[Return.Chain.Erase, Clean.Split.Error, Split.Sign.Positive] Return.Expression.Split.Error.Stack,
+[Yield.Negative.Split.Wait, Split.Sign.Positive] (Split.Input, Forget.Split.Negative),
+[Clean.Split.Negative] (Split.Sign.Negative, Split.Step),
 [Return.Chain.Erase, Clean.Split.Error, Split.Sign.Negative] Return.Expression.Split.Error.Stack

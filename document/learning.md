@@ -50,7 +50,7 @@ The network never sees a name. Atoms enter as identities drawn from a fresh rand
 
 ## Correctness
 
-A program is correct on an example when every actual-execution interleaving from the input terminates in the expected observation. Photonic has no rule priority, so correctness cannot depend on a scheduler. The observation is the root coherences with their introduction sharing; `[A] (B) (C)` applied to `A.X` produces two coherences that share one `X`, which differs from two independent `X` occurrences. Live rule occurrences are not observed, so an optimized program may consume or keep different rules.
+A program is correct on an example when every actual-execution interleaving from the input terminates in the expected observation. Photonic has no rule priority, so correctness cannot depend on a scheduler. The observation is the root coherences with their introduction sharing; `[A] (B, C)` applied to `A.X` produces two coherences that share one `X`, which differs from two independent `X` occurrences. Live rule occurrences are not observed, so an optimized program may consume or keep different rules.
 
 Flat programs run on the machine. Programs with rule values or bodies run on the runtime's kernel through `photonic::execution`, which drains the dispatch network at each state and applies the single evaluation kernel; it does not perform source inference. A cycle, a state outside the admission limits, more than one terminal observation, or a wrong terminal makes an example incorrect. When exhaustive exploration exceeds its budget, seeded random walks decide the example and the result is marked sampled rather than exhaustive.
 
@@ -199,14 +199,14 @@ On four elements the learner reached the parallel exchange sort by itself: the g
 
 ```
 [Gnome.First],
-[First.1, Second.0] (First.0) (Second.1)
-[Second.1, 0.Third] (Second.0) (Third.1)
-[0.Fourth, Third.1] (0.Third) (1.Fourth)
+[First.1, Second.0] (First.0, Second.1),
+[Second.1, 0.Third] (Second.0, Third.1),
+[0.Fourth, Third.1] (0.Third, 1.Fourth)
 ```
 
 The larger sizes were still converting when the run ended. The runtime's kernel and Prism both confirm every best program on every input, held-out ones included.
 
-The program found on four elements is one instance of a rule family that holds at every length `n` and every value range: discard the gnome, and for every adjacent pair of positions and every pair of values `h > l`, exchange `[P.h, Q.l] (P.l) (Q.h)`. Every rule rewrites whole element coherences in place, so only values move. An exchange fires only on an adjacent pair that is out of order and puts it in order, which lowers the number of inversions `I` by exactly one, so every execution performs exactly `I` exchanges and stops. When no exchange applies, no adjacent pair is out of order, so the values are sorted, and a multiset has one sorted arrangement: every schedule ends in the same observation. `I + 1` events is the least work any program that moves values by adjacent exchanges can do; gnome sort takes `1 + n + 2I` events, one after another. Instantiated beyond every trained size and checked exhaustively:
+The program found on four elements is one instance of a rule family that holds at every length `n` and every value range: discard the gnome, and for every adjacent pair of positions and every pair of values `h > l`, exchange `[P.h, Q.l] (P.l, Q.h)`. Every rule rewrites whole element coherences in place, so only values move. An exchange fires only on an adjacent pair that is out of order and puts it in order, which lowers the number of inversions `I` by exactly one, so every execution performs exactly `I` exchanges and stops. When no exchange applies, no adjacent pair is out of order, so the values are sorted, and a multiset has one sorted arrangement: every schedule ends in the same observation. `I + 1` events is the least work any program that moves values by adjacent exchanges can do; gnome sort takes `1 + n + 2I` events, one after another. Instantiated beyond every trained size and checked exhaustively:
 
 | Length | Values | Inputs | Gnome work and span | Exchange work | Exchange span | Cost |
 | --- | --- | --- | --- | --- | --- | --- |

@@ -1,11 +1,11 @@
-Case.(([P] True), ([P] False)).(([Q] True), ([Q] False))
+Case.(([P] True), ([P] False)).(([Q] True), ([Q] False)),
 
-[Claim] (Function.Boolean.And.Lower.Conjunction.P.Q) (Function.Boolean.Or.Upper.Disjunction.P.Q) (Function.Boolean.Not.Former.P) (Function.Boolean.Not.Latter.Q)
-[Return.Lower.Conjunction] Function.Boolean.Not.Lower.Denial
-[Return.Upper.Disjunction] Function.Boolean.Not.Upper.Denial
-[Return.Former, Return.Latter] (Function.Boolean.Or.Lower.Disjunction) (Function.Boolean.And.Upper.Conjunction)
-[Return.Lower.Denial, Return.Lower.Disjunction] Function.Boolean.Equal.Lower.Law
-[Return.Upper.Denial, Return.Upper.Conjunction] Function.Boolean.Equal.Upper.Law
-[Return.Lower.Law, Return.Upper.Law] Function.Boolean.And.Verdict
+[Claim] (Function.Boolean.And.Lower.Conjunction.P.Q, Function.Boolean.Or.Upper.Disjunction.P.Q, Function.Boolean.Not.Former.P, Function.Boolean.Not.Latter.Q),
+[Return.Lower.Conjunction] Function.Boolean.Not.Lower.Denial,
+[Return.Upper.Disjunction] Function.Boolean.Not.Upper.Denial,
+[Return.Former, Return.Latter] (Function.Boolean.Or.Lower.Disjunction, Function.Boolean.And.Upper.Conjunction),
+[Return.Lower.Denial, Return.Lower.Disjunction] Function.Boolean.Equal.Lower.Law,
+[Return.Upper.Denial, Return.Upper.Conjunction] Function.Boolean.Equal.Upper.Law,
+[Return.Lower.Law, Return.Upper.Law] Function.Boolean.And.Verdict,
 
 [Holds.(([P] True), ([P] False)).(([Q] True), ([Q] False))] Theorem

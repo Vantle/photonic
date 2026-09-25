@@ -5,14 +5,14 @@ use crate::syntax::{Kind, Node, Tree};
 
 #[derive(pest_derive::Parser)]
 #[grammar_inline = r#"
-module = { SOI ~ item* ~ EOI }
-item = _{ concept | group | context | continuation | coherence | space }
-group = { "(" ~ item* ~ ")" }
-context = { "[" ~ item* ~ "]" }
-continuation = { "." }
-coherence = { "," }
-space = @{ (" " | "\t" | "\r" | "\n" | "\u{000B}" | "\u{000C}")+ }
-concept = @{ (!("(" | ")" | "[" | "]" | "." | "," | space) ~ ANY)+ }
+module = { SOI ~ list ~ EOI }
+list = { term? ~ ("," ~ term?)* }
+term = { factor ~ ("."? ~ factor)* }
+factor = _{ concept | group | rule }
+group = { "(" ~ list ~ ")" }
+rule = { "[" ~ list ~ "]" ~ term? }
+concept = @{ (!("(" | ")" | "[" | "]" | "." | "," | WHITESPACE) ~ ANY)+ }
+WHITESPACE = _{ " " | "\t" | "\r" | "\n" | "\u{000B}" | "\u{000C}" }
 "#]
 struct Grammar;
 
@@ -41,16 +41,15 @@ pub fn parse(source: &str) -> Result<Tree<'_>, Failure> {
             | Token::End {
                 rule: Rule::EOI, ..
             } => {}
-            Token::Start { rule, pos } => {
-                let kind = match rule {
+            Token::Start { rule: name, pos } => {
+                let kind = match name {
                     Rule::module => Kind::Module,
-                    Rule::concept => Kind::Concept,
+                    Rule::list => Kind::List,
+                    Rule::term => Kind::Term,
                     Rule::group => Kind::Group,
-                    Rule::context => Kind::Context,
-                    Rule::continuation => Kind::Continuation,
-                    Rule::coherence => Kind::Coherence,
-                    Rule::space => Kind::Space,
-                    Rule::item | Rule::EOI => unreachable!(),
+                    Rule::rule => Kind::Rule,
+                    Rule::concept => Kind::Concept,
+                    Rule::factor | Rule::WHITESPACE | Rule::EOI => unreachable!(),
                 };
                 let index = node.len();
                 node.push(Node {
@@ -72,21 +71,40 @@ pub fn parse(source: &str) -> Result<Tree<'_>, Failure> {
 pub const DEPTH: usize = 128;
 
 fn depth(source: &str) -> Result<(), Failure> {
-    let limit = DEPTH;
-    let mut depth = 0usize;
+    let mut output = vec![0usize];
+    let mut level = 0usize;
     for (position, byte) in source.bytes().enumerate() {
         match byte {
             b'(' | b'[' => {
-                depth += 1;
-                if depth > limit {
-                    return Err(Failure::Depth {
-                        limit,
-                        span: (position, 1).into(),
-                    });
-                }
+                output.push(0);
+                level += 1;
             }
-            b')' | b']' => depth = depth.saturating_sub(1),
-            _ => {}
+            b')' | b']' => {
+                if output.len() > 1 {
+                    level -= 1 + output.pop().unwrap_or_default();
+                }
+                if byte == b')' {
+                    continue;
+                }
+                if let Some(open) = output.last_mut() {
+                    *open += 1;
+                }
+                level += 1;
+            }
+            b',' => {
+                if let Some(open) = output.last_mut() {
+                    level -= *open;
+                    *open = 0;
+                }
+                continue;
+            }
+            _ => continue,
+        }
+        if level > DEPTH {
+            return Err(Failure::Depth {
+                limit: DEPTH,
+                span: (position, 1).into(),
+            });
         }
     }
     Ok(())

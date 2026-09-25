@@ -1,30 +1,30 @@
-Begin.Addition
+Begin.Addition,
 
-[Begin.Addition] (Push.([Digit] 2).Zero) (Addition.Stage.1)
-[Built, Addition.Stage.1] (Push.Add) (Forget.Addition.Stage.2)
-[Built, Clean.Addition.Stage.2] (Push.([Digit] 2)) (Forget.Addition.Stage.3)
-[Built, Clean.Addition.Stage.3] (Push.([Digit] 1)) (Forget.Addition.Stage.4)
-[Built, Clean.Addition.Stage.4] (Function.Expression.Evaluate) (Forget.Addition.Inspect.0)
-[Return.Expression.Evaluate.Positive, Clean.Addition.Inspect.0] (Read) (Forget.Addition.Inspect.1)
-[Yield.([Digit] 1), Clean.Addition.Inspect.1] (Read) (Forget.Addition.Inspect.2)
-[Yield.([Digit] 2).Zero, Clean.Addition.Inspect.2] (Addition.([Trit] 21)) (Begin.Multiplication)
+[Begin.Addition] (Push.([Digit] 2).Zero, Addition.Stage.1),
+[Built, Addition.Stage.1] (Push.Add, Forget.Addition.Stage.2),
+[Built, Clean.Addition.Stage.2] (Push.([Digit] 2), Forget.Addition.Stage.3),
+[Built, Clean.Addition.Stage.3] (Push.([Digit] 1), Forget.Addition.Stage.4),
+[Built, Clean.Addition.Stage.4] (Function.Expression.Evaluate, Forget.Addition.Inspect.0),
+[Return.Expression.Evaluate.Positive, Clean.Addition.Inspect.0] (Read, Forget.Addition.Inspect.1),
+[Yield.([Digit] 1), Clean.Addition.Inspect.1] (Read, Forget.Addition.Inspect.2),
+[Yield.([Digit] 2).Zero, Clean.Addition.Inspect.2] (Addition.([Trit] 21), Begin.Multiplication),
 
-[Begin.Multiplication] (Push.([Digit] 2).Zero) (Multiplication.Stage.1)
-[Built, Multiplication.Stage.1] (Push.Multiply) (Forget.Multiplication.Stage.2)
-[Built, Clean.Multiplication.Stage.2] (Push.([Digit] 2)) (Forget.Multiplication.Stage.3)
-[Built, Clean.Multiplication.Stage.3] (Push.([Digit] 1)) (Forget.Multiplication.Stage.4)
-[Built, Clean.Multiplication.Stage.4] (Function.Expression.Evaluate) (Forget.Multiplication.Inspect.0)
-[Return.Expression.Evaluate.Positive, Clean.Multiplication.Inspect.0] (Read) (Forget.Multiplication.Inspect.1)
-[Yield.([Digit] 1), Clean.Multiplication.Inspect.1] (Read) (Forget.Multiplication.Inspect.2)
-[Yield.([Digit] 0), Clean.Multiplication.Inspect.2] (Read) (Forget.Multiplication.Inspect.3)
-[Yield.([Digit] 1).Zero, Clean.Multiplication.Inspect.3] (Multiplication.([Trit] 101)) (Begin.Division)
+[Begin.Multiplication] (Push.([Digit] 2).Zero, Multiplication.Stage.1),
+[Built, Multiplication.Stage.1] (Push.Multiply, Forget.Multiplication.Stage.2),
+[Built, Clean.Multiplication.Stage.2] (Push.([Digit] 2), Forget.Multiplication.Stage.3),
+[Built, Clean.Multiplication.Stage.3] (Push.([Digit] 1), Forget.Multiplication.Stage.4),
+[Built, Clean.Multiplication.Stage.4] (Function.Expression.Evaluate, Forget.Multiplication.Inspect.0),
+[Return.Expression.Evaluate.Positive, Clean.Multiplication.Inspect.0] (Read, Forget.Multiplication.Inspect.1),
+[Yield.([Digit] 1), Clean.Multiplication.Inspect.1] (Read, Forget.Multiplication.Inspect.2),
+[Yield.([Digit] 0), Clean.Multiplication.Inspect.2] (Read, Forget.Multiplication.Inspect.3),
+[Yield.([Digit] 1).Zero, Clean.Multiplication.Inspect.3] (Multiplication.([Trit] 101), Begin.Division),
 
-[Begin.Division] (Push.([Digit] 1).Zero) (Division.Stage.1)
-[Built, Division.Stage.1] (Push.Subtract) (Forget.Division.Stage.2)
-[Built, Clean.Division.Stage.2] (Push.([Digit] 2)) (Forget.Division.Stage.3)
-[Built, Clean.Division.Stage.3] (Push.Divide) (Forget.Division.Stage.4)
-[Built, Clean.Division.Stage.4] (Push.([Digit] 1)) (Forget.Division.Stage.5)
-[Built, Clean.Division.Stage.5] (Push.([Digit] 2)) (Forget.Division.Stage.6)
-[Built, Clean.Division.Stage.6] (Function.Expression.Evaluate) (Forget.Division.Inspect.0)
-[Return.Expression.Evaluate.Positive, Clean.Division.Inspect.0] (Read) (Forget.Division.Inspect.1)
+[Begin.Division] (Push.([Digit] 1).Zero, Division.Stage.1),
+[Built, Division.Stage.1] (Push.Subtract, Forget.Division.Stage.2),
+[Built, Clean.Division.Stage.2] (Push.([Digit] 2), Forget.Division.Stage.3),
+[Built, Clean.Division.Stage.3] (Push.Divide, Forget.Division.Stage.4),
+[Built, Clean.Division.Stage.4] (Push.([Digit] 1), Forget.Division.Stage.5),
+[Built, Clean.Division.Stage.5] (Push.([Digit] 2), Forget.Division.Stage.6),
+[Built, Clean.Division.Stage.6] (Function.Expression.Evaluate, Forget.Division.Inspect.0),
+[Return.Expression.Evaluate.Positive, Clean.Division.Inspect.0] (Read, Forget.Division.Inspect.1),
 [Yield.([Digit] 2).Zero, Clean.Division.Inspect.1] Division.([Trit] 2)

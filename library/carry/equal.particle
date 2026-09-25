@@ -1,6 +1,6 @@
-[Function.Carry.Equal.Kill.Kill] Return.True
-[Function.Carry.Equal.Kill.Propagate] Return.False
-[Function.Carry.Equal.Kill.Generate] Return.False
-[Function.Carry.Equal.Propagate.Propagate] Return.True
-[Function.Carry.Equal.Propagate.Generate] Return.False
+[Function.Carry.Equal.Kill.Kill] Return.True,
+[Function.Carry.Equal.Kill.Propagate] Return.False,
+[Function.Carry.Equal.Kill.Generate] Return.False,
+[Function.Carry.Equal.Propagate.Propagate] Return.True,
+[Function.Carry.Equal.Propagate.Generate] Return.False,
 [Function.Carry.Equal.Generate.Generate] Return.True

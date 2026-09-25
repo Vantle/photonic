@@ -114,7 +114,7 @@ fn differential() {
 #[test]
 fn width() {
     let program = crate::program::Program::new(
-        &crate::lowering::parse("A,B,C,D,E,F,G,H [A,B,C,D,E,F,G,H] End").unwrap(),
+        &crate::lowering::parse("A,B,C,D,E,F,G,H, [A,B,C,D,E,F,G,H] End").unwrap(),
     );
     let state = Arc::new(State::initial(&program));
     let index = Index::new(state.clone());
@@ -130,7 +130,7 @@ fn width() {
 #[test]
 fn occupancy() {
     let program = crate::program::Program::new(
-        &crate::lowering::parse(&format!("{} [A,A] Done", ["A"; 70].join(","))).unwrap(),
+        &crate::lowering::parse(&format!("{}, [A,A] Done", ["A"; 70].join(","))).unwrap(),
     );
     let state = Arc::new(State::initial(&program));
     let index = Index::new(state);

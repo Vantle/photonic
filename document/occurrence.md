@@ -1,6 +1,6 @@
 # Runtime rule occurrences
 
-Contract authorized September 22, 2026. This supersedes the alternatives in the [loading assessment](loading.md). The contract sections below are current; the [migration record](#migration-record) describes the change as it landed. Loading, executable availability, ownership, and exact targets have migrated to live rule occurrences. The grammar is unchanged. The runtime preserves rule definitions; it does not construct replacement rules or specialize their outputs.
+Contract authorized September 22, 2026. This supersedes the alternatives in the [loading assessment](loading.md). The contract sections below are current; the [migration record](#migration-record) describes the change as it landed. Loading, executable availability, ownership, and exact targets have migrated to live rule occurrences. That migration left the grammar unchanged. The runtime preserves rule definitions; it does not construct replacement rules or specialize their outputs.
 
 ## Values and ownership
 
@@ -24,9 +24,9 @@ Distinct input positions require distinct locations. Multiple operands inside on
 | --- | --- |
 | `[] A` | Zero input positions. The loaded rule's owning execution context is sufficient to produce A. |
 | `[()] A` | One empty particle pattern. Selects an actual coherence and preserves its unmatched members. |
-| `[,] A` | Two empty particle patterns. Requires two distinct actual coherences. |
+| `[(), ()] A` | Two empty particle patterns. Requires two distinct actual coherences. |
 | `[A,()] B` | One A-containing location and one distinct actual coherence. |
-| `[([A] B)] C` | Selects a matching rule occurrence from a context or coherence and consumes it. |
+| `[[A] B] C` | Selects a matching rule occurrence from a context or coherence and consumes it. |
 
 These rules generalize to arbitrary arity within explicit resource limits. Zero-input execution does not manufacture an input coherence or impose a one-shot restriction. A context-owned zero-input rule executes at its owning context, not once per visibility path. A coherence-owned zero-input rule reads its occurrence without implicitly selecting the containing coherence as an operand.
 
@@ -42,7 +42,7 @@ Dispatch resolves indexed eligible plans to live occurrences. Lexically nearer c
 
 ## Exact targets
 
-Targets specify the complete state, including live rules. `A [A] B` reaches `B [A] B`; it does not reach bare `B`. After `[A] B [([A] B)] C` consumes the first occurrence, the complete target is `C [([A] B)] C`. Target compilation resolves rules and atoms by lookup, copies the program interner only for a target that mentions a symbol the program never interned, and never alters execution.
+Targets specify the complete state, including live rules. `A, [A] B` reaches `B, [A] B`; it does not reach bare `B`. After `[A] B, [[A] B] C` consumes the first occurrence, the complete target is `C, [[A] B] C`. Target compilation resolves rules and atoms by lookup, copies the program interner only for a target that mentions a symbol the program never interned, and never alters execution.
 
 Textual targets describe root coherences and independently introduced root rule occurrences. They cannot yet encode arbitrary shared occurrence graphs or captured nested contexts. Canonical equality still accounts for those structures; this limitation concerns expressing a target, not ignoring parts of state.
 

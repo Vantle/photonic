@@ -42,18 +42,18 @@ impl Circuit {
         let initial = self
             .initial
             .iter()
-            .map(|(wire, value)| Address::at("Input", *wire).field(*value))
+            .map(|(wire, value)| Address::at("Input", *wire).rule(*value))
             .collect::<Vec<_>>();
-        let mut source = initial.join(".") + "\n\n";
+        let mut rule = Vec::new();
         for &(wire, _) in &self.initial {
             for &value in &self.domain[wire] {
                 let output = port[wire]
                     .iter()
-                    .map(|label| label.field(value))
+                    .map(|label| label.rule(value))
                     .collect::<Vec<_>>();
-                source.push_str(&format!(
-                    "[{}] {}\n",
-                    Address::at("Input", wire).field(value),
+                rule.push(format!(
+                    "[{}] {}",
+                    Address::at("Input", wire).rule(value),
                     particle(output)
                 ));
             }
@@ -68,28 +68,40 @@ impl Circuit {
                 let pattern = input
                     .iter()
                     .zip(&value)
-                    .map(|(label, &value)| label.field(value))
-                    .collect::<Vec<_>>()
-                    .join(".");
+                    .map(|(label, &value)| label.rule(value))
+                    .collect();
                 let output = gate
                     .output
                     .iter()
                     .zip(gate.kind.evaluate(self.radix, &value))
                     .flat_map(|(&wire, value)| {
-                        port[wire].iter().map(move |label| label.field(value))
+                        port[wire].iter().map(move |label| label.rule(value))
                     })
                     .collect();
-                source.push_str(&format!("[{pattern}] {}\n", particle(output)));
+                rule.push(format!("[{}] {}", particle(pattern), particle(output)));
             }
         }
-        source
+        let rule = rule.join(",\n");
+        match &initial[..] {
+            [] => rule + "\n",
+            [field] => format!("().({field}),\n\n{rule}\n"),
+            _ => format!("{},\n\n{rule}\n", join(&initial)),
+        }
     }
 }
 
 fn particle(value: Vec<String>) -> String {
-    if value.is_empty() {
-        "()".into()
-    } else {
-        format!("({})", value.join("."))
+    match &value[..] {
+        [] => "()".into(),
+        [rule] => rule.clone(),
+        _ => join(&value),
     }
+}
+
+fn join(value: &[String]) -> String {
+    value
+        .iter()
+        .map(|rule| format!("({rule})"))
+        .collect::<Vec<_>>()
+        .join(".")
 }

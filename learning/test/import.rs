@@ -10,8 +10,8 @@ fn source(text: &str) -> Source {
 }
 
 const PROGRAM: &str = "
-[Invoke] (Function [Return] ())
-[Function.Boolean.Not.True] Return.False
+[Invoke] (Function, [Return] ()),
+[Function.Boolean.Not.True] Return.False,
 [Function.Boolean.Not.False] Return.True
 ";
 
@@ -57,7 +57,7 @@ fn scoped() {
 fn initial() {
     let task = import(
         "own",
-        &[source("A.X [A] (B) (C) [B, C] D")],
+        &[source("A.X, [A] (B, C), [B, C] D")],
         &[],
         &Setting::default(),
     )
@@ -73,11 +73,16 @@ fn rejection() {
         Err(Failure::Empty)
     ));
     assert!(matches!(
-        import("rules", &[source("[A] B")], &[source("A [C] D")], &setting),
+        import("rules", &[source("[A] B")], &[source("A, [C] D")], &setting),
         Err(Failure::Input { .. })
     ));
     assert!(matches!(
-        import("choice", &[source("[A] B [A] C")], &[source("A")], &setting),
+        import(
+            "choice",
+            &[source("[A] B, [A] C")],
+            &[source("A")],
+            &setting
+        ),
         Err(Failure::Behavior { .. })
     ));
 }

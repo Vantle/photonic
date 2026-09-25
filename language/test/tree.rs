@@ -33,7 +33,7 @@ fn boundary() {
     for particle in [["A"; 8].join("."), "A.B.C.D.E.F.G.H.([X] Y)".to_owned()] {
         let program = Program::new(
             &crate::lowering::parse(&format!(
-                "{particle},{particle},I,I,J,J,K,K [{particle},I,J,K] Done"
+                "{particle},{particle},I,I,J,J,K,K, [{particle},I,J,K] Done"
             ))
             .unwrap(),
         );
@@ -67,7 +67,7 @@ fn mutation() {
     let requirement = ["Q"; 8].join(".");
     let initial = ["Q"; 7].join(".");
     let program = Program::new(&crate::lowering::parse(&format!(
-        "{particle},{particle},P,P,P,{initial},{initial},{initial},{initial},R,R,R,R,R,S,S,S,S,S,S [{particle},P,{requirement},R,S] Done"
+        "{particle},{particle},P,P,P,{initial},{initial},{initial},{initial},R,R,R,R,R,S,S,S,S,S,S, [{particle},P,{requirement},R,S] Done"
     )).unwrap());
     for capacity in [0, 1, 32, 128, 4096, 65536] {
         let mut state = State::initial(&program);
@@ -130,7 +130,7 @@ fn saturation() {
     let companion = ["B.C.E"; 13].join(",");
     let program = Program::new(
         &crate::lowering::parse(&format!(
-            "P,P,{particle},{particle},{companion},C [P,{particle},{pattern},B.E.E,C] Done"
+            "P,P,{particle},{particle},{companion},C, [P,{particle},{pattern},B.E.E,C] Done"
         ))
         .unwrap(),
     );
@@ -153,7 +153,7 @@ fn activation() {
     let particle = ["A"; 8].join(".");
     let program = Program::new(
         &crate::lowering::parse(&format!(
-            "{particle},{particle},I,I,I,J,J,J,J,K,K,K,K,K [{particle},I,J,K] Done"
+            "{particle},{particle},I,I,I,J,J,J,J,K,K,K,K,K, [{particle},I,J,K] Done"
         ))
         .unwrap(),
     );
@@ -192,8 +192,8 @@ fn context() {
     let pattern = ["A"; 8].join(".");
     let particle = ["A"; 12].join(".");
     for source in [
-        format!("{particle},I,I,J,J,K,K [{pattern},I,J,K] Done"),
-        format!("{pattern}.B,{pattern}.C,B,B,C,C,D,D,D,D [{pattern},B,C,D] Done"),
+        format!("{particle},I,I,J,J,K,K, [{pattern},I,J,K] Done"),
+        format!("{pattern}.B,{pattern}.C,B,B,C,C,D,D,D,D, [{pattern},B,C,D] Done"),
     ] {
         let program = Program::new(&crate::lowering::parse(&source).unwrap());
         let index = Index::new(Arc::new(State::initial(&program)));
@@ -221,7 +221,7 @@ fn depth() {
         .collect::<Vec<_>>()
         .join(",");
     let program = Program::new(
-        &crate::lowering::parse(&format!("{particle},{suffix} [{particle},{suffix}] Done"))
+        &crate::lowering::parse(&format!("{particle},{suffix}, [{particle},{suffix}] Done"))
             .unwrap(),
     );
     let index = Index::new(Arc::new(State::initial(&program)));

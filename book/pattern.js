@@ -43,11 +43,12 @@
         return gap + show(value);
     }).join('');
 
+    const factor = value => value.filter(item => item.kind !== '.');
+
     const configuration = item => {
         if (item.some(value => value.kind === '[')) return print(item);
-        const coherence = split(item, ',').filter(value => value.length).map(value => split(value, '.'));
-        if (coherence.some(value => value.some(term => term.length !== 1))) return print(item);
-        return coherence.map(value => value.map(term => show(term[0])).sort().join('.')).sort().join(', ');
+        return split(item, ',').map(factor).filter(value => value.length)
+            .map(value => value.map(show).sort().join('.')).sort().join(', ');
     };
 
     const canonical = item => {
@@ -70,13 +71,18 @@
         return memory.get(text);
     };
 
-    const term = item => {
-        if (!item.length) throw new Error('Join atoms with single dots.');
-        if (item.length > 1) throw new Error(`Put a dot or a comma between the parts of “${print(item)}”.`);
-        const [value] = item;
+    const term = value => {
         if (value.kind === 'concept') return `atom:${value.text}`;
         if (value.kind === '(' && value.inner[0]?.kind === '[') return `rule:${canonical(value.inner)}`;
         throw new Error('Parentheses in a pattern hold a rule value, such as ([A] B).');
+    };
+
+    const coherence = value => {
+        if (!value.length) throw new Error('A coherence in the pattern is empty.');
+        if (value[0].kind === '.' || value.at(-1).kind === '.' || value.some((item, index) => item.kind === '.' && value[index + 1]?.kind === '.')) {
+            throw new Error('Join atoms with single dots.');
+        }
+        return factor(value).map(term);
     };
 
     const read = text => {
@@ -85,11 +91,7 @@
         const item = parse(query);
         if (item[0]?.kind === '[') return { rule: canonical(item), particle: [] };
         if (item.some(value => value.kind === '[')) throw new Error('Start a rule pattern with its input, such as [B, C] D.');
-        const particle = split(item, ',').map(value => {
-            if (!value.length) throw new Error('A coherence in the pattern is empty.');
-            return split(value, '.').map(term);
-        });
-        return { particle };
+        return { particle: split(item, ',').map(coherence) };
     };
 
     const key = token => token.display?.startsWith('⟨') ? `rule:${normal(book.render.unwrap(token.display))}` : `atom:${token.label}`;

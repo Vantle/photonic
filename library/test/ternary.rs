@@ -95,8 +95,8 @@ fn select() {
                     &format!(
                         "Invoke.Ternary.Select.([Left] {first}).([Right] {second}).([Choice] {choice})"
                     ),
-                    &format!("([Digit] {chosen})"),
-                    DIGIT.map(|digit| format!("([Digit] {digit})")),
+                    &format!("().([Digit] {chosen})"),
+                    DIGIT.map(|digit| format!("().([Digit] {digit})")),
                     &library(),
                 );
             }

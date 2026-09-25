@@ -1,8 +1,8 @@
-Push.([Digit] 2).Zero, Stage.1
-[Built, Stage.1] (Push.([Digit] 1)) (Forget.Stage.2)
-[Built, Clean.Stage.2] (Push.([Digit] 2)) (Forget.Stage.3)
-[Built, Clean.Stage.3] (Push.([Digit] 1)) (Forget.Stage.4)
-[Built, Clean.Stage.4] (Push.Divide) (Forget.Stage.5)
-[Built, Clean.Stage.5] (Push.([Digit] 2)) (Forget.Stage.6)
-[Built, Clean.Stage.6] Function.Expression.Evaluate
+Push.([Digit] 2).Zero, Stage.1,
+[Built, Stage.1] (Push.([Digit] 1), Forget.Stage.2),
+[Built, Clean.Stage.2] (Push.([Digit] 2), Forget.Stage.3),
+[Built, Clean.Stage.3] (Push.([Digit] 1), Forget.Stage.4),
+[Built, Clean.Stage.4] (Push.Divide, Forget.Stage.5),
+[Built, Clean.Stage.5] (Push.([Digit] 2), Forget.Stage.6),
+[Built, Clean.Stage.6] Function.Expression.Evaluate,
 [Return.Expression.Evaluate.Positive.Zero] Done.Zero

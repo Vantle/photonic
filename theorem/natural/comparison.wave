@@ -1,43 +1,43 @@
-Case.(([V] Less), ([V] Equal), ([V] Greater)).(([L] 0), ([L] 1), ([L] 2), ([L] End)).(([R] 0), ([R] 1), ([R] 2), ([R] End))
+Case.(([V] Less), ([V] Equal), ([V] Greater)).(([L] 0), ([L] 1), ([L] 2), ([L] End)).(([R] 0), ([R] 1), ([R] 2), ([R] End)),
 
-[Claim] (Compare.Go.Left) (Compare.Wait.Left.V) (Compare.Cursor.Left.Feed.L) (Compare.Cursor.Right.Feed.R) (Compare.Hold.Left.Kept) (Compare.Hold.Right.Kept) (Former.L.Expected) (Latter.R.Expected) (Before.V) (Outcome.L.R)
-[Former.End] Packed.([Left] 0)
-[Latter.End] Packed.([Right] 0)
-[Packed.Expected, Packed.Expected] Function.Ternary.Compare.Expected
-[Return.Expected.Equal, Before] Scheme
-[Return.Expected.Less, Before.Less] Scheme.Less
-[Return.Expected.Less, Before.Equal] Scheme.Less
-[Return.Expected.Less, Before.Greater] Scheme.Less
-[Return.Expected.Greater, Before.Less] Scheme.Greater
-[Return.Expected.Greater, Before.Equal] Scheme.Greater
-[Return.Expected.Greater, Before.Greater] Scheme.Greater
-[Outcome.0.0] Unsettled
-[Outcome.0.1] Unsettled
-[Outcome.0.2] Unsettled
-[Outcome.0.End] Unsettled
-[Outcome.1.0] Unsettled
-[Outcome.1.1] Unsettled
-[Outcome.1.2] Unsettled
-[Outcome.1.End] Settled
-[Outcome.2.0] Unsettled
-[Outcome.2.1] Unsettled
-[Outcome.2.2] Unsettled
-[Outcome.2.End] Settled
-[Outcome.End.0] Unsettled
-[Outcome.End.1] Settled
-[Outcome.End.2] Settled
-[Outcome.End.End] Settled
-[Scheme, Settled] Scheme.Answers
-[Scheme, Unsettled] Scheme.Continues
-[Peek.Remnant, Compare.Wait.Left, Compare.Cursor.Right.Remnant, Compare.Hold.Left.Kept, Compare.Hold.Right.Kept] Engine.Continues
-[Peek.Remnant, Compare.Wait.Left, Compare.Cursor.Right.Zero, Compare.Hold.Left.Kept, Compare.Hold.Right.Kept] Engine.Continues
-[Peek.Remnant, Compare.Wait.Right.End, Compare.Cursor.Left.Zero, Compare.Hold.Left.Kept, Compare.Hold.Right.Kept] Engine.Continues
-[Return.Natural.Compare.Left.Kept, Return.Natural.Compare.Right.Kept, Return.Natural.Compare] Engine.Answers
-[Engine.Answers.Less, Scheme.Answers.Less] Return.Verdict.True
-[Engine.Answers.Equal, Scheme.Answers.Equal] Return.Verdict.True
-[Engine.Answers.Greater, Scheme.Answers.Greater] Return.Verdict.True
-[Engine.Continues.Less, Scheme.Continues.Less] Return.Verdict.True
-[Engine.Continues.Equal, Scheme.Continues.Equal] Return.Verdict.True
-[Engine.Continues.Greater, Scheme.Continues.Greater] Return.Verdict.True
+[Claim] (Compare.Go.Left, Compare.Wait.Left.V, Compare.Cursor.Left.Feed.L, Compare.Cursor.Right.Feed.R, Compare.Hold.Left.Kept, Compare.Hold.Right.Kept, Former.L.Expected, Latter.R.Expected, Before.V, Outcome.L.R),
+[Former.End] Packed.([Left] 0),
+[Latter.End] Packed.([Right] 0),
+[Packed.Expected, Packed.Expected] Function.Ternary.Compare.Expected,
+[Return.Expected.Equal, Before] Scheme,
+[Return.Expected.Less, Before.Less] Scheme.Less,
+[Return.Expected.Less, Before.Equal] Scheme.Less,
+[Return.Expected.Less, Before.Greater] Scheme.Less,
+[Return.Expected.Greater, Before.Less] Scheme.Greater,
+[Return.Expected.Greater, Before.Equal] Scheme.Greater,
+[Return.Expected.Greater, Before.Greater] Scheme.Greater,
+[Outcome.0.0] Unsettled,
+[Outcome.0.1] Unsettled,
+[Outcome.0.2] Unsettled,
+[Outcome.0.End] Unsettled,
+[Outcome.1.0] Unsettled,
+[Outcome.1.1] Unsettled,
+[Outcome.1.2] Unsettled,
+[Outcome.1.End] Settled,
+[Outcome.2.0] Unsettled,
+[Outcome.2.1] Unsettled,
+[Outcome.2.2] Unsettled,
+[Outcome.2.End] Settled,
+[Outcome.End.0] Unsettled,
+[Outcome.End.1] Settled,
+[Outcome.End.2] Settled,
+[Outcome.End.End] Settled,
+[Scheme, Settled] Scheme.Answers,
+[Scheme, Unsettled] Scheme.Continues,
+[Peek.Remnant, Compare.Wait.Left, Compare.Cursor.Right.Remnant, Compare.Hold.Left.Kept, Compare.Hold.Right.Kept] Engine.Continues,
+[Peek.Remnant, Compare.Wait.Left, Compare.Cursor.Right.Zero, Compare.Hold.Left.Kept, Compare.Hold.Right.Kept] Engine.Continues,
+[Peek.Remnant, Compare.Wait.Right.End, Compare.Cursor.Left.Zero, Compare.Hold.Left.Kept, Compare.Hold.Right.Kept] Engine.Continues,
+[Return.Natural.Compare.Left.Kept, Return.Natural.Compare.Right.Kept, Return.Natural.Compare] Engine.Answers,
+[Engine.Answers.Less, Scheme.Answers.Less] Return.Verdict.True,
+[Engine.Answers.Equal, Scheme.Answers.Equal] Return.Verdict.True,
+[Engine.Answers.Greater, Scheme.Answers.Greater] Return.Verdict.True,
+[Engine.Continues.Less, Scheme.Continues.Less] Return.Verdict.True,
+[Engine.Continues.Equal, Scheme.Continues.Equal] Return.Verdict.True,
+[Engine.Continues.Greater, Scheme.Continues.Greater] Return.Verdict.True,
 
 [Holds.(([V] Less), ([V] Equal), ([V] Greater)).(([L] 0), ([L] 1), ([L] 2), ([L] End)).(([R] 0), ([R] 1), ([R] 2), ([R] End))] Theorem

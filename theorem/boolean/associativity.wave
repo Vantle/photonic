@@ -1,12 +1,12 @@
-Case.(([P] True), ([P] False)).(([Q] True), ([Q] False)).(([R] True), ([R] False))
+Case.(([P] True), ([P] False)).(([Q] True), ([Q] False)).(([R] True), ([R] False)),
 
-[Claim] (Function.Boolean.And.Lower.Prefix.P.Q) (Function.Boolean.And.Lower.Suffix.Q.R) (Function.Boolean.Or.Upper.Prefix.P.Q) (Function.Boolean.Or.Upper.Suffix.Q.R)
-[Return.Lower.Prefix] Function.Boolean.And.Lower.Leading.R
-[Return.Lower.Suffix] Function.Boolean.And.Lower.Trailing.P
-[Return.Upper.Prefix] Function.Boolean.Or.Upper.Leading.R
-[Return.Upper.Suffix] Function.Boolean.Or.Upper.Trailing.P
-[Return.Lower.Leading, Return.Lower.Trailing] Function.Boolean.Equal.Lower.Law
-[Return.Upper.Leading, Return.Upper.Trailing] Function.Boolean.Equal.Upper.Law
-[Return.Lower.Law, Return.Upper.Law] Function.Boolean.And.Verdict
+[Claim] (Function.Boolean.And.Lower.Prefix.P.Q, Function.Boolean.And.Lower.Suffix.Q.R, Function.Boolean.Or.Upper.Prefix.P.Q, Function.Boolean.Or.Upper.Suffix.Q.R),
+[Return.Lower.Prefix] Function.Boolean.And.Lower.Leading.R,
+[Return.Lower.Suffix] Function.Boolean.And.Lower.Trailing.P,
+[Return.Upper.Prefix] Function.Boolean.Or.Upper.Leading.R,
+[Return.Upper.Suffix] Function.Boolean.Or.Upper.Trailing.P,
+[Return.Lower.Leading, Return.Lower.Trailing] Function.Boolean.Equal.Lower.Law,
+[Return.Upper.Leading, Return.Upper.Trailing] Function.Boolean.Equal.Upper.Law,
+[Return.Lower.Law, Return.Upper.Law] Function.Boolean.And.Verdict,
 
 [Holds.(([P] True), ([P] False)).(([Q] True), ([Q] False)).(([R] True), ([R] False))] Theorem

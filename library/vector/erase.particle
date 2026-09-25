@@ -1,18 +1,18 @@
-[Function.Vector.Erase] (Take.Wipe.Draw) (Forget.Wipe.Begin)
-[Clean.Wipe.Begin] (Linked.Wipe.Stack.Nil) (Wipe.Wait)
-[Taken.Rest.Wipe.Draw] Wipe.Source
-[Wipe.Pull, Wipe.Source] Take.Wipe.Draw
+[Function.Vector.Erase] (Take.Wipe.Draw, Forget.Wipe.Begin),
+[Clean.Wipe.Begin] (Linked.Wipe.Stack.Nil, Wipe.Wait),
+[Taken.Rest.Wipe.Draw] Wipe.Source,
+[Wipe.Pull, Wipe.Source] Take.Wipe.Draw,
 
-[Taken.Item.Wipe.Draw.Head] Function.Chain.Erase.Wipe.Chain.Head
-[Taken.Item.Wipe.Draw.Zero] Function.Chain.Erase.Wipe.Chain.Zero
-[Return.Chain.Erase.Wipe.Chain] Wipe.Pull
-[Taken.Item.Wipe.Draw.Empty] Wipe.Pull
-[Taken.Item.Wipe.Draw.Node, Linked.Wipe.Stack] Insert.Node
-[Stored, Wipe.Wait] (Link.Wipe.Stack) (Forget.Wipe.Pushed)
-[Clean.Wipe.Pushed] (Wipe.Wait) (Wipe.Pull)
+[Taken.Item.Wipe.Draw.Head] Function.Chain.Erase.Wipe.Chain.Head,
+[Taken.Item.Wipe.Draw.Zero] Function.Chain.Erase.Wipe.Chain.Zero,
+[Return.Chain.Erase.Wipe.Chain] Wipe.Pull,
+[Taken.Item.Wipe.Draw.Empty] Wipe.Pull,
+[Taken.Item.Wipe.Draw.Node, Linked.Wipe.Stack] Insert.Node,
+[Stored, Wipe.Wait] (Link.Wipe.Stack, Forget.Wipe.Pushed),
+[Clean.Wipe.Pushed] (Wipe.Wait, Wipe.Pull),
 
-[Taken.End.Empty.Wipe.Draw, Linked.Wipe.Stack] Lift.Wipe.Pop
-[Lifted.Wipe.Pop] Take.Wipe.Pop
-[Taken.Item.Wipe.Pop] Take.Wipe.Draw
-[Taken.Rest.Wipe.Pop] Link.Wipe.Stack
+[Taken.End.Empty.Wipe.Draw, Linked.Wipe.Stack] Lift.Wipe.Pop,
+[Lifted.Wipe.Pop] Take.Wipe.Pop,
+[Taken.Item.Wipe.Pop] Take.Wipe.Draw,
+[Taken.Rest.Wipe.Pop] Link.Wipe.Stack,
 [Taken.End.Empty.Wipe.Pop, Wipe.Wait] Return.Vector.Erase

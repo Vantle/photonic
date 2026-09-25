@@ -36,9 +36,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     } else {
         format!(",{gate}")
     };
-    let mut source = format!("{content},Stage0.{particle}{initial}\n");
+    let mut source = format!("{content},Stage0.{particle}{initial},\n");
     for position in 0..argument.count.get() {
-        source.push_str(&format!("[{particle},G{position}.G{position}] Never\n"));
+        source.push_str(&format!("[{particle},G{position}.G{position}] Never,\n"));
     }
     for stage in 0..argument.length.get() {
         let activation = if argument.activation {
@@ -49,7 +49,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         } else {
             String::new()
         };
-        source.push_str(&format!("[Stage{stage}] Stage{}{activation}\n", stage + 1));
+        source.push_str(&format!("[Stage{stage}] Stage{}{activation},\n", stage + 1));
     }
     let program = photonic::lowering::parse(&source)?;
     let separator = if argument.activation { "." } else { "," };

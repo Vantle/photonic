@@ -1,28 +1,28 @@
-Push.([Digit] 2).Zero, Stage.1
-[Built, Stage.1] (Push.Multiply) (Forget.Stage.2)
-[Built, Clean.Stage.2] (Push.([Digit] 2)) (Forget.Stage.3)
-[Built, Clean.Stage.3] (Push.Multiply) (Forget.Stage.4)
-[Built, Clean.Stage.4] (Push.([Digit] 2)) (Forget.Stage.5)
-[Built, Clean.Stage.5] (Push.Multiply) (Forget.Stage.6)
-[Built, Clean.Stage.6] (Push.([Digit] 2)) (Forget.Stage.7)
-[Built, Clean.Stage.7] (Push.Multiply) (Forget.Stage.8)
-[Built, Clean.Stage.8] (Push.([Digit] 2)) (Forget.Stage.9)
-[Built, Clean.Stage.9] (Push.Multiply) (Forget.Stage.10)
-[Built, Clean.Stage.10] (Push.([Digit] 2)) (Forget.Stage.11)
-[Built, Clean.Stage.11] (Push.Multiply) (Forget.Stage.12)
-[Built, Clean.Stage.12] (Push.([Digit] 2)) (Forget.Stage.13)
-[Built, Clean.Stage.13] (Push.Multiply) (Forget.Stage.14)
-[Built, Clean.Stage.14] (Push.([Digit] 2)) (Forget.Stage.15)
-[Built, Clean.Stage.15] (Push.Multiply) (Forget.Stage.16)
-[Built, Clean.Stage.16] (Push.([Digit] 2)) (Forget.Stage.17)
-[Built, Clean.Stage.17] (Push.Multiply) (Forget.Stage.18)
-[Built, Clean.Stage.18] (Push.([Digit] 2)) (Forget.Stage.19)
-[Built, Clean.Stage.19] (Function.Expression.Evaluate) (Forget.Inspect.0)
-[Return.Expression.Evaluate.Positive, Clean.Inspect.0] (Read) (Forget.Inspect.1)
-[Yield.([Digit] 1), Clean.Inspect.1] (Read) (Forget.Inspect.2)
-[Yield.([Digit] 2), Clean.Inspect.2] (Read) (Forget.Inspect.3)
-[Yield.([Digit] 2), Clean.Inspect.3] (Read) (Forget.Inspect.4)
-[Yield.([Digit] 1), Clean.Inspect.4] (Read) (Forget.Inspect.5)
-[Yield.([Digit] 0), Clean.Inspect.5] (Read) (Forget.Inspect.6)
-[Yield.([Digit] 1), Clean.Inspect.6] (Read) (Forget.Inspect.7)
+Push.([Digit] 2).Zero, Stage.1,
+[Built, Stage.1] (Push.Multiply, Forget.Stage.2),
+[Built, Clean.Stage.2] (Push.([Digit] 2), Forget.Stage.3),
+[Built, Clean.Stage.3] (Push.Multiply, Forget.Stage.4),
+[Built, Clean.Stage.4] (Push.([Digit] 2), Forget.Stage.5),
+[Built, Clean.Stage.5] (Push.Multiply, Forget.Stage.6),
+[Built, Clean.Stage.6] (Push.([Digit] 2), Forget.Stage.7),
+[Built, Clean.Stage.7] (Push.Multiply, Forget.Stage.8),
+[Built, Clean.Stage.8] (Push.([Digit] 2), Forget.Stage.9),
+[Built, Clean.Stage.9] (Push.Multiply, Forget.Stage.10),
+[Built, Clean.Stage.10] (Push.([Digit] 2), Forget.Stage.11),
+[Built, Clean.Stage.11] (Push.Multiply, Forget.Stage.12),
+[Built, Clean.Stage.12] (Push.([Digit] 2), Forget.Stage.13),
+[Built, Clean.Stage.13] (Push.Multiply, Forget.Stage.14),
+[Built, Clean.Stage.14] (Push.([Digit] 2), Forget.Stage.15),
+[Built, Clean.Stage.15] (Push.Multiply, Forget.Stage.16),
+[Built, Clean.Stage.16] (Push.([Digit] 2), Forget.Stage.17),
+[Built, Clean.Stage.17] (Push.Multiply, Forget.Stage.18),
+[Built, Clean.Stage.18] (Push.([Digit] 2), Forget.Stage.19),
+[Built, Clean.Stage.19] (Function.Expression.Evaluate, Forget.Inspect.0),
+[Return.Expression.Evaluate.Positive, Clean.Inspect.0] (Read, Forget.Inspect.1),
+[Yield.([Digit] 1), Clean.Inspect.1] (Read, Forget.Inspect.2),
+[Yield.([Digit] 2), Clean.Inspect.2] (Read, Forget.Inspect.3),
+[Yield.([Digit] 2), Clean.Inspect.3] (Read, Forget.Inspect.4),
+[Yield.([Digit] 1), Clean.Inspect.4] (Read, Forget.Inspect.5),
+[Yield.([Digit] 0), Clean.Inspect.5] (Read, Forget.Inspect.6),
+[Yield.([Digit] 1), Clean.Inspect.6] (Read, Forget.Inspect.7),
 [Yield.([Digit] 1).Zero, Clean.Inspect.7] Done.Zero

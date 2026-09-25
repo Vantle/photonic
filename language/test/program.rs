@@ -9,11 +9,11 @@ fn identity() {
     for (left, right) in [
         ("[A.B] C", "[B.A] C"),
         ("[A,B] C", "[B,A] C"),
-        ("[A] (B) (C)", "[A] (C) (B)"),
+        ("[A] (B, C)", "[A] (C, B)"),
         ("[A] B.([C.D] E)", "[A] B.([D.C] E)"),
-        ("[A] (X [B] C [C] D)", "[A] (X [C] D [B] C)"),
+        ("[A] (X, [B] C, [C] D)", "[A] (X, [C] D, [B] C)"),
     ] {
-        let compiled = program(&format!("{left}\n{right}"));
+        let compiled = program(&format!("{left},\n{right}"));
         assert_eq!(
             compiled.scope[0].rule[0], compiled.scope[0].rule[1],
             "{left}"
@@ -23,10 +23,10 @@ fn identity() {
         ("[A] B", "[A] C"),
         ("[A] B", "[A.A] B"),
         ("[A.A] B", "[A,A] B"),
-        ("[A] B.C", "[A] (B) (C)"),
-        ("[A] (X [B] C)", "[A] (X [B] D)"),
+        ("[A] B.C", "[A] (B, C)"),
+        ("[A] (X, [B] C)", "[A] (X, [B] D)"),
     ] {
-        let compiled = program(&format!("{left}\n{right}"));
+        let compiled = program(&format!("{left},\n{right}"));
         assert_ne!(
             compiled.scope[0].rule[0], compiled.scope[0].rule[1],
             "{left}"
@@ -36,7 +36,7 @@ fn identity() {
 
 #[test]
 fn numbering() {
-    let compiled = program("([Seed] Value) [A] (X [X] Y) [C] D [A] (X [X] Y)");
+    let compiled = program("().([Seed] Value), [A] (X, [X] Y), [C] D, [A] (X, [X] Y)");
     assert_eq!(compiled.scope[0].rule, [0, 2, 0]);
     assert_eq!(compiled.initial, [[Symbol::Rule(3)]]);
     assert_eq!(
@@ -45,7 +45,7 @@ fn numbering() {
             .iter()
             .map(|rule| rule.name.as_str())
             .collect::<Vec<_>>(),
-        ["[A] (X [X] Y)", "[X] Y", "[C] D", "[Seed] Value"]
+        ["[A] (X, [X] Y)", "[X] Y", "[C] D", "[Seed] Value"]
     );
     let unnamed = Program::new(
         &serde_json::from_str(
@@ -76,10 +76,11 @@ fn numbering() {
 
 #[test]
 fn target() {
-    let compiled = program("A.B [A] (X [X] Y) [B] C");
+    let compiled = program("A.B, [A] (X, [X] Y), [B] C");
     let atom = compiled.atom.len();
     let rule = compiled.rule.len();
-    let known = compiled.target(&crate::lowering::parse("B.A, ([A] (X [X] Y)) [B] C").unwrap());
+    let known =
+        compiled.target(&crate::lowering::parse("B.A, ().([A] (X, [X] Y)), [B] C").unwrap());
     assert_eq!(known.rule, [compiled.scope[0].rule[1]]);
     assert_eq!(
         known.initial,
@@ -91,7 +92,7 @@ fn target() {
             vec![Symbol::Rule(compiled.scope[0].rule[0])]
         ]
     );
-    let unknown = compiled.target(&crate::lowering::parse("Z [B] C [Q] R").unwrap());
+    let unknown = compiled.target(&crate::lowering::parse("Z, [B] C, [Q] R").unwrap());
     assert_eq!(unknown.rule, [compiled.scope[0].rule[1], rule]);
     assert_eq!(unknown.initial, [[Symbol::Atom(atom + 2)]]);
     assert_eq!(compiled.atom.len(), atom);

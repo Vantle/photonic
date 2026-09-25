@@ -177,8 +177,8 @@ fn program(width: usize, count: usize) -> Program {
     let rule = (0..count)
         .map(|position| format!("[{particle},{prefix},B.E.E,C.S{position}] Never"))
         .collect::<Vec<_>>()
-        .join(" ");
-    let source = format!("{particle},{content},C.{suffix} {rule}");
+        .join(", ");
+    let source = format!("{particle},{content},C.{suffix}, {rule}");
     Program::new(&crate::lowering::parse(&source).unwrap())
 }
 

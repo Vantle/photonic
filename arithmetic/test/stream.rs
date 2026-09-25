@@ -18,10 +18,10 @@ fn source(digit: &[usize]) -> String {
     let mut body = "End".to_owned();
     for &value in digit.iter().rev() {
         let name = ["0", "1", "2"][value];
-        body = format!("({name} [Next] {body})");
+        body = format!("({name}, [Next] {body})");
     }
     format!(
-        "Tape.Function.Stream.Successor [Tape] {body}
+        "Tape.Function.Stream.Successor, [Tape] {body},
 {RULE}"
     )
 }
@@ -67,7 +67,7 @@ fn written(report: &Report) -> Vec<usize> {
         .filter_map(|event| {
             ["0", "1", "2"]
                 .iter()
-                .position(|name| event.rule == format!("[([Write] {name})] Next"))
+                .position(|name| event.rule == format!("[[Write] {name}] Next"))
         })
         .collect()
 }
@@ -117,7 +117,7 @@ fn library() {
         assert_eq!(&program.rule[1..], rule);
     }
     let report = execute(&format!(
-        "{}
+        "{},
 {RULE}",
         include_str!("../../program/ternary/stream.wave")
     ));

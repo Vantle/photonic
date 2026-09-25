@@ -125,9 +125,9 @@ A chain handle is `Zero` or a `Head` coherence carrying a private seal and its m
 An application hands its unmatched remainder to every output, so moving a chain means forgetting it everywhere else. The move idiom sends the chain to its next use and resumes once the old reference is clean:
 
 ```
-Push.([Digit] 1).Zero, Stage.1
-[Built, Stage.1] (Push.([Digit] 2)) (Forget.Stage.2)
-[Built, Clean.Stage.2] (Operand.Left) (Forget.Stage.3)
+Push.([Digit] 1).Zero, Stage.1,
+[Built, Stage.1] (Push.([Digit] 2), Forget.Stage.2),
+[Built, Clean.Stage.2] (Operand.Left, Forget.Stage.3)
 ```
 
 `Peek` consumes the reference it is given, so peek through an alias and keep the original. Each cell rebuilds itself from the remainder of the peek, so the `Peek` coherence must hold nothing but the request and the reference. Walking a numeral by `Peek` costs four events per cell and leaves every cell in place.
@@ -135,9 +135,9 @@ Push.([Digit] 1).Zero, Stage.1
 `Push` is symbol-agnostic. An alphabet declares one `Drop` rule per symbol so a new head can forget its predecessor, plus the hooks that let `Reverse` and `Erase` traverse its symbols. The digit alphabet reads:
 
 ```
-[Drop.([Digit] 0)] Forget
-[Yield.([Digit] 0).Reverse.Wait] (Reverse.Left) (Forget.Reverse.Write.([Digit] 0))
-[Clean.Reverse.Write.([Digit] 0), Reverse.Right] (Push.([Digit] 0)) (Forget.Reverse.Await)
+[Drop.([Digit] 0)] Forget,
+[Yield.([Digit] 0).Reverse.Wait] (Reverse.Left, Forget.Reverse.Write.([Digit] 0)),
+[Clean.Reverse.Write.([Digit] 0), Reverse.Right] (Push.([Digit] 0), Forget.Reverse.Await),
 [Yield.([Digit] 0).Erase.Wait] Read.Erase.Wait
 ```
 
@@ -159,16 +159,16 @@ A vector handle is `Empty` or a `Node` coherence carrying a private seal and its
 A tail is `Tail` with a private tie, or `Nil` for the empty vector. It answers only `Lift` and `Unlink`, never an item's `Forget`, so every slot tells its item from its tail, even when the item is itself a vector. Link the vector, then place its tail beside the item; `Insert.Nil` beside an item builds a one-item vector. Like `Push`, `Insert` builds its slot from the remainder of its request, so that coherence must hold nothing but `Insert`, the tail, and the item:
 
 ```
-[Built, Stage.1] Insert.Nil
-[Stored, Stage.2] Link.Draft
+[Built, Stage.1] Insert.Nil,
+[Stored, Stage.2] Link.Draft,
 [Linked.Draft, Item] Insert
 ```
 
 `Take` answers in two coherences, each carrying the request's other atoms, so the item and the rest are already apart:
 
 ```
-[Stored, Stage.3] Take.Front
-[Taken.Item.Front] Value
+[Stored, Stage.3] Take.Front,
+[Taken.Item.Front] Value,
 [Taken.Rest.Front] Rest
 ```
 
@@ -191,8 +191,8 @@ Powersort and Timsort choose each merge from run lengths or positions, which als
 A stream is a nested body that reveals one digit whenever `Next` appears. Place `Function.Stream.Successor` where the first digit will arrive:
 
 ```
-Seventeen.Function.Stream.Successor
-[Seventeen] (2 [Next] (2 [Next] (1 [Next] End)))
+Seventeen.Function.Stream.Successor,
+[Seventeen] (2, [Next] (2, [Next] (1, [Next] End)))
 ```
 
 The successor writes each output digit as a `([Write] d)` value, acknowledges it with `Next` to advance the stream, and answers `Return.Stream.Successor`. Ancestor bodies keep their `Next` rules visible, so streams rely on the direct path's preference for the nearest body.

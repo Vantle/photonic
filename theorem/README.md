@@ -31,11 +31,11 @@ Two `Of` fields form a multiset, so `Meet.([Of] X).([Of] Y)` and `Meet.([Of] Y).
 [boolean/involution.wave](boolean/involution.wave) proves that negating twice returns the original value:
 
 ```
-Case.(([P] True), ([P] False))
+Case.(([P] True), ([P] False)),
 
-[Claim] Function.Boolean.Not.Once.P
-[Return.Once] Function.Boolean.Not.Twice
-[Return.Twice] Function.Boolean.Equal.Verdict.P
+[Claim] Function.Boolean.Not.Once.P,
+[Return.Once] Function.Boolean.Not.Twice,
+[Return.Twice] Function.Boolean.Equal.Verdict.P,
 
 [Holds.(([P] True), ([P] False))] Theorem
 ```
@@ -46,8 +46,8 @@ The first line is the domain. Shared prefixes distribute, so it expands to one `
 
 ```
 [Case] (
-    Claim
-    [Return.Verdict.True] Holds
+    Claim,
+    [Return.Verdict.True] Holds,
     [Return.Verdict.False] Counterexample
 )
 ```
@@ -59,15 +59,15 @@ A true verdict returns `Holds` with the case's assignment to the root, and a fal
 A flat domain starts every case at once, so its program and its conclusion grow with the number of cases. A nested quantifier gives each variable a numbered scope that tries its values one at a time. From [coloring/sum.five.wave](coloring/sum.five.wave):
 
 ```
-Every.1
+Every.1,
 
 [Every.1] (
-    Split.1
-    [Both.1] Theorem
+    Split.1,
+    [Both.1] Theorem,
     [Refuted.2] Counterexample
-)
-[Split.1] Every.2.([One] True)
-[Proved.2.([One] True)] Every.2.([One] False)
+),
+[Split.1] Every.2.([One] True),
+[Proved.2.([One] True)] Every.2.([One] False),
 [Proved.2.([One] False)] Both.1
 ```
 
@@ -88,10 +88,10 @@ An evaluated claim computes with the standard library's own operations, as `invo
 A covered claim is about relations nobody has defined. Its variables are propositions over generic elements, such as `Less.([Left] X).([Right] Y)`, the truth of x < y. Its cases are every truth assignment of those propositions. Each rule closes the cases that match a partial assignment, as `Vacuous` when the assignment falsifies an instance of a hypothesis, or `Concluded` when it satisfies the conclusion. [relation/asymmetry.wave](relation/asymmetry.wave) proves that every strict order is asymmetric:
 
 ```
-[Claim] (Test) (Keep)
-[Test.([Less.([Left] X).([Right] X)] True)] Vacuous
-[Test.([Less.([Left] X).([Right] Y)] True).([Less.([Left] Y).([Right] X)] True).([Less.([Left] X).([Right] X)] False)] Vacuous
-[Test.([Less.([Left] X).([Right] Y)] False)] Concluded
+[Claim] (Test, Keep),
+[Test.([Less.([Left] X).([Right] X)] True)] Vacuous,
+[Test.([Less.([Left] X).([Right] Y)] True).([Less.([Left] Y).([Right] X)] True).([Less.([Left] X).([Right] X)] False)] Vacuous,
+[Test.([Less.([Left] X).([Right] Y)] False)] Concluded,
 [Test.([Less.([Left] Y).([Right] X)] False)] Concluded
 ```
 
@@ -119,8 +119,8 @@ Equation.([Side] Times.([Left] One).([Right] Y)).([Side] Y),
 Equation.([Side] Times.([Left] Inverse.([Of] X)).([Right] X)).([Side] One),
 ...
 
-[Equation.([Side] Times.([Left] X).([Right] Y)).([Side] One)] Equation.([Side] Times.([Left] Inverse.([Of] X)).([Right] Times.([Left] X).([Right] Y))).([Side] Times.([Left] Inverse.([Of] X)).([Right] One))
-[Equation.([Side] Times.([Left] One).([Right] Y)), Equation.([Side] Times.([Left] One).([Right] Y))] Equation
+[Equation.([Side] Times.([Left] X).([Right] Y)).([Side] One)] Equation.([Side] Times.([Left] Inverse.([Of] X)).([Right] Times.([Left] X).([Right] Y))).([Side] Times.([Left] Inverse.([Of] X)).([Right] One)),
+[Equation.([Side] Times.([Left] One).([Right] Y)), Equation.([Side] Times.([Left] One).([Right] Y))] Equation,
 ...
 
 [Equation.([Side] Y).([Side] Inverse.([Of] X))] Theorem
@@ -305,20 +305,20 @@ The instances connect these to the library. `ternary.group` and `ternary.field` 
 The digit tables are definitions: nothing in layers 1 to 6 says that `Ternary.Sum` adds. This layer grounds them in counting. It trusts only two things: the successor of each trit, `Ternary.Successor`, and the meaning of a numeral as that many successor steps. [counting/count.particle](counting/count.particle) writes that meaning once:
 
 ```
-[Walk.2] (Stride) (Stride)
-[Need.2, Receipt, Receipt] Satisfied
-[Stride, Place] Function.Ternary.Successor.Moving
-[Low.Moving] Place
-[High.0.Moving] Receipt
-[High.1.Moving, Wraps] Function.Ternary.Successor.Wrapping
-[Low.Wrapping] Wraps
+[Walk.2] (Stride, Stride),
+[Need.2, Receipt, Receipt] Satisfied,
+[Stride, Place] Function.Ternary.Successor.Moving,
+[Low.Moving] Place,
+[High.0.Moving] Receipt,
+[High.1.Moving, Wraps] Function.Ternary.Successor.Wrapping,
+[Low.Wrapping] Wraps,
 [High.0.Wrapping] Receipt
 ```
 
 A walk of n strides moves `Place` n successors forward and counts in `Wraps` how often it passes 2. Each stride leaves a `Receipt`, and `Need.n` is satisfied by n of them. Photonic cannot observe that no stride remains, so the receipts let a claim learn positively that every stride has landed. [counting/sum.wave](counting/sum.wave) checks all 27 sums:
 
 ```
-[Claim] (Place.A) (Wraps.0) (Walk.B) (Walk.C) (Need.B) (Need.C) (Function.Ternary.Sum.Expected.A.B.C)
+[Claim] (Place.A, Wraps.0, Walk.B, Walk.C, Need.B, Need.C, Function.Ternary.Sum.Expected.A.B.C),
 [Satisfied, Satisfied, Place.1, Wraps.1, Low.1.Expected, High.1.Expected] Return.Verdict.True
 ```
 
@@ -338,11 +338,11 @@ The second rule is one of nine. Sum's digit must be where b + c strides from a l
 A chain handle is a coherence that carries its own methods as rule values. [cell.particle](../library/chain/cell.particle) gives each cell `Read`, `Peek` and `Forget` methods. They are sealed by the capture of the rules that built them, and a handle is destroyed by matching its methods whole. The storage theorems hold for every item and every chain below it. The cell's rules mention neither `Item` nor `Below`, so the run with these atoms is the run for any others. The item's alphabet must declare `Drop`, as the digits do, and the chain below must answer `Forget`, as every chain does. From [chain/read.wave](chain/read.wave):
 
 ```
-Push.Item.Below
+Push.Item.Below,
 
-[Drop.Item] Forget
-[Forget.Below] Clean
-[Built] Read
+[Drop.Item] Forget,
+[Forget.Below] Clean,
+[Built] Read,
 [Yield.Item.Below] Theorem
 ```
 
@@ -357,18 +357,18 @@ Push.Item.Below
 The linked engines read numbers of any width, so their theorems are induction steps like those of layer 4. The difference is what they run: the library's own rules, not a scheme. Each claim starts an engine in a state it holds between two steps, and hands it feeds instead of chains. From [natural/feed.particle](natural/feed.particle):
 
 ```
-[Read.Feed.1] Yield.([Digit] 1).Remnant
-[Read.Feed.End] Yield.End.Zero
-[Forget.Remnant] Clean
+[Read.Feed.1] Yield.([Digit] 1).Remnant,
+[Read.Feed.End] Yield.End.Zero,
+[Forget.Remnant] Clean,
 [Forget.Prior] Clean
 ```
 
 A feed answers `Read` or `Peek` with the case's next digit, followed by a `Remnant` that answers nothing but `Forget`. `Prior` stands for the output built so far. A step reads at most one digit from each operand, so a feed stands for every chain with that next digit. `Feed.End` answers as the empty chain `Zero`, which it stands for. The engine's rules take one step and block on the remnants, and the claim reads the output back through the real chain. From [natural/addition.wave](natural/addition.wave):
 
 ```
-[Claim] (Column.Step) (Column.Mode.([Operation] Add)) (Column.Carry.K) (Column.Left.Feed.A) (Column.Right.Feed.B) (Column.Output.Prior) (Worth.A) (Worth.B) (Function.Ternary.Sum.Expected.K)
-[Column.Output.Head, Read.Column.Reader.([Side] Left).Remnant] Read.Probe.Head
-[Yield.Probe.Prior, Column.Carry, Column.Mode.([Operation] Add), Read.Column.Reader.([Side] Right).Remnant] Engine
+[Claim] (Column.Step, Column.Mode.([Operation] Add), Column.Carry.K, Column.Left.Feed.A, Column.Right.Feed.B, Column.Output.Prior, Worth.A, Worth.B, Function.Ternary.Sum.Expected.K),
+[Column.Output.Head, Read.Column.Reader.([Side] Left).Remnant] Read.Probe.Head,
+[Yield.Probe.Prior, Column.Carry, Column.Mode.([Operation] Add), Read.Column.Reader.([Side] Right).Remnant] Engine,
 [Engine.([Digit] 1).1, Low.1.Expected, High.1.Expected] Return.Verdict.True
 ```
 

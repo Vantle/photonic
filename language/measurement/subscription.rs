@@ -40,12 +40,12 @@ struct Selection {
 
 pub fn run() -> Vec<Observation> {
     let mut source = String::from(
-        "A.B [A] B [A,A] C [A.B] D [] E
+        "A.B, [A] B, [A,A] C, [A.B] D, [] E,
 ",
     );
     for width in 2..=12 {
         source.push_str(&format!(
-            "[{}] End{width}
+            "[{}] End{width},
 ",
             vec!["A"; width].join(".")
         ));

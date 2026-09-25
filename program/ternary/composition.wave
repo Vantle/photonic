@@ -1,19 +1,19 @@
-Push.Multiply.Zero, Stage.1
-[Built, Stage.1] (Push.Add) (Forget.Stage.2)
-[Built, Clean.Stage.2] (Push.Mark) (Forget.Stage.3)
-[Built, Clean.Stage.3] (Push.([Digit] 2)) (Forget.Stage.4)
-[Built, Clean.Stage.4] (Push.Literal) (Forget.Stage.5)
-[Built, Clean.Stage.5] (Push.Mark) (Forget.Stage.6)
-[Built, Clean.Stage.6] (Push.([Digit] 1)) (Forget.Stage.7)
-[Built, Clean.Stage.7] (Push.([Digit] 2)) (Forget.Stage.8)
-[Built, Clean.Stage.8] (Push.Literal) (Forget.Stage.9)
-[Built, Clean.Stage.9] (Push.Mark) (Forget.Stage.10)
-[Built, Clean.Stage.10] (Push.([Digit] 2)) (Forget.Stage.11)
-[Built, Clean.Stage.11] (Push.([Digit] 1)) (Forget.Stage.12)
-[Built, Clean.Stage.12] (Push.Literal) (Forget.Stage.13)
-[Built, Clean.Stage.13] Function.Expression.Execute
-[Return.Expression.Execute.Positive] (Read) (Forget.Inspect.0)
-[Yield.([Digit] 0), Clean.Inspect.0] (Read) (Forget.Inspect.1)
-[Yield.([Digit] 0), Clean.Inspect.1] (Read) (Forget.Inspect.2)
-[Yield.([Digit] 2), Clean.Inspect.2] (Read) (Forget.Inspect.3)
+Push.Multiply.Zero, Stage.1,
+[Built, Stage.1] (Push.Add, Forget.Stage.2),
+[Built, Clean.Stage.2] (Push.Mark, Forget.Stage.3),
+[Built, Clean.Stage.3] (Push.([Digit] 2), Forget.Stage.4),
+[Built, Clean.Stage.4] (Push.Literal, Forget.Stage.5),
+[Built, Clean.Stage.5] (Push.Mark, Forget.Stage.6),
+[Built, Clean.Stage.6] (Push.([Digit] 1), Forget.Stage.7),
+[Built, Clean.Stage.7] (Push.([Digit] 2), Forget.Stage.8),
+[Built, Clean.Stage.8] (Push.Literal, Forget.Stage.9),
+[Built, Clean.Stage.9] (Push.Mark, Forget.Stage.10),
+[Built, Clean.Stage.10] (Push.([Digit] 2), Forget.Stage.11),
+[Built, Clean.Stage.11] (Push.([Digit] 1), Forget.Stage.12),
+[Built, Clean.Stage.12] (Push.Literal, Forget.Stage.13),
+[Built, Clean.Stage.13] Function.Expression.Execute,
+[Return.Expression.Execute.Positive] (Read, Forget.Inspect.0),
+[Yield.([Digit] 0), Clean.Inspect.0] (Read, Forget.Inspect.1),
+[Yield.([Digit] 0), Clean.Inspect.1] (Read, Forget.Inspect.2),
+[Yield.([Digit] 2), Clean.Inspect.2] (Read, Forget.Inspect.3),
 [Yield.([Digit] 1), Clean.Inspect.3] Done

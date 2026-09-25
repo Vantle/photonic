@@ -51,13 +51,13 @@ photonic_test(
     targets = [
         """Left.Grove.([First.Seed] Return.Bud).([Second.Bud] Return.Flower),
 Right.Grove.([First.Seed] (
-    Function.Compose.Sapling.([First.Sapling] Return.Trunk).([Second.Trunk] Return.Tree)
+    Function.Compose.Sapling.([First.Sapling] Return.Trunk).([Second.Trunk] Return.Tree),
     [Return] Return
 )).([Second.Tree] Return.Grove).([First.Sapling] Return.Trunk).([Second.Trunk] Return.Tree)
 """,
         """Left.Flower.([First.Seed] Return.Bud).([Second.Bud] Return.Flower),
 Right.Flower.([First.Seed] (
-    Function.Compose.Sapling.([First.Sapling] Return.Trunk).([Second.Trunk] Return.Tree)
+    Function.Compose.Sapling.([First.Sapling] Return.Trunk).([Second.Trunk] Return.Tree),
     [Return] Return
 )).([Second.Tree] Return.Grove).([First.Sapling] Return.Trunk).([Second.Trunk] Return.Tree)
 """,
@@ -77,7 +77,7 @@ photonic_test(
     preserve = True,
     targets = ["""Left.Flower.([First.Seed] Return.Bud).([Second.Bud] Return.Flower),
 Right.Grove.([First.Seed] (
-    Function.Compose.Sapling.([First.Sapling] Return.Trunk).([Second.Trunk] Return.Tree)
+    Function.Compose.Sapling.([First.Sapling] Return.Trunk).([Second.Trunk] Return.Tree),
     [Return] Return
 )).([Second.Tree] Return.Grove).([First.Sapling] Return.Trunk).([Second.Trunk] Return.Tree)
 """],

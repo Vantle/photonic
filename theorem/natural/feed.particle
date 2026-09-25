@@ -1,10 +1,10 @@
-[Read.Feed.0] Yield.([Digit] 0).Remnant
-[Read.Feed.1] Yield.([Digit] 1).Remnant
-[Read.Feed.2] Yield.([Digit] 2).Remnant
-[Read.Feed.End] Yield.End.Zero
-[Peek.Feed.0] Seen.([Digit] 0).Remnant
-[Peek.Feed.1] Seen.([Digit] 1).Remnant
-[Peek.Feed.2] Seen.([Digit] 2).Remnant
-[Peek.Feed.End] Seen.End.Zero
-[Forget.Remnant] Clean
+[Read.Feed.0] Yield.([Digit] 0).Remnant,
+[Read.Feed.1] Yield.([Digit] 1).Remnant,
+[Read.Feed.2] Yield.([Digit] 2).Remnant,
+[Read.Feed.End] Yield.End.Zero,
+[Peek.Feed.0] Seen.([Digit] 0).Remnant,
+[Peek.Feed.1] Seen.([Digit] 1).Remnant,
+[Peek.Feed.2] Seen.([Digit] 2).Remnant,
+[Peek.Feed.End] Seen.End.Zero,
+[Forget.Remnant] Clean,
 [Forget.Prior] Clean

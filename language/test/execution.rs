@@ -35,7 +35,7 @@ fn label(observation: &Observation) -> Vec<Vec<String>> {
 
 #[test]
 fn reunion() {
-    let source = parse("A.X [A] (B) (C) [B, C] D").unwrap();
+    let source = parse("A.X, [A] (B, C), [B, C] D").unwrap();
     let exploration = explore(&source, limit(), Bound::default(), |_| false);
     assert!(exploration.complete());
     assert_eq!(exploration.state, 3);
@@ -45,7 +45,7 @@ fn reunion() {
 
 #[test]
 fn production() {
-    let source = parse("Seed.A [Seed] [A] B").unwrap();
+    let source = parse("Seed.A, [Seed] [A] B").unwrap();
     let exploration = explore(&source, limit(), Bound::default(), |_| false);
     assert!(exploration.complete());
     assert_eq!(exploration.terminal.len(), 1);
@@ -55,9 +55,9 @@ fn production() {
 #[test]
 fn scope() {
     let source = parse(
-        "Invoke.Boolean.Not.True
-        [Invoke] (Function [Return] ())
-        [Function.Boolean.Not.True] Return.False
+        "Invoke.Boolean.Not.True,
+        [Invoke] (Function, [Return] ()),
+        [Function.Boolean.Not.True] Return.False,
         [Function.Boolean.Not.False] Return.True",
     )
     .unwrap();
@@ -69,7 +69,7 @@ fn scope() {
 
 #[test]
 fn depth() {
-    let source = parse("A, A [A] B [B] C").unwrap();
+    let source = parse("A, A, [A] B, [B] C").unwrap();
     let result = walk(&source, limit(), Bound::default(), |_| 0);
     assert_eq!(result.work, 4);
     assert_eq!(result.depth, 2);
@@ -78,10 +78,10 @@ fn depth() {
 
 #[test]
 fn cycle() {
-    let source = parse("A [A] B [B] A").unwrap();
+    let source = parse("A, [A] B, [B] A").unwrap();
     assert!(explore(&source, limit(), Bound::default(), |_| false).cycle);
     assert!(walk(&source, limit(), Bound::default(), |_| 0).cycle);
-    let growth = parse("A [A] A.A").unwrap();
+    let growth = parse("A, [A] A.A").unwrap();
     let bounded = Bound {
         state: 64,
         ..Bound::default()

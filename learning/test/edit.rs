@@ -110,7 +110,7 @@ fn detach() {
     let swap = text(task.reference.as_ref().unwrap())
         .iter()
         .position(|rule| {
-            rule == "[Gnome.Second, First.1, Second.0] (Gnome.First) (First.0) (Second.1)"
+            rule == "[Gnome.Second, First.1, Second.0] (Gnome.First, First.0, Second.1)"
         })
         .unwrap();
     let action = legal(
@@ -124,7 +124,7 @@ fn detach() {
     }));
     let start = text(task.reference.as_ref().unwrap())
         .iter()
-        .position(|rule| rule == "[Gnome.First] (Gnome.Second)")
+        .position(|rule| rule == "[Gnome.First] Gnome.Second")
         .unwrap();
     assert!(!action.contains(&Action::Detach {
         rule: start,
@@ -137,7 +137,7 @@ fn detach() {
             atom: gnome,
         },
     );
-    assert!(text(&detached).contains(&"[First.1, Second.0] (First.0) (Second.1)".to_owned()));
+    assert!(text(&detached).contains(&"[First.1, Second.0] (First.0, Second.1)".to_owned()));
 }
 
 #[test]
@@ -192,7 +192,7 @@ fn analogy() {
             .iter()
             .position(|rule| {
                 translation::text::rule(rule, &task.vocabulary)
-                    == "[Gnome.Second, First.1, Second.0] (Gnome.First) (First.0) (Second.1)"
+                    == "[Gnome.Second, First.1, Second.0] (Gnome.First, First.0, Second.1)"
             })
             .unwrap();
         let action = legal(

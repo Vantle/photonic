@@ -1,5 +1,5 @@
 Left.Invoke.Compose.Seed.([First.Seed] Return.Bud).([Second.Bud] Return.Flower),
 Right.Invoke.Compose.Seed.([First.Seed] (
-    Function.Compose.Sapling.([First.Sapling] Return.Trunk).([Second.Trunk] Return.Tree)
+    Function.Compose.Sapling.([First.Sapling] Return.Trunk).([Second.Trunk] Return.Tree),
     [Return] Return
 )).([Second.Tree] Return.Grove)

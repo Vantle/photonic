@@ -1,11 +1,11 @@
-Case.(([A] 0), ([A] 1), ([A] 2)).(([B] 0), ([B] 1), ([B] 2))
+Case.(([A] 0), ([A] 1), ([A] 2)).(([B] 0), ([B] 1), ([B] 2)),
 
-[Claim] (Place.A) (Wraps.0) (Walk.B) (Need.B) (Function.Ternary.Add.Expected.A.B)
-[Satisfied, Place.0, Wraps.0, Low.0.Expected, High.0.Expected] Return.Verdict.True
-[Satisfied, Place.0, Wraps.1, Low.0.Expected, High.1.Expected] Return.Verdict.True
-[Satisfied, Place.1, Wraps.0, Low.1.Expected, High.0.Expected] Return.Verdict.True
-[Satisfied, Place.1, Wraps.1, Low.1.Expected, High.1.Expected] Return.Verdict.True
-[Satisfied, Place.2, Wraps.0, Low.2.Expected, High.0.Expected] Return.Verdict.True
-[Satisfied, Place.2, Wraps.1, Low.2.Expected, High.1.Expected] Return.Verdict.True
+[Claim] (Place.A, Wraps.0, Walk.B, Need.B, Function.Ternary.Add.Expected.A.B),
+[Satisfied, Place.0, Wraps.0, Low.0.Expected, High.0.Expected] Return.Verdict.True,
+[Satisfied, Place.0, Wraps.1, Low.0.Expected, High.1.Expected] Return.Verdict.True,
+[Satisfied, Place.1, Wraps.0, Low.1.Expected, High.0.Expected] Return.Verdict.True,
+[Satisfied, Place.1, Wraps.1, Low.1.Expected, High.1.Expected] Return.Verdict.True,
+[Satisfied, Place.2, Wraps.0, Low.2.Expected, High.0.Expected] Return.Verdict.True,
+[Satisfied, Place.2, Wraps.1, Low.2.Expected, High.1.Expected] Return.Verdict.True,
 
 [Holds.(([A] 0), ([A] 1), ([A] 2)).(([B] 0), ([B] 1), ([B] 2))] Theorem

@@ -1,3 +1,3 @@
-[Function.Boolean.Not.True] Return.False
-[Function.Boolean.Not.False] Return.True
+[Function.Boolean.Not.True] Return.False,
+[Function.Boolean.Not.False] Return.True,
 [Boolean.Not.([Each] Boolean.Not)] Function.Boolean.Not

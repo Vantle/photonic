@@ -13,7 +13,7 @@ fn value(value: &Value, vocabulary: &Vocabulary) -> String {
     }
 }
 
-fn member(particle: &Particle, vocabulary: &Vocabulary) -> String {
+fn join(particle: &Particle, vocabulary: &Vocabulary) -> String {
     particle
         .value()
         .iter()
@@ -22,54 +22,69 @@ fn member(particle: &Particle, vocabulary: &Vocabulary) -> String {
         .join(".")
 }
 
-fn particle(particle: &Particle, vocabulary: &Vocabulary) -> String {
-    if particle.is_empty() {
-        return "()".to_owned();
+fn edge(particle: &Particle, vocabulary: &Vocabulary) -> String {
+    match particle.value() {
+        [] => "()".to_owned(),
+        [Value::Rule(rule)] => self::rule(rule, vocabulary),
+        _ => join(particle, vocabulary),
     }
-    member(particle, vocabulary)
+}
+
+fn member(particle: &Particle, vocabulary: &Vocabulary) -> String {
+    match particle.value() {
+        [] => "()".to_owned(),
+        [Value::Rule(_)] => format!("().{}", join(particle, vocabulary)),
+        _ => join(particle, vocabulary),
+    }
+}
+
+fn scope(output: &Output, body: &[Rule], vocabulary: &Vocabulary) -> String {
+    let content = (!output.particle().is_empty())
+        .then(|| member(output.particle(), vocabulary))
+        .into_iter()
+        .chain(body.iter().map(|rule| self::rule(rule, vocabulary)))
+        .collect::<Vec<_>>()
+        .join(", ");
+    format!("({content})")
 }
 
 fn output(output: &Output, vocabulary: &Vocabulary) -> String {
-    let explicit = member(output.particle(), vocabulary);
-    let body = output
-        .body()
-        .unwrap_or_default()
-        .iter()
-        .map(|rule| self::rule(rule, vocabulary))
-        .collect::<Vec<_>>();
-    let content = std::iter::once(explicit)
-        .chain(body)
-        .filter(|entry| !entry.is_empty())
-        .collect::<Vec<_>>()
-        .join(" ");
-    format!("({content})")
+    match output.body() {
+        Some(body) => scope(output, body, vocabulary),
+        None => member(output.particle(), vocabulary),
+    }
 }
 
 pub fn rule(rule: &Rule, vocabulary: &Vocabulary) -> String {
     let input = rule
         .input()
         .iter()
-        .map(|entry| particle(entry, vocabulary))
+        .map(|entry| edge(entry, vocabulary))
         .collect::<Vec<_>>()
         .join(", ");
-    if rule.output().is_empty() {
-        return format!("[{input}],");
-    }
-    format!(
-        "[{input}] {}",
-        rule.output()
-            .iter()
-            .map(|entry| output(entry, vocabulary))
-            .collect::<Vec<_>>()
-            .join(" ")
-    )
+    let output = match rule.output() {
+        [] => return format!("[{input}]"),
+        [single] => match single.body() {
+            Some(body) => scope(single, body, vocabulary),
+            None => edge(single.particle(), vocabulary),
+        },
+        several => format!(
+            "({})",
+            several
+                .iter()
+                .map(|entry| self::output(entry, vocabulary))
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
+    };
+    format!("[{input}] {output}")
 }
 
 pub fn configuration(configuration: &Configuration, vocabulary: &Vocabulary) -> String {
     configuration
         .coherence()
         .iter()
-        .map(|entry| particle(entry, vocabulary))
+        .map(|entry| member(entry, vocabulary))
         .collect::<Vec<_>>()
         .join(", ")
 }
@@ -78,6 +93,6 @@ pub fn program(program: &Program, vocabulary: &Vocabulary) -> String {
     program
         .rule()
         .iter()
-        .map(|entry| rule(entry, vocabulary) + "\n")
+        .map(|entry| rule(entry, vocabulary) + ",\n")
         .collect()
 }

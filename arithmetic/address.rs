@@ -19,11 +19,15 @@ impl Address {
         }
     }
 
-    pub(crate) fn field(&self, value: u8) -> String {
+    pub(crate) fn rule(&self, value: u8) -> String {
         let position = self
             .position
             .map(|value| format!(".{value}"))
             .unwrap_or_default();
-        format!("([{}{position}] {value})", self.role)
+        format!("[{}{position}] {value}", self.role)
+    }
+
+    pub(crate) fn field(&self, value: u8) -> String {
+        format!("({})", self.rule(value))
     }
 }

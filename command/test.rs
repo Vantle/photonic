@@ -64,7 +64,7 @@ fn report(output: &Output) -> serde_json::Value {
 #[test]
 fn execution() {
     let fixture = Fixture::new();
-    let path = fixture.write("program.wave", "Seed.A [Seed] [A] B");
+    let path = fixture.write("program.wave", "Seed.A, [Seed] [A] B");
     let output = execute("run", &path, &["--json"]);
     let result = report(&output);
     assert_eq!(result["closed"], true);
@@ -127,7 +127,7 @@ fn format() {
     let explicit = report(&execute("run", &path, &["--format", "json", "--json"]));
     assert_eq!(inferred, explicit);
     assert_eq!(inferred["closed"], true);
-    let path = fixture.write("native.json", "A [A] B");
+    let path = fixture.write("native.json", "A, [A] B");
     let native = report(&execute("run", &path, &["--format", "photonic", "--json"]));
     assert_eq!(native["closed"], true);
     let path = fixture.write("broken.json", "{");
@@ -146,7 +146,7 @@ fn diagnostic() {
     assert!(error.contains("photonic::syntax"));
     assert!(error.contains("invalid.wave"));
     assert!(error.contains("人]"));
-    let path = fixture.write("structure.wave", "人.世界 [人]");
+    let path = fixture.write("structure.wave", "人.世界, [人]");
     let output = execute("parse", &path, &[]);
     assert!(output.status.success());
     assert!(String::from_utf8_lossy(&output.stdout).contains("Concept"));
@@ -158,7 +158,7 @@ fn diagnostic() {
 #[test]
 fn worker() {
     let fixture = Fixture::new();
-    let path = fixture.write("program.wave", "Seed.A [Seed] [A] B");
+    let path = fixture.write("program.wave", "Seed.A, [Seed] [A] B");
     let sequential = report(&execute("run", &path, &["--json"]));
     let parallel = report(&execute("run", &path, &["--json", "--workers", "4"]));
     assert_eq!(sequential, parallel);
@@ -173,8 +173,8 @@ fn worker() {
 #[test]
 fn prism() {
     let fixture = Fixture::new();
-    let path = fixture.write("program.wave", "A [A] B");
-    let target = fixture.write("target.particle", "B [A] B");
+    let path = fixture.write("program.wave", "A, [A] B");
+    let target = fixture.write("target.particle", "B, [A] B");
     let result = report(&execute(
         "prism",
         &path,
@@ -196,7 +196,7 @@ fn prism() {
         ],
     ));
     assert_eq!(result["outcome"], "unknown");
-    let invalid = fixture.write("invalid.wave", "B [B] A");
+    let invalid = fixture.write("invalid.wave", "B, [B] A");
     assert!(
         execute("prism", &path, &["--target", invalid.to_str().unwrap()])
             .status
@@ -226,11 +226,11 @@ fn group() {
     let fixture = Fixture::new();
     let path = fixture.write(
         "group.wave",
-        "Add(Unit.Unit.Unit,Unit.Unit.Unit.Unit.Unit.Unit.Unit) [Add,Add] ()",
+        "Add(Unit.Unit.Unit,Unit.Unit.Unit.Unit.Unit.Unit.Unit), [Add,Add] ()",
     );
     let target = fixture.write(
         "target.particle",
-        &format!("{} [Add,Add] ()", ["Unit"; 10].join(".")),
+        &format!("{}, [Add,Add] ()", ["Unit"; 10].join(".")),
     );
     let argument = ["--target", target.to_str().unwrap(), "--json"];
     let result = report(&execute("prism", &path, &argument));
@@ -257,8 +257,8 @@ fn group() {
 #[test]
 fn path() {
     let fixture = Fixture::new();
-    let source = fixture.write("program.wave", "A [A] B [B] C");
-    let target = fixture.write("target.particle", "C [A] B [B] C");
+    let source = fixture.write("program.wave", "A, [A] B, [B] C");
+    let target = fixture.write("target.particle", "C, [A] B, [B] C");
     let result = report(&execute(
         "prism",
         &source,
@@ -284,8 +284,8 @@ fn path() {
 #[test]
 fn extension() {
     let fixture = Fixture::new();
-    let source = "A [A] B";
-    let target = fixture.write("target.particle", "B [A] B");
+    let source = "A, [A] B";
+    let target = fixture.write("target.particle", "B, [A] B");
     let mut expected = None;
     for name in ["program.particle", "program.wave", "program.WAVE"] {
         let path = fixture.write(name, source);
@@ -311,7 +311,7 @@ fn library() {
     let path = fixture.write("program.wave", "Call.Not.True");
     let target = fixture.write(
         "target.particle",
-        "False [Call.Not.True] Return.False [Return] ()",
+        "False, [Call.Not.True] Return.False, [Return] ()",
     );
     let library = fixture.write("boolean.particle", "[Call.Not.True] Return.False");
     let completion = fixture.write("completion.particle", "[Return] ()");
@@ -386,7 +386,7 @@ fn serialization() {
 #[test]
 fn context() {
     let fixture = Fixture::new();
-    let source = fixture.write("source.wave", "A [A] B");
+    let source = fixture.write("source.wave", "A, [A] B");
     let declaration = fixture.write("rule.wave", "[A] B");
     let output = execute("run", &declaration, &[]);
     assert!(output.status.success());

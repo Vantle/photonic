@@ -48,15 +48,15 @@ pub fn token(input: &str) -> Result<Vec<String>, Rejection> {
 
 pub fn stack(token: &[String], request: &str) -> Option<String> {
     let (last, rest) = token.split_last()?;
-    let mut source = format!("Push.{last}.Zero, Stage.1\n");
+    let mut source = format!("Push.{last}.Zero, Stage.1,\n");
     for (index, value) in (1..).zip(rest.iter().rev()) {
         source.push_str(&format!(
-            "[Built, {}] (Push.{value}) (Forget.Stage.{})\n",
+            "[Built, {}] (Push.{value}, Forget.Stage.{}),\n",
             stage(index),
             index + 1
         ));
     }
-    source.push_str(&format!("[Built, {}] {request}\n", stage(token.len())));
+    source.push_str(&format!("[Built, {}] {request},\n", stage(token.len())));
     Some(source)
 }
 

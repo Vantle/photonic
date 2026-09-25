@@ -1,12 +1,12 @@
-Case.(([X] Kill), ([X] Propagate), ([X] Generate)).(([Y] Kill), ([Y] Propagate), ([Y] Generate)).(([Z] Kill), ([Z] Propagate), ([Z] Generate))
+Case.(([X] Kill), ([X] Propagate), ([X] Generate)).(([Y] Kill), ([Y] Propagate), ([Y] Generate)).(([Z] Kill), ([Z] Propagate), ([Z] Generate)),
 
-[Claim] (Former.X.Prefix) (Latter.Y.Prefix) (Latter.Z.Leading) (Former.Y.Suffix) (Latter.Z.Suffix) (Former.X.Trailing)
-[Packed.Prefix, Packed.Prefix] Function.Carry.Combine.Prefix
-[Return.Prefix] Former.Leading
-[Packed.Leading, Packed.Leading] Function.Carry.Combine.Leading
-[Packed.Suffix, Packed.Suffix] Function.Carry.Combine.Suffix
-[Return.Suffix] Latter.Trailing
-[Packed.Trailing, Packed.Trailing] Function.Carry.Combine.Trailing
-[Return.Leading, Return.Trailing] Function.Carry.Equal.Verdict
+[Claim] (Former.X.Prefix, Latter.Y.Prefix, Latter.Z.Leading, Former.Y.Suffix, Latter.Z.Suffix, Former.X.Trailing),
+[Packed.Prefix, Packed.Prefix] Function.Carry.Combine.Prefix,
+[Return.Prefix] Former.Leading,
+[Packed.Leading, Packed.Leading] Function.Carry.Combine.Leading,
+[Packed.Suffix, Packed.Suffix] Function.Carry.Combine.Suffix,
+[Return.Suffix] Latter.Trailing,
+[Packed.Trailing, Packed.Trailing] Function.Carry.Combine.Trailing,
+[Return.Leading, Return.Trailing] Function.Carry.Equal.Verdict,
 
 [Holds.(([X] Kill), ([X] Propagate), ([X] Generate)).(([Y] Kill), ([Y] Propagate), ([Y] Generate)).(([Z] Kill), ([Z] Propagate), ([Z] Generate))] Theorem

@@ -1,9 +1,9 @@
 [Map.Ready.Left] (
-    Each
+    Each,
     [Return] Done.Left
-)
+),
 
 [Map.Ready.Right] (
-    Each
+    Each,
     [Return] Done.Right
 )

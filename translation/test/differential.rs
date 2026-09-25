@@ -188,14 +188,14 @@ fn random() {
 #[test]
 fn written() {
     let case = [
-        "A.X [A] (B) (C) [B, C] D",
-        "A.X [A] (B) (C) [B.X, C] D",
-        "A.X, B.X [A, B] C",
-        "A, B, D [A, ()] C",
-        "A.B.C [A] D [B] E",
-        "A.X, B [A] ()",
-        "A.X, B [A],",
-        "First.2, Second.0 [First.2, Second.0] (First.0) (Second.2)",
+        "A.X, [A] (B, C), [B, C] D",
+        "A.X, [A] (B, C), [B.X, C] D",
+        "A.X, B.X, [A, B] C",
+        "A, B, D, [A, ()] C",
+        "A.B.C, [A] D, [B] E",
+        "A.X, B, [A] ()",
+        "A.X, B, [A],",
+        "First.2, Second.0, [First.2, Second.0] (First.0, Second.2)",
     ];
     for source in case {
         let parsed = photonic::lowering::parse(source).unwrap();

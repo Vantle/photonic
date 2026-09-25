@@ -9,11 +9,11 @@ const engine = await import(pathToFileURL(javascript));
 engine.initSync({ module: await readFile(webassembly) });
 const explore = request => JSON.parse(engine.explore(JSON.stringify(request)));
 for (const source of [
-    'A [A] B',
-    'A [A] B.C [B] D',
-    'Seed.A [Seed] [A] B',
-    'A.X, B.Y [A, B] (C, D) [C, D] E',
-    'A [A] A.A',
+    'A, [A] B',
+    'A, [A] B.C, [B] D',
+    'Seed.A, [Seed] [A] B',
+    'A.X, B.Y, [A, B] (C, D), [C, D] E',
+    'A, [A] A.A',
 ]) {
     const path = join(process.env.TEST_TMPDIR, 'source.wave');
     await writeFile(path, source);
@@ -26,13 +26,13 @@ for (const source of [
     const event = report.event.map(value => ({ ...value, direct: value.evidence.some(view => identity.has(view)) }));
     assert.deepEqual(response.execution, { ...report, event, view: [] }, source);
 }
-assert.deepEqual(explore({ version: 1, source: 'A [A] B', target: ['B [A] B', 'C [A] B'] }).verdict.map(value => value.outcome), ['reached', 'unreachable']);
-assert.deepEqual(explore({ version: 1, source: 'A [A] B', target: ['B', 'A'], preserve: true }).verdict.map(value => value.outcome), ['reached', 'reached']);
-assert.deepEqual(explore({ version: 1, source: '[] A', target: ['A.A [] A'] }).verdict.map(value => value.outcome), ['unknown']);
+assert.deepEqual(explore({ version: 1, source: 'A, [A] B', target: ['B, [A] B', 'C, [A] B'] }).verdict.map(value => value.outcome), ['reached', 'unreachable']);
+assert.deepEqual(explore({ version: 1, source: 'A, [A] B', target: ['B', 'A'], preserve: true }).verdict.map(value => value.outcome), ['reached', 'reached']);
+assert.deepEqual(explore({ version: 1, source: '[] A', target: ['A.A, [] A'] }).verdict.map(value => value.outcome), ['unknown']);
 assert.equal(explore({ version: 2, source: 'A' }).error.code, 'version');
 assert.equal(explore({ version: 1, source: '[', target: [] }).error.code, 'source');
 assert.equal(explore({ version: 1, source: 'A', target: ['['] }).error.code, 'target');
-assert.equal(explore({ version: 1, source: 'A', target: ['A [A] B'] }).verdict[0].outcome, 'unreachable');
+assert.equal(explore({ version: 1, source: 'A', target: ['A, [A] B'] }).verdict[0].outcome, 'unreachable');
 assert.ok(explore({ version: 1, source: 'A', target: Array(17).fill('A') }).error);
 assert.equal(explore({ version: 1, source: 'A', extra: true }).error.code, 'request');
 assert.equal(JSON.parse(engine.explore('[')).error.code, 'request');
@@ -45,14 +45,14 @@ assert.equal(explore({ version: 1, source: '人 [B' }).error.span.offset, 4);
 assert.equal(explore({ version: 1, source: 'A', target: ['人.人 [B'] }).error.span.offset, 6);
 console.log('WebAssembly exploration matches native Rust reports, including suspended exploration and generated code.');
 
-const library = [{ name: 'not.particle', source: '[Not.True] False\n[Not.False] True' }];
+const library = [{ name: 'not.particle', source: '[Not.True] False,\n[Not.False] True' }];
 assert.deepEqual(explore({ version: 1, source: 'Not.True', library, target: ['False'], preserve: true }).verdict.map(value => value.outcome), ['reached']);
 assert.deepEqual(explore({ version: 1, source: 'Not.True', library, target: ['False'] }).verdict.map(value => value.outcome), ['unreachable']);
 assert.equal(explore({ version: 1, source: 'A', library: [{ name: 'data.particle', source: 'B' }] }).error.code, 'library');
 assert.equal(explore({ version: 1, source: 'A', library: [{ name: 'broken.particle', source: '[' }] }).error.code, 'library');
 console.log('Libraries load as declarations, and preserved targets include their rules.');
 
-const lowered = JSON.parse(engine.lower('A(B, C) [A] (D)(E)'));
+const lowered = JSON.parse(engine.lower('A(B, C), [A] (D, E)'));
 assert.deepEqual(lowered.program.initial, [['A', 'B'], ['A', 'C']]);
 assert.equal(lowered.program.rule[0].output.length, 2);
 assert.equal(JSON.parse(engine.lower('[A] (B')).error.code, 'source');
@@ -60,7 +60,7 @@ assert.deepEqual(JSON.parse(engine.lower('⟨x⟩ ]')).error.span, { offset: 4, 
 assert.equal(JSON.parse(engine.lower('A'.repeat(131073))).error.code, 'size');
 console.log('Lowering reports programs and located syntax errors.');
 
-const theorem = new engine.Path(JSON.stringify({ version: 1, source: 'A, A [A] B [B, B] Theorem', target: ['Theorem'], preserve: true }));
+const theorem = new engine.Path(JSON.stringify({ version: 1, source: 'A, A, [A] B, [B, B] Theorem', target: ['Theorem'], preserve: true }));
 const proved = JSON.parse(theorem.run());
 assert.equal(proved.outcome, 'reached');
 assert.ok(proved.event > 0);
@@ -71,7 +71,7 @@ assert.equal(opening.after.id, opening.event.target);
 assert.deepEqual(Object.keys(opening).sort(), ['after', 'before', 'event', 'version']);
 assert.ok(JSON.parse(theorem.inspect(proved.event)).error);
 theorem.free();
-const open = new engine.Path(JSON.stringify({ version: 1, source: 'A [A] B' }));
+const open = new engine.Path(JSON.stringify({ version: 1, source: 'A, [A] B' }));
 assert.equal(JSON.parse(open.run()).outcome, undefined);
 open.free();
 const refused = path => {

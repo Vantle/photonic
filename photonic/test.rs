@@ -116,7 +116,7 @@ fn binary() {
 fn diamond() {
     let program = std::fs::read(executable("PIPELINE")).unwrap();
     let program: photonic::source::Program = serde_json::from_slice(&program).unwrap();
-    let entry = photonic::lowering::parse("[Invoke] (Function [Return] ())")
+    let entry = photonic::lowering::parse("[Invoke] (Function, [Return] ())")
         .unwrap()
         .rule
         .remove(0)
@@ -202,8 +202,8 @@ fn verification() {
         ("A", "C", "unreachable", false, 0, false),
         ("A", "B", "reached", true, 1000, true),
         ("A", "C", "unreachable", true, 1000, false),
-        ("A [A] C", "C", "reached", false, 1000, true),
-        ("A", "B [B] C", "reached", false, 1000, false),
+        ("A, [A] C", "C", "reached", false, 1000, true),
+        ("A", "B, [B] C", "reached", false, 1000, false),
         ("[", "B", "reached", false, 1000, false),
     ] {
         let output = check(
@@ -257,7 +257,7 @@ fn matching() {
             &root,
             &serde_json::json!({
                 "program": program,
-                "source": "A [A] C",
+                "source": "A, [A] C",
                 "target": target,
                 "match": mode,
                 "expect": expect,
@@ -285,14 +285,14 @@ fn preservation() {
         ("C", true, "reached", true),
         ("C", false, "reached", false),
         ("C", false, "unreachable", true),
-        ("C [A] C", false, "reached", true),
-        ("C [A] C", true, "reached", false),
+        ("C, [A] C", false, "reached", true),
+        ("C, [A] C", true, "reached", false),
     ] {
         let output = check(
             &root,
             &serde_json::json!({
                 "program": program,
-                "source": "A [A] C",
+                "source": "A, [A] C",
                 "target": [target],
                 "match": "all",
                 "expect": expect,

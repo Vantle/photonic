@@ -35,9 +35,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             format!("{content},Stage{stage}.B")
         }
     };
-    let mut source = format!("{}\n[{particle},B] Never\n", world(0));
+    let mut source = format!("{},\n[{particle},B] Never,\n", world(0));
     for index in 0..argument.length.get() {
-        source.push_str(&format!("[Stage{index}] Stage{}\n", index + 1));
+        source.push_str(&format!("[Stage{index}] Stage{},\n", index + 1));
     }
     let program = photonic::lowering::parse(&source)?;
     let target = photonic::lowering::parse(&world(argument.length.get()))?;

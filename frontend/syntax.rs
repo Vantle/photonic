@@ -3,12 +3,11 @@ use std::ops::Range;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Kind {
     Module,
-    Concept,
+    List,
+    Term,
     Group,
-    Context,
-    Continuation,
-    Coherence,
-    Space,
+    Rule,
+    Concept,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

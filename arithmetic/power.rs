@@ -31,7 +31,7 @@ pub fn rule(radix: u32, width: usize) -> Result<String, Failure> {
     Ok((0..width)
         .map(|position| {
             let input = vec![format!("{radix}^{position}"); radix as usize].join(".");
-            format!("[{input}] {radix}^{}\n", position + 1)
+            format!("[{input}] {radix}^{},\n", position + 1)
         })
         .collect())
 }

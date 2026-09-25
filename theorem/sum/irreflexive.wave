@@ -1,7 +1,7 @@
-Case.(([Side.P] Left), ([Side.P] Right)).(([Less.([Left] P).([Right] P)] True), ([Less.([Left] P).([Right] P)] False))
+Case.(([Side.P] Left), ([Side.P] Right)).(([Less.([Left] P).([Right] P)] True), ([Less.([Left] P).([Right] P)] False)),
 
-[Claim] (Test) (Keep)
-[Test.([Less.([Left] P).([Right] P)] True)] Vacuous
-[Test.([Less.([Left] P).([Right] P)] False)] Concluded
+[Claim] (Test, Keep),
+[Test.([Less.([Left] P).([Right] P)] True)] Vacuous,
+[Test.([Less.([Left] P).([Right] P)] False)] Concluded,
 
 [Holds.(([Side.P] Left), ([Side.P] Right)).(([Less.([Left] P).([Right] P)] True), ([Less.([Left] P).([Right] P)] False))] Theorem

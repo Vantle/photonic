@@ -20,14 +20,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut context = (0..argument.width)
         .map(|index| format!("Idle{index},"))
         .collect::<String>();
-    let mut source = format!("{context}Stage0\n");
+    let mut source = format!("{context}Stage0,\n");
     if argument.rule {
         for index in 0..argument.width {
-            source.push_str(&format!("[Idle{index},Idle{index}] Never{index}\n"));
+            source.push_str(&format!("[Idle{index},Idle{index}] Never{index},\n"));
         }
     }
     for index in 0..argument.length {
-        source.push_str(&format!("[Stage{index}] Stage{}\n", index + 1));
+        source.push_str(&format!("[Stage{index}] Stage{},\n", index + 1));
     }
     context.push_str(&format!("Stage{}", argument.length));
     let program = photonic::lowering::parse(&source)?;

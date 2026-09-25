@@ -167,7 +167,7 @@ fn subscription() {
 
     let program = Program::new(
         &crate::lowering::parse(
-            "A.B.C.D.E.F.G.H,X,Y [A.B.C.D.E.F.G.H,X] End [A.B.C.D.E.F.G.H,Y] End",
+            "A.B.C.D.E.F.G.H,X,Y, [A.B.C.D.E.F.G.H,X] End, [A.B.C.D.E.F.G.H,Y] End",
         )
         .unwrap(),
     );

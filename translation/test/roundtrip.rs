@@ -32,7 +32,7 @@ fn written() {
         let configuration = configuration(&mut generator);
         let known = vocabulary();
         let written = format!(
-            "{}\n{}",
+            "{},\n{}",
             text::configuration(&configuration, &known),
             text::program(&program, &known)
         );

@@ -1,11 +1,11 @@
-[Function.Pair.Copy] (Build.Left, Build.Right)
+[Function.Pair.Copy] (Build.Left, Build.Right),
 
 [Build.Left] (
-    Function.Pair.Produce
+    Function.Pair.Produce,
     [Return] Ready.Left
-)
+),
 
 [Build.Right] (
-    Function.Pair.Produce
+    Function.Pair.Produce,
     [Return] Ready.Right
 )

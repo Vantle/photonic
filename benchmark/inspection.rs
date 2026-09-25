@@ -51,9 +51,9 @@ fn evaluate(program: &photonic::source::Program, argument: &Argument) -> serde_j
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let argument = Argument::parse();
-    let mut source = String::from("Stage0\n");
+    let mut source = String::from("Stage0,\n");
     for stage in 0..argument.length.get() {
-        source.push_str(&format!("[Stage{stage}] Stage{}\n", stage + 1));
+        source.push_str(&format!("[Stage{stage}] Stage{},\n", stage + 1));
     }
     let program = photonic::lowering::parse(&source)?;
     let warm = Instant::now();

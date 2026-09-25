@@ -1,57 +1,57 @@
-Every.1
+Every.1,
 
 [Every.1] (
-    Split.1
-    [Both.1] Theorem
+    Split.1,
+    [Both.1] Theorem,
     [Refuted.2] Counterexample
-)
-[Split.1] Every.2.([One] True)
-[Proved.2.([One] True)] Every.2.([One] False)
-[Proved.2.([One] False)] Both.1
+),
+[Split.1] Every.2.([One] True),
+[Proved.2.([One] True)] Every.2.([One] False),
+[Proved.2.([One] False)] Both.1,
 
 [Every.2] (
-    Split.2
-    [Both.2] Proved.2
+    Split.2,
+    [Both.2] Proved.2,
     [Refuted.3] Refuted.2
-)
-[Split.2] Every.3.([Two] True)
-[Proved.3.([Two] True)] Every.3.([Two] False)
-[Proved.3.([Two] False)] Both.2
+),
+[Split.2] Every.3.([Two] True),
+[Proved.3.([Two] True)] Every.3.([Two] False),
+[Proved.3.([Two] False)] Both.2,
 
 [Every.3] (
-    Split.3
-    [Both.3] Proved.3
+    Split.3,
+    [Both.3] Proved.3,
     [Refuted.4] Refuted.3
-)
-[Split.3] Every.4.([Three] True)
-[Proved.4.([Three] True)] Every.4.([Three] False)
-[Proved.4.([Three] False)] Both.3
+),
+[Split.3] Every.4.([Three] True),
+[Proved.4.([Three] True)] Every.4.([Three] False),
+[Proved.4.([Three] False)] Both.3,
 
 [Every.4] (
-    Split.4
-    [Both.4] Proved.4
+    Split.4,
+    [Both.4] Proved.4,
     [Refuted.5] Refuted.4
-)
-[Split.4] Every.5.([Four] True)
-[Proved.5.([Four] True)] Every.5.([Four] False)
-[Proved.5.([Four] False)] Both.4
+),
+[Split.4] Every.5.([Four] True),
+[Proved.5.([Four] True)] Every.5.([Four] False),
+[Proved.5.([Four] False)] Both.4,
 
 [Every.5] (
-    Split.5
-    [Both.5] Proved.5
+    Split.5,
+    [Both.5] Proved.5,
     [Counterexample] Refuted.5
-)
-[Split.5] Case.([Five] True)
-[Holds.([Five] True)] Case.([Five] False)
-[Holds.([Five] False)] Both.5
+),
+[Split.5] Case.([Five] True),
+[Holds.([Five] True)] Case.([Five] False),
+[Holds.([Five] False)] Both.5,
 
-[Claim] (Triple.1.One.One.Two) (Triple.2.One.Two.Three) (Triple.3.One.Three.Four) (Triple.4.One.Four.Five) (Triple.5.Two.Two.Four) (Triple.6.Two.Three.Five)
-[Triple.True.True.True] Uniform.True
-[Triple.True.True.False] Uniform.False
-[Triple.True.False.False] Uniform.False
-[Triple.False.False.False] Uniform.True
-[Uniform.1, Uniform.2] Function.Boolean.Or.Some.2
-[Return.Some.2, Uniform.3] Function.Boolean.Or.Some.3
-[Return.Some.3, Uniform.4] Function.Boolean.Or.Some.4
-[Return.Some.4, Uniform.5] Function.Boolean.Or.Some.5
+[Claim] (Triple.1.One.One.Two, Triple.2.One.Two.Three, Triple.3.One.Three.Four, Triple.4.One.Four.Five, Triple.5.Two.Two.Four, Triple.6.Two.Three.Five),
+[Triple.True.True.True] Uniform.True,
+[Triple.True.True.False] Uniform.False,
+[Triple.True.False.False] Uniform.False,
+[Triple.False.False.False] Uniform.True,
+[Uniform.1, Uniform.2] Function.Boolean.Or.Some.2,
+[Return.Some.2, Uniform.3] Function.Boolean.Or.Some.3,
+[Return.Some.3, Uniform.4] Function.Boolean.Or.Some.4,
+[Return.Some.4, Uniform.5] Function.Boolean.Or.Some.5,
 [Return.Some.5, Uniform.6] Function.Boolean.Or.Verdict

@@ -17,8 +17,9 @@ pub struct Measurement {
 }
 
 pub fn run(width: usize, length: usize, shared: bool) -> Measurement {
-    let program =
-        Program::new(&crate::lowering::parse("A.B.C.D.E.F.G.H,X [A.B.C.D.E.F.G.H,X] End").unwrap());
+    let program = Program::new(
+        &crate::lowering::parse("A.B.C.D.E.F.G.H,X, [A.B.C.D.E.F.G.H,X] End").unwrap(),
+    );
     let mut state = State::initial(&program);
     let world = state
         .world

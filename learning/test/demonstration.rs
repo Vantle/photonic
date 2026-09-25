@@ -18,7 +18,7 @@ fn program(text: &str, task: &crate::task::Task) -> Program {
 fn path() {
     let setting = Setting::default();
     let task = addition(2);
-    for text in ["[Left, Right] ()", "[Left, Right] (Sum) [Sum] ()"] {
+    for text in ["[Left, Right] ()", "[Left, Right] (Sum), [Sum] ()"] {
         let target = program(text, &task);
         let demonstration = demonstrate(&task, &target, &Bound::default(), &setting).unwrap();
         let mut current = Program::default();
@@ -40,7 +40,7 @@ fn path() {
 fn sample() {
     let setting = Setting::default();
     let task = boolean().remove(1);
-    let target = program("[And.True] () [And.False.False] (False)", &task);
+    let target = program("[And.True] (), [And.False.False] (False)", &task);
     let demonstration = demonstrate(&task, &target, &Bound::default(), &setting).unwrap();
     let mut generator = Generator::new(4);
     let sample = demonstration.sample(&task, 2.45, &mut generator);

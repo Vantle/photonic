@@ -1,10 +1,10 @@
-Seventeen.Function.Stream.Successor
+Seventeen.Function.Stream.Successor,
 [Seventeen] (
-    2
+    2,
     [Next] (
-        2
+        2,
         [Next] (
-            1
+            1,
             [Next] End
         )
     )

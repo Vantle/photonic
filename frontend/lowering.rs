@@ -1,4 +1,5 @@
 use std::cell::Cell;
+use std::ops::Range;
 
 use miette::{Diagnostic, IntoDiagnostic, NamedSource, SourceSpan, WrapErr};
 use thiserror::Error;
@@ -20,13 +21,6 @@ pub enum Failure {
         #[label("{message}")]
         span: SourceSpan,
     },
-    #[error("Photonic nesting exceeds {limit} levels")]
-    #[diagnostic(code(photonic::depth))]
-    Depth {
-        limit: usize,
-        #[label("nesting limit exceeded here")]
-        span: SourceSpan,
-    },
     #[error("Photonic expansion exceeds its {limit}-unit frontend budget")]
     #[diagnostic(code(photonic::expansion))]
     Expansion {
@@ -34,22 +28,25 @@ pub enum Failure {
         #[label("shared-prefix expansion exceeds the frontend budget")]
         span: SourceSpan,
     },
-    #[error("a body accepts at most one initial coherence; found {count}")]
-    #[diagnostic(code(photonic::body))]
-    Body {
+    #[error("a scope holds at most one coherence; found {count}")]
+    #[diagnostic(code(photonic::scope))]
+    Scope {
         count: usize,
-        #[label("use one particle as the body's explicit initial output")]
+        #[label("list one coherence beside the scope's rules")]
         span: SourceSpan,
     },
 }
 
+enum Member {
+    Particle(Vec<Value>),
+    Rule(Definition),
+    Scope(Output, Range<usize>),
+}
+
 struct Reader<'tree, 'source> {
     tree: &'tree Tree<'source>,
-    index: &'tree [Vec<usize>],
-    child: &'tree [usize],
-    position: usize,
-    depth: usize,
-    budget: &'tree Cell<usize>,
+    child: Vec<Vec<usize>>,
+    budget: Cell<usize>,
 }
 
 pub fn read(path: &std::path::Path) -> miette::Result<Program> {
@@ -64,303 +61,199 @@ pub fn read(path: &std::path::Path) -> miette::Result<Program> {
 
 pub fn parse(source: &str) -> Result<Program, Failure> {
     let tree = crate::parser::parse(source)?;
-    let mut index = vec![Vec::new(); tree.node().len()];
+    let mut child = vec![Vec::new(); tree.node().len()];
     for (position, node) in tree.node().iter().enumerate() {
         if let Some(parent) = node.parent {
-            index[parent].push(position);
+            child[parent].push(position);
         }
     }
-    let budget = Cell::new(BUDGET);
-    Reader::new(&tree, &index, 0, 0, &budget).program()
+    Reader {
+        tree: &tree,
+        child,
+        budget: Cell::new(BUDGET),
+    }
+    .program()
 }
 
-impl<'tree, 'source> Reader<'tree, 'source> {
-    fn new(
-        tree: &'tree Tree<'source>,
-        index: &'tree [Vec<usize>],
-        parent: usize,
-        depth: usize,
-        budget: &'tree Cell<usize>,
-    ) -> Self {
-        Self {
-            tree,
-            index,
-            child: &index[parent],
-            position: 0,
-            depth,
-            budget,
-        }
+impl Reader<'_, '_> {
+    fn span(&self, index: usize) -> Range<usize> {
+        self.tree.node()[index].span.clone()
     }
 
-    fn peek(&self) -> Option<Kind> {
-        self.child
-            .get(self.position)
-            .map(|&index| self.tree.node()[index].kind)
-    }
-
-    fn space(&mut self) {
-        while self.peek() == Some(Kind::Space) {
-            self.position += 1;
-        }
-    }
-
-    fn failure(&self, message: &str) -> Failure {
-        let span = self
-            .child
-            .get(self.position)
-            .map(|&index| self.tree.node()[index].span.clone())
-            .unwrap_or(self.tree.source().len()..self.tree.source().len());
+    fn failure(span: Range<usize>, message: &str) -> Failure {
         Failure::Syntax {
             message: message.into(),
             span: (span.start, span.len()).into(),
         }
     }
 
-    fn program(&mut self) -> Result<Program, Failure> {
+    fn program(&self) -> Result<Program, Failure> {
         let mut program = Program::default();
-        let mut start = 0;
-        loop {
-            self.space();
-            match self.peek() {
-                None => return Ok(program),
-                Some(Kind::Coherence) => {
-                    self.position += 1;
-                    start = program.initial.len();
-                }
-                Some(Kind::Context) => program.rule.push(self.definition()?),
-                _ => {
-                    let particle = self.particle()?;
-                    let previous = program.initial.split_off(start);
-                    program.initial.extend(if previous.is_empty() {
-                        particle
-                    } else {
-                        self.combine(previous, particle)?
-                    });
+        for member in self.list(self.child[0][0])? {
+            match member {
+                Member::Particle(particle) => program.initial.push(particle),
+                Member::Rule(rule) => program.rule.push(rule),
+                Member::Scope(_, span) => {
+                    return Err(Self::failure(
+                        span,
+                        "only a rule's output opens a scope; to keep a rule in a coherence, join it, as in ().([A] B)",
+                    ));
                 }
             }
         }
+        Ok(program)
     }
 
-    fn configuration(&mut self) -> Result<Vec<Vec<Value>>, Failure> {
+    fn list(&self, index: usize) -> Result<Vec<Member>, Failure> {
         let mut result = Vec::new();
-        self.space();
-        if self.peek().is_none() {
-            return Ok(result);
+        for &term in &self.child[index] {
+            result.extend(self.term(term)?);
         }
-        loop {
-            result.extend(
-                if self.peek() == Some(Kind::Coherence) || self.peek().is_none() {
-                    vec![Vec::new()]
-                } else {
-                    self.particle()?
-                },
-            );
-            self.space();
-            match self.peek() {
-                None => return Ok(result),
-                Some(Kind::Coherence) => {
-                    self.position += 1;
-                    self.space();
-                }
-                _ => {
-                    return Err(self
-                        .failure("combine values with a dot or separate coherences with a comma"));
-                }
-            }
-        }
+        Ok(result)
     }
 
-    fn bound(&self, index: usize) -> Result<(), Failure> {
-        if self.depth < crate::parser::DEPTH {
-            return Ok(());
+    fn term(&self, index: usize) -> Result<Vec<Member>, Failure> {
+        if let [factor] = self.child[index][..] {
+            return self.alone(factor);
         }
-        Err(Failure::Depth {
-            limit: crate::parser::DEPTH,
-            span: (self.tree.node()[index].span.start, 1).into(),
-        })
-    }
-
-    fn nested(&self, index: usize) -> Result<Self, Failure> {
-        self.bound(index)?;
-        Ok(Self::new(
-            self.tree,
-            self.index,
-            index,
-            self.depth + 1,
-            self.budget,
-        ))
-    }
-
-    fn definition(&mut self) -> Result<Definition, Failure> {
-        self.bound(self.child[self.position])?;
-        self.depth += 1;
-        let result = self.rule();
-        self.depth -= 1;
-        result
-    }
-
-    fn rule(&mut self) -> Result<Definition, Failure> {
-        let index = self.child[self.position];
-        self.position += 1;
-        let input =
-            Reader::new(self.tree, self.index, index, self.depth, self.budget).configuration()?;
-        self.space();
-        let mut output = Vec::new();
-        if self.peek().is_some() && self.peek() != Some(Kind::Coherence) {
-            output.extend(self.destination()?);
-            loop {
-                self.space();
-                if self.peek() == Some(Kind::Group) {
-                    output.extend(self.destination()?);
-                    continue;
-                }
-                if self.peek() != Some(Kind::Coherence) {
-                    break;
-                }
-                let saved = self.position;
-                self.position += 1;
-                self.space();
-                if self.peek().is_none() || self.peek() == Some(Kind::Context) {
-                    self.position = saved;
-                    break;
-                }
-                output.extend(self.destination()?);
-            }
-        }
-        let start = self.tree.node()[index].span.start;
-        let end = self.tree.node()[self.child[self.position - 1]].span.end;
-        Ok(Definition {
-            name: self.tree.source()[start..end].trim().to_owned(),
-            input,
-            output,
-        })
-    }
-
-    fn destination(&mut self) -> Result<Vec<Output>, Failure> {
-        self.space();
-        if self.peek() != Some(Kind::Group) {
-            return Ok(self
-                .particle()?
-                .into_iter()
-                .map(|particle| Output {
-                    particle,
-                    body: None,
-                })
-                .collect());
-        }
-        let index = self.child[self.position];
-        self.position += 1;
-        let program = self.nested(index)?.program()?;
-        if !program.rule.is_empty() {
-            if program.initial.len() > 1 {
-                let span = self.tree.node()[index].span.clone();
-                return Err(Failure::Body {
-                    count: program.initial.len(),
-                    span: (span.start, span.len()).into(),
-                });
-            }
-            return Ok(vec![Output {
-                particle: program.initial.into_iter().next().unwrap_or_default(),
-                body: Some(program.rule),
-            }]);
-        }
-        let particle = if program.initial.is_empty() {
-            vec![Vec::new()]
-        } else {
-            program.initial
-        };
         Ok(self
-            .tail(particle, false)?
+            .join(index)?
             .into_iter()
-            .map(|particle| Output {
-                particle,
-                body: None,
-            })
+            .map(Member::Particle)
             .collect())
     }
 
-    fn combine(
-        &self,
-        left: Vec<Vec<Value>>,
-        right: Vec<Vec<Value>>,
-    ) -> Result<Vec<Vec<Value>>, Failure> {
-        crate::expansion::combine(left, right, self.budget).ok_or_else(|| {
-            let span = self
-                .child
-                .get(self.position.saturating_sub(1))
-                .map(|&index| self.tree.node()[index].span.clone())
-                .unwrap_or(0..0);
-            Failure::Expansion {
-                limit: BUDGET,
-                span: (span.start, span.len()).into(),
-            }
-        })
-    }
-
-    fn particle(&mut self) -> Result<Vec<Vec<Value>>, Failure> {
-        let particle = self.value()?;
-        self.tail(particle, true)
-    }
-
-    fn tail(
-        &mut self,
-        mut particle: Vec<Vec<Value>>,
-        mut adjacent: bool,
-    ) -> Result<Vec<Vec<Value>>, Failure> {
-        loop {
-            let saved = self.position;
-            self.space();
-            if self.peek() == Some(Kind::Continuation) {
-                self.position += 1;
-                self.space();
-                adjacent = true;
-                let value = self.value()?;
-                particle = self.combine(particle, value)?;
-            } else if adjacent && saved == self.position && self.peek() == Some(Kind::Group) {
-                let value = self.value()?;
-                particle = self.combine(particle, value)?;
-            } else {
-                break;
-            }
-        }
-        Ok(particle)
-    }
-
-    fn value(&mut self) -> Result<Vec<Vec<Value>>, Failure> {
-        self.space();
-        match self.peek() {
-            Some(Kind::Concept) => {
-                let index = self.child[self.position];
-                self.position += 1;
-                Ok(vec![vec![Value::Atom(
-                    self.tree.source()[self.tree.node()[index].span.clone()].into(),
-                )]])
-            }
-            Some(Kind::Context) => Ok(vec![vec![Value::Rule {
-                rule: Box::new(self.definition()?),
-            }]]),
-            Some(Kind::Group) => {
-                let index = self.child[self.position];
-                self.position += 1;
-                let program = self.nested(index)?.program()?;
-                let particle = if program.initial.is_empty() {
-                    vec![Vec::new()]
-                } else {
-                    program.initial
-                };
-                if program.rule.is_empty() {
-                    return Ok(particle);
+    fn alone(&self, index: usize) -> Result<Vec<Member>, Failure> {
+        match self.tree.node()[index].kind {
+            Kind::Rule => Ok(vec![Member::Rule(self.rule(index)?)]),
+            Kind::Group => {
+                let member = self.list(self.child[index][0])?;
+                if member.is_empty() {
+                    return Ok(vec![Member::Particle(Vec::new())]);
                 }
-                let rule = program
-                    .rule
-                    .into_iter()
-                    .map(|rule| Value::Rule {
-                        rule: Box::new(rule),
-                    })
-                    .collect();
-                self.combine(particle, vec![rule])
+                if !member
+                    .iter()
+                    .any(|member| matches!(member, Member::Rule(_)))
+                {
+                    return Ok(member);
+                }
+                Ok(vec![self.scope(index, member)?])
             }
-            _ => Err(self.failure("expected a concept, group, or source context")),
+            _ => Ok(self
+                .factor(index)?
+                .into_iter()
+                .map(Member::Particle)
+                .collect()),
         }
+    }
+
+    fn scope(&self, index: usize, member: Vec<Member>) -> Result<Member, Failure> {
+        let span = self.span(index);
+        let mut particle = Vec::new();
+        let mut body = Vec::new();
+        for member in member {
+            match member {
+                Member::Particle(value) => particle.push(value),
+                Member::Rule(rule) => body.push(rule),
+                Member::Scope(_, span) => {
+                    return Err(Self::failure(
+                        span,
+                        "a scope cannot hold another scope; to keep a rule in its coherence, join it, as in ().([A] B)",
+                    ));
+                }
+            }
+        }
+        if particle.len() > 1 {
+            return Err(Failure::Scope {
+                count: particle.len(),
+                span: (span.start, span.len()).into(),
+            });
+        }
+        Ok(Member::Scope(
+            Output {
+                particle: particle.pop().unwrap_or_default(),
+                body: Some(body),
+            },
+            span,
+        ))
+    }
+
+    fn join(&self, index: usize) -> Result<Vec<Vec<Value>>, Failure> {
+        let mut result = vec![Vec::new()];
+        for &factor in &self.child[index] {
+            let value = self.factor(factor)?;
+            result = crate::expansion::combine(result, value, &self.budget).ok_or_else(|| {
+                let span = self.span(factor);
+                Failure::Expansion {
+                    limit: BUDGET,
+                    span: (span.start, span.len()).into(),
+                }
+            })?;
+        }
+        Ok(result)
+    }
+
+    fn factor(&self, index: usize) -> Result<Vec<Vec<Value>>, Failure> {
+        match self.tree.node()[index].kind {
+            Kind::Concept => Ok(vec![vec![Value::Atom(
+                self.tree.source()[self.span(index)].into(),
+            )]]),
+            Kind::Rule => Ok(vec![vec![Value::Rule {
+                rule: Box::new(self.rule(index)?),
+            }]]),
+            _ => {
+                let term = &self.child[self.child[index][0]];
+                if term.is_empty() {
+                    return Ok(vec![Vec::new()]);
+                }
+                let mut result = Vec::new();
+                for &term in term {
+                    result.extend(self.join(term)?);
+                }
+                Ok(result)
+            }
+        }
+    }
+
+    fn rule(&self, index: usize) -> Result<Definition, Failure> {
+        let child = &self.child[index];
+        let mut input = Vec::new();
+        for member in self.list(child[0])? {
+            input.push(match member {
+                Member::Particle(particle) => particle,
+                Member::Rule(rule) => vec![Value::Rule {
+                    rule: Box::new(rule),
+                }],
+                Member::Scope(_, span) => {
+                    return Err(Self::failure(
+                        span,
+                        "an input cannot be a scope; match a rule without parentheses, as in [[A] B]",
+                    ));
+                }
+            });
+        }
+        let mut output = Vec::new();
+        if let Some(&term) = child.get(1) {
+            for member in self.term(term)? {
+                output.push(match member {
+                    Member::Particle(particle) => Output {
+                        particle,
+                        body: None,
+                    },
+                    Member::Rule(rule) => Output {
+                        particle: vec![Value::Rule {
+                            rule: Box::new(rule),
+                        }],
+                        body: None,
+                    },
+                    Member::Scope(output, _) => output,
+                });
+            }
+        }
+        Ok(Definition {
+            name: self.tree.source()[self.span(index)].trim().to_owned(),
+            input,
+            output,
+        })
     }
 }

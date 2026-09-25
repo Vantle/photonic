@@ -1,44 +1,44 @@
-Every.1
+Every.1,
 
 [Every.1] (
-    Split.1
-    [Both.1] Theorem
+    Split.1,
+    [Both.1] Theorem,
     [Refuted.2] Counterexample
-)
-[Split.1] Every.2.([Equivalent.([Left] X).([Right] Z)] True)
-[Proved.2.([Equivalent.([Left] X).([Right] Z)] True)] Every.2.([Equivalent.([Left] X).([Right] Z)] False)
-[Proved.2.([Equivalent.([Left] X).([Right] Z)] False)] Both.1
+),
+[Split.1] Every.2.([Equivalent.([Left] X).([Right] Z)] True),
+[Proved.2.([Equivalent.([Left] X).([Right] Z)] True)] Every.2.([Equivalent.([Left] X).([Right] Z)] False),
+[Proved.2.([Equivalent.([Left] X).([Right] Z)] False)] Both.1,
 
 [Every.2] (
-    Split.2
-    [Both.2] Proved.2
+    Split.2,
+    [Both.2] Proved.2,
     [Refuted.3] Refuted.2
-)
-[Split.2] Every.3.([Equivalent.([Left] Y).([Right] Z)] True)
-[Proved.3.([Equivalent.([Left] Y).([Right] Z)] True)] Every.3.([Equivalent.([Left] Y).([Right] Z)] False)
-[Proved.3.([Equivalent.([Left] Y).([Right] Z)] False)] Both.2
+),
+[Split.2] Every.3.([Equivalent.([Left] Y).([Right] Z)] True),
+[Proved.3.([Equivalent.([Left] Y).([Right] Z)] True)] Every.3.([Equivalent.([Left] Y).([Right] Z)] False),
+[Proved.3.([Equivalent.([Left] Y).([Right] Z)] False)] Both.2,
 
 [Every.3] (
-    Split.3
-    [Both.3] Proved.3
+    Split.3,
+    [Both.3] Proved.3,
     [Refuted.4] Refuted.3
-)
-[Split.3] Every.4.([Equivalent.([Left] Z).([Right] Y)] True)
-[Proved.4.([Equivalent.([Left] Z).([Right] Y)] True)] Every.4.([Equivalent.([Left] Z).([Right] Y)] False)
-[Proved.4.([Equivalent.([Left] Z).([Right] Y)] False)] Both.3
+),
+[Split.3] Every.4.([Equivalent.([Left] Z).([Right] Y)] True),
+[Proved.4.([Equivalent.([Left] Z).([Right] Y)] True)] Every.4.([Equivalent.([Left] Z).([Right] Y)] False),
+[Proved.4.([Equivalent.([Left] Z).([Right] Y)] False)] Both.3,
 
 [Every.4] (
-    Split.4
-    [Both.4] Proved.4
+    Split.4,
+    [Both.4] Proved.4,
     [Counterexample] Refuted.4
-)
-[Split.4] Case.([Equivalent.([Left] X).([Right] Y)] True)
-[Holds.([Equivalent.([Left] X).([Right] Y)] True)] Case.([Equivalent.([Left] X).([Right] Y)] False)
-[Holds.([Equivalent.([Left] X).([Right] Y)] False)] Both.4
+),
+[Split.4] Case.([Equivalent.([Left] X).([Right] Y)] True),
+[Holds.([Equivalent.([Left] X).([Right] Y)] True)] Case.([Equivalent.([Left] X).([Right] Y)] False),
+[Holds.([Equivalent.([Left] X).([Right] Y)] False)] Both.4,
 
-[Claim] (Test) (Keep)
-[Test.([Equivalent.([Left] Y).([Right] Z)] True).([Equivalent.([Left] Z).([Right] Y)] False)] Vacuous
-[Test.([Equivalent.([Left] X).([Right] Z)] True).([Equivalent.([Left] Z).([Right] Y)] True).([Equivalent.([Left] X).([Right] Y)] False)] Vacuous
-[Test.([Equivalent.([Left] X).([Right] Z)] False)] Concluded
-[Test.([Equivalent.([Left] Y).([Right] Z)] False)] Concluded
+[Claim] (Test, Keep),
+[Test.([Equivalent.([Left] Y).([Right] Z)] True).([Equivalent.([Left] Z).([Right] Y)] False)] Vacuous,
+[Test.([Equivalent.([Left] X).([Right] Z)] True).([Equivalent.([Left] Z).([Right] Y)] True).([Equivalent.([Left] X).([Right] Y)] False)] Vacuous,
+[Test.([Equivalent.([Left] X).([Right] Z)] False)] Concluded,
+[Test.([Equivalent.([Left] Y).([Right] Z)] False)] Concluded,
 [Test.([Equivalent.([Left] X).([Right] Y)] True)] Concluded

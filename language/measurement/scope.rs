@@ -25,8 +25,8 @@ pub fn run(width: usize, depth: usize, length: usize, stride: usize) -> Measurem
     let source = (0..width)
         .map(|position| format!("[Value{position}] Result"))
         .collect::<Vec<_>>()
-        .join(" ");
-    let mut program = Program::new(&crate::lowering::parse(&format!("Seed {source}")).unwrap());
+        .join(", ");
+    let mut program = Program::new(&crate::lowering::parse(&format!("Seed, {source}")).unwrap());
     program.scope = vec![program.scope[0].clone(); depth];
     let mut state = State::initial(&program);
     let initial = state.world[0].clone();

@@ -187,7 +187,7 @@ fn chunking() {
 #[test]
 fn fairness() {
     let source = format!(
-        "{},Start [{}] Z [Start] Done",
+        "{},Start, [{}] Z, [Start] Done",
         vec!["A"; 25].join("."),
         ["A"; 12].join(".")
     );
@@ -212,7 +212,7 @@ fn fairness() {
 
 #[test]
 fn budget() {
-    let source = crate::lowering::parse("Seed.A [Seed] [A] B").unwrap();
+    let source = crate::lowering::parse("Seed.A, [Seed] [A] B").unwrap();
     let mut complete = Runtime::new(&source);
     complete.run(12000, None);
     let expected = serde_json::to_value(complete.snapshot()).unwrap();

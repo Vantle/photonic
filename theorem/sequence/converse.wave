@@ -1,75 +1,75 @@
-Every.1
+Every.1,
 
 [Every.1] (
-    Split.1
-    [Both.1] Theorem
+    Split.1,
+    [Both.1] Theorem,
     [Refuted.2] Counterexample
-)
-[Split.1] Every.2.([Compare.([Left] X).([Right] Y)] Less)
-[Proved.2.([Compare.([Left] X).([Right] Y)] Less)] Every.2.([Compare.([Left] X).([Right] Y)] Equal)
-[Proved.2.([Compare.([Left] X).([Right] Y)] Equal)] Every.2.([Compare.([Left] X).([Right] Y)] Greater)
-[Proved.2.([Compare.([Left] X).([Right] Y)] Greater)] Both.1
+),
+[Split.1] Every.2.([Compare.([Left] X).([Right] Y)] Less),
+[Proved.2.([Compare.([Left] X).([Right] Y)] Less)] Every.2.([Compare.([Left] X).([Right] Y)] Equal),
+[Proved.2.([Compare.([Left] X).([Right] Y)] Equal)] Every.2.([Compare.([Left] X).([Right] Y)] Greater),
+[Proved.2.([Compare.([Left] X).([Right] Y)] Greater)] Both.1,
 
 [Every.2] (
-    Split.2
-    [Both.2] Proved.2
+    Split.2,
+    [Both.2] Proved.2,
     [Refuted.3] Refuted.2
-)
-[Split.2] Every.3.([Compare.([Left] Y).([Right] X)] Less)
-[Proved.3.([Compare.([Left] Y).([Right] X)] Less)] Every.3.([Compare.([Left] Y).([Right] X)] Equal)
-[Proved.3.([Compare.([Left] Y).([Right] X)] Equal)] Every.3.([Compare.([Left] Y).([Right] X)] Greater)
-[Proved.3.([Compare.([Left] Y).([Right] X)] Greater)] Both.2
+),
+[Split.2] Every.3.([Compare.([Left] Y).([Right] X)] Less),
+[Proved.3.([Compare.([Left] Y).([Right] X)] Less)] Every.3.([Compare.([Left] Y).([Right] X)] Equal),
+[Proved.3.([Compare.([Left] Y).([Right] X)] Equal)] Every.3.([Compare.([Left] Y).([Right] X)] Greater),
+[Proved.3.([Compare.([Left] Y).([Right] X)] Greater)] Both.2,
 
 [Every.3] (
-    Split.3
-    [Both.3] Proved.3
+    Split.3,
+    [Both.3] Proved.3,
     [Refuted.4] Refuted.3
-)
-[Split.3] Every.4.([Compare.([Left] A).([Right] B)] Less)
-[Proved.4.([Compare.([Left] A).([Right] B)] Less)] Every.4.([Compare.([Left] A).([Right] B)] Equal)
-[Proved.4.([Compare.([Left] A).([Right] B)] Equal)] Every.4.([Compare.([Left] A).([Right] B)] Greater)
-[Proved.4.([Compare.([Left] A).([Right] B)] Greater)] Both.3
+),
+[Split.3] Every.4.([Compare.([Left] A).([Right] B)] Less),
+[Proved.4.([Compare.([Left] A).([Right] B)] Less)] Every.4.([Compare.([Left] A).([Right] B)] Equal),
+[Proved.4.([Compare.([Left] A).([Right] B)] Equal)] Every.4.([Compare.([Left] A).([Right] B)] Greater),
+[Proved.4.([Compare.([Left] A).([Right] B)] Greater)] Both.3,
 
 [Every.4] (
-    Split.4
-    [Both.4] Proved.4
+    Split.4,
+    [Both.4] Proved.4,
     [Counterexample] Refuted.4
-)
-[Split.4] Case.([Compare.([Left] B).([Right] A)] Less)
-[Holds.([Compare.([Left] B).([Right] A)] Less)] Case.([Compare.([Left] B).([Right] A)] Equal)
-[Holds.([Compare.([Left] B).([Right] A)] Equal)] Case.([Compare.([Left] B).([Right] A)] Greater)
-[Holds.([Compare.([Left] B).([Right] A)] Greater)] Both.4
+),
+[Split.4] Case.([Compare.([Left] B).([Right] A)] Less),
+[Holds.([Compare.([Left] B).([Right] A)] Less)] Case.([Compare.([Left] B).([Right] A)] Equal),
+[Holds.([Compare.([Left] B).([Right] A)] Equal)] Case.([Compare.([Left] B).([Right] A)] Greater),
+[Holds.([Compare.([Left] B).([Right] A)] Greater)] Both.4,
 
-[Claim] (Advance.Forward) (Advance.Backward) (Test) (Keep)
-[Advance.Forward.([Compare.([Left] A).([Right] B)] Less)] Advanced.([Compare.([Left] Then.([Left] X).([Right] A)).([Right] Then.([Left] Y).([Right] B))] Less)
-[Advance.Forward.([Compare.([Left] A).([Right] B)] Greater)] Advanced.([Compare.([Left] Then.([Left] X).([Right] A)).([Right] Then.([Left] Y).([Right] B))] Greater)
-[Advance.Forward.([Compare.([Left] A).([Right] B)] Equal).([Compare.([Left] X).([Right] Y)] Less)] Advanced.([Compare.([Left] Then.([Left] X).([Right] A)).([Right] Then.([Left] Y).([Right] B))] Less)
-[Advance.Forward.([Compare.([Left] A).([Right] B)] Equal).([Compare.([Left] X).([Right] Y)] Equal)] Advanced.([Compare.([Left] Then.([Left] X).([Right] A)).([Right] Then.([Left] Y).([Right] B))] Equal)
-[Advance.Forward.([Compare.([Left] A).([Right] B)] Equal).([Compare.([Left] X).([Right] Y)] Greater)] Advanced.([Compare.([Left] Then.([Left] X).([Right] A)).([Right] Then.([Left] Y).([Right] B))] Greater)
-[Advance.Backward.([Compare.([Left] B).([Right] A)] Less)] Advanced.([Compare.([Left] Then.([Left] Y).([Right] B)).([Right] Then.([Left] X).([Right] A))] Less)
-[Advance.Backward.([Compare.([Left] B).([Right] A)] Greater)] Advanced.([Compare.([Left] Then.([Left] Y).([Right] B)).([Right] Then.([Left] X).([Right] A))] Greater)
-[Advance.Backward.([Compare.([Left] B).([Right] A)] Equal).([Compare.([Left] Y).([Right] X)] Less)] Advanced.([Compare.([Left] Then.([Left] Y).([Right] B)).([Right] Then.([Left] X).([Right] A))] Less)
-[Advance.Backward.([Compare.([Left] B).([Right] A)] Equal).([Compare.([Left] Y).([Right] X)] Equal)] Advanced.([Compare.([Left] Then.([Left] Y).([Right] B)).([Right] Then.([Left] X).([Right] A))] Equal)
-[Advance.Backward.([Compare.([Left] B).([Right] A)] Equal).([Compare.([Left] Y).([Right] X)] Greater)] Advanced.([Compare.([Left] Then.([Left] Y).([Right] B)).([Right] Then.([Left] X).([Right] A))] Greater)
-[Advanced, Advanced] Judge
-[Judge.([Compare.([Left] Then.([Left] X).([Right] A)).([Right] Then.([Left] Y).([Right] B))] Less).([Compare.([Left] Then.([Left] Y).([Right] B)).([Right] Then.([Left] X).([Right] A))] Less)] Overturned
-[Judge.([Compare.([Left] Then.([Left] X).([Right] A)).([Right] Then.([Left] Y).([Right] B))] Less).([Compare.([Left] Then.([Left] Y).([Right] B)).([Right] Then.([Left] X).([Right] A))] Equal)] Overturned
-[Judge.([Compare.([Left] Then.([Left] X).([Right] A)).([Right] Then.([Left] Y).([Right] B))] Less).([Compare.([Left] Then.([Left] Y).([Right] B)).([Right] Then.([Left] X).([Right] A))] Greater)] Upheld
-[Judge.([Compare.([Left] Then.([Left] X).([Right] A)).([Right] Then.([Left] Y).([Right] B))] Equal).([Compare.([Left] Then.([Left] Y).([Right] B)).([Right] Then.([Left] X).([Right] A))] Less)] Overturned
-[Judge.([Compare.([Left] Then.([Left] X).([Right] A)).([Right] Then.([Left] Y).([Right] B))] Equal).([Compare.([Left] Then.([Left] Y).([Right] B)).([Right] Then.([Left] X).([Right] A))] Equal)] Upheld
-[Judge.([Compare.([Left] Then.([Left] X).([Right] A)).([Right] Then.([Left] Y).([Right] B))] Equal).([Compare.([Left] Then.([Left] Y).([Right] B)).([Right] Then.([Left] X).([Right] A))] Greater)] Overturned
-[Judge.([Compare.([Left] Then.([Left] X).([Right] A)).([Right] Then.([Left] Y).([Right] B))] Greater).([Compare.([Left] Then.([Left] Y).([Right] B)).([Right] Then.([Left] X).([Right] A))] Less)] Upheld
-[Judge.([Compare.([Left] Then.([Left] X).([Right] A)).([Right] Then.([Left] Y).([Right] B))] Greater).([Compare.([Left] Then.([Left] Y).([Right] B)).([Right] Then.([Left] X).([Right] A))] Equal)] Overturned
-[Judge.([Compare.([Left] Then.([Left] X).([Right] A)).([Right] Then.([Left] Y).([Right] B))] Greater).([Compare.([Left] Then.([Left] Y).([Right] B)).([Right] Then.([Left] X).([Right] A))] Greater)] Overturned
-[Test.([Compare.([Left] X).([Right] Y)] Less).([Compare.([Left] Y).([Right] X)] Less)] Vacuous
-[Test.([Compare.([Left] X).([Right] Y)] Less).([Compare.([Left] Y).([Right] X)] Equal)] Vacuous
-[Test.([Compare.([Left] X).([Right] Y)] Equal).([Compare.([Left] Y).([Right] X)] Less)] Vacuous
-[Test.([Compare.([Left] X).([Right] Y)] Equal).([Compare.([Left] Y).([Right] X)] Greater)] Vacuous
-[Test.([Compare.([Left] X).([Right] Y)] Greater).([Compare.([Left] Y).([Right] X)] Equal)] Vacuous
-[Test.([Compare.([Left] X).([Right] Y)] Greater).([Compare.([Left] Y).([Right] X)] Greater)] Vacuous
-[Test.([Compare.([Left] A).([Right] B)] Less).([Compare.([Left] B).([Right] A)] Less)] Vacuous
-[Test.([Compare.([Left] A).([Right] B)] Less).([Compare.([Left] B).([Right] A)] Equal)] Vacuous
-[Test.([Compare.([Left] A).([Right] B)] Equal).([Compare.([Left] B).([Right] A)] Less)] Vacuous
-[Test.([Compare.([Left] A).([Right] B)] Equal).([Compare.([Left] B).([Right] A)] Greater)] Vacuous
-[Test.([Compare.([Left] A).([Right] B)] Greater).([Compare.([Left] B).([Right] A)] Equal)] Vacuous
+[Claim] (Advance.Forward, Advance.Backward, Test, Keep),
+[Advance.Forward.([Compare.([Left] A).([Right] B)] Less)] Advanced.([Compare.([Left] Then.([Left] X).([Right] A)).([Right] Then.([Left] Y).([Right] B))] Less),
+[Advance.Forward.([Compare.([Left] A).([Right] B)] Greater)] Advanced.([Compare.([Left] Then.([Left] X).([Right] A)).([Right] Then.([Left] Y).([Right] B))] Greater),
+[Advance.Forward.([Compare.([Left] A).([Right] B)] Equal).([Compare.([Left] X).([Right] Y)] Less)] Advanced.([Compare.([Left] Then.([Left] X).([Right] A)).([Right] Then.([Left] Y).([Right] B))] Less),
+[Advance.Forward.([Compare.([Left] A).([Right] B)] Equal).([Compare.([Left] X).([Right] Y)] Equal)] Advanced.([Compare.([Left] Then.([Left] X).([Right] A)).([Right] Then.([Left] Y).([Right] B))] Equal),
+[Advance.Forward.([Compare.([Left] A).([Right] B)] Equal).([Compare.([Left] X).([Right] Y)] Greater)] Advanced.([Compare.([Left] Then.([Left] X).([Right] A)).([Right] Then.([Left] Y).([Right] B))] Greater),
+[Advance.Backward.([Compare.([Left] B).([Right] A)] Less)] Advanced.([Compare.([Left] Then.([Left] Y).([Right] B)).([Right] Then.([Left] X).([Right] A))] Less),
+[Advance.Backward.([Compare.([Left] B).([Right] A)] Greater)] Advanced.([Compare.([Left] Then.([Left] Y).([Right] B)).([Right] Then.([Left] X).([Right] A))] Greater),
+[Advance.Backward.([Compare.([Left] B).([Right] A)] Equal).([Compare.([Left] Y).([Right] X)] Less)] Advanced.([Compare.([Left] Then.([Left] Y).([Right] B)).([Right] Then.([Left] X).([Right] A))] Less),
+[Advance.Backward.([Compare.([Left] B).([Right] A)] Equal).([Compare.([Left] Y).([Right] X)] Equal)] Advanced.([Compare.([Left] Then.([Left] Y).([Right] B)).([Right] Then.([Left] X).([Right] A))] Equal),
+[Advance.Backward.([Compare.([Left] B).([Right] A)] Equal).([Compare.([Left] Y).([Right] X)] Greater)] Advanced.([Compare.([Left] Then.([Left] Y).([Right] B)).([Right] Then.([Left] X).([Right] A))] Greater),
+[Advanced, Advanced] Judge,
+[Judge.([Compare.([Left] Then.([Left] X).([Right] A)).([Right] Then.([Left] Y).([Right] B))] Less).([Compare.([Left] Then.([Left] Y).([Right] B)).([Right] Then.([Left] X).([Right] A))] Less)] Overturned,
+[Judge.([Compare.([Left] Then.([Left] X).([Right] A)).([Right] Then.([Left] Y).([Right] B))] Less).([Compare.([Left] Then.([Left] Y).([Right] B)).([Right] Then.([Left] X).([Right] A))] Equal)] Overturned,
+[Judge.([Compare.([Left] Then.([Left] X).([Right] A)).([Right] Then.([Left] Y).([Right] B))] Less).([Compare.([Left] Then.([Left] Y).([Right] B)).([Right] Then.([Left] X).([Right] A))] Greater)] Upheld,
+[Judge.([Compare.([Left] Then.([Left] X).([Right] A)).([Right] Then.([Left] Y).([Right] B))] Equal).([Compare.([Left] Then.([Left] Y).([Right] B)).([Right] Then.([Left] X).([Right] A))] Less)] Overturned,
+[Judge.([Compare.([Left] Then.([Left] X).([Right] A)).([Right] Then.([Left] Y).([Right] B))] Equal).([Compare.([Left] Then.([Left] Y).([Right] B)).([Right] Then.([Left] X).([Right] A))] Equal)] Upheld,
+[Judge.([Compare.([Left] Then.([Left] X).([Right] A)).([Right] Then.([Left] Y).([Right] B))] Equal).([Compare.([Left] Then.([Left] Y).([Right] B)).([Right] Then.([Left] X).([Right] A))] Greater)] Overturned,
+[Judge.([Compare.([Left] Then.([Left] X).([Right] A)).([Right] Then.([Left] Y).([Right] B))] Greater).([Compare.([Left] Then.([Left] Y).([Right] B)).([Right] Then.([Left] X).([Right] A))] Less)] Upheld,
+[Judge.([Compare.([Left] Then.([Left] X).([Right] A)).([Right] Then.([Left] Y).([Right] B))] Greater).([Compare.([Left] Then.([Left] Y).([Right] B)).([Right] Then.([Left] X).([Right] A))] Equal)] Overturned,
+[Judge.([Compare.([Left] Then.([Left] X).([Right] A)).([Right] Then.([Left] Y).([Right] B))] Greater).([Compare.([Left] Then.([Left] Y).([Right] B)).([Right] Then.([Left] X).([Right] A))] Greater)] Overturned,
+[Test.([Compare.([Left] X).([Right] Y)] Less).([Compare.([Left] Y).([Right] X)] Less)] Vacuous,
+[Test.([Compare.([Left] X).([Right] Y)] Less).([Compare.([Left] Y).([Right] X)] Equal)] Vacuous,
+[Test.([Compare.([Left] X).([Right] Y)] Equal).([Compare.([Left] Y).([Right] X)] Less)] Vacuous,
+[Test.([Compare.([Left] X).([Right] Y)] Equal).([Compare.([Left] Y).([Right] X)] Greater)] Vacuous,
+[Test.([Compare.([Left] X).([Right] Y)] Greater).([Compare.([Left] Y).([Right] X)] Equal)] Vacuous,
+[Test.([Compare.([Left] X).([Right] Y)] Greater).([Compare.([Left] Y).([Right] X)] Greater)] Vacuous,
+[Test.([Compare.([Left] A).([Right] B)] Less).([Compare.([Left] B).([Right] A)] Less)] Vacuous,
+[Test.([Compare.([Left] A).([Right] B)] Less).([Compare.([Left] B).([Right] A)] Equal)] Vacuous,
+[Test.([Compare.([Left] A).([Right] B)] Equal).([Compare.([Left] B).([Right] A)] Less)] Vacuous,
+[Test.([Compare.([Left] A).([Right] B)] Equal).([Compare.([Left] B).([Right] A)] Greater)] Vacuous,
+[Test.([Compare.([Left] A).([Right] B)] Greater).([Compare.([Left] B).([Right] A)] Equal)] Vacuous,
 [Test.([Compare.([Left] A).([Right] B)] Greater).([Compare.([Left] B).([Right] A)] Greater)] Vacuous

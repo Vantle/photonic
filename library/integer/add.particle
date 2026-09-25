@@ -1,18 +1,18 @@
-[Function.Integer.Add, Operand.Left.Positive] (Operand.Left) (Forget.Integer.Begin.([Operation] Add).([Sign] Positive))
-[Function.Integer.Add, Operand.Left.Negative] (Operand.Left) (Forget.Integer.Begin.([Operation] Add).([Sign] Negative))
-[Clean.Integer.Begin.([Operation] Add).([Sign] Positive), Operand.Right.Positive] (Operand.Right) (Forget.Integer.Start.([Operation] Add).([First] Positive).([Second] Positive))
-[Clean.Integer.Begin.([Operation] Add).([Sign] Positive), Operand.Right.Negative] (Operand.Right) (Forget.Integer.Start.([Operation] Add).([First] Positive).([Second] Negative))
-[Clean.Integer.Begin.([Operation] Add).([Sign] Negative), Operand.Right.Positive] (Operand.Right) (Forget.Integer.Start.([Operation] Add).([First] Negative).([Second] Positive))
-[Clean.Integer.Begin.([Operation] Add).([Sign] Negative), Operand.Right.Negative] (Operand.Right) (Forget.Integer.Start.([Operation] Add).([First] Negative).([Second] Negative))
-[Clean.Integer.Start.([Operation] Add).([First] Positive).([Second] Positive)] (Function.Natural.Add) (Integer.Pending.([Operation] Add).([Action] Add).([Sign] Positive))
-[Clean.Integer.Start.([Operation] Add).([First] Negative).([Second] Negative)] (Function.Natural.Add) (Integer.Pending.([Operation] Add).([Action] Add).([Sign] Negative))
-[Clean.Integer.Start.([Operation] Add).([First] Positive).([Second] Negative)] (Function.Natural.Difference) (Integer.Pending.([Operation] Add).([Action] Difference))
-[Clean.Integer.Start.([Operation] Add).([First] Negative).([Second] Positive), Operand.Left] (Integer.Saved) (Forget.Integer.Swap.([Operation] Add))
-[Clean.Integer.Swap.([Operation] Add), Operand.Right] (Operand.Left) (Forget.Integer.Route.([Operation] Add))
-[Clean.Integer.Route.([Operation] Add), Integer.Saved] (Operand.Right) (Forget.Integer.Call.([Operation] Add))
-[Clean.Integer.Call.([Operation] Add)] (Function.Natural.Difference) (Integer.Pending.([Operation] Add).([Action] Difference))
-[Return.Natural.Add, Integer.Pending.([Operation] Add).([Action] Add).([Sign] Positive)] Integer.Result.Positive.([Operation] Add)
-[Return.Natural.Add, Integer.Pending.([Operation] Add).([Action] Add).([Sign] Negative)] Integer.Result.Negative.([Operation] Add)
-[Return.Natural.Difference.Positive, Integer.Pending.([Operation] Add).([Action] Difference)] Integer.Result.Positive.([Operation] Add)
-[Return.Natural.Difference.Negative, Integer.Pending.([Operation] Add).([Action] Difference)] Integer.Result.Negative.([Operation] Add)
+[Function.Integer.Add, Operand.Left.Positive] (Operand.Left, Forget.Integer.Begin.([Operation] Add).([Sign] Positive)),
+[Function.Integer.Add, Operand.Left.Negative] (Operand.Left, Forget.Integer.Begin.([Operation] Add).([Sign] Negative)),
+[Clean.Integer.Begin.([Operation] Add).([Sign] Positive), Operand.Right.Positive] (Operand.Right, Forget.Integer.Start.([Operation] Add).([First] Positive).([Second] Positive)),
+[Clean.Integer.Begin.([Operation] Add).([Sign] Positive), Operand.Right.Negative] (Operand.Right, Forget.Integer.Start.([Operation] Add).([First] Positive).([Second] Negative)),
+[Clean.Integer.Begin.([Operation] Add).([Sign] Negative), Operand.Right.Positive] (Operand.Right, Forget.Integer.Start.([Operation] Add).([First] Negative).([Second] Positive)),
+[Clean.Integer.Begin.([Operation] Add).([Sign] Negative), Operand.Right.Negative] (Operand.Right, Forget.Integer.Start.([Operation] Add).([First] Negative).([Second] Negative)),
+[Clean.Integer.Start.([Operation] Add).([First] Positive).([Second] Positive)] (Function.Natural.Add, Integer.Pending.([Operation] Add).([Action] Add).([Sign] Positive)),
+[Clean.Integer.Start.([Operation] Add).([First] Negative).([Second] Negative)] (Function.Natural.Add, Integer.Pending.([Operation] Add).([Action] Add).([Sign] Negative)),
+[Clean.Integer.Start.([Operation] Add).([First] Positive).([Second] Negative)] (Function.Natural.Difference, Integer.Pending.([Operation] Add).([Action] Difference)),
+[Clean.Integer.Start.([Operation] Add).([First] Negative).([Second] Positive), Operand.Left] (Integer.Saved, Forget.Integer.Swap.([Operation] Add)),
+[Clean.Integer.Swap.([Operation] Add), Operand.Right] (Operand.Left, Forget.Integer.Route.([Operation] Add)),
+[Clean.Integer.Route.([Operation] Add), Integer.Saved] (Operand.Right, Forget.Integer.Call.([Operation] Add)),
+[Clean.Integer.Call.([Operation] Add)] (Function.Natural.Difference, Integer.Pending.([Operation] Add).([Action] Difference)),
+[Return.Natural.Add, Integer.Pending.([Operation] Add).([Action] Add).([Sign] Positive)] Integer.Result.Positive.([Operation] Add),
+[Return.Natural.Add, Integer.Pending.([Operation] Add).([Action] Add).([Sign] Negative)] Integer.Result.Negative.([Operation] Add),
+[Return.Natural.Difference.Positive, Integer.Pending.([Operation] Add).([Action] Difference)] Integer.Result.Positive.([Operation] Add),
+[Return.Natural.Difference.Negative, Integer.Pending.([Operation] Add).([Action] Difference)] Integer.Result.Negative.([Operation] Add),
 [Integer.Final.([Operation] Add)] Return.Integer.Add

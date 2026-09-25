@@ -33,7 +33,7 @@ photonic_test(
     name = "cell.check",
     path = True,
     preserve = True,
-    source = "Push.Item.Zero [Drop.Item] Forget [Built] Read",
+    source = "Push.Item.Zero, [Drop.Item] Forget, [Built] Read",
     targets = ["Yield.Item.Zero"],
     deps = [":cell"],
 )
@@ -42,7 +42,7 @@ photonic_test(
     name = "cell.peek",
     path = True,
     preserve = True,
-    source = "Push.Item.Zero [Drop.Item] Forget [Built] (Peek) (Keep) [Seen.Item.Zero, Keep] Read",
+    source = "Push.Item.Zero, [Drop.Item] Forget, [Built] (Peek, Keep), [Seen.Item.Zero, Keep] Read",
     targets = ["Yield.Item.Zero"],
     deps = [":cell"],
 )

@@ -1,8 +1,8 @@
-Case.(([P] True), ([P] False)).(([Q] True), ([Q] False))
+Case.(([P] True), ([P] False)).(([Q] True), ([Q] False)),
 
-[Claim] (Function.Boolean.And.Conjunction.P.Q) (Function.Boolean.Not.Former.P) (Function.Boolean.Not.Latter.Q)
-[Return.Conjunction] Function.Boolean.Not.Denial
-[Return.Former, Return.Latter] Function.Boolean.And.Neither
-[Return.Denial, Return.Neither] Function.Boolean.Equal.Verdict
+[Claim] (Function.Boolean.And.Conjunction.P.Q, Function.Boolean.Not.Former.P, Function.Boolean.Not.Latter.Q),
+[Return.Conjunction] Function.Boolean.Not.Denial,
+[Return.Former, Return.Latter] Function.Boolean.And.Neither,
+[Return.Denial, Return.Neither] Function.Boolean.Equal.Verdict,
 
 [Holds.(([P] True), ([P] False)).(([Q] True), ([Q] False))] Theorem

@@ -1,5 +1,5 @@
-Pair(Seed, Other)
-[Seed] Intermediate
-[Intermediate] Kind
-[Other] Kind
+Pair(Seed, Other),
+[Seed] Intermediate,
+[Intermediate] Kind,
+[Other] Kind,
 [Pair(Kind, Kind)] ([()] Result)

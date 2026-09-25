@@ -37,10 +37,13 @@ fn action() {
             let rule = format!("[Repeat] {}", particle("Unit", coefficient));
             let input = particle("Repeat", count);
             let target = particle("Unit", coefficient * count);
-            assert_eq!(check(&format!("{input} {rule}"), &target), Outcome::Reached);
+            assert_eq!(
+                check(&format!("{input}, {rule}"), &target),
+                Outcome::Reached
+            );
             assert_eq!(
                 check(
-                    &format!("{input} {rule}"),
+                    &format!("{input}, {rule}"),
                     &particle("Unit", coefficient * count + 1)
                 ),
                 Outcome::Unreachable
@@ -48,7 +51,7 @@ fn action() {
             assert_eq!(
                 check(
                     &format!(
-                        "{} [Repeat] {}",
+                        "{}, [Repeat] {}",
                         particle("Repeat", coefficient),
                         particle("Unit", count)
                     ),
@@ -64,7 +67,7 @@ fn action() {
                 check(&format!("({rule}).{input}"), &target),
                 Outcome::Unreachable
             );
-            let composed = format!("Add.{input}, Add.Unit {rule} [Add, Add] ()");
+            let composed = format!("Add.{input}, Add.Unit, {rule}, [Add, Add] ()");
             assert_eq!(
                 check(&composed, &particle("Unit", coefficient * count + 1)),
                 Outcome::Reached
@@ -92,7 +95,7 @@ fn example() {
         assert_eq!(check(source, target), Outcome::Reached);
     }
     assert_eq!(
-        check("Add.Add.Unit [Add, Add] ()", "Unit"),
+        check("Add.Add.Unit, [Add, Add] ()", "Unit"),
         Outcome::Unreachable
     );
 }

@@ -1,5 +1,5 @@
 [Case] (
-    Claim
-    [Return.Verdict.True] Holds
+    Claim,
+    [Return.Verdict.True] Holds,
     [Return.Verdict.False] Counterexample
 )

@@ -11,7 +11,7 @@ fn subscription() {
     let content = vec!["A.B,A.B.B,A.C"; 16].join(",");
     let program = Program::new(
         &crate::lowering::parse(&format!(
-            "{content},C [A.B,B] First [B.A.A,C] Second [A.B,A.B] Third"
+            "{content},C, [A.B,B] First, [B.A.A,C] Second, [A.B,A.B] Third"
         ))
         .unwrap(),
     );

@@ -1,10 +1,10 @@
-Case.(([X] Kill), ([X] Propagate), ([X] Generate))
+Case.(([X] Kill), ([X] Propagate), ([X] Generate)),
 
-[Claim] (Former.Propagate.Below) (Latter.X.Below) (Former.X.Above) (Latter.Propagate.Above)
-[Packed.Below, Packed.Below] Function.Carry.Combine.Below.Status
-[Packed.Above, Packed.Above] Function.Carry.Combine.Above.Status
-[Return.Below.Status] Function.Carry.Equal.Below.Law.X
-[Return.Above.Status] Function.Carry.Equal.Above.Law.X
-[Return.Below.Law, Return.Above.Law] Function.Boolean.And.Verdict
+[Claim] (Former.Propagate.Below, Latter.X.Below, Former.X.Above, Latter.Propagate.Above),
+[Packed.Below, Packed.Below] Function.Carry.Combine.Below.Status,
+[Packed.Above, Packed.Above] Function.Carry.Combine.Above.Status,
+[Return.Below.Status] Function.Carry.Equal.Below.Law.X,
+[Return.Above.Status] Function.Carry.Equal.Above.Law.X,
+[Return.Below.Law, Return.Above.Law] Function.Boolean.And.Verdict,
 
 [Holds.(([X] Kill), ([X] Propagate), ([X] Generate))] Theorem

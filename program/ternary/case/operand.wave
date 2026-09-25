@@ -1,5 +1,5 @@
-Push.Add.Zero, Stage.1
-[Built, Stage.1] (Push.Mark) (Forget.Stage.2)
-[Built, Clean.Stage.2] (Push.([Digit] 1)) (Forget.Stage.3)
-[Built, Clean.Stage.3] (Push.Literal) (Forget.Stage.4)
+Push.Add.Zero, Stage.1,
+[Built, Stage.1] (Push.Mark, Forget.Stage.2),
+[Built, Clean.Stage.2] (Push.([Digit] 1), Forget.Stage.3),
+[Built, Clean.Stage.3] (Push.Literal, Forget.Stage.4),
 [Built, Clean.Stage.4] Function.Expression.Execute

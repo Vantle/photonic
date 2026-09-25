@@ -1,5 +1,5 @@
-[Function.Boolean.Or.True.True] Return.True
-[Function.Boolean.Or.True.False] Return.True
-[Function.Boolean.Or.False.False] Return.False
-[Boolean.Or.([Operation] Boolean.Or)] Function.Boolean.Or
+[Function.Boolean.Or.True.True] Return.True,
+[Function.Boolean.Or.True.False] Return.True,
+[Function.Boolean.Or.False.False] Return.False,
+[Boolean.Or.([Operation] Boolean.Or)] Function.Boolean.Or,
 [Function.Empty.Reduce.([Operation] Boolean.Or)] Return.False

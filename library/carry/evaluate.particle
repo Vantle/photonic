@@ -1,6 +1,6 @@
-[Function.Carry.Evaluate.Kill.0] Return.0
-[Function.Carry.Evaluate.Kill.1] Return.0
-[Function.Carry.Evaluate.Propagate.0] Return.0
-[Function.Carry.Evaluate.Propagate.1] Return.1
-[Function.Carry.Evaluate.Generate.0] Return.1
+[Function.Carry.Evaluate.Kill.0] Return.0,
+[Function.Carry.Evaluate.Kill.1] Return.0,
+[Function.Carry.Evaluate.Propagate.0] Return.0,
+[Function.Carry.Evaluate.Propagate.1] Return.1,
+[Function.Carry.Evaluate.Generate.0] Return.1,
 [Function.Carry.Evaluate.Generate.1] Return.1

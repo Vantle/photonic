@@ -1,15 +1,15 @@
-Case.(([A] 0), ([A] 1), ([A] 2), ([A] End))
+Case.(([A] 0), ([A] 1), ([A] 2), ([A] End)),
 
-[Claim] (Read.Trim.Wait.Feed.A) (Outcome.A)
-[Outcome.0] Scheme.Skips
-[Outcome.1] Scheme.Keeps.1
-[Outcome.2] Scheme.Keeps.2
-[Outcome.End] Scheme.Empty
-[Reverse.Right.Head, Read.Reverse.Wait.Remnant, Clean.Trim.Finish] Read.Probe.Head
-[Yield.Probe.Zero] Engine.Keeps
-[Read.Trim.Wait.Remnant, Scheme.Skips] Return.Verdict.True
-[Engine.Keeps.([Digit] 1), Scheme.Keeps.1] Return.Verdict.True
-[Engine.Keeps.([Digit] 2), Scheme.Keeps.2] Return.Verdict.True
-[Return.Natural.Trim.Zero, Scheme.Empty] Return.Verdict.True
+[Claim] (Read.Trim.Wait.Feed.A, Outcome.A),
+[Outcome.0] Scheme.Skips,
+[Outcome.1] Scheme.Keeps.1,
+[Outcome.2] Scheme.Keeps.2,
+[Outcome.End] Scheme.Empty,
+[Reverse.Right.Head, Read.Reverse.Wait.Remnant, Clean.Trim.Finish] Read.Probe.Head,
+[Yield.Probe.Zero] Engine.Keeps,
+[Read.Trim.Wait.Remnant, Scheme.Skips] Return.Verdict.True,
+[Engine.Keeps.([Digit] 1), Scheme.Keeps.1] Return.Verdict.True,
+[Engine.Keeps.([Digit] 2), Scheme.Keeps.2] Return.Verdict.True,
+[Return.Natural.Trim.Zero, Scheme.Empty] Return.Verdict.True,
 
 [Holds.(([A] 0), ([A] 1), ([A] 2), ([A] End))] Theorem

@@ -22,7 +22,7 @@ pub fn program(source: &str, library: &[&str]) -> photonic::source::Program {
         &std::iter::once(source)
             .chain(library.iter().copied())
             .collect::<Vec<_>>()
-            .join("\n"),
+            .join(",\n"),
     )
     .unwrap()
 }

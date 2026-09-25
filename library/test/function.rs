@@ -57,7 +57,7 @@ fn extension() {
     let implementation = "[Decorate.([Function] Decorate).Envelope] Return.([Result] 11)";
     check(
         "Invoke.([Function] Decorate).Envelope",
-        "([Result] 11)",
+        "().([Result] 11)",
         &[invoke(), implementation],
         Outcome::Reached,
     );
@@ -69,7 +69,7 @@ fn extension() {
     );
     check(
         "Invoke.([Function] Missing).Envelope",
-        "([Result] 11)",
+        "().([Result] 11)",
         &[invoke()],
         Outcome::Unreachable,
     );

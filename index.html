@@ -98,9 +98,9 @@
 <p class="lead">Photonic is a language of rules. A program is data and the rules that change it. The runtime explores every configuration those rules can reach, and Prism checks results exactly.</p>
 <noscript><p class="note">This text reads fine without JavaScript. The graphs, the lens, the calculator and the workbench need it.</p></noscript>
 <figure class="example wide" data-example="light">
-<pre>Light
-[Light] Red
-[Light] Green
+<pre>Light,
+[Light] Red,
+[Light] Green,
 [Light] Blue</pre>
 <figcaption>Three rules can consume <code>Light</code>. Each is a possible event, so the runtime explores three futures. Select a configuration to see the events that leave it.</figcaption>
 </figure>
@@ -123,10 +123,10 @@
 <h2>Atoms, particles and coherences</h2>
 <p class="lead">Photonic has one kind of data: occurrences of atoms, grouped into particles, living in coherences.</p>
 <p>An <strong>atom</strong> is any run of characters other than <code>( ) [ ] . ,</code> and whitespace. <code>True</code>, <code>0</code>, <code>-&gt;</code>, <code>$x</code> and <code>人</code> are atoms. Atoms mean nothing by themselves; rules give them meaning.</p>
-<p>A dot joins occurrences into a <strong>particle</strong>. A particle is unordered and counts repeats: <code>A.B</code> and <code>B.A</code> are the same particle, and <code>A.A</code> holds two occurrences of <code>A</code>.</p>
-<p>A comma separates <strong>coherences</strong>, the independent places where particles live. <code>A.B, C</code> is two coherences. <code>()</code> is one empty coherence; an empty program has none.</p>
+<p>A dot joins occurrences into a <strong>particle</strong>, and so does writing them side by side: <code>A B</code> is <code>A.B</code>. A particle is unordered and counts repeats: <code>A.B</code> and <code>B.A</code> are the same particle, and <code>A.A</code> holds two occurrences of <code>A</code>.</p>
+<p>A comma separates <strong>coherences</strong>, the independent places where particles live. <code>A.B, C</code> is two coherences. The comma is the only separator: a line break never starts a new coherence. <code>()</code> is one empty coherence; an empty program has none.</p>
 <p>A <strong>configuration</strong> is everything that exists at one moment: its coherences and the rules that are live.</p>
-<div class="widget lens wide" data-lens='["A.B", "B.A", "A.A", "A.B, C", "()", "$x.-&gt;.人"]'></div>
+<div class="widget lens wide" data-lens='["A.B", "B.A", "A B", "A.A", "A.B, C", "()", "$x.-&gt;.人"]'></div>
 <p class="onward"><a href="#rule">Next: Rules consume and produce</a></p>
 </section>
 
@@ -135,26 +135,27 @@
 <h2>Rules consume and produce</h2>
 <p class="lead">A rule names what it consumes in brackets, then what it produces.</p>
 <figure class="example wide" data-example="first">
-<pre>A.X
+<pre>A.X,
 [A] B</pre>
 <figcaption><code>[A] B</code> matched the <code>A</code> inside <code>A.X</code>, consumed it and produced <code>B</code>. It never mentioned <code>X</code>, so <code>X</code> stayed. <code>X</code> is the <strong>remainder</strong>.</figcaption>
 </figure>
+<p>A program lists its coherences and its rules, separated by commas. The order does not matter: everything listed is part of the starting configuration, and a rule listed on its own is live there.</p>
 <p>Matching is open: a pattern needs only its own occurrences, and the rest of the coherence passes to the output.</p>
 <p>To consume the whole particle, name all of it:</p>
 <figure class="example wide" data-example="whole">
-<pre>A.X
+<pre>A.X,
 [A.X] B</pre>
 </figure>
 <p>An event consumes one match. Two occurrences of <code>A</code> take two events:</p>
 <figure class="example wide" data-example="each">
-<pre>A.A
+<pre>A.A,
 [A] B</pre>
 </figure>
 <h3>Several inputs, several outputs</h3>
-<p>Commas inside the brackets select several coherences; commas after them produce several. Every output receives the remainder of every consumed coherence.</p>
+<p>Commas inside the brackets select several coherences. A rule's outputs run to the next comma, so several outputs go in parentheses: <code>[A, B] (C, D)</code>. Every output receives the remainder of every consumed coherence.</p>
 <figure class="example wide" data-example="coherence" data-source="program/language/coherence.wave">
-<pre>A.X, B.Y
-[A, B] (C, D)
+<pre>A.X, B.Y,
+[A, B] (C, D),
 [C, D] E</pre>
 <figcaption>The first rule joins <code>A.X</code> and <code>B.Y</code> and splits into <code>C</code> and <code>D</code>; both carry <code>X.Y</code>. The second rule joins them again. The dashed arrow is an inference; <a href="#inference">chapter 6</a> explains it.</figcaption>
 </figure>
@@ -168,18 +169,18 @@
 <tr><td><code>[A] ()</code></td><td>an <code>A</code></td><td>one coherence holding only the remainder</td></tr>
 <tr><td><code>[] A</code></td><td>nothing</td><td>a new coherence <code>A</code>, every time it fires</td></tr>
 <tr><td><code>[()] A</code></td><td>any one coherence</td><td>that coherence with <code>A</code> added</td></tr>
-<tr><td><code>[,] A</code></td><td>any two coherences</td><td>one coherence: both remainders and <code>A</code></td></tr>
+<tr><td><code>[(), ()] A</code></td><td>any two coherences</td><td>one coherence: both remainders and <code>A</code></td></tr>
 </tbody>
 </table>
 </div>
 <figure class="example wide" data-example="empty">
-<pre>A.X, B.Y
+<pre>A.X, B.Y,
 [A],
 [B] ()</pre>
 <figcaption><code>[A]</code> removes <code>A.X</code> entirely; <code>[B] ()</code> leaves <code>Y</code>. The comma after <code>[A]</code> ends that rule. Without it, <code>[A] [B] ()</code> is one rule whose output is the rule <code>[B] ()</code>.</figcaption>
 </figure>
-<p>The lens shows how each form reads. Compare <code>[A], [B] C</code> with <code>[A] [B] C</code>:</p>
-<div class="widget lens wide" data-lens='["[A] B, C", "[A] (B)(C)", "[A], [B] C", "[A] [B] C", "[] A", "[()] A", "[,] A"]'></div>
+<p>The lens shows how each form reads. Compare <code>[A] (B, C)</code> with <code>[A] B, C</code>, and <code>[A], [B] C</code> with <code>[A] [B] C</code>:</p>
+<div class="widget lens wide" data-lens='["[A] (B, C)", "[A] B, C", "[A] (B) (C)", "[A], [B] C", "[A] [B] C", "[] A", "[()] A", "[(), ()] A"]'></div>
 <p class="onward"><a href="#identity">Next: Occurrences have identity</a></p>
 </section>
 
@@ -189,21 +190,21 @@
 <p class="lead">Two occurrences can carry the same atom and still be different occurrences. Photonic tracks which is which.</p>
 <p>When one event produces several outputs, they all receive the same remainder: the same occurrence appears in each. When those coherences join again, a shared occurrence counts once.</p>
 <figure class="example wide" data-example="broadcast" data-source="program/association/broadcast.wave">
-<pre>Seed.X
-[Seed] A((), ())
+<pre>Seed.X,
+[Seed] A((), ()),
 [A, A] ()</pre>
 <figcaption><code>A((), ())</code> is shorthand for two outputs, each <code>A</code>. They share one <code>X</code>, so joining them gives back one <code>X</code>.</figcaption>
 </figure>
 <p>Occurrences written separately are independent, and they add up:</p>
 <figure class="example wide" data-example="independent" data-source="program/association/independent.wave">
-<pre>A(X, X)
+<pre>A(X, X),
 [A, A] ()</pre>
 <figcaption>Two coherences, <code>A.X</code> and <code>A.X</code>, with two independent <code>X</code>s. Joining keeps both: <code>X.X</code>.</figcaption>
 </figure>
 <p>Adding up is arithmetic. A natural number can be a coherence of independent <code>Unit</code>s, and addition is a join:</p>
 <figure class="example wide" data-example="addition" data-source="program/natural/addition.wave" data-target='["Unit.Unit.Unit.Unit.Unit"]' data-preserve data-expect='["reached"]'>
 <pre>Add.Unit.Unit,
-Add.Unit.Unit.Unit
+Add.Unit.Unit.Unit,
 [Add, Add] ()</pre>
 <figcaption>2 + 3 = 5. The rule consumes both <code>Add</code> labels and joins the remainders, and the five independent units survive.</figcaption>
 </figure>
@@ -217,24 +218,24 @@ Add.Unit.Unit.Unit
 <h2>Every future</h2>
 <p class="lead">When several events are possible, the runtime explores all of them. The result is a graph: configurations are nodes, events are arrows.</p>
 <p>An event is one rule applied to one match. Different rules, and different matches of one rule, give different events.</p>
-<figure class="example wide" data-example="alternative" data-target='["D [A] B [A] C [B, C] D"]' data-expect='["unreachable"]'>
-<pre>A
-[A] B
-[A] C
+<figure class="example wide" data-example="alternative" data-target='["D, [A] B, [A] C, [B, C] D"]' data-expect='["unreachable"]'>
+<pre>A,
+[A] B,
+[A] C,
 [B, C] D</pre>
 <figcaption><code>B</code> and <code>C</code> are alternatives: each future holds one of them, never both, so <code>[B, C] D</code> never applies. Prism proves <code>D</code> unreachable.</figcaption>
 </figure>
-<figure class="example wide" data-example="together" data-target='["D [A] B, C [B, C] D"]' data-expect='["reached"]'>
-<pre>A
-[A] B, C
+<figure class="example wide" data-example="together" data-target='["D, [A] (B, C), [B, C] D"]' data-expect='["reached"]'>
+<pre>A,
+[A] (B, C),
 [B, C] D</pre>
-<figcaption>Here one event produces <code>B</code> and <code>C</code> in the same configuration, so they can join.</figcaption>
+<figcaption>Here one rule with two outputs, <code>[A] (B, C)</code>, produces <code>B</code> and <code>C</code> in the same configuration, so they can join. The program above lists two rules instead: <code>[A] B, [A] C</code>.</figcaption>
 </figure>
 <p>Only occurrences that coexist in one configuration can be matched together.</p>
 <h3>Cycles and endless programs</h3>
 <figure class="example wide" data-example="cycle">
-<pre>A
-[A] B
+<pre>A,
+[A] B,
 [B] A</pre>
 <figcaption>Returning to a configuration closes a cycle. The graph stays finite.</figcaption>
 </figure>
@@ -249,17 +250,18 @@ Add.Unit.Unit.Unit
 <section class="chapter" id="scope">
 <p class="eyebrow">Language · 5</p>
 <h2>Scopes</h2>
-<p class="lead">An output group that contains rules opens a scope: a local place with its own rules.</p>
+<p class="lead">A group that lists rules is a scope: a local place with its own rules. It is written like a program, in parentheses, and only a rule's output can open one.</p>
 <figure class="example wide" data-example="brew">
-<pre>Brew.Tea
-[Brew] (Kettle [Kettle.Tea] Cup)</pre>
+<pre>Brew.Tea,
+[Brew] (Kettle, [Kettle.Tea] Cup)</pre>
 <figcaption>Consuming <code>Brew</code> opens a scope holding <code>Kettle</code> and the remainder <code>Tea</code>. The scope's own rule <code>[Kettle.Tea] Cup</code> fires, and because the rule belongs to the scope, its output returns to the enclosing scope: <code>Cup</code>.</figcaption>
 </figure>
 <ul>
 <li>A scope's own rules send their output to the enclosing scope. That is how a scope returns.</li>
 <li>Rules of enclosing scopes also apply inside a scope, and their output stays inside.</li>
 <li>A rule joins coherences only within one scope.</li>
-<li>A scope group starts with at most one coherence: <code>(Kettle [Kettle.Tea] Cup)</code> is valid, <code>(A, B [A] C)</code> is not.</li>
+<li>A scope holds at most one coherence: <code>(Kettle, [Kettle.Tea] Cup)</code> is valid, <code>(A, B, [A] C)</code> is not.</li>
+<li>Commas make a rule a member of the scope. Joined to a value instead, as in <code>(Kettle [Kettle.Tea] Cup)</code>, the rule is a field of that particle, and the group opens no scope.</li>
 <li>The scope holds what the entering rule matched exactly; a state view shows it after <em>holds</em>.</li>
 </ul>
 <p>A scope works like a function body: it receives the remainder, runs its local rules and returns through them.</p>
@@ -271,17 +273,17 @@ Add.Unit.Unit.Unit
 <h2>Inference</h2>
 <p class="lead">A rule can apply to what a configuration can become. The event happens at the original configuration.</p>
 <figure class="example wide" data-example="inference" data-source="program/language/inference.wave">
-<pre>A
-[A] B.C
+<pre>A,
+[A] B.C,
 [B] D</pre>
 <figcaption>In order, the rules give <code>B.C</code> and then <code>C.D</code>. But <code>A</code> can become <code>B</code>, so <code>[B] D</code> also applies to <code>A</code> directly: it consumes <code>A</code> and produces <code>D</code>. <code>C</code> existed only along the way, so it is not part of that result. The dashed arrow is the inferred event.</figcaption>
 </figure>
 <h3>Abstraction through rules</h3>
 <p>Inference makes abstraction ordinary. Here two ordinary rules make <code>True</code> and <code>False</code> count as <code>Boolean</code>:</p>
 <figure class="example wide" data-example="not" data-target='["False"]' data-preserve data-expect='["reached"]'>
-<pre>Not.True
-[True] Boolean
-[False] Boolean
+<pre>Not.True,
+[True] Boolean,
+[False] Boolean,
 [Not.Boolean] (
     [True] False,
     [False] True,
@@ -290,7 +292,7 @@ Add.Unit.Unit.Unit
 </figure>
 <p>Inference splits a match in two. Occurrences matched as written, here <code>Not</code>, are <strong>exact</strong>. Occurrences reached through evidence, here <code>True</code> seen as <code>Boolean</code>, are the <strong>witness</strong>. A literal output consumes both. A scope consumes the exact part and receives the witness. Hover an event to outline what it consumes: solid for exact, dashed for witness.</p>
 <figure class="example wide" data-example="conjunction" data-source="program/language/conjunction.wave" data-target='["False.Extra"]' data-preserve data-expect='["reached"]'>
-<pre>And.True.False.Extra
+<pre>And.True.False.Extra,
 [True] Boolean,
 [False] Boolean,
 [And.Boolean.Boolean] (
@@ -308,22 +310,23 @@ Add.Unit.Unit.Unit
 <h2>Rules are values</h2>
 <p class="lead">A rule in brackets inside a particle is a value. It can be produced, carried, matched, consumed and replaced.</p>
 <figure class="example wide" data-example="dynamic" data-source="program/language/dynamic.wave">
-<pre>Seed.A
+<pre>Seed.A,
 [Seed] [A] B</pre>
 <figcaption><code>[Seed] [A] B</code> produces the rule <code>[A] B</code> as a value. A rule value in a coherence is live and applies within that coherence, turning <code>A</code> into <code>B</code>. Inference also reaches <code>Seed.B</code>: executing a rule reads it without consuming it.</figcaption>
 </figure>
 <figure class="example wide" data-example="replacement" data-source="program/language/replacement.wave">
-<pre>([A] B).A
+<pre>([A] B).A,
 [[A] B] [A] C</pre>
 <figcaption><code>[[A] B] [A] C</code> matches the whole rule value <code>[A] B</code>, consumes it and produces <code>[A] C</code>. Matching compares complete code; a rule never looks inside another.</figcaption>
 </figure>
 <p>Loaded rules are live occurrences too, and a rule can consume one:</p>
-<figure class="example wide" data-example="consume" data-target='["C [([A] B)] C"]' data-expect='["reached"]'>
-<pre>[A] B
-[([A] B)] C</pre>
-<figcaption><code>[([A] B)] C</code> consumes the loaded rule <code>[A] B</code> and produces <code>C</code>. The target lists every rule that survives.</figcaption>
+<figure class="example wide" data-example="consume" data-target='["C, [[A] B] C"]' data-expect='["reached"]'>
+<pre>[A] B,
+[[A] B] C</pre>
+<figcaption><code>[[A] B] C</code> consumes the loaded rule <code>[A] B</code> and produces <code>C</code>. The target lists every rule that survives.</figcaption>
 </figure>
 <ul>
+<li>A rule listed on its own in a program or a scope is live there. Anywhere else a rule is a value: <code>[Seed] [A] B</code> produces one, <code>[[A] B] C</code> consumes one, and <code>X.([A] B)</code> carries one. A coherence holding nothing but a rule joins it to the empty coherence: <code>().([A] B)</code>.</li>
 <li>Executing a rule reads it; matching it consumes it.</li>
 <li>A rule value remembers the scope that made it. Equal code made in different scopes gives different values.</li>
 <li>There are no variables, wildcards or quotation. Abstraction comes from rules, as in <a href="#inference">inference</a>.</li>
@@ -341,8 +344,8 @@ Add.Unit.Unit.Unit
 <pre>P.([P] True)</pre>
 </figure>
 <h3>Shared prefixes</h3>
-<p>Parentheses in a particle distribute: <code>A(B, C)</code> means <code>A.B, A.C</code>, and <code>(A, B).(C, D)</code> means four coherences. They build nothing: <code>Box(A.B)</code> is exactly <code>Box.A.B</code>. In a rule's output, adjacent groups are separate outputs: <code>[A] (B)(C)</code> produces two coherences.</p>
-<div class="widget lens wide" data-lens='["Digit.0.Carry.1", "([Digit] 0).([Carry] 1)", "A(B, C)", "(A, B).(C, D)", "Box(A.B)", "A((), B)"]'></div>
+<p>Parentheses in a particle distribute: <code>A(B, C)</code> means <code>A.B, A.C</code>, and <code>(A, B).(C, D)</code> means four coherences. They build nothing: <code>Box(A.B)</code> is exactly <code>Box.A.B</code>. Side by side, groups join like any values, so <code>[A] (B) (C)</code> produces the single coherence <code>B.C</code>; two outputs are listed, <code>[A] (B, C)</code>.</p>
+<div class="widget lens wide" data-lens='["Digit.0.Carry.1", "([Digit] 0).([Carry] 1)", "().([Digit] 0)", "A(B, C)", "(A, B).(C, D)", "Box(A.B)", "A((), B)"]'></div>
 <p class="onward"><a href="#prism">Next: Prism</a></p>
 </section>
 
@@ -355,9 +358,9 @@ Add.Unit.Unit.Unit
 <p class="eyebrow">Verification · 9</p>
 <h2>Prism</h2>
 <p class="lead">Prism answers one question: can this exact configuration be reached?</p>
-<p>A target is a complete configuration: every coherence, every occurrence and every live rule. <code>A.X [A] B</code> reaches <code>B.X [A] B</code>, where the rule is still live, but never plain <code>B.X</code>.</p>
-<figure class="example wide" data-example="check" data-target='["B.X [A] B", "B.X", "A.X [A] B"]' data-expect='["reached", "unreachable", "reached"]'>
-<pre>A.X
+<p>A target is a complete configuration: every coherence, every occurrence and every live rule. <code>A.X, [A] B</code> reaches <code>B.X, [A] B</code>, where the rule is still live, but never plain <code>B.X</code>.</p>
+<figure class="example wide" data-example="check" data-target='["B.X, [A] B", "B.X", "A.X, [A] B"]' data-expect='["reached", "unreachable", "reached"]'>
+<pre>A.X,
 [A] B</pre>
 <figcaption>The start counts: every configuration reaches itself. When the book is served, edit the targets and run again.</figcaption>
 </figure>
@@ -371,7 +374,7 @@ Add.Unit.Unit.Unit
 </tbody>
 </table>
 </div>
-<figure class="example wide" data-example="budget" data-target='["A, A [] A", "A.A [] A"]' data-expect='["reached", "unknown"]'>
+<figure class="example wide" data-example="budget" data-target='["A, A, [] A", "A.A, [] A"]' data-expect='["reached", "unknown"]'>
 <pre>[] A</pre>
 <figcaption>Two coherences of <code>A</code> appear early. <code>A.A</code> never does, but the exploration never finishes, so Prism cannot prove it unreachable.</figcaption>
 </figure>
@@ -385,7 +388,7 @@ Add.Unit.Unit.Unit
 <h2>The workbench</h2>
 <p class="lead">Two views of one program. The state graph shows every configuration; the hypergraph shows how one execution moves through its coherences.</p>
 <p>In the hypergraph each coherence is a lane that runs from the event that produced it to the event that consumes it. An event is a hyperedge: it consumes whole coherences and produces new ones, and every other lane passes it untouched. Lanes that never meet evolve independently. Select a configuration in the state graph to draw the execution that reaches it.</p>
-<div class="widget workbench wide" id="bench" data-preset='[{"name": "Parallel", "source": "A, B\n[A] C\n[B] D\n[C, D] E"}, {"name": "Split and join", "source": "A.X\n[A] B, C\n[B, C] D"}, {"name": "Scope", "example": "brew"}, {"name": "Inference", "example": "inference"}, {"name": "Conjunction", "example": "conjunction"}, {"name": "Counting", "example": "addition"}, {"name": "Rules as values", "example": "dynamic"}]'></div>
+<div class="widget workbench wide" id="bench" data-preset='[{"name": "Parallel", "source": "A, B,\n[A] C,\n[B] D,\n[C, D] E"}, {"name": "Split and join", "source": "A.X,\n[A] (B, C),\n[B, C] D"}, {"name": "Scope", "example": "brew"}, {"name": "Inference", "example": "inference"}, {"name": "Conjunction", "example": "conjunction"}, {"name": "Counting", "example": "addition"}, {"name": "Rules as values", "example": "dynamic"}]'></div>
 <p>Every explored example in this book has a <strong>Workbench</strong> button that opens it here. For your own programs, the <a href="lightbox.html">Lightbox</a> gives the same views a full page, keeps your draft, and makes links that carry the whole program.</p>
 <h3>Filter by pattern</h3>
 <p>Type a pattern in the filter field, or press <kbd>⌘</kbd> <kbd>K</kbd> or <kbd>/</kbd> anywhere in the book. The workbench keeps what matches and everything computed after it, and hides the rest.</p>
@@ -473,12 +476,12 @@ bazel test -c opt //book:record.check</pre>
 <p class="lead">The standard library is written in Photonic: 69 rule files in 14 packages. Rust only loads and checks it.</p>
 <p>Every operation is named <code>Type.Verb</code>, and each type belongs to one package. A request carries <code>Function</code>; its answer carries <code>Return</code>. Scalar requests run inside <code>Invoke</code>, which is the whole of <a href="library/function/invoke.particle">invoke.particle</a>:</p>
 <pre class="code" data-source="library/function/invoke.particle">[Invoke] (
-    Function
+    Function,
     [Return] ()
 )</pre>
 <p><code>Invoke</code> opens a scope holding <code>Function</code> and the rest of the request. The scope's own rule <code>[Return] ()</code> returns whatever accompanies <code>Return</code>. An implementation is a table:</p>
-<pre class="code" data-source="library/boolean/not.particle">[Function.Boolean.Not.True] Return.False
-[Function.Boolean.Not.False] Return.True
+<pre class="code" data-source="library/boolean/not.particle">[Function.Boolean.Not.True] Return.False,
+[Function.Boolean.Not.False] Return.True,
 [Boolean.Not.([Each] Boolean.Not)] Function.Boolean.Not</pre>
 <figure class="example wide" data-example="negation" data-library="library/function/invoke library/boolean/not" data-target='["False"]' data-preserve data-expect='["reached"]'>
 <pre>Invoke.Boolean.Not.True</pre>
@@ -538,13 +541,13 @@ bazel test -c opt //book:record.check</pre>
 </table>
 </div>
 <p>Every output of an event receives the remainder, so a rule with two outputs duplicates a handle. Programs therefore move a chain by sending it on and forgetting the other copy, then continue on <code>Clean</code>. This program pushes 2, 0 and 1, reverses the chain and reads back 2, 0, 1:</p>
-<pre class="code" data-source="program/ternary/reversal.wave">Push.([Digit] 2).Zero, Stage.1
-[Built, Stage.1] (Push.([Digit] 0)) (Forget.Stage.2)
-[Built, Clean.Stage.2] (Push.([Digit] 1)) (Forget.Stage.3)
-[Built, Clean.Stage.3] (Function.Chain.Reverse) (Forget.Inspect.Start)
-[Return.Chain.Reverse, Clean.Inspect.Start] (Read) (Forget.Inspect.0)
-[Yield.([Digit] 2), Clean.Inspect.0] (Read) (Forget.Inspect.1)
-[Yield.([Digit] 0), Clean.Inspect.1] (Read) (Forget.Inspect.2)
+<pre class="code" data-source="program/ternary/reversal.wave">Push.([Digit] 2).Zero, Stage.1,
+[Built, Stage.1] (Push.([Digit] 0), Forget.Stage.2),
+[Built, Clean.Stage.2] (Push.([Digit] 1), Forget.Stage.3),
+[Built, Clean.Stage.3] (Function.Chain.Reverse, Forget.Inspect.Start),
+[Return.Chain.Reverse, Clean.Inspect.Start] (Read, Forget.Inspect.0),
+[Yield.([Digit] 2), Clean.Inspect.0] (Read, Forget.Inspect.1),
+[Yield.([Digit] 0), Clean.Inspect.1] (Read, Forget.Inspect.2),
 [Yield.([Digit] 1), Clean.Inspect.2] Done</pre>
 <p>A <strong>vector</strong> holds any value that answers <code>Forget</code>, including naturals, chains and other vectors, by reference. <code>Function.Vector.Sort</code> sorts a vector of naturals with a stable, adaptive merge sort: one pass splits the input into runs, balanced passes merge them pairwise, and alternating orientation means no merge result is ever reversed. For <em>n</em> items in <em>r</em> runs it makes at most <em>n</em> − 1 + <em>n</em>⌈log₂ <em>r</em>⌉ comparisons.</p>
 <pre class="listing">bazel test -c opt //program/ternary:reversal.check
@@ -573,11 +576,11 @@ bazel run -c opt //program/vector:sort</pre>
 <h2>Proof by execution</h2>
 <p class="lead">A theorem program lists every case of a claim, checks each one, and concludes <code>Theorem</code> only when all of them hold. Prism checks that it reaches exactly <code>Theorem</code>.</p>
 <figure class="example wide" data-example="involution" data-mode="path" data-source="theorem/boolean/involution.wave" data-library="library/function/invoke library/boolean/not library/boolean/equal theorem/case" data-target='["Theorem"]' data-preserve data-expect='["reached"]'>
-<pre>Case.(([P] True), ([P] False))
+<pre>Case.(([P] True), ([P] False)),
 
-[Claim] Function.Boolean.Not.Once.P
-[Return.Once] Function.Boolean.Not.Twice
-[Return.Twice] Function.Boolean.Equal.Verdict.P
+[Claim] Function.Boolean.Not.Once.P,
+[Return.Once] Function.Boolean.Not.Twice,
+[Return.Twice] Function.Boolean.Equal.Verdict.P,
 
 [Holds.(([P] True), ([P] False))] Theorem</pre>
 <figcaption>Negating twice returns the original value. Step through every event of the proof.</figcaption>
@@ -693,34 +696,43 @@ bazel run -c opt //learning:learning -- solve --input "$PWD/input.wave" --output
 <h2>Grammar and glossary</h2>
 <p class="lead">The whole grammar, every form and every term.</p>
 <h3>Grammar</h3>
-<pre class="listing" data-excerpt="frontend/parser.rs">module = { SOI ~ item* ~ EOI }
-item = _{ concept | group | context | continuation | coherence | space }
-group = { "(" ~ item* ~ ")" }
-context = { "[" ~ item* ~ "]" }
-continuation = { "." }
-coherence = { "," }
-space = @{ (" " | "\t" | "\r" | "\n" | "\u{000B}" | "\u{000C}")+ }
-concept = @{ (!("(" | ")" | "[" | "]" | "." | "," | space) ~ ANY)+ }</pre>
-<p>This is the complete parser grammar. There are no keywords, operators or reserved words: <code>Not</code>, <code>-&gt;</code> and <code>unless</code> are ordinary atoms.</p>
+<pre class="listing" data-excerpt="frontend/parser.rs">module = { SOI ~ list ~ EOI }
+list = { term? ~ ("," ~ term?)* }
+term = { factor ~ ("."? ~ factor)* }
+factor = _{ concept | group | rule }
+group = { "(" ~ list ~ ")" }
+rule = { "[" ~ list ~ "]" ~ term? }
+concept = @{ (!("(" | ")" | "[" | "]" | "." | "," | WHITESPACE) ~ ANY)+ }
+WHITESPACE = _{ " " | "\t" | "\r" | "\n" | "\u{000B}" | "\u{000C}" }</pre>
+<p>This is the whole grammar. Five rules give it meaning:</p>
+<ul>
+<li>A comma separates the terms of a list. It is the only separator; line breaks and spaces never separate.</li>
+<li>A term joins its factors into particles, with a dot or side by side. Joining distributes over a group, and <code>()</code> is the empty coherence.</li>
+<li>A rule's outputs are the rest of its term.</li>
+<li>A group that lists a rule on its own is a scope. Only a rule's output can open one.</li>
+<li>A rule listed on its own in a program or scope is live there. Anywhere else it is a value.</li>
+</ul>
+<p>There are no keywords, operators or reserved words: <code>Not</code>, <code>-&gt;</code> and <code>unless</code> are ordinary atoms.</p>
 <h3>Forms</h3>
 <div class="table">
 <table>
 <thead><tr><th>Form</th><th>Example</th><th>Meaning</th></tr></thead>
 <tbody>
 <tr><td>Atom</td><td><code>True</code></td><td>One occurrence</td></tr>
-<tr><td>Particle</td><td><code>A.B</code></td><td>Occurrences together, unordered</td></tr>
+<tr><td>Particle</td><td><code>A.B</code>, <code>A B</code></td><td>Occurrences together, unordered</td></tr>
 <tr><td>Coherences</td><td><code>A, B</code></td><td>Separate coherences</td></tr>
 <tr><td>Empty coherence</td><td><code>()</code></td><td>One coherence with no occurrences</td></tr>
 <tr><td>Rule</td><td><code>[A] B</code></td><td>Consume <code>A</code>, produce <code>B</code> with the remainder</td></tr>
-<tr><td>Join and split</td><td><code>[A, B] C, D</code></td><td>Consume from two coherences, produce two</td></tr>
-<tr><td>Separate outputs</td><td><code>[A] (B)(C)</code></td><td>Two output coherences</td></tr>
-<tr><td>Rule with no output</td><td><code>[A], [B] C</code></td><td>A comma ends it before the next rule</td></tr>
+<tr><td>Join and split</td><td><code>[A, B] (C, D)</code></td><td>Consume from two coherences, produce two</td></tr>
+<tr><td>Program</td><td><code>A, [A] B, [B] C</code></td><td>Coherences and live rules, in any order</td></tr>
+<tr><td>Rule with no output</td><td><code>[A]</code></td><td>Consume <code>A</code> and produce nothing</td></tr>
 <tr><td>Zero inputs</td><td><code>[] A</code></td><td>Produce a coherence from nothing</td></tr>
-<tr><td>Any coherence</td><td><code>[()] A</code>, <code>[,] A</code></td><td>Match one or two coherences by position alone</td></tr>
-<tr><td>Scope</td><td><code>[A] (B [B] C)</code></td><td>Open a scope with a local rule</td></tr>
+<tr><td>Any coherence</td><td><code>[()] A</code>, <code>[(), ()] A</code></td><td>Match one or two coherences by position alone</td></tr>
+<tr><td>Scope</td><td><code>[A] (B, [B] C)</code></td><td>Open a scope with a local rule</td></tr>
 <tr><td>Produced rule</td><td><code>[Seed] [A] B</code></td><td>Produce the rule <code>[A] B</code> as a value</td></tr>
 <tr><td>Matched rule</td><td><code>[[A] B] C</code></td><td>Consume the rule <code>[A] B</code></td></tr>
-<tr><td>Field</td><td><code>([Digit] 0)</code></td><td>A role with its value</td></tr>
+<tr><td>Field</td><td><code>X.([Digit] 0)</code></td><td>A role with its value</td></tr>
+<tr><td>Rule alone in a coherence</td><td><code>().([Digit] 0)</code></td><td>A coherence holding only the rule</td></tr>
 <tr><td>Shared prefix</td><td><code>A(B, C)</code></td><td><code>A.B, A.C</code></td></tr>
 </tbody>
 </table>
@@ -732,10 +744,10 @@ concept = @{ (!("(" | ")" | "[" | "]" | "." | "," | space) ~ ANY)+ }</pre>
 <dt>Particle</dt><dd>An unordered multiset of occurrences in one coherence.</dd>
 <dt>Coherence</dt><dd>An independent place where a particle lives.</dd>
 <dt>Configuration</dt><dd>All coherences and live rules at one moment; a node of the graph.</dd>
-<dt>Rule</dt><dd>Inputs in brackets and outputs after them. Also a value.</dd>
+<dt>Rule</dt><dd>Inputs in brackets and outputs after them, up to the next comma. Also a value.</dd>
 <dt>Event</dt><dd>One rule applied to one match; an arrow of the graph.</dd>
 <dt>Remainder</dt><dd>What a match leaves in its coherences; every output receives it.</dd>
-<dt>Scope</dt><dd>A local place opened by an output group with rules. Its own rules return to the enclosing scope.</dd>
+<dt>Scope</dt><dd>A local place: a group of rules and at most one coherence, opened by a rule's output. Its own rules return to the enclosing scope.</dd>
 <dt>Inference</dt><dd>Applying a rule to what a configuration can become, at the configuration itself.</dd>
 <dt>Witness</dt><dd>The concrete occurrences an inferred match reached through evidence.</dd>
 <dt>Field</dt><dd>A one-rule value such as <code>([Digit] 0)</code> that keeps a role with its value.</dd>

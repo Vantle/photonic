@@ -3,11 +3,11 @@ use super::Structure;
 #[test]
 fn equivalence() {
     for source in [
-        "A.X,B.X [A,B] C,D",
-        "A [A] (B [B] C) [C] (D [D] A)",
-        "Seed.A.X [Seed] ([A] B) ([A] C)",
-        "A.([A] B),A.([A] C) [B,C] D",
-        "A,A,B [A,B] C [A,C] D",
+        "A.X,B.X, [A,B] (C, D)",
+        "A, [A] (B, [B] C), [C] (D, [D] A)",
+        "Seed.A.X, [Seed] (([A] B), ([A] C))",
+        "A.([A] B),A.([A] C), [B,C] D",
+        "A,A,B, [A,B] C, [A,C] D",
     ] {
         let mut runtime = crate::runtime::Runtime::new(&crate::lowering::parse(source).unwrap());
         runtime.run(100_000, None);

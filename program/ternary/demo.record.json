@@ -18,7 +18,7 @@
         "decimal": "7",
         "source": 1019,
         "target": 1020,
-        "rule": "[Return.Integer.Add.Positive, Execute.Pending.Add] (Operand.Number.Positive) (Forget.Execute.Join)"
+        "rule": "[Return.Integer.Add.Positive, Execute.Pending.Add] (Operand.Number.Positive, Forget.Execute.Join)"
       }
     ]
   },
@@ -41,7 +41,7 @@
         "decimal": "10",
         "source": 1819,
         "target": 1820,
-        "rule": "[Return.Integer.Multiply.Positive, Execute.Pending.Multiply] (Operand.Number.Positive) (Forget.Execute.Join)"
+        "rule": "[Return.Integer.Multiply.Positive, Execute.Pending.Multiply] (Operand.Number.Positive, Forget.Execute.Join)"
       }
     ]
   },
@@ -66,7 +66,7 @@
         "decimal": "3",
         "source": 2247,
         "target": 2248,
-        "rule": "[Return.Integer.Divide.Positive, Execute.Pending.Divide] (Operand.Number.Positive) (Forget.Execute.Join)"
+        "rule": "[Return.Integer.Divide.Positive, Execute.Pending.Divide] (Operand.Number.Positive, Forget.Execute.Join)"
       },
       {
         "operation": "Subtract",
@@ -74,7 +74,7 @@
         "decimal": "2",
         "source": 2801,
         "target": 2802,
-        "rule": "[Return.Integer.Subtract.Positive, Execute.Pending.Subtract] (Operand.Number.Positive) (Forget.Execute.Join)"
+        "rule": "[Return.Integer.Subtract.Positive, Execute.Pending.Subtract] (Operand.Number.Positive, Forget.Execute.Join)"
       }
     ]
   }

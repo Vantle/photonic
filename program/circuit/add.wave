@@ -1,161 +1,161 @@
-([Input.0] 0).([Input.1] 2).([Input.2] 1).([Input.3] 1).([Input.4] 0).([Input.5] 0).([Input.6] 2).([Input.7] 0).([Input.8] 2).([Input.9] 1).([Input.10] 1).([Input.11] 1).([Input.12] 0).([Input.13] 0)
+([Input.0] 0).([Input.1] 2).([Input.2] 1).([Input.3] 1).([Input.4] 0).([Input.5] 0).([Input.6] 2).([Input.7] 0).([Input.8] 2).([Input.9] 1).([Input.10] 1).([Input.11] 1).([Input.12] 0).([Input.13] 0),
 
-[([Input.0] 0)] (([Port.0] 0))
-[([Input.0] 1)] (([Port.0] 1))
-[([Input.0] 2)] (([Port.0] 2))
-[([Input.1] 0)] (([Port.2] 0))
-[([Input.1] 1)] (([Port.2] 1))
-[([Input.1] 2)] (([Port.2] 2))
-[([Input.2] 0)] (([Port.5] 0))
-[([Input.2] 1)] (([Port.5] 1))
-[([Input.2] 2)] (([Port.5] 2))
-[([Input.3] 0)] (([Port.8] 0))
-[([Input.3] 1)] (([Port.8] 1))
-[([Input.3] 2)] (([Port.8] 2))
-[([Input.4] 0)] (([Port.11] 0))
-[([Input.4] 1)] (([Port.11] 1))
-[([Input.4] 2)] (([Port.11] 2))
-[([Input.5] 0)] (([Port.14] 0))
-[([Input.5] 1)] (([Port.14] 1))
-[([Input.5] 2)] (([Port.14] 2))
-[([Input.6] 0)] (([Port.17] 0))
-[([Input.6] 1)] (([Port.17] 1))
-[([Input.6] 2)] (([Port.17] 2))
-[([Input.7] 0)] (([Port.1] 0))
-[([Input.7] 1)] (([Port.1] 1))
-[([Input.7] 2)] (([Port.1] 2))
-[([Input.8] 0)] (([Port.3] 0))
-[([Input.8] 1)] (([Port.3] 1))
-[([Input.8] 2)] (([Port.3] 2))
-[([Input.9] 0)] (([Port.6] 0))
-[([Input.9] 1)] (([Port.6] 1))
-[([Input.9] 2)] (([Port.6] 2))
-[([Input.10] 0)] (([Port.9] 0))
-[([Input.10] 1)] (([Port.9] 1))
-[([Input.10] 2)] (([Port.9] 2))
-[([Input.11] 0)] (([Port.12] 0))
-[([Input.11] 1)] (([Port.12] 1))
-[([Input.11] 2)] (([Port.12] 2))
-[([Input.12] 0)] (([Port.15] 0))
-[([Input.12] 1)] (([Port.15] 1))
-[([Input.12] 2)] (([Port.15] 2))
-[([Input.13] 0)] (([Port.18] 0))
-[([Input.13] 1)] (([Port.18] 1))
-[([Input.13] 2)] (([Port.18] 2))
-[([Port.0] 0).([Port.1] 0)] (([Digit.0] 0).([Port.4] 0))
-[([Port.0] 0).([Port.1] 1)] (([Digit.0] 1).([Port.4] 0))
-[([Port.0] 0).([Port.1] 2)] (([Digit.0] 2).([Port.4] 0))
-[([Port.0] 1).([Port.1] 0)] (([Digit.0] 1).([Port.4] 0))
-[([Port.0] 1).([Port.1] 1)] (([Digit.0] 2).([Port.4] 0))
-[([Port.0] 1).([Port.1] 2)] (([Digit.0] 0).([Port.4] 1))
-[([Port.0] 2).([Port.1] 0)] (([Digit.0] 2).([Port.4] 0))
-[([Port.0] 2).([Port.1] 1)] (([Digit.0] 0).([Port.4] 1))
-[([Port.0] 2).([Port.1] 2)] (([Digit.0] 1).([Port.4] 1))
-[([Port.2] 0).([Port.3] 0).([Port.4] 0)] (([Digit.1] 0).([Port.7] 0))
-[([Port.2] 0).([Port.3] 0).([Port.4] 1)] (([Digit.1] 1).([Port.7] 0))
-[([Port.2] 0).([Port.3] 1).([Port.4] 0)] (([Digit.1] 1).([Port.7] 0))
-[([Port.2] 0).([Port.3] 1).([Port.4] 1)] (([Digit.1] 2).([Port.7] 0))
-[([Port.2] 0).([Port.3] 2).([Port.4] 0)] (([Digit.1] 2).([Port.7] 0))
-[([Port.2] 0).([Port.3] 2).([Port.4] 1)] (([Digit.1] 0).([Port.7] 1))
-[([Port.2] 1).([Port.3] 0).([Port.4] 0)] (([Digit.1] 1).([Port.7] 0))
-[([Port.2] 1).([Port.3] 0).([Port.4] 1)] (([Digit.1] 2).([Port.7] 0))
-[([Port.2] 1).([Port.3] 1).([Port.4] 0)] (([Digit.1] 2).([Port.7] 0))
-[([Port.2] 1).([Port.3] 1).([Port.4] 1)] (([Digit.1] 0).([Port.7] 1))
-[([Port.2] 1).([Port.3] 2).([Port.4] 0)] (([Digit.1] 0).([Port.7] 1))
-[([Port.2] 1).([Port.3] 2).([Port.4] 1)] (([Digit.1] 1).([Port.7] 1))
-[([Port.2] 2).([Port.3] 0).([Port.4] 0)] (([Digit.1] 2).([Port.7] 0))
-[([Port.2] 2).([Port.3] 0).([Port.4] 1)] (([Digit.1] 0).([Port.7] 1))
-[([Port.2] 2).([Port.3] 1).([Port.4] 0)] (([Digit.1] 0).([Port.7] 1))
-[([Port.2] 2).([Port.3] 1).([Port.4] 1)] (([Digit.1] 1).([Port.7] 1))
-[([Port.2] 2).([Port.3] 2).([Port.4] 0)] (([Digit.1] 1).([Port.7] 1))
-[([Port.2] 2).([Port.3] 2).([Port.4] 1)] (([Digit.1] 2).([Port.7] 1))
-[([Port.5] 0).([Port.6] 0).([Port.7] 0)] (([Digit.2] 0).([Port.10] 0))
-[([Port.5] 0).([Port.6] 0).([Port.7] 1)] (([Digit.2] 1).([Port.10] 0))
-[([Port.5] 0).([Port.6] 1).([Port.7] 0)] (([Digit.2] 1).([Port.10] 0))
-[([Port.5] 0).([Port.6] 1).([Port.7] 1)] (([Digit.2] 2).([Port.10] 0))
-[([Port.5] 0).([Port.6] 2).([Port.7] 0)] (([Digit.2] 2).([Port.10] 0))
-[([Port.5] 0).([Port.6] 2).([Port.7] 1)] (([Digit.2] 0).([Port.10] 1))
-[([Port.5] 1).([Port.6] 0).([Port.7] 0)] (([Digit.2] 1).([Port.10] 0))
-[([Port.5] 1).([Port.6] 0).([Port.7] 1)] (([Digit.2] 2).([Port.10] 0))
-[([Port.5] 1).([Port.6] 1).([Port.7] 0)] (([Digit.2] 2).([Port.10] 0))
-[([Port.5] 1).([Port.6] 1).([Port.7] 1)] (([Digit.2] 0).([Port.10] 1))
-[([Port.5] 1).([Port.6] 2).([Port.7] 0)] (([Digit.2] 0).([Port.10] 1))
-[([Port.5] 1).([Port.6] 2).([Port.7] 1)] (([Digit.2] 1).([Port.10] 1))
-[([Port.5] 2).([Port.6] 0).([Port.7] 0)] (([Digit.2] 2).([Port.10] 0))
-[([Port.5] 2).([Port.6] 0).([Port.7] 1)] (([Digit.2] 0).([Port.10] 1))
-[([Port.5] 2).([Port.6] 1).([Port.7] 0)] (([Digit.2] 0).([Port.10] 1))
-[([Port.5] 2).([Port.6] 1).([Port.7] 1)] (([Digit.2] 1).([Port.10] 1))
-[([Port.5] 2).([Port.6] 2).([Port.7] 0)] (([Digit.2] 1).([Port.10] 1))
-[([Port.5] 2).([Port.6] 2).([Port.7] 1)] (([Digit.2] 2).([Port.10] 1))
-[([Port.8] 0).([Port.9] 0).([Port.10] 0)] (([Digit.3] 0).([Port.13] 0))
-[([Port.8] 0).([Port.9] 0).([Port.10] 1)] (([Digit.3] 1).([Port.13] 0))
-[([Port.8] 0).([Port.9] 1).([Port.10] 0)] (([Digit.3] 1).([Port.13] 0))
-[([Port.8] 0).([Port.9] 1).([Port.10] 1)] (([Digit.3] 2).([Port.13] 0))
-[([Port.8] 0).([Port.9] 2).([Port.10] 0)] (([Digit.3] 2).([Port.13] 0))
-[([Port.8] 0).([Port.9] 2).([Port.10] 1)] (([Digit.3] 0).([Port.13] 1))
-[([Port.8] 1).([Port.9] 0).([Port.10] 0)] (([Digit.3] 1).([Port.13] 0))
-[([Port.8] 1).([Port.9] 0).([Port.10] 1)] (([Digit.3] 2).([Port.13] 0))
-[([Port.8] 1).([Port.9] 1).([Port.10] 0)] (([Digit.3] 2).([Port.13] 0))
-[([Port.8] 1).([Port.9] 1).([Port.10] 1)] (([Digit.3] 0).([Port.13] 1))
-[([Port.8] 1).([Port.9] 2).([Port.10] 0)] (([Digit.3] 0).([Port.13] 1))
-[([Port.8] 1).([Port.9] 2).([Port.10] 1)] (([Digit.3] 1).([Port.13] 1))
-[([Port.8] 2).([Port.9] 0).([Port.10] 0)] (([Digit.3] 2).([Port.13] 0))
-[([Port.8] 2).([Port.9] 0).([Port.10] 1)] (([Digit.3] 0).([Port.13] 1))
-[([Port.8] 2).([Port.9] 1).([Port.10] 0)] (([Digit.3] 0).([Port.13] 1))
-[([Port.8] 2).([Port.9] 1).([Port.10] 1)] (([Digit.3] 1).([Port.13] 1))
-[([Port.8] 2).([Port.9] 2).([Port.10] 0)] (([Digit.3] 1).([Port.13] 1))
-[([Port.8] 2).([Port.9] 2).([Port.10] 1)] (([Digit.3] 2).([Port.13] 1))
-[([Port.11] 0).([Port.12] 0).([Port.13] 0)] (([Digit.4] 0).([Port.16] 0))
-[([Port.11] 0).([Port.12] 0).([Port.13] 1)] (([Digit.4] 1).([Port.16] 0))
-[([Port.11] 0).([Port.12] 1).([Port.13] 0)] (([Digit.4] 1).([Port.16] 0))
-[([Port.11] 0).([Port.12] 1).([Port.13] 1)] (([Digit.4] 2).([Port.16] 0))
-[([Port.11] 0).([Port.12] 2).([Port.13] 0)] (([Digit.4] 2).([Port.16] 0))
-[([Port.11] 0).([Port.12] 2).([Port.13] 1)] (([Digit.4] 0).([Port.16] 1))
-[([Port.11] 1).([Port.12] 0).([Port.13] 0)] (([Digit.4] 1).([Port.16] 0))
-[([Port.11] 1).([Port.12] 0).([Port.13] 1)] (([Digit.4] 2).([Port.16] 0))
-[([Port.11] 1).([Port.12] 1).([Port.13] 0)] (([Digit.4] 2).([Port.16] 0))
-[([Port.11] 1).([Port.12] 1).([Port.13] 1)] (([Digit.4] 0).([Port.16] 1))
-[([Port.11] 1).([Port.12] 2).([Port.13] 0)] (([Digit.4] 0).([Port.16] 1))
-[([Port.11] 1).([Port.12] 2).([Port.13] 1)] (([Digit.4] 1).([Port.16] 1))
-[([Port.11] 2).([Port.12] 0).([Port.13] 0)] (([Digit.4] 2).([Port.16] 0))
-[([Port.11] 2).([Port.12] 0).([Port.13] 1)] (([Digit.4] 0).([Port.16] 1))
-[([Port.11] 2).([Port.12] 1).([Port.13] 0)] (([Digit.4] 0).([Port.16] 1))
-[([Port.11] 2).([Port.12] 1).([Port.13] 1)] (([Digit.4] 1).([Port.16] 1))
-[([Port.11] 2).([Port.12] 2).([Port.13] 0)] (([Digit.4] 1).([Port.16] 1))
-[([Port.11] 2).([Port.12] 2).([Port.13] 1)] (([Digit.4] 2).([Port.16] 1))
-[([Port.14] 0).([Port.15] 0).([Port.16] 0)] (([Digit.5] 0).([Port.19] 0))
-[([Port.14] 0).([Port.15] 0).([Port.16] 1)] (([Digit.5] 1).([Port.19] 0))
-[([Port.14] 0).([Port.15] 1).([Port.16] 0)] (([Digit.5] 1).([Port.19] 0))
-[([Port.14] 0).([Port.15] 1).([Port.16] 1)] (([Digit.5] 2).([Port.19] 0))
-[([Port.14] 0).([Port.15] 2).([Port.16] 0)] (([Digit.5] 2).([Port.19] 0))
-[([Port.14] 0).([Port.15] 2).([Port.16] 1)] (([Digit.5] 0).([Port.19] 1))
-[([Port.14] 1).([Port.15] 0).([Port.16] 0)] (([Digit.5] 1).([Port.19] 0))
-[([Port.14] 1).([Port.15] 0).([Port.16] 1)] (([Digit.5] 2).([Port.19] 0))
-[([Port.14] 1).([Port.15] 1).([Port.16] 0)] (([Digit.5] 2).([Port.19] 0))
-[([Port.14] 1).([Port.15] 1).([Port.16] 1)] (([Digit.5] 0).([Port.19] 1))
-[([Port.14] 1).([Port.15] 2).([Port.16] 0)] (([Digit.5] 0).([Port.19] 1))
-[([Port.14] 1).([Port.15] 2).([Port.16] 1)] (([Digit.5] 1).([Port.19] 1))
-[([Port.14] 2).([Port.15] 0).([Port.16] 0)] (([Digit.5] 2).([Port.19] 0))
-[([Port.14] 2).([Port.15] 0).([Port.16] 1)] (([Digit.5] 0).([Port.19] 1))
-[([Port.14] 2).([Port.15] 1).([Port.16] 0)] (([Digit.5] 0).([Port.19] 1))
-[([Port.14] 2).([Port.15] 1).([Port.16] 1)] (([Digit.5] 1).([Port.19] 1))
-[([Port.14] 2).([Port.15] 2).([Port.16] 0)] (([Digit.5] 1).([Port.19] 1))
-[([Port.14] 2).([Port.15] 2).([Port.16] 1)] (([Digit.5] 2).([Port.19] 1))
-[([Port.17] 0).([Port.18] 0).([Port.19] 0)] (([Digit.6] 0).([Digit.7] 0))
-[([Port.17] 0).([Port.18] 0).([Port.19] 1)] (([Digit.6] 1).([Digit.7] 0))
-[([Port.17] 0).([Port.18] 1).([Port.19] 0)] (([Digit.6] 1).([Digit.7] 0))
-[([Port.17] 0).([Port.18] 1).([Port.19] 1)] (([Digit.6] 2).([Digit.7] 0))
-[([Port.17] 0).([Port.18] 2).([Port.19] 0)] (([Digit.6] 2).([Digit.7] 0))
-[([Port.17] 0).([Port.18] 2).([Port.19] 1)] (([Digit.6] 0).([Digit.7] 1))
-[([Port.17] 1).([Port.18] 0).([Port.19] 0)] (([Digit.6] 1).([Digit.7] 0))
-[([Port.17] 1).([Port.18] 0).([Port.19] 1)] (([Digit.6] 2).([Digit.7] 0))
-[([Port.17] 1).([Port.18] 1).([Port.19] 0)] (([Digit.6] 2).([Digit.7] 0))
-[([Port.17] 1).([Port.18] 1).([Port.19] 1)] (([Digit.6] 0).([Digit.7] 1))
-[([Port.17] 1).([Port.18] 2).([Port.19] 0)] (([Digit.6] 0).([Digit.7] 1))
-[([Port.17] 1).([Port.18] 2).([Port.19] 1)] (([Digit.6] 1).([Digit.7] 1))
-[([Port.17] 2).([Port.18] 0).([Port.19] 0)] (([Digit.6] 2).([Digit.7] 0))
-[([Port.17] 2).([Port.18] 0).([Port.19] 1)] (([Digit.6] 0).([Digit.7] 1))
-[([Port.17] 2).([Port.18] 1).([Port.19] 0)] (([Digit.6] 0).([Digit.7] 1))
-[([Port.17] 2).([Port.18] 1).([Port.19] 1)] (([Digit.6] 1).([Digit.7] 1))
-[([Port.17] 2).([Port.18] 2).([Port.19] 0)] (([Digit.6] 1).([Digit.7] 1))
+[[Input.0] 0] [Port.0] 0,
+[[Input.0] 1] [Port.0] 1,
+[[Input.0] 2] [Port.0] 2,
+[[Input.1] 0] [Port.2] 0,
+[[Input.1] 1] [Port.2] 1,
+[[Input.1] 2] [Port.2] 2,
+[[Input.2] 0] [Port.5] 0,
+[[Input.2] 1] [Port.5] 1,
+[[Input.2] 2] [Port.5] 2,
+[[Input.3] 0] [Port.8] 0,
+[[Input.3] 1] [Port.8] 1,
+[[Input.3] 2] [Port.8] 2,
+[[Input.4] 0] [Port.11] 0,
+[[Input.4] 1] [Port.11] 1,
+[[Input.4] 2] [Port.11] 2,
+[[Input.5] 0] [Port.14] 0,
+[[Input.5] 1] [Port.14] 1,
+[[Input.5] 2] [Port.14] 2,
+[[Input.6] 0] [Port.17] 0,
+[[Input.6] 1] [Port.17] 1,
+[[Input.6] 2] [Port.17] 2,
+[[Input.7] 0] [Port.1] 0,
+[[Input.7] 1] [Port.1] 1,
+[[Input.7] 2] [Port.1] 2,
+[[Input.8] 0] [Port.3] 0,
+[[Input.8] 1] [Port.3] 1,
+[[Input.8] 2] [Port.3] 2,
+[[Input.9] 0] [Port.6] 0,
+[[Input.9] 1] [Port.6] 1,
+[[Input.9] 2] [Port.6] 2,
+[[Input.10] 0] [Port.9] 0,
+[[Input.10] 1] [Port.9] 1,
+[[Input.10] 2] [Port.9] 2,
+[[Input.11] 0] [Port.12] 0,
+[[Input.11] 1] [Port.12] 1,
+[[Input.11] 2] [Port.12] 2,
+[[Input.12] 0] [Port.15] 0,
+[[Input.12] 1] [Port.15] 1,
+[[Input.12] 2] [Port.15] 2,
+[[Input.13] 0] [Port.18] 0,
+[[Input.13] 1] [Port.18] 1,
+[[Input.13] 2] [Port.18] 2,
+[([Port.0] 0).([Port.1] 0)] (([Digit.0] 0).([Port.4] 0)),
+[([Port.0] 0).([Port.1] 1)] (([Digit.0] 1).([Port.4] 0)),
+[([Port.0] 0).([Port.1] 2)] (([Digit.0] 2).([Port.4] 0)),
+[([Port.0] 1).([Port.1] 0)] (([Digit.0] 1).([Port.4] 0)),
+[([Port.0] 1).([Port.1] 1)] (([Digit.0] 2).([Port.4] 0)),
+[([Port.0] 1).([Port.1] 2)] (([Digit.0] 0).([Port.4] 1)),
+[([Port.0] 2).([Port.1] 0)] (([Digit.0] 2).([Port.4] 0)),
+[([Port.0] 2).([Port.1] 1)] (([Digit.0] 0).([Port.4] 1)),
+[([Port.0] 2).([Port.1] 2)] (([Digit.0] 1).([Port.4] 1)),
+[([Port.2] 0).([Port.3] 0).([Port.4] 0)] (([Digit.1] 0).([Port.7] 0)),
+[([Port.2] 0).([Port.3] 0).([Port.4] 1)] (([Digit.1] 1).([Port.7] 0)),
+[([Port.2] 0).([Port.3] 1).([Port.4] 0)] (([Digit.1] 1).([Port.7] 0)),
+[([Port.2] 0).([Port.3] 1).([Port.4] 1)] (([Digit.1] 2).([Port.7] 0)),
+[([Port.2] 0).([Port.3] 2).([Port.4] 0)] (([Digit.1] 2).([Port.7] 0)),
+[([Port.2] 0).([Port.3] 2).([Port.4] 1)] (([Digit.1] 0).([Port.7] 1)),
+[([Port.2] 1).([Port.3] 0).([Port.4] 0)] (([Digit.1] 1).([Port.7] 0)),
+[([Port.2] 1).([Port.3] 0).([Port.4] 1)] (([Digit.1] 2).([Port.7] 0)),
+[([Port.2] 1).([Port.3] 1).([Port.4] 0)] (([Digit.1] 2).([Port.7] 0)),
+[([Port.2] 1).([Port.3] 1).([Port.4] 1)] (([Digit.1] 0).([Port.7] 1)),
+[([Port.2] 1).([Port.3] 2).([Port.4] 0)] (([Digit.1] 0).([Port.7] 1)),
+[([Port.2] 1).([Port.3] 2).([Port.4] 1)] (([Digit.1] 1).([Port.7] 1)),
+[([Port.2] 2).([Port.3] 0).([Port.4] 0)] (([Digit.1] 2).([Port.7] 0)),
+[([Port.2] 2).([Port.3] 0).([Port.4] 1)] (([Digit.1] 0).([Port.7] 1)),
+[([Port.2] 2).([Port.3] 1).([Port.4] 0)] (([Digit.1] 0).([Port.7] 1)),
+[([Port.2] 2).([Port.3] 1).([Port.4] 1)] (([Digit.1] 1).([Port.7] 1)),
+[([Port.2] 2).([Port.3] 2).([Port.4] 0)] (([Digit.1] 1).([Port.7] 1)),
+[([Port.2] 2).([Port.3] 2).([Port.4] 1)] (([Digit.1] 2).([Port.7] 1)),
+[([Port.5] 0).([Port.6] 0).([Port.7] 0)] (([Digit.2] 0).([Port.10] 0)),
+[([Port.5] 0).([Port.6] 0).([Port.7] 1)] (([Digit.2] 1).([Port.10] 0)),
+[([Port.5] 0).([Port.6] 1).([Port.7] 0)] (([Digit.2] 1).([Port.10] 0)),
+[([Port.5] 0).([Port.6] 1).([Port.7] 1)] (([Digit.2] 2).([Port.10] 0)),
+[([Port.5] 0).([Port.6] 2).([Port.7] 0)] (([Digit.2] 2).([Port.10] 0)),
+[([Port.5] 0).([Port.6] 2).([Port.7] 1)] (([Digit.2] 0).([Port.10] 1)),
+[([Port.5] 1).([Port.6] 0).([Port.7] 0)] (([Digit.2] 1).([Port.10] 0)),
+[([Port.5] 1).([Port.6] 0).([Port.7] 1)] (([Digit.2] 2).([Port.10] 0)),
+[([Port.5] 1).([Port.6] 1).([Port.7] 0)] (([Digit.2] 2).([Port.10] 0)),
+[([Port.5] 1).([Port.6] 1).([Port.7] 1)] (([Digit.2] 0).([Port.10] 1)),
+[([Port.5] 1).([Port.6] 2).([Port.7] 0)] (([Digit.2] 0).([Port.10] 1)),
+[([Port.5] 1).([Port.6] 2).([Port.7] 1)] (([Digit.2] 1).([Port.10] 1)),
+[([Port.5] 2).([Port.6] 0).([Port.7] 0)] (([Digit.2] 2).([Port.10] 0)),
+[([Port.5] 2).([Port.6] 0).([Port.7] 1)] (([Digit.2] 0).([Port.10] 1)),
+[([Port.5] 2).([Port.6] 1).([Port.7] 0)] (([Digit.2] 0).([Port.10] 1)),
+[([Port.5] 2).([Port.6] 1).([Port.7] 1)] (([Digit.2] 1).([Port.10] 1)),
+[([Port.5] 2).([Port.6] 2).([Port.7] 0)] (([Digit.2] 1).([Port.10] 1)),
+[([Port.5] 2).([Port.6] 2).([Port.7] 1)] (([Digit.2] 2).([Port.10] 1)),
+[([Port.8] 0).([Port.9] 0).([Port.10] 0)] (([Digit.3] 0).([Port.13] 0)),
+[([Port.8] 0).([Port.9] 0).([Port.10] 1)] (([Digit.3] 1).([Port.13] 0)),
+[([Port.8] 0).([Port.9] 1).([Port.10] 0)] (([Digit.3] 1).([Port.13] 0)),
+[([Port.8] 0).([Port.9] 1).([Port.10] 1)] (([Digit.3] 2).([Port.13] 0)),
+[([Port.8] 0).([Port.9] 2).([Port.10] 0)] (([Digit.3] 2).([Port.13] 0)),
+[([Port.8] 0).([Port.9] 2).([Port.10] 1)] (([Digit.3] 0).([Port.13] 1)),
+[([Port.8] 1).([Port.9] 0).([Port.10] 0)] (([Digit.3] 1).([Port.13] 0)),
+[([Port.8] 1).([Port.9] 0).([Port.10] 1)] (([Digit.3] 2).([Port.13] 0)),
+[([Port.8] 1).([Port.9] 1).([Port.10] 0)] (([Digit.3] 2).([Port.13] 0)),
+[([Port.8] 1).([Port.9] 1).([Port.10] 1)] (([Digit.3] 0).([Port.13] 1)),
+[([Port.8] 1).([Port.9] 2).([Port.10] 0)] (([Digit.3] 0).([Port.13] 1)),
+[([Port.8] 1).([Port.9] 2).([Port.10] 1)] (([Digit.3] 1).([Port.13] 1)),
+[([Port.8] 2).([Port.9] 0).([Port.10] 0)] (([Digit.3] 2).([Port.13] 0)),
+[([Port.8] 2).([Port.9] 0).([Port.10] 1)] (([Digit.3] 0).([Port.13] 1)),
+[([Port.8] 2).([Port.9] 1).([Port.10] 0)] (([Digit.3] 0).([Port.13] 1)),
+[([Port.8] 2).([Port.9] 1).([Port.10] 1)] (([Digit.3] 1).([Port.13] 1)),
+[([Port.8] 2).([Port.9] 2).([Port.10] 0)] (([Digit.3] 1).([Port.13] 1)),
+[([Port.8] 2).([Port.9] 2).([Port.10] 1)] (([Digit.3] 2).([Port.13] 1)),
+[([Port.11] 0).([Port.12] 0).([Port.13] 0)] (([Digit.4] 0).([Port.16] 0)),
+[([Port.11] 0).([Port.12] 0).([Port.13] 1)] (([Digit.4] 1).([Port.16] 0)),
+[([Port.11] 0).([Port.12] 1).([Port.13] 0)] (([Digit.4] 1).([Port.16] 0)),
+[([Port.11] 0).([Port.12] 1).([Port.13] 1)] (([Digit.4] 2).([Port.16] 0)),
+[([Port.11] 0).([Port.12] 2).([Port.13] 0)] (([Digit.4] 2).([Port.16] 0)),
+[([Port.11] 0).([Port.12] 2).([Port.13] 1)] (([Digit.4] 0).([Port.16] 1)),
+[([Port.11] 1).([Port.12] 0).([Port.13] 0)] (([Digit.4] 1).([Port.16] 0)),
+[([Port.11] 1).([Port.12] 0).([Port.13] 1)] (([Digit.4] 2).([Port.16] 0)),
+[([Port.11] 1).([Port.12] 1).([Port.13] 0)] (([Digit.4] 2).([Port.16] 0)),
+[([Port.11] 1).([Port.12] 1).([Port.13] 1)] (([Digit.4] 0).([Port.16] 1)),
+[([Port.11] 1).([Port.12] 2).([Port.13] 0)] (([Digit.4] 0).([Port.16] 1)),
+[([Port.11] 1).([Port.12] 2).([Port.13] 1)] (([Digit.4] 1).([Port.16] 1)),
+[([Port.11] 2).([Port.12] 0).([Port.13] 0)] (([Digit.4] 2).([Port.16] 0)),
+[([Port.11] 2).([Port.12] 0).([Port.13] 1)] (([Digit.4] 0).([Port.16] 1)),
+[([Port.11] 2).([Port.12] 1).([Port.13] 0)] (([Digit.4] 0).([Port.16] 1)),
+[([Port.11] 2).([Port.12] 1).([Port.13] 1)] (([Digit.4] 1).([Port.16] 1)),
+[([Port.11] 2).([Port.12] 2).([Port.13] 0)] (([Digit.4] 1).([Port.16] 1)),
+[([Port.11] 2).([Port.12] 2).([Port.13] 1)] (([Digit.4] 2).([Port.16] 1)),
+[([Port.14] 0).([Port.15] 0).([Port.16] 0)] (([Digit.5] 0).([Port.19] 0)),
+[([Port.14] 0).([Port.15] 0).([Port.16] 1)] (([Digit.5] 1).([Port.19] 0)),
+[([Port.14] 0).([Port.15] 1).([Port.16] 0)] (([Digit.5] 1).([Port.19] 0)),
+[([Port.14] 0).([Port.15] 1).([Port.16] 1)] (([Digit.5] 2).([Port.19] 0)),
+[([Port.14] 0).([Port.15] 2).([Port.16] 0)] (([Digit.5] 2).([Port.19] 0)),
+[([Port.14] 0).([Port.15] 2).([Port.16] 1)] (([Digit.5] 0).([Port.19] 1)),
+[([Port.14] 1).([Port.15] 0).([Port.16] 0)] (([Digit.5] 1).([Port.19] 0)),
+[([Port.14] 1).([Port.15] 0).([Port.16] 1)] (([Digit.5] 2).([Port.19] 0)),
+[([Port.14] 1).([Port.15] 1).([Port.16] 0)] (([Digit.5] 2).([Port.19] 0)),
+[([Port.14] 1).([Port.15] 1).([Port.16] 1)] (([Digit.5] 0).([Port.19] 1)),
+[([Port.14] 1).([Port.15] 2).([Port.16] 0)] (([Digit.5] 0).([Port.19] 1)),
+[([Port.14] 1).([Port.15] 2).([Port.16] 1)] (([Digit.5] 1).([Port.19] 1)),
+[([Port.14] 2).([Port.15] 0).([Port.16] 0)] (([Digit.5] 2).([Port.19] 0)),
+[([Port.14] 2).([Port.15] 0).([Port.16] 1)] (([Digit.5] 0).([Port.19] 1)),
+[([Port.14] 2).([Port.15] 1).([Port.16] 0)] (([Digit.5] 0).([Port.19] 1)),
+[([Port.14] 2).([Port.15] 1).([Port.16] 1)] (([Digit.5] 1).([Port.19] 1)),
+[([Port.14] 2).([Port.15] 2).([Port.16] 0)] (([Digit.5] 1).([Port.19] 1)),
+[([Port.14] 2).([Port.15] 2).([Port.16] 1)] (([Digit.5] 2).([Port.19] 1)),
+[([Port.17] 0).([Port.18] 0).([Port.19] 0)] (([Digit.6] 0).([Digit.7] 0)),
+[([Port.17] 0).([Port.18] 0).([Port.19] 1)] (([Digit.6] 1).([Digit.7] 0)),
+[([Port.17] 0).([Port.18] 1).([Port.19] 0)] (([Digit.6] 1).([Digit.7] 0)),
+[([Port.17] 0).([Port.18] 1).([Port.19] 1)] (([Digit.6] 2).([Digit.7] 0)),
+[([Port.17] 0).([Port.18] 2).([Port.19] 0)] (([Digit.6] 2).([Digit.7] 0)),
+[([Port.17] 0).([Port.18] 2).([Port.19] 1)] (([Digit.6] 0).([Digit.7] 1)),
+[([Port.17] 1).([Port.18] 0).([Port.19] 0)] (([Digit.6] 1).([Digit.7] 0)),
+[([Port.17] 1).([Port.18] 0).([Port.19] 1)] (([Digit.6] 2).([Digit.7] 0)),
+[([Port.17] 1).([Port.18] 1).([Port.19] 0)] (([Digit.6] 2).([Digit.7] 0)),
+[([Port.17] 1).([Port.18] 1).([Port.19] 1)] (([Digit.6] 0).([Digit.7] 1)),
+[([Port.17] 1).([Port.18] 2).([Port.19] 0)] (([Digit.6] 0).([Digit.7] 1)),
+[([Port.17] 1).([Port.18] 2).([Port.19] 1)] (([Digit.6] 1).([Digit.7] 1)),
+[([Port.17] 2).([Port.18] 0).([Port.19] 0)] (([Digit.6] 2).([Digit.7] 0)),
+[([Port.17] 2).([Port.18] 0).([Port.19] 1)] (([Digit.6] 0).([Digit.7] 1)),
+[([Port.17] 2).([Port.18] 1).([Port.19] 0)] (([Digit.6] 0).([Digit.7] 1)),
+[([Port.17] 2).([Port.18] 1).([Port.19] 1)] (([Digit.6] 1).([Digit.7] 1)),
+[([Port.17] 2).([Port.18] 2).([Port.19] 0)] (([Digit.6] 1).([Digit.7] 1)),
 [([Port.17] 2).([Port.18] 2).([Port.19] 1)] (([Digit.6] 2).([Digit.7] 1))

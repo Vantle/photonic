@@ -16,9 +16,9 @@ struct Argument {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let argument = Argument::parse();
     let particle = vec!["A"; argument.width.get()].join(".");
-    let mut source = format!("X.{particle},Stage0\n[{particle}.A] Never\n");
+    let mut source = format!("X.{particle},Stage0,\n[{particle}.A] Never,\n");
     for index in 0..argument.length {
-        source.push_str(&format!("[Stage{index}] Stage{}\n", index + 1));
+        source.push_str(&format!("[Stage{index}] Stage{},\n", index + 1));
     }
     let program = photonic::lowering::parse(&source)?;
     let target = photonic::lowering::parse(&format!("X.{particle},Stage{}", argument.length))?;

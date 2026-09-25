@@ -213,7 +213,7 @@ fn exhaustion() {
 fn notation() {
     let numeral = include_str!("../../program/ternary/numeral.particle").trim();
     let carry = include_str!("../../program/ternary/carry.particle");
-    let source = format!("Add.{numeral}, Add.3^0 [Add, Add] () {carry}");
+    let source = format!("Add.{numeral}, Add.3^0, [Add, Add] (), {carry}");
     for (target, expected) in [
         ("3^3.3^2.3^2.3^1", Outcome::Reached),
         (numeral, Outcome::Unreachable),

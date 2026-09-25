@@ -333,18 +333,18 @@ fn occurrence() {
     for source in [
         "[] A",
         "[()] A",
-        "(),() [,] A",
-        "A [A] B [([A] B)] C",
-        "A,A [A] B [A] B [([A] B).([A] B)] C",
+        "(),(), [(), ()] A",
+        "A, [A] B, [[A] B] C",
+        "A,A, [A] B, [A] B, [([A] B).([A] B)] C",
         "([A] B).A,X",
-        "A [A] ([B] C) [([B] C)] D",
-        "A.X [A] B,C [B,C] D",
-        "A.X [A] (Seed [Seed] B) [B] C",
-        "A [A] (B [B] C [([B] C)] D)",
-        "A [A] (B [B] (C [C] D))",
-        "A [A] (B) [B] C [([A] (B))] D",
-        "A [A] (B [B] C) [B] D",
-        "A [A] (B [] C [B,C] D)",
+        "A, [A] ([B] C), [[B] C] D",
+        "A.X, [A] (B, C), [B,C] D",
+        "A.X, [A] (Seed, [Seed] B), [B] C",
+        "A, [A] (B, [B] C, [[B] C] D)",
+        "A, [A] (B, [B] (C, [C] D))",
+        "A, [A] (B), [B] C, [[A] (B)] D",
+        "A, [A] (B, [B] C), [B] D",
+        "A, [A] (B, [] C, [B,C] D)",
     ] {
         verify(source, 3);
     }
@@ -382,9 +382,9 @@ fn verify(source: &str, maximum: usize) {
 #[test]
 fn generated() {
     for data in ["", "()", "A", "A.A", "A,B", "A.A,B", "A.([A] B)"] {
-        for input in ["", "()", "A", "A.A", "A,B", "([A] B)", "A.([A] B)"] {
-            for output in ["B", "B,C", "([A] B)", "(A [A] B)"] {
-                verify(&format!("{data} [A] B [{input}] {output}"), 2);
+        for input in ["", "()", "A", "A.A", "A,B", "[A] B", "A.([A] B)"] {
+            for output in ["B", "(B, C)", "([A] B)", "(A, [A] B)"] {
+                verify(&format!("{data}, [A] B, [{input}] {output}"), 2);
             }
         }
     }
@@ -393,10 +393,10 @@ fn generated() {
 #[test]
 fn incremental() {
     for source in [
-        "A.X [A] (B [B] C) [C] (D [D] E) [E] F",
-        "A [A] (B [] C [B,C] D) [D] E",
-        "A [A] B [A] B [([A] B)] C [C] (D [D] E)",
-        "A.X [A] B,C [B,C] D [D] (E [E] F)",
+        "A.X, [A] (B, [B] C), [C] (D, [D] E), [E] F",
+        "A, [A] (B, [] C, [B,C] D), [D] E",
+        "A, [A] B, [A] B, [[A] B] C, [C] (D, [D] E)",
+        "A.X, [A] (B, C), [B,C] D, [D] (E, [E] F)",
     ] {
         let program = Arc::new(Program::new(&crate::lowering::parse(source).unwrap()));
         let mut state = Arc::new(State::initial(&program));
@@ -443,9 +443,9 @@ fn incremental() {
 #[test]
 fn depth() {
     for depth in [1, 2, 3, 8, 16, 32] {
-        let mut source = format!("Stage{depth} [Stage{depth}] End");
+        let mut source = format!("Stage{depth}, [Stage{depth}] End");
         for level in (0..depth).rev() {
-            source = format!("Stage{level} [Stage{level}] ({source})");
+            source = format!("Stage{level}, [Stage{level}] ({source})");
         }
         verify(&source, depth + 1);
     }

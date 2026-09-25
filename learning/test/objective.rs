@@ -97,13 +97,13 @@ fn single(program: &str, input: &str, output: &str) -> (Program, Example, Vocabu
 #[test]
 fn failure() {
     let setting = Setting::default();
-    let (program, example, vocabulary) = single("[A] B [A] C", "A", "B");
+    let (program, example, vocabulary) = single("[A] B, [A] C", "A", "B");
     let result = evaluate(&program, &[example], &vocabulary, &setting);
     assert!(matches!(result.outcome[0], Outcome::Choice { .. }));
     let (program, example, vocabulary) = single("[A] A.A", "A", "B");
     let result = evaluate(&program, &[example], &vocabulary, &setting);
     assert_eq!(result.outcome[0], Outcome::Divergent);
-    let (program, example, vocabulary) = single("[A] (B) (C)", "A.X", "B.X, C.X");
+    let (program, example, vocabulary) = single("[A] (B, C)", "A.X", "B.X, C.X");
     let result = evaluate(&program, &[example], &vocabulary, &setting);
     assert!(matches!(result.outcome[0], Outcome::Different { .. }));
 }

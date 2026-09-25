@@ -16,11 +16,11 @@ fn compare(actual: &impl Serialize, expected: &impl Serialize) {
 fn resume() {
     for (source, target) in [
         ("", ""),
-        ("A [A] B [B] C", "C"),
-        ("A [A] B [B] A", "Missing"),
-        ("A [A] (B [B] (C [C] D))", "D"),
-        ("Seed.A [Seed] [A] B", "B.([A] B)"),
-        ("A.X,B.X [A,B] C", "C.X,X"),
+        ("A, [A] B, [B] C", "C"),
+        ("A, [A] B, [B] A", "Missing"),
+        ("A, [A] (B, [B] (C, [C] D))", "D"),
+        ("Seed.A, [Seed] [A] B", "B.([A] B)"),
+        ("A.X,B.X, [A,B] C", "C.X,X"),
     ] {
         let mut actual = {
             let program = parse(source).unwrap();
@@ -60,10 +60,10 @@ fn resume() {
 fn exhaustive() {
     for source in [
         "",
-        "A [A] B [B] C",
-        "A [A] B [A] C [B,C] Forbidden",
-        "Seed.A [Seed] [A] B",
-        "A [A] (B [B] (C [C] D))",
+        "A, [A] B, [B] C",
+        "A, [A] B, [A] C, [B,C] Forbidden",
+        "Seed.A, [Seed] [A] B",
+        "A, [A] (B, [B] (C, [C] D))",
     ] {
         let mut actual = Runtime::new(&parse(source).unwrap());
         let mut expected = Runtime::new(&parse(source).unwrap());
@@ -110,7 +110,7 @@ impl Write for Writer {
 #[test]
 fn failure() {
     for remaining in [0, 1, 8, 64, 512, 1024] {
-        let source = parse("A [A] (B [B] (C [C] D))").unwrap();
+        let source = parse("A, [A] (B, [B] (C, [C] D))").unwrap();
         let target = parse("D").unwrap();
         let mut actual = {
             let program = source.clone();
@@ -146,7 +146,7 @@ fn failure() {
 
 #[test]
 fn catalog() {
-    let program = crate::lowering::parse("[A] B [A] B [([A] B)] C").unwrap();
+    let program = crate::lowering::parse("[A] B, [A] B, [[A] B] C").unwrap();
     let mut runtime = crate::runtime::Runtime::new(&program);
     runtime.run(100_000, None);
     let value = serde_json::to_value(runtime.view()).unwrap();

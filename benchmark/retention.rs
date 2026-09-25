@@ -14,12 +14,12 @@ struct Argument {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let argument = Argument::parse();
-    let mut source = String::from("A,Stage.0\n");
+    let mut source = String::from("A,Stage.0,\n");
     for index in 0..argument.width {
-        source.push_str(&format!("[A,A] Never.{index}\n"));
+        source.push_str(&format!("[A,A] Never.{index},\n"));
     }
     for index in 0..argument.length {
-        source.push_str(&format!("[Stage.{index}] Stage.{}\n", index + 1));
+        source.push_str(&format!("[Stage.{index}] Stage.{},\n", index + 1));
     }
     let program = photonic::lowering::parse(&source)?;
     let target = photonic::lowering::parse(&format!("A,Stage.{}", argument.length))?;

@@ -19,7 +19,7 @@ fn boundary() {
     ] {
         check(
             "Invoke.Field.Pack.([Position] 0).([Value] 2)",
-            "([0] 2)",
+            "().([0] 2)",
             library,
             Outcome::Unreachable,
         );
@@ -30,7 +30,7 @@ fn boundary() {
         "Invoke.Field.Pack.([Position] 0).([Value] 3)",
         "Invoke.Field.Pack.([Value] 2)",
     ] {
-        check(source, "([0] 2)", &library(), Outcome::Unreachable);
+        check(source, "().([0] 2)", &library(), Outcome::Unreachable);
     }
     check(
         "Invoke.Field.Pack.([Position] 0).([Value] 2).Extra",
@@ -40,7 +40,7 @@ fn boundary() {
     );
     check(
         "Invoke.Field.Unpack.([Position] 0).([1] 2)",
-        "([Value] 2)",
+        "().([Value] 2)",
         &library(),
         Outcome::Unreachable,
     );
@@ -52,14 +52,14 @@ fn table() {
         for value in 0..3 {
             answer(
                 &format!("Invoke.Field.Unpack.([Position] {index}).([{index}] {value})"),
-                &format!("([Value] {value})"),
-                (0..3).map(|candidate| format!("([Value] {candidate})")),
+                &format!("().([Value] {value})"),
+                (0..3).map(|candidate| format!("().([Value] {candidate})")),
                 &library(),
             );
             answer(
                 &format!("Invoke.Field.Pack.([Position] {index}).([Value] {value})"),
-                &format!("([{index}] {value})"),
-                (0..3).map(|candidate| format!("([{index}] {candidate})")),
+                &format!("().([{index}] {value})"),
+                (0..3).map(|candidate| format!("().([{index}] {candidate})")),
                 &library(),
             );
         }

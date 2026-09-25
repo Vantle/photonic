@@ -98,7 +98,7 @@ try {
     assert.deepEqual(await evaluate(`return [...${figure('check')}.querySelectorAll('.verdict .badge')].map(value => value.textContent)`), ['reached', 'unreachable', 'reached']);
     assert.equal(await evaluate(`return ${figure('involution')}.querySelector('.stepper .badge').textContent`), 'reached');
     assert.equal(await evaluate(`return Number(${figure('involution')}.querySelector('input[type=range]').max)`), await evaluate('return book.record.example.involution.result.event'));
-    await evaluate("document.querySelector('#field .lens .preset button:nth-child(3)').click()");
+    await evaluate("document.querySelector('#field .lens .preset button:nth-child(4)').click()");
     assert.match(await evaluate("return document.querySelector('#field .lens .lowered').textContent"), /2 coherences/);
     assert.deepEqual(await evaluate(`return [...${figure('forever')}.querySelectorAll('.state .badge')].map(value => value.textContent)`), ['start']);
     await evaluate(`${figure('forever')}.querySelector('.state[data-state="16"]').click(); return true`);
@@ -137,9 +137,9 @@ try {
     await evaluate("document.querySelector('#bench .filter .tool').click(); return true");
     await evaluate("[...document.querySelectorAll('#bench .preset button')].find(value => value.textContent === 'Parallel').click(); return true");
     await evaluate(`${figure('first')}.querySelector('.bar button:not(.run)').click(); return true`);
-    await until("return document.querySelector('#bench .editor textarea').value === 'A.X\\n[A] B'");
+    await until("return document.querySelector('#bench .editor textarea').value === 'A.X,\\n[A] B'");
     assert.match(await evaluate("return document.querySelector('#bench .bar a').getAttribute('href')"), /^lightbox\.html\?source=/);
-    assert.equal(await evaluate(`return ${figure('first')}.querySelector('.bar a').getAttribute('href')`), 'lightbox.html?source=A.X%0A%5BA%5D+B');
+    assert.equal(await evaluate(`return ${figure('first')}.querySelector('.bar a').getAttribute('href')`), 'lightbox.html?source=A.X%2C%0A%5BA%5D+B');
     assert.equal(await evaluate("return document.querySelector('.rail .launch').getAttribute('href')"), 'lightbox.html');
     await narrow();
     console.log('The recorded book renders every example, verdict, lens, expression, workbench view and filter from a local file.');
@@ -161,12 +161,12 @@ try {
     assert.match(await evaluate(`return ${figure('first')}.querySelector('.departure').textContent`), /no rule applies here/);
     await evaluate(`
         const area = ${figure('first')}.querySelector('.editor textarea');
-        area.value = 'A.X\\n[A] C';
+        area.value = 'A.X,\\n[A] C';
         area.dispatchEvent(new Event('input'));
         ${figure('first')}.querySelector('.run').click();
         return true`);
     await until(`return [...${figure('first')}.querySelectorAll('.state .token')].some(value => value.textContent === 'C')`);
-    assert.equal(await evaluate(`return ${figure('first')}.querySelector('.editor pre').textContent`), 'A.X\n[A] C\n');
+    assert.equal(await evaluate(`return ${figure('first')}.querySelector('.editor pre').textContent`), 'A.X,\n[A] C\n');
     await evaluate(`
         const area = ${figure('first')}.querySelector('.editor textarea');
         area.value = '[A';
@@ -175,7 +175,7 @@ try {
     await until(`return ${figure('first')}.querySelector('.message').dataset.tone === 'error'`);
     assert.match(await evaluate(`return ${figure('first')}.querySelector('.message').textContent`), /at character/);
     await evaluate(`[...${figure('first')}.querySelectorAll('.bar button')].find(value => value.textContent === 'Reset').click(); return true`);
-    assert.equal(await evaluate(`return ${figure('first')}.querySelector('.editor textarea').value`), 'A.X\n[A] B');
+    assert.equal(await evaluate(`return ${figure('first')}.querySelector('.editor textarea').value`), 'A.X,\n[A] B');
     await evaluate(`
         const area = ${figure('first')}.querySelector('.editor textarea');
         area.value = '人 [A';
@@ -193,11 +193,11 @@ try {
         [...${figure('check')}.querySelectorAll('.bar button')].find(value => value.textContent === 'Workbench').click();
         return true`);
     await until("return document.querySelectorAll('#bench .verdict .claim').length === 3");
-    assert.deepEqual(await evaluate("return [...document.querySelectorAll('#bench .verdict .claim code')].map(value => value.textContent)"), ['B.X [A] B', 'B.X', 'A.X [A] B']);
+    assert.deepEqual(await evaluate("return [...document.querySelectorAll('#bench .verdict .claim code')].map(value => value.textContent)"), ['B.X, [A] B', 'B.X', 'A.X, [A] B']);
     await evaluate(`[...${figure('check')}.querySelectorAll('.bar button')].find(value => value.textContent === 'Reset').click(); return true`);
     await evaluate(`
         const goal = ${figure('check')}.querySelector('.field textarea');
-        goal.value = 'B.X [A] B\\nC.X [A] B';
+        goal.value = 'B.X, [A] B\\nC.X, [A] B';
         ${figure('check')}.querySelector('.run').click();
         return true`);
     await until(`return [...${figure('check')}.querySelectorAll('.verdict .badge')].map(value => value.textContent).join() === 'reached,unreachable'`);
@@ -227,7 +227,7 @@ try {
     await until(`return ${figure('involution')}.querySelector('.pair .state') && !/Run the program again/.test(${figure('involution')}.querySelector('.stepper pre').textContent)`);
     await evaluate(`
         const area = ${figure('involution')}.querySelector('.editor textarea');
-        area.value = 'A\\n[A] A.A';
+        area.value = 'A,\\n[A] A.A';
         area.dispatchEvent(new Event('input'));
         ${figure('involution')}.querySelector('.run').click();
         [...${figure('involution')}.querySelectorAll('.bar button')].find(value => value.textContent === 'Stop').click();
@@ -237,7 +237,7 @@ try {
     await evaluate(`[...${figure('involution')}.querySelectorAll('.bar button')].find(value => value.textContent === 'Reset').click(); return true`);
     await evaluate(`
         const area = document.querySelector('#bench .editor textarea');
-        area.value = 'A, B\\n[A] C\\n[C, B] D';
+        area.value = 'A, B,\\n[A] C,\\n[C, B] D';
         area.dispatchEvent(new Event('input'));
         document.querySelector('#bench .run').click();
         return true`);
@@ -248,7 +248,7 @@ try {
     await open(`${origin}/lightbox.html`, "return book.engine.state === 'live' && document.querySelectorAll('.lightbox .graph .state').length > 0");
     await evaluate(`
         const area = document.querySelector('.lightbox .editor textarea');
-        area.value = 'A, B\\n[A] C\\n[B] D';
+        area.value = 'A, B,\\n[A] C,\\n[B] D';
         area.dispatchEvent(new Event('input'));
         document.querySelector('.lightbox .run').click();
         return true`);

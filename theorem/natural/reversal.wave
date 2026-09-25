@@ -1,11 +1,11 @@
-Case.(([A] 0), ([A] 1), ([A] 2), ([A] End))
+Case.(([A] 0), ([A] 1), ([A] 2), ([A] End)),
 
-[Claim] (Reverse.Step) (Reverse.Left.Feed.A) (Reverse.Right.Prior) (Scheme.A)
-[Reverse.Right.Head, Read.Reverse.Wait.Remnant] Read.Probe.Head
-[Yield.Probe.Prior] Engine
-[Engine.([Digit] 0), Scheme.0] Return.Verdict.True
-[Engine.([Digit] 1), Scheme.1] Return.Verdict.True
-[Engine.([Digit] 2), Scheme.2] Return.Verdict.True
-[Return.Chain.Reverse.Prior, Scheme.End] Return.Verdict.True
+[Claim] (Reverse.Step, Reverse.Left.Feed.A, Reverse.Right.Prior, Scheme.A),
+[Reverse.Right.Head, Read.Reverse.Wait.Remnant] Read.Probe.Head,
+[Yield.Probe.Prior] Engine,
+[Engine.([Digit] 0), Scheme.0] Return.Verdict.True,
+[Engine.([Digit] 1), Scheme.1] Return.Verdict.True,
+[Engine.([Digit] 2), Scheme.2] Return.Verdict.True,
+[Return.Chain.Reverse.Prior, Scheme.End] Return.Verdict.True,
 
 [Holds.(([A] 0), ([A] 1), ([A] 2), ([A] End))] Theorem

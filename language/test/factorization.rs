@@ -27,7 +27,7 @@ fn mutation() {
                 (0..8).map(|index| format!("A{index}")).collect()
             }
             .join(".");
-            let source = format!("{value}.A.A,{value}.B,B,B [{value},B] Done");
+            let source = format!("{value}.A.A,{value}.B,B,B, [{value},B] Done");
             let program = Program::new(&crate::lowering::parse(&source).unwrap());
             let mut state = State::initial(&program);
             let mut index = Index::new(Arc::new(state.clone()));
@@ -63,7 +63,7 @@ fn mutation() {
 #[test]
 fn survival() {
     let value = ["A"; 8].join(".");
-    let source = format!("{value},B [{value},B] Done");
+    let source = format!("{value},B, [{value},B] Done");
     let program = Program::new(&crate::lowering::parse(&source).unwrap());
     let mut state = State::initial(&program);
     let mut index = Index::new(Arc::new(state.clone()));
@@ -103,7 +103,7 @@ fn survival() {
 #[test]
 fn locality() {
     for pattern in ["A.B", "A", ""] {
-        let source = format!("{},A.C [{pattern},C] Done", vec!["A.B"; 32].join(","));
+        let source = format!("{},A.C, [{pattern},C] Done", vec!["A.B"; 32].join(","));
         let program = Program::new(&crate::lowering::parse(&source).unwrap());
         let mut state = State::initial(&program);
         let mut index = Index::new(Arc::new(state.clone()));
@@ -141,12 +141,12 @@ fn prefix() {
     let particle = ["A"; 8].join(".");
     for capacity in [0, 32, 128, 65536] {
         for source in [
-            format!("{particle}.A,B,C [{particle},B,C] Done"),
-            format!("{particle},B,C,C [{particle},B,C] Done"),
-            format!("{particle},{particle},{particle},C [{particle},{particle},C] Done"),
-            format!("{particle},B,C,D [{particle},B,C,D] Done"),
-            format!("{particle},B,C [{particle},,C] Done"),
-            format!("{particle}.([X] Y),B,C [{particle}.([X] Y),B,C] Done"),
+            format!("{particle}.A,B,C, [{particle},B,C] Done"),
+            format!("{particle},B,C,C, [{particle},B,C] Done"),
+            format!("{particle},{particle},{particle},C, [{particle},{particle},C] Done"),
+            format!("{particle},B,C,D, [{particle},B,C,D] Done"),
+            format!("{particle},B,C, [{particle}, (),C] Done"),
+            format!("{particle}.([X] Y),B,C, [{particle}.([X] Y),B,C] Done"),
         ] {
             let program = Program::new(&crate::lowering::parse(&source).unwrap());
             let mut state = State::initial(&program);
@@ -192,7 +192,7 @@ fn prefix() {
 #[test]
 fn saturation() {
     let particle = ["A"; 8].join(".");
-    let source = format!("{particle}.A.A.A.A,B,C [{particle},B,C] Done");
+    let source = format!("{particle}.A.A.A.A,B,C, [{particle},B,C] Done");
     let program = Program::new(&crate::lowering::parse(&source).unwrap());
     let mut state = State::initial(&program);
     let mut index = Index::new(Arc::new(state.clone()));
@@ -226,7 +226,7 @@ fn saturation() {
 #[test]
 fn persistence() {
     let particle = ["A"; 8].join(".");
-    let source = format!("{particle},B,C [{particle},B,C] Done");
+    let source = format!("{particle},B,C, [{particle},B,C] Done");
     let program = Program::new(&crate::lowering::parse(&source).unwrap());
     let mut state = State::initial(&program);
     let mut index = Index::new(Arc::new(state.clone()));
@@ -281,7 +281,7 @@ fn persistence() {
 #[test]
 fn reordering() {
     let particle = ["A"; 8].join(".");
-    let source = format!("{particle}.A,B,C [{particle},B,C] Done");
+    let source = format!("{particle}.A,B,C, [{particle},B,C] Done");
     let program = Program::new(&crate::lowering::parse(&source).unwrap());
     let mut state = State::initial(&program);
     let template = [state.world[1].clone(), state.world[2].clone()];
@@ -347,7 +347,7 @@ fn frontier() {
     let particle = ["A"; 8].join(".");
     let content = ["B.C.E"; 13].join(",");
     let pattern = ["B"; 12].join(",");
-    let source = format!("{particle},{content},C [{particle},{pattern},B.E.E,C] Never");
+    let source = format!("{particle},{content},C, [{particle},{pattern},B.E.E,C] Never");
     let program = Program::new(&crate::lowering::parse(&source).unwrap());
     let mut state = State::initial(&program);
     let mut index = Index::new(Arc::new(state.clone()));

@@ -1,18 +1,18 @@
-Case.(([A] 0), ([A] 1), ([A] 2)).(([B] 0), ([B] 1), ([B] 2)).(([C] 0), ([C] 1), ([C] 2))
+Case.(([A] 0), ([A] 1), ([A] 2)).(([B] 0), ([B] 1), ([B] 2)).(([C] 0), ([C] 1), ([C] 2)),
 
-[Claim] (Function.Ternary.Multiply.Joined.A.B) (Function.Ternary.Multiply.Paired.B.C) (Function.Ternary.Add.Summed.B.C) (Function.Ternary.Multiply.Early.A.B) (Function.Ternary.Multiply.Late.A.C) (Function.Ternary.Multiply.Neutral.1.A) (Function.Ternary.Multiply.Square.A.A) (Function.Ternary.Equal.Trivial.A.0)
-[Low.Joined] Function.Ternary.Multiply.Grouped.C
-[Low.Paired] Function.Ternary.Multiply.Nested.A
-[Low.Grouped, Low.Nested] Function.Ternary.Equal.Associative
-[Low.Summed] Function.Ternary.Multiply.Factored.A
-[Low.Early, Low.Late] Function.Ternary.Add.Expanded
-[Low.Factored, Low.Expanded] Function.Ternary.Equal.Distributive
-[Low.Neutral] Function.Ternary.Equal.Identity.A
-[Low.Square] Function.Ternary.Equal.Inverse.1
-[Return.Trivial, Return.Inverse] Function.Boolean.Or.Invertible
-[Return.Associative, Return.Distributive] Function.Boolean.And.Laws
-[Return.Identity, Return.Invertible] Function.Boolean.And.Units
-[Return.Laws, Return.Units] Function.Boolean.And.Verdict
+[Claim] (Function.Ternary.Multiply.Joined.A.B, Function.Ternary.Multiply.Paired.B.C, Function.Ternary.Add.Summed.B.C, Function.Ternary.Multiply.Early.A.B, Function.Ternary.Multiply.Late.A.C, Function.Ternary.Multiply.Neutral.1.A, Function.Ternary.Multiply.Square.A.A, Function.Ternary.Equal.Trivial.A.0),
+[Low.Joined] Function.Ternary.Multiply.Grouped.C,
+[Low.Paired] Function.Ternary.Multiply.Nested.A,
+[Low.Grouped, Low.Nested] Function.Ternary.Equal.Associative,
+[Low.Summed] Function.Ternary.Multiply.Factored.A,
+[Low.Early, Low.Late] Function.Ternary.Add.Expanded,
+[Low.Factored, Low.Expanded] Function.Ternary.Equal.Distributive,
+[Low.Neutral] Function.Ternary.Equal.Identity.A,
+[Low.Square] Function.Ternary.Equal.Inverse.1,
+[Return.Trivial, Return.Inverse] Function.Boolean.Or.Invertible,
+[Return.Associative, Return.Distributive] Function.Boolean.And.Laws,
+[Return.Identity, Return.Invertible] Function.Boolean.And.Units,
+[Return.Laws, Return.Units] Function.Boolean.And.Verdict,
 [High.Joined],
 [High.Grouped],
 [High.Paired],

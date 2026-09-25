@@ -1,13 +1,13 @@
-Case.(([A] 0), ([A] 1), ([A] 2)).(([B] 0), ([B] 1), ([B] 2))
+Case.(([A] 0), ([A] 1), ([A] 2)).(([B] 0), ([B] 1), ([B] 2)),
 
-[Claim] (Former.A.Expected) (Latter.B.Expected) (Former.A.Gap) (Latter.B.Gap) (Owed.0.Gap)
-[Packed.Expected, Packed.Expected] Function.Ternary.Compare.Expected
-[Packed.Gap, Packed.Gap, Packed.Gap] Function.Ternary.Subtract.Gap
-[Return.Expected.Less, High.1.Gap, Low.0.Gap] Return.Verdict.True
-[Return.Expected.Less, High.1.Gap, Low.1.Gap] Return.Verdict.True
-[Return.Expected.Less, High.1.Gap, Low.2.Gap] Return.Verdict.True
-[Return.Expected.Equal, High.0.Gap, Low.0.Gap] Return.Verdict.True
-[Return.Expected.Greater, High.0.Gap, Low.1.Gap] Return.Verdict.True
-[Return.Expected.Greater, High.0.Gap, Low.2.Gap] Return.Verdict.True
+[Claim] (Former.A.Expected, Latter.B.Expected, Former.A.Gap, Latter.B.Gap, Owed.0.Gap),
+[Packed.Expected, Packed.Expected] Function.Ternary.Compare.Expected,
+[Packed.Gap, Packed.Gap, Packed.Gap] Function.Ternary.Subtract.Gap,
+[Return.Expected.Less, High.1.Gap, Low.0.Gap] Return.Verdict.True,
+[Return.Expected.Less, High.1.Gap, Low.1.Gap] Return.Verdict.True,
+[Return.Expected.Less, High.1.Gap, Low.2.Gap] Return.Verdict.True,
+[Return.Expected.Equal, High.0.Gap, Low.0.Gap] Return.Verdict.True,
+[Return.Expected.Greater, High.0.Gap, Low.1.Gap] Return.Verdict.True,
+[Return.Expected.Greater, High.0.Gap, Low.2.Gap] Return.Verdict.True,
 
 [Holds.(([A] 0), ([A] 1), ([A] 2)).(([B] 0), ([B] 1), ([B] 2))] Theorem

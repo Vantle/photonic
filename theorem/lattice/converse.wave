@@ -1,7 +1,7 @@
 Equation.([Side] Join.([Of] X).([Of] Y)).([Side] Y),
-Equation.([Side] Meet.([Of] X).([Of] Join.([Of] X).([Of] Y))).([Side] X)
+Equation.([Side] Meet.([Of] X).([Of] Join.([Of] X).([Of] Y))).([Side] X),
 
-[Equation.([Side] Join.([Of] X).([Of] Y)).([Side] Y)] Equation.([Side] Meet.([Of] X).([Of] Join.([Of] X).([Of] Y))).([Side] Meet.([Of] X).([Of] Y))
-[Equation.([Side] Meet.([Of] X).([Of] Join.([Of] X).([Of] Y))), Equation.([Side] Meet.([Of] X).([Of] Join.([Of] X).([Of] Y)))] Equation
+[Equation.([Side] Join.([Of] X).([Of] Y)).([Side] Y)] Equation.([Side] Meet.([Of] X).([Of] Join.([Of] X).([Of] Y))).([Side] Meet.([Of] X).([Of] Y)),
+[Equation.([Side] Meet.([Of] X).([Of] Join.([Of] X).([Of] Y))), Equation.([Side] Meet.([Of] X).([Of] Join.([Of] X).([Of] Y)))] Equation,
 
 [Equation.([Side] Meet.([Of] X).([Of] Y)).([Side] X)] Theorem

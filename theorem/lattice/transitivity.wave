@@ -1,12 +1,12 @@
 Equation.([Side] Meet.([Of] X).([Of] Y)).([Side] X),
 Equation.([Side] Meet.([Of] X).([Of] Y)).([Side] X),
 Equation.([Side] Meet.([Of] Y).([Of] Z)).([Side] Y),
-Equation.([Side] Meet.([Of] Meet.([Of] X).([Of] Y)).([Of] Z)).([Side] Meet.([Of] X).([Of] Meet.([Of] Y).([Of] Z)))
+Equation.([Side] Meet.([Of] Meet.([Of] X).([Of] Y)).([Of] Z)).([Side] Meet.([Of] X).([Of] Meet.([Of] Y).([Of] Z))),
 
-[Equation.([Side] Meet.([Of] X).([Of] Y)).([Side] X)] Equation.([Side] Meet.([Of] Meet.([Of] X).([Of] Y)).([Of] Z)).([Side] Meet.([Of] X).([Of] Z))
-[Equation.([Side] Meet.([Of] Y).([Of] Z)).([Side] Y)] Equation.([Side] Meet.([Of] X).([Of] Meet.([Of] Y).([Of] Z))).([Side] Meet.([Of] X).([Of] Y))
-[Equation.([Side] Meet.([Of] Meet.([Of] X).([Of] Y)).([Of] Z)), Equation.([Side] Meet.([Of] Meet.([Of] X).([Of] Y)).([Of] Z))] Equation
-[Equation.([Side] Meet.([Of] X).([Of] Meet.([Of] Y).([Of] Z))), Equation.([Side] Meet.([Of] X).([Of] Meet.([Of] Y).([Of] Z)))] Equation
-[Equation.([Side] Meet.([Of] X).([Of] Y)), Equation.([Side] Meet.([Of] X).([Of] Y))] Equation
+[Equation.([Side] Meet.([Of] X).([Of] Y)).([Side] X)] Equation.([Side] Meet.([Of] Meet.([Of] X).([Of] Y)).([Of] Z)).([Side] Meet.([Of] X).([Of] Z)),
+[Equation.([Side] Meet.([Of] Y).([Of] Z)).([Side] Y)] Equation.([Side] Meet.([Of] X).([Of] Meet.([Of] Y).([Of] Z))).([Side] Meet.([Of] X).([Of] Y)),
+[Equation.([Side] Meet.([Of] Meet.([Of] X).([Of] Y)).([Of] Z)), Equation.([Side] Meet.([Of] Meet.([Of] X).([Of] Y)).([Of] Z))] Equation,
+[Equation.([Side] Meet.([Of] X).([Of] Meet.([Of] Y).([Of] Z))), Equation.([Side] Meet.([Of] X).([Of] Meet.([Of] Y).([Of] Z)))] Equation,
+[Equation.([Side] Meet.([Of] X).([Of] Y)), Equation.([Side] Meet.([Of] X).([Of] Y))] Equation,
 
 [Equation.([Side] Meet.([Of] X).([Of] Z)).([Side] X)] Theorem

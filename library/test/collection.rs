@@ -158,7 +158,7 @@ fn association() {
         invoke(),
         source("boolean", "and"),
         collection("reduce"),
-        "[Function.Twin.True] (Reduce.Done.Left.True, Reduce.Done.Right.True) [Function.Twin.False] (Reduce.Done.Left.False, Reduce.Done.Right.False)",
+        "[Function.Twin.True] (Reduce.Done.Left.True, Reduce.Done.Right.True), [Function.Twin.False] (Reduce.Done.Left.False, Reduce.Done.Right.False)",
     ];
     for (target, expected) in [
         ("True, False", Outcome::Reached),
@@ -171,7 +171,7 @@ fn association() {
 
 #[test]
 fn extension() {
-    let implementation = "[Invert.([Each] Invert).True] Return.False [Invert.([Each] Invert).False] Return.True [Agree.([Operation] Agree).True.True] Return.True [Agree.([Operation] Agree).True.False] Return.False [Agree.([Operation] Agree).False.False] Return.False";
+    let implementation = "[Invert.([Each] Invert).True] Return.False, [Invert.([Each] Invert).False] Return.True, [Agree.([Operation] Agree).True.True] Return.True, [Agree.([Operation] Agree).True.False] Return.False, [Agree.([Operation] Agree).False.False] Return.False";
     witness(
         "Invoke.Pair.Copy.([Value] False).Map.([Each] Invert).Reduce.([Operation] Agree)",
         "True",

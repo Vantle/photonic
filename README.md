@@ -28,9 +28,9 @@
 Photonic is a language of rules. A program is data and the rules that change it. The runtime explores every configuration those rules can reach, and Prism checks each result exactly: a target is reached, unreachable or unknown.
 
 ```
-Light
-[Light] Red
-[Light] Green
+Light,
+[Light] Red,
+[Light] Green,
 [Light] Blue
 ```
 

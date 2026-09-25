@@ -345,7 +345,7 @@ fn transition(search: &mut crate::reduction::Search) -> Option<crate::reduction:
 #[test]
 fn loading() {
     let program =
-        crate::program::Program::new(&crate::lowering::parse("([A] B) [A] B [A] B").unwrap());
+        crate::program::Program::new(&crate::lowering::parse("().([A] B), [A] B, [A] B").unwrap());
     let state = State::initial(&program);
     assert_eq!(state.world.len(), 1);
     assert_eq!(state.world[0].particle.len(), 1);
@@ -374,7 +374,7 @@ fn loading() {
 
 #[test]
 fn startup() {
-    for source in ["[] A", "([] A)"] {
+    for source in ["[] A", "().([] A)"] {
         let program = Arc::new(crate::program::Program::new(
             &crate::lowering::parse(source).unwrap(),
         ));
@@ -433,7 +433,7 @@ fn authority() {
 #[test]
 fn entry() {
     let program = Arc::new(crate::program::Program::new(
-        &crate::lowering::parse("Seed [Seed] (B [B] C)").unwrap(),
+        &crate::lowering::parse("Seed, [Seed] (B, [B] C)").unwrap(),
     ));
     let state = Arc::new(State::initial(&program));
     assert_eq!(state.frame.len(), 1);
@@ -452,7 +452,7 @@ fn entry() {
 
 #[test]
 fn operand() {
-    let source = "[A] B [([A] B)] C";
+    let source = "[A] B, [[A] B] C";
     let program = Arc::new(crate::program::Program::new(
         &crate::lowering::parse(source).unwrap(),
     ));
@@ -490,8 +490,8 @@ fn operand() {
 #[test]
 fn multiplicity() {
     for source in [
-        "[A] B [([A] B).([A] B)] C",
-        "(),() [A] B [([A] B),([A] B)] C",
+        "[A] B, [([A] B).([A] B)] C",
+        "(),(), [A] B, [[A] B,[A] B] C",
     ] {
         let program = Arc::new(crate::program::Program::new(
             &crate::lowering::parse(source).unwrap(),
@@ -505,7 +505,7 @@ fn multiplicity() {
         assert!(exhaustive.snapshot().event.is_empty(), "{source}");
     }
     let program = Arc::new(crate::program::Program::new(
-        &crate::lowering::parse("[A] B [A] B [([A] B).([A] B)] C").unwrap(),
+        &crate::lowering::parse("[A] B, [A] B, [([A] B).([A] B)] C").unwrap(),
     ));
     let initial = Arc::new(State::initial(&program));
     let mut direct = crate::reduction::Search::new(program, initial);
@@ -517,7 +517,7 @@ fn multiplicity() {
 #[test]
 fn invalidation() {
     let program = Arc::new(crate::program::Program::new(
-        &crate::lowering::parse("[A] B [A] B [([A] B)] C").unwrap(),
+        &crate::lowering::parse("[A] B, [A] B, [[A] B] C").unwrap(),
     ));
     let initial = Arc::new(State::initial(&program));
     let mut cached = crate::reduction::Search::new(program.clone(), initial);
@@ -589,13 +589,13 @@ fn remainder() {
 #[test]
 fn target() {
     for (source, target, reached) in [
-        ("A [A] B", "B", false),
-        ("A [A] B", "B [A] B", true),
-        ("A [A] B", "B [A] B [A] B", false),
+        ("A, [A] B", "B", false),
+        ("A, [A] B", "B, [A] B", true),
+        ("A, [A] B", "B, [A] B, [A] B", false),
         ("[A] B", "[A] B", true),
         ("[A] B", "[A] C", false),
-        ("[A] B [([A] B)] C", "C [([A] B)] C", true),
-        ("[A] B [([A] B)] C", "C [A] B [([A] B)] C", false),
+        ("[A] B, [[A] B] C", "C, [[A] B] C", true),
+        ("[A] B, [[A] B] C", "C, [A] B, [[A] B] C", false),
     ] {
         let mut direct = crate::path::Search::new(
             crate::lowering::parse(source).unwrap(),
@@ -627,7 +627,7 @@ fn target() {
 
 #[test]
 fn mixed() {
-    let source = format!("{},X [B] C [A.([B] C)] D [X] A", vec!["A"; 40].join(","));
+    let source = format!("{},X, [B] C, [A.([B] C)] D, [X] A", vec!["A"; 40].join(","));
     let program = Arc::new(crate::program::Program::new(
         &crate::lowering::parse(&source).unwrap(),
     ));

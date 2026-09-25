@@ -33,7 +33,7 @@ fn fixture(width: usize, mode: Mode) -> (State, Vec<Vec<Term>>) {
     let source = (0..width)
         .map(|position| format!("[Value{position}] Result{position}"))
         .collect::<Vec<_>>()
-        .join(" ");
+        .join(", ");
     let program = Program::new(&crate::lowering::parse(&source).unwrap());
     let mut state = State::initial(&program);
     Arc::make_mut(&mut state.frame[0]).particle.clear();

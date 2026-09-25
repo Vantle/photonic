@@ -1,9 +1,9 @@
-Case.(([Less.([Left] X).([Right] X)] True), ([Less.([Left] X).([Right] X)] False)).(([Less.([Left] X).([Right] Y)] True), ([Less.([Left] X).([Right] Y)] False)).(([Less.([Left] Y).([Right] X)] True), ([Less.([Left] Y).([Right] X)] False))
+Case.(([Less.([Left] X).([Right] X)] True), ([Less.([Left] X).([Right] X)] False)).(([Less.([Left] X).([Right] Y)] True), ([Less.([Left] X).([Right] Y)] False)).(([Less.([Left] Y).([Right] X)] True), ([Less.([Left] Y).([Right] X)] False)),
 
-[Claim] (Test) (Keep)
-[Test.([Less.([Left] X).([Right] X)] True)] Vacuous
-[Test.([Less.([Left] X).([Right] Y)] True).([Less.([Left] Y).([Right] X)] True).([Less.([Left] X).([Right] X)] False)] Vacuous
-[Test.([Less.([Left] X).([Right] Y)] False)] Concluded
-[Test.([Less.([Left] Y).([Right] X)] False)] Concluded
+[Claim] (Test, Keep),
+[Test.([Less.([Left] X).([Right] X)] True)] Vacuous,
+[Test.([Less.([Left] X).([Right] Y)] True).([Less.([Left] Y).([Right] X)] True).([Less.([Left] X).([Right] X)] False)] Vacuous,
+[Test.([Less.([Left] X).([Right] Y)] False)] Concluded,
+[Test.([Less.([Left] Y).([Right] X)] False)] Concluded,
 
 [Holds.(([Less.([Left] X).([Right] X)] True), ([Less.([Left] X).([Right] X)] False)).(([Less.([Left] X).([Right] Y)] True), ([Less.([Left] X).([Right] Y)] False)).(([Less.([Left] Y).([Right] X)] True), ([Less.([Left] Y).([Right] X)] False))] Theorem

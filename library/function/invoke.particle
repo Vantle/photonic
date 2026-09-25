@@ -1,4 +1,4 @@
 [Invoke] (
-    Function
+    Function,
     [Return] ()
 )

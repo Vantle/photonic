@@ -140,13 +140,13 @@ fn run() -> usize {
                         let mut source = vec![particle(0); width].join(",");
                         for stage in 0..depth {
                             source.push_str(&format!(
-                                " [{}] {}",
+                                ", [{}] {}",
                                 vec![format!("Stage{stage}"); quantity].join("."),
                                 vec![format!("Stage{}", stage + 1); quantity].join(".")
                             ));
                         }
                         for index in 0..noise {
-                            source.push_str(&format!(" [Absent{index}] Never{index}"));
+                            source.push_str(&format!(", [Absent{index}] Never{index}"));
                         }
                         let target = vec![particle(depth); width].join(",");
                         compare(&source, &target);

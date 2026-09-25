@@ -1,116 +1,116 @@
-Every.1
+Every.1,
 
 [Every.1] (
-    Split.1
-    [Both.1] Theorem
+    Split.1,
+    [Both.1] Theorem,
     [Refuted.2] Counterexample
-)
-[Split.1] Every.2.([[Edge] A.B] True)
-[Proved.2.([[Edge] A.B] True)] Every.2.([[Edge] A.B] False)
-[Proved.2.([[Edge] A.B] False)] Both.1
+),
+[Split.1] Every.2.([[Edge] A.B] True),
+[Proved.2.([[Edge] A.B] True)] Every.2.([[Edge] A.B] False),
+[Proved.2.([[Edge] A.B] False)] Both.1,
 
 [Every.2] (
-    Split.2
-    [Both.2] Proved.2
+    Split.2,
+    [Both.2] Proved.2,
     [Refuted.3] Refuted.2
-)
-[Split.2] Every.3.([[Edge] A.C] True)
-[Proved.3.([[Edge] A.C] True)] Every.3.([[Edge] A.C] False)
-[Proved.3.([[Edge] A.C] False)] Both.2
+),
+[Split.2] Every.3.([[Edge] A.C] True),
+[Proved.3.([[Edge] A.C] True)] Every.3.([[Edge] A.C] False),
+[Proved.3.([[Edge] A.C] False)] Both.2,
 
 [Every.3] (
-    Split.3
-    [Both.3] Proved.3
+    Split.3,
+    [Both.3] Proved.3,
     [Refuted.4] Refuted.3
-)
-[Split.3] Every.4.([[Edge] B.C] True)
-[Proved.4.([[Edge] B.C] True)] Every.4.([[Edge] B.C] False)
-[Proved.4.([[Edge] B.C] False)] Both.3
+),
+[Split.3] Every.4.([[Edge] B.C] True),
+[Proved.4.([[Edge] B.C] True)] Every.4.([[Edge] B.C] False),
+[Proved.4.([[Edge] B.C] False)] Both.3,
 
 [Every.4] (
-    Test.4
-    [Both.4] Proved.4
+    Test.4,
+    [Both.4] Proved.4,
     [Refuted.5] Refuted.4
-)
-[Test.4] (Triple.1.([Edge] A.B).([Edge] A.C).([Edge] B.C))
-[Uniform.1.True] Both.4
-[Uniform.1.False] Split.4
-[Split.4] Every.5.([[Edge] A.D] True)
-[Proved.5.([[Edge] A.D] True)] Every.5.([[Edge] A.D] False)
-[Proved.5.([[Edge] A.D] False)] Both.4
+),
+[Test.4] (Triple.1.([Edge] A.B).([Edge] A.C).([Edge] B.C)),
+[Uniform.1.True] Both.4,
+[Uniform.1.False] Split.4,
+[Split.4] Every.5.([[Edge] A.D] True),
+[Proved.5.([[Edge] A.D] True)] Every.5.([[Edge] A.D] False),
+[Proved.5.([[Edge] A.D] False)] Both.4,
 
 [Every.5] (
-    Split.5
-    [Both.5] Proved.5
+    Split.5,
+    [Both.5] Proved.5,
     [Refuted.6] Refuted.5
-)
-[Split.5] Every.6.([[Edge] B.D] True)
-[Proved.6.([[Edge] B.D] True)] Every.6.([[Edge] B.D] False)
-[Proved.6.([[Edge] B.D] False)] Both.5
+),
+[Split.5] Every.6.([[Edge] B.D] True),
+[Proved.6.([[Edge] B.D] True)] Every.6.([[Edge] B.D] False),
+[Proved.6.([[Edge] B.D] False)] Both.5,
 
 [Every.6] (
-    Test.6
-    [Both.6] Proved.6
+    Test.6,
+    [Both.6] Proved.6,
     [Refuted.7] Refuted.6
-)
-[Test.6] (Triple.2.([Edge] A.B).([Edge] A.D).([Edge] B.D))
-[Uniform.2.True] Both.6
-[Uniform.2.False] Split.6
-[Split.6] Every.7.([[Edge] C.D] True)
-[Proved.7.([[Edge] C.D] True)] Every.7.([[Edge] C.D] False)
-[Proved.7.([[Edge] C.D] False)] Both.6
+),
+[Test.6] (Triple.2.([Edge] A.B).([Edge] A.D).([Edge] B.D)),
+[Uniform.2.True] Both.6,
+[Uniform.2.False] Split.6,
+[Split.6] Every.7.([[Edge] C.D] True),
+[Proved.7.([[Edge] C.D] True)] Every.7.([[Edge] C.D] False),
+[Proved.7.([[Edge] C.D] False)] Both.6,
 
 [Every.7] (
-    Test.7
-    [Both.7] Proved.7
+    Test.7,
+    [Both.7] Proved.7,
     [Refuted.8] Refuted.7
-)
-[Test.7] (Triple.3.([Edge] A.C).([Edge] A.D).([Edge] C.D)) (Triple.4.([Edge] B.C).([Edge] B.D).([Edge] C.D))
-[Uniform.3, Uniform.4] Function.Boolean.Or.Some.4
-[Return.Some.4.True] Both.7
-[Return.Some.4.False] Split.7
-[Split.7] Every.8.([[Edge] A.E] True)
-[Proved.8.([[Edge] A.E] True)] Every.8.([[Edge] A.E] False)
-[Proved.8.([[Edge] A.E] False)] Both.7
+),
+[Test.7] (Triple.3.([Edge] A.C).([Edge] A.D).([Edge] C.D), Triple.4.([Edge] B.C).([Edge] B.D).([Edge] C.D)),
+[Uniform.3, Uniform.4] Function.Boolean.Or.Some.4,
+[Return.Some.4.True] Both.7,
+[Return.Some.4.False] Split.7,
+[Split.7] Every.8.([[Edge] A.E] True),
+[Proved.8.([[Edge] A.E] True)] Every.8.([[Edge] A.E] False),
+[Proved.8.([[Edge] A.E] False)] Both.7,
 
 [Every.8] (
-    Split.8
-    [Both.8] Proved.8
+    Split.8,
+    [Both.8] Proved.8,
     [Refuted.9] Refuted.8
-)
-[Split.8] Every.9.([[Edge] B.E] True)
-[Proved.9.([[Edge] B.E] True)] Every.9.([[Edge] B.E] False)
-[Proved.9.([[Edge] B.E] False)] Both.8
+),
+[Split.8] Every.9.([[Edge] B.E] True),
+[Proved.9.([[Edge] B.E] True)] Every.9.([[Edge] B.E] False),
+[Proved.9.([[Edge] B.E] False)] Both.8,
 
 [Every.9] (
-    Test.9
-    [Both.9] Proved.9
+    Test.9,
+    [Both.9] Proved.9,
     [Refuted.10] Refuted.9
-)
-[Test.9] (Triple.5.([Edge] A.B).([Edge] A.E).([Edge] B.E))
-[Uniform.5.True] Both.9
-[Uniform.5.False] Split.9
-[Split.9] Every.10.([[Edge] C.E] True)
-[Proved.10.([[Edge] C.E] True)] Every.10.([[Edge] C.E] False)
-[Proved.10.([[Edge] C.E] False)] Both.9
+),
+[Test.9] (Triple.5.([Edge] A.B).([Edge] A.E).([Edge] B.E)),
+[Uniform.5.True] Both.9,
+[Uniform.5.False] Split.9,
+[Split.9] Every.10.([[Edge] C.E] True),
+[Proved.10.([[Edge] C.E] True)] Every.10.([[Edge] C.E] False),
+[Proved.10.([[Edge] C.E] False)] Both.9,
 
 [Every.10] (
-    Test.10
-    [Both.10] Proved.10
+    Test.10,
+    [Both.10] Proved.10,
     [Counterexample] Refuted.10
-)
-[Test.10] (Triple.6.([Edge] A.C).([Edge] A.E).([Edge] C.E)) (Triple.7.([Edge] B.C).([Edge] B.E).([Edge] C.E))
-[Uniform.6, Uniform.7] Function.Boolean.Or.Some.7
-[Return.Some.7.True] Both.10
-[Return.Some.7.False] Split.10
-[Split.10] Case.([[Edge] D.E] True)
-[Holds.([[Edge] D.E] True)] Case.([[Edge] D.E] False)
-[Holds.([[Edge] D.E] False)] Both.10
+),
+[Test.10] (Triple.6.([Edge] A.C).([Edge] A.E).([Edge] C.E), Triple.7.([Edge] B.C).([Edge] B.E).([Edge] C.E)),
+[Uniform.6, Uniform.7] Function.Boolean.Or.Some.7,
+[Return.Some.7.True] Both.10,
+[Return.Some.7.False] Split.10,
+[Split.10] Case.([[Edge] D.E] True),
+[Holds.([[Edge] D.E] True)] Case.([[Edge] D.E] False),
+[Holds.([[Edge] D.E] False)] Both.10,
 
-[Claim] (Triple.8.([Edge] A.D).([Edge] A.E).([Edge] D.E)) (Triple.9.([Edge] B.D).([Edge] B.E).([Edge] D.E)) (Triple.10.([Edge] C.D).([Edge] C.E).([Edge] D.E))
-[Uniform.8, Uniform.9] Function.Boolean.Or.Some.9
-[Return.Some.9, Uniform.10] Function.Boolean.Or.Verdict
-[Triple.True.True.True] Uniform.True
-[Triple.True.True.False] Uniform.False
-[Triple.True.False.False] Uniform.False
+[Claim] (Triple.8.([Edge] A.D).([Edge] A.E).([Edge] D.E), Triple.9.([Edge] B.D).([Edge] B.E).([Edge] D.E), Triple.10.([Edge] C.D).([Edge] C.E).([Edge] D.E)),
+[Uniform.8, Uniform.9] Function.Boolean.Or.Some.9,
+[Return.Some.9, Uniform.10] Function.Boolean.Or.Verdict,
+[Triple.True.True.True] Uniform.True,
+[Triple.True.True.False] Uniform.False,
+[Triple.True.False.False] Uniform.False,
 [Triple.False.False.False] Uniform.True

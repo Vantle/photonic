@@ -1,10 +1,10 @@
-Push.([Digit] 0).Zero, Stage.1
-[Built, Stage.1] (Push.([Digit] 0)) (Forget.Stage.2)
-[Built, Clean.Stage.2] (Push.([Digit] 1)) (Forget.Stage.3)
-[Built, Clean.Stage.3] (Push.Subtract) (Forget.Stage.4)
-[Built, Clean.Stage.4] (Push.([Digit] 0)) (Forget.Stage.5)
-[Built, Clean.Stage.5] Function.Expression.Evaluate
-[Return.Expression.Evaluate.Negative] (Read) (Forget.Inspect.0)
-[Yield.([Digit] 0), Clean.Inspect.0] (Read) (Forget.Inspect.1)
-[Yield.([Digit] 0), Clean.Inspect.1] (Read) (Forget.Inspect.2)
+Push.([Digit] 0).Zero, Stage.1,
+[Built, Stage.1] (Push.([Digit] 0), Forget.Stage.2),
+[Built, Clean.Stage.2] (Push.([Digit] 1), Forget.Stage.3),
+[Built, Clean.Stage.3] (Push.Subtract, Forget.Stage.4),
+[Built, Clean.Stage.4] (Push.([Digit] 0), Forget.Stage.5),
+[Built, Clean.Stage.5] Function.Expression.Evaluate,
+[Return.Expression.Evaluate.Negative] (Read, Forget.Inspect.0),
+[Yield.([Digit] 0), Clean.Inspect.0] (Read, Forget.Inspect.1),
+[Yield.([Digit] 0), Clean.Inspect.1] (Read, Forget.Inspect.2),
 [Yield.([Digit] 1), Clean.Inspect.2] Done

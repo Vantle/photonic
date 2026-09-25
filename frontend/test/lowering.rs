@@ -1,11 +1,35 @@
 use frontend::lowering::{self, Failure};
-use frontend::source::Value;
+use frontend::source::{Program, Value};
 
 fn atom(value: &[&str]) -> Vec<Value> {
     value
         .iter()
         .map(|value| Value::Atom((*value).to_owned()))
         .collect()
+}
+
+fn same(left: &str, right: &str) {
+    let canonical = |source: &str| {
+        let program = lowering::parse(source).unwrap();
+        let mut initial = program.initial;
+        initial.iter_mut().for_each(|particle| particle.sort());
+        initial.sort();
+        let mut rule = program
+            .rule
+            .iter()
+            .map(|rule| rule.canonical())
+            .collect::<Vec<_>>();
+        rule.sort();
+        (initial, rule)
+    };
+    assert_eq!(canonical(left), canonical(right), "{left} and {right}");
+}
+
+fn syntax(source: &str) -> String {
+    match lowering::parse(source) {
+        Err(Failure::Syntax { message, .. }) => message,
+        other => panic!("expected a syntax failure for {source}, found {other:?}"),
+    }
 }
 
 #[test]
@@ -21,24 +45,40 @@ fn conjunction() {
 }
 
 #[test]
-fn coherence() {
-    let source = lowering::parse("A.X, B.Y [A, B] (C, D) [C, D] E").unwrap();
+fn partition() {
+    let source = lowering::parse("A.X, B.Y, [A, B] (C, D), [C, D] E").unwrap();
     assert_eq!(source.initial, [atom(&["A", "X"]), atom(&["B", "Y"])]);
     assert_eq!(source.rule[0].input, [atom(&["A"]), atom(&["B"])]);
     assert_eq!(source.rule[0].output.len(), 2);
     assert_eq!(source.rule[0].output[0].particle, atom(&["C"]));
     assert_eq!(source.rule[0].output[1].particle, atom(&["D"]));
-    assert_eq!(
-        lowering::parse("[A, B, C] (A) (B) (C),").unwrap().rule[0]
-            .output
-            .len(),
-        3
+    let source = lowering::parse("[1] 1, [2.3] 6, [3.7] 21, 3.7").unwrap();
+    assert_eq!(source.initial, [atom(&["3", "7"])]);
+    assert_eq!(source.rule.len(), 3);
+    assert_eq!(source.rule[2].output.len(), 1);
+    same(
+        "[1] 1, [2.3] 6, [3.7] 21, 3.7",
+        "3.7, [3.7] 21, [2.3] 6, [1] 1",
     );
+    same("A\n[A] B\n,\nC", "A [A] B, C");
+    same("A,, B,", "A, B");
+}
+
+#[test]
+fn join() {
+    same("A B", "A.B");
+    same("A (B, C)", "A(B, C)");
+    same("[A] (B) (C)", "[A] B.C");
+    same("[A] B C, D", "[A] B.C, D");
+    same("X [A] B", "X.([A] B)");
+    same("[A] B [B] C", "[A] B.([B] C)");
+    let source = lowering::parse("[A] (B) (C)").unwrap();
+    assert_eq!(source.rule[0].output.len(), 1);
 }
 
 #[test]
 fn closure() {
-    let source = lowering::parse("([A] B).A [[A] B] [A] C").unwrap();
+    let source = lowering::parse("([A] B).A, [[A] B] [A] C").unwrap();
     let Value::Rule { rule } = &source.initial[0][0] else {
         panic!("expected rule");
     };
@@ -48,6 +88,7 @@ fn closure() {
         panic!("expected rule");
     };
     assert_eq!(rule.output[0].particle, atom(&["C"]));
+    assert!(source.rule[0].output[0].body.is_none());
     let source = lowering::parse("[[A,B]] ([B])").unwrap();
     let Value::Rule { rule } = &source.rule[0].input[0][0] else {
         panic!("expected rule");
@@ -58,12 +99,17 @@ fn closure() {
         source.rule[0].output[0].body.as_ref().unwrap()[0].input,
         [atom(&["B"])]
     );
+    let source = lowering::parse("().([A] B), [A] B").unwrap();
+    assert!(
+        matches!(&source.initial[..], [particle] if matches!(&particle[..], [Value::Rule { .. }]))
+    );
+    assert_eq!(source.rule.len(), 1);
 }
 
 #[test]
 fn scope() {
     let source =
-        lowering::parse("Enter [Enter] (Make [Make] [Call] (Payload [Payload] Done))").unwrap();
+        lowering::parse("Enter, [Enter] (Make, [Make] [Call] (Payload, [Payload] Done))").unwrap();
     let outer = &source.rule[0].output[0];
     assert_eq!(outer.particle, atom(&["Make"]));
     let Value::Rule { rule } = &outer.body.as_ref().unwrap()[0].output[0].particle[0] else {
@@ -73,19 +119,36 @@ fn scope() {
         rule.output[0].body.as_ref().unwrap()[0].input,
         [atom(&["Payload"])]
     );
+    let source = lowering::parse("[A] (B, (X, [X] Y))").unwrap();
+    assert_eq!(source.rule[0].output.len(), 2);
+    assert!(source.rule[0].output[0].body.is_none());
+    assert_eq!(source.rule[0].output[1].particle, atom(&["X"]));
+    assert_eq!(source.rule[0].output[1].body.as_ref().unwrap().len(), 1);
+    let source = lowering::parse("[A] ([B] C, [C] D,)").unwrap();
+    assert!(source.rule[0].output[0].particle.is_empty());
+    assert_eq!(source.rule[0].output[0].body.as_ref().unwrap().len(), 2);
+    let source = lowering::parse("[A] (X [X] Y)").unwrap();
+    assert!(source.rule[0].output[0].body.is_none());
+    assert!(matches!(
+        source.rule[0].output[0].particle[..],
+        [Value::Atom(_), Value::Rule { .. }]
+    ));
 }
 
 #[test]
 fn empty() {
-    let source = lowering::parse("() [()] A, [A] (), [A], [] A").unwrap();
+    let source = lowering::parse("(), [()] A, [A] (), [A], [] A, [(), ()] B").unwrap();
     assert_eq!(source.initial, [Vec::<Value>::new()]);
     assert_eq!(source.rule[0].input, [Vec::<Value>::new()]);
     assert_eq!(source.rule[1].output.len(), 1);
     assert!(source.rule[1].output[0].particle.is_empty());
     assert!(source.rule[2].output.is_empty());
     assert!(source.rule[3].input.is_empty());
+    assert_eq!(source.rule[4].input.len(), 2);
     let source = lowering::parse("").unwrap();
     assert!(source.initial.is_empty() && source.rule.is_empty());
+    same("(,)", "()");
+    same("[,] A", "[] A");
 }
 
 #[test]
@@ -106,7 +169,7 @@ fn alphabet() {
 
 #[test]
 fn unicode() {
-    let source = lowering::parse("人.世界 [人] 🌋").unwrap();
+    let source = lowering::parse("人.世界, [人] 🌋").unwrap();
     assert_eq!(source.initial, [atom(&["人", "世界"])]);
     assert_eq!(source.rule[0].output[0].particle, atom(&["🌋"]));
     let Failure::Parse(frontend::failure::Failure::Syntax { span, .. }) =
@@ -120,17 +183,26 @@ fn unicode() {
 
 #[test]
 fn malformed() {
-    for source in ["A..B", ".A", "[A] B.", "[A B] C", "[A] (B,C [B] D)"] {
-        assert!(lowering::parse(source).is_err(), "{source}");
+    for source in ["A..B", ".A", "[A] B.", "A,.", "[A] B.,", "(A]", "[A"] {
+        assert!(
+            matches!(
+                lowering::parse(source),
+                Err(Failure::Parse(frontend::failure::Failure::Syntax { .. }))
+            ),
+            "{source}"
+        );
     }
+    assert!(syntax("(X, [A] B)").contains("output"));
+    assert!(syntax("[([A] B)] C").contains("input"));
+    assert!(syntax("[A] ((X, [X] Y), [B] C)").contains("scope"));
     assert!(matches!(
-        lowering::parse(&"[".repeat(129)),
-        Err(Failure::Parse(frontend::failure::Failure::Depth {
-            limit: frontend::parser::DEPTH,
-            ..
-        }))
+        lowering::parse("[A] (B, C, [B] D)"),
+        Err(Failure::Scope { count: 2, .. })
     ));
-    assert!(lowering::parse(&format!("{}A{}", "(".repeat(128), ")".repeat(128))).is_ok());
+    assert!(matches!(
+        lowering::parse("[Enter] (A(B,C), [A] D)"),
+        Err(Failure::Scope { count: 2, .. })
+    ));
 }
 
 #[test]
@@ -147,30 +219,34 @@ fn schema() {
         r#"{"initial":[[{"rule":{"input":[["A"]],"output":[]},"negative":[["C"]]}]]}"#,
         r#"{"initial":[[{"rule":{"input":[["A"]],"output":[],"negative":[["C"]]}}]]}"#,
     ] {
-        assert!(
-            serde_json::from_str::<frontend::source::Program>(source).is_err(),
-            "{source}"
-        );
+        assert!(serde_json::from_str::<Program>(source).is_err(), "{source}");
     }
 }
 
 #[test]
-fn recursion() {
-    assert!(lowering::parse(&"[A] ".repeat(128)).is_ok());
-    for count in [129, 10_000] {
-        let error = lowering::parse(&"[A] ".repeat(count)).unwrap_err();
-        let Failure::Depth { limit, span } = error else {
+fn depth() {
+    let limit = frontend::parser::DEPTH;
+    assert!(lowering::parse(&"[A] ".repeat(limit)).is_ok());
+    for count in [limit + 1, 10_000] {
+        let Err(Failure::Parse(frontend::failure::Failure::Depth { limit: found, span })) =
+            lowering::parse(&"[A] ".repeat(count))
+        else {
             panic!("expected depth diagnostic");
         };
-        assert_eq!(limit, 128);
-        assert_eq!(span.offset(), 128 * 4);
+        assert_eq!(found, limit);
+        assert_eq!(span.offset(), limit * 4);
     }
-    let mixed = format!("{}({})", "[A] ".repeat(127), "[B] ".repeat(2));
+    let mixed = format!("{}({})", "[A] ".repeat(limit - 1), "[B] ".repeat(2));
     assert!(matches!(
         lowering::parse(&mixed),
-        Err(Failure::Depth { .. })
+        Err(Failure::Parse(frontend::failure::Failure::Depth { .. }))
     ));
     assert!(lowering::parse(&"[A] B, ".repeat(10_000)).is_ok());
+    assert!(matches!(
+        lowering::parse(&"[".repeat(limit + 1)),
+        Err(Failure::Parse(frontend::failure::Failure::Depth { .. }))
+    ));
+    assert!(lowering::parse(&format!("{}A{}", "(".repeat(limit), ")".repeat(limit))).is_ok());
 }
 
 #[test]
@@ -191,7 +267,7 @@ fn distribution() {
             lowering::parse(expanded).unwrap().initial,
             "{compact}"
         );
-        for source in [format!("[{compact}] Result"), format!("[Seed] {compact}")] {
+        for source in [format!("[{compact}] Result"), format!("[Seed] ({compact})")] {
             let expected = source.replace(compact, expanded);
             assert_eq!(
                 lowering::parse(&source).unwrap().rule[0].canonical(),
@@ -200,10 +276,6 @@ fn distribution() {
             );
         }
     }
-    assert_eq!(
-        lowering::parse("[A] (B)(C)").unwrap().rule[0].output.len(),
-        2
-    );
     assert_eq!(
         lowering::parse("[A] (B,C).(D,E)").unwrap().rule[0]
             .output
@@ -218,10 +290,6 @@ fn distribution() {
             .iter()
             .all(|particle| particle.len() == 2 && matches!(particle[1], Value::Rule { .. }))
     );
-    assert!(matches!(
-        lowering::parse("[Enter] (A(B,C) [A] D)"),
-        Err(Failure::Body { count: 2, .. })
-    ));
 }
 
 #[test]

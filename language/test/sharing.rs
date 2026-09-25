@@ -37,7 +37,7 @@ fn projection() {
         let particle = ["A"; 8].join(".");
         let companion = if duplicate { particle.as_str() } else { "B" };
         let source = format!(
-            "{particle}.A,{companion},C,D,C,D,C.D [C,{particle},{companion}] First [{particle},{companion},D] Second"
+            "{particle}.A,{companion},C,D,C,D,C.D, [C,{particle},{companion}] First, [{particle},{companion},D] Second"
         );
         let program = Program::new(&crate::lowering::parse(&source).unwrap());
         let mut state = State::initial(&program);
@@ -152,7 +152,7 @@ fn projection() {
 
 #[test]
 fn revision() {
-    let program = Program::new(&crate::lowering::parse("A,B [A] B").unwrap());
+    let program = Program::new(&crate::lowering::parse("A,B, [A] B").unwrap());
     let state = Arc::new(State::initial(&program));
     let mut left = Index::new(state.clone());
     let right = Index::new(state.clone());
@@ -253,13 +253,13 @@ fn unfinished() {
         let particle = format!("{}.([X] Y)", ["A"; 8].join("."));
         let source = if productive {
             format!(
-                "{particle}.A,I,I,I,I,J,J,J,J,J,K.L.M,K.L.M,K.L.M,K.L.M,K.L.M,K.L.M [{particle},I,J,K] First [L,{particle},I,J] Second [{particle},I,J,M] Third"
+                "{particle}.A,I,I,I,I,J,J,J,J,J,K.L.M,K.L.M,K.L.M,K.L.M,K.L.M,K.L.M, [{particle},I,J,K] First, [L,{particle},I,J] Second, [{particle},I,J,M] Third"
             )
         } else {
             let content = ["I.J.K.L.M"; 10].join(",");
             let pattern = ["I"; 9].join(",");
             format!(
-                "{particle},{content},K.L.M [{particle},{pattern},I.J.J,K] First [L,{particle},{pattern},I.J.J] Second [{particle},{pattern},I.J.J,M] Third"
+                "{particle},{content},K.L.M, [{particle},{pattern},I.J.J,K] First, [L,{particle},{pattern},I.J.J] Second, [{particle},{pattern},I.J.J,M] Third"
             )
         };
         let program = Program::new(&crate::lowering::parse(&source).unwrap());
@@ -387,7 +387,7 @@ fn mutation() {
     let content = ["I.J.K.L.M"; 8].join(",");
     let pattern = ["I"; 7].join(",");
     let program = Program::new(&crate::lowering::parse(&format!(
-        "{particle},{content},K.L.M [{particle},{pattern},I.J.J,K] First [L,{particle},{pattern},I.J.J] Second [{particle},{pattern},I.J.J,M] Third"
+        "{particle},{content},K.L.M, [{particle},{pattern},I.J.J,K] First, [L,{particle},{pattern},I.J.J] Second, [{particle},{pattern},I.J.J,M] Third"
     )).unwrap());
     for capacity in [0, 32, 128, 512, 65536] {
         for replacement in [false, true] {

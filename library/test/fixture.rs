@@ -64,28 +64,28 @@ impl Fixture {
     pub fn natural(&mut self, digit: &[u64], start: &str, label: &str, done: &str) {
         let Some((last, rest)) = digit.split_last() else {
             self.rule
-                .push(format!("[{start}] ({label}.Zero) (Clean.{done})"));
+                .push(format!("[{start}] ({label}.Zero, Clean.{done})"));
             return;
         };
         let mut stage = self.stage();
         self.rule
-            .push(format!("[{start}] (Push.([Digit] {last}).Zero) ({stage})"));
+            .push(format!("[{start}] (Push.([Digit] {last}).Zero, {stage})"));
         for digit in rest.iter().rev() {
             let next = self.stage();
             self.rule.push(format!(
-                "[Built, {stage}] (Push.([Digit] {digit})) (Forget.{next})"
+                "[Built, {stage}] (Push.([Digit] {digit}), Forget.{next})"
             ));
             stage = format!("Clean.{next}");
         }
         self.rule
-            .push(format!("[Built, {stage}] ({label}) (Forget.{done})"));
+            .push(format!("[Built, {stage}] ({label}, Forget.{done})"));
     }
 
     pub fn vector(&mut self, item: &[Value], start: &str, label: &str, done: &str) {
         let holder = self.stage();
         let mut next = self.stage();
         self.rule
-            .push(format!("[{start}] ({holder}.Empty) ({next})"));
+            .push(format!("[{start}] ({holder}.Empty, {next})"));
         for value in item.iter().rev() {
             let piece = self.stage();
             let built = self.stage();
@@ -93,16 +93,16 @@ impl Fixture {
             let wait = self.stage();
             let go = self.stage();
             let link = self.stage();
-            self.rule.push(format!("[Clean.{built}] ({wait}) ({go})"));
+            self.rule.push(format!("[Clean.{built}] ({wait}, {go})"));
             self.rule.push(format!("[{go}, {holder}] Link.{link}"));
             self.rule.push(format!("[Linked.{link}, {piece}] Insert"));
             let after = self.stage();
             self.rule
-                .push(format!("[Stored, {wait}] ({holder}) (Forget.{after})"));
+                .push(format!("[Stored, {wait}] ({holder}, Forget.{after})"));
             next = format!("Clean.{after}");
         }
         self.rule
-            .push(format!("[{next}, {holder}] ({label}) (Forget.{done})"));
+            .push(format!("[{next}, {holder}] ({label}, Forget.{done})"));
     }
 
     pub fn number(&mut self, digit: &[u64], label: &str, done: &str) {
@@ -144,7 +144,7 @@ impl Fixture {
     }
 
     pub fn source(&self) -> String {
-        format!("{}\n{}", self.start(), self.rule.join("\n"))
+        format!("{},\n{}", self.start(), self.rule.join(",\n"))
     }
 }
 

@@ -43,7 +43,7 @@ pub fn run(configuration: Configuration) -> Vec<maintenance::Measurement> {
     };
     let program = Program::new(
         &crate::lowering::parse(&format!(
-            "{prefix}{content},{companion},C [{input}{particle},{pattern},{constraint},C] Done"
+            "{prefix}{content},{companion},C, [{input}{particle},{pattern},{constraint},C] Done"
         ))
         .unwrap(),
     );

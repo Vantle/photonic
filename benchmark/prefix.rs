@@ -35,7 +35,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             format!("{particle},{content},Stage{stage}.C,{delay}")
         }
     };
-    let mut source = format!("{}\n[{particle},{pattern},C] Never\n", world(0));
+    let mut source = format!("{},\n[{particle},{pattern},C] Never,\n", world(0));
     for stage in 0..argument.length.get() {
         let suffix = if argument.changing {
             particle.as_str()
@@ -43,7 +43,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "C"
         };
         source.push_str(&format!(
-            "[Stage{stage}.{suffix},{delay}] Stage{}.{suffix},{delay}\n",
+            "[Stage{stage}.{suffix},{delay}] (Stage{}.{suffix},{delay}),\n",
             stage + 1
         ));
     }

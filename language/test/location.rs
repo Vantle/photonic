@@ -40,7 +40,7 @@ fn location() {
         for length in [1, 65] {
             let particle = vec!["A"; width].join(".");
             let source = format!(
-                "{particle},B,{},{particle},B,C [{particle},B,C] Done",
+                "{particle},B,{},{particle},B,C, [{particle},B,C] Done",
                 vec!["X"; length].join(",")
             );
             let program = Program::new(&crate::lowering::parse(&source).unwrap());
@@ -115,7 +115,7 @@ fn location() {
 fn context() {
     use crate::program::Symbol;
     use crate::state::Token;
-    let source = format!("{},X,Y [X] Z", vec!["A"; 40].join(","));
+    let source = format!("{},X,Y, [X] Z", vec!["A"; 40].join(","));
     let program = Program::new(&crate::lowering::parse(&source).unwrap());
     let atom = |name| Symbol::Atom(program.atom.get_index_of(name).unwrap());
     let input = Input::new(&[

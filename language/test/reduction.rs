@@ -32,20 +32,20 @@ fn binding(state: &State, value: &Binding) -> (Vec<Place>, Vec<Place>, Vec<Place
 #[test]
 fn reference() {
     for source in [
-        "A [A] B [A] C",
-        "A.A.A [A.A] B",
-        "A.X,B.X [A,B] C,D",
-        "A [A] B,C [B,C] D",
-        "A,A,B [A,B] C",
-        "A.X,A.Y,B [A,B] C,D",
-        "Seed.A [Seed] [A] B",
-        "A [A] (B [B] C)",
-        "A.X [A] (B [B] C),D [C,D] E",
+        "A, [A] B, [A] C",
+        "A.A.A, [A.A] B",
+        "A.X,B.X, [A,B] (C, D)",
+        "A, [A] (B, C), [B,C] D",
+        "A,A,B, [A,B] C",
+        "A.X,A.Y,B, [A,B] (C, D)",
+        "Seed.A, [Seed] [A] B",
+        "A, [A] (B, [B] C)",
+        "A.X, [A] ((B, [B] C), D), [C,D] E",
         "A.([A] B),A.([A] C)",
-        "A,B [A] (C [C,B] D)",
-        "A [A] () [ ] B",
-        "A,A,A [A,A] B",
-        "Seed.A.X [Seed] ([A] B) ([A] C)",
+        "A,B, [A] (C, [C,B] D)",
+        "A, [A] (), [ ] B",
+        "A,A,A, [A,A] B",
+        "Seed.A.X, [Seed] (([A] B), ([A] C))",
     ] {
         let program = Arc::new(Program::new(&crate::lowering::parse(source).unwrap()));
         let initial = Arc::new(State::initial(&program));
@@ -101,7 +101,11 @@ fn reference() {
 
 #[test]
 fn fingerprint() {
-    for source in ["A.X,B.X [A,B] C", "A [A] (B [B] C)", "Seed.A [Seed] [A] B"] {
+    for source in [
+        "A.X,B.X, [A,B] C",
+        "A, [A] (B, [B] C)",
+        "Seed.A, [Seed] [A] B",
+    ] {
         let mut runtime = Runtime::new(&crate::lowering::parse(source).unwrap());
         runtime.run(100_000, None);
         for state in &runtime.state {
@@ -119,18 +123,18 @@ fn fingerprint() {
 #[test]
 fn incremental() {
     for source in [
-        "A [A] (B [B] C) [C] A",
-        "Seed.A.X [Seed] ([A] B) ([A] C)",
-        "A.X,B.Y [A,B] (C [C] D),E [D,E] F",
-        "A [A] B,C [B] D [C] E [D,E] F",
-        "A.([A] B) [B] (C [C] A)",
-        "A.X,B.Y,Z [Z] Q [Q] R [A,B] End",
-        "A.X,B.X,C.X [A,B] D [C] E [D,E] F",
-        "A [A] (B [B] C) [C] (D [D] A)",
-        "A.([A] B),A.([A] C) [B,C] D",
-        "A,A,A [A,A] B [B,A] C",
-        "A,A,B [A,B] C [A,C] D",
-        "A [A] B [B] A [ ] Z",
+        "A, [A] (B, [B] C), [C] A",
+        "Seed.A.X, [Seed] (([A] B), ([A] C))",
+        "A.X,B.Y, [A,B] ((C, [C] D), E), [D,E] F",
+        "A, [A] (B, C), [B] D, [C] E, [D,E] F",
+        "A.([A] B), [B] (C, [C] A)",
+        "A.X,B.Y,Z, [Z] Q, [Q] R, [A,B] End",
+        "A.X,B.X,C.X, [A,B] D, [C] E, [D,E] F",
+        "A, [A] (B, [B] C), [C] (D, [D] A)",
+        "A.([A] B),A.([A] C), [B,C] D",
+        "A,A,A, [A,A] B, [B,A] C",
+        "A,A,B, [A,B] C, [A,C] D",
+        "A, [A] B, [B] A, [ ] Z",
     ] {
         let program = Arc::new(Program::new(&crate::lowering::parse(source).unwrap()));
         let mut state = Arc::new(State::initial(&program));
@@ -200,12 +204,12 @@ fn incremental() {
 #[test]
 fn scaling() {
     for width in [128, 8192] {
-        let mut source = String::from("A,Stage.0\n");
+        let mut source = String::from("A,Stage.0,\n");
         for index in 0..width {
-            source.push_str(&format!("[A,A] Never.{index}\n"));
+            source.push_str(&format!("[A,A] Never.{index},\n"));
         }
         for index in 0..128 {
-            source.push_str(&format!("[Stage.{index}] Stage.{}\n", index + 1));
+            source.push_str(&format!("[Stage.{index}] Stage.{},\n", index + 1));
         }
         let program = Arc::new(Program::new(&crate::lowering::parse(&source).unwrap()));
         let state = Arc::new(State::initial(&program));

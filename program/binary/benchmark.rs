@@ -23,7 +23,7 @@ fn main() {
                 arithmetic::power::rule(radix, 32).unwrap()
             };
             let source = format!(
-                "Add({},{}) [Add,Add] () {rule}",
+                "Add({},{}), [Add,Add] (), {rule}",
                 numeral(left, radix),
                 numeral(right, radix)
             );

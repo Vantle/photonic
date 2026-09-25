@@ -35,7 +35,7 @@ fn accounting(network: &Network) {
 fn batching() {
     let particle = ["A"; 8].join(".");
     let program = Program::new(&crate::lowering::parse(&format!(
-        "{particle}.A,{particle}.A,B,B,C [{particle},B] Left [{particle},B] Right [{particle},C] Third [B,B] Pair"
+        "{particle}.A,{particle}.A,B,B,C, [{particle},B] Left, [{particle},B] Right, [{particle},C] Third, [B,B] Pair"
     )).unwrap());
     let mut state = State::initial(&program);
     let mut index = Index::new(Arc::new(state.clone()));
@@ -106,9 +106,9 @@ fn promotion() {
     let mut source = (0..64)
         .map(|index| format!("Idle{index},"))
         .collect::<String>();
-    source.push_str("Stage\n");
+    source.push_str("Stage,\n");
     for index in 0..64 {
-        source.push_str(&format!("[Idle{index},Idle{index}] Never{index}\n"));
+        source.push_str(&format!("[Idle{index},Idle{index}] Never{index},\n"));
     }
     source.push_str("[Stage] End");
     let program = Program::new(&crate::lowering::parse(&source).unwrap());
@@ -167,7 +167,8 @@ fn promotion() {
 #[test]
 fn mutation() {
     use crate::program::Symbol;
-    let program = Program::new(&crate::lowering::parse("A [A] B [A,A] C [A.B] D [] E").unwrap());
+    let program =
+        Program::new(&crate::lowering::parse("A, [A] B, [A,A] C, [A.B] D, [] E").unwrap());
     let mut state = State::initial(&program);
     state.frame.push(state.frame[0].clone());
     Arc::make_mut(&mut state.frame[1]).lexical = Some(0);
@@ -279,7 +280,7 @@ fn advance(network: &mut Network, index: &mut Index, state: State, change: Chang
 
 #[test]
 fn sharing() {
-    let program = Program::new(&crate::lowering::parse("X,A [A] B [A] C").unwrap());
+    let program = Program::new(&crate::lowering::parse("X,A, [A] B, [A] C").unwrap());
     let mut state = State::initial(&program);
     let mut index = Index::new(Arc::new(state.clone()));
     let mut network = Network::new(&program, &index);
@@ -328,7 +329,7 @@ fn sharing() {
 
 #[test]
 fn multiplicity() {
-    let program = Program::new(&crate::lowering::parse("A [A,A] B").unwrap());
+    let program = Program::new(&crate::lowering::parse("A, [A,A] B").unwrap());
     let mut state = State::initial(&program);
     let mut index = Index::new(Arc::new(state.clone()));
     let mut network = Network::new(&program, &index);
@@ -395,7 +396,7 @@ fn empty() {
 
 #[test]
 fn occupancy() {
-    let program = Program::new(&crate::lowering::parse("A [A] B").unwrap());
+    let program = Program::new(&crate::lowering::parse("A, [A] B").unwrap());
     let mut state = State::initial(&program);
     state.frame.push(state.frame[0].clone());
     Arc::make_mut(&mut state.frame[1]).lexical = Some(0);
@@ -430,7 +431,7 @@ fn occupancy() {
 #[test]
 fn capture() {
     use crate::program::Symbol;
-    let mut program = Program::new(&crate::lowering::parse("A [A] B [B] C").unwrap());
+    let mut program = Program::new(&crate::lowering::parse("A, [A] B, [B] C").unwrap());
     program.rule[0].input = vec![vec![Symbol::Rule(1)]];
     let mut state = State::initial(&program);
     state.frame.push(state.frame[0].clone());
@@ -478,7 +479,7 @@ fn capture() {
 
 #[test]
 fn arrival() {
-    let mut program = Program::new(&crate::lowering::parse("A [A] B [B] C").unwrap());
+    let mut program = Program::new(&crate::lowering::parse("A, [A] B, [B] C").unwrap());
     program.rule[0].input = vec![vec![Symbol::Rule(1)]];
     let mut state = State::initial(&program);
     state.frame.push(state.frame[0].clone());
@@ -638,7 +639,7 @@ fn ancestry() {
 
 #[test]
 fn activation() {
-    let program = Program::new(&crate::lowering::parse("A [A.B] C").unwrap());
+    let program = Program::new(&crate::lowering::parse("A, [A.B] C").unwrap());
     let mut state = State::initial(&program);
     let mut index = Index::new(Arc::new(state.clone()));
     let mut network = Network::new(&program, &index);
@@ -667,7 +668,7 @@ fn activation() {
 
 #[test]
 fn admission() {
-    let program = Program::new(&crate::lowering::parse("A [A.B] C").unwrap());
+    let program = Program::new(&crate::lowering::parse("A, [A.B] C").unwrap());
     let mut state = State::initial(&program);
     for _ in 0..2 {
         let mut frame = (*state.frame[0]).clone();
@@ -734,7 +735,7 @@ fn admission() {
 
 #[test]
 fn dormancy() {
-    let program = Program::new(&crate::lowering::parse("A,B [A,B] C").unwrap());
+    let program = Program::new(&crate::lowering::parse("A,B, [A,B] C").unwrap());
     let mut state = State::initial(&program);
     state.frame.push(state.frame[0].clone());
     Arc::make_mut(&mut state.frame[1]).lexical = Some(0);
@@ -805,7 +806,7 @@ fn dormancy() {
 
 #[test]
 fn awakening() {
-    let program = Program::new(&crate::lowering::parse("B [A] C").unwrap());
+    let program = Program::new(&crate::lowering::parse("B, [A] C").unwrap());
     let mut state = State::initial(&program);
     let absent = state.world[0].particle[0].value;
     let present = program.rule[0].input[0][0];

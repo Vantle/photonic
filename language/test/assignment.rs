@@ -42,7 +42,7 @@ fn shortage() {
     for separation in [".", ","] {
         let initial = vec!["A"; 18].join(separation);
         let input = vec!["A"; 19].join(separation);
-        let source = format!("{initial} [{input}] B");
+        let source = format!("{initial}, [{input}] B");
         let mut runtime = crate::runtime::Runtime::new(&crate::lowering::parse(&source).unwrap());
         runtime.run(100, None);
         assert!(runtime.closed());

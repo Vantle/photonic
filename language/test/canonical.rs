@@ -145,7 +145,7 @@ fn membership() {
 
 #[test]
 fn demand() {
-    let program = crate::program::Program::new(&crate::lowering::parse("A,B [A] C").unwrap());
+    let program = crate::program::Program::new(&crate::lowering::parse("A,B, [A] C").unwrap());
     let state = State::initial(&program);
     let mut search = Search::new(Arc::new(state.clone()));
     assert!(search.refinement.get().is_none());

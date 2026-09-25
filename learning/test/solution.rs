@@ -41,7 +41,7 @@ fn task(reference: Option<&str>) -> Task {
 #[test]
 fn improvement() {
     let setting = Setting::default();
-    let task = task(Some("[A] (B) [C] ()"));
+    let task = task(Some("[A] (B), [C] ()"));
     let reference = task.reference.as_ref().unwrap();
     let known = evaluate(reference, &task.example, &task.vocabulary, &setting);
     assert!(known.correct);

@@ -1,18 +1,18 @@
-[Function.Natural.Successor] (Successor.Left) (Forget.Successor.Begin)
-[Clean.Successor.Begin] (Successor.Right.Zero) (Successor.Step)
-[Successor.Step, Successor.Left] Read.Successor.Wait
-[Yield.([Digit] 2).Successor.Wait] (Successor.Left) (Forget.Successor.Carry)
-[Clean.Successor.Carry, Successor.Right] (Push.([Digit] 0)) (Forget.Successor.Await)
-[Built, Clean.Successor.Await] (Successor.Right) (Forget.Successor.Step)
-[Clean.Successor.Step] Successor.Step
-[Yield.([Digit] 0).Successor.Wait] (Push.([Digit] 1)) (Forget.Successor.Finish)
-[Yield.([Digit] 1).Successor.Wait] (Push.([Digit] 2)) (Forget.Successor.Finish)
-[Yield.End.Successor.Wait] (Push.([Digit] 1)) (Forget.Successor.Finish)
-[Built, Clean.Successor.Finish] (Successor.Left) (Forget.Successor.Restore)
-[Clean.Successor.Restore] Successor.Back
-[Successor.Back, Successor.Right] Read.Successor.Check
-[Yield.([Digit] 0).Successor.Check] (Successor.Right) (Forget.Successor.Write)
-[Clean.Successor.Write, Successor.Left] (Push.([Digit] 0)) (Forget.Successor.More)
-[Built, Clean.Successor.More] (Successor.Left) (Forget.Successor.Restore)
-[Yield.End.Successor.Check.Zero] Clean.Successor.End
+[Function.Natural.Successor] (Successor.Left, Forget.Successor.Begin),
+[Clean.Successor.Begin] (Successor.Right.Zero, Successor.Step),
+[Successor.Step, Successor.Left] Read.Successor.Wait,
+[Yield.([Digit] 2).Successor.Wait] (Successor.Left, Forget.Successor.Carry),
+[Clean.Successor.Carry, Successor.Right] (Push.([Digit] 0), Forget.Successor.Await),
+[Built, Clean.Successor.Await] (Successor.Right, Forget.Successor.Step),
+[Clean.Successor.Step] Successor.Step,
+[Yield.([Digit] 0).Successor.Wait] (Push.([Digit] 1), Forget.Successor.Finish),
+[Yield.([Digit] 1).Successor.Wait] (Push.([Digit] 2), Forget.Successor.Finish),
+[Yield.End.Successor.Wait] (Push.([Digit] 1), Forget.Successor.Finish),
+[Built, Clean.Successor.Finish] (Successor.Left, Forget.Successor.Restore),
+[Clean.Successor.Restore] Successor.Back,
+[Successor.Back, Successor.Right] Read.Successor.Check,
+[Yield.([Digit] 0).Successor.Check] (Successor.Right, Forget.Successor.Write),
+[Clean.Successor.Write, Successor.Left] (Push.([Digit] 0), Forget.Successor.More),
+[Built, Clean.Successor.More] (Successor.Left, Forget.Successor.Restore),
+[Yield.End.Successor.Check.Zero] Clean.Successor.End,
 [Clean.Successor.End, Successor.Left] Return.Natural.Successor

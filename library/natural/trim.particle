@@ -1,7 +1,7 @@
-[Function.Natural.Trim] Read.Trim.Wait
-[Yield.([Digit] 0).Trim.Wait] Read.Trim.Wait
-[Yield.End.Trim.Wait] Return.Natural.Trim
-[Yield.([Digit] 1).Trim.Wait] (Push.([Digit] 1)) (Forget.Trim.Await)
-[Yield.([Digit] 2).Trim.Wait] (Push.([Digit] 2)) (Forget.Trim.Await)
-[Built, Clean.Trim.Await] (Function.Chain.Reverse) (Forget.Trim.Finish)
+[Function.Natural.Trim] Read.Trim.Wait,
+[Yield.([Digit] 0).Trim.Wait] Read.Trim.Wait,
+[Yield.End.Trim.Wait] Return.Natural.Trim,
+[Yield.([Digit] 1).Trim.Wait] (Push.([Digit] 1), Forget.Trim.Await),
+[Yield.([Digit] 2).Trim.Wait] (Push.([Digit] 2), Forget.Trim.Await),
+[Built, Clean.Trim.Await] (Function.Chain.Reverse, Forget.Trim.Finish),
 [Return.Chain.Reverse, Clean.Trim.Finish] Return.Natural.Trim

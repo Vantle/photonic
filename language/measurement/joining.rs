@@ -73,7 +73,7 @@ pub fn run() -> Vec<Measurement> {
                 .chain(["B.E.E"])
                 .collect::<Vec<_>>()
                 .join(",");
-            let source = format!("{particle},{content},C [{particle},{pattern},C] Never");
+            let source = format!("{particle},{content},C, [{particle},{pattern},C] Never");
             let program = Program::new(&crate::lowering::parse(&source).unwrap());
             let mut previous = State::initial(&program);
             let repetition = 64;

@@ -23,12 +23,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .map(|index| format!("Branch{index}"))
         .collect::<Vec<_>>()
         .join(",");
-    let mut source = format!("Stage0.{particle},{context}\n");
+    let mut source = format!("Stage0.{particle},{context},\n");
     for index in 0..argument.width.get() {
-        source.push_str(&format!("[{particle}.A,Branch{index}] Never{index}\n"));
+        source.push_str(&format!("[{particle}.A,Branch{index}] Never{index},\n"));
     }
     for index in 0..argument.length.get() {
-        source.push_str(&format!("[Stage{index}] Stage{}\n", index + 1));
+        source.push_str(&format!("[Stage{index}] Stage{},\n", index + 1));
     }
     let program = photonic::lowering::parse(&source)?;
     let target =

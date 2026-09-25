@@ -23,7 +23,7 @@ fn verify(state: &[Node]) {
 fn ownership() {
     let report = {
         let mut search = {
-            let program = crate::lowering::parse("A.X [A] B [B] C").unwrap();
+            let program = crate::lowering::parse("A.X, [A] B, [B] C").unwrap();
             let target = crate::source::Program {
                 rule: program.rule.clone(),
                 ..crate::lowering::parse("C.X").unwrap()
@@ -45,7 +45,7 @@ fn ownership() {
     );
     let snapshot = {
         let mut runtime =
-            crate::runtime::Runtime::new(&crate::lowering::parse("A.X [A] B [B] C").unwrap());
+            crate::runtime::Runtime::new(&crate::lowering::parse("A.X, [A] B, [B] C").unwrap());
         runtime.run(100_000, None);
         runtime.snapshot()
     };
