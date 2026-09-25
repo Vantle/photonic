@@ -74,6 +74,27 @@
         return node;
     };
 
+    const brief = rule => {
+        const code = element('code');
+        const [head, ...rest] = rule.split('\n');
+        const text = !rest.length ? rule : head.trimEnd().endsWith('(') ? `${head.trimEnd()}…)` : `${head.trimEnd()} …`;
+        code.append(book.syntax.fragment(text));
+        if (rest.length) code.title = rule;
+        return code;
+    };
+
+    const deduction = (event, data) => {
+        const chain = event.deduction.map(index => data.event[index]);
+        const line = element('span', 'deduction');
+        line.append('matches ', element('b', undefined, `s${chain.at(-1).target}`), ' after ');
+        chain.slice(0, 4).forEach((value, index) => {
+            if (index) line.append(', ');
+            line.append(brief(value.rule));
+        });
+        if (chain.length > 4) line.append(` and ${chain.length - 4} more`);
+        return line;
+    };
+
     const signature = (frame, definition) => frame.particle.map(value => definition.get(value.label) ?? value.label).sort().join('\n');
 
     const state = (node, option = {}) => {
@@ -142,5 +163,5 @@
         return body;
     };
 
-    book.render = { element, vector, message, tally, legend, unwrap, catalog, touch, token, signature, state };
+    book.render = { element, vector, message, tally, legend, unwrap, catalog, touch, token, brief, deduction, signature, state };
 })();

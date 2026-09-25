@@ -850,6 +850,13 @@ td code {
     stroke-width: 2;
 }
 
+.link.deduction {
+    stroke: var(--accent);
+    stroke-width: 2.4;
+    stroke-dasharray: 0.5 4.5;
+    stroke-linecap: round;
+}
+
 .head {
     fill: var(--edge);
 }
@@ -894,6 +901,11 @@ td code {
 
 .state[data-focus] {
     z-index: 2;
+}
+
+.state[data-deduction] {
+    outline: 2px dotted var(--accent);
+    outline-offset: 3px;
 }
 
 .state:focus-visible {
@@ -1104,6 +1116,27 @@ td code {
     line-height: 1.45;
 }
 
+.event .deduction {
+    grid-column: 2 / -1;
+}
+
+.deduction {
+    font-size: 0.78rem;
+    color: var(--muted);
+}
+
+.deduction b {
+    color: var(--ink);
+    font-weight: 600;
+}
+
+.deduction code {
+    padding: 0;
+    background: none;
+    font-size: 0.76rem;
+    color: var(--soft);
+}
+
 .kind {
     font: 500 0.6rem/1.2 var(--body);
     letter-spacing: 0.12em;
@@ -1140,6 +1173,10 @@ td code {
 
 .legend i.inferred {
     border-top-style: dashed;
+}
+
+.legend i.deduction {
+    border-top: 2.4px dotted var(--accent);
 }
 
 .legend i.touch {
@@ -1658,6 +1695,45 @@ td code {
 }
 
 .capsule[data-match] .coherence {
+    border-color: var(--accent);
+}
+
+.chain {
+    display: grid;
+    justify-items: start;
+    gap: 0.3rem;
+}
+
+.chain > code {
+    margin-left: 2.6rem;
+    padding: 0;
+    background: none;
+    font-size: 0.78rem;
+    color: var(--soft);
+    white-space: pre-wrap;
+}
+
+.chain > code::before {
+    content: "↓ ";
+    color: var(--muted);
+}
+
+.stage {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.stage .kind {
+    min-width: 2.25rem;
+}
+
+.stage .coherence.scoped {
+    border-style: dashed;
+}
+
+.stage:last-child .coherence {
     border-color: var(--accent);
 }
 

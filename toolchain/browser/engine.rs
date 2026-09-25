@@ -11,7 +11,6 @@ use photonic::snapshot::{Event, Node, Snapshot, View};
 use photonic::source::Program;
 use request::Request;
 use serde::Serialize;
-use std::collections::HashSet;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 #[derive(Serialize)]
@@ -23,7 +22,7 @@ struct Lowering {
 struct Transition {
     #[serde(flatten)]
     event: Event,
-    direct: bool,
+    deduction: Vec<usize>,
 }
 
 #[derive(Serialize)]
@@ -60,11 +59,22 @@ fn mark(snapshot: Snapshot) -> Snapshot<Vec<Node>, Vec<Transition>, Vec<View>> {
         event,
         view,
     } = snapshot;
-    let identity = view
-        .iter()
-        .filter(|view| view.source == view.target)
-        .map(|view| view.id)
-        .collect::<HashSet<_>>();
+    let deduction = |evidence: &[usize]| {
+        if evidence
+            .iter()
+            .any(|&index| view[index].source == view[index].target)
+        {
+            return Vec::new();
+        }
+        let mut chain = Vec::new();
+        let mut cursor = view[evidence[0]].origin;
+        while let Some(origin) = cursor {
+            chain.push(origin.event);
+            cursor = view[origin.view].origin;
+        }
+        chain.reverse();
+        chain
+    };
     Snapshot {
         definition,
         closed,
@@ -78,7 +88,7 @@ fn mark(snapshot: Snapshot) -> Snapshot<Vec<Node>, Vec<Transition>, Vec<View>> {
         event: event
             .into_iter()
             .map(|event| Transition {
-                direct: event.evidence.iter().any(|view| identity.contains(view)),
+                deduction: deduction(&event.evidence),
                 event,
             })
             .collect(),

@@ -44,10 +44,18 @@
         let problem;
         let chosen;
         let control;
+        let explained;
+
+        const explain = event => {
+            if (explained) control?.explain(explained, false);
+            explained = event;
+            if (event) control?.explain(event, true);
+        };
 
         const follow = path => {
             label.textContent = path.length ? `s0 → s${path.at(-1).target} · ${path.length} event${path.length === 1 ? '' : 's'}` : 's0';
-            book.hypergraph.draw(flow.host, data, path, { pattern });
+            explain();
+            book.hypergraph.draw(flow.host, data, path, { pattern, select: explain });
         };
 
         const deepest = visible => {
@@ -79,6 +87,7 @@
                 : 'Type a pattern to keep what matches and everything computed after it.');
             if (problem) note.dataset.tone = 'error';
             else delete note.dataset.tone;
+            explained = undefined;
             control = book.graph.draw(graph.host, data, {
                 verdict: current.result.verdict,
                 target: current.target,
@@ -91,6 +100,7 @@
                 },
             });
             if (chosen === undefined) follow([]);
+            if (explained) control.explain(explained, true);
         };
 
         const apply = text => {
@@ -113,6 +123,7 @@
         const blank = text => {
             current = undefined;
             control = undefined;
+            explained = undefined;
             note.textContent = 'Type a pattern to keep what matches and everything computed after it.';
             label.textContent = '';
             graph.host.replaceChildren(element('p', 'blank', text));

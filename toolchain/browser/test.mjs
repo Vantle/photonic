@@ -14,6 +14,7 @@ for (const source of [
     'Seed.A, [Seed] [A] B',
     'A.X, B.Y, [A, B] (C, D), [C, D] E',
     'A, [A] A.A',
+    'And.True.False, [True] Boolean, [False] Boolean, [And.Boolean.Boolean] ([True.False] False)',
 ]) {
     const path = join(process.env.TEST_TMPDIR, 'source.wave');
     await writeFile(path, source);
@@ -22,8 +23,13 @@ for (const source of [
     const response = explore({ version: 1, source, target: [] });
     assert.equal(response.error, undefined);
     const report = JSON.parse(native.stdout);
-    const identity = new Set(report.view.filter(view => view.source === view.target).map(view => view.id));
-    const event = report.event.map(value => ({ ...value, direct: value.evidence.some(view => identity.has(view)) }));
+    const chain = index => {
+        const path = [];
+        for (let origin = report.view[index].origin; origin; origin = report.view[origin.view].origin) path.unshift(origin.event);
+        return path;
+    };
+    const direct = value => value.evidence.some(index => report.view[index].source === report.view[index].target);
+    const event = report.event.map(value => ({ ...value, deduction: direct(value) ? [] : chain(value.evidence[0]) }));
     assert.deepEqual(response.execution, { ...report, event, view: [] }, source);
 }
 assert.deepEqual(explore({ version: 1, source: 'A, [A] B', target: ['B, [A] B', 'C, [A] B'] }).verdict.map(value => value.outcome), ['reached', 'unreachable']);
@@ -44,7 +50,11 @@ assert.equal(located.error.span.offset, 5);
 assert.equal(explore({ version: 1, source: '人, [B' }).error.span.offset, 5);
 assert.equal(explore({ version: 1, source: '人 [B' }).error.span.offset, 2);
 assert.equal(explore({ version: 1, source: 'A', target: ['人.人, [B'] }).error.span.offset, 7);
-console.log('WebAssembly exploration matches native Rust reports, including suspended exploration and generated code.');
+const deduced = explore({ version: 1, source: 'A, [A] B.C, [B] D' }).execution;
+const shortcut = deduced.event.find(value => value.source === 0 && value.rule === '[B] D');
+assert.deepEqual(shortcut.deduction.map(index => deduced.event[index].rule), ['[A] B.C']);
+assert.ok(deduced.event.filter(value => value.rule === '[A] B.C').every(value => !value.deduction.length));
+console.log('WebAssembly exploration matches native Rust reports, including suspended exploration, generated code and deductions.');
 
 const library = [{ name: 'not.particle', source: '[Not.True] False,\n[Not.False] True' }];
 assert.deepEqual(explore({ version: 1, source: 'Not.True', library, target: ['False'], preserve: true }).verdict.map(value => value.outcome), ['reached']);

@@ -30,14 +30,42 @@
         return { lifeline, hyperedge, count: route.length + 1 };
     };
 
-    const coherence = (world, match) => {
+    const coherence = (world, match, touch, index) => {
         const node = element('div', world.particle.length ? 'coherence' : 'coherence empty');
         world.particle.forEach(occurrence => {
-            const token = book.render.token(occurrence);
+            const token = book.render.token(occurrence, undefined, touch, { world: [index, occurrence.id] });
             if (match?.has(occurrence.id)) token.dataset.match = '';
             node.append(token);
         });
         return node;
+    };
+
+    const stage = (data, state, relevant, next) => {
+        const item = element('div', 'stage');
+        item.append(element('span', 'kind', `s${state}`));
+        const touch = next && book.render.touch(next);
+        [...relevant].sort((left, right) => left - right).forEach(index => {
+            const world = data.state[state].world[index];
+            const node = coherence(world, undefined, touch, index);
+            if (world.frame) node.classList.add('scoped');
+            item.append(node);
+        });
+        return item;
+    };
+
+    const deduction = (data, event) => {
+        const chain = event.deduction.map(index => data.event[index]);
+        const flow = element('div', 'chain');
+        let relevant = new Set(event.world);
+        flow.append(stage(data, event.source, relevant, chain[0]));
+        chain.forEach((value, index) => {
+            flow.append(book.render.brief(value.rule));
+            relevant = new Set(data.state[value.target].world.map((_, world) => world).filter(world => (value.context[world] ?? []).some(source => relevant.has(source))));
+            flow.append(stage(data, value.target, relevant, chain[index + 1]));
+        });
+        const heading = element('p', 'row');
+        heading.append(element('span', 'kind', 'deduction'), book.render.deduction(event, data));
+        return [heading, flow];
     };
 
     const draw = (host, data, route, option = {}) => {
@@ -130,7 +158,7 @@
         });
         model.hyperedge.filter(shown).forEach(edge => {
             const center = hub.get(edge);
-            const style = edge.event.direct ? 'strand' : 'strand inferred';
+            const style = edge.event.deduction.length ? 'strand inferred' : 'strand';
             edge.input.filter(line => lane.has(line)).forEach(line => curve([center.x - 22, y(line)], [center.x - 7, center.y], style, edge));
             edge.output.filter(line => lane.has(line)).forEach(line => curve([center.x + 7, center.y], [column[edge.column], y(line)], style, edge));
         });
@@ -139,7 +167,9 @@
         summary.append(tally(model.hyperedge.length, 'event'), tally(model.lifeline.length, 'coherence'));
         if (filter) summary.append(element('span', undefined, `${model.lifeline.filter(visible).length} shown`));
         const focus = element('div', 'departure');
-        inspector.append(summary, focus, book.render.legend([['', 'coherence lane'], ['hyperedge', 'event'], ['inferred', 'inferred event']]));
+        const legend = [['', 'coherence lane'], ['hyperedge', 'event']];
+        if (model.hyperedge.some(edge => edge.event.deduction.length)) legend.push(['inferred', 'inferred event']);
+        inspector.append(summary, focus, book.render.legend(legend));
 
         const button = new Map();
         let current;
@@ -152,22 +182,24 @@
             button.get(edge).setAttribute('aria-pressed', 'true');
             strand.get(edge)?.forEach(path => path.classList.add('active'));
             const heading = element('p');
-            heading.append(element('b', undefined, `s${edge.event.source} → s${edge.event.target}`), ` · ${edge.event.direct ? 'direct' : 'inferred'} · consumes ${edge.input.length}, produces ${edge.output.length}`);
+            heading.append(element('b', undefined, `s${edge.event.source} → s${edge.event.target}`), ` · ${edge.event.deduction.length ? 'inferred' : 'direct'} · consumes ${edge.input.length}, produces ${edge.output.length}`);
             const rule = element('pre', 'code');
             book.syntax.highlight(rule, edge.event.rule);
             const flow = element('div', 'row');
-            const side = (text, line) => {
-                flow.append(element('span', 'kind', text));
-                if (!line.length) flow.append(element('span', 'arrow', 'nothing'));
-                line.forEach(value => flow.append(coherence(value.world)));
-            };
-            side('consumes', edge.input);
-            side('produces', edge.output);
+            const touch = book.render.touch(edge.event);
+            flow.append(element('span', 'kind', 'consumes'));
+            if (!edge.event.world.length) flow.append(element('span', 'arrow', 'nothing'));
+            edge.event.world.forEach(index => flow.append(coherence(data.state[edge.event.source].world[index], undefined, touch, index)));
+            flow.append(element('span', 'kind', 'produces'));
+            if (!edge.output.length) flow.append(element('span', 'arrow', 'nothing'));
+            edge.output.forEach(line => flow.append(coherence(line.world)));
             focus.replaceChildren(heading, rule, flow);
+            if (edge.event.deduction.length) focus.append(...deduction(data, edge.event));
+            option.select?.(edge.event);
         };
         model.hyperedge.filter(shown).forEach(edge => {
             const center = hub.get(edge);
-            const glyph = element('button', edge.event.direct ? 'hyperedge' : 'hyperedge inferred');
+            const glyph = element('button', edge.event.deduction.length ? 'hyperedge inferred' : 'hyperedge');
             glyph.type = 'button';
             glyph.style.left = `${center.x}px`;
             glyph.style.top = `${center.y}px`;

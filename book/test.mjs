@@ -35,7 +35,15 @@ for (const [name, entry] of Object.entries(record.example)) {
         const path = graph.route(data, state.id);
         path.forEach((event, index) => assert.equal(event.source, index ? path[index - 1].target : 0, `${name} s${state.id}`));
         assert.equal(path.at(-1)?.target ?? 0, state.id, `${name} s${state.id}`);
-        if (path.some(event => !event.direct)) assert.ok(!data.tree[0].has(state.id), `${name} s${state.id} has a direct route`);
+        if (path.some(event => event.deduction.length)) assert.ok(!data.tree[0].has(state.id), `${name} s${state.id} has a direct route`);
+    }
+    for (const event of data.event) {
+        event.deduction.forEach((index, position) => assert.equal(data.event[index].source, position ? data.event[event.deduction[position - 1]].target : event.source, `${name} event ${event.id}`));
     }
 }
 console.log('Every recorded configuration has a route from the start, direct whenever one exists.');
+
+const conjunction = graph.model(record.example.conjunction.result.execution);
+const abstraction = conjunction.event.find(event => event.source === 0 && event.rule.startsWith('[And.Boolean.Boolean]') && event.deduction.length);
+assert.deepEqual(abstraction.deduction.map(index => conjunction.event[index].rule).sort(), ['[False] Boolean', '[True] Boolean']);
+console.log('Every deduction is a path from the configuration where its event happens, and And deduces both operands as Boolean.');

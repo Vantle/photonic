@@ -8,6 +8,7 @@ mod table;
 
 use crate::flow::{Binding, Flow};
 use crate::program::Program;
+use crate::snapshot::Origin;
 use crate::source;
 use crate::state::State;
 use crate::support::{Atom, Clause};
@@ -96,6 +97,7 @@ pub struct Runtime {
     index: Vec<Option<Arc<crate::index::Index>>>,
     indexed: usize,
     view: IndexSet<Arc<View>, crate::hashing::Builder>,
+    origin: Vec<Option<Origin>>,
     event: Vec<Event>,
     normalization: normalization::Store,
     proof: crate::proof::Store,
@@ -125,6 +127,7 @@ impl Runtime {
             index: Vec::new(),
             indexed: 0,
             view: IndexSet::default(),
+            origin: Vec::new(),
             event: Vec::new(),
             normalization: normalization::Store::default(),
             proof: crate::proof::Store::default(),
@@ -166,21 +169,25 @@ impl Runtime {
         self.index.push(None);
         self.outgoing.push(Vec::new());
         self.incoming.push(Vec::new());
-        let view = self.witness(View {
-            source: index,
-            target: index,
-            flow: Arc::new(Flow::identity(&self.state[index])),
-        });
+        let view = self.witness(
+            View {
+                source: index,
+                target: index,
+                flow: Arc::new(Flow::identity(&self.state[index])),
+            },
+            None,
+        );
         self.support(Atom::View(view), []);
         index
     }
 
-    fn witness(&mut self, view: View) -> usize {
+    fn witness(&mut self, view: View, origin: Option<Origin>) -> usize {
         let target = view.target;
         let (index, fresh) = self.view.insert_full(Arc::new(view));
         if !fresh {
             return index;
         }
+        self.origin.push(origin);
         self.incoming[target].push(index);
         self.agenda.push_back(Task::Inspect(index));
         for &event in &self.outgoing[target] {

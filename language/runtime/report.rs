@@ -53,6 +53,7 @@ impl Runtime {
             source: view.source,
             target: view.target,
             status: support.status(Atom::View(index)),
+            origin: self.origin[index],
             resource: view
                 .flow
                 .resource

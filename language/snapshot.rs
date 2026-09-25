@@ -89,9 +89,16 @@ pub struct View {
     pub source: usize,
     pub target: usize,
     pub status: Status,
+    pub origin: Option<Origin>,
     pub resource: Vec<Link>,
     pub context: Vec<Vec<usize>>,
     pub frame: Vec<Option<usize>>,
+}
+
+#[derive(Clone, Copy, Debug, Serialize)]
+pub struct Origin {
+    pub view: usize,
+    pub event: usize,
 }
 
 #[derive(Debug, Serialize)]

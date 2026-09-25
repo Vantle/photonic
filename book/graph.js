@@ -19,7 +19,7 @@
             }
             return previous;
         };
-        const tree = [search(value => value.direct), search(() => true)];
+        const tree = [search(value => !value.deduction.length), search(() => true)];
         return { ...execution, definition: book.render.catalog(execution.definition), outgoing, tree };
     };
 
@@ -278,7 +278,7 @@
             if (!path) return;
             const stroke = vector('path', {
                 d: path.map(([command, ...point]) => command + point.map(([left, top]) => `${left} ${top + shift}`).join(' ')).join(''),
-                class: value.direct ? 'link' : 'link inferred',
+                class: value.deduction.length ? 'link inferred' : 'link',
                 'marker-end': `url(#${identifier}plain)`,
             });
             stroke.dataset.event = value.id;
@@ -302,6 +302,20 @@
             stroke.classList.toggle('active', on);
             stroke.setAttribute('marker-end', `url(#${identifier}${on ? 'active' : 'plain'})`);
             if (on) drawing.append(stroke);
+        };
+
+        const explain = (value, on) => {
+            if (!value.deduction.length) return;
+            value.deduction.forEach(number => {
+                const stroke = line.get(number);
+                if (!stroke) return;
+                stroke.classList.toggle('deduction', on);
+                if (on) drawing.append(stroke);
+            });
+            const box = card.get(data.event[value.deduction.at(-1)].target);
+            if (!box) return;
+            if (on) box.dataset.deduction = '';
+            else delete box.dataset.deduction;
         };
 
         const reveal = state => {
@@ -334,7 +348,9 @@
         const departure = element('div', 'departure');
         inspector.append(summary);
         if (verdict.childNodes.length) inspector.append(verdict);
-        inspector.append(departure, book.render.legend([['', 'rule applied directly'], ['inferred', 'rule inferred at its source'], ['touch', 'consumed on hover']]));
+        const legend = [['', 'rule applied directly'], ['touch', 'consumed on hover']];
+        if (event.some(value => value.deduction.length)) legend.splice(1, 0, ['inferred', 'rule inferred at its source'], ['deduction', 'where an inferred rule matched']);
+        inspector.append(departure, book.render.legend(legend));
 
         let current;
         let lit = [];
@@ -357,12 +373,19 @@
             leaving.forEach(value => {
                 const row = element('button', 'event');
                 row.type = 'button';
-                row.append(element('span', 'kind', value.direct ? 'direct' : 'inferred'));
+                row.append(element('span', 'kind', value.deduction.length ? 'inferred' : 'direct'));
                 const code = element('code');
                 code.append(book.syntax.fragment(value.rule));
                 row.append(code, element('span', 'arrow', `→ s${value.target}`));
-                const enter = () => fill(state, book.render.touch(value));
-                const leave = () => fill(state);
+                if (value.deduction.length) row.append(book.render.deduction(value, data));
+                const enter = () => {
+                    fill(state, book.render.touch(value));
+                    explain(value, true);
+                };
+                const leave = () => {
+                    fill(state);
+                    explain(value, false);
+                };
                 row.addEventListener('mouseenter', enter);
                 row.addEventListener('focus', enter);
                 row.addEventListener('mouseleave', leave);
@@ -379,7 +402,7 @@
         const first = option.start ?? (card.has(0) ? 0 : node[0]);
         if (first !== undefined) select(first, false);
         else departure.replaceChildren(element('p', undefined, 'No configuration matches the filter.'));
-        return { zoom };
+        return { zoom, explain };
     };
 
     book.graph = { draw, model, route };

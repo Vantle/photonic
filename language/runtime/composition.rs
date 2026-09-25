@@ -1,4 +1,5 @@
 use super::{Runtime, View};
+use crate::snapshot::Origin;
 use crate::support::Atom;
 use std::sync::Arc;
 
@@ -13,11 +14,17 @@ impl Runtime {
                     .compose(&parent.flow, &self.event[event].flow),
             )
         };
-        let view = self.witness(View {
-            source: parent.source,
-            target: self.event[event].target,
-            flow,
-        });
+        let view = self.witness(
+            View {
+                source: parent.source,
+                target: self.event[event].target,
+                flow,
+            },
+            Some(Origin {
+                view: previous,
+                event,
+            }),
+        );
         self.support(Atom::View(view), [Atom::View(previous), Atom::Event(event)]);
     }
 }

@@ -135,6 +135,16 @@ try {
     assert.equal(await evaluate("return document.querySelector('#bench .editor textarea').value"), await evaluate('return book.record.example.brew.source'));
     assert.equal(await evaluate("return document.querySelectorAll('#bench .graph .state').length"), await evaluate('return book.record.example.brew.result.execution.state.length'));
     await evaluate("document.querySelector('#bench .filter .tool').click(); return true");
+    await evaluate("[...document.querySelectorAll('#bench .preset button')].find(value => value.textContent === 'Conjunction').click(); return true");
+    await evaluate("document.querySelector('#bench button.hyperedge.inferred').click(); return true");
+    assert.deepEqual(await evaluate("return [...document.querySelectorAll('#bench .chain > code')].map(value => value.textContent)"), ['[True] Boolean', '[False] Boolean']);
+    assert.equal(await evaluate("return document.querySelectorAll('#bench .graph .link.deduction').length"), 2);
+    assert.deepEqual(await evaluate("return [...document.querySelectorAll('#bench .graph .state[data-deduction]')].map(value => value.dataset.state)"), ['3']);
+    const inferred = `[...${figure('conjunction')}.querySelectorAll('.departure .event')].find(value => value.querySelector('.deduction'))`;
+    assert.equal(await evaluate(`const row = ${inferred}; row.dispatchEvent(new Event('mouseenter')); return row.querySelector('.deduction').textContent`), 'matches s3 after [True] Boolean, [False] Boolean');
+    assert.equal(await evaluate(`return ${figure('conjunction')}.querySelectorAll('.link.deduction, .state[data-deduction]').length`), 3);
+    await evaluate(`${inferred}.dispatchEvent(new Event('mouseleave')); return true`);
+    assert.equal(await evaluate(`return ${figure('conjunction')}.querySelectorAll('.link.deduction, .state[data-deduction]').length`), 0);
     await evaluate("[...document.querySelectorAll('#bench .preset button')].find(value => value.textContent === 'Parallel').click(); return true");
     await evaluate(`${figure('first')}.querySelector('.bar button:not(.run)').click(); return true`);
     await until("return document.querySelector('#bench .editor textarea').value === 'A.X,\\n[A] B'");

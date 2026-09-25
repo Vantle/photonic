@@ -291,6 +291,7 @@ Add.Unit.Unit.Unit,
 <figcaption><code>[Not.Boolean]</code> needs a <code>Boolean</code>. <code>True</code> can become one, so the rule applies to <code>Not.True</code>. The scope receives the concrete <code>True</code>, not <code>Boolean</code>, and its local rule answers <code>False</code>.</figcaption>
 </figure>
 <p>Inference splits a match in two. Occurrences matched as written, here <code>Not</code>, are <strong>exact</strong>. Occurrences reached through evidence, here <code>True</code> seen as <code>Boolean</code>, are the <strong>witness</strong>. A literal output consumes both. A scope consumes the exact part and receives the witness. Hover an event to outline what it consumes: solid for exact, dashed for witness.</p>
+<p>Every inferred event also has a <strong>deduction</strong>: the events that lead from its configuration to the one where its rule matched. Its row names that configuration, and hovering draws the path dotted. In the workbench, selecting a dashed hyperedge lists the deduction step by step.</p>
 <figure class="example wide" data-example="conjunction" data-source="program/language/conjunction.wave" data-target='["False.Extra"]' data-preserve data-expect='["reached"]'>
 <pre>And.True.False.Extra,
 [True] Boolean,
@@ -300,7 +301,18 @@ Add.Unit.Unit.Unit,
     [True.False] False,
     [False.False] False,
 )</pre>
-<figcaption>Both operands become <code>Boolean</code>, so the scope receives <code>True.False.Extra</code>. One table row covers both operand orders, because <code>True.False</code> and <code>False.True</code> are one particle. <code>Extra</code> is remainder, so the answer is <code>False.Extra</code>.</figcaption>
+<figcaption><code>[True] Boolean</code> and <code>[False] Boolean</code> lead to <code>And.Boolean.Boolean.Extra</code>, where <code>[And.Boolean.Boolean]</code> matches. The event happens at the start, where the operands are still <code>True</code> and <code>False</code>, so the scope receives <code>True.False.Extra</code>. One table row covers both operand orders, because <code>True.False</code> and <code>False.True</code> are one particle. <code>Extra</code> is remainder, so the answer is <code>False.Extra</code>.</figcaption>
+</figure>
+<p>A scope can use inference too. <code>[False.Boolean] False</code> says that <code>False</code> with any <code>Boolean</code> is <code>False</code>, so one row covers three rows of the table:</p>
+<figure class="example wide" data-example="compression" data-target='["False.Extra"]' data-preserve data-expect='["reached"]'>
+<pre>And.True.False.Extra,
+[True] Boolean,
+[False] Boolean,
+[And.Boolean.Boolean] (
+    [True.True] True,
+    [False.Boolean] False,
+)</pre>
+<figcaption>Two deductions in a row. <code>[And.Boolean.Boolean]</code> matches <code>And.Boolean.Boolean.Extra</code>; inside the scope, <code>[False.Boolean] False</code> matches <code>Boolean.False.Extra</code>. A literal output consumes the witness too, so only <code>Extra</code> stays beside the answer. A row that named only <code>False</code> would leave the other operand behind as remainder.</figcaption>
 </figure>
 <p class="onward"><a href="#code">Next: Rules are values</a></p>
 </section>
@@ -744,12 +756,13 @@ WHITESPACE = _{ " " | "\t" | "\r" | "\n" | "\u{000B}" | "\u{000C}" }</pre>
 <dt>Particle</dt><dd>An unordered multiset of occurrences in one coherence.</dd>
 <dt>Coherence</dt><dd>An independent place where a particle lives.</dd>
 <dt>Configuration</dt><dd>All coherences and live rules at one moment; a node of the graph.</dd>
-<dt>Rule</dt><dd>Inputs in brackets and outputs after them, up to the next comma. Also a value.</dd>
+<dt>Rule</dt><dd>Inputs in brackets and one output term after them; a group gives several outputs. Also a value.</dd>
 <dt>Event</dt><dd>One rule applied to one match; an arrow of the graph.</dd>
 <dt>Remainder</dt><dd>What a match leaves in its coherences; every output receives it.</dd>
 <dt>Scope</dt><dd>A local place: a group of rules and at most one coherence, opened by a rule's output. Its own rules return to the enclosing scope.</dd>
 <dt>Inference</dt><dd>Applying a rule to what a configuration can become, at the configuration itself.</dd>
 <dt>Witness</dt><dd>The concrete occurrences an inferred match reached through evidence.</dd>
+<dt>Deduction</dt><dd>The events that lead from an inferred event's configuration to the one where its rule matched.</dd>
 <dt>Field</dt><dd>A one-rule value such as <code>([Digit] 0)</code> that keeps a role with its value.</dd>
 <dt>Target</dt><dd>A complete configuration, including live rules, that Prism looks for.</dd>
 <dt>Verdict</dt><dd>Reached, unreachable or unknown.</dd>
