@@ -384,7 +384,7 @@ fn generated() {
     for data in ["", "()", "A", "A.A", "A,B", "A.A,B", "A.([A] B)"] {
         for input in ["", "()", "A", "A.A", "A,B", "[A] B", "A.([A] B)"] {
             for output in ["B", "(B, C)", "([A] B)", "(A, [A] B)"] {
-                verify(&format!("{data}, [A] B, [{input}] {output}"), 2);
+                verify(&format!("[A] B, [{input}] {output}, {data}"), 2);
             }
         }
     }

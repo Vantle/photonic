@@ -48,6 +48,7 @@
                 if (strict && last !== 'factor') throw new Error('A coherence in the pattern is empty.');
                 last = 'separator';
             } else {
+                if (strict && last === 'factor') throw new Error('Put a dot or a comma between the parts of the pattern.');
                 if (last === 'dot') result.at(-1).push(value);
                 else result.push([value]);
                 last = 'factor';

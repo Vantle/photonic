@@ -6,11 +6,11 @@ use crate::syntax::{Kind, Node, Tree};
 #[derive(pest_derive::Parser)]
 #[grammar_inline = r#"
 module = { SOI ~ list ~ EOI }
-list = { term* ~ ("," ~ term*)* }
-term = { factor ~ ("." ~ factor)* }
-factor = _{ concept | group | rule }
+list = { (term ~ ("," ~ term)* ~ ","?)? }
+term = { rule | factor ~ ("." ~ factor)* }
+factor = _{ concept | group }
 group = { "(" ~ list ~ ")" }
-rule = { "[" ~ list ~ "]" ~ term* }
+rule = { "[" ~ list ~ "]" ~ term? }
 concept = @{ (!("(" | ")" | "[" | "]" | "." | "," | WHITESPACE) ~ ANY)+ }
 WHITESPACE = _{ " " | "\t" | "\r" | "\n" | "\u{000B}" | "\u{000C}" }
 "#]
@@ -19,16 +19,16 @@ struct Grammar;
 pub fn parse(source: &str) -> Result<Tree<'_>, Failure> {
     depth(source)?;
     let parsed = Grammar::parse(Rule::module, source).map_err(|error| {
-        let span = match error.location {
-            InputLocation::Pos(position) => {
-                let length = source[position..].chars().next().map_or(0, char::len_utf8);
-                (position, length).into()
-            }
-            InputLocation::Span((start, end)) => (start, end - start).into(),
-        };
+        let (position, message) = advice(source).unwrap_or_else(|| {
+            let position = match error.location {
+                InputLocation::Pos(position) | InputLocation::Span((position, _)) => position,
+            };
+            (position, error.variant.message().into_owned())
+        });
+        let length = source[position..].chars().next().map_or(0, char::len_utf8);
         Failure::Syntax {
-            message: error.variant.message().into_owned(),
-            span,
+            message,
+            span: (position, length).into(),
         }
     })?;
     let mut node = Vec::new();
@@ -66,6 +66,55 @@ pub fn parse(source: &str) -> Result<Tree<'_>, Failure> {
         }
     }
     Ok(Tree { source, node })
+}
+
+fn advice(source: &str) -> Option<(usize, String)> {
+    let space = [' ', '\t', '\r', '\n', '\u{000B}', '\u{000C}'];
+    let mut open = Vec::new();
+    let mut previous = None;
+    let mut word = false;
+    for (position, character) in source.char_indices() {
+        if space.contains(&character) {
+            word = false;
+            continue;
+        }
+        let current = if "()[].,".contains(character) {
+            word = false;
+            character
+        } else if word {
+            continue;
+        } else {
+            word = true;
+            'a'
+        };
+        let message = match (previous, current) {
+            (_, '(' | '[') => {
+                open.push(current);
+                None
+            }
+            (_, ')' | ']') if open.pop() != Some(if current == ')' { '(' } else { '[' }) => {
+                Some("this closes nothing that is open here")
+            }
+            _ => None,
+        }
+        .or(match (previous, current) {
+            (Some('a' | ')'), 'a' | '(' | '[') => {
+                Some("put a dot between these to join them, or a comma to separate them")
+            }
+            (Some('.'), '[') | (Some(']'), '.') => {
+                Some("a rule joins a particle inside parentheses, as in X.([A] B)")
+            }
+            (None | Some(',' | '(' | '['), ',') => {
+                Some("a comma separates two things; put something on each side")
+            }
+            _ => None,
+        });
+        if let Some(message) = message {
+            return Some((position, message.into()));
+        }
+        previous = Some(current);
+    }
+    (!open.is_empty()).then(|| (source.len(), "close what is still open".into()))
 }
 
 pub const DEPTH: usize = 128;

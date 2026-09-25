@@ -178,12 +178,12 @@ try {
     assert.equal(await evaluate(`return ${figure('first')}.querySelector('.editor textarea').value`), 'A.X,\n[A] B');
     await evaluate(`
         const area = ${figure('first')}.querySelector('.editor textarea');
-        area.value = '人 [A';
+        area.value = '人, [A';
         area.dispatchEvent(new Event('input'));
         ${figure('first')}.querySelector('.run').click();
         return true`);
     await until(`return ${figure('first')}.querySelector('.message').dataset.tone === 'error'`);
-    assert.match(await evaluate(`return ${figure('first')}.querySelector('.message').textContent`), /at character 5\)/);
+    assert.match(await evaluate(`return ${figure('first')}.querySelector('.message').textContent`), /at character 6\)/);
     assert.equal(await evaluate(`return [...${figure('first')}.querySelectorAll('.bar button')].find(value => value.textContent === 'Reset').hidden`), false);
     await evaluate(`[...${figure('first')}.querySelectorAll('.bar button')].find(value => value.textContent === 'Reset').click(); return true`);
     await evaluate(`
@@ -205,8 +205,8 @@ try {
     await until("return /4 coherences/.test(document.querySelector('#value .lens .lowered').textContent)");
     await evaluate("const input = document.querySelector('#value .lens input'); input.value = 'constructor'; input.dispatchEvent(new Event('input')); return true");
     await until("return /1 coherence/.test(document.querySelector('#value .lens .lowered').textContent)");
-    await evaluate("const input = document.querySelector('#value .lens input'); input.value = '人 [B'; input.dispatchEvent(new Event('input')); return true");
-    await until("return /at character 5\\)/.test(document.querySelector('#value .lens .message').textContent)");
+    await evaluate("const input = document.querySelector('#value .lens input'); input.value = '人, [B'; input.dispatchEvent(new Event('input')); return true");
+    await until("return /at character 6\\)/.test(document.querySelector('#value .lens .message').textContent)");
     await evaluate("[...document.querySelectorAll('#calculator .preset button')].find(value => value.textContent === '12 + 2').click(); return true");
     await until("return /21₃= 7 in decimal/.test(document.querySelector('#calculator .result').textContent) && document.querySelector('#calculator .stepper')");
     await evaluate("[...document.querySelectorAll('#calculator .preset button')].find(value => value.textContent === '1 / 0').click(); return true");

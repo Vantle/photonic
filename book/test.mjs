@@ -10,7 +10,6 @@ const shown = (text, data = parallel) => [...pattern.state(pattern.read(text), d
 assert.deepEqual(shown('C'), [1, 3, 4]);
 assert.deepEqual(shown('C, D'), [3, 4]);
 assert.deepEqual(shown('C.D'), []);
-assert.deepEqual(shown('C D'), shown('C, D'));
 assert.ok(shown('[C, D] E').length);
 for (const text of ['[C,D] E', '[D, C]E', ' [ D ,C ] E ']) assert.deepEqual(shown(text), shown('[C, D] E'), text);
 assert.deepEqual(shown('[C, D] F'), []);
@@ -19,6 +18,7 @@ assert.ok(shown('([A] B)', dynamic).length);
 assert.deepEqual(shown('([A]B)', dynamic), shown('([A] B)', dynamic));
 assert.equal(pattern.read('  '), undefined);
 for (const [text, message] of [
+    ['A B', /dot or a comma/],
     ['B.', /single dots/],
     ['A,', /is empty/],
     ['(Seed).A', /rule value/],

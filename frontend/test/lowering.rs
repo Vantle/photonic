@@ -27,7 +27,10 @@ fn same(left: &str, right: &str) {
 
 fn syntax(source: &str) -> String {
     match lowering::parse(source) {
-        Err(Failure::Syntax { message, .. }) => message,
+        Err(
+            Failure::Syntax { message, .. }
+            | Failure::Parse(frontend::failure::Failure::Syntax { message, .. }),
+        ) => message,
         other => panic!("expected a syntax failure for {source}, found {other:?}"),
     }
 }
@@ -60,26 +63,42 @@ fn partition() {
         "[1] 1, [2.3] 6, [3.7] 21, 3.7",
         "3.7, [3.7] 21, [2.3] 6, [1] 1",
     );
-    same("A\n[A] B\n,\nC", "A [A] B, C");
-    same("A [A] B, C", "A, [A] B, C");
-    same("A,, B,", "A, B");
-}
-
-#[test]
-fn separation() {
-    same("A B", "A, B");
-    same("A.B C", "A.B, C");
-    same("A(B, C)", "A, B, C");
-    same("A.(B C)", "A.B, A.C");
-    same("[A] B C", "[A] (B, C)");
-    same("[A] (B) (C)", "[A] (B, C)");
-    same("[A] B C, D", "[A] (B, C), D");
-    same("[A B] C", "[A, B] C");
-    same("[A] B [B] C", "[A] (B, ().([B] C))");
-    let source = lowering::parse("[X] A.B C").unwrap();
+    same("A,\n[A] B,\nC,", "C, [A] B, A");
+    same("A, B,", "A, B");
+    let source = lowering::parse("[X] (A.B, C)").unwrap();
     assert_eq!(source.rule[0].output.len(), 2);
     assert_eq!(source.rule[0].output[0].particle, atom(&["A", "B"]));
     assert_eq!(source.rule[0].output[1].particle, atom(&["C"]));
+}
+
+#[test]
+fn space() {
+    for source in [
+        "A B",
+        "A.B C",
+        "A(B, C)",
+        "[A] B C",
+        "[A] (B) (C)",
+        "C [A] B",
+        "C B [A]",
+        "[A B] C",
+        "(Kettle [Kettle.Tea] Cup)",
+        "[A] B\n[B] C",
+    ] {
+        let message = syntax(source);
+        assert!(
+            message.contains("dot") && message.contains("comma"),
+            "{source}: {message}"
+        );
+    }
+    for source in ["X.[A] B", "[A].B"] {
+        assert!(syntax(source).contains("parentheses"), "{source}");
+    }
+    for source in [",A", "A,,B", "(,)", "[,] A", "[A,,]"] {
+        assert!(syntax(source).contains("comma"), "{source}");
+    }
+    same("A . B", "A.B");
+    same("A.(B, C)", "A.B, A.C");
 }
 
 #[test]
@@ -133,7 +152,7 @@ fn scope() {
     let source = lowering::parse("[A] ([B] C, [C] D,)").unwrap();
     assert!(source.rule[0].output[0].particle.is_empty());
     assert_eq!(source.rule[0].output[0].body.as_ref().unwrap().len(), 2);
-    let source = lowering::parse("[A] (X [X] Y)").unwrap();
+    let source = lowering::parse("[A] (X, [X] Y)").unwrap();
     assert_eq!(source.rule[0].output[0].particle, atom(&["X"]));
     assert_eq!(source.rule[0].output[0].body.as_ref().unwrap().len(), 1);
     let source = lowering::parse("[A] X.([X] Y)").unwrap();
@@ -156,8 +175,6 @@ fn empty() {
     assert_eq!(source.rule[4].input.len(), 2);
     let source = lowering::parse("").unwrap();
     assert!(source.initial.is_empty() && source.rule.is_empty());
-    same("(,)", "()");
-    same("[,] A", "[] A");
 }
 
 #[test]

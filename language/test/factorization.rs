@@ -102,7 +102,7 @@ fn survival() {
 
 #[test]
 fn locality() {
-    for pattern in ["A.B", "A", ""] {
+    for pattern in ["A.B", "A", "()"] {
         let source = format!("{},A.C, [{pattern},C] Done", vec!["A.B"; 32].join(","));
         let program = Program::new(&crate::lowering::parse(&source).unwrap());
         let mut state = State::initial(&program);

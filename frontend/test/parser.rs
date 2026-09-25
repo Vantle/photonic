@@ -36,10 +36,10 @@ fn structure() {
         .map(|node| node.kind)
         .collect::<Vec<_>>();
     assert_eq!(child, [Kind::List, Kind::Term]);
-    let tree = parser::parse("[X] A.B C, D E").unwrap();
+    let tree = parser::parse("[X] (A.B, C), D.E").unwrap();
     assert_eq!(
         text(&tree, Kind::Term),
-        ["[X] A.B C", "X", "A.B", "C", "D", "E"]
+        ["[X] (A.B, C)", "X", "(A.B, C)", "A.B", "C", "D.E"]
     );
 }
 
@@ -74,23 +74,52 @@ fn delimiter() {
     }
 }
 
+fn rejected(source: &str) -> (usize, String) {
+    match parser::parse(source) {
+        Err(Failure::Syntax { message, span }) => (span.offset(), message),
+        other => panic!("expected a syntax failure for {source}, found {other:?}"),
+    }
+}
+
 #[test]
 fn dot() {
     for source in [".A", "A..B", "A.", "A.,B", "(.)"] {
+        rejected(source);
+    }
+    for source in ["A.B", "A . B", "A.(B)", "([A]).B", "X.([A] B)", "[A] [B] C"] {
+        assert!(parser::parse(source).is_ok(), "{source}");
+    }
+    assert_eq!(rejected("X.[A] B").0, 2);
+    assert_eq!(rejected("[A].B").0, 3);
+}
+
+#[test]
+fn space() {
+    for (source, offset) in [
+        ("A B", 2),
+        ("A(B)", 1),
+        ("(A) (B)", 4),
+        ("[A] B C", 6),
+        ("C [A] B", 2),
+        ("(Kettle [Kettle.Tea] Cup)", 8),
+        ("[A B] C", 3),
+    ] {
+        let (found, message) = rejected(source);
+        assert_eq!(found, offset, "{source}");
         assert!(
-            matches!(parser::parse(source), Err(Failure::Syntax { .. })),
+            message.contains("dot") && message.contains("comma"),
             "{source}"
         );
-    }
-    for source in ["A.B", "A . B", "A B", "A(B)", "A.(B)", "[A].B"] {
-        assert!(parser::parse(source).is_ok(), "{source}");
     }
 }
 
 #[test]
 fn empty() {
-    for source in ["", " \t\r\n", "()", "[]", "[A,,]", ",", "A,,B,", "(,)"] {
+    for source in ["", " \t\r\n", "()", "[]", "A,", "[A, B,]", "(A,)"] {
         assert!(parser::parse(source).is_ok(), "{source}");
+    }
+    for source in [",", ",A", "A,,B", "(,)", "[A,,]"] {
+        assert!(rejected(source).1.contains("comma"), "{source}");
     }
 }
 

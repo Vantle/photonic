@@ -93,9 +93,9 @@ fn absence() {
     for width in 1..=6 {
         for count in 0..width {
             let source = format!(
-                "{}, [{}] Result",
-                vec!["()"; count].join(","),
-                vec!["()"; width].join(",")
+                "[{}] Result, {}",
+                vec!["()"; width].join(","),
+                vec!["()"; count].join(",")
             );
             let mut path = {
                 let program = parse(&source).unwrap();

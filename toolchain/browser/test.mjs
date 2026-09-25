@@ -38,11 +38,12 @@ assert.equal(explore({ version: 1, source: 'A', extra: true }).error.code, 'requ
 assert.equal(JSON.parse(engine.explore('[')).error.code, 'request');
 assert.equal(explore({ version: 1, source: 'A'.repeat(131073) }).error.code, 'size');
 assert.equal(explore({ version: 1, source: 'A', target: ['A'] }).verdict[0].outcome, 'reached');
-const located = explore({ version: 1, source: 'A [B' });
+const located = explore({ version: 1, source: 'A, [B' });
 assert.equal(located.error.code, 'source');
-assert.equal(located.error.span.offset, 4);
-assert.equal(explore({ version: 1, source: '人 [B' }).error.span.offset, 4);
-assert.equal(explore({ version: 1, source: 'A', target: ['人.人 [B'] }).error.span.offset, 6);
+assert.equal(located.error.span.offset, 5);
+assert.equal(explore({ version: 1, source: '人, [B' }).error.span.offset, 5);
+assert.equal(explore({ version: 1, source: '人 [B' }).error.span.offset, 2);
+assert.equal(explore({ version: 1, source: 'A', target: ['人.人, [B'] }).error.span.offset, 7);
 console.log('WebAssembly exploration matches native Rust reports, including suspended exploration and generated code.');
 
 const library = [{ name: 'not.particle', source: '[Not.True] False,\n[Not.False] True' }];
@@ -82,8 +83,8 @@ const refused = path => {
     return result.error;
 };
 assert.equal(refused({ version: 1, source: 'A', target: ['A', 'B'] }).code, 'target');
-assert.deepEqual(refused({ version: 1, source: 'A [B' }), refused({ version: 1, source: 'A [B', target: ['A'] }));
-assert.equal(refused({ version: 1, source: 'A [B' }).span.offset, 4);
+assert.deepEqual(refused({ version: 1, source: 'A, [B' }), refused({ version: 1, source: 'A, [B', target: ['A'] }));
+assert.equal(refused({ version: 1, source: 'A, [B' }).span.offset, 5);
 assert.equal(refused({ version: 2, source: 'A' }).code, 'version');
 console.log('Direct paths reach preserved targets, inspect every transition and locate refusals.');
 
