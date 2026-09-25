@@ -11,7 +11,7 @@ assert.deepEqual(shown('C'), [1, 3, 4]);
 assert.deepEqual(shown('C, D'), [3, 4]);
 assert.deepEqual(shown('C.D'), []);
 assert.ok(shown('[C, D] E').length);
-for (const text of ['[C,D] E', '[D, C]E', ' [ D ,C ] E ']) assert.deepEqual(shown(text), shown('[C, D] E'), text);
+for (const text of ['[C,D] E', '[D, C]E', ' [ D ,C ] E ', 'E [C, D]', 'E[D,C]']) assert.deepEqual(shown(text), shown('[C, D] E'), text);
 assert.deepEqual(shown('[C, D] F'), []);
 const dynamic = graph.model(record.example.dynamic.result.execution);
 assert.ok(shown('([A] B)', dynamic).length);
@@ -24,7 +24,7 @@ for (const [text, message] of [
     ['(Seed).A', /rule value/],
     ['[A', /balance/],
     ['A)', /balance/],
-    ['A, [B] C', /Start a rule pattern/],
+    ['A, [B] C', /one rule/],
 ]) assert.throws(() => pattern.read(text), message, text);
 console.log('Patterns match coherences, rule values and rules by structure, whatever the spacing or order.');
 

@@ -66,7 +66,7 @@ pub fn rule(rule: &Rule, vocabulary: &Vocabulary) -> String {
         [] => return format!("[{input}]"),
         [single] => match single.body() {
             Some(body) => scope(single, body, vocabulary),
-            None => edge(single.particle(), vocabulary),
+            None => member(single.particle(), vocabulary),
         },
         several => format!(
             "({})",

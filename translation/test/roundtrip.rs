@@ -47,7 +47,7 @@ fn written() {
 
 #[test]
 fn unknown() {
-    let parsed = photonic::lowering::parse("[Seed] [Missing] B").unwrap();
+    let parsed = photonic::lowering::parse("[Seed] ().([Missing] B)").unwrap();
     let known = vocabulary();
     assert!(matches!(
         lift::program(&parsed, &mut lift::Fixed(&known)),

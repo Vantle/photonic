@@ -45,7 +45,7 @@ fn reunion() {
 
 #[test]
 fn production() {
-    let source = parse("Seed.A, [Seed] [A] B").unwrap();
+    let source = parse("Seed.A, [Seed] ().([A] B)").unwrap();
     let exploration = explore(&source, limit(), Bound::default(), |_| false);
     assert!(exploration.complete());
     assert_eq!(exploration.terminal.len(), 1);

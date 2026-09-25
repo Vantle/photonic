@@ -54,7 +54,7 @@ impl Circuit {
                 rule.push(format!(
                     "[{}] {}",
                     Address::at("Input", wire).rule(value),
-                    particle(output)
+                    coherence(&output)
                 ));
             }
         }
@@ -69,7 +69,7 @@ impl Circuit {
                     .iter()
                     .zip(&value)
                     .map(|(label, &value)| label.rule(value))
-                    .collect();
+                    .collect::<Vec<_>>();
                 let output = gate
                     .output
                     .iter()
@@ -77,24 +77,30 @@ impl Circuit {
                     .flat_map(|(&wire, value)| {
                         port[wire].iter().map(move |label| label.rule(value))
                     })
-                    .collect();
-                rule.push(format!("[{}] {}", particle(pattern), particle(output)));
+                    .collect::<Vec<_>>();
+                rule.push(format!("[{}] {}", particle(&pattern), coherence(&output)));
             }
         }
         let rule = rule.join(",\n");
-        match &initial[..] {
-            [] => rule + "\n",
-            [field] => format!("().({field}),\n\n{rule}\n"),
-            _ => format!("{},\n\n{rule}\n", join(&initial)),
+        if initial.is_empty() {
+            return rule + "\n";
         }
+        format!("{},\n\n{rule}\n", coherence(&initial))
     }
 }
 
-fn particle(value: Vec<String>) -> String {
-    match &value[..] {
-        [] => "()".into(),
+fn particle(value: &[String]) -> String {
+    match value {
         [rule] => rule.clone(),
-        _ => join(&value),
+        _ => coherence(value),
+    }
+}
+
+fn coherence(value: &[String]) -> String {
+    match value {
+        [] => "()".into(),
+        [rule] => format!("().({rule})"),
+        _ => join(value),
     }
 }
 

@@ -19,7 +19,7 @@ fn resume() {
         ("A, [A] B, [B] C", "C"),
         ("A, [A] B, [B] A", "Missing"),
         ("A, [A] (B, [B] (C, [C] D))", "D"),
-        ("Seed.A, [Seed] [A] B", "B.([A] B)"),
+        ("Seed.A, [Seed] ().([A] B)", "B.([A] B)"),
         ("A.X,B.X, [A,B] C", "C.X,X"),
     ] {
         let mut actual = {
@@ -62,7 +62,7 @@ fn exhaustive() {
         "",
         "A, [A] B, [B] C",
         "A, [A] B, [A] C, [B,C] Forbidden",
-        "Seed.A, [Seed] [A] B",
+        "Seed.A, [Seed] ().([A] B)",
         "A, [A] (B, [B] (C, [C] D))",
     ] {
         let mut actual = Runtime::new(&parse(source).unwrap());

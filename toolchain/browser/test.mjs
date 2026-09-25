@@ -11,7 +11,7 @@ const explore = request => JSON.parse(engine.explore(JSON.stringify(request)));
 for (const source of [
     'A, [A] B',
     'A, [A] B.C, [B] D',
-    'Seed.A, [Seed] [A] B',
+    'Seed.A, [Seed] ().([A] B)',
     'A.X, B.Y, [A, B] (C, D), [C, D] E',
     'A, [A] A.A',
     'And.True.False, [True] Boolean, [False] Boolean, [And.Boolean.Boolean] ([True.False] False)',
@@ -48,7 +48,7 @@ const located = explore({ version: 1, source: 'A, [B' });
 assert.equal(located.error.code, 'source');
 assert.equal(located.error.span.offset, 5);
 assert.equal(explore({ version: 1, source: '人, [B' }).error.span.offset, 5);
-assert.equal(explore({ version: 1, source: '人 [B' }).error.span.offset, 2);
+assert.equal(explore({ version: 1, source: '人 [B' }).error.span.offset, 4);
 assert.equal(explore({ version: 1, source: 'A', target: ['人.人, [B'] }).error.span.offset, 7);
 const deduced = explore({ version: 1, source: 'A, [A] B.C, [B] D' }).execution;
 const shortcut = deduced.event.find(value => value.source === 0 && value.rule === '[B] D');

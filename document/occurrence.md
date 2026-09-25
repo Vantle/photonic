@@ -4,7 +4,7 @@ Contract authorized September 22, 2026. This supersedes the alternatives in the 
 
 ## Values and ownership
 
-Immutable code and live resources have separate identities. Loading introduces one root context occurrence for every written rule, including repeated equal definitions. Entering an output body introduces that body's rules with captures of the new context. Neither operation introduces atoms mentioned inside rule inputs or outputs. Written and dynamically emitted rules share code interning and occurrence construction. Interning uses normalized definitions as keys while compiling the original definition.
+Immutable code and live resources have separate identities. Loading introduces one root context occurrence for every written rule, one per bracket, including repeated equal definitions. Entering an output body introduces that body's rules with captures of the new context. Neither operation introduces atoms mentioned inside rule inputs or outputs. Written and dynamically emitted rules share code interning and occurrence construction. Interning uses normalized definitions as keys while compiling the original definition.
 
 Every live occurrence belongs to a coherence or a lexical context. Context members are visible in lexical descendants. Visibility exposes the original occurrence; it does not copy it. Held operands are retained evidence, separate from live members. A compiled catalog supplies immutable matching plans and initialization metadata, never executable authority.
 
@@ -30,7 +30,7 @@ Distinct input positions require distinct locations. Multiple operands inside on
 
 These rules generalize to arbitrary arity within explicit resource limits. Zero-input execution does not manufacture an input coherence or impose a one-shot restriction. A context-owned zero-input rule executes at its owning context, not once per visibility path. A coherence-owned zero-input rule reads its occurrence without implicitly selecting the containing coherence as an operand.
 
-The existing interpretation of `[A] [B]` is unchanged: an A-input rule produces a rule value. It does not introduce bidirectional syntax. Report notation such as `⟨…⟩`, `§0`, and `@f0` is diagnostic labeling, not additional source grammar; capture and ownership are explicit structured report fields.
+Brackets that share a term are separate rules, and each produces the rest of the term as rule values: in `[A] [B]`, the A-input rule produces `[B]` and the B-input rule produces `[A]`. Neither makes a bidirectional rule. Report notation such as `⟨…⟩`, `§0`, and `@f0` is diagnostic labeling, not additional source grammar; capture and ownership are explicit structured report fields.
 
 ## One evaluator
 

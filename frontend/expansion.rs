@@ -1,33 +1,6 @@
 use std::cell::Cell;
 
-use crate::source::{Definition, Value};
-
-fn definition(value: &Definition) -> usize {
-    1 + value.name.len()
-        + value
-            .input
-            .iter()
-            .map(|value| particle(value))
-            .sum::<usize>()
-        + value
-            .output
-            .iter()
-            .map(|value| {
-                1 + particle(&value.particle)
-                    + value.body.iter().flatten().map(definition).sum::<usize>()
-            })
-            .sum::<usize>()
-}
-
-fn particle(value: &[Value]) -> usize {
-    1 + value
-        .iter()
-        .map(|value| match value {
-            Value::Atom(value) => 1 + value.len(),
-            Value::Rule { rule } => definition(rule),
-        })
-        .sum::<usize>()
-}
+use crate::source::Value;
 
 pub(crate) fn combine(
     left: Vec<Vec<Value>>,
@@ -41,13 +14,13 @@ pub(crate) fn combine(
     }
     let size = left
         .iter()
-        .map(|value| particle(value))
+        .map(|value| crate::size::particle(value))
         .sum::<usize>()
         .checked_mul(right.len())?
         .checked_add(
             right
                 .iter()
-                .map(|value| particle(value))
+                .map(|value| crate::size::particle(value))
                 .sum::<usize>()
                 .checked_mul(left.len())?,
         )?;

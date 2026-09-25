@@ -103,7 +103,7 @@ fn space() {
 
 #[test]
 fn closure() {
-    let source = lowering::parse("([A] B).A, [[A] B] [A] C").unwrap();
+    let source = lowering::parse("([A] B).A, [[A] B] ().([A] C)").unwrap();
     let Value::Rule { rule } = &source.initial[0][0] else {
         panic!("expected rule");
     };
@@ -134,7 +134,8 @@ fn closure() {
 #[test]
 fn scope() {
     let source =
-        lowering::parse("Enter, [Enter] (Make, [Make] [Call] (Payload, [Payload] Done))").unwrap();
+        lowering::parse("Enter, [Enter] (Make, [Make] ().([Call] (Payload, [Payload] Done)))")
+            .unwrap();
     let outer = &source.rule[0].output[0];
     assert_eq!(outer.particle, atom(&["Make"]));
     let Value::Rule { rule } = &outer.body.as_ref().unwrap()[0].output[0].particle[0] else {
@@ -252,7 +253,16 @@ fn schema() {
 #[test]
 fn depth() {
     let limit = frontend::parser::DEPTH;
-    assert!(lowering::parse(&"[A] ".repeat(limit)).is_ok());
+    let nested = |count: usize| format!("{}A{}", "[".repeat(count), "]".repeat(count));
+    assert!(lowering::parse(&nested(limit)).is_ok());
+    assert!(matches!(
+        lowering::parse(&nested(limit + 1)),
+        Err(Failure::Parse(frontend::failure::Failure::Depth { .. }))
+    ));
+    assert!(matches!(
+        lowering::parse(&"[A] ".repeat(limit)),
+        Err(Failure::Expansion { .. })
+    ));
     for count in [limit + 1, 10_000] {
         let Err(Failure::Parse(frontend::failure::Failure::Depth { limit: found, span })) =
             lowering::parse(&"[A] ".repeat(count))

@@ -17,11 +17,11 @@ fn structure() {
     assert_eq!(tree.source(), source);
     assert_eq!(tree.node()[0].kind, Kind::Module);
     assert_eq!(tree.node()[0].span, 0..source.len());
-    assert_eq!(text(&tree, Kind::Rule), ["[A, B] (C.D)"]);
+    assert_eq!(text(&tree, Kind::Rule), ["[A, B]"]);
     assert_eq!(text(&tree, Kind::Group), ["(C.D)"]);
     assert_eq!(
         text(&tree, Kind::Term),
-        ["A.A", "[A, B] (C.D)", "A", "B", "(C.D)", "C.D"]
+        ["A.A", "[A, B] (C.D)", "A", "B", "C.D"]
     );
     assert_eq!(text(&tree, Kind::Concept), ["A", "A", "A", "B", "C", "D"]);
     let rule = tree
@@ -29,18 +29,60 @@ fn structure() {
         .iter()
         .position(|node| node.kind == Kind::Rule)
         .unwrap();
-    let child = tree
-        .node()
-        .iter()
-        .filter(|node| node.parent == Some(rule))
-        .map(|node| node.kind)
-        .collect::<Vec<_>>();
-    assert_eq!(child, [Kind::List, Kind::Term]);
+    assert_eq!(child(&tree, rule), [Kind::List]);
+    assert_eq!(
+        child(&tree, tree.node()[rule].parent.unwrap()),
+        [Kind::Rule, Kind::Group]
+    );
     let tree = parser::parse("[X] (A.B, C), D.E").unwrap();
     assert_eq!(
         text(&tree, Kind::Term),
-        ["[X] (A.B, C)", "X", "(A.B, C)", "A.B", "C", "D.E"]
+        ["[X] (A.B, C)", "X", "A.B", "C", "D.E"]
     );
+}
+
+fn child(tree: &Tree<'_>, parent: usize) -> Vec<Kind> {
+    tree.node()
+        .iter()
+        .filter(|node| node.parent == Some(parent))
+        .map(|node| node.kind)
+        .collect()
+}
+
+#[test]
+fn ordering() {
+    for (source, expected) in [
+        (
+            "[A] [B] C.D",
+            [Kind::Rule, Kind::Rule, Kind::Concept, Kind::Concept],
+        ),
+        (
+            "[A] C.D [B]",
+            [Kind::Rule, Kind::Concept, Kind::Concept, Kind::Rule],
+        ),
+        (
+            "C.D [A] [B]",
+            [Kind::Concept, Kind::Concept, Kind::Rule, Kind::Rule],
+        ),
+    ] {
+        let tree = parser::parse(source).unwrap();
+        let term = tree
+            .node()
+            .iter()
+            .position(|node| node.kind == Kind::Term)
+            .unwrap();
+        assert_eq!(child(&tree, term), expected, "{source}");
+        assert_eq!(text(&tree, Kind::Rule), ["[A]", "[B]"], "{source}");
+    }
+    for source in [
+        "[A] [B]",
+        "[A]",
+        "(C) [A]",
+        "[A] (C, [C] D) [B]",
+        "[[A] [B] C] D",
+    ] {
+        assert!(parser::parse(source).is_ok(), "{source}");
+    }
 }
 
 #[test]
@@ -86,11 +128,22 @@ fn dot() {
     for source in [".A", "A..B", "A.", "A.,B", "(.)"] {
         rejected(source);
     }
-    for source in ["A.B", "A . B", "A.(B)", "([A]).B", "X.([A] B)", "[A] [B] C"] {
+    for source in [
+        "A.B",
+        "A . B",
+        "A.(B)",
+        "([A]).B",
+        "X.([A] B)",
+        "[A] [B] C",
+        "B [A]",
+    ] {
         assert!(parser::parse(source).is_ok(), "{source}");
     }
-    assert_eq!(rejected("X.[A] B").0, 2);
-    assert_eq!(rejected("[A].B").0, 3);
+    for (source, offset) in [("X.[A] B", 2), ("[A].B", 3), ("B.[A]", 2), ("[A] B.[C]", 6)] {
+        let (found, message) = rejected(source);
+        assert_eq!(found, offset, "{source}");
+        assert!(message.contains("parentheses"), "{source}");
+    }
 }
 
 #[test]
@@ -100,8 +153,12 @@ fn space() {
         ("A(B)", 1),
         ("(A) (B)", 4),
         ("[A] B C", 6),
-        ("C [A] B", 2),
-        ("(Kettle [Kettle.Tea] Cup)", 8),
+        ("C [A] B", 6),
+        ("C B [A]", 2),
+        ("[A] B [C] D", 10),
+        ("B [A] [C] D", 10),
+        ("(Kettle [Kettle.Tea] Cup)", 21),
+        ("[A] B\n[B] C", 10),
         ("[A B] C", 3),
     ] {
         let (found, message) = rejected(source);
@@ -132,12 +189,40 @@ fn depth() {
         parser::parse(&"[".repeat(limit + 1)),
         Err(Failure::Depth { limit: 128, .. })
     ));
-    assert!(parser::parse(&"[A] ".repeat(limit)).is_ok());
+    for sink in ["", "B", "(B)"] {
+        let bracket = |count: usize| "[A] ".repeat(count);
+        let depth = limit - usize::from(sink == "(B)");
+        for source in [
+            format!("{}{sink}", bracket(depth)),
+            format!("{sink} {}", bracket(depth)),
+        ] {
+            assert!(parser::parse(&source).is_ok(), "{sink}");
+        }
+        for source in [
+            format!("{}{sink}", bracket(depth + 1)),
+            format!("{sink} {}", bracket(depth + 1)),
+        ] {
+            let Err(Failure::Depth { span, .. }) = parser::parse(&source) else {
+                panic!("expected a depth failure for {sink}");
+            };
+            let deepest = if sink == "(B)" { "(" } else { "[" };
+            assert_eq!(&source[span.offset()..=span.offset()], deepest, "{sink}");
+        }
+    }
+    assert!(parser::parse(&"[A] B, ".repeat(limit + 1)).is_ok());
+    assert!(parser::parse(&format!("{}A{}", "[".repeat(limit), "]".repeat(limit))).is_ok());
+    assert!(
+        parser::parse(&format!(
+            "[{}A{}] B",
+            "(".repeat(limit - 1),
+            ")".repeat(limit - 1)
+        ))
+        .is_ok()
+    );
     assert!(matches!(
-        parser::parse(&"[A] ".repeat(limit + 1)),
+        parser::parse(&format!("[{}A{}] B", "(".repeat(limit), ")".repeat(limit))),
         Err(Failure::Depth { .. })
     ));
-    assert!(parser::parse(&"[A] B, ".repeat(limit + 1)).is_ok());
 }
 
 #[test]

@@ -4,6 +4,7 @@ use std::ops::Range;
 use miette::{Diagnostic, IntoDiagnostic, NamedSource, SourceSpan, WrapErr};
 use thiserror::Error;
 
+use crate::partition::{Partition, Pattern};
 use crate::source::{Definition, Output, Program, Value};
 use crate::syntax::{Kind, Tree};
 
@@ -25,7 +26,7 @@ pub enum Failure {
     #[diagnostic(code(photonic::expansion))]
     Expansion {
         limit: usize,
-        #[label("shared-prefix expansion exceeds the frontend budget")]
+        #[label("expanding this exceeds the frontend budget")]
         span: SourceSpan,
     },
     #[error("a scope holds at most one coherence; found {count}")]
@@ -39,7 +40,7 @@ pub enum Failure {
 
 enum Member {
     Particle(Vec<Value>),
-    Rule(Definition),
+    Rule(Vec<Definition>),
     Scope(Output, Range<usize>),
 }
 
@@ -80,9 +81,20 @@ impl Reader<'_, '_> {
         self.tree.node()[index].span.clone()
     }
 
+    fn kind(&self, index: usize) -> Kind {
+        self.tree.node()[index].kind
+    }
+
     fn failure(span: Range<usize>, message: &str) -> Failure {
         Failure::Syntax {
             message: message.into(),
+            span: (span.start, span.len()).into(),
+        }
+    }
+
+    fn expansion(span: Range<usize>) -> Failure {
+        Failure::Expansion {
+            limit: BUDGET,
             span: (span.start, span.len()).into(),
         }
     }
@@ -92,7 +104,7 @@ impl Reader<'_, '_> {
         for member in self.list(self.child[0][0])? {
             match member {
                 Member::Particle(particle) => program.initial.push(particle),
-                Member::Rule(rule) => program.rule.push(rule),
+                Member::Rule(rule) => program.rule.extend(rule),
                 Member::Scope(_, span) => {
                     return Err(Self::failure(
                         span,
@@ -112,39 +124,43 @@ impl Reader<'_, '_> {
         Ok(result)
     }
 
-    fn term(&self, index: usize) -> Result<Vec<Member>, Failure> {
-        if let [factor] = self.child[index][..] {
-            return self.alone(factor);
-        }
-        Ok(self
-            .join(index)?
-            .into_iter()
-            .map(Member::Particle)
-            .collect())
+    fn bracketed(&self, index: usize) -> bool {
+        self.child[index]
+            .iter()
+            .any(|&node| self.kind(node) == Kind::Rule)
     }
 
-    fn alone(&self, index: usize) -> Result<Vec<Member>, Failure> {
-        match self.tree.node()[index].kind {
-            Kind::Rule => Ok(vec![Member::Rule(self.rule(index)?)]),
-            Kind::Group => {
-                let member = self.list(self.child[index][0])?;
-                if member.is_empty() {
-                    return Ok(vec![Member::Particle(Vec::new())]);
-                }
-                if !member
-                    .iter()
-                    .any(|member| matches!(member, Member::Rule(_)))
-                {
-                    return Ok(member);
-                }
-                Ok(vec![self.scope(index, member)?])
-            }
+    fn term(&self, index: usize) -> Result<Vec<Member>, Failure> {
+        if self.bracketed(index) {
+            return Ok(vec![Member::Rule(self.partition(index)?)]);
+        }
+        self.body(&self.child[index])
+    }
+
+    fn body(&self, factor: &[usize]) -> Result<Vec<Member>, Failure> {
+        match factor {
+            [] => Ok(Vec::new()),
+            &[group] if self.kind(group) == Kind::Group => self.group(group),
             _ => Ok(self
-                .factor(index)?
+                .join(factor)?
                 .into_iter()
                 .map(Member::Particle)
                 .collect()),
         }
+    }
+
+    fn group(&self, index: usize) -> Result<Vec<Member>, Failure> {
+        let member = self.list(self.child[index][0])?;
+        if member.is_empty() {
+            return Ok(vec![Member::Particle(Vec::new())]);
+        }
+        if !member
+            .iter()
+            .any(|member| matches!(member, Member::Rule(_)))
+        {
+            return Ok(member);
+        }
+        Ok(vec![self.scope(index, member)?])
     }
 
     fn scope(&self, index: usize, member: Vec<Member>) -> Result<Member, Failure> {
@@ -154,7 +170,7 @@ impl Reader<'_, '_> {
         for member in member {
             match member {
                 Member::Particle(value) => particle.push(value),
-                Member::Rule(rule) => body.push(rule),
+                Member::Rule(rule) => body.extend(rule),
                 Member::Scope(_, span) => {
                     return Err(Self::failure(
                         span,
@@ -178,52 +194,80 @@ impl Reader<'_, '_> {
         ))
     }
 
-    fn join(&self, index: usize) -> Result<Vec<Vec<Value>>, Failure> {
+    fn join(&self, factor: &[usize]) -> Result<Vec<Vec<Value>>, Failure> {
         let mut result = vec![Vec::new()];
-        for &factor in &self.child[index] {
+        for &factor in factor {
             let value = self.factor(factor)?;
-            result = crate::expansion::combine(result, value, &self.budget).ok_or_else(|| {
-                let span = self.span(factor);
-                Failure::Expansion {
-                    limit: BUDGET,
-                    span: (span.start, span.len()).into(),
-                }
-            })?;
+            result = crate::expansion::combine(result, value, &self.budget)
+                .ok_or_else(|| Self::expansion(self.span(factor)))?;
         }
         Ok(result)
     }
 
     fn factor(&self, index: usize) -> Result<Vec<Vec<Value>>, Failure> {
-        match self.tree.node()[index].kind {
-            Kind::Concept => Ok(vec![vec![Value::Atom(
+        if self.kind(index) == Kind::Concept {
+            return Ok(vec![vec![Value::Atom(
                 self.tree.source()[self.span(index)].into(),
-            )]]),
-            Kind::Rule => Ok(vec![vec![Value::Rule {
-                rule: Box::new(self.rule(index)?),
-            }]]),
-            _ => {
-                let term = &self.child[self.child[index][0]];
-                if term.is_empty() {
-                    return Ok(vec![Vec::new()]);
-                }
-                let mut result = Vec::new();
-                for &term in term {
-                    result.extend(self.join(term)?);
-                }
-                Ok(result)
-            }
+            )]]);
         }
+        let term = &self.child[self.child[index][0]];
+        if term.is_empty() {
+            return Ok(vec![Vec::new()]);
+        }
+        let mut result = Vec::new();
+        for &term in term {
+            if self.bracketed(term) {
+                result.push(self.partition(term)?.into_iter().map(value).collect());
+                continue;
+            }
+            result.extend(self.join(&self.child[term])?);
+        }
+        Ok(result)
     }
 
-    fn rule(&self, index: usize) -> Result<Definition, Failure> {
+    fn partition(&self, index: usize) -> Result<Vec<Definition>, Failure> {
+        let (rule, sink): (Vec<usize>, Vec<usize>) = self.child[index]
+            .iter()
+            .partition(|&&node| self.kind(node) == Kind::Rule);
+        let mut pattern = Vec::new();
+        for node in rule {
+            pattern.push(Pattern {
+                input: self.input(self.child[node][0])?,
+                span: self.span(node),
+            });
+        }
+        let mut output = Vec::new();
+        for member in self.body(&sink)? {
+            output.push(match member {
+                Member::Particle(particle) => Output {
+                    particle,
+                    body: None,
+                },
+                Member::Scope(output, _) => output,
+                Member::Rule(_) => unreachable!("a group that lists a rule is a scope"),
+            });
+        }
         let child = &self.child[index];
+        Partition {
+            source: self.tree.source(),
+            span: self.span(child[0]).start..self.span(child[child.len() - 1]).end,
+            pattern,
+            sink: sink
+                .first()
+                .zip(sink.last())
+                .map(|(&first, &last)| self.span(first).start..self.span(last).end),
+            output,
+        }
+        .rule(&self.budget)
+        .ok_or_else(|| Self::expansion(self.span(index)))
+    }
+
+    fn input(&self, index: usize) -> Result<Vec<Vec<Value>>, Failure> {
         let mut input = Vec::new();
-        for member in self.list(child[0])? {
+        for member in self.list(index)? {
             input.push(match member {
                 Member::Particle(particle) => particle,
-                Member::Rule(rule) => vec![Value::Rule {
-                    rule: Box::new(rule),
-                }],
+                Member::Rule(rule) => rule.into_iter().map(value).collect(),
                 Member::Scope(_, span) => {
                     return Err(Self::failure(
                         span,
@@ -232,28 +276,12 @@ impl Reader<'_, '_> {
                 }
             });
         }
-        let mut output = Vec::new();
-        if let Some(&term) = child.get(1) {
-            for member in self.term(term)? {
-                output.push(match member {
-                    Member::Particle(particle) => Output {
-                        particle,
-                        body: None,
-                    },
-                    Member::Rule(rule) => Output {
-                        particle: vec![Value::Rule {
-                            rule: Box::new(rule),
-                        }],
-                        body: None,
-                    },
-                    Member::Scope(output, _) => output,
-                });
-            }
-        }
-        Ok(Definition {
-            name: self.tree.source()[self.span(index)].trim().to_owned(),
-            input,
-            output,
-        })
+        Ok(input)
+    }
+}
+
+fn value(rule: Definition) -> Value {
+    Value::Rule {
+        rule: Box::new(rule),
     }
 }

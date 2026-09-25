@@ -64,7 +64,7 @@ fn report(output: &Output) -> serde_json::Value {
 #[test]
 fn execution() {
     let fixture = Fixture::new();
-    let path = fixture.write("program.wave", "Seed.A, [Seed] [A] B");
+    let path = fixture.write("program.wave", "Seed.A, [Seed] ().([A] B)");
     let output = execute("run", &path, &["--json"]);
     let result = report(&output);
     assert_eq!(result["closed"], true);
@@ -158,7 +158,7 @@ fn diagnostic() {
 #[test]
 fn worker() {
     let fixture = Fixture::new();
-    let path = fixture.write("program.wave", "Seed.A, [Seed] [A] B");
+    let path = fixture.write("program.wave", "Seed.A, [Seed] ().([A] B)");
     let sequential = report(&execute("run", &path, &["--json"]));
     let parallel = report(&execute("run", &path, &["--json", "--workers", "4"]));
     assert_eq!(sequential, parallel);

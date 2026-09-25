@@ -189,7 +189,7 @@ fn reference() {
 
 #[test]
 fn resume() {
-    let program = crate::lowering::parse("Seed.A, [Seed] [A] B").unwrap();
+    let program = crate::lowering::parse("Seed.A, [Seed] ().([A] B)").unwrap();
     let mut complete = Runtime::new(&program);
     complete.run(12000, None);
     let mut paused = Runtime::new(&program);
@@ -439,7 +439,7 @@ fn determinism() {
 #[test]
 fn observation() {
     for source in [
-        "Seed.A, [Seed] [A] B, [B] C",
+        "Seed.A, [Seed] ().([A] B), [B] C",
         "A, [A] (B, C), [B,C] D",
         "A, [A] (B, [B] C)",
     ] {

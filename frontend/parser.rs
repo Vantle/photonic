@@ -7,10 +7,11 @@ use crate::syntax::{Kind, Node, Tree};
 #[grammar_inline = r#"
 module = { SOI ~ list ~ EOI }
 list = { (term ~ ("," ~ term)* ~ ","?)? }
-term = { rule | factor ~ ("." ~ factor)* }
+term = { rule+ ~ (join ~ rule*)? | join ~ rule* }
+join = _{ factor ~ ("." ~ factor)* }
 factor = _{ concept | group }
 group = { "(" ~ list ~ ")" }
-rule = { "[" ~ list ~ "]" ~ term? }
+rule = { "[" ~ list ~ "]" }
 concept = @{ (!("(" | ")" | "[" | "]" | "." | "," | WHITESPACE) ~ ANY)+ }
 WHITESPACE = _{ " " | "\t" | "\r" | "\n" | "\u{000B}" | "\u{000C}" }
 "#]
@@ -49,7 +50,7 @@ pub fn parse(source: &str) -> Result<Tree<'_>, Failure> {
                     Rule::group => Kind::Group,
                     Rule::rule => Kind::Rule,
                     Rule::concept => Kind::Concept,
-                    Rule::factor | Rule::WHITESPACE | Rule::EOI => unreachable!(),
+                    Rule::join | Rule::factor | Rule::WHITESPACE | Rule::EOI => unreachable!(),
                 };
                 let index = node.len();
                 node.push(Node {
@@ -71,6 +72,7 @@ pub fn parse(source: &str) -> Result<Tree<'_>, Failure> {
 fn advice(source: &str) -> Option<(usize, String)> {
     let space = [' ', '\t', '\r', '\n', '\u{000B}', '\u{000C}'];
     let mut open = Vec::new();
+    let mut sink = false;
     let mut previous = None;
     let mut word = false;
     for (position, character) in source.char_indices() {
@@ -87,18 +89,17 @@ fn advice(source: &str) -> Option<(usize, String)> {
             word = true;
             'a'
         };
+        let start = matches!(current, 'a' | '(') && !matches!(previous, Some('.' | 'a' | ')'));
+        let closing = match current {
+            ')' => Some('('),
+            ']' => Some('['),
+            _ => None,
+        };
         let message = match (previous, current) {
-            (_, '(' | '[') => {
-                open.push(current);
-                None
-            }
-            (_, ')' | ']') if open.pop() != Some(if current == ')' { '(' } else { '[' }) => {
+            _ if closing.is_some() && open.last().map(|&(delimiter, _)| delimiter) != closing => {
                 Some("this closes nothing that is open here")
             }
-            _ => None,
-        }
-        .or(match (previous, current) {
-            (Some('a' | ')'), 'a' | '(' | '[') => {
+            (Some('a' | ')'), 'a' | '(') => {
                 Some("put a dot between these to join them, or a comma to separate them")
             }
             (Some('.'), '[') | (Some(']'), '.') => {
@@ -107,10 +108,20 @@ fn advice(source: &str) -> Option<(usize, String)> {
             (None | Some(',' | '(' | '['), ',') => {
                 Some("a comma separates two things; put something on each side")
             }
+            _ if start && sink => Some(
+                "put a dot between the two particles to join them, or a comma to separate them",
+            ),
             _ => None,
-        });
+        };
         if let Some(message) = message {
             return Some((position, message.into()));
+        }
+        sink |= start;
+        match current {
+            '(' | '[' => open.push((current, std::mem::take(&mut sink))),
+            ')' | ']' => sink = open.pop().is_some_and(|(_, sink)| sink),
+            ',' => sink = false,
+            _ => {}
         }
         previous = Some(current);
     }
@@ -120,41 +131,77 @@ fn advice(source: &str) -> Option<(usize, String)> {
 pub const DEPTH: usize = 128;
 
 fn depth(source: &str) -> Result<(), Failure> {
-    let mut output = vec![0usize];
-    let mut level = 0usize;
+    let bracket = bracket(source);
+    let mut stack = vec![0];
+    let mut next = 1;
+    let mut level = 0;
+    let enter = |term: usize, level: &mut usize| {
+        let base = *level;
+        *level += bracket[term].len();
+        if *level > DEPTH {
+            return Err(Failure::Depth {
+                limit: DEPTH,
+                span: (bracket[term][DEPTH - base], 1).into(),
+            });
+        }
+        Ok(())
+    };
+    enter(0, &mut level)?;
     for (position, byte) in source.bytes().enumerate() {
         match byte {
             b'(' | b'[' => {
-                output.push(0);
-                level += 1;
+                if byte == b'(' {
+                    level += 1;
+                    if level > DEPTH {
+                        return Err(Failure::Depth {
+                            limit: DEPTH,
+                            span: (position, 1).into(),
+                        });
+                    }
+                }
+                stack.push(next);
+                enter(next, &mut level)?;
+                next += 1;
             }
-            b')' | b']' => {
-                if output.len() > 1 {
-                    level -= 1 + output.pop().unwrap_or_default();
-                }
-                if byte == b')' {
-                    continue;
-                }
-                if let Some(open) = output.last_mut() {
-                    *open += 1;
-                }
-                level += 1;
+            b')' | b']' if stack.len() > 1 => {
+                let term = stack.pop().expect("a term below the root is open");
+                level -= bracket[term].len() + usize::from(byte == b')');
             }
             b',' => {
-                if let Some(open) = output.last_mut() {
-                    level -= *open;
-                    *open = 0;
-                }
-                continue;
+                let term = stack.last_mut().expect("the root term stays open");
+                level -= bracket[*term].len();
+                *term = next;
+                enter(next, &mut level)?;
+                next += 1;
             }
-            _ => continue,
-        }
-        if level > DEPTH {
-            return Err(Failure::Depth {
-                limit: DEPTH,
-                span: (position, 1).into(),
-            });
+            _ => {}
         }
     }
     Ok(())
+}
+
+fn bracket(source: &str) -> Vec<Vec<usize>> {
+    let mut bracket = vec![Vec::new()];
+    let mut stack = vec![0];
+    for (position, byte) in source.bytes().enumerate() {
+        match byte {
+            b'(' | b'[' => {
+                if byte == b'[' {
+                    bracket[stack[stack.len() - 1]].push(position);
+                }
+                stack.push(bracket.len());
+                bracket.push(Vec::new());
+            }
+            b')' | b']' if stack.len() > 1 => {
+                stack.pop();
+            }
+            b',' => {
+                let last = stack.len() - 1;
+                stack[last] = bracket.len();
+                bracket.push(Vec::new());
+            }
+            _ => {}
+        }
+    }
+    bracket
 }

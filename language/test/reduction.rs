@@ -38,7 +38,7 @@ fn reference() {
         "A, [A] (B, C), [B,C] D",
         "A,A,B, [A,B] C",
         "A.X,A.Y,B, [A,B] (C, D)",
-        "Seed.A, [Seed] [A] B",
+        "Seed.A, [Seed] ().([A] B)",
         "A, [A] (B, [B] C)",
         "A.X, [A] ((B, [B] C), D), [C,D] E",
         "A.([A] B),A.([A] C)",
@@ -104,7 +104,7 @@ fn fingerprint() {
     for source in [
         "A.X,B.X, [A,B] C",
         "A, [A] (B, [B] C)",
-        "Seed.A, [Seed] [A] B",
+        "Seed.A, [Seed] ().([A] B)",
     ] {
         let mut runtime = Runtime::new(&crate::lowering::parse(source).unwrap());
         runtime.run(100_000, None);

@@ -17,7 +17,7 @@ fn search(program: &str, target: &str) -> Search {
 fn observation() {
     for (program, target) in [
         ("A, [A] B, [B] C, [C] A", "A"),
-        ("Seed.A, [Seed] [A] B", "Seed.A"),
+        ("Seed.A, [Seed] ().([A] B)", "Seed.A"),
         ("A, [A] B, [A] C, [B,C] Forbidden", "A"),
     ] {
         let mut observed = search(program, target);
@@ -154,13 +154,16 @@ fn arithmetic() {
 
 #[test]
 fn metaprogramming() {
-    assert_eq!(outcome("Seed.A, [Seed] [A] B", "Seed.B"), Outcome::Reached);
     assert_eq!(
-        outcome("([A] B).A, [[A] B] [A] C", "([A] C).C"),
+        outcome("Seed.A, [Seed] ().([A] B)", "Seed.B"),
         Outcome::Reached
     );
     assert_eq!(
-        outcome("Seed.A, [Seed] [A] B, [[[A] B]] Missing", "Missing"),
+        outcome("([A] B).A, [[A] B] ().([A] C)", "([A] C).C"),
+        Outcome::Reached
+    );
+    assert_eq!(
+        outcome("Seed.A, [Seed] ().([A] B), [[[A] B]] Missing", "Missing"),
         Outcome::Unreachable
     );
     assert_eq!(
@@ -225,7 +228,7 @@ fn indexing() {
     );
     assert_eq!(outcome("A,B, [A,B] C", "C"), Outcome::Reached);
     assert_eq!(
-        outcome("([A] B).A, [[A] B] [A] C", "([A] C).C"),
+        outcome("([A] B).A, [[A] B] ().([A] C)", "([A] C).C"),
         Outcome::Reached
     );
 }

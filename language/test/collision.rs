@@ -51,7 +51,7 @@ fn permutation() {
     for source in [
         "A.X,B.X, [A,B] C",
         "A, [A] (B, [B] C)",
-        "Seed.A, [Seed] [A] B",
+        "Seed.A, [Seed] ().([A] B)",
         "A.X, [A] ((B, [B] C), D), [C,D] E",
     ] {
         let mut runtime = crate::runtime::Runtime::new(&crate::lowering::parse(source).unwrap());
@@ -192,7 +192,7 @@ fn eviction() {
 fn reporting() {
     for (source, target) in [
         ("A, [A] (B, [B] (C, [C] D))", "D"),
-        ("Seed.A, [Seed] [A] B", "B.([A] B)"),
+        ("Seed.A, [Seed] ().([A] B)", "B.([A] B)"),
         ("A, [A] (B, C), [B,C] D", "D"),
     ] {
         let program = crate::lowering::parse(source).unwrap();

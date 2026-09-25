@@ -64,7 +64,7 @@ fn execution() {
         ("A, [A] B, [B] C", "C"),
         ("A,B, [A,B] C", "C"),
         ("A,A,B, [A,B] C, [A,C] D", "D"),
-        ("Seed.A, [Seed] [A] B", "B.([A] B)"),
+        ("Seed.A, [Seed] ().([A] B)", "B.([A] B)"),
         ("A, [A] (B, C), [B,C] D", "D"),
     ] {
         let mut path = search(source, target);
@@ -182,7 +182,7 @@ fn factor() {
 
 #[test]
 fn inference() {
-    let source = "Seed.A, [Seed] [A] B";
+    let source = "Seed.A, [Seed] ().([A] B)";
     let mut path = search(source, "Seed.B");
     path.run(100_000, Limit::default());
     assert_eq!(path.report().outcome, Outcome::Unknown);
@@ -203,7 +203,7 @@ fn metadata() {
     for source in [
         "A, [A] B",
         "A.X,B.X, [A,B] C",
-        "Seed.A, [Seed] [A] B",
+        "Seed.A, [Seed] ().([A] B)",
         "A, [A] (B, [B] C)",
     ] {
         let mut runtime = crate::runtime::Runtime::new(&parse(source).unwrap());

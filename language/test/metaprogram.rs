@@ -15,13 +15,11 @@ fn limit() -> Limit {
 }
 
 fn tower(depth: usize) -> (String, String) {
-    let mut rule = "Done".to_owned();
-    let mut target = vec![rule.clone()];
-    for position in (0..depth).rev() {
-        rule = format!("[Step{position}] {rule}");
-        if position > 0 {
-            target.push(format!("({rule})"));
-        }
+    let mut rule = format!("[Step{}] Done", depth - 1);
+    let mut target = vec!["Done".to_owned()];
+    for position in (0..depth - 1).rev() {
+        target.push(format!("({rule})"));
+        rule = format!("[Step{position}] ().({rule})");
     }
     let initial = (0..depth)
         .map(|position| format!("Step{position}"))
@@ -164,7 +162,7 @@ fn recursion() {
 #[test]
 fn capture() {
     for depth in [1, 2, 3, 8, 16, 32] {
-        let mut body = "[A] Local, [Make] [Call] (A, [Local] Done)".to_owned();
+        let mut body = "[A] Local, [Make] ().([Call] (A, [Local] Done))".to_owned();
         for position in (1..depth).rev() {
             body = format!("Enter{position}, [Enter{position}] ({body})");
         }

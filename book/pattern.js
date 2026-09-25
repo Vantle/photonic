@@ -31,12 +31,6 @@
         return item.text;
     };
 
-    const print = item => item.map((value, index) => {
-        const previous = item[index - 1];
-        const gap = previous && value.kind !== ',' && value.kind !== '.' && previous.kind !== '.' ? ' ' : '';
-        return gap + show(value);
-    }).join('');
-
     const part = (item, strict) => {
         const result = [];
         let last = 'separator';
@@ -65,16 +59,20 @@
     const coherence = item => part(item, false)
         .flatMap(value => plain(value) ? coherence(value[0].inner) : [value.map(show).sort().join('.')]);
 
-    const configuration = item => {
-        if (item.some(value => value.kind === '[')) return print(item);
-        return coherence(item).sort().join(', ');
+    const split = item => item.reduce((result, value) => {
+        if (value.kind === ',') result.push([]);
+        else result.at(-1).push(value);
+        return result;
+    }, [[]]).filter(value => value.length);
+
+    const partition = item => {
+        const rule = item.filter(value => value.kind === '[').map(show).sort();
+        if (!rule.length) return coherence(item);
+        const particle = part(item.filter(value => value.kind !== '['), false).map(value => value.map(show).sort().join('.'));
+        return [[...rule, ...particle].join(' ')];
     };
 
-    const canonical = item => {
-        if (item[0]?.kind !== '[') return configuration(item);
-        const [context, ...rest] = item;
-        return rest.length ? `[${configuration(context.inner)}] ${configuration(rest)}` : `[${configuration(context.inner)}]`;
-    };
+    const canonical = item => split(item).flatMap(partition).sort().join(', ');
 
     const memory = new Map();
     const normal = text => {
@@ -92,7 +90,7 @@
 
     const term = value => {
         if (value.kind === 'concept') return `atom:${value.text}`;
-        if (value.kind === '(' && value.inner[0]?.kind === '[') return `rule:${canonical(value.inner)}`;
+        if (value.kind === '(' && value.inner.some(item => item.kind === '[')) return `rule:${canonical(value.inner)}`;
         throw new Error('Parentheses in a pattern hold a rule value, such as ([A] B).');
     };
 
@@ -100,9 +98,9 @@
         const query = text.trim();
         if (!query) return undefined;
         const item = parse(query);
-        if (item[0]?.kind === '[') return { rule: canonical(item), particle: [] };
-        if (item.some(value => value.kind === '[')) throw new Error('Start a rule pattern with its input, such as [B, C] D.');
-        return { particle: part(item, true).map(value => value.map(term)) };
+        if (!item.some(value => value.kind === '[')) return { particle: part(item, true).map(value => value.map(term)) };
+        if (item.some(value => value.kind === ',')) throw new Error('Search for coherences or for one rule, such as [B, C] D.');
+        return { rule: canonical(item), particle: [] };
     };
 
     const key = token => token.display?.startsWith('⟨') ? `rule:${normal(book.render.unwrap(token.display))}` : `atom:${token.label}`;

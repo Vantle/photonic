@@ -242,28 +242,33 @@ fn notation() {
 
 #[test]
 fn example() {
-    for (source, target, expected) in [
+    for (source, generated, target, expected) in [
         (
             include_str!("../../program/circuit/add.wave"),
+            circuit::add(3, 7, 1500, 123).unwrap(),
             include_str!("../../program/circuit/add.particle"),
             encoding::unsigned(3, 8, 1623).unwrap(),
         ),
         (
             include_str!("../../program/circuit/multiply.wave"),
+            circuit::multiply(3, 7, 1500, 123, circuit::Layout::Column).unwrap(),
             include_str!("../../program/circuit/multiply.particle"),
             encoding::unsigned(3, 14, 184_500).unwrap(),
         ),
         (
             include_str!("../../program/circuit/subtract.wave"),
+            circuit::subtract(3, 7, 1500, 123).unwrap(),
             include_str!("../../program/circuit/subtract.particle"),
             encoding::difference(3, 7, 1377).unwrap(),
         ),
         (
             include_str!("../../program/circuit/divide.wave"),
+            circuit::divide(3, 7, 1500, 123).unwrap(),
             include_str!("../../program/circuit/divide.particle"),
             encoding::quotient(3, 7, 12, 24, false).unwrap(),
         ),
     ] {
+        assert_eq!(source, generated);
         assert_eq!(target, expected);
         assert_eq!(execute(source, target), Outcome::Reached);
     }
