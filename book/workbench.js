@@ -151,7 +151,7 @@
             const source = editor.value;
             busy = true;
             run.setAttribute('aria-disabled', 'true');
-            message.say('Running in WebAssembly…');
+            message.wait('Running in WebAssembly…');
             try {
                 const result = await book.engine.request({ kind: 'explore', request: book.example.request(current, source) });
                 if (mine !== ticket) return;

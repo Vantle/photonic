@@ -126,7 +126,7 @@
             busy = true;
             run.setAttribute('aria-disabled', 'true');
             stop.hidden = !channel;
-            message.say('Running in WebAssembly…');
+            message.wait('Running in WebAssembly…');
             try {
                 const result = await execute(source, chosen);
                 if (mine !== ticket) return;

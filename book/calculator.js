@@ -85,8 +85,7 @@
             busy = true;
             run.setAttribute('aria-disabled', 'true');
             stop.hidden = false;
-            trace.replaceChildren();
-            message.say('Evaluating in WebAssembly…');
+            message.wait('Evaluating in WebAssembly…');
             try {
                 const outcome = await channel.send({ kind: 'expression', input: value }, 30000);
                 if (mine === ticket) draw(outcome, true);

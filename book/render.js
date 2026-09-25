@@ -19,13 +19,19 @@
         const node = element('p', 'message');
         node.setAttribute('role', 'status');
         node.hidden = true;
+        let timer;
         const say = (text, tone) => {
+            clearTimeout(timer);
             node.hidden = !text;
             node.textContent = text ?? '';
             if (tone) node.dataset.tone = tone;
             else delete node.dataset.tone;
         };
-        return { element: node, say };
+        const wait = text => {
+            clearTimeout(timer);
+            timer = setTimeout(() => say(text), 400);
+        };
+        return { element: node, say, wait };
     };
 
     const tally = (number, word) => {
