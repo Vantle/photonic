@@ -52,7 +52,7 @@ assert.equal(explore({ version: 1, source: 'A', library: [{ name: 'data.particle
 assert.equal(explore({ version: 1, source: 'A', library: [{ name: 'broken.particle', source: '[' }] }).error.code, 'library');
 console.log('Libraries load as declarations, and preserved targets include their rules.');
 
-const lowered = JSON.parse(engine.lower('A(B, C), [A] (D, E)'));
+const lowered = JSON.parse(engine.lower('A.(B, C), [A] (D, E)'));
 assert.deepEqual(lowered.program.initial, [['A', 'B'], ['A', 'C']]);
 assert.equal(lowered.program.rule[0].output.length, 2);
 assert.equal(JSON.parse(engine.lower('[A] (B')).error.code, 'source');

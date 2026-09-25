@@ -233,7 +233,7 @@ impl Reader<'_, '_> {
             });
         }
         let mut output = Vec::new();
-        if let Some(&term) = child.get(1) {
+        for &term in &child[1..] {
             for member in self.term(term)? {
                 output.push(match member {
                     Member::Particle(particle) => Output {

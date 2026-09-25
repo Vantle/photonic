@@ -25,12 +25,6 @@
         return root.inner;
     };
 
-    const split = (item, separator) => item.reduce((part, value) => {
-        if (value.kind === separator) part.push([]);
-        else part.at(-1).push(value);
-        return part;
-    }, [[]]);
-
     const show = item => {
         if (item.kind === '(') return `(${canonical(item.inner)})`;
         if (item.kind === '[') return `[${canonical(item.inner)}]`;
@@ -43,12 +37,36 @@
         return gap + show(value);
     }).join('');
 
-    const factor = value => value.filter(item => item.kind !== '.');
+    const part = (item, strict) => {
+        const result = [];
+        let last = 'separator';
+        for (const value of item) {
+            if (value.kind === '.') {
+                if (strict && last !== 'factor') throw new Error('Join atoms with single dots.');
+                last = 'dot';
+            } else if (value.kind === ',') {
+                if (strict && last !== 'factor') throw new Error('A coherence in the pattern is empty.');
+                last = 'separator';
+            } else {
+                if (last === 'dot') result.at(-1).push(value);
+                else result.push([value]);
+                last = 'factor';
+            }
+        }
+        if (strict && last === 'dot') throw new Error('Join atoms with single dots.');
+        if (strict && last === 'separator') throw new Error('A coherence in the pattern is empty.');
+        return result;
+    };
+
+    const plain = value => value.length === 1 && value[0].kind === '(' && value[0].inner.length
+        && !value[0].inner.some(item => item.kind === '[');
+
+    const coherence = item => part(item, false)
+        .flatMap(value => plain(value) ? coherence(value[0].inner) : [value.map(show).sort().join('.')]);
 
     const configuration = item => {
         if (item.some(value => value.kind === '[')) return print(item);
-        return split(item, ',').map(factor).filter(value => value.length)
-            .map(value => value.map(show).sort().join('.')).sort().join(', ');
+        return coherence(item).sort().join(', ');
     };
 
     const canonical = item => {
@@ -77,21 +95,13 @@
         throw new Error('Parentheses in a pattern hold a rule value, such as ([A] B).');
     };
 
-    const coherence = value => {
-        if (!value.length) throw new Error('A coherence in the pattern is empty.');
-        if (value[0].kind === '.' || value.at(-1).kind === '.' || value.some((item, index) => item.kind === '.' && value[index + 1]?.kind === '.')) {
-            throw new Error('Join atoms with single dots.');
-        }
-        return factor(value).map(term);
-    };
-
     const read = text => {
         const query = text.trim();
         if (!query) return undefined;
         const item = parse(query);
         if (item[0]?.kind === '[') return { rule: canonical(item), particle: [] };
         if (item.some(value => value.kind === '[')) throw new Error('Start a rule pattern with its input, such as [B, C] D.');
-        return { particle: split(item, ',').map(coherence) };
+        return { particle: part(item, true).map(value => value.map(term)) };
     };
 
     const key = token => token.display?.startsWith('⟨') ? `rule:${normal(book.render.unwrap(token.display))}` : `atom:${token.label}`;

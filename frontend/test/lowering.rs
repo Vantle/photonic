@@ -61,19 +61,25 @@ fn partition() {
         "3.7, [3.7] 21, [2.3] 6, [1] 1",
     );
     same("A\n[A] B\n,\nC", "A [A] B, C");
+    same("A [A] B, C", "A, [A] B, C");
     same("A,, B,", "A, B");
 }
 
 #[test]
-fn join() {
-    same("A B", "A.B");
-    same("A (B, C)", "A(B, C)");
-    same("[A] (B) (C)", "[A] B.C");
-    same("[A] B C, D", "[A] B.C, D");
-    same("X [A] B", "X.([A] B)");
-    same("[A] B [B] C", "[A] B.([B] C)");
-    let source = lowering::parse("[A] (B) (C)").unwrap();
-    assert_eq!(source.rule[0].output.len(), 1);
+fn separation() {
+    same("A B", "A, B");
+    same("A.B C", "A.B, C");
+    same("A(B, C)", "A, B, C");
+    same("A.(B C)", "A.B, A.C");
+    same("[A] B C", "[A] (B, C)");
+    same("[A] (B) (C)", "[A] (B, C)");
+    same("[A] B C, D", "[A] (B, C), D");
+    same("[A B] C", "[A, B] C");
+    same("[A] B [B] C", "[A] (B, ().([B] C))");
+    let source = lowering::parse("[X] A.B C").unwrap();
+    assert_eq!(source.rule[0].output.len(), 2);
+    assert_eq!(source.rule[0].output[0].particle, atom(&["A", "B"]));
+    assert_eq!(source.rule[0].output[1].particle, atom(&["C"]));
 }
 
 #[test]
@@ -128,6 +134,9 @@ fn scope() {
     assert!(source.rule[0].output[0].particle.is_empty());
     assert_eq!(source.rule[0].output[0].body.as_ref().unwrap().len(), 2);
     let source = lowering::parse("[A] (X [X] Y)").unwrap();
+    assert_eq!(source.rule[0].output[0].particle, atom(&["X"]));
+    assert_eq!(source.rule[0].output[0].body.as_ref().unwrap().len(), 1);
+    let source = lowering::parse("[A] X.([X] Y)").unwrap();
     assert!(source.rule[0].output[0].body.is_none());
     assert!(matches!(
         source.rule[0].output[0].particle[..],
@@ -158,9 +167,9 @@ fn alphabet() {
         source.initial,
         [atom(&["$x", "@", "unless", "->", ";", "{", "}"])]
     );
-    let source = lowering::parse("Box(A.B)").unwrap();
+    let source = lowering::parse("Box.(A.B)").unwrap();
     assert_eq!(source.initial, [atom(&["Box", "A", "B"])]);
-    let source = lowering::parse("[Box(A)] Box(B)").unwrap();
+    let source = lowering::parse("[Box.(A)] Box.(B)").unwrap();
     assert_eq!(source.rule[0].input, [atom(&["Box", "A"])]);
     assert_eq!(source.rule[0].output[0].particle, atom(&["Box", "B"]));
     assert!(serde_json::from_str::<Value>(r#"{"variable":"x"}"#).is_err());
@@ -200,7 +209,7 @@ fn malformed() {
         Err(Failure::Scope { count: 2, .. })
     ));
     assert!(matches!(
-        lowering::parse("[Enter] (A(B,C), [A] D)"),
+        lowering::parse("[Enter] (A.(B,C), [A] D)"),
         Err(Failure::Scope { count: 2, .. })
     ));
 }
@@ -252,15 +261,15 @@ fn depth() {
 #[test]
 fn distribution() {
     for (compact, expanded) in [
-        ("A(B,C)", "A.B,A.C"),
-        ("Pack(Position.0, Value.2)", "Pack.Position.0,Pack.Value.2"),
-        ("A(B,C).D", "A.B.D,A.C.D"),
-        ("(A,B).C(D,E)", "A.C.D,A.C.E,B.C.D,B.C.E"),
+        ("A.(B,C)", "A.B,A.C"),
+        ("Pack.(Position.0, Value.2)", "Pack.Position.0,Pack.Value.2"),
+        ("A.(B,C).D", "A.B.D,A.C.D"),
+        ("(A,B).C.(D,E)", "A.C.D,A.C.E,B.C.D,B.C.E"),
         ("(A,B).(C,D)", "A.C,A.D,B.C,B.D"),
-        ("A(B(C,D),E)", "A.B.C,A.B.D,A.E"),
-        ("A((),B)", "A,A.B"),
-        ("A(B,B)", "A.B,A.B"),
-        ("A((),())", "A,A"),
+        ("A.(B.(C,D),E)", "A.B.C,A.B.D,A.E"),
+        ("A.((),B)", "A,A.B"),
+        ("A.(B,B)", "A.B,A.B"),
+        ("A.((),())", "A,A"),
     ] {
         assert_eq!(
             lowering::parse(compact).unwrap().initial,
@@ -282,7 +291,7 @@ fn distribution() {
             .len(),
         4
     );
-    let source = lowering::parse("Code(([A] B),([C] D))").unwrap();
+    let source = lowering::parse("Code.(([A] B),([C] D))").unwrap();
     assert_eq!(source.initial.len(), 2);
     assert!(
         source
@@ -294,12 +303,12 @@ fn distribution() {
 
 #[test]
 fn expansion() {
-    let source = format!("A{}", "(B,C)".repeat(40));
+    let source = format!("A{}", ".(B,C)".repeat(40));
     assert!(matches!(
         lowering::parse(&source),
         Err(Failure::Expansion { .. })
     ));
-    assert_eq!(lowering::parse("A(B,C)").unwrap().initial.len(), 2);
+    assert_eq!(lowering::parse("A.(B,C)").unwrap().initial.len(), 2);
 }
 
 #[test]
@@ -309,7 +318,7 @@ fn numeral() {
         [atom(&["0b101", "2^0", "2^2"])]
     );
     assert_eq!(
-        lowering::parse("1.Power(2,1)").unwrap().initial,
+        lowering::parse("1.Power.(2,1)").unwrap().initial,
         [atom(&["1", "Power", "2"]), atom(&["1", "Power", "1"])]
     );
 }

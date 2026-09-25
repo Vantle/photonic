@@ -6,11 +6,11 @@ use crate::syntax::{Kind, Node, Tree};
 #[derive(pest_derive::Parser)]
 #[grammar_inline = r#"
 module = { SOI ~ list ~ EOI }
-list = { term? ~ ("," ~ term?)* }
-term = { factor ~ ("."? ~ factor)* }
+list = { term* ~ ("," ~ term*)* }
+term = { factor ~ ("." ~ factor)* }
 factor = _{ concept | group | rule }
 group = { "(" ~ list ~ ")" }
-rule = { "[" ~ list ~ "]" ~ term? }
+rule = { "[" ~ list ~ "]" ~ term* }
 concept = @{ (!("(" | ")" | "[" | "]" | "." | "," | WHITESPACE) ~ ANY)+ }
 WHITESPACE = _{ " " | "\t" | "\r" | "\n" | "\u{000B}" | "\u{000C}" }
 "#]

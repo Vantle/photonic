@@ -56,7 +56,7 @@ fn carry() {
     ] {
         check(
             &format!(
-                "Add({},{}), [Add,Add] (), {rule}",
+                "Add.({},{}), [Add,Add] (), {rule}",
                 numeral(left),
                 numeral(right)
             ),

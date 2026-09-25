@@ -378,7 +378,7 @@ fn radix() {
         for left in 0..5 {
             for right in 0..5 {
                 let source = format!(
-                    "Add({},{}), [Add,Add] (), {rule}",
+                    "Add.({},{}), [Add,Add] (), {rule}",
                     arithmetic::power::numeral(left, radix).unwrap(),
                     arithmetic::power::numeral(right, radix).unwrap()
                 );

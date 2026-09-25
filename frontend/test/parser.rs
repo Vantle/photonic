@@ -36,6 +36,11 @@ fn structure() {
         .map(|node| node.kind)
         .collect::<Vec<_>>();
     assert_eq!(child, [Kind::List, Kind::Term]);
+    let tree = parser::parse("[X] A.B C, D E").unwrap();
+    assert_eq!(
+        text(&tree, Kind::Term),
+        ["[X] A.B C", "X", "A.B", "C", "D", "E"]
+    );
 }
 
 #[test]

@@ -25,7 +25,7 @@ fn boundary() {
         );
     }
     for source in [
-        "Invoke.Field.Pack(Position.0, Value.2)",
+        "Invoke.Field.Pack.(Position.0, Value.2)",
         "Invoke.Field.Pack.([Position] 4).([Value] 2)",
         "Invoke.Field.Pack.([Position] 0).([Value] 3)",
         "Invoke.Field.Pack.([Value] 2)",

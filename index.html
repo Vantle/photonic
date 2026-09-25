@@ -123,10 +123,10 @@
 <h2>Atoms, particles and coherences</h2>
 <p class="lead">Photonic has one kind of data: occurrences of atoms, grouped into particles, living in coherences.</p>
 <p>An <strong>atom</strong> is any run of characters other than <code>( ) [ ] . ,</code> and whitespace. <code>True</code>, <code>0</code>, <code>-&gt;</code>, <code>$x</code> and <code>人</code> are atoms. Atoms mean nothing by themselves; rules give them meaning.</p>
-<p>A dot joins occurrences into a <strong>particle</strong>, and so does writing them side by side: <code>A B</code> is <code>A.B</code>. A particle is unordered and counts repeats: <code>A.B</code> and <code>B.A</code> are the same particle, and <code>A.A</code> holds two occurrences of <code>A</code>.</p>
-<p>A comma separates <strong>coherences</strong>, the independent places where particles live. <code>A.B, C</code> is two coherences. The comma is the only separator: a line break never starts a new coherence. <code>()</code> is one empty coherence; an empty program has none.</p>
+<p>A dot joins occurrences into a <strong>particle</strong>, and only a dot joins. A particle is unordered and counts repeats: <code>A.B</code> and <code>B.A</code> are the same particle, and <code>A.A</code> holds two occurrences of <code>A</code>.</p>
+<p>Particles written apart live in separate <strong>coherences</strong>, the independent places where particles live. <code>A.B C</code> is two coherences, and so is <code>A.B, C</code>. <code>()</code> is one empty coherence; an empty program has none.</p>
 <p>A <strong>configuration</strong> is everything that exists at one moment: its coherences and the rules that are live.</p>
-<div class="widget lens wide" data-lens='["A.B", "B.A", "A B", "A.A", "A.B, C", "()", "$x.-&gt;.人"]'></div>
+<div class="widget lens wide" data-lens='["A.B", "B.A", "A.A", "A.B C", "A.B, C", "()", "$x.-&gt;.人"]'></div>
 <p class="onward"><a href="#rule">Next: Rules consume and produce</a></p>
 </section>
 
@@ -139,7 +139,7 @@
 [A] B</pre>
 <figcaption><code>[A] B</code> matched the <code>A</code> inside <code>A.X</code>, consumed it and produced <code>B</code>. It never mentioned <code>X</code>, so <code>X</code> stayed. <code>X</code> is the <strong>remainder</strong>.</figcaption>
 </figure>
-<p>A program lists its coherences and its rules, separated by commas. The order does not matter: everything listed is part of the starting configuration, and a rule listed on its own is live there.</p>
+<p>A program is a list of statements separated by commas: coherences and rules, in any order. Everything listed is part of the starting configuration, and a rule listed on its own is live there. A rule produces everything written after its brackets, up to the next comma.</p>
 <p>Matching is open: a pattern needs only its own occurrences, and the rest of the coherence passes to the output.</p>
 <p>To consume the whole particle, name all of it:</p>
 <figure class="example wide" data-example="whole">
@@ -152,10 +152,10 @@
 [A] B</pre>
 </figure>
 <h3>Several inputs, several outputs</h3>
-<p>Commas inside the brackets select several coherences. A rule's outputs run to the next comma, so several outputs go in parentheses: <code>[A, B] (C, D)</code>. Every output receives the remainder of every consumed coherence.</p>
+<p>Several patterns inside the brackets select several coherences, and several particles after them produce several: <code>[A, B] C D</code> consumes two coherences and produces two. The outputs run to the next comma. Every output receives the remainder of every consumed coherence.</p>
 <figure class="example wide" data-example="coherence" data-source="program/language/coherence.wave">
 <pre>A.X, B.Y,
-[A, B] (C, D),
+[A, B] C D,
 [C, D] E</pre>
 <figcaption>The first rule joins <code>A.X</code> and <code>B.Y</code> and splits into <code>C</code> and <code>D</code>; both carry <code>X.Y</code>. The second rule joins them again. The dashed arrow is an inference; <a href="#inference">chapter 6</a> explains it.</figcaption>
 </figure>
@@ -179,8 +179,8 @@
 [B] ()</pre>
 <figcaption><code>[A]</code> removes <code>A.X</code> entirely; <code>[B] ()</code> leaves <code>Y</code>. The comma after <code>[A]</code> ends that rule. Without it, <code>[A] [B] ()</code> is one rule whose output is the rule <code>[B] ()</code>.</figcaption>
 </figure>
-<p>The lens shows how each form reads. Compare <code>[A] (B, C)</code> with <code>[A] B, C</code>, and <code>[A], [B] C</code> with <code>[A] [B] C</code>:</p>
-<div class="widget lens wide" data-lens='["[A] (B, C)", "[A] B, C", "[A] (B) (C)", "[A], [B] C", "[A] [B] C", "[] A", "[()] A", "[(), ()] A"]'></div>
+<p>The lens shows how each form reads. Compare <code>[A] B C</code> with <code>[A] B, C</code>, and <code>[A], [B] C</code> with <code>[A] [B] C</code>:</p>
+<div class="widget lens wide" data-lens='["[A] B C", "[A] B, C", "[A] (B, C)", "[A], [B] C", "[A] [B] C", "[] A", "[()] A", "[(), ()] A"]'></div>
 <p class="onward"><a href="#identity">Next: Occurrences have identity</a></p>
 </section>
 
@@ -191,13 +191,13 @@
 <p>When one event produces several outputs, they all receive the same remainder: the same occurrence appears in each. When those coherences join again, a shared occurrence counts once.</p>
 <figure class="example wide" data-example="broadcast" data-source="program/association/broadcast.wave">
 <pre>Seed.X,
-[Seed] A((), ()),
+[Seed] A.((), ()),
 [A, A] ()</pre>
-<figcaption><code>A((), ())</code> is shorthand for two outputs, each <code>A</code>. They share one <code>X</code>, so joining them gives back one <code>X</code>.</figcaption>
+<figcaption><code>A.((), ())</code> is shorthand for two outputs, each <code>A</code>. They share one <code>X</code>, so joining them gives back one <code>X</code>.</figcaption>
 </figure>
 <p>Occurrences written separately are independent, and they add up:</p>
 <figure class="example wide" data-example="independent" data-source="program/association/independent.wave">
-<pre>A(X, X),
+<pre>A.(X, X),
 [A, A] ()</pre>
 <figcaption>Two coherences, <code>A.X</code> and <code>A.X</code>, with two independent <code>X</code>s. Joining keeps both: <code>X.X</code>.</figcaption>
 </figure>
@@ -225,11 +225,11 @@ Add.Unit.Unit.Unit,
 [B, C] D</pre>
 <figcaption><code>B</code> and <code>C</code> are alternatives: each future holds one of them, never both, so <code>[B, C] D</code> never applies. Prism proves <code>D</code> unreachable.</figcaption>
 </figure>
-<figure class="example wide" data-example="together" data-target='["D, [A] (B, C), [B, C] D"]' data-expect='["reached"]'>
+<figure class="example wide" data-example="together" data-target='["D, [A] B C, [B, C] D"]' data-expect='["reached"]'>
 <pre>A,
-[A] (B, C),
+[A] B C,
 [B, C] D</pre>
-<figcaption>Here one rule with two outputs, <code>[A] (B, C)</code>, produces <code>B</code> and <code>C</code> in the same configuration, so they can join. The program above lists two rules instead: <code>[A] B, [A] C</code>.</figcaption>
+<figcaption>Here one rule with two outputs, <code>[A] B C</code>, produces <code>B</code> and <code>C</code> in the same configuration, so they can join. The program above lists two rules instead: <code>[A] B, [A] C</code>.</figcaption>
 </figure>
 <p>Only occurrences that coexist in one configuration can be matched together.</p>
 <h3>Cycles and endless programs</h3>
@@ -261,7 +261,7 @@ Add.Unit.Unit.Unit,
 <li>Rules of enclosing scopes also apply inside a scope, and their output stays inside.</li>
 <li>A rule joins coherences only within one scope.</li>
 <li>A scope holds at most one coherence: <code>(Kettle, [Kettle.Tea] Cup)</code> is valid, <code>(A, B, [A] C)</code> is not.</li>
-<li>Commas make a rule a member of the scope. Joined to a value instead, as in <code>(Kettle [Kettle.Tea] Cup)</code>, the rule is a field of that particle, and the group opens no scope.</li>
+<li>A rule written on its own in the group belongs to the scope, so <code>(Kettle [Kettle.Tea] Cup)</code> is the same scope. Joined with a dot, as in <code>Kettle.([Kettle.Tea] Cup)</code>, the rule is a field of that particle and opens no scope.</li>
 <li>The scope holds what the entering rule matched exactly; a state view shows it after <em>holds</em>.</li>
 </ul>
 <p>A scope works like a function body: it receives the remainder, runs its local rules and returns through them.</p>
@@ -344,8 +344,8 @@ Add.Unit.Unit.Unit,
 <pre>P.([P] True)</pre>
 </figure>
 <h3>Shared prefixes</h3>
-<p>Parentheses in a particle distribute: <code>A(B, C)</code> means <code>A.B, A.C</code>, and <code>(A, B).(C, D)</code> means four coherences. They build nothing: <code>Box(A.B)</code> is exactly <code>Box.A.B</code>. Side by side, groups join like any values, so <code>[A] (B) (C)</code> produces the single coherence <code>B.C</code>; two outputs are listed, <code>[A] (B, C)</code>.</p>
-<div class="widget lens wide" data-lens='["Digit.0.Carry.1", "([Digit] 0).([Carry] 1)", "().([Digit] 0)", "A(B, C)", "(A, B).(C, D)", "Box(A.B)", "A((), B)"]'></div>
+<p>A dot distributes over a group: <code>A.(B, C)</code> means <code>A.B, A.C</code>, and <code>(A, B).(C, D)</code> means four coherences. Groups build nothing: <code>Box.(A.B)</code> is exactly <code>Box.A.B</code>. Without the dot, <code>A(B, C)</code> is three separate coherences, and <code>[A] (B) (C)</code> produces two.</p>
+<div class="widget lens wide" data-lens='["Digit.0.Carry.1", "([Digit] 0).([Carry] 1)", "().([Digit] 0)", "A.(B, C)", "(A, B).(C, D)", "Box.(A.B)", "A.((), B)"]'></div>
 <p class="onward"><a href="#prism">Next: Prism</a></p>
 </section>
 
@@ -388,7 +388,7 @@ Add.Unit.Unit.Unit,
 <h2>The workbench</h2>
 <p class="lead">Two views of one program. The state graph shows every configuration; the hypergraph shows how one execution moves through its coherences.</p>
 <p>In the hypergraph each coherence is a lane that runs from the event that produced it to the event that consumes it. An event is a hyperedge: it consumes whole coherences and produces new ones, and every other lane passes it untouched. Lanes that never meet evolve independently. Select a configuration in the state graph to draw the execution that reaches it.</p>
-<div class="widget workbench wide" id="bench" data-preset='[{"name": "Parallel", "source": "A, B,\n[A] C,\n[B] D,\n[C, D] E"}, {"name": "Split and join", "source": "A.X,\n[A] (B, C),\n[B, C] D"}, {"name": "Scope", "example": "brew"}, {"name": "Inference", "example": "inference"}, {"name": "Conjunction", "example": "conjunction"}, {"name": "Counting", "example": "addition"}, {"name": "Rules as values", "example": "dynamic"}]'></div>
+<div class="widget workbench wide" id="bench" data-preset='[{"name": "Parallel", "source": "A, B,\n[A] C,\n[B] D,\n[C, D] E"}, {"name": "Split and join", "source": "A.X,\n[A] B C,\n[B, C] D"}, {"name": "Scope", "example": "brew"}, {"name": "Inference", "example": "inference"}, {"name": "Conjunction", "example": "conjunction"}, {"name": "Counting", "example": "addition"}, {"name": "Rules as values", "example": "dynamic"}]'></div>
 <p>Every explored example in this book has a <strong>Workbench</strong> button that opens it here. For your own programs, the <a href="lightbox.html">Lightbox</a> gives the same views a full page, keeps your draft, and makes links that carry the whole program.</p>
 <h3>Filter by pattern</h3>
 <p>Type a pattern in the filter field, or press <kbd>⌘</kbd> <kbd>K</kbd> or <kbd>/</kbd> anywhere in the book. The workbench keeps what matches and everything computed after it, and hides the rest.</p>
@@ -697,18 +697,18 @@ bazel run -c opt //learning:learning -- solve --input "$PWD/input.wave" --output
 <p class="lead">The whole grammar, every form and every term.</p>
 <h3>Grammar</h3>
 <pre class="listing" data-excerpt="frontend/parser.rs">module = { SOI ~ list ~ EOI }
-list = { term? ~ ("," ~ term?)* }
-term = { factor ~ ("."? ~ factor)* }
+list = { term* ~ ("," ~ term*)* }
+term = { factor ~ ("." ~ factor)* }
 factor = _{ concept | group | rule }
 group = { "(" ~ list ~ ")" }
-rule = { "[" ~ list ~ "]" ~ term? }
+rule = { "[" ~ list ~ "]" ~ term* }
 concept = @{ (!("(" | ")" | "[" | "]" | "." | "," | WHITESPACE) ~ ANY)+ }
 WHITESPACE = _{ " " | "\t" | "\r" | "\n" | "\u{000B}" | "\u{000C}" }</pre>
 <p>This is the whole grammar. Five rules give it meaning:</p>
 <ul>
-<li>A comma separates the terms of a list. It is the only separator; line breaks and spaces never separate.</li>
-<li>A term joins its factors into particles, with a dot or side by side. Joining distributes over a group, and <code>()</code> is the empty coherence.</li>
-<li>A rule's outputs are the rest of its term.</li>
+<li>A comma separates statements, and a space or line break separates the terms inside one.</li>
+<li>Only a dot joins: a term joins its factors into particles. Joining distributes over a group, and <code>()</code> is the empty coherence.</li>
+<li>A rule's outputs are the terms after its brackets, up to the next comma.</li>
 <li>A group that lists a rule on its own is a scope. Only a rule's output can open one.</li>
 <li>A rule listed on its own in a program or scope is live there. Anywhere else it is a value.</li>
 </ul>
@@ -719,11 +719,11 @@ WHITESPACE = _{ " " | "\t" | "\r" | "\n" | "\u{000B}" | "\u{000C}" }</pre>
 <thead><tr><th>Form</th><th>Example</th><th>Meaning</th></tr></thead>
 <tbody>
 <tr><td>Atom</td><td><code>True</code></td><td>One occurrence</td></tr>
-<tr><td>Particle</td><td><code>A.B</code>, <code>A B</code></td><td>Occurrences together, unordered</td></tr>
-<tr><td>Coherences</td><td><code>A, B</code></td><td>Separate coherences</td></tr>
+<tr><td>Particle</td><td><code>A.B</code></td><td>Occurrences together, unordered</td></tr>
+<tr><td>Coherences</td><td><code>A B</code>, <code>A, B</code></td><td>Separate coherences</td></tr>
 <tr><td>Empty coherence</td><td><code>()</code></td><td>One coherence with no occurrences</td></tr>
 <tr><td>Rule</td><td><code>[A] B</code></td><td>Consume <code>A</code>, produce <code>B</code> with the remainder</td></tr>
-<tr><td>Join and split</td><td><code>[A, B] (C, D)</code></td><td>Consume from two coherences, produce two</td></tr>
+<tr><td>Join and split</td><td><code>[A, B] C D</code></td><td>Consume from two coherences, produce two</td></tr>
 <tr><td>Program</td><td><code>A, [A] B, [B] C</code></td><td>Coherences and live rules, in any order</td></tr>
 <tr><td>Rule with no output</td><td><code>[A]</code></td><td>Consume <code>A</code> and produce nothing</td></tr>
 <tr><td>Zero inputs</td><td><code>[] A</code></td><td>Produce a coherence from nothing</td></tr>
@@ -733,7 +733,7 @@ WHITESPACE = _{ " " | "\t" | "\r" | "\n" | "\u{000B}" | "\u{000C}" }</pre>
 <tr><td>Matched rule</td><td><code>[[A] B] C</code></td><td>Consume the rule <code>[A] B</code></td></tr>
 <tr><td>Field</td><td><code>X.([Digit] 0)</code></td><td>A role with its value</td></tr>
 <tr><td>Rule alone in a coherence</td><td><code>().([Digit] 0)</code></td><td>A coherence holding only the rule</td></tr>
-<tr><td>Shared prefix</td><td><code>A(B, C)</code></td><td><code>A.B, A.C</code></td></tr>
+<tr><td>Shared prefix</td><td><code>A.(B, C)</code></td><td><code>A.B, A.C</code></td></tr>
 </tbody>
 </table>
 </div>

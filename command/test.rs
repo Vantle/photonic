@@ -226,7 +226,7 @@ fn group() {
     let fixture = Fixture::new();
     let path = fixture.write(
         "group.wave",
-        "Add(Unit.Unit.Unit,Unit.Unit.Unit.Unit.Unit.Unit.Unit), [Add,Add] ()",
+        "Add.(Unit.Unit.Unit,Unit.Unit.Unit.Unit.Unit.Unit.Unit), [Add,Add] ()",
     );
     let target = fixture.write(
         "target.particle",
@@ -247,7 +247,7 @@ fn group() {
         ],
     ));
     assert_eq!(result, parallel);
-    let path = fixture.write("expansion.wave", &format!("A{}", "(B,C)".repeat(40)));
+    let path = fixture.write("expansion.wave", &format!("A{}", ".(B,C)".repeat(40)));
     let output = execute("run", &path, &["--steps", "0"]);
     assert!(!output.status.success());
     assert!(output.status.code().is_some());
