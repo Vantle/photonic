@@ -47,9 +47,8 @@
         let explained;
 
         const explain = event => {
-            if (explained) control?.explain(explained, false);
             explained = event;
-            if (event) control?.explain(event, true);
+            control?.explain(event);
         };
 
         const follow = path => {
@@ -100,7 +99,7 @@
                 },
             });
             if (chosen === undefined) follow([]);
-            if (explained) control.explain(explained, true);
+            control.explain(explained);
         };
 
         const apply = text => {

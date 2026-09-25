@@ -304,18 +304,26 @@
             if (on) drawing.append(stroke);
         };
 
-        const explain = (value, on) => {
-            if (!value.deduction.length) return;
-            value.deduction.forEach(number => {
-                const stroke = line.get(number);
-                if (!stroke) return;
-                stroke.classList.toggle('deduction', on);
-                if (on) drawing.append(stroke);
-            });
-            const box = card.get(data.event[value.deduction.at(-1)].target);
-            if (!box) return;
-            if (on) box.dataset.deduction = '';
-            else delete box.dataset.deduction;
+        let hovered;
+        let pinned;
+        const paint = () => {
+            line.forEach(stroke => stroke.classList.remove('deduction'));
+            card.forEach(box => delete box.dataset.deduction);
+            for (const value of [pinned, hovered]) {
+                if (!value?.deduction.length) continue;
+                value.deduction.forEach(number => {
+                    const stroke = line.get(number);
+                    if (!stroke) return;
+                    stroke.classList.add('deduction');
+                    drawing.append(stroke);
+                });
+                const box = card.get(data.event[value.deduction.at(-1)].target);
+                if (box) box.dataset.deduction = '';
+            }
+        };
+        const explain = value => {
+            pinned = value;
+            paint();
         };
 
         const reveal = state => {
@@ -380,11 +388,13 @@
                 if (value.deduction.length) row.append(book.render.deduction(value, data));
                 const enter = () => {
                     fill(state, book.render.touch(value));
-                    explain(value, true);
+                    hovered = value;
+                    paint();
                 };
                 const leave = () => {
                     fill(state);
-                    explain(value, false);
+                    hovered = undefined;
+                    paint();
                 };
                 row.addEventListener('mouseenter', enter);
                 row.addEventListener('focus', enter);
