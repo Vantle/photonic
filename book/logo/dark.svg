@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="120" height="120" fill="none" stroke="#ebeae6" stroke-linecap="round" stroke-linejoin="round">
+<title>Photonic</title>
+<path d="M3 23.5 15.5 21" stroke-width="2"/>
+<path d="M20 5.5 33.5 31.5H6.5Z" stroke-width="2.2"/>
+<path d="M25.5 17 38 11" stroke-width="1.8"/>
+<path d="M27.5 22 38.5 22" stroke-width="1.8" opacity="0.6"/>
+<path d="M29.5 27 38 33" stroke-width="1.8" opacity="0.35"/>
+</svg>

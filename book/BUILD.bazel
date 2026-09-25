@@ -1,4 +1,5 @@
 load("//toolchain:defs.bzl", "hermetic_binary", "hermetic_test")
+load(":site.bzl", "site")
 
 filegroup(
     name = "asset",
@@ -58,8 +59,23 @@ filegroup(
 
 filegroup(
     name = "build",
-    srcs = ["BUILD.bazel"],
+    srcs = [
+        "BUILD.bazel",
+        "site.bzl",
+    ],
     visibility = ["//:__pkg__"],
+)
+
+site(
+    name = "site",
+    srcs = [
+        ":asset",
+        "//:page",
+        "//toolchain/browser:javascript",
+        "//toolchain/browser:webassembly",
+    ],
+    repository = "https://github.com/Vantle/photonic",
+    script = "site.mjs",
 )
 
 hermetic_binary(

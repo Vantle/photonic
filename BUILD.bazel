@@ -20,7 +20,10 @@ hermetic_binary(
 
 hermetic_binary(
     name = "link",
-    argument = ["README.md"],
+    argument = [
+        "README.md",
+        "index.html",
+    ],
     entrypoint = "//toolchain:link",
     tags = ["manual"],
 )
