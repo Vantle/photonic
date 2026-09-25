@@ -15,6 +15,8 @@
     --body: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     --code: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
     --rail: 17.5rem;
+    --prose: 52rem;
+    --wide: 120rem;
 }
 
 @media screen and (prefers-color-scheme: dark) {
@@ -365,16 +367,16 @@ button.pill:hover {
 
 main {
     margin-left: var(--rail);
-    padding-inline: clamp(1rem, 4.5vw, 4rem);
+    padding-inline: clamp(1rem, 3.5vw, 3rem);
     padding-block: 0 7rem;
 }
 
 .chapter,
 .hero {
     display: grid;
-    grid-template-columns: [full-start] minmax(0, 1fr) [prose-start] minmax(0, 41rem) [prose-end] minmax(0, 1fr) [full-end];
+    grid-template-columns: [full-start] minmax(0, 1fr) [prose-start] minmax(0, var(--prose)) [prose-end] minmax(0, 1fr) [full-end];
     row-gap: 1.2rem;
-    max-width: 66rem;
+    max-width: var(--wide);
     margin-inline: auto;
 }
 
@@ -399,7 +401,7 @@ main {
 .part {
     display: grid;
     gap: 0.6rem;
-    max-width: 41rem;
+    max-width: var(--prose);
     margin: 0 auto;
     padding: 6.5rem 0 1.5rem;
     border-bottom: 1px solid var(--line);
@@ -468,7 +470,7 @@ main {
 
 .hero .lead {
     font-size: clamp(1.18rem, 2vw, 1.36rem);
-    max-width: 37rem;
+    max-width: 48rem;
 }
 
 .action {
@@ -1375,7 +1377,7 @@ td code {
 }
 
 .colophon {
-    max-width: 41rem;
+    max-width: var(--prose);
     margin: 6rem auto 0;
     padding-top: 1.5rem;
     border-top: 1px solid var(--line);
