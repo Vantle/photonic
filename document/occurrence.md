@@ -30,7 +30,7 @@ Distinct input positions require distinct locations. Multiple operands inside on
 
 These rules generalize to arbitrary arity within explicit resource limits. Zero-input execution does not manufacture an input coherence or impose a one-shot restriction. A context-owned zero-input rule executes at its owning context, not once per visibility path. A coherence-owned zero-input rule reads its occurrence without implicitly selecting the containing coherence as an operand.
 
-Brackets that share a term are separate rules, and each produces the rest of the term as rule values: in `[A] [B]`, the A-input rule produces `[B]` and the B-input rule produces `[A]`. Neither makes a bidirectional rule. Report notation such as `⟨…⟩`, `§0`, and `@f0` is diagnostic labeling, not additional source grammar; capture and ownership are explicit structured report fields.
+Brackets that share a term are separate rules, and each produces the rest of the term as rule values: in `[A] [B]`, the A-input rule produces `[B]` and the B-input rule produces `[A]`. Neither makes a bidirectional rule. A lowered rule lists the other brackets of its term as its `rest` instead of spelling the produced rules out, so lowering stays linear. Compilation builds each distinct rest once, in the order its spelled-out form would compile, and interns it like any other rule; a term with n brackets defines at most n·2ⁿ⁻¹ rules, and the frontend budget bounds that count before anything is built. Report notation such as `⟨…⟩`, `§0`, and `@f0` is diagnostic labeling, not additional source grammar; capture and ownership are explicit structured report fields.
 
 ## One evaluator
 

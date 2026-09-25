@@ -1,6 +1,6 @@
 #![forbid(unsafe_code)]
 
-pub use frontend::{failure, lowering, parser, source, syntax};
+pub use frontend::{failure, lowering, parser, source, syntax, text};
 
 mod accumulator;
 mod affected;

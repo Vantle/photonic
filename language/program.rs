@@ -36,7 +36,19 @@ pub(crate) struct Target {
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 struct Form {
     input: Vec<Vec<Symbol>>,
-    output: Vec<(Vec<Symbol>, Option<Vec<usize>>)>,
+    output: Vec<Product>,
+}
+
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+struct Product {
+    particle: Vec<Symbol>,
+    body: Option<Vec<usize>>,
+}
+
+struct Rest<'value> {
+    value: &'value source::Definition,
+    found: HashMap<(usize, Vec<usize>), Option<usize>, Builder>,
+    made: HashMap<(usize, Vec<usize>), usize, Builder>,
 }
 
 #[derive(Clone, Debug)]
@@ -106,14 +118,43 @@ impl Program {
     }
 
     fn form(&self, value: &source::Definition) -> Option<Form> {
-        let mut input = value
-            .input
+        let input = self.pattern(&value.input)?;
+        if value.rest.is_empty() {
+            return Some(Form {
+                input,
+                output: self.sink(&value.output)?,
+            });
+        }
+        let every = (0..value.rest.len()).collect::<Vec<_>>();
+        let mut found = HashMap::default();
+        let mut particle = every
+            .iter()
+            .map(|&entered| {
+                self.lookup(value, entered, &other(&every, entered), &mut found)
+                    .map(Symbol::Rule)
+            })
+            .collect::<Option<Vec<_>>>()?;
+        particle.sort_unstable();
+        Some(Form {
+            input,
+            output: vec![Product {
+                particle,
+                body: None,
+            }],
+        })
+    }
+
+    fn pattern(&self, input: &[Vec<source::Value>]) -> Option<Vec<Vec<Symbol>>> {
+        let mut input = input
             .iter()
             .map(|particle| self.multiset(particle))
             .collect::<Option<Vec<_>>>()?;
         input.sort_unstable();
-        let mut output = value
-            .output
+        Some(input)
+    }
+
+    fn sink(&self, output: &[source::Output]) -> Option<Vec<Product>> {
+        let mut output = output
             .iter()
             .map(|output| {
                 let body = match &output.body {
@@ -127,11 +168,77 @@ impl Program {
                     }
                     None => None,
                 };
-                Some((self.multiset(&output.particle)?, body))
+                Some(Product {
+                    particle: self.multiset(&output.particle)?,
+                    body,
+                })
             })
             .collect::<Option<Vec<_>>>()?;
         output.sort_unstable();
-        Some(Form { input, output })
+        Some(output)
+    }
+
+    fn lookup(
+        &self,
+        value: &source::Definition,
+        entered: usize,
+        remaining: &[usize],
+        found: &mut HashMap<(usize, Vec<usize>), Option<usize>, Builder>,
+    ) -> Option<usize> {
+        let key = (entered, remaining.to_vec());
+        if let Some(&result) = found.get(&key) {
+            return result;
+        }
+        let output = if remaining.is_empty() {
+            self.sink(&value.output)
+        } else {
+            remaining
+                .iter()
+                .map(|&next| {
+                    self.lookup(value, next, &other(remaining, next), found)
+                        .map(Symbol::Rule)
+                })
+                .collect::<Option<Vec<_>>>()
+                .map(|mut particle| {
+                    particle.sort_unstable();
+                    vec![Product {
+                        particle,
+                        body: None,
+                    }]
+                })
+        };
+        let result = output.and_then(|output| {
+            let input = self.pattern(&value.rest[entered])?;
+            self.interner.get(&Form { input, output }).copied()
+        });
+        found.insert(key, result);
+        result
+    }
+
+    fn shape(&self, instruction: &Instruction) -> Form {
+        let mut output = instruction
+            .output
+            .iter()
+            .map(|output| self.product(output))
+            .collect::<Vec<_>>();
+        output.sort_unstable();
+        Form {
+            input: sorted(&instruction.input),
+            output,
+        }
+    }
+
+    fn product(&self, output: &Output) -> Product {
+        let mut particle = output.particle.clone();
+        particle.sort_unstable();
+        Product {
+            particle,
+            body: output.body.map(|scope| {
+                let mut rule = self.scope[scope].rule.clone();
+                rule.sort_unstable();
+                rule
+            }),
+        }
     }
 
     fn multiset(&self, particle: &[source::Value]) -> Option<Vec<Symbol>> {
@@ -170,9 +277,7 @@ impl Program {
         let index = self.rule.len();
         self.rule.push(Instruction::default());
         self.rule[index] = self.instruction(value, name, path);
-        let form = self
-            .form(value)
-            .expect("a compiled definition resolves every symbol");
+        let form = self.shape(&self.rule[index]);
         self.interner.insert(form, index);
         index
     }
@@ -191,26 +296,99 @@ impl Program {
         name: String,
         path: String,
     ) -> Instruction {
-        Instruction {
-            name: if value.name.is_empty() {
-                name
-            } else {
-                value.name.clone()
-            },
-            input: self.input(&value.input),
-            output: value
-                .output
+        let name = if value.name.is_empty() {
+            name
+        } else {
+            value.name.clone()
+        };
+        let input = self.input(&value.input);
+        if !value.rest.is_empty() {
+            let mut rest = Rest {
+                value,
+                found: HashMap::default(),
+                made: HashMap::default(),
+            };
+            let every = (0..value.rest.len()).collect::<Vec<_>>();
+            let particle = every
                 .iter()
-                .enumerate()
-                .map(|(position, output)| Output {
-                    particle: self.particle(&output.particle),
-                    body: output
-                        .body
-                        .as_ref()
-                        .map(|value| self.declare(value, format!("{path}/{position}"))),
+                .map(|&entered| {
+                    Symbol::Rule(self.derive(&mut rest, entered, &other(&every, entered)))
                 })
-                .collect(),
+                .collect();
+            return Instruction {
+                name,
+                input,
+                output: vec![Output {
+                    particle,
+                    body: None,
+                }],
+            };
         }
+        let output = value
+            .output
+            .iter()
+            .enumerate()
+            .map(|(position, output)| Output {
+                particle: self.particle(&output.particle),
+                body: output
+                    .body
+                    .as_ref()
+                    .map(|value| self.declare(value, format!("{path}/{position}"))),
+            })
+            .collect();
+        Instruction {
+            name,
+            input,
+            output,
+        }
+    }
+
+    fn derive(&mut self, rest: &mut Rest<'_>, entered: usize, remaining: &[usize]) -> usize {
+        let key = (entered, remaining.to_vec());
+        if let Some(&index) = rest.made.get(&key) {
+            return index;
+        }
+        if let Some(index) = self.lookup(rest.value, entered, remaining, &mut rest.found) {
+            rest.made.insert(key, index);
+            return index;
+        }
+        let index = self.rule.len();
+        let name = crate::text::rule(
+            &rest.value.rest[entered],
+            remaining.iter().map(|&index| &rest.value.rest[index]),
+            &rest.value.output,
+        );
+        if remaining.is_empty() {
+            self.compile(
+                &source::Definition {
+                    name,
+                    input: rest.value.rest[entered].clone(),
+                    rest: Vec::new(),
+                    output: rest.value.output.clone(),
+                },
+                String::new(),
+                format!("value/{index}"),
+            );
+        } else {
+            self.rule.push(Instruction::default());
+            let input = self.input(&rest.value.rest[entered]);
+            let particle = remaining
+                .iter()
+                .map(|&next| Symbol::Rule(self.derive(rest, next, &other(remaining, next))))
+                .collect();
+            self.rule[index] = Instruction {
+                name,
+                input,
+                output: vec![Output {
+                    particle,
+                    body: None,
+                }],
+            };
+            let form = self.shape(&self.rule[index]);
+            self.interner.insert(form, index);
+        }
+        rest.made.insert(key, index);
+        index
     }
 
     fn declare(&mut self, value: &[source::Definition], name: String) -> usize {
@@ -232,6 +410,27 @@ impl Program {
             Symbol::Rule(index) => format!("⟨{}⟩", self.rule[index].name),
         }
     }
+}
+
+fn sorted(input: &[Vec<Symbol>]) -> Vec<Vec<Symbol>> {
+    let mut input = input
+        .iter()
+        .map(|particle| {
+            let mut particle = particle.clone();
+            particle.sort_unstable();
+            particle
+        })
+        .collect::<Vec<_>>();
+    input.sort_unstable();
+    input
+}
+
+fn other(every: &[usize], excluded: usize) -> Vec<usize> {
+    every
+        .iter()
+        .copied()
+        .filter(|&index| index != excluded)
+        .collect()
 }
 
 #[cfg(test)]

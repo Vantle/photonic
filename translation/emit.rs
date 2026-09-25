@@ -31,6 +31,7 @@ pub fn definition(rule: &Rule, vocabulary: &Vocabulary) -> Definition {
             .iter()
             .map(|entry| particle(entry, vocabulary))
             .collect(),
+        rest: Vec::new(),
         output: rule
             .output()
             .iter()

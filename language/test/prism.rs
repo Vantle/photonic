@@ -153,6 +153,18 @@ fn arithmetic() {
 }
 
 #[test]
+fn partition() {
+    for (target, expected) in [
+        ("C.([B] C)", Outcome::Reached),
+        ("C.([A] C)", Outcome::Reached),
+        ("([B] C).([A] C)", Outcome::Reached),
+        ("C", Outcome::Unreachable),
+    ] {
+        assert_eq!(outcome("A.B, [A] [B] C", target), expected, "{target}");
+    }
+}
+
+#[test]
 fn metaprogramming() {
     assert_eq!(
         outcome("Seed.A, [Seed] ().([A] B)", "Seed.B"),

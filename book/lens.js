@@ -13,6 +13,23 @@
         return node;
     };
 
+    const pattern = input => `[${input.map(entry => entry.length === 1 && typeof entry[0] !== 'string'
+        ? name(entry[0].rule) : entry.length ? entry.map(written).join('.') : '()').join(', ')}]`;
+    const written = item => typeof item === 'string' ? item : `(${name(item.rule)})`;
+    const coherence = entry => !entry.length ? '()'
+        : entry.length === 1 && typeof entry[0] !== 'string' ? `().${written(entry[0])}` : entry.map(written).join('.');
+    const product = output => {
+        const item = value => value.body
+            ? `(${[...(value.particle.length ? [coherence(value.particle)] : []), ...value.body.map(name)].join(', ')})`
+            : coherence(value.particle);
+        if (!output.length) return [];
+        return [output.length === 1 ? item(output[0]) : `(${output.map(item).join(', ')})`];
+    };
+    const name = definition => definition.name || [pattern(definition.input), ...(definition.rest ?? []).map(pattern), ...product(definition.output)].join(' ');
+    const rest = definition => definition.rest.map((input, index) => ({
+        rule: { name: name({ input, rest: definition.rest.filter((_, other) => other !== index), output: definition.output }) },
+    }));
+
     const rule = definition => {
         const box = element('div', 'shape');
         const title = element('pre', 'code');
@@ -24,8 +41,12 @@
         definition.input.forEach(content => input.append(particle(content)));
         const output = element('div', 'row');
         output.append(element('span', 'side', 'produces'));
-        if (!definition.output.length) output.append(element('span', 'summary', 'no coherence'));
         box.append(input, output);
+        if (definition.rest?.length) {
+            output.append(particle(rest(definition)));
+            return box;
+        }
+        if (!definition.output.length) output.append(element('span', 'summary', 'no coherence'));
         definition.output.forEach(item => {
             output.append(particle(item.particle));
             if (!item.body) return;

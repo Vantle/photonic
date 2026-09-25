@@ -56,6 +56,8 @@ pub struct Definition {
     #[serde(default)]
     pub name: String,
     pub input: Vec<Vec<Value>>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub rest: Vec<Vec<Vec<Value>>>,
     pub output: Vec<Output>,
 }
 
@@ -83,9 +85,16 @@ impl Definition {
             })
             .collect::<Vec<_>>();
         output.sort();
+        let mut rest = self
+            .rest
+            .iter()
+            .map(|value| input(value))
+            .collect::<Vec<_>>();
+        rest.sort();
         Self {
             name: String::new(),
             input: input(&self.input),
+            rest,
             output,
         }
     }

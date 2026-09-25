@@ -8,3 +8,4 @@ mod partition;
 mod size;
 pub mod source;
 pub mod syntax;
+pub mod text;

@@ -131,77 +131,21 @@ fn advice(source: &str) -> Option<(usize, String)> {
 pub const DEPTH: usize = 128;
 
 fn depth(source: &str) -> Result<(), Failure> {
-    let bracket = bracket(source);
-    let mut stack = vec![0];
-    let mut next = 1;
-    let mut level = 0;
-    let enter = |term: usize, level: &mut usize| {
-        let base = *level;
-        *level += bracket[term].len();
-        if *level > DEPTH {
-            return Err(Failure::Depth {
-                limit: DEPTH,
-                span: (bracket[term][DEPTH - base], 1).into(),
-            });
-        }
-        Ok(())
-    };
-    enter(0, &mut level)?;
+    let mut level = 0usize;
     for (position, byte) in source.bytes().enumerate() {
         match byte {
             b'(' | b'[' => {
-                if byte == b'(' {
-                    level += 1;
-                    if level > DEPTH {
-                        return Err(Failure::Depth {
-                            limit: DEPTH,
-                            span: (position, 1).into(),
-                        });
-                    }
+                level += 1;
+                if level > DEPTH {
+                    return Err(Failure::Depth {
+                        limit: DEPTH,
+                        span: (position, 1).into(),
+                    });
                 }
-                stack.push(next);
-                enter(next, &mut level)?;
-                next += 1;
             }
-            b')' | b']' if stack.len() > 1 => {
-                let term = stack.pop().expect("a term below the root is open");
-                level -= bracket[term].len() + usize::from(byte == b')');
-            }
-            b',' => {
-                let term = stack.last_mut().expect("the root term stays open");
-                level -= bracket[*term].len();
-                *term = next;
-                enter(next, &mut level)?;
-                next += 1;
-            }
+            b')' | b']' => level = level.saturating_sub(1),
             _ => {}
         }
     }
     Ok(())
-}
-
-fn bracket(source: &str) -> Vec<Vec<usize>> {
-    let mut bracket = vec![Vec::new()];
-    let mut stack = vec![0];
-    for (position, byte) in source.bytes().enumerate() {
-        match byte {
-            b'(' | b'[' => {
-                if byte == b'[' {
-                    bracket[stack[stack.len() - 1]].push(position);
-                }
-                stack.push(bracket.len());
-                bracket.push(Vec::new());
-            }
-            b')' | b']' if stack.len() > 1 => {
-                stack.pop();
-            }
-            b',' => {
-                let last = stack.len() - 1;
-                stack[last] = bracket.len();
-                bracket.push(Vec::new());
-            }
-            _ => {}
-        }
-    }
-    bracket
 }

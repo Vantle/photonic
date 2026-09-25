@@ -18,6 +18,7 @@ rust_library(
         "size.rs",
         "source.rs",
         "syntax.rs",
+        "text.rs",
     ],
     crate_root = "frontend.rs",
     lint_config = "//:lint",

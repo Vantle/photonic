@@ -98,3 +98,112 @@ fn target() {
     assert_eq!(compiled.atom.len(), atom);
     assert_eq!(compiled.rule.len(), rule);
 }
+
+fn structure(compiled: &Program) -> impl PartialEq + std::fmt::Debug + use<> {
+    (
+        compiled.atom.iter().cloned().collect::<Vec<_>>(),
+        compiled
+            .rule
+            .iter()
+            .map(|rule| {
+                (
+                    rule.input.clone(),
+                    rule.output
+                        .iter()
+                        .map(|output| {
+                            (
+                                output.particle.clone(),
+                                output.body.map(|scope| compiled.scope[scope].rule.clone()),
+                            )
+                        })
+                        .collect::<Vec<_>>(),
+                )
+            })
+            .collect::<Vec<_>>(),
+        compiled.scope[0].rule.clone(),
+        compiled.initial.clone(),
+    )
+}
+
+#[test]
+fn rest() {
+    for (term, spelled) in [
+        ("[A] [B] C", "[A] ().([B] C), [B] ().([A] C)"),
+        ("C [B] [A]", "[B] ().([A] C), [A] ().([B] C)"),
+        ("[A] [B]", "[A] ().([B]), [B] ().([A])"),
+        (
+            "[A] [B] [C] D",
+            "[A] ([B] ().([C] D)).([C] ().([B] D)), [B] ([A] ().([C] D)).([C] ().([A] D)), [C] ([A] ().([B] D)).([B] ().([A] D))",
+        ),
+        ("[A] [B] (C, D)", "[A] ().([B] (C, D)), [B] ().([A] (C, D))"),
+        (
+            "[A] [B] (K, [K] C)",
+            "[A] ().([B] (K, [K] C)), [B] ().([A] (K, [K] C))",
+        ),
+        ("[A, B] [C] D", "[A, B] ().([C] D), [C] ().([A, B] D)"),
+        ("[A] [A] B", "[A] ().([A] B), [A] ().([A] B)"),
+        ("X.([A] [B] C)", "X.([A] ().([B] C)).([B] ().([A] C))"),
+        ("[[A] [B] C] D", "[([A] ().([B] C)).([B] ().([A] C))] D"),
+        (
+            "[S] (K, [A] [B] C)",
+            "[S] (K, [A] ().([B] C), [B] ().([A] C))",
+        ),
+    ] {
+        assert_eq!(
+            structure(&program(term)),
+            structure(&program(spelled)),
+            "{term}"
+        );
+    }
+    let compiled = program("[A] [B] [C] D");
+    assert_eq!(
+        compiled
+            .rule
+            .iter()
+            .map(|rule| rule.name.as_str())
+            .collect::<Vec<_>>(),
+        [
+            "[A] [B] [C] D",
+            "[B] [C] D",
+            "[C] D",
+            "[C] [B] D",
+            "[B] D",
+            "[B] [A] [C] D",
+            "[A] [C] D",
+            "[C] [A] D",
+            "[A] D",
+            "[C] [A] [B] D",
+            "[A] [B] D",
+            "[B] [A] D",
+        ]
+    );
+    let compiled = program("[A] ().([B] C), [A] [B] C");
+    assert_eq!(compiled.scope[0].rule[..2], [0, 0]);
+    let known = compiled.target(&crate::lowering::parse("[B] [A] C").unwrap());
+    assert_eq!(
+        known.rule,
+        [compiled.scope[0].rule[2], compiled.scope[0].rule[0]]
+    );
+    assert_eq!(compiled.rule.len(), 4);
+}
+
+#[test]
+fn breadth() {
+    let source = (0..10)
+        .map(|index| format!("[A{index}]"))
+        .chain(["Z".to_owned()])
+        .collect::<Vec<_>>()
+        .join(" ");
+    let compiled = program(&source);
+    assert_eq!(compiled.scope[0].rule.len(), 10);
+    assert_eq!(compiled.rule.len(), 10 << 9);
+    let reversed = program(
+        &(0..10)
+            .rev()
+            .map(|index| format!("[A{index}]"))
+            .chain(["Z".to_owned()])
+            .collect::<Vec<_>>()
+            .join(" "),
+    );
+    assert_eq!(reversed.rule.len(), 10 << 9);
+}

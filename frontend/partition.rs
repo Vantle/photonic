@@ -18,74 +18,56 @@ pub(crate) struct Partition<'source> {
 
 impl Partition<'_> {
     pub(crate) fn rule(self, budget: &Cell<usize>) -> Option<Vec<Definition>> {
-        if self.pattern.len() == 1 {
-            let name = self.name(0, &[]);
-            let input = self.pattern.into_iter().next()?.input;
-            return Some(vec![Definition {
-                name,
-                input,
-                output: self.output,
-            }]);
+        let space = self.space()?;
+        budget.set(budget.get().checked_sub(space)?);
+        Some(
+            (0..self.pattern.len())
+                .map(|entered| Definition {
+                    name: self.name(entered),
+                    input: self.pattern[entered].input.clone(),
+                    rest: self
+                        .other(entered)
+                        .map(|index| self.pattern[index].input.clone())
+                        .collect(),
+                    output: self.output.clone(),
+                })
+                .collect(),
+        )
+    }
+
+    fn space(&self) -> Option<usize> {
+        let count = self.pattern.len();
+        if count == 1 {
+            return Some(0);
         }
-        let every = (0..self.pattern.len()).collect::<Vec<_>>();
-        every
+        let subset = 1usize.checked_shl(u32::try_from(count - 1).ok()?)?;
+        let input = self
+            .pattern
             .iter()
-            .map(|&entered| self.definition(entered, &every, budget))
-            .collect()
+            .map(|pattern| 1 + crate::size::input(&pattern.input))
+            .sum::<usize>()
+            .checked_mul(subset)?;
+        let output = (subset - 1)
+            .checked_add((count - 1).checked_mul(subset / 2)?)?
+            .checked_add(crate::size::output(&self.output))?
+            .checked_mul(count)?;
+        input.checked_add(output)
     }
 
-    fn definition(
-        &self,
-        entered: usize,
-        remaining: &[usize],
-        budget: &Cell<usize>,
-    ) -> Option<Definition> {
-        let rest = remaining
-            .iter()
-            .copied()
-            .filter(|&index| index != entered)
-            .collect::<Vec<_>>();
-        let output = if rest.is_empty() {
-            charge(budget, crate::size::output(&self.output))?;
-            self.output.clone()
-        } else {
-            vec![Output {
-                particle: rest
-                    .iter()
-                    .map(|&next| {
-                        Some(Value::Rule {
-                            rule: Box::new(self.definition(next, &rest, budget)?),
-                        })
-                    })
-                    .collect::<Option<_>>()?,
-                body: None,
-            }]
-        };
-        let name = self.name(entered, &rest);
-        let input = &self.pattern[entered].input;
-        charge(budget, 1 + name.len() + crate::size::input(input))?;
-        Some(Definition {
-            name,
-            input: input.clone(),
-            output,
-        })
+    fn other(&self, entered: usize) -> impl Iterator<Item = usize> {
+        (0..self.pattern.len()).filter(move |&index| index != entered)
     }
 
-    fn name(&self, entered: usize, rest: &[usize]) -> String {
+    fn name(&self, entered: usize) -> String {
         if self.pattern.len() == 1 {
             return self.source[self.span.clone()].to_owned();
         }
         std::iter::once(entered)
-            .chain(rest.iter().copied())
+            .chain(self.other(entered))
             .map(|index| self.pattern[index].span.clone())
             .chain(self.sink.clone())
             .map(|span| &self.source[span])
             .collect::<Vec<_>>()
             .join(" ")
     }
-}
-
-fn charge(budget: &Cell<usize>, size: usize) -> Option<()> {
-    budget.set(budget.get().checked_sub(size)?);
-    Some(())
 }

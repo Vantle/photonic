@@ -264,17 +264,14 @@ fn depth() {
         Err(Failure::Expansion { .. })
     ));
     for count in [limit + 1, 10_000] {
-        let Err(Failure::Parse(frontend::failure::Failure::Depth { limit: found, span })) =
-            lowering::parse(&"[A] ".repeat(count))
-        else {
-            panic!("expected depth diagnostic");
+        let Err(Failure::Expansion { span, .. }) = lowering::parse(&"[A] ".repeat(count)) else {
+            panic!("expected an expansion diagnostic");
         };
-        assert_eq!(found, limit);
-        assert_eq!(span.offset(), limit * 4);
+        assert_eq!((span.offset(), span.len()), (0, count * 4 - 1));
     }
-    let mixed = format!("{}({})", "[A] ".repeat(limit - 1), "[B] ".repeat(2));
+    let mixed = format!("{}({})", "(".repeat(limit - 1), "[B] ".repeat(2));
     assert!(matches!(
-        lowering::parse(&mixed),
+        lowering::parse(&format!("{mixed}{}", ")".repeat(limit - 1))),
         Err(Failure::Parse(frontend::failure::Failure::Depth { .. }))
     ));
     assert!(lowering::parse(&"[A] B, ".repeat(10_000)).is_ok());

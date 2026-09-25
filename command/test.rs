@@ -214,11 +214,19 @@ fn prism() {
 #[test]
 fn depth() {
     let fixture = Fixture::new();
-    let path = fixture.write("deep.wave", &"[A] ".repeat(10_000));
-    let output = execute("run", &path, &["--steps", "0"]);
-    assert!(!output.status.success());
-    assert!(output.status.code().is_some());
-    assert!(String::from_utf8_lossy(&output.stderr).contains("photonic::depth"));
+    for (source, code) in [
+        ("[".repeat(10_000), "photonic::depth"),
+        ("[A] ".repeat(10_000), "photonic::expansion"),
+    ] {
+        let path = fixture.write("deep.wave", &source);
+        let output = execute("run", &path, &["--steps", "0"]);
+        assert!(!output.status.success());
+        assert!(output.status.code().is_some());
+        assert!(
+            String::from_utf8_lossy(&output.stderr).contains(code),
+            "{code}"
+        );
+    }
 }
 
 #[test]

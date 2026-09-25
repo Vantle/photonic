@@ -46,6 +46,17 @@ fn written() {
 }
 
 #[test]
+fn rest() {
+    let parsed = photonic::lowering::parse("[A] [B] C").unwrap();
+    assert_eq!(
+        lift::program(&parsed, &mut vocabulary()).unwrap_err(),
+        crate::failure::Failure::Rest {
+            name: "[A] [B] C".to_owned()
+        }
+    );
+}
+
+#[test]
 fn unknown() {
     let parsed = photonic::lowering::parse("[Seed] ().([Missing] B)").unwrap();
     let known = vocabulary();

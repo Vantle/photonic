@@ -189,24 +189,19 @@ fn depth() {
         parser::parse(&"[".repeat(limit + 1)),
         Err(Failure::Depth { limit: 128, .. })
     ));
-    for sink in ["", "B", "(B)"] {
-        let bracket = |count: usize| "[A] ".repeat(count);
-        let depth = limit - usize::from(sink == "(B)");
-        for source in [
-            format!("{}{sink}", bracket(depth)),
-            format!("{sink} {}", bracket(depth)),
-        ] {
-            assert!(parser::parse(&source).is_ok(), "{sink}");
-        }
-        for source in [
-            format!("{}{sink}", bracket(depth + 1)),
-            format!("{sink} {}", bracket(depth + 1)),
-        ] {
-            let Err(Failure::Depth { span, .. }) = parser::parse(&source) else {
-                panic!("expected a depth failure for {sink}");
-            };
-            let deepest = if sink == "(B)" { "(" } else { "[" };
-            assert_eq!(&source[span.offset()..=span.offset()], deepest, "{sink}");
+    for opening in ["[", "("] {
+        let closing = if opening == "[" { "]" } else { ")" };
+        let nested =
+            |count: usize| format!("{}A{} [B]", opening.repeat(count), closing.repeat(count));
+        assert!(parser::parse(&nested(limit)).is_ok(), "{opening}");
+        let Err(Failure::Depth { span, .. }) = parser::parse(&nested(limit + 1)) else {
+            panic!("expected a depth failure for {opening}");
+        };
+        assert_eq!(span.offset(), limit, "{opening}");
+    }
+    for count in [limit, limit + 1, 10_000] {
+        for source in ["[A] ".repeat(count), format!("B {}", "[A] ".repeat(count))] {
+            assert!(parser::parse(&source).is_ok(), "{count} brackets");
         }
     }
     assert!(parser::parse(&"[A] B, ".repeat(limit + 1)).is_ok());

@@ -248,9 +248,10 @@ impl Reader<'_, '_> {
             });
         }
         let child = &self.child[index];
+        let span = self.span(child[0]).start..self.span(child[child.len() - 1]).end;
         Partition {
             source: self.tree.source(),
-            span: self.span(child[0]).start..self.span(child[child.len() - 1]).end,
+            span: span.clone(),
             pattern,
             sink: sink
                 .first()
@@ -259,7 +260,7 @@ impl Reader<'_, '_> {
             output,
         }
         .rule(&self.budget)
-        .ok_or_else(|| Self::expansion(self.span(index)))
+        .ok_or_else(|| Self::expansion(span))
     }
 
     fn input(&self, index: usize) -> Result<Vec<Vec<Value>>, Failure> {
