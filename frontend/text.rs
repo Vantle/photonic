@@ -1,12 +1,7 @@
 use crate::source::{Definition, Output, Value};
 
-pub fn rule<'value>(
-    input: &[Vec<Value>],
-    rest: impl IntoIterator<Item = &'value Vec<Vec<Value>>>,
-    output: &[Output],
-) -> String {
+pub fn rule(input: &[Vec<Value>], output: &[Output]) -> String {
     std::iter::once(pattern(input))
-        .chain(rest.into_iter().map(|value| pattern(value)))
         .chain(product(output))
         .collect::<Vec<_>>()
         .join(" ")
@@ -16,7 +11,7 @@ pub fn definition(value: &Definition) -> String {
     if !value.name.is_empty() {
         return value.name.clone();
     }
-    rule(&value.input, &value.rest, &value.output)
+    rule(&value.input, &value.output)
 }
 
 fn pattern(input: &[Vec<Value>]) -> String {

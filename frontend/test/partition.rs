@@ -1,5 +1,5 @@
 use frontend::lowering::{self, Failure};
-use frontend::source::{Definition, Output, Value};
+use frontend::source::{Definition, Value};
 
 fn value(value: &Value) -> Value {
     match value {
@@ -46,20 +46,6 @@ fn permutation(piece: &[&str]) -> Vec<String> {
         .collect()
 }
 
-fn atom(value: &[&str]) -> Vec<Value> {
-    value
-        .iter()
-        .map(|value| Value::Atom((*value).to_owned()))
-        .collect()
-}
-
-fn rule(value: &Value) -> &Definition {
-    let Value::Rule { rule } = value else {
-        panic!("expected a rule value, found {value:?}");
-    };
-    rule
-}
-
 fn syntax(source: &str) -> String {
     match lowering::parse(source) {
         Err(
@@ -70,53 +56,31 @@ fn syntax(source: &str) -> String {
     }
 }
 
-fn entry(input: &str, rest: &[&str], output: &str) -> Definition {
-    let pattern = |value: &str| vec![atom(&value.split('.').collect::<Vec<_>>())];
-    Definition {
-        name: String::new(),
-        input: pattern(input),
-        rest: rest.iter().map(|value| pattern(value)).collect(),
-        output: vec![Output {
-            particle: atom(&[output]),
-            body: None,
-        }],
-    }
-    .canonical()
-}
-
 #[test]
-fn rest() {
-    let (_, lowered) = canonical("[A] [B] C");
-    assert_eq!(lowered, [entry("A", &["B"], "C"), entry("B", &["A"], "C")]);
-    let (_, lowered) = canonical("[A] [B] [C] D");
-    assert_eq!(
-        lowered,
-        [
-            entry("A", &["B", "C"], "D"),
-            entry("B", &["A", "C"], "D"),
-            entry("C", &["A", "B"], "D"),
-        ]
-    );
-    let (_, lowered) = canonical("[A] [A] B");
-    assert_eq!(lowered, [entry("A", &["A"], "B"), entry("A", &["A"], "B")]);
-    let (_, lowered) = canonical("[A] B");
-    assert_eq!(lowered, [entry("A", &[], "B")]);
-    let program = lowering::parse("[A, B] [C] D").unwrap();
-    assert_eq!(program.rule[0].rest, [vec![atom(&["C"])]]);
-    assert_eq!(program.rule[1].rest, [vec![atom(&["A"]), atom(&["B"])]]);
-    let program = lowering::parse("X.([A] [B] C)").unwrap();
-    let [particle] = &program.initial[..] else {
-        panic!("expected one coherence");
-    };
-    assert_eq!(particle.len(), 3);
-    assert_eq!(rule(&particle[1]).rest, [vec![atom(&["B"])]]);
-    let program = lowering::parse("[[A] [B] C] D").unwrap();
-    assert_eq!(program.rule[0].input.len(), 1);
-    assert_eq!(program.rule[0].input[0].len(), 2);
-    let program = lowering::parse("[S] (K, [A] [B] C)").unwrap();
-    let body = program.rule[0].output[0].body.as_ref().unwrap();
-    assert_eq!(body.len(), 2);
-    assert!(body.iter().all(|rule| rule.rest.len() == 1));
+fn meaning() {
+    for (term, spelled) in [
+        ("[A] B", "[A] B"),
+        ("[A]", "[A]"),
+        ("[A] [B]", "[A] B, [B] A"),
+        ("[A] [B] C", "[A] B, [A] C, [B] A, [B] C"),
+        ("[A] [B] [C]", "[A] B, [A] C, [B] A, [B] C, [C] A, [C] B"),
+        ("[A, B] [C] D", "[A, B] C, [A, B] D, [C] (A, B), [C] D"),
+        ("[] [A]", "[] A, [A]"),
+        ("[()] [A]", "[()] A, [A] ()"),
+        ("[A] [B] (C, D)", "[A] B, [A] (C, D), [B] A, [B] (C, D)"),
+        (
+            "[A] [B] (K, [K] C)",
+            "[A] B, [A] (K, [K] C), [B] A, [B] (K, [K] C)",
+        ),
+        ("[[X] Y] [B]", "[[X] Y] B, [B] ().([X] Y)"),
+        ("[A.(B, C)] [D]", "[A.B, A.C] D, [D] (A.B, A.C)"),
+        ("[A] [A] B", "[A] A, [A] B, [A] A, [A] B"),
+        ("X.([A] [B] C)", "X.([A] B).([A] C).([B] A).([B] C)"),
+        ("[[A] [B] C] D", "[([A] B).([A] C).([B] A).([B] C)] D"),
+        ("[S] (K, [A] [B] C)", "[S] (K, [A] B, [A] C, [B] A, [B] C)"),
+    ] {
+        assert_eq!(canonical(term), canonical(spelled), "{term}");
+    }
 }
 
 #[test]
@@ -160,13 +124,12 @@ fn name() {
         .iter()
         .map(|rule| rule.name.as_str())
         .collect::<Vec<_>>();
-    assert_eq!(name, ["[A] [B] C", "[B] [A] C", "C.D [E]", "[F]  G"]);
-    let program = lowering::parse("C [A] [B]").unwrap();
-    assert_eq!(program.rule[0].name, "[A] [B] C");
-    assert_eq!(program.rule[1].name, "[B] [A] C");
+    assert_eq!(
+        name,
+        ["[A] B", "[A] C", "[B] A", "[B] C", "C.D [E]", "[F]  G"]
+    );
     for (source, text) in [
-        ("[A] [B] C", "[A] [B] C"),
-        ("[A.X, ()] [B] (C, D)", "[A.X, ()] [B] (C, D)"),
+        ("[A.X, ()] (C, D)", "[A.X, ()] (C, D)"),
         ("[A] (K, [K] L)", "[A] (K, [K] L)"),
         ("[A] ().([K] L)", "[A] ().([K] L)"),
         ("[[K] L] X.([K] L)", "[[K] L] X.([K] L)"),
@@ -180,25 +143,18 @@ fn name() {
 
 #[test]
 fn edge() {
-    let program = lowering::parse("[A], [B] C").unwrap();
-    assert!(program.rule[0].output.is_empty() && program.rule[0].rest.is_empty());
-    assert_eq!(program.rule[1].output[0].particle, atom(&["C"]));
     assert_ne!(canonical("[A], [B] C"), canonical("[A] [B] C"));
-    let program = lowering::parse("[A] [B]").unwrap();
-    assert!(program.rule.iter().all(|rule| rule.output.is_empty()));
-    let program = lowering::parse("[] [] A").unwrap();
+    let program = lowering::parse("[] []").unwrap();
     assert_eq!(program.rule.len(), 2);
     assert!(
         program
             .rule
             .iter()
-            .all(|rule| rule.input.is_empty() && rule.rest == [Vec::<Vec<Value>>::new()])
+            .all(|rule| rule.input.is_empty() && rule.output.is_empty())
     );
-    let program = lowering::parse("[A] [B] (K, [K] C)").unwrap();
-    for rule in &program.rule {
-        assert_eq!(rule.output[0].particle, atom(&["K"]));
-        assert!(rule.output[0].body.is_some());
-    }
+    let program = lowering::parse("X.([A] [B])").unwrap();
+    assert_eq!(program.initial.len(), 1);
+    assert_eq!(program.initial[0].len(), 3);
     for source in [
         "B [A] C",
         "[A] B C",
@@ -229,9 +185,20 @@ fn limit() {
             .chain(["Z".to_owned()])
             .collect::<Vec<_>>()
     };
-    for (count, fits) in [(1, true), (6, true), (13, true), (14, false), (64, false)] {
+    for (count, fits) in [
+        (1, true),
+        (6, true),
+        (200, true),
+        (240, false),
+        (10_000, false),
+    ] {
         let piece = piece(count);
-        for position in 0..=count {
+        let position = if count < 10 {
+            (0..=count).collect::<Vec<_>>()
+        } else {
+            vec![0, count / 2, count]
+        };
+        for position in position {
             let mut piece = piece.clone();
             let sink = piece.pop().unwrap();
             piece.insert(position, sink);
@@ -239,17 +206,14 @@ fn limit() {
             match lowering::parse(&source) {
                 Ok(program) => {
                     assert!(fits, "{count} brackets");
-                    assert_eq!(program.rule.len(), count);
-                    assert!(program.rule.iter().all(|rule| rule.rest.len() == count - 1));
+                    assert_eq!(program.rule.len(), count * count);
                 }
                 Err(Failure::Expansion { span, .. }) => {
                     assert!(!fits, "{count} brackets");
                     assert_eq!((span.offset(), span.len()), (0, source.len()));
                 }
-                Err(other) => panic!("{source}: {other:?}"),
+                Err(other) => panic!("{count} brackets: {other:?}"),
             }
         }
     }
-    let program = lowering::parse(&format!("{}, {}", piece(6).join(" "), piece(6).join(" ")));
-    assert_eq!(program.unwrap().rule.len(), 12);
 }

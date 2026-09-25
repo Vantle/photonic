@@ -3,71 +3,57 @@ use std::ops::Range;
 
 use crate::source::{Definition, Output, Value};
 
-pub(crate) struct Pattern {
-    pub input: Vec<Vec<Value>>,
-    pub span: Range<usize>,
-}
-
 pub(crate) struct Partition<'source> {
     pub source: &'source str,
     pub span: Range<usize>,
-    pub pattern: Vec<Pattern>,
-    pub sink: Option<Range<usize>>,
+    pub pattern: Vec<Vec<Vec<Value>>>,
     pub output: Vec<Output>,
 }
 
 impl Partition<'_> {
     pub(crate) fn rule(self, budget: &Cell<usize>) -> Option<Vec<Definition>> {
-        let space = self.space()?;
-        budget.set(budget.get().checked_sub(space)?);
-        Some(
-            (0..self.pattern.len())
-                .map(|entered| Definition {
-                    name: self.name(entered),
-                    input: self.pattern[entered].input.clone(),
-                    rest: self
-                        .other(entered)
-                        .map(|index| self.pattern[index].input.clone())
-                        .collect(),
-                    output: self.output.clone(),
-                })
-                .collect(),
-        )
-    }
-
-    fn space(&self) -> Option<usize> {
-        let count = self.pattern.len();
-        if count == 1 {
-            return Some(0);
-        }
-        let subset = 1usize.checked_shl(u32::try_from(count - 1).ok()?)?;
-        let input = self
-            .pattern
-            .iter()
-            .map(|pattern| 1 + crate::size::input(&pattern.input))
-            .sum::<usize>()
-            .checked_mul(subset)?;
-        let output = (subset - 1)
-            .checked_add((count - 1).checked_mul(subset / 2)?)?
-            .checked_add(crate::size::output(&self.output))?
-            .checked_mul(count)?;
-        input.checked_add(output)
-    }
-
-    fn other(&self, entered: usize) -> impl Iterator<Item = usize> {
-        (0..self.pattern.len()).filter(move |&index| index != entered)
-    }
-
-    fn name(&self, entered: usize) -> String {
         if self.pattern.len() == 1 {
-            return self.source[self.span.clone()].to_owned();
+            let name = self.source[self.span.clone()].to_owned();
+            let input = self.pattern.into_iter().next()?;
+            return Some(vec![Definition {
+                name,
+                input,
+                output: self.output,
+            }]);
         }
-        std::iter::once(entered)
-            .chain(self.other(entered))
-            .map(|index| self.pattern[index].span.clone())
-            .chain(self.sink.clone())
-            .map(|span| &self.source[span])
-            .collect::<Vec<_>>()
-            .join(" ")
+        let mut rule = Vec::new();
+        for (index, input) in self.pattern.iter().enumerate() {
+            for output in self.target(index) {
+                let definition = Definition {
+                    name: crate::text::rule(input, &output),
+                    input: input.clone(),
+                    output,
+                };
+                budget.set(
+                    budget
+                        .get()
+                        .checked_sub(crate::size::definition(&definition))?,
+                );
+                rule.push(definition);
+            }
+        }
+        Some(rule)
+    }
+
+    fn target(&self, source: usize) -> impl Iterator<Item = Vec<Output>> {
+        self.pattern
+            .iter()
+            .enumerate()
+            .filter(move |&(index, _)| index != source)
+            .map(|(_, pattern)| {
+                pattern
+                    .iter()
+                    .map(|particle| Output {
+                        particle: particle.clone(),
+                        body: None,
+                    })
+                    .collect()
+            })
+            .chain((!self.output.is_empty()).then(|| self.output.clone()))
     }
 }

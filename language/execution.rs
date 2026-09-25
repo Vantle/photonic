@@ -85,7 +85,6 @@ fn definition(program: &Program, index: usize) -> source::Definition {
                     .collect()
             })
             .collect(),
-        rest: Vec::new(),
         output: instruction
             .output
             .iter()

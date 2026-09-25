@@ -9,9 +9,4 @@ pub enum Failure {
     #[error("the atom {name} is outside the vocabulary")]
     #[diagnostic(code(translation::unknown))]
     Unknown { name: String },
-    #[error(
-        "{name} shares its term with other brackets; the code model holds one bracket per rule"
-    )]
-    #[diagnostic(code(translation::rest))]
-    Rest { name: String },
 }

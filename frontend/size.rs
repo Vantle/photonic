@@ -1,10 +1,7 @@
 use crate::source::{Definition, Output, Value};
 
 pub(crate) fn definition(value: &Definition) -> usize {
-    1 + value.name.len()
-        + input(&value.input)
-        + value.rest.iter().map(|value| input(value)).sum::<usize>()
-        + output(&value.output)
+    1 + value.name.len() + input(&value.input) + output(&value.output)
 }
 
 pub(crate) fn input(value: &[Vec<Value>]) -> usize {

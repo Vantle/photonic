@@ -259,16 +259,16 @@ fn depth() {
         lowering::parse(&nested(limit + 1)),
         Err(Failure::Parse(frontend::failure::Failure::Depth { .. }))
     ));
-    assert!(matches!(
-        lowering::parse(&"[A] ".repeat(limit)),
-        Err(Failure::Expansion { .. })
-    ));
-    for count in [limit + 1, 10_000] {
-        let Err(Failure::Expansion { span, .. }) = lowering::parse(&"[A] ".repeat(count)) else {
-            panic!("expected an expansion diagnostic");
-        };
-        assert_eq!((span.offset(), span.len()), (0, count * 4 - 1));
+    for count in [limit, limit + 1] {
+        assert_eq!(
+            lowering::parse(&"[A] ".repeat(count)).unwrap().rule.len(),
+            count * (count - 1)
+        );
     }
+    let Err(Failure::Expansion { span, .. }) = lowering::parse(&"[A] ".repeat(10_000)) else {
+        panic!("expected an expansion diagnostic");
+    };
+    assert_eq!((span.offset(), span.len()), (0, 10_000 * 4 - 1));
     let mixed = format!("{}({})", "(".repeat(limit - 1), "[B] ".repeat(2));
     assert!(matches!(
         lowering::parse(&format!("{mixed}{}", ")".repeat(limit - 1))),

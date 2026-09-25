@@ -154,13 +154,16 @@ fn arithmetic() {
 
 #[test]
 fn partition() {
-    for (target, expected) in [
-        ("C.([B] C)", Outcome::Reached),
-        ("C.([A] C)", Outcome::Reached),
-        ("([B] C).([A] C)", Outcome::Reached),
-        ("C", Outcome::Unreachable),
+    for (program, target, expected) in [
+        ("A, [A] [B]", "B", Outcome::Reached),
+        ("B, [A] [B]", "A", Outcome::Reached),
+        ("A, [A] [B] C", "C", Outcome::Reached),
+        ("B, [A] [B] C", "C", Outcome::Reached),
+        ("C, [A] [B] C", "A", Outcome::Unreachable),
+        ("A.B, [A] [B] C", "C.C", Outcome::Reached),
+        ("A, [A] [B] C", "D", Outcome::Unreachable),
     ] {
-        assert_eq!(outcome("A.B, [A] [B] C", target), expected, "{target}");
+        assert_eq!(outcome(program, target), expected, "{program} to {target}");
     }
 }
 

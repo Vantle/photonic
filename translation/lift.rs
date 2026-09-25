@@ -52,11 +52,6 @@ fn particle(entry: &[source::Value], naming: &mut impl Naming) -> Result<Particl
 }
 
 pub fn rule(definition: &Definition, naming: &mut impl Naming) -> Result<Rule, Failure> {
-    if !definition.rest.is_empty() {
-        return Err(Failure::Rest {
-            name: definition.name.clone(),
-        });
-    }
     let input = definition
         .input
         .iter()

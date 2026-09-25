@@ -4,7 +4,7 @@ use std::ops::Range;
 use miette::{Diagnostic, IntoDiagnostic, NamedSource, SourceSpan, WrapErr};
 use thiserror::Error;
 
-use crate::partition::{Partition, Pattern};
+use crate::partition::Partition;
 use crate::source::{Definition, Output, Program, Value};
 use crate::syntax::{Kind, Tree};
 
@@ -231,10 +231,7 @@ impl Reader<'_, '_> {
             .partition(|&&node| self.kind(node) == Kind::Rule);
         let mut pattern = Vec::new();
         for node in rule {
-            pattern.push(Pattern {
-                input: self.input(self.child[node][0])?,
-                span: self.span(node),
-            });
+            pattern.push(self.input(self.child[node][0])?);
         }
         let mut output = Vec::new();
         for member in self.body(&sink)? {
@@ -253,10 +250,6 @@ impl Reader<'_, '_> {
             source: self.tree.source(),
             span: span.clone(),
             pattern,
-            sink: sink
-                .first()
-                .zip(sink.last())
-                .map(|(&first, &last)| self.span(first).start..self.span(last).end),
             output,
         }
         .rule(&self.budget)
