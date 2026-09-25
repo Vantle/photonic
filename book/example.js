@@ -48,6 +48,9 @@
         bench.type = 'button';
         bench.title = 'Open this program in the workbench';
         bench.hidden = setting.mode === 'path' || !document.querySelector('.workbench');
+        const lightbox = element('a', undefined, 'Lightbox');
+        lightbox.title = 'Open this program in the Lightbox';
+        lightbox.hidden = setting.mode === 'path';
         const reset = element('button', undefined, 'Reset');
         reset.type = 'button';
         reset.hidden = true;
@@ -58,7 +61,7 @@
         run.type = 'button';
         run.hidden = true;
         run.title = 'Run (⌘ or Ctrl + Enter)';
-        bar.append(badge, bench, reset, stop, run);
+        bar.append(badge, bench, lightbox, reset, stop, run);
         figure.insertBefore(bar, pre);
         if (setting.library.length) figure.insertBefore(shelf(setting), pre);
         const editor = book.editor.create(`Edit the ${setting.name} program`);
@@ -99,6 +102,10 @@
         };
         const wanted = () => goal.value.split('\n').map(line => line.trim()).filter(Boolean);
         const changed = () => editor.value !== original || goal.value !== setting.target.join('\n');
+        const point = () => {
+            lightbox.href = book.share.link({ ...setting, source: editor.element.hidden ? original : editor.value, target: wanted() });
+        };
+        point();
         let ticket = 0;
         let busy = false;
         const settle = () => {
@@ -143,7 +150,10 @@
         run.addEventListener('click', start);
         stop.addEventListener('click', () => channel.stop());
         for (const field of [editor.area, goal]) {
-            field.addEventListener('input', () => { reset.hidden = !changed(); });
+            field.addEventListener('input', () => {
+                reset.hidden = !changed();
+                point();
+            });
             field.addEventListener('keydown', event => {
                 if (event.key !== 'Enter' || !(event.metaKey || event.ctrlKey)) return;
                 event.preventDefault();
@@ -158,6 +168,7 @@
             goal.value = setting.target.join('\n');
             reset.hidden = true;
             message.say();
+            point();
             restore();
         });
         bench.addEventListener('click', () => {

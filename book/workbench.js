@@ -7,13 +7,13 @@
         const sample = JSON.parse(widget.dataset.preset);
         const bar = element('div', 'bar');
         const badge = element('span', 'badge', 'recorded runs');
-        const sandbox = element('a', undefined, 'Open in sandbox');
-        sandbox.title = 'Continue with this program in the sandbox';
+        const lightbox = element('a', undefined, 'Open in Lightbox');
+        lightbox.title = 'Continue with this program in the Lightbox';
         const run = element('button', 'run', 'Run');
         run.type = 'button';
         run.hidden = true;
         run.title = 'Run (⌘ or Ctrl + Enter)';
-        bar.append(element('span', 'title', 'Workbench'), badge, sandbox, run);
+        bar.append(element('span', 'title', 'Workbench'), badge, lightbox, run);
         const body = element('div', 'body');
         const preset = element('div', 'preset');
         const editor = book.editor.create('Workbench program');
@@ -31,7 +31,7 @@
             run.removeAttribute('aria-disabled');
         };
         const point = () => {
-            sandbox.href = book.share.link({ ...current, source: editor.value });
+            lightbox.href = book.share.link({ ...current, source: editor.value });
         };
 
         const load = item => {

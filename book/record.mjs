@@ -3,7 +3,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-const [javascript, webassembly, numeral, index, sandbox, output, mode] = process.argv.slice(2);
+const [javascript, webassembly, numeral, index, lightbox, output, mode] = process.argv.slice(2);
 assert.ok(mode === 'write' || mode === 'check', 'record.mjs runs in write or check mode');
 const workspace = process.env.BUILD_WORKSPACE_DIRECTORY;
 assert.ok(mode === 'check' || workspace, 'Write the record with bazel run -c opt //book:record.');
@@ -144,11 +144,11 @@ for (const item of tag.filter(value => style(value, 'workbench') && value.attrib
     }
 }
 
-const playground = parse(await readFile(mode === 'write' ? join(workspace, 'sandbox.html') : sandbox, 'utf8'));
-for (const item of playground.filter(value => style(value, 'sandbox') && value.attribute.has('data-preset'))) {
+const playground = parse(await readFile(mode === 'write' ? join(workspace, 'lightbox.html') : lightbox, 'utf8'));
+for (const item of playground.filter(value => style(value, 'lightbox') && value.attribute.has('data-preset'))) {
     for (const entry of JSON.parse(item.attribute.get('data-preset'))) {
-        if (entry.example) assert.ok(example[entry.example]?.result.execution, `sandbox preset ${entry.name} must name an explored example`);
-        else assert.ok(entry.workbench in workbench, `sandbox preset ${entry.name} must name a workbench preset`);
+        if (entry.example) assert.ok(example[entry.example]?.result.execution, `Lightbox preset ${entry.name} must name an explored example`);
+        else assert.ok(entry.workbench in workbench, `Lightbox preset ${entry.name} must name a workbench preset`);
     }
 }
 

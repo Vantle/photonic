@@ -53,7 +53,7 @@
         });
         const command = [
             { label: 'Open the workbench', hint: 'command', run: () => { close(); book.workbench?.reveal(); } },
-            { label: 'Open the sandbox', hint: 'command', run: () => { close(); location.href = 'sandbox.html'; } },
+            { label: 'Open the Lightbox', hint: 'command', run: () => { close(); location.href = 'lightbox.html'; } },
             { label: 'Clear the workbench filter', hint: 'command', run: () => { close(); book.workbench?.filter(''); } },
             { label: 'Switch theme', hint: 'command', run: () => { close(); document.getElementById('theme')?.click(); } },
         ];

@@ -5,7 +5,7 @@ import { dirname, join } from 'node:path';
 const [output, repository, ...pair] = process.argv.slice(2);
 const file = new Map();
 for (let index = 0; index < pair.length; index += 2) file.set(pair[index + 1], pair[index]);
-for (const required of ['index.html', 'sandbox.html', 'book/worker.js', 'toolchain/browser/module/runtime.js', 'toolchain/browser/module/runtime_bg.wasm']) {
+for (const required of ['index.html', 'lightbox.html', 'book/worker.js', 'toolchain/browser/module/runtime.js', 'toolchain/browser/module/runtime_bg.wasm']) {
     assert.ok(file.has(required), `the site needs ${required}`);
 }
 

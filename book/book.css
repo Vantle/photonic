@@ -244,6 +244,28 @@ button[aria-disabled="true"] {
     color: var(--soft);
 }
 
+.launch {
+    display: grid;
+    gap: 0.1rem;
+    padding: 0.55rem 0.7rem;
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: var(--accent);
+    text-decoration: none;
+}
+
+.launch small {
+    font-size: 0.74rem;
+    font-weight: 400;
+    color: var(--muted);
+}
+
+.launch:hover {
+    background: var(--ring);
+}
+
 .search span {
     margin-right: auto;
 }
@@ -504,6 +526,15 @@ main {
 
 .button.primary:hover {
     opacity: 0.88;
+}
+
+.button.accent {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.button.accent:hover {
+    background: var(--ring);
 }
 
 .note {
@@ -1395,7 +1426,7 @@ td code {
 }
 
 .workbench .editor,
-.sandbox .editor {
+.lightbox .editor {
     border: 1px solid var(--line);
     border-radius: 10px;
     overflow: hidden;
@@ -1434,7 +1465,7 @@ td code {
     color: var(--ink);
 }
 
-.sandbox {
+.lightbox {
     display: grid;
     grid-template-columns: minmax(0, 38.2fr) minmax(0, 61.8fr);
     align-items: start;
@@ -1443,21 +1474,21 @@ td code {
     padding: clamp(1rem, 2.5vw, 2rem);
 }
 
-.sandbox > .widget {
+.lightbox > .widget {
     margin: 0;
 }
 
-.sandbox .editor pre {
+.lightbox .editor pre {
     min-height: 16rem;
 }
 
-.sandbox .result {
+.lightbox .result {
     display: grid;
     gap: 1rem;
     min-width: 0;
 }
 
-.sandbox .panel .graph {
+.lightbox .panel .graph {
     max-height: 72vh;
 }
 
@@ -1712,7 +1743,7 @@ td code {
 }
 
 @media (max-width: 960px) {
-    .sandbox {
+    .lightbox {
         grid-template-columns: minmax(0, 1fr);
     }
 

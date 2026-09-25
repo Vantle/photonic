@@ -2,7 +2,7 @@
     'use strict';
     const book = globalThis.book ??= {};
     const { element } = book.render;
-    const storage = 'photonic-sandbox';
+    const storage = 'photonic-lightbox';
 
     const remembered = () => {
         try {
@@ -12,6 +12,10 @@
             return undefined;
         }
     };
+
+    const advice = (outcome, value) => value.preserve || !outcome.verdict.some(verdict => verdict.outcome === 'unreachable')
+        ? undefined
+        : 'An exact target lists the program’s live rules too. To compare data alone, tick “Targets keep the program’s rules”.';
 
     const same = (left, right) => left.source === right.source
         && left.target.join('\n') === right.target.join('\n')
@@ -38,7 +42,7 @@
         const body = element('div', 'body');
         const preset = element('div', 'preset');
         preset.setAttribute('aria-label', 'Examples');
-        const editor = book.editor.create('Sandbox program');
+        const editor = book.editor.create('Lightbox program');
         const field = element('label', 'field');
         field.append('Target configurations, one per line');
         const goal = element('textarea');
@@ -85,7 +89,7 @@
             toggle.forEach((button, name) => button.setAttribute('aria-pressed', String(value.library.includes(name))));
             keep.checked = value.preserve;
             const missing = value.library.filter(name => !toggle.has(name));
-            if (missing.length) message.say(`The sandbox does not have ${missing.map(name => `${name}.particle`).join(', ')}.`, 'error');
+            if (missing.length) message.say(`The Lightbox does not have ${missing.map(name => `${name}.particle`).join(', ')}.`, 'error');
         };
         const mark = name => preset.querySelectorAll('button').forEach(button => button.setAttribute('aria-pressed', String(button.textContent === name)));
         const remember = () => {
@@ -112,7 +116,7 @@
             try {
                 const outcome = await book.engine.explore(value, value.source);
                 if (mine !== ticket) return;
-                message.say();
+                message.say(advice(outcome, value));
                 viewer.show(outcome, value.target);
                 remember();
                 address();
@@ -169,7 +173,7 @@
             mark();
             viewer.blank('Write a program, then press Run.');
             remember();
-            history.replaceState(null, '', 'sandbox.html');
+            history.replaceState(null, '', 'lightbox.html');
             editor.area.focus();
         });
         copy.addEventListener('click', async () => {
@@ -221,5 +225,5 @@
         });
     };
 
-    document.querySelectorAll('.sandbox[data-preset]').forEach(enhance);
+    document.querySelectorAll('.lightbox[data-preset]').forEach(enhance);
 })();

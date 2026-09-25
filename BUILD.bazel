@@ -120,8 +120,8 @@ filegroup(
 )
 
 filegroup(
-    name = "sandbox",
-    srcs = ["sandbox.html"],
+    name = "lightbox",
+    srcs = ["lightbox.html"],
     visibility = [
         "//book:__pkg__",
         "//toolchain/browser:__pkg__",

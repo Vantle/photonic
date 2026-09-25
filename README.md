@@ -14,7 +14,7 @@
 <p align="center">
   <a href="https://photonic.vantle.org"><b>Read the webbook</b></a>
   &nbsp;·&nbsp;
-  <a href="https://photonic.vantle.org/sandbox.html"><b>Open the sandbox</b></a>
+  <a href="https://photonic.vantle.org/lightbox.html"><b>Open the Lightbox</b></a>
   &nbsp;·&nbsp;
   <a href="library/README.md">Standard library</a>
   &nbsp;·&nbsp;
@@ -40,7 +40,7 @@ The standard library is written in Photonic, and its theorems are proved by runn
 
 ## Try it
 
-The [sandbox](https://photonic.vantle.org/sandbox.html) runs Photonic in your browser: write a program, run it, and explore every configuration it reaches, with nothing to install. Its links carry the whole program, so you can share what you write.
+The [Lightbox](https://photonic.vantle.org/lightbox.html) runs Photonic in your browser: write a program, run it, and explore every configuration it reaches, with nothing to install. Its links carry the whole program, so you can share what you write.
 
 To work from a checkout, Bazel is the only thing to install. It fetches the pinned compilers and dependencies.
 

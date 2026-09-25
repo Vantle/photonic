@@ -7,7 +7,7 @@
         setting.target.forEach(value => query.append('target', value));
         setting.library.forEach(value => query.append('library', value));
         if (setting.preserve) query.set('preserve', '');
-        return `sandbox.html?${query}`;
+        return `lightbox.html?${query}`;
     };
 
     const read = search => {
