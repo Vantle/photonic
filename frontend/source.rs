@@ -29,6 +29,7 @@ impl Program {
         deserializer.disable_recursion_limit();
         let program = Self::deserialize(&mut deserializer)?;
         deserializer.end()?;
+        crate::validation::program(&program).map_err(serde::de::Error::custom)?;
         Ok(program)
     }
 

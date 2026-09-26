@@ -40,8 +40,8 @@ for (const text of ['[C,D] E', '[D, C]E', ' [ D ,C ] E ', 'E [C, D]', 'E[D,C]', 
 assert.deepEqual(shown('[C, D] F'), []);
 assert.deepEqual(shown('[A] C, [B] D'), [0, 1, 2, 3, 4]);
 const dynamic = graph.model(record.example.dynamic.result.execution);
-assert.ok(shown('([A] B)', dynamic).length);
-assert.deepEqual(shown('([A]B)', dynamic), shown('([A] B)', dynamic));
+assert.ok(shown('().([A] B)', dynamic).length);
+assert.deepEqual(shown('().([A]B)', dynamic), shown('().([A] B)', dynamic));
 assert.deepEqual(shown('(Seed).A', dynamic), shown('Seed.A', dynamic));
 assert.equal(pattern.read('  '), undefined);
 const bracketed = graph.model({ definition: [], closed: true, work: 0, state: [{ id: 0, world: [{ frame: 0, particle: [{ kind: 'atom', id: 0, label: '⟨x⟩' }] }], frame: [{ parent: null, particle: [], held: [] }] }], event: [] });
@@ -68,7 +68,8 @@ for (const [text, message, span] of [
     assert.deepEqual(error.detail.span, span, text);
 }
 assert.match(refusal('A, [B] C').message, /not both/);
-assert.match(refusal('(A, [B] C)').message, /a group that lists a rule beside a coherence is a scope/);
+assert.match(refusal('(A, [B] C)').message, /a group that lists a rule is a scope/);
+assert.match(refusal('([A] B)').message, /join it, as in \(\)\.\(\[A\] B\)/);
 assert.equal(editor.describe(refusal('[A..X] B')), 'A dot joins two things; put something on each side (at character 4)');
 console.log('Patterns match coherences, rule values and rules by meaning, whatever the spacing or order, and refuse what the grammar refuses.');
 

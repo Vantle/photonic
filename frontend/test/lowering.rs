@@ -260,6 +260,38 @@ fn schema() {
     ] {
         assert!(serde_json::from_str::<Program>(source).is_err(), "{source}");
     }
+    for (source, message) in [
+        (r#"{"scope":[{"initial":[["A"]]}]}"#, "lists a rule"),
+        (
+            r#"{"scope":[{"rule":[{"input":[["A"]],"output":[]}]}]}"#,
+            "holds a coherence",
+        ),
+        (
+            r#"{"rule":[{"input":[["A"]],"output":[{"initial":[],"rule":[{"input":[],"output":[]}]}]}]}"#,
+            "holds a coherence",
+        ),
+        (
+            r#"{"initial":[[{"rule":{"input":[],"output":[{"initial":[["B"]],"rule":[]}]}}]]}"#,
+            "lists a rule",
+        ),
+    ] {
+        let failure = Program::read(source).unwrap_err().to_string();
+        assert!(failure.contains(message), "{source}: {failure}");
+    }
+    for source in [
+        r#"{"scope":[{"initial":[[]],"rule":[{"input":[["A"]],"output":[]}]}]}"#,
+        r#"{"scope":[{"rule":[{"input":[["A"]],"output":[]}],"scope":[{"initial":[["B"]],"rule":[{"input":[["B"]],"output":[]}]}]}]}"#,
+    ] {
+        let program = Program::read(source).unwrap();
+        assert_eq!(
+            lowering::parse(&frontend::text::scope(&program.scope[0]))
+                .unwrap()
+                .scope[0]
+                .canonical(),
+            program.scope[0].canonical(),
+            "{source}"
+        );
+    }
 }
 
 #[test]

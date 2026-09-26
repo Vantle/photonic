@@ -65,20 +65,10 @@ impl Failure {
         file: &str,
         text: &str,
     ) -> Self {
-        Self::shifted(code, error, file, text, |offset| offset)
-    }
-
-    pub(crate) fn shifted(
-        code: Code,
-        error: &(impl miette::Diagnostic + ToString),
-        file: &str,
-        text: &str,
-        shift: impl Fn(usize) -> usize,
-    ) -> Self {
         let location = error
             .labels()
             .and_then(|mut label| label.next())
-            .map(|label| Location::new(file, text, shift(label.offset()), label.len()));
+            .map(|label| Location::new(file, text, label.offset(), label.len()));
         let diagnostic = error.code().map(|code| {
             let code = code.to_string();
             code.rsplit("::").next().unwrap_or_default().to_owned()

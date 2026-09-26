@@ -1,7 +1,7 @@
 use super::support::{BUG, FIX, ORIGINAL, explore};
 use crate::cause::Role;
 use crate::claim::{self, Answer, Claim, Kind};
-use crate::exploration::Value;
+use crate::exploration::{Opener, Value};
 use crate::lineage;
 use crate::recording::Order;
 use crate::render;
@@ -53,7 +53,7 @@ fn handle() {
     assert_eq!(render::configuration(&bug, 8), "False.Extra");
     assert_eq!(render::configuration(&bug, 10), "in f1: False.True.Extra");
     assert_eq!(bug.rule[2].text, "[False] False");
-    assert_eq!(bug.rule[2].scope, Some(1));
+    assert_eq!(bug.rule[2].scope, Some(Opener::Rule(1)));
     assert_eq!(bug.event[12].rule, 2);
     assert_eq!((bug.event[12].source, bug.event[12].target), (10, 11));
     assert_eq!(bug.path(11), Some(vec![11, 12]));
@@ -170,7 +170,9 @@ fn opener() {
         .iter()
         .flat_map(|configuration| configuration.frame.iter().skip(1))
     {
-        let opener = frame.opener.expect("every scope has an opener");
+        let Some(Opener::Rule(opener)) = frame.opener else {
+            panic!("a rule opens every scope of this program");
+        };
         let body = exploration.rule[opener]
             .definition
             .output
@@ -191,7 +193,7 @@ fn opener() {
                 exploration.rule[rule].text,
                 exploration.rule[opener].text
             );
-            assert_eq!(exploration.rule[rule].scope, Some(opener));
+            assert_eq!(exploration.rule[rule].scope, Some(Opener::Rule(opener)));
             seen += 1;
         }
     }

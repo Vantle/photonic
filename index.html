@@ -284,7 +284,7 @@ Add.Unit.Unit.Unit,
 [Brew] (Kettle, Cup, [Kettle, Cup] Tea)</pre>
 <figcaption>Consuming <code>Brew</code> opens a scope with two coherences, and each receives the remainder: the same <code>Leaf</code> in both. The scope's rule joins them, the shared <code>Leaf</code> counts once, and <code>Tea.Leaf</code> returns.</figcaption>
 </figure>
-<p>A scope that lists neither a coherence nor a scope holds the empty coherence <code>()</code>, so the remainder always has a place to go. A scope inside a scope returns to it, and sees the rules of every scope around it:</p>
+<p>Like any group that lists neither a coherence nor a scope, a scope such as <code>([A] B)</code> holds the empty coherence <code>()</code>, so the remainder always has a place to go. A scope inside a scope returns to it, and sees the rules of every scope around it:</p>
 <figure class="example wide" data-example="nest">
 <pre>Brew.Leaf,
 [Brew] ((Kettle, [Kettle] Hot), [Hot] Tea)</pre>
@@ -382,7 +382,7 @@ Add.Unit.Unit.Unit,
 <pre>P.([P] True)</pre>
 </figure>
 <h3>Shared prefixes</h3>
-<p>A dot distributes over a group: <code>A.(B, C)</code> means <code>A.B, A.C</code>, and <code>(A, B).(C, D)</code> means four coherences. Groups build nothing: <code>Box.(A.B)</code> is exactly <code>Box.A.B</code>. The dot is required: side by side, <code>A(B, C)</code> is an error.</p>
+<p>A dot distributes over a group: <code>A.(B, C)</code> means <code>A.B, A.C</code>, and <code>(A, B).(C, D)</code> means four coherences. A joined group builds nothing: <code>Box.(A.B)</code> is exactly <code>Box.A.B</code>, and a rule inside it is a field of the particle, never a scope. The dot is required: side by side, <code>A(B, C)</code> is an error, so a forgotten dot or comma is always reported instead of quietly changing the program.</p>
 <div class="widget lens wide" data-lens='["Digit.0.Carry.1", "([Digit] 0).([Carry] 1)", "().([Digit] 0)", "A.(B, C)", "(A, B).(C, D)", "Box.(A.B)", "A.((), B)"]'></div>
 <p class="onward"><a href="#prism">Next: Prism</a></p>
 </section>
@@ -437,7 +437,7 @@ Add.Unit.Unit.Unit,
 <tr><td><code>B</code></td><td>A coherence that holds <code>B</code></td></tr>
 <tr><td><code>B.X</code></td><td>A coherence that holds both <code>B</code> and <code>X</code></td></tr>
 <tr><td><code>B, C</code></td><td>A configuration in which two different coherences hold <code>B</code> and <code>C</code></td></tr>
-<tr><td><code>([A] B)</code></td><td>A coherence that holds the rule value <code>[A] B</code></td></tr>
+<tr><td><code>().([A] B)</code></td><td>A coherence that holds the rule value <code>[A] B</code></td></tr>
 <tr><td><code>[B, C] D</code></td><td>An event that applies the rule <code>[B, C] D</code></td></tr>
 <tr><td><code>[A] C, [B] D</code></td><td>An event that applies either rule</td></tr>
 </tbody>
@@ -785,10 +785,10 @@ concept = @{ (!("(" | ")" | "[" | "]" | "." | "," | WHITESPACE) ~ ANY)+ }
 WHITESPACE = _{ " " | "\t" | "\r" | "\n" | "\u{000B}" | "\u{000C}" }</pre>
 <p>This is the whole grammar. Five rules give it meaning:</p>
 <ul>
-<li>A comma separates, a dot joins, and a space means nothing. Two particles side by side are an error until a dot or a comma says which you mean.</li>
-<li>A join multiplies its factors into particles. Joining distributes over a group, and <code>()</code> is the empty coherence.</li>
-<li>A term is brackets beside at most one particle, in any order. Each bracket consumes what it names and becomes every other part of its term, one rule for each: <code>[A] [B]</code> is <code>[A] B</code> and <code>[B] A</code>, and <code>[A] [B] C</code> adds <code>[A] C</code> and <code>[B] C</code>. Several outputs are a group, as in <code>[A] (B, C)</code>. A rule joins a particle only inside parentheses: <code>X.([A] B)</code>.</li>
-<li>A group that lists a rule on its own is a scope: a program in parentheses, holding coherences, rules and scopes. A rule's output opens it when the rule fires, and the program opens its own when it starts. A scope that lists neither a coherence nor a scope holds <code>()</code>.</li>
+<li>A comma separates, a dot joins, and a space means nothing. Two particles side by side are an error until a dot or a comma says which you mean, so a forgotten comma is reported instead of quietly joining.</li>
+<li>A join multiplies its factors into particles and distributes over a group: <code>A.(B, C)</code> is <code>A.B, A.C</code>. Joined, a group builds nothing, and a rule inside it is a value of the particle, as in <code>X.([A] B)</code>; that is the only way a rule joins a particle. A group that lists neither a coherence nor a scope holds the empty coherence, so <code>()</code> is that coherence.</li>
+<li>A term is brackets beside at most one particle, in any order. Each bracket consumes what it names and becomes every other part of its term, one rule for each: <code>[A] [B]</code> is <code>[A] B</code> and <code>[B] A</code>, and <code>[A] [B] C</code> adds <code>[A] C</code> and <code>[B] C</code>. Several outputs are a group, as in <code>[A] (B, C)</code>.</li>
+<li>A group that lists a rule and is not joined is a scope: a program in parentheses, holding coherences, rules and scopes. A rule's output opens it when the rule fires, and the program opens its own when it starts. Like any group, a scope that lists neither a coherence nor a scope holds <code>()</code>, as <code>([A] B)</code> does.</li>
 <li>A rule listed in a program or scope is live there. Anywhere else it is a value.</li>
 </ul>
 <p>There are no keywords, operators or reserved words: <code>Not</code>, <code>-&gt;</code> and <code>unless</code> are ordinary atoms.</p>

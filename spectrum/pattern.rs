@@ -1,7 +1,6 @@
 use crate::exploration::{Coherence, Exploration, Value};
 use crate::failure::{Code, Failure};
 use frontend::source::{self, Definition};
-use frontend::syntax::Kind;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Item {
@@ -21,48 +20,6 @@ pub struct Match {
     pub occurrence: Vec<usize>,
 }
 
-fn shorthand(text: &str) -> Result<(String, Vec<usize>), Failure> {
-    let tree = frontend::parser::parse(text)
-        .map_err(|error| Failure::located(Code::Pattern, &error, "pattern", text))?;
-    let node = tree.node();
-    let child = |parent: usize| tree.child(parent).iter().copied();
-    let bracketed = |term: usize| child(term).any(|index| node[index].kind == Kind::Rule);
-    let mut insertion = Vec::new();
-    for list in child(0).filter(|&index| node[index].kind == Kind::List) {
-        for term in child(list) {
-            let factor = child(term).collect::<Vec<_>>();
-            let [group] = factor.as_slice() else {
-                continue;
-            };
-            if node[*group].kind != Kind::Group {
-                continue;
-            }
-            let inner = child(*group)
-                .filter(|&index| node[index].kind == Kind::List)
-                .flat_map(child)
-                .collect::<Vec<_>>();
-            if !inner.is_empty() && inner.iter().all(|&term| bracketed(term)) {
-                insertion.push(node[*group].span.start);
-            }
-        }
-    }
-    let mut result = text.to_owned();
-    for &offset in insertion.iter().rev() {
-        result.insert_str(offset, "().");
-    }
-    Ok((result, insertion))
-}
-
-fn original(offset: usize, insertion: &[usize]) -> usize {
-    let mut shift = 0;
-    for &position in insertion {
-        if position + shift < offset {
-            shift += 3;
-        }
-    }
-    offset.saturating_sub(shift)
-}
-
 pub fn item(value: &source::Value) -> Item {
     match value {
         source::Value::Atom(atom) => Item::Atom(atom.clone()),
@@ -75,19 +32,15 @@ impl Pattern {
         if text.trim().is_empty() {
             return Err(Failure::new(
                 Code::Pattern,
-                "write a pattern, such as B.X, B, C, ([A] B) or [B, C] D",
+                "write a pattern, such as B.X, B, C, ().([A] B) or [B, C] D",
             ));
         }
-        let (rewritten, insertion) = shorthand(text)?;
-        let program = frontend::lowering::parse(&rewritten).map_err(|error| {
-            Failure::shifted(Code::Pattern, &error, "pattern", text, |offset| {
-                original(offset, &insertion)
-            })
-        })?;
+        let program = frontend::lowering::parse(text)
+            .map_err(|error| Failure::located(Code::Pattern, &error, "pattern", text))?;
         if !program.scope.is_empty() {
             return Err(Failure::new(
                 Code::Pattern,
-                "a pattern matches coherences or rules, and a group that lists a rule beside a coherence is a scope; to match a rule inside a coherence, join it, as in ().([A] B)",
+                "a pattern matches coherences or rules, and a group that lists a rule is a scope; to match a rule inside a coherence, join it, as in ().([A] B)",
             ));
         }
         if !program.rule.is_empty() && !program.initial.is_empty() {

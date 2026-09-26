@@ -68,6 +68,14 @@ fn scope() {
         "E",
         Outcome::Unreachable,
     );
+    for (source, count) in [
+        ("(X, [X] Y), (X, [X] Y)", 3),
+        ("A, [A] ((B, [B] C), (B, [B] C))", 4),
+    ] {
+        let mut runtime = Runtime::new(&parse(source).unwrap());
+        runtime.run(50_000, Limit::default());
+        assert_eq!(runtime.snapshot().state.len(), count, "{source}");
+    }
     let program = parse("Z, (X, [X] Y)").unwrap();
     let mut runtime = Runtime::new(&program);
     runtime.run(50_000, Limit::default());

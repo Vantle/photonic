@@ -26,7 +26,7 @@
         const input = element('input');
         input.spellcheck = false;
         input.autocomplete = 'off';
-        input.placeholder = 'B.X · B, C · [B, C] D · ([A] B)';
+        input.placeholder = 'B.X · B, C · [B, C] D · ().([A] B)';
         field.append(input);
         const clear = tool('Clear', 'Clear the filter');
         const note = element('p');

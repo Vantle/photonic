@@ -89,13 +89,6 @@
         return list('end');
     };
 
-    const shorthand = tree => tree.map(term => {
-        const [only] = term.join;
-        if (term.bracket.length || term.join.length !== 1 || !only.group?.length) return term;
-        if (!only.group.every(inner => inner.bracket.length)) return term;
-        return { bracket: [], join: [{ group: [] }, only] };
-    });
-
     const lower = tree => {
         let remaining = budget;
         const spend = amount => {
@@ -183,8 +176,8 @@
 
     const read = text => {
         if (!text.trim()) return undefined;
-        const program = lower(shorthand(parse(text)));
-        if (program.scope.length) refuse('A pattern matches coherences or rules, and a group that lists a rule beside a coherence is a scope; to match a rule inside a coherence, join it, as in ().([A] B).');
+        const program = lower(parse(text));
+        if (program.scope.length) refuse('A pattern matches coherences or rules, and a group that lists a rule is a scope; to match a rule inside a coherence, join it, as in ().([A] B).');
         if (program.rule.length && program.initial.length) refuse('Search for coherences or for rules, such as B.X or [B, C] D, not both.');
         if (program.rule.length) return { rule: new Set(program.rule.map(key.rule)) };
         return { particle: program.initial.map(particle => particle.map(key.value)) };

@@ -22,6 +22,7 @@ rust_library(
         "source.rs",
         "syntax.rs",
         "text.rs",
+        "validation.rs",
     ],
     crate_root = "frontend.rs",
     lint_config = "//:lint",

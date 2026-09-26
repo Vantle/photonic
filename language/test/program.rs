@@ -145,6 +145,23 @@ fn scope() {
     assert_eq!(compiled.scope[2].initial, [[atom("B")]]);
     assert_eq!(compiled.scope[3].initial, [[atom("X")]]);
     assert!(matches!(compiled.rule[0].output[..], [Output::Scope(1)]));
+    let repeated = program("(X, [X] Y), (X, [X] Y), [A] ((B, [B] C), (B, [B] C))");
+    assert_eq!(repeated.scope.len(), 3);
+    assert_eq!(repeated.scope[0].scope, [2, 2]);
+    assert!(matches!(
+        repeated.rule[0].output[..],
+        [Output::Scope(1), Output::Scope(1)]
+    ));
+    let opened = program("[A] (B, [B] C), [D] (B, [B] C)");
+    assert_eq!(opened.scope.len(), 3);
+    assert_eq!(
+        opened
+            .scope
+            .iter()
+            .map(|scope| scope.opener)
+            .collect::<Vec<_>>(),
+        [None, Some(0), Some(2)]
+    );
     assert_eq!(
         compiled.definition(0),
         frontend::lowering::parse("[A] ((B, [B] C), D, [D] E)")

@@ -1,6 +1,6 @@
 use crate::claim::{self, Claim};
 use crate::context::Context;
-use crate::exploration::{Exploration, Occurrence};
+use crate::exploration::{Exploration, Occurrence, Opener};
 use crate::failure::{Code, Failure};
 use crate::handle::Handle;
 use crate::recording::Recording;
@@ -108,15 +108,11 @@ struct Index {
 }
 
 fn label(exploration: &Exploration, configuration: usize, frame: usize) -> String {
-    if frame == 0 {
-        return "root".to_owned();
+    match exploration.configuration[configuration].frame[frame].opener {
+        Some(Opener::Rule(rule)) => render::input(exploration, rule),
+        Some(Opener::Program) => "scope".to_owned(),
+        None => "root".to_owned(),
     }
-    exploration.configuration[configuration].frame[frame]
-        .opener
-        .map_or_else(
-            || "scope".to_owned(),
-            |rule| render::input(exploration, rule),
-        )
 }
 
 fn group(exploration: &Exploration, place: &str, occurrence: &[Occurrence]) -> Vec<(u32, Element)> {

@@ -27,7 +27,7 @@ Over MCP the verbs are tools with the same fields. Pass the `exploration` key fr
 
 ## Pitfalls
 
-- Every output of a rule receives the whole remainder, so a rule with several outputs duplicates what it did not match.
+- Every coherence a rule introduces, in its outputs and in the scopes it opens, receives the whole remainder, so a rule that introduces several coherences duplicates what it did not match.
 - Particles are unordered: `Inspect.1.2` is `Inspect.2.1`, and a rule's input matches any particle that contains it.
 - A live rule value such as `([Digit] 1)` fires on a bare `Digit` in the same coherence; never use such atoms as labels.
 - Answer labels are shared by every caller in a frame. Guard an answer with a token that exists only while your own call is in flight.

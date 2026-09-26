@@ -21,7 +21,7 @@ pub struct Request {
     #[serde(flatten)]
     pub recording: Recording,
     #[schemars(
-        description = "B selects a coherence holding B; B.X one holding both; B, C two different coherences; ([A] B) a coherence holding that rule value; [B, C] D the events applying that rule."
+        description = "B selects a coherence holding B; B.X one holding both; B, C two different coherences; ().([A] B) a coherence holding that rule value; [B, C] D the events applying that rule."
     )]
     pub pattern: String,
     #[serde(default = "limit")]

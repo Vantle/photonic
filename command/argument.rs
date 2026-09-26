@@ -222,7 +222,10 @@ pub struct Explore {
 pub struct Select {
     #[arg(help = "Program files")]
     pub file: Vec<PathBuf>,
-    #[arg(long, help = "A Photonic pattern: B, B.X, B, C, ([A] B) or [B, C] D")]
+    #[arg(
+        long,
+        help = "A Photonic pattern: B, B.X, B, C, ().([A] B) or [B, C] D"
+    )]
     pub pattern: String,
     #[arg(long, default_value_t = spectrum::select::LIMIT, help = "Matches listed")]
     pub limit: usize,

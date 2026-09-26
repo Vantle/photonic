@@ -1,6 +1,6 @@
 use crate::claim::Verdict;
 use crate::context::Context;
-use crate::exploration::Exploration;
+use crate::exploration::{Exploration, Opener};
 use crate::failure::Failure;
 use crate::handle::Handle;
 use crate::recording::{Mode, Order, Recording};
@@ -42,7 +42,11 @@ pub(crate) struct Activity {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) first: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) scope: Option<String>,
+    #[schemars(
+        with = "Option<String>",
+        description = "The rule whose scope holds this rule, or program when the program opens that scope at the start."
+    )]
+    pub(crate) scope: Option<Opener>,
 }
 
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
@@ -124,9 +128,7 @@ fn summary(exploration: &Exploration, limit: usize) -> Answer {
                         .filter(|&&event| exploration.inferred(event))
                         .count(),
                     first: event.first().map(|&event| Handle::Event(event).to_string()),
-                    scope: exploration.rule[index]
-                        .scope
-                        .map(|scope| Handle::Rule(scope).to_string()),
+                    scope: exploration.rule[index].scope,
                 }
             })
             .collect(),
@@ -210,11 +212,13 @@ impl Answer {
                 (fired, 0) => fired.to_string(),
                 (fired, inferred) => format!("{fired}, {inferred} inferred"),
             };
-            let scope = rule
-                .scope
-                .as_ref()
-                .map(|scope| format!("   in the scope {scope} opens"))
-                .unwrap_or_default();
+            let scope = match rule.scope {
+                Some(Opener::Rule(opener)) => {
+                    format!("   in the scope {} opens", Handle::Rule(opener))
+                }
+                Some(Opener::Program) => "   in a scope the program opens".to_owned(),
+                None => String::new(),
+            };
             line.push(format!(
                 "{label:<6} {:<5} {:<width$}   {fired}{scope}",
                 rule.handle, rule.text

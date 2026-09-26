@@ -344,11 +344,15 @@ fn select() {
     );
     assert_eq!(value["answer"]["kind"], "event");
     assert_eq!(value["answer"]["total"], 3);
-    let shorthand = json(
+    let value = json(
+        r#"{"verb": "select", "program": {"source": "Seed.A, [Seed] ().([A] B)"}, "pattern": "().([A] B)"}"#,
+    );
+    assert_eq!(value["answer"]["kind"], "configuration");
+    assert!(value["answer"]["total"].as_u64().unwrap_or(0) > 0);
+    let scope = json(
         r#"{"verb": "select", "program": {"source": "Seed.A, [Seed] ().([A] B)"}, "pattern": "([A] B)"}"#,
     );
-    assert_eq!(shorthand["answer"]["kind"], "configuration");
-    assert!(shorthand["answer"]["total"].as_u64().unwrap_or(0) > 0);
+    assert_eq!(scope["error"]["code"], "pattern");
     let broken = json(r#"{"verb": "select", "program": {"file": ["bug.wave"]}, "pattern": "A B"}"#);
     assert_eq!(broken["error"]["code"], "pattern");
 }
@@ -458,6 +462,34 @@ fn scope() {
     assert_eq!(answer[2]["error"]["code"], "target", "{}", answer[2]);
     assert_eq!(answer[3]["error"]["code"], "target", "{}", answer[3]);
     assert_eq!(answer[4]["error"]["code"], "pattern", "{}", answer[4]);
+    let explored = session(&[
+        r#"{"verb": "explore", "program": {"source": "Z, (X, [X] Y), A, [A] (B, [B] C)"}}"#,
+        r#"{"verb": "inspect", "program": {"source": "Z, (X, [X] Y), A, [A] (B, [B] C)"}, "handle": "s0.f1"}"#,
+    ]);
+    let scope = |text: &str| {
+        explored[0]["answer"]["rule"]
+            .as_array()
+            .expect("rules")
+            .iter()
+            .find(|rule| rule["text"] == text)
+            .map(|rule| rule["scope"].clone())
+            .expect("the rule is listed")
+    };
+    let opener = explored[0]["answer"]["rule"]
+        .as_array()
+        .expect("rules")
+        .iter()
+        .find(|rule| rule["text"] == "[A] (…)")
+        .map(|rule| rule["handle"].clone())
+        .expect("the opening rule is listed");
+    assert_eq!(scope("[X] Y"), "program");
+    assert_eq!(scope("[B] C"), opener);
+    assert_eq!(scope("[A] (…)"), serde_json::Value::Null);
+    assert_eq!(
+        explored[1]["answer"]["scope"]["opener"], "program",
+        "{}",
+        explored[1]
+    );
 }
 
 #[test]

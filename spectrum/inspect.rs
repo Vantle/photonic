@@ -1,6 +1,6 @@
 use crate::cause::Role;
 use crate::context::Context;
-use crate::exploration::{self, Exploration};
+use crate::exploration::{self, Exploration, Opener};
 use crate::failure::Failure;
 use crate::handle::Handle;
 use crate::lineage;
@@ -51,7 +51,11 @@ pub(crate) struct Part {
 pub(crate) struct Scope {
     pub(crate) handle: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) opener: Option<String>,
+    #[schemars(
+        with = "Option<String>",
+        description = "The rule that opened this scope, or program when the program opens it at the start."
+    )]
+    pub(crate) opener: Option<Opener>,
     pub(crate) rule: Vec<Item>,
     pub(crate) held: Vec<Item>,
 }
@@ -62,7 +66,11 @@ pub(crate) enum View {
     Rule {
         text: String,
         #[serde(skip_serializing_if = "Option::is_none")]
-        scope: Option<String>,
+        #[schemars(
+            with = "Option<String>",
+            description = "The rule whose scope holds this rule, or program when the program opens that scope at the start."
+        )]
+        scope: Option<Opener>,
         fired: usize,
         inferred: usize,
         event: Vec<Move>,
@@ -146,7 +154,7 @@ fn scope(exploration: &Exploration, configuration: usize, index: usize) -> Scope
     };
     Scope {
         handle: frame(configuration, index),
-        opener: entry.opener.map(|rule| Handle::Rule(rule).to_string()),
+        opener: entry.opener,
         rule: entry.rule.iter().map(item).collect(),
         held: entry.held.iter().map(item).collect(),
     }
@@ -208,9 +216,7 @@ fn view(exploration: &Exploration, handle: Handle) -> View {
             let fired = exploration.firing(index).collect::<Vec<_>>();
             View::Rule {
                 text: exploration.rule[index].text.clone(),
-                scope: exploration.rule[index]
-                    .scope
-                    .map(|scope| Handle::Rule(scope).to_string()),
+                scope: exploration.rule[index].scope,
                 fired: fired.len(),
                 inferred: fired
                     .iter()
@@ -306,6 +312,13 @@ pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Ans
     })
 }
 
+fn opened(opener: Opener) -> String {
+    match opener {
+        Opener::Program => "opened by the program".to_owned(),
+        Opener::Rule(rule) => format!("opened by {}", Handle::Rule(rule)),
+    }
+}
+
 fn list(item: &[Item]) -> String {
     if item.is_empty() {
         return "none".to_owned();
@@ -327,10 +340,13 @@ impl Answer {
                 inferred,
                 event,
             } => {
-                let place = scope
-                    .as_ref()
-                    .map(|scope| format!(" · local to the scope {scope} opens"))
-                    .unwrap_or_default();
+                let place = match scope {
+                    Some(Opener::Rule(rule)) => {
+                        format!(" · local to the scope {} opens", Handle::Rule(*rule))
+                    }
+                    Some(Opener::Program) => " · local to a scope the program opens".to_owned(),
+                    None => String::new(),
+                };
                 let count = match (*fired, *inferred) {
                     (0, _) => "never fires".to_owned(),
                     (fired, 0) => format!("fires {}", render::count(fired, "time")),
@@ -370,11 +386,7 @@ impl Answer {
                     ));
                 }
                 for (position, scope) in frame.iter().enumerate().skip(1) {
-                    let opener = scope
-                        .opener
-                        .as_ref()
-                        .map(|rule| format!("opened by {rule}"))
-                        .unwrap_or_default();
+                    let opener = scope.opener.map(opened).unwrap_or_default();
                     line.push(format!(
                         "{}{:<8} {opener}   rules {}   holds {}",
                         render::row("scope", position == 1),
@@ -424,8 +436,7 @@ impl Answer {
             } => {
                 let opener = scope
                     .opener
-                    .as_ref()
-                    .map(|rule| format!(" · opened by {rule}"))
+                    .map(|opener| format!(" · {}", opened(opener)))
                     .unwrap_or_default();
                 line.push(format!("{} in {configuration}{opener}", self.handle));
                 line.push(format!(

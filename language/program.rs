@@ -68,6 +68,7 @@ pub struct Program {
     pub rule: Vec<Instruction>,
     pub scope: Vec<Scope>,
     interner: HashMap<Form, usize, Builder>,
+    declaration: HashMap<(Option<usize>, Body), usize, Builder>,
 }
 
 impl Program {
@@ -85,6 +86,7 @@ impl Program {
             rule: Vec::new(),
             scope: Vec::new(),
             interner: HashMap::default(),
+            declaration: HashMap::default(),
         };
         program.declare(source, "root".into(), None);
         program
@@ -328,6 +330,15 @@ impl Program {
             );
             self.scope[scope].scope.push(index);
         }
+        // Identical scopes that one opener declares are one declaration, so their frames are
+        // interchangeable as identical coherences are. A repeat found nothing new to intern, so
+        // this entry, whose repeated nested scopes were already dropped, is all it added.
+        let key = (opener, self.outline(scope));
+        if let Some(&index) = self.declaration.get(&key) {
+            self.scope.truncate(scope);
+            return index;
+        }
+        self.declaration.insert(key, scope);
         scope
     }
 

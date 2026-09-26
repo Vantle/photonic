@@ -1,4 +1,5 @@
 use crate::budget::Budget;
+use crate::handle::Handle;
 use crate::order::{self, Canonical, Naming};
 use crate::recording::{Mode, Order};
 use frontend::source::{Definition, Program};
@@ -7,6 +8,7 @@ use photonic::prism::{Outcome, Reach, Verdict};
 use photonic::runtime::Runtime;
 use photonic::snapshot::{self, Node};
 use photonic::status::Status;
+use serde::{Serialize, Serializer};
 use std::collections::VecDeque;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -27,9 +29,24 @@ pub struct Coherence {
     pub occurrence: Vec<Occurrence>,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Opener {
+    Program,
+    Rule(usize),
+}
+
+impl Serialize for Opener {
+    fn serialize<Sink: Serializer>(&self, serializer: Sink) -> Result<Sink::Ok, Sink::Error> {
+        match self {
+            Self::Program => serializer.serialize_str("program"),
+            Self::Rule(rule) => serializer.collect_str(&Handle::Rule(*rule)),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Frame {
-    pub opener: Option<usize>,
+    pub opener: Option<Opener>,
     pub lexical: Option<usize>,
     pub rule: Vec<Occurrence>,
     pub held: Vec<Occurrence>,
@@ -47,7 +64,7 @@ pub struct Rule {
     pub text: String,
     pub definition: Definition,
     pub canonical: Definition,
-    pub scope: Option<usize>,
+    pub scope: Option<Opener>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -137,7 +154,11 @@ fn configuration(node: &Node, naming: &Naming) -> Configuration {
             .frame
             .iter()
             .map(|frame| Frame {
-                opener: frame.opener,
+                opener: match (frame.opener, frame.parent) {
+                    (Some(rule), _) => Some(Opener::Rule(rule)),
+                    (None, Some(_)) => Some(Opener::Program),
+                    (None, None) => None,
+                },
                 lexical: frame.lexical,
                 rule: frame.particle.iter().map(token).collect(),
                 held: frame.held.iter().map(token).collect(),
