@@ -4,6 +4,6 @@ Case.(([P] True), ([P] False)),
 [Return.Negation] (Function.Boolean.And.Lower.Conjunction.P, Function.Boolean.Or.Upper.Disjunction.P),
 [Return.Lower.Conjunction] Function.Boolean.Equal.Lower.Law.False,
 [Return.Upper.Disjunction] Function.Boolean.Equal.Upper.Law.True,
-[Return.Lower.Law, Return.Upper.Law] Function.Boolean.And.Verdict,
+[Return.True.Lower.Law, Return.True.Upper.Law] Return.Verdict.True,
 
 [Holds.(([P] True), ([P] False))] Theorem

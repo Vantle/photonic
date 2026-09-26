@@ -73,7 +73,7 @@ Every.1,
 
 `Every.1` opens the scope for the first variable, which starts scope 2 with `One` set to True. When scope 2 reports `Proved.2`, the same report restarts it with `One` set to False, and the second report completes scope 1. Inner scopes report `Proved` instead of concluding `Theorem`; the innermost starts `Case` and waits for `Holds`. Only one case is in flight at a time.
 
-Every rule that matches a field is written at the root. A value produced by a root rule captures the root's frame, and a whole-rule pattern only matches a value with the same capture, so a pattern written inside a scope never sees these fields. The scopes' own rules therefore match only the plain atoms `Both` and `Proved` with a level number. Root rules apply in every nested scope; the numbers name the reporting level, so a report from deeper inside never satisfies an outer rule. A failing case stops the search: `Counterexample` climbs through each scope as `Refuted` and reaches the root with the complete failing assignment.
+Every rule that matches a field is written at the root. A value produced by a root rule captures the root's frame, and a whole-rule pattern only matches a value with the same capture, so a pattern written inside a scope never sees these fields. The scopes' own rules therefore match only the plain atoms `Both` and `Proved` with a level number. Root rules apply in every nested scope; the numbers name the reporting level, so a report from deeper inside never satisfies an outer rule. When a case can fail, a failing case stops the search: `Counterexample` climbs through each scope as `Refuted` and reaches the root with the complete failing assignment. A claim whose verdict can only be true has no `Refuted` rules, because a case it cannot close stays open and the proof stops short of `Theorem`.
 
 ## Claims
 
@@ -81,7 +81,7 @@ A claim reaches its verdict in one of four ways.
 
 ### Evaluated claims
 
-An evaluated claim computes with the standard library's own operations, as `involution` does. Each rule waits for the answers it needs, calls the next operation and tags its answer; the last call is tagged `Verdict`. These claims are about the library's definitions.
+An evaluated claim computes with the standard library's own operations, as `involution` does. Each rule waits for the answers it needs, calls the next operation and tags its answer. A claim of one law tags its last call `Verdict`. A claim of several laws meets their true answers in one rule, such as `[Return.True.Lower.Law, Return.True.Upper.Law] Return.Verdict.True`, rather than combining them with `Boolean.And`, so no table that layer 1 proves also combines the verdicts of its own laws, and a false law leaves its case open. The Boolean laws are judged by `Boolean.Equal`, which [equality](boolean/equality.wave) pins by meeting each of its answers with its operands. These claims are about the library's definitions.
 
 ### Covered claims
 
@@ -97,7 +97,7 @@ A covered claim is about relations nobody has defined. Its variables are proposi
 
 The first rule closes the cases where irreflexivity fails at x, and the second the cases where transitivity fails at x, y, x. The last two close the cases where x < y and y < x do not both hold. `Test` is matched and consumed while `Keep` holds the assignment for the report; [cover.particle](cover.particle) turns either closing into a true verdict.
 
-A covered theorem holds for every domain and every relation satisfying its hypotheses. Choose any such structure and any elements for x and y: the propositions take one of the assignments, every hypothesis instance is true in it, so no `Vacuous` rule matches it and a `Concluded` rule must. Reviewing one means checking that each `Vacuous` rule falsifies an instance of a hypothesis and each `Concluded` rule implies the conclusion; the run checks that the rules close every case.
+A covered theorem holds for every domain and every relation satisfying its hypotheses. Choose any such structure and any elements for x and y: the propositions take one of the assignments, every hypothesis instance is true in it, so no `Vacuous` rule matches it and a `Concluded` rule must. Reviewing one means checking that each `Vacuous` rule falsifies an instance of a hypothesis and each `Concluded` rule implies the conclusion; the run checks that the rules close every case. [cover.particle](cover.particle) only answers a true verdict, so a case that no rule closes stays open and the proof stops short of `Theorem`; a covered claim never reaches `Counterexample`.
 
 ### Judged claims
 
@@ -107,11 +107,11 @@ A judged claim computes derived values from definitions before judging them, suc
 [Advance.Forward.([Compare.([Left] A).([Right] B)] Equal).([Compare.([Left] X).([Right] Y)] Less)] Advanced.([Compare.([Left] Then.([Left] X).([Right] A)).([Right] Then.([Left] Y).([Right] B))] Less)
 ```
 
-If the next elements compare Equal and the sequences so far compare Less, the extended sequences compare Less. A judge table over every combination of the derived fields answers `Upheld` or `Overturned`. The judge consumes every derived field, so none leaks into the next case's report. [judge.particle](judge.particle) holds a case when it is upheld, or when it is overturned but a `Vacuous` rule closes it.
+If the next elements compare Equal and the sequences so far compare Less, the extended sequences compare Less. A judge table over every combination of the derived fields answers `Upheld` or `Overturned`. The judge consumes every derived field, so none leaks into the next case's report. [judge.particle](judge.particle) holds a case when it is upheld, or when it is overturned but a `Vacuous` rule closes it; an overturned case that no `Vacuous` rule closes stays open. A judged claim without hypotheses, such as [ternary/order.wave](ternary/order.wave), needs no `Vacuous` rules, so its judge table answers `Return.Verdict.True` or `Return.Verdict.False` itself.
 
 ### Derived claims
 
-A derived claim is an equational proof. Each fact is a coherence holding one equation: an instance of an axiom, a premise of the theorem, or an instance of an earlier theorem. Each rule is congruence, which puts both sides of an equation into the same context, or transitivity. From [group/inverse.wave](group/inverse.wave), which proves that xy = 1 implies y = x⁻¹ in every group:
+A derived claim is an equational proof. Each fact is a coherence holding one equation: an instance of an axiom, a premise of the theorem, or an instance of an earlier theorem. Each rule is congruence, which puts both sides of an equation into the same context, transitivity, or an instance of an earlier theorem whose premise is an equation, as [group/involution.wave](group/involution.wave) applies `inverse`. From [group/inverse.wave](group/inverse.wave), which proves that xy = 1 implies y = x⁻¹ in every group:
 
 ```
 Equation.([Side] Times.([Left] X).([Right] Y)).([Side] One),
@@ -128,7 +128,7 @@ Equation.([Side] Times.([Left] Inverse.([Of] X)).([Right] X)).([Side] One),
 
 The first rule multiplies both sides of xy = 1 on the left by x⁻¹. The second is transitivity through 1y: it joins two equations that share that side, consumes the shared side from both, and the remainder law leaves the two outer sides in one equation. A transitivity rule therefore names only its middle term. The last rule states the conclusion.
 
-Every fact is true in every structure of the kind, for every choice of the generic elements satisfying the premises, and every rule turns true equations into a true one, so the conclusion holds in every such structure. Rules consume their premises, so reaching exactly `Theorem` also shows every listed fact was used; a fact needed twice is listed twice. A proof may need its rules in a particular order, so derived claims are checked by Prism's full exploration: reaching `Theorem` means some order of the rules derives it. Reviewing one means checking that each fact is an axiom instance, a premise or a cited theorem, and that each congruence rule applies one context to both sides of its premise.
+Every fact is true in every structure of the kind, for every choice of the generic elements satisfying the premises, and every rule turns true equations into a true one, so the conclusion holds in every such structure. Rules consume their premises, so reaching exactly `Theorem` also shows every listed fact was used; a fact needed twice is listed twice. A proof may need its rules in a particular order, so derived claims are checked by Prism's full exploration: reaching `Theorem` means some order of the rules derives it. Reviewing one means checking that each fact is an axiom instance, a premise or a cited theorem, that each congruence rule applies one context to both sides of its premise, and that each other rule is transitivity or an instance of a cited theorem.
 
 ### Induction
 
@@ -151,7 +151,7 @@ The runtime and Prism are trusted to execute the rules. In layers 1 to 6 the lib
 
 A layer 9 claim also relies on two facts about the engine it runs, both visible in the engine's rules. Its starting state is one the engine reaches between steps, and a feed behaves as a chain for one step. The engines touch an operand only by sending `Read`, `Peek` and `Forget`, and they test only for the empty chain `Zero`, which `Feed.End` answers as.
 
-A false claim reaches `Counterexample` instead, and a refutation test checks that configuration exactly. [boolean/negation.wave](boolean/negation.wave) claims ¬(p ∧ q) = ¬p ∧ ¬q and ends with counterexamples at (True, False) and (False, True) beside the two cases that hold. A nested claim stops at its first counterexample, so its refutation names one assignment.
+A false claim whose verdict can be false reaches `Counterexample` instead, and a refutation test checks that configuration exactly; a claim that only answers true verdicts leaves a failing case open instead. [boolean/negation.wave](boolean/negation.wave) claims ¬(p ∧ q) = ¬p ∧ ¬q and ends with counterexamples at (True, False) and (False, True) beside the two cases that hold. A nested claim stops at its first counterexample, so its refutation names one assignment.
 
 ## Writing a theorem
 
@@ -171,7 +171,7 @@ Layers 1 to 6 climb from propositional logic to algebraic structures. Each is mo
 
 | Layer | Packages | Theorems |
 | --- | --- | ---: |
-| 1. Propositional logic | [boolean](boolean/) | 12 |
+| 1. Propositional logic | [boolean](boolean/) | 13 |
 | 2. Relations | [relation](relation/) | 5 |
 | 3. Constructed types | [componentwise](componentwise/), [lexicographic](lexicographic/), [sum](sum/), [sequence](sequence/), [ternary](ternary/) | 14 |
 | 4. Arithmetic at every width | [carry](carry/), [induction](induction/) | 6 |
@@ -196,6 +196,7 @@ The library's Booleans form a Boolean algebra: identity, complement and distribu
 | [duality](boolean/duality.wave) | ¬(p ∧ q) = ¬p ∨ ¬q, ¬(p ∨ q) = ¬p ∧ ¬q |
 | [associativity](boolean/associativity.wave) | (p ∧ q) ∧ r = p ∧ (q ∧ r), (p ∨ q) ∨ r = p ∨ (q ∨ r) |
 | [distributivity](boolean/distributivity.wave) | p ∧ (q ∨ r) = (p ∧ q) ∨ (p ∧ r), p ∨ (q ∧ r) = (p ∨ q) ∧ (p ∨ r) |
+| [equality](boolean/equality.wave) | `Boolean.Equal` answers True exactly when its operands agree |
 | [equivalence](boolean/equivalence.wave) | `Boolean.Equal` is reflexive and transitive |
 | [peirce](boolean/peirce.wave) | ((p → q) → p) → p, with p → q as ¬p ∨ q |
 | [negation](boolean/negation.wave) | refuted: ¬(p ∧ q) = ¬p ∧ ¬q fails at (True, False) and (False, True) |
@@ -214,7 +215,7 @@ Covered theorems about any relation on any domain. Reflexivity and symmetry of t
 
 ### 3. Constructed types
 
-Orders lift through type constructors. Each theorem assumes only the order axioms of its component types, so it holds for every choice of components, including constructed ones. A pair of A × B is written (X, U), (Y, V) or (Z, W); elements of A + B are p, q and r, and `([Side.P] Left)` says p lies in A.
+Orders lift through type constructors. Each theorem assumes only the order axioms of its component types, so it holds for every choice of components, including constructed ones. A pair of A × B is written (X, U), (Y, V) or (Z, W); elements of A + B are p, q and r, and `([Side.([Of] P)] Left)` says p lies in A.
 
 | Theorem | Claim |
 | --- | --- |
@@ -248,9 +249,9 @@ The induction theorems carry digit laws to numbers of every width. Each names an
 | [subtraction](induction/subtraction.wave) | subtracting b from a + b with `Ternary.Subtract` returns a | the adder's carry equals the subtractor's borrow | 18 |
 | [associativity](induction/associativity.wave) | (a + b) + c = a + (b + c) with `Ternary.Sum` | both groupings hold the same total pending carry | 432 |
 
-Lookahead also checks its base in every case: Propagate, the combination of no blocks, leaves the entry carry unchanged. The other two start with every carry and borrow at zero, where their invariants hold by definition. Associativity and lookahead are the conditions under which any parallel prefix network computes the same carries as a ripple adder.
+Lookahead also checks its base in every case: Propagate, the combination of no blocks, leaves the entry carry unchanged. The other two start with every carry and borrow at zero, where their invariants hold by definition. Lookahead and the associativity of `Signal.Combine`, proved by [carry/associativity](carry/associativity.wave), are the conditions under which any parallel prefix network computes the same carries as a ripple adder.
 
-Their proofs need two adapters: [ternary/role.particle](ternary/role.particle) packs trits into the `Left`, `Right` and `Borrow` operands of `Ternary.Subtract`, and [ternary/unpack.particle](ternary/unpack.particle) splits every `([Digit] d).([Carry] c)` or `([Digit] d).([Borrow] b)` answer into a `Low` coherence holding the digit and a `High` coherence holding the carry or borrow.
+Subtraction needs two adapters: [ternary/role.particle](ternary/role.particle) packs trits into the `Left`, `Right` and `Borrow` operands of `Ternary.Subtract`, and [ternary/unpack.particle](ternary/unpack.particle) splits every `([Digit] d).([Carry] c)` or `([Digit] d).([Borrow] b)` answer into a `Low` coherence holding the digit and a `High` coherence holding the carry or borrow. Associativity needs only the unpacking, and lookahead packs statuses with [carry/role.particle](carry/role.particle).
 
 ### 5. Exact combinatorics
 
@@ -267,7 +268,7 @@ Schur's, van der Waerden's and Ramsey's theorems need arguments beyond a finite 
 | [triangle.six](coloring/triangle.six.wave) | every 2-coloring of the edges of K6 has a triangle colored alike | 326 closed branches |
 | [triangle.five](coloring/triangle.five.wave) | refuted by a pentagon of True edges and a pentagram of False ones | |
 
-Together they establish the Schur number S(2) = 4, the van der Waerden number W(2,3) = 9 and the Ramsey number R(3,3) = 6. A triple is uniform when its three colors agree, which the claims define with four rules over the unordered triple; a verdict is the disjunction of the triples' uniformity, folded with `Boolean.Or`.
+Together they establish the Schur number S(2) = 4, the van der Waerden number W(2,3) = 9 and the Ramsey number R(3,3) = 6. A triple is uniform when its three colors agree, which [coloring/uniform.particle](coloring/uniform.particle) defines once with four rules over the unordered triple; a verdict is the disjunction of the triples' uniformity, folded with `Boolean.Or`.
 
 The triangle theorems close branches early. K6 has 32,768 colorings, but a partial coloring that already contains a uniform triangle settles every coloring extending it. Each edge's scope first tests the triangles its predecessor completed, in an order that visits edges by their larger vertex; a uniform one reports `Proved` without splitting further. The proof is then a tree of 651 scopes whose 326 leaves each name a uniform triangle, and it runs 9,573 events. W(2,3) enumerates all 512 colorings in 52,219 events.
 
@@ -381,7 +382,7 @@ The probe fires only once the output holds a new cell and the engine has begun t
 | [subtraction](natural/subtraction.wave) | a column in the `Deduct` mode behind `Natural.Subtract` and `Natural.Difference` pushes the digit of `Ternary.Subtract` and passes on its borrow | 30 |
 | [ending](natural/ending.wave) | once both operands have ended, a final carry becomes the leading digit and a final borrow reports a negative difference | 4 |
 | [comparison](natural/comparison.wave) | a position of `Natural.Compare` carries on the verdict of the layer 3 scheme, or answers it once one operand has ended and the other shows a nonzero digit, or both have ended | 48 |
-| [trim](natural/trim.wave) | `Natural.Trim` skips a leading zero, answers zero once only zeros remain, and otherwise keeps the leading digit and reverses the chain | 4 |
+| [trim](natural/trim.wave) | the trim behind the column engine and `Natural.Normalize` skips a leading zero, answers zero once only zeros remain, and otherwise keeps the leading digit and reverses the chain | 4 |
 | [reversal](natural/reversal.wave) | each step of `Chain.Reverse` moves one digit onto its result, which it returns at the end | 4 |
 | [successor](natural/successor.wave) | `Natural.Successor` turns a trailing 2 into a pending 0, and otherwise writes the digit's successor | 4 |
 | [restoration](natural/restoration.wave) | each pending 0 then returns beneath the new digit, and the number is returned | 2 |

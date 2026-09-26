@@ -7,9 +7,9 @@ use thiserror::Error;
 pub const POOL: &str = "pool.json";
 pub const ARCHIVE: &str = "archive.json";
 pub const CHECKPOINT: &str = "model.checkpoint";
-pub const DISCOVERY: &str = "discovery.jsonl";
-pub const PROGRESS: &str = "progress.jsonl";
-pub const PROGRAM: &str = "program";
+pub(crate) const DISCOVERY: &str = "discovery.jsonl";
+pub(crate) const PROGRESS: &str = "progress.jsonl";
+pub(crate) const PROGRAM: &str = "program";
 pub const CURRICULUM: &str = "curriculum.json";
 
 #[derive(Debug, Error)]
@@ -68,7 +68,7 @@ impl Home {
         self.write(name, &text)
     }
 
-    pub fn write(&self, name: &str, text: &str) -> Result<(), Failure> {
+    pub(crate) fn write(&self, name: &str, text: &str) -> Result<(), Failure> {
         let path = self.file(name);
         let temporary = path.with_extension("partial");
         std::fs::write(&temporary, text)
@@ -76,7 +76,11 @@ impl Home {
             .map_err(|source| Failure::Access { path, source })
     }
 
-    pub fn append<Value: Serialize>(&self, name: &str, value: &Value) -> Result<(), Failure> {
+    pub(crate) fn append<Value: Serialize>(
+        &self,
+        name: &str,
+        value: &Value,
+    ) -> Result<(), Failure> {
         let path = self.file(name);
         let line = serde_json::to_string(value).map_err(|source| Failure::Format {
             path: path.clone(),

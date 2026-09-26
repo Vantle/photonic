@@ -121,14 +121,15 @@ fn single(input: &[u64]) {
         input,
         &[number("Return.Natural.Normalize", count)],
     );
-    let reversed = input.iter().rev().copied().collect::<Vec<_>>();
-    unary(
-        "Complement",
-        &reversed,
-        &[number(
-            "Return.Natural.Complement",
-            3u64.pow(u32::try_from(input.len()).unwrap()) - count,
-        )],
+    binary(
+        "Difference",
+        &[],
+        input,
+        &[if count > 0 {
+            number("Return.Natural.Difference.Negative", count)
+        } else {
+            number("Return.Natural.Difference.Positive", 0)
+        }],
     );
     unary(
         "Copy",

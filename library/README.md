@@ -8,7 +8,7 @@ bazel test -c opt //library/...
 
 ## Principles
 
-1. **One namespace per type.** Every operation is named `<Type>.<Verb>`: `Boolean.Not`, `Ternary.Add`, `Natural.Divide`, `Expression.Evaluate`. The namespace belongs to exactly one package. The core combinators `Identity` and `Compose` are bare, and so are the methods of chains and vectors: `Push`, `Read`, `Peek`, `Forget`, `Insert`, `Take`, `Link`, `Lift`, `Unlink`, an alphabet's `Drop`, and the node's internal `Sever` and `Surface`.
+1. **One namespace per type.** Every operation is named `<Type>.<Verb>`: `Boolean.Not`, `Ternary.Add`, `Natural.Divide`, `Expression.Evaluate`. The namespace belongs to exactly one package, with two exceptions: each reduce operation declares its own identity as a `Function.Empty.Reduce` row in its package, and `//library/selection:reduce` adds the `Reduce` rows for selections to the stage in `//library/collection:reduce`. The core combinators `Identity` and `Compose` are bare, and so are the pipeline stages `Map`, `Reduce` and `Gather` and the methods of chains and vectors: `Push`, `Read`, `Peek`, `Forget`, `Insert`, `Take`, `Link`, `Lift`, `Unlink`, an alphabet's `Drop`, and the node's internal `Sever` and `Surface`.
 2. **One calling vocabulary.** A request carries `Function`; its answer carries `Return`. Scoped calls use `Invoke`; linked calls tag each answer with the operation that produced it. Chain and vector methods answer in their own words instead: `Built`, `Yield`, `Seen`, `Clean`, `Stored`, `Linked`, `Taken`, `Lifted`, and `Unlinked`.
 3. **Collision-free by construction.** `//library:test` proves that no root rule can match the input of another root rule and that no working label fits inside an answer, then runs checks with every package loaded at once.
 4. **Explicit values.** Roles travel as fields such as `([Digit] 2).([Carry] 1)`. Alternatives are variants of the answer, and failures are `Error.<Kind>`. A role is never also a plain atom, except that `Map` and `Reduce` fire callbacks through a bare `Each` and `Operation`, and `Left` and `Right` name both the ordered operands of scalar tables and the sides of linked operands, as in `Operand.Left`.
@@ -29,7 +29,7 @@ bazel test -c opt //library/...
 | [field](field/) | `Field` | `pack`, `unpack` |
 | [stream](stream/) | `Stream` | `successor` |
 | [chain](chain/) | `Chain` | `cell`, `reverse`, `erase` |
-| [natural](natural/) | `Natural` | `digit`, `copy`, `trim`, `normalize`, `successor`, `complement`, `column`, `add`, `deduct`, `subtract`, `difference`, `multiply`, `divide`, `compare` |
+| [natural](natural/) | `Natural` | `digit`, `copy`, `trim`, `normalize`, `successor`, `complement`, `column`, `add`, `subtract`, `difference`, `multiply`, `divide`, `compare` |
 | [integer](integer/) | `Integer` | `add`, `subtract`, `multiply`, `divide`, `result` |
 | [expression](expression/) | `Expression` | `token`, `split`, `join`, `parse`, `execute`, `evaluate` |
 | [vector](vector/) | `Vector` | `node`, `reverse`, `erase`, `merge`, `sort` |
@@ -104,7 +104,8 @@ Linked values span several coherences in one frame, so linked operations run in 
 | `Function.Natural.Divide` | `Operand.Left`, `Operand.Right` | `Return.Natural.Divide.Quotient` and `Return.Natural.Divide.Remainder`, or `Return.Natural.Divide.Error.Divisor` |
 | `Function.Natural.Compare` | `Operand.Left`, `Operand.Right` | `Return.Natural.Compare.Less`, `.Equal`, or `.Greater`, with `Return.Natural.Compare.Left` and `Return.Natural.Compare.Right` beside the unchanged operands |
 | `Function.Integer.<Verb>` | `Operand.Left.<Sign>`, `Operand.Right.<Sign>` | `Return.Integer.<Verb>.Positive`, `Return.Integer.<Verb>.Negative`, `Return.Integer.Divide.Error.Divisor` |
-| `Function.Expression.Evaluate` | beside the token tape | `Return.Expression.Evaluate.Positive`, `Return.Expression.Evaluate.Negative`, `Return.Expression.Evaluate.Error.Syntax`, `.Error.Stack`, `.Error.Divisor` |
+| `Function.Expression.Evaluate` | beside an infix token tape | `Return.Expression.Evaluate.Positive`, `Return.Expression.Evaluate.Negative`, `Return.Expression.Evaluate.Error.Syntax`, `.Error.Stack`, `.Error.Divisor` |
+| `Function.Expression.Execute` | beside a postfix token tape | `Return.Expression.Execute.Positive`, `Return.Expression.Execute.Negative`, `Return.Expression.Execute.Error.Syntax`, `.Error.Stack`, `.Error.Divisor` |
 | `Function.Vector.Reverse` | beside the vector | `Return.Vector.Reverse` |
 | `Function.Vector.Erase` | beside a vector of chains and vectors | `Return.Vector.Erase` |
 | `Function.Vector.Sort` | beside a vector of naturals | `Return.Vector.Sort` |
@@ -113,7 +114,9 @@ Linked answers are shared vocabulary. Chain and vector answers and most linked `
 
 Numerals store base-three digits least significant first. Arithmetic answers carry no leading zeros, except that `Successor` increments in place and keeps its operand's high zeros; integers carry `Positive` or `Negative`, zero is always `Positive`, and integer division truncates toward zero.
 
-`Function.Natural.Compare` reads both operands without consuming them. It peeks one column at a time, least significant first; the most significant differing column decides, and a finished operand reads as zero, so high zeros compare equal to none. Each column costs 18 events, and the verdict arrives only after both operands are released unchanged.
+`Function.Natural.Compare` reads both operands without consuming them. It peeks one column at a time, least significant first; the most significant differing column decides, and a finished operand reads as zero, so high zeros compare equal to none. Each column costs 18 events. The verdict arrives in the event that starts releasing the operands, and each operand returns unchanged in an event of its own, so a caller that needs them waits for `Return.Natural.Compare.Left` and `Return.Natural.Compare.Right` as well as the verdict.
+
+`Function.Expression.Evaluate` reads an infix tape, most significant digit first: digits, `Add`, `Subtract`, `Multiply`, `Divide`, `Open` and `Close`, where a `Subtract` that begins a term negates it. It parses the tape into the postfix tape that `Function.Expression.Execute` runs, so a caller with a postfix tape can call the executor directly. On that tape each number is `Literal`, its digits most significant first, and `Mark`; each operator follows its two operands, and `Negate` follows its one. The executor answers `Error.Syntax` for a token it cannot read where it reads it, `Error.Stack` for a missing or extra operand, and `Error.Divisor` for a division by zero. The evaluator forwards each of these and answers `Error.Syntax` itself for malformed infix.
 
 ## Chains
 
@@ -209,14 +212,14 @@ The successor writes each output digit as a `([Write] d)` value, acknowledges it
 - `isolation::vocabulary` requires single-word concepts everywhere and at most two input and output coherences in the scalar packages.
 - `isolation::role` fails unless the atoms that are both a field role and a plain atom are exactly the callback triggers `Each` and `Operation` and the operand sides `Left` and `Right`.
 - `composition` runs scalar checks, the pair pipeline, linked addition, and a sort with all fourteen packages loaded.
-- `natural` checks every linked natural operation against Rust arithmetic: comparison of every pair below 27 and of wide random pairs, reading both operands back; addition, multiplication, subtraction with underflow, signed difference, and division with remainder and a zero divisor for every pair below 9 and seeded pairs up to six trits; successor, normalization, copying, and the difference's complement for every value below 27; and all of them on operands with high zeros.
+- `natural` checks every linked natural operation against Rust arithmetic: comparison of every pair below 27 and of wide random pairs, reading both operands back; addition, multiplication, subtraction with underflow, signed difference, and division with remainder and a zero divisor for every pair below 9 and seeded pairs up to six trits; successor, normalization, copying, and zero minus every value below 27, which runs the complement behind a negative difference; and all of them on operands with high zeros.
 - `vector` sorts every permutation of four items, repeated items, sorted, decreasing, and constant inputs, and seeded random vectors of up to twelve items against Rust's stable sort. Equal numerals with different high zeros check stability. It also reverses and erases vectors of naturals and vectors nested three deep.
-- `expression` runs the executor on malformed token tapes, one for each token that is invalid where it is read and a missing operand for every operator, and checks that `Expression.Evaluate` forwards each error of the executor.
+- `expression` runs the executor on malformed token tapes, one for each token that is invalid where it is read and a missing operand for every operator, checks that `Expression.Evaluate` rejects the tokens that infix never contains, `Mark`, `Literal`, `Negative` and `Negate`, in each state of its parser, and checks that it forwards each error of the executor.
 - The scalar tables are checked exhaustively against independent Rust oracles, including rejected targets, here and in the `arithmetic` and `language` suites.
 
 Linked arithmetic, comparison, and vectors are verified along direct execution paths by these generated checks, the package checks in `//library/natural` and `//library/vector`, and the programs in `//program/ternary` and `//program/vector`.
 
-The [theorems](../theorem/README.md#7-counting) prove more than these bounded checks. Every digit table of `ternary` is counting with the successor. A chain cell returns exactly its item and the chain below, for every item. Each step of the column engine, `Natural.Compare`, `Natural.Trim`, `Chain.Reverse` and `Natural.Successor`, run by the library's own rules, does what the digit tables require. Together these make linked addition, subtraction, comparison and successor correct at every width.
+The [theorems](../theorem/README.md#7-counting) prove more than these bounded checks. The digit tables of `Ternary.Add`, `Sum`, `Subtract`, `Multiply` and `Compare` are counting with the successor, and `Ternary.Equal` answers `True` exactly where `Compare` answers `Equal`; `Ternary.Select` has only the bounded checks. A chain cell returns exactly its item and the chain below, for every item. Each step of the column engine and of the trim behind it, `Natural.Compare`, `Chain.Reverse` and `Natural.Successor`, run by the library's own rules, does what the digit tables require. Together these make linked addition, subtraction, comparison and successor correct at every width.
 
 ## Extending
 

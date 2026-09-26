@@ -11,7 +11,7 @@ const POSITION: [&str; 8] = [
 ];
 
 fn parse(text: &str, vocabulary: &mut Vocabulary) -> (Program, Configuration) {
-    let source = photonic::lowering::parse(text)
+    let source = frontend::lowering::parse(text)
         .unwrap_or_else(|failure| panic!("corpus source must parse: {failure}: {text}"));
     lift::program(&source, vocabulary)
         .unwrap_or_else(|failure| panic!("corpus source must lift: {failure}: {text}"))

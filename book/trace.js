@@ -10,13 +10,13 @@
         return box;
     };
 
-    const draw = (host, source) => {
+    const draw = (host, run, option = {}) => {
         const box = element('div', 'stepper');
         const summary = element('p', 'summary');
-        if (source.outcome) summary.append(element('span', `badge ${source.outcome}`, source.outcome));
-        summary.append(tally(source.count, 'event'), tally(source.work, 'work step'));
-        if (!source.quiet) box.append(summary);
-        if (!source.count) {
+        if (run.outcome) summary.append(element('span', `badge ${run.outcome}`, run.outcome));
+        summary.append(tally(run.event, 'event'), tally(run.work, 'work step'));
+        if (!option.quiet) box.append(summary);
+        if (!run.event) {
             box.append(element('p', 'summary', 'No rule applies to the initial configuration.'));
             host.replaceChildren(box);
             return;
@@ -34,7 +34,7 @@
         const slider = element('input');
         slider.type = 'range';
         slider.min = 1;
-        slider.max = source.count;
+        slider.max = run.event;
         slider.value = 1;
         slider.setAttribute('aria-label', 'Event');
         control.append(slider);
@@ -53,10 +53,10 @@
             book.syntax.highlight(rule, step.event.rule);
             const before = element('div');
             before.append(element('span', 'label', 'before · consumed tokens outlined'));
-            before.append(card(`s${step.event.source}`, step.before, source.definition, book.render.touch(step.event)));
+            before.append(card(`s${step.event.source}`, step.before, run.definition, book.render.touch(step.event)));
             const after = element('div');
             after.append(element('span', 'label', 'after'));
-            after.append(card(`s${step.event.target}`, step.after, source.definition));
+            after.append(card(`s${step.event.target}`, step.after, run.definition));
             pair.replaceChildren(before, after);
         };
         const load = async () => {
@@ -65,7 +65,7 @@
                 const at = wanted;
                 wanted = undefined;
                 try {
-                    const step = await source.get(at);
+                    const step = await run.inspect(at);
                     if (wanted === undefined) paint(step);
                 } catch (error) {
                     if (wanted !== undefined) continue;
@@ -76,12 +76,12 @@
             busy = false;
         };
         const show = value => {
-            index = Math.max(0, Math.min(source.count - 1, value));
+            index = Math.max(0, Math.min(run.event - 1, value));
             slider.value = index + 1;
-            position.textContent = `event ${(index + 1).toLocaleString()} of ${source.count.toLocaleString()}`;
+            position.textContent = `event ${(index + 1).toLocaleString()} of ${run.event.toLocaleString()}`;
             const focused = [first, back, next, last].includes(document.activeElement);
             first.disabled = back.disabled = index === 0;
-            next.disabled = last.disabled = index === source.count - 1;
+            next.disabled = last.disabled = index === run.event - 1;
             if (focused && document.activeElement.disabled) slider.focus();
             wanted = index;
             if (!busy) load();
@@ -89,17 +89,17 @@
         first.addEventListener('click', () => show(0));
         back.addEventListener('click', () => show(index - 1));
         next.addEventListener('click', () => show(index + 1));
-        last.addEventListener('click', () => show(source.count - 1));
+        last.addEventListener('click', () => show(run.event - 1));
         slider.addEventListener('input', () => show(Number(slider.value) - 1));
-        show(source.start ?? 0);
+        show(option.start ?? 0);
     };
 
     const recorded = result => ({
         outcome: result.outcome,
-        count: result.event,
+        event: result.event,
         work: result.work,
         definition: result.definition,
-        get: async index => {
+        inspect: async index => {
             const event = result.step[index];
             return { event, before: result.state[event.source], after: result.state[event.target] };
         },

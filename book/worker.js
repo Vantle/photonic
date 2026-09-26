@@ -1,7 +1,11 @@
-import initialize, { lower, explore, compare, Path } from '../toolchain/browser/module/runtime.js';
+import initialize, { lower, explore, shape, Path } from '../toolchain/browser/module/runtime.js';
 import { answer } from './numeral.js';
 
-const ready = initialize();
+let live = false;
+const ready = initialize().then(() => {
+    live = true;
+    self.postMessage({ ready: true });
+}, error => self.postMessage({ failure: { code: 'engine', message: error.message } }));
 let path;
 
 const follow = (next, numeric) => {
@@ -24,19 +28,15 @@ const perform = ({ kind, request }) => {
     const input = JSON.stringify(request);
     if (kind === 'lower') return { reply: JSON.parse(lower(input)) };
     if (kind === 'explore') return { reply: JSON.parse(explore(input)) };
-    if (kind === 'compare') return { reply: JSON.parse(compare(input)) };
+    if (kind === 'shape') return { reply: JSON.parse(shape(input)) };
     if (kind === 'path') return { reply: follow(new Path(input), false) };
     if (kind === 'expression') return { reply: follow(Path.expression(input), true) };
     return { failure: { code: 'request', message: `The engine does not know the request kind ${kind}.` } };
 };
 
 self.onmessage = async ({ data }) => {
-    try {
-        await ready;
-    } catch (error) {
-        self.postMessage({ serial: data.serial, failure: { code: 'engine', message: error.message } });
-        return;
-    }
+    await ready;
+    if (!live) return;
     try {
         self.postMessage({ serial: data.serial, ...perform(data) });
     } catch (error) {

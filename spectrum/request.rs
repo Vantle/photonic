@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::sync::OnceLock;
 
-pub const VERSION: u64 = 1;
+const VERSION: u64 = 1;
 
 #[derive(Clone, Debug, Deserialize, JsonSchema, Serialize)]
 #[serde(tag = "verb", rename_all = "lowercase")]
@@ -48,8 +48,7 @@ pub struct Tool {
 #[derive(Serialize)]
 struct Envelope<'value> {
     version: u64,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    verb: Option<&'value str>,
+    verb: &'value str,
     #[serde(skip_serializing_if = "Option::is_none")]
     answer: Option<&'value Answer>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -139,35 +138,7 @@ impl Answer {
     }
 }
 
-pub fn read(input: &str) -> Result<Request, Failure> {
-    let value: Value = serde_json::from_str(input)
-        .map_err(|error| Failure::new(Code::Request, format!("not JSON: {error}")))?;
-    let Value::Object(mut object) = value else {
-        return Err(Failure::new(Code::Request, "a request is a JSON object"));
-    };
-    match object.remove("version") {
-        Some(Value::Number(number)) if number.as_u64() == Some(VERSION) => {}
-        Some(_) => {
-            return Err(Failure::new(
-                Code::Version,
-                format!("this engine answers version {VERSION}"),
-            ));
-        }
-        None => {
-            return Err(Failure::new(
-                Code::Version,
-                format!("give the request version, {VERSION}"),
-            ));
-        }
-    }
-    let verb = object
-        .remove("verb")
-        .and_then(|verb| verb.as_str().map(str::to_owned))
-        .ok_or_else(|| Failure::new(Code::Request, "name the verb, such as explore"))?;
-    Request::read(&verb, Value::Object(object))
-}
-
-pub fn envelope(verb: Option<&str>, result: &Result<Answer, Failure>) -> String {
+pub fn envelope(verb: &str, result: &Result<Answer, Failure>) -> String {
     let envelope = match result {
         Ok(answer) => Envelope {
             version: VERSION,
@@ -183,13 +154,6 @@ pub fn envelope(verb: Option<&str>, result: &Result<Answer, Failure>) -> String 
         },
     };
     serde_json::to_string(&envelope).unwrap_or_default()
-}
-
-pub fn respond(input: &str, context: &mut Context<'_>) -> String {
-    match read(input) {
-        Ok(request) => envelope(Some(request.verb()), &request.answer(context)),
-        Err(failure) => envelope(None, &Err(failure)),
-    }
 }
 
 fn list<'name>(name: impl Iterator<Item = &'name str>) -> String {

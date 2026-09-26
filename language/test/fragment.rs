@@ -50,7 +50,7 @@ pub(super) fn cached(join: &Join) -> usize {
 fn retraction() {
     let particle = ["A"; 8].join(".");
     let program = Program::new(
-        &crate::lowering::parse(&format!(
+        &frontend::lowering::parse(&format!(
             "{particle},{particle},{particle},B,B,B,C,C,C, [{particle},B,C] Done"
         ))
         .unwrap(),
@@ -103,7 +103,7 @@ fn mutation() {
     for capacity in [0, 2, 32, 128, 65536] {
         for particle in [["A"; 8].join("."), "A.B.C.D.E.F.G.H.([X] Y)".to_owned()] {
             let program = Program::new(
-                &crate::lowering::parse(&format!(
+                &frontend::lowering::parse(&format!(
                     "{particle}.A,{particle}.A,{particle}.A,I,J,I,J,I,J, [{particle},I,J] Done"
                 ))
                 .unwrap(),
@@ -183,7 +183,7 @@ fn mutation() {
 fn eviction() {
     let particle = ["A"; 8].join(".");
     let program = Program::new(
-        &crate::lowering::parse(&format!(
+        &frontend::lowering::parse(&format!(
             "{particle}.A,{particle}.A,B,B,C,C, [{particle},B,C] Done"
         ))
         .unwrap(),
@@ -226,7 +226,7 @@ fn eviction() {
 fn membership() {
     let particle = ["A"; 8].join(".");
     let program = Program::new(
-        &crate::lowering::parse(&format!(
+        &frontend::lowering::parse(&format!(
             "{particle},{particle},B,B,B,B,B,C,C,C,C,C,C, [{particle},B,C] Done"
         ))
         .unwrap(),
@@ -279,7 +279,7 @@ fn saturation() {
         format!("{particle},{particle},{companion},C, [{particle},{pattern},B.E.E,C] Done"),
         format!("{particle}.A.A.A.A,{particle}.A.A.A.A,B,B,C,C, [{particle},B,C] Done"),
     ] {
-        let program = Program::new(&crate::lowering::parse(&source).unwrap());
+        let program = Program::new(&frontend::lowering::parse(&source).unwrap());
         let index = Index::new(Arc::new(State::initial(&program)));
         let input = Input::new(&program.rule[0].input);
         let store = Arc::new(Store::new(65536));
@@ -314,7 +314,7 @@ fn saturation() {
 fn interior() {
     let particle = ["A"; 8].join(".");
     for depth in [1, 2] {
-        let program = Program::new(&crate::lowering::parse(&format!(
+        let program = Program::new(&frontend::lowering::parse(&format!(
             "{particle},{particle},M,M,M,B,B,B,B,C,C,C,C,C,D,D,D,D,D,D, [{particle},M,B,C,D] Done"
         )).unwrap());
         let mut state = State::initial(&program);
@@ -361,7 +361,7 @@ fn interior() {
 fn boundary() {
     for particle in [["A"; 8].join("."), "A.B.C.D.E.F.G.H.([X] Y)".to_owned()] {
         let program = Program::new(
-            &crate::lowering::parse(&format!(
+            &frontend::lowering::parse(&format!(
                 "{particle},{particle},I,I,J,J,K,K, [{particle},I,J,K] Done"
             ))
             .unwrap(),
@@ -408,7 +408,7 @@ fn transition() {
         let particle = "A.B.C.D.E.F.G.H.([X] Y)";
         let noise = ["Noise"; 40].join(",");
         let program = Program::new(
-            &crate::lowering::parse(&format!(
+            &frontend::lowering::parse(&format!(
                 "{particle},{particle},I,I,I,J,J,J,J,K,K,K,K,K,{noise}, [{particle},I,J,K] Done"
             ))
             .unwrap(),

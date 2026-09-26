@@ -1,5 +1,4 @@
-use code::particle::Particle;
-use photonic::source::{Definition, Program, Value};
+use frontend::source::{Definition, Program, Value};
 use serde::Serialize;
 use std::collections::{BTreeMap, BTreeSet};
 use symmetry::analysis::analyze;
@@ -67,12 +66,9 @@ fn translate(program: &Program, vocabulary: &mut Vocabulary) -> Option<Vec<State
         statement.push(Statement::Rule(lift::rule(entry, vocabulary).ok()?));
     }
     for entry in &program.initial {
-        let value = entry
-            .iter()
-            .map(|value| lift::value(value, vocabulary))
-            .collect::<Result<Vec<_>, _>>()
-            .ok()?;
-        statement.push(Statement::Coherence(Particle::from(value)));
+        statement.push(Statement::Coherence(
+            lift::particle(entry, vocabulary).ok()?,
+        ));
     }
     Some(statement)
 }

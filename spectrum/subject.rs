@@ -1,5 +1,5 @@
 use crate::failure::{Code, Failure};
-use photonic::source::Program;
+use frontend::source::Program;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -28,16 +28,19 @@ pub trait Reader {
 }
 
 pub(crate) fn lower(file: &str, text: &str, code: Code) -> Result<Program, Failure> {
-    if file.ends_with(".json") {
-        return serde_json::from_str(text).map_err(|error| {
+    if std::path::Path::new(file)
+        .extension()
+        .is_some_and(|extension| extension.eq_ignore_ascii_case("json"))
+    {
+        return Program::read(text).map_err(|error| {
             Failure::new(code, format!("{file}: not an assembled program: {error}"))
         });
     }
-    photonic::lowering::parse(text).map_err(|error| Failure::located(code, &error, file, text))
+    frontend::lowering::parse(text).map_err(|error| Failure::located(code, &error, file, text))
 }
 
 impl Subject {
-    pub(crate) fn assemble(&self, reader: &dyn Reader) -> Result<Program, Failure> {
+    pub fn assemble(&self, reader: &dyn Reader) -> Result<Program, Failure> {
         if self.file.is_empty() && self.source.is_none() {
             return Err(Failure::new(
                 Code::Request,

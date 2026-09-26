@@ -8,7 +8,6 @@ rust_library(
     crate_name = "arithmetic",
     crate_root = "library.rs",
     lint_config = "//:lint",
-    visibility = ["//program/binary:__pkg__"],
     deps = ["@crate//:thiserror"],
 )
 
@@ -34,6 +33,7 @@ rust_binary(
     lint_config = "//:lint",
     deps = [
         ":library",
+        "//frontend",
         "//language:photonic",
         "@crate//:clap",
         "@crate//:serde_json",
@@ -50,7 +50,6 @@ rust_test(
         ":conformance",
     ],
     compile_data = [
-        "//library/stream:source",
         "//program/circuit:fixture",
         "//program/ternary:fixture",
     ],
@@ -60,26 +59,12 @@ rust_test(
     lint_config = "//:lint",
     deps = [
         ":library",
+        "//frontend",
         "//language:photonic",
         "@crate//:clap",
         "@crate//:serde_json",
         "@crate//:thiserror",
         "@rules_rust//rust/runfiles",
-    ],
-)
-
-rust_binary(
-    name = "benchmark",
-    srcs = [
-        "benchmark.rs",
-        "search.rs",
-    ],
-    crate_root = "benchmark.rs",
-    lint_config = "//:lint",
-    deps = [
-        ":library",
-        "//language:photonic",
-        "@crate//:clap",
     ],
 )
 
@@ -93,7 +78,6 @@ filegroup(
         "gate.rs",
         "library.rs",
         "numeral.rs",
-        "power.rs",
         ":circuit",
     ],
 )
@@ -130,7 +114,6 @@ filegroup(
     name = "conformance",
     srcs = [
         "test/boundary.rs",
-        "test/stream.rs",
         "test/suite.rs",
         "test/ternary.rs",
     ],

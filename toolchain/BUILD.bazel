@@ -31,7 +31,6 @@ filegroup(
 node(
     name = "node",
     visibility = [
-        "//benchmark:__pkg__",
         "//book:__pkg__",
         "//program/ternary:__pkg__",
         "//toolchain/browser:__pkg__",
@@ -44,7 +43,6 @@ rust_binary(
     crate_root = "execute.rs",
     lint_config = "//:lint",
     visibility = [
-        "//benchmark:__pkg__",
         "//book:__pkg__",
         "//program/ternary:__pkg__",
         "//toolchain/browser:__pkg__",
@@ -61,6 +59,7 @@ rust_library(
     crate_root = "relay.rs",
     lint_config = "//:lint",
     visibility = ["//photonic:__pkg__"],
+    deps = ["@crate//:thiserror"],
 )
 
 rust_test(
@@ -130,10 +129,25 @@ rust_binary(
 
 rust_binary(
     name = "link",
-    srcs = ["link.rs"],
+    srcs = [
+        "link.rs",
+        "markup.rs",
+    ],
     crate_root = "link.rs",
     lint_config = "//:lint",
     visibility = ["//:__pkg__"],
+    deps = [":relay"],
+)
+
+rust_test(
+    name = "markup",
+    size = "small",
+    srcs = [
+        "markup.rs",
+        "test/markup.rs",
+    ],
+    crate_root = "markup.rs",
+    lint_config = "//:lint",
 )
 
 rust_binary(
@@ -142,7 +156,10 @@ rust_binary(
     crate_root = "install.rs",
     lint_config = "//:lint",
     visibility = ["//:__pkg__"],
-    deps = ["@rules_rust//rust/runfiles"],
+    deps = [
+        ":relay",
+        "@rules_rust//rust/runfiles",
+    ],
 )
 
 rust_test(
@@ -152,10 +169,12 @@ rust_test(
     crate_root = "installation.rs",
     data = [
         ":install",
+        ":probe",
         "//:release",
     ],
     env = {
         "INSTALL": "$(rlocationpath :install)",
+        "PROBE": "$(rlocationpath :probe)",
         "RELEASE": "$(rlocationpath //:release)",
     },
     lint_config = "//:lint",

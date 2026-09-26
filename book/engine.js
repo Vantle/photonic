@@ -1,7 +1,7 @@
 (() => {
     'use strict';
     const book = globalThis.book ??= {};
-    const version = 2;
+    const version = 3;
     const stale = 'This page and its engine come from different versions of the book. Reload the page.';
     const served = /^https?:$/.test(location.protocol);
     const listener = new Set();
@@ -15,10 +15,17 @@
 
     const open = () => {
         let worker;
+        let ready = false;
         let flight;
         let serial = 0;
         let watchdog;
         const pending = new Map();
+        const arm = () => {
+            const entry = pending.get(flight);
+            if (!ready || !entry) return;
+            const number = flight;
+            watchdog = setTimeout(() => halt(number, `Stopped after ${entry.timeout / 1000} seconds without a result.`), entry.timeout);
+        };
         const dispatch = () => {
             if (flight !== undefined) return;
             const [number] = pending.keys();
@@ -27,7 +34,7 @@
             flight = number;
             worker ??= start();
             worker.postMessage({ serial: number, kind: entry.kind, request: entry.request });
-            watchdog = setTimeout(() => halt(number, `Stopped after ${entry.timeout / 1000} seconds without a result.`), entry.timeout);
+            arm();
         };
         const land = () => {
             clearTimeout(watchdog);
@@ -65,13 +72,20 @@
         };
         const start = () => {
             const current = new Worker('book/worker.js', { type: 'module' });
+            ready = false;
             current.onmessage = ({ data }) => {
-                if (current !== worker || data.serial !== flight) return;
+                if (current !== worker) return;
                 if (data.failure?.code === 'engine') {
                     abandon(`The WebAssembly engine did not start: ${data.failure.message}`);
-                    announce('recorded');
+                    announce('failed');
                     return;
                 }
+                if (data.ready) {
+                    ready = true;
+                    arm();
+                    return;
+                }
+                if (data.serial !== flight) return;
                 if (data.failure?.code === 'crash') {
                     halt(flight, `The engine stopped with ${data.failure.message}, usually because the program ran out of memory. The next run starts a fresh engine.`);
                     return;
@@ -91,8 +105,8 @@
             current.onerror = event => {
                 event.preventDefault();
                 if (current !== worker) return;
-                abandon('The WebAssembly engine did not load. Serve the book with bazel run -c opt //toolchain/browser:serve.');
-                announce('recorded');
+                abandon('The WebAssembly engine did not load. Reload the page.');
+                announce('failed');
             };
             return current;
         };
@@ -117,26 +131,34 @@
     let shared;
     const send = (kind, body, option) => (shared ??= open()).send(kind, body, option);
 
-    const request = (setting, source, target) => ({
-        source,
-        library: setting.library.map(name => {
+    const request = program => ({
+        source: program.source,
+        library: program.library.map(name => {
             const text = book.record?.library?.[name];
             if (text === undefined) throw new Error(`${name}.particle is not recorded. Regenerate the records with bazel run -c opt //book:record.`);
             return { name: `${name}.particle`, source: text };
         }),
-        target,
-        preserve: setting.preserve,
+        target: program.target,
+        preserve: program.preserve,
     });
 
-    const explore = async (setting, source, target, signal) => send('explore', request(setting, source, target), { signal });
+    const explore = async (program, signal) => send('explore', request(program), { signal });
+
+    const path = () => {
+        const channel = open();
+        return async (kind, body, option) => {
+            const progress = await channel.send(kind, body, option);
+            return { ...progress, inspect: index => channel.send('inspect', { index }) };
+        };
+    };
 
     if (served) {
         const probe = () => send('lower', { source: 'A' }, { timeout: 30000 }).catch(() => {
-            if (state === 'unknown') announce('recorded');
+            if (state === 'unknown') announce('failed');
         });
         if ('requestIdleCallback' in globalThis) requestIdleCallback(probe, { timeout: 3000 });
         else setTimeout(probe, 1200);
     }
 
-    book.engine = { open, send, request, explore, watch, get state() { return state; } };
+    book.engine = { send, request, explore, path, watch, get state() { return state; } };
 })();

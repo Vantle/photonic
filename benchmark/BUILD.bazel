@@ -1,35 +1,10 @@
 load("@rules_rs//rs:rust_binary.bzl", "rust_binary")
 load("@rules_rs//rs:rust_test.bzl", "rust_test")
-load("//toolchain:defs.bzl", "hermetic_binary")
 
 rust_binary(
     name = "scope",
     srcs = ["scope.rs"],
     crate_root = "scope.rs",
-    lint_config = "//:lint",
-    deps = [
-        "//language:measurement",
-        "@crate//:clap",
-        "@crate//:serde_json",
-    ],
-)
-
-rust_binary(
-    name = "fingerprint",
-    srcs = ["fingerprint.rs"],
-    crate_root = "fingerprint.rs",
-    lint_config = "//:lint",
-    deps = [
-        "//language:measurement",
-        "@crate//:clap",
-        "@crate//:serde_json",
-    ],
-)
-
-rust_binary(
-    name = "layout",
-    srcs = ["layout.rs"],
-    crate_root = "layout.rs",
     lint_config = "//:lint",
     deps = [
         "//language:measurement",
@@ -67,6 +42,7 @@ rust_binary(
     rustc_env = {"FORMULA": "$(execpath //library/expression:evaluate)"},
     deps = [
         "//arithmetic:infix",
+        "//frontend",
         "//language:photonic",
         "@crate//:clap",
         "@crate//:serde",
@@ -87,6 +63,7 @@ rust_binary(
     rustc_env = {"FORMULA": "$(execpath //library/expression:evaluate)"},
     deps = [
         "//arithmetic:infix",
+        "//frontend",
         "//language:photonic",
         "@crate//:clap",
         "@crate//:serde",
@@ -108,6 +85,7 @@ rust_binary(
     rustc_env = {"FORMULA": "$(execpath //library/expression:evaluate)"},
     deps = [
         "//arithmetic:infix",
+        "//frontend",
         "//language:measurement",
         "@crate//:clap",
         "@crate//:serde",
@@ -123,6 +101,7 @@ rust_binary(
     crate_root = "inspection.rs",
     lint_config = "//:lint",
     deps = [
+        "//frontend",
         "//language:photonic",
         "@crate//:clap",
         "@crate//:serde_json",
@@ -138,6 +117,7 @@ rust_binary(
     crate_root = "candidate.rs",
     lint_config = "//:lint",
     deps = [
+        "//frontend",
         "//language:photonic",
         "@crate//:clap",
         "@crate//:serde",
@@ -154,6 +134,7 @@ rust_binary(
     crate_root = "domain.rs",
     lint_config = "//:lint",
     deps = [
+        "//frontend",
         "//language:photonic",
         "@crate//:clap",
         "@crate//:serde",
@@ -170,38 +151,7 @@ rust_binary(
     crate_root = "prefix.rs",
     lint_config = "//:lint",
     deps = [
-        "//language:photonic",
-        "@crate//:clap",
-        "@crate//:serde",
-        "@crate//:serde_json",
-    ],
-)
-
-rust_binary(
-    name = "factor",
-    srcs = [
-        "evaluation.rs",
-        "factor.rs",
-    ],
-    crate_root = "factor.rs",
-    lint_config = "//:lint",
-    deps = [
-        "//language:photonic",
-        "@crate//:clap",
-        "@crate//:serde",
-        "@crate//:serde_json",
-    ],
-)
-
-rust_binary(
-    name = "fragment",
-    srcs = [
-        "evaluation.rs",
-        "fragment.rs",
-    ],
-    crate_root = "fragment.rs",
-    lint_config = "//:lint",
-    deps = [
+        "//frontend",
         "//language:photonic",
         "@crate//:clap",
         "@crate//:serde",
@@ -218,66 +168,7 @@ rust_binary(
     crate_root = "retention.rs",
     lint_config = "//:lint",
     deps = [
-        "//language:photonic",
-        "@crate//:clap",
-        "@crate//:serde",
-        "@crate//:serde_json",
-    ],
-)
-
-rust_binary(
-    name = "reachability",
-    srcs = ["reachability.rs"],
-    crate_root = "reachability.rs",
-    lint_config = "//:lint",
-    deps = [
-        "//language:measurement",
-        "@crate//:serde_json",
-    ],
-)
-
-rust_binary(
-    name = "joining",
-    srcs = ["joining.rs"],
-    crate_root = "joining.rs",
-    lint_config = "//:lint",
-    deps = [
-        "//language:measurement",
-        "@crate//:serde_json",
-    ],
-)
-
-rust_binary(
-    name = "sharing",
-    srcs = ["sharing.rs"],
-    crate_root = "sharing.rs",
-    lint_config = "//:lint",
-    deps = [
-        "//language:measurement",
-        "@crate//:serde_json",
-    ],
-)
-
-rust_binary(
-    name = "posting",
-    srcs = ["posting.rs"],
-    crate_root = "posting.rs",
-    lint_config = "//:lint",
-    deps = [
-        "//language:measurement",
-        "@crate//:serde_json",
-    ],
-)
-
-rust_binary(
-    name = "replay",
-    srcs = [
-        "evaluation.rs",
-        "replay.rs",
-    ],
-    crate_root = "replay.rs",
-    lint_config = "//:lint",
-    deps = [
+        "//frontend",
         "//language:photonic",
         "@crate//:clap",
         "@crate//:serde",
@@ -294,30 +185,12 @@ rust_binary(
     crate_root = "storage.rs",
     lint_config = "//:lint",
     deps = [
+        "//frontend",
         "//language:photonic",
         "@crate//:clap",
         "@crate//:serde",
         "@crate//:serde_json",
     ],
-)
-
-hermetic_binary(
-    name = "browser",
-    argument = [
-        "$(rlocationpath //toolchain:node)",
-        "$(rlocationpath browser.mjs)",
-        "$(rlocationpath //toolchain/browser:webassembly)",
-        "$(rlocationpath //toolchain/browser:javascript)",
-        "$(rlocationpath //book:numeral)",
-    ],
-    data = [
-        "browser.mjs",
-        "//book:numeral",
-        "//toolchain:node",
-        "//toolchain/browser:javascript",
-        "//toolchain/browser:webassembly",
-    ],
-    entrypoint = "//toolchain:execute",
 )
 
 rust_binary(
@@ -330,25 +203,8 @@ rust_binary(
     crate_root = "runtime.rs",
     lint_config = "//:lint",
     deps = [
+        "//frontend",
         "//language:photonic",
-        "@crate//:clap",
-        "@crate//:serde",
-        "@crate//:serde_json",
-    ],
-)
-
-rust_binary(
-    name = "proof",
-    srcs = [
-        "directory.rs",
-        "runtime.rs",
-    ],
-    compile_data = ["//language:fixture"],
-    crate_features = ["measurement"],
-    crate_root = "runtime.rs",
-    lint_config = "//:lint",
-    deps = [
-        "//language:measurement",
         "@crate//:clap",
         "@crate//:serde",
         "@crate//:serde_json",
@@ -367,46 +223,10 @@ rust_binary(
     ],
 )
 
-rust_binary(
-    name = "trace",
-    srcs = [
-        "directory.rs",
-        "trace.rs",
-    ],
-    crate_root = "trace.rs",
-    lint_config = "//:lint",
-    deps = [
-        "//language:photonic",
-        "@crate//:clap",
-        "@crate//:serde",
-        "@crate//:serde_json",
-    ],
-)
-
 filegroup(
     name = "build",
     srcs = ["BUILD.bazel"],
     visibility = ["//:__pkg__"],
-)
-
-rust_binary(
-    name = "matching",
-    srcs = [
-        "directory.rs",
-        "matching.rs",
-    ],
-    crate_root = "matching.rs",
-    data = [
-        "case/coherence.wave",
-        "case/token.wave",
-    ],
-    lint_config = "//:lint",
-    deps = [
-        "//language:photonic",
-        "@crate//:clap",
-        "@crate//:serde",
-        "@crate//:serde_json",
-    ],
 )
 
 rust_binary(
@@ -421,130 +241,6 @@ rust_binary(
     ],
 )
 
-rust_binary(
-    name = "partition",
-    srcs = ["partition.rs"],
-    crate_root = "partition.rs",
-    lint_config = "//:lint",
-    deps = [
-        "//language:measurement",
-        "@crate//:clap",
-        "@crate//:serde_json",
-    ],
-)
-
-rust_binary(
-    name = "frontier",
-    srcs = ["frontier.rs"],
-    crate_root = "frontier.rs",
-    lint_config = "//:lint",
-    deps = [
-        "//language:measurement",
-        "@crate//:clap",
-        "@crate//:serde_json",
-    ],
-)
-
-rust_binary(
-    name = "preparation",
-    srcs = ["preparation.rs"],
-    crate_root = "preparation.rs",
-    lint_config = "//:lint",
-    deps = [
-        "//language:measurement",
-        "@crate//:clap",
-        "@crate//:serde_json",
-    ],
-)
-
-rust_binary(
-    name = "context",
-    srcs = ["context.rs"],
-    crate_root = "context.rs",
-    lint_config = "//:lint",
-    deps = [
-        "//language:measurement",
-        "@crate//:clap",
-        "@crate//:serde_json",
-    ],
-)
-
-rust_binary(
-    name = "residual",
-    srcs = ["residual.rs"],
-    crate_root = "residual.rs",
-    lint_config = "//:lint",
-    deps = [
-        "//language:measurement",
-        "@crate//:clap",
-        "@crate//:serde_json",
-    ],
-)
-
-rust_binary(
-    name = "exhaustive",
-    srcs = ["exhaustive.rs"],
-    crate_root = "exhaustive.rs",
-    lint_config = "//:lint",
-    deps = [
-        "//language:measurement",
-        "@crate//:clap",
-        "@crate//:serde_json",
-    ],
-)
-
-rust_binary(
-    name = "traversal",
-    srcs = [
-        "evaluation.rs",
-        "prefix.rs",
-    ],
-    crate_features = ["measurement"],
-    crate_root = "prefix.rs",
-    lint_config = "//:lint",
-    deps = [
-        "//language:measurement",
-        "@crate//:clap",
-        "@crate//:serde",
-        "@crate//:serde_json",
-    ],
-)
-
-rust_binary(
-    name = "segment",
-    srcs = ["segment.rs"],
-    crate_root = "segment.rs",
-    lint_config = "//:lint",
-    deps = [
-        "//language:measurement",
-        "@crate//:serde_json",
-    ],
-)
-
-rust_binary(
-    name = "gate",
-    srcs = ["gate.rs"],
-    crate_root = "gate.rs",
-    lint_config = "//:lint",
-    deps = [
-        "//language:measurement",
-        "@crate//:serde_json",
-    ],
-)
-
-rust_binary(
-    name = "differential",
-    srcs = ["differential.rs"],
-    crate_root = "differential.rs",
-    lint_config = "//:lint",
-    deps = [
-        "//language:photonic",
-        "@crate//:serde",
-        "@crate//:serde_json",
-        "@reference//language:reference",
-    ],
-)
-
 rust_test(
     name = "differential.test",
     size = "medium",
@@ -553,54 +249,11 @@ rust_test(
     crate_root = "differential.rs",
     lint_config = "//:lint",
     deps = [
+        "//frontend",
         "//language:photonic",
         "@crate//:serde",
         "@crate//:serde_json",
         "@reference//language:reference",
-    ],
-)
-
-rust_binary(
-    name = "composition",
-    srcs = ["composition.rs"],
-    crate_root = "composition.rs",
-    lint_config = "//:lint",
-    deps = [
-        "//language:measurement",
-        "@crate//:serde_json",
-    ],
-)
-
-rust_binary(
-    name = "bulk",
-    srcs = ["bulk.rs"],
-    crate_root = "bulk.rs",
-    lint_config = "//:lint",
-    deps = [
-        "//language:measurement",
-        "@crate//:serde_json",
-    ],
-)
-
-rust_binary(
-    name = "transcript",
-    srcs = ["transcript.rs"],
-    crate_root = "transcript.rs",
-    lint_config = "//:lint",
-    deps = [
-        "//language:measurement",
-        "@crate//:serde_json",
-    ],
-)
-
-rust_binary(
-    name = "search",
-    srcs = ["search.rs"],
-    crate_root = "search.rs",
-    lint_config = "//:lint",
-    deps = [
-        "//language:measurement",
-        "@crate//:serde_json",
     ],
 )
 
@@ -620,31 +273,8 @@ rust_binary(
     rustc_env = {"FORMULA": "$(execpath //library/expression:evaluate)"},
     deps = [
         "//arithmetic:infix",
+        "//frontend",
         "//language:photonic",
-        "@crate//:clap",
-        "@crate//:serde",
-        "@crate//:serde_json",
-    ],
-)
-
-rust_binary(
-    name = "reporting",
-    srcs = [
-        "directory.rs",
-        "export.rs",
-        "formula.rs",
-        "lifecycle.rs",
-        "lifetime.rs",
-        "meter.rs",
-    ],
-    compile_data = ["//library/expression:evaluate"],
-    crate_features = ["measurement"],
-    crate_root = "lifetime.rs",
-    lint_config = "//:lint",
-    rustc_env = {"FORMULA": "$(execpath //library/expression:evaluate)"},
-    deps = [
-        "//arithmetic:infix",
-        "//language:measurement",
         "@crate//:clap",
         "@crate//:serde",
         "@crate//:serde_json",
@@ -669,6 +299,7 @@ rust_binary(
     rustc_env = {"FORMULA": "$(execpath //library/expression:evaluate)"},
     deps = [
         "//arithmetic:infix",
+        "//frontend",
         "//language:photonic",
         "@crate//:clap",
         "@crate//:serde",

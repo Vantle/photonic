@@ -3,9 +3,9 @@ use crate::runtime::{Limit, Runtime};
 #[test]
 fn conjunction() {
     let program =
-        crate::lowering::parse(include_str!("../../program/language/conjunction.wave")).unwrap();
+        frontend::lowering::parse(include_str!("../../program/language/conjunction.wave")).unwrap();
     let mut runtime = Runtime::new(&program);
-    runtime.run(12000, Some(Limit::default()));
+    runtime.run(12000, Limit::default());
     let result = runtime.snapshot();
     assert!(result.closed);
     assert!(result.state.iter().any(|state| {
@@ -13,7 +13,7 @@ fn conjunction() {
             && state.world[0]
                 .particle
                 .iter()
-                .any(|token| token.label.as_ref() == "False")
+                .any(|token| crate::test::atom(token) == Some("False"))
     }));
 }
 
@@ -42,7 +42,10 @@ fn normalize(
                     },
                     |value| value as usize,
                 ),
-                value: Symbol::Atom(symbol[token["label"].as_str().unwrap()]),
+                value: token["rule"].as_u64().map_or_else(
+                    || Symbol::Atom(symbol[token["atom"].as_str().unwrap()]),
+                    |rule| Symbol::Rule(rule as usize),
+                ),
                 capture: optional(&token["capture"]),
             })
             .collect()
@@ -88,15 +91,15 @@ fn reference() {
         let program = serde_json::from_value(case["program"].clone()).unwrap();
         let limit = &case["limit"];
         let limit = Limit {
-            record: Limit::default().record,
-            state: limit["state"].as_u64().unwrap() as usize,
-            world: limit["world"].as_u64().unwrap() as usize,
-            cell: limit["cell"].as_u64().unwrap() as usize
+            record: 1_000_000,
+            configuration: limit["state"].as_u64().unwrap() as usize,
+            coherence: limit["world"].as_u64().unwrap() as usize,
+            occurrence: limit["cell"].as_u64().unwrap() as usize
                 + if case["closed"] == true { 64 } else { 0 },
-            frame: limit["frame"].as_u64().unwrap() as usize,
+            scope: limit["frame"].as_u64().unwrap() as usize,
         };
         let mut runtime = Runtime::new(&program);
-        runtime.run(12000, Some(limit));
+        runtime.run(12000, limit);
         let actual = serde_json::to_value(runtime.snapshot()).unwrap();
         let name = case["name"].as_str().unwrap();
         if !case["closed"].as_bool().unwrap() {
@@ -116,16 +119,24 @@ fn reference() {
             .iter()
             .chain(actual["state"].as_array().unwrap())
         {
-            for world in node["world"].as_array().unwrap() {
-                for token in world["particle"].as_array().unwrap() {
-                    symbol.insert(token["label"].as_str().unwrap().to_owned());
-                }
-            }
+            let world = node["world"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .flat_map(|world| world["particle"].as_array().unwrap());
+            let held = node["frame"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .flat_map(|frame| frame["held"].as_array().unwrap());
+            symbol.extend(
+                world
+                    .chain(held)
+                    .filter_map(|token| token["atom"].as_str())
+                    .map(str::to_owned),
+            );
             for frame in node["frame"].as_array().unwrap() {
                 scope.insert(frame["scope"].as_str().unwrap().to_owned());
-                for token in frame["held"].as_array().unwrap() {
-                    symbol.insert(token["label"].as_str().unwrap().to_owned());
-                }
             }
         }
         let symbol = symbol
@@ -173,7 +184,16 @@ fn reference() {
                     (
                         state[event["source"].as_u64().unwrap() as usize].clone(),
                         state[event["target"].as_u64().unwrap() as usize].clone(),
-                        event["rule"].as_str().unwrap().to_owned(),
+                        event["rule"].as_str().map_or_else(
+                            || {
+                                value["definition"][event["rule"].as_u64().unwrap() as usize]
+                                    ["name"]
+                                    .as_str()
+                                    .unwrap()
+                                    .to_owned()
+                            },
+                            str::to_owned,
+                        ),
                         event["status"].as_str().unwrap().to_owned(),
                     )
                 })
@@ -189,20 +209,20 @@ fn reference() {
 
 #[test]
 fn resume() {
-    let program = crate::lowering::parse("Seed.A, [Seed] ().([A] B)").unwrap();
+    let program = frontend::lowering::parse("Seed.A, [Seed] ().([A] B)").unwrap();
     let mut complete = Runtime::new(&program);
-    complete.run(12000, None);
+    complete.run(12000, Limit::default());
     let mut paused = Runtime::new(&program);
     paused.run(
         12000,
-        Some(Limit {
-            state: 1,
+        Limit {
+            configuration: 1,
             ..Limit::default()
-        }),
+        },
     );
     assert!(!paused.closed());
     assert!(paused.snapshot().deferred > 0);
-    paused.run(12000, Some(Limit::default()));
+    paused.run(12000, Limit::default());
     assert!(paused.closed());
     let expected = serde_json::to_value(complete.snapshot()).unwrap();
     let actual = serde_json::to_value(paused.snapshot()).unwrap();
@@ -422,10 +442,10 @@ fn permutation() {
 
 #[test]
 fn determinism() {
-    let program = crate::lowering::parse("A.A, [A] B").unwrap();
+    let program = frontend::lowering::parse("A.A, [A] B").unwrap();
     let execute = || {
         let mut runtime = Runtime::new(&program);
-        runtime.run(12_000, None);
+        runtime.run(12_000, Limit::default());
         assert!(runtime.closed());
         serde_json::to_value(runtime.snapshot()).unwrap()
     };
@@ -438,9 +458,9 @@ fn determinism() {
 #[test]
 fn identity() {
     for source in ["X, [X] Y, [W] V, [[W] V] U", "[A] B, [A] B, [[A] B] C"] {
-        let program = crate::lowering::parse(source).unwrap();
+        let program = frontend::lowering::parse(source).unwrap();
         let mut runtime = Runtime::new(&program);
-        runtime.run(12_000, None);
+        runtime.run(12_000, Limit::default());
         assert!(runtime.closed(), "{source}");
         let snapshot = runtime.snapshot();
         let mut seen = std::collections::HashSet::new();
@@ -465,9 +485,9 @@ fn observation() {
         "A, [A] (B, C), [B,C] D",
         "A, [A] (B, [B] C)",
     ] {
-        let program = crate::lowering::parse(source).unwrap();
+        let program = frontend::lowering::parse(source).unwrap();
         let mut complete = Runtime::new(&program);
-        complete.run(100_000, None);
+        complete.run(100_000, Limit::default());
         assert!(complete.closed(), "{source}");
         let expected = serde_json::to_value(complete.snapshot()).unwrap();
         let mut observed = Runtime::new(&program);
@@ -476,7 +496,7 @@ fn observation() {
             if observed.closed() {
                 break;
             }
-            observed.run(1, None);
+            observed.run(1, Limit::default());
         }
         assert!(observed.closed(), "{source}");
         let actual = serde_json::to_value(observed.snapshot()).unwrap();

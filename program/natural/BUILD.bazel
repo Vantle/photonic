@@ -10,7 +10,6 @@ filegroup(
     srcs = [
         "action.wave",
         "addition.wave",
-        "archive.particle",
         "composition.wave",
         "membership.wave",
         "multiplication.wave",
@@ -78,44 +77,23 @@ photonic_binary(
 photonic_test(
     name = "successor.check",
     srcs = ["successor.wave"],
-    preserve = True,
     target = ["Unit.Unit.Unit"],
 )
 
 photonic_test(
     name = "membership.check",
     srcs = ["membership.wave"],
-    preserve = True,
     target = ["Natural"],
 )
 
 photonic_test(
     name = "addition.check",
     srcs = ["addition.wave"],
-    preserve = True,
     target = ["Unit.Unit.Unit.Unit.Unit"],
 )
 
 photonic_test(
     name = "sum.check",
     srcs = ["sum.wave"],
-    preserve = True,
     target = ["Unit.Unit.Unit.Unit.Unit.Unit.Unit.Unit.Unit.Unit"],
-)
-
-photonic_binary(
-    name = "preparation",
-    srcs = ["preparation.wave"],
-)
-
-photonic_test(
-    name = "preparation.check",
-    srcs = ["preparation.wave"],
-    coherence = 8,
-    configuration = 3000,
-    occurrence = 24,
-    preserve = True,
-    scope = 30,
-    target = ["Unit.Unit"],
-    work = 100000,
 )

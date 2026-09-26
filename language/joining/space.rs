@@ -41,7 +41,7 @@ impl Space {
         )
     }
 
-    #[cfg(any(test, feature = "measurement"))]
+    #[cfg(test)]
     pub fn new(
         query: Query,
         index: &Index,

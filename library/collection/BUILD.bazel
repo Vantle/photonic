@@ -57,6 +57,7 @@ photonic_library(
 photonic_library(
     name = "unpack",
     srcs = ["unpack.particle"],
+    visibility = ["//program/composition:__pkg__"],
     deps = ["//library/function:invoke"],
 )
 

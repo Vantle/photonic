@@ -15,7 +15,7 @@ pub struct Attention {
 }
 
 #[derive(Clone, Debug)]
-pub struct Trace {
+pub(crate) struct Trace {
     input: Array2<f32>,
     mixed: Array2<f32>,
     weight: Vec<Array2<f32>>,
@@ -32,7 +32,7 @@ fn softmax(score: &mut Array2<f32>) {
 }
 
 impl Attention {
-    pub fn new(layout: &mut Layout, width: usize, head: usize) -> Self {
+    pub(crate) fn new(layout: &mut Layout, width: usize, head: usize) -> Self {
         Self {
             project: Linear::new(layout, width, 3 * width),
             output: Linear::new(layout, width, width),
@@ -41,7 +41,7 @@ impl Attention {
         }
     }
 
-    pub fn initialize(
+    pub(crate) fn initialize(
         &self,
         parameter: &mut [f32],
         generator: &mut Generator,
@@ -61,7 +61,7 @@ impl Attention {
         start..start + self.dimension()
     }
 
-    pub fn forward(
+    pub(crate) fn forward(
         &self,
         parameter: &[f32],
         input: Array2<f32>,
@@ -96,7 +96,7 @@ impl Attention {
         )
     }
 
-    pub fn backward(
+    pub(crate) fn backward(
         &self,
         parameter: &[f32],
         gradient: &mut [f32],

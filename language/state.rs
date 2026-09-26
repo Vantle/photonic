@@ -134,7 +134,12 @@ impl State {
         Self::configuration(&program.initial, &program.scope[0].rule)
     }
 
-    pub(crate) fn configuration(initial: &[Vec<Symbol>], rule: &[usize]) -> Self {
+    pub(crate) fn target(program: &Program, source: &frontend::source::Program) -> Self {
+        let target = program.target(source);
+        Self::configuration(&target.initial, &target.rule)
+    }
+
+    fn configuration(initial: &[Vec<Symbol>], rule: &[usize]) -> Self {
         let mut id = 0;
         let state = Self {
             world: initial

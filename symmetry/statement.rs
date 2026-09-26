@@ -28,11 +28,11 @@ impl Statement {
         atom.into_iter().collect()
     }
 
-    pub fn size(&self) -> usize {
+    pub(crate) fn size(&self) -> usize {
         self.measure(&mut BTreeSet::new())
     }
 
-    pub fn rename(&self, map: impl Fn(Atom) -> Atom) -> Self {
+    pub(crate) fn rename(&self, map: impl Fn(Atom) -> Atom) -> Self {
         match self {
             Self::Rule(entry) => Self::Rule(rename::rule(entry, &map)),
             Self::Coherence(entry) => Self::Coherence(rename::particle(entry, &map)),
@@ -56,11 +56,11 @@ pub fn structure(statement: &[Statement]) -> Structure {
         })
         .collect::<Vec<_>>();
     Structure {
-        part: vec![Part {
-            role: 0,
+        program: Part {
             program: Program::from(rule),
             configuration: Configuration::from(coherence),
-        }],
+        },
+        target: None,
         pin: Vec::new(),
     }
 }

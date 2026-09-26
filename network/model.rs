@@ -10,8 +10,16 @@ use crate::pack::Pack;
 use ndarray::Array2;
 use random::Generator;
 use std::ops::Range;
+use thiserror::Error;
 
 const DEVIATION: f32 = 0.02;
+
+#[derive(Debug, Error, PartialEq)]
+#[error("the model holds {expected} parameters but {found} were given")]
+pub struct Mismatch {
+    pub expected: usize,
+    pub found: usize,
+}
 
 #[derive(Clone, Debug)]
 pub struct Model {
@@ -21,7 +29,16 @@ pub struct Model {
     block: Vec<Block>,
     norm: Norm,
     head: Head,
-    pub parameter: Vec<f32>,
+    parameter: Vec<f32>,
+}
+
+fn sum(part: &[usize]) -> Option<usize> {
+    part.iter()
+        .try_fold(0usize, |total, &value| total.checked_add(value))
+}
+
+fn linear(input: usize, output: usize) -> Option<usize> {
+    input.checked_mul(output)?.checked_add(output)
 }
 
 impl Model {
@@ -64,11 +81,41 @@ impl Model {
         }
     }
 
-    pub fn length(configuration: &Configuration) -> usize {
-        Self::structure(configuration).0.total()
+    pub(crate) fn length(configuration: &Configuration) -> Option<usize> {
+        let width = configuration.width;
+        let norm = width.checked_mul(2)?;
+        let pointer = width.checked_mul(configuration.binary.checked_mul(configuration.key)?)?;
+        let embedding = configuration
+            .field
+            .iter()
+            .try_fold(0usize, |total, &cardinality| {
+                total.checked_add(cardinality.checked_mul(width)?)
+            })?;
+        let block = sum(&[
+            norm,
+            linear(width, width.checked_mul(3)?)?,
+            linear(width, width)?,
+            norm,
+            linear(width, configuration.hidden)?,
+            linear(configuration.hidden, width)?,
+        ])?;
+        let head = sum(&[
+            linear(width, width)?,
+            linear(width, 1)?,
+            linear(width, configuration.unary)?,
+            pointer,
+            pointer,
+            linear(width, configuration.judge)?,
+        ])?;
+        sum(&[
+            embedding,
+            block.checked_mul(configuration.depth)?,
+            norm,
+            head,
+        ])
     }
 
-    pub fn restore(configuration: Configuration, parameter: Vec<f32>) -> Option<Self> {
+    pub(crate) fn restore(configuration: Configuration, parameter: Vec<f32>) -> Option<Self> {
         let (layout, embedding, block, norm, head) = Self::structure(&configuration);
         (layout.total() == parameter.len()).then_some(Self {
             configuration,
@@ -103,6 +150,25 @@ impl Model {
 
     pub fn size(&self) -> usize {
         self.parameter.len()
+    }
+
+    pub fn parameter(&self) -> &[f32] {
+        &self.parameter
+    }
+
+    pub fn edit(&mut self) -> &mut [f32] {
+        &mut self.parameter
+    }
+
+    pub fn load(&mut self, parameter: Vec<f32>) -> Result<(), Mismatch> {
+        if parameter.len() != self.parameter.len() {
+            return Err(Mismatch {
+                expected: self.parameter.len(),
+                found: parameter.len(),
+            });
+        }
+        self.parameter = parameter;
+        Ok(())
     }
 
     pub fn decay(&self) -> &[Range<usize>] {

@@ -78,7 +78,7 @@ fn verify(index: &Index) {
 #[test]
 fn population() {
     for width in [1, 63, 64, 65, 129, 1025] {
-        let program = crate::program::Program::new(&crate::lowering::parse("A, [A] B").unwrap());
+        let program = crate::program::Program::new(&frontend::lowering::parse("A, [A] B").unwrap());
         let mut state = State::initial(&program);
         Arc::make_mut(&mut state.frame[0]).particle = (0..width)
             .map(|position| Token {
@@ -140,7 +140,7 @@ fn population() {
 
 #[test]
 fn context() {
-    let program = crate::program::Program::new(&crate::lowering::parse("A, [A] B").unwrap());
+    let program = crate::program::Program::new(&frontend::lowering::parse("A, [A] B").unwrap());
     let mut state = State::initial(&program);
     let root = state.frame[0].clone();
     state.frame = (0..8)
@@ -207,7 +207,7 @@ fn context() {
 
 #[test]
 fn retirement() {
-    let program = crate::program::Program::new(&crate::lowering::parse("A, [A] B").unwrap());
+    let program = crate::program::Program::new(&frontend::lowering::parse("A, [A] B").unwrap());
     let initial = State::initial(&program);
     let mut index = Index::new(Arc::new(initial.clone()));
     for width in [4, 2, 8, 1, 3, 1] {
@@ -413,7 +413,7 @@ fn intersection() {
 #[test]
 fn batch() {
     let program = crate::program::Program::new(
-        &crate::lowering::parse("A.A.([A] B),A.B.([A] B),B.B,Empty").unwrap(),
+        &frontend::lowering::parse("A.A.([A] B),A.B.([A] B),B.B,Empty").unwrap(),
     );
     let mut state = State::initial(&program);
     for _ in 0..8 {

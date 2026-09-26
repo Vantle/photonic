@@ -26,13 +26,13 @@ impl Default for Setting {
 }
 
 #[derive(Clone, Debug)]
-pub struct Position {
+pub(crate) struct Position {
     pub program: Arc<Program>,
     pub evaluation: Option<Arc<Evaluation>>,
     pub potential: f64,
 }
 
-pub trait Environment {
+pub(crate) trait Environment {
     fn transition(&mut self, position: &Position, action: Action) -> Position;
     fn verify(&mut self, parent: &Position, position: &Position) -> Position;
     fn legal(&mut self, position: &Position) -> Vec<Action>;
@@ -84,12 +84,12 @@ impl Node {
     }
 }
 
-pub struct Leaf {
+pub(crate) struct Leaf {
     node: usize,
     path: Vec<(usize, usize)>,
 }
 
-pub struct Tree {
+pub(crate) struct Tree {
     node: Vec<Node>,
     gumbel: Vec<f64>,
     sequence: Vec<usize>,
@@ -97,7 +97,7 @@ pub struct Tree {
     simulation: usize,
 }
 
-pub fn sequence(considered: usize, simulation: usize) -> Vec<usize> {
+pub(crate) fn sequence(considered: usize, simulation: usize) -> Vec<usize> {
     if considered <= 1 {
         return (0..simulation).collect();
     }

@@ -4,7 +4,7 @@ use thiserror::Error;
 #[derive(Debug, Diagnostic, Error)]
 pub enum Failure {
     #[error("invalid Photonic syntax: {message}")]
-    #[diagnostic(code(photonic::syntax))]
+    #[diagnostic(code(frontend::syntax))]
     Syntax {
         message: String,
         #[label("{message}")]
@@ -18,7 +18,7 @@ pub enum Failure {
         span: SourceSpan,
     },
     #[error("invalid Photonic expression: {message}")]
-    #[diagnostic(code(photonic::lowering))]
+    #[diagnostic(code(frontend::lowering))]
     Lowering {
         message: String,
         #[label("{message}")]

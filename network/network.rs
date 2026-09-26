@@ -9,7 +9,7 @@ pub mod feed;
 pub mod grow;
 pub mod head;
 pub mod input;
-pub mod layout;
+mod layout;
 pub mod linear;
 pub mod loss;
 pub mod matrix;

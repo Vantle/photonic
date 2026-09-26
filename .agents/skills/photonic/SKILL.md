@@ -20,7 +20,7 @@ Over MCP the verbs are tools with the same fields. Pass the `exploration` key fr
 
 ## Honesty
 
-- `unknown` means a budget stopped the search. It is never evidence that a configuration is unreachable. Say which budget stopped it, raise it, or change the question.
+- `unknown` means the search could not settle the claim: a budget stopped it, or a direct path follows one run of many. It is never evidence that a configuration is unreachable. Raise the budgets, explore exhaustively, or change the question.
 - Patterns match by containment, as a rule's input does. Use `--exact`, with `--preserve` when the target must list the root rules, to compare whole configurations as Prism and `photonic_test` do.
 - A handle belongs to one exploration. Quote it with its key, and explore again after an edit before reusing any handle.
 - Direct paths (`--path`) follow the program as written and number handles in source order; exhaustive explorations use canonical order.
@@ -45,4 +45,4 @@ bazel run -c opt //command:photonic -- compare before.wave after.wave --reach Fa
 bazel run -c opt //command:photonic -- shape library/boolean/and.particle library/boolean/or.particle
 ```
 
-Paths are relative to where `bazel run` starts, and `--json` prints each answer as data. `check` exits 1 unless every claim holds, and `compare` unless the programs behave alike.
+Paths are relative to where `bazel run` starts, and `--json` prints each answer as data. `check` exits 1 unless there are no diagnostics and every claim holds, and `compare` unless both explorations close and the programs behave alike.

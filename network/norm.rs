@@ -11,25 +11,29 @@ pub struct Norm {
 }
 
 #[derive(Clone, Debug)]
-pub struct Trace {
+pub(crate) struct Trace {
     normal: Array2<f32>,
     inverse: Vec<f32>,
 }
 
 impl Norm {
-    pub fn new(layout: &mut Layout, width: usize) -> Self {
+    pub(crate) fn new(layout: &mut Layout, width: usize) -> Self {
         Self {
             scale: layout.allocate(1, width, Kind::Scale),
             shift: layout.allocate(1, width, Kind::Bias),
         }
     }
 
-    pub fn initialize(&self, parameter: &mut [f32]) {
+    pub(crate) fn initialize(&self, parameter: &mut [f32]) {
         self.scale.write(parameter).fill(1.0);
         self.shift.write(parameter).fill(0.0);
     }
 
-    pub fn forward(&self, parameter: &[f32], input: &ArrayView2<'_, f32>) -> (Array2<f32>, Trace) {
+    pub(crate) fn forward(
+        &self,
+        parameter: &[f32],
+        input: &ArrayView2<'_, f32>,
+    ) -> (Array2<f32>, Trace) {
         let width = input.ncols() as f32;
         let mut normal = input.to_owned();
         let mut inverse = Vec::with_capacity(input.nrows());
@@ -48,7 +52,7 @@ impl Norm {
         (output, Trace { normal, inverse })
     }
 
-    pub fn backward(
+    pub(crate) fn backward(
         &self,
         parameter: &[f32],
         gradient: &mut [f32],

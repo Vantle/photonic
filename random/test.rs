@@ -17,6 +17,25 @@ fn deterministic() {
 }
 
 #[test]
+fn golden() {
+    let mut generator = Generator::new(7);
+    assert_eq!(
+        (0..4).map(|_| generator.integer()).collect::<Vec<_>>(),
+        [
+            0x0e2c_1a00_2aae_913d,
+            0x2c0f_c8dd_fa4e_9e14,
+            0xb7b3_11b3_b0d4_5872,
+            0x6d5d_9f6a_6318_013c,
+        ]
+    );
+    let mut generator = Generator::new(7);
+    assert_eq!(
+        (0..8).map(|_| generator.below(100)).collect::<Vec<_>>(),
+        [5, 17, 71, 42, 96, 46, 72, 32]
+    );
+}
+
+#[test]
 fn bounded() {
     let mut generator = Generator::new(1);
     let mut seen = [0usize; 5];

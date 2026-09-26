@@ -1,9 +1,12 @@
 Case.(([P] True), ([P] False)).(([Q] True), ([Q] False)).(([R] True), ([R] False)),
 
 [Claim] (Function.Boolean.Equal.Reflexive.P.P, Function.Boolean.Equal.Former.P.Q, Function.Boolean.Equal.Latter.Q.R, Function.Boolean.Equal.Conclusion.P.R),
-[Return.Former, Return.Latter] Function.Boolean.And.Premise,
-[Return.Premise] Function.Boolean.Not.Denial,
-[Return.Denial, Return.Conclusion] Function.Boolean.Or.Transitive,
-[Return.Reflexive, Return.Transitive] Function.Boolean.And.Verdict,
+[Return.Former, Return.Latter] Premise,
+[Premise.True.True, Return.True.Conclusion] Transitive,
+[Premise.True.False, Return.True.Conclusion] Transitive,
+[Premise.True.False, Return.False.Conclusion] Transitive,
+[Premise.False.False, Return.True.Conclusion] Transitive,
+[Premise.False.False, Return.False.Conclusion] Transitive,
+[Return.True.Reflexive, Transitive] Return.Verdict.True,
 
 [Holds.(([P] True), ([P] False)).(([Q] True), ([Q] False)).(([R] True), ([R] False))] Theorem

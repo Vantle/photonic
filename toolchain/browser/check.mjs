@@ -104,6 +104,12 @@ try {
     await evaluate(`${figure('forever')}.querySelector('.state[data-state="16"]').click(); return true`);
     assert.match(await evaluate(`return ${figure('forever')}.querySelector('.departure').textContent`), /no events recorded before the budget ran out/);
     assert.equal(await evaluate(`return ${figure('first')}.querySelector('.state[data-state="1"] .name').textContent`), 's1end');
+    assert.equal(await evaluate("return [...document.querySelectorAll('.graph')].every(graph => !graph.hasAttribute('tabindex') && graph.querySelectorAll('.state[tabindex=\"0\"]').length === 1)"), true);
+    await evaluate(`const start = ${figure('first')}.querySelector('.state[data-state="0"]'); start.focus(); start.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })); return true`);
+    assert.equal(await evaluate(`return document.activeElement === ${figure('first')}.querySelector('.state[data-state="1"]')`), true);
+    await evaluate("document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); return true");
+    assert.deepEqual(await evaluate(`return [...${figure('first')}.querySelectorAll('.state[aria-current], .state[tabindex="0"]')].map(value => [value.dataset.state, value.getAttribute('aria-current')])`), [['1', 'true']]);
+    assert.equal(await evaluate("return document.querySelectorAll('.state[aria-pressed]').length"), 0);
     assert.match(await evaluate("return document.querySelector('#calculator .result').textContent"), /2220₃= 78 in decimal/);
     assert.equal(await evaluate("return document.querySelectorAll('#bench .graph .state').length"), 5);
     assert.equal(await evaluate("return document.querySelectorAll('#bench button.hyperedge').length"), 3);
@@ -197,7 +203,7 @@ try {
     await open(`${origin}/index.html`, `${ready} && book.engine.state === 'live'`);
     assert.equal(await evaluate("return document.getElementById('status').textContent"), 'Live engine');
     await evaluate(`const state = ${figure('first')}.querySelector('.state[data-state="1"]'); state.click(); return true`);
-    assert.equal(await evaluate(`return ${figure('first')}.querySelector('.state[data-state="1"]').getAttribute('aria-pressed')`), 'true');
+    assert.equal(await evaluate(`return ${figure('first')}.querySelector('.state[data-state="1"]').getAttribute('aria-current')`), 'true');
     assert.match(await evaluate(`return ${figure('first')}.querySelector('.departure').textContent`), /no rule applies here/);
     await evaluate(`
         const area = ${figure('first')}.querySelector('.editor textarea');
@@ -275,14 +281,14 @@ try {
     await until("return /Division by zero/.test(document.querySelector('#calculator .message').textContent)");
     await evaluate(`
         window.settled = [];
-        const channel = book.engine.open();
+        const follow = book.engine.path();
         const track = (name, promise) => promise.then(value => settled.push(name + ' ' + value.answer.ternary), error => settled.push(name + ' ' + error.message));
         const queued = new AbortController();
         const running = new AbortController();
-        track('first', channel.send('expression', { source: '12+2' })).then(() => running.abort());
-        track('queued', channel.send('expression', { source: '1+1' }, { signal: queued.signal }));
-        track('running', channel.send('expression', { source: '2*2' }, { signal: running.signal }));
-        track('resent', channel.send('expression', { source: '2+1' }));
+        track('first', follow('expression', { source: '12+2' })).then(() => running.abort());
+        track('queued', follow('expression', { source: '1+1' }, { signal: queued.signal }));
+        track('running', follow('expression', { source: '2*2' }, { signal: running.signal }));
+        track('resent', follow('expression', { source: '2+1' }));
         queued.abort();
         return true`);
     await until('return window.settled.length === 4');
@@ -355,13 +361,16 @@ try {
     assert.equal(await evaluate("return document.querySelectorAll('.lightbox button.hyperedge[data-symmetry=\"global\"]').length"), 2);
     assert.match(await evaluate('return new URLSearchParams(location.search).get("source")'), /\[B\] D$/);
     await open(await evaluate('return location.href'), "return book.engine.state === 'live' && document.querySelectorAll('.lightbox .graph .state').length === 4");
+    await open(`${origin}/lightbox.html?source=Q`, "return book.engine.state === 'live' && document.querySelectorAll('.lightbox .graph .state').length === 1");
+    await evaluate("[...document.querySelectorAll('.lightbox .preset button')].find(value => value.textContent === 'Cycle').click(); return true");
+    assert.match(await evaluate('return location.search'), /^\?source=/);
     await open(`${origin}/lightbox.html`, "return document.querySelector('.lightbox .editor textarea').value.endsWith('[B] D') && document.querySelectorAll('.lightbox .graph .state').length === 4");
     await evaluate("[...document.querySelectorAll('.lightbox .bar button')].find(value => value.textContent === 'New').click(); return true");
     assert.equal(await evaluate("return document.querySelector('.lightbox .editor textarea').value"), '');
     assert.equal(await evaluate("return document.querySelectorAll('.lightbox .blank').length"), 1);
     assert.equal(await evaluate("return document.querySelector('.lightbox .symmetry').hidden"), true);
     await narrow();
-    console.log('The live Lightbox runs new programs, restores shared links and drafts, and starts afresh.');
+    console.log('The live Lightbox runs new programs, restores shared links, keeps the reader’s draft through links and examples, and starts afresh.');
 
     await evaluate("document.getElementById('theme').click(); return true");
     assert.equal(await evaluate('return document.documentElement.dataset.theme'), 'light');

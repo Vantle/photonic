@@ -6,16 +6,16 @@ def _site(context):
     output = context.actions.declare_directory(context.label.name)
     node = context.toolchains["@rules_nodejs//nodejs:toolchain_type"].nodeinfo.node
     argument = context.actions.args()
-    argument.add(context.file.script)
+    argument.add(context.file._script)
     argument.add(output.path)
-    argument.add(context.attr.repository)
+    argument.add(REPOSITORY)
     for file in context.files.srcs:
         argument.add(file.path)
         argument.add(file.short_path)
     context.actions.run(
         executable = node,
         arguments = [argument],
-        inputs = [context.file.script] + context.files.srcs,
+        inputs = [context.file._script] + context.files.srcs,
         outputs = [output],
         mnemonic = "Site",
         progress_message = "Assembling the webbook site %{label}",
@@ -25,9 +25,8 @@ def _site(context):
 site = rule(
     implementation = _site,
     attrs = {
-        "repository": attr.string(mandatory = True),
-        "script": attr.label(allow_single_file = [".mjs"], mandatory = True),
         "srcs": attr.label_list(allow_files = True, mandatory = True),
+        "_script": attr.label(default = ":site.mjs", allow_single_file = [".mjs"]),
     },
     toolchains = ["@rules_nodejs//nodejs:toolchain_type"],
 )

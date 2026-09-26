@@ -15,7 +15,7 @@ use translation::vocabulary::Vocabulary;
 fn task() -> Task {
     let mut vocabulary = Vocabulary::default();
     let mut parse = |text: &str| {
-        lift::program(&photonic::lowering::parse(text).unwrap(), &mut vocabulary)
+        lift::program(&frontend::lowering::parse(text).unwrap(), &mut vocabulary)
             .unwrap()
             .1
     };

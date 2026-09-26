@@ -7,7 +7,6 @@ use crate::response;
 use photonic::path::{Event, Search};
 use photonic::place::Place;
 use photonic::prism::Outcome;
-use photonic::source::Program;
 use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
 
@@ -37,23 +36,23 @@ struct Step<'search> {
     exact: &'search [Place],
 }
 
+impl<'search> Step<'search> {
+    fn new(event: &'search Event, definition: &'search Catalog) -> Self {
+        Self {
+            source: event.source,
+            target: event.target,
+            rule: definition.name(event.rule),
+            footprint: &event.footprint,
+            exact: &event.exact,
+        }
+    }
+}
+
 #[derive(Serialize)]
 struct Inspection<'search> {
     event: Step<'search>,
     before: Option<Configuration>,
     after: Option<Configuration>,
-}
-
-impl<'search> From<&'search Event> for Step<'search> {
-    fn from(event: &'search Event) -> Self {
-        Self {
-            source: event.source,
-            target: event.target,
-            rule: &event.rule,
-            footprint: &event.footprint,
-            exact: &event.exact,
-        }
-    }
 }
 
 enum Mode {
@@ -90,16 +89,13 @@ impl Session {
         let mode = Mode::Follow {
             target: goal.is_some(),
         };
-        Ok(Self::new(
-            Search::new(program, goal.unwrap_or_default()),
-            mode,
-        ))
+        Ok(Self::new(Search::new(program, goal), mode))
     }
 
     fn evaluate(input: &str) -> Result<Self, Failure> {
         let (program, source) = crate::expression::prepare(input)?;
         Ok(Self::new(
-            Search::new(program, Program::default()),
+            Search::new(program, None),
             Mode::Evaluate { source },
         ))
     }
@@ -112,7 +108,7 @@ impl Session {
             Mode::Evaluate { source } => (
                 None,
                 Some(Evaluation {
-                    state: Configuration::new(self.search.current(), &self.definition)?,
+                    state: Configuration::from(self.search.current()),
                     source,
                 }),
             ),
@@ -126,11 +122,8 @@ impl Session {
         })
     }
 
-    fn state(&self, index: usize) -> Result<Option<Configuration>, Failure> {
-        self.search
-            .inspect(index)
-            .map(|node| Configuration::new(node, &self.definition))
-            .transpose()
+    fn state(&self, index: usize) -> Option<Configuration> {
+        self.search.inspect(index).map(Configuration::from)
     }
 
     fn inspect(&self, index: usize) -> Result<Inspection<'_>, Failure> {
@@ -139,9 +132,9 @@ impl Session {
             .transition(index)
             .ok_or_else(|| Failure::new(Code::Request, "No such transition."))?;
         Ok(Inspection {
-            event: Step::from(event),
-            before: self.state(event.source)?,
-            after: self.state(event.target)?,
+            event: Step::new(event, &self.definition),
+            before: self.state(event.source),
+            after: self.state(event.target),
         })
     }
 }

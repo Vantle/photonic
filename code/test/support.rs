@@ -1,5 +1,4 @@
 use crate::atom::Atom;
-use crate::configuration::Configuration;
 use crate::output::Output;
 use crate::particle::Particle;
 use crate::rule::Rule;
@@ -14,15 +13,6 @@ pub const Y: u16 = 6;
 
 pub fn particle(atom: &[u16]) -> Particle {
     Particle::atom(&atom.iter().map(|&value| Atom(value)).collect::<Vec<_>>())
-}
-
-pub fn configuration(coherence: &[&[u16]]) -> Configuration {
-    Configuration::from(
-        coherence
-            .iter()
-            .map(|atom| particle(atom))
-            .collect::<Vec<_>>(),
-    )
 }
 
 pub fn rule(input: &[&[u16]], output: &[&[u16]]) -> Rule {

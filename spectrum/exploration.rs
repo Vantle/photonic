@@ -1,14 +1,13 @@
 use crate::budget::Budget;
-use crate::failure::{Code, Failure};
 use crate::order::{self, Canonical, Naming};
 use crate::recording::{Mode, Order};
+use frontend::source::{Definition, Program};
 use photonic::place::Place;
-use photonic::prism::{self, Verdict};
+use photonic::prism::{Outcome, Reach, Verdict};
+use photonic::runtime::Runtime;
 use photonic::snapshot::{self, Node};
-use photonic::source::{Definition, Program};
 use photonic::status::Status;
 use std::collections::VecDeque;
-use std::sync::{Mutex, PoisonError};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Value {
@@ -88,7 +87,7 @@ pub struct Exploration {
     pub incoming: Vec<Vec<usize>>,
     pub parent: Vec<Option<usize>>,
     pub depth: Vec<Option<usize>>,
-    search: Option<Mutex<prism::Search>>,
+    reach: Option<Reach>,
 }
 
 pub struct Plan {
@@ -113,34 +112,17 @@ pub fn id(place: Place) -> usize {
     id
 }
 
-fn opener<'scope>(scope: &str, lookup: impl Fn(&str) -> Option<&'scope [usize]>) -> Option<usize> {
-    let (parent, _) = scope.rsplit_once('/')?;
-    let (owner, position) = parent.rsplit_once('/')?;
-    let position = position.parse().ok()?;
-    if owner == "value" {
-        return Some(position);
-    }
-    lookup(owner)?.get(position).copied()
-}
-
 fn occurrence(token: &snapshot::Token, naming: &Naming) -> Occurrence {
-    let rule = matches!(token.kind, snapshot::Kind::Rule)
-        .then(|| token.label.strip_prefix('§')?.parse().ok())
-        .flatten();
     Occurrence {
         id: token.id,
-        value: rule.map_or_else(
-            || Value::Atom(naming.name(&token.label).to_owned()),
-            Value::Rule,
-        ),
+        value: match &token.value {
+            snapshot::Value::Atom(atom) => Value::Atom(naming.name(atom).to_owned()),
+            snapshot::Value::Rule(rule) => Value::Rule(*rule),
+        },
     }
 }
 
-fn configuration<'scope>(
-    node: &Node,
-    naming: &Naming,
-    lookup: impl Fn(&str) -> Option<&'scope [usize]> + Copy,
-) -> Configuration {
+fn configuration(node: &Node, naming: &Naming) -> Configuration {
     let token = |token: &snapshot::Token| occurrence(token, naming);
     Configuration {
         coherence: node
@@ -155,7 +137,7 @@ fn configuration<'scope>(
             .frame
             .iter()
             .map(|frame| Frame {
-                opener: opener(&frame.scope, lookup),
+                opener: frame.opener,
                 lexical: frame.lexical,
                 rule: frame.particle.iter().map(token).collect(),
                 held: frame.held.iter().map(token).collect(),
@@ -165,55 +147,14 @@ fn configuration<'scope>(
     }
 }
 
-fn rule(definition: &snapshot::Definition, naming: &Naming) -> Result<Rule, Failure> {
-    let inner = definition
-        .display
-        .strip_prefix('⟨')
-        .and_then(|text| text.strip_suffix('⟩'))
-        .unwrap_or(&definition.display);
-    let text = naming.show(inner);
-    let program = photonic::lowering::parse(&text).map_err(|error| {
-        Failure::new(
-            Code::Exploration,
-            format!("the rule {text} does not read back: {error}"),
-        )
-    })?;
-    let [value] = program.rule.as_slice() else {
-        return Err(Failure::new(
-            Code::Exploration,
-            format!("the rule {text} reads back as {} rules", program.rule.len()),
-        ));
-    };
-    let plain = Definition {
-        name: String::new(),
-        ..value.clone()
-    };
-    Ok(Rule {
-        text: photonic::text::definition(&plain),
+fn rule(definition: &snapshot::Definition, naming: &Naming) -> Rule {
+    let plain = naming.show(&definition.rule);
+    Rule {
+        text: frontend::text::definition(&plain),
         canonical: plain.canonical(),
         definition: plain,
         scope: None,
-    })
-}
-
-fn deduction(view: &[snapshot::View], evidence: &[usize]) -> Vec<usize> {
-    if evidence
-        .iter()
-        .any(|&index| view[index].source == view[index].target)
-    {
-        return Vec::new();
     }
-    let Some(&first) = evidence.first() else {
-        return Vec::new();
-    };
-    let mut chain = Vec::new();
-    let mut cursor = view[first].origin;
-    while let Some(origin) = cursor {
-        chain.push(origin.event);
-        cursor = view[origin.view].origin;
-    }
-    chain.reverse();
-    chain
 }
 
 fn key(canonical: &Canonical, mode: Mode, budget: Budget, goal: Option<&Program>) -> String {
@@ -255,47 +196,42 @@ impl Plan {
 }
 
 impl Exploration {
-    pub fn new(plan: Plan) -> Result<Self, Failure> {
+    pub fn new(plan: Plan) -> Self {
         match plan.mode {
             Mode::Exhaustive => Self::exhaustive(plan),
             Mode::Path => Self::walk(plan),
         }
     }
 
-    fn exhaustive(plan: Plan) -> Result<Self, Failure> {
+    fn exhaustive(plan: Plan) -> Self {
         let naming = &plan.canonical.naming;
-        let mut search = prism::Search::new(plan.canonical.program.clone(), Program::default());
-        search.run(plan.budget.work, Some(plan.budget.limit()));
-        let snapshot = search.snapshot();
+        let mut runtime = Runtime::new(&plan.canonical.program);
+        runtime.run(plan.budget.work, plan.budget.limit());
+        let snapshot = runtime.snapshot();
         let event = snapshot
             .event
             .iter()
-            .map(|event| {
-                let rule = search.rule(event.id).ok_or_else(|| {
-                    Failure::new(Code::Exploration, format!("event {} has no rule", event.id))
-                })?;
-                Ok(Event {
-                    source: event.source,
-                    target: event.target,
-                    rule,
-                    supported: event.status == Status::Supported,
-                    footprint: event.footprint.clone(),
-                    exact: event.exact.clone(),
-                    read: event.read.clone(),
-                    world: event.world.clone(),
-                    deduction: deduction(&snapshot.view, &event.evidence),
-                    resource: search
-                        .resource(event.id)
-                        .unwrap_or_default()
-                        .into_iter()
-                        .map(|link| Link {
-                            target: link.target,
-                            source: link.source,
-                        })
-                        .collect(),
-                })
+            .map(|event| Event {
+                source: event.source,
+                target: event.target,
+                rule: event.rule,
+                supported: event.status == Status::Supported,
+                footprint: event.footprint.clone(),
+                exact: event.exact.clone(),
+                read: event.read.clone(),
+                world: event.world.clone(),
+                deduction: snapshot.deduction(event.id),
+                resource: runtime
+                    .resource(event.id)
+                    .unwrap_or_default()
+                    .into_iter()
+                    .map(|link| Link {
+                        target: link.target,
+                        source: link.source,
+                    })
+                    .collect(),
             })
-            .collect::<Result<Vec<_>, Failure>>()?;
+            .collect();
         let record = Record {
             closed: snapshot.closed,
             reached: false,
@@ -304,48 +240,40 @@ impl Exploration {
                 .definition
                 .iter()
                 .map(|entry| self::rule(entry, naming))
-                .collect::<Result<Vec<_>, _>>()?,
+                .collect(),
             configuration: snapshot
                 .state
                 .iter()
-                .map(|node| self::configuration(node, naming, |name| search.scope(name)))
+                .map(|node| self::configuration(node, naming))
                 .collect(),
             event,
         };
-        Ok(Self::assemble(plan, record, Some(search)))
+        Self::assemble(plan, record, Some(runtime.reach()))
     }
 
-    fn walk(mut plan: Plan) -> Result<Self, Failure> {
+    fn walk(mut plan: Plan) -> Self {
         let naming = &plan.canonical.naming;
-        let mut search = photonic::path::Search::new(
-            plan.canonical.program.clone(),
-            plan.goal.take().unwrap_or_default(),
-        );
+        let mut search =
+            photonic::path::Search::new(plan.canonical.program.clone(), plan.goal.take());
         search.run(plan.budget.work, plan.budget.limit());
         let report = search.report();
         let event = report
             .event
             .iter()
-            .enumerate()
-            .map(|(index, event)| {
-                let rule = search.rule(index).ok_or_else(|| {
-                    Failure::new(Code::Exploration, format!("step {index} has no rule"))
-                })?;
-                Ok(Event {
-                    source: event.source,
-                    target: event.target,
-                    rule,
-                    supported: true,
-                    footprint: event.footprint.clone(),
-                    exact: event.exact.clone(),
-                    read: event.read.clone(),
-                    world: Vec::new(),
-                    deduction: Vec::new(),
-                    resource: Vec::new(),
-                })
+            .map(|event| Event {
+                source: event.source,
+                target: event.target,
+                rule: event.rule,
+                supported: true,
+                footprint: event.footprint.clone(),
+                exact: event.exact.clone(),
+                read: event.read.clone(),
+                world: Vec::new(),
+                deduction: Vec::new(),
+                resource: Vec::new(),
             })
-            .collect::<Result<Vec<_>, Failure>>()?;
-        let reached = report.outcome == prism::Outcome::Reached;
+            .collect();
+        let reached = report.outcome == Outcome::Reached;
         let record = Record {
             closed: reached,
             reached,
@@ -354,18 +282,18 @@ impl Exploration {
                 .definition
                 .iter()
                 .map(|entry| self::rule(entry, naming))
-                .collect::<Result<Vec<_>, _>>()?,
+                .collect(),
             configuration: report
                 .state
                 .iter()
-                .map(|node| self::configuration(node, naming, |name| search.scope(name)))
+                .map(|node| self::configuration(node, naming))
                 .collect(),
             event,
         };
-        Ok(Self::assemble(plan, record, None))
+        Self::assemble(plan, record, None)
     }
 
-    fn assemble(plan: Plan, record: Record, search: Option<prism::Search>) -> Self {
+    fn assemble(plan: Plan, record: Record, reach: Option<Reach>) -> Self {
         let count = record.configuration.len();
         let mut outgoing = vec![Vec::new(); count];
         let mut incoming = vec![Vec::new(); count];
@@ -427,7 +355,7 @@ impl Exploration {
             incoming,
             parent,
             depth,
-            search: search.map(Mutex::new),
+            reach,
         }
     }
 
@@ -444,14 +372,12 @@ impl Exploration {
     }
 
     pub fn verdict(&self, target: &Program, preserve: bool) -> Option<Verdict> {
-        let search = self.search.as_ref()?;
+        let reach = self.reach.as_ref()?;
         let mut hidden = self.naming.hide(target);
         if preserve {
             hidden.preserve(&self.program);
         }
-        let mut search = search.lock().unwrap_or_else(PoisonError::into_inner);
-        search.target(hidden);
-        Some(search.verdict())
+        Some(reach.verdict(&hidden))
     }
 
     pub fn stuck(&self, index: usize) -> bool {
@@ -487,6 +413,27 @@ impl Exploration {
                     .flat_map(|frame| frame.rule.iter().chain(&frame.held)),
             )
             .find(|occurrence| occurrence.id == id)
+    }
+
+    pub fn size(&self) -> usize {
+        let occurrence = self
+            .configuration
+            .iter()
+            .map(|configuration| {
+                configuration
+                    .coherence
+                    .iter()
+                    .map(|coherence| coherence.occurrence.len())
+                    .chain(
+                        configuration
+                            .frame
+                            .iter()
+                            .map(|frame| frame.rule.len() + frame.held.len()),
+                    )
+                    .sum::<usize>()
+            })
+            .sum::<usize>();
+        occurrence + self.event.len()
     }
 
     pub fn name(&self) -> String {

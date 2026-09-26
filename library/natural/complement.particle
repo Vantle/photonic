@@ -1,4 +1,4 @@
-[Function.Natural.Complement] (Complement.Input, Forget.Complement.Begin),
+[Complement.Call] (Complement.Input, Forget.Complement.Begin),
 [Clean.Complement.Begin] (Complement.Output.Zero, Complement.Step),
 [Complement.Step, Complement.Input] Read.Complement.Wait,
 [Yield.([Digit] 0).Complement.Wait] (Complement.Input, Forget.Complement.Put.0),
@@ -12,4 +12,4 @@
 [Yield.End.Complement.Wait.Zero] Clean.Complement.End,
 [Clean.Complement.End, Complement.Output] (Function.Natural.Successor, Forget.Complement.Next),
 [Return.Natural.Successor, Clean.Complement.Next] (Function.Natural.Normalize, Forget.Complement.Finish),
-[Return.Natural.Normalize, Clean.Complement.Finish] Return.Natural.Complement
+[Return.Natural.Normalize, Clean.Complement.Finish] Complement.Result

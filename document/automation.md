@@ -1,12 +1,12 @@
 # Continuous verification
 
-[Photonic on Buildkite](https://buildkite.com/vantle-labs/photonic) runs two independent jobs: **Build · Linux x86-64** and **Test · Linux x86-64**. Both select Bazel's `ci` configuration: release mode with `//platform:x86_64-unknown-linux-gnu` as the host and target platform. The build job compiles with lint aspects, checks Rust and Starlark formatting and documentation links, and exercises the dependency command. The test job runs the release test suite. Both have a 60-minute timeout.
+[Photonic on Buildkite](https://buildkite.com/vantle-labs/photonic) runs two independent jobs: **Build · Linux x86-64** and **Test · Linux x86-64**. Both select Bazel's `ci` configuration: optimized compilation with `//platform:x86_64-unknown-linux-gnu` as the host and target platform. The build job compiles with lint aspects, checks Rust and Starlark formatting and documentation links, and exercises the dependency command. The test job runs the optimized test suite. Both have a 60-minute timeout.
 
 ## Hosted capacity
 
 Every step, including pipeline upload, uses the existing `linux-small` hosted queue: AMD64 Linux with 2 vCPU and 4 GB memory. Buildkite’s [Free plan](https://buildkite.com/pricing/) includes up to 2,000 Linux vCPU minutes per month on this shape. The allowance is finite; this configuration does not require paid machine shapes or self-hosted agents.
 
-macOS, Windows, ARM64 Linux, and browser CI are excluded. Browser verification currently requires ARM64 macOS and can still be run locally with `bazel test --config=release //toolchain/browser:check`. The repository’s platform definitions and hermetic toolchains remain available for local builds on the other supported systems.
+macOS, Windows, ARM64 Linux, and browser CI are excluded. Browser verification currently requires ARM64 macOS and can still be run locally with `bazel test -c opt //toolchain/browser:check`. The repository’s platform definitions and hermetic toolchains remain available for local builds on the other supported systems.
 
 The test job selects Bazel’s `continuous` configuration, which excludes tests tagged `memory` and runs at most one test action at a time. Compilation retains two jobs. This reserves headroom for Bazel and build actions on the 4 GB agent while keeping ordinary semantic, native/WebAssembly and allocation checks enabled.
 
@@ -19,7 +19,7 @@ The following fixtures exceed 2 GiB of resident memory individually and carry th
 | `//program/ternary/case:width` | 2.87 GB |
 | `//program/ternary:infix.check` | 2.64 GB |
 
-These are native ARM64 macOS measurements of revision `91fbf9c`, collected with `bazel test --config=release //... --run_under='/usr/bin/time -l' --jobs=1 --test_output=all`. They establish resource classification, not Linux memory equivalence. Every untagged test measured below 2 GiB; the largest was `//program/ternary:expression.check` at 1.92 GB. Run the full suite locally with `bazel test --config=release //...`; ordinary runs include all four large fixtures. Hosted CI verifies the selected suite, while full-suite and browser validation remain separate release gates.
+These are native ARM64 macOS measurements of revision `91fbf9c`, collected with `bazel test -c opt //... --run_under='/usr/bin/time -l' --jobs=1 --test_output=all`. They establish resource classification, not Linux memory equivalence. Every untagged test measured below 2 GiB; the largest was `//program/ternary:expression.check` at 1.92 GB. Run the full suite locally with `bazel test -c opt //...`; ordinary runs include all four large fixtures. Hosted CI verifies the selected suite, while full-suite and browser validation remain separate release gates.
 
 ## Pipeline configuration
 

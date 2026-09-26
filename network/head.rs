@@ -28,7 +28,7 @@ pub struct Delta {
 }
 
 #[derive(Clone, Debug)]
-pub struct Trace {
+pub(crate) struct Trace {
     summary: Array2<f32>,
     activation: Array2<f32>,
     hidden: Array2<f32>,
@@ -38,7 +38,7 @@ pub struct Trace {
 }
 
 impl Head {
-    pub fn new(layout: &mut Layout, configuration: &Configuration) -> Self {
+    pub(crate) fn new(layout: &mut Layout, configuration: &Configuration) -> Self {
         let width = configuration.width;
         let (binary, dimension) = (configuration.binary, configuration.key);
         Self {
@@ -53,7 +53,12 @@ impl Head {
         }
     }
 
-    pub fn initialize(&self, parameter: &mut [f32], generator: &mut Generator, deviation: f32) {
+    pub(crate) fn initialize(
+        &self,
+        parameter: &mut [f32],
+        generator: &mut Generator,
+        deviation: f32,
+    ) {
         self.value.initialize(parameter, generator, deviation);
         self.score.initialize(parameter, generator, 0.0);
         self.unary.initialize(parameter, generator, 0.0);
@@ -74,7 +79,7 @@ impl Head {
         1.0 / (self.dimension as f32).sqrt()
     }
 
-    pub fn forward(
+    pub(crate) fn forward(
         &self,
         parameter: &[f32],
         encoded: &ArrayView2<'_, f32>,
@@ -138,7 +143,7 @@ impl Head {
         )
     }
 
-    pub fn backward(
+    pub(crate) fn backward(
         &self,
         parameter: &[f32],
         gradient: &mut [f32],

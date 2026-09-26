@@ -96,7 +96,7 @@ impl Engine {
             .collect::<Vec<_>>();
         Ok(Self {
             pipeline: Pipeline::new(&device, model.configuration().dimension())?,
-            parameter: device.upload(&model.parameter)?,
+            parameter: device.upload(model.parameter())?,
             table: device.upload(&start)?,
             target: device.upload(&target)?,
             device,
@@ -128,6 +128,12 @@ impl Engine {
     }
 
     pub fn prepare(&mut self, optimizer: &Optimizer) -> Result<(), Failure> {
+        let expected = self.model.size();
+        for actual in [optimizer.moment.len(), optimizer.velocity.len()] {
+            if actual != expected {
+                return Err(Failure::Length { expected, actual });
+            }
+        }
         self.adam = Some(Adam::new(&self.device, &self.model, optimizer)?);
         Ok(())
     }

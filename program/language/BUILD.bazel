@@ -47,11 +47,6 @@ photonic_binary(
 )
 
 photonic_binary(
-    name = "decoherence",
-    srcs = ["decoherence.wave"],
-)
-
-photonic_binary(
     name = "dynamic",
     srcs = ["dynamic.wave"],
 )
@@ -64,7 +59,6 @@ photonic_binary(
 photonic_test(
     name = "conjunction.check",
     srcs = ["conjunction.wave"],
-    preserve = True,
     target = ["False.Extra"],
 )
 
@@ -76,9 +70,7 @@ photonic_binary(
 photonic_test(
     name = "inference.check",
     srcs = ["inference.wave"],
-    preserve = True,
     target = [
-        "A",
         "B.C",
         "D",
         "C.D",

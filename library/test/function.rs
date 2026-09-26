@@ -1,7 +1,7 @@
 use crate::catalog::source;
 use crate::{check, program, witness};
-use photonic::prism::{Outcome, Search};
-use photonic::runtime::Limit;
+use photonic::prism::Outcome;
+use photonic::runtime::{Limit, Runtime};
 
 fn invoke() -> &'static str {
     source("function", "invoke")
@@ -180,29 +180,29 @@ fn incomplete() {
 fn deterministic(source: &str, target: &str, library: &[&str]) {
     let mut baseline = None;
     for worker in [1, 2, 4] {
-        let executor = photonic::executor::Executor::new(worker).unwrap();
-        let mut search = {
-            let program = program(source, library);
-            let target = crate::target(&program, target);
-            Search::new(program, target)
-        };
-        search.parallel(&executor, 1, None);
-        assert!(!search.report().execution.closed);
-        search.parallel(
+        let executor =
+            photonic::executor::Executor::new(std::num::NonZeroUsize::new(worker).unwrap())
+                .unwrap();
+        let program = program(source, library);
+        let goal = crate::target(&program, target);
+        let mut runtime = Runtime::new(&program);
+        runtime.parallel(&executor, 1, Limit::default());
+        assert!(!runtime.snapshot().closed);
+        runtime.parallel(
             &executor,
             2_000_000,
-            Some(Limit {
-                state: 20000,
+            Limit {
+                configuration: 20000,
                 record: 2_000_000,
-                cell: 128,
-                world: 32,
-                frame: 32,
-            }),
+                occurrence: 128,
+                coherence: 32,
+                scope: 32,
+            },
         );
-        let report = search.report();
-        assert!(report.execution.closed);
-        assert_eq!(report.outcome, Outcome::Reached);
-        let actual = format!("{:?}", report.execution);
+        assert_eq!(runtime.verdict(&goal).outcome, Outcome::Reached);
+        let snapshot = runtime.snapshot();
+        assert!(snapshot.closed);
+        let actual = format!("{snapshot:?}");
         if let Some(expected) = &baseline {
             assert_eq!(&actual, expected);
         }

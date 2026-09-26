@@ -47,13 +47,13 @@ fn reference() {
         "A,A,A, [A,A] B",
         "Seed.A.X, [Seed] (([A] B), ([A] C))",
     ] {
-        let program = Arc::new(Program::new(&crate::lowering::parse(source).unwrap()));
+        let program = Arc::new(Program::new(&frontend::lowering::parse(source).unwrap()));
         let initial = Arc::new(State::initial(&program));
         let mut graph = Runtime::seed(program.clone(), initial);
-        graph.run(100_000, None);
+        graph.run(100_000, Limit::default());
         for state in graph.state.iter().take(32) {
             let mut runtime = Runtime::seed(program.clone(), state.clone());
-            runtime.run(100_000, None);
+            runtime.run(100_000, Limit::default());
             let snapshot = runtime.snapshot();
             let expected = snapshot
                 .event
@@ -62,7 +62,7 @@ fn reference() {
                 .map(|event| {
                     (
                         runtime.state[event.target].canonical().state,
-                        event.rule.clone(),
+                        event.rule,
                         (
                             event.footprint.clone(),
                             event.exact.clone(),
@@ -86,7 +86,7 @@ fn reference() {
                     assert_eq!(event.fingerprint.layout.reach.frame, layout.reach.frame);
                     actual.insert((
                         event.state.canonical().state,
-                        program.rule[event.rule].name.clone(),
+                        event.rule,
                         binding(state, &event.binding),
                     ));
                 }
@@ -106,8 +106,8 @@ fn fingerprint() {
         "A, [A] (B, [B] C)",
         "Seed.A, [Seed] ().([A] B)",
     ] {
-        let mut runtime = Runtime::new(&crate::lowering::parse(source).unwrap());
-        runtime.run(100_000, None);
+        let mut runtime = Runtime::new(&frontend::lowering::parse(source).unwrap());
+        runtime.run(100_000, Limit::default());
         for state in &runtime.state {
             let expected = crate::fingerprint::state(state);
             let world = (0..state.world.len()).rev().collect::<Vec<_>>();
@@ -136,7 +136,7 @@ fn incremental() {
         "A,A,B, [A,B] C, [A,C] D",
         "A, [A] B, [B] A, [ ] Z",
     ] {
-        let program = Arc::new(Program::new(&crate::lowering::parse(source).unwrap()));
+        let program = Arc::new(Program::new(&frontend::lowering::parse(source).unwrap()));
         let mut state = Arc::new(State::initial(&program));
         let mut cached = crate::reduction::Search::new(program.clone(), state.clone());
         for _ in 0..64 {
@@ -211,14 +211,14 @@ fn scaling() {
         for index in 0..128 {
             source.push_str(&format!("[Stage.{index}] Stage.{},\n", index + 1));
         }
-        let program = Arc::new(Program::new(&crate::lowering::parse(&source).unwrap()));
+        let program = Arc::new(Program::new(&frontend::lowering::parse(&source).unwrap()));
         let state = Arc::new(State::initial(&program));
         let mut search = crate::reduction::Search::new(program, state);
         let mut count = 0;
         for _ in 0..10_000 {
             let work = search.work;
             if let Some(event) = search.run(Limit {
-                cell: width + 131,
+                occurrence: width + 131,
                 ..Limit::default()
             }) {
                 count += 1;

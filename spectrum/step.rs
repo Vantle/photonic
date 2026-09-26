@@ -25,15 +25,15 @@ fn start() -> String {
 
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 pub struct Answer {
-    pub exploration: String,
-    pub mode: Mode,
-    pub complete: bool,
-    pub handle: String,
-    pub text: String,
-    pub agenda: Vec<Move>,
+    pub(crate) exploration: String,
+    pub(crate) mode: Mode,
+    pub(crate) complete: bool,
+    pub(crate) handle: String,
+    pub(crate) text: String,
+    pub(crate) agenda: Vec<Move>,
 }
 
-pub fn answer(request: &Request, context: &mut Context<'_>) -> Result<Answer, Failure> {
+pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Answer, Failure> {
     let exploration = context.exploration(&request.recording)?;
     let handle = request.handle.parse::<Handle>()?.check(&exploration)?;
     let Handle::Configuration(index) = handle else {
@@ -56,7 +56,7 @@ pub fn answer(request: &Request, context: &mut Context<'_>) -> Result<Answer, Fa
 }
 
 impl Answer {
-    pub fn text(&self) -> String {
+    pub(crate) fn text(&self) -> String {
         let mut line = vec![format!("{} {}", self.handle, self.text)];
         let (label, empty) = match (self.mode, self.complete) {
             (Mode::Path, _) => ("taken", "the path stops here"),

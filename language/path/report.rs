@@ -31,7 +31,7 @@ impl Search {
             witness: self.reached().then_some(self.cursor),
             work: self.work,
             program: &self.program,
-            target: &self.claim,
+            target: self.goal.as_ref().map(|goal| &goal.source),
             state: Sequence::new(|| self.node()),
             event: Sequence::new(|| self.event()),
         }
@@ -44,7 +44,7 @@ impl Search {
             witness: self.reached().then_some(self.cursor),
             work: self.work,
             program: self.program.clone(),
-            target: self.claim.clone(),
+            target: self.goal.as_ref().map(|goal| goal.source.clone()),
             state: self.node().collect(),
             event: self.event().cloned().collect(),
         }

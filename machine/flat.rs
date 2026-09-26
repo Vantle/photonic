@@ -2,9 +2,9 @@ use code::atom::Atom;
 use code::program::Program;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Pattern {
-    pub input: Vec<Vec<Atom>>,
-    pub output: Vec<Vec<Atom>>,
+pub(crate) struct Pattern {
+    pub(crate) input: Vec<Vec<Atom>>,
+    pub(crate) output: Vec<Vec<Atom>>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -38,12 +38,12 @@ impl Flat {
         Some(Self { rule })
     }
 
-    pub fn rule(&self) -> &[Pattern] {
+    pub(crate) fn rule(&self) -> &[Pattern] {
         &self.rule
     }
 }
 
-pub fn run(atom: &[Atom]) -> impl Iterator<Item = (Atom, usize)> + '_ {
+pub(crate) fn run(atom: &[Atom]) -> impl Iterator<Item = (Atom, usize)> + '_ {
     atom.chunk_by(|left, right| left == right)
         .map(|chunk| (chunk[0], chunk.len()))
 }

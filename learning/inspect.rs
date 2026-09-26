@@ -2,12 +2,21 @@ use crate::argument::{Status, Verify};
 use crate::output::line;
 use crate::setup::{archive, open};
 use code::program::Program;
-use learning::archive::Archive;
+use learning::archive::{Archive, Coverage, Proof};
 use learning::export;
 use learning::home;
 use learning::objective;
-use learning::task::Task;
-use miette::{IntoDiagnostic, miette};
+use learning::task::{self, Task};
+use miette::IntoDiagnostic;
+
+fn standing(proof: Option<Proof>, verified: bool) -> &'static str {
+    match (proof.map(|proof| proof.coverage), verified) {
+        (Some(Coverage::Whole), _) => "proven optimal",
+        (Some(Coverage::Flat), _) => "proven optimal among flat programs",
+        (None, true) => "exhaustive",
+        (None, false) => "sampled",
+    }
+}
 
 pub fn status(argument: &Status) -> miette::Result<()> {
     let home = open(&argument.home)?;
@@ -18,7 +27,7 @@ pub fn status(argument: &Status) -> miette::Result<()> {
     let archive = archive(&home)?;
     if let Some(name) = &argument.task {
         let setting = objective::Setting {
-            goal: argument.objective.goal(),
+            goal: argument.objective.goal().into_diagnostic()?,
             ..objective::Setting::default()
         };
         return detail(&pool, &archive, name, &setting);
@@ -36,11 +45,7 @@ pub fn status(argument: &Status) -> miette::Result<()> {
             record.cost,
             record.size,
             record.time,
-            match (record.proof.is_some(), record.verified) {
-                (true, _) => "proven optimal",
-                (false, true) => "exhaustive",
-                (false, false) => "sampled",
-            }
+            standing(record.proof, record.verified)
         ));
     }
     Ok(())
@@ -83,15 +88,12 @@ fn detail(
     name: &str,
     setting: &objective::Setting,
 ) -> miette::Result<()> {
-    let task = pool
-        .iter()
-        .find(|task| task.name == name)
-        .ok_or_else(|| miette!("no task is named {name}"))?;
+    let task = task::find(pool, name).into_diagnostic()?;
     match &task.reference {
         Some(reference) => line(&measure("reference", task, reference, setting)),
         None => line("no reference: the task is defined by its tests alone"),
     }
-    match archive.entry(name).and_then(|entry| entry.best.as_ref()) {
+    match archive.best(name) {
         Some(record) => line(&measure("best", task, &record.program, setting)),
         None => line("no correct program recorded yet"),
     }
@@ -106,20 +108,12 @@ pub fn verify(argument: &Verify) -> miette::Result<()> {
         .unwrap_or_default();
     let archive = archive(&home)?;
     let setting = objective::Setting::default().thorough();
-    let chosen = pool
-        .iter()
-        .filter(|task| argument.task.as_ref().is_none_or(|name| *name == task.name))
-        .collect::<Vec<_>>();
-    if let Some(name) = &argument.task
-        && chosen.is_empty()
-    {
-        return Err(miette!("no task is named {name}"));
-    }
+    let chosen = match &argument.task {
+        Some(name) => vec![task::find(&pool, name).into_diagnostic()?],
+        None => pool.iter().collect(),
+    };
     for task in chosen {
-        let Some(record) = archive
-            .entry(&task.name)
-            .and_then(|entry| entry.best.as_ref())
-        else {
+        let Some(record) = archive.best(&task.name) else {
             if argument.task.is_some() {
                 line(&format!("{}: no correct program recorded yet", task.name));
             }

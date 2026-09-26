@@ -16,9 +16,6 @@ photonic_library(
     visibility = [
         "//program/composition:__pkg__",
         "//theorem/boolean:__pkg__",
-        "//theorem/carry:__pkg__",
-        "//theorem/induction:__pkg__",
-        "//theorem/ternary:__pkg__",
     ],
     deps = ["//library/function:invoke"],
 )
@@ -26,7 +23,10 @@ photonic_library(
 photonic_library(
     name = "equal",
     srcs = ["equal.particle"],
-    visibility = ["//theorem/boolean:__pkg__"],
+    visibility = [
+        "//program/composition:__pkg__",
+        "//theorem/boolean:__pkg__",
+    ],
     deps = ["//library/function:invoke"],
 )
 
@@ -36,7 +36,6 @@ photonic_library(
     visibility = [
         "//program/composition:__pkg__",
         "//theorem/boolean:__pkg__",
-        "//theorem/induction:__pkg__",
     ],
     deps = ["//library/function:invoke"],
 )
@@ -47,15 +46,12 @@ photonic_library(
     visibility = [
         "//theorem/boolean:__pkg__",
         "//theorem/coloring:__pkg__",
-        "//theorem/induction:__pkg__",
-        "//theorem/ternary:__pkg__",
     ],
     deps = ["//library/function:invoke"],
 )
 
 photonic_test(
     name = "not.check",
-    preserve = True,
     source = "Invoke.Boolean.Not.True",
     target = ["False"],
     deps = [":not"],
@@ -64,7 +60,6 @@ photonic_test(
 photonic_test(
     name = "not.reject",
     expect = "unreachable",
-    preserve = True,
     source = "Invoke.Boolean.Not.True",
     target = ["True"],
     deps = [":not"],

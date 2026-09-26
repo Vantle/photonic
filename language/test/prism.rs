@@ -1,15 +1,27 @@
-use crate::lowering::parse;
-use crate::prism::{Outcome, Search};
-use crate::runtime::Limit;
+use crate::prism::{Outcome, Verdict};
+use crate::runtime::{Limit, Runtime};
+use frontend::lowering::parse;
 
-fn search(program: &str, target: &str) -> Search {
-    {
+struct Case {
+    runtime: Runtime,
+    target: frontend::source::Program,
+}
+
+impl Case {
+    fn new(program: &str, target: &str) -> Self {
         let program = parse(program).unwrap();
-        let target = crate::source::Program {
-            rule: program.rule.clone(),
-            ..parse(target).unwrap()
-        };
-        Search::new(program, target)
+        Self {
+            target: crate::test::target(&program, target),
+            runtime: Runtime::new(&program),
+        }
+    }
+
+    fn verdict(&self) -> Verdict {
+        self.runtime.verdict(&self.target)
+    }
+
+    fn report(&self) -> serde_json::Value {
+        serde_json::to_value((self.verdict(), self.runtime.snapshot())).unwrap()
     }
 }
 
@@ -20,28 +32,27 @@ fn observation() {
         ("Seed.A, [Seed] ().([A] B)", "Seed.A"),
         ("A, [A] B, [A] C, [B,C] Forbidden", "A"),
     ] {
-        let mut observed = search(program, target);
+        let mut observed = Case::new(program, target);
         for budget in 1usize..=128 {
-            observed.run(1, None);
-            let report = serde_json::to_value(observed.report()).unwrap();
+            observed.runtime.run(1, Limit::default());
             if budget.is_power_of_two() {
-                let mut reference = search(program, target);
-                reference.run(budget, None);
-                assert_eq!(report, serde_json::to_value(reference.report()).unwrap());
+                let mut reference = Case::new(program, target);
+                reference.runtime.run(budget, Limit::default());
+                assert_eq!(observed.report(), reference.report());
             }
         }
     }
 }
 
 fn outcome(program: &str, target: &str) -> Outcome {
-    let mut search = search(program, target);
-    search.run(12_000, None);
-    search.report().outcome
+    let mut case = Case::new(program, target);
+    case.runtime.run(12_000, Limit::default());
+    case.verdict().outcome
 }
 
 #[test]
 fn reachability() {
-    let initial = search("A.B", "B.A").report();
+    let initial = Case::new("A.B", "B.A").verdict();
     assert_eq!(initial.outcome, Outcome::Reached);
     assert_eq!(initial.witness, Some(0));
     assert_eq!(outcome("A, [A] B", "B"), Outcome::Reached);
@@ -59,11 +70,10 @@ fn abstraction() {
             "{initial}, [Seed] Intermediate, [Intermediate] Kind, [Other] Kind, \
              [Pair.Kind, Pair.Kind] ([()] Result)"
         );
-        let mut search = search(&program, "Result.Seed.Other");
-        search.run(12_000, None);
-        let report = search.report();
-        assert!(report.execution.closed);
-        assert_eq!(report.outcome, Outcome::Reached);
+        let mut case = Case::new(&program, "Result.Seed.Other");
+        case.runtime.run(12_000, Limit::default());
+        assert!(case.runtime.snapshot().closed);
+        assert_eq!(case.verdict().outcome, Outcome::Reached);
     }
     assert_eq!(
         outcome(
@@ -97,38 +107,33 @@ fn identity() {
     );
     assert_eq!(outcome("$x, [$y] Result", "Result"), Outcome::Unreachable);
     assert_eq!(
-        search("().([A.B] C)", "().([B.A] C)").report().outcome,
+        Case::new("().([A.B] C)", "().([B.A] C)").verdict().outcome,
         Outcome::Reached
     );
 }
 
 #[test]
 fn uncertainty() {
-    let mut paused = search("A, [A] B", "B");
-    paused.run(0, None);
-    assert_eq!(paused.report().outcome, Outcome::Unknown);
-    paused.run(
+    let mut paused = Case::new("A, [A] B", "B");
+    paused.runtime.run(0, Limit::default());
+    assert_eq!(paused.verdict().outcome, Outcome::Unknown);
+    paused.runtime.run(
         12_000,
-        Some(Limit {
-            state: 1,
+        Limit {
+            configuration: 1,
             ..Limit::default()
-        }),
+        },
     );
-    assert_eq!(paused.report().outcome, Outcome::Unknown);
-    paused.run(12_000, Some(Limit::default()));
-    assert_eq!(paused.report().outcome, Outcome::Reached);
+    assert_eq!(paused.verdict().outcome, Outcome::Unknown);
+    paused.runtime.run(12_000, Limit::default());
+    assert_eq!(paused.verdict().outcome, Outcome::Reached);
 }
 
 #[test]
 fn target() {
-    let mut search = {
-        let program = parse("A").unwrap();
-        let mut target = parse("B, [B] A").unwrap();
-        target.preserve(&program);
-        Search::new(program, target)
-    };
-    search.run(12_000, None);
-    assert_eq!(search.verdict().outcome, Outcome::Unreachable);
+    let mut case = Case::new("A", "B, [B] A");
+    case.runtime.run(12_000, Limit::default());
+    assert_eq!(case.verdict().outcome, Outcome::Unreachable);
     assert_eq!(outcome("A, [A]", ""), Outcome::Reached);
     assert_eq!(outcome("A, [A] ()", ""), Outcome::Unreachable);
 }
@@ -205,36 +210,34 @@ fn concept() {
 #[test]
 fn indexing() {
     let source = "Use.Seed, [Seed] Kind, [Use.Kind] ([Seed] Done)";
-    let mut clean = search(source, "Done");
-    clean.run(100_000, None);
-    let clean = clean.report();
-    assert_eq!(clean.outcome, Outcome::Reached);
+    let mut clean = Case::new(source, "Done");
+    clean.runtime.run(100_000, Limit::default());
+    assert_eq!(clean.verdict().outcome, Outcome::Reached);
+    let clean = clean.runtime.snapshot();
     let noise = (0..1000)
         .map(|index| format!(", [Absent{index}] Unused{index}"))
         .collect::<String>();
-    let mut indexed = search(&format!("{source}{noise}"), "Done");
-    indexed.run(
+    let mut indexed = Case::new(&format!("{source}{noise}"), "Done");
+    indexed.runtime.run(
         100_000,
-        Some(Limit {
-            cell: 1100,
+        Limit {
+            occurrence: 1100,
             ..Limit::default()
-        }),
+        },
     );
-    let indexed = indexed.report();
-    assert!(indexed.execution.closed);
-    assert_eq!(indexed.outcome, Outcome::Reached);
-    assert_eq!(indexed.execution.state.len(), clean.execution.state.len());
-    assert_eq!(indexed.execution.event.len(), clean.execution.event.len());
+    assert_eq!(indexed.verdict().outcome, Outcome::Reached);
+    let indexed = indexed.runtime.snapshot();
+    assert!(indexed.closed);
+    assert_eq!(indexed.state.len(), clean.state.len());
+    assert_eq!(indexed.event.len(), clean.event.len());
     assert!(
         indexed
-            .execution
             .state
             .iter()
             .all(|state| state.frame[0].particle.len() == 1002)
     );
     assert!(
         clean
-            .execution
             .state
             .iter()
             .all(|state| state.frame[0].particle.len() == 2)
@@ -248,27 +251,26 @@ fn indexing() {
 
 #[test]
 fn verdict() {
-    let mut search = search("A, [A] B, [B] C", "C");
-    assert_eq!(search.verdict().outcome, Outcome::Unknown);
-    search.run(12000, None);
-    let report = search.report();
-    assert_eq!(search.verdict().outcome, report.outcome);
-    assert_eq!(search.verdict().witness, report.witness);
-    let work = report.execution.work;
+    let mut case = Case::new("A, [A] B, [B] C", "C");
+    assert_eq!(case.verdict().outcome, Outcome::Unknown);
+    case.runtime.run(12000, Limit::default());
+    let verdict = case.verdict();
+    assert_eq!(verdict.outcome, Outcome::Reached);
+    assert_eq!(case.verdict(), verdict);
+    let work = case.runtime.snapshot().work;
     for (target, expected) in [
         ("A", Outcome::Reached),
         ("D", Outcome::Unreachable),
         ("B", Outcome::Reached),
     ] {
-        search.target(crate::source::Program {
+        let target = frontend::source::Program {
             rule: parse("[A] B, [B] C").unwrap().rule,
             ..parse(target).unwrap()
-        });
-        assert_eq!(search.verdict().outcome, expected);
-        assert_eq!(search.report().execution.work, work);
+        };
+        assert_eq!(case.runtime.verdict(&target).outcome, expected);
+        assert_eq!(case.runtime.snapshot().work, work);
     }
-    search.target(parse("B, [B] C").unwrap());
-    assert_eq!(search.verdict().outcome, Outcome::Unreachable);
-    search.target(parse("D").unwrap());
-    assert_eq!(search.verdict().witness, None);
+    let unruled = case.runtime.verdict(&parse("B, [B] C").unwrap());
+    assert_eq!(unruled.outcome, Outcome::Unreachable);
+    assert_eq!(case.runtime.verdict(&parse("D").unwrap()).witness, None);
 }

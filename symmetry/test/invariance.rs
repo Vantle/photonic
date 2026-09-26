@@ -19,7 +19,7 @@ fn relabeling() {
         let symmetry = structure
             .symmetry(1_000_000)
             .expect("the search fits its budget");
-        let form = symmetry.form(&structure);
+        let form = &symmetry.form;
         for _ in 0..4 {
             let (image, _) = shuffle(&mut generator, &structure);
             let other = image
@@ -27,14 +27,17 @@ fn relabeling() {
                 .expect("the search fits its budget");
             assert_eq!(other.key, symmetry.key);
             assert_eq!(other.size, symmetry.size);
-            assert_eq!(other.form(&image), form);
+            assert_eq!(&other.form, form);
             let map = symmetry
                 .isomorphism(&other)
                 .expect("a relabeling is an isomorphism");
-            assert_eq!(structure.rename(|atom| map[&atom]), image);
+            assert_eq!(super::support::rename(&structure, |atom| map[&atom]), image);
         }
         for permutation in super::support::generator(&symmetry) {
-            assert_eq!(structure.rename(|atom| permutation.image(atom)), structure);
+            assert_eq!(
+                super::support::rename(&structure, |atom| permutation.image(atom)),
+                structure
+            );
         }
     }
 }

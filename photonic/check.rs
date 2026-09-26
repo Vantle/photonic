@@ -1,7 +1,7 @@
+use frontend::source::Program;
 use miette::{IntoDiagnostic, WrapErr};
-use photonic::prism::{Outcome, Search};
-use photonic::runtime::Limit;
-use photonic::source::Program;
+use photonic::prism::Outcome;
+use photonic::runtime::{Limit, Runtime};
 use serde::Deserialize;
 use std::process::ExitCode;
 
@@ -12,13 +12,6 @@ enum Expect {
     Unreachable,
 }
 
-#[derive(Clone, Copy, Deserialize)]
-#[serde(rename_all = "lowercase")]
-enum Mode {
-    All,
-    Any,
-}
-
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Case {
@@ -26,16 +19,13 @@ struct Case {
     source: String,
     target: Vec<String>,
     expect: Expect,
-    #[serde(rename = "match")]
-    mode: Mode,
     path: bool,
-    preserve: bool,
     work: usize,
     limit: Limit,
 }
 
 fn lower(source: &str) -> miette::Result<Program> {
-    photonic::lowering::parse(source)
+    frontend::lowering::parse(source)
         .map_err(|failure| miette::Report::new(failure).with_source_code(source.to_string()))
 }
 
@@ -57,8 +47,8 @@ fn main() -> miette::Result<ExitCode> {
     if case.target.is_empty() {
         miette::bail!("a test needs at least one target configuration");
     }
-    let mut program: Program =
-        serde_json::from_slice(&std::fs::read(resolve(&case.program)?).into_diagnostic()?)
+    let mut program =
+        Program::read(&std::fs::read_to_string(resolve(&case.program)?).into_diagnostic()?)
             .into_diagnostic()
             .wrap_err("invalid assembled program")?;
     program.append(lower(&case.source)?);
@@ -67,9 +57,7 @@ fn main() -> miette::Result<ExitCode> {
         .iter()
         .map(|source| {
             let mut target = lower(source)?;
-            if case.preserve {
-                target.preserve(&program);
-            }
+            target.preserve(&program);
             Ok(target)
         })
         .collect::<miette::Result<Vec<_>>>()?;
@@ -80,22 +68,18 @@ fn main() -> miette::Result<ExitCode> {
             miette::bail!("a direct path can witness reachability but cannot prove unreachability")
         }
     };
-    let every = matches!(case.mode, Mode::All);
     let limit = case.limit;
-    let mut exploration = if case.path {
-        None
-    } else {
-        let mut search = Search::new(program.clone(), target[0].clone());
-        search.run(case.work, Some(limit));
-        Some(search)
-    };
+    let exploration = (!case.path).then(|| {
+        let mut runtime = Runtime::new(&program);
+        runtime.run(case.work, limit);
+        runtime
+    });
     let directory = std::env::var_os("TEST_UNDECLARED_OUTPUTS_DIR").map(std::path::PathBuf::from);
-    let mut success = every;
+    let mut success = true;
     for (index, target) in target.into_iter().enumerate() {
         let name = format!("{index}.json");
-        let result = if let Some(search) = &mut exploration {
-            search.target(target);
-            let verdict = search.verdict();
+        let result = if let Some(runtime) = &exploration {
+            let verdict = runtime.verdict(&target);
             if verdict.outcome != expected {
                 record(
                     &directory,
@@ -109,7 +93,7 @@ fn main() -> miette::Result<ExitCode> {
             }
             verdict.outcome
         } else {
-            let mut search = photonic::path::Search::new(program.clone(), target);
+            let mut search = photonic::path::Search::new(program.clone(), Some(target));
             search.run(case.work, limit);
             let outcome = search.summary().outcome;
             if outcome != expected {
@@ -118,23 +102,14 @@ fn main() -> miette::Result<ExitCode> {
             outcome
         };
         println!("Prism target {index}: {result:?}; {}", case.target[index]);
-        let matched = result == expected;
-        success = if every {
-            success && matched
-        } else {
-            success || matched
-        };
-        if !every && success {
-            break;
-        }
+        success &= result == expected;
     }
     println!(
-        "Prism: match {}; expected {expected:?}; {}",
-        if every { "all" } else { "any" },
+        "Prism: expected {expected:?}; {}",
         if success { "passed" } else { "failed" }
     );
-    if let (false, Some(search)) = (success, &exploration) {
-        record(&directory, "execution.json", &search.report())?;
+    if let (false, Some(runtime)) = (success, &exploration) {
+        record(&directory, "execution.json", &runtime.view())?;
     }
     Ok(if success {
         ExitCode::SUCCESS

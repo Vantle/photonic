@@ -1,3 +1,0 @@
-[Function.Natural.Deduct] (Function.Natural.Column, Column.Mode.([Operation] Deduct), Deduct.([Guard] ())),
-[Return.Natural.Column.Positive, Deduct.([Guard] ())] Return.Natural.Deduct.Positive,
-[Return.Natural.Column.Negative, Deduct.([Guard] ())] Return.Natural.Deduct.Negative

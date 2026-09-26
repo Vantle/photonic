@@ -1,19 +1,16 @@
-use crate::lowering::parse;
-use crate::prism::{Outcome, Search};
+use crate::prism::Outcome;
+use crate::runtime::{Limit, Runtime};
+use frontend::lowering::parse;
 
 fn check(source: &str, target: &str, expected: Outcome) {
-    let mut search = {
-        let program = parse(source).unwrap();
-        let target = crate::source::Program {
-            rule: program.rule.clone(),
-            ..parse(target).unwrap()
-        };
-        Search::new(program, target)
-    };
-    search.run(50_000, None);
-    let report = search.report();
-    assert!(report.execution.closed, "{source}");
-    assert_eq!(report.outcome, expected, "{source} => {target}");
+    let program = parse(source).unwrap();
+    let goal = crate::test::target(&program, target);
+    let mut runtime = Runtime::new(&program);
+    runtime.run(50_000, Limit::default());
+    let verdict = runtime.verdict(&goal);
+    let report = runtime.snapshot();
+    assert!(report.closed, "{source}");
+    assert_eq!(verdict.outcome, expected, "{source} => {target}");
 }
 
 #[test]

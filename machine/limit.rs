@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Overflow {
     Event,
@@ -7,25 +9,34 @@ pub enum Overflow {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Limit {
-    pub state: usize,
+    pub configuration: usize,
     pub coherence: usize,
-    pub cell: usize,
+    pub occurrence: usize,
     pub round: usize,
     pub terminal: usize,
     pub event: usize,
     pub individualization: usize,
+    pub deadline: Option<Instant>,
 }
 
 impl Default for Limit {
     fn default() -> Self {
         Self {
-            state: 4_096,
+            configuration: 4_096,
             coherence: 16,
-            cell: 64,
+            occurrence: 64,
             round: 256,
             terminal: 4,
             event: 4_096,
             individualization: 4_096,
+            deadline: None,
         }
+    }
+}
+
+impl Limit {
+    pub fn expired(&self) -> bool {
+        self.deadline
+            .is_some_and(|deadline| Instant::now() >= deadline)
     }
 }

@@ -38,10 +38,7 @@ photonic_library(
 photonic_library(
     name = "judge",
     srcs = ["judge.particle"],
-    visibility = [
-        "//theorem/sequence:__pkg__",
-        "//theorem/ternary:__pkg__",
-    ],
+    visibility = ["//theorem/sequence:__pkg__"],
 )
 
 filegroup(

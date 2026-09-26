@@ -132,7 +132,7 @@ impl Builder<'_> {
         self.intern(Color::Rule, child)
     }
 
-    fn part(&mut self, part: &Part) {
+    fn part(&mut self, role: u32, part: &Part) {
         let mut child = Vec::new();
         for (rule, count) in run(part.program.rule()) {
             child.push(Edge {
@@ -149,13 +149,17 @@ impl Builder<'_> {
             });
         }
         child.sort_unstable();
-        self.color.push(Color::Part(part.role));
+        self.color.push(Color::Part(role));
         self.child.push(child);
     }
 }
 
 impl Graph {
-    pub fn new(atom: &[Atom], pin: &[Atom], part: &[Part]) -> Self {
+    pub fn new<'part>(
+        atom: &[Atom],
+        pin: &[Atom],
+        part: impl IntoIterator<Item = (u32, &'part Part)>,
+    ) -> Self {
         let index = atom
             .iter()
             .enumerate()
@@ -177,8 +181,8 @@ impl Graph {
             child: vec![Vec::new(); atom.len()],
             intern: HashMap::new(),
         };
-        for part in part {
-            builder.part(part);
+        for (role, part) in part {
+            builder.part(role, part);
         }
         Self::link(builder.color, builder.child, atom.len())
     }

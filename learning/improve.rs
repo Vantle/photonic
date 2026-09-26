@@ -1,7 +1,8 @@
 use crate::argument::Improve;
-use crate::output::line;
+use crate::output::{line, proof, report};
 use crate::setup::{archive, open, pool, session, setting};
-use crate::solve::{Attempt, attempt};
+use code::hashing::combine;
+use learning::attempt;
 use learning::home;
 use learning::pool::{self, SYNTHETIC};
 use learning::session;
@@ -12,19 +13,23 @@ use std::time::{Duration, Instant};
 
 pub fn run(argument: Improve) -> miette::Result<()> {
     let home = open(&argument.home)?;
-    let setting = setting(&argument.session);
-    let option = Attempt {
+    let setting = setting(&argument.session, false)?;
+    let deadline = setting.duration.map(|duration| Instant::now() + duration);
+    let option = attempt::Setting {
         objective: setting.play.objective,
         bound: setting.play.bound,
         budget: Budget {
             time: Some(Duration::from_secs(argument.enumerate)),
             ..Budget::default()
         },
-        guide: argument.guide,
+        guide: Duration::from_secs(argument.guide),
         blind: true,
-        show: 0,
+        deadline,
     };
     for round in 0..argument.round {
+        if deadline.is_some_and(|deadline| Instant::now() >= deadline) {
+            break;
+        }
         let known = pool(
             &home,
             SYNTHETIC,
@@ -36,7 +41,7 @@ pub fn run(argument: Improve) -> miette::Result<()> {
         let grown = pool::grow(
             known,
             argument.fresh,
-            argument.session.seed ^ round as u64,
+            combine(argument.session.seed, round as u64),
             &setting.play.objective,
         )
         .into_diagnostic()?;
@@ -59,31 +64,34 @@ pub fn run(argument: Improve) -> miette::Result<()> {
             .collect::<Vec<_>>();
         home.save(home::POOL, &pool).into_diagnostic()?;
         let start = Instant::now();
-        let count = attempt(&home, &pool, &fresh, &option)?;
+        let count = attempt::run(&home, &pool, &fresh, &option, |event| report(event, 0))
+            .into_diagnostic()?;
         line(&format!(
-            "round {}: solved {} of {} new behaviors from their tests before training on them, {} proven optimal, {} passing held-out tests, in {:.1}s",
+            "round {}: solved {} of {} new behaviors from their tests before training on them, {}, {} passing held-out tests, in {:.1}s",
             round + 1,
             count.found,
             count.total,
-            count.proven,
+            proof(&count),
             count.general,
             start.elapsed().as_secs_f64()
         ));
         let archive = archive(&home)?;
         let focus = pool
             .iter()
-            .filter(|task| {
-                archive
-                    .entry(&task.name)
-                    .and_then(|entry| entry.best.as_ref())
-                    .is_none()
-            })
+            .filter(|task| archive.best(&task.name).is_none())
             .map(|task| task.name.clone())
             .collect::<Vec<_>>();
+        let practice = deadline.map_or(Duration::from_secs(argument.practice), |deadline| {
+            Duration::from_secs(argument.practice)
+                .min(deadline.saturating_duration_since(Instant::now()))
+        });
+        if practice.is_zero() {
+            break;
+        }
         line(&format!(
-            "round {}: training for {}s, focused on the {} tasks still unsolved",
+            "round {}: training for {:.0}s, focused on the {} tasks still unsolved",
             round + 1,
-            argument.practice,
+            practice.as_secs_f64(),
             focus.len()
         ));
         session(
@@ -91,7 +99,7 @@ pub fn run(argument: Improve) -> miette::Result<()> {
             &pool,
             &focus,
             &session::Setting {
-                duration: Some(Duration::from_secs(argument.practice)),
+                duration: Some(practice),
                 ..setting
             },
         )?;

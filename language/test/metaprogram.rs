@@ -1,16 +1,16 @@
-use crate::lowering::parse;
 use crate::path::Search;
 use crate::prism::Outcome;
 use crate::runtime::{Limit, Runtime};
 use crate::status::Status;
+use frontend::lowering::parse;
 
 fn limit() -> Limit {
     Limit {
-        state: 256,
+        configuration: 256,
         record: 2_000_000,
-        world: 16,
-        cell: 256,
-        frame: 128,
+        coherence: 16,
+        occurrence: 256,
+        scope: 128,
     }
 }
 
@@ -31,11 +31,8 @@ fn tower(depth: usize) -> (String, String) {
 fn execute(source: &str, target: &str) -> Search {
     let mut search = {
         let program = parse(source).unwrap();
-        let target = crate::source::Program {
-            rule: program.rule.clone(),
-            ..parse(target).unwrap()
-        };
-        Search::new(program, target)
+        let target = crate::test::target(&program, target);
+        Search::new(program, Some(target))
     };
     search.run(1_000_000, limit());
     assert_eq!(search.summary().outcome, Outcome::Reached, "{source}");
@@ -50,11 +47,8 @@ fn generation() {
         assert_eq!(complete.summary().event, depth);
         let mut chunk = {
             let program = parse(&source).unwrap();
-            let target = crate::source::Program {
-                rule: program.rule.clone(),
-                ..parse(&target).unwrap()
-            };
-            Search::new(program, target)
+            let target = crate::test::target(&program, &target);
+            Search::new(program, Some(target))
         };
         for _ in 0..1_000_000 {
             chunk.run(1, limit());
@@ -91,7 +85,7 @@ fn structure() {
                     world
                         .particle
                         .iter()
-                        .all(|token| token.label.as_ref() != "Forbidden")
+                        .all(|token| crate::test::atom(token) != Some("Forbidden"))
                 }))
         );
     }
@@ -102,7 +96,7 @@ fn evidence() {
     for depth in 1..=4 {
         let (source, _) = tower(depth);
         let mut complete = Runtime::new(&parse(&source).unwrap());
-        complete.run(1_000_000, Some(limit()));
+        complete.run(1_000_000, limit());
         assert!(complete.closed(), "depth {depth}");
         let expected = complete.snapshot();
         assert!(expected.state.iter().any(|state| {
@@ -111,13 +105,13 @@ fn evidence() {
                     world
                         .particle
                         .iter()
-                        .any(|token| token.label.as_ref() == "Done")
+                        .any(|token| crate::test::atom(token) == Some("Done"))
                 })
         }));
         let mut chunk = Runtime::new(&parse(&source).unwrap());
-        chunk.run(0, Some(limit()));
+        chunk.run(0, limit());
         for _ in 0..1_000_000 {
-            chunk.run(1, None);
+            chunk.run(1, limit());
             if chunk.closed() {
                 break;
             }
@@ -139,11 +133,8 @@ fn recursion() {
     ] {
         let mut search = {
             let program = parse(source).unwrap();
-            let target = crate::source::Program {
-                rule: program.rule.clone(),
-                ..parse("Missing").unwrap()
-            };
-            Search::new(program, target)
+            let target = crate::test::target(&program, "Missing");
+            Search::new(program, Some(target))
         };
         search.run(10_000, limit());
         assert_eq!(search.summary().outcome, Outcome::Unknown);
@@ -153,7 +144,7 @@ fn recursion() {
                 world
                     .particle
                     .iter()
-                    .all(|token| token.label.as_ref() != "Done")
+                    .all(|token| crate::test::atom(token) != Some("Done"))
             })
         }));
     }
@@ -169,14 +160,11 @@ fn capture() {
         let source = format!("Enter0.Make.Call, [Enter0] ({body}), [A] Global");
         let mut search = {
             let program = parse(&source).unwrap();
-            let target = crate::source::Program {
-                rule: program.rule.clone(),
-                ..parse("Missing").unwrap()
-            };
-            Search::new(program, target)
+            let target = crate::test::target(&program, "Missing");
+            Search::new(program, Some(target))
         };
         let bound = Limit {
-            cell: (depth + 4) * (depth + 4),
+            occurrence: (depth + 4) * (depth + 4),
             ..limit()
         };
         search.run(1_000_000, bound);
@@ -187,7 +175,7 @@ fn capture() {
                     world
                         .particle
                         .iter()
-                        .any(|token| token.label.as_ref() == "Done")
+                        .any(|token| crate::test::atom(token) == Some("Done"))
                 })
             }),
             "depth {depth}"
@@ -198,7 +186,7 @@ fn capture() {
                     world
                         .particle
                         .iter()
-                        .all(|token| token.label.as_ref() != "Global")
+                        .all(|token| crate::test::atom(token) != Some("Global"))
                 })
             }),
             "depth {depth}"
@@ -206,11 +194,8 @@ fn capture() {
         if depth == 32 {
             let mut paused = {
                 let program = parse(&source).unwrap();
-                let target = crate::source::Program {
-                    rule: program.rule.clone(),
-                    ..parse("Missing").unwrap()
-                };
-                Search::new(program, target)
+                let target = crate::test::target(&program, "Missing");
+                Search::new(program, Some(target))
             };
             paused.run(1_000_000, limit());
             let current = paused.current();
@@ -224,13 +209,13 @@ fn capture() {
                     .iter()
                     .map(|frame| frame.particle.len() + frame.held.len())
                     .sum::<usize>();
-            assert!(cell <= limit().cell);
+            assert!(cell <= limit().occurrence);
             assert!(
                 !current
                     .world
                     .iter()
                     .flat_map(|world| &world.particle)
-                    .any(|token| token.label.as_ref() == "Done")
+                    .any(|token| crate::test::atom(token) == Some("Done"))
             );
             paused.run(1_000_000, bound);
             let mut actual = serde_json::to_value(paused.report()).unwrap();

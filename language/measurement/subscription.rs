@@ -50,7 +50,7 @@ pub fn run() -> Vec<Observation> {
             vec!["A"; width].join(".")
         ));
     }
-    let program = Program::new(&crate::lowering::parse(&source).unwrap());
+    let program = Program::new(&frontend::lowering::parse(&source).unwrap());
     let mut state = State::initial(&program);
     state.frame = vec![state.frame[0].clone(); 8].into();
     for frame in 1..8 {

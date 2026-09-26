@@ -2,6 +2,7 @@ use crate::basis::Set;
 use crate::flow::Flow;
 use crate::place::Place;
 use crate::program::Symbol;
+use crate::runtime::Limit;
 use crate::state::{Frame, State, Token, World};
 use std::sync::Arc;
 
@@ -328,7 +329,7 @@ fn transition(search: &mut crate::reduction::Search) -> Option<crate::reduction:
     for _ in 0..100_000 {
         let previous = search.work;
         if let Some(event) = search.run(crate::runtime::Limit {
-            world: 64,
+            coherence: 64,
             ..crate::runtime::Limit::default()
         }) {
             return Some(event);
@@ -342,8 +343,9 @@ fn transition(search: &mut crate::reduction::Search) -> Option<crate::reduction:
 
 #[test]
 fn loading() {
-    let program =
-        crate::program::Program::new(&crate::lowering::parse("().([A] B), [A] B, [A] B").unwrap());
+    let program = crate::program::Program::new(
+        &frontend::lowering::parse("().([A] B), [A] B, [A] B").unwrap(),
+    );
     let state = State::initial(&program);
     assert_eq!(state.world.len(), 1);
     assert_eq!(state.world[0].particle.len(), 1);
@@ -374,7 +376,7 @@ fn loading() {
 fn startup() {
     for source in ["[] A", "().([] A)"] {
         let program = Arc::new(crate::program::Program::new(
-            &crate::lowering::parse(source).unwrap(),
+            &frontend::lowering::parse(source).unwrap(),
         ));
         let mut state = Arc::new(State::initial(&program));
         let initial = state.world.len();
@@ -390,16 +392,16 @@ fn startup() {
             state = event.state.clone();
             search.advance(event.state, &event.change, event.fingerprint);
         }
-        let mut runtime = crate::runtime::Runtime::new(&crate::lowering::parse(source).unwrap());
+        let mut runtime = crate::runtime::Runtime::new(&frontend::lowering::parse(source).unwrap());
         runtime.run(
             100_000,
-            Some(crate::runtime::Limit {
-                state: 8,
-                world: initial + 3,
-                cell: 16,
-                frame: 8,
+            crate::runtime::Limit {
+                configuration: 8,
+                coherence: initial + 3,
+                occurrence: 16,
+                scope: 8,
                 record: 100_000,
-            }),
+            },
         );
         assert!(
             runtime
@@ -413,7 +415,7 @@ fn startup() {
 #[test]
 fn authority() {
     let program = Arc::new(crate::program::Program::new(
-        &crate::lowering::parse("[] A").unwrap(),
+        &frontend::lowering::parse("[] A").unwrap(),
     ));
     let initial = State::initial(&program);
     let mut consumed = initial.clone();
@@ -422,7 +424,7 @@ fn authority() {
     let mut direct = crate::reduction::Search::new(program.clone(), consumed.clone());
     assert!(transition(&mut direct).is_none());
     let mut exhaustive = crate::runtime::Runtime::seed(program, consumed);
-    exhaustive.run(100_000, None);
+    exhaustive.run(100_000, Limit::default());
     assert!(exhaustive.closed());
     assert!(exhaustive.snapshot().event.is_empty());
     assert_eq!(initial.frame[0].particle.len(), 1);
@@ -431,7 +433,7 @@ fn authority() {
 #[test]
 fn entry() {
     let program = Arc::new(crate::program::Program::new(
-        &crate::lowering::parse("Seed, [Seed] (B, [B] C)").unwrap(),
+        &frontend::lowering::parse("Seed, [Seed] (B, [B] C)").unwrap(),
     ));
     let state = Arc::new(State::initial(&program));
     assert_eq!(state.frame.len(), 1);
@@ -452,7 +454,7 @@ fn entry() {
 fn operand() {
     let source = "[A] B, [[A] B] C";
     let program = Arc::new(crate::program::Program::new(
-        &crate::lowering::parse(source).unwrap(),
+        &frontend::lowering::parse(source).unwrap(),
     ));
     let initial = Arc::new(State::initial(&program));
     assert_eq!(initial.world.len(), 0);
@@ -474,7 +476,7 @@ fn operand() {
     direct.advance(event.state, &event.change, event.fingerprint);
     assert!(transition(&mut direct).is_none());
     let mut exhaustive = crate::runtime::Runtime::seed(program, initial.clone());
-    exhaustive.run(100_000, None);
+    exhaustive.run(100_000, Limit::default());
     assert!(exhaustive.closed());
     assert!(
         exhaustive
@@ -492,18 +494,18 @@ fn multiplicity() {
         "(),(), [A] B, [[A] B,[A] B] C",
     ] {
         let program = Arc::new(crate::program::Program::new(
-            &crate::lowering::parse(source).unwrap(),
+            &frontend::lowering::parse(source).unwrap(),
         ));
         let initial = Arc::new(State::initial(&program));
         let mut direct = crate::reduction::Search::new(program.clone(), initial.clone());
         assert!(transition(&mut direct).is_none(), "{source}");
         let mut exhaustive = crate::runtime::Runtime::seed(program, initial);
-        exhaustive.run(100_000, None);
+        exhaustive.run(100_000, Limit::default());
         assert!(exhaustive.closed());
         assert!(exhaustive.snapshot().event.is_empty(), "{source}");
     }
     let program = Arc::new(crate::program::Program::new(
-        &crate::lowering::parse("[A] B, [A] B, [([A] B).([A] B)] C").unwrap(),
+        &frontend::lowering::parse("[A] B, [A] B, [([A] B).([A] B)] C").unwrap(),
     ));
     let initial = Arc::new(State::initial(&program));
     let mut direct = crate::reduction::Search::new(program, initial);
@@ -515,7 +517,7 @@ fn multiplicity() {
 #[test]
 fn invalidation() {
     let program = Arc::new(crate::program::Program::new(
-        &crate::lowering::parse("[A] B, [A] B, [[A] B] C").unwrap(),
+        &frontend::lowering::parse("[A] B, [A] B, [[A] B] C").unwrap(),
     ));
     let initial = Arc::new(State::initial(&program));
     let mut cached = crate::reduction::Search::new(program.clone(), initial);
@@ -595,8 +597,8 @@ fn target() {
         ("[A] B, [[A] B] C", "C, [A] B, [[A] B] C", false),
     ] {
         let mut direct = crate::path::Search::new(
-            crate::lowering::parse(source).unwrap(),
-            crate::lowering::parse(target).unwrap(),
+            frontend::lowering::parse(source).unwrap(),
+            Some(frontend::lowering::parse(target).unwrap()),
         );
         direct.run(100_000, crate::runtime::Limit::default());
         assert_eq!(
@@ -604,21 +606,18 @@ fn target() {
             reached,
             "{source} => {target}"
         );
-        let mut exhaustive = crate::prism::Search::new(
-            crate::lowering::parse(source).unwrap(),
-            crate::lowering::parse(target).unwrap(),
-        );
-        exhaustive.run(100_000, None);
+        let mut exhaustive =
+            crate::runtime::Runtime::new(&frontend::lowering::parse(source).unwrap());
+        exhaustive.run(100_000, Limit::default());
         assert_eq!(
-            exhaustive.verdict().outcome == crate::prism::Outcome::Reached,
+            exhaustive
+                .verdict(&frontend::lowering::parse(target).unwrap())
+                .outcome
+                == crate::prism::Outcome::Reached,
             reached,
             "{source} => {target}"
         );
-        assert!(exhaustive.report().execution.closed);
-        assert_eq!(
-            serde_json::to_value(exhaustive.report()).unwrap()["target"],
-            serde_json::to_value(crate::lowering::parse(target).unwrap()).unwrap()
-        );
+        assert!(exhaustive.snapshot().closed);
     }
 }
 
@@ -626,7 +625,7 @@ fn target() {
 fn mixed() {
     let source = format!("{},X, [B] C, [A.([B] C)] D, [X] A", vec!["A"; 40].join(","));
     let program = Arc::new(crate::program::Program::new(
-        &crate::lowering::parse(&source).unwrap(),
+        &frontend::lowering::parse(&source).unwrap(),
     ));
     let initial = Arc::new(State::initial(&program));
     let symbol = Symbol::Atom(program.atom.get_index_of("X").unwrap());

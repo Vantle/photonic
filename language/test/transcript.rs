@@ -24,7 +24,7 @@ fn exhaust(mut search: Search) -> Vec<Poll<Option<Vec<crate::slot::Slot>>>> {
 fn identity() {
     use crate::program::Symbol;
     use crate::state::{Token, World};
-    let program = Program::new(&crate::lowering::parse("A").unwrap());
+    let program = Program::new(&frontend::lowering::parse("A").unwrap());
     let mut state = State::initial(&program);
     state.frame.push(state.frame[0].clone());
     state.world = (0..3)
@@ -73,7 +73,7 @@ fn identity() {
 #[test]
 fn projection() {
     let source = format!("{},B,C", ["A"; 32].join("."));
-    let program = Program::new(&crate::lowering::parse(&source).unwrap());
+    let program = Program::new(&frontend::lowering::parse(&source).unwrap());
     let state = State::initial(&program);
     let pattern = state
         .world
@@ -140,7 +140,7 @@ fn projection() {
 fn context() {
     use crate::program::Symbol;
     use crate::state::{Token, World};
-    let program = Program::new(&crate::lowering::parse("A, [A] B").unwrap());
+    let program = Program::new(&frontend::lowering::parse("A, [A] B").unwrap());
     let mut state = State::initial(&program);
     Arc::make_mut(&mut state.frame[0]).particle = (0..16)
         .map(|position| Token {
@@ -255,7 +255,7 @@ fn context() {
 #[test]
 fn recycling() {
     let program = Program::new(
-        &crate::lowering::parse(&format!("{},{}", ["A"; 17].join("."), ["B"; 16].join(".")))
+        &frontend::lowering::parse(&format!("{},{}", ["A"; 17].join("."), ["B"; 16].join(".")))
             .unwrap(),
     );
     let state = Arc::new(State::initial(&program));

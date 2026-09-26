@@ -1,8 +1,7 @@
 use crate::catalog::Catalog;
 use crate::configuration::Configuration;
-use crate::failure::Failure;
 use photonic::place::Place;
-use photonic::snapshot::{Event, Snapshot, View};
+use photonic::snapshot::Snapshot;
 use serde::Serialize;
 
 #[derive(Serialize)]
@@ -27,59 +26,33 @@ pub struct Execution {
     event: Vec<Transition>,
 }
 
-fn deduction(view: &[View], evidence: &[usize]) -> Vec<usize> {
-    if evidence
-        .iter()
-        .any(|&index| view[index].source == view[index].target)
-    {
-        return Vec::new();
-    }
-    let mut chain = Vec::new();
-    let mut cursor = view[evidence[0]].origin;
-    while let Some(origin) = cursor {
-        chain.push(origin.event);
-        cursor = view[origin.view].origin;
-    }
-    chain.reverse();
-    chain
-}
-
-impl Transition {
-    fn new(event: Event, view: &[View]) -> Self {
+impl From<Snapshot> for Execution {
+    fn from(snapshot: Snapshot) -> Self {
+        let event = snapshot
+            .event
+            .iter()
+            .map(|event| Transition {
+                id: event.id,
+                source: event.source,
+                target: event.target,
+                rule: snapshot.definition[event.rule].name.clone(),
+                footprint: event.footprint.clone(),
+                exact: event.exact.clone(),
+                world: event.world.clone(),
+                context: event.context.clone(),
+                deduction: snapshot.deduction(event.id),
+            })
+            .collect();
         Self {
-            deduction: deduction(view, &event.evidence),
-            id: event.id,
-            source: event.source,
-            target: event.target,
-            rule: event.rule,
-            footprint: event.footprint,
-            exact: event.exact,
-            world: event.world,
-            context: event.context,
-        }
-    }
-}
-
-impl TryFrom<Snapshot> for Execution {
-    type Error = Failure;
-
-    fn try_from(snapshot: Snapshot) -> Result<Self, Failure> {
-        let definition = Catalog::from(snapshot.definition);
-        let view = snapshot.view;
-        Ok(Self {
+            closed: snapshot.closed,
+            work: snapshot.work,
             state: snapshot
                 .state
                 .into_iter()
-                .map(|node| Configuration::new(node, &definition))
-                .collect::<Result<_, _>>()?,
-            definition,
-            closed: snapshot.closed,
-            work: snapshot.work,
-            event: snapshot
-                .event
-                .into_iter()
-                .map(|event| Transition::new(event, &view))
+                .map(Configuration::from)
                 .collect(),
-        })
+            definition: Catalog::from(snapshot.definition),
+            event,
+        }
     }
 }

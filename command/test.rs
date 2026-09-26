@@ -80,7 +80,7 @@ fn execution() {
             .as_array()
             .unwrap()
             .iter()
-            .map(|token| token["display"].as_str().unwrap())
+            .map(|token| token["atom"].as_str().unwrap_or("rule"))
             .collect::<Vec<_>>();
         particle.sort();
         particle == ["B", "Seed"]
@@ -110,10 +110,10 @@ fn execution() {
     );
     let result = report(&output);
     assert_eq!(result["closed"], false);
-    assert_eq!(result["limit"]["state"], 1);
-    assert_eq!(result["limit"]["cell"], 5);
-    assert_eq!(result["limit"]["frame"], 3);
-    assert_eq!(result["limit"]["world"], 2);
+    assert_eq!(result["limit"]["configuration"], 1);
+    assert_eq!(result["limit"]["occurrence"], 5);
+    assert_eq!(result["limit"]["scope"], 3);
+    assert_eq!(result["limit"]["coherence"], 2);
     assert!(result["work"].as_u64().unwrap() <= 2);
 }
 
@@ -122,18 +122,23 @@ fn format() {
     let fixture = Fixture::new();
     let source = r#"{"initial":[["A"]],"rule":[{"input":[["A"]],"output":[{"particle":["B"]}]}]}"#;
     let path = fixture.write("program.json", source);
-    let inferred = report(&execute("run", &path, &["--json"]));
-    let path = fixture.write("program.wave", source);
-    let explicit = report(&execute("run", &path, &["--format", "json", "--json"]));
-    assert_eq!(inferred, explicit);
-    assert_eq!(inferred["closed"], true);
-    let path = fixture.write("native.json", "A, [A] B");
-    let native = report(&execute("run", &path, &["--format", "photonic", "--json"]));
+    let lower = report(&execute("run", &path, &["--json"]));
+    let path = fixture.write("program.JSON", source);
+    let upper = report(&execute("run", &path, &["--json"]));
+    assert_eq!(lower, upper);
+    assert_eq!(lower["closed"], true);
+    let native = report(&execute(
+        "run",
+        &fixture.write("native.wave", "A, [A] B"),
+        &["--json"],
+    ));
     assert_eq!(native["closed"], true);
     let path = fixture.write("broken.json", "{");
     let output = execute("run", &path, &[]);
     assert!(!output.status.success());
-    assert!(String::from_utf8_lossy(&output.stderr).contains("invalid JSON program"));
+    assert!(
+        String::from_utf8_lossy(&output.stderr).contains("broken.json: not an assembled program")
+    );
 }
 
 #[test]
@@ -143,16 +148,14 @@ fn diagnostic() {
     let output = execute("run", &path, &[]);
     assert!(!output.status.success());
     let error = String::from_utf8(output.stderr).unwrap();
-    assert!(error.contains("photonic::syntax"));
-    assert!(error.contains("invalid.wave"));
-    assert!(error.contains("人]"));
-    let path = fixture.write("structure.wave", "人.世界, [人]");
-    let output = execute("parse", &path, &[]);
-    assert!(output.status.success());
-    assert!(String::from_utf8_lossy(&output.stdout).contains("Concept"));
+    assert!(error.starts_with("error[source]: "), "{error}");
+    assert!(
+        error.contains("invalid.wave:1:2: invalid Photonic syntax"),
+        "{error}"
+    );
     let output = execute("run", &fixture.path.join("missing.wave"), &[]);
     assert!(!output.status.success());
-    assert!(String::from_utf8_lossy(&output.stderr).contains("could not read"));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("error[file]:"));
 }
 
 #[test]
@@ -167,7 +170,7 @@ fn worker() {
     assert_eq!(paused["work"], 0);
     let invalid = execute("run", &path, &["--worker", "0"]);
     assert!(!invalid.status.success());
-    assert!(String::from_utf8_lossy(&invalid.stderr).contains("at least one worker"));
+    assert!(String::from_utf8_lossy(&invalid.stderr).contains("--worker"));
 }
 
 #[test]
@@ -215,8 +218,8 @@ fn prism() {
 fn depth() {
     let fixture = Fixture::new();
     for (source, code) in [
-        ("[".repeat(10_000), "photonic::depth"),
-        ("[A] ".repeat(10_000), "photonic::expansion"),
+        ("[".repeat(10_000), "nesting exceeds 128 levels"),
+        ("[A] ".repeat(10_000), "expansion exceeds"),
     ] {
         let path = fixture.write("deep.wave", &source);
         let output = execute("run", &path, &["--work", "0"]);
@@ -259,7 +262,7 @@ fn group() {
     let output = execute("run", &path, &["--work", "0"]);
     assert!(!output.status.success());
     assert!(output.status.code().is_some());
-    assert!(String::from_utf8_lossy(&output.stderr).contains("photonic::expansion"));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("expansion exceeds"));
 }
 
 #[test]
@@ -297,7 +300,6 @@ fn extension() {
     let mut expected = None;
     for name in ["program.particle", "program.wave", "program.WAVE"] {
         let path = fixture.write(name, source);
-        assert!(execute("parse", &path, &[]).status.success());
         let actual = report(&execute("run", &path, &["--json"]));
         if let Some(expected) = &expected {
             assert_eq!(&actual, expected);
@@ -364,7 +366,7 @@ fn library() {
     let output = execute("run", &path, &["--library", invalid.to_str().unwrap()]);
     assert!(!output.status.success());
     assert!(
-        String::from_utf8_lossy(&output.stderr).contains("photonic::library"),
+        String::from_utf8_lossy(&output.stderr).contains("error[library]:"),
         "{}",
         String::from_utf8_lossy(&output.stderr)
     );
@@ -404,17 +406,7 @@ fn context() {
             .contains("{⟨[A] B⟩@f0}@root")
     );
     let target = fixture.write("target.wave", "B");
-    let value = report(&execute(
-        "lower",
-        &target,
-        &["--context", source.to_str().unwrap()],
-    ));
-    assert_eq!(value["initial"], serde_json::json!([["B"]]));
-    assert_eq!(
-        value["rule"],
-        report(&execute("lower", &source, &[]))["rule"]
-    );
-    let complete = fixture.write("target.json", &value.to_string());
+    let complete = fixture.write("complete.wave", "B, [A] B");
     for (target, expected) in [(&target, "unreachable"), (&complete, "reached")] {
         assert_eq!(
             report(&execute(
@@ -549,7 +541,7 @@ fn shape() {
     );
 }
 
-fn session(fixture: &Fixture, line: &[String]) -> Vec<serde_json::Value> {
+fn session(fixture: &Fixture, line: &[impl AsRef<[u8]>]) -> Vec<serde_json::Value> {
     use std::io::Write;
     let binary = std::env::var_os("PHOTONIC_COMMAND").expect("Photonic runfile path");
     let binary = runfiles::Runfiles::create()
@@ -566,7 +558,8 @@ fn session(fixture: &Fixture, line: &[String]) -> Vec<serde_json::Value> {
     {
         let mut input = child.stdin.take().expect("server input");
         for message in line {
-            writeln!(input, "{message}").expect("send a message");
+            input.write_all(message.as_ref()).expect("send a message");
+            input.write_all(b"\n").expect("end the message");
         }
     }
     let output = child.wait_with_output().expect("the server exits");
@@ -638,6 +631,10 @@ fn server() {
             json!([]),
             json!({"jsonrpc": "2.0", "method": 1}),
             json!({"jsonrpc": "2.0", "id": "i", "method": "tools/list", "params": {"_meta": {"io.modelcontextprotocol/protocolVersion": "2025-06-18"}}}),
+            json!({"jsonrpc": "2.0", "id": {"nested": 1}, "method": "ping"}),
+            json!({"jsonrpc": "2.0", "id": null, "method": "ping"}),
+            json!({"id": "j", "method": "ping", "params": {"_meta": meta}}),
+            json!({"jsonrpc": "2.0", "id": "k", "method": "ping", "params": ["_meta"]}),
         ]
         .map(|message| match message {
             serde_json::Value::String(line) => line,
@@ -678,4 +675,24 @@ fn server() {
     assert_eq!(modern[11]["id"], serde_json::Value::Null);
     assert!(modern[12]["result"]["tools"][0]["outputSchema"].is_object());
     assert!(modern[12]["result"].get("resultType").is_none());
+    for index in [13, 14] {
+        assert_eq!(modern[index]["error"]["code"], -32600);
+        assert_eq!(modern[index]["id"], serde_json::Value::Null);
+    }
+    assert_eq!(modern[15]["error"]["code"], -32600);
+    assert_eq!(modern[15]["id"], "j");
+    assert_eq!(modern[16]["error"]["code"], -32602);
+    let broken = session(
+        &fixture,
+        &[
+            b"\xff\xfe".to_vec(),
+            json!({"jsonrpc": "2.0", "id": 1, "method": "ping"})
+                .to_string()
+                .into_bytes(),
+        ],
+    );
+    assert_eq!(broken.len(), 2);
+    assert_eq!(broken[0]["error"]["code"], -32700);
+    assert_eq!(broken[1]["id"], 1);
+    assert!(broken[1]["result"].is_object());
 }

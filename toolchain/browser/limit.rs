@@ -8,10 +8,10 @@ pub struct Budget {
 pub const EXPLORATION: Budget = Budget {
     work: 20_000,
     bound: Limit {
-        state: 128,
-        cell: 128,
-        frame: 16,
-        world: 16,
+        configuration: 128,
+        occurrence: 128,
+        scope: 16,
+        coherence: 16,
         record: 100_000,
     },
 };
@@ -19,10 +19,10 @@ pub const EXPLORATION: Budget = Budget {
 pub const PATH: Budget = Budget {
     work: 1_000_000,
     bound: Limit {
-        state: 32768,
-        cell: 8192,
-        frame: 1024,
-        world: 512,
+        configuration: 32768,
+        occurrence: 8192,
+        scope: 1024,
+        coherence: 512,
         record: 2_000_000,
     },
 };

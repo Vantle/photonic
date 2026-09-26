@@ -5,7 +5,7 @@ Spectrum answers questions about a Photonic program and every configuration it r
 | Package | Responsibility |
 | --- | --- |
 | [`//spectrum`](../spectrum/) | Requests and answers, explorations, handles, patterns, claims, lineage and the store. It reads the runtime through read-only accessors and orders programs with the [symmetry](symmetry.md) engine. A `Reader` supplies file contents, so the library touches no file system. |
-| [`//command:photonic`](../command/) | One command for every tool: the engine's `parse`, `lower`, `run` and `prism`, the verbs with their exit codes, and `mcp`, the protocol server. Every path is read from where `bazel run` started. |
+| [`//command:photonic`](../command/) | One command for every tool: the engine's `lower`, `run` and `prism`, the verbs with their exit codes, and `mcp`, the protocol server. Every path is read from where `bazel run` started. |
 
 ## A session
 
@@ -137,7 +137,7 @@ Within a particle, answers list occurrences in canonical order, which is the ord
 
 ### Keys and the store
 
-An exploration's key is `x` followed by 16 hexadecimal digits: a hash of the canonical program, the naming from letters to atoms, the mode, the budget and the goal. In exhaustive mode, programs that differ only in the order of their terms share a key. Programs that differ in their names do not, because their answers name different atoms. The store keeps the most recent explorations, 16 by default and 64 in the protocol server, and accepts any unambiguous prefix of a key of at least four digits. The command line starts a new store for each command, so keys carry across questions in one protocol session or one library context.
+An exploration's key is `x` followed by 16 hexadecimal digits: a hash of the canonical program, the naming from letters to atoms, the mode, the budget and the goal. In exhaustive mode, programs that differ only in the order of their terms share a key. Programs that differ in their names do not, because their answers name different atoms. The store keeps the most recent explorations while their occurrences and events total at most 2,000,000, and always keeps the newest; it accepts any unambiguous prefix of a key of at least four digits. The command line starts a new store for each command, so keys carry across questions in one protocol session or one library context.
 
 ## Handles
 
@@ -183,19 +183,19 @@ A claim is a pattern with a kind. Its answer is `holds`, `fails` or `unknown`, a
 | Verb | Fields beside the recording | Answer |
 | --- | --- | --- |
 | `check` | `claim` | Diagnostics, each claim's verdict and the exploration's summary. A program or library that does not parse or lower is a diagnostic with its location, not a failure. Given a key, it checks claims against that exploration. |
-| `explore` | `claim`, `limit` (12) | The summary, the configurations without supported events up to `limit`, how often each rule fired and whether by inference, and each claim's verdict. The text calls those configurations ends in a closed exhaustive exploration, leaves in an open one, where some are unexplored, and stops on a path. |
+| `explore` | `limit` (12) | The summary, the configurations without supported events up to `limit`, and how often each rule fired and whether by inference. The text calls those configurations ends in a closed exhaustive exploration, leaves in an open one, where some are unexplored, and stops on a path. |
 | `select` | `pattern`, `limit` (20), `offset` | The matching configurations with the occurrences each match used, or the matching events, marked when unsupported, and the offset of the next page. |
 | `inspect` | `handle` | A rule with its events; a configuration with its coherences, frames and the events into and out of it, and `end` when a closed exhaustive exploration proves no event can happen there; a coherence, occurrence or frame; or an event with its exact part, witness, reads, deduction and the occurrences it produces. |
 | `cause` | `handle` | For a configuration, its shortest supported path. For an event, its match and the events of its deduction. For an occurrence, its lineage: back through each event that carried it as remainder, witness or held occurrence, to the start or to the event that produced it, with the places that event consumed. |
 | `miss` | `target` with `exact` and `preserve`, or `rule`; `limit` (3) | For a target, the nearest configurations and what each lacks and, when exact, has extra, assigning the target's parts to coherences so that the most occurrences match; an exact target compares coherences, live root rules and open scopes, as Prism does. For a rule, how often it fired, how many configurations it was live in without firing, and where its inputs came closest to matching. |
 | `step` | `handle` (`s0`) | Every event that can happen at a configuration and where it leads; on a path, the one event the path took. |
-| `compare` | `left` and `right`, each a recording; `claim`; `limit` (12) | Each side's key and size; the configurations one reaches and the other does not, compared by their coherences and held occurrences up to occurrence identity; the events that differ by rule, source and target, which is where edited rules show; and each claim's answer on both. Each change lists up to `limit` entries in each direction and counts the rest. |
+| `compare` | `left` and `right`, each a recording; `claim`; `limit` (12) | Each side's key and size, marked open when its exploration did not close or follows a path, because what an open side lacks may be unexplored rather than absent; the configurations one reaches and the other does not, compared by their coherences and held occurrences up to occurrence identity; the events that differ by rule, source and target, which is where edited rules show; and each claim's answer on both. Each change lists up to `limit` entries in each direction and counts the rest. |
 | `shape` | `program` (a list of programs), `target`, `fix`, `node` (1,000,000) | For one program, its shape, canonical form, symmetries, orbits and local patterns; for several, the classes that share a shape with the renaming between members, as the [symmetry record](symmetry.md) describes. `node` limits the symmetry search. |
 
-A request to the library is one JSON object with `version` and `verb` beside the question's fields, and the answer comes back in an envelope with `answer` or `error`:
+A request names its verb and carries the question's fields as one JSON object, which `Request::read` checks; `envelope` returns the answer with the verb and the envelope's version, beside `answer` or `error`:
 
 ```json
-{"version": 1, "verb": "cause", "program": {"file": ["bug.wave"]}, "handle": "s11.o1"}
+{"program": {"file": ["bug.wave"]}, "handle": "s11.o1"}
 ```
 
 ```json
@@ -211,7 +211,6 @@ A failure carries a `code`, a `message` and, when it points into text, a `locati
 | Code | Meaning |
 | --- | --- |
 | `request` | The request is malformed: not an object, an unknown field, no program, a program and a key together, a key with a mode, budget or goal, or a goal outside path mode. |
-| `version` | The request's version is not 1. |
 | `file` | A file cannot be read. |
 | `source` | A program does not parse or lower; `check` reports it as a diagnostic instead. |
 | `library` | A library does not parse or holds more than declarations; `check` reports it as a diagnostic instead. |
@@ -222,7 +221,7 @@ A failure carries a `code`, a `message` and, when it points into text, a `locati
 | `claim` | A claim cannot be asked this way, such as an exact `always`, an exact target on a direct path, or a rule pattern as a claim. |
 | `shape` | The symmetry search exceeded its `node` limit. |
 
-The command prints answers as text, or with `--json` as the envelope, and prints a failure as `error[code]: message`. It exits 1 on any failure; `check` also exits 1 unless there are no error diagnostics and every claim holds, `compare` unless both sides reach the same configurations and events and every claim answers alike, and `shape` when its programs have more than one shape. The library decides this through `Answer::passed`.
+The command prints answers as text, or with `--json` as the envelope, and prints a failure as `error[code]: message`. It exits 1 on any failure; `check` also exits 1 unless there are no diagnostics and every claim holds, `compare` unless both sides settle, reach the same configurations and events, and answer every claim alike and definitely, and `shape` when its programs have more than one shape. The library decides this through `Answer::passed`.
 
 ## Model Context Protocol
 
@@ -243,7 +242,7 @@ Two resources describe the language to agents: `photonic://primer`, the grammar,
 
 ## Verification
 
-`//spectrum:test` checks exploration counts and handles on the conjunction and its edits; that every scope is credited to the rule that opens it; every claim kind with its evidence, including an `inevitable` counterexample that avoids every match; occurrence lineage through remainder, witness, held and produced occurrences; that reordering keeps keys and handles while renaming keeps handles and changes the key; every question's answer through the JSON protocol, checked against its declared output schema; that unknown fields, keys with settings and goals outside path mode are refused; `miss` assignments that a greedy choice gets wrong and exact targets with and without their rules; `compare` counts beyond its limit; and the port of `shape`. `//command:test` runs the commands and their exit codes, and sessions of the protocol server in the legacy and stateless revisions, including discovery, batches and each protocol error.
+`//spectrum:test` checks exploration counts and handles on the conjunction and its edits; that every scope is credited to the rule that opens it; every claim kind with its evidence, including an `inevitable` counterexample that avoids every match; occurrence lineage through remainder, witness, held and produced occurrences; that reordering keeps keys and handles while renaming keeps handles and changes the key; every question's answer through the JSON protocol, checked against its declared output schema; that unknown fields, keys with settings and goals outside path mode are refused; `miss` assignments that a greedy choice gets wrong, exact targets with and without their rules, and many parts placed at once; `compare` counts beyond its limit and on open explorations; and `shape`, with the pins `fix` keeps and the webbook's recorded pattern. `//command:test` runs the commands and their exit codes, and sessions of the protocol server in the legacy and stateless revisions, including discovery, batches and each protocol error.
 
 ```sh
 bazel test -c opt //spectrum:test //command:test

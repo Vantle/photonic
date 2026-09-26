@@ -56,9 +56,11 @@ Resource identity maintenance still scans complete changed populations, and colo
 ```sh
 bazel test -c opt //... //toolchain/browser:check --test_output=errors
 bazel run -c opt //:format -- --check
-bazel run -c opt //benchmark:fingerprint -- --width 4096 --depth 32 --length 32 --sample 101
-bazel run -c opt //benchmark:fingerprint -- --width 512 --depth 512 --length 32 --sample 101 --replacement
 bazel run -c opt //benchmark:lifecycle -- expression '2*2*2*2*2*2' 2101 --sample 3 --export view --writer
 bazel run -c opt //benchmark:allocation -- expression '2*2*2*2*2*2' 2101 --sample 2 --export view --writer
 bazel run -c opt //benchmark:inspection -- --length 32 --sample 21
 ```
+
+This benchmark was removed after `0daf296` and still runs at that commit:
+
+- [`fingerprint`](https://github.com/Vantle/photonic/blob/0daf296e1d126675ed445bfb7ed6674a379b1532/benchmark/fingerprint.rs) with `--width 4096 --depth 32 --length 32 --sample 101` and `--width 512 --depth 512 --length 32 --sample 101 --replacement`

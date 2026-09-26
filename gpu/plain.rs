@@ -1,6 +1,4 @@
-use crate::seal::Seal;
-
-pub trait Plain: Copy + Seal {}
+pub trait Plain: Copy {}
 
 impl Plain for f32 {}
 impl Plain for u32 {}

@@ -1,8 +1,8 @@
 use crate::exploration::{self, Coherence, Exploration, Occurrence, Value};
 use crate::handle::Handle;
 use crate::inspect::{Item, Move};
+use frontend::source;
 use photonic::place::Place;
-use photonic::source;
 use serde::Serialize;
 
 pub fn value(exploration: &Exploration, value: &Value) -> source::Value {
@@ -19,7 +19,7 @@ pub fn particle(exploration: &Exploration, occurrence: &[Occurrence]) -> String 
         .iter()
         .map(|entry| value(exploration, &entry.value))
         .collect::<Vec<_>>();
-    photonic::text::coherence(&particle)
+    frontend::text::coherence(&particle)
 }
 
 pub fn occurrence(exploration: &Exploration, occurrence: &Occurrence) -> String {
@@ -155,7 +155,7 @@ pub fn row(label: &str, first: bool) -> String {
 
 pub fn input(exploration: &Exploration, rule: usize) -> String {
     let definition = &exploration.rule[rule].definition;
-    photonic::text::definition(&source::Definition {
+    frontend::text::definition(&source::Definition {
         name: String::new(),
         input: definition.input.clone(),
         output: Vec::new(),

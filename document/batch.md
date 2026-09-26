@@ -42,13 +42,15 @@ All protected pooled medians passed the declared five-percent regression gate, w
 The partition/context benchmarks isolate repeated join maintenance. Their default uses the batch primitive; `--scalar` retains per-poll traversal in the same candidate binary. End-to-end arithmetic and prefix cases exercise runtime integration independently.
 
 ```sh
-bazel run -c opt //benchmark:partition -- --depth 12 --width 2 --count 2 --alternating --length 1024 --sample 9
-bazel run -c opt //benchmark:partition -- --depth 12 --width 2 --count 2 --alternating --length 1024 --scalar --sample 9
-bazel run -c opt //benchmark:context -- --sample 9
 bazel run -c opt //benchmark:expression -- '2*2*2*2*2*2' 2101 --sample 9
 bazel test -c opt //...
 bazel test //language:test
 ```
+
+These benchmarks were removed after `0daf296` and still run at that commit:
+
+- [`partition`](https://github.com/Vantle/photonic/blob/0daf296e1d126675ed445bfb7ed6674a379b1532/benchmark/partition.rs) with `--depth 12 --width 2 --count 2 --alternating --length 1024 --sample 9` and `--depth 12 --width 2 --count 2 --alternating --length 1024 --scalar --sample 9`
+- [`context`](https://github.com/Vantle/photonic/blob/0daf296e1d126675ed445bfb7ed6674a379b1532/benchmark/context.rs) with `--sample 9`
 
 ## Remaining boundary
 

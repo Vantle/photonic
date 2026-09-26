@@ -7,7 +7,7 @@ import { pathToFileURL } from 'node:url';
 const [webassembly, javascript, command, numeral] = process.argv.slice(2);
 const engine = await import(pathToFileURL(javascript));
 engine.initSync({ module: await readFile(webassembly) });
-const version = 2;
+const version = 3;
 const call = (entry, body) => JSON.parse(entry(JSON.stringify(body)));
 const explore = body => call(engine.explore, { version, ...body });
 const lower = source => call(engine.lower, { version, source });
@@ -28,23 +28,15 @@ for (const source of [
     const response = explore({ source, target: [] });
     assert.equal(response.error, undefined);
     const report = JSON.parse(native.stdout);
-    const rule = label => {
-        const index = report.definition.findIndex(value => value.label === label);
-        assert.ok(index >= 0, `${source}: ${label} has a definition`);
-        return index;
-    };
-    const occurrence = token => token.kind === 'atom'
-        ? { kind: 'atom', id: token.id, label: token.label }
-        : { kind: 'rule', id: token.id, rule: rule(token.label), ...(token.capture === undefined ? {} : { capture: token.capture }) };
+    const occurrence = token => token.atom === undefined
+        ? { kind: 'rule', id: token.id, rule: token.rule, ...(token.capture === undefined ? {} : { capture: token.capture }) }
+        : { kind: 'atom', id: token.id, label: token.atom };
     const configuration = node => ({
         id: node.id,
         world: node.world.map(world => ({ frame: world.frame, particle: world.particle.map(occurrence) })),
-        frame: node.frame.map(frame => ({ parent: frame.parent, particle: frame.particle.map(token => ({ id: token.id, rule: rule(token.label) })), held: frame.held.map(occurrence) })),
+        frame: node.frame.map(frame => ({ parent: frame.parent, particle: frame.particle.map(token => ({ id: token.id, rule: token.rule })), held: frame.held.map(occurrence) })),
     });
-    const definition = report.definition.map(value => {
-        assert.ok(value.display.startsWith('⟨') && value.display.endsWith('⟩'), value.display);
-        return value.display.slice(1, -1);
-    });
+    const definition = report.definition.map(value => value.name);
     const chain = index => {
         const path = [];
         for (let origin = report.view[index].origin; origin; origin = report.view[origin.view].origin) path.unshift(origin.event);
@@ -55,7 +47,7 @@ for (const source of [
         id: value.id,
         source: value.source,
         target: value.target,
-        rule: value.rule,
+        rule: report.definition[value.rule].name,
         footprint: value.footprint,
         exact: value.exact,
         world: value.world,
@@ -223,11 +215,11 @@ const repeated = evaluate('2*2*2*2*2*2*2*2*2*2');
 console.log(JSON.stringify({ repeated: { elapsed: performance.now() - start, event: repeated.event, work: repeated.work, state: repeated.state?.id } }));
 assert.equal(decode(repeated.state, repeated.definition).ternary, '1101221');
 
-const compare = body => call(engine.compare, { version, ...body });
+const shape = body => call(engine.shape, { version, ...body });
 const parity = '[Add.0.0] 0,\n[Add.0.1] 1,\n[Add.1.1] 0';
 const exclusive = '[Xor.False.False] False,\n[Xor.False.True] True,\n[Xor.True.True] False';
 const card = '[Compose.Keep.Keep] Keep,\n[Compose.Keep.Flip] Flip,\n[Compose.Flip.Flip] Keep';
-const connected = compare({ program: [parity, exclusive, card] });
+const connected = shape({ program: [parity, exclusive, card] });
 assert.equal(connected.shape.length, 1);
 assert.deepEqual(connected.shape[0].member, [0, 1, 2]);
 assert.deepEqual(
@@ -237,18 +229,18 @@ assert.deepEqual(
 assert.equal(connected.shape[0].rule.length, 3);
 assert.equal(connected.shape[0].size, '1');
 assert.deepEqual(connected.shape[0].symmetry, []);
-const light = compare({ program: ['Light, [Light] Red, [Light] Green, [Light] Blue'] });
+const light = shape({ program: ['Light, [Light] Red, [Light] Green, [Light] Blue'] });
 assert.equal(light.shape[0].size, '6');
 assert.equal(light.shape[0].symmetry.length, 5);
 assert.deepEqual(light.shape[0].initial, [light.shape[0].atom.find(row => row.name[0] === 'Light').letter]);
-const apart = compare({ program: ['A, [A] B', 'A, [A] B, [B] C'] });
-assert.deepEqual(apart.shape.map(shape => shape.member), [[0], [1]]);
-const [blocked] = compare({ program: ['[Boolean.Not.True] False'] }).shape;
+const apart = shape({ program: ['A, [A] B', 'A, [A] B, [B] C'] });
+assert.deepEqual(apart.shape.map(value => value.member), [[0], [1]]);
+const [blocked] = shape({ program: ['[Boolean.Not.True] False'] }).shape;
 assert.deepEqual(blocked.block[0].map(letter => blocked.atom.find(row => row.letter === letter).name[0]).sort(), ['Boolean', 'Not', 'True']);
-assert.equal(compare({ program: [] }).error.code, 'request');
-assert.equal(compare({ program: Array(5).fill('A') }).error.code, 'request');
-assert.equal(compare({ version: version + 1, program: ['A'] }).error.code, 'version');
-const broken = compare({ program: ['A', 'B, [C'] });
+assert.equal(shape({ program: [] }).error.code, 'request');
+assert.equal(shape({ program: Array(5).fill('A') }).error.code, 'request');
+assert.equal(shape({ version: version + 1, program: ['A'] }).error.code, 'version');
+const broken = shape({ program: ['A', 'B, [C'] });
 assert.equal(broken.error.code, 'source');
 assert.equal(broken.error.program, 1);
 assert.equal(broken.error.span.offset, 5);
@@ -262,5 +254,6 @@ const native = spawnSync(command, ['shape', ...file, '--json'], { encoding: 'utf
 assert.equal(native.status, 0, native.stderr);
 assert.deepEqual(JSON.parse(native.stdout).answer.class[0].atom, connected.shape[0].atom.map(row => row.name));
 const deep = Array.from({ length: 3500 }, (_, index) => `[a${index}] b${index},[b${index}] a${index}.b${index}`).join(',\n');
-assert.equal(compare({ program: [deep] }).error.code, 'budget');
-console.log('Comparisons group programs by shape, name every atom in each program and match the native command.');
+assert.equal(shape({ program: [deep] }).error.code, 'budget');
+assert.equal(engine.compare, undefined);
+console.log('The shape export groups programs by shape, names every atom in each program and matches the native command.');

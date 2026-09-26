@@ -12,13 +12,14 @@ mod shape;
 
 use execution::Execution;
 use failure::{Code, Failure};
-use photonic::prism::{Search, Verdict};
-use photonic::source::Program;
+use frontend::source::Program;
+use photonic::prism::Verdict;
+use photonic::runtime::Runtime;
 use request::{Request, Text};
 use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
 
-const VERSION: u32 = 2;
+const VERSION: u32 = 3;
 
 #[derive(Serialize)]
 struct Lowering {
@@ -35,7 +36,7 @@ struct Exploration {
 
 fn lowering(input: &str) -> Result<Lowering, Failure> {
     let text: Text = request::read(input)?;
-    let program = photonic::lowering::parse(&text.source)
+    let program = frontend::lowering::parse(&text.source)
         .map_err(|error| Failure::located(Code::Source, &error, &text.source))?;
     Ok(Lowering { program })
 }
@@ -45,19 +46,11 @@ fn exploration(input: &str) -> Result<Exploration, Failure> {
     let program = query.program()?;
     let target = query.target(&program)?;
     let symmetry = analysis::analysis(&program);
-    let mut search = Search::new(program, Program::default());
-    search.run(limit::EXPLORATION.work, Some(limit::EXPLORATION.bound));
-    let execution = Execution::try_from(search.snapshot())?;
-    let verdict = target
-        .into_iter()
-        .map(|goal| {
-            search.target(goal);
-            search.verdict()
-        })
-        .collect();
+    let mut runtime = Runtime::new(&program);
+    runtime.run(limit::EXPLORATION.work, limit::EXPLORATION.bound);
     Ok(Exploration {
-        execution,
-        verdict,
+        verdict: target.iter().map(|goal| runtime.verdict(goal)).collect(),
+        execution: Execution::from(runtime.snapshot()),
         symmetry,
     })
 }
@@ -73,6 +66,6 @@ pub fn explore(input: &str) -> String {
 }
 
 #[wasm_bindgen]
-pub fn compare(input: &str) -> String {
+pub fn shape(input: &str) -> String {
     response::respond(shape::partition(input))
 }

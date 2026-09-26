@@ -12,7 +12,7 @@ A separate prototype removed the atom-only and coherence-only restrictions. Its 
 
 The prototype passed checks for ancestor mutation, changed captures, context replacement, incomplete enumeration and eviction at every stream boundary. New production tests retain the context matching and exclusion checks; rule-sensitive completed replay remains disabled after the experiment's rejection.
 
-The expanded `//benchmark:transcript` harness measures atoms, coherence-owned rules and inherited context rules at widths 8, 32, 128 and 512. It includes unshared execution, fresh shared stores and reused shared stores, with a 100 ms warmup for every case. The optional `--source` argument to `//benchmark:runtime` measures a complete closed program using the existing runtime harness and default limits.
+The expanded [`transcript`](https://github.com/Vantle/photonic/blob/0daf296e1d126675ed445bfb7ed6674a379b1532/benchmark/transcript.rs) harness, removed after `0daf296`, measures atoms, coherence-owned rules and inherited context rules at widths 8, 32, 128 and 512. It includes unshared execution, fresh shared stores and reused shared stores, with a 100 ms warmup for every case. The optional `--source` argument to `//benchmark:runtime` measures a complete closed program using the existing runtime harness and default limits.
 
 Three alternating rounds show 1.9–2.6× faster repeated coherence-rule matcher queries and about 1.2–1.3× faster repeated context-rule queries. Cold eligible rule queries are approximately 7–22% slower. The atom replay controls also incur additional key maintenance.
 
@@ -30,6 +30,9 @@ The final optimized suite passes all 111 Bazel test targets, including 259 runti
 
 ```sh
 bazel test -c opt //... //toolchain/browser:check
-bazel run -c opt //benchmark:transcript
 bazel run -c opt //benchmark:runtime -- --source /path/to/closed.wave
 ```
+
+This benchmark was removed after `0daf296` and still runs at that commit:
+
+- [`transcript`](https://github.com/Vantle/photonic/blob/0daf296e1d126675ed445bfb7ed6674a379b1532/benchmark/transcript.rs)

@@ -1,5 +1,5 @@
 load("//toolchain:defs.bzl", "hermetic_binary", "hermetic_test")
-load(":site.bzl", "REPOSITORY", "site")
+load(":site.bzl", "site")
 
 filegroup(
     name = "asset",
@@ -38,10 +38,7 @@ filegroup(
 filegroup(
     name = "numeral",
     srcs = ["numeral.js"],
-    visibility = [
-        "//benchmark:__pkg__",
-        "//toolchain/browser:__pkg__",
-    ],
+    visibility = ["//toolchain/browser:__pkg__"],
 )
 
 filegroup(
@@ -88,8 +85,6 @@ site(
         "//toolchain/browser:javascript",
         "//toolchain/browser:webassembly",
     ],
-    repository = REPOSITORY,
-    script = "site.mjs",
 )
 
 hermetic_binary(
@@ -155,6 +150,9 @@ hermetic_test(
     argument = [
         "$(rlocationpath //toolchain:node)",
         "$(rlocationpath test.mjs)",
+        "$(rlocationpath //toolchain/browser:javascript)",
+        "$(rlocationpath //toolchain/browser:webassembly)",
+        "$(rlocationpath pattern.json)",
         "$(rlocationpath record.js)",
         "$(rlocationpath engine.js)",
         "$(rlocationpath syntax.js)",
@@ -163,18 +161,28 @@ hermetic_test(
         "$(rlocationpath graph.js)",
         "$(rlocationpath pattern.js)",
         "$(rlocationpath symmetry.js)",
+        "$(rlocationpath share.js)",
     ],
     data = [
         "editor.js",
         "engine.js",
         "graph.js",
         "pattern.js",
+        "pattern.json",
         "record.js",
         "render.js",
+        "share.js",
         "symmetry.js",
         "syntax.js",
         "test.mjs",
         "//toolchain:node",
+        "//toolchain/browser:javascript",
+        "//toolchain/browser:webassembly",
     ],
     entrypoint = "//toolchain:execute",
+)
+
+exports_files(
+    ["pattern.json"],
+    visibility = ["//spectrum:__pkg__"],
 )

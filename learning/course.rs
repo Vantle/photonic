@@ -1,7 +1,7 @@
 use crate::argument::Course;
-use crate::output::line;
+use crate::output::{line, report};
 use crate::setup::{open, pool, session, setting};
-use crate::solve::{Attempt, attempt};
+use learning::attempt;
 use learning::curriculum::{Curriculum, Mark, examine, focus, grade, prefix};
 use learning::guide::Network;
 use learning::home;
@@ -11,30 +11,38 @@ use learning::solution::Budget;
 use miette::IntoDiagnostic;
 use std::time::{Duration, Instant};
 
+fn remaining(deadline: Option<Instant>, time: Duration) -> Duration {
+    deadline.map_or(time, |deadline| {
+        time.min(deadline.saturating_duration_since(Instant::now()))
+    })
+}
+
 pub fn run(argument: Course) -> miette::Result<()> {
     let home = open(&argument.home)?;
-    let setting = setting(&argument.session);
+    let setting = setting(&argument.session, false)?;
     let objective = setting.play.objective;
     let seed = argument.session.seed;
+    let deadline = setting.duration.map(|duration| Instant::now() + duration);
+    let expired = || deadline.is_some_and(|deadline| Instant::now() >= deadline);
     let mut state: Curriculum = home
         .load(home::CURRICULUM)
         .into_diagnostic()?
         .unwrap_or_default();
-    let start = Instant::now();
-    let limit = argument.session.duration.map(Duration::from_secs);
-    while limit.is_none_or(|limit| start.elapsed() < limit) && state.level <= argument.level {
+    while !expired() && state.level <= argument.level {
         let level = state.level;
         let mut tried = 0;
-        while state.exam(level).len() < argument.exam && tried < 20 * argument.exam {
+        while state.exam(level).len() < argument.exam && tried < 20 * argument.exam && !expired() {
             tried += 1;
             let task = state.breed(level, seed, &objective).into_diagnostic()?;
-            if let Some(exam) = grade(task, &objective, Duration::from_secs(argument.enumerate))
-                .into_diagnostic()?
-            {
+            let time = remaining(deadline, Duration::from_secs(argument.enumerate));
+            if let Some(exam) = grade(task, &objective, time).into_diagnostic()? {
                 state.exam(level).push(exam);
             }
         }
         home.save(home::CURRICULUM, &state).into_diagnostic()?;
+        if expired() {
+            break;
+        }
         if state.exam(level).is_empty() {
             line(&format!(
                 "level {level}: no behavior was proven optimal within {}s; raise --enumerate to continue",
@@ -47,7 +55,7 @@ pub fn run(argument: Course) -> miette::Result<()> {
             .iter()
             .filter(|task| task.name.starts_with(&prefix(level)))
             .count();
-        let fresh = (have..argument.train)
+        let fresh = (have..argument.fresh)
             .map(|_| state.breed(level, seed, &objective))
             .collect::<Result<Vec<_>, _>>()
             .into_diagnostic()?;
@@ -58,22 +66,28 @@ pub fn run(argument: Course) -> miette::Result<()> {
         let pool = known.into_iter().chain(fresh).collect::<Vec<_>>();
         home.save(home::POOL, &pool).into_diagnostic()?;
         home.save(home::CURRICULUM, &state).into_diagnostic()?;
-        attempt(
+        attempt::run(
             &home,
             &pool,
             &named,
-            &Attempt {
+            &attempt::Setting {
                 objective,
                 bound: setting.play.bound,
                 budget: Budget {
                     time: Some(Duration::from_secs(argument.enumerate)),
                     ..Budget::default()
                 },
-                guide: argument.guide,
+                guide: Duration::from_secs(argument.guide),
                 blind: true,
-                show: 0,
+                deadline,
             },
-        )?;
+            |event| report(event, 0),
+        )
+        .into_diagnostic()?;
+        let practice = remaining(deadline, Duration::from_secs(argument.practice));
+        if practice.is_zero() {
+            break;
+        }
         let (count, focus) = focus(
             &pool,
             level,
@@ -81,8 +95,8 @@ pub fn run(argument: Course) -> miette::Result<()> {
             seed ^ state.mark.len() as u64,
         );
         line(&format!(
-            "level {level}: training {}s on {count} behaviors of this level and {} from earlier levels",
-            argument.practice,
+            "level {level}: training {:.0}s on {count} behaviors of this level and {} from earlier levels",
+            practice.as_secs_f64(),
             focus.len() - count
         ));
         session(
@@ -90,7 +104,7 @@ pub fn run(argument: Course) -> miette::Result<()> {
             &pool,
             &focus,
             &session::Setting {
-                duration: Some(Duration::from_secs(argument.practice)),
+                duration: Some(practice),
                 ..setting
             },
         )?;
@@ -102,9 +116,13 @@ pub fn run(argument: Course) -> miette::Result<()> {
                     &mut network,
                     &objective,
                     argument.expansion,
+                    deadline,
                 )
             })
             .collect::<Vec<_>>();
+        if expired() {
+            break;
+        }
         let round = state.mark.len() + 1;
         line(&format!(
             "round {round}: level {level}; optimal within {} programs on {}",

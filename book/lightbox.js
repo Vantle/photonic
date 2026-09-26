@@ -3,6 +3,10 @@
     const book = globalThis.book ??= {};
     const { element } = book.render;
     const storage = 'photonic-lightbox';
+    const warning = {
+        recorded: 'Write and run your own programs at photonic.vantle.org or in a served checkout. Here the examples show their recorded runs.',
+        failed: 'The engine could not load. Reload the page to write and run your own programs. Here the examples show their recorded runs.',
+    };
 
     const text = value => typeof value === 'string';
 
@@ -18,6 +22,12 @@
         } catch {
             return undefined;
         }
+    };
+
+    const remember = value => {
+        try {
+            localStorage.setItem(storage, JSON.stringify(value));
+        } catch {}
     };
 
     const advice = (outcome, value) => value.preserve || !outcome.verdict.some(verdict => verdict.outcome === 'unreachable')
@@ -41,7 +51,7 @@
         copy.type = 'button';
         const run = book.run.button();
         bar.append(element('span', 'title', 'Program'), badge, fresh, copy, run);
-        const notice = element('p', 'notice', 'Write and run your own programs at photonic.vantle.org or in a served checkout. Here the examples show their recorded runs.');
+        const notice = element('p', 'notice');
         notice.hidden = true;
         const body = element('div', 'body');
         const choice = book.render.preset(sample.map(item => item.name), index => pick(sample[index]));
@@ -73,7 +83,7 @@
         card.append(bar, notice, body);
         const result = element('section', 'result');
         const viewer = book.viewer.create();
-        result.append(...viewer.element);
+        result.append(viewer.element);
         root.replaceChildren(card, result);
 
         const setting = () => ({
@@ -90,22 +100,33 @@
             const missing = value.library.filter(name => !toggle.has(name));
             if (missing.length) message.say(`The Lightbox does not have ${missing.map(name => `${name}.particle`).join(', ')}.`, 'error');
         };
-        const remember = () => {
-            try {
-                localStorage.setItem(storage, JSON.stringify(setting()));
-            } catch {}
-        };
         const address = () => history.replaceState(null, '', book.share.link(setting()));
+
+        let draft;
+        let timer;
+        const save = () => {
+            clearTimeout(timer);
+            if (!draft) return;
+            remember(draft);
+            draft = undefined;
+        };
+        const changed = () => {
+            choice.press();
+            draft = setting();
+            clearTimeout(timer);
+            timer = setTimeout(save, 300);
+        };
+        addEventListener('pagehide', save);
+        document.addEventListener('visibilitychange', save);
 
         const cycle = book.run.create({ trigger: run, message });
         let pending = false;
         const execute = () => {
             const value = setting();
             const submission = book.editor.submit(root, editor, goal);
-            cycle.start(signal => book.engine.explore(value, value.source, value.target, signal), outcome => {
+            cycle.start(signal => book.engine.explore(value, signal), outcome => {
                 message.say(advice(outcome, value));
                 viewer.show(outcome, value.target);
-                remember();
                 address();
             }, error => message.say(book.editor.locate(error, submission), 'error'));
         };
@@ -121,16 +142,9 @@
             fill(value);
             choice.press(item.name);
             viewer.show(value.result, value.target);
-            remember();
             address();
         };
 
-        let timer;
-        const changed = () => {
-            choice.press();
-            clearTimeout(timer);
-            timer = setTimeout(remember, 300);
-        };
         for (const area of [editor.area, goal.area]) {
             area.addEventListener('input', changed);
             book.run.shortcut(area, execute);
@@ -143,7 +157,8 @@
             fill({ source: '', target: [], library: [], preserve: false });
             choice.press();
             viewer.blank('Write a program, then press Run.');
-            remember();
+            draft = setting();
+            save();
             history.replaceState(null, '', 'lightbox.html');
             editor.area.focus();
         });
@@ -181,7 +196,8 @@
             const on = state === 'live';
             run.hidden = !on;
             fresh.hidden = !on;
-            notice.hidden = state !== 'recorded';
+            notice.textContent = warning[state] ?? '';
+            notice.hidden = !warning[state];
             editor.area.readOnly = !on;
             goal.area.readOnly = !on;
             keep.disabled = !on;

@@ -3,14 +3,6 @@
     const book = globalThis.book ??= {};
     const { element, series, count } = book.render;
 
-    const tag = (host, letter, prefix) => {
-        host.querySelectorAll('.atom').forEach(node => {
-            const found = letter.get(node.textContent);
-            if (found === undefined) delete node.dataset.atom;
-            else node.dataset.atom = `${prefix}${found}`;
-        });
-    };
-
     const enhance = widget => {
         const preset = JSON.parse(widget.dataset.preset);
         const bar = element('div', 'bar');
@@ -50,7 +42,7 @@
 
         const paint = () => {
             result?.shape.forEach((shape, index) => shape.member.forEach((member, position) => {
-                tag(editor[member].shade, new Map(shape.atom.map(row => [row.name[position], row.letter])), `${index}:`);
+                editor[member].mark(new Map(shape.atom.map(row => [row.name[position], `${index}:${row.letter}`])));
             }));
         };
 
@@ -58,7 +50,7 @@
             const name = new Map(shape.atom.map(row => [row.letter, reading < 0 ? row.letter : row.name[reading]]));
             const rename = text => book.syntax.scan(text).map(piece => piece.kind === 'concept' ? name.get(piece.text) : piece.text).join('');
             book.syntax.highlight(code, [...shape.initial, ...shape.rule].map(rename).join(',\n'));
-            tag(code, new Map([...name].map(([letter, value]) => [value, letter])), `${index}:`);
+            book.syntax.mark(code, new Map([...name].map(([letter, value]) => [value, `${index}:${letter}`])));
             const shared = shape.member.length > 1;
             note.replaceChildren(element('span', undefined, shape.size === '1'
                 ? `Only the identity leaves this shape unchanged${shared ? ', so this dictionary is the only one' : ''}.`
@@ -138,13 +130,14 @@
             result = undefined;
             verdict.textContent = '';
             output.replaceChildren();
+            editor.forEach(pane => pane.mark(new Map()));
         };
 
         const run = async () => {
             const mine = ++ticket;
             message.wait('Comparing in WebAssembly…');
             try {
-                const value = await book.engine.send('compare', { program: editor.map(item => item.value) });
+                const value = await book.engine.send('shape', { program: editor.map(item => item.value) });
                 if (mine !== ticket) return;
                 message.say();
                 draw(value);

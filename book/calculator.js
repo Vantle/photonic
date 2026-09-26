@@ -32,7 +32,7 @@
         const trace = element('div');
         body.append(choice.element, form, result, message.element, tape, trace);
         widget.replaceChildren(bar, body);
-        const channel = book.engine.open();
+        const follow = book.engine.path();
         const cycle = book.run.create({ trigger: run, stop, message, text: 'Evaluating in WebAssembly…' });
         const clear = () => {
             result.replaceChildren();
@@ -54,14 +54,7 @@
             result.append(count);
             book.syntax.highlight(code, outcome.source);
             if (!live) return;
-            book.trace.draw(trace, {
-                quiet: true,
-                count: outcome.event,
-                work: outcome.work,
-                definition: outcome.definition,
-                start: Math.max(0, outcome.event - 1),
-                get: index => channel.send('inspect', { index }),
-            });
+            book.trace.draw(trace, outcome, { quiet: true, start: Math.max(0, outcome.event - 1) });
         };
         const choose = value => {
             input.value = value;
@@ -80,7 +73,7 @@
                 return;
             }
             if (cycle.busy) cycle.cancel();
-            cycle.start(signal => channel.send('expression', { source: value }, { timeout: 30000, signal }), outcome => draw(outcome, true), error => {
+            cycle.start(signal => follow('expression', { source: value }, { timeout: 30000, signal }), outcome => draw(outcome, true), error => {
                 clear();
                 message.say(error.message, 'error');
             });

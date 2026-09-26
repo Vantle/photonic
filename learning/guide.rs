@@ -54,7 +54,7 @@ impl Network {
         Ok(Self { model, engine })
     }
 
-    pub fn infer(&mut self, input: &[&Input]) -> Vec<Output> {
+    fn infer(&mut self, input: &[&Input]) -> Vec<Output> {
         self.engine
             .as_mut()
             .and_then(|engine| engine.infer(input).ok())
@@ -63,7 +63,7 @@ impl Network {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct Effort {
+pub(crate) struct Effort {
     pub time: Duration,
     pub expansion: u64,
 }
@@ -122,7 +122,7 @@ fn probability(logit: &[f32]) -> Vec<f64> {
         .collect()
 }
 
-pub fn search(
+pub(crate) fn search(
     task: &Task,
     bound: &Bound,
     setting: &Setting,
@@ -130,8 +130,12 @@ pub fn search(
     goal: f64,
     network: &mut Network,
 ) -> Guidance {
-    let deadline = Instant::now() + effort.time;
-    let setting = &setting.aim(task.goal);
+    let limit = Instant::now() + effort.time;
+    let deadline = setting
+        .limit
+        .deadline
+        .map_or(limit, |deadline| deadline.min(limit));
+    let setting = &setting.aim(task.goal).until(Some(deadline));
     let task = &Task {
         goal: Some(setting.goal),
         ..task.clone()
@@ -193,6 +197,9 @@ pub fn search(
                 guidance.first.get_or_insert(guidance.expanded);
                 guidance.best = Some((node.program.clone(), evaluation.clone()));
             }
+        }
+        if Instant::now() >= deadline {
+            break;
         }
         let action = batch
             .iter()

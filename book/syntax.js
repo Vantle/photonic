@@ -57,5 +57,11 @@
         element.replaceChildren(fragment(text));
     };
 
-    book.syntax = { scan, fragment, highlight };
+    const mark = (element, key) => element.querySelectorAll('.atom').forEach(node => {
+        const value = key.get(node.textContent);
+        if (value === undefined) delete node.dataset.atom;
+        else node.dataset.atom = value;
+    });
+
+    book.syntax = { scan, fragment, highlight, mark };
 })();

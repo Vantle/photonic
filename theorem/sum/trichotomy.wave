@@ -2,26 +2,23 @@ Every.1,
 
 [Every.1] (
     Split.1,
-    [Both.1] Theorem,
-    [Refuted.2] Counterexample
+    [Both.1] Theorem
 ),
-[Split.1] Every.2.([Side.P] Left),
-[Proved.2.([Side.P] Left)] Every.2.([Side.P] Right),
-[Proved.2.([Side.P] Right)] Both.1,
+[Split.1] Every.2.([Side.([Of] P)] Left),
+[Proved.2.([Side.([Of] P)] Left)] Every.2.([Side.([Of] P)] Right),
+[Proved.2.([Side.([Of] P)] Right)] Both.1,
 
 [Every.2] (
     Split.2,
-    [Both.2] Proved.2,
-    [Refuted.3] Refuted.2
+    [Both.2] Proved.2
 ),
-[Split.2] Every.3.([Side.Q] Left),
-[Proved.3.([Side.Q] Left)] Every.3.([Side.Q] Right),
-[Proved.3.([Side.Q] Right)] Both.2,
+[Split.2] Every.3.([Side.([Of] Q)] Left),
+[Proved.3.([Side.([Of] Q)] Left)] Every.3.([Side.([Of] Q)] Right),
+[Proved.3.([Side.([Of] Q)] Right)] Both.2,
 
 [Every.3] (
     Split.3,
-    [Both.3] Proved.3,
-    [Refuted.4] Refuted.3
+    [Both.3] Proved.3
 ),
 [Split.3] Every.4.([Less.([Left] P).([Right] Q)] True),
 [Proved.4.([Less.([Left] P).([Right] Q)] True)] Every.4.([Less.([Left] P).([Right] Q)] False),
@@ -29,8 +26,7 @@ Every.1,
 
 [Every.4] (
     Split.4,
-    [Both.4] Proved.4,
-    [Refuted.5] Refuted.4
+    [Both.4] Proved.4
 ),
 [Split.4] Every.5.([Equal.([Left] P).([Right] Q)] True),
 [Proved.5.([Equal.([Left] P).([Right] Q)] True)] Every.5.([Equal.([Left] P).([Right] Q)] False),
@@ -38,18 +34,17 @@ Every.1,
 
 [Every.5] (
     Split.5,
-    [Both.5] Proved.5,
-    [Counterexample] Refuted.5
+    [Both.5] Proved.5
 ),
 [Split.5] Case.([Less.([Left] Q).([Right] P)] True),
 [Holds.([Less.([Left] Q).([Right] P)] True)] Case.([Less.([Left] Q).([Right] P)] False),
 [Holds.([Less.([Left] Q).([Right] P)] False)] Both.5,
 
 [Claim] (Test, Keep),
-[Test.([Side.P] Left).([Side.Q] Left).([Less.([Left] P).([Right] Q)] False).([Equal.([Left] P).([Right] Q)] False).([Less.([Left] Q).([Right] P)] False)] Vacuous,
-[Test.([Side.P] Right).([Side.Q] Right).([Less.([Left] P).([Right] Q)] False).([Equal.([Left] P).([Right] Q)] False).([Less.([Left] Q).([Right] P)] False)] Vacuous,
-[Test.([Side.P] Left).([Side.Q] Right)] Concluded,
+[Test.([Side.([Of] P)] Left).([Side.([Of] Q)] Left).([Less.([Left] P).([Right] Q)] False).([Equal.([Left] P).([Right] Q)] False).([Less.([Left] Q).([Right] P)] False)] Vacuous,
+[Test.([Side.([Of] P)] Right).([Side.([Of] Q)] Right).([Less.([Left] P).([Right] Q)] False).([Equal.([Left] P).([Right] Q)] False).([Less.([Left] Q).([Right] P)] False)] Vacuous,
+[Test.([Side.([Of] P)] Left).([Side.([Of] Q)] Right)] Concluded,
 [Test.([Less.([Left] P).([Right] Q)] True)] Concluded,
 [Test.([Equal.([Left] P).([Right] Q)] True)] Concluded,
-[Test.([Side.Q] Left).([Side.P] Right)] Concluded,
+[Test.([Side.([Of] Q)] Left).([Side.([Of] P)] Right)] Concluded,
 [Test.([Less.([Left] Q).([Right] P)] True)] Concluded

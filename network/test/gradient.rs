@@ -21,7 +21,7 @@ fn finite() {
     let mut generator = Generator::new(31);
     let configuration = configuration();
     let mut model = Model::new(configuration.clone(), &mut generator);
-    for value in &mut model.parameter {
+    for value in model.edit() {
         *value += generator.normal() as f32 * 0.3;
     }
     let sample = (0..3)
@@ -33,12 +33,12 @@ fn finite() {
     let step = 2e-3f32;
     let mut failure = Vec::new();
     for (index, &exact) in analytic.iter().enumerate() {
-        let original = model.parameter[index];
-        model.parameter[index] = original + step;
+        let original = model.parameter()[index];
+        model.edit()[index] = original + step;
         let above = total(&model, &reference);
-        model.parameter[index] = original - step;
+        model.edit()[index] = original - step;
         let below = total(&model, &reference);
-        model.parameter[index] = original;
+        model.edit()[index] = original;
         let numeric = (above - below) / (2.0 * f64::from(step));
         let exact = f64::from(exact);
         let tolerance = 2e-2 * numeric.abs().max(exact.abs()) + 2e-3;

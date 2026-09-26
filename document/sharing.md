@@ -110,20 +110,23 @@ Proof reuse now covers canonical capture environments and identity compositions.
 ## Reproduction
 
 ```sh
-bazel run -c opt //benchmark:joining
-bazel run -c opt //benchmark:sharing
 bazel run -c opt //benchmark:prefix -- --width 8 --delay 32 --length 100 --sample 9
 bazel run -c opt //benchmark:prefix -- --width 12 --delay 128 --length 100 --sample 9
 bazel run -c opt //benchmark:prefix -- --width 8 --delay 32 --length 100 --changing --sample 9
 bazel run -c opt //benchmark:expression -- '2*2*2*2*2*2' 2101 --sample 9
 bazel run -c opt //benchmark:arithmetic -- 1234567890 add 9876543210 --radix 10 --sample 9
 bazel run -c opt //benchmark:arithmetic -- 12345 multiply 67890 --radix 10 --sample 9
-bazel run -c opt //benchmark:factor -- --width 256 --length 1000 --sample 9
 bazel run -c opt //benchmark:domain -- --width 4096 --length 1000 --sample 9
 bazel run -c opt //benchmark:runtime
-bazel run -c opt //benchmark:proof
 bazel test //language:test
 bazel test -c opt --nocache_test_results //...
 ```
+
+These benchmarks were removed after `0daf296` and still run at that commit:
+
+- [`joining`](https://github.com/Vantle/photonic/blob/0daf296e1d126675ed445bfb7ed6674a379b1532/benchmark/joining.rs)
+- [`sharing`](https://github.com/Vantle/photonic/blob/0daf296e1d126675ed445bfb7ed6674a379b1532/benchmark/sharing.rs)
+- [`factor`](https://github.com/Vantle/photonic/blob/0daf296e1d126675ed445bfb7ed6674a379b1532/benchmark/factor.rs) with `--width 256 --length 1000 --sample 9`
+- [`proof`](https://github.com/Vantle/photonic/blob/0daf296e1d126675ed445bfb7ed6674a379b1532/benchmark/runtime.rs)
 
 The expression target uses ternary numerals; the arithmetic commands explicitly select decimal operands. Baseline reproduction uses an isolated `20984f1` worktree with the benchmark harnesses registered in explicit Bazel source lists. Internal benchmark adapters use its original `Budget`, positional preparation arguments and argument-free reset. They do not alter its runtime implementation. The JSON records hashes for both sets of harness files.

@@ -2,8 +2,7 @@ Every.1,
 
 [Every.1] (
     Split.1,
-    [Both.1] Theorem,
-    [Refuted.2] Counterexample
+    [Both.1] Theorem
 ),
 [Split.1] Every.2.([Less.([Left] X).([Right] Y)] True),
 [Proved.2.([Less.([Left] X).([Right] Y)] True)] Every.2.([Less.([Left] X).([Right] Y)] False),
@@ -11,8 +10,7 @@ Every.1,
 
 [Every.2] (
     Split.2,
-    [Both.2] Proved.2,
-    [Refuted.3] Refuted.2
+    [Both.2] Proved.2
 ),
 [Split.2] Every.3.([Less.([Left] Y).([Right] Z)] True),
 [Proved.3.([Less.([Left] Y).([Right] Z)] True)] Every.3.([Less.([Left] Y).([Right] Z)] False),
@@ -20,8 +18,7 @@ Every.1,
 
 [Every.3] (
     Split.3,
-    [Both.3] Proved.3,
-    [Refuted.4] Refuted.3
+    [Both.3] Proved.3
 ),
 [Split.3] Every.4.([Less.([Left] X).([Right] Z)] True),
 [Proved.4.([Less.([Left] X).([Right] Z)] True)] Every.4.([Less.([Left] X).([Right] Z)] False),
@@ -29,8 +26,7 @@ Every.1,
 
 [Every.4] (
     Split.4,
-    [Both.4] Proved.4,
-    [Refuted.5] Refuted.4
+    [Both.4] Proved.4
 ),
 [Split.4] Every.5.([Equal.([Left] X).([Right] Y)] True),
 [Proved.5.([Equal.([Left] X).([Right] Y)] True)] Every.5.([Equal.([Left] X).([Right] Y)] False),
@@ -38,8 +34,7 @@ Every.1,
 
 [Every.5] (
     Split.5,
-    [Both.5] Proved.5,
-    [Refuted.6] Refuted.5
+    [Both.5] Proved.5
 ),
 [Split.5] Every.6.([Equal.([Left] Y).([Right] Z)] True),
 [Proved.6.([Equal.([Left] Y).([Right] Z)] True)] Every.6.([Equal.([Left] Y).([Right] Z)] False),
@@ -47,8 +42,7 @@ Every.1,
 
 [Every.6] (
     Split.6,
-    [Both.6] Proved.6,
-    [Refuted.7] Refuted.6
+    [Both.6] Proved.6
 ),
 [Split.6] Every.7.([Equal.([Left] X).([Right] Z)] True),
 [Proved.7.([Equal.([Left] X).([Right] Z)] True)] Every.7.([Equal.([Left] X).([Right] Z)] False),
@@ -56,8 +50,7 @@ Every.1,
 
 [Every.7] (
     Split.7,
-    [Both.7] Proved.7,
-    [Refuted.8] Refuted.7
+    [Both.7] Proved.7
 ),
 [Split.7] Every.8.([Less.([Left] U).([Right] V)] True),
 [Proved.8.([Less.([Left] U).([Right] V)] True)] Every.8.([Less.([Left] U).([Right] V)] False),
@@ -65,8 +58,7 @@ Every.1,
 
 [Every.8] (
     Split.8,
-    [Both.8] Proved.8,
-    [Refuted.9] Refuted.8
+    [Both.8] Proved.8
 ),
 [Split.8] Every.9.([Less.([Left] V).([Right] W)] True),
 [Proved.9.([Less.([Left] V).([Right] W)] True)] Every.9.([Less.([Left] V).([Right] W)] False),
@@ -74,8 +66,7 @@ Every.1,
 
 [Every.9] (
     Split.9,
-    [Both.9] Proved.9,
-    [Counterexample] Refuted.9
+    [Both.9] Proved.9
 ),
 [Split.9] Case.([Less.([Left] U).([Right] W)] True),
 [Holds.([Less.([Left] U).([Right] W)] True)] Case.([Less.([Left] U).([Right] W)] False),

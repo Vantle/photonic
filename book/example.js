@@ -80,33 +80,24 @@
         if (!record) message.say('No recorded run. Regenerate the records with bazel run -c opt //book:record.', 'error');
         else if (record.source !== original) message.say('This recorded run is stale. Regenerate it with bazel run -c opt //book:record.', 'error');
         restore();
-        const channel = setting.mode === 'path' ? book.engine.open() : undefined;
-        const execute = async (source, target, signal) => {
-            if (!channel) return book.engine.explore(setting, source, target, signal);
-            const progress = await channel.send('path', book.engine.request(setting, source, target), { timeout: 60000, signal });
-            return {
-                outcome: progress.outcome,
-                count: progress.event,
-                work: progress.work,
-                definition: progress.definition,
-                get: index => channel.send('inspect', { index }),
-            };
-        };
+        const follow = setting.mode === 'path' ? book.engine.path() : undefined;
+        const execute = async (program, signal) => follow
+            ? follow('path', book.engine.request(program), { timeout: 60000, signal })
+            : book.engine.explore(program, signal);
         const changed = () => editor.value !== original || goal.area.value !== setting.target.join('\n');
         const point = () => {
             lightbox.href = book.share.link({ ...setting, source: editor.element.hidden ? original : editor.value, target: goal.value });
         };
         point();
-        const cycle = book.run.create({ trigger: run, stop: channel && stop, message });
+        const cycle = book.run.create({ trigger: run, stop: follow && stop, message });
         const start = () => {
-            const source = editor.value;
-            const target = goal.value;
+            const program = { ...setting, source: editor.value, target: goal.value };
             const submission = book.editor.submit(figure, editor, goal);
-            cycle.start(signal => execute(source, target, signal), result => {
-                if (!channel) latest = { source, target, result };
-                show(output, setting, result, target);
+            cycle.start(signal => execute(program, signal), result => {
+                if (!follow) latest = { source: program.source, target: program.target, result };
+                show(output, setting, result, program.target);
             }, error => {
-                if (channel && !error.detail) restore();
+                if (follow && !error.detail) restore();
                 message.say(book.editor.locate(error, submission), 'error');
             });
         };

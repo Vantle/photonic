@@ -7,8 +7,10 @@ use crate::render;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+pub const LIMIT: usize = 20;
+
 fn limit() -> usize {
-    20
+    LIMIT
 }
 
 #[derive(Clone, Debug, Deserialize, JsonSchema, Serialize)]
@@ -31,33 +33,33 @@ pub struct Request {
 
 #[derive(Clone, Copy, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
-pub enum Kind {
+pub(crate) enum Kind {
     Configuration,
     Event,
 }
 
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
-pub struct Found {
-    pub handle: String,
-    pub text: String,
+pub(crate) struct Found {
+    pub(crate) handle: String,
+    pub(crate) text: String,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub occurrence: Vec<String>,
+    pub(crate) occurrence: Vec<String>,
     #[serde(skip_serializing_if = "std::ops::Not::not")]
-    pub unsupported: bool,
+    pub(crate) unsupported: bool,
 }
 
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 pub struct Answer {
-    pub exploration: String,
-    pub pattern: String,
-    pub kind: Kind,
-    pub total: usize,
-    pub found: Vec<Found>,
+    pub(crate) exploration: String,
+    pub(crate) pattern: String,
+    pub(crate) kind: Kind,
+    pub(crate) total: usize,
+    pub(crate) found: Vec<Found>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub next: Option<usize>,
+    pub(crate) next: Option<usize>,
 }
 
-pub fn answer(request: &Request, context: &mut Context<'_>) -> Result<Answer, Failure> {
+pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Answer, Failure> {
     let pattern = Pattern::read(&request.pattern)?;
     let exploration = context.exploration(&request.recording)?;
     let (kind, all) = match &pattern {
@@ -122,7 +124,7 @@ pub fn answer(request: &Request, context: &mut Context<'_>) -> Result<Answer, Fa
 }
 
 impl Answer {
-    pub fn text(&self) -> String {
+    pub(crate) fn text(&self) -> String {
         let noun = match self.kind {
             Kind::Configuration => "configuration",
             Kind::Event => "event",

@@ -1,9 +1,9 @@
 use crate::corpus::{gnome, sort};
 use crate::edit::{Action, Bound, Local, Side, apply, legal, perturb};
 use crate::objective::{Setting, evaluate};
+use crate::tree::{Place, walk};
 use code::atom::Atom;
 use code::program::Program;
-use code::tree::{Place, walk};
 use machine::limit::Limit;
 use random::Generator;
 
@@ -146,7 +146,7 @@ fn ascent() {
     let base = Setting::default();
     let setting = Setting {
         limit: Limit {
-            state: 48,
+            configuration: 48,
             event: 64,
             ..base.limit
         },

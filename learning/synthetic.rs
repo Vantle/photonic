@@ -60,6 +60,11 @@ fn run(program: &Flat, input: &Configuration, limit: &Limit) -> Option<(Observat
 }
 
 pub fn generate(generator: &mut Generator, name: String, limit: &Limit, rule: usize) -> Task {
+    // Past a deadline every exploration overflows, and generation would retry forever.
+    let limit = &Limit {
+        deadline: None,
+        ..*limit
+    };
     loop {
         let atom = 4 + generator.below(3);
         let candidate = program(generator, atom, rule);

@@ -1,25 +1,10 @@
-use super::{Circuit, Layout};
+use super::Circuit;
 use crate::address::Address;
 use crate::gate::Kind;
 
 impl Circuit {
-    pub(super) fn reduce(mut self, mut column: Vec<Vec<usize>>, layout: Layout) -> String {
+    pub(super) fn reduce(mut self, mut column: Vec<Vec<usize>>) -> String {
         let width = column.len() - 1;
-        while matches!(layout, Layout::Balanced) && column.iter().any(|column| column.len() > 2) {
-            let mut next = vec![Vec::new(); column.len()];
-            for (index, column) in column.into_iter().enumerate() {
-                for group in column.chunks(3) {
-                    if group.len() < 3 {
-                        next[index].extend_from_slice(group);
-                        continue;
-                    }
-                    let output = self.append(group.to_vec(), Kind::Sum);
-                    next[index].push(output[0]);
-                    next[index + 1].push(output[1]);
-                }
-            }
-            column = next;
-        }
         let mut result = Vec::new();
         for index in 0..width {
             while column[index].len() > 1 {

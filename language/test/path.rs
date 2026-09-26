@@ -1,17 +1,21 @@
-use crate::lowering::parse;
 use crate::path::Search;
 use crate::prism::Outcome;
 use crate::runtime::Limit;
+use frontend::lowering::parse;
+
+fn exhaustive(source: &str, target: &str, budget: usize) -> Outcome {
+    let program = parse(source).unwrap();
+    let mut runtime = crate::runtime::Runtime::new(&program);
+    runtime.run(budget, Limit::default());
+    runtime
+        .verdict(&crate::test::target(&program, target))
+        .outcome
+}
 
 fn search(source: &str, target: &str) -> Search {
-    {
-        let program = parse(source).unwrap();
-        let target = crate::source::Program {
-            rule: program.rule.clone(),
-            ..parse(target).unwrap()
-        };
-        Search::new(program, target)
-    }
+    let program = parse(source).unwrap();
+    let target = crate::test::target(&program, target);
+    Search::new(program, Some(target))
 }
 
 #[test]
@@ -30,11 +34,11 @@ fn batching() {
     let mut actual = search(&source, &world(8));
     let mut expected = search(&source, &world(8));
     let mut limit = Limit {
-        state: 32,
+        configuration: 32,
         record: 1_000_000,
-        world: 32,
-        cell: 64,
-        frame: 4,
+        coherence: 32,
+        occurrence: 64,
+        scope: 4,
     };
     for iteration in 0..10_000 {
         let budget = [0, 1, 2, 3, 7, 31, 127][iteration % 7];
@@ -70,16 +74,7 @@ fn execution() {
         let mut path = search(source, target);
         path.run(100_000, Limit::default());
         assert_eq!(path.report().outcome, Outcome::Reached, "{source}");
-        let mut exhaustive = {
-            let program = parse(source).unwrap();
-            let target = crate::source::Program {
-                rule: program.rule.clone(),
-                ..parse(target).unwrap()
-            };
-            crate::prism::Search::new(program, target)
-        };
-        exhaustive.run(100_000, None);
-        assert_eq!(exhaustive.report().outcome, Outcome::Reached);
+        assert_eq!(exhaustive(source, target, 100_000), Outcome::Reached);
     }
 }
 
@@ -90,7 +85,7 @@ fn unknown() {
         path.run(10_000, Limit::default());
         assert_eq!(path.report().outcome, Outcome::Unknown);
     }
-    let mut foreign = Search::new(parse("A").unwrap(), parse("[A] B").unwrap());
+    let mut foreign = Search::new(parse("A").unwrap(), Some(parse("[A] B").unwrap()));
     foreign.run(10_000, Limit::default());
     assert_eq!(foreign.summary().outcome, Outcome::Unknown);
 }
@@ -108,7 +103,7 @@ fn resume() {
     assert_eq!(serde_json::to_value(chunk.report()).unwrap(), expected);
     for limit in [
         Limit {
-            state: 1,
+            configuration: 1,
             ..Limit::default()
         },
         Limit {
@@ -116,7 +111,7 @@ fn resume() {
             ..Limit::default()
         },
         Limit {
-            cell: 0,
+            occurrence: 0,
             ..Limit::default()
         },
     ] {
@@ -142,7 +137,7 @@ fn factor() {
     }
     let target = format!("{particle},Stage32.B");
     let limit = Limit {
-        cell: 64,
+        occurrence: 64,
         ..Limit::default()
     };
     let mut complete = search(&source, &target);
@@ -176,16 +171,7 @@ fn inference() {
     let mut path = search(source, "Seed.B");
     path.run(100_000, Limit::default());
     assert_eq!(path.report().outcome, Outcome::Unknown);
-    let mut exhaustive = {
-        let program = parse(source).unwrap();
-        let target = crate::source::Program {
-            rule: program.rule.clone(),
-            ..parse("Seed.B").unwrap()
-        };
-        crate::prism::Search::new(program, target)
-    };
-    exhaustive.run(100_000, None);
-    assert_eq!(exhaustive.report().outcome, Outcome::Reached);
+    assert_eq!(exhaustive(source, "Seed.B", 100_000), Outcome::Reached);
 }
 
 #[test]
@@ -198,7 +184,7 @@ fn metadata() {
     ] {
         let mut runtime = crate::runtime::Runtime::new(&parse(source).unwrap());
         for _ in 0..10 {
-            runtime.run(100_000, None);
+            runtime.run(100_000, Limit::default());
             let Some(event) = runtime.first() else {
                 break;
             };
@@ -244,11 +230,17 @@ fn summary() {
 #[test]
 fn current() {
     let mut path = search("A, [A] B", "Missing");
-    assert_eq!(path.current().world[0].particle[0].display.as_ref(), "A");
+    assert_eq!(
+        crate::test::atom(&path.current().world[0].particle[0]),
+        Some("A")
+    );
     path.run(10000, Limit::default());
     assert_eq!(path.summary().outcome, Outcome::Unknown);
     assert!(path.summary().witness.is_none());
-    assert_eq!(path.current().world[0].particle[0].display.as_ref(), "B");
+    assert_eq!(
+        crate::test::atom(&path.current().world[0].particle[0]),
+        Some("B")
+    );
     assert_eq!(
         serde_json::to_value(path.current()).unwrap(),
         serde_json::to_value(path.report().state.last()).unwrap()
@@ -285,14 +277,13 @@ fn stale() {
             "P.C, [X, Y] ([Q] R, P), [[A] B, [D] E] C",
         ),
     ] {
-        let mut path = Search::new(parse(source).unwrap(), parse(target).unwrap());
+        let mut path = Search::new(parse(source).unwrap(), Some(parse(target).unwrap()));
         path.run(12_000, Limit::default());
         assert_eq!(path.summary().outcome, Outcome::Unknown, "{source}");
-        let mut exhaustive =
-            crate::prism::Search::new(parse(source).unwrap(), parse(target).unwrap());
-        exhaustive.run(12_000, None);
+        let mut exhaustive = crate::runtime::Runtime::new(&parse(source).unwrap());
+        exhaustive.run(12_000, Limit::default());
         assert_eq!(
-            exhaustive.report().outcome,
+            exhaustive.verdict(&parse(target).unwrap()).outcome,
             Outcome::Unreachable,
             "{source}"
         );
@@ -313,16 +304,7 @@ fn collision() {
     }
     assert_eq!(path.summary().outcome, Outcome::Unknown);
     assert_eq!(path.current().world.len(), 2);
-    let mut exhaustive = {
-        let program = parse(source).unwrap();
-        let target = crate::source::Program {
-            rule: program.rule.clone(),
-            ..parse(target).unwrap()
-        };
-        crate::prism::Search::new(program, target)
-    };
-    exhaustive.run(10000, None);
-    assert_eq!(exhaustive.report().outcome, Outcome::Unreachable);
+    assert_eq!(exhaustive(source, target, 10000), Outcome::Unreachable);
 }
 
 #[test]
@@ -332,7 +314,7 @@ fn suspension() {
             "A, [A] (B, C), [B,C] D",
             "D",
             Limit {
-                world: 1,
+                coherence: 1,
                 ..Limit::default()
             },
         ),
@@ -340,7 +322,7 @@ fn suspension() {
             "A, [A] (B, [B] (C, [C] D))",
             "D",
             Limit {
-                frame: 1,
+                scope: 1,
                 ..Limit::default()
             },
         ),

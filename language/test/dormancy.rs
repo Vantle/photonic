@@ -38,7 +38,7 @@ fn activation() {
         "[[A] B] Done",
     ] {
         for owner in 0..2 {
-            let program = Program::new(&crate::lowering::parse(source).unwrap());
+            let program = Program::new(&frontend::lowering::parse(source).unwrap());
             let input = Input::new(&program.rule[0].input);
             let mut state = crate::state::State::initial(&program);
             state.frame.push(state.frame[0].clone());
@@ -124,7 +124,7 @@ fn subscription() {
         vec![particle.clone(); 40].join(","),
         vec!["X"; 40].join(",")
     );
-    let program = Program::new(&crate::lowering::parse(&source).unwrap());
+    let program = Program::new(&frontend::lowering::parse(&source).unwrap());
     let input = Input::new(&program.rule[0].input);
     let mut state = crate::state::State::initial(&program);
     let mut index = Index::new(Arc::new(state.clone()));

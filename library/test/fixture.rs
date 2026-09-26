@@ -151,15 +151,15 @@ impl Fixture {
 pub fn reach(source: &str, target: &str, library: &[&str], context: impl Display) {
     let program = crate::program(source, library);
     let target = crate::target(&program, target);
-    let mut search = Search::new(program, target);
+    let mut search = Search::new(program, Some(target));
     search.run(
         200_000_000,
         Limit {
-            state: 65536,
+            configuration: 65536,
             record: 100_000_000,
-            cell: 16384,
-            world: 1024,
-            frame: 2048,
+            occurrence: 16384,
+            coherence: 1024,
+            scope: 2048,
         },
     );
     assert_eq!(search.summary().outcome, Outcome::Reached, "{context}");

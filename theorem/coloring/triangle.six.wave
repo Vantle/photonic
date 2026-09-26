@@ -172,8 +172,4 @@ Every.1,
 [Claim] (Triple.17.([Edge] A.E).([Edge] A.F).([Edge] E.F), Triple.18.([Edge] B.E).([Edge] B.F).([Edge] E.F), Triple.19.([Edge] C.E).([Edge] C.F).([Edge] E.F), Triple.20.([Edge] D.E).([Edge] D.F).([Edge] E.F)),
 [Uniform.17, Uniform.18] Function.Boolean.Or.Some.18,
 [Return.Some.18, Uniform.19] Function.Boolean.Or.Some.19,
-[Return.Some.19, Uniform.20] Function.Boolean.Or.Verdict,
-[Triple.True.True.True] Uniform.True,
-[Triple.True.True.False] Uniform.False,
-[Triple.True.False.False] Uniform.False,
-[Triple.False.False.False] Uniform.True
+[Return.Some.19, Uniform.20] Function.Boolean.Or.Verdict

@@ -129,7 +129,11 @@
             if (entry.length > shown) {
                 const more = element('button', 'more', `${entry.length - shown} more`);
                 more.type = 'button';
-                more.addEventListener('click', () => more.replaceWith(...entry.slice(shown).map(chip)));
+                more.addEventListener('click', () => {
+                    const rest = entry.slice(shown).map(chip);
+                    more.replaceWith(...rest);
+                    rest[0].focus();
+                });
                 list.append(more);
             }
             list.hidden = !entry.length;

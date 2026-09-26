@@ -18,11 +18,11 @@ fn tangent(value: f32) -> (f32, f32) {
     (result, derivative)
 }
 
-pub fn gelu(value: f32) -> f32 {
+pub(crate) fn gelu(value: f32) -> f32 {
     0.5 * value * (1.0 + tangent(ROOT * (value + CUBIC * value * value * value)).0)
 }
 
-pub fn slope(value: f32) -> f32 {
+pub(crate) fn slope(value: f32) -> f32 {
     let (result, derivative) = tangent(ROOT * (value + CUBIC * value * value * value));
     0.5 * (1.0 + result) + 0.5 * value * derivative * ROOT * (1.0 + 3.0 * CUBIC * value * value)
 }
@@ -34,21 +34,21 @@ pub struct Feed {
 }
 
 #[derive(Clone, Debug)]
-pub struct Trace {
+pub(crate) struct Trace {
     input: Array2<f32>,
     activation: Array2<f32>,
     hidden: Array2<f32>,
 }
 
 impl Feed {
-    pub fn new(layout: &mut Layout, width: usize, hidden: usize) -> Self {
+    pub(crate) fn new(layout: &mut Layout, width: usize, hidden: usize) -> Self {
         Self {
             expand: Linear::new(layout, width, hidden),
             contract: Linear::new(layout, hidden, width),
         }
     }
 
-    pub fn initialize(
+    pub(crate) fn initialize(
         &self,
         parameter: &mut [f32],
         generator: &mut Generator,
@@ -59,7 +59,7 @@ impl Feed {
         self.contract.initialize(parameter, generator, residual);
     }
 
-    pub fn forward(&self, parameter: &[f32], input: Array2<f32>) -> (Array2<f32>, Trace) {
+    pub(crate) fn forward(&self, parameter: &[f32], input: Array2<f32>) -> (Array2<f32>, Trace) {
         let activation = self.expand.forward(parameter, &input.view());
         let hidden = activation.mapv(gelu);
         let output = self.contract.forward(parameter, &hidden.view());
@@ -73,7 +73,7 @@ impl Feed {
         )
     }
 
-    pub fn backward(
+    pub(crate) fn backward(
         &self,
         parameter: &[f32],
         gradient: &mut [f32],

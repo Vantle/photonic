@@ -57,12 +57,12 @@ fn reach(floor: f64, weight: f64, size: Option<usize>) -> f64 {
     floor + weight * size.map_or(0, |size| size + 1) as f64
 }
 
-pub fn least(task: &Task, setting: &Setting) -> f64 {
-    let setting = setting.aim(task.goal);
-    if setting.goal.size < 0.0 {
-        return f64::NEG_INFINITY;
-    }
-    floor(&task.example, &task.vocabulary, &setting)
+pub(crate) fn least(task: &Task, setting: &Setting) -> f64 {
+    floor(
+        &task.example,
+        &task.vocabulary,
+        &setting.aim(task.goal).until(None),
+    )
 }
 
 impl Solution {
@@ -150,7 +150,7 @@ fn walk(flat: &Flat, example: &Example, setting: &Setting) -> bool {
             let budget = limit.individualization;
             return state.observation().same(&example.output, budget);
         };
-        if work >= limit.state {
+        if work >= limit.configuration {
             return false;
         }
         work += 1;
@@ -318,6 +318,9 @@ impl Scope<'_> {
     }
 
     fn explore(&self, full: u64, size: usize, bound: f64) -> Tally {
+        if self.expired() {
+            return Tally::empty();
+        }
         let budget = size - full.count_ones() as usize;
         let atom = (0..ALPHABET)
             .filter(|&bit| full & 1 << bit != 0)
@@ -392,37 +395,49 @@ impl Branch<'_> {
     }
 }
 
-pub fn solve(
+pub(crate) fn solve(
     task: &Task,
     incumbent: f64,
     setting: &Setting,
     budget: Budget,
 ) -> Result<Solution, Failure> {
     let setting = &setting.aim(task.goal);
-    if setting.goal.size <= 0.0 {
+    let weight = setting.goal.size();
+    if weight <= 0.0 {
         return Err(Failure::Unbounded);
     }
     let count = task.vocabulary.len();
     if count > ALPHABET {
         return Err(Failure::Alphabet { count });
     }
-    let floor = floor(&task.example, &task.vocabulary, setting);
+    let floor = floor(&task.example, &task.vocabulary, &setting.until(None));
+    let deadline = budget
+        .time
+        .map(|time| Instant::now() + time)
+        .into_iter()
+        .chain(setting.limit.deadline)
+        .min();
+    let input = task
+        .example
+        .iter()
+        .flat_map(|example| example.input.coherence());
+    let present = if input.clone().all(|particle| particle.flat().is_some()) {
+        mask(input)
+    } else {
+        u64::MAX
+    };
     let scope = Scope {
         task,
-        setting,
-        present: mask(
-            task.example
-                .iter()
-                .flat_map(|example| example.input.coherence()),
-        ),
-        deadline: budget.time.map(|time| Instant::now() + time),
+        setting: &setting.until(deadline),
+        present,
+        deadline,
         expired: AtomicBool::new(false),
     };
     let mut tally = Tally::empty();
     let mut size = None;
     for level in 0..=budget.size {
         let bound = incumbent.min(tally.cost);
-        if floor + setting.goal.size * level as f64 > bound + TOLERANCE || scope.expired() {
+        if floor + weight * level as f64 > bound + TOLERANCE || scope.expired() {
             break;
         }
         tally = tally.merge(scope.level(level, bound));
@@ -432,12 +447,12 @@ pub fn solve(
         size = Some(level);
     }
     let bound = incumbent.min(tally.cost);
-    let least = reach(floor, setting.goal.size, size);
+    let least = reach(floor, weight, size);
     let mut optimal = tally.optimal;
     optimal.sort_by(|left, right| left.0.cmp(&right.0));
     Ok(Solution {
         floor,
-        weight: setting.goal.size,
+        weight,
         size,
         examined: tally.examined,
         cost: tally.cost,

@@ -1,5 +1,4 @@
 use crate::canonical;
-use crate::executor::Executor;
 use crate::program::Symbol;
 use crate::runtime::{Limit, Runtime};
 use crate::search::Search;
@@ -122,9 +121,9 @@ fn refinement() {
 fn parallel() {
     let fixture: serde_json::Value = serde_json::from_str(include_str!("reference.json")).unwrap();
     let executor = [
-        Executor::new(1).unwrap(),
-        Executor::new(2).unwrap(),
-        Executor::new(4).unwrap(),
+        crate::test::executor(1),
+        crate::test::executor(2),
+        crate::test::executor(4),
     ];
     for case in fixture
         .as_array()
@@ -132,15 +131,15 @@ fn parallel() {
         .iter()
         .filter(|case| case["closed"] == true)
     {
-        let program: crate::source::Program =
+        let program: frontend::source::Program =
             serde_json::from_value(case["program"].clone()).unwrap();
         let mut runtime = Runtime::new(&program);
-        runtime.run(12000, None);
+        runtime.run(12000, Limit::default());
         assert!(runtime.closed(), "{}", case["name"]);
         let expected = serde_json::to_value(runtime.snapshot()).unwrap();
         for executor in &executor {
             let mut runtime = Runtime::new(&program);
-            runtime.parallel(executor, 12000, None);
+            runtime.parallel(executor, 12000, Limit::default());
             assert_eq!(
                 serde_json::to_value(runtime.snapshot()).unwrap(),
                 expected,
@@ -160,10 +159,10 @@ fn chunking() {
         .iter()
         .filter(|case| case["closed"] == true)
     {
-        let program: crate::source::Program =
+        let program: frontend::source::Program =
             serde_json::from_value(case["program"].clone()).unwrap();
         let mut complete = Runtime::new(&program);
-        complete.run(12000, None);
+        complete.run(12000, Limit::default());
         assert!(complete.closed());
         let expected = serde_json::to_value(complete.snapshot()).unwrap();
         for chunk in [1, 7, 32] {
@@ -172,7 +171,7 @@ fn chunking() {
                 if runtime.closed() {
                     break;
                 }
-                runtime.run(chunk, None);
+                runtime.run(chunk, Limit::default());
             }
             assert_eq!(
                 serde_json::to_value(runtime.snapshot()).unwrap(),
@@ -191,13 +190,13 @@ fn fairness() {
         vec!["A"; 25].join("."),
         ["A"; 12].join(".")
     );
-    let mut runtime = Runtime::new(&crate::lowering::parse(&source).unwrap());
+    let mut runtime = Runtime::new(&frontend::lowering::parse(&source).unwrap());
     runtime.run(
         1000,
-        Some(Limit {
-            cell: 64,
+        Limit {
+            occurrence: 64,
             ..Limit::default()
-        }),
+        },
     );
     assert!(!runtime.closed());
     assert!(runtime.snapshot().state.iter().any(|node| {
@@ -205,25 +204,25 @@ fn fairness() {
             world
                 .particle
                 .iter()
-                .any(|token| token.label.as_ref() == "Done")
+                .any(|token| crate::test::atom(token) == Some("Done"))
         })
     }));
 }
 
 #[test]
 fn budget() {
-    let source = crate::lowering::parse("Seed.A, [Seed] ().([A] B)").unwrap();
+    let source = frontend::lowering::parse("Seed.A, [Seed] ().([A] B)").unwrap();
     let mut complete = Runtime::new(&source);
-    complete.run(12000, None);
+    complete.run(12000, Limit::default());
     let expected = serde_json::to_value(complete.snapshot()).unwrap();
     for record in [1, complete.record() / 2] {
         let mut runtime = Runtime::new(&source);
         runtime.run(
             12000,
-            Some(Limit {
+            Limit {
                 record,
                 ..Limit::default()
-            }),
+            },
         );
         assert!(!runtime.closed());
         if record == 1 {
@@ -231,15 +230,15 @@ fn budget() {
         } else {
             assert!(runtime.snapshot().work > 0);
         }
-        runtime.run(12000, Some(Limit::default()));
+        runtime.run(12000, Limit::default());
         assert_eq!(serde_json::to_value(runtime.snapshot()).unwrap(), expected);
     }
 }
 
 #[test]
 fn initialization() {
-    let source = crate::source::Program {
-        initial: vec![vec![crate::source::Value::Atom("A".into())]; 100],
+    let source = frontend::source::Program {
+        initial: vec![vec![frontend::source::Value::Atom("A".into())]; 100],
         rule: Vec::new(),
     };
     let runtime = Runtime::new(&source);
@@ -249,11 +248,11 @@ fn initialization() {
             .map(|world| {
                 (0..2)
                     .filter(|index| mask & (1 << (world * 2 + index)) != 0)
-                    .map(|index| crate::source::Value::Atom(index.to_string()))
+                    .map(|index| frontend::source::Value::Atom(index.to_string()))
                     .collect()
             })
             .collect();
-        let program = crate::program::Program::new(&crate::source::Program {
+        let program = crate::program::Program::new(&frontend::source::Program {
             initial,
             rule: Vec::new(),
         });
@@ -702,7 +701,7 @@ fn factorization() {
 #[test]
 fn bulk() {
     use crate::work::{Result, Work};
-    let executor = Executor::new(4).unwrap();
+    let executor = crate::test::executor(4);
     for width in [16, 4096] {
         let state = Arc::new(root(
             (0..width)
@@ -747,7 +746,7 @@ fn bulk() {
 #[test]
 fn preparation() {
     use crate::work::{Result, Work};
-    let executor = Executor::new(4).unwrap();
+    let executor = crate::test::executor(4);
     for (width, arity) in [32, 4096]
         .into_iter()
         .flat_map(|width| [1, 8].map(|arity| (width, arity)))

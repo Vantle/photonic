@@ -1,6 +1,6 @@
 use crate::catalog::LIBRARY;
-use photonic::lowering::parse;
-use photonic::source::{Definition, Value};
+use frontend::lowering::parse;
+use frontend::source::{Definition, Value};
 use std::collections::BTreeSet;
 
 const BOUNDED: [&str; 9] = [

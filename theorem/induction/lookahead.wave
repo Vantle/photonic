@@ -2,8 +2,7 @@ Every.1,
 
 [Every.1] (
     Split.1,
-    [Both.1] Theorem,
-    [Refuted.2] Counterexample
+    [Both.1] Theorem
 ),
 [Split.1] Every.2.([Entry] 0),
 [Proved.2.([Entry] 0)] Every.2.([Entry] 1),
@@ -11,8 +10,7 @@ Every.1,
 
 [Every.2] (
     Split.2,
-    [Both.2] Proved.2,
-    [Refuted.3] Refuted.2
+    [Both.2] Proved.2
 ),
 [Split.2] Every.3.([Ripple] 0),
 [Proved.3.([Ripple] 0)] Every.3.([Ripple] 1),
@@ -20,8 +18,7 @@ Every.1,
 
 [Every.3] (
     Split.3,
-    [Both.3] Proved.3,
-    [Refuted.4] Refuted.3
+    [Both.3] Proved.3
 ),
 [Split.3] Every.4.([Prefix] Kill),
 [Proved.4.([Prefix] Kill)] Every.4.([Prefix] Propagate),
@@ -30,8 +27,7 @@ Every.1,
 
 [Every.4] (
     Split.4,
-    [Both.4] Proved.4,
-    [Counterexample] Refuted.4
+    [Both.4] Proved.4
 ),
 [Split.4] Case.([Block] Kill),
 [Holds.([Block] Kill)] Case.([Block] Propagate),
@@ -44,6 +40,6 @@ Every.1,
 [Packed.Combined, Packed.Combined] Function.Signal.Combine.Combined,
 [Return.Combined] Function.Signal.Evaluate.After.Entry,
 [Return.After, Return.Rippled] Function.Ternary.Equal.Kept,
-[Return.Holding] Function.Boolean.Not.Broken,
-[Return.Broken, Return.Kept] Function.Boolean.Or.Step,
-[Return.Base, Return.Step] Function.Boolean.And.Verdict
+[Return.True.Base, Return.True.Holding, Return.True.Kept] Return.Verdict.True,
+[Return.True.Base, Return.False.Holding, Return.True.Kept] Return.Verdict.True,
+[Return.True.Base, Return.False.Holding, Return.False.Kept] Return.Verdict.True

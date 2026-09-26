@@ -17,7 +17,7 @@
         editor.area.readOnly = true;
         const message = book.render.message();
         const viewer = book.viewer.create();
-        body.append(choice.element, editor.element, message.element, ...viewer.element);
+        body.append(choice.element, editor.element, message.element, viewer.element);
         widget.replaceChildren(bar, body);
 
         const cycle = book.run.create({ trigger: run, message });
@@ -45,7 +45,7 @@
         const execute = () => {
             const source = editor.value;
             const submission = book.editor.submit(widget, editor);
-            cycle.start(signal => book.engine.explore(current, source, current.target, signal), result => {
+            cycle.start(signal => book.engine.explore({ ...current, source }, signal), result => {
                 current = { ...current, name: '', source, result };
                 choice.press();
                 viewer.show(result, current.target);

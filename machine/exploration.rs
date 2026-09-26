@@ -35,7 +35,8 @@ struct Frame {
 }
 
 pub fn fits(program: &Flat, state: &State, limit: &Limit) -> bool {
-    state.coherence().len() <= limit.coherence && state.size() + program.rule().len() <= limit.cell
+    state.coherence().len() <= limit.coherence
+        && state.size() + program.rule().len() <= limit.occurrence
 }
 
 pub fn successor(program: &Flat, state: &State, limit: &Limit) -> Option<Vec<(State, Key<Atom>)>> {
@@ -110,7 +111,7 @@ pub fn explore(
             }
             continue;
         }
-        if exploration.state >= limit.state {
+        if exploration.state >= limit.configuration || limit.expired() {
             exploration.overflow = true;
             return exploration;
         }

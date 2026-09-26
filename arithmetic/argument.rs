@@ -107,13 +107,7 @@ impl Argument {
                 arithmetic::encoding::unsigned(3, width + 1, self.expected as u64)?,
             ),
             Operation::Multiply => (
-                arithmetic::circuit::multiply(
-                    3,
-                    width,
-                    self.left,
-                    self.right,
-                    arithmetic::circuit::Layout::Column,
-                )?,
+                arithmetic::circuit::multiply(3, width, self.left, self.right)?,
                 arithmetic::encoding::unsigned(3, width * 2, self.expected as u64)?,
             ),
             Operation::Subtract => (

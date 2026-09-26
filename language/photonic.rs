@@ -1,7 +1,5 @@
 #![forbid(unsafe_code)]
 
-pub use frontend::{lowering, parser, source, syntax, text};
-
 mod accumulator;
 mod affected;
 mod agenda;
@@ -82,7 +80,3 @@ mod test;
 
 #[cfg(feature = "measurement")]
 pub mod measurement;
-
-#[cfg(test)]
-#[path = "test/report.rs"]
-mod report;

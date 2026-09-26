@@ -1,4 +1,5 @@
-use crate::snapshot::{Kind, Node};
+use crate::runtime::Limit;
+use crate::snapshot::{Node, Value};
 use std::sync::Arc;
 
 fn verify(state: &[Node]) {
@@ -6,15 +7,15 @@ fn verify(state: &[Node]) {
         node.world
             .iter()
             .flat_map(|world| &world.particle)
-            .find(|token| token.display.as_ref() == "X")
-            .map(|token| (token.label.clone(), token.display.clone()))
+            .find_map(|token| match &token.value {
+                Value::Atom(atom) if atom.as_ref() == "X" => Some(atom.clone()),
+                _ => None,
+            })
             .unwrap()
     };
-    let (label, _) = text(&state[0]);
+    let first = text(&state[0]);
     for node in state {
-        let (current, display) = text(node);
-        assert!(Arc::ptr_eq(&label, &current));
-        assert!(Arc::ptr_eq(&current, &display));
+        assert!(Arc::ptr_eq(&first, &text(node)));
         assert!(Arc::ptr_eq(&state[0].frame[0].scope, &node.frame[0].scope));
     }
 }
@@ -22,15 +23,10 @@ fn verify(state: &[Node]) {
 #[test]
 fn ownership() {
     let report = {
-        let mut search = {
-            let program = crate::lowering::parse("A.X, [A] B, [B] C").unwrap();
-            let target = crate::source::Program {
-                rule: program.rule.clone(),
-                ..crate::lowering::parse("C.X").unwrap()
-            };
-            crate::path::Search::new(program, target)
-        };
-        search.run(100_000, crate::runtime::Limit::default());
+        let program = frontend::lowering::parse("A.X, [A] B, [B] C").unwrap();
+        let target = crate::test::target(&program, "C.X");
+        let mut search = crate::path::Search::new(program, Some(target));
+        search.run(100_000, Limit::default());
         search.report()
     };
     assert_eq!(report.outcome, crate::prism::Outcome::Reached);
@@ -45,19 +41,19 @@ fn ownership() {
     );
     let snapshot = {
         let mut runtime =
-            crate::runtime::Runtime::new(&crate::lowering::parse("A.X, [A] B, [B] C").unwrap());
-        runtime.run(100_000, None);
+            crate::runtime::Runtime::new(&frontend::lowering::parse("A.X, [A] B, [B] C").unwrap());
+        runtime.run(100_000, Limit::default());
         runtime.snapshot()
     };
     assert!(snapshot.closed);
     verify(&snapshot.state);
-    assert!(!serde_json::to_vec(&snapshot).unwrap().is_empty());
+    assert_eq!(snapshot.state.len(), 3);
 }
 
 #[test]
 fn isolation() {
-    let first = crate::program::Program::new(&crate::lowering::parse("A").unwrap());
-    let second = crate::program::Program::new(&crate::lowering::parse("B").unwrap());
+    let first = crate::program::Program::new(&frontend::lowering::parse("A").unwrap());
+    let second = crate::program::Program::new(&frontend::lowering::parse("B").unwrap());
     let render = |program: &crate::program::Program| {
         super::Builder::new(program).node(
             0,
@@ -67,33 +63,47 @@ fn isolation() {
     };
     let first = render(&first);
     let second = render(&second);
-    assert_eq!(first.world[0].particle[0].label.as_ref(), "A");
-    assert_eq!(second.world[0].particle[0].label.as_ref(), "B");
+    assert_eq!(crate::test::atom(&first.world[0].particle[0]), Some("A"));
+    assert_eq!(crate::test::atom(&second.world[0].particle[0]), Some("B"));
 }
 
 #[test]
-fn kind() {
+fn value() {
     let snapshot = {
         let mut runtime = crate::runtime::Runtime::new(
-            &crate::lowering::parse("⟨x⟩.Seed, [Seed] ().([A] B)").unwrap(),
+            &frontend::lowering::parse("⟨x⟩.Seed, [Seed] ().([A] B)").unwrap(),
         );
-        runtime.run(100_000, None);
+        runtime.run(100_000, Limit::default());
         runtime.snapshot()
     };
-    let kind = |display: &str| {
-        snapshot
-            .state
-            .iter()
-            .flat_map(|node| &node.world)
-            .flat_map(|world| &world.particle)
-            .find(|token| token.display.as_ref() == display)
-            .map(|token| token.kind)
-    };
-    assert_eq!(kind("⟨x⟩"), Some(Kind::Atom));
-    assert_eq!(kind("Seed"), Some(Kind::Atom));
-    assert_eq!(kind("⟨[A] B⟩"), Some(Kind::Rule));
+    let token = snapshot
+        .state
+        .iter()
+        .flat_map(|node| &node.world)
+        .flat_map(|world| &world.particle)
+        .collect::<Vec<_>>();
+    let atom = token
+        .iter()
+        .find(|token| token.value == Value::Atom("⟨x⟩".into()))
+        .unwrap();
     assert_eq!(
-        serde_json::to_value([Kind::Atom, Kind::Rule]).unwrap(),
-        serde_json::json!(["atom", "rule"])
+        serde_json::to_value(atom).unwrap(),
+        serde_json::json!({"id": atom.id, "atom": "⟨x⟩"})
+    );
+    let rule = token
+        .iter()
+        .find(|token| matches!(token.value, Value::Rule(_)))
+        .unwrap();
+    let Value::Rule(index) = rule.value else {
+        unreachable!("the token is a rule")
+    };
+    assert_eq!(snapshot.definition[index].name, "[A] B");
+    assert_eq!(
+        frontend::text::definition(&snapshot.definition[index].rule),
+        "[A] B"
+    );
+    assert_eq!(
+        serde_json::to_value(rule).unwrap()["rule"],
+        serde_json::json!(index)
     );
 }

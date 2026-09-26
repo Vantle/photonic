@@ -19,7 +19,7 @@ pub enum Mode {
 #[schemars(
     description = "How handles are numbered. shape: by the program's canonical form, so they survive reordering and renaming; text: by the sorted program, so they survive reordering; source: as written, for direct paths."
 )]
-pub enum Order {
+pub(crate) enum Order {
     Shape,
     Text,
     Source,
@@ -37,10 +37,10 @@ pub struct Recording {
         description = "The key of an exploration an earlier answer returned, such as x91c7f661, instead of program."
     )]
     pub exploration: Option<String>,
-    #[serde(default)]
-    pub mode: Mode,
-    #[serde(default)]
-    pub budget: Budget,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mode: Option<Mode>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub budget: Option<Budget>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub goal: Option<Goal>,
 }

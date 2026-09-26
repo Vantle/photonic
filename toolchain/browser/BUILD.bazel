@@ -33,6 +33,7 @@ rust_shared_library(
     deps = [
         "//arithmetic:infix",
         "//code",
+        "//frontend",
         "//language:photonic",
         "//symmetry",
         "//translation",
@@ -59,20 +60,14 @@ filegroup(
     name = "javascript",
     srcs = [":asset"],
     output_group = "javascript",
-    visibility = [
-        "//benchmark:__pkg__",
-        "//book:__pkg__",
-    ],
+    visibility = ["//book:__pkg__"],
 )
 
 filegroup(
     name = "webassembly",
     srcs = [":asset"],
     output_group = "webassembly",
-    visibility = [
-        "//benchmark:__pkg__",
-        "//book:__pkg__",
-    ],
+    visibility = ["//book:__pkg__"],
 )
 
 filegroup(

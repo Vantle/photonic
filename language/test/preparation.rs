@@ -166,7 +166,7 @@ fn subscription() {
     use crate::state::State;
 
     let program = Program::new(
-        &crate::lowering::parse(
+        &frontend::lowering::parse(
             "A.B.C.D.E.F.G.H,X,Y, [A.B.C.D.E.F.G.H,X] End, [A.B.C.D.E.F.G.H,Y] End",
         )
         .unwrap(),

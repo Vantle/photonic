@@ -1,6 +1,6 @@
 #![forbid(unsafe_code)]
 
-pub mod coherence;
+mod coherence;
 pub mod event;
 pub mod exploration;
 pub mod flat;

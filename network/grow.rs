@@ -186,12 +186,12 @@ pub fn grow(
 ) -> Result<Model, Failure> {
     let factor = check(source.configuration(), &configuration)?;
     let growth = Growth {
-        source: &source.parameter,
+        source: source.parameter(),
         width: source.configuration().width,
         factor,
     };
     let mut model = Model::new(configuration, generator);
-    let mut target = std::mem::take(&mut model.parameter);
+    let mut target = model.parameter().to_vec();
     for (index, after) in model.embedding().table.iter().enumerate() {
         let Some(before) = source.embedding().table.get(index) else {
             after.write(&mut target).fill(0.0);
@@ -279,6 +279,6 @@ pub fn grow(
             generator,
         );
     }
-    model.parameter = target;
+    model.edit().copy_from_slice(&target);
     Ok(model)
 }

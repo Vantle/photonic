@@ -5,9 +5,9 @@ use code::atom::Atom;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Event {
-    pub rule: usize,
-    pub coherence: Vec<usize>,
-    pub selection: Vec<Vec<u32>>,
+    pub(crate) rule: usize,
+    pub(crate) coherence: Vec<usize>,
+    pub(crate) selection: Vec<Vec<u32>>,
 }
 
 struct Enumeration<'state, Visit> {

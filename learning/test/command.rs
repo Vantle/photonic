@@ -95,6 +95,32 @@ fn objective() {
 }
 
 #[test]
+fn range() {
+    for argument in [
+        ["train", "--focus=1.5"],
+        ["train", "--infer=NaN"],
+        ["curriculum", "--mastery=2"],
+        ["curriculum", "--rehearse=-0.1"],
+    ] {
+        assert!(fail(&argument).contains("a share must be"), "{argument:?}");
+    }
+    for argument in [["train", "--game=0"], ["improve", "--worker=0"]] {
+        assert!(fail(&argument).contains("at least 1"), "{argument:?}");
+    }
+    for argument in [["improve", "--frozen"], ["curriculum", "--frozen"]] {
+        assert!(fail(&argument).contains("--frozen"), "{argument:?}");
+    }
+    let help = succeed(&["--help"]);
+    for text in [
+        "Train the network by self-play",
+        "Search for the cheapest programs",
+        "Teach levels of increasing complexity",
+    ] {
+        assert!(help.contains(text), "{help}");
+    }
+}
+
+#[test]
 fn measure() {
     let fixture = Fixture::new();
     let home = fixture.home();
@@ -141,7 +167,7 @@ fn focus() {
         "empty",
         "--synthetic",
         "0",
-        "--grow",
+        "--fresh",
         "0",
         "--duration",
         "1",

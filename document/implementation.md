@@ -68,9 +68,9 @@ The fragment benchmark keeps one changing particle and distinct branch worlds. E
 
 Reproduce the shared-fragment measurements with:
 
-```sh
-bazel run -c opt //benchmark:fragment -- --width 256 --size 4096 --length 100 --sample 7
-```
+This benchmark was removed after `0daf296` and still runs at that commit:
+
+- [`fragment`](https://github.com/Vantle/photonic/blob/0daf296e1d126675ed445bfb7ed6674a379b1532/benchmark/fragment.rs) with `--width 256 --size 4096 --length 100 --sample 7`
 
 ## Remaining boundary
 

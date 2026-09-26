@@ -26,7 +26,9 @@ rust_library(
     ],
     deps = [
         "//code",
+        "//frontend",
         "//language:photonic",
+        "@crate//:indexmap",
         "@crate//:miette",
         "@crate//:serde",
         "@crate//:thiserror",
@@ -47,9 +49,11 @@ rust_test(
     lint_config = "//:lint",
     deps = [
         "//code",
+        "//frontend",
         "//language:photonic",
         "//machine",
         "//random",
+        "@crate//:indexmap",
         "@crate//:miette",
         "@crate//:serde",
         "@crate//:thiserror",

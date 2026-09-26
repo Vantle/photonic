@@ -6,15 +6,16 @@ use learning::home;
 use learning::import::import;
 use learning::objective;
 use learning::pool::{self, SYNTHETIC};
-use miette::{IntoDiagnostic, miette};
+use learning::task;
+use miette::IntoDiagnostic;
 
 pub fn train(argument: Train) -> miette::Result<()> {
     let home = open(&argument.home)?;
-    let setting = setting(&argument.session);
+    let setting = setting(&argument.session, argument.frozen)?;
     let pool = pool(
         &home,
         argument.synthetic,
-        argument.grow,
+        argument.fresh,
         argument.session.seed,
         &setting.play.objective,
     )?;
@@ -23,8 +24,7 @@ pub fn train(argument: Train) -> miette::Result<()> {
 
 pub fn optimize(argument: Optimize) -> miette::Result<()> {
     let home = open(&argument.home)?;
-    let mut setting = setting(&argument.session);
-    setting.play.focus = argument.focus;
+    let setting = setting(&argument.session, argument.frozen)?;
     let program = argument
         .program
         .iter()
@@ -44,11 +44,12 @@ pub fn optimize(argument: Optimize) -> miette::Result<()> {
     let task =
         import(&name, &program, &input, &setting.play.objective.thorough()).into_diagnostic()?;
     if let Some(reference) = &task.reference {
+        let size = objective::Size::new(reference);
         line(&format!(
             "imported {name}: {} rules, {} examples, reference size {}",
-            code::tree::walk(reference).len(),
+            size.rule,
             task.example.len(),
-            objective::Size::new(reference).total()
+            size.total()
         ));
     }
     let existing = pool(
@@ -62,11 +63,8 @@ pub fn optimize(argument: Optimize) -> miette::Result<()> {
     home.save(home::POOL, &pool).into_diagnostic()?;
     session(&home, &pool, std::slice::from_ref(&name), &setting)?;
     let archive = archive(&home)?;
-    let task = pool
-        .iter()
-        .find(|task| task.name == name)
-        .ok_or_else(|| miette!("the pool lost {name}"))?;
-    match archive.entry(&name).and_then(|entry| entry.best.as_ref()) {
+    let task = task::find(&pool, &name).into_diagnostic()?;
+    match archive.best(&name) {
         Some(record) => {
             line(&format!(
                 "best {name}: cost {:.3}, size {}, time {:.3} (work {:.2}, span {:.2})",

@@ -7,6 +7,6 @@ Case.(([P] True), ([P] False)).(([Q] True), ([Q] False)).(([R] True), ([R] False
 [Return.Upper.Former, Return.Upper.Latter] Function.Boolean.And.Upper.Expanded,
 [Return.Lower.Factored, Return.Lower.Expanded] Function.Boolean.Equal.Lower.Law,
 [Return.Upper.Factored, Return.Upper.Expanded] Function.Boolean.Equal.Upper.Law,
-[Return.Lower.Law, Return.Upper.Law] Function.Boolean.And.Verdict,
+[Return.True.Lower.Law, Return.True.Upper.Law] Return.Verdict.True,
 
 [Holds.(([P] True), ([P] False)).(([Q] True), ([Q] False)).(([R] True), ([R] False))] Theorem

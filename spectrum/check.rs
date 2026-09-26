@@ -18,28 +18,21 @@ pub struct Request {
     pub claim: Vec<Claim>,
 }
 
-#[derive(Clone, Copy, Debug, Eq, JsonSchema, PartialEq, Serialize)]
-#[serde(rename_all = "lowercase")]
-pub enum Level {
-    Error,
-}
-
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
-pub struct Diagnostic {
-    pub code: String,
-    pub level: Level,
-    pub message: String,
+pub(crate) struct Diagnostic {
+    pub(crate) code: String,
+    pub(crate) message: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub location: Option<Location>,
+    pub(crate) location: Option<Location>,
 }
 
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 pub struct Answer {
-    pub diagnostic: Vec<Diagnostic>,
+    pub(crate) diagnostic: Vec<Diagnostic>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub summary: Option<Summary>,
+    pub(crate) summary: Option<Summary>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub claim: Vec<Verdict>,
+    pub(crate) claim: Vec<Verdict>,
 }
 
 fn diagnostic(failure: Failure) -> Diagnostic {
@@ -49,15 +42,14 @@ fn diagnostic(failure: Failure) -> Diagnostic {
         .unwrap_or_else(|| render::name(failure.code));
     Diagnostic {
         code,
-        level: Level::Error,
         message: failure.message,
         location: failure.location,
     }
 }
 
-pub fn answer(request: &Request, context: &mut Context<'_>) -> Result<Answer, Failure> {
-    let exploration = match &request.recording.program {
-        Some(program) => match program.assemble(context.reader) {
+pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Answer, Failure> {
+    let exploration = match (&request.recording.program, &request.recording.exploration) {
+        (Some(program), None) => match program.assemble(context.reader) {
             Ok(source) => context.explore(&source, &request.recording)?,
             Err(failure) if matches!(failure.code, Code::Request | Code::File) => {
                 return Err(failure);
@@ -70,7 +62,7 @@ pub fn answer(request: &Request, context: &mut Context<'_>) -> Result<Answer, Fa
                 });
             }
         },
-        None => context.exploration(&request.recording)?,
+        _ => context.exploration(&request.recording)?,
     };
     Ok(Answer {
         diagnostic: Vec::new(),
@@ -84,20 +76,17 @@ pub fn answer(request: &Request, context: &mut Context<'_>) -> Result<Answer, Fa
 }
 
 impl Answer {
-    pub fn passed(&self) -> bool {
-        self.diagnostic
-            .iter()
-            .all(|diagnostic| diagnostic.level != Level::Error)
+    pub(crate) fn passed(&self) -> bool {
+        self.diagnostic.is_empty()
             && self
                 .claim
                 .iter()
                 .all(|verdict| verdict.answer == claim::Answer::Holds)
     }
 
-    pub fn text(&self) -> String {
+    pub(crate) fn text(&self) -> String {
         let mut line = Vec::new();
         for diagnostic in &self.diagnostic {
-            let level = render::name(diagnostic.level);
             let place = diagnostic
                 .location
                 .as_ref()
@@ -106,7 +95,7 @@ impl Answer {
                 })
                 .unwrap_or_default();
             line.push(format!(
-                "{place}{level} {}   {}",
+                "{place}error {}   {}",
                 diagnostic.code, diagnostic.message
             ));
         }

@@ -1,5 +1,6 @@
 use super::Runtime;
 use crate::flow::Flow;
+use crate::prism::{Reach, Verdict};
 use crate::render::{Builder, Sequence};
 use crate::snapshot::{Event, Link, Node, Snapshot, View};
 use crate::status::Status;
@@ -28,16 +29,30 @@ impl Runtime {
         self.proof.status(Atom::State(index))
     }
 
-    pub(crate) fn rule(&self, index: usize) -> Option<usize> {
-        self.event.get(index).map(|event| event.identity.rule)
+    pub fn verdict(&self, target: &frontend::source::Program) -> Verdict {
+        crate::prism::verdict(
+            &self.program,
+            &self.state,
+            |index| self.status(index),
+            self.closed(),
+            target,
+        )
     }
 
-    pub(crate) fn resource(&self, index: usize) -> Option<Vec<Link>> {
-        self.event.get(index).map(|event| link(&event.flow))
+    pub fn reach(&self) -> Reach {
+        let support = self.proof.evaluate();
+        Reach::new(
+            self.program.clone(),
+            self.state.clone(),
+            (0..self.state.len())
+                .map(|index| support.status(Atom::State(index)))
+                .collect(),
+            self.closed(),
+        )
     }
 
-    pub(crate) fn scope(&self, name: &str) -> Option<&[usize]> {
-        self.program.scope(name)
+    pub fn resource(&self, event: usize) -> Option<Vec<Link>> {
+        self.event.get(event).map(|event| link(&event.flow))
     }
 
     fn node(&self) -> impl Iterator<Item = Node> + '_ {
@@ -57,7 +72,7 @@ impl Runtime {
                 id: index,
                 source: event.identity.source,
                 target: event.target,
-                rule: self.program.rule[event.identity.rule].name.clone(),
+                rule: event.identity.rule,
                 status: support.status(Atom::Event(index)),
                 footprint: event.identity.binding.footprint.iter().copied().collect(),
                 exact: event.identity.binding.exact.iter().copied().collect(),

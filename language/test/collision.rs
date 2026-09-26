@@ -1,5 +1,6 @@
 use super::{Record, Search, Stage};
 use crate::program::{Program, Symbol};
+use crate::runtime::Limit;
 use crate::state::{Frame, State, Token, World};
 use std::sync::Arc;
 
@@ -54,8 +55,8 @@ fn permutation() {
         "Seed.A, [Seed] ().([A] B)",
         "A.X, [A] ((B, [B] C), D), [C,D] E",
     ] {
-        let mut runtime = crate::runtime::Runtime::new(&crate::lowering::parse(source).unwrap());
-        runtime.run(100_000, None);
+        let mut runtime = crate::runtime::Runtime::new(&frontend::lowering::parse(source).unwrap());
+        runtime.run(100_000, Limit::default());
         for state in &runtime.state {
             let expected = crate::fingerprint::signature(state);
             let world = (0..state.world.len()).rev().collect::<Vec<_>>();
@@ -95,13 +96,19 @@ fn fallback() {
         crate::fingerprint::signature(&triangle)
     );
     assert_ne!(ring.canonical().state, triangle.canonical().state);
-    let source = crate::lowering::parse("A").unwrap();
-    let mut search = Search::new(source.clone(), crate::lowering::parse("A").unwrap());
+    let source = frontend::lowering::parse("A").unwrap();
+    let mut search = Search::new(
+        source.clone(),
+        Some(frontend::lowering::parse("A").unwrap()),
+    );
     search.compiled = Arc::new(Program::new(&source));
     search.runtime = crate::reduction::Search::new(search.compiled.clone(), ring.clone());
     search.state = vec![Record::new(ring.clone())];
-    search.goal = Record::new(triangle);
-    search.signature = crate::fingerprint::state(&search.goal.state);
+    search.goal = Some(super::Goal {
+        source: frontend::source::Program::default(),
+        signature: crate::fingerprint::state(&triangle),
+        record: Record::new(triangle),
+    });
     search.index = std::collections::HashMap::from_iter([(
         crate::fingerprint::state(&ring),
         smallvec::smallvec![0],
@@ -168,8 +175,8 @@ fn capture() {
 #[test]
 fn eviction() {
     let mut search = Search::new(
-        crate::lowering::parse("A, [A] B, [B] C").unwrap(),
-        crate::lowering::parse("C, [A] B, [B] C").unwrap(),
+        frontend::lowering::parse("A, [A] B, [B] C").unwrap(),
+        Some(frontend::lowering::parse("C, [A] B, [B] C").unwrap()),
     );
     let graph = state(
         &(0..100)
@@ -195,13 +202,10 @@ fn reporting() {
         ("Seed.A, [Seed] ().([A] B)", "B.([A] B)"),
         ("A, [A] (B, C), [B,C] D", "D"),
     ] {
-        let program = crate::lowering::parse(source).unwrap();
-        let target = crate::source::Program {
-            rule: program.rule.clone(),
-            ..crate::lowering::parse(target).unwrap()
-        };
-        let mut actual = Search::new(program.clone(), target.clone());
-        let mut expected = Search::new(program, target);
+        let program = frontend::lowering::parse(source).unwrap();
+        let target = crate::test::target(&program, target);
+        let mut actual = Search::new(program.clone(), Some(target.clone()));
+        let mut expected = Search::new(program, Some(target));
         for iteration in 0..1000 {
             let budget = [0, 1, 2, 7, 31][iteration % 5];
             let mut limit = crate::runtime::Limit::default();

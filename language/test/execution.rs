@@ -1,15 +1,15 @@
 use super::{Bound, Observation, explore, walk};
-use crate::lowering::parse;
 use crate::runtime::Limit;
-use crate::source::Value;
+use frontend::lowering::parse;
+use frontend::source::Value;
 
 fn limit() -> Limit {
     Limit {
-        state: 4_096,
+        configuration: 4_096,
         record: 10_000_000,
-        world: 16,
-        cell: 64,
-        frame: 10,
+        coherence: 16,
+        occurrence: 64,
+        scope: 10,
     }
 }
 
@@ -87,4 +87,53 @@ fn cycle() {
         ..Bound::default()
     };
     assert!(!explore(&growth, limit(), bounded, |_| false).complete());
+}
+
+#[test]
+fn bound() {
+    let growth = parse("A, [A] A.A").unwrap();
+    let state = explore(
+        &growth,
+        limit(),
+        Bound {
+            state: 8,
+            ..Bound::default()
+        },
+        |_| false,
+    );
+    assert!(state.overflow && !state.cycle && !state.truncated);
+    assert_eq!(state.state, 8);
+    let choice = parse("A, [A] B, [A] C, [A] D, [A] E, [A] F").unwrap();
+    let terminal = explore(
+        &choice,
+        limit(),
+        Bound {
+            terminal: 2,
+            ..Bound::default()
+        },
+        |_| false,
+    );
+    assert!(terminal.truncated && !terminal.overflow);
+    assert_eq!(terminal.terminal.len(), 3);
+    let stopped = explore(&choice, limit(), Bound::default(), |_| true);
+    assert!(stopped.truncated);
+    assert_eq!(stopped.terminal.len(), 1);
+    let chain = parse("A, [A] B, [B] C, [C] D").unwrap();
+    let step = walk(
+        &chain,
+        limit(),
+        Bound {
+            step: 2,
+            ..Bound::default()
+        },
+        |_| 0,
+    );
+    assert!(step.overflow && step.terminal.is_none());
+    assert_eq!(step.work, 2);
+    let work = Bound {
+        work: 0,
+        ..Bound::default()
+    };
+    assert!(explore(&chain, limit(), work, |_| false).overflow);
+    assert!(walk(&chain, limit(), work, |_| 0).overflow);
 }

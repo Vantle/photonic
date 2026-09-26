@@ -109,8 +109,4 @@ Every.1,
 
 [Claim] (Triple.8.([Edge] A.D).([Edge] A.E).([Edge] D.E), Triple.9.([Edge] B.D).([Edge] B.E).([Edge] D.E), Triple.10.([Edge] C.D).([Edge] C.E).([Edge] D.E)),
 [Uniform.8, Uniform.9] Function.Boolean.Or.Some.9,
-[Return.Some.9, Uniform.10] Function.Boolean.Or.Verdict,
-[Triple.True.True.True] Uniform.True,
-[Triple.True.True.False] Uniform.False,
-[Triple.True.False.False] Uniform.False,
-[Triple.False.False.False] Uniform.True
+[Return.Some.9, Uniform.10] Function.Boolean.Or.Verdict

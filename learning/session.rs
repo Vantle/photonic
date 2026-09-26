@@ -338,6 +338,13 @@ pub fn run(
     let failure: Mutex<Option<Failure>> = Mutex::new(None);
     let path = home.file(home::CHECKPOINT);
     let start = Instant::now();
+    let play = play::Setting {
+        objective: setting
+            .play
+            .objective
+            .until(setting.duration.map(|duration| start + duration)),
+        ..setting.play
+    };
     let outcome = std::thread::scope(|scope| -> Result<Report, Failure> {
         if let Some(engine) = engine {
             let shared = &shared;
@@ -346,7 +353,6 @@ pub fn run(
         for index in 0..worker {
             let shared = shared.clone();
             let seed = setting.seed.wrapping_add(1 + index as u64);
-            let play = setting.play;
             scope.spawn(move || Worker::new(shared, play, seed).run());
         }
         if let Some(trainer) = trainer.as_mut() {

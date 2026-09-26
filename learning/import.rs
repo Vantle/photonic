@@ -34,23 +34,13 @@ pub struct Source {
 }
 
 fn validate(name: &str) -> Result<(), Failure> {
-    let valid = name
-        .chars()
-        .next()
-        .is_some_and(|first| first.is_ascii_alphanumeric())
-        && name
-            .chars()
-            .all(|character| character.is_ascii_alphanumeric() || "._-".contains(character));
-    if !valid {
-        return Err(Failure::Name {
-            name: name.to_owned(),
-        });
-    }
-    Ok(())
+    crate::task::validate(name).map_err(|_| Failure::Name {
+        name: name.to_owned(),
+    })
 }
 
-fn parse(source: &Source) -> Result<photonic::source::Program, Failure> {
-    photonic::lowering::parse(&source.text).map_err(|failure| Failure::Parse {
+fn parse(source: &Source) -> Result<frontend::source::Program, Failure> {
+    frontend::lowering::parse(&source.text).map_err(|failure| Failure::Parse {
         origin: source.origin.clone(),
         message: failure.to_string(),
     })

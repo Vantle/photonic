@@ -5,7 +5,6 @@ use serde::Serialize;
 #[serde(rename_all = "lowercase")]
 pub enum Code {
     Request,
-    Version,
     File,
     Source,
     Library,
@@ -18,25 +17,25 @@ pub enum Code {
 }
 
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
-pub struct Location {
-    pub file: String,
-    pub line: usize,
-    pub column: usize,
-    pub length: usize,
+pub(crate) struct Location {
+    pub(crate) file: String,
+    pub(crate) line: usize,
+    pub(crate) column: usize,
+    pub(crate) length: usize,
 }
 
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 pub struct Failure {
     pub code: Code,
-    pub message: String,
+    pub(crate) message: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub location: Option<Location>,
+    pub(crate) location: Option<Location>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub diagnostic: Option<String>,
+    pub(crate) diagnostic: Option<String>,
 }
 
 impl Location {
-    pub fn new(file: &str, text: &str, offset: usize, length: usize) -> Self {
+    pub(crate) fn new(file: &str, text: &str, offset: usize, length: usize) -> Self {
         let offset = offset.min(text.len());
         let prefix = text.get(..offset).unwrap_or_default();
         let start = prefix.rfind('\n').map_or(0, |index| index + 1);

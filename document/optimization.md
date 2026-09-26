@@ -123,10 +123,13 @@ Reproduce the benchmarks and checks with:
 bazel run -c opt //benchmark:expression -- '2*2*2*2*2*2' 2101 --sample 7
 bazel run -c opt //benchmark:arithmetic -- 1234567890 add 9876543210 --radix 10 --sample 7
 bazel run -c opt //benchmark:storage -- --width 4096 --length 1000 --rule --sample 7
-bazel run -c opt //benchmark:replay -- --width 4096 --length 1000 --sample 7
-bazel run -c opt //benchmark:posting
 bazel run -c opt //benchmark:runtime
 bazel test -c opt --nocache_test_results //... //toolchain/browser:check
 ```
+
+These benchmarks were removed after `0daf296` and still run at that commit:
+
+- [`replay`](https://github.com/Vantle/photonic/blob/0daf296e1d126675ed445bfb7ed6674a379b1532/benchmark/replay.rs) with `--width 4096 --length 1000 --sample 7`
+- [`posting`](https://github.com/Vantle/photonic/blob/0daf296e1d126675ed445bfb7ed6674a379b1532/benchmark/posting.rs)
 
 The earlier [persistent-state measurements](incremental.md) remain a separate comparison against their original baseline; their speedup ratios should not be multiplied into this table without a new paired measurement.

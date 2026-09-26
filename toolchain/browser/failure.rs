@@ -82,7 +82,8 @@ impl From<translation::failure::Failure> for Failure {
     fn from(error: translation::failure::Failure) -> Self {
         match error {
             translation::failure::Failure::Vocabulary { .. } => Self::new(Code::Size, error),
-            translation::failure::Failure::Unknown { .. } => Self::new(Code::Internal, error),
+            translation::failure::Failure::Duplicate { .. }
+            | translation::failure::Failure::Name { .. } => Self::new(Code::Source, error),
         }
     }
 }

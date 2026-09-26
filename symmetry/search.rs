@@ -5,6 +5,8 @@ use code::hashing::combine;
 use std::cmp::Ordering;
 
 const LEAF: u64 = 0x2545_f491_4f6c_dd1d;
+// The search recurses once per individualized cell, and WebAssembly's 1 MiB stack overflowed near
+// 3,500 levels, so deeper searches stop with Exhausted::Depth instead.
 const DEPTH: usize = 1024;
 
 pub(crate) struct Labeling {
@@ -16,9 +18,9 @@ pub(crate) struct Labeling {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct Exhausted {
-    pub node: usize,
-    pub depth: usize,
+pub enum Exhausted {
+    Node(usize),
+    Depth(usize),
 }
 
 struct Leaf {
@@ -118,11 +120,11 @@ impl Search<'_> {
         inherited: Standing,
     ) -> Result<Option<usize>, Exhausted> {
         self.node += 1;
-        if self.node > self.budget || path.len() > DEPTH {
-            return Err(Exhausted {
-                node: self.node,
-                depth: path.len(),
-            });
+        if self.node > self.budget {
+            return Err(Exhausted::Node(self.node));
+        }
+        if path.len() > DEPTH {
+            return Err(Exhausted::Depth(path.len()));
         }
         let target = partition.target(self.graph.atom);
         if target.is_none() {

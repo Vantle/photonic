@@ -1,6 +1,7 @@
 use super::support::{A, B, C, D, configuration, program, rule, state};
 use crate::limit::Limit;
 use crate::walk::walk;
+use std::time::Instant;
 
 #[test]
 fn chain() {
@@ -33,4 +34,15 @@ fn cycle() {
     let result = walk(&program, state(&[&[A]]), &Limit::default(), |_| 0);
     assert!(result.cycle);
     assert!(result.terminal.is_none());
+}
+
+#[test]
+fn deadline() {
+    let program = program(vec![rule(&[&[A]], &[&[B]])]);
+    let expired = Limit {
+        deadline: Some(Instant::now()),
+        ..Limit::default()
+    };
+    let result = walk(&program, state(&[&[A]]), &expired, |_| 0);
+    assert!(result.overflow && result.terminal.is_none());
 }

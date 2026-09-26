@@ -79,7 +79,7 @@ fn sharing() {
 #[test]
 fn predicate() {
     let program = crate::program::Program::new(
-        &crate::lowering::parse("A.A.B,A.B.B,A.A.([A] B),B.([A] B)").unwrap(),
+        &frontend::lowering::parse("A.A.B,A.B.B,A.A.([A] B),B.([A] B)").unwrap(),
     );
     let state = Arc::new(crate::state::State::initial(&program));
     let index = crate::index::Index::new(state.clone());
@@ -122,7 +122,7 @@ fn predicate() {
 #[test]
 fn mutation() {
     let program = crate::program::Program::new(
-        &crate::lowering::parse("A.A.B,A.B.B,A.A.([A] B),B.([A] B)").unwrap(),
+        &frontend::lowering::parse("A.A.B,A.B.B,A.A.([A] B),B.([A] B)").unwrap(),
     );
     let mut state = crate::state::State::initial(&program);
     state.frame.push(state.frame[0].clone());
@@ -179,7 +179,7 @@ fn mutation() {
 #[test]
 fn summary() {
     let program = crate::program::Program::new(
-        &crate::lowering::parse("A.A.A.A.A.A.B.B.([A] B).([A] B),A.A,B.B,B.([A] B)").unwrap(),
+        &frontend::lowering::parse("A.A.A.A.A.A.B.B.([A] B).([A] B),A.A,B.B,B.([A] B)").unwrap(),
     );
     let state = Arc::new(crate::state::State::initial(&program));
     let index = crate::index::Index::new(state.clone());
@@ -217,7 +217,7 @@ fn summary() {
 
 #[test]
 fn rejection() {
-    let program = crate::program::Program::new(&crate::lowering::parse("A.([A] B)").unwrap());
+    let program = crate::program::Program::new(&frontend::lowering::parse("A.([A] B)").unwrap());
     let mut seed = 71u64;
     let mut next = |bound| {
         seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1);

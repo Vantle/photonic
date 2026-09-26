@@ -1,6 +1,7 @@
-use crate::lowering::parse;
-use crate::prism::{Outcome, Search};
-use crate::source::{Program, Value};
+use crate::prism::Outcome;
+use crate::runtime::{Limit, Runtime};
+use frontend::lowering::parse;
+use frontend::source::{Program, Value};
 
 fn numeral(count: usize) -> Vec<Value> {
     vec![Value::Atom("Unit".into()); count]
@@ -13,18 +14,12 @@ fn target(particle: Vec<Value>) -> Program {
     }
 }
 
-fn outcome(program: Program, target: Program) -> Outcome {
-    let mut search = {
-        let target = crate::source::Program {
-            rule: program.rule.clone(),
-            ..target
-        };
-        Search::new(program, target)
-    };
-    search.run(12_000, None);
-    let report = search.report();
-    assert!(report.execution.closed);
-    report.outcome
+fn outcome(program: Program, mut target: Program) -> Outcome {
+    target.preserve(&program);
+    let mut runtime = Runtime::new(&program);
+    runtime.run(12_000, Limit::default());
+    assert!(runtime.snapshot().closed);
+    runtime.verdict(&target).outcome
 }
 
 #[test]

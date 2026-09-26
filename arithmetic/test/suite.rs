@@ -4,14 +4,14 @@ mod argument;
 #[path = "../search.rs"]
 mod search;
 
-use photonic::lowering::parse;
+use frontend::lowering::parse;
 use photonic::path::Search;
 use photonic::prism::Outcome;
 use photonic::runtime::Limit;
 
 fn check(width: usize, left: u64, right: u64, expected: u64) -> Outcome {
     execute(
-        &circuit::multiply(2, width, left, right, circuit::Layout::Column).unwrap(),
+        &circuit::multiply(2, width, left, right).unwrap(),
         &encoding::unsigned(2, width * 2, expected).unwrap(),
     )
 }
@@ -19,11 +19,9 @@ fn check(width: usize, left: u64, right: u64, expected: u64) -> Outcome {
 fn execute(source: &str, target: &str) -> Outcome {
     let mut search = {
         let program = parse(source).unwrap();
-        let target = photonic::source::Program {
-            rule: program.rule.clone(),
-            ..parse(target).unwrap()
-        };
-        Search::new(program, target)
+        let mut target = parse(target).unwrap();
+        target.preserve(&program);
+        Search::new(program, Some(target))
     };
     search.run(20_000_000, crate::search::LIMIT);
     search.report().outcome
@@ -53,8 +51,8 @@ fn product() {
 
 #[test]
 fn topology() {
-    let first = parse(&circuit::multiply(2, 3, 0, 0, circuit::Layout::Column).unwrap()).unwrap();
-    let second = parse(&circuit::multiply(2, 3, 7, 5, circuit::Layout::Column).unwrap()).unwrap();
+    let first = parse(&circuit::multiply(2, 3, 0, 0).unwrap()).unwrap();
+    let second = parse(&circuit::multiply(2, 3, 7, 5).unwrap()).unwrap();
     assert_eq!(first.rule, second.rule);
     assert_eq!(
         parse(&encoding::unsigned(2, 32 * 2, u64::MAX).unwrap())
@@ -70,22 +68,16 @@ fn exhaustive() {
     for left in 0..2 {
         for right in 0..2 {
             for expected in 0..2 {
-                let mut search = {
-                    let program = parse(
-                        &circuit::multiply(2, 1, left, right, circuit::Layout::Column).unwrap(),
-                    )
-                    .unwrap();
-                    let target = photonic::source::Program {
-                        rule: program.rule.clone(),
-                        ..parse(&encoding::unsigned(2, 2, expected).unwrap()).unwrap()
-                    };
-                    photonic::prism::Search::new(program, target)
-                };
-                search.run(100_000, None);
-                let report = search.report();
-                assert!(report.execution.closed);
+                let program = parse(&circuit::multiply(2, 1, left, right).unwrap()).unwrap();
+                let mut target = parse(&encoding::unsigned(2, 2, expected).unwrap()).unwrap();
+                target.preserve(&program);
+                let mut runtime = photonic::runtime::Runtime::new(&program);
+                runtime.run(100_000, Limit::default());
+                let verdict = runtime.verdict(&target);
+                let report = runtime.snapshot();
+                assert!(report.closed);
                 assert_eq!(
-                    report.outcome,
+                    verdict.outcome,
                     if expected == left * right {
                         Outcome::Reached
                     } else {
@@ -315,36 +307,6 @@ fn interface() {
 }
 
 #[test]
-fn balanced() {
-    for left in 0..4 {
-        for right in 0..4 {
-            let source = circuit::multiply(2, 2, left, right, circuit::Layout::Balanced).unwrap();
-            assert_eq!(
-                execute(
-                    &source,
-                    &encoding::unsigned(2, 2 * 2, left * right).unwrap()
-                ),
-                Outcome::Reached
-            );
-            assert_eq!(
-                execute(
-                    &source,
-                    &encoding::unsigned(2, 2 * 2, left * right + 1).unwrap()
-                ),
-                Outcome::Unknown
-            );
-        }
-    }
-    assert_eq!(
-        execute(
-            &circuit::multiply(2, 11, 1500, 123, circuit::Layout::Balanced).unwrap(),
-            &encoding::unsigned(2, 11 * 2, 184500).unwrap()
-        ),
-        Outcome::Reached
-    );
-}
-
-#[test]
 fn addition() {
     for (left, right) in [(0, 0), (3, 7), (1500, 123), (2047, 2047)] {
         assert_eq!(
@@ -361,88 +323,6 @@ fn addition() {
             ),
             Outcome::Unknown
         );
-    }
-}
-
-#[test]
-fn radix() {
-    for radix in [2, 3] {
-        let rule = arithmetic::power::rule(radix, 8).unwrap();
-        for left in 0..5 {
-            for right in 0..5 {
-                let source = format!(
-                    "Add.({},{}), [Add,Add] (), {rule}",
-                    arithmetic::power::numeral(radix, left).unwrap(),
-                    arithmetic::power::numeral(radix, right).unwrap()
-                );
-                let mut search = {
-                    let program = parse(&source).unwrap();
-                    let target = photonic::source::Program {
-                        rule: program.rule.clone(),
-                        ..parse(&arithmetic::power::numeral(radix, left + right).unwrap()).unwrap()
-                    };
-                    photonic::prism::Search::new(program, target)
-                };
-                search.run(100_000, None);
-                let report = search.report();
-                assert_eq!(report.outcome, Outcome::Reached);
-                assert!(report.execution.closed);
-                for state in report.execution.state {
-                    let total: u64 = state
-                        .world
-                        .iter()
-                        .flat_map(|world| &world.particle)
-                        .filter_map(|token| token.label.strip_prefix(&format!("{radix}^")))
-                        .map(|position| (radix as u64).pow(position.parse().unwrap()))
-                        .sum();
-                    assert_eq!(total, left + right);
-                }
-            }
-        }
-    }
-}
-
-#[test]
-fn stream() {
-    for digit in [
-        vec![],
-        vec![true],
-        vec![false, true],
-        vec![true, false, true],
-    ] {
-        let mut body = "End".to_owned();
-        for value in digit.iter().rev() {
-            body = format!("({}, [Next] {body})", if *value { "1" } else { "0" });
-        }
-        let source = format!("Read, [Read] {body}, [0] Next, [1] Next");
-        let mut search = {
-            let program = parse(&source).unwrap();
-            let target = photonic::source::Program {
-                rule: program.rule.clone(),
-                ..parse("End").unwrap()
-            };
-            Search::new(program, target)
-        };
-        search.run(
-            100_000,
-            Limit {
-                frame: 32,
-                cell: 100,
-                ..Limit::default()
-            },
-        );
-        let report = search.report();
-        assert_eq!(report.outcome, Outcome::Reached);
-        let visited = report
-            .event
-            .iter()
-            .filter_map(|event| match event.rule.as_str() {
-                "[0] Next" => Some(false),
-                "[1] Next" => Some(true),
-                _ => None,
-            })
-            .collect::<Vec<_>>();
-        assert_eq!(visited, digit);
     }
 }
 
@@ -479,14 +359,14 @@ fn command() {
     assert!(text.contains("Claim: 3 + 7 = 10; 2-trit operands"));
     assert!(text.contains("Reached:"));
     let program = parse(&std::fs::read_to_string(directory.join("program.wave")).unwrap()).unwrap();
-    let target: photonic::source::Program =
+    let target: frontend::source::Program =
         serde_json::from_slice(&std::fs::read(directory.join("target.json")).unwrap()).unwrap();
     assert_eq!(target.rule, program.rule);
-    let mut search = Search::new(program, target);
+    let mut search = Search::new(program, Some(target));
     search.run(
         100_000,
         Limit {
-            cell: 4096,
+            occurrence: 4096,
             ..Limit::default()
         },
     );
@@ -514,13 +394,9 @@ fn capacity() {
     }
     for (radix, width) in [(2u8, 32), (3, 20)] {
         let maximum = (radix as u64).pow(width as u32) - 1;
-        for layout in [circuit::Layout::Column, circuit::Layout::Balanced] {
-            let source = circuit::multiply(radix, width, maximum, maximum, layout).unwrap();
-            assert!(parse(&source).is_ok());
-        }
+        let source = circuit::multiply(radix, width, maximum, maximum).unwrap();
+        assert!(parse(&source).is_ok());
     }
 }
-
-mod stream;
 
 mod boundary;

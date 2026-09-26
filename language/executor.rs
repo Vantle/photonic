@@ -1,34 +1,30 @@
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use rayon::{ThreadPool, ThreadPoolBuildError, ThreadPoolBuilder};
+use std::num::NonZeroUsize;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub enum Failure {
-    #[error("executor requires at least one worker")]
-    Zero,
-    #[error("could not create executor: {0}")]
-    Build(#[from] ThreadPoolBuildError),
-}
+#[error("could not create executor: {0}")]
+pub struct Failure(ThreadPoolBuildError);
 
 pub struct Executor {
     pool: ThreadPool,
 }
 
 impl Executor {
-    pub fn new(worker: usize) -> Result<Self, Failure> {
-        if worker == 0 {
-            return Err(Failure::Zero);
-        }
-        Ok(Self {
-            pool: ThreadPoolBuilder::new().num_threads(worker).build()?,
-        })
+    pub fn new(worker: NonZeroUsize) -> Result<Self, Failure> {
+        let pool = ThreadPoolBuilder::new()
+            .num_threads(worker.get())
+            .build()
+            .map_err(Failure)?;
+        Ok(Self { pool })
     }
 
     pub(crate) fn concurrent(&self) -> bool {
         self.pool.current_num_threads() > 1
     }
 
-    pub fn map<Input: Send, Output: Send>(
+    pub(crate) fn map<Input: Send, Output: Send>(
         &self,
         input: Vec<Input>,
         operation: impl Fn(Input) -> Output + Sync + Send,

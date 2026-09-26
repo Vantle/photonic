@@ -38,35 +38,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let argument = Argument::parse();
     let (program, target) = match &argument.case {
         Case::Expression { input, expected } => {
-            if input.is_empty() || !input.chars().all(|value| "012+-*/()".contains(value)) {
-                return Err("use a nonempty ternary expression".into());
-            }
-            if expected.is_empty() || !expected.chars().all(|value| "012".contains(value)) {
-                return Err("use a nonnegative ternary expected result".into());
-            }
-            let mut program: photonic::source::Program =
-                serde_json::from_str(include_str!(env!("FORMULA")))?;
-            let encoded = photonic::lowering::parse(&formula::source(input, expected)?)?;
-            program.initial = encoded.initial;
-            program.rule.extend(encoded.rule);
-            let target = photonic::source::Program {
-                rule: program.rule.clone(),
-                ..photonic::lowering::parse("Done.Zero")?
-            };
+            let (program, target) = formula::program(&formula::source(input, expected)?)?;
             (program, Some(target))
         }
         Case::Direct { source, target } => (
-            photonic::lowering::parse(&std::fs::read_to_string(source)?)?,
-            Some(photonic::lowering::parse(target)?),
+            frontend::lowering::parse(&std::fs::read_to_string(source)?)?,
+            Some(frontend::lowering::parse(target)?),
         ),
         Case::Exhaustive { source } => (
-            photonic::lowering::parse(&std::fs::read_to_string(source)?)?,
+            frontend::lowering::parse(&std::fs::read_to_string(source)?)?,
             None,
         ),
     };
     let measure = || match &target {
         Some(target) => evaluate(
-            || photonic::path::Search::new(program.clone(), target.clone()),
+            || photonic::path::Search::new(program.clone(), Some(target.clone())),
             &argument,
         ),
         None => evaluate(|| photonic::runtime::Runtime::new(&program), &argument),

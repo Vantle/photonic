@@ -6,10 +6,12 @@ photonic_binary(
     visibility = ["//photonic:__pkg__"],
     deps = [
         "//library/boolean:and",
+        "//library/boolean:equal",
         "//library/boolean:not",
         "//library/collection:copy",
         "//library/collection:map",
         "//library/collection:reduce",
+        "//library/collection:unpack",
     ],
 )
 
@@ -17,14 +19,15 @@ photonic_test(
     name = "pipeline.check",
     srcs = ["pipeline.wave"],
     path = True,
-    preserve = True,
-    target = ["First.False, Second.True"],
+    target = ["First.False, Second.True, Third.False, Fourth.False, Fifth.True"],
     deps = [
         "//library/boolean:and",
+        "//library/boolean:equal",
         "//library/boolean:not",
         "//library/collection:copy",
         "//library/collection:map",
         "//library/collection:reduce",
+        "//library/collection:unpack",
     ],
 )
 
@@ -47,16 +50,15 @@ photonic_test(
     name = "function.reject",
     srcs = ["function.wave"],
     expect = "unreachable",
-    preserve = True,
     target = [
-        """Left.Grove.([First.Seed] Return.Bud).([Second.Bud] Return.Flower),
+        """Left.Bud.([First.Seed] Return.Bud).([Second.Bud] Return.Flower),
 Right.Grove.([First.Seed] (
     Function.Compose.Sapling.([First.Sapling] Return.Trunk).([Second.Trunk] Return.Tree),
     [Return] Return
 )).([Second.Tree] Return.Grove).([First.Sapling] Return.Trunk).([Second.Trunk] Return.Tree)
 """,
         """Left.Flower.([First.Seed] Return.Bud).([Second.Bud] Return.Flower),
-Right.Flower.([First.Seed] (
+Right.Tree.([First.Seed] (
     Function.Compose.Sapling.([First.Sapling] Return.Trunk).([Second.Trunk] Return.Tree),
     [Return] Return
 )).([Second.Tree] Return.Grove).([First.Sapling] Return.Trunk).([Second.Trunk] Return.Tree)
@@ -74,7 +76,6 @@ photonic_binary(
 photonic_test(
     name = "function.check",
     srcs = ["function.wave"],
-    preserve = True,
     target = ["""Left.Flower.([First.Seed] Return.Bud).([Second.Bud] Return.Flower),
 Right.Grove.([First.Seed] (
     Function.Compose.Sapling.([First.Sapling] Return.Trunk).([Second.Trunk] Return.Tree),

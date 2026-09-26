@@ -22,43 +22,43 @@ pub struct Request {
 }
 
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
-pub struct Item {
-    pub handle: String,
-    pub text: String,
+pub(crate) struct Item {
+    pub(crate) handle: String,
+    pub(crate) text: String,
 }
 
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
-pub struct Move {
-    pub event: String,
-    pub rule: String,
-    pub configuration: String,
-    pub text: String,
+pub(crate) struct Move {
+    pub(crate) event: String,
+    pub(crate) rule: String,
+    pub(crate) configuration: String,
+    pub(crate) text: String,
     #[serde(skip_serializing_if = "std::ops::Not::not")]
-    pub inferred: bool,
+    pub(crate) inferred: bool,
     #[serde(skip_serializing_if = "std::ops::Not::not")]
-    pub unsupported: bool,
+    pub(crate) unsupported: bool,
 }
 
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
-pub struct Part {
-    pub handle: String,
-    pub frame: String,
-    pub text: String,
-    pub occurrence: Vec<Item>,
+pub(crate) struct Part {
+    pub(crate) handle: String,
+    pub(crate) frame: String,
+    pub(crate) text: String,
+    pub(crate) occurrence: Vec<Item>,
 }
 
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
-pub struct Scope {
-    pub handle: String,
+pub(crate) struct Scope {
+    pub(crate) handle: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub opener: Option<String>,
-    pub rule: Vec<Item>,
-    pub held: Vec<Item>,
+    pub(crate) opener: Option<String>,
+    pub(crate) rule: Vec<Item>,
+    pub(crate) held: Vec<Item>,
 }
 
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(tag = "kind", rename_all = "lowercase")]
-pub enum View {
+pub(crate) enum View {
     Rule {
         text: String,
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -110,10 +110,10 @@ pub enum View {
 
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 pub struct Answer {
-    pub exploration: String,
-    pub handle: String,
+    pub(crate) exploration: String,
+    pub(crate) handle: String,
     #[serde(flatten)]
-    pub view: View,
+    pub(crate) view: View,
 }
 
 const EVENT: usize = 8;
@@ -296,7 +296,7 @@ fn view(exploration: &Exploration, handle: Handle) -> View {
     }
 }
 
-pub fn answer(request: &Request, context: &mut Context<'_>) -> Result<Answer, Failure> {
+pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Answer, Failure> {
     let exploration = context.exploration(&request.recording)?;
     let handle = request.handle.parse::<Handle>()?.check(&exploration)?;
     Ok(Answer {
@@ -317,7 +317,7 @@ fn list(item: &[Item]) -> String {
 }
 
 impl Answer {
-    pub fn text(&self) -> String {
+    pub(crate) fn text(&self) -> String {
         let mut line = Vec::new();
         match &self.view {
             View::Rule {

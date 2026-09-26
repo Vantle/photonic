@@ -9,8 +9,8 @@ _optimized = transition(
     outputs = ["//command_line_option:compilation_mode"],
 )
 
-def _release(ctx):
-    actual = ctx.attr.actual[0][DefaultInfo]
+def _release(context):
+    actual = context.attr.actual[0][DefaultInfo]
     return [DefaultInfo(
         files = depset([actual.files_to_run.executable]),
         runfiles = actual.default_runfiles,

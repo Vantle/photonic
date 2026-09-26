@@ -41,19 +41,7 @@ impl Circuit {
     }
 }
 
-#[derive(Clone, Copy)]
-pub enum Layout {
-    Column,
-    Balanced,
-}
-
-pub fn multiply(
-    radix: u8,
-    width: usize,
-    left: u64,
-    right: u64,
-    layout: Layout,
-) -> Result<String, Failure> {
+pub fn multiply(radix: u8, width: usize, left: u64, right: u64) -> Result<String, Failure> {
     let mut circuit = Circuit::new(radix, width, left, right)?;
     let mut column = vec![Vec::new(); width * 2 + 1];
     for left in 0..width {
@@ -65,7 +53,7 @@ pub fn multiply(
             }
         }
     }
-    Ok(circuit.reduce(column, layout))
+    Ok(circuit.reduce(column))
 }
 
 pub fn add(radix: u8, width: usize, left: u64, right: u64) -> Result<String, Failure> {
@@ -74,7 +62,7 @@ pub fn add(radix: u8, width: usize, left: u64, right: u64) -> Result<String, Fai
     for (index, column) in column.iter_mut().enumerate().take(width) {
         column.extend([index, width + index]);
     }
-    Ok(circuit.reduce(column, Layout::Column))
+    Ok(circuit.reduce(column))
 }
 
 impl Circuit {

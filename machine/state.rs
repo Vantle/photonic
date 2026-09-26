@@ -33,19 +33,19 @@ impl State {
         Some(Self { coherence, next })
     }
 
-    pub fn assemble(coherence: Vec<Coherence>, next: u32) -> Self {
+    pub(crate) fn assemble(coherence: Vec<Coherence>, next: u32) -> Self {
         Self { coherence, next }
     }
 
-    pub fn coherence(&self) -> &[Coherence] {
+    pub(crate) fn coherence(&self) -> &[Coherence] {
         &self.coherence
     }
 
-    pub fn next(&self) -> u32 {
+    pub(crate) fn next(&self) -> u32 {
         self.next
     }
 
-    pub fn size(&self) -> usize {
+    pub(crate) fn size(&self) -> usize {
         self.coherence.iter().map(Coherence::len).sum()
     }
 

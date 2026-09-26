@@ -6,12 +6,14 @@ use crate::matching;
 use crate::pattern::{self, Item, Pattern};
 use crate::recording::Recording;
 use crate::render;
-use photonic::source::Definition;
+use frontend::source::Definition;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+pub const LIMIT: usize = 3;
+
 fn limit() -> usize {
-    3
+    LIMIT
 }
 
 #[derive(Clone, Debug, Deserialize, JsonSchema, Serialize)]
@@ -43,37 +45,37 @@ pub struct Request {
 }
 
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
-pub struct Near {
-    pub handle: String,
-    pub text: String,
+pub(crate) struct Near {
+    pub(crate) handle: String,
+    pub(crate) text: String,
     #[schemars(
         description = "Occurrences and rules missing plus those extra; 0 when the configuration matches."
     )]
-    pub distance: usize,
-    pub missing: Vec<String>,
+    pub(crate) distance: usize,
+    pub(crate) missing: Vec<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub extra: Vec<String>,
+    pub(crate) extra: Vec<String>,
 }
 
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
-pub struct Lack {
-    pub input: String,
+pub(crate) struct Lack {
+    pub(crate) input: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub coherence: Option<String>,
-    pub missing: Vec<String>,
+    pub(crate) coherence: Option<String>,
+    pub(crate) missing: Vec<String>,
 }
 
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
-pub struct Close {
-    pub handle: String,
-    pub text: String,
-    pub missing: usize,
-    pub lack: Vec<Lack>,
+pub(crate) struct Close {
+    pub(crate) handle: String,
+    pub(crate) text: String,
+    pub(crate) missing: usize,
+    pub(crate) lack: Vec<Lack>,
 }
 
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(tag = "kind", rename_all = "lowercase")]
-pub enum Miss {
+pub(crate) enum Miss {
     Target {
         target: String,
         exact: bool,
@@ -89,10 +91,10 @@ pub enum Miss {
 
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 pub struct Answer {
-    pub exploration: String,
-    pub complete: bool,
+    pub(crate) exploration: String,
+    pub(crate) complete: bool,
     #[serde(flatten)]
-    pub miss: Miss,
+    pub(crate) miss: Miss,
 }
 
 struct Fit {
@@ -103,7 +105,7 @@ struct Fit {
 fn describe(item: &Item) -> String {
     match item {
         Item::Atom(atom) => atom.clone(),
-        Item::Rule(definition) => format!("({})", photonic::text::definition(definition)),
+        Item::Rule(definition) => format!("({})", frontend::text::definition(definition)),
     }
 }
 
@@ -145,14 +147,6 @@ fn assign(
         .into_iter()
         .map(|column| (column < coherence.len()).then_some(column))
         .collect()
-}
-
-fn bare(definition: &Definition) -> Definition {
-    Definition {
-        name: String::new(),
-        ..definition.clone()
-    }
-    .canonical()
 }
 
 fn definition(occurrence: &Occurrence, exploration: &Exploration) -> Option<Definition> {
@@ -239,7 +233,7 @@ fn measure(
                 }
                 None => {
                     distance += 1;
-                    missing.push(format!("({})", photonic::text::definition(expected)));
+                    missing.push(format!("({})", frontend::text::definition(expected)));
                 }
             }
         }
@@ -268,7 +262,11 @@ fn depth(exploration: &Exploration, index: usize) -> usize {
 fn target(request: &Request, text: &str, exploration: &Exploration) -> Result<Miss, Failure> {
     let (particle, exact) = if request.exact {
         let target = crate::subject::lower("target", text, Code::Target)?;
-        let mut rule = target.rule.iter().map(bare).collect::<Vec<_>>();
+        let mut rule = target
+            .rule
+            .iter()
+            .map(Definition::canonical)
+            .collect::<Vec<_>>();
         if request.preserve {
             let root = exploration
                 .configuration
@@ -429,7 +427,7 @@ fn rule(request: &Request, text: &str, exploration: &Exploration) -> Result<Miss
     })
 }
 
-pub fn answer(request: &Request, context: &mut Context<'_>) -> Result<Answer, Failure> {
+pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Answer, Failure> {
     let exploration = context.exploration(&request.recording)?;
     let miss = match (&request.target, &request.rule) {
         (Some(text), None) => target(request, text, &exploration)?,
@@ -446,7 +444,7 @@ pub fn answer(request: &Request, context: &mut Context<'_>) -> Result<Answer, Fa
 }
 
 impl Answer {
-    pub fn text(&self) -> String {
+    pub(crate) fn text(&self) -> String {
         let mut line = Vec::new();
         let state = if self.complete { "closed" } else { "open" };
         let width = match &self.miss {

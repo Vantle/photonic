@@ -160,7 +160,7 @@ impl Join {
         None
     }
 
-    #[cfg(any(test, feature = "measurement"))]
+    #[cfg(test)]
     pub fn planned(request: Request<'_>) -> Self {
         let mut join = Self::construct(Space::new(
             query::Query::Planned(request.input.context(request.owner)),
@@ -381,9 +381,6 @@ mod fragment;
 #[cfg(test)]
 #[path = "test/tree.rs"]
 mod hierarchy;
-
-#[cfg(feature = "measurement")]
-pub mod segment;
 
 #[cfg(test)]
 #[path = "test/activation.rs"]

@@ -1,7 +1,6 @@
+use clap::{Args, Parser, Subcommand};
+use std::num::NonZeroUsize;
 use std::path::PathBuf;
-
-use clap::{Args, Parser, Subcommand, ValueEnum};
-use photonic::runtime::Limit;
 
 #[derive(Parser)]
 #[command(version, about = "Photonic language tools")]
@@ -12,44 +11,22 @@ pub struct Argument {
 
 #[derive(Subcommand)]
 pub enum Operation {
-    #[command(about = "Parse source structure and print its syntax tree")]
-    Parse { path: PathBuf },
-    #[command(about = "Lower Photonic source into a program value as JSON")]
-    Lower {
-        path: PathBuf,
-        #[arg(
-            long,
-            help = "Append the root rules from this program; repeat for each context source"
-        )]
-        context: Vec<PathBuf>,
-    },
-    #[command(about = "Execute a Photonic program with bounded graph exploration")]
-    Run {
-        path: PathBuf,
-        #[command(flatten)]
-        execution: Execution,
-    },
-    #[command(about = "Check exact configuration reachability with Prism")]
-    Prism {
-        path: PathBuf,
-        #[arg(long, help = "Complete target state, including live rule occurrences")]
-        target: PathBuf,
-        #[arg(
-            long = "path",
-            help = "Follow one direct execution path; failure remains unknown"
-        )]
-        walk: bool,
-        #[command(flatten)]
-        execution: Execution,
-    },
+    #[command(about = "Lower a program, with its libraries, into a program value as JSON")]
+    Lower(Lower),
+    #[command(about = "Explore every future with the runtime and list its configurations")]
+    Run(Run),
+    #[command(
+        about = "Check whether an exact target configuration is reachable, as photonic_test does"
+    )]
+    Prism(Prism),
     #[command(
         about = "Check a program: diagnostics, then claims answered holds, fails or unknown; exits 1 unless all hold"
     )]
-    Check(Question),
+    Check(Check),
     #[command(
-        about = "Explore every future and summarize configurations, end configurations, rules and claims"
+        about = "Explore every future and summarize configurations, end configurations and rules"
     )]
-    Explore(Question),
+    Explore(Explore),
     #[command(about = "Find the configurations or events that match a Photonic pattern")]
     Select(Select),
     #[command(
@@ -64,7 +41,9 @@ pub enum Operation {
     Miss(Miss),
     #[command(about = "List the events that can happen at a configuration")]
     Step(Pointer),
-    #[command(about = "Compare two programs by the configurations and events they reach")]
+    #[command(
+        about = "Compare two programs by the configurations and events they reach; exits 1 unless both close and agree"
+    )]
     Compare(Compare),
     #[command(
         about = "Describe a program up to the names of its atoms, or group programs by shape"
@@ -76,35 +55,47 @@ pub enum Operation {
     Mcp,
 }
 
-#[derive(Args)]
+#[derive(Args, Default)]
 pub struct Source {
     #[arg(long, help = "Load a declaration-only library file; repeat for each")]
     pub library: Vec<PathBuf>,
     #[arg(long, help = "Photonic source added after the files")]
     pub source: Option<String>,
-    #[arg(long, help = "Print the answer as a JSON envelope")]
-    pub json: bool,
 }
 
 #[derive(Args)]
 pub struct Budget {
-    #[arg(long, help = "Work steps before the search stops")]
-    pub work: Option<usize>,
-    #[arg(long, help = "Configurations kept")]
-    pub configuration: Option<usize>,
-    #[arg(long, help = "Coherences in one configuration")]
-    pub coherence: Option<usize>,
-    #[arg(long, help = "Occurrences in one configuration")]
-    pub occurrence: Option<usize>,
-    #[arg(long, help = "Scopes in one configuration")]
-    pub scope: Option<usize>,
-    #[arg(long, help = "Records the engine retains")]
-    pub record: Option<usize>,
-    #[arg(
-        long,
-        help = "Follow one direct path in source order instead of exploring every future"
-    )]
-    pub path: bool,
+    #[arg(long, default_value_t = spectrum::budget::Budget::default().work, help = "Work steps before the search stops")]
+    pub work: usize,
+    #[arg(long, default_value_t = spectrum::budget::Budget::default().configuration, help = "Configurations kept")]
+    pub configuration: usize,
+    #[arg(long, default_value_t = spectrum::budget::Budget::default().coherence, help = "Coherences in one configuration")]
+    pub coherence: usize,
+    #[arg(long, default_value_t = spectrum::budget::Budget::default().occurrence, help = "Occurrences in one configuration")]
+    pub occurrence: usize,
+    #[arg(long, default_value_t = spectrum::budget::Budget::default().scope, help = "Scopes in one configuration")]
+    pub scope: usize,
+    #[arg(long, default_value_t = spectrum::budget::Budget::default().record, help = "Records the engine retains")]
+    pub record: usize,
+}
+
+impl From<&Budget> for spectrum::budget::Budget {
+    fn from(flag: &Budget) -> Self {
+        Self {
+            work: flag.work,
+            configuration: flag.configuration,
+            coherence: flag.coherence,
+            occurrence: flag.occurrence,
+            scope: flag.scope,
+            record: flag.record,
+        }
+    }
+}
+
+#[derive(Args)]
+pub struct Print {
+    #[arg(long, help = "Print the answer as a JSON envelope")]
+    pub json: bool,
 }
 
 #[derive(Args)]
@@ -135,20 +126,96 @@ pub struct Claim {
 }
 
 #[derive(Args)]
-pub struct Question {
+pub struct Lower {
+    #[arg(
+        required = true,
+        help = "Program files: .wave or .particle source, or .json programs assembled by Bazel"
+    )]
+    pub file: Vec<PathBuf>,
+    #[command(flatten)]
+    pub source: Source,
+}
+
+#[derive(Args)]
+pub struct Run {
+    #[arg(
+        required = true,
+        help = "Program files: .wave or .particle source, or .json programs assembled by Bazel"
+    )]
+    pub file: Vec<PathBuf>,
+    #[command(flatten)]
+    pub source: Source,
+    #[command(flatten)]
+    pub budget: Budget,
+    #[arg(long, default_value_t = NonZeroUsize::MIN, help = "Threads that explore in parallel")]
+    pub worker: NonZeroUsize,
+    #[arg(long, help = "Print the complete execution report as JSON")]
+    pub json: bool,
+    #[arg(long, requires = "json", help = "Serialize JSON without indentation")]
+    pub compact: bool,
+}
+
+#[derive(Args)]
+pub struct Prism {
+    #[command(flatten)]
+    pub run: Run,
+    #[arg(long, help = "A file holding the complete target configuration")]
+    pub target: PathBuf,
+    #[arg(
+        long,
+        help = "Follow one direct execution path; failure to reach the target stays unknown"
+    )]
+    pub path: bool,
+}
+
+#[derive(Args)]
+pub struct Check {
     #[arg(help = "Program files: .wave or .particle source, or .json programs assembled by Bazel")]
     pub file: Vec<PathBuf>,
     #[command(flatten)]
     pub source: Source,
     #[command(flatten)]
     pub budget: Budget,
-    #[command(flatten)]
-    pub claim: Claim,
+    #[arg(
+        long,
+        help = "Follow one direct path in source order instead of exploring every future"
+    )]
+    pub path: bool,
     #[arg(
         long,
         help = "In path mode, the complete configuration the path stops at"
     )]
     pub goal: Option<String>,
+    #[command(flatten)]
+    pub claim: Claim,
+    #[command(flatten)]
+    pub print: Print,
+}
+
+#[derive(Args)]
+pub struct Explore {
+    #[arg(help = "Program files: .wave or .particle source, or .json programs assembled by Bazel")]
+    pub file: Vec<PathBuf>,
+    #[command(flatten)]
+    pub source: Source,
+    #[command(flatten)]
+    pub budget: Budget,
+    #[arg(
+        long,
+        help = "Follow one direct path in source order instead of exploring every future"
+    )]
+    pub path: bool,
+    #[arg(
+        long,
+        help = "In path mode, the complete configuration the path stops at"
+    )]
+    pub goal: Option<String>,
+    #[arg(long, help = "With the goal, it also lists every loaded root rule")]
+    pub preserve: bool,
+    #[arg(long, default_value_t = spectrum::explore::LIMIT, help = "End configurations listed")]
+    pub limit: usize,
+    #[command(flatten)]
+    pub print: Print,
 }
 
 #[derive(Args)]
@@ -157,7 +224,7 @@ pub struct Select {
     pub file: Vec<PathBuf>,
     #[arg(long, help = "A Photonic pattern: B, B.X, B, C, ([A] B) or [B, C] D")]
     pub pattern: String,
-    #[arg(long, default_value_t = 20, help = "Matches listed")]
+    #[arg(long, default_value_t = spectrum::select::LIMIT, help = "Matches listed")]
     pub limit: usize,
     #[arg(long, default_value_t = 0, help = "Matches skipped")]
     pub offset: usize,
@@ -165,6 +232,13 @@ pub struct Select {
     pub source: Source,
     #[command(flatten)]
     pub budget: Budget,
+    #[arg(
+        long,
+        help = "Follow one direct path in source order instead of exploring every future"
+    )]
+    pub path: bool,
+    #[command(flatten)]
+    pub print: Print,
 }
 
 #[derive(Args)]
@@ -178,6 +252,13 @@ pub struct Pointer {
     pub source: Source,
     #[command(flatten)]
     pub budget: Budget,
+    #[arg(
+        long,
+        help = "Follow one direct path in source order instead of exploring every future"
+    )]
+    pub path: bool,
+    #[command(flatten)]
+    pub print: Print,
 }
 
 #[derive(Args)]
@@ -202,12 +283,19 @@ pub struct Miss {
         help = "With --exact, the target also lists every loaded root rule"
     )]
     pub preserve: bool,
-    #[arg(long, default_value_t = 3, help = "Configurations listed")]
+    #[arg(long, default_value_t = spectrum::miss::LIMIT, help = "Configurations listed")]
     pub limit: usize,
     #[command(flatten)]
     pub source: Source,
     #[command(flatten)]
     pub budget: Budget,
+    #[arg(
+        long,
+        help = "Follow one direct path in source order instead of exploring every future"
+    )]
+    pub path: bool,
+    #[command(flatten)]
+    pub print: Print,
 }
 
 #[derive(Args)]
@@ -216,14 +304,21 @@ pub struct Compare {
     pub left: PathBuf,
     #[arg(help = "The program after")]
     pub right: PathBuf,
-    #[arg(long, default_value_t = 12, help = "Differences listed on each side")]
+    #[arg(long, default_value_t = spectrum::compare::LIMIT, help = "Differences listed on each side")]
     pub limit: usize,
     #[command(flatten)]
     pub source: Source,
     #[command(flatten)]
     pub budget: Budget,
+    #[arg(
+        long,
+        help = "Follow one direct path in source order instead of exploring every future"
+    )]
+    pub path: bool,
     #[command(flatten)]
     pub claim: Claim,
+    #[command(flatten)]
+    pub print: Print,
 }
 
 #[derive(Args)]
@@ -245,53 +340,12 @@ pub struct Shape {
     pub fix: Vec<String>,
     #[arg(
         long,
-        default_value_t = 1_000_000,
+        default_value_t = spectrum::shape::NODE,
         help = "Search tree nodes the symmetry engine may visit"
     )]
     pub node: usize,
     #[command(flatten)]
     pub source: Source,
-}
-
-#[derive(Args)]
-pub struct Execution {
-    #[arg(
-        long,
-        help = "Load a declaration-only Photonic library; repeat for each source file"
-    )]
-    pub library: Vec<PathBuf>,
-    #[arg(
-        long,
-        default_value_t = 12_000,
-        help = "Work steps before the search stops"
-    )]
-    pub work: usize,
-    #[arg(long, default_value_t = Limit::default().state, help = "Configurations kept")]
-    pub configuration: usize,
-    #[arg(long, default_value_t = Limit::default().world, help = "Coherences in one configuration")]
-    pub coherence: usize,
-    #[arg(long, default_value_t = Limit::default().cell, help = "Occurrences in one configuration")]
-    pub occurrence: usize,
-    #[arg(long, default_value_t = Limit::default().frame, help = "Scopes in one configuration")]
-    pub scope: usize,
-    #[arg(long, default_value_t = Limit::default().record, help = "Records the engine retains")]
-    pub record: usize,
-    #[arg(long, default_value_t = 1, help = "Threads that explore in parallel")]
-    pub worker: usize,
-    #[arg(long, help = "Print the complete execution report as JSON")]
-    pub json: bool,
-    #[arg(long, requires = "json", help = "Serialize JSON without indentation")]
-    pub compact: bool,
-    #[arg(
-        long,
-        value_enum,
-        help = "Input format; .json selects JSON, .particle and .wave use identical Photonic syntax"
-    )]
-    pub format: Option<Format>,
-}
-
-#[derive(Clone, Copy, ValueEnum)]
-pub enum Format {
-    Photonic,
-    Json,
+    #[command(flatten)]
+    pub print: Print,
 }

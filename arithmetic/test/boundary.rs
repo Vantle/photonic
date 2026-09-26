@@ -1,4 +1,4 @@
-use arithmetic::{circuit, encoding, failure::Failure, power};
+use arithmetic::{circuit, encoding, failure::Failure};
 
 #[test]
 fn circuit() {
@@ -21,20 +21,15 @@ fn circuit() {
             assert_eq!(generate(base, 1, 0, base.into()), Err(Failure::Capacity));
         }
     }
-    for layout in [circuit::Layout::Column, circuit::Layout::Balanced] {
-        assert!(matches!(
-            circuit::multiply(0, 1, 0, 0, layout),
-            Err(Failure::Base { .. })
-        ));
-        assert!(matches!(
-            circuit::multiply(2, 0, 0, 0, layout),
-            Err(Failure::Width { .. })
-        ));
-        assert_eq!(
-            circuit::multiply(2, 1, 2, 0, layout),
-            Err(Failure::Capacity)
-        );
-    }
+    assert!(matches!(
+        circuit::multiply(0, 1, 0, 0),
+        Err(Failure::Base { .. })
+    ));
+    assert!(matches!(
+        circuit::multiply(2, 0, 0, 0),
+        Err(Failure::Width { .. })
+    ));
+    assert_eq!(circuit::multiply(2, 1, 2, 0), Err(Failure::Capacity));
 }
 
 #[test]
@@ -78,19 +73,4 @@ fn encoding() {
         encoding::quotient(2, 1, 0, 2, false),
         Err(Failure::Capacity)
     );
-}
-
-#[test]
-fn power() {
-    for base in [0, 1, 17, u8::MAX] {
-        assert!(matches!(power::numeral(base, 1), Err(Failure::Base { .. })));
-        assert!(matches!(power::rule(base, 1), Err(Failure::Base { .. })));
-    }
-    assert_eq!(power::rule(2, 0).unwrap(), "");
-    assert!(power::rule(16, 64).is_ok());
-    assert!(matches!(
-        power::rule(2, usize::MAX),
-        Err(Failure::Width { .. })
-    ));
-    assert!(power::numeral(2, u64::MAX).is_ok());
 }

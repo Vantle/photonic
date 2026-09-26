@@ -1,3 +1,4 @@
+use crate::runtime::Limit;
 fn enumerate(candidate: &[Vec<usize>], used: &mut Vec<usize>) -> bool {
     if used.len() == candidate.len() {
         return true;
@@ -43,8 +44,9 @@ fn shortage() {
         let initial = vec!["A"; 18].join(separation);
         let input = vec!["A"; 19].join(separation);
         let source = format!("{initial}, [{input}] B");
-        let mut runtime = crate::runtime::Runtime::new(&crate::lowering::parse(&source).unwrap());
-        runtime.run(100, None);
+        let mut runtime =
+            crate::runtime::Runtime::new(&frontend::lowering::parse(&source).unwrap());
+        runtime.run(100, Limit::default());
         assert!(runtime.closed());
         let snapshot = runtime.snapshot();
         assert_eq!(snapshot.state.len(), 1);

@@ -19,7 +19,6 @@ theorem(
         "//library/ternary:compare",
         "//library/ternary:equal",
         "//theorem:case",
-        "//theorem:judge",
     ],
 )
 
@@ -29,8 +28,6 @@ theorem(
     occurrence = 512,
     deps = [
         ":unpack",
-        "//library/boolean:and",
-        "//library/boolean:or",
         "//library/ternary:add",
         "//library/ternary:equal",
         "//library/ternary:multiply",
@@ -45,7 +42,6 @@ theorem(
     deps = [
         ":role",
         ":unpack",
-        "//library/boolean:and",
         "//library/ternary:add",
         "//library/ternary:equal",
         "//library/ternary:subtract",
@@ -61,7 +57,6 @@ theorem(
         ":role",
         "//library/ternary:compare",
         "//theorem:case",
-        "//theorem:judge",
     ],
 )
 

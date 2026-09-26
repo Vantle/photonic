@@ -9,7 +9,7 @@ fn preserve() {
     let mut generator = Generator::new(61);
     let before = configuration();
     let mut model = Model::new(before.clone(), &mut generator);
-    for value in &mut model.parameter {
+    for value in model.edit() {
         *value += generator.normal() as f32 * 0.3;
     }
     let after = Configuration {
@@ -35,7 +35,7 @@ fn preserve() {
     }
     let project = grown.block()[0].attention.project.weight;
     let row = |index: usize| {
-        &project.read(&grown.parameter)[index * project.column..(index + 1) * project.column]
+        &project.read(grown.parameter())[index * project.column..(index + 1) * project.column]
     };
     assert_ne!(row(0), row(before.width));
 }
@@ -45,7 +45,7 @@ fn widen() {
     let mut generator = Generator::new(62);
     let before = configuration();
     let mut model = Model::new(before.clone(), &mut generator);
-    for value in &mut model.parameter {
+    for value in model.edit() {
         *value += generator.normal() as f32 * 0.3;
     }
     let mut field = before.field.clone();

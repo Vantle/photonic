@@ -87,12 +87,14 @@ Reproduce the focused cases through the native targets:
 ```sh
 bazel run -c opt //benchmark:expression -- "2*2*2*2*2*2" 2101 --sample 7
 bazel run -c opt //benchmark:arithmetic -- 1234567890 add 9876543210 --radix 10 --sample 7
-bazel run -c opt //benchmark:factor -- --width 256 --length 1000 --sample 7
-bazel run -c opt //benchmark:factor -- --width 128 --noise 8192 --changing --length 100 --sample 7
-bazel run -c opt //benchmark:posting
-bazel run -c opt //benchmark:reachability
 bazel run -c opt //benchmark:runtime
 ```
+
+These benchmarks were removed after `0daf296` and still run at that commit:
+
+- [`factor`](https://github.com/Vantle/photonic/blob/0daf296e1d126675ed445bfb7ed6674a379b1532/benchmark/factor.rs) with `--width 256 --length 1000 --sample 7` and `--width 128 --noise 8192 --changing --length 100 --sample 7`
+- [`posting`](https://github.com/Vantle/photonic/blob/0daf296e1d126675ed445bfb7ed6674a379b1532/benchmark/posting.rs)
+- [`reachability`](https://github.com/Vantle/photonic/blob/0daf296e1d126675ed445bfb7ed6674a379b1532/benchmark/reachability.rs)
 
 ## Boundary
 

@@ -74,13 +74,19 @@ theorem(
 )
 
 theorem(
+    name = "equality",
+    srcs = ["equality.wave"],
+    deps = [
+        "//library/boolean:equal",
+        "//theorem:case",
+    ],
+)
+
+theorem(
     name = "equivalence",
     srcs = ["equivalence.wave"],
     deps = [
-        "//library/boolean:and",
         "//library/boolean:equal",
-        "//library/boolean:not",
-        "//library/boolean:or",
         "//theorem:case",
     ],
 )

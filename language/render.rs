@@ -4,21 +4,15 @@ pub(crate) use sequence::Sequence;
 
 use crate::profile;
 use crate::program::{Program, Symbol};
-use crate::snapshot::{Frame, Kind, Node, Token, World};
+use crate::snapshot::{Definition, Frame, Node, Token, Value, World};
 use crate::state::State;
 use crate::status::Status;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-struct Text {
-    kind: Kind,
-    label: Arc<str>,
-    display: Arc<str>,
-}
-
 pub(crate) struct Builder<'program> {
     program: &'program Program,
-    text: HashMap<Symbol, Text, crate::hashing::Builder>,
+    atom: HashMap<usize, Arc<str>, crate::hashing::Builder>,
     scope: HashMap<usize, Arc<str>, crate::hashing::Builder>,
 }
 
@@ -26,16 +20,16 @@ impl<'program> Builder<'program> {
     pub(crate) fn new(program: &'program Program) -> Self {
         Self {
             program,
-            text: HashMap::default(),
+            atom: HashMap::default(),
             scope: HashMap::default(),
         }
     }
 
-    pub(crate) fn definition(&self) -> Vec<crate::snapshot::Definition> {
+    pub(crate) fn definition(&self) -> Vec<Definition> {
         (0..self.program.rule.len())
-            .map(|index| crate::snapshot::Definition {
-                label: format!("§{index}"),
-                display: self.program.label(Symbol::Rule(index)),
+            .map(|index| Definition {
+                name: self.program.rule[index].name.clone(),
+                rule: self.program.definition(index),
             })
             .collect()
     }
@@ -46,32 +40,18 @@ impl<'program> Builder<'program> {
     ) -> Vec<Token> {
         value
             .into_iter()
-            .map(|token| {
-                let text = self
-                    .text
-                    .entry(token.value)
-                    .or_insert_with(|| match token.value {
-                        Symbol::Atom(index) => {
-                            let label = Arc::<str>::from(self.program.atom[index].as_str());
-                            Text {
-                                kind: Kind::Atom,
-                                display: label.clone(),
-                                label,
-                            }
-                        }
-                        Symbol::Rule(index) => Text {
-                            kind: Kind::Rule,
-                            label: format!("§{index}").into(),
-                            display: self.program.label(token.value).into(),
-                        },
-                    });
-                Token {
-                    id: token.id,
-                    kind: text.kind,
-                    label: text.label.clone(),
-                    display: text.display.clone(),
-                    capture: token.capture,
-                }
+            .map(|token| Token {
+                id: token.id,
+                value: match token.value {
+                    Symbol::Atom(index) => Value::Atom(
+                        self.atom
+                            .entry(index)
+                            .or_insert_with(|| Arc::from(self.program.atom[index].as_str()))
+                            .clone(),
+                    ),
+                    Symbol::Rule(index) => Value::Rule(index),
+                },
+                capture: token.capture,
             })
             .collect()
     }
@@ -99,6 +79,7 @@ impl<'program> Builder<'program> {
                         .clone();
                     Frame {
                         scope,
+                        opener: self.program.scope[frame.scope].opener,
                         parent: frame.parent,
                         lexical: frame.lexical,
                         particle: self.particle(&frame.particle),

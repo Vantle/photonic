@@ -1,5 +1,5 @@
 use crate::hashing::Builder;
-use crate::source;
+use frontend::source;
 use indexmap::IndexSet;
 use std::collections::HashMap;
 
@@ -26,6 +26,7 @@ pub struct Output {
 pub struct Scope {
     pub name: String,
     pub rule: Vec<usize>,
+    pub opener: Option<usize>,
 }
 
 pub(crate) struct Target {
@@ -71,7 +72,7 @@ impl Program {
             initial: Vec::new(),
             interner: HashMap::default(),
         };
-        program.declare(&source.rule, "root".into());
+        program.declare(&source.rule, "root".into(), None);
         program.initial = program.input(&source.initial);
         program
     }
@@ -221,7 +222,7 @@ impl Program {
     fn compile(&mut self, value: &source::Definition, name: String, path: String) -> usize {
         let index = self.rule.len();
         self.rule.push(Instruction::default());
-        self.rule[index] = self.instruction(value, name, path);
+        self.rule[index] = self.instruction(value, name, path, index);
         let form = self.shape(&self.rule[index]);
         self.interner.insert(form, index);
         index
@@ -240,6 +241,7 @@ impl Program {
         value: &source::Definition,
         name: String,
         path: String,
+        index: usize,
     ) -> Instruction {
         let name = if value.name.is_empty() {
             name
@@ -256,7 +258,7 @@ impl Program {
                 body: output
                     .body
                     .as_ref()
-                    .map(|value| self.declare(value, format!("{path}/{position}"))),
+                    .map(|value| self.declare(value, format!("{path}/{position}"), Some(index))),
             })
             .collect();
         Instruction {
@@ -266,11 +268,17 @@ impl Program {
         }
     }
 
-    fn declare(&mut self, value: &[source::Definition], name: String) -> usize {
+    fn declare(
+        &mut self,
+        value: &[source::Definition],
+        name: String,
+        opener: Option<usize>,
+    ) -> usize {
         let scope = self.scope.len();
         self.scope.push(Scope {
             name: name.clone(),
             rule: Vec::new(),
+            opener,
         });
         for (position, value) in value.iter().enumerate() {
             let index = self.intern(value, format!("{name}/{position}"));
@@ -279,17 +287,47 @@ impl Program {
         scope
     }
 
-    pub fn scope(&self, name: &str) -> Option<&[usize]> {
-        self.scope
-            .iter()
-            .find(|scope| scope.name == name)
-            .map(|scope| scope.rule.as_slice())
+    pub(crate) fn express(&self, symbol: Symbol) -> source::Value {
+        match symbol {
+            Symbol::Atom(index) => source::Value::Atom(self.atom[index].clone()),
+            Symbol::Rule(index) => source::Value::Rule {
+                rule: Box::new(self.definition(index)),
+            },
+        }
     }
 
-    pub fn label(&self, symbol: Symbol) -> String {
-        match symbol {
-            Symbol::Atom(index) => self.atom[index].clone(),
-            Symbol::Rule(index) => format!("⟨{}⟩", self.rule[index].name),
+    pub(crate) fn definition(&self, index: usize) -> source::Definition {
+        let instruction = &self.rule[index];
+        source::Definition {
+            name: String::new(),
+            input: instruction
+                .input
+                .iter()
+                .map(|particle| {
+                    particle
+                        .iter()
+                        .map(|&symbol| self.express(symbol))
+                        .collect()
+                })
+                .collect(),
+            output: instruction
+                .output
+                .iter()
+                .map(|output| source::Output {
+                    particle: output
+                        .particle
+                        .iter()
+                        .map(|&symbol| self.express(symbol))
+                        .collect(),
+                    body: output.body.map(|scope| {
+                        self.scope[scope]
+                            .rule
+                            .iter()
+                            .map(|&rule| self.definition(rule))
+                            .collect()
+                    }),
+                })
+                .collect(),
         }
     }
 }

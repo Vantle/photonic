@@ -30,10 +30,6 @@ impl Replay {
         self.buffer.len()
     }
 
-    pub fn is_empty(&self) -> bool {
-        self.buffer.is_empty()
-    }
-
     pub fn total(&self) -> u64 {
         self.total
     }

@@ -130,6 +130,38 @@ fn invariance() {
 }
 
 #[test]
+fn symmetry() {
+    for order in [
+        [
+            "Light, [Light] Red, [Light] Green, [Light] Blue",
+            "Light, [Light] Blue, [Light] Green, [Light] Red",
+            "[Light] Green, Light, [Light] Red, [Light] Blue",
+        ],
+        [
+            "A.B, [A] C, [B] D",
+            "[B] D, [A] C, B.A",
+            "[A] C, B.A, [B] D",
+        ],
+    ] {
+        let first = explore(order[0]);
+        for source in &order[1..] {
+            let other = explore(source);
+            assert_eq!(first.key, other.key, "{source}");
+            for (index, rule) in first.rule.iter().enumerate() {
+                assert_eq!(rule.text, other.rule[index].text, "{source}");
+            }
+            for index in 0..first.configuration.len() {
+                assert_eq!(
+                    render::configuration(&first, index),
+                    render::configuration(&other, index),
+                    "{source}"
+                );
+            }
+        }
+    }
+}
+
+#[test]
 fn opener() {
     let exploration = explore("A, B, [A] ([X] Y), [B] ([P] Q)");
     let mut seen = 0;
@@ -144,7 +176,7 @@ fn opener() {
             .output
             .iter()
             .flat_map(|output| output.body.iter().flatten())
-            .map(photonic::text::definition)
+            .map(frontend::text::definition)
             .collect::<Vec<_>>();
         for occurrence in &frame.rule {
             let Value::Rule(rule) = occurrence.value else {

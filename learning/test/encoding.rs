@@ -86,10 +86,7 @@ fn goal() {
     let field = Shape::default().architecture().field.len();
     let plain = encode(&task, &program, &evaluation, &[], &permutation);
     let aimed = Task {
-        goal: Some(Goal {
-            processor: 64.0,
-            size: 0.2,
-        }),
+        goal: Some(Goal::new(64.0, 0.2).unwrap()),
         ..task
     };
     let aimed = encode(&aimed, &program, &evaluation, &[], &permutation);

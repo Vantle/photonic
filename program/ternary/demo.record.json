@@ -49,8 +49,8 @@
     "name": "Division and subtraction",
     "expression": "21 ÷ 2 − 1",
     "outcome": "reached",
-    "work": 7635,
-    "count": 3062,
+    "work": 7615,
+    "count": 3054,
     "input": [
       "2",
       "1",
@@ -64,16 +64,16 @@
         "operation": "Divide",
         "ternary": "10",
         "decimal": "3",
-        "source": 2247,
-        "target": 2248,
+        "source": 2241,
+        "target": 2242,
         "rule": "[Return.Integer.Divide.Positive, Execute.Pending.Divide] (Operand.Number.Positive, Forget.Execute.Join)"
       },
       {
         "operation": "Subtract",
         "ternary": "2",
         "decimal": "2",
-        "source": 2801,
-        "target": 2802,
+        "source": 2793,
+        "target": 2794,
         "rule": "[Return.Integer.Subtract.Positive, Execute.Pending.Subtract] (Operand.Number.Positive, Forget.Execute.Join)"
       }
     ]

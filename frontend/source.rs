@@ -2,6 +2,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::failure::Failure;
 
+// One level of source nesting adds at most five levels of JSON, and lowering refuses sources
+// nested deeper than the parser's limit, so this admits every lowered program; serde_json's
+// default of 128 would refuse programs nested about 32 levels deep.
+const NESTING: usize = 8 * crate::parser::DEPTH;
+
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Program {
@@ -12,6 +17,26 @@ pub struct Program {
 }
 
 impl Program {
+    pub fn read(text: &str) -> Result<Self, serde_json::Error> {
+        if nesting(text) > NESTING {
+            return Err(serde::de::Error::custom(format!(
+                "a program nests at most {NESTING} levels deep"
+            )));
+        }
+        let mut deserializer = serde_json::Deserializer::from_str(text);
+        deserializer.disable_recursion_limit();
+        let program = Self::deserialize(&mut deserializer)?;
+        deserializer.end()?;
+        Ok(program)
+    }
+
+    pub fn canonical(&self) -> Self {
+        Self {
+            initial: self.initial.iter().map(|value| particle(value)).collect(),
+            rule: self.rule.iter().map(Definition::canonical).collect(),
+        }
+    }
+
     pub fn append(&mut self, program: Self) {
         self.initial.extend(program.initial);
         self.rule.extend(program.rule);
@@ -100,4 +125,32 @@ fn input(value: &[Vec<Value>]) -> Vec<Vec<Value>> {
         .collect::<Vec<_>>();
     result.sort();
     result
+}
+
+fn nesting(text: &str) -> usize {
+    let mut depth = 0_usize;
+    let mut deepest = 0;
+    let mut string = false;
+    let mut escape = false;
+    for byte in text.bytes() {
+        if string {
+            match (escape, byte) {
+                (true, _) => escape = false,
+                (false, b'\\') => escape = true,
+                (false, b'"') => string = false,
+                _ => {}
+            }
+            continue;
+        }
+        match byte {
+            b'"' => string = true,
+            b'[' | b'{' => {
+                depth += 1;
+                deepest = deepest.max(depth);
+            }
+            b']' | b'}' => depth = depth.saturating_sub(1),
+            _ => {}
+        }
+    }
+    deepest
 }

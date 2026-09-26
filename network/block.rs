@@ -15,7 +15,7 @@ pub struct Block {
 }
 
 #[derive(Clone, Debug)]
-pub struct Trace {
+pub(crate) struct Trace {
     first: norm::Trace,
     attention: attention::Trace,
     second: norm::Trace,
@@ -23,7 +23,7 @@ pub struct Trace {
 }
 
 impl Block {
-    pub fn new(layout: &mut Layout, width: usize, head: usize, hidden: usize) -> Self {
+    pub(crate) fn new(layout: &mut Layout, width: usize, head: usize, hidden: usize) -> Self {
         Self {
             first: Norm::new(layout, width),
             attention: Attention::new(layout, width, head),
@@ -32,7 +32,7 @@ impl Block {
         }
     }
 
-    pub fn initialize(
+    pub(crate) fn initialize(
         &self,
         parameter: &mut [f32],
         generator: &mut Generator,
@@ -47,7 +47,7 @@ impl Block {
             .initialize(parameter, generator, deviation, residual);
     }
 
-    pub fn forward(
+    pub(crate) fn forward(
         &self,
         parameter: &[f32],
         input: Array2<f32>,
@@ -69,7 +69,7 @@ impl Block {
         )
     }
 
-    pub fn backward(
+    pub(crate) fn backward(
         &self,
         parameter: &[f32],
         gradient: &mut [f32],

@@ -24,8 +24,13 @@ impl Bar {
 
     pub fn refresh(&mut self, archive: &Archive, problem: &[Problem]) {
         for (index, problem) in problem.iter().enumerate() {
-            self.best[index] = archive.best(&problem.task.name);
-            self.partial[index] = archive.partial(&problem.task.name);
+            let name = &problem.task.name;
+            self.best[index] = archive
+                .best(name)
+                .map_or(f64::INFINITY, |record| record.cost);
+            self.partial[index] = archive
+                .partial(name)
+                .map_or(0.0, |record| record.correctness);
         }
     }
 

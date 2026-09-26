@@ -1,7 +1,6 @@
 use crate::recording::Order;
-use photonic::parser::{DELIMITER, SPACE};
-use photonic::source::{Definition, Output, Program, Value};
-use std::collections::{BTreeMap, HashMap};
+use frontend::source::{Definition, Output, Program, Value};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use symmetry::structure::{Part, Structure};
 use translation::lift;
 use translation::vocabulary::{Vocabulary, letter};
@@ -19,27 +18,6 @@ pub struct Canonical {
     pub shape: Option<u64>,
     pub program: Program,
     pub naming: Naming,
-}
-
-fn delimiter(character: char) -> bool {
-    SPACE.contains(&character) || DELIMITER.contains(&character)
-}
-
-fn rename(text: &str, map: impl Fn(&str) -> Option<String>) -> String {
-    let mut result = String::with_capacity(text.len());
-    let mut rest = text;
-    while let Some(character) = rest.chars().next() {
-        if delimiter(character) {
-            result.push(character);
-            rest = &rest[character.len_utf8()..];
-            continue;
-        }
-        let end = rest.find(delimiter).unwrap_or(rest.len());
-        let atom = &rest[..end];
-        result.push_str(&map(atom).unwrap_or_else(|| atom.to_owned()));
-        rest = &rest[end..];
-    }
-    result
 }
 
 fn value(value: &Value, map: &mut impl FnMut(&str) -> String) -> Value {
@@ -77,7 +55,7 @@ fn definition(definition: &Definition, map: &mut impl FnMut(&str) -> String) -> 
             .collect(),
     };
     Definition {
-        name: photonic::text::definition(&unnamed),
+        name: frontend::text::definition(&unnamed),
         ..unnamed
     }
 }
@@ -121,11 +99,11 @@ impl Naming {
         self.name.get(atom).map_or(atom, String::as_str)
     }
 
-    pub fn show(&self, text: &str) -> String {
-        if self.name.is_empty() {
-            return text.to_owned();
+    pub fn show(&self, rule: &Definition) -> Definition {
+        Definition {
+            name: String::new(),
+            ..definition(rule, &mut |atom| self.name(atom).to_owned())
         }
-        rename(text, |atom| self.name.get(atom).cloned())
     }
 
     pub fn hide(&self, source: &Program) -> Program {
@@ -147,33 +125,13 @@ impl Naming {
     }
 }
 
-fn canonical(particle: &[Value]) -> Vec<Value> {
-    let mut result = particle
-        .iter()
-        .map(|entry| match entry {
-            Value::Atom(atom) => Value::Atom(atom.clone()),
-            Value::Rule { rule } => Value::Rule {
-                rule: Box::new(rule.canonical()),
-            },
-        })
-        .collect::<Vec<_>>();
-    result.sort();
-    result
-}
-
 fn text(program: &Program) -> Canonical {
-    let mut rule = program
-        .rule
-        .iter()
-        .map(Definition::canonical)
-        .collect::<Vec<_>>();
-    rule.sort_by_cached_key(photonic::text::definition);
-    let mut initial = program
-        .initial
-        .iter()
-        .map(|entry| canonical(entry))
-        .collect::<Vec<_>>();
-    initial.sort_by_cached_key(|entry| photonic::text::coherence(entry));
+    let Program {
+        mut initial,
+        mut rule,
+    } = program.canonical();
+    rule.sort_by_cached_key(frontend::text::definition);
+    initial.sort_by_cached_key(|entry| frontend::text::coherence(entry));
     Canonical {
         order: Order::Text,
         shape: None,
@@ -182,21 +140,56 @@ fn text(program: &Program) -> Canonical {
     }
 }
 
+fn atom<'value>(particle: &'value [Value], name: &mut BTreeSet<&'value str>) {
+    for value in particle {
+        match value {
+            Value::Atom(atom) => {
+                name.insert(atom);
+            }
+            Value::Rule { rule } => self::rule(rule, name),
+        }
+    }
+}
+
+fn rule<'value>(definition: &'value Definition, name: &mut BTreeSet<&'value str>) {
+    for particle in &definition.input {
+        atom(particle, name);
+    }
+    for output in &definition.output {
+        atom(&output.particle, name);
+        for entry in output.body.iter().flatten() {
+            rule(entry, name);
+        }
+    }
+}
+
+// The symmetry search breaks ties between interchangeable atoms by atom number, so numbering atoms
+// by name instead of by first appearance keeps keys and handles independent of term order.
+fn vocabulary(program: &Program) -> Option<Vocabulary> {
+    let mut name = BTreeSet::new();
+    for particle in &program.initial {
+        atom(particle, &mut name);
+    }
+    for entry in &program.rule {
+        rule(entry, &mut name);
+    }
+    Vocabulary::try_from(name.into_iter().map(str::to_owned).collect::<Vec<_>>()).ok()
+}
+
 fn shape(program: &Program) -> Option<Canonical> {
-    let mut vocabulary = Vocabulary::default();
+    let mut vocabulary = vocabulary(program)?;
     let (code, configuration) = lift::program(program, &mut vocabulary).ok()?;
     let structure = Structure {
-        part: vec![Part {
-            role: 0,
+        program: Part {
             program: code,
             configuration,
-        }],
+        },
+        target: None,
         pin: Vec::new(),
     };
     let symmetry = structure.symmetry(BUDGET).ok()?;
-    let form = symmetry.form(&structure);
     let letter = Vocabulary::alphabet(symmetry.atom.len()).ok()?;
-    let part = form.part.first()?;
+    let part = &symmetry.form.program;
     Some(Canonical {
         order: Order::Shape,
         shape: Some(symmetry.fingerprint()),

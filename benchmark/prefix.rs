@@ -47,23 +47,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             stage + 1
         ));
     }
-    let program = photonic::lowering::parse(&source)?;
-    let target = photonic::lowering::parse(&world(argument.length.get()))?;
-    let target = photonic::source::Program {
-        rule: program.rule.clone(),
-        ..target
-    };
+    let program = frontend::lowering::parse(&source)?;
+    let mut target = frontend::lowering::parse(&world(argument.length.get()))?;
+    target.preserve(&program);
     let limit = Limit {
-        state: argument.length.get() * 2 + 2,
+        configuration: argument.length.get() * 2 + 2,
         record: 100_000_000,
-        world: argument.width.get() + argument.delay.get() + 2,
-        cell: argument.width.get() * 3 + argument.delay.get() + 10,
-        frame: 1,
+        coherence: argument.width.get() + argument.delay.get() + 2,
+        occurrence: argument.width.get() * 3 + argument.delay.get() + 10,
+        scope: 1,
     };
-    evaluation::warm(&program, &target, Some(limit));
+    evaluation::warm(&program, &target, Some(limit))?;
     let measurement = (0..argument.sample.get())
         .map(|_| evaluation::evaluate(program.clone(), target.clone(), Some(limit)))
-        .collect::<Vec<_>>();
+        .collect::<Result<Vec<_>, _>>()?;
     serde_json::to_writer_pretty(
         std::io::stdout().lock(),
         &serde_json::json!({

@@ -2,8 +2,7 @@ Every.1,
 
 [Every.1] (
     Split.1,
-    [Both.1] Theorem,
-    [Refuted.2] Counterexample
+    [Both.1] Theorem
 ),
 [Split.1] Every.2.([Compare.([Left] X).([Right] Y)] Less),
 [Proved.2.([Compare.([Left] X).([Right] Y)] Less)] Every.2.([Compare.([Left] X).([Right] Y)] Equal),
@@ -12,8 +11,7 @@ Every.1,
 
 [Every.2] (
     Split.2,
-    [Both.2] Proved.2,
-    [Refuted.3] Refuted.2
+    [Both.2] Proved.2
 ),
 [Split.2] Every.3.([Compare.([Left] Y).([Right] Z)] Less),
 [Proved.3.([Compare.([Left] Y).([Right] Z)] Less)] Every.3.([Compare.([Left] Y).([Right] Z)] Equal),
@@ -22,8 +20,7 @@ Every.1,
 
 [Every.3] (
     Split.3,
-    [Both.3] Proved.3,
-    [Refuted.4] Refuted.3
+    [Both.3] Proved.3
 ),
 [Split.3] Every.4.([Compare.([Left] X).([Right] Z)] Less),
 [Proved.4.([Compare.([Left] X).([Right] Z)] Less)] Every.4.([Compare.([Left] X).([Right] Z)] Equal),
@@ -32,8 +29,7 @@ Every.1,
 
 [Every.4] (
     Split.4,
-    [Both.4] Proved.4,
-    [Refuted.5] Refuted.4
+    [Both.4] Proved.4
 ),
 [Split.4] Every.5.([Compare.([Left] A).([Right] B)] Less),
 [Proved.5.([Compare.([Left] A).([Right] B)] Less)] Every.5.([Compare.([Left] A).([Right] B)] Equal),
@@ -42,8 +38,7 @@ Every.1,
 
 [Every.5] (
     Split.5,
-    [Both.5] Proved.5,
-    [Refuted.6] Refuted.5
+    [Both.5] Proved.5
 ),
 [Split.5] Every.6.([Compare.([Left] B).([Right] C)] Less),
 [Proved.6.([Compare.([Left] B).([Right] C)] Less)] Every.6.([Compare.([Left] B).([Right] C)] Equal),
@@ -52,8 +47,7 @@ Every.1,
 
 [Every.6] (
     Split.6,
-    [Both.6] Proved.6,
-    [Counterexample] Refuted.6
+    [Both.6] Proved.6
 ),
 [Split.6] Case.([Compare.([Left] A).([Right] C)] Less),
 [Holds.([Compare.([Left] A).([Right] C)] Less)] Case.([Compare.([Left] A).([Right] C)] Equal),

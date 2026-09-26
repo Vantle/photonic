@@ -109,7 +109,7 @@
                 pattern = book.pattern.read(text);
                 problem = undefined;
             } catch (error) {
-                problem = error.message;
+                problem = book.editor.describe(error);
             }
             render();
         };
@@ -142,7 +142,9 @@
         into.addEventListener('click', () => control?.zoom(1.25));
         fit.addEventListener('click', () => control?.zoom('fit'));
 
-        return { element: [filter, symmetry.element, graph.box, flow.box], filter: apply, show, blank };
+        const box = element('div', 'viewer');
+        box.append(filter, symmetry.element, graph.box, flow.box);
+        return { element: box, filter: apply, show, blank };
     };
 
     book.viewer = { create };

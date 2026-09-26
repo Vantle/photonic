@@ -27,10 +27,6 @@ impl Coherence {
         self.token.len()
     }
 
-    pub fn is_empty(&self) -> bool {
-        self.token.is_empty()
-    }
-
     pub fn range(&self, atom: Atom) -> &[Token] {
         let start = self.token.partition_point(|token| token.atom < atom);
         let end = self.token.partition_point(|token| token.atom <= atom);

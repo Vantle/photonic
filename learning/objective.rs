@@ -1,15 +1,15 @@
+use crate::distance::distance;
 use crate::task::{Example, Goal, Task};
+use crate::tree::{Node, walk};
 use code::atom::Atom;
 use code::canonical::Key;
 use code::configuration::Configuration;
-use code::distance::distance;
 use code::hashing::value;
 use code::observation::Observation;
 use code::output::Output;
 use code::particle::Particle;
 use code::program::Program;
 use code::rule::Rule;
-use code::tree::{Node, walk};
 use code::value::Value;
 use machine::exploration::explore;
 use machine::flat::Flat;
@@ -17,6 +17,7 @@ use machine::limit::Limit;
 use machine::schedule::schedule;
 use machine::state::State;
 use random::Generator;
+use std::time::Instant;
 use translation::execution;
 use translation::vocabulary::Vocabulary;
 
@@ -38,22 +39,24 @@ impl Default for Setting {
         Self {
             goal: Goal::default(),
             limit: Limit {
-                state: 512,
+                configuration: 512,
                 round: 512,
                 coherence: 32,
-                cell: 256,
+                occurrence: 256,
                 event: 1_024,
                 ..Limit::default()
             },
             admission: photonic::runtime::Limit {
-                state: 512,
+                configuration: 512,
                 record: 10_000_000,
-                world: 32,
-                cell: 256,
-                frame: 32,
+                coherence: 32,
+                occurrence: 256,
+                scope: 32,
             },
             bound: photonic::execution::Bound {
                 state: 256,
+                step: 512,
+                work: 1_024,
                 ..photonic::execution::Bound::default()
             },
             sample: 2,
@@ -70,24 +73,36 @@ impl Setting {
         }
     }
 
+    pub(crate) fn until(&self, deadline: Option<Instant>) -> Self {
+        Self {
+            limit: Limit {
+                deadline,
+                ..self.limit
+            },
+            ..*self
+        }
+    }
+
     pub fn thorough(&self) -> Self {
         Self {
             limit: Limit {
-                state: 16_384,
+                configuration: 16_384,
                 round: 16_384,
                 coherence: 64,
-                cell: 1_024,
+                occurrence: 1_024,
                 event: 65_536,
                 ..self.limit
             },
             admission: photonic::runtime::Limit {
-                world: 64,
-                cell: 1_024,
-                frame: 64,
+                coherence: 64,
+                occurrence: 1_024,
+                scope: 64,
                 ..self.admission
             },
             bound: photonic::execution::Bound {
                 state: 16_384,
+                step: 16_384,
+                work: 65_536,
                 ..self.bound
             },
             sample: 16,
@@ -98,7 +113,7 @@ impl Setting {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum Outcome {
+pub(crate) enum Outcome {
     Exact {
         work: usize,
         span: usize,
@@ -138,7 +153,7 @@ fn particle(rule: &Rule) -> impl Iterator<Item = &Particle> {
         .chain(rule.output().iter().map(Output::particle))
 }
 
-pub fn atom(node: &[Node<'_>]) -> Vec<Atom> {
+pub(crate) fn atom(node: &[Node<'_>]) -> Vec<Atom> {
     let mut atom = node
         .iter()
         .flat_map(|node| particle(node.rule))
@@ -182,7 +197,7 @@ impl Size {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Evaluation {
-    pub outcome: Vec<Outcome>,
+    pub(crate) outcome: Vec<Outcome>,
     pub correctness: f64,
     pub correct: bool,
     pub verified: bool,
@@ -228,7 +243,7 @@ impl Context<'_> {
         };
         if let (Some(flat), Some(initial)) = (&self.flat, State::new(input)) {
             let limit = Limit {
-                state: self.setting.limit.state.min(remaining),
+                configuration: self.setting.limit.configuration.min(remaining),
                 ..self.setting.limit
             };
             let exploration = explore(flat, initial, &limit, |state| wrong(&state.observation()));
@@ -322,6 +337,9 @@ impl Context<'_> {
     }
 
     fn outcome(&self, example: &Example, index: usize, remaining: usize) -> (Outcome, usize) {
+        if self.setting.limit.expired() {
+            return (Outcome::Divergent, 0);
+        }
         let Ok(expected) = example.output.key(self.setting.limit.individualization) else {
             return (Outcome::Divergent, 0);
         };
@@ -463,7 +481,7 @@ pub fn evaluate(
         });
     let time = outcome
         .iter()
-        .map(|outcome| outcome.time(setting.goal.processor))
+        .map(|outcome| outcome.time(setting.goal.processor()))
         .sum::<f64>()
         / count;
     let size = Size::new(program);
@@ -476,11 +494,11 @@ pub fn evaluate(
         work: work / count,
         span: span / count,
         size,
-        cost: time + setting.goal.size * size.total() as f64,
+        cost: time + setting.goal.size() * size.total() as f64,
     }
 }
 
-pub fn general(program: &Program, task: &Task, setting: &Setting) -> bool {
+pub(crate) fn general(program: &Program, task: &Task, setting: &Setting) -> bool {
     evaluate(
         program,
         &task.holdout,
@@ -490,7 +508,7 @@ pub fn general(program: &Program, task: &Task, setting: &Setting) -> bool {
     .correct
 }
 
-pub fn behavior(
+pub(crate) fn behavior(
     program: &Program,
     input: &Configuration,
     vocabulary: &Vocabulary,
@@ -536,12 +554,12 @@ fn changed<'example>(
         .collect()
 }
 
-pub fn floor(example: &[Example], vocabulary: &Vocabulary, setting: &Setting) -> f64 {
+pub(crate) fn floor(example: &[Example], vocabulary: &Vocabulary, setting: &Setting) -> f64 {
     let changed = changed(example, vocabulary, setting).len();
-    changed as f64 * (1.0 + 1.0 / setting.goal.processor) / example.len().max(1) as f64
+    changed as f64 * (1.0 + 1.0 / setting.goal.processor()) / example.len().max(1) as f64
 }
 
-pub fn memorization(example: &[Example], vocabulary: &Vocabulary, setting: &Setting) -> f64 {
+pub(crate) fn memorization(example: &[Example], vocabulary: &Vocabulary, setting: &Setting) -> f64 {
     let table = Program::from(
         changed(example, vocabulary, setting)
             .into_iter()
@@ -560,10 +578,10 @@ pub fn memorization(example: &[Example], vocabulary: &Vocabulary, setting: &Sett
             })
             .collect::<Vec<_>>(),
     );
-    floor(example, vocabulary, setting) + setting.goal.size * Size::new(&table).total() as f64
+    floor(example, vocabulary, setting) + setting.goal.size() * Size::new(&table).total() as f64
 }
 
-pub fn potential(evaluation: &Evaluation, baseline: f64) -> f64 {
+pub(crate) fn potential(evaluation: &Evaluation, baseline: f64) -> f64 {
     if !evaluation.correct {
         return evaluation.correctness.min(0.999);
     }

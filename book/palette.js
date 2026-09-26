@@ -89,12 +89,17 @@
             row.addEventListener('click', () => item.run());
             return row;
         }));
-        if (!entry.length) list.append(element('li', undefined, 'Nothing matches.'));
+        if (!entry.length) {
+            const row = element('li', undefined, 'Nothing matches.');
+            row.setAttribute('role', 'option');
+            row.setAttribute('aria-disabled', 'true');
+            list.append(row);
+        }
         mark();
     };
 
     const mark = () => {
-        list.querySelectorAll('[role="option"]').forEach((row, index) => row.setAttribute('aria-selected', String(index === chosen)));
+        list.querySelectorAll('[role="option"]:not([aria-disabled])').forEach((row, index) => row.setAttribute('aria-selected', String(index === chosen)));
         const row = list.querySelector(`#palette${chosen}`);
         if (!row) {
             input.removeAttribute('aria-activedescendant');

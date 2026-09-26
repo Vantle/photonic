@@ -1,7 +1,7 @@
 use super::{Program, Symbol};
 
 fn program(source: &str) -> Program {
-    Program::new(&crate::lowering::parse(source).unwrap())
+    Program::new(&frontend::lowering::parse(source).unwrap())
 }
 
 #[test]
@@ -80,7 +80,7 @@ fn target() {
     let atom = compiled.atom.len();
     let rule = compiled.rule.len();
     let known =
-        compiled.target(&crate::lowering::parse("B.A, ().([A] (X, [X] Y)), [B] C").unwrap());
+        compiled.target(&frontend::lowering::parse("B.A, ().([A] (X, [X] Y)), [B] C").unwrap());
     assert_eq!(known.rule, [compiled.scope[0].rule[1]]);
     assert_eq!(
         known.initial,
@@ -92,7 +92,7 @@ fn target() {
             vec![Symbol::Rule(compiled.scope[0].rule[0])]
         ]
     );
-    let unknown = compiled.target(&crate::lowering::parse("Z, [B] C, [Q] R").unwrap());
+    let unknown = compiled.target(&frontend::lowering::parse("Z, [B] C, [Q] R").unwrap());
     assert_eq!(unknown.rule, [compiled.scope[0].rule[1], rule]);
     assert_eq!(unknown.initial, [[Symbol::Atom(atom + 2)]]);
     assert_eq!(compiled.atom.len(), atom);

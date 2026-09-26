@@ -15,17 +15,17 @@ use std::collections::HashSet;
 
 fn bound() -> photonic::runtime::Limit {
     photonic::runtime::Limit {
-        state: 10_000,
+        configuration: 10_000,
         record: 10_000_000,
-        world: 16,
-        cell: 64,
-        frame: 10,
+        coherence: 16,
+        occurrence: 64,
+        scope: 10,
     }
 }
 
 fn limit() -> Limit {
     Limit {
-        state: 64,
+        configuration: 64,
         ..Limit::default()
     }
 }
@@ -51,17 +51,17 @@ fn reachable(program: &Flat, initial: State) -> Vec<State> {
 
 fn exhaustive(program: &Program, initial: &Configuration, known: &Vocabulary) -> usize {
     let compiled = Flat::new(program).unwrap();
-    let source = emit::program(program, initial, known);
-    let mut search = photonic::prism::Search::new(source.clone(), source);
-    search.run(5_000_000, Some(bound()));
+    let mut runtime = photonic::runtime::Runtime::new(&emit::program(program, initial, known));
+    runtime.run(5_000_000, bound());
     let mut checked = 0;
     for state in reachable(&compiled, start(initial)) {
         if !state.membership().is_empty() {
             continue;
         }
-        search.target(emit::program(program, &state.configuration(), known));
         assert_eq!(
-            search.verdict().outcome,
+            runtime
+                .verdict(&emit::program(program, &state.configuration(), known))
+                .outcome,
             Outcome::Reached,
             "{}\n{}\nmissing {}",
             crate::text::configuration(initial, known),
@@ -94,7 +94,7 @@ fn direct(program: &Program, initial: &Configuration, known: &Vocabulary) -> boo
         .filter(|terminal| {
             let mut search = photonic::path::Search::new(
                 emit::program(program, initial, known),
-                emit::program(program, &terminal.configuration(), known),
+                Some(emit::program(program, &terminal.configuration(), known)),
             );
             search.run(1_000_000, bound());
             search.summary().outcome == Outcome::Reached
@@ -117,7 +117,7 @@ fn kernel(program: &Program, initial: &Configuration, known: &Vocabulary) {
         &Flat::new(program).unwrap(),
         start(initial),
         &Limit {
-            state: 4_096,
+            configuration: 4_096,
             terminal: 64,
             ..Limit::default()
         },
@@ -198,7 +198,7 @@ fn written() {
         "First.2, Second.0, [First.2, Second.0] (First.0, Second.2)",
     ];
     for source in case {
-        let parsed = photonic::lowering::parse(source).unwrap();
+        let parsed = frontend::lowering::parse(source).unwrap();
         let mut known = Vocabulary::default();
         let (program, initial) = lift::program(&parsed, &mut known).unwrap();
         exhaustive(&program, &initial, &known);

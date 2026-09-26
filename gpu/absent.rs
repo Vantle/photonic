@@ -1,98 +1,43 @@
 use crate::failure::Failure;
-use crate::operand::Product;
-use crate::plain::Plain;
-use std::marker::PhantomData;
+use network::input::{Input, Output, Sample};
+use network::loss::{Loss, Weight};
+use network::model::Model;
+use network::optimizer::Optimizer;
 
-enum Never {}
+pub enum Engine {}
 
-pub struct Device {
-    never: Never,
-}
-
-impl Device {
-    pub fn open() -> Result<Self, Failure> {
+impl Engine {
+    pub fn new(_: &Model) -> Result<Self, Failure> {
         Err(Failure::Unavailable(
             "Metal requires macOS on Apple hardware".to_owned(),
         ))
     }
 
     pub fn name(&self) -> &str {
-        match self.never {}
+        match *self {}
     }
 
-    pub fn memory<Element: Plain>(&self, _: usize) -> Result<Memory, Failure> {
-        match self.never {}
+    pub fn load(&mut self, _: &[f32]) -> Result<(), Failure> {
+        match *self {}
     }
 
-    pub fn upload<Element: Plain>(&self, _: &[Element]) -> Result<Memory, Failure> {
-        match self.never {}
+    pub fn parameter(&mut self) -> Vec<f32> {
+        match *self {}
     }
 
-    pub fn library(&self, _: &str) -> Result<Library, Failure> {
-        match self.never {}
+    pub fn prepare(&mut self, _: &Optimizer) -> Result<(), Failure> {
+        match *self {}
     }
 
-    pub fn kernel(&self, _: &Library, _: &str) -> Result<Kernel, Failure> {
-        match self.never {}
+    pub fn optimizer(&mut self) -> Option<Optimizer> {
+        match *self {}
     }
 
-    pub fn command(&self) -> Result<Command<'_>, Failure> {
-        match self.never {}
-    }
-}
-
-pub struct Memory {
-    never: Never,
-}
-
-impl Memory {
-    pub fn view<Element: Plain>(&mut self) -> &[Element] {
-        match self.never {}
+    pub fn infer(&mut self, _: &[&Input]) -> Result<Vec<Output>, Failure> {
+        match *self {}
     }
 
-    pub fn edit<Element: Plain>(&mut self) -> &mut [Element] {
-        match self.never {}
-    }
-}
-
-pub enum Library {}
-
-pub struct Kernel {
-    never: Never,
-}
-
-impl Kernel {
-    pub fn width(&self) -> usize {
-        match self.never {}
-    }
-
-    pub fn capacity(&self) -> usize {
-        match self.never {}
-    }
-}
-
-pub struct Command<'device> {
-    never: Never,
-    borrow: PhantomData<&'device Memory>,
-}
-
-impl<'device> Command<'device> {
-    pub fn dispatch(
-        &mut self,
-        _: &Kernel,
-        _: &[&'device Memory],
-        _: &[u8],
-        _: [usize; 3],
-        _: [usize; 3],
-    ) {
-        match self.never {}
-    }
-
-    pub fn multiply(&mut self, _: Product<'device>) -> Result<(), Failure> {
-        match self.never {}
-    }
-
-    pub fn run(self) -> Result<(), Failure> {
-        match self.never {}
+    pub fn train(&mut self, _: &[&Sample], _: Weight, _: f32) -> Result<(Loss, f32), Failure> {
+        match *self {}
     }
 }

@@ -108,13 +108,16 @@ Historical observations exclude only exhaustive cache `record` and `peak` fields
 ```sh
 bazel test -c opt --nocache_test_results //...
 bazel test --nocache_test_results //language:test
-bazel run -c opt //benchmark:differential
 bazel run -c opt //benchmark:expression -- '2*2*2*2*2*2' 2101 --sample 9
-bazel run -c opt //benchmark:segment
-bazel run -c opt //benchmark:transcript
-bazel run -c opt //benchmark:composition
-bazel run -c opt //benchmark:search
 ```
+
+These benchmarks were removed after `0daf296` and still run at that commit:
+
+- [`differential`](https://github.com/Vantle/photonic/blob/0daf296e1d126675ed445bfb7ed6674a379b1532/benchmark/differential.rs)
+- [`segment`](https://github.com/Vantle/photonic/blob/0daf296e1d126675ed445bfb7ed6674a379b1532/benchmark/segment.rs)
+- [`transcript`](https://github.com/Vantle/photonic/blob/0daf296e1d126675ed445bfb7ed6674a379b1532/benchmark/transcript.rs)
+- [`composition`](https://github.com/Vantle/photonic/blob/0daf296e1d126675ed445bfb7ed6674a379b1532/benchmark/composition.rs)
+- [`search`](https://github.com/Vantle/photonic/blob/0daf296e1d126675ed445bfb7ed6674a379b1532/benchmark/search.rs)
 
 The integrated comparison uses separate checkouts and sequential native `bazel run -c opt` calls in three alternating rounds. The checkpoint receives only the same additional long-record segment fixtures. AC power and unchanged sleep counters are required before and after each measurement, with idle and system-sleep prevention active on AC for the final sweep. Earlier timings affected by the reported power interruption are excluded. Subsequent AC and sleep interruptions also stopped the harness; their partial rounds were discarded before restarting. Test results were freshly rerun after the original interruption.
 

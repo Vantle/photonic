@@ -9,7 +9,7 @@ use translation::lift;
 fn program(text: &str, task: &crate::task::Task) -> Program {
     let mut vocabulary = task.vocabulary.clone();
     let (program, _) =
-        lift::program(&photonic::lowering::parse(text).unwrap(), &mut vocabulary).unwrap();
+        lift::program(&frontend::lowering::parse(text).unwrap(), &mut vocabulary).unwrap();
     assert_eq!(vocabulary.len(), task.vocabulary.len());
     program
 }
@@ -34,6 +34,14 @@ fn path() {
         assert_eq!(current, target);
         assert!(demonstration.goal.correct);
     }
+}
+
+#[test]
+fn reach() {
+    let setting = Setting::default();
+    let task = addition(2);
+    let wide = program(&format!("[{}] ()", vec!["Left"; 40].join(", ")), &task);
+    assert!(demonstrate(&task, &wide, &Bound::default(), &setting).is_none());
 }
 
 #[test]

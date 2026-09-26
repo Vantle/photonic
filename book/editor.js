@@ -12,8 +12,10 @@
         area.wrap = 'off';
         area.setAttribute('aria-label', label);
         box.append(shade, area);
+        let marking = new Map();
         const paint = () => {
             book.syntax.highlight(shade, `${area.value}\n`);
+            book.syntax.mark(shade, marking);
             shade.scrollLeft = area.scrollLeft;
         };
         area.addEventListener('input', paint);
@@ -21,7 +23,10 @@
         return {
             element: box,
             area,
-            shade,
+            mark: key => {
+                marking = key;
+                book.syntax.mark(shade, key);
+            },
             get value() {
                 return area.value;
             },

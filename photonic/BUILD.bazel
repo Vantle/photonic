@@ -62,6 +62,7 @@ rust_test(
     },
     lint_config = "//:lint",
     deps = [
+        "//frontend",
         "//language:photonic",
         "@crate//:serde_json",
         "@rules_rust//rust/runfiles",
@@ -79,6 +80,7 @@ rust_binary(
         "//theorem:__subpackages__",
     ],
     deps = [
+        "//frontend",
         "//language:photonic",
         "@crate//:miette",
         "@crate//:serde",

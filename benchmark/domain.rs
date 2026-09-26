@@ -21,24 +21,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     for stage in 0..argument.length.get() {
         source.push_str(&format!("[Stage{stage}] Stage{},\n", stage + 1));
     }
-    let program = photonic::lowering::parse(&source)?;
-    let target =
-        photonic::lowering::parse(&format!("{content},Stage{}.A.C", argument.length.get()))?;
-    let target = photonic::source::Program {
-        rule: program.rule.clone(),
-        ..target
-    };
+    let program = frontend::lowering::parse(&source)?;
+    let mut target =
+        frontend::lowering::parse(&format!("{content},Stage{}.A.C", argument.length.get()))?;
+    target.preserve(&program);
     let limit = Limit {
-        state: argument.length.get() + 1,
+        configuration: argument.length.get() + 1,
         record: 100_000_000,
-        world: argument.width.get() + 1,
-        cell: argument.width.get() * 2 + 3,
-        frame: 1,
+        coherence: argument.width.get() + 1,
+        occurrence: argument.width.get() * 2 + 3,
+        scope: 1,
     };
-    evaluation::warm(&program, &target, Some(limit));
+    evaluation::warm(&program, &target, Some(limit))?;
     let measurement = (0..argument.sample.get())
         .map(|_| evaluation::evaluate(program.clone(), target.clone(), Some(limit)))
-        .collect::<Vec<_>>();
+        .collect::<Result<Vec<_>, _>>()?;
     serde_json::to_writer_pretty(
         std::io::stdout().lock(),
         &serde_json::json!({

@@ -4,7 +4,7 @@ use code::particle::Particle;
 use code::program::Program;
 use code::rule::Rule;
 use code::value::Value;
-use photonic::source::{self, Definition, Output};
+use frontend::source::{self, Definition, Output};
 
 fn value(value: &Value, vocabulary: &Vocabulary) -> source::Value {
     match value {

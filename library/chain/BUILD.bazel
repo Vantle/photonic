@@ -32,7 +32,6 @@ photonic_library(
 photonic_test(
     name = "cell.check",
     path = True,
-    preserve = True,
     source = "Push.Item.Zero, [Drop.Item] Forget, [Built] Read",
     target = ["Yield.Item.Zero"],
     deps = [":cell"],
@@ -41,7 +40,6 @@ photonic_test(
 photonic_test(
     name = "cell.peek",
     path = True,
-    preserve = True,
     source = "Push.Item.Zero, [Drop.Item] Forget, [Built] (Peek, Keep), [Seen.Item.Zero, Keep] Read",
     target = ["Yield.Item.Zero"],
     deps = [":cell"],
@@ -49,7 +47,6 @@ photonic_test(
 
 photonic_test(
     name = "cell.end",
-    preserve = True,
     source = "Peek.Zero",
     target = ["Seen.End.Zero"],
     deps = [":cell"],
@@ -58,7 +55,6 @@ photonic_test(
 photonic_test(
     name = "reverse.zero",
     path = True,
-    preserve = True,
     source = "Function.Chain.Reverse.Zero",
     target = ["Return.Chain.Reverse.Zero"],
     deps = [":reverse"],

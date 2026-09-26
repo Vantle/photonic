@@ -77,7 +77,7 @@ fn class() {
         .iter()
         .map(|pair| (pair[0], pair[1]))
         .collect::<std::collections::BTreeMap<_, _>>();
-    assert_eq!(and.rename(|atom| map[&atom]), or);
+    assert_eq!(super::support::rename(&and, |atom| map[&atom]), or);
     assert_eq!(class[0].block.len(), 1);
     assert_eq!(class[0].size.to_string(), "2");
     let canonical = class[0].form.atom();

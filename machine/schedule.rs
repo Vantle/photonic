@@ -6,7 +6,7 @@ use crate::state::State;
 
 #[derive(Clone, Debug)]
 pub struct Schedule {
-    pub round: Vec<usize>,
+    pub(crate) round: Vec<usize>,
     pub depth: usize,
     pub terminal: State,
 }
@@ -17,7 +17,7 @@ impl Schedule {
     }
 }
 
-pub fn lineage(program: &Flat, level: &[usize], event: &[Event]) -> (Vec<usize>, usize) {
+pub(crate) fn lineage(program: &Flat, level: &[usize], event: &[Event]) -> (Vec<usize>, usize) {
     let mut removed = vec![false; level.len()];
     let mut appended = Vec::new();
     let mut deepest = 0;

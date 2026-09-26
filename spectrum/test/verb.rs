@@ -1,4 +1,5 @@
 use super::support::{BUG, FIX, ORIGINAL, RENAMED};
+use crate::budget::Budget;
 use crate::claim::{self, Claim, Kind};
 use crate::context::Context;
 use crate::failure::{Code, Failure};
@@ -46,6 +47,7 @@ fn memory() -> Memory {
             "equal.particle",
             "[Function.Equal.True.True] Return.True, [Function.Equal.True.False] Return.False, [Function.Equal.False.False] Return.True",
         ),
+        ("grow.wave", "Seed, [Seed] Seed.X"),
         ("left.wave", "Seed.A, [Seed] ().([A] B), [B] C"),
         ("right.wave", "[Y] Z, Root.X, [Root] ().([X] Y)"),
     ]))
@@ -74,6 +76,20 @@ fn answer(request: &Request) -> Result<Answer, Failure> {
     })
 }
 
+fn respond(text: &str, context: &mut Context<'_>) -> String {
+    let serde_json::Value::Object(mut object) = serde_json::from_str(text).expect("a JSON object")
+    else {
+        panic!("a request is an object");
+    };
+    let verb = object
+        .remove("verb")
+        .and_then(|verb| verb.as_str().map(str::to_owned))
+        .expect("a verb");
+    let result = Request::read(&verb, serde_json::Value::Object(object))
+        .and_then(|request| request.answer(context));
+    request::envelope(&verb, &result)
+}
+
 fn session(text: &[&str]) -> Vec<serde_json::Value> {
     let reader = memory();
     let mut store = Store::default();
@@ -82,9 +98,7 @@ fn session(text: &[&str]) -> Vec<serde_json::Value> {
         store: &mut store,
     };
     text.iter()
-        .map(|text| {
-            serde_json::from_str(&request::respond(text, &mut context)).expect("an envelope")
-        })
+        .map(|text| serde_json::from_str(&respond(text, &mut context)).expect("an envelope"))
         .collect()
 }
 
@@ -164,7 +178,7 @@ fn conforms(value: &serde_json::Value, schema: &serde_json::Value) -> Result<(),
 fn json(text: &str) -> serde_json::Value {
     let reader = memory();
     let mut store = Store::default();
-    let response = request::respond(
+    let response = respond(
         text,
         &mut Context {
             reader: &reader,
@@ -272,13 +286,40 @@ fn compare() {
             .iter()
             .all(|entry| !entry.text.contains("Extra"))
     );
+    let open = Recording {
+        budget: Some(Budget {
+            configuration: 5,
+            ..Budget::default()
+        }),
+        ..recording("grow.wave")
+    };
+    let Ok(Answer::Compare(open)) = answer(&Request::Compare(crate::compare::Request {
+        left: open.clone(),
+        right: open,
+        claim: vec![Claim {
+            kind: Kind::Avoid,
+            pattern: "Boom".to_owned(),
+            exact: false,
+            preserve: false,
+        }],
+        limit: 12,
+    })) else {
+        panic!("compare answers");
+    };
+    assert!(open.configuration.same() && open.event.same());
+    assert_eq!(open.claim[0].left, claim::Answer::Unknown);
+    assert!(!open.passed());
+    assert!(
+        open.text()
+            .lines()
+            .next()
+            .is_some_and(|line| line.ends_with(" open"))
+    );
 }
 
 #[test]
 fn cause() {
-    let value = json(
-        r#"{"version": 1, "verb": "cause", "program": {"file": ["bug.wave"]}, "handle": "s11.o1"}"#,
-    );
+    let value = json(r#"{"verb": "cause", "program": {"file": ["bug.wave"]}, "handle": "s11.o1"}"#);
     assert_eq!(value["verb"], "cause");
     let lineage = value["answer"]["lineage"].as_array().expect("a lineage");
     let role = lineage
@@ -299,18 +340,16 @@ fn cause() {
 #[test]
 fn select() {
     let value = json(
-        r#"{"version": 1, "verb": "select", "program": {"file": ["bug.wave"]}, "pattern": "[False] False"}"#,
+        r#"{"verb": "select", "program": {"file": ["bug.wave"]}, "pattern": "[False] False"}"#,
     );
     assert_eq!(value["answer"]["kind"], "event");
     assert_eq!(value["answer"]["total"], 3);
     let shorthand = json(
-        r#"{"version": 1, "verb": "select", "program": {"source": "Seed.A, [Seed] ().([A] B)"}, "pattern": "([A] B)"}"#,
+        r#"{"verb": "select", "program": {"source": "Seed.A, [Seed] ().([A] B)"}, "pattern": "([A] B)"}"#,
     );
     assert_eq!(shorthand["answer"]["kind"], "configuration");
     assert!(shorthand["answer"]["total"].as_u64().unwrap_or(0) > 0);
-    let broken = json(
-        r#"{"version": 1, "verb": "select", "program": {"file": ["bug.wave"]}, "pattern": "A B"}"#,
-    );
+    let broken = json(r#"{"verb": "select", "program": {"file": ["bug.wave"]}, "pattern": "A B"}"#);
     assert_eq!(broken["error"]["code"], "pattern");
 }
 
@@ -325,13 +364,11 @@ fn inspect() {
         ("e12", "event"),
     ] {
         let value = json(&format!(
-            r#"{{"version": 1, "verb": "inspect", "program": {{"file": ["bug.wave"]}}, "handle": "{handle}"}}"#
+            r#"{{"verb": "inspect", "program": {{"file": ["bug.wave"]}}, "handle": "{handle}"}}"#
         ));
         assert_eq!(value["answer"]["kind"], kind, "{handle}");
     }
-    let event = json(
-        r#"{"version": 1, "verb": "inspect", "program": {"file": ["bug.wave"]}, "handle": "e11"}"#,
-    );
+    let event = json(r#"{"verb": "inspect", "program": {"file": ["bug.wave"]}, "handle": "e11"}"#);
     let witness = event["answer"]["witness"]
         .as_array()
         .expect("witness occurrences")
@@ -339,21 +376,18 @@ fn inspect() {
         .map(|item| item["text"].as_str().unwrap_or_default())
         .collect::<Vec<_>>();
     assert_eq!(witness, vec!["False", "True"]);
-    let produce = json(
-        r#"{"version": 1, "verb": "inspect", "program": {"file": ["original.wave"]}, "handle": "e10"}"#,
-    );
+    let produce =
+        json(r#"{"verb": "inspect", "program": {"file": ["original.wave"]}, "handle": "e10"}"#);
     assert_eq!(produce["answer"]["produced"][0]["handle"], "s9.o0");
     assert_eq!(produce["answer"]["produced"][0]["text"], "False");
-    let missing = json(
-        r#"{"version": 1, "verb": "inspect", "program": {"file": ["bug.wave"]}, "handle": "s99"}"#,
-    );
+    let missing =
+        json(r#"{"verb": "inspect", "program": {"file": ["bug.wave"]}, "handle": "s99"}"#);
     assert_eq!(missing["error"]["code"], "handle");
 }
 
 #[test]
 fn miss() {
-    let value =
-        json(r#"{"version": 1, "verb": "miss", "program": {"file": ["bug.wave"]}, "rule": "r3"}"#);
+    let value = json(r#"{"verb": "miss", "program": {"file": ["bug.wave"]}, "rule": "r3"}"#);
     assert_eq!(value["answer"]["kind"], "rule");
     assert_eq!(value["answer"]["fired"], 0);
     let near = value["answer"]["near"].as_array().expect("near misses");
@@ -361,9 +395,8 @@ fn miss() {
         near.iter()
             .all(|entry| entry["lack"][0]["missing"] == serde_json::json!(["True"]))
     );
-    let target = json(
-        r#"{"version": 1, "verb": "miss", "program": {"file": ["bug.wave"]}, "target": "Nothing.Extra"}"#,
-    );
+    let target =
+        json(r#"{"verb": "miss", "program": {"file": ["bug.wave"]}, "target": "Nothing.Extra"}"#);
     assert_eq!(
         target["answer"]["near"][0]["missing"],
         serde_json::json!(["Nothing"])
@@ -373,17 +406,17 @@ fn miss() {
 #[test]
 fn nearest() {
     let greedy = session(&[
-        r#"{"version": 1, "verb": "miss", "program": {"source": "A.B, A.C"}, "target": "A, A.B"}"#,
-        r#"{"version": 1, "verb": "miss", "program": {"source": "A.B, A.C"}, "target": "A, A.C"}"#,
-        r#"{"version": 1, "verb": "miss", "program": {"source": "A.C, A.B"}, "target": "A.C, A"}"#,
+        r#"{"verb": "miss", "program": {"source": "A.B, A.C"}, "target": "A, A.B"}"#,
+        r#"{"verb": "miss", "program": {"source": "A.B, A.C"}, "target": "A, A.C"}"#,
+        r#"{"verb": "miss", "program": {"source": "A.C, A.B"}, "target": "A.C, A"}"#,
     ]);
     for answer in &greedy {
         assert_eq!(answer["answer"]["near"][0]["handle"], "s0", "{answer}");
         assert_eq!(answer["answer"]["near"][0]["distance"], 0, "{answer}");
     }
     let exact = session(&[
-        r#"{"version": 1, "verb": "miss", "program": {"file": ["original.wave"]}, "target": "False.Extra", "exact": true}"#,
-        r#"{"version": 1, "verb": "miss", "program": {"file": ["original.wave"]}, "target": "False.Extra", "exact": true, "preserve": true}"#,
+        r#"{"verb": "miss", "program": {"file": ["original.wave"]}, "target": "False.Extra", "exact": true}"#,
+        r#"{"verb": "miss", "program": {"file": ["original.wave"]}, "target": "False.Extra", "exact": true, "preserve": true}"#,
     ]);
     let bare = &exact[0]["answer"]["near"][0];
     assert_ne!(bare["distance"], 0, "{bare}");
@@ -405,15 +438,14 @@ fn nearest() {
 
 #[test]
 fn step() {
-    let value = json(r#"{"version": 1, "verb": "step", "program": {"file": ["bug.wave"]}}"#);
+    let value = json(r#"{"verb": "step", "program": {"file": ["bug.wave"]}}"#);
     assert_eq!(value["answer"]["handle"], "s0");
     assert_eq!(value["answer"]["agenda"].as_array().map(Vec::len), Some(5));
 }
 
 #[test]
 fn explore() {
-    let value =
-        json(r#"{"version": 1, "verb": "explore", "program": {"file": ["original.wave"]}}"#);
+    let value = json(r#"{"verb": "explore", "program": {"file": ["original.wave"]}}"#);
     let answer = &value["answer"];
     assert_eq!(answer["configuration"], 14);
     assert_eq!(answer["event"], 17);
@@ -433,12 +465,12 @@ fn explore() {
         reader: &reader,
         store: &mut store,
     };
-    let first = request::respond(
-        r#"{"version": 1, "verb": "explore", "program": {"file": ["original.wave"]}}"#,
+    let first = respond(
+        r#"{"verb": "explore", "program": {"file": ["original.wave"]}}"#,
         &mut context,
     );
-    let again = request::respond(
-        &format!(r#"{{"version": 1, "verb": "cause", "exploration": "{key}", "handle": "s12"}}"#),
+    let again = respond(
+        &format!(r#"{{"verb": "cause", "exploration": "{key}", "handle": "s12"}}"#),
         &mut context,
     );
     assert!(first.contains(&key));
@@ -528,12 +560,8 @@ fn protocol() {
     }))
     .expect("a request");
     assert_eq!(request.verb(), "explore");
-    let unknown = json(
-        r#"{"version": 1, "verb": "explore", "program": {"file": ["bug.wave"]}, "colour": 1}"#,
-    );
+    let unknown = json(r#"{"verb": "explore", "program": {"file": ["bug.wave"]}, "colour": 1}"#);
     assert_eq!(unknown["error"]["code"], "request");
-    let version = json(r#"{"version": 2, "verb": "explore"}"#);
-    assert_eq!(version["error"]["code"], "version");
     for tool in request::catalog() {
         assert_eq!(tool.input["type"], "object", "{}", tool.name);
         assert_eq!(tool.output["type"], "object", "{}", tool.name);
@@ -549,28 +577,28 @@ fn protocol() {
 #[test]
 fn schema() {
     let request = [
-        r#"{"version": 1, "verb": "check", "program": {"file": ["bug.wave"]}, "claim": [{"kind": "reach", "pattern": "False.Extra"}]}"#,
-        r#"{"version": 1, "verb": "check", "program": {"source": "A B"}}"#,
-        r#"{"version": 1, "verb": "explore", "program": {"file": ["bug.wave"]}}"#,
-        r#"{"version": 1, "verb": "explore", "program": {"file": ["bug.wave"]}, "mode": "path"}"#,
-        r#"{"version": 1, "verb": "select", "program": {"file": ["bug.wave"]}, "pattern": "False"}"#,
-        r#"{"version": 1, "verb": "select", "program": {"file": ["bug.wave"]}, "pattern": "[False] False"}"#,
-        r#"{"version": 1, "verb": "inspect", "program": {"file": ["bug.wave"]}, "handle": "r2"}"#,
-        r#"{"version": 1, "verb": "inspect", "program": {"file": ["bug.wave"]}, "handle": "s10"}"#,
-        r#"{"version": 1, "verb": "inspect", "program": {"file": ["bug.wave"]}, "handle": "s10.c0"}"#,
-        r#"{"version": 1, "verb": "inspect", "program": {"file": ["bug.wave"]}, "handle": "s11.o1"}"#,
-        r#"{"version": 1, "verb": "inspect", "program": {"file": ["bug.wave"]}, "handle": "s10.f1"}"#,
-        r#"{"version": 1, "verb": "inspect", "program": {"file": ["bug.wave"]}, "handle": "e11"}"#,
-        r#"{"version": 1, "verb": "cause", "program": {"file": ["bug.wave"]}, "handle": "s11"}"#,
-        r#"{"version": 1, "verb": "cause", "program": {"file": ["bug.wave"]}, "handle": "e11"}"#,
-        r#"{"version": 1, "verb": "cause", "program": {"file": ["bug.wave"]}, "handle": "s11.o1"}"#,
-        r#"{"version": 1, "verb": "miss", "program": {"file": ["bug.wave"]}, "target": "True.True"}"#,
-        r#"{"version": 1, "verb": "miss", "program": {"file": ["original.wave"]}, "target": "False.Extra", "exact": true}"#,
-        r#"{"version": 1, "verb": "miss", "program": {"file": ["bug.wave"]}, "rule": "r3"}"#,
-        r#"{"version": 1, "verb": "step", "program": {"file": ["bug.wave"]}}"#,
-        r#"{"version": 1, "verb": "compare", "left": {"program": {"file": ["original.wave"]}}, "right": {"program": {"file": ["bug.wave"]}}, "claim": [{"kind": "avoid", "pattern": "False.True"}]}"#,
-        r#"{"version": 1, "verb": "shape", "program": [{"file": ["light.wave"]}]}"#,
-        r#"{"version": 1, "verb": "shape", "program": [{"file": ["and.particle"]}, {"file": ["or.particle"]}]}"#,
+        r#"{"verb": "check", "program": {"file": ["bug.wave"]}, "claim": [{"kind": "reach", "pattern": "False.Extra"}]}"#,
+        r#"{"verb": "check", "program": {"source": "A B"}}"#,
+        r#"{"verb": "explore", "program": {"file": ["bug.wave"]}}"#,
+        r#"{"verb": "explore", "program": {"file": ["bug.wave"]}, "mode": "path"}"#,
+        r#"{"verb": "select", "program": {"file": ["bug.wave"]}, "pattern": "False"}"#,
+        r#"{"verb": "select", "program": {"file": ["bug.wave"]}, "pattern": "[False] False"}"#,
+        r#"{"verb": "inspect", "program": {"file": ["bug.wave"]}, "handle": "r2"}"#,
+        r#"{"verb": "inspect", "program": {"file": ["bug.wave"]}, "handle": "s10"}"#,
+        r#"{"verb": "inspect", "program": {"file": ["bug.wave"]}, "handle": "s10.c0"}"#,
+        r#"{"verb": "inspect", "program": {"file": ["bug.wave"]}, "handle": "s11.o1"}"#,
+        r#"{"verb": "inspect", "program": {"file": ["bug.wave"]}, "handle": "s10.f1"}"#,
+        r#"{"verb": "inspect", "program": {"file": ["bug.wave"]}, "handle": "e11"}"#,
+        r#"{"verb": "cause", "program": {"file": ["bug.wave"]}, "handle": "s11"}"#,
+        r#"{"verb": "cause", "program": {"file": ["bug.wave"]}, "handle": "e11"}"#,
+        r#"{"verb": "cause", "program": {"file": ["bug.wave"]}, "handle": "s11.o1"}"#,
+        r#"{"verb": "miss", "program": {"file": ["bug.wave"]}, "target": "True.True"}"#,
+        r#"{"verb": "miss", "program": {"file": ["original.wave"]}, "target": "False.Extra", "exact": true}"#,
+        r#"{"verb": "miss", "program": {"file": ["bug.wave"]}, "rule": "r3"}"#,
+        r#"{"verb": "step", "program": {"file": ["bug.wave"]}}"#,
+        r#"{"verb": "compare", "left": {"program": {"file": ["original.wave"]}}, "right": {"program": {"file": ["bug.wave"]}}, "claim": [{"kind": "avoid", "pattern": "False.True"}]}"#,
+        r#"{"verb": "shape", "program": [{"file": ["light.wave"]}]}"#,
+        r#"{"verb": "shape", "program": [{"file": ["and.particle"]}, {"file": ["or.particle"]}]}"#,
     ];
     for (text, envelope) in request.iter().zip(session(&request)) {
         let verb = envelope["verb"].as_str().expect("a verb");
@@ -590,10 +618,10 @@ fn schema() {
 #[test]
 fn strict() {
     let answer = session(&[
-        r#"{"version": 1, "verb": "explore", "program": {"file": ["bug.wave"]}, "colour": 1}"#,
-        r#"{"version": 1, "verb": "explore", "program": {"file": ["bug.wave"], "flie": ["a.wave"]}}"#,
-        r#"{"version": 1, "verb": "explore", "program": {"file": ["bug.wave"]}, "goal": {"configuration": "False.Extra"}}"#,
-        r#"{"version": 1, "verb": "explore", "program": {"file": ["bug.wave"]}}"#,
+        r#"{"verb": "explore", "program": {"file": ["bug.wave"]}, "colour": 1}"#,
+        r#"{"verb": "explore", "program": {"file": ["bug.wave"], "flie": ["a.wave"]}}"#,
+        r#"{"verb": "explore", "program": {"file": ["bug.wave"]}, "goal": {"configuration": "False.Extra"}}"#,
+        r#"{"verb": "explore", "program": {"file": ["bug.wave"]}}"#,
     ]);
     assert_eq!(answer[0]["error"]["code"], "request");
     assert!(
@@ -614,13 +642,11 @@ fn strict() {
         .expect("a key")
         .to_owned();
     let reuse = session(&[
-        r#"{"version": 1, "verb": "explore", "program": {"file": ["bug.wave"]}}"#,
-        &format!(r#"{{"version": 1, "verb": "cause", "exploration": "{key}", "handle": "s11"}}"#),
+        r#"{"verb": "explore", "program": {"file": ["bug.wave"]}}"#,
+        &format!(r#"{{"verb": "cause", "exploration": "{key}", "handle": "s11"}}"#),
+        &format!(r#"{{"verb": "cause", "exploration": "{key}", "mode": "path", "handle": "s11"}}"#),
         &format!(
-            r#"{{"version": 1, "verb": "cause", "exploration": "{key}", "mode": "path", "handle": "s11"}}"#
-        ),
-        &format!(
-            r#"{{"version": 1, "verb": "check", "exploration": "{key}", "claim": [{{"kind": "reach", "pattern": "False.True"}}]}}"#
+            r#"{{"verb": "check", "exploration": "{key}", "claim": [{{"kind": "reach", "pattern": "False.True"}}]}}"#
         ),
     ]);
     assert_eq!(reuse[1]["answer"]["exploration"], key);
@@ -631,11 +657,73 @@ fn strict() {
 #[test]
 fn primer() {
     let grammar = include_str!("../../frontend/parser.rs");
-    let block = crate::resource::PRIMER
+    let block = crate::resource::find("photonic://primer")
+        .expect("the primer is a resource")
+        .text
         .split("```")
         .nth(1)
         .expect("the primer shows the grammar");
     for line in block.lines().filter(|line| !line.trim().is_empty()) {
         assert!(grammar.contains(line), "the grammar has no line {line}");
     }
+}
+
+#[test]
+fn pattern() {
+    let case: Vec<serde_json::Value> =
+        serde_json::from_str(include_str!("../../book/pattern.json")).expect("the shared cases");
+    for case in &case {
+        let request = serde_json::json!({
+            "verb": "select",
+            "program": {"source": case["program"]},
+            "pattern": case["pattern"],
+        });
+        let value = json(&request.to_string());
+        let label = format!("{} in {}", case["pattern"], case["program"]);
+        if let Some(code) = case.get("error") {
+            assert_eq!(&value["error"]["code"], code, "{label}");
+            continue;
+        }
+        assert_eq!(value["answer"]["kind"], case["kind"], "{label}");
+        assert_eq!(value["answer"]["total"], case["total"], "{label}");
+    }
+}
+
+#[test]
+fn fixed() {
+    let request = |fix: &[&str]| {
+        Request::Shape(crate::shape::Request {
+            program: ["[Y.Q] R", "[X.Q] R"]
+                .map(|source| Subject {
+                    source: Some(source.to_owned()),
+                    ..Subject::default()
+                })
+                .to_vec(),
+            target: None,
+            fix: fix.iter().map(|&name| name.to_owned()).collect(),
+            node: crate::shape::NODE,
+        })
+    };
+    let Ok(Answer::Shape(free)) = answer(&request(&[])) else {
+        panic!("shape answers");
+    };
+    assert_eq!(free.class.len(), 1);
+    let Ok(Answer::Shape(fixed)) = answer(&request(&["X", "Y"])) else {
+        panic!("shape answers");
+    };
+    assert_eq!(fixed.class.len(), 2);
+}
+
+#[test]
+fn placement() {
+    let crowded =
+        json(r#"{"verb": "select", "program": {"source": "A.B, A"}, "pattern": "A, A.B"}"#);
+    assert_eq!(crowded["answer"]["total"], 1);
+    let source = vec!["A"; 16].join(", ");
+    let pattern = format!("{}, B", vec!["A"; 15].join(", "));
+    let wide = json(
+        &serde_json::json!({"verb": "select", "program": {"source": source}, "pattern": pattern})
+            .to_string(),
+    );
+    assert_eq!(wide["answer"]["total"], 0);
 }

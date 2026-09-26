@@ -1,5 +1,5 @@
 use crate::group::Permutation;
-use crate::structure::{Part, Structure, Symmetry};
+use crate::structure::{Part, Structure, Symmetry, image};
 use code::atom::Atom;
 use code::configuration::Configuration;
 use code::output::Output;
@@ -56,12 +56,20 @@ pub fn structure(generator: &mut Generator, shape: &Shape) -> Structure {
             .collect::<Vec<_>>(),
     );
     Structure {
-        part: vec![Part {
-            role: 0,
+        program: Part {
             program,
             configuration,
-        }],
+        },
+        target: None,
         pin: Vec::new(),
+    }
+}
+
+pub fn rename(structure: &Structure, map: impl Fn(Atom) -> Atom) -> Structure {
+    Structure {
+        program: image(&structure.program, &map),
+        target: structure.target.as_ref().map(|target| image(target, &map)),
+        pin: structure.pin.iter().map(|&atom| map(atom)).collect(),
     }
 }
 
@@ -70,20 +78,20 @@ pub fn closure(generator: &mut Generator, structure: &Structure) -> Structure {
     let mut image = atom.clone();
     generator.shuffle(&mut image);
     let map = atom.iter().copied().zip(image).collect::<BTreeMap<_, _>>();
-    let mut rule = structure.part[0].program.rule().to_vec();
-    let mut coherence = structure.part[0].configuration.coherence().to_vec();
+    let mut rule = structure.program.program.rule().to_vec();
+    let mut coherence = structure.program.configuration.coherence().to_vec();
     let mut current = structure.clone();
     for _ in 0..generator.below(4) {
-        current = current.rename(|atom| map[&atom]);
-        rule.extend(current.part[0].program.rule().iter().cloned());
-        coherence.extend(current.part[0].configuration.coherence().iter().cloned());
+        current = rename(&current, |atom| map[&atom]);
+        rule.extend(current.program.program.rule().iter().cloned());
+        coherence.extend(current.program.configuration.coherence().iter().cloned());
     }
     Structure {
-        part: vec![Part {
-            role: 0,
+        program: Part {
             program: Program::from(rule),
             configuration: Configuration::from(coherence),
-        }],
+        },
+        target: None,
         pin: Vec::new(),
     }
 }
@@ -97,7 +105,7 @@ pub fn shuffle(
     image.truncate(atom.len() * 3 + 1);
     generator.shuffle(&mut image);
     let map = atom.iter().copied().zip(image).collect::<BTreeMap<_, _>>();
-    (structure.rename(|atom| map[&atom]), map)
+    (rename(structure, |atom| map[&atom]), map)
 }
 
 pub fn permutation(atom: &[Atom]) -> Vec<Vec<Atom>> {
@@ -155,11 +163,11 @@ pub fn named(program: &[Written<'_>], name: &mut Vec<String>) -> Program {
 
 pub fn single(program: Program) -> Structure {
     Structure {
-        part: vec![Part {
-            role: 0,
+        program: Part {
             program,
             configuration: Configuration::default(),
-        }],
+        },
+        target: None,
         pin: Vec::new(),
     }
 }

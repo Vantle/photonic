@@ -27,7 +27,7 @@ pub struct Request {
 #[schemars(
     description = "How an occurrence reached the next configuration: initial in the start, produced by a rule, passed into a scope as witness, held by a scope, left in the remainder, or untouched."
 )]
-pub enum Role {
+pub(crate) enum Role {
     Initial,
     Produced,
     Witness,
@@ -37,22 +37,22 @@ pub enum Role {
 }
 
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
-pub struct Step {
-    pub configuration: String,
-    pub occurrence: String,
+pub(crate) struct Step {
+    pub(crate) configuration: String,
+    pub(crate) occurrence: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub event: Option<String>,
+    pub(crate) event: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub rule: Option<String>,
-    pub role: Role,
+    pub(crate) rule: Option<String>,
+    pub(crate) role: Role,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub source: Vec<String>,
-    pub text: String,
+    pub(crate) source: Vec<String>,
+    pub(crate) text: String,
 }
 
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(tag = "kind", rename_all = "lowercase")]
-pub enum Reason {
+pub(crate) enum Reason {
     Configuration {
         text: String,
         supported: bool,
@@ -71,10 +71,10 @@ pub enum Reason {
 
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 pub struct Answer {
-    pub exploration: String,
-    pub handle: String,
+    pub(crate) exploration: String,
+    pub(crate) handle: String,
     #[serde(flatten)]
-    pub reason: Reason,
+    pub(crate) reason: Reason,
 }
 
 fn path(exploration: &Exploration, configuration: usize) -> Vec<Move> {
@@ -174,7 +174,7 @@ fn step(exploration: &Exploration, line: &lineage::Line, atom: &str) -> Step {
     }
 }
 
-pub fn answer(request: &Request, context: &mut Context<'_>) -> Result<Answer, Failure> {
+pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Answer, Failure> {
     let exploration = context.exploration(&request.recording)?;
     let handle = request.handle.parse::<Handle>()?.check(&exploration)?;
     let reason = match handle {
@@ -219,7 +219,7 @@ pub fn answer(request: &Request, context: &mut Context<'_>) -> Result<Answer, Fa
 }
 
 impl Answer {
-    pub fn text(&self) -> String {
+    pub(crate) fn text(&self) -> String {
         let mut line = Vec::new();
         match &self.reason {
             Reason::Configuration {

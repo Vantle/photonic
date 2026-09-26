@@ -4,10 +4,23 @@ use code::program::Program;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
-pub fn moment() -> u64 {
+pub(crate) fn moment() -> u64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map_or(0, |elapsed| elapsed.as_secs())
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
+pub enum Coverage {
+    Flat,
+    Whole,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct Proof {
+    pub goal: Goal,
+    pub coverage: Coverage,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -22,12 +35,17 @@ pub struct Record {
     pub size: usize,
     pub verified: bool,
     pub general: bool,
-    pub proof: Option<Goal>,
+    pub proof: Option<Proof>,
     pub moment: u64,
 }
 
 impl Record {
-    pub fn new(program: Program, evaluation: &Evaluation, general: bool, moment: u64) -> Self {
+    pub(crate) fn new(
+        program: Program,
+        evaluation: &Evaluation,
+        general: bool,
+        moment: u64,
+    ) -> Self {
         Self {
             program,
             cost: evaluation.cost,
@@ -43,17 +61,17 @@ impl Record {
         }
     }
 
-    pub fn prove(self, goal: Goal) -> Self {
+    pub(crate) fn prove(self, proof: Proof) -> Self {
         Self {
-            proof: Some(goal),
+            proof: Some(proof),
             ..self
         }
     }
 
-    pub fn revise(self, evaluation: &Evaluation, general: bool, goal: Goal) -> Self {
+    pub(crate) fn revise(self, evaluation: &Evaluation, general: bool, goal: Goal) -> Self {
         let proof = self
             .proof
-            .filter(|proven| *proven == goal && (evaluation.cost - self.cost).abs() <= TOLERANCE);
+            .filter(|proof| proof.goal == goal && (evaluation.cost - self.cost).abs() <= TOLERANCE);
         Self {
             proof,
             ..Self::new(self.program, evaluation, general, self.moment)
@@ -84,26 +102,26 @@ pub struct Improvement {
     pub record: Record,
 }
 
+fn coverage(proof: Option<Proof>) -> Option<Coverage> {
+    proof.map(|proof| proof.coverage)
+}
+
 impl Archive {
-    pub fn entry(&self, task: &str) -> Option<&Entry> {
+    pub(crate) fn entry(&self, task: &str) -> Option<&Entry> {
         self.entry.get(task)
     }
 
-    pub fn best(&self, task: &str) -> f64 {
-        self.entry
-            .get(task)
-            .and_then(|entry| entry.best.as_ref())
-            .map_or(f64::INFINITY, |record| record.cost)
+    pub fn best(&self, task: &str) -> Option<&Record> {
+        self.entry.get(task).and_then(|entry| entry.best.as_ref())
     }
 
-    pub fn partial(&self, task: &str) -> f64 {
+    pub(crate) fn partial(&self, task: &str) -> Option<&Record> {
         self.entry
             .get(task)
             .and_then(|entry| entry.partial.as_ref())
-            .map_or(0.0, |record| record.correctness)
     }
 
-    pub fn register(&mut self, task: &str, baseline: f64) -> Entry {
+    pub(crate) fn register(&mut self, task: &str, baseline: f64) -> Entry {
         self.entry
             .insert(
                 task.to_owned(),
@@ -115,7 +133,7 @@ impl Archive {
             .unwrap_or_default()
     }
 
-    pub fn offer(&mut self, task: &str, record: Record) -> Option<Improvement> {
+    pub(crate) fn offer(&mut self, task: &str, record: Record) -> Option<Improvement> {
         let entry = self.entry.entry(task.to_owned()).or_default();
         if record.correctness >= 1.0 && !record.general {
             return None;
@@ -131,8 +149,7 @@ impl Archive {
             return None;
         }
         if let Some(known) = entry.best.as_mut()
-            && record.proof.is_some()
-            && known.proof.is_none()
+            && coverage(record.proof) > coverage(known.proof)
             && (record.cost - known.cost).abs() <= TOLERANCE
         {
             known.proof = record.proof;

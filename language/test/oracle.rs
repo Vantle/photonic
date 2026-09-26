@@ -304,11 +304,11 @@ fn expected(program: &Program, state: &State) -> HashSet<Transition> {
 fn actual(program: &Arc<Program>, state: &Arc<State>) -> HashSet<Transition> {
     let mut search = crate::reduction::Search::new(program.clone(), state.clone());
     let limit = crate::runtime::Limit {
-        state: 4096,
+        configuration: 4096,
         record: 1_000_000,
-        world: 64,
-        cell: 4096,
-        frame: 64,
+        coherence: 64,
+        occurrence: 4096,
+        scope: 64,
     };
     let mut result = HashSet::new();
     for _ in 0..100_000 {
@@ -351,7 +351,7 @@ fn occurrence() {
 }
 
 fn verify(source: &str, maximum: usize) {
-    let program = Arc::new(Program::new(&crate::lowering::parse(source).unwrap()));
+    let program = Arc::new(Program::new(&frontend::lowering::parse(source).unwrap()));
     let initial = State::initial(&program);
     let mut seen = HashSet::from([initial.clone()]);
     let mut pending = VecDeque::from([(initial, 0)]);
@@ -398,15 +398,15 @@ fn incremental() {
         "A, [A] B, [A] B, [[A] B] C, [C] (D, [D] E)",
         "A.X, [A] (B, C), [B,C] D, [D] (E, [E] F)",
     ] {
-        let program = Arc::new(Program::new(&crate::lowering::parse(source).unwrap()));
+        let program = Arc::new(Program::new(&frontend::lowering::parse(source).unwrap()));
         let mut state = Arc::new(State::initial(&program));
         let mut search = crate::reduction::Search::new(program.clone(), state.clone());
         let limit = crate::runtime::Limit {
-            state: 4096,
+            configuration: 4096,
             record: 1_000_000,
-            world: 64,
-            cell: 4096,
-            frame: 64,
+            coherence: 64,
+            occurrence: 4096,
+            scope: 64,
         };
         for step in 0..8 {
             let expected = expected(&program, &state);

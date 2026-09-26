@@ -35,7 +35,7 @@ fn overfit() {
         last = total;
         let decay = model.decay().to_vec();
         let rate = optimizer.setting.rate;
-        optimizer.update(&mut model.parameter, &gradient, &decay, rate);
+        optimizer.update(model.edit(), &gradient, &decay, rate);
     }
     let first = first.unwrap();
     assert!(last < 0.8 * first, "{first} -> {last}");

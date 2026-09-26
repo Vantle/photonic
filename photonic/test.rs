@@ -47,7 +47,7 @@ fn assembly() {
         "{}",
         String::from_utf8_lossy(&result.stderr)
     );
-    let program: photonic::source::Program =
+    let program: frontend::source::Program =
         serde_json::from_slice(&std::fs::read(&output).unwrap()).unwrap();
     assert_eq!(program.initial.len(), 2);
     assert_eq!(program.rule.len(), 1);
@@ -71,11 +71,11 @@ fn binary() {
         .output()
         .unwrap();
     assert!(output.status.success());
-    let source: photonic::source::Program = serde_json::from_slice(&output.stdout).unwrap();
+    let source: frontend::source::Program = serde_json::from_slice(&output.stdout).unwrap();
     assert!(!source.rule.is_empty());
-    let value = photonic::source::Program {
+    let value = frontend::source::Program {
         rule: source.rule,
-        ..photonic::lowering::parse(
+        ..frontend::lowering::parse(
             "First.([Digit] 2).([Carry] 1), Second.([Digit] 0).([Borrow] 1)",
         )
         .unwrap()
@@ -122,8 +122,8 @@ fn binary() {
 #[test]
 fn diamond() {
     let program = std::fs::read(executable("PIPELINE")).unwrap();
-    let program: photonic::source::Program = serde_json::from_slice(&program).unwrap();
-    let entry = photonic::lowering::parse("[Invoke] (Function, [Return] ())")
+    let program: frontend::source::Program = serde_json::from_slice(&program).unwrap();
+    let entry = frontend::lowering::parse("[Invoke] (Function, [Return] ())")
         .unwrap()
         .rule
         .remove(0)
@@ -183,14 +183,14 @@ fn check(root: &std::path::Path, case: &serde_json::Value) -> std::process::Outp
 }
 
 fn limit() -> serde_json::Value {
-    serde_json::json!({"state": 128, "record": 10000, "world": 8, "cell": 32, "frame": 16})
+    serde_json::json!({"configuration": 128, "record": 10000, "coherence": 8, "occurrence": 32, "scope": 16})
 }
 
 fn program(root: &std::path::Path, source: &str) -> PathBuf {
     let program = root.join("program.json");
     std::fs::write(
         &program,
-        serde_json::to_vec(&photonic::lowering::parse(source).unwrap()).unwrap(),
+        serde_json::to_vec(&frontend::lowering::parse(source).unwrap()).unwrap(),
     )
     .unwrap();
     program
@@ -220,9 +220,7 @@ fn verification() {
                 "source": input,
                 "target": [target],
                 "expect": expect,
-                "match": "all",
                 "path": path,
-                "preserve": true,
                 "work": work,
                 "limit": limit(),
             }),
@@ -242,23 +240,16 @@ fn verification() {
 fn matching() {
     let root = directory();
     let program = program(&root, "[A] B");
-    for (target, mode, expect, work, success) in [
-        (vec!["B", "C"], "all", "reached", 1000, true),
-        (vec!["B", "D"], "all", "reached", 1000, false),
-        (vec!["D", "B"], "any", "reached", 1000, true),
-        (vec!["D", "E"], "any", "reached", 1000, false),
-        (vec!["B", "D"], "any", "unreachable", 1000, true),
-        (vec!["D", "E"], "all", "unreachable", 1000, true),
-        (vec!["B", "D"], "all", "unreachable", 1000, false),
-        (vec!["B", "C"], "any", "unreachable", 1000, false),
-        (vec!["D", "A"], "any", "reached", 0, true),
-        (vec!["D", "A"], "all", "reached", 0, false),
-        (vec!["D", "E"], "any", "unreachable", 0, false),
-        (vec!["D", "E"], "all", "unreachable", 0, false),
-        (vec!["B", "["], "any", "reached", 1000, false),
-        (vec![], "all", "reached", 1000, false),
-        (vec!["B"], "invalid", "reached", 1000, false),
-        (vec!["B"], "all", "unknown", 1000, false),
+    for (target, expect, work, success) in [
+        (vec!["B", "C"], "reached", 1000, true),
+        (vec!["B", "D"], "reached", 1000, false),
+        (vec!["D", "E"], "unreachable", 1000, true),
+        (vec!["B", "D"], "unreachable", 1000, false),
+        (vec!["D", "A"], "reached", 0, false),
+        (vec!["D", "E"], "unreachable", 0, false),
+        (vec!["B", "["], "reached", 1000, false),
+        (vec![], "reached", 1000, false),
+        (vec!["B"], "unknown", 1000, false),
     ] {
         let output = check(
             &root,
@@ -266,10 +257,8 @@ fn matching() {
                 "program": program,
                 "source": "A, [A] C",
                 "target": target,
-                "match": mode,
                 "expect": expect,
                 "path": false,
-                "preserve": true,
                 "work": work,
                 "limit": limit(),
             }),
@@ -277,7 +266,7 @@ fn matching() {
         assert_eq!(
             output.status.success(),
             success,
-            "{mode} {expect} {target:?} work={work}: {} {}",
+            "{expect} {target:?} work={work}: {} {}",
             String::from_utf8_lossy(&output.stdout),
             String::from_utf8_lossy(&output.stderr)
         );
@@ -288,12 +277,11 @@ fn matching() {
 fn preservation() {
     let root = directory();
     let program = program(&root, "");
-    for (target, preserve, expect, success) in [
-        ("C", true, "reached", true),
-        ("C", false, "reached", false),
-        ("C", false, "unreachable", true),
-        ("C, [A] C", false, "reached", true),
-        ("C, [A] C", true, "reached", false),
+    for (target, expect, success) in [
+        ("C", "reached", true),
+        ("C", "unreachable", false),
+        ("C, [A] C", "reached", false),
+        ("C, [A] C", "unreachable", true),
     ] {
         let output = check(
             &root,
@@ -301,10 +289,8 @@ fn preservation() {
                 "program": program,
                 "source": "A, [A] C",
                 "target": [target],
-                "match": "all",
                 "expect": expect,
                 "path": false,
-                "preserve": preserve,
                 "work": 1000,
                 "limit": limit(),
             }),
@@ -312,7 +298,7 @@ fn preservation() {
         assert_eq!(
             output.status.success(),
             success,
-            "{target} preserve={preserve} {expect}: {} {}",
+            "{target} {expect}: {} {}",
             String::from_utf8_lossy(&output.stdout),
             String::from_utf8_lossy(&output.stderr)
         );

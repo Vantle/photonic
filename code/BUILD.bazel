@@ -4,12 +4,10 @@ load("@rules_rs//rs:rust_test.bzl", "rust_test")
 filegroup(
     name = "source",
     srcs = [
-        "analogy.rs",
         "atom.rs",
         "canonical.rs",
         "code.rs",
         "configuration.rs",
-        "distance.rs",
         "forest.rs",
         "hashing.rs",
         "observation.rs",
@@ -17,7 +15,6 @@ filegroup(
         "particle.rs",
         "program.rs",
         "rule.rs",
-        "tree.rs",
         "value.rs",
     ],
 )
@@ -42,14 +39,12 @@ rust_test(
     name = "test",
     size = "small",
     srcs = [
-        "test/analogy.rs",
         "test/canonical.rs",
-        "test/distance.rs",
         "test/forest.rs",
         "test/observation.rs",
+        "test/program.rs",
         "test/suite.rs",
         "test/support.rs",
-        "test/tree.rs",
         ":source",
     ],
     crate_root = "code.rs",

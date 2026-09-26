@@ -1,35 +1,23 @@
-use crate::lowering::parse;
 use crate::prism::Outcome;
-use crate::runtime::Limit;
+use crate::runtime::{Limit, Runtime};
+use frontend::lowering::parse;
 
 fn check(source: &str, target: &str) {
-    let mut path = {
-        let program = parse(source).unwrap();
-        let target = crate::source::Program {
-            rule: program.rule.clone(),
-            ..parse(target).unwrap()
-        };
-        crate::path::Search::new(program, target)
-    };
-    let mut exhaustive = {
-        let program = parse(source).unwrap();
-        let target = crate::source::Program {
-            rule: program.rule.clone(),
-            ..parse(target).unwrap()
-        };
-        crate::prism::Search::new(program, target)
-    };
+    let program = parse(source).unwrap();
+    let goal = crate::test::target(&program, target);
+    let mut path = crate::path::Search::new(program.clone(), Some(goal.clone()));
+    let mut exhaustive = Runtime::new(&program);
     let limit = Limit {
-        state: 16,
-        world: 16,
-        cell: 32,
+        configuration: 16,
+        coherence: 16,
+        occurrence: 32,
         ..Limit::default()
     };
     for _ in 0..10_000 {
         path.run(1, limit);
-        exhaustive.run(7, Some(limit));
+        exhaustive.run(7, limit);
         if path.summary().outcome == Outcome::Reached
-            && exhaustive.verdict().outcome == Outcome::Reached
+            && exhaustive.verdict(&goal).outcome == Outcome::Reached
         {
             return;
         }
@@ -97,27 +85,15 @@ fn absence() {
                 vec!["()"; width].join(","),
                 vec!["()"; count].join(",")
             );
-            let mut path = {
-                let program = parse(&source).unwrap();
-                let target = crate::source::Program {
-                    rule: program.rule.clone(),
-                    ..parse("Result").unwrap()
-                };
-                crate::path::Search::new(program, target)
-            };
+            let program = parse(&source).unwrap();
+            let goal = crate::test::target(&program, "Result");
+            let mut path = crate::path::Search::new(program.clone(), Some(goal.clone()));
             path.run(10_000, Limit::default());
             assert_eq!(path.summary().outcome, Outcome::Unknown, "{source}");
-            let mut exhaustive = {
-                let program = parse(&source).unwrap();
-                let target = crate::source::Program {
-                    rule: program.rule.clone(),
-                    ..parse("Result").unwrap()
-                };
-                crate::prism::Search::new(program, target)
-            };
-            exhaustive.run(10_000, None);
+            let mut exhaustive = Runtime::new(&program);
+            exhaustive.run(10_000, Limit::default());
             assert_eq!(
-                exhaustive.verdict().outcome,
+                exhaustive.verdict(&goal).outcome,
                 Outcome::Unreachable,
                 "{source}"
             );

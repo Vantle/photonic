@@ -5,7 +5,7 @@ import { pathToFileURL } from 'node:url';
 import { runInNewContext } from 'node:vm';
 
 const [javascript, webassembly, numeral, index, lightbox, output, mode] = process.argv.slice(2);
-const version = 2;
+const version = 3;
 assert.ok(mode === 'write' || mode === 'check', 'record.mjs runs in write or check mode');
 const workspace = process.env.BUILD_WORKSPACE_DIRECTORY;
 assert.ok(mode === 'check' || workspace, 'Write the record with bazel run -c opt //book:record.');
@@ -16,7 +16,13 @@ engine.initSync({ module: await readFile(webassembly) });
 
 const entity = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", '#39': "'" };
 const unescape = text => text.replace(/&(amp|lt|gt|quot|apos|#39);/g, (_, name) => entity[name]);
-const page = await readFile(mode === 'write' ? join(workspace, 'index.html') : index, 'utf8');
+const plain = (text, name) => {
+    assert.ok(!text.includes('<!--'), `${name} must not hold comments: the record reader does not skip them`);
+    assert.ok(!/<\/?[A-Z]/.test(text), `${name} must write tag names in lowercase: the record reader reads no others`);
+    assert.ok(!/&(?!(?:amp|lt|gt|quot|apos|#39);)/.test(text), `${name} must write & only in the entities the record reader decodes: &amp; &lt; &gt; &quot; &apos; &#39;`);
+    return text;
+};
+const page = plain(await readFile(mode === 'write' ? join(workspace, 'index.html') : index, 'utf8'), 'index.html');
 const pair = /([^\s=>/]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g;
 const parse = text => [...text.matchAll(/<([a-z][a-z0-9]*)((?:\s+[^\s=>/]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'=<>`]+))?)*)\s*\/?>/g)].map(match => ({
     name: match[1],
@@ -28,6 +34,7 @@ const tag = parse(page);
 const style = (item, name) => (item.attribute.get('class') ?? '').split(/\s+/).includes(name);
 const content = item => {
     const body = page.slice(item.end, page.indexOf(`</${item.name}>`, item.end));
+    assert.ok(!body.includes('<'), `the ${item.name} on line ${page.slice(0, item.start).split('\n').length} of index.html must hold text alone: the record reader takes it verbatim`);
     return unescape(body.startsWith('\n') ? body.slice(1) : body);
 };
 const file = async name => {
@@ -147,13 +154,13 @@ for (const item of tag.filter(value => style(value, 'connection') && value.attri
         assert.ok(!(entry.name in connection), `duplicate connection preset ${entry.name}`);
         const program = [];
         for (const member of entry.program) program.push({ field: member.field, source: member.file ? await file(member.file) : member.source });
-        const result = invoke(`connection ${entry.name}`, engine.compare(envelope({ program: program.map(member => member.source) })));
+        const result = invoke(`connection ${entry.name}`, engine.shape(envelope({ program: program.map(member => member.source) })));
         assert.equal(result.shape.length, entry.shape, `connection preset ${entry.name} must find ${entry.shape} shapes`);
         connection[entry.name] = { program, result };
     }
 }
 
-const companion = await readFile(mode === 'write' ? join(workspace, 'lightbox.html') : lightbox, 'utf8');
+const companion = plain(await readFile(mode === 'write' ? join(workspace, 'lightbox.html') : lightbox, 'utf8'), 'lightbox.html');
 const theme = text => /<script>([^<]*)<\/script>/.exec(text)?.[1] ?? '';
 assert.equal(theme(companion), theme(page), 'index.html and lightbox.html must set the theme with the same inline script');
 const context = { document: { documentElement: { dataset: {} } }, localStorage: { getItem: key => key === context.book?.storage?.theme ? 'dark' : null } };

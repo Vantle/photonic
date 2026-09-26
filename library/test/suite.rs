@@ -11,14 +11,15 @@ mod function;
 mod isolation;
 mod natural;
 mod selection;
+mod stream;
 mod ternary;
 mod vector;
 
-use photonic::lowering::parse;
-use photonic::prism::{Outcome, Search};
-use photonic::runtime::Limit;
+use frontend::lowering::parse;
+use photonic::prism::Outcome;
+use photonic::runtime::{Limit, Runtime};
 
-pub fn program(source: &str, library: &[&str]) -> photonic::source::Program {
+pub fn program(source: &str, library: &[&str]) -> frontend::source::Program {
     parse(
         &std::iter::once(source)
             .chain(library.iter().copied())
@@ -28,38 +29,38 @@ pub fn program(source: &str, library: &[&str]) -> photonic::source::Program {
     .unwrap()
 }
 
-pub fn target(program: &photonic::source::Program, text: &str) -> photonic::source::Program {
-    photonic::source::Program {
-        rule: program.rule.clone(),
-        ..parse(text).unwrap()
-    }
+pub fn target(program: &frontend::source::Program, text: &str) -> frontend::source::Program {
+    let mut target = parse(text).unwrap();
+    target.preserve(program);
+    target
 }
 
 pub fn check(source: &str, target: &str, library: &[&str], expected: Outcome) {
     let program = program(source, library);
-    let cell = 128 + program.rule.len();
-    let mut search = {
-        let target = self::target(&program, target);
-        Search::new(program, target)
-    };
-    search.run(
+    let goal = self::target(&program, target);
+    let mut runtime = Runtime::new(&program);
+    runtime.run(
         2_000_000,
-        Some(Limit {
-            state: 20000,
+        Limit {
+            configuration: 20000,
             record: 2_000_000,
-            cell,
-            world: 32,
-            frame: 32,
-        }),
+            occurrence: 128 + program.rule.len(),
+            coherence: 32,
+            scope: 32,
+        },
     );
-    let report = search.report();
+    let snapshot = runtime.snapshot();
     assert!(
-        report.execution.closed,
+        snapshot.closed,
         "{source}: {} states, {} work",
-        report.execution.state.len(),
-        report.execution.work
+        snapshot.state.len(),
+        snapshot.work
     );
-    assert_eq!(report.outcome, expected, "{source} => {target}");
+    assert_eq!(
+        runtime.verdict(&goal).outcome,
+        expected,
+        "{source} => {target}"
+    );
 }
 
 pub fn answer(
@@ -88,19 +89,19 @@ pub fn answer(
 
 pub fn witness(source: &str, target: &str, library: &[&str]) -> photonic::path::Report {
     let program = program(source, library);
-    let cell = 256 + program.rule.len();
+    let occurrence = 256 + program.rule.len();
     let mut search = {
         let target = self::target(&program, target);
-        photonic::path::Search::new(program, target)
+        photonic::path::Search::new(program, Some(target))
     };
     search.run(
         2_000_000,
         Limit {
-            state: 4096,
+            configuration: 4096,
             record: 2_000_000,
-            cell,
-            world: 64,
-            frame: 64,
+            occurrence,
+            coherence: 64,
+            scope: 64,
         },
     );
     let report = search.report();

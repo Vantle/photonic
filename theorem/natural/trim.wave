@@ -10,6 +10,6 @@ Case.(([A] 0), ([A] 1), ([A] 2), ([A] End)),
 [Read.Trim.Wait.Remnant, Scheme.Skips] Return.Verdict.True,
 [Engine.Keeps.([Digit] 1), Scheme.Keeps.1] Return.Verdict.True,
 [Engine.Keeps.([Digit] 2), Scheme.Keeps.2] Return.Verdict.True,
-[Return.Natural.Trim.Zero, Scheme.Empty] Return.Verdict.True,
+[Trim.Result.Zero, Scheme.Empty] Return.Verdict.True,
 
 [Holds.(([A] 0), ([A] 1), ([A] 2), ([A] End))] Theorem

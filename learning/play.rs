@@ -48,14 +48,14 @@ impl Default for Setting {
 }
 
 #[derive(Clone, Copy, Debug, Default)]
-pub struct Tally {
+pub(crate) struct Tally {
     pub reward: f64,
     pub episode: u64,
     pub correct: u64,
 }
 
 #[derive(Default)]
-pub struct Statistic {
+pub(crate) struct Statistic {
     pub episode: AtomicU64,
     pub step: AtomicU64,
     pub evaluation: AtomicU64,
@@ -66,7 +66,7 @@ pub struct Statistic {
     pub judge: Mutex<Judge>,
 }
 
-pub struct Shared {
+pub(crate) struct Shared {
     pub model: RwLock<Arc<Model>>,
     pub server: Option<Server>,
     pub replay: Mutex<Replay>,
@@ -226,7 +226,7 @@ impl Environment for Simulator<'_> {
     }
 }
 
-pub fn bound(bound: &Bound, problem: &Problem) -> Bound {
+pub(crate) fn bound(bound: &Bound, problem: &Problem) -> Bound {
     Bound {
         depth: bound.depth.max(problem.nesting),
         ..*bound
@@ -262,7 +262,7 @@ fn outcome(left: &Game, right: &Game) -> std::cmp::Ordering {
     right.depth.cmp(&left.depth)
 }
 
-pub struct Worker {
+pub(crate) struct Worker {
     shared: Arc<Shared>,
     setting: Setting,
     generator: Generator,

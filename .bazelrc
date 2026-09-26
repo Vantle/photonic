@@ -15,9 +15,7 @@ build --experimental_disk_cache_gc_max_age=14d
 build --guard_against_concurrent_changes
 build --@rules_rust//rust/settings:rustfmt.toml=//:rustfmt.toml
 
-build:release --compilation_mode=opt
-
-common:ci --config=release
+common:ci --compilation_mode=opt
 common:ci --host_platform=//platform:x86_64-unknown-linux-gnu
 common:ci --platforms=//platform:x86_64-unknown-linux-gnu
 

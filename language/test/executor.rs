@@ -1,10 +1,8 @@
-use crate::executor::{Executor, Failure};
-
 #[test]
 fn order() {
     let suffix = String::from("done");
     for worker in [1, 2, 4] {
-        let executor = Executor::new(worker).unwrap();
+        let executor = crate::test::executor(worker);
         let input = (0..257).map(|index| index.to_string()).collect::<Vec<_>>();
         let expected = input
             .iter()
@@ -16,9 +14,4 @@ fn order() {
         );
         assert!(executor.map(Vec::<String>::new(), |value| value).is_empty());
     }
-}
-
-#[test]
-fn zero() {
-    assert!(matches!(Executor::new(0), Err(Failure::Zero)));
 }

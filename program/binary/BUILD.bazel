@@ -1,16 +1,4 @@
-load("@rules_rs//rs:rust_binary.bzl", "rust_binary")
 load("//photonic:defs.bzl", "photonic_binary", "photonic_test")
-
-rust_binary(
-    name = "benchmark",
-    srcs = ["benchmark.rs"],
-    crate_root = "benchmark.rs",
-    lint_config = "//:lint",
-    deps = [
-        "//arithmetic:library",
-        "//language:photonic",
-    ],
-)
 
 filegroup(
     name = "fixture",
@@ -39,6 +27,5 @@ photonic_binary(
 photonic_test(
     name = "addition.check",
     srcs = ["addition.wave"],
-    preserve = True,
     target = ["2^0.2^1.2^2.2^4.2^6.2^9.2^10"],
 )

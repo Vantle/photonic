@@ -17,8 +17,12 @@ WHITESPACE = _{ " " | "\t" | "\r" | "\n" | "\u{000B}" | "\u{000C}" }
 "#]
 struct Grammar;
 
-pub const SPACE: [char; 6] = [' ', '\t', '\r', '\n', '\u{000B}', '\u{000C}'];
-pub const DELIMITER: [char; 6] = ['(', ')', '[', ']', '.', ','];
+const SPACE: [char; 6] = [' ', '\t', '\r', '\n', '\u{000B}', '\u{000C}'];
+const DELIMITER: [char; 6] = ['(', ')', '[', ']', '.', ','];
+
+pub fn separator(character: char) -> bool {
+    SPACE.contains(&character) || DELIMITER.contains(&character)
+}
 
 pub fn parse(source: &str) -> Result<Tree<'_>, Failure> {
     depth(source)?;
@@ -69,7 +73,7 @@ pub fn parse(source: &str) -> Result<Tree<'_>, Failure> {
             }
         }
     }
-    Ok(Tree { source, node })
+    Ok(Tree::new(source, node))
 }
 
 fn advice(source: &str) -> Option<(usize, String)> {

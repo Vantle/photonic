@@ -24,25 +24,26 @@ pub struct Budget {
 
 impl Default for Budget {
     fn default() -> Self {
+        let limit = Limit::default();
         Self {
             work: 2_000_000,
-            configuration: 4_096,
-            coherence: 64,
-            occurrence: 256,
-            scope: 64,
-            record: 2_000_000,
+            configuration: limit.configuration,
+            coherence: limit.coherence,
+            occurrence: limit.occurrence,
+            scope: limit.scope,
+            record: limit.record,
         }
     }
 }
 
 impl Budget {
-    pub(crate) fn limit(self) -> Limit {
+    pub fn limit(self) -> Limit {
         Limit {
-            state: self.configuration,
+            configuration: self.configuration,
             record: self.record,
-            world: self.coherence,
-            cell: self.occurrence,
-            frame: self.scope,
+            coherence: self.coherence,
+            occurrence: self.occurrence,
+            scope: self.scope,
         }
     }
 }

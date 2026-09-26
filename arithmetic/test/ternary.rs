@@ -1,7 +1,8 @@
 use super::execute;
 use arithmetic::{circuit, encoding};
-use photonic::lowering::parse;
+use frontend::lowering::parse;
 use photonic::prism::Outcome;
+use photonic::runtime::Limit;
 
 #[test]
 fn operation() {
@@ -19,21 +20,19 @@ fn operation() {
                 ),
                 Outcome::Unknown
             );
-            for layout in [circuit::Layout::Column, circuit::Layout::Balanced] {
-                let source = circuit::multiply(3, 2, left, right, layout).unwrap();
-                assert_eq!(
-                    execute(&source, &encoding::unsigned(3, 4, left * right).unwrap()),
-                    Outcome::Reached,
-                    "{left} * {right}"
-                );
-                assert_eq!(
-                    execute(
-                        &source,
-                        &encoding::unsigned(3, 4, left * right + 1).unwrap()
-                    ),
-                    Outcome::Unknown
-                );
-            }
+            let source = circuit::multiply(3, 2, left, right).unwrap();
+            assert_eq!(
+                execute(&source, &encoding::unsigned(3, 4, left * right).unwrap()),
+                Outcome::Reached,
+                "{left} * {right}"
+            );
+            assert_eq!(
+                execute(
+                    &source,
+                    &encoding::unsigned(3, 4, left * right + 1).unwrap()
+                ),
+                Outcome::Unknown
+            );
             let source = circuit::subtract(3, 2, left, right).unwrap();
             let expected = left as i128 - right as i128;
             assert_eq!(
@@ -102,7 +101,7 @@ fn boundary() {
         );
         assert_eq!(
             execute(
-                &circuit::multiply(3, 7, left, right, circuit::Layout::Column).unwrap(),
+                &circuit::multiply(3, 7, left, right).unwrap(),
                 &encoding::unsigned(3, 14, left * right).unwrap()
             ),
             Outcome::Reached
@@ -149,16 +148,10 @@ fn structure() {
             parse(&program(3, 2, 8, 5).unwrap()).unwrap().rule
         );
     }
-    for layout in [circuit::Layout::Column, circuit::Layout::Balanced] {
-        assert_eq!(
-            parse(&circuit::multiply(3, 2, 0, 0, layout).unwrap())
-                .unwrap()
-                .rule,
-            parse(&circuit::multiply(3, 2, 8, 5, layout).unwrap())
-                .unwrap()
-                .rule
-        );
-    }
+    assert_eq!(
+        parse(&circuit::multiply(3, 2, 0, 0).unwrap()).unwrap().rule,
+        parse(&circuit::multiply(3, 2, 8, 5).unwrap()).unwrap().rule
+    );
 }
 
 #[test]
@@ -168,24 +161,18 @@ fn exhaustive() {
             for expected in 0..6 {
                 for (source, value) in [
                     (circuit::add(3, 1, left, right).unwrap(), left + right),
-                    (
-                        circuit::multiply(3, 1, left, right, circuit::Layout::Column).unwrap(),
-                        left * right,
-                    ),
+                    (circuit::multiply(3, 1, left, right).unwrap(), left * right),
                 ] {
-                    let mut search = {
-                        let program = parse(&source).unwrap();
-                        let target = photonic::source::Program {
-                            rule: program.rule.clone(),
-                            ..parse(&encoding::unsigned(3, 2, expected).unwrap()).unwrap()
-                        };
-                        photonic::prism::Search::new(program, target)
-                    };
-                    search.run(100_000, None);
-                    let report = search.report();
-                    assert!(report.execution.closed);
+                    let program = parse(&source).unwrap();
+                    let mut target = parse(&encoding::unsigned(3, 2, expected).unwrap()).unwrap();
+                    target.preserve(&program);
+                    let mut runtime = photonic::runtime::Runtime::new(&program);
+                    runtime.run(100_000, Limit::default());
+                    let verdict = runtime.verdict(&target);
+                    let report = runtime.snapshot();
+                    assert!(report.closed);
                     assert_eq!(
-                        report.outcome,
+                        verdict.outcome,
                         if value == expected {
                             Outcome::Reached
                         } else {
@@ -218,18 +205,15 @@ fn notation() {
         ("3^3.3^2.3^2.3^1", Outcome::Reached),
         (numeral, Outcome::Unreachable),
     ] {
-        let mut search = {
-            let program = parse(&source).unwrap();
-            let target = photonic::source::Program {
-                rule: program.rule.clone(),
-                ..parse(target).unwrap()
-            };
-            photonic::prism::Search::new(program, target)
-        };
-        search.run(100_000, None);
-        let report = search.report();
-        assert!(report.execution.closed);
-        assert_eq!(report.outcome, expected);
+        let program = parse(&source).unwrap();
+        let mut target = parse(target).unwrap();
+        target.preserve(&program);
+        let mut runtime = photonic::runtime::Runtime::new(&program);
+        runtime.run(100_000, Limit::default());
+        let verdict = runtime.verdict(&target);
+        let report = runtime.snapshot();
+        assert!(report.closed);
+        assert_eq!(verdict.outcome, expected);
     }
     assert_eq!(
         execute(
@@ -251,7 +235,7 @@ fn example() {
         ),
         (
             include_str!("../../program/circuit/multiply.wave"),
-            circuit::multiply(3, 7, 1500, 123, circuit::Layout::Column).unwrap(),
+            circuit::multiply(3, 7, 1500, 123).unwrap(),
             include_str!("../../program/circuit/multiply.particle"),
             encoding::unsigned(3, 14, 184_500).unwrap(),
         ),

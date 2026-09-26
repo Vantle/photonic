@@ -68,7 +68,7 @@ impl Runtime {
             return;
         };
         let result = normalization.result;
-        if self.state.len() >= self.limit.state && !self.state.contains(&result.state) {
+        if self.state.len() >= self.limit.configuration && !self.state.contains(&result.state) {
             self.pending.extend(normalization.application);
             return;
         }

@@ -3,7 +3,7 @@ use crate::failure::{Code, Failure};
 use crate::recording::{Mode, Recording};
 use crate::store::Store;
 use crate::subject::Reader;
-use photonic::source::Program;
+use frontend::source::Program;
 use std::sync::Arc;
 
 pub struct Context<'context> {
@@ -22,11 +22,10 @@ impl Context<'_> {
                 self.explore(&source, recording)
             }
             (None, Some(key)) => {
-                let settled = Recording {
-                    exploration: Some(key.clone()),
-                    ..Recording::default()
-                };
-                if *recording != settled {
+                if recording.mode.is_some()
+                    || recording.budget.is_some()
+                    || recording.goal.is_some()
+                {
                     return Err(Failure::new(
                         Code::Request,
                         "an exploration key fixes the mode, budget and goal; give them with program instead",
@@ -50,7 +49,8 @@ impl Context<'_> {
         source: &Program,
         recording: &Recording,
     ) -> Result<Arc<Exploration>, Failure> {
-        if recording.mode != Mode::Path && recording.goal.is_some() {
+        let mode = recording.mode.unwrap_or_default();
+        if mode != Mode::Path && recording.goal.is_some() {
             return Err(Failure::new(
                 Code::Request,
                 "goal is the configuration a direct path stops at; set mode to path",
@@ -67,7 +67,11 @@ impl Context<'_> {
                 Ok::<_, Failure>(target)
             })
             .transpose()?;
-        self.store
-            .explore(Plan::new(source, recording.mode, recording.budget, goal))
+        Ok(self.store.explore(Plan::new(
+            source,
+            mode,
+            recording.budget.unwrap_or_default(),
+            goal,
+        )))
     }
 }

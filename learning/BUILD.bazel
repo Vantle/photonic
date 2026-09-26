@@ -5,11 +5,14 @@ load("@rules_rs//rs:rust_test.bzl", "rust_test")
 filegroup(
     name = "source",
     srcs = [
+        "analogy.rs",
         "archive.rs",
+        "attempt.rs",
         "bar.rs",
         "corpus.rs",
         "curriculum.rs",
         "demonstration.rs",
+        "distance.rs",
         "edit.rs",
         "encoding.rs",
         "export.rs",
@@ -31,6 +34,7 @@ filegroup(
         "synthetic.rs",
         "task.rs",
         "train.rs",
+        "tree.rs",
     ],
 )
 
@@ -42,6 +46,7 @@ rust_library(
     lint_config = "//:lint",
     deps = [
         "//code",
+        "//frontend",
         "//gpu",
         "//language:photonic",
         "//machine",
@@ -82,11 +87,14 @@ rust_test(
     name = "test",
     size = "medium",
     srcs = [
+        "test/analogy.rs",
         "test/archive.rs",
+        "test/attempt.rs",
         "test/bar.rs",
         "test/corpus.rs",
         "test/curriculum.rs",
         "test/demonstration.rs",
+        "test/distance.rs",
         "test/edit.rs",
         "test/encoding.rs",
         "test/guide.rs",
@@ -99,13 +107,16 @@ rust_test(
         "test/session.rs",
         "test/solution.rs",
         "test/suite.rs",
+        "test/support.rs",
         "test/task.rs",
+        "test/tree.rs",
         ":source",
     ],
     crate_root = "learning.rs",
     lint_config = "//:lint",
     deps = [
         "//code",
+        "//frontend",
         "//gpu",
         "//language:photonic",
         "//machine",

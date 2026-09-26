@@ -1,0 +1,4 @@
+[Triple.True.True.True] Uniform.True,
+[Triple.True.True.False] Uniform.False,
+[Triple.True.False.False] Uniform.False,
+[Triple.False.False.False] Uniform.True

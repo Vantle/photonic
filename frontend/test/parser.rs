@@ -42,10 +42,9 @@ fn structure() {
 }
 
 fn child(tree: &Tree<'_>, parent: usize) -> Vec<Kind> {
-    tree.node()
+    tree.child(parent)
         .iter()
-        .filter(|node| node.parent == Some(parent))
-        .map(|node| node.kind)
+        .map(|&index| tree.node()[index].kind)
         .collect()
 }
 
@@ -192,8 +191,7 @@ fn separator() {
         let source = format!("A{character}B");
         let single = parser::parse(&source)
             .is_ok_and(|tree| text(&tree, Kind::Concept) == [source.as_str()]);
-        let separating =
-            parser::SPACE.contains(&character) || parser::DELIMITER.contains(&character);
+        let separating = parser::separator(character);
         assert_eq!(single, !separating, "{character:?}");
     }
 }

@@ -83,7 +83,7 @@ fn prime(mut value: u64, result: &mut Vec<u64>) {
 }
 
 impl Size {
-    pub fn new(factor: Vec<u64>) -> Self {
+    pub(crate) fn new(factor: Vec<u64>) -> Self {
         let mut result = Vec::new();
         for value in factor {
             prime(value, &mut result);

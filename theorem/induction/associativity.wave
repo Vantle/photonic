@@ -2,8 +2,7 @@ Every.1,
 
 [Every.1] (
     Split.1,
-    [Both.1] Theorem,
-    [Refuted.2] Counterexample
+    [Both.1] Theorem
 ),
 [Split.1] Every.2.([A] 0),
 [Proved.2.([A] 0)] Every.2.([A] 1),
@@ -12,8 +11,7 @@ Every.1,
 
 [Every.2] (
     Split.2,
-    [Both.2] Proved.2,
-    [Refuted.3] Refuted.2
+    [Both.2] Proved.2
 ),
 [Split.2] Every.3.([B] 0),
 [Proved.3.([B] 0)] Every.3.([B] 1),
@@ -22,8 +20,7 @@ Every.1,
 
 [Every.3] (
     Split.3,
-    [Both.3] Proved.3,
-    [Refuted.4] Refuted.3
+    [Both.3] Proved.3
 ),
 [Split.3] Every.4.([C] 0),
 [Proved.4.([C] 0)] Every.4.([C] 1),
@@ -32,8 +29,7 @@ Every.1,
 
 [Every.4] (
     Split.4,
-    [Both.4] Proved.4,
-    [Refuted.5] Refuted.4
+    [Both.4] Proved.4
 ),
 [Split.4] Every.5.([E] 0),
 [Proved.5.([E] 0)] Every.5.([E] 1),
@@ -41,8 +37,7 @@ Every.1,
 
 [Every.5] (
     Split.5,
-    [Both.5] Proved.5,
-    [Refuted.6] Refuted.5
+    [Both.5] Proved.5
 ),
 [Split.5] Every.6.([F] 0),
 [Proved.6.([F] 0)] Every.6.([F] 1),
@@ -50,8 +45,7 @@ Every.1,
 
 [Every.6] (
     Split.6,
-    [Both.6] Proved.6,
-    [Refuted.7] Refuted.6
+    [Both.6] Proved.6
 ),
 [Split.6] Every.7.([G] 0),
 [Proved.7.([G] 0)] Every.7.([G] 1),
@@ -59,31 +53,31 @@ Every.1,
 
 [Every.7] (
     Split.7,
-    [Both.7] Proved.7,
-    [Counterexample] Refuted.7
+    [Both.7] Proved.7
 ),
 [Split.7] Case.([H] 0),
 [Holds.([H] 0)] Case.([H] 1),
 [Holds.([H] 1)] Both.7,
 
-[Claim] (Function.Ternary.Sum.Joined.A.B.E, Function.Ternary.Sum.Paired.B.C.G, Function.Ternary.Equal.Before.Straight.E.G, Function.Ternary.Equal.Before.Level.F.H, Function.Ternary.Equal.Before.Crossed.E.H, Function.Ternary.Equal.Before.Swapped.F.G),
-[Return.Before.Straight, Return.Before.Level] Function.Boolean.And.Before.Aligned,
-[Return.Before.Crossed, Return.Before.Swapped] Function.Boolean.And.Before.Exchanged,
-[Return.Before.Aligned, Return.Before.Exchanged] Function.Boolean.Or.Before.Balanced,
-[Return.Before.Balanced] Function.Boolean.Not.Broken,
+[Claim] (Before.Grouping.E.F, Before.Nesting.G.H),
+[Before.Grouping.0.0, Before.Nesting.0.0] Held,
+[Before.Grouping.0.1, Before.Nesting.0.1] Held,
+[Before.Grouping.1.1, Before.Nesting.1.1] Held,
+[Before.Grouping.0.0, Before.Nesting.0.1] Return.Verdict.True,
+[Before.Grouping.0.0, Before.Nesting.1.1] Return.Verdict.True,
+[Before.Grouping.0.1, Before.Nesting.0.0] Return.Verdict.True,
+[Before.Grouping.0.1, Before.Nesting.1.1] Return.Verdict.True,
+[Before.Grouping.1.1, Before.Nesting.0.0] Return.Verdict.True,
+[Before.Grouping.1.1, Before.Nesting.0.1] Return.Verdict.True,
+[Held] (Function.Ternary.Sum.Joined.A.B.E, Function.Ternary.Sum.Paired.B.C.G),
 [Low.Joined] Function.Ternary.Sum.Grouped.C.F,
 [Low.Paired] Function.Ternary.Sum.Nested.A.H,
-[Low.Grouped, Low.Nested] Function.Ternary.Equal.Digits,
-[High.Joined] (After.Straight, After.Crossed),
-[High.Paired] (After.Straight, After.Swapped),
-[High.Grouped] (After.Level, After.Swapped),
-[High.Nested] (After.Level, After.Crossed),
-[After.Straight, After.Straight] Function.Ternary.Equal.Match.Straight,
-[After.Level, After.Level] Function.Ternary.Equal.Match.Level,
-[After.Crossed, After.Crossed] Function.Ternary.Equal.Match.Crossed,
-[After.Swapped, After.Swapped] Function.Ternary.Equal.Match.Swapped,
-[Return.Match.Straight, Return.Match.Level] Function.Boolean.And.Match.Aligned,
-[Return.Match.Crossed, Return.Match.Swapped] Function.Boolean.And.Match.Exchanged,
-[Return.Match.Aligned, Return.Match.Exchanged] Function.Boolean.Or.Match.Balanced,
-[Return.Digits, Return.Match.Balanced] Function.Boolean.And.Preserved,
-[Return.Broken, Return.Preserved] Function.Boolean.Or.Verdict
+[Low.Grouped, Low.Nested] Place,
+[Place.0.0] Agreed,
+[Place.1.1] Agreed,
+[Place.2.2] Agreed,
+[High.Joined, High.Grouped] After.Grouping,
+[High.Paired, High.Nested] After.Nesting,
+[Agreed, After.Grouping.0.0, After.Nesting.0.0] Return.Verdict.True,
+[Agreed, After.Grouping.0.1, After.Nesting.0.1] Return.Verdict.True,
+[Agreed, After.Grouping.1.1, After.Nesting.1.1] Return.Verdict.True

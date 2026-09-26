@@ -57,7 +57,7 @@ pub fn serve(mut engine: Engine, receiver: &Receiver<Request>, shared: &Shared) 
             .as_ref()
             .is_none_or(|known| !Arc::ptr_eq(known, &model))
         {
-            if engine.load(&model.parameter).is_err() {
+            if engine.load(model.parameter()).is_err() {
                 for request in batch {
                     request.reply.send(None).ok();
                 }

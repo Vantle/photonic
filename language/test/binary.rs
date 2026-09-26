@@ -1,6 +1,6 @@
-use crate::lowering::parse;
-use crate::prism::{Outcome, Search};
-use crate::runtime::Limit;
+use crate::prism::Outcome;
+use crate::runtime::{Limit, Runtime};
+use frontend::lowering::parse;
 
 fn numeral(value: u64) -> String {
     let result = (0..64)
@@ -16,24 +16,19 @@ fn numeral(value: u64) -> String {
 }
 
 fn check(source: &str, target: &str) {
-    let mut search = {
-        let program = parse(source).unwrap();
-        let target = crate::source::Program {
-            rule: program.rule.clone(),
-            ..parse(target).unwrap()
-        };
-        Search::new(program, target)
-    };
-    search.run(
+    let program = parse(source).unwrap();
+    let goal = crate::test::target(&program, target);
+    let mut runtime = Runtime::new(&program);
+    runtime.run(
         1_000_000,
-        Some(Limit {
-            state: 2000,
-            cell: 80,
+        Limit {
+            configuration: 2000,
+            occurrence: 80,
             ..Limit::default()
-        }),
+        },
     );
-    let report = search.report();
-    assert_eq!(report.outcome, Outcome::Reached, "{source} => {target}");
+    let verdict = runtime.verdict(&goal);
+    assert_eq!(verdict.outcome, Outcome::Reached, "{source} => {target}");
 }
 
 #[test]
@@ -89,31 +84,27 @@ fn example() {
 #[test]
 fn conservation() {
     let source = include_str!("../../program/binary/addition.wave");
-    let mut search = {
-        let program = parse(source).unwrap();
-        let target = crate::source::Program {
-            rule: program.rule.clone(),
-            ..parse(&numeral(1622)).unwrap()
-        };
-        Search::new(program, target)
-    };
-    search.run(
+    let program = parse(source).unwrap();
+    let goal = crate::test::target(&program, &numeral(1622));
+    let mut runtime = Runtime::new(&program);
+    runtime.run(
         1_000_000,
-        Some(Limit {
-            state: 2000,
-            cell: 80,
+        Limit {
+            configuration: 2000,
+            occurrence: 80,
             ..Limit::default()
-        }),
+        },
     );
-    let report = search.report();
-    assert!(report.execution.closed);
-    assert_eq!(report.outcome, Outcome::Unreachable);
-    for state in report.execution.state {
+    let verdict = runtime.verdict(&goal);
+    let report = runtime.snapshot();
+    assert!(report.closed);
+    assert_eq!(verdict.outcome, Outcome::Unreachable);
+    for state in report.state {
         let total: u64 = state
             .world
             .iter()
             .flat_map(|world| &world.particle)
-            .filter_map(|token| token.label.strip_prefix("2^"))
+            .filter_map(|token| crate::test::atom(token).and_then(|atom| atom.strip_prefix("2^")))
             .map(|bit| 1u64 << bit.parse::<u32>().unwrap())
             .sum();
         assert_eq!(total, 1623);

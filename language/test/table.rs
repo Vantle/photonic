@@ -17,20 +17,20 @@ fn evaluate(bounded: bool, worker: usize) {
         "A.B.C.D.E.F.G.H.{padding},X,Y, [A.B.C.D.E.F.G.H,X] Left, [A.B.C.D.E.F.G.H,Y] Right"
     );
     let create = |capacity| {
-        let mut runtime = Runtime::new(&crate::lowering::parse(&source).unwrap());
+        let mut runtime = Runtime::new(&frontend::lowering::parse(&source).unwrap());
         runtime.matching.preparation = Some(Arc::new(crate::selection::Store::new(capacity)));
         runtime
     };
     let mut actual = create(65_536);
     let mut expected = create(0);
     let mut limit = Limit {
-        state: 32,
+        configuration: 32,
         record: 1_000_000,
-        world: 8,
-        cell: 64,
-        frame: 16,
+        coherence: 8,
+        occurrence: 64,
+        scope: 16,
     };
-    let executor = crate::executor::Executor::new(worker).unwrap();
+    let executor = crate::test::executor(worker);
     let mut cached = false;
     for step in 0..10_000 {
         let budget = if bounded {
@@ -41,8 +41,8 @@ fn evaluate(bounded: bool, worker: usize) {
         if bounded {
             limit.record = expected.record() + 1;
         }
-        actual.parallel(&executor, budget, Some(limit));
-        expected.run(budget, Some(limit));
+        actual.parallel(&executor, budget, limit);
+        expected.run(budget, limit);
         assert_eq!(snapshot(&actual), snapshot(&expected));
         cached |= actual.matching.preparation.as_ref().unwrap().retained() > 0;
         if actual.closed() {

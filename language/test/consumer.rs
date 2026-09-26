@@ -57,7 +57,8 @@ fn verify(membership: &mut Index, index: &crate::index::Index, catalog: &Catalog
 
 #[test]
 fn mutation() {
-    let program = Program::new(&crate::lowering::parse("A, [A] B, [A] C, [] Seed, [B] D").unwrap());
+    let program =
+        Program::new(&frontend::lowering::parse("A, [A] B, [A] C, [] Seed, [B] D").unwrap());
     let catalog = Catalog::new(&program);
     let mut state = State::initial(&program);
     let root = state.frame[0].clone();
@@ -125,7 +126,7 @@ fn mutation() {
 
 #[test]
 fn retirement() {
-    let program = Program::new(&crate::lowering::parse("A, [A] B, [A] C, [] Seed").unwrap());
+    let program = Program::new(&frontend::lowering::parse("A, [A] B, [A] C, [] Seed").unwrap());
     let catalog = Catalog::new(&program);
     let original = State::initial(&program);
     let mut index = crate::index::Index::new(Arc::new(original.clone()));

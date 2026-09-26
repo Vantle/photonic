@@ -1,7 +1,7 @@
 {
   "outcome": "reached",
-  "work": 23696,
-  "count": 9596,
+  "work": 23651,
+  "count": 9578,
   "input": [
     "1",
     "2",
@@ -31,24 +31,24 @@
       "operation": "Divide",
       "ternary": "2210",
       "decimal": "75",
-      "source": 6960,
-      "target": 6961,
+      "source": 6944,
+      "target": 6945,
       "rule": "[Return.Integer.Divide.Positive, Execute.Pending.Divide] (Operand.Number.Positive, Forget.Execute.Join)"
     },
     {
       "operation": "Add",
       "ternary": "2221",
       "decimal": "79",
-      "source": 7943,
-      "target": 7944,
+      "source": 7927,
+      "target": 7928,
       "rule": "[Return.Integer.Add.Positive, Execute.Pending.Add] (Operand.Number.Positive, Forget.Execute.Join)"
     },
     {
       "operation": "Subtract",
       "ternary": "2220",
       "decimal": "78",
-      "source": 8845,
-      "target": 8846,
+      "source": 8827,
+      "target": 8828,
       "rule": "[Return.Integer.Subtract.Positive, Execute.Pending.Subtract] (Operand.Number.Positive, Forget.Execute.Join)"
     }
   ]

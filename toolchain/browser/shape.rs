@@ -4,6 +4,7 @@ use code::atom::Atom;
 use serde::{Deserialize, Serialize};
 use symmetry::comparison::{Class, compare};
 use symmetry::group::element;
+use symmetry::search::Exhausted;
 use symmetry::structure::{Part, Structure};
 use translation::lift;
 use translation::vocabulary::Vocabulary;
@@ -40,17 +41,17 @@ struct Row {
 }
 
 fn parse(index: usize, source: &str, vocabulary: &mut Vocabulary) -> Result<Structure, Failure> {
-    let program = photonic::lowering::parse(source).map_err(|error| {
+    let program = frontend::lowering::parse(source).map_err(|error| {
         Failure::located(Code::Source, &error, source).within(Item::Program(index))
     })?;
     let (program, configuration) = lift::program(&program, vocabulary)
         .map_err(|error| Failure::from(error).within(Item::Program(index)))?;
     Ok(Structure {
-        part: vec![Part {
-            role: 0,
+        program: Part {
             program,
             configuration,
-        }],
+        },
+        target: None,
         pin: Vec::new(),
     })
 }
@@ -58,7 +59,7 @@ fn parse(index: usize, source: &str, vocabulary: &mut Vocabulary) -> Result<Stru
 fn shape(class: &Class, vocabulary: &Vocabulary) -> Result<Shape, Failure> {
     let letter = Vocabulary::alphabet(class.atom.len())?;
     let name = |atom: Atom| letter.name(atom).to_owned();
-    let form = &class.form.part[0];
+    let form = &class.form.program;
     Ok(Shape {
         member: class.member.clone(),
         atom: class
@@ -75,7 +76,7 @@ fn shape(class: &Class, vocabulary: &Vocabulary) -> Result<Shape, Failure> {
             .collect(),
         initial: translation::emit::configuration(&form.configuration, &letter)
             .iter()
-            .map(|particle| photonic::text::coherence(particle))
+            .map(|particle| frontend::text::coherence(particle))
             .collect(),
         rule: form
             .program
@@ -116,13 +117,13 @@ pub fn partition(input: &str) -> Result<Partition, Failure> {
         .map(|(index, source)| parse(index, source, &mut vocabulary))
         .collect::<Result<Vec<_>, _>>()?;
     let class = compare(&structure, crate::limit::SYMMETRY).map_err(|exhausted| {
-        Failure::new(
-            Code::Budget,
-            format!(
-                "The symmetry search stopped at depth {} after {} nodes.",
-                exhausted.depth, exhausted.node
-            ),
-        )
+        let message = match exhausted {
+            Exhausted::Node(node) => format!("The symmetry search stopped after {node} nodes."),
+            Exhausted::Depth(depth) => {
+                format!("The symmetry search stopped at depth {depth}, its limit.")
+            }
+        };
+        Failure::new(Code::Budget, message)
     })?;
     Ok(Partition {
         shape: class

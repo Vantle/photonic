@@ -6,104 +6,77 @@ mod server;
 mod verb;
 
 use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::ExitCode;
 
 use clap::Parser;
-use miette::{IntoDiagnostic, NamedSource, WrapErr};
-use photonic::runtime::{Limit, Runtime};
-use photonic::snapshot::Node;
-use photonic::source::Program;
+use frontend::source::Program;
+use miette::IntoDiagnostic;
+use photonic::executor::Executor;
+use photonic::prism::Outcome;
+use photonic::runtime::Runtime;
+use photonic::snapshot::{Definition, Node, Token, Value};
 use photonic::status::Status;
+use serde::Serialize;
+use spectrum::failure::Failure;
 
-use argument::{Argument, Execution, Format, Operation};
+use argument::{Argument, Operation};
+
+#[derive(Serialize)]
+struct Report<'program, Execution> {
+    outcome: Outcome,
+    witness: Option<usize>,
+    program: &'program Program,
+    target: &'program Program,
+    execution: Execution,
+}
 
 fn main() -> miette::Result<ExitCode> {
     if let Some(directory) = std::env::var_os("BUILD_WORKING_DIRECTORY") {
         std::env::set_current_dir(directory).into_diagnostic()?;
     }
-    let success = |()| ExitCode::SUCCESS;
     match Argument::parse().operation {
-        Operation::Parse { path } => parse(path).map(success),
-        Operation::Lower { path, context } => lower(path, context).map(success),
-        Operation::Run { path, execution } => run(path, execution).map(success),
-        Operation::Prism {
-            path,
-            target,
-            walk,
-            execution,
-        } => prism(path, target, execution, walk).map(success),
-        Operation::Check(question) => verb::question("check", question),
-        Operation::Explore(question) => verb::question("explore", question),
-        Operation::Select(select) => verb::select(select),
-        Operation::Inspect(pointer) => verb::pointer("inspect", pointer),
-        Operation::Cause(pointer) => verb::pointer("cause", pointer),
-        Operation::Miss(miss) => verb::miss(miss),
-        Operation::Step(pointer) => verb::pointer("step", pointer),
-        Operation::Compare(compare) => verb::compare(compare),
-        Operation::Shape(shape) => verb::shape(shape),
+        Operation::Lower(argument) => lower(&argument),
+        Operation::Run(argument) => run(&argument),
+        Operation::Prism(argument) => prism(&argument),
+        Operation::Check(argument) => verb::check(argument),
+        Operation::Explore(argument) => verb::explore(argument),
+        Operation::Select(argument) => verb::select(argument),
+        Operation::Inspect(argument) => verb::inspect(argument),
+        Operation::Cause(argument) => verb::cause(argument),
+        Operation::Miss(argument) => verb::miss(argument),
+        Operation::Step(argument) => verb::step(argument),
+        Operation::Compare(argument) => verb::compare(argument),
+        Operation::Shape(argument) => verb::shape(argument),
         Operation::Mcp => server::serve(),
     }
 }
 
-fn read(path: &Path) -> miette::Result<String> {
-    std::fs::read_to_string(path)
-        .into_diagnostic()
-        .wrap_err_with(|| format!("could not read {}", path.display()))
+fn load(file: &[PathBuf], source: &argument::Source) -> Result<Program, Failure> {
+    verb::subject(file, source).assemble(&verb::Disk)
 }
 
-fn lower(path: PathBuf, context: Vec<PathBuf>) -> miette::Result<()> {
-    let mut source = program(&path, None)?;
-    for path in context {
-        source.rule.extend(program(&path, None)?.rule);
-    }
-    output::write(&source, false)
+fn lower(argument: &argument::Lower) -> miette::Result<ExitCode> {
+    let program = match load(&argument.file, &argument.source) {
+        Ok(program) => program,
+        Err(failure) => return verb::fail(&failure),
+    };
+    output::write(&program, false)?;
+    Ok(ExitCode::SUCCESS)
 }
 
-fn parse(path: PathBuf) -> miette::Result<()> {
-    let source = read(&path)?;
-    match photonic::parser::parse(&source) {
-        Ok(tree) => writeln!(std::io::stdout().lock(), "{:#?}", tree.node()).into_diagnostic(),
-        Err(failure) => Err(miette::Report::new(failure)
-            .with_source_code(NamedSource::new(path.display().to_string(), source))),
-    }
-}
-
-fn program(path: &Path, format: Option<Format>) -> miette::Result<Program> {
-    let format = format.unwrap_or_else(|| {
-        if path
-            .extension()
-            .and_then(|extension| extension.to_str())
-            .is_some_and(|extension| extension.eq_ignore_ascii_case("json"))
-        {
-            Format::Json
-        } else {
-            Format::Photonic
-        }
-    });
-    if matches!(format, Format::Photonic) {
-        return photonic::lowering::read(path);
-    }
-    serde_json::from_str(&read(path)?)
-        .into_diagnostic()
-        .wrap_err_with(|| format!("invalid JSON program in {}", path.display()))
-}
-
-fn load(path: &Path, execution: &Execution) -> miette::Result<Program> {
-    let mut source = Program::default();
-    for library in &execution.library {
-        source.declare(photonic::lowering::read(library)?, library.display())?;
-    }
-    source.append(program(path, execution.format)?);
-    Ok(source)
-}
-
-fn run(path: PathBuf, execution: Execution) -> miette::Result<()> {
-    let executor = photonic::executor::Executor::new(execution.worker).into_diagnostic()?;
-    let mut runtime = Runtime::new(&load(&path, &execution)?);
-    runtime.parallel(&executor, execution.work, Some(limit(&execution)));
-    if execution.json {
-        return output::write(&runtime.view(), execution.compact);
+fn run(argument: &argument::Run) -> miette::Result<ExitCode> {
+    let program = match load(&argument.file, &argument.source) {
+        Ok(program) => program,
+        Err(failure) => return verb::fail(&failure),
+    };
+    let budget = spectrum::budget::Budget::from(&argument.budget);
+    let executor = Executor::new(argument.worker).into_diagnostic()?;
+    let mut runtime = Runtime::new(&program);
+    runtime.parallel(&executor, budget.work, budget.limit());
+    if argument.json {
+        output::write(&runtime.view(), argument.compact)?;
+        return Ok(ExitCode::SUCCESS);
     }
     let mut output = std::io::stdout().lock();
     let snapshot = runtime.snapshot();
@@ -124,43 +97,51 @@ fn run(path: PathBuf, execution: Execution) -> miette::Result<()> {
             "s{} {} {}",
             node.id,
             status(node.status),
-            display(node)
+            display(node, &snapshot.definition)
         )
         .into_diagnostic()?;
     }
-    Ok(())
+    Ok(ExitCode::SUCCESS)
 }
 
-fn limit(execution: &Execution) -> Limit {
-    Limit {
-        state: execution.configuration,
-        record: execution.record,
-        world: execution.coherence,
-        cell: execution.occurrence,
-        frame: execution.scope,
+fn prism(argument: &argument::Prism) -> miette::Result<ExitCode> {
+    let (program, target) = match (
+        load(&argument.run.file, &argument.run.source),
+        load(
+            std::slice::from_ref(&argument.target),
+            &argument::Source::default(),
+        ),
+    ) {
+        (Ok(program), Ok(target)) => (program, target),
+        (Err(failure), _) | (_, Err(failure)) => return verb::fail(&failure),
+    };
+    let budget = spectrum::budget::Budget::from(&argument.run.budget);
+    if argument.path {
+        return walk(argument, program, target, budget);
     }
-}
-
-fn prism(path: PathBuf, target: PathBuf, execution: Execution, walk: bool) -> miette::Result<()> {
-    let executor = photonic::executor::Executor::new(execution.worker).into_diagnostic()?;
-    if walk {
-        return trace(path, target, execution);
-    }
-    let mut search = photonic::prism::Search::new(
-        load(&path, &execution)?,
-        program(&target, execution.format)?,
-    );
-    search.parallel(&executor, execution.work, Some(limit(&execution)));
-    if execution.json {
-        return output::write(&search.view(), execution.compact);
+    let executor = Executor::new(argument.run.worker).into_diagnostic()?;
+    let mut runtime = Runtime::new(&program);
+    runtime.parallel(&executor, budget.work, budget.limit());
+    let verdict = runtime.verdict(&target);
+    if argument.run.json {
+        output::write(
+            &Report {
+                outcome: verdict.outcome,
+                witness: verdict.witness,
+                program: &program,
+                target: &target,
+                execution: runtime.view(),
+            },
+            argument.run.compact,
+        )?;
+        return Ok(ExitCode::SUCCESS);
     }
     let mut output = std::io::stdout().lock();
-    let verdict = search.verdict();
-    let snapshot = search.snapshot();
+    let snapshot = runtime.snapshot();
     let outcome = match verdict.outcome {
-        photonic::prism::Outcome::Reached => "Reached",
-        photonic::prism::Outcome::Unreachable => "Unreachable",
-        photonic::prism::Outcome::Unknown => "Unknown",
+        Outcome::Reached => "Reached",
+        Outcome::Unreachable => "Unreachable",
+        Outcome::Unknown => "Unknown",
     };
     writeln!(
         output,
@@ -171,7 +152,7 @@ fn prism(path: PathBuf, target: PathBuf, execution: Execution, walk: bool) -> mi
         writeln!(
             output,
             "Witness s{witness}: {}",
-            display(&snapshot.state[witness])
+            display(&snapshot.state[witness], &snapshot.definition)
         )
         .into_diagnostic()?;
     }
@@ -187,30 +168,41 @@ fn prism(path: PathBuf, target: PathBuf, execution: Execution, walk: bool) -> mi
             "unfinished"
         },
     )
-    .into_diagnostic()
+    .into_diagnostic()?;
+    Ok(ExitCode::SUCCESS)
 }
 
-fn trace(path: PathBuf, target: PathBuf, execution: Execution) -> miette::Result<()> {
-    let mut search = photonic::path::Search::new(
-        load(&path, &execution)?,
-        program(&target, execution.format)?,
-    );
-    search.run(execution.work, limit(&execution));
-    if execution.json {
-        return output::write(&search.view(), execution.compact);
+fn walk(
+    argument: &argument::Prism,
+    program: Program,
+    target: Program,
+    budget: spectrum::budget::Budget,
+) -> miette::Result<ExitCode> {
+    let mut search = photonic::path::Search::new(program, Some(target));
+    search.run(budget.work, budget.limit());
+    if argument.run.json {
+        output::write(&search.view(), argument.run.compact)?;
+        return Ok(ExitCode::SUCCESS);
     }
     let mut output = std::io::stdout().lock();
-    let report = search.summary();
-    writeln!(output, "{:?}: one direct execution path", report.outcome).into_diagnostic()?;
-    if let Some(witness) = &report.witness {
-        writeln!(output, "Witness s{}: {}", witness.id, display(witness)).into_diagnostic()?;
+    let summary = search.summary();
+    writeln!(output, "{:?}: one direct execution path", summary.outcome).into_diagnostic()?;
+    if let Some(witness) = &summary.witness {
+        writeln!(
+            output,
+            "Witness s{}: {}",
+            witness.id,
+            display(witness, &search.definition())
+        )
+        .into_diagnostic()?;
     }
     writeln!(
         output,
         "{} events; {} work steps; alternative paths not exhausted",
-        report.event, report.work
+        summary.event, summary.work
     )
-    .into_diagnostic()
+    .into_diagnostic()?;
+    Ok(ExitCode::SUCCESS)
 }
 
 fn status(value: Status) -> &'static str {
@@ -220,39 +212,34 @@ fn status(value: Status) -> &'static str {
     }
 }
 
-fn display(node: &Node) -> String {
+fn display(node: &Node, definition: &[Definition]) -> String {
+    let token = |token: &Token| {
+        let text = match &token.value {
+            Value::Atom(atom) => atom.to_string(),
+            Value::Rule(rule) => format!("⟨{}⟩", definition[*rule].name),
+        };
+        match token.capture {
+            Some(frame) => format!("{text}@f{frame}"),
+            None => text,
+        }
+    };
+    let particle = |particle: &[Token]| particle.iter().map(token).collect::<Vec<_>>().join(".");
     let value = node
         .world
         .iter()
         .map(|world| {
-            let particle = if world.particle.is_empty() {
+            let text = if world.particle.is_empty() {
                 "∅".to_owned()
             } else {
-                world
-                    .particle
-                    .iter()
-                    .map(token)
-                    .collect::<Vec<_>>()
-                    .join(".")
+                particle(&world.particle)
             };
-            format!("[{particle}]@{}", node.frame[world.frame].scope)
+            format!("[{text}]@{}", node.frame[world.frame].scope)
         })
         .chain(
             node.frame
                 .iter()
                 .filter(|frame| !frame.particle.is_empty())
-                .map(|frame| {
-                    format!(
-                        "{{{}}}@{}",
-                        frame
-                            .particle
-                            .iter()
-                            .map(token)
-                            .collect::<Vec<_>>()
-                            .join("."),
-                        frame.scope
-                    )
-                }),
+                .map(|frame| format!("{{{}}}@{}", particle(&frame.particle), frame.scope)),
         )
         .collect::<Vec<_>>()
         .join(" ");
@@ -260,11 +247,4 @@ fn display(node: &Node) -> String {
         return "∅".to_owned();
     }
     value
-}
-
-fn token(token: &photonic::snapshot::Token) -> String {
-    match token.capture {
-        Some(frame) => format!("{}@f{frame}", token.display),
-        None => token.display.to_string(),
-    }
 }

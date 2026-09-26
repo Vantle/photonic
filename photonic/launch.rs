@@ -1,8 +1,6 @@
 use std::io::{Error, ErrorKind};
 use std::process::{Command, ExitCode};
 
-const OPERATION: [&str; 3] = ["run", "prism", "lower"];
-
 fn main() -> Result<ExitCode, Error> {
     let mut argument = std::env::args_os().skip(1);
     let executable = argument
@@ -18,12 +16,14 @@ fn main() -> Result<ExitCode, Error> {
             .ok_or_else(|| Error::new(ErrorKind::NotFound, format!("missing runfile: {name}")))
     };
     let argument = argument.collect::<Vec<_>>();
-    let operation = argument.first().and_then(|value| value.to_str());
-    let explicit = operation.is_some_and(|operation| OPERATION.contains(&operation));
+    let verb = argument
+        .first()
+        .and_then(|value| value.to_str())
+        .filter(|value| !value.starts_with('-'));
     let mut command = Command::new(resolve(&executable.to_string_lossy())?);
     command
-        .arg(if explicit { operation.unwrap() } else { "run" })
+        .arg(verb.unwrap_or("run"))
         .arg(resolve(&source.to_string_lossy())?);
-    command.args(&argument[usize::from(explicit)..]);
+    command.args(&argument[usize::from(verb.is_some())..]);
     Ok(relay::code(command.status()?))
 }

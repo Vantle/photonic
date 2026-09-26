@@ -1,4 +1,4 @@
-use crate::archive::{Archive, Record};
+use crate::archive::{Archive, Coverage, Proof, Record};
 use crate::corpus::addition;
 use crate::edit::seed;
 use crate::encoding::ATOM;
@@ -13,7 +13,7 @@ use translation::lift;
 use translation::vocabulary::Vocabulary;
 
 fn program(text: &str, vocabulary: &mut Vocabulary) -> Program {
-    lift::program(&photonic::lowering::parse(text).unwrap(), vocabulary)
+    lift::program(&frontend::lowering::parse(text).unwrap(), vocabulary)
         .unwrap()
         .0
 }
@@ -35,10 +35,10 @@ fn task(name: &str, rule: &str, input: &str, output: &str) -> (Task, Program) {
         vocabulary.intern(atom).unwrap();
     }
     let program = program(rule, &mut vocabulary);
-    let input = lift::program(&photonic::lowering::parse(input).unwrap(), &mut vocabulary)
+    let input = lift::program(&frontend::lowering::parse(input).unwrap(), &mut vocabulary)
         .unwrap()
         .1;
-    let output = lift::program(&photonic::lowering::parse(output).unwrap(), &mut vocabulary)
+    let output = lift::program(&frontend::lowering::parse(output).unwrap(), &mut vocabulary)
         .unwrap()
         .1;
     let task = Task {
@@ -56,9 +56,14 @@ fn task(name: &str, rule: &str, input: &str, output: &str) -> (Task, Program) {
 }
 
 fn best(archive: &Archive, task: &Task) -> Option<Record> {
-    archive
-        .entry(&task.name)
-        .and_then(|entry| entry.best.clone())
+    archive.best(&task.name).cloned()
+}
+
+fn whole(goal: Goal) -> Proof {
+    Proof {
+        goal,
+        coverage: Coverage::Whole,
+    }
 }
 
 #[test]
@@ -74,7 +79,10 @@ fn proof() {
     );
     assert!(
         archive
-            .offer(&task.name, record(merged.clone(), true).prove(setting.goal))
+            .offer(
+                &task.name,
+                record(merged.clone(), true).prove(whole(setting.goal))
+            )
             .is_none()
     );
     let proven = |archive: &Archive| {
@@ -82,18 +90,15 @@ fn proof() {
             .filter(|record| record.program == merged)
             .map(|record| record.proof)
     };
-    assert_eq!(proven(&archive), Some(Some(setting.goal)));
-    let problem = Problem::new(task.clone(), &setting.thorough(), ATOM).unwrap();
+    assert_eq!(proven(&archive), Some(Some(whole(setting.goal))));
+    let problem = Problem::new(task.clone(), &setting, ATOM).unwrap();
     renew(&mut archive, &problem, &setting);
-    assert_eq!(proven(&archive), Some(Some(setting.goal)));
+    assert_eq!(proven(&archive), Some(Some(whole(setting.goal))));
     let aimed = Task {
-        goal: Some(Goal {
-            processor: 1.0,
-            ..setting.goal
-        }),
+        goal: Some(Goal::new(1.0, setting.goal.size()).unwrap()),
         ..task.clone()
     };
-    let problem = Problem::new(aimed, &setting.thorough(), ATOM).unwrap();
+    let problem = Problem::new(aimed, &setting, ATOM).unwrap();
     renew(&mut archive, &problem, &setting);
     assert_eq!(proven(&archive), Some(None));
 }
@@ -111,8 +116,8 @@ fn redefinition() {
     let mut archive = Archive::default();
     archive.offer(&task.name, record(foreign.clone(), false));
     archive.offer(&task.name, stale.clone());
-    assert!((archive.best(&task.name) - stale.cost).abs() < 1e-12);
-    let problem = Problem::new(task.clone(), &setting.thorough(), ATOM).unwrap();
+    assert_eq!(best(&archive, &task), Some(stale));
+    let problem = Problem::new(task.clone(), &setting, ATOM).unwrap();
     renew(&mut archive, &problem, &setting);
     let entry = archive.entry(&task.name).unwrap();
     assert_eq!(
@@ -144,9 +149,9 @@ fn cost() {
     assert!(searched.correct && !searched.verified && verified.verified);
     assert!((searched.cost - verified.cost).abs() > TOLERANCE);
     let mut archive = Archive::default();
-    let found = Record::new(program, &searched, true, 0).prove(setting.goal);
+    let found = Record::new(program, &searched, true, 0).prove(whole(setting.goal));
     archive.offer(&task.name, found.clone());
-    let problem = Problem::new(task.clone(), &setting.thorough(), ATOM).unwrap();
+    let problem = Problem::new(task.clone(), &setting, ATOM).unwrap();
     renew(&mut archive, &problem, &setting);
     assert_eq!(best(&archive, &task), Some(found));
 }
@@ -164,13 +169,12 @@ fn confirmation() {
     let mut archive = Archive::default();
     archive.offer(&task.name, Record::new(program.clone(), &searched, true, 0));
     assert!(best(&archive, &task).is_some());
-    let problem = Problem::new(task.clone(), &setting.thorough(), ATOM).unwrap();
+    let problem = Problem::new(task.clone(), &setting, ATOM).unwrap();
     renew(&mut archive, &problem, &setting);
     assert_eq!(best(&archive, &task), None);
     assert!(
         archive
-            .entry(&task.name)
-            .and_then(|entry| entry.partial.as_ref())
+            .partial(&task.name)
             .is_none_or(|record| record.program != program)
     );
 }

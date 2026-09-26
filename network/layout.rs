@@ -2,13 +2,13 @@ use crate::matrix::Span;
 use std::ops::Range;
 
 #[derive(Clone, Debug, Default)]
-pub struct Layout {
+pub(crate) struct Layout {
     total: usize,
     decay: Vec<Range<usize>>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum Kind {
+pub(crate) enum Kind {
     Weight,
     Bias,
     Scale,

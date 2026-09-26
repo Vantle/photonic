@@ -904,7 +904,7 @@ td code {
     border-color: var(--edge);
 }
 
-.state[aria-pressed="true"] {
+.state[aria-current="true"] {
     border-color: var(--accent);
     box-shadow: 0 0 0 3px var(--ring);
 }
@@ -1627,6 +1627,10 @@ td code {
     padding: 3rem 1.5rem;
     text-align: center;
     color: var(--muted);
+}
+
+.viewer {
+    display: contents;
 }
 
 .filter {

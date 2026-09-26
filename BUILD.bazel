@@ -169,7 +169,6 @@ alias(
         "//machine:__pkg__",
         "//network:__pkg__",
         "//photonic:__pkg__",
-        "//program/binary:__pkg__",
         "//random:__pkg__",
         "//spectrum:__pkg__",
         "//symmetry:__pkg__",

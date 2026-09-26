@@ -51,27 +51,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         };
         source.push_str(&format!("[Stage{stage}] Stage{}{activation},\n", stage + 1));
     }
-    let program = photonic::lowering::parse(&source)?;
+    let program = frontend::lowering::parse(&source)?;
     let separator = if argument.activation { "." } else { "," };
-    let target = photonic::lowering::parse(&format!(
+    let mut target = frontend::lowering::parse(&format!(
         "{content},Stage{}.{particle}{separator}{gate}",
         argument.length.get()
     ))?;
-    let target = photonic::source::Program {
-        rule: program.rule.clone(),
-        ..target
-    };
+    target.preserve(&program);
     let limit = Limit {
-        state: argument.length.get() + 1,
+        configuration: argument.length.get() + 1,
         record: 100_000_000,
-        world: argument.width.get() + 2,
-        cell: (argument.width.get() + 1) * argument.term.get() + argument.count.get() + 1,
-        frame: 1,
+        coherence: argument.width.get() + 2,
+        occurrence: (argument.width.get() + 1) * argument.term.get() + argument.count.get() + 1,
+        scope: 1,
     };
-    evaluation::warm(&program, &target, Some(limit));
+    evaluation::warm(&program, &target, Some(limit))?;
     let measurement = (0..argument.sample.get())
         .map(|_| evaluation::evaluate(program.clone(), target.clone(), Some(limit)))
-        .collect::<Vec<_>>();
+        .collect::<Result<Vec<_>, _>>()?;
     serde_json::to_writer_pretty(
         std::io::stdout().lock(),
         &serde_json::json!({

@@ -12,7 +12,7 @@ pub struct Class {
     pub generator: Vec<Permutation>,
 }
 
-fn class(member: Vec<usize>, structure: &[Structure], symmetry: &[Symmetry]) -> Class {
+fn class(member: Vec<usize>, symmetry: &[Symmetry]) -> Class {
     let first = &symmetry[member[0]];
     let canonical = first.canonical();
     let map = |atom: Atom| canonical[&atom];
@@ -30,7 +30,7 @@ fn class(member: Vec<usize>, structure: &[Structure], symmetry: &[Symmetry]) -> 
             .iter()
             .map(|atom| renaming.iter().map(|map| map[atom]).collect())
             .collect(),
-        form: first.form(&structure[member[0]]),
+        form: first.form.clone(),
         size: first.size.clone(),
         block: first
             .block
@@ -63,6 +63,6 @@ pub fn compare(structure: &[Structure], budget: usize) -> Result<Vec<Class>, Exh
     }
     Ok(member
         .into_iter()
-        .map(|member| class(member, structure, &symmetry))
+        .map(|member| class(member, &symmetry))
         .collect())
 }

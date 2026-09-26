@@ -1,6 +1,4 @@
-use crate::catalog::Catalog;
-use crate::failure::Failure;
-use photonic::snapshot::{Frame, Kind, Node, Token, World};
+use photonic::snapshot::{Frame, Node, Token, Value};
 use serde::Serialize;
 use std::sync::Arc;
 
@@ -45,75 +43,56 @@ pub struct Configuration {
     frame: Vec<Scope>,
 }
 
-impl Occurrence {
-    fn new(token: Token, catalog: &Catalog) -> Result<Self, Failure> {
-        match token.kind {
-            Kind::Atom => Ok(Self::Atom {
+impl From<Token> for Occurrence {
+    fn from(token: Token) -> Self {
+        match token.value {
+            Value::Atom(label) => Self::Atom {
                 id: token.id,
-                label: token.label,
-            }),
-            Kind::Rule => Ok(Self::Rule {
+                label,
+            },
+            Value::Rule(rule) => Self::Rule {
                 id: token.id,
-                rule: catalog.rule(&token.label)?,
+                rule,
                 capture: token.capture,
-            }),
+            },
         }
     }
-
-    fn list(particle: Vec<Token>, catalog: &Catalog) -> Result<Vec<Self>, Failure> {
-        particle
-            .into_iter()
-            .map(|token| Self::new(token, catalog))
-            .collect()
-    }
 }
 
-impl Reference {
-    fn new(token: &Token, catalog: &Catalog) -> Result<Self, Failure> {
-        Ok(Self {
-            id: token.id,
-            rule: catalog.rule(&token.label)?,
-        })
-    }
+fn list(particle: Vec<Token>) -> Vec<Occurrence> {
+    particle.into_iter().map(Occurrence::from).collect()
 }
 
-impl Coherence {
-    fn new(world: World, catalog: &Catalog) -> Result<Self, Failure> {
-        Ok(Self {
-            frame: world.frame,
-            particle: Occurrence::list(world.particle, catalog)?,
-        })
-    }
-}
-
-impl Scope {
-    fn new(frame: Frame, catalog: &Catalog) -> Result<Self, Failure> {
-        Ok(Self {
+impl From<Frame> for Scope {
+    fn from(frame: Frame) -> Self {
+        Self {
             parent: frame.parent,
             particle: frame
                 .particle
                 .iter()
-                .map(|token| Reference::new(token, catalog))
-                .collect::<Result<_, _>>()?,
-            held: Occurrence::list(frame.held, catalog)?,
-        })
+                .filter_map(|token| match token.value {
+                    Value::Rule(rule) => Some(Reference { id: token.id, rule }),
+                    Value::Atom(_) => None,
+                })
+                .collect(),
+            held: list(frame.held),
+        }
     }
 }
 
-impl Configuration {
-    pub fn new(node: Node, catalog: &Catalog) -> Result<Self, Failure> {
-        Ok(Self {
+impl From<Node> for Configuration {
+    fn from(node: Node) -> Self {
+        Self {
             id: node.id,
             world: node
                 .world
                 .into_iter()
-                .map(|world| Coherence::new(world, catalog))
-                .collect::<Result<_, _>>()?,
-            frame: node
-                .frame
-                .into_iter()
-                .map(|frame| Scope::new(frame, catalog))
-                .collect::<Result<_, _>>()?,
-        })
+                .map(|world| Coherence {
+                    frame: world.frame,
+                    particle: list(world.particle),
+                })
+                .collect(),
+            frame: node.frame.into_iter().map(Scope::from).collect(),
+        }
     }
 }

@@ -44,8 +44,6 @@ pub struct Record {
     duration: f64,
     byte: usize,
     fingerprint: u64,
-    #[cfg(feature = "measurement")]
-    phase: Vec<photonic::profile::Measurement>,
     #[cfg(feature = "allocation")]
     footprint: crate::lifecycle::Footprint,
 }
@@ -58,8 +56,6 @@ pub fn measure<Value: Engine>(
 ) -> Record {
     let (mut engine, initialization) = meter::measure(initialize);
     let ((), execution) = meter::measure(|| engine.execute(budget, crate::lifecycle::limit()));
-    #[cfg(feature = "measurement")]
-    photonic::profile::take();
     let (output, export) = meter::measure(|| {
         let mut output = Output {
             buffer: (!writer).then(Vec::new),
@@ -72,8 +68,6 @@ pub fn measure<Value: Engine>(
         }
         output
     });
-    #[cfg(feature = "measurement")]
-    let phase = photonic::profile::take();
     let byte = output.length;
     let fingerprint = output.fingerprint.finish();
     let ((), release) = meter::measure(|| drop((engine, output)));
@@ -96,7 +90,5 @@ pub fn measure<Value: Engine>(
         duration,
         byte,
         fingerprint,
-        #[cfg(feature = "measurement")]
-        phase,
     }
 }

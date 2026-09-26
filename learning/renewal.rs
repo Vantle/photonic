@@ -2,8 +2,8 @@ use crate::archive::{Archive, Record};
 use crate::objective::{Evaluation, Setting, atom, evaluate, general};
 use crate::problem::Problem;
 use crate::task::Task;
+use crate::tree::walk;
 use code::program::Program;
-use code::tree::walk;
 
 fn fits(program: &Program, task: &Task) -> bool {
     atom(&walk(program))

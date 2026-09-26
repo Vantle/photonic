@@ -4,7 +4,7 @@ Bazel 9.2.0 is the only system build dependency. Rust, LLVM, Node, browser tools
 
 ## Incremental boundaries
 
-`frontend` owns syntax, parsing, lowering, diagnostics, and source types. Its tests link the frontend library instead of recompiling the runtime. `language` owns execution and Prism; its public frontend modules retain their existing paths. The build-time assembler depends only on `frontend`, so runtime edits cannot invalidate source assembly.
+`frontend` owns syntax, parsing, lowering, diagnostics, and source types. Its tests link the frontend library instead of recompiling the runtime. `language` owns execution and Prism. The build-time assembler depends only on `frontend`, so runtime edits cannot invalidate source assembly.
 
 Photonic dependencies use postorder depsets to preserve declaration order and deduplicate diamonds. Each assembly action reads and validates every transitive source itself. It does not wait for redundant library validation artifacts. Library initialization remains forbidden, and binary source/library overlap remains an error.
 
@@ -16,17 +16,17 @@ The WebAssembly adapter shares the main Rust dependency set. Its `wasm-bindgen` 
 
 Build-time helpers use `fastbuild`, independently of the target compilation mode. This reduced the sampled clean build from 33.270 to 28.994 seconds while leaving optimized runtime builds optimized.
 
-The default target compilation mode remains `fastbuild`. Use `--config=release` for optimized execution; it is equivalent to `-c opt`. Keep the mode consistent across build, test, formatting, and lint commands to avoid discarding Bazel's analysis cache:
+The default target compilation mode remains `fastbuild`. Use `-c opt` for optimized execution. Keep the mode consistent across build, test, formatting, and lint commands to avoid discarding Bazel's analysis cache:
 
 ```sh
-bazel build --config=release //...
-bazel test --config=release //...
-bazel test --config=release //toolchain/browser:check
+bazel build -c opt //...
+bazel test -c opt //...
+bazel test -c opt //toolchain/browser:check
 ```
 
 The default `//toolchain:check.bzl%check` aspect composes the pinned Rust formatting and Clippy aspects and propagates their outputs through dependencies, launchers, and WebAssembly transitions. Both `bazel build` and `bazel test` request its `check` output group in addition to normal outputs. No lint configuration flag is needed. The same aspect requires the shared `//toolchain:check` Buildifier action, so Bazel formatting and lint warnings also fail ordinary builds and tests. The action is cached once per configured inventory; it does not execute separately for every Rust target.
 
-The lint policy lives in `Cargo.toml`. The documented [rules_rs Cargo lint integration](https://github.com/hermeticbuild/rules_rs#cargo-lint-configuration) produces its Bazel configuration, exposed as `//:lint`. Compilation rules and toolchains come from `rules_rs`; its public compatibility repository supplies the formatting and Clippy aspects that it has not wrapped, and `.bazelrc` points their `rustfmt.toml` setting at the repository's file. No independent `rules_rust` dependency is used. One private field is read: the pinned Buildifier toolchain exposes its binary only as `_tool`, which `toolchain/starlark.bzl` reads in one place for both the check and the formatter.
+The lint policy lives in `Cargo.toml`. The documented [rules_rs Cargo lint integration](https://github.com/hermeticbuild/rules_rs#cargo-lint-configuration) produces its Bazel configuration, exposed as `//:lint`. Compilation rules and toolchains come from `rules_rs`; its public compatibility repository supplies the formatting and Clippy aspects that it has not wrapped, and `.bazelrc` points their `rustfmt.toml` setting at the repository's file. No independent `rules_rust` dependency is used. `platform/rust.patch` makes `rules_rs` run the `gnullvm` Rust tools instead of the MSVC ones on Windows hosts, matching the LLVM ABI the Windows platforms select, and ships the `libunwind.dll` from rustc's release archive with that `cargo`, which needs it at run time. One private field is read: the pinned Buildifier toolchain exposes its binary only as `_tool`, which `toolchain/starlark.bzl` reads in one place for both the check and the formatter.
 
 Every Rust target sets `lint_config = "//:lint"`; the aspect rejects missing configuration. This shared policy denies compiler warnings, Rust 2018 idiom violations, unused lifetimes, standard Clippy lints, and selected checks for redundant clones, copied values, explicit iterator loops, option handling, early returns, mutable references, nested patterns, `Self`, and unfinished debugging code. Following [Clippy's guidance](https://doc.rust-lang.org/clippy/lints.html), pedantic and restriction groups are not enabled wholesale. Add individual rules when they improve this codebase without routine exemptions. Fix diagnostics instead of adding `allow`, `expect`, or skip tags; an exception requires a concrete explanation of why a code fix is impossible. The one exemption is `gpu/runtime.rs`, which allows `unsafe_code` because Metal is reachable only through the Objective-C runtime; it states each invariant where the code relies on it, and the rest of the `gpu` crate denies unsafe code.
 
@@ -40,7 +40,7 @@ The browser check runs locally on ARM64 macOS. The [Buildkite pipeline](automati
 
 Bazel already retains its analysis graph, caches test results, schedules parallel actions, and reuses sandbox directories. Explicit Rust pipelining was measured at 36.118 seconds, slower than the 33.270-second comparison build, so it remains disabled. Retain measured defaults rather than adding flags solely because they are experimental. Keep the Bazel server running and avoid `bazel clean` during ordinary editing. A disk cache helps recover previous outputs after reverting an edit or switching branches; it does not make a new compiler invocation free.
 
-`MODULE.bazel.lock` is checked strictly: `.bazelrc` sets `--lockfile_mode=error`, so after changing a module dependency run a command with `--config=refresh` to update the lock file. `bazel run //:update` runs the pinned `cargo update` from the workspace root, and `bazel run //:analyze.rust` writes `rust-project.json` for editors. `bazel run //:install` builds the `photonic` command optimized, whatever the command line's compilation mode, and copies it to `~/.local/bin`, or to `~/bin` or `~/.bin` when one of those is already on `PATH`, or to a directory passed after `--`.
+`MODULE.bazel.lock` is checked strictly: `.bazelrc` sets `--lockfile_mode=error`, so after changing a module dependency run a command with `--config=refresh` to update the lock file. `bazel run //:update` runs the pinned `cargo update` from the workspace root; after a `Cargo.toml` change, `bazel run //:update -- --workspace` re-locks the manifest's own entries without raising other dependencies. `bazel run //:analyze.rust` writes `rust-project.json` for editors. `bazel run //:install` builds the `photonic` command optimized, whatever the command line's compilation mode, and copies it to `~/.local/bin`, or to `~/bin` or `~/.bin` when one of those is already on `PATH`, or to a directory passed after `--`. It runs the new copy with `--version` before it replaces an installed command.
 
 Put machine-specific overrides and remote service endpoints in ignored `user.bazelrc`. `--config=remote` enables remote-only execution with minimal output downloads and no local fallback; a configured executor is required. No external service is needed for local caching.
 

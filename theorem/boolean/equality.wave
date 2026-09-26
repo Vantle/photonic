@@ -1,0 +1,8 @@
+Case.(([P] True), ([P] False)).(([Q] True), ([Q] False)),
+
+[Claim] (Function.Boolean.Equal.Answer.P.Q, Given.P.Q),
+[Return.True.Answer, Given.True.True] Return.Verdict.True,
+[Return.False.Answer, Given.True.False] Return.Verdict.True,
+[Return.True.Answer, Given.False.False] Return.Verdict.True,
+
+[Holds.(([P] True), ([P] False)).(([Q] True), ([Q] False))] Theorem

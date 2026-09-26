@@ -59,8 +59,9 @@ Exact fingerprint summaries, whole-array color copying, canonical graph construc
 ```sh
 bazel test -c opt //... //toolchain/browser:check --test_output=errors
 bazel run -c opt //:format -- --check
-bazel run -c opt //benchmark:layout -- --width 65536 --length 32 --sample 51
-bazel run -c opt //benchmark:layout -- --width 65536 --length 32 --sample 51 --descending
-bazel run -c opt //benchmark:layout -- --width 4096 --length 32 --sample 301 --replacement
 bazel run -c opt //benchmark:lifecycle -- expression '2*2*2*2*2*2' 2101 --sample 3 --export view --writer
 ```
+
+This benchmark was removed after `0daf296` and still runs at that commit:
+
+- [`layout`](https://github.com/Vantle/photonic/blob/0daf296e1d126675ed445bfb7ed6674a379b1532/benchmark/layout.rs) with `--width 65536 --length 32 --sample 51`, `--width 65536 --length 32 --sample 51 --descending` and `--width 4096 --length 32 --sample 301 --replacement`

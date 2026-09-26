@@ -42,11 +42,11 @@ Dispatch resolves indexed eligible plans to live occurrences. Lexically nearer c
 
 ## Exact targets
 
-Targets specify the complete state, including live rules. `A, [A] B` reaches `B, [A] B`; it does not reach bare `B`. After `[A] B, [[A] B] C` consumes the first occurrence, the complete target is `C, [[A] B] C`. Target compilation resolves rules and atoms by lookup, copies the program interner only for a target that mentions a symbol the program never interned, and never alters execution.
+Targets specify the complete state, including live rules. `A, [A] B` reaches `B, [A] B`; it does not reach bare `B`. After `[A] B, [[A] B] C` consumes the first occurrence, the complete target is `C, [[A] B] C`. Target compilation resolves rules and atoms by lookup, copies the program only for a target that mentions a symbol the program never interned, and never alters execution.
 
 Textual targets describe root coherences and independently introduced root rule occurrences. They cannot yet encode arbitrary shared occurrence graphs or captured nested contexts. Canonical equality still accounts for those structures; this limitation concerns expressing a target, not ignoring parts of state.
 
-Every `photonic_test` states `preserve`: when true, each expected target also includes the loaded root rules. Existing data fixtures remain useful for arithmetic and protocol assertions, but are not implicitly complete runtime targets. The command `lower data.particle --context program.wave` explicitly appends the selected source's root rules to its emitted JSON. Repeat the option for library sources, or export an assembled program using the binary's `lower` command first. This operation copies unchanged definitions; it does not infer which rules should survive. Consuming programs must specify their surviving rule occurrences themselves.
+Every `photonic_test` target also includes the loaded root rules, as Spectrum's exact claims and path goals do with `--preserve`. Existing data fixtures remain useful for arithmetic and protocol assertions, but are not implicitly complete runtime targets; `prism` reads its target file as the complete configuration. Adding the root rules copies unchanged definitions; it does not infer which rules should survive. Consuming programs must specify their surviving rule occurrences themselves.
 
 ## Migration record
 

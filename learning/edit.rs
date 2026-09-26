@@ -1,21 +1,21 @@
-use code::analogy::{correspond, partition};
+use crate::analogy::{correspond, partition};
+use crate::tree::{Place, transform, walk};
 use code::atom::Atom;
 use code::output::Output;
 use code::particle::Particle;
 use code::program::Program;
 use code::rule::Rule;
-use code::tree::{Place, transform, walk};
 use code::value::Value;
 use random::Generator;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum Side {
+pub(crate) enum Side {
     Input,
     Output,
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum Action {
+pub(crate) enum Action {
     Stop,
     Create {
         atom: Atom,
@@ -66,7 +66,7 @@ pub enum Action {
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum Local {
+pub(crate) enum Local {
     Delete {
         rule: usize,
     },
@@ -135,7 +135,7 @@ impl Default for Bound {
     }
 }
 
-pub fn seed(atom: Atom) -> Rule {
+pub(crate) fn seed(atom: Atom) -> Rule {
     Rule::new(
         vec![Particle::atom(&[atom])],
         vec![Output::plain(Particle::default())],
@@ -158,7 +158,7 @@ fn modify(program: &Program, index: usize, change: impl FnOnce(&Rule) -> Rule) -
     transform(program, index, |rule| vec![change(rule)])
 }
 
-pub fn apply(program: &Program, action: Action) -> Program {
+pub(crate) fn apply(program: &Program, action: Action) -> Program {
     match action {
         Action::Stop => program.clone(),
         Action::Create { atom } => {
@@ -422,7 +422,7 @@ fn local(index: usize, rule: &Rule) -> Vec<Local> {
     result
 }
 
-pub fn legal(program: &Program, vocabulary: usize, bound: &Bound) -> Vec<Action> {
+pub(crate) fn legal(program: &Program, vocabulary: usize, bound: &Bound) -> Vec<Action> {
     let atom = || (0..vocabulary).map(|index| Atom(index as u16));
     let node = walk(program);
     let growth = node.len() < bound.rule;
@@ -502,7 +502,7 @@ pub fn legal(program: &Program, vocabulary: usize, bound: &Bound) -> Vec<Action>
     result
 }
 
-pub fn perturb(
+pub(crate) fn perturb(
     program: &Program,
     vocabulary: usize,
     bound: &Bound,

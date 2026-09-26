@@ -77,7 +77,7 @@ fn differential() {
 
 #[test]
 fn sharing() {
-    let program = crate::program::Program::new(&crate::lowering::parse("A,B, [A] C").unwrap());
+    let program = crate::program::Program::new(&frontend::lowering::parse("A,B, [A] C").unwrap());
     let state = State::initial(&program);
     let index = Index::new(&state);
     let mut changed = state.clone();

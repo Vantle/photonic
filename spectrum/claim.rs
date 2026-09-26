@@ -38,21 +38,21 @@ pub struct Claim {
 
 #[derive(Clone, Copy, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
-pub enum Answer {
+pub(crate) enum Answer {
     Holds,
     Fails,
     Unknown,
 }
 
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
-pub struct Verdict {
-    pub claim: Claim,
-    pub answer: Answer,
+pub(crate) struct Verdict {
+    pub(crate) claim: Claim,
+    pub(crate) answer: Answer,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub witness: Option<String>,
+    pub(crate) witness: Option<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub path: Vec<String>,
-    pub reason: String,
+    pub(crate) path: Vec<String>,
+    pub(crate) reason: String,
 }
 
 struct Evidence {

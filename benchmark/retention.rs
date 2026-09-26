@@ -21,16 +21,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     for index in 0..argument.length {
         source.push_str(&format!("[Stage.{index}] Stage.{},\n", index + 1));
     }
-    let program = photonic::lowering::parse(&source)?;
-    let target = photonic::lowering::parse(&format!("A,Stage.{}", argument.length))?;
-    let target = photonic::source::Program {
-        rule: program.rule.clone(),
-        ..target
-    };
-    evaluation::warm(&program, &target, None);
+    let program = frontend::lowering::parse(&source)?;
+    let mut target = frontend::lowering::parse(&format!("A,Stage.{}", argument.length))?;
+    target.preserve(&program);
+    evaluation::warm(&program, &target, None)?;
     let measurement = (0..argument.sample)
         .map(|_| evaluation::evaluate(program.clone(), target.clone(), None))
-        .collect::<Vec<_>>();
+        .collect::<Result<Vec<_>, _>>()?;
     serde_json::to_writer_pretty(
         std::io::stdout().lock(),
         &serde_json::json!({

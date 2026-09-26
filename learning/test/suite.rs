@@ -1,8 +1,11 @@
+mod analogy;
 mod archive;
+mod attempt;
 mod bar;
 mod corpus;
 mod curriculum;
 mod demonstration;
+mod distance;
 mod edit;
 mod encoding;
 mod guide;
@@ -14,4 +17,6 @@ mod renewal;
 mod search;
 mod session;
 mod solution;
+mod support;
 mod task;
+mod tree;

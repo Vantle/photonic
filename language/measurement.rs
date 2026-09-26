@@ -1,23 +1,4 @@
-pub mod bulk;
-pub mod composition;
-pub mod context;
 pub mod dispatch;
-pub mod exhaustive;
-pub mod fingerprint;
-pub mod gate;
-pub mod joining;
-pub mod layout;
-pub mod maintenance;
-pub mod partition;
-pub mod preparation;
-pub mod query;
-pub mod reachability;
-pub mod residual;
 pub mod scope;
-pub mod search;
-pub mod sharing;
 pub mod subscription;
 pub mod symmetry;
-pub mod transcript;
-
-pub use crate::joining::segment;

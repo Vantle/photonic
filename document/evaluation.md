@@ -59,6 +59,6 @@ bazel run -c opt //benchmark:arithmetic -- 1234567890 add 9876543210 --radix 10 
 bazel run -c opt //benchmark:retention -- --width 200 --length 1000 --sample 3
 ```
 
-`//benchmark:trace` also accepts `--state` for longer externally assembled programs. Increasing this benchmark limit does not change runtime or browser defaults.
+The [`trace`](https://github.com/Vantle/photonic/blob/0daf296e1d126675ed445bfb7ed6674a379b1532/benchmark/trace.rs) benchmark, removed after `0daf296`, also accepts `--state` for longer externally assembled programs. Increasing this benchmark limit does not change runtime or browser defaults.
 
 `statistic.refinement` and `statistic.resolution` count retained states with cached four-round and eight-round fingerprints. `statistic.normalization` counts retained states with completed canonical forms; it excludes the separately stored goal and changes if callers subsequently inspect more history. `statistic.bucket` is the largest primary fingerprint bucket. `statistic.preparation` and `statistic.reuse` count freshly prepared and reused selections. Diagnostics are collected outside the execution timer.

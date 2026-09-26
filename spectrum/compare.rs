@@ -12,8 +12,10 @@ use std::collections::BTreeMap;
 
 const BUDGET: usize = 100_000;
 
+pub const LIMIT: usize = 12;
+
 fn limit() -> usize {
-    12
+    LIMIT
 }
 
 #[derive(Clone, Debug, Deserialize, JsonSchema, Serialize)]
@@ -31,59 +33,59 @@ pub struct Request {
 }
 
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
-pub struct Side {
-    pub exploration: String,
-    pub complete: bool,
-    pub configuration: usize,
-    pub event: usize,
+pub(crate) struct Side {
+    pub(crate) exploration: String,
+    pub(crate) complete: bool,
+    pub(crate) configuration: usize,
+    pub(crate) event: usize,
 }
 
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
-pub struct Entry {
-    pub handle: String,
-    pub text: String,
-    pub path: Vec<String>,
+pub(crate) struct Entry {
+    pub(crate) handle: String,
+    pub(crate) text: String,
+    pub(crate) path: Vec<String>,
 }
 
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
-pub struct Group {
-    pub rule: String,
+pub(crate) struct Group {
+    pub(crate) rule: String,
     #[serde(skip_serializing_if = "std::ops::Not::not")]
-    pub inferred: bool,
-    pub source: String,
-    pub target: String,
-    pub count: usize,
+    pub(crate) inferred: bool,
+    pub(crate) source: String,
+    pub(crate) target: String,
+    pub(crate) count: usize,
 }
 
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
-pub struct Change<Item> {
+pub(crate) struct Change<Item> {
     #[schemars(
         description = "What the right side has and the left does not; handles name the right side."
     )]
-    pub gained: Vec<Item>,
+    pub(crate) gained: Vec<Item>,
     #[schemars(
         description = "What the left side has and the right does not; handles name the left side."
     )]
-    pub lost: Vec<Item>,
+    pub(crate) lost: Vec<Item>,
     #[schemars(description = "Differences beyond those listed.")]
-    pub more: usize,
+    pub(crate) more: usize,
 }
 
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
-pub struct Pair {
-    pub claim: Claim,
-    pub left: claim::Answer,
-    pub right: claim::Answer,
+pub(crate) struct Pair {
+    pub(crate) claim: Claim,
+    pub(crate) left: claim::Answer,
+    pub(crate) right: claim::Answer,
 }
 
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 pub struct Answer {
-    pub left: Side,
-    pub right: Side,
-    pub configuration: Change<Entry>,
-    pub event: Change<Group>,
+    pub(crate) left: Side,
+    pub(crate) right: Side,
+    pub(crate) configuration: Change<Entry>,
+    pub(crate) event: Change<Group>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub claim: Vec<Pair>,
+    pub(crate) claim: Vec<Pair>,
 }
 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -188,7 +190,7 @@ fn index(exploration: &Exploration) -> Result<Index, Failure> {
 fn side(exploration: &Exploration, index: &Index) -> Side {
     Side {
         exploration: exploration.name(),
-        complete: exploration.closed,
+        complete: exploration.settled(),
         configuration: index.configuration.len(),
         event: index.event.values().map(Vec::len).sum(),
     }
@@ -244,7 +246,7 @@ fn change<Item>(gained: Vec<Item>, lost: Vec<Item>, limit: usize) -> Change<Item
     }
 }
 
-pub fn answer(request: &Request, context: &mut Context<'_>) -> Result<Answer, Failure> {
+pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Answer, Failure> {
     let left = context.exploration(&request.left)?;
     let right = context.exploration(&request.right)?;
     let (before, after) = (index(&left)?, index(&right)?);
@@ -270,23 +272,38 @@ pub fn answer(request: &Request, context: &mut Context<'_>) -> Result<Answer, Fa
     })
 }
 
+impl Side {
+    fn name(&self) -> String {
+        if self.complete {
+            return self.exploration.clone();
+        }
+        format!("{} open", self.exploration)
+    }
+}
+
 impl<Item> Change<Item> {
-    pub fn same(&self) -> bool {
+    pub(crate) fn same(&self) -> bool {
         self.gained.is_empty() && self.lost.is_empty() && self.more == 0
     }
 }
 
 impl Answer {
-    pub fn passed(&self) -> bool {
-        self.configuration.same()
+    pub(crate) fn passed(&self) -> bool {
+        self.left.complete
+            && self.right.complete
+            && self.configuration.same()
             && self.event.same()
-            && self.claim.iter().all(|pair| pair.left == pair.right)
+            && self
+                .claim
+                .iter()
+                .all(|pair| pair.left == pair.right && pair.left != claim::Answer::Unknown)
     }
 
-    pub fn text(&self) -> String {
+    pub(crate) fn text(&self) -> String {
         let mut line = vec![format!(
             "compare {} {}",
-            self.left.exploration, self.right.exploration
+            self.left.name(),
+            self.right.name()
         )];
         if self.configuration.same() {
             line.push(format!(

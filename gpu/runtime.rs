@@ -87,7 +87,7 @@ struct Handle(Object);
 
 // Handles own a +1 reference to devices, queues, buffers, libraries and pipeline states,
 // which Metal documents as safe to use from any thread; command buffers and encoders stay
-// inside one Command, which is neither Send nor Sync.
+// inside one Command, whose raw-pointer marker makes it neither Send nor Sync.
 unsafe impl Send for Handle {}
 unsafe impl Sync for Handle {}
 
@@ -259,6 +259,7 @@ impl Device {
             encoder: None,
             retained: Vec::new(),
             borrow: PhantomData,
+            local: PhantomData,
         })
     }
 }
@@ -318,6 +319,7 @@ pub struct Command<'device> {
     encoder: Option<Handle>,
     retained: Vec<Handle>,
     borrow: PhantomData<&'device Memory>,
+    local: PhantomData<*const ()>,
 }
 
 impl Drop for Command<'_> {

@@ -76,14 +76,14 @@ fn ordering() {
 fn single(program: &str, input: &str, output: &str) -> (Program, Example, Vocabulary) {
     let mut vocabulary = Vocabulary::default();
     let (program, _) = lift::program(
-        &photonic::lowering::parse(program).unwrap(),
+        &frontend::lowering::parse(program).unwrap(),
         &mut vocabulary,
     )
     .unwrap();
     let (_, input) =
-        lift::program(&photonic::lowering::parse(input).unwrap(), &mut vocabulary).unwrap();
+        lift::program(&frontend::lowering::parse(input).unwrap(), &mut vocabulary).unwrap();
     let (_, output) =
-        lift::program(&photonic::lowering::parse(output).unwrap(), &mut vocabulary).unwrap();
+        lift::program(&frontend::lowering::parse(output).unwrap(), &mut vocabulary).unwrap();
     (
         program,
         Example {

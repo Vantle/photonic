@@ -1,6 +1,6 @@
-use crate::lowering::parse;
-use crate::prism::{Outcome, Search};
-use crate::runtime::Limit;
+use crate::prism::Outcome;
+use crate::runtime::{Limit, Runtime};
+use frontend::lowering::parse;
 
 fn particle(label: &str, count: usize) -> String {
     if count == 0 {
@@ -10,24 +10,20 @@ fn particle(label: &str, count: usize) -> String {
 }
 
 fn check(source: &str, target: &str) -> Outcome {
-    let mut search = {
-        let program = parse(source).unwrap();
-        let target = crate::source::Program {
-            rule: program.rule.clone(),
-            ..parse(target).unwrap()
-        };
-        Search::new(program, target)
-    };
-    search.run(
+    let program = parse(source).unwrap();
+    let goal = crate::test::target(&program, target);
+    let mut runtime = Runtime::new(&program);
+    runtime.run(
         12_000,
-        Some(Limit {
-            cell: 32,
+        Limit {
+            occurrence: 32,
             ..Limit::default()
-        }),
+        },
     );
-    let report = search.report();
-    assert!(report.execution.closed, "{source}");
-    report.outcome
+    let verdict = runtime.verdict(&goal);
+    let report = runtime.snapshot();
+    assert!(report.closed, "{source}");
+    verdict.outcome
 }
 
 #[test]

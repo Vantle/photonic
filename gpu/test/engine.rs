@@ -1,16 +1,97 @@
 use super::support::{configuration, input, sample};
 use crate::engine::Engine;
-use crate::failure::Failure;
+use crate::failure::{Defect, Failure};
+use network::input::{Input, Pointer};
 use network::loss::Weight;
 use network::model::Model;
 use network::optimizer::{Optimizer, Setting};
 use random::Generator;
 
 #[test]
+fn malformed() {
+    let mut generator = Generator::new(13);
+    let configuration = configuration();
+    let model = Model::new(configuration.clone(), &mut generator);
+    let mut engine = match Engine::new(&model) {
+        Ok(engine) => engine,
+        Err(Failure::Unavailable(_)) => return,
+        Err(error) => panic!("{error}"),
+    };
+    assert!(matches!(
+        engine.prepare(&Optimizer::new(model.size() - 1, Setting::default())),
+        Err(Failure::Length { .. })
+    ));
+    let valid = input(&mut generator, &configuration);
+    let field = configuration.field.len();
+    let length = valid.length(field) as u32;
+    let mut feature = valid.feature.clone();
+    feature[0] = 7;
+    let case = [
+        (
+            Input {
+                feature: Vec::new(),
+                pointer: Vec::new(),
+            },
+            Defect::Empty,
+        ),
+        (
+            Input {
+                feature: valid.feature[1..].to_vec(),
+                ..valid.clone()
+            },
+            Defect::Length {
+                length: valid.feature.len() - 1,
+                field,
+            },
+        ),
+        (
+            Input {
+                feature,
+                ..valid.clone()
+            },
+            Defect::Value {
+                token: 0,
+                field: 0,
+                value: 7,
+                cardinality: 7,
+            },
+        ),
+        (
+            Input {
+                pointer: vec![Pointer::Unary { head: 3, token: 0 }],
+                ..valid.clone()
+            },
+            Defect::Head { head: 3, count: 3 },
+        ),
+        (
+            Input {
+                pointer: vec![Pointer::Binary {
+                    head: 0,
+                    left: 0,
+                    right: length,
+                }],
+                ..valid.clone()
+            },
+            Defect::Token {
+                token: length,
+                length: length as usize,
+            },
+        ),
+    ];
+    for (malformed, expected) in case {
+        let Err(Failure::Input { sample: 1, defect }) = engine.infer(&[&valid, &malformed]) else {
+            panic!("{expected} was accepted");
+        };
+        assert_eq!(defect, expected);
+    }
+    assert_eq!(engine.infer(&[&valid]).unwrap().len(), 1);
+}
+
+#[test]
 fn agreement() {
     let mut generator = Generator::new(7);
     let mut model = Model::new(configuration(), &mut generator);
-    for value in &mut model.parameter {
+    for value in model.edit() {
         *value += generator.normal() as f32 * 0.2;
     }
     let mut engine = match Engine::new(&model) {
@@ -36,12 +117,12 @@ fn agreement() {
             assert!((left - right).abs() < 1e-3, "{left} {right}");
         }
     }
-    for value in &mut model.parameter {
+    for value in model.edit() {
         *value *= 0.5;
     }
-    engine.load(&model.parameter).unwrap();
+    engine.load(model.parameter()).unwrap();
     assert!(matches!(
-        engine.load(&model.parameter[1..]),
+        engine.load(&model.parameter()[1..]),
         Err(Failure::Length { .. })
     ));
     let expected = model.infer(&reference);
@@ -59,7 +140,7 @@ fn training() {
     let mut generator = Generator::new(11);
     let configuration = configuration();
     let mut model = Model::new(configuration.clone(), &mut generator);
-    for value in &mut model.parameter {
+    for value in model.edit() {
         *value += generator.normal() as f32 * 0.2;
     }
     let mut engine = match Engine::new(&model) {
@@ -84,7 +165,7 @@ fn training() {
     let mut gradient = vec![0.0; model.size()];
     let expected = model.gradient(&reference, &mut gradient, weight);
     let mut optimizer = Optimizer::new(model.size(), Setting::default());
-    let mut parameter = model.parameter.clone();
+    let mut parameter = model.parameter().to_vec();
     let norm = optimizer.update(&mut parameter, &gradient, model.decay(), rate);
     engine
         .prepare(&Optimizer::new(model.size(), Setting::default()))
@@ -119,7 +200,7 @@ fn training() {
         };
         assert!((left - right).abs() <= bound, "{left} {right} {change}");
     }
-    model.parameter = updated;
+    model.load(updated).unwrap();
     let subset = &reference[..3];
     let mut scratch = vec![0.0; model.size()];
     let expected = model.gradient(subset, &mut scratch, weight);
@@ -131,7 +212,7 @@ fn training() {
         .iter()
         .map(|sample| &sample.input)
         .collect::<Vec<_>>();
-    model.parameter = engine.parameter();
+    model.load(engine.parameter()).unwrap();
     let expected = model.infer(&input);
     let actual = engine.infer(&input).unwrap();
     for (expected, actual) in expected.iter().zip(&actual) {

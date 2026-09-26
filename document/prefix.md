@@ -86,7 +86,6 @@ The measured prefix gain is also bounded by replaying each logical suspension se
 ## Reproduction
 
 ```sh
-bazel run -c opt //benchmark:joining
 bazel run -c opt //benchmark:prefix -- --width 8 --delay 32 --length 100 --sample 9
 bazel run -c opt //benchmark:prefix -- --width 12 --delay 128 --length 100 --sample 9
 bazel run -c opt //benchmark:prefix -- --width 8 --delay 32 --length 100 --changing --sample 9
@@ -97,5 +96,9 @@ bazel run -c opt //benchmark:runtime
 bazel test --nocache_test_results //language:test
 bazel test -c opt --nocache_test_results //...
 ```
+
+This benchmark was removed after `0daf296` and still runs at that commit:
+
+- [`joining`](https://github.com/Vantle/photonic/blob/0daf296e1d126675ed445bfb7ed6674a379b1532/benchmark/joining.rs)
 
 The expression target takes ternary numerals. The arithmetic target above accepts decimal operands through `--radix 10`. To reproduce the baseline comparison, copy the three new benchmark harness files listed in the JSON into an isolated `20984f1` worktree and register their explicit Bazel targets and measurement module; leave the baseline runtime unchanged.

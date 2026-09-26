@@ -15,7 +15,7 @@ fn automorphism(structure: &Structure) -> usize {
                 .copied()
                 .zip(image.iter().copied())
                 .collect::<BTreeMap<_, _>>();
-            structure.rename(|atom| map[&atom]) == *structure
+            super::support::rename(structure, |atom| map[&atom]) == *structure
         })
         .count()
 }
@@ -27,7 +27,7 @@ fn isomorphic(left: &Structure, right: &Structure) -> bool {
     }
     permutation(&to).into_iter().any(|image| {
         let map = from.iter().copied().zip(image).collect::<BTreeMap<_, _>>();
-        left.rename(|atom| map[&atom]) == *right
+        super::support::rename(left, |atom| map[&atom]) == *right
     })
 }
 
@@ -63,7 +63,10 @@ fn order() {
             "{structure:?}"
         );
         for permutation in super::support::generator(&symmetry) {
-            assert_eq!(structure.rename(|atom| permutation.image(atom)), structure);
+            assert_eq!(
+                super::support::rename(&structure, |atom| permutation.image(atom)),
+                structure
+            );
         }
         symmetric += usize::from(count > 1);
     }
@@ -95,7 +98,7 @@ fn decision() {
         let map = first.isomorphism(&second);
         assert_eq!(map.is_some(), expected, "{left:?}\n{right:?}");
         if let Some(map) = map {
-            assert_eq!(left.rename(|atom| map[&atom]), right);
+            assert_eq!(super::support::rename(&left, |atom| map[&atom]), right);
             equal += 1;
         }
     }

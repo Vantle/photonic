@@ -4,13 +4,13 @@ use code::program::Program;
 use code::rule::Rule;
 
 pub fn rule(rule: &Rule, vocabulary: &Vocabulary) -> String {
-    photonic::text::definition(&crate::emit::definition(rule, vocabulary))
+    frontend::text::definition(&crate::emit::definition(rule, vocabulary))
 }
 
 pub fn configuration(configuration: &Configuration, vocabulary: &Vocabulary) -> String {
     crate::emit::configuration(configuration, vocabulary)
         .iter()
-        .map(|particle| photonic::text::coherence(particle))
+        .map(|particle| frontend::text::coherence(particle))
         .collect::<Vec<_>>()
         .join(", ")
 }

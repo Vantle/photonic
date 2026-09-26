@@ -3,6 +3,7 @@ use crate::exploration::explore;
 use crate::limit::Limit;
 use crate::state::State;
 use code::configuration::Configuration;
+use std::time::{Duration, Instant};
 
 fn terminal(exploration: &crate::exploration::Exploration) -> Vec<Configuration> {
     let mut value = exploration
@@ -158,4 +159,19 @@ fn crowd() {
     };
     assert!(explore(&program, crowd.clone(), &bounded, |_| false).overflow);
     assert!(!explore(&program, crowd, &Limit::default(), |_| false).overflow);
+}
+
+#[test]
+fn deadline() {
+    let program = program(vec![rule(&[&[A]], &[&[B]]), rule(&[&[B]], &[&[C]])]);
+    let expired = Limit {
+        deadline: Some(Instant::now()),
+        ..Limit::default()
+    };
+    assert!(explore(&program, state(&[&[A], &[A]]), &expired, |_| false).overflow);
+    let later = Limit {
+        deadline: Some(Instant::now() + Duration::from_secs(600)),
+        ..Limit::default()
+    };
+    assert!(explore(&program, state(&[&[A], &[A]]), &later, |_| false).complete());
 }

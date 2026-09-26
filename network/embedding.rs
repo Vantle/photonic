@@ -9,7 +9,7 @@ pub struct Embedding {
 }
 
 impl Embedding {
-    pub fn new(layout: &mut Layout, field: &[usize], width: usize) -> Self {
+    pub(crate) fn new(layout: &mut Layout, field: &[usize], width: usize) -> Self {
         Self {
             table: field
                 .iter()
@@ -18,7 +18,12 @@ impl Embedding {
         }
     }
 
-    pub fn initialize(&self, parameter: &mut [f32], generator: &mut Generator, deviation: f32) {
+    pub(crate) fn initialize(
+        &self,
+        parameter: &mut [f32],
+        generator: &mut Generator,
+        deviation: f32,
+    ) {
         for table in &self.table {
             for value in table.write(parameter) {
                 *value = generator.normal() as f32 * deviation;
@@ -26,7 +31,7 @@ impl Embedding {
         }
     }
 
-    pub fn forward(&self, parameter: &[f32], feature: &[u16], width: usize) -> Array2<f32> {
+    pub(crate) fn forward(&self, parameter: &[f32], feature: &[u16], width: usize) -> Array2<f32> {
         let field = self.table.len();
         let length = feature.len() / field;
         let mut result = Array2::zeros((length, width));
@@ -39,7 +44,12 @@ impl Embedding {
         result
     }
 
-    pub fn backward(&self, gradient: &mut [f32], feature: &[u16], delta: &ArrayView2<'_, f32>) {
+    pub(crate) fn backward(
+        &self,
+        gradient: &mut [f32],
+        feature: &[u16],
+        delta: &ArrayView2<'_, f32>,
+    ) {
         let field = self.table.len();
         for (index, table) in self.table.iter().enumerate() {
             let mut view = table.edit(gradient);

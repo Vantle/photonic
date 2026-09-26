@@ -1,9 +1,48 @@
-use crate::failure::Failure;
+use crate::failure::{Defect, Failure};
 use crate::pipeline::TILE;
 use crate::runtime::{Device, Memory};
 use network::configuration::Configuration;
 use network::input::{Input, Pointer};
 use network::pack::Pack;
+
+fn inspect(input: &Input, configuration: &Configuration) -> Result<(), Defect> {
+    let field = configuration.field.len();
+    let feature = input.feature.len();
+    if field == 0 || !feature.is_multiple_of(field) {
+        return Err(Defect::Length {
+            length: feature,
+            field,
+        });
+    }
+    if feature == 0 {
+        return Err(Defect::Empty);
+    }
+    for (index, &value) in input.feature.iter().enumerate() {
+        let cardinality = configuration.field[index % field];
+        if usize::from(value) >= cardinality {
+            return Err(Defect::Value {
+                token: index / field,
+                field: index % field,
+                value,
+                cardinality,
+            });
+        }
+    }
+    let length = input.length(field);
+    for pointer in &input.pointer {
+        let (head, count, target) = match *pointer {
+            Pointer::Unary { head, token } => (head, configuration.unary, [token, token]),
+            Pointer::Binary { head, left, right } => (head, configuration.binary, [left, right]),
+        };
+        if usize::from(head) >= count {
+            return Err(Defect::Head { head, count });
+        }
+        if let Some(token) = target.into_iter().find(|&token| token as usize >= length) {
+            return Err(Defect::Token { token, length });
+        }
+    }
+    Ok(())
+}
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct Extent {
@@ -43,6 +82,9 @@ impl Batch {
         input: &[&Input],
         configuration: &Configuration,
     ) -> Result<Self, Failure> {
+        for (sample, input) in input.iter().enumerate() {
+            inspect(input, configuration).map_err(|defect| Failure::Input { sample, defect })?;
+        }
         let pack = Pack::new(input, configuration.field.len());
         let extent = Extent {
             token: pack.feature.len() / configuration.field.len(),

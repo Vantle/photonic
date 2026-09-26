@@ -1,4 +1,4 @@
-[Function.Natural.Difference] (Function.Natural.Deduct, Difference.Wait),
-[Return.Natural.Deduct.Positive, Difference.Wait] Return.Natural.Difference.Positive,
-[Return.Natural.Deduct.Negative, Difference.Wait] (Function.Natural.Complement, Forget.Difference.Finish),
-[Return.Natural.Complement, Clean.Difference.Finish] Return.Natural.Difference.Negative
+[Function.Natural.Difference] (Column.Call, Column.Mode.([Operation] Deduct), Difference.([Guard] ())),
+[Column.Result.Positive, Difference.([Guard] ())] Return.Natural.Difference.Positive,
+[Column.Result.Negative, Difference.([Guard] ())] (Complement.Call, Forget.Difference.Finish),
+[Complement.Result, Clean.Difference.Finish] Return.Natural.Difference.Negative

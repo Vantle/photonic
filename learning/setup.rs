@@ -3,7 +3,7 @@ use crate::output::{line, observe};
 use learning::archive::Archive;
 use learning::edit::Bound;
 use learning::encoding::{DIMENSION, Shape};
-use learning::export::source;
+use learning::export;
 use learning::home::{self, Home};
 use learning::import;
 use learning::objective;
@@ -11,7 +11,7 @@ use learning::play;
 use learning::pool;
 use learning::search;
 use learning::session;
-use learning::task::Task;
+use learning::task::{self, Task};
 use learning::train;
 use miette::{IntoDiagnostic, WrapErr, miette};
 use std::path::{Path, PathBuf};
@@ -47,8 +47,8 @@ pub fn read(path: &Path) -> miette::Result<import::Source> {
     })
 }
 
-pub fn setting(session: &argument::Session) -> session::Setting {
-    session::Setting {
+pub fn setting(session: &argument::Session, frozen: bool) -> miette::Result<session::Setting> {
+    Ok(session::Setting {
         placement: match session.device {
             argument::Device::Auto => session::Placement::Automatic,
             argument::Device::Gpu => session::Placement::Graphics,
@@ -56,7 +56,7 @@ pub fn setting(session: &argument::Session) -> session::Setting {
         },
         worker: session.worker,
         trainer: session.trainer,
-        frozen: session.frozen,
+        frozen,
         duration: session.duration.map(Duration::from_secs),
         report: Duration::from_secs(session.report.max(1)),
         seed: session.seed,
@@ -82,26 +82,27 @@ pub fn setting(session: &argument::Session) -> session::Setting {
                 ..Bound::default()
             },
             objective: objective::Setting {
-                goal: session.objective.goal(),
+                goal: session.objective.goal().into_diagnostic()?,
                 ..objective::Setting::default()
             },
+            focus: session.focus,
             infer: session.infer,
             race: session.race,
             ..play::Setting::default()
         },
         train: train::Setting::default(),
-    }
+    })
 }
 
 pub fn pool(
     home: &Home,
     synthetic: usize,
-    grow: usize,
+    fresh: usize,
     seed: u64,
     objective: &objective::Setting,
 ) -> miette::Result<Vec<Task>> {
     let pool = match home.load::<Vec<Task>>(home::POOL).into_diagnostic()? {
-        Some(pool) => pool::grow(pool::merge(pool).into_diagnostic()?, grow, seed, objective),
+        Some(pool) => pool::grow(pool::merge(pool).into_diagnostic()?, fresh, seed, objective),
         None => pool::initial(synthetic, seed, objective),
     }
     .into_diagnostic()?;
@@ -116,35 +117,14 @@ pub fn archive(home: &Home) -> miette::Result<Archive> {
         .unwrap_or_default())
 }
 
-pub fn export(home: &Home, pool: &[Task]) -> miette::Result<()> {
-    let archive = archive(home)?;
-    for task in pool {
-        let Some(record) = archive
-            .entry(&task.name)
-            .and_then(|entry| entry.best.as_ref())
-        else {
-            continue;
-        };
-        home.write(
-            &format!("{}/{}.wave", home::PROGRAM, task.name),
-            &source(task, &record.program),
-        )
-        .into_diagnostic()?;
-    }
-    Ok(())
-}
-
 pub fn session(
     home: &Home,
     pool: &[Task],
     focus: &[String],
     setting: &session::Setting,
 ) -> miette::Result<()> {
-    if let Some(name) = focus
-        .iter()
-        .find(|name| pool.iter().all(|task| task.name != **name))
-    {
-        return Err(miette!("no task is named {name}"));
+    for name in focus {
+        task::find(pool, name).into_diagnostic()?;
     }
     let (problem, failure) = pool::prepare(pool, &setting.play.objective);
     for error in failure {
@@ -168,5 +148,5 @@ pub fn session(
         setting.play.game
     ));
     session::run(home, problem, chosen, setting, observe).into_diagnostic()?;
-    export(home, pool)
+    export::write(home, pool, &archive(home)?).into_diagnostic()
 }

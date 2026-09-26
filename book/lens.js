@@ -100,7 +100,7 @@
         });
         book.engine.watch(state => {
             input.readOnly = state !== 'live';
-            input.title = state === 'live' ? '' : 'Serve the book locally to type your own source.';
+            input.title = state === 'recorded' ? 'Serve the book locally to type your own source.' : '';
         });
         show(sample[0]);
     };

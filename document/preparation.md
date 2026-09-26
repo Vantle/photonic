@@ -52,12 +52,13 @@ All protected pooled workloads meet the predeclared 5% regression tolerance, or 
 Reproduce the focused comparison with:
 
 ```sh
-bazel run -c opt //benchmark:preparation -- --sample 9
-bazel run -c opt //benchmark:preparation -- --private --sample 9
-bazel run -c opt //benchmark:preparation -- --width 32 --sample 51
 bazel run -c opt //benchmark:expression -- '2*2*2*2*2*2' 2101 --sample 9
 bazel run -c opt //benchmark:dispatch -- --verify
 ```
+
+This benchmark was removed after `0daf296` and still runs at that commit:
+
+- [`preparation`](https://github.com/Vantle/photonic/blob/0daf296e1d126675ed445bfb7ed6674a379b1532/benchmark/preparation.rs) with `--sample 9`, `--private --sample 9` and `--width 32 --sample 51`
 
 ## Validation and remaining work
 

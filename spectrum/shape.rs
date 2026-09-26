@@ -3,7 +3,7 @@ use crate::failure::{Code, Failure};
 use crate::render;
 use crate::subject::Subject;
 use code::atom::Atom;
-use photonic::source;
+use frontend::source;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
@@ -19,8 +19,10 @@ use translation::vocabulary::Vocabulary;
 
 const ELEMENT: usize = 64;
 
+pub const NODE: usize = 1_000_000;
+
 fn node() -> usize {
-    1_000_000
+    NODE
 }
 
 #[derive(Clone, Debug, Deserialize, JsonSchema, Serialize)]
@@ -42,64 +44,65 @@ pub struct Request {
 }
 
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
-pub struct Letter {
-    pub name: String,
-    pub letter: String,
+pub(crate) struct Letter {
+    pub(crate) name: String,
+    pub(crate) letter: String,
 }
 
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
-pub struct Copy {
-    pub atom: Vec<String>,
-    pub statement: Vec<String>,
+pub(crate) struct Copy {
+    pub(crate) atom: Vec<String>,
+    pub(crate) statement: Vec<String>,
 }
 
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
-pub struct Class {
-    pub member: Vec<usize>,
-    pub name: Vec<String>,
-    pub atom: Vec<Vec<String>>,
-    pub renaming: Vec<String>,
-    pub size: String,
+pub(crate) struct Class {
+    pub(crate) member: Vec<usize>,
+    pub(crate) name: Vec<String>,
+    pub(crate) atom: Vec<Vec<String>>,
+    pub(crate) renaming: Vec<String>,
+    pub(crate) size: String,
 }
 
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
-pub struct Form {
-    pub shape: String,
-    pub atom: Vec<Letter>,
-    pub text: String,
+pub(crate) struct Form {
+    pub(crate) shape: String,
+    pub(crate) atom: Vec<Letter>,
+    pub(crate) text: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub target: Option<String>,
-    pub rule: usize,
-    pub size: String,
-    pub node: usize,
-    pub block: Vec<Vec<String>>,
-    pub symmetry: Vec<Vec<Vec<String>>>,
-    pub orbit: Vec<Vec<String>>,
-    pub pattern: Vec<Vec<Copy>>,
+    pub(crate) target: Option<String>,
+    pub(crate) rule: usize,
+    pub(crate) size: String,
+    pub(crate) node: usize,
+    pub(crate) block: Vec<Vec<String>>,
+    pub(crate) symmetry: Vec<Vec<Vec<String>>>,
+    pub(crate) orbit: Vec<Vec<String>>,
+    pub(crate) pattern: Vec<Vec<Copy>>,
 }
 
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 pub struct Answer {
-    pub class: Vec<Class>,
+    pub(crate) class: Vec<Class>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub form: Option<Form>,
+    pub(crate) form: Option<Form>,
 }
 
 fn exhausted(exhausted: Exhausted) -> Failure {
-    Failure::new(
-        Code::Shape,
-        format!(
-            "the symmetry search stopped at depth {} after {} nodes; raise node",
-            exhausted.depth, exhausted.node
+    let message = match exhausted {
+        Exhausted::Node(node) => {
+            format!("the symmetry search stopped after {node} nodes; raise node")
+        }
+        Exhausted::Depth(depth) => format!(
+            "the symmetry search stopped at depth {depth}, its limit; the program has too many interchangeable parts to canonicalize"
         ),
-    )
+    };
+    Failure::new(Code::Shape, message)
 }
 
-fn part(role: u32, source: &source::Program, vocabulary: &mut Vocabulary) -> Result<Part, Failure> {
+fn part(source: &source::Program, vocabulary: &mut Vocabulary) -> Result<Part, Failure> {
     let (program, configuration) = lift::program(source, vocabulary)
         .map_err(|error| Failure::new(Code::Shape, error.to_string()))?;
     Ok(Part {
-        role,
         program,
         configuration,
     })
@@ -110,26 +113,11 @@ fn structure(
     target: Option<&source::Program>,
     vocabulary: &mut Vocabulary,
 ) -> Result<Structure, Failure> {
-    let mut part = vec![self::part(0, source, vocabulary)?];
-    if let Some(target) = target {
-        part.push(self::part(1, target, vocabulary)?);
-    }
     Ok(Structure {
-        part,
+        program: part(source, vocabulary)?,
+        target: target.map(|target| part(target, vocabulary)).transpose()?,
         pin: Vec::new(),
     })
-}
-
-fn pin(structure: Structure, fix: &[Atom]) -> Structure {
-    let own = structure.atom();
-    Structure {
-        pin: fix
-            .iter()
-            .copied()
-            .filter(|atom| own.contains(atom))
-            .collect(),
-        ..structure
-    }
 }
 
 fn named(atom: &[Atom], vocabulary: &Vocabulary) -> Vec<String> {
@@ -166,7 +154,7 @@ fn cycle(permutation: &Permutation, name: &BTreeMap<Atom, String>) -> Vec<Vec<St
 }
 
 fn statement(structure: &Structure) -> Vec<Statement> {
-    let part = &structure.part[0];
+    let part = &structure.program;
     part.program
         .rule()
         .iter()
@@ -185,7 +173,7 @@ fn statement(structure: &Structure) -> Vec<Statement> {
 fn write(statement: &Statement, vocabulary: &Vocabulary) -> String {
     match statement {
         Statement::Rule(rule) => text::rule(rule, vocabulary),
-        Statement::Coherence(particle) => photonic::text::coherence(
+        Statement::Coherence(particle) => frontend::text::coherence(
             &translation::emit::configuration(
                 &code::configuration::Configuration::from(vec![particle.clone()]),
                 vocabulary,
@@ -260,7 +248,7 @@ fn form(structure: &Structure, node: usize, vocabulary: &Vocabulary) -> Result<F
     let statement = self::statement(structure);
     let result = analyze(structure, &statement, node).map_err(exhausted)?;
     let symmetry = &result.symmetry;
-    let canonical = symmetry.form(structure);
+    let canonical = &symmetry.form;
     let letter = Vocabulary::alphabet(symmetry.atom.len())
         .map_err(|error| Failure::new(Code::Shape, error.to_string()))?;
     let name = display(symmetry, vocabulary);
@@ -275,9 +263,9 @@ fn form(structure: &Structure, node: usize, vocabulary: &Vocabulary) -> Result<F
                 letter: letter.name(Atom(position as u16)).to_owned(),
             })
             .collect(),
-        text: source(&canonical.part[0], &letter),
-        target: canonical.part.get(1).map(|part| source(part, &letter)),
-        rule: structure.part[0].program.rule().len(),
+        text: source(&canonical.program, &letter),
+        target: canonical.target.as_ref().map(|part| source(part, &letter)),
+        rule: structure.program.program.rule().len(),
         size: symmetry.size.to_string(),
         node: symmetry.node,
         block: symmetry
@@ -308,7 +296,7 @@ fn form(structure: &Structure, node: usize, vocabulary: &Vocabulary) -> Result<F
     })
 }
 
-pub fn answer(request: &Request, context: &mut Context<'_>) -> Result<Answer, Failure> {
+pub(crate) fn answer(request: &Request, context: &Context<'_>) -> Result<Answer, Failure> {
     if request.program.is_empty() {
         return Err(Failure::new(Code::Request, "give at least one program"));
     }
@@ -337,7 +325,10 @@ pub fn answer(request: &Request, context: &mut Context<'_>) -> Result<Answer, Fa
         .collect::<Result<Vec<_>, _>>()?;
     let structure = structure
         .into_iter()
-        .map(|structure| pin(structure, &fix))
+        .map(|structure| Structure {
+            pin: fix.clone(),
+            ..structure
+        })
         .collect::<Vec<_>>();
     let class = symmetry::comparison::compare(&structure, request.node).map_err(exhausted)?;
     let title = request
@@ -390,11 +381,11 @@ pub fn answer(request: &Request, context: &mut Context<'_>) -> Result<Answer, Fa
 }
 
 impl Answer {
-    pub fn passed(&self) -> bool {
+    pub(crate) fn passed(&self) -> bool {
         self.class.len() <= 1
     }
 
-    pub fn text(&self) -> String {
+    pub(crate) fn text(&self) -> String {
         let mut line = Vec::new();
         if let Some(form) = &self.form {
             let automorphism = if form.size == "1" {

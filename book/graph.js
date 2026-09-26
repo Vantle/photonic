@@ -101,7 +101,6 @@
         });
         const identifier = `graph${serial++}`;
         const scroll = element('div', 'graph');
-        scroll.tabIndex = 0;
         scroll.setAttribute('role', 'group');
         scroll.setAttribute('aria-label', `Execution graph with ${count(node.length, 'configuration')} and ${count(event.length, 'event')}`);
         const sizer = element('div');
@@ -133,19 +132,24 @@
         };
         node.forEach(state => {
             const box = element('div', 'state');
-            box.tabIndex = 0;
+            box.tabIndex = -1;
             box.dataset.state = state;
             box.setAttribute('role', 'button');
-            box.setAttribute('aria-pressed', 'false');
             if (witness.has(state)) box.dataset.witness = '';
             if (filter?.match.has(state)) box.dataset.match = '';
             card.set(state, box);
             fill(state);
             box.addEventListener('click', () => select(state, true));
             box.addEventListener('keydown', value => {
-                if (value.key !== 'Enter' && value.key !== ' ') return;
+                if (value.key === 'Enter' || value.key === ' ') {
+                    value.preventDefault();
+                    select(state, true);
+                    return;
+                }
+                const next = neighbor(state, value.key);
+                if (next === undefined) return;
                 value.preventDefault();
-                select(state, true);
+                visit(next);
             });
             canvas.append(box);
         });
@@ -334,6 +338,30 @@
             scroll.scrollTo({ left: Math.max(0, across), top: Math.max(0, down) });
         };
 
+        let stop;
+        const rove = state => {
+            if (stop !== undefined) card.get(stop).tabIndex = -1;
+            stop = state;
+            card.get(state).tabIndex = 0;
+        };
+        const visit = state => {
+            rove(state);
+            reveal(state);
+            card.get(state).focus({ preventScroll: true });
+        };
+        const neighbor = (state, key) => {
+            const box = place.get(state);
+            const row = column[box.column];
+            const position = row.indexOf(state);
+            if (key === 'ArrowUp') return row[position - 1];
+            if (key === 'ArrowDown') return row[position + 1];
+            if (key !== 'ArrowLeft' && key !== 'ArrowRight') return undefined;
+            const side = column[box.column + (key === 'ArrowRight' ? 1 : -1)];
+            if (!side) return undefined;
+            const distance = other => Math.abs(place.get(other).y + place.get(other).height / 2 - box.y - box.height / 2);
+            return side.reduce((best, other) => distance(other) < distance(best) ? other : best);
+        };
+
         const summary = element('p', 'summary');
         summary.append(tally(data.state.length, 'configuration'), tally(data.event.length, 'event'), tally(data.work ?? 0, 'work step'));
         summary.append(element('span', 'badge', data.closed ? 'explored completely' : 'budget reached'));
@@ -364,10 +392,10 @@
         let lit = [];
         const select = (state, focus) => {
             if (!card.has(state)) return;
-            if (current !== undefined) card.get(current).setAttribute('aria-pressed', 'false');
+            if (current !== undefined) card.get(current).removeAttribute('aria-current');
             lit.forEach(value => activate(value, false));
             current = state;
-            card.get(state).setAttribute('aria-pressed', 'true');
+            card.get(state).setAttribute('aria-current', 'true');
             const path = option.route ? route(data, state) : undefined;
             lit = (path ?? data.outgoing.get(state)).map(value => value.id);
             lit.forEach(value => activate(value, true));
@@ -402,10 +430,8 @@
                 row.addEventListener('click', () => { leave(); select(value.target, true); });
                 departure.append(row);
             });
-            if (focus) {
-                reveal(state);
-                card.get(state).focus({ preventScroll: true });
-            }
+            if (focus) visit(state);
+            else rove(state);
             option.select?.(state, path);
         };
         const first = option.start ?? (card.has(0) ? 0 : node[0]);

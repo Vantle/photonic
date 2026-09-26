@@ -1,22 +1,22 @@
 use crate::edit::{Action, Local, Side};
 use crate::objective::{Evaluation, Outcome};
 use crate::task::{Goal, Task};
+use crate::tree::{Place, walk};
 use code::configuration::Configuration;
 use code::output::Output;
 use code::particle::Particle;
 use code::program::Program;
 use code::rule::Rule;
-use code::tree::{Place, walk};
 use code::value::Value;
 use network::input::{Input, Pointer};
 use random::Generator;
 use std::collections::HashMap;
 
-pub const ATOM: usize = 128;
-pub const EXAMPLE: usize = 4;
-pub const GROUP: usize = 16;
-pub const RULE: usize = 64;
-pub const DEPTH: usize = 4;
+pub(crate) const ATOM: usize = 128;
+pub(crate) const EXAMPLE: usize = 4;
+pub(crate) const GROUP: usize = 16;
+pub(crate) const RULE: usize = 64;
+pub(crate) const DEPTH: usize = 4;
 pub const DIMENSION: usize = 32;
 const PROCESSOR: usize = 9;
 const WEIGHT: usize = 11;
@@ -139,7 +139,7 @@ impl Shape {
 }
 
 #[derive(Clone, Debug)]
-pub struct Permutation {
+pub(crate) struct Permutation {
     atom: Vec<u16>,
     example: Vec<usize>,
     group: Vec<u16>,
@@ -198,7 +198,7 @@ fn depth(value: usize) -> u16 {
 }
 
 fn processor(goal: &Goal) -> u16 {
-    goal.processor
+    goal.processor()
         .max(1.0)
         .log2()
         .round()
@@ -207,7 +207,7 @@ fn processor(goal: &Goal) -> u16 {
 }
 
 fn weight(goal: &Goal) -> u16 {
-    (goal.size.max(f64::MIN_POSITIVE).log2().round() + (WEIGHT - 1) as f64)
+    (goal.size().max(f64::MIN_POSITIVE).log2().round() + (WEIGHT - 1) as f64)
         .clamp(0.0, (WEIGHT - 1) as f64) as u16
         + 1
 }
@@ -405,7 +405,7 @@ fn program(writer: &mut Writer, program: &Program, permutation: &Permutation) ->
     registry
 }
 
-pub fn encode(
+pub(crate) fn encode(
     task: &Task,
     program: &Program,
     evaluation: &Evaluation,

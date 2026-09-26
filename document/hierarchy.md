@@ -67,12 +67,10 @@ All protected pooled results meet the predeclared 5% regression tolerance, or 10
 
 Reproduce the focused cases with:
 
-```sh
-bazel run -c opt //benchmark:partition -- --depth 8 --width 2 --count 2 --alternating --sample 9
-bazel run -c opt //benchmark:partition -- --depth 1 --width 12 --alternating --sample 9
-bazel run -c opt //benchmark:context -- --sample 9
-bazel run -c opt //benchmark:context -- --productive --length 8 --sample 9
-```
+These benchmarks were removed after `0daf296` and still run at that commit:
+
+- [`partition`](https://github.com/Vantle/photonic/blob/0daf296e1d126675ed445bfb7ed6674a379b1532/benchmark/partition.rs) with `--depth 8 --width 2 --count 2 --alternating --sample 9` and `--depth 1 --width 12 --alternating --sample 9`
+- [`context`](https://github.com/Vantle/photonic/blob/0daf296e1d126675ed445bfb7ed6674a379b1532/benchmark/context.rs) with `--sample 9` and `--productive --length 8 --sample 9`
 
 The shared maintenance harness constructs the index and initial join before timing. Timed work includes coherent updates, matching, and logical delivery. These focused measurements are not whole-program compilation or proof-reporting latency.
 

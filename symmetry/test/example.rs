@@ -132,16 +132,27 @@ fn duality() {
 }
 
 #[test]
-#[should_panic(expected = "a canonical form renames only the structure its symmetry describes")]
-fn foreign() {
-    let light = single(named(
-        &[Written(vec![vec!["Light"]], vec![vec!["Red"]])],
-        &mut Vec::new(),
+fn absent() {
+    let mut name = Vec::new();
+    let mut left = single(named(
+        &[Written(vec![vec!["Y", "Q"]], vec![vec!["R"]])],
+        &mut name,
     ));
-    light
-        .symmetry(BUDGET)
-        .expect("examples fit the budget")
-        .form(&cycle(3, false));
+    let mut right = single(named(
+        &[Written(vec![vec!["X", "Q"]], vec![vec!["R"]])],
+        &mut name,
+    ));
+    let find =
+        |text: &str| Atom(name.iter().position(|entry| entry == text).expect("named") as u16);
+    let pin = vec![find("X"), find("Y")];
+    left.pin.clone_from(&pin);
+    right.pin = pin;
+    let (left, right) = (
+        left.symmetry(BUDGET).expect("examples fit the budget"),
+        right.symmetry(BUDGET).expect("examples fit the budget"),
+    );
+    assert!(left.isomorphism(&right).is_none());
+    assert_eq!(left.form.pin.len(), 1);
 }
 
 #[test]

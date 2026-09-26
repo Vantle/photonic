@@ -14,6 +14,12 @@ pub enum Failure {
     Header(#[from] serde_json::Error),
     #[error("the checkpoint holds {found} parameters; its configuration needs {expected}")]
     Shape { expected: usize, found: usize },
+    #[error("the checkpoint's configuration needs more parameters than memory can address")]
+    Overflow,
+    #[error("the checkpoint's configuration has no input fields")]
+    Field,
+    #[error("the checkpoint's width is 0")]
+    Width,
     #[error("the checkpoint's {head} attention heads do not divide its width of {width}")]
     Head { width: usize, head: usize },
     #[error("the checkpoint's judge has {0} outputs; a judge has 0 or 2")]
@@ -61,7 +67,7 @@ pub fn save(path: &Path, model: &Model, optimizer: &Optimizer) -> Result<(), Fai
         };
         serde_json::to_writer(&mut writer, &header)?;
         writer.write_all(b"\n")?;
-        write(&mut writer, &model.parameter)?;
+        write(&mut writer, model.parameter())?;
         write(&mut writer, &optimizer.moment)?;
         write(&mut writer, &optimizer.velocity)?;
         writer.flush()?;
@@ -71,7 +77,13 @@ pub fn save(path: &Path, model: &Model, optimizer: &Optimizer) -> Result<(), Fai
 }
 
 fn check(configuration: &Configuration) -> Result<(), Failure> {
+    if configuration.field.is_empty() {
+        return Err(Failure::Field);
+    }
     let (width, head) = (configuration.width, configuration.head);
+    if width == 0 {
+        return Err(Failure::Width);
+    }
     if head == 0 || width % head != 0 {
         return Err(Failure::Head { width, head });
     }
@@ -97,7 +109,7 @@ pub fn load(path: &Path) -> Result<(Model, Optimizer), Failure> {
     if found != expected {
         return Err(Failure::Length { expected, found });
     }
-    let expected = Model::length(&header.configuration);
+    let expected = Model::length(&header.configuration).ok_or(Failure::Overflow)?;
     if expected != header.parameter {
         return Err(Failure::Shape {
             expected,

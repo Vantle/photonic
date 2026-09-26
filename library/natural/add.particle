@@ -1,2 +1,2 @@
-[Function.Natural.Add] (Function.Natural.Column, Column.Mode.([Operation] Add), Add.([Guard] ())),
-[Return.Natural.Column.Positive, Add.([Guard] ())] Return.Natural.Add
+[Function.Natural.Add] (Column.Call, Column.Mode.([Operation] Add), Add.([Guard] ())),
+[Column.Result.Positive, Add.([Guard] ())] Return.Natural.Add

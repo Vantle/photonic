@@ -62,7 +62,7 @@ impl Server {
     pub fn new() -> Self {
         Self {
             reader: Disk,
-            store: Store::new(64),
+            store: Store::default(),
             legacy: None,
         }
     }
@@ -276,6 +276,21 @@ impl Server {
             return Some(reply(Value::Null, Err(invalid)));
         };
         let id = message.get("id").cloned();
+        if id
+            .as_ref()
+            .is_some_and(|id| !id.is_string() && !id.is_i64() && !id.is_u64())
+        {
+            let invalid = failure(
+                -32600,
+                "Invalid Request: an id is a string or an integer",
+                None,
+            );
+            return Some(reply(Value::Null, Err(invalid)));
+        }
+        if message.get("jsonrpc").and_then(Value::as_str) != Some("2.0") {
+            let invalid = failure(-32600, "Invalid Request: jsonrpc must be \"2.0\"", None);
+            return Some(reply(id.unwrap_or(Value::Null), Err(invalid)));
+        }
         let Some(method) = message.get("method").and_then(Value::as_str) else {
             if message.contains_key("result") || message.contains_key("error") {
                 return None;
@@ -283,17 +298,20 @@ impl Server {
             let invalid = failure(-32600, "Invalid Request: name the method", None);
             return Some(reply(id.unwrap_or(Value::Null), Err(invalid)));
         };
-        let parameter = message
-            .get("params")
-            .and_then(Value::as_object)
-            .cloned()
-            .unwrap_or_default();
+        let parameter = match message.get("params") {
+            None => Map::new(),
+            Some(Value::Object(parameter)) => parameter.clone(),
+            Some(_) => {
+                let invalid = failure(-32602, "Invalid params: params must be an object", None);
+                return Some(reply(id?, Err(invalid)));
+            }
+        };
         let result = self.dispatch(method, &parameter);
         Some(reply(id?, result))
     }
 
-    pub fn handle(&mut self, line: &str) -> Option<String> {
-        let message = match serde_json::from_str::<Value>(line) {
+    pub fn handle(&mut self, line: &[u8]) -> Option<String> {
+        let message = match serde_json::from_slice::<Value>(line) {
             Ok(message) => message,
             Err(error) => {
                 let parse = failure(-32700, &format!("Parse error: {error}"), None);
@@ -324,11 +342,15 @@ fn reply(id: Value, result: Result<Value, Value>) -> Value {
 
 pub fn serve() -> miette::Result<ExitCode> {
     let mut server = Server::new();
-    let input = std::io::stdin().lock();
+    let mut input = std::io::stdin().lock();
     let mut output = std::io::stdout().lock();
-    for line in input.lines() {
-        let line = line.into_diagnostic()?;
-        if line.trim().is_empty() {
+    let mut line = Vec::new();
+    loop {
+        line.clear();
+        if input.read_until(b'\n', &mut line).into_diagnostic()? == 0 {
+            return Ok(ExitCode::SUCCESS);
+        }
+        if line.trim_ascii().is_empty() {
             continue;
         }
         if let Some(response) = server.handle(&line) {
@@ -336,5 +358,4 @@ pub fn serve() -> miette::Result<ExitCode> {
             output.flush().into_diagnostic()?;
         }
     }
-    Ok(ExitCode::SUCCESS)
 }

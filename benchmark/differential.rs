@@ -18,7 +18,11 @@ fn configuration(value: &Value) -> Vec<Vec<String>> {
                 .map(|token| {
                     assert!(identity.insert(token["id"].to_string()));
                     assert!(token.get("capture").is_none());
-                    token["display"].as_str().unwrap().to_owned()
+                    token["display"]
+                        .as_str()
+                        .or_else(|| token["atom"].as_str())
+                        .unwrap()
+                        .to_owned()
                 })
                 .collect::<Vec<_>>();
             particle.sort();
@@ -46,7 +50,11 @@ fn observation(value: impl serde::Serialize) -> Value {
             (
                 &configuration[event["source"].as_u64().unwrap() as usize],
                 &configuration[event["target"].as_u64().unwrap() as usize],
-                event["rule"].as_str().unwrap(),
+                event["rule"].as_str().unwrap_or_else(|| {
+                    value["definition"][event["rule"].as_u64().unwrap() as usize]["name"]
+                        .as_str()
+                        .unwrap()
+                }),
                 event["status"].as_str().unwrap(),
             )
         })
@@ -55,32 +63,30 @@ fn observation(value: impl serde::Serialize) -> Value {
 }
 
 fn compare(source: &str, target: &str) {
-    let program = photonic::lowering::parse(source).unwrap();
+    let program = frontend::lowering::parse(source).unwrap();
     let limit = photonic::runtime::Limit {
-        state: 4096,
+        configuration: 4096,
         record: 2_000_000,
-        world: 8,
-        cell: 128,
-        frame: 8,
+        coherence: 8,
+        occurrence: 128,
+        scope: 8,
+    };
+    let reference = reference::runtime::Limit {
+        state: limit.configuration,
+        record: limit.record,
+        world: limit.coherence,
+        cell: limit.occurrence,
+        frame: limit.scope,
     };
     let mut current = photonic::runtime::Runtime::new(&program);
     let mut previous =
         reference::runtime::Runtime::new(reference::lowering::parse(source).unwrap());
-    current.run(1, Some(photonic::runtime::Limit { record: 1, ..limit }));
+    current.run(1, photonic::runtime::Limit { record: 1, ..limit });
     for budget in [0, 1, 2, 7, 31, 127, 511, 2048] {
-        current.run(budget, Some(limit));
+        current.run(budget, limit);
     }
-    current.run(1_000_000, Some(limit));
-    previous.run(
-        1_000_000,
-        Some(reference::runtime::Limit {
-            state: limit.state,
-            record: limit.record,
-            world: limit.world,
-            cell: limit.cell,
-            frame: limit.frame,
-        }),
-    );
+    current.run(1_000_000, limit);
+    previous.run(1_000_000, Some(reference));
     assert!(current.closed(), "{source}");
     assert!(previous.closed(), "{source}");
     assert_eq!(
@@ -88,11 +94,9 @@ fn compare(source: &str, target: &str) {
         observation(previous.snapshot()),
         "{source}"
     );
-    let target = photonic::source::Program {
-        rule: program.rule.clone(),
-        ..photonic::lowering::parse(target).unwrap()
-    };
-    let mut current = photonic::path::Search::new(program, target.clone());
+    let mut target = frontend::lowering::parse(target).unwrap();
+    target.preserve(&program);
+    let mut current = photonic::path::Search::new(program, Some(target.clone()));
     let mut previous = reference::path::Search::new(
         reference::lowering::parse(source).unwrap(),
         serde_json::from_value(serde_json::json!({"initial": target.initial})).unwrap(),
@@ -102,16 +106,7 @@ fn compare(source: &str, target: &str) {
         current.run(budget, limit);
     }
     current.run(1_000_000, limit);
-    previous.run(
-        1_000_000,
-        reference::runtime::Limit {
-            state: limit.state,
-            record: limit.record,
-            world: limit.world,
-            cell: limit.cell,
-            frame: limit.frame,
-        },
-    );
+    previous.run(1_000_000, reference);
     assert_eq!(
         serde_json::to_value(current.summary().outcome).unwrap(),
         serde_json::to_value(previous.summary().outcome).unwrap(),
@@ -157,14 +152,6 @@ fn run() -> usize {
         }
     }
     count
-}
-
-#[cfg(not(test))]
-fn main() {
-    println!(
-        "{} finite atom programs agree with the pinned evaluator on configurations, transition support, and direct outcomes",
-        run()
-    );
 }
 
 #[test]

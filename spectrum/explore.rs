@@ -1,4 +1,4 @@
-use crate::claim::{self, Claim, Verdict};
+use crate::claim::Verdict;
 use crate::context::Context;
 use crate::exploration::Exploration;
 use crate::failure::Failure;
@@ -8,72 +8,70 @@ use crate::render;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+pub const LIMIT: usize = 12;
+
 fn limit() -> usize {
-    12
+    LIMIT
 }
 
 #[derive(Clone, Debug, Deserialize, JsonSchema, Serialize)]
 #[schemars(
-    description = "Explore every future of a program and summarize it: counts, end configurations, rule activity and claims."
+    description = "Explore every future of a program and summarize it: counts, end configurations and rule activity."
 )]
 pub struct Request {
     #[serde(flatten)]
     pub recording: Recording,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub claim: Vec<Claim>,
     #[serde(default = "limit")]
     #[schemars(description = "End configurations listed; the rest are counted.")]
     pub limit: usize,
 }
 
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
-pub struct End {
-    pub handle: String,
-    pub scope: bool,
-    pub text: String,
+pub(crate) struct End {
+    pub(crate) handle: String,
+    pub(crate) scope: bool,
+    pub(crate) text: String,
 }
 
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
-pub struct Activity {
-    pub handle: String,
-    pub text: String,
-    pub fired: usize,
-    pub inferred: usize,
+pub(crate) struct Activity {
+    pub(crate) handle: String,
+    pub(crate) text: String,
+    pub(crate) fired: usize,
+    pub(crate) inferred: usize,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub first: Option<String>,
+    pub(crate) first: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub scope: Option<String>,
+    pub(crate) scope: Option<String>,
 }
 
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
-pub struct Summary {
-    pub exploration: String,
-    pub mode: Mode,
-    pub order: Order,
+pub(crate) struct Summary {
+    pub(crate) exploration: String,
+    pub(crate) mode: Mode,
+    pub(crate) order: Order,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub shape: Option<String>,
-    pub complete: bool,
+    pub(crate) shape: Option<String>,
+    pub(crate) complete: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub reached: Option<bool>,
-    pub work: usize,
-    pub configuration: usize,
-    pub event: usize,
-    pub inferred: usize,
-    pub depth: usize,
+    pub(crate) reached: Option<bool>,
+    pub(crate) work: usize,
+    pub(crate) configuration: usize,
+    pub(crate) event: usize,
+    pub(crate) inferred: usize,
+    pub(crate) depth: usize,
 }
 
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 pub struct Answer {
     #[serde(flatten)]
-    pub summary: Summary,
+    pub(crate) summary: Summary,
     #[schemars(
         description = "Configurations with no supported event out of them. In an open exploration some are unexplored rather than ends."
     )]
-    pub end: Vec<End>,
-    pub more: usize,
-    pub rule: Vec<Activity>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub claim: Vec<Verdict>,
+    pub(crate) end: Vec<End>,
+    pub(crate) more: usize,
+    pub(crate) rule: Vec<Activity>,
 }
 
 pub(crate) fn brief(exploration: &Exploration) -> Summary {
@@ -132,19 +130,12 @@ fn summary(exploration: &Exploration, limit: usize) -> Answer {
                 }
             })
             .collect(),
-        claim: Vec::new(),
     }
 }
 
-pub fn answer(request: &Request, context: &mut Context<'_>) -> Result<Answer, Failure> {
+pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Answer, Failure> {
     let exploration = context.exploration(&request.recording)?;
-    let mut answer = summary(&exploration, request.limit);
-    answer.claim = request
-        .claim
-        .iter()
-        .map(|claim| claim::evaluate(claim, &exploration))
-        .collect::<Result<_, _>>()?;
-    Ok(answer)
+    Ok(summary(&exploration, request.limit))
 }
 
 pub(crate) fn state(summary: &Summary) -> String {
@@ -188,7 +179,7 @@ pub(crate) fn verdict(verdict: &Verdict) -> String {
 }
 
 impl Answer {
-    pub fn text(&self) -> String {
+    pub(crate) fn text(&self) -> String {
         let mut line = vec![state(&self.summary)];
         if self.end.is_empty() {
             line.push("end    none".to_owned());
@@ -228,10 +219,6 @@ impl Answer {
                 "{label:<6} {:<5} {:<width$}   {fired}{scope}",
                 rule.handle, rule.text
             ));
-        }
-        for (position, claim) in self.claim.iter().enumerate() {
-            let label = if position == 0 { "claim" } else { "" };
-            line.push(format!("{label:<6} {}", verdict(claim)));
         }
         line.join("\n")
     }

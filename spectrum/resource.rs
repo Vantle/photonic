@@ -7,8 +7,8 @@ pub struct Resource {
     pub text: &'static str,
 }
 
-pub const PRIMER: &str = include_str!("primer.md");
-pub const LIBRARY: &str = include_str!("../library/README.md");
+const PRIMER: &str = include_str!("primer.md");
+const LIBRARY: &str = include_str!("../library/README.md");
 
 pub fn catalog() -> [Resource; 2] {
     [

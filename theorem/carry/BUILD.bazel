@@ -36,7 +36,6 @@ theorem(
     srcs = ["identity.wave"],
     deps = [
         ":role",
-        "//library/boolean:and",
         "//library/carry:combine",
         "//library/carry:equal",
         "//theorem:case",

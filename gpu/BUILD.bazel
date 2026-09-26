@@ -16,7 +16,6 @@ filegroup(
         "pipeline.rs",
         "plain.rs",
         "runtime.rs",
-        "seal.rs",
         "trace.rs",
     ],
 )
@@ -38,6 +37,7 @@ rust_test(
     name = "test",
     size = "small",
     srcs = [
+        "test/absent.rs",
         "test/engine.rs",
         "test/runtime.rs",
         "test/suite.rs",

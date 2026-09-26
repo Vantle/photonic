@@ -10,38 +10,39 @@ use crate::application::Owner;
 use crate::flow::{Binding, Flow};
 use crate::program::Program;
 use crate::snapshot::Origin;
-use crate::source;
 use crate::state::State;
 use crate::support::{Atom, Clause};
+use frontend::source;
 use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Limit {
-    pub state: usize,
+    pub configuration: usize,
+    pub coherence: usize,
+    pub occurrence: usize,
+    pub scope: usize,
     pub record: usize,
-    pub world: usize,
-    pub cell: usize,
-    pub frame: usize,
 }
+
 impl Default for Limit {
     fn default() -> Self {
         Self {
-            state: 80,
-            record: 1_000_000,
-            world: 4,
-            cell: 64,
-            frame: 10,
+            configuration: 4_096,
+            coherence: 64,
+            occurrence: 256,
+            scope: 64,
+            record: 2_000_000,
         }
     }
 }
 
 impl Limit {
-    pub(crate) fn admits(&self, world: usize, cell: usize, frame: usize) -> bool {
-        world <= self.world && cell <= self.cell && frame <= self.frame
+    pub(crate) fn admits(&self, coherence: usize, occurrence: usize, scope: usize) -> bool {
+        coherence <= self.coherence && occurrence <= self.occurrence && scope <= self.scope
     }
 }
 
@@ -70,7 +71,7 @@ struct Identity {
 #[cfg(test)]
 pub(crate) struct Transition<'transition> {
     pub target: usize,
-    pub rule: &'transition str,
+    pub rule: usize,
     pub binding: &'transition Binding,
 }
 
@@ -151,7 +152,7 @@ impl Runtime {
     pub(crate) fn first(&self) -> Option<Transition<'_>> {
         self.event.first().map(|event| Transition {
             target: event.target,
-            rule: &self.program.rule[event.identity.rule].name,
+            rule: event.identity.rule,
             binding: &event.identity.binding,
         })
     }
@@ -195,26 +196,21 @@ impl Runtime {
         index
     }
 
-    pub fn run(&mut self, budget: usize, limit: Option<Limit>) {
+    pub fn run(&mut self, budget: usize, limit: Limit) {
         self.execute(budget, limit, None);
     }
 
-    pub fn parallel(
-        &mut self,
-        executor: &crate::executor::Executor,
-        budget: usize,
-        limit: Option<Limit>,
-    ) {
+    pub fn parallel(&mut self, executor: &crate::executor::Executor, budget: usize, limit: Limit) {
         self.execute(budget, limit, Some(executor));
     }
 
     fn execute(
         &mut self,
         budget: usize,
-        limit: Option<Limit>,
+        limit: Limit,
         executor: Option<&crate::executor::Executor>,
     ) {
-        if let Some(limit) = limit {
+        if limit != self.limit {
             self.limit = limit;
             self.agenda.extend(self.pending.drain(..).map(Task::Apply));
         }

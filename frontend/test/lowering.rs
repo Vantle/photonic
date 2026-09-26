@@ -339,3 +339,18 @@ fn numeral() {
         [atom(&["1", "Power", "2"]), atom(&["1", "Power", "1"])]
     );
 }
+
+#[test]
+fn read() {
+    let mut source = String::from("[X] C");
+    for _ in 1..frontend::parser::DEPTH {
+        source = format!("[A] ().({source})");
+    }
+    let program = lowering::parse(&source).unwrap();
+    let text = serde_json::to_string(&program).unwrap();
+    let read = Program::read(&text).unwrap();
+    assert_eq!(serde_json::to_string(&read).unwrap(), text);
+    let error = Program::read(&"[".repeat(100_000)).unwrap_err();
+    assert!(error.to_string().contains("levels deep"), "{error}");
+    assert!(Program::read(r#"{"initial": [["[{\""]]}"#).is_ok());
+}

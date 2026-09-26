@@ -95,8 +95,11 @@ fn edit(from: &Rule, to: &Rule) -> usize {
 }
 
 impl<'target> Target<'target> {
-    fn new(program: &'target Program, vocabulary: usize) -> Option<Self> {
-        if program.rule().len() > WIDTH || !program.flat() {
+    fn new(program: &'target Program, vocabulary: usize, bound: &Bound) -> Option<Self> {
+        let reachable = program.rule().iter().all(|rule| {
+            rule.input().len() <= bound.particle && rule.output().len() <= bound.particle
+        });
+        if program.rule().len() > WIDTH || !program.flat() || !reachable {
             return None;
         }
         let create = program
@@ -132,7 +135,7 @@ pub fn demonstrate(
     setting: &Setting,
 ) -> Option<Demonstration> {
     let vocabulary = task.vocabulary.len();
-    let goal = Target::new(target, vocabulary)?;
+    let goal = Target::new(target, vocabulary, bound)?;
     let setting = &setting.aim(task.goal);
     let measure = |program: &Program| evaluate(program, &task.example, &task.vocabulary, setting);
     let mut current = Program::default();
@@ -223,7 +226,7 @@ pub struct Lesson {
 }
 
 fn prepare(problem: &Problem, archive: &Archive, setting: &play::Setting) -> Option<Demonstration> {
-    let best = archive.entry(&problem.task.name)?.best.as_ref()?;
+    let best = archive.best(&problem.task.name)?;
     demonstrate(
         &problem.task,
         &best.program,

@@ -27,13 +27,22 @@ rust_library(
     lint_config = "//:lint",
     proc_macro_deps = ["@crate//:pest_derive"],
     visibility = [
+        "//arithmetic:__pkg__",
+        "//benchmark:__pkg__",
+        "//command:__pkg__",
         "//language:__pkg__",
+        "//learning:__pkg__",
+        "//library:__pkg__",
         "//photonic:__pkg__",
+        "//spectrum:__pkg__",
+        "//toolchain/browser:__pkg__",
+        "//translation:__pkg__",
     ],
     deps = [
         "@crate//:miette",
         "@crate//:pest",
         "@crate//:serde",
+        "@crate//:serde_json",
         "@crate//:thiserror",
     ],
 )

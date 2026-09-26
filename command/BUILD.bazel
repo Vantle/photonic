@@ -20,6 +20,7 @@ rust_binary(
         "//toolchain/browser:__pkg__",
     ],
     deps = [
+        "//frontend",
         "//language:photonic",
         "//spectrum",
         "@crate//:clap",

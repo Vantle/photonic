@@ -41,12 +41,11 @@ pub const FIX: &str = "And.True.False.Extra,
 ";
 
 pub fn explore(source: &str) -> Exploration {
-    let program = photonic::lowering::parse(source).expect("the example lowers");
+    let program = frontend::lowering::parse(source).expect("the example lowers");
     Exploration::new(Plan::new(
         &program,
         Mode::Exhaustive,
         Budget::default(),
         None,
     ))
-    .expect("the example explores")
 }

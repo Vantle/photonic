@@ -2,8 +2,7 @@ Every.1,
 
 [Every.1] (
     Split.1,
-    [Both.1] Theorem,
-    [Refuted.2] Counterexample
+    [Both.1] Theorem
 ),
 [Split.1] Every.2.([A] 0),
 [Proved.2.([A] 0)] Every.2.([A] 1),
@@ -12,8 +11,7 @@ Every.1,
 
 [Every.2] (
     Split.2,
-    [Both.2] Proved.2,
-    [Refuted.3] Refuted.2
+    [Both.2] Proved.2
 ),
 [Split.2] Every.3.([B] 0),
 [Proved.3.([B] 0)] Every.3.([B] 1),
@@ -22,8 +20,7 @@ Every.1,
 
 [Every.3] (
     Split.3,
-    [Both.3] Proved.3,
-    [Counterexample] Refuted.3
+    [Both.3] Proved.3
 ),
 [Split.3] Case.([K] 0),
 [Holds.([K] 0)] Case.([K] 1),
@@ -34,4 +31,4 @@ Every.1,
 [Packed.Taken, Packed.Taken, Packed.Taken] Function.Ternary.Subtract.Taken,
 [Low.Taken] Function.Ternary.Equal.Restored.A,
 [High.Taken, High.Added] Function.Ternary.Equal.Balanced,
-[Return.Restored, Return.Balanced] Function.Boolean.And.Verdict
+[Return.True.Restored, Return.True.Balanced] Return.Verdict.True

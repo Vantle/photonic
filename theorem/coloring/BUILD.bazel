@@ -1,3 +1,4 @@
+load("//photonic:defs.bzl", "photonic_library")
 load("//theorem:defs.bzl", "refutation", "theorem")
 
 theorem(
@@ -27,6 +28,7 @@ theorem(
     configuration = 65536,
     occurrence = 512,
     deps = [
+        ":uniform",
         "//library/boolean:or",
         "//theorem:case",
     ],
@@ -39,6 +41,7 @@ refutation(
     occurrence = 512,
     outcome = "Counterexample.([One] True).([Two] True).([Three] False).([Four] False).([Five] True).([Six] True).([Seven] False).([Eight] False)",
     deps = [
+        ":uniform",
         "//library/boolean:or",
         "//theorem:case",
     ],
@@ -48,6 +51,7 @@ theorem(
     name = "sum.five",
     srcs = ["sum.five.wave"],
     deps = [
+        ":uniform",
         "//library/boolean:or",
         "//theorem:case",
     ],
@@ -58,6 +62,7 @@ refutation(
     srcs = ["sum.four.wave"],
     outcome = "Counterexample.([One] True).([Two] False).([Three] False).([Four] True)",
     deps = [
+        ":uniform",
         "//library/boolean:or",
         "//theorem:case",
     ],
@@ -69,6 +74,7 @@ theorem(
     configuration = 16384,
     occurrence = 512,
     deps = [
+        ":uniform",
         "//library/boolean:or",
         "//theorem:case",
     ],
@@ -79,9 +85,15 @@ refutation(
     srcs = ["triangle.five.wave"],
     outcome = "Counterexample.([[Edge] A.B] True).([[Edge] A.C] True).([[Edge] A.D] False).([[Edge] A.E] False).([[Edge] B.C] False).([[Edge] B.D] True).([[Edge] B.E] False).([[Edge] C.D] False).([[Edge] C.E] True).([[Edge] D.E] True)",
     deps = [
+        ":uniform",
         "//library/boolean:or",
         "//theorem:case",
     ],
+)
+
+photonic_library(
+    name = "uniform",
+    srcs = ["uniform.particle"],
 )
 
 filegroup(

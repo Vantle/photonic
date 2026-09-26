@@ -1,3 +1,5 @@
+use crate::archive::Archive;
+use crate::home::{self, Home};
 use crate::objective::Setting;
 use crate::task::Task;
 use code::program::Program;
@@ -42,14 +44,29 @@ pub fn verify(task: &Task, program: &Program, setting: &Setting, budget: usize) 
             continue;
         }
         verification.expressible += 1;
-        let mut search = photonic::prism::Search::new(
-            emit::program(program, &example.input, &task.vocabulary),
-            emit::program(program, &example.output.configuration(), &task.vocabulary),
-        );
-        search.run(budget, Some(setting.admission));
-        if search.verdict().outcome == photonic::prism::Outcome::Reached {
+        let mut runtime = photonic::runtime::Runtime::new(&emit::program(
+            program,
+            &example.input,
+            &task.vocabulary,
+        ));
+        runtime.run(budget, setting.admission);
+        let target = emit::program(program, &example.output.configuration(), &task.vocabulary);
+        if runtime.verdict(&target).outcome == photonic::prism::Outcome::Reached {
             verification.prism += 1;
         }
     }
     verification
+}
+
+pub fn write(home: &Home, pool: &[Task], archive: &Archive) -> Result<(), home::Failure> {
+    for task in pool {
+        let Some(record) = archive.best(&task.name) else {
+            continue;
+        };
+        home.write(
+            &format!("{}/{}.wave", home::PROGRAM, task.name),
+            &source(task, &record.program),
+        )?;
+    }
+    Ok(())
 }

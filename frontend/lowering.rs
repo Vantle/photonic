@@ -17,7 +17,6 @@ enum Member {
 
 struct Reader<'tree, 'source> {
     tree: &'tree Tree<'source>,
-    child: &'tree [Vec<usize>],
     budget: usize,
 }
 
@@ -34,15 +33,8 @@ pub fn read(path: &std::path::Path) -> miette::Result<Program> {
 
 pub fn parse(source: &str) -> Result<Program, Failure> {
     let tree = crate::parser::parse(source)?;
-    let mut child = vec![Vec::new(); tree.node().len()];
-    for (position, node) in tree.node().iter().enumerate() {
-        if let Some(parent) = node.parent {
-            child[parent].push(position);
-        }
-    }
     Reader {
         tree: &tree,
-        child: &child,
         budget: BUDGET,
     }
     .program()
@@ -50,7 +42,7 @@ pub fn parse(source: &str) -> Result<Program, Failure> {
 
 impl<'tree> Reader<'tree, '_> {
     fn child(&self, index: usize) -> &'tree [usize] {
-        &self.child[index]
+        self.tree.child(index)
     }
 
     fn span(&self, index: usize) -> Range<usize> {

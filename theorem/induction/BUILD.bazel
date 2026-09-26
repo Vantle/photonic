@@ -5,10 +5,6 @@ theorem(
     srcs = ["associativity.wave"],
     configuration = 65536,
     deps = [
-        "//library/boolean:and",
-        "//library/boolean:not",
-        "//library/boolean:or",
-        "//library/ternary:equal",
         "//library/ternary:sum",
         "//theorem:case",
         "//theorem/ternary:unpack",
@@ -19,9 +15,6 @@ theorem(
     name = "lookahead",
     srcs = ["lookahead.wave"],
     deps = [
-        "//library/boolean:and",
-        "//library/boolean:not",
-        "//library/boolean:or",
         "//library/carry:combine",
         "//library/carry:evaluate",
         "//library/ternary:equal",
@@ -34,7 +27,6 @@ theorem(
     name = "subtraction",
     srcs = ["subtraction.wave"],
     deps = [
-        "//library/boolean:and",
         "//library/ternary:equal",
         "//library/ternary:subtract",
         "//library/ternary:sum",

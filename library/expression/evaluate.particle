@@ -1,8 +1,8 @@
-[Function.Expression.Evaluate] (Function.Expression.Parse, Forget.Evaluate.Wait),
-[Return.Expression.Parse.Program, Clean.Evaluate.Wait] (Function.Expression.Execute, Forget.Evaluate.Finish),
+[Function.Expression.Evaluate] (Parse.Call, Forget.Evaluate.Wait),
+[Parse.Result.Program, Clean.Evaluate.Wait] (Function.Expression.Execute, Forget.Evaluate.Finish),
 [Return.Expression.Execute.Positive, Clean.Evaluate.Finish] Return.Expression.Evaluate.Positive,
 [Return.Expression.Execute.Negative, Clean.Evaluate.Finish] Return.Expression.Evaluate.Negative,
-[Return.Expression.Parse.Error.Syntax, Clean.Evaluate.Wait] Return.Expression.Evaluate.Error.Syntax,
+[Parse.Result.Error.Syntax, Clean.Evaluate.Wait] Return.Expression.Evaluate.Error.Syntax,
 [Return.Expression.Execute.Error.Syntax, Clean.Evaluate.Finish] Return.Expression.Evaluate.Error.Syntax,
 [Return.Expression.Execute.Error.Stack, Clean.Evaluate.Finish] Return.Expression.Evaluate.Error.Stack,
 [Return.Expression.Execute.Error.Divisor, Clean.Evaluate.Finish] Return.Expression.Evaluate.Error.Divisor

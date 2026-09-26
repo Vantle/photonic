@@ -1,5 +1,5 @@
 use crate::failure::{Code, Failure, Item};
-use photonic::source::Program;
+use frontend::source::Program;
 use serde::Deserialize;
 use serde::de::DeserializeOwned;
 use serde_json::{Map, Value};
@@ -58,14 +58,14 @@ impl Request {
     pub fn program(&self) -> Result<Program, Failure> {
         let mut program = Program::default();
         for library in &self.library {
-            let declaration = photonic::lowering::parse(&library.source).map_err(|error| {
+            let declaration = frontend::lowering::parse(&library.source).map_err(|error| {
                 Failure::new(Code::Library, format!("{}: {error}", library.name))
             })?;
             program
                 .declare(declaration, &library.name)
                 .map_err(|error| Failure::new(Code::Library, error))?;
         }
-        let source = photonic::lowering::parse(&self.source)
+        let source = frontend::lowering::parse(&self.source)
             .map_err(|error| Failure::located(Code::Source, &error, &self.source))?;
         program.append(source);
         Ok(program)
@@ -82,7 +82,7 @@ impl Request {
             .iter()
             .enumerate()
             .map(|(index, source)| {
-                let mut target = photonic::lowering::parse(source).map_err(|error| {
+                let mut target = frontend::lowering::parse(source).map_err(|error| {
                     Failure::located(Code::Target, &error, source).within(Item::Target(index))
                 })?;
                 if self.preserve {

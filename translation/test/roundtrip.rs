@@ -1,4 +1,5 @@
 use super::support::{configuration, flat, nested, vocabulary};
+use crate::vocabulary::Vocabulary;
 use crate::{emit, lift, text};
 use random::Generator;
 
@@ -36,7 +37,7 @@ fn written() {
             text::configuration(&configuration, &known),
             text::program(&program, &known)
         );
-        let parsed = photonic::lowering::parse(&written)
+        let parsed = frontend::lowering::parse(&written)
             .unwrap_or_else(|failure| panic!("{failure}: {written}"));
         let mut lifted = vocabulary();
         let (rule, initial) = lift::program(&parsed, &mut lifted).unwrap();
@@ -46,11 +47,19 @@ fn written() {
 }
 
 #[test]
-fn unknown() {
-    let parsed = photonic::lowering::parse("[Seed] ().([Missing] B)").unwrap();
-    let known = vocabulary();
+fn name() {
     assert!(matches!(
-        lift::program(&parsed, &mut lift::Fixed(&known)),
-        Err(crate::failure::Failure::Unknown { .. })
+        Vocabulary::try_from(vec!["A".to_owned(), "A".to_owned()]),
+        Err(crate::failure::Failure::Duplicate { .. })
     ));
+    for name in ["", "A.B", "A B", "[A]"] {
+        assert!(matches!(
+            Vocabulary::try_from(vec![name.to_owned()]),
+            Err(crate::failure::Failure::Name { .. })
+        ));
+    }
+    let mut vocabulary = Vocabulary::default();
+    let atom = vocabulary.intern("人").unwrap();
+    assert_eq!(vocabulary.intern("人").unwrap(), atom);
+    assert_eq!(vocabulary.name(atom), "人");
 }

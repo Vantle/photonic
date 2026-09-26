@@ -98,16 +98,14 @@ def _check(context):
         "source": context.attr.source,
         "target": context.attr.target,
         "expect": context.attr.expect,
-        "match": context.attr.match,
         "path": context.attr.path,
-        "preserve": context.attr.preserve,
         "work": context.attr.work,
         "limit": {
-            "state": context.attr.configuration,
+            "configuration": context.attr.configuration,
+            "coherence": context.attr.coherence,
+            "occurrence": context.attr.occurrence,
+            "scope": context.attr.scope,
             "record": context.attr.record,
-            "world": context.attr.coherence,
-            "cell": context.attr.occurrence,
-            "frame": context.attr.scope,
         },
     }))
     return [DefaultInfo(files = depset([output]), runfiles = context.runfiles(files = [output, program]))]
@@ -119,10 +117,8 @@ _case = rule(
         "deps": attr.label_list(providers = [Info]),
         "source": attr.string(),
         "target": attr.string_list(mandatory = True, allow_empty = False),
-        "match": attr.string(mandatory = True, values = ["all", "any"]),
         "expect": attr.string(mandatory = True, values = ["reached", "unreachable"]),
         "path": attr.bool(mandatory = True),
-        "preserve": attr.bool(mandatory = True),
         "work": attr.int(mandatory = True),
         "configuration": attr.int(mandatory = True),
         "occurrence": attr.int(mandatory = True),
@@ -133,18 +129,16 @@ _case = rule(
     },
 )
 
-def photonic_test(name, target, preserve, source = "", srcs = [], deps = [], match = "all", expect = "reached", path = False, work = 2000000, configuration = 4096, occurrence = 256, scope = 64, coherence = 64, record = 2000000, size = "small", visibility = None, tags = []):
-    """Check an exact configuration with Prism; Unknown always fails.
+def photonic_test(name, target, source = "", srcs = [], deps = [], expect = "reached", path = False, work = 2000000, configuration = 4096, occurrence = 256, scope = 64, coherence = 64, record = 2000000, size = "small", tags = []):
+    """Check exact configurations with Prism; Unknown always fails.
 
     Args:
         name: Test target name.
-        target: Accepted configurations in literal Photonic syntax.
-        preserve: Whether each target also expects every loaded root rule occurrence.
+        target: Configurations in literal Photonic syntax; each also expects every loaded root rule.
         source: Literal Photonic source, including data and declarations.
         srcs: Native source files containing data or declarations.
         deps: Photonic declaration libraries.
-        match: Require all targets or any target to satisfy the expectation.
-        expect: Required reached or unreachable outcome for each target.
+        expect: Required reached or unreachable outcome for every target.
         path: Follow one path to witness a reachable target.
         work: Work budget.
         configuration: Configuration limit.
@@ -153,16 +147,14 @@ def photonic_test(name, target, preserve, source = "", srcs = [], deps = [], mat
         coherence: Coherence limit.
         record: Event record limit.
         size: Bazel test size.
-        visibility: Packages allowed to depend on the test.
         tags: Bazel test tags.
     """
-    _case(name = name + ".case", source = source, target = target, srcs = srcs, deps = deps, match = match, expect = expect, path = path, preserve = preserve, work = work, configuration = configuration, occurrence = occurrence, scope = scope, coherence = coherence, record = record, visibility = ["//visibility:private"], testonly = True)
+    _case(name = name + ".case", source = source, target = target, srcs = srcs, deps = deps, expect = expect, path = path, work = work, configuration = configuration, occurrence = occurrence, scope = scope, coherence = coherence, record = record, visibility = ["//visibility:private"], testonly = True)
     hermetic_test(
         name = name,
         entrypoint = "//photonic:check",
         argument = ["$(rlocationpath :" + name + ".case)"],
         data = [":" + name + ".case"],
         size = size,
-        visibility = visibility,
         tags = tags,
     )

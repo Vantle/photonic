@@ -1,6 +1,7 @@
 use crate::place::Place;
 use crate::runtime::Limit;
 use crate::status::Status;
+use frontend::source;
 use serde::Serialize;
 use std::sync::Arc;
 
@@ -18,29 +19,11 @@ pub struct Snapshot<State = Vec<Node>, Transition = Vec<Event>, Projection = Vec
     pub event: Transition,
     pub view: Projection,
 }
+
 #[derive(Debug, Serialize)]
 pub struct Definition {
-    pub label: String,
-    pub display: String,
-}
-
-#[derive(Serialize)]
-struct Occurrence<'source> {
-    id: usize,
-    label: &'source str,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    capture: Option<usize>,
-}
-
-fn particle<Output: serde::Serializer>(
-    value: &[Token],
-    serializer: Output,
-) -> Result<Output::Ok, Output::Error> {
-    serializer.collect_seq(value.iter().map(|token| Occurrence {
-        id: token.id,
-        label: &token.label,
-        capture: token.capture,
-    }))
+    pub name: String,
+    pub rule: source::Definition,
 }
 
 #[derive(Debug, Serialize)]
@@ -50,42 +33,45 @@ pub struct Node {
     pub frame: Vec<Frame>,
     pub status: Status,
 }
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
-pub enum Kind {
-    Atom,
-    Rule,
+pub enum Value {
+    Atom(Arc<str>),
+    Rule(usize),
 }
 
 #[derive(Debug, Serialize)]
 pub struct Token {
     pub id: usize,
-    pub kind: Kind,
-    pub label: Arc<str>,
-    pub display: Arc<str>,
+    #[serde(flatten)]
+    pub value: Value,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub capture: Option<usize>,
 }
+
 #[derive(Debug, Serialize)]
 pub struct World {
     pub frame: usize,
     pub particle: Vec<Token>,
 }
+
 #[derive(Debug, Serialize)]
 pub struct Frame {
     pub scope: Arc<str>,
+    pub opener: Option<usize>,
     pub parent: Option<usize>,
     pub lexical: Option<usize>,
-    #[serde(serialize_with = "particle")]
     pub particle: Vec<Token>,
     pub held: Vec<Token>,
 }
+
 #[derive(Debug, Serialize)]
 pub struct Event {
     pub id: usize,
     pub source: usize,
     pub target: usize,
-    pub rule: String,
+    pub rule: usize,
     pub status: Status,
     pub footprint: Vec<Place>,
     pub exact: Vec<Place>,
@@ -94,6 +80,7 @@ pub struct Event {
     pub world: Vec<usize>,
     pub context: Vec<Vec<usize>>,
 }
+
 #[derive(Debug, Serialize)]
 pub struct View {
     pub id: usize,
@@ -116,4 +103,27 @@ pub struct Origin {
 pub struct Link {
     pub target: Place,
     pub source: Vec<Place>,
+}
+
+impl Snapshot {
+    pub fn deduction(&self, event: usize) -> Vec<usize> {
+        let evidence = &self.event[event].evidence;
+        if evidence
+            .iter()
+            .any(|&index| self.view[index].source == self.view[index].target)
+        {
+            return Vec::new();
+        }
+        let Some(&first) = evidence.first() else {
+            return Vec::new();
+        };
+        let mut chain = Vec::new();
+        let mut cursor = self.view[first].origin;
+        while let Some(origin) = cursor {
+            chain.push(origin.event);
+            cursor = self.view[origin.view].origin;
+        }
+        chain.reverse();
+        chain
+    }
 }

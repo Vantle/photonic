@@ -2,7 +2,7 @@ mod argument;
 mod search;
 
 use clap::Parser;
-use photonic::lowering::parse;
+use frontend::lowering::parse;
 use photonic::path::Search;
 use std::time::Instant;
 
@@ -30,10 +30,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         program.rule.len(),
         source.len()
     );
-    let target = photonic::source::Program {
-        rule: program.rule.clone(),
-        ..parse(&target)?
-    };
+    let mut target = parse(&target)?;
+    target.preserve(&program);
     if let Some(directory) = &argument.directory {
         std::fs::create_dir_all(directory)?;
         std::fs::write(directory.join("program.wave"), &source)?;
@@ -42,7 +40,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             serde_json::to_vec_pretty(&target)?,
         )?;
     }
-    let mut search = Search::new(program, target);
+    let mut search = Search::new(program, Some(target));
     search.run(argument.work, search::LIMIT);
     let report = search.report();
     println!(

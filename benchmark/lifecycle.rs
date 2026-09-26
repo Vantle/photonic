@@ -53,7 +53,7 @@ impl Engine for photonic::runtime::Runtime {
     type Report = photonic::snapshot::Snapshot;
 
     fn execute(&mut self, budget: usize, limit: Limit) {
-        self.run(budget, Some(limit));
+        self.run(budget, limit);
     }
 
     fn report(&self) -> Self::Report {
@@ -85,10 +85,6 @@ pub struct Record {
     pub release: Measurement,
     duration: f64,
     observation: Observation,
-    #[cfg(feature = "measurement")]
-    phase: Vec<photonic::profile::Measurement>,
-    #[cfg(feature = "measurement")]
-    loading: Vec<photonic::profile::Measurement>,
     #[cfg(feature = "allocation")]
     footprint: Footprint,
     #[cfg(feature = "allocation")]
@@ -113,16 +109,10 @@ pub struct Footprint {
 }
 
 pub fn measure<Value: Engine>(initialize: impl FnOnce() -> Value, budget: usize) -> Record {
-    #[cfg(feature = "measurement")]
-    photonic::profile::take();
     let (mut engine, initialization) = meter::measure(initialize);
-    #[cfg(feature = "measurement")]
-    let loading = photonic::profile::take();
     let ((), execution) = meter::measure(|| {
         engine.execute(budget, limit());
     });
-    #[cfg(feature = "measurement")]
-    let phase = photonic::profile::take();
     let (report, reporting) = meter::measure(|| black_box(engine.report()));
     let mut observation = Value::observe(&report);
     let (encoded, serialization) = meter::measure(|| serde_json::to_vec(&report).unwrap());
@@ -168,10 +158,6 @@ pub fn measure<Value: Engine>(initialize: impl FnOnce() -> Value, budget: usize)
         release,
         duration,
         observation,
-        #[cfg(feature = "measurement")]
-        phase,
-        #[cfg(feature = "measurement")]
-        loading,
         #[cfg(feature = "allocation")]
         footprint,
         #[cfg(feature = "allocation")]
@@ -181,11 +167,11 @@ pub fn measure<Value: Engine>(initialize: impl FnOnce() -> Value, budget: usize)
 
 pub fn limit() -> Limit {
     Limit {
-        state: 262_144,
+        configuration: 262_144,
         record: 100_000_000,
-        world: 1024,
-        cell: 16_384,
-        frame: 2048,
+        coherence: 1024,
+        occurrence: 16_384,
+        scope: 2048,
     }
 }
 

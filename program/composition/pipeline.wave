@@ -1,2 +1,5 @@
 First.Invoke.Pair.Copy.([Value] True).Map.([Each] Boolean.Not).Reduce.([Operation] Boolean.And),
-Second.Invoke.Pair.Copy.([Value] False).Map.([Each] Boolean.Not).Reduce.([Operation] Boolean.And)
+Second.Invoke.Pair.Copy.([Value] False).Map.([Each] Boolean.Not).Reduce.([Operation] Boolean.And),
+Third.Invoke.Pair.Unpack.([Left] True).([Right] False).Map.([Each] Boolean.Not).Reduce.([Operation] Boolean.Equal),
+Fourth.Invoke.Pair.Unpack.([Left] False).([Right] True).Map.([Each] Boolean.Not).Reduce.([Operation] Boolean.Equal),
+Fifth.Invoke.Pair.Unpack.([Left] True).([Right] True).Map.([Each] Boolean.Not).Reduce.([Operation] Boolean.Equal)

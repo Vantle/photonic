@@ -7,8 +7,10 @@ use crate::solution::{Budget, Failure, solve};
 use crate::synthetic::generate;
 use crate::task::Task;
 use random::Generator;
-use serde::{Deserialize, Serialize};
-use std::time::Duration;
+use serde::{Deserialize, Deserializer, Serialize};
+use std::time::{Duration, Instant};
+
+const EXAM: Duration = Duration::from_secs(120);
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -26,9 +28,18 @@ pub struct Mark {
     pub mastery: Vec<f64>,
 }
 
+fn level<'de, Source: Deserializer<'de>>(source: Source) -> Result<usize, Source::Error> {
+    let level = usize::deserialize(source)?;
+    if level == 0 {
+        return Err(serde::de::Error::custom("curriculum levels count from 1"));
+    }
+    Ok(level)
+}
+
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Curriculum {
+    #[serde(deserialize_with = "level")]
     pub level: usize,
     pub bred: usize,
     pub exam: Vec<Vec<Exam>>,
@@ -98,21 +109,27 @@ pub fn grade(task: Task, setting: &Setting, time: Duration) -> Result<Option<Exa
     }))
 }
 
-pub fn examine(exam: &[Exam], network: &mut Network, setting: &Setting, expansion: u64) -> f64 {
+pub fn examine(
+    exam: &[Exam],
+    network: &mut Network,
+    setting: &Setting,
+    expansion: u64,
+    deadline: Option<Instant>,
+) -> f64 {
     if exam.is_empty() {
         return 0.0;
     }
     let passed = exam
         .iter()
         .filter(|exam| {
+            let time = deadline.map_or(EXAM, |deadline| {
+                EXAM.min(deadline.saturating_duration_since(Instant::now()))
+            });
             let guidance = search(
                 &exam.task,
                 &Bound::default(),
                 setting,
-                Effort {
-                    time: Duration::from_secs(120),
-                    expansion,
-                },
+                Effort { time, expansion },
                 exam.cost,
                 network,
             );

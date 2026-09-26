@@ -42,7 +42,7 @@ impl Default for Setting {
 }
 
 #[derive(Clone, Copy, Debug, Default)]
-pub struct Progress {
+pub(crate) struct Progress {
     pub step: u64,
     pub policy: f64,
     pub value: f64,
@@ -51,12 +51,12 @@ pub struct Progress {
     pub judge: f64,
 }
 
-pub enum Device {
+pub(crate) enum Device {
     Processor(ThreadPool),
     Graphics(Box<Engine>),
 }
 
-pub struct Trainer {
+pub(crate) struct Trainer {
     model: Model,
     optimizer: Optimizer,
     device: Device,
@@ -140,9 +140,9 @@ impl Trainer {
                 let (gradient, loss) =
                     descend(pool, &self.model, &sample, self.setting.chunk, weight);
                 let decay = self.model.decay().to_vec();
-                let norm =
-                    self.optimizer
-                        .update(&mut self.model.parameter, &gradient, &decay, rate);
+                let norm = self
+                    .optimizer
+                    .update(self.model.edit(), &gradient, &decay, rate);
                 (loss, norm)
             }
             Device::Graphics(engine) => {
@@ -166,22 +166,29 @@ impl Trainer {
         })
     }
 
-    fn synchronize(&mut self) {
+    fn synchronize(&mut self) -> Result<(), Failure> {
         let Device::Graphics(engine) = &mut self.device else {
-            return;
+            return Ok(());
         };
-        self.model.parameter = engine.parameter();
+        self.model
+            .load(engine.parameter())
+            .map_err(|mismatch| Failure::Length {
+                expected: mismatch.expected,
+                actual: mismatch.found,
+            })?;
         if let Some(optimizer) = engine.optimizer() {
             self.optimizer = optimizer;
         }
+        Ok(())
     }
 
-    fn publish(&mut self, shared: &Shared) {
-        self.synchronize();
+    fn publish(&mut self, shared: &Shared) -> Result<(), Failure> {
+        self.synchronize()?;
         *shared
             .model
             .write()
             .expect("the model lock is never poisoned") = Arc::new(self.model.clone());
+        Ok(())
     }
 
     pub fn run(
@@ -216,15 +223,14 @@ impl Trainer {
                 .lock()
                 .expect("the progress lock is never poisoned") = report;
             if report.step.is_multiple_of(self.setting.publish) {
-                self.publish(shared);
+                self.publish(shared)?;
             }
             if saved.elapsed() > Duration::from_secs(120) {
-                self.synchronize();
+                self.synchronize()?;
                 keep(self);
                 saved = Instant::now();
             }
         }
-        self.publish(shared);
-        Ok(())
+        self.publish(shared)
     }
 }

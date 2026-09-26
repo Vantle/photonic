@@ -50,7 +50,7 @@ pub fn walk(
             result.terminal = Some(state);
             return result;
         }
-        if result.work >= limit.state {
+        if result.work >= limit.configuration || limit.expired() {
             result.overflow = true;
             return result;
         }

@@ -115,15 +115,14 @@ The initial broader admission policy exposed 1.5–6× slowdowns when it tried t
 Reproduce focused cases with:
 
 ```sh
-bazel run -c opt //benchmark:partition -- --depth 1 --width 12 --sample 9
-bazel run -c opt //benchmark:partition -- --depth 2 --width 12 --sample 9
-bazel run -c opt //benchmark:partition -- --depth 1 --width 12 --productive --sample 9
-bazel run -c opt //benchmark:partition -- --depth 1 --width 12 --replacement 4 --sample 9
-bazel run -c opt //benchmark:frontier -- --sample 9
-bazel run -c opt //benchmark:frontier -- --length 32768 --sample 9
 bazel run -c opt //benchmark:prefix -- --sample 31
 bazel run -c opt //benchmark:prefix -- --changing --sample 31
 ```
+
+These benchmarks were removed after `0daf296` and still run at that commit:
+
+- [`partition`](https://github.com/Vantle/photonic/blob/0daf296e1d126675ed445bfb7ed6674a379b1532/benchmark/partition.rs) with `--depth 1 --width 12 --sample 9`, `--depth 2 --width 12 --sample 9`, `--depth 1 --width 12 --productive --sample 9` and `--depth 1 --width 12 --replacement 4 --sample 9`
+- [`frontier`](https://github.com/Vantle/photonic/blob/0daf296e1d126675ed445bfb7ed6674a379b1532/benchmark/frontier.rs) with `--sample 9` and `--length 32768 --sample 9`
 
 ## Follow-up diagnostic
 

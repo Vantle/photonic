@@ -11,9 +11,9 @@ fn library() -> Vec<&'static str> {
         .collect()
 }
 
-fn tape(token: &[&str]) -> String {
+fn tape(token: &[&str], request: &str) -> String {
     let Some((last, rest)) = token.split_last() else {
-        return "Function.Expression.Execute.Zero".to_owned();
+        return format!("{request}.Zero");
     };
     let mut rule = vec![format!("Push.{last}.Zero, Stage.0")];
     let mut stage = "Stage.0".to_owned();
@@ -22,13 +22,13 @@ fn tape(token: &[&str]) -> String {
         rule.push(format!("[Built, {stage}] (Push.{token}, Forget.{next})"));
         stage = format!("Clean.{next}");
     }
-    rule.push(format!("[Built, {stage}] Function.Expression.Execute"));
+    rule.push(format!("[Built, {stage}] {request}"));
     rule.join(",\n")
 }
 
 fn execute(token: &[&str], error: &str) {
     witness(
-        &tape(token),
+        &tape(token, "Function.Expression.Execute"),
         &format!("Return.Expression.Execute.Error.{error}"),
         &library(),
     );
@@ -43,6 +43,7 @@ fn invalid() {
         &["Mark"][..],
         &["Open"][..],
         &["Close"][..],
+        &["Negative"][..],
         &["Literal", "Literal"][..],
         &["Literal", "([Digit] 2)", "Add"][..],
         &["Literal", "Subtract"][..],
@@ -51,8 +52,30 @@ fn invalid() {
         &["Literal", "Open"][..],
         &["Literal", "Close"][..],
         &["Literal", "([Digit] 1)"][..],
+        &["Literal", "Negative"][..],
+        &["Literal", "Negate"][..],
     ] {
         execute(token, "Syntax");
+    }
+}
+
+#[test]
+fn internal() {
+    for token in ["Mark", "Literal", "Negative", "Negate"] {
+        for prefix in [
+            &[][..],
+            &["([Digit] 1)"][..],
+            &["Open", "([Digit] 1)", "Close"][..],
+        ] {
+            witness(
+                &tape(
+                    &[prefix, &[token][..]].concat(),
+                    "Function.Expression.Evaluate",
+                ),
+                "Return.Expression.Evaluate.Error.Syntax",
+                &library(),
+            );
+        }
     }
 }
 
@@ -78,7 +101,7 @@ fn forward() {
             &[
                 source("chain", "cell"),
                 source("expression", "evaluate"),
-                "[Function.Expression.Parse.Zero] Return.Expression.Parse.Program.Zero",
+                "[Parse.Call.Zero] Parse.Result.Program.Zero",
                 stub.as_str(),
             ],
         );

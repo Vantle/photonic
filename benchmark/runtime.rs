@@ -1,4 +1,5 @@
 use std::hint::black_box;
+use std::num::NonZeroUsize;
 use std::time::{Duration, Instant};
 
 use clap::Parser;
@@ -10,8 +11,8 @@ mod directory;
 
 #[derive(Parser)]
 struct Argument {
-    #[arg(long, default_value_t = 1)]
-    worker: usize,
+    #[arg(long, default_value_t = NonZeroUsize::MIN)]
+    worker: NonZeroUsize,
     #[arg(long)]
     source: Option<std::path::PathBuf>,
 }
@@ -19,15 +20,13 @@ struct Argument {
 #[derive(Deserialize)]
 struct Case {
     name: String,
-    program: photonic::source::Program,
+    program: frontend::source::Program,
     closed: bool,
 }
 
 #[derive(Serialize)]
 struct Measurement {
     name: String,
-    #[cfg(feature = "measurement")]
-    profile: Vec<photonic::profile::Measurement>,
     sample: usize,
     worker: usize,
     record: usize,
@@ -41,11 +40,11 @@ struct Measurement {
 }
 
 fn evaluate(
-    program: photonic::source::Program,
+    program: frontend::source::Program,
     executor: &Executor,
 ) -> photonic::snapshot::Snapshot {
     let mut runtime = Runtime::new(&black_box(program));
-    runtime.parallel(executor, 12_000, Some(Limit::default()));
+    runtime.parallel(executor, 12_000, Limit::default());
     black_box(runtime.snapshot())
 }
 
@@ -56,7 +55,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let fixture = if let Some(path) = &argument.source {
         vec![Case {
             name: path.display().to_string(),
-            program: photonic::lowering::parse(&std::fs::read_to_string(path)?)?,
+            program: frontend::lowering::parse(&std::fs::read_to_string(path)?)?,
             closed: true,
         }]
     } else {
@@ -64,11 +63,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     let mut report = Vec::new();
     for case in fixture.into_iter().filter(|case| case.closed) {
-        #[cfg(feature = "measurement")]
-        photonic::profile::take();
         let result = evaluate(case.program.clone(), &executor);
-        #[cfg(feature = "measurement")]
-        let profile = photonic::profile::take();
         assert!(result.closed, "{} did not close", case.name);
         let warm = Instant::now();
         while warm.elapsed() < Duration::from_millis(100) {
@@ -85,10 +80,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         duration.sort_by(f64::total_cmp);
         report.push(Measurement {
             name: case.name,
-            #[cfg(feature = "measurement")]
-            profile,
             sample: duration.len(),
-            worker: argument.worker,
+            worker: argument.worker.get(),
             record: result.record,
             peak: result.peak,
             work: result.work,

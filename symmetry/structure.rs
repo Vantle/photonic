@@ -10,37 +10,49 @@ use code::hashing::combine;
 use code::program::Program;
 use std::collections::{BTreeMap, BTreeSet};
 
-#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct Part {
-    pub role: u32,
     pub program: Program,
     pub configuration: Configuration,
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct Structure {
-    pub part: Vec<Part>,
+    pub program: Part,
+    pub target: Option<Part>,
     pub pin: Vec<Atom>,
 }
 
 #[derive(Clone, Debug)]
 pub struct Symmetry {
     pub atom: Vec<Atom>,
-    pub key: Vec<u64>,
+    pub(crate) key: Vec<u64>,
     pub block: Vec<Vec<Atom>>,
     pub generator: Vec<Permutation>,
     pub size: Size,
     pub node: usize,
+    pub form: Structure,
 }
 
 fn factorial(size: usize) -> impl Iterator<Item = u64> {
     (2..=size as u64).rev()
 }
 
+pub(crate) fn image(part: &Part, map: &impl Fn(Atom) -> Atom) -> Part {
+    Part {
+        program: rename::program(&part.program, map),
+        configuration: rename::configuration(&part.configuration, map),
+    }
+}
+
 impl Structure {
+    pub(crate) fn part(&self) -> impl Iterator<Item = (u32, &Part)> {
+        std::iter::once((0, &self.program)).chain(self.target.iter().map(|target| (1, target)))
+    }
+
     pub fn atom(&self) -> Vec<Atom> {
         let mut atom = BTreeSet::new();
-        for part in &self.part {
+        for (_, part) in self.part() {
             for entry in part.program.rule() {
                 measure::rule(entry, &mut atom);
             }
@@ -51,24 +63,9 @@ impl Structure {
         atom.into_iter().collect()
     }
 
-    pub fn rename(&self, map: impl Fn(Atom) -> Atom) -> Self {
-        Self {
-            part: self
-                .part
-                .iter()
-                .map(|part| Part {
-                    role: part.role,
-                    program: rename::program(&part.program, &map),
-                    configuration: rename::configuration(&part.configuration, &map),
-                })
-                .collect(),
-            pin: self.pin.iter().map(|&atom| map(atom)).collect(),
-        }
-    }
-
     pub fn symmetry(&self, budget: usize) -> Result<Symmetry, Exhausted> {
         let atom = self.atom();
-        let graph = Graph::new(&atom, &self.pin, &self.part);
+        let graph = Graph::new(&atom, &self.pin, self.part());
         let quotient = reduce(&graph);
         let labeling = search(&quotient.graph, budget)?;
         let member = |class: u32| {
@@ -81,7 +78,7 @@ impl Structure {
             .iter()
             .filter(|&&vertex| (vertex as usize) < quotient.class.len())
             .flat_map(|&class| member(class))
-            .collect();
+            .collect::<Vec<_>>();
         let generator = labeling
             .generator
             .iter()
@@ -106,6 +103,19 @@ impl Structure {
             .collect::<Vec<_>>();
         let mut factor = labeling.orbit;
         factor.extend(block.iter().flat_map(|class| factorial(class.len())));
+        let canonical = canonical(&order);
+        let form = Self {
+            program: image(&self.program, &|atom| canonical[&atom]),
+            target: self
+                .target
+                .as_ref()
+                .map(|target| image(target, &|atom| canonical[&atom])),
+            pin: self
+                .pin
+                .iter()
+                .filter_map(|atom| canonical.get(atom).copied())
+                .collect(),
+        };
         Ok(Symmetry {
             atom: order,
             key: labeling.certificate,
@@ -113,8 +123,17 @@ impl Structure {
             generator,
             size: Size::new(factor),
             node: labeling.node,
+            form,
         })
     }
+}
+
+fn canonical(order: &[Atom]) -> BTreeMap<Atom, Atom> {
+    order
+        .iter()
+        .enumerate()
+        .map(|(position, &atom)| (atom, Atom(position as u16)))
+        .collect()
 }
 
 impl Symmetry {
@@ -122,25 +141,11 @@ impl Symmetry {
         self.key.iter().copied().fold(0, combine)
     }
 
-    pub fn canonical(&self) -> BTreeMap<Atom, Atom> {
-        self.atom
-            .iter()
-            .enumerate()
-            .map(|(position, &atom)| (atom, Atom(position as u16)))
-            .collect()
+    pub(crate) fn canonical(&self) -> BTreeMap<Atom, Atom> {
+        canonical(&self.atom)
     }
 
-    pub fn form(&self, structure: &Structure) -> Structure {
-        let map = self.canonical();
-        assert!(
-            structure.atom().iter().eq(map.keys())
-                && structure.pin.iter().all(|atom| map.contains_key(atom)),
-            "a canonical form renames only the structure its symmetry describes"
-        );
-        structure.rename(|atom| map[&atom])
-    }
-
-    pub fn isomorphism(&self, other: &Self) -> Option<BTreeMap<Atom, Atom>> {
+    pub(crate) fn isomorphism(&self, other: &Self) -> Option<BTreeMap<Atom, Atom>> {
         if self.key != other.key {
             return None;
         }

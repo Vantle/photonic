@@ -4,9 +4,10 @@ use crate::objective::Setting;
 use crate::problem::{self, Problem};
 use crate::synthetic::generate;
 use crate::task::{Goal, Task};
+use code::hashing::combine;
 use random::Generator;
 
-pub const HIDDEN: usize = 4;
+pub(crate) const HIDDEN: usize = 4;
 pub const SYNTHETIC: usize = 48;
 const PROCESSOR: [f64; 3] = [1.0, 4.0, 64.0];
 const SIZE: [f64; 3] = [0.0125, 0.05, 0.2];
@@ -15,16 +16,15 @@ fn vary(task: Task, generator: &mut Generator) -> Task {
     if generator.chance(0.5) {
         return task;
     }
+    let processor = PROCESSOR[generator.below(PROCESSOR.len())];
+    let size = SIZE[generator.below(SIZE.len())];
     Task {
-        goal: Some(Goal {
-            processor: PROCESSOR[generator.below(PROCESSOR.len())],
-            size: SIZE[generator.below(SIZE.len())],
-        }),
+        goal: Goal::new(processor, size).ok(),
         ..task
     }
 }
 
-pub fn conceal(task: Task) -> Result<Task, problem::Failure> {
+pub(crate) fn conceal(task: Task) -> Result<Task, problem::Failure> {
     let name = task.name.clone();
     task.conceal(HIDDEN)
         .map_err(|source| problem::Failure::Hidden { task: name, source })
@@ -67,7 +67,7 @@ pub fn grow(
     seed: u64,
     setting: &Setting,
 ) -> Result<Vec<Task>, problem::Failure> {
-    let mut generator = Generator::new(seed ^ pool.len() as u64);
+    let mut generator = Generator::new(combine(seed, pool.len() as u64));
     let start = pool
         .iter()
         .filter_map(|task| task.name.strip_prefix("synthetic."))
@@ -88,7 +88,7 @@ pub fn grow(
 }
 
 fn pose(task: &Task, setting: &Setting) -> Result<Problem, problem::Failure> {
-    Problem::new(task.clone(), &setting.thorough(), ATOM)
+    Problem::new(task.clone(), setting, ATOM)
 }
 
 pub fn admit(

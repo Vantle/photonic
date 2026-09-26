@@ -1,9 +1,9 @@
 use crate::hashing::Builder;
-use crate::program::{Program, Symbol};
+use crate::program::Program;
 use crate::reduction::{Event, Search};
 use crate::runtime::Limit;
-use crate::source;
 use crate::state::State;
+use frontend::source;
 use serde::Serialize;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
@@ -39,70 +39,48 @@ pub struct Observation {
 }
 
 #[derive(Clone, Debug, Default, Serialize)]
-pub struct Exploration {
-    pub terminal: Vec<Observation>,
+pub struct Exploration<Terminal = Observation> {
+    pub terminal: Vec<Terminal>,
     pub state: usize,
     pub cycle: bool,
     pub overflow: bool,
     pub truncated: bool,
 }
 
-impl Exploration {
+impl<Terminal> Exploration<Terminal> {
     pub fn complete(&self) -> bool {
         !self.cycle && !self.overflow && !self.truncated
+    }
+
+    pub fn map<Other>(self, change: impl FnMut(Terminal) -> Other) -> Exploration<Other> {
+        Exploration {
+            terminal: self.terminal.into_iter().map(change).collect(),
+            state: self.state,
+            cycle: self.cycle,
+            overflow: self.overflow,
+            truncated: self.truncated,
+        }
     }
 }
 
 #[derive(Clone, Debug, Default, Serialize)]
-pub struct Walk {
-    pub terminal: Option<Observation>,
+pub struct Walk<Terminal = Observation> {
+    pub terminal: Option<Terminal>,
     pub work: usize,
     pub depth: usize,
     pub cycle: bool,
     pub overflow: bool,
 }
 
-fn value(program: &Program, symbol: Symbol) -> source::Value {
-    match symbol {
-        Symbol::Atom(index) => source::Value::Atom(program.atom[index].clone()),
-        Symbol::Rule(index) => source::Value::Rule {
-            rule: Box::new(definition(program, index)),
-        },
-    }
-}
-
-fn definition(program: &Program, index: usize) -> source::Definition {
-    let instruction = &program.rule[index];
-    source::Definition {
-        name: String::new(),
-        input: instruction
-            .input
-            .iter()
-            .map(|particle| {
-                particle
-                    .iter()
-                    .map(|&symbol| value(program, symbol))
-                    .collect()
-            })
-            .collect(),
-        output: instruction
-            .output
-            .iter()
-            .map(|output| source::Output {
-                particle: output
-                    .particle
-                    .iter()
-                    .map(|&symbol| value(program, symbol))
-                    .collect(),
-                body: output.body.map(|scope| {
-                    program.scope[scope]
-                        .rule
-                        .iter()
-                        .map(|&rule| definition(program, rule))
-                        .collect()
-                }),
-            })
-            .collect(),
+impl<Terminal> Walk<Terminal> {
+    pub fn map<Other>(self, change: impl FnOnce(Terminal) -> Other) -> Walk<Other> {
+        Walk {
+            terminal: self.terminal.map(change),
+            work: self.work,
+            depth: self.depth,
+            cycle: self.cycle,
+            overflow: self.overflow,
+        }
     }
 }
 
@@ -118,7 +96,7 @@ fn observation(program: &Program, state: &State) -> Observation {
                     .iter()
                     .map(|token| Occurrence {
                         id: token.id,
-                        value: value(program, token.value),
+                        value: program.express(token.value),
                     })
                     .collect()
             })

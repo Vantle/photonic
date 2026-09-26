@@ -70,12 +70,9 @@ All 19 exhaustive fixtures retain identical state, event, work, record, and peak
 
 Reproduce the focused workloads with:
 
-```sh
-bazel run -c opt //benchmark:partition -- --width 12 --sample 9
-bazel run -c opt //benchmark:partition -- --width 12 --count 8 --sample 9
-bazel run -c opt //benchmark:partition -- --width 12 --productive --sample 9
-bazel run -c opt //benchmark:partition -- --width 12 --replacement 4 --sample 9
-```
+This benchmark was removed after `0daf296` and still runs at that commit:
+
+- [`partition`](https://github.com/Vantle/photonic/blob/0daf296e1d126675ed445bfb7ed6674a379b1532/benchmark/partition.rs) with `--width 12 --sample 9`, `--width 12 --count 8 --sample 9`, `--width 12 --productive --sample 9` and `--width 12 --replacement 4 --sample 9`
 
 ## Validation
 

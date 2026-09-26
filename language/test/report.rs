@@ -1,5 +1,5 @@
-use crate::lowering::parse;
 use crate::runtime::{Limit, Runtime};
+use frontend::lowering::parse;
 use serde::Serialize;
 use std::io::{Error, Write};
 
@@ -24,19 +24,13 @@ fn resume() {
     ] {
         let mut actual = {
             let program = parse(source).unwrap();
-            let target = crate::source::Program {
-                rule: program.rule.clone(),
-                ..parse(target).unwrap()
-            };
-            crate::path::Search::new(program, target)
+            let target = crate::test::target(&program, target);
+            crate::path::Search::new(program, Some(target))
         };
         let mut expected = {
             let program = parse(source).unwrap();
-            let target = crate::source::Program {
-                rule: program.rule.clone(),
-                ..parse(target).unwrap()
-            };
-            crate::path::Search::new(program, target)
+            let target = crate::test::target(&program, target);
+            crate::path::Search::new(program, Some(target))
         };
         for budget in [0, 1, 2, 7, 31, 128] {
             for record in [1, 1_000_000] {
@@ -67,20 +61,10 @@ fn exhaustive() {
     ] {
         let mut actual = Runtime::new(&parse(source).unwrap());
         let mut expected = Runtime::new(&parse(source).unwrap());
-        let mut prism = {
-            let program = parse(source).unwrap();
-            let target = crate::source::Program {
-                rule: program.rule.clone(),
-                ..parse("C").unwrap()
-            };
-            crate::prism::Search::new(program, target)
-        };
         for budget in [0, 1, 2, 7, 31, 128] {
-            actual.run(budget, None);
-            expected.run(budget, None);
-            prism.run(budget, None);
+            actual.run(budget, Limit::default());
+            expected.run(budget, Limit::default());
             compare(&actual.view(), &expected.snapshot());
-            compare(&prism.view(), &prism.report());
         }
         let owned = actual.snapshot();
         drop(actual);
@@ -111,23 +95,9 @@ impl Write for Writer {
 fn failure() {
     for remaining in [0, 1, 8, 64, 512, 1024] {
         let source = parse("A, [A] (B, [B] (C, [C] D))").unwrap();
-        let target = parse("D").unwrap();
-        let mut actual = {
-            let program = source.clone();
-            let target = crate::source::Program {
-                rule: program.rule.clone(),
-                ..target.clone()
-            };
-            crate::path::Search::new(program, target)
-        };
-        let mut expected = {
-            let program = source;
-            let target = crate::source::Program {
-                rule: program.rule.clone(),
-                ..target
-            };
-            crate::path::Search::new(program, target)
-        };
+        let target = crate::test::target(&source, "D");
+        let mut actual = crate::path::Search::new(source.clone(), Some(target.clone()));
+        let mut expected = crate::path::Search::new(source, Some(target));
         actual.run(31, Limit::default());
         expected.run(31, Limit::default());
         let mut writer = Writer { remaining };
@@ -146,9 +116,9 @@ fn failure() {
 
 #[test]
 fn catalog() {
-    let program = crate::lowering::parse("[A] B, [A] B, [[A] B] C").unwrap();
+    let program = frontend::lowering::parse("[A] B, [A] B, [[A] B] C").unwrap();
     let mut runtime = crate::runtime::Runtime::new(&program);
-    runtime.run(100_000, None);
+    runtime.run(100_000, Limit::default());
     let value = serde_json::to_value(runtime.view()).unwrap();
     assert_eq!(value["definition"].as_array().unwrap().len(), 2);
     assert_eq!(value, serde_json::to_value(runtime.snapshot()).unwrap());
