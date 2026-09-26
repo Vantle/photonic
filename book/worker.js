@@ -1,4 +1,4 @@
-import initialize, { lower, explore, shape, Path } from '../toolchain/browser/module/runtime.js';
+import initialize, { lower, explore, shape, select, Path } from '../toolchain/browser/module/runtime.js';
 import { answer } from './numeral.js';
 
 let live = false;
@@ -29,6 +29,7 @@ const perform = ({ kind, request }) => {
     if (kind === 'lower') return { reply: JSON.parse(lower(input)) };
     if (kind === 'explore') return { reply: JSON.parse(explore(input)) };
     if (kind === 'shape') return { reply: JSON.parse(shape(input)) };
+    if (kind === 'select') return { reply: JSON.parse(select(input)) };
     if (kind === 'path') return { reply: follow(new Path(input), false) };
     if (kind === 'expression') return { reply: follow(Path.expression(input), true) };
     return { failure: { code: 'request', message: `The engine does not know the request kind ${kind}.` } };

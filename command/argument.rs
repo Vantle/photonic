@@ -224,7 +224,7 @@ pub struct Select {
     pub file: Vec<PathBuf>,
     #[arg(
         long,
-        help = "A Photonic pattern: B, B.X, B, C, ().([A] B) or [B, C] D"
+        help = "A Photonic pattern: B, B.X, B, C, ().([A] B), (K, [K] L) or [B, C] D"
     )]
     pub pattern: String,
     #[arg(long, default_value_t = spectrum::select::LIMIT, help = "Matches listed")]

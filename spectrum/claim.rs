@@ -213,8 +213,7 @@ fn exact(claim: &Claim, exploration: &Exploration) -> Result<Evidence, Failure> 
             "a direct path checks an exact target as its goal; explore in path mode with goal",
         ));
     }
-    let target = crate::subject::lower("pattern", &claim.pattern, Code::Target)
-        .and_then(crate::subject::target)?;
+    let target = crate::subject::lower("pattern", &claim.pattern, Code::Target)?;
     let verdict = exploration
         .verdict(&target, claim.preserve)
         .ok_or_else(|| Failure::new(Code::Claim, "this exploration cannot check exact targets"))?;
@@ -234,11 +233,16 @@ fn exact(claim: &Claim, exploration: &Exploration) -> Result<Evidence, Failure> 
     })
 }
 
-fn pattern(claim: &Claim, exploration: &Exploration, item: &[Vec<pattern::Item>]) -> Evidence {
+fn pattern(claim: &Claim, exploration: &Exploration, body: &pattern::Body) -> Evidence {
     let matched = (0..exploration.configuration.len())
         .map(|index| {
             exploration.configuration[index].supported
-                && pattern::assign(item, exploration, index).is_some()
+                && pattern::assign(
+                    body,
+                    &exploration.configuration[index],
+                    exploration.rule.as_slice(),
+                )
+                .is_some()
         })
         .collect::<Vec<_>>();
     let found = shallowest(
@@ -316,11 +320,11 @@ pub(crate) fn evaluate(claim: &Claim, exploration: &Exploration) -> Result<Verdi
         exact(claim, exploration)?
     } else {
         match Pattern::read(&claim.pattern)? {
-            Pattern::Coherence(item) => pattern(claim, exploration, &item),
+            Pattern::Configuration(body) => pattern(claim, exploration, &body),
             Pattern::Rule(_) => {
                 return Err(Failure::new(
                     Code::Claim,
-                    "a claim is about configurations; write a coherence pattern such as False.Extra",
+                    "a claim is about configurations; write a pattern of coherences and scopes, such as False.Extra",
                 ));
             }
         }

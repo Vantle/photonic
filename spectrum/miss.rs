@@ -1,9 +1,10 @@
+use crate::configuration::{Coherence, Occurrence, Value};
 use crate::context::Context;
-use crate::exploration::{Coherence, Exploration, Occurrence, Value};
+use crate::exploration::Exploration;
 use crate::failure::{Code, Failure};
 use crate::handle::Handle;
 use crate::matching;
-use crate::pattern::{self, Item, Pattern};
+use crate::pattern::{self, Body, Item, Pattern, Region};
 use crate::recording::Recording;
 use crate::render;
 use frontend::source::Definition;
@@ -114,7 +115,8 @@ fn fit(particle: &[Item], coherence: &Coherence, exploration: &Exploration) -> F
     let mut missing = Vec::new();
     for item in particle {
         let found = coherence.occurrence.iter().find(|occurrence| {
-            !matched.contains(&occurrence.id) && pattern::same(item, &occurrence.value, exploration)
+            !matched.contains(&occurrence.id)
+                && pattern::same(item, &occurrence.value, exploration.rule.as_slice())
         });
         match found {
             Some(occurrence) => matched.push(occurrence.id),
@@ -138,6 +140,7 @@ fn assign(
                     coherence.get(column).map_or(0, |entry| {
                         -i64::try_from(fit(part, entry, exploration).matched.len())
                             .unwrap_or(i64::MAX)
+                            - i64::from(part.is_empty())
                     })
                 })
                 .collect()
@@ -156,100 +159,263 @@ fn definition(occurrence: &Occurrence, exploration: &Exploration) -> Option<Defi
     Some(exploration.rule[index].canonical.clone())
 }
 
-struct Exact {
-    rule: Vec<Definition>,
+#[derive(Default)]
+struct Tally {
+    distance: usize,
+    missing: Vec<String>,
+    extra: Vec<String>,
 }
 
-fn measure(
-    particle: &[Vec<Item>],
-    exact: Option<&Exact>,
-    exploration: &Exploration,
-    index: usize,
-) -> (Near, usize) {
-    let entry = &exploration.configuration[index];
-    let candidate = entry
-        .coherence
+impl Tally {
+    fn absorb(&mut self, other: Self) {
+        self.distance += other.distance;
+        self.missing.extend(other.missing);
+        self.extra.extend(other.extra);
+    }
+
+    fn lack(&mut self, prefix: &str, particle: &[Item]) {
+        self.distance += particle.len().max(1);
+        if particle.is_empty() {
+            self.missing.push(format!("{prefix}()"));
+        }
+        self.missing.extend(
+            particle
+                .iter()
+                .map(|item| format!("{prefix}{}", describe(item))),
+        );
+    }
+}
+
+fn prefix(frame: usize) -> String {
+    if frame == 0 {
+        return String::new();
+    }
+    format!("in f{frame}: ")
+}
+
+// Each scope of the pattern takes the frame it fits best, and a scope that fits none is missing
+// whole, so nested scopes are measured the way the configuration's own parts are.
+fn nest(
+    body: &Body,
+    frame: &[usize],
+    prefix: &str,
+    inner: impl Fn(&Body, usize) -> Tally,
+) -> (Tally, Vec<usize>) {
+    let mut fit = body
+        .scope
         .iter()
-        .filter(|coherence| exact.is_none() || coherence.frame == 0)
+        .map(|scope| {
+            frame
+                .iter()
+                .map(|&frame| inner(scope, frame))
+                .collect::<Vec<_>>()
+        })
         .collect::<Vec<_>>();
-    let choice = assign(particle, &candidate, exploration);
-    let mut missing = Vec::new();
-    let mut extra = Vec::new();
-    let mut distance = 0;
-    for (part, choice) in particle.iter().zip(&choice) {
-        let Some(position) = *choice else {
-            distance += part.len();
-            missing.extend(part.iter().map(describe));
-            continue;
-        };
-        let fit = fit(part, candidate[position], exploration);
-        distance += fit.missing.len();
-        missing.extend(fit.missing);
-        if exact.is_none() {
+    let width = frame.len() + body.scope.len();
+    let cost = body
+        .scope
+        .iter()
+        .zip(&fit)
+        .map(|(scope, fit)| {
+            (0..width)
+                .map(|column| {
+                    let distance = fit.get(column).map_or(scope.size(), |tally| tally.distance);
+                    i64::try_from(distance).unwrap_or(i64::MAX)
+                })
+                .collect()
+        })
+        .collect::<Vec<Vec<i64>>>();
+    let mut tally = Tally::default();
+    let mut used = Vec::new();
+    for (row, column) in matching::cheapest(&cost).into_iter().enumerate() {
+        if column < frame.len() {
+            tally.absorb(std::mem::take(&mut fit[row][column]));
+            used.push(frame[column]);
             continue;
         }
+        let scope = &body.scope[row];
+        tally.distance += scope.size();
+        tally.missing.push(format!(
+            "{prefix}{}",
+            frontend::text::scope(&scope.program())
+        ));
+    }
+    (tally, used)
+}
+
+fn contain(
+    body: &Body,
+    region: &Region,
+    prefix: &str,
+    exploration: &Exploration,
+    configuration: usize,
+) -> Tally {
+    let entry = &exploration.configuration[configuration];
+    let mut tally = Tally::default();
+    let candidate = region
+        .coherence
+        .iter()
+        .map(|&index| &entry.coherence[index])
+        .collect::<Vec<_>>();
+    let choice = assign(&body.coherence, &candidate, exploration);
+    for (particle, choice) in body.coherence.iter().zip(choice) {
+        let Some(position) = choice else {
+            tally.lack(prefix, particle);
+            continue;
+        };
+        let missing = fit(particle, candidate[position], exploration).missing;
+        tally.distance += missing.len();
+        tally
+            .missing
+            .extend(missing.into_iter().map(|item| format!("{prefix}{item}")));
+    }
+    let (nested, _) = nest(body, &region.frame, prefix, |scope, frame| {
+        let region = Region::frame(&exploration.configuration[configuration], frame);
+        contain(
+            scope,
+            &region,
+            &self::prefix(frame),
+            exploration,
+            configuration,
+        )
+    });
+    tally.absorb(nested);
+    let mut live = region.rule.clone();
+    for expected in &body.rule {
+        match live
+            .iter()
+            .position(|&rule| exploration.rule[rule].canonical == *expected)
+        {
+            Some(position) => {
+                live.swap_remove(position);
+            }
+            None => {
+                tally.distance += 1;
+                tally.missing.push(format!(
+                    "{prefix}({})",
+                    frontend::text::definition(expected)
+                ));
+            }
+        }
+    }
+    tally
+}
+
+fn below(frame: &[usize], exploration: &Exploration, configuration: usize) -> Vec<usize> {
+    let entry = &exploration.configuration[configuration];
+    let mut result = frame.to_vec();
+    let mut index = 0;
+    while index < result.len() {
+        let parent = result[index];
+        result.extend(
+            (0..entry.frame.len()).filter(|&child| entry.frame[child].parent == Some(parent)),
+        );
+        index += 1;
+    }
+    result
+}
+
+fn equal(body: &Body, frame: usize, exploration: &Exploration, configuration: usize) -> Tally {
+    let entry = &exploration.configuration[configuration];
+    let region = Region::opened(entry, frame);
+    let prefix = prefix(frame);
+    let mut tally = Tally::default();
+    let candidate = region
+        .coherence
+        .iter()
+        .map(|&index| &entry.coherence[index])
+        .collect::<Vec<_>>();
+    let choice = assign(&body.coherence, &candidate, exploration);
+    for (particle, choice) in body.coherence.iter().zip(&choice) {
+        let Some(position) = *choice else {
+            tally.lack(&prefix, particle);
+            continue;
+        };
+        let fit = fit(particle, candidate[position], exploration);
+        tally.distance += fit.missing.len();
+        tally
+            .missing
+            .extend(fit.missing.iter().map(|item| format!("{prefix}{item}")));
         let surplus = candidate[position]
             .occurrence
             .iter()
             .filter(|occurrence| !fit.matched.contains(&occurrence.id))
-            .map(|occurrence| render::occurrence(exploration, occurrence))
+            .map(|occurrence| format!("{prefix}{}", render::occurrence(exploration, occurrence)))
             .collect::<Vec<_>>();
-        distance += surplus.len();
-        extra.extend(surplus);
+        tally.distance += surplus.len();
+        tally.extra.extend(surplus);
     }
-    if let Some(exact) = exact {
-        for (position, coherence) in candidate.iter().enumerate() {
-            if !choice.contains(&Some(position)) {
-                distance += coherence.occurrence.len().max(1);
-                extra.push(render::coherence(exploration, coherence));
-            }
-        }
-        for coherence in entry
-            .coherence
-            .iter()
-            .filter(|coherence| coherence.frame != 0)
-        {
-            distance += coherence.occurrence.len().max(1);
-            extra.push(format!(
-                "in f{}: {}",
-                coherence.frame,
+    for (position, coherence) in candidate.iter().enumerate() {
+        if !choice.contains(&Some(position)) {
+            tally.distance += coherence.occurrence.len().max(1);
+            tally.extra.push(format!(
+                "{prefix}{}",
                 render::coherence(exploration, coherence)
             ));
         }
-        let mut live = entry
-            .frame
-            .first()
-            .map(|frame| frame.rule.as_slice())
-            .unwrap_or_default()
-            .iter()
-            .filter_map(|occurrence| {
-                definition(occurrence, exploration).map(|rule| (rule, occurrence))
-            })
-            .collect::<Vec<_>>();
-        for expected in &exact.rule {
-            match live.iter().position(|(rule, _)| rule == expected) {
-                Some(position) => {
-                    live.remove(position);
-                }
-                None => {
-                    distance += 1;
-                    missing.push(format!("({})", frontend::text::definition(expected)));
-                }
+    }
+    let (nested, used) = nest(body, &region.frame, &prefix, |scope, child| {
+        equal(scope, child, exploration, configuration)
+    });
+    tally.absorb(nested);
+    let unmatched = (0..entry.frame.len())
+        .filter(|&child| entry.frame[child].parent == Some(frame) && !used.contains(&child))
+        .collect::<Vec<_>>();
+    let unmatched = below(&unmatched, exploration, configuration);
+    for coherence in entry
+        .coherence
+        .iter()
+        .filter(|coherence| unmatched.contains(&coherence.frame))
+    {
+        tally.distance += coherence.occurrence.len().max(1);
+        tally.extra.push(format!(
+            "in f{}: {}",
+            coherence.frame,
+            render::coherence(exploration, coherence)
+        ));
+    }
+    let mut live = entry.frame[frame]
+        .rule
+        .iter()
+        .filter_map(|occurrence| definition(occurrence, exploration).map(|rule| (rule, occurrence)))
+        .collect::<Vec<_>>();
+    for expected in &body.rule {
+        match live.iter().position(|(rule, _)| rule == expected) {
+            Some(position) => {
+                live.remove(position);
+            }
+            None => {
+                tally.distance += 1;
+                tally.missing.push(format!(
+                    "{prefix}({})",
+                    frontend::text::definition(expected)
+                ));
             }
         }
-        distance += live.len();
-        extra.extend(
-            live.iter()
-                .map(|(_, occurrence)| render::occurrence(exploration, occurrence)),
-        );
     }
+    tally.distance += live.len();
+    tally.extra.extend(
+        live.iter().map(|(_, occurrence)| {
+            format!("{prefix}{}", render::occurrence(exploration, occurrence))
+        }),
+    );
+    tally
+}
+
+fn measure(body: &Body, exact: bool, exploration: &Exploration, index: usize) -> (Near, usize) {
+    let tally = if exact {
+        equal(body, 0, exploration, index)
+    } else {
+        let region = Region::configuration(&exploration.configuration[index]);
+        contain(body, &region, "", exploration, index)
+    };
     (
         Near {
             handle: Handle::Configuration(index).to_string(),
             text: render::configuration(exploration, index),
-            distance,
-            missing,
-            extra,
+            distance: tally.distance,
+            missing: tally.missing,
+            extra: tally.extra,
         },
         index,
     )
@@ -260,14 +426,9 @@ fn depth(exploration: &Exploration, index: usize) -> usize {
 }
 
 fn target(request: &Request, text: &str, exploration: &Exploration) -> Result<Miss, Failure> {
-    let (particle, exact) = if request.exact {
-        let target =
-            crate::subject::lower("target", text, Code::Target).and_then(crate::subject::target)?;
-        let mut rule = target
-            .rule
-            .iter()
-            .map(Definition::canonical)
-            .collect::<Vec<_>>();
+    let body = if request.exact {
+        let target = crate::subject::lower("target", text, Code::Target)?;
+        let mut body = Body::new(&target);
         if request.preserve {
             let root = exploration
                 .configuration
@@ -275,17 +436,12 @@ fn target(request: &Request, text: &str, exploration: &Exploration) -> Result<Mi
                 .and_then(|entry| entry.frame.first())
                 .map(|frame| frame.rule.as_slice())
                 .unwrap_or_default();
-            rule.extend(
+            body.rule.extend(
                 root.iter()
                     .filter_map(|occurrence| definition(occurrence, exploration)),
             );
         }
-        let particle = target
-            .initial
-            .iter()
-            .map(|particle| particle.iter().map(pattern::item).collect())
-            .collect::<Vec<Vec<Item>>>();
-        (particle, Some(Exact { rule }))
+        body
     } else {
         if request.preserve {
             return Err(Failure::new(
@@ -294,18 +450,18 @@ fn target(request: &Request, text: &str, exploration: &Exploration) -> Result<Mi
             ));
         }
         match Pattern::read(text)? {
-            Pattern::Coherence(item) => (item, None),
+            Pattern::Configuration(body) => body,
             Pattern::Rule(_) => {
                 return Err(Failure::new(
                     Code::Pattern,
-                    "miss takes a coherence pattern as target; give a rule as rule",
+                    "miss takes a pattern of coherences and scopes as target; give a rule as rule",
                 ));
             }
         }
     };
     let mut near = (0..exploration.configuration.len())
         .filter(|&index| exploration.configuration[index].supported)
-        .map(|index| measure(&particle, exact.as_ref(), exploration, index))
+        .map(|index| measure(&body, request.exact, exploration, index))
         .collect::<Vec<_>>();
     near.sort_by_key(|(entry, index)| (entry.distance, depth(exploration, *index), *index));
     Ok(Miss::Target {

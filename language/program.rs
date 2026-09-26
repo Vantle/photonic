@@ -1,6 +1,7 @@
 use frontend::source;
 use hashing::Builder;
 use indexmap::IndexSet;
+use std::borrow::Cow;
 use std::collections::HashMap;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -32,12 +33,12 @@ pub struct Scope {
 }
 
 impl Scope {
-    fn root(initial: Vec<Vec<Symbol>>, rule: Vec<usize>) -> Self {
+    fn root(initial: Vec<Vec<Symbol>>, rule: Vec<usize>, scope: Vec<usize>) -> Self {
         Self {
             name: "root".into(),
             initial,
             rule,
-            scope: Vec::new(),
+            scope,
             opener: None,
         }
     }
@@ -92,17 +93,41 @@ impl Program {
         program
     }
 
-    pub(crate) fn target(&self, source: &source::Program) -> Option<Scope> {
-        // A frame belongs to one scope declaration and holds the tokens that opened it, and a
-        // target can write neither, so a target that opens a scope names no configuration.
-        if !source.scope.is_empty() {
-            return None;
+    // A target names the configuration its text loads as, so its scopes are ones a program opens at
+    // the start: they share the declarations this program gives the same scopes, and hold nothing.
+    pub(crate) fn target(&self, source: &source::Program) -> (Cow<'_, Self>, Scope) {
+        if let Some(root) = self.known(source) {
+            return (Cow::Borrowed(self), root);
         }
+        let mut program = self.clone();
+        let rule = source
+            .rule
+            .iter()
+            .enumerate()
+            .map(|(position, rule)| program.intern(rule, format!("root/{position}")))
+            .collect();
+        let initial = program.input(&source.initial);
+        let scope = source
+            .scope
+            .iter()
+            .enumerate()
+            .map(|(position, value)| {
+                program.declare(
+                    value,
+                    format!("root/{}", source.rule.len() + position),
+                    None,
+                )
+            })
+            .collect();
+        (Cow::Owned(program), Scope::root(initial, rule, scope))
+    }
+
+    fn known(&self, source: &source::Program) -> Option<Scope> {
         let rule = source
             .rule
             .iter()
             .map(|rule| self.find(rule))
-            .collect::<Option<Vec<_>>>();
+            .collect::<Option<Vec<_>>>()?;
         let initial = source
             .initial
             .iter()
@@ -112,18 +137,13 @@ impl Program {
                     .map(|value| self.symbol(value))
                     .collect::<Option<Vec<_>>>()
             })
-            .collect::<Option<Vec<_>>>();
-        if let (Some(rule), Some(initial)) = (rule, initial) {
-            return Some(Scope::root(initial, rule));
-        }
-        let mut program = self.clone();
-        let rule = source
-            .rule
+            .collect::<Option<Vec<_>>>()?;
+        let scope = source
+            .scope
             .iter()
-            .enumerate()
-            .map(|(position, rule)| program.intern(rule, format!("root/{position}")))
-            .collect();
-        Some(Scope::root(program.input(&source.initial), rule))
+            .map(|value| self.declaration.get(&(None, self.body(value)?)).copied())
+            .collect::<Option<Vec<_>>>()?;
+        Some(Scope::root(initial, rule, scope))
     }
 
     fn symbol(&self, value: &source::Value) -> Option<Symbol> {

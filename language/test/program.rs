@@ -90,9 +90,8 @@ fn target() {
     let compiled = program("A.B, [A] (X, [X] Y), [B] C");
     let atom = compiled.atom.len();
     let rule = compiled.rule.len();
-    let known = compiled
-        .target(&frontend::lowering::parse("B.A, ().([A] (X, [X] Y)), [B] C").unwrap())
-        .unwrap();
+    let (_, known) =
+        compiled.target(&frontend::lowering::parse("B.A, ().([A] (X, [X] Y)), [B] C").unwrap());
     assert_eq!(known.rule, [compiled.scope[0].rule[1]]);
     assert_eq!(
         known.initial,
@@ -104,18 +103,19 @@ fn target() {
             vec![Symbol::Rule(compiled.scope[0].rule[0])]
         ]
     );
-    let unknown = compiled
-        .target(&frontend::lowering::parse("Z, [B] C, [Q] R").unwrap())
-        .unwrap();
+    let (_, unknown) = compiled.target(&frontend::lowering::parse("Z, [B] C, [Q] R").unwrap());
     assert_eq!(unknown.rule, [compiled.scope[0].rule[1], rule]);
     assert_eq!(unknown.initial, [[Symbol::Atom(atom + 2)]]);
     assert_eq!(compiled.atom.len(), atom);
     assert_eq!(compiled.rule.len(), rule);
-    assert!(
-        compiled
-            .target(&frontend::lowering::parse("A.B, (X, [X] Y)").unwrap())
-            .is_none()
-    );
+    let opened = program("Z, (X, [X] Y), [A] (X, [X] Y)");
+    let (table, same) = opened.target(&frontend::lowering::parse("(X, [X] Y)").unwrap());
+    assert!(matches!(table, std::borrow::Cow::Borrowed(_)));
+    assert_eq!(same.scope, opened.scope[0].scope);
+    let (table, other) = opened.target(&frontend::lowering::parse("(X, [X] W)").unwrap());
+    assert_eq!(other.scope, [opened.scope.len()]);
+    assert_eq!(table.scope[other.scope[0]].opener, None);
+    assert_eq!(table.scope.len(), opened.scope.len() + 1);
 }
 
 #[test]

@@ -1,6 +1,7 @@
 use crate::claim::{self, Claim};
+use crate::configuration::{Occurrence, Opener};
 use crate::context::Context;
-use crate::exploration::{Exploration, Occurrence, Opener};
+use crate::exploration::Exploration;
 use crate::failure::{Code, Failure};
 use crate::handle::Handle;
 use crate::recording::Recording;

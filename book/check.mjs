@@ -115,10 +115,9 @@ try {
     assert.equal(await evaluate("return document.querySelectorAll('#bench button.hyperedge').length"), 3);
     assert.equal(await evaluate("return document.querySelectorAll('#bench .capsule').length"), 5);
     await evaluate("const input = document.querySelector('#bench .filter input'); input.value = 'C'; input.dispatchEvent(new Event('input')); return true");
-    await until("return document.querySelectorAll('#bench .graph .state').length === 3");
-    assert.deepEqual(await evaluate("return [...document.querySelectorAll('#bench .graph .state')].map(value => value.dataset.state)"), ['1', '3', '4']);
-    assert.equal(await evaluate("return document.querySelectorAll('#bench .graph .state[data-match]').length"), 2);
-    assert.equal(await evaluate("return document.querySelectorAll('#bench .capsule').length"), 3);
+    await until("return document.querySelector('#bench .filter p').dataset.tone === 'error'");
+    assert.match(await evaluate("return document.querySelector('#bench .filter p').textContent"), /needs the live engine/);
+    assert.equal(await evaluate("return document.querySelectorAll('#bench .graph .state').length"), 5);
     await evaluate("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true })); return true");
     assert.equal(await evaluate("return document.querySelector('.palette').hidden"), false);
     await evaluate("const input = document.querySelector('.palette input'); input.value = '[C, D] E'; input.dispatchEvent(new Event('input')); return true");
@@ -128,17 +127,8 @@ try {
     await evaluate("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true })); const input = document.querySelector('.palette input'); input.value = 'Prism'; input.dispatchEvent(new Event('input')); input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })); input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); return true");
     assert.equal(await evaluate("return document.activeElement === document.querySelector('#prism h2')"), true);
     await until("return document.querySelector('#bench .filter input').value === '[C, D] E'");
-    const matched = await evaluate("return [...document.querySelectorAll('#bench .graph .state')].map(value => value.dataset.state).sort()");
-    const filter = async text => {
-        await evaluate("document.querySelector('#bench .filter .tool').click(); return true");
-        await until("return document.querySelector('#bench .filter p').textContent.startsWith('Type a pattern')");
-        await evaluate(`const input = document.querySelector('#bench .filter input'); input.value = ${JSON.stringify(text)}; input.dispatchEvent(new Event('input')); return true`);
-    };
-    await filter('[D,C]E');
-    await until("return document.querySelector('#bench .filter p').textContent.startsWith('Showing')");
-    assert.deepEqual(await evaluate("return [...document.querySelectorAll('#bench .graph .state')].map(value => value.dataset.state).sort()"), matched);
-    await filter('B.');
-    await until("return document.querySelector('#bench .filter p').dataset.tone === 'error'");
+    await evaluate("document.querySelector('#bench .filter .tool').click(); return true");
+    await until("return document.querySelector('#bench .filter p').textContent.startsWith('Type a pattern')");
     await evaluate("[...document.querySelectorAll('#bench .preset button')].find(value => value.textContent === 'Scope').click(); return true");
     assert.equal(await evaluate("return document.querySelector('#bench .editor textarea').value"), await evaluate('return book.record.example.brew.source'));
     assert.equal(await evaluate("return document.querySelectorAll('#bench .graph .state').length"), await evaluate('return book.record.example.brew.result.execution.state.length'));
@@ -202,6 +192,31 @@ try {
 
     await open(`${origin}/index.html`, `${ready} && book.engine.state === 'live'`);
     assert.equal(await evaluate("return document.getElementById('status').textContent"), 'Live engine');
+    const filter = async text => {
+        await evaluate("document.querySelector('#bench .filter .tool').click(); return true");
+        await until("return document.querySelector('#bench .filter p').textContent.startsWith('Type a pattern')");
+        await evaluate(`const input = document.querySelector('#bench .filter input'); input.value = ${JSON.stringify(text)}; input.dispatchEvent(new Event('input')); return true`);
+    };
+    await filter('C');
+    await until("return document.querySelectorAll('#bench .graph .state').length === 3");
+    assert.deepEqual(await evaluate("return [...document.querySelectorAll('#bench .graph .state')].map(value => value.dataset.state)"), ['1', '3', '4']);
+    assert.equal(await evaluate("return document.querySelectorAll('#bench .graph .state[data-match]').length"), 2);
+    assert.equal(await evaluate("return document.querySelectorAll('#bench .capsule').length"), 3);
+    await filter('[C, D] E');
+    await until("return document.querySelector('#bench .filter p').textContent.startsWith('Showing')");
+    const matched = await evaluate("return [...document.querySelectorAll('#bench .graph .state')].map(value => value.dataset.state).sort()");
+    await filter('[D,C]E');
+    await until("return document.querySelector('#bench .filter p').textContent.startsWith('Showing')");
+    assert.deepEqual(await evaluate("return [...document.querySelectorAll('#bench .graph .state')].map(value => value.dataset.state).sort()"), matched);
+    await filter('B.');
+    await until("return document.querySelector('#bench .filter p').dataset.tone === 'error'");
+    await evaluate("[...document.querySelectorAll('#bench .preset button')].find(value => value.textContent === 'Scope').click(); return true");
+    await filter('(Kettle, [Kettle.Tea] Cup)');
+    await until("return document.querySelector('#bench .filter p').textContent.startsWith('Showing 2 of')");
+    assert.deepEqual(await evaluate("return [...document.querySelectorAll('#bench .graph .state')].map(value => value.dataset.state)"), ['1', '2']);
+    await filter('');
+    await evaluate("[...document.querySelectorAll('#bench .preset button')].find(value => value.textContent === 'Parallel').click(); return true");
+    console.log('The live book filters by pattern in its engine, scopes included.');
     await evaluate(`const state = ${figure('first')}.querySelector('.state[data-state="1"]'); state.click(); return true`);
     assert.equal(await evaluate(`return ${figure('first')}.querySelector('.state[data-state="1"]').getAttribute('aria-current')`), 'true');
     assert.match(await evaluate(`return ${figure('first')}.querySelector('.departure').textContent`), /no rule applies here/);

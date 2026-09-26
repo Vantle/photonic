@@ -105,6 +105,7 @@ fn fallback() {
     search.runtime = crate::reduction::Search::new(search.compiled.clone(), ring.clone());
     search.state = vec![Record::new(ring.clone())];
     search.goal = Some(super::Goal {
+        source: frontend::source::Program::default(),
         signature: crate::fingerprint::state(&triangle),
         record: Record::new(triangle),
     });

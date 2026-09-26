@@ -1,6 +1,7 @@
 use crate::claim::Verdict;
+use crate::configuration::Opener;
 use crate::context::Context;
-use crate::exploration::{Exploration, Opener};
+use crate::exploration::Exploration;
 use crate::failure::Failure;
 use crate::handle::Handle;
 use crate::recording::{Mode, Order, Recording};

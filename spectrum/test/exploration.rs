@@ -1,7 +1,7 @@
 use super::support::{BUG, FIX, ORIGINAL, explore};
 use crate::cause::Role;
 use crate::claim::{self, Answer, Claim, Kind};
-use crate::exploration::{Opener, Value};
+use crate::configuration::{Opener, Value};
 use crate::lineage;
 use crate::recording::Order;
 use crate::render;

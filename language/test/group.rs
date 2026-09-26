@@ -76,15 +76,14 @@ fn scope() {
         runtime.run(50_000, Limit::default());
         assert_eq!(runtime.snapshot().state.len(), count, "{source}");
     }
-    let program = parse("Z, (X, [X] Y)").unwrap();
-    let mut runtime = Runtime::new(&program);
-    runtime.run(50_000, Limit::default());
-    assert!(runtime.snapshot().closed);
-    assert_eq!(
-        runtime.verdict(&program).outcome,
-        Outcome::Unknown,
-        "a target that opens a scope names no configuration"
+    check("Z, (X, [X] Y)", "Z, (X, [X] Y)", Outcome::Reached);
+    check("Z, (X, [X] Y)", "Z, (X, [X] W)", Outcome::Unreachable);
+    check(
+        "A, [A] (X, [X] Y)",
+        "(X, [X] Y), [A] (X, [X] Y)",
+        Outcome::Unreachable,
     );
+    check("(X, [X] Y), (X, [X] Y)", "Y, (X, [X] Y)", Outcome::Reached);
 }
 
 #[test]

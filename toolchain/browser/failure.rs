@@ -11,6 +11,7 @@ pub enum Code {
     Source,
     Library,
     Target,
+    Pattern,
     Internal,
 }
 

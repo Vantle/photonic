@@ -137,14 +137,15 @@ impl State {
     }
 
     pub fn initial(program: &Program) -> Self {
-        Self::load(&program.scope)
+        Self::load(&program.scope, &program.scope[0])
     }
 
-    pub(crate) fn target(program: &Program, source: &frontend::source::Program) -> Option<Self> {
-        Some(Self::load(std::slice::from_ref(&program.target(source)?)))
+    pub(crate) fn target(program: &Program, source: &frontend::source::Program) -> Self {
+        let (program, root) = program.target(source);
+        Self::load(&program.scope, &root)
     }
 
-    fn load(scope: &[Scope]) -> Self {
+    fn load(scope: &[Scope], root: &Scope) -> Self {
         let mut state = Self {
             world: crate::sequence::List::default(),
             frame: crate::sequence::List::default(),
@@ -158,7 +159,7 @@ impl State {
             next: 0,
             opened: Vec::new(),
         };
-        opening.apply(&mut state, 0, None, None);
+        opening.open(&mut state, 0, root, None, None);
         let mut world = (0..state.world.len()).collect::<Vec<_>>();
         world.sort_by_key(|&index| {
             let mut particle = state.world[index]

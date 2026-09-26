@@ -57,13 +57,6 @@ impl Program {
         Ok(())
     }
 
-    pub fn target(self) -> Result<Self, Failure> {
-        if !self.scope.is_empty() {
-            return Err(Failure::Target);
-        }
-        Ok(self)
-    }
-
     pub fn preserve(&mut self, program: &Self) {
         self.rule.extend(program.rule.iter().cloned());
     }

@@ -174,16 +174,6 @@ fn scope() {
         program(&source.rule[0].output[0]).initial,
         [Vec::<Value>::new()]
     );
-    assert!(matches!(
-        lowering::parse("Z, (X, [X] Y)").unwrap().target(),
-        Err(Failure::Target)
-    ));
-    assert!(
-        lowering::parse("Z, [A] (X, [X] Y)")
-            .unwrap()
-            .target()
-            .is_ok()
-    );
     let source = lowering::parse("Z, (X, [X] Y), ([B] C)").unwrap();
     assert_eq!(source.initial, [atom(&["Z"])]);
     assert_eq!(source.scope[0].initial, [atom(&["X"])]);

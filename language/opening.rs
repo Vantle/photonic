@@ -13,7 +13,7 @@ pub(crate) struct Opening<'source, Vacant> {
     pub opened: Vec<usize>,
 }
 
-impl<Vacant: Iterator<Item = usize>> Opening<'_, Vacant> {
+impl<'source, Vacant: Iterator<Item = usize>> Opening<'source, Vacant> {
     pub(crate) fn apply(
         &mut self,
         state: &mut State,
@@ -21,10 +21,22 @@ impl<Vacant: Iterator<Item = usize>> Opening<'_, Vacant> {
         parent: Option<usize>,
         lexical: Option<usize>,
     ) {
-        let mut pending = SmallVec::<[(usize, Option<usize>, Option<usize>); 4]>::new();
-        pending.push((body, parent, lexical));
-        while let Some((body, parent, lexical)) = pending.pop() {
-            let scope = &self.scope[body];
+        let scope = self.scope;
+        self.open(state, body, &scope[body], parent, lexical);
+    }
+
+    pub(crate) fn open(
+        &mut self,
+        state: &mut State,
+        body: usize,
+        value: &Scope,
+        parent: Option<usize>,
+        lexical: Option<usize>,
+    ) {
+        let table = self.scope;
+        let mut pending = SmallVec::<[(usize, &Scope, Option<usize>, Option<usize>); 4]>::new();
+        pending.push((body, value, parent, lexical));
+        while let Some((body, scope, parent, lexical)) = pending.pop() {
             let target = self.vacant.next().unwrap_or(state.frame.len());
             let value = Frame {
                 scope: body,
@@ -58,7 +70,7 @@ impl<Vacant: Iterator<Item = usize>> Opening<'_, Vacant> {
                     .scope
                     .iter()
                     .rev()
-                    .map(|&body| (body, Some(target), Some(target))),
+                    .map(|&body| (body, &table[body], Some(target), Some(target))),
             );
         }
     }

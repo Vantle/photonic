@@ -8,6 +8,7 @@ mod limit;
 mod path;
 mod request;
 mod response;
+mod selection;
 mod shape;
 
 use execution::Execution;
@@ -68,4 +69,9 @@ pub fn explore(input: &str) -> String {
 #[wasm_bindgen]
 pub fn shape(input: &str) -> String {
     response::respond(shape::partition(input))
+}
+
+#[wasm_bindgen]
+pub fn select(input: &str) -> String {
+    response::respond(selection::select(input))
 }

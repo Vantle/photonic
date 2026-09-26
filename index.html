@@ -396,7 +396,7 @@ Add.Unit.Unit.Unit,
 <p class="eyebrow">Verification · 9</p>
 <h2>Prism</h2>
 <p class="lead">Prism answers one question: can this exact configuration be reached?</p>
-<p>A target is a complete configuration: every coherence, every occurrence and every live rule. <code>A.X, [A] B</code> reaches <code>B.X, [A] B</code>, where the rule is still live, but never plain <code>B.X</code>.</p>
+<p>A target is written as a program and names the configuration that program starts in: every coherence, every occurrence, every live rule and every scope. <code>A.X, [A] B</code> reaches <code>B.X, [A] B</code>, where the rule is still live, but never plain <code>B.X</code>. A scope in a target is one the program opens at the start, since a scope a rule opens holds what the rule matched.</p>
 <figure class="example wide" data-example="check" data-target='["B.X, [A] B", "B.X", "A.X, [A] B"]' data-expect='["reached", "unreachable", "reached"]'>
 <pre>A.X,
 [A] B</pre>
@@ -429,7 +429,7 @@ Add.Unit.Unit.Unit,
 <div class="widget workbench wide" id="bench" data-preset='[{"name": "Parallel", "source": "A, B,\n[A] C,\n[B] D,\n[C, D] E"}, {"name": "Split and join", "source": "A.X,\n[A] (B, C),\n[B, C] D"}, {"name": "Scope", "example": "brew"}, {"name": "Inference", "example": "inference"}, {"name": "Conjunction", "example": "conjunction"}, {"name": "Counting", "example": "addition"}, {"name": "Rules as values", "example": "dynamic"}]'></div>
 <p>Every explored example in this book has a <strong>Workbench</strong> button that opens it here. For your own programs, the <a href="lightbox.html">Lightbox</a> gives the same views a full page, keeps your draft, and makes links that carry the whole program.</p>
 <h3>Filter by pattern</h3>
-<p>Type a pattern in the filter field, or press <kbd>⌘</kbd> <kbd>K</kbd> or <kbd>/</kbd> anywhere in the book. The workbench keeps what matches and everything computed after it, and hides the rest.</p>
+<p>Type a pattern in the filter field, or press <kbd>⌘</kbd> <kbd>K</kbd> or <kbd>/</kbd> anywhere in the book. The workbench keeps what matches and everything computed after it, and hides the rest. The engine reads the pattern, the same way <code>photonic select</code> does, so filtering needs the served book.</p>
 <div class="table">
 <table>
 <thead><tr><th>Pattern</th><th>Matches</th></tr></thead>
@@ -438,12 +438,13 @@ Add.Unit.Unit.Unit,
 <tr><td><code>B.X</code></td><td>A coherence that holds both <code>B</code> and <code>X</code></td></tr>
 <tr><td><code>B, C</code></td><td>A configuration in which two different coherences hold <code>B</code> and <code>C</code></td></tr>
 <tr><td><code>().([A] B)</code></td><td>A coherence that holds the rule value <code>[A] B</code></td></tr>
+<tr><td><code>(K, [K] L)</code></td><td>A scope that holds <code>K</code> and the rule <code>[K] L</code></td></tr>
 <tr><td><code>[B, C] D</code></td><td>An event that applies the rule <code>[B, C] D</code></td></tr>
 <tr><td><code>[A] C, [B] D</code></td><td>An event that applies either rule</td></tr>
 </tbody>
 </table>
 </div>
-<p>A pattern matches the way a rule's input does: a coherence matches when it contains every occurrence the pattern names, whatever else it holds. In the hypergraph, each coherence of a pattern selects lanes on its own.</p>
+<p>A pattern is read as a program and matches the way a rule's input does: a coherence matches when it contains every occurrence the pattern names, and a scope when it holds every coherence, rule and scope the pattern names, whatever else it holds. Parts listed together match different parts, in any order. In the hypergraph, each coherence of a pattern selects lanes on its own.</p>
 <h3>Symmetry</h3>
 <p>The symmetry panel colors both graphs by the ways a program repeats itself under other names. A <em>global</em> symmetry renames the whole program into itself: in Parallel, exchanging <code>A</code> with <code>B</code> and <code>C</code> with <code>D</code> leaves every rule in place, so those atoms and the events of <code>[A] C</code> and <code>[B] D</code> share one color. A <em>local</em> symmetry is a group of rules that recurs under other names while the rest of the program tells the copies apart, like <code>[True] Boolean</code> and <code>[False] Boolean</code> in Conjunction. A <em>block</em> is a set of atoms that always appear together. Hover or select a symmetry to light what it relates, and clear the Color box for the plain graphs. <a href="#connection">Chapter 16</a> explains how they are found.</p>
 <p class="onward"><a href="#tool">Next: Tests and tools</a></p>

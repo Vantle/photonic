@@ -26,7 +26,7 @@
         const input = element('input');
         input.spellcheck = false;
         input.autocomplete = 'off';
-        input.placeholder = 'B.X · B, C · [B, C] D · ().([A] B)';
+        input.placeholder = 'B.X · B, C · (K, [K] L) · [B, C] D';
         field.append(input);
         const clear = tool('Clear', 'Clear the filter');
         const note = element('p');
@@ -41,8 +41,9 @@
 
         let current;
         let data;
-        let pattern;
+        let selection;
         let problem;
+        let ticket = 0;
         let chosen;
         let control;
         let explained;
@@ -55,7 +56,7 @@
         const follow = path => {
             label.textContent = path.length ? `s0 → s${path.at(-1).target} · ${count(path.length, 'event')}` : 's0';
             explain();
-            book.hypergraph.draw(flow.host, data, path, { pattern, select: explain });
+            book.hypergraph.draw(flow.host, data, path, { selection, select: explain });
         };
 
         const deepest = visible => {
@@ -78,7 +79,7 @@
             clear.hidden = !input.value;
             if (!current) return;
             data = book.graph.model(current.result.execution);
-            const match = pattern ? book.pattern.state(pattern, data) : undefined;
+            const match = selection ? book.pattern.state(selection, data) : undefined;
             const visible = state => !match || match.state.has(state);
             if (chosen !== undefined && !visible(chosen)) chosen = undefined;
             chosen ??= deepest(visible);
@@ -103,13 +104,22 @@
             control.explain(explained);
         };
 
-        const apply = text => {
+        const apply = async text => {
             input.value = text;
-            try {
-                pattern = book.pattern.read(text);
-                problem = undefined;
-            } catch (error) {
-                problem = book.editor.describe(error);
+            const mine = ++ticket;
+            selection = undefined;
+            problem = undefined;
+            if (text.trim() && current) {
+                try {
+                    const reply = await book.engine.send('select', { pattern: text, execution: current.result.execution });
+                    if (mine !== ticket) return;
+                    selection = reply;
+                } catch (error) {
+                    if (mine !== ticket) return;
+                    problem = book.engine.state === 'recorded'
+                        ? 'Filtering by pattern needs the live engine: bazel run -c opt //book:serve'
+                        : book.editor.describe(error);
+                }
             }
             render();
         };
@@ -118,7 +128,8 @@
             current = { result, target };
             chosen = undefined;
             symmetry.show(result.symmetry, result.execution);
-            render();
+            if (input.value.trim()) apply(input.value);
+            else render();
         };
 
         const blank = text => {

@@ -159,10 +159,11 @@ Patterns are Photonic, matched by containment as a rule's input is: whatever els
 | `B` | A coherence holding `B`. |
 | `B.X` | A coherence holding both. |
 | `B, C` | Two different coherences. |
-| `([A] B)` | A coherence holding that rule value; Spectrum reads it as `().([A] B)`. |
+| `().([A] B)` | A coherence holding that rule value. |
+| `(K, [K] L)` | A scope holding `K` and that rule; parts listed together match different parts. |
 | `[B, C] D` | The events that apply a rule with that structure; spacing and the order of unordered parts do not matter. |
 
-A coherence pattern matches configurations in `select`, `miss` and claims; a rule pattern matches events in `select`.
+A pattern is read as a program and matched by containment, as a rule's input is. A pattern of coherences and scopes matches configurations in `select`, `miss` and claims, finding each of its own parts anywhere and a scope's parts inside that scope; a rule pattern matches events in `select`. The webbook's filter runs the same matcher in its WebAssembly engine.
 
 ## Claims
 
@@ -187,7 +188,7 @@ A claim is a pattern with a kind. Its answer is `holds`, `fails` or `unknown`, a
 | `select` | `pattern`, `limit` (20), `offset` | The matching configurations with the occurrences each match used, or the matching events, marked when unsupported, and the offset of the next page. |
 | `inspect` | `handle` | A rule with its events; a configuration with its coherences, frames and the events into and out of it, and `end` when a closed exhaustive exploration proves no event can happen there; a coherence, occurrence or frame; or an event with its exact part, witness, reads, deduction and the occurrences it produces. |
 | `cause` | `handle` | For a configuration, its shortest supported path. For an event, its match and the events of its deduction. For an occurrence, its lineage: back through each event that carried it as remainder, witness or held occurrence, to the start or to the event that produced it, with the places that event consumed. |
-| `miss` | `target` with `exact` and `preserve`, or `rule`; `limit` (3) | For a target, the nearest configurations and what each lacks and, when exact, has extra, assigning the target's parts to coherences so that the most occurrences match; an exact target compares coherences, live root rules and open scopes, as Prism does. For a rule, how often it fired, how many configurations it was live in without firing, and where its inputs came closest to matching. |
+| `miss` | `target` with `exact` and `preserve`, or `rule`; `limit` (3) | For a target, the nearest configurations and what each lacks and, when exact, has extra, assigning the target's parts to coherences so that the most occurrences match; an exact target is read as the configuration its program starts in and compares coherences, live rules and scopes, as Prism does. For a rule, how often it fired, how many configurations it was live in without firing, and where its inputs came closest to matching. |
 | `step` | `handle` (`s0`) | Every event that can happen at a configuration and where it leads; on a path, the one event the path took. |
 | `compare` | `left` and `right`, each a recording; `claim`; `limit` (12) | Each side's key and size, marked open when its exploration did not close or follows a path, because what an open side lacks may be unexplored rather than absent; the configurations one reaches and the other does not, compared by their coherences and held occurrences up to occurrence identity; the events that differ by rule, source and target, which is where edited rules show; and each claim's answer on both. Each change lists up to `limit` entries in each direction and counts the rest. |
 | `shape` | `program` (a list of programs), `target`, `fix`, `node` (1,000,000) | For one program, its shape, canonical form, symmetries, orbits and local patterns; for several, the classes that share a shape with the renaming between members, as the [symmetry record](symmetry.md) describes. `node` limits the symmetry search. |
@@ -215,7 +216,7 @@ A failure carries a `code`, a `message` and, when it points into text, a `locati
 | `source` | A program does not parse or lower; `check` reports it as a diagnostic instead. |
 | `library` | A library does not parse or holds more than declarations; `check` reports it as a diagnostic instead. |
 | `target` | A goal or an exact target does not parse. |
-| `pattern` | A pattern is empty or does not parse, mixes coherences with rules, or is the wrong kind for the question. |
+| `pattern` | A pattern is empty or does not parse, mixes coherences or scopes with rules, or is the wrong kind for the question. |
 | `handle` | A handle is malformed, names nothing in the exploration, or names a kind the verb does not explain. |
 | `exploration` | A key is unknown or ambiguous, or lineage is asked of a direct path. |
 | `claim` | A claim cannot be asked this way, such as an exact `always`, an exact target on a direct path, or a rule pattern as a claim. |

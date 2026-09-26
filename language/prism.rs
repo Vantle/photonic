@@ -34,13 +34,7 @@ pub(crate) fn verdict(
     closed: bool,
     target: &source::Program,
 ) -> Verdict {
-    let Some(target) = State::target(program, target) else {
-        return Verdict {
-            outcome: Outcome::Unknown,
-            witness: None,
-        };
-    };
-    let candidate = state.get_index_of(&target);
+    let candidate = state.get_index_of(&State::target(program, target).canonical().state);
     let outcome = match candidate.map(status) {
         Some(Status::Supported) => Outcome::Reached,
         _ if closed => Outcome::Unreachable,

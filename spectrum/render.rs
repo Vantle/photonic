@@ -1,4 +1,5 @@
-use crate::exploration::{self, Coherence, Exploration, Occurrence, Value};
+use crate::configuration::{Coherence, Occurrence, Value};
+use crate::exploration::{self, Exploration};
 use crate::handle::Handle;
 use crate::inspect::{Item, Move};
 use frontend::source;

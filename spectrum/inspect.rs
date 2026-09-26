@@ -1,6 +1,7 @@
 use crate::cause::Role;
+use crate::configuration::Opener;
 use crate::context::Context;
-use crate::exploration::{self, Exploration, Opener};
+use crate::exploration::{self, Exploration};
 use crate::failure::Failure;
 use crate::handle::Handle;
 use crate::lineage;
@@ -149,7 +150,7 @@ fn part(exploration: &Exploration, configuration: usize, world: usize) -> Part {
 
 fn scope(exploration: &Exploration, configuration: usize, index: usize) -> Scope {
     let entry = &exploration.configuration[configuration].frame[index];
-    let item = |occurrence: &crate::exploration::Occurrence| {
+    let item = |occurrence: &crate::configuration::Occurrence| {
         render::item(exploration, configuration, occurrence.id)
     };
     Scope {

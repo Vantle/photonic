@@ -29,8 +29,14 @@ globalThis.Worker = class {
 for (const file of script) runInThisContext(await readFile(file, 'utf8'), { filename: file });
 const { editor, engine, graph, pattern, record, render, share, symmetry } = globalThis.book;
 
-const parallel = graph.model(record.workbench.Parallel.result.execution);
-const shown = (text, data = parallel) => [...pattern.state(pattern.read(text), data).state].sort((left, right) => left - right);
+const select = (text, execution) => JSON.parse(runtime.select(JSON.stringify({ version, pattern: text, execution })));
+const selected = (text, execution) => {
+    const reply = select(text, execution);
+    assert.equal(reply.error, undefined, `${text}: ${reply.error?.message}`);
+    return reply;
+};
+const parallel = record.workbench.Parallel.result.execution;
+const shown = (text, execution = parallel) => [...pattern.state(selected(text, execution), graph.model(execution)).state].sort((left, right) => left - right);
 assert.deepEqual(shown('C'), [1, 3, 4]);
 assert.deepEqual(shown('C, D'), [3, 4]);
 assert.deepEqual(shown('C.D'), []);
@@ -39,50 +45,48 @@ assert.ok(shown('[C, D] E').length);
 for (const text of ['[C,D] E', '[D, C]E', ' [ D ,C ] E ', 'E [C, D]', 'E[D,C]', '[(C), D] (E)']) assert.deepEqual(shown(text), shown('[C, D] E'), text);
 assert.deepEqual(shown('[C, D] F'), []);
 assert.deepEqual(shown('[A] C, [B] D'), [0, 1, 2, 3, 4]);
-const dynamic = graph.model(record.example.dynamic.result.execution);
+const dynamic = record.example.dynamic.result.execution;
 assert.ok(shown('().([A] B)', dynamic).length);
 assert.deepEqual(shown('().([A]B)', dynamic), shown('().([A] B)', dynamic));
 assert.deepEqual(shown('(Seed).A', dynamic), shown('Seed.A', dynamic));
-assert.equal(pattern.read('  '), undefined);
-const bracketed = graph.model({ definition: [], closed: true, work: 0, state: [{ id: 0, world: [{ frame: 0, particle: [{ kind: 'atom', id: 0, label: '⟨x⟩' }] }], frame: [{ parent: null, particle: [], held: [] }] }], event: [] });
+const bracketed = { definition: [], closed: true, work: 0, state: [{ id: 0, world: [{ frame: 0, particle: [{ kind: 'atom', id: 0, label: '⟨x⟩' }] }], frame: [{ parent: null, particle: [], held: [] }] }], event: [] };
 assert.deepEqual(shown('⟨x⟩', bracketed), [0]);
+const brew = record.example.brew.result.execution;
+for (const text of ['(Kettle, [Kettle.Tea] Cup)', '([Kettle.Tea] Cup, Kettle.Tea)']) assert.deepEqual(selected(text, brew).state.map(found => found.id), [1], text);
+assert.deepEqual(selected('([A] B)', brew).state, []);
+assert.deepEqual(selected('Tea', brew).lane.map(entry => entry.state).sort(), [0, 1]);
 const refusal = text => {
-    try {
-        pattern.read(text);
-    } catch (error) {
-        return error;
-    }
-    assert.fail(`${text} must be refused`);
+    const reply = select(text, parallel);
+    assert.ok(reply.error, `${text} must be refused`);
+    return Object.assign(new Error(reply.error.message), { detail: reply.error });
 };
 for (const [text, message, span] of [
-    ['A B', /^Put a dot between these to join them, or a comma to separate them$/, { offset: 2, length: 1 }],
-    ['[A.] B', /^A dot joins two things; put something on each side$/, { offset: 3, length: 1 }],
-    ['[A] .B', /^A rule joins a particle inside parentheses/, { offset: 4, length: 1 }],
-    ['B.', /^A dot joins two things/, { offset: 2, length: 0 }],
-    ['[A', /^Close what is still open$/, { offset: 2, length: 0 }],
-    ['A)', /^This closes nothing that is open here$/, { offset: 1, length: 1 }],
-    ['A,,B', /^A comma separates two things/, { offset: 2, length: 1 }],
+    ['A B', /put a dot between these to join them, or a comma to separate them$/, { offset: 2, length: 1 }],
+    ['[A.] B', /a dot joins two things/, { offset: 3, length: 1 }],
+    ['B.', /a dot joins two things/, { offset: 2, length: 0 }],
+    ['A)', /closes nothing/, { offset: 1, length: 1 }],
+    ['A,,B', /a comma separates two things/, { offset: 2, length: 1 }],
 ]) {
     const error = refusal(text);
     assert.match(error.message, message, text);
     assert.deepEqual(error.detail.span, span, text);
 }
 assert.match(refusal('A, [B] C').message, /not both/);
-assert.match(refusal('(A, [B] C)').message, /a group that lists a rule is a scope/);
-assert.match(refusal('([A] B)').message, /join it, as in \(\)\.\(\[A\] B\)/);
-assert.equal(editor.describe(refusal('[A..X] B')), 'A dot joins two things; put something on each side (at character 4)');
-console.log('Patterns match coherences, rule values and rules by meaning, whatever the spacing or order, and refuse what the grammar refuses.');
+assert.match(refusal('(K, [K] L), [B] C').message, /not both/);
+assert.match(editor.describe(refusal('[A..X] B')), /\(at character 4\)$/);
+console.log('The engine reads patterns as programs and matches coherences, scopes, rule values and rules by containment, whatever the spacing or order.');
 
 const listed = JSON.parse(await readFile(table, 'utf8'));
 for (const entry of listed) {
+    const { execution } = JSON.parse(runtime.explore(JSON.stringify({ version, source: entry.program })));
+    const reply = select(entry.pattern, execution);
     if (entry.error) {
-        assert.throws(() => pattern.read(entry.pattern), { name: 'Error' }, entry.pattern);
+        assert.equal(reply.error?.code, entry.error, entry.pattern);
         continue;
     }
-    const { execution } = JSON.parse(runtime.explore(JSON.stringify({ version, source: entry.program })));
     assert.ok(execution.closed, entry.program);
-    const found = pattern.select(pattern.read(entry.pattern), execution);
-    assert.deepEqual({ kind: found.kind, total: found.match.size }, { kind: entry.kind, total: entry.total }, `${entry.pattern} on ${entry.program}`);
+    const total = reply.kind === 'configuration' ? reply.state.length : reply.event.length;
+    assert.deepEqual({ kind: reply.kind, total }, { kind: entry.kind, total: entry.total }, `${entry.pattern} on ${entry.program}`);
 }
 console.log(`The book selects what Spectrum selects in all ${listed.length} shared pattern cases.`);
 

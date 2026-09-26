@@ -56,9 +56,7 @@ fn main() -> miette::Result<ExitCode> {
         .target
         .iter()
         .map(|source| {
-            let mut target = lower(source)?
-                .target()
-                .map_err(|failure| miette::Report::new(failure).with_source_code(source.clone()))?;
+            let mut target = lower(source)?;
             target.preserve(&program);
             Ok(target)
         })

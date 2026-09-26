@@ -110,8 +110,7 @@ fn prism(argument: &argument::Prism) -> miette::Result<ExitCode> {
         load(
             std::slice::from_ref(&argument.target),
             &argument::Source::default(),
-        )
-        .and_then(spectrum::subject::target),
+        ),
     ) {
         (Ok(program), Ok(target)) => (program, target),
         (Err(failure), _) | (_, Err(failure)) => return verb::fail(&failure),

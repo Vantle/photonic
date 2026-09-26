@@ -9,6 +9,7 @@ filegroup(
         "check.rs",
         "claim.rs",
         "compare.rs",
+        "configuration.rs",
         "context.rs",
         "exploration.rs",
         "explore.rs",
@@ -42,7 +43,10 @@ rust_library(
     ],
     crate_root = "spectrum.rs",
     lint_config = "//:lint",
-    visibility = ["//command:__pkg__"],
+    visibility = [
+        "//command:__pkg__",
+        "//toolchain/browser:__pkg__",
+    ],
     deps = [
         "//code",
         "//frontend",

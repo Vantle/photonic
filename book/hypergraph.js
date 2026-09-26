@@ -6,12 +6,12 @@
     const trace = (data, route) => {
         const lifeline = [];
         const hyperedge = [];
-        const create = (column, world) => {
-            const line = { start: column, end: undefined, world };
+        const create = (column, world, state, index) => {
+            const line = { start: column, end: undefined, world, state, index };
             lifeline.push(line);
             return line;
         };
-        let current = data.state[0].world.map(world => create(0, world));
+        let current = data.state[0].world.map((world, index) => create(0, world, data.state[0].id, index));
         route.forEach((event, step) => {
             const column = step + 1;
             const consumed = new Set(event.world);
@@ -21,7 +21,7 @@
             current = data.state[event.target].world.map((world, index) => {
                 const source = event.context[index] ?? [];
                 if (source.length === 1 && !consumed.has(source[0]) && current[source[0]]) return current[source[0]];
-                const line = create(column, world);
+                const line = create(column, world, event.target, index);
                 output.push(line);
                 return line;
             });
@@ -60,7 +60,7 @@
 
     const draw = (host, data, route, option = {}) => {
         const model = trace(data, route);
-        const filter = option.pattern ? book.pattern.lane(option.pattern, model, data.definition) : undefined;
+        const filter = option.selection ? book.pattern.lane(option.selection, model) : undefined;
         const visible = line => !filter || filter.lifeline.has(line);
         const shown = edge => !filter || filter.hyperedge.has(edge);
         const scroll = element('div', 'hypergraph');

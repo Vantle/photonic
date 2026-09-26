@@ -21,7 +21,7 @@ pub struct Request {
     #[serde(flatten)]
     pub recording: Recording,
     #[schemars(
-        description = "B selects a coherence holding B; B.X one holding both; B, C two different coherences; ().([A] B) a coherence holding that rule value; [B, C] D the events applying that rule."
+        description = "B selects a coherence holding B; B.X one holding both; B, C two different coherences; ().([A] B) a coherence holding that rule value; (K, [K] L) a scope holding K and that rule; [B, C] D the events applying that rule."
     )]
     pub pattern: String,
     #[serde(default = "limit")]
@@ -44,6 +44,9 @@ pub(crate) struct Found {
     pub(crate) text: String,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub(crate) occurrence: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[schemars(description = "The scope frames the pattern's scopes matched.")]
+    pub(crate) frame: Vec<String>,
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     pub(crate) unsupported: bool,
 }
@@ -63,18 +66,28 @@ pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Ans
     let pattern = Pattern::read(&request.pattern)?;
     let exploration = context.exploration(&request.recording)?;
     let (kind, all) = match &pattern {
-        Pattern::Coherence(item) => (
+        Pattern::Configuration(body) => (
             Kind::Configuration,
             (0..exploration.configuration.len())
                 .filter_map(|index| {
-                    let found = pattern::assign(item, &exploration, index)?;
+                    let found = pattern::assign(
+                        body,
+                        &exploration.configuration[index],
+                        exploration.rule.as_slice(),
+                    )?;
                     Some(Found {
                         handle: Handle::Configuration(index).to_string(),
                         text: render::configuration(&exploration, index),
                         occurrence: found
+                            .coherence
                             .iter()
                             .flat_map(|entry| &entry.occurrence)
                             .map(|&id| Handle::Occurrence(index, id).to_string())
+                            .collect(),
+                        frame: found
+                            .frame
+                            .iter()
+                            .map(|&frame| Handle::Frame(index, frame).to_string())
                             .collect(),
                         unsupported: !exploration.configuration[index].supported,
                     })
@@ -82,7 +95,11 @@ pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Ans
                 .collect::<Vec<_>>(),
         ),
         Pattern::Rule(definition) => {
-            let rule = pattern::rule(definition, &exploration);
+            let rule = pattern::rule(
+                definition,
+                exploration.rule.as_slice(),
+                exploration.rule.len(),
+            );
             (
                 Kind::Event,
                 (0..exploration.event.len())
@@ -100,6 +117,7 @@ pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Ans
                                 render::configuration(&exploration, entry.target)
                             ),
                             occurrence: Vec::new(),
+                            frame: Vec::new(),
                             unsupported: !entry.supported,
                         }
                     })
@@ -148,7 +166,13 @@ impl Answer {
             } else {
                 ""
             };
-            if found.occurrence.is_empty() {
+            let matched = found
+                .frame
+                .iter()
+                .chain(&found.occurrence)
+                .map(String::as_str)
+                .collect::<Vec<_>>();
+            if matched.is_empty() {
                 line.push(format!("{:<6} {}{note}", found.handle, found.text));
                 continue;
             }
@@ -156,7 +180,7 @@ impl Answer {
                 "{:<6} {:<width$}   matched {}{note}",
                 found.handle,
                 found.text,
-                found.occurrence.join(" ")
+                matched.join(" ")
             ));
         }
         if let Some(next) = self.next {

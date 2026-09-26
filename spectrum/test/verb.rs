@@ -352,7 +352,8 @@ fn select() {
     let scope = json(
         r#"{"verb": "select", "program": {"source": "Seed.A, [Seed] ().([A] B)"}, "pattern": "([A] B)"}"#,
     );
-    assert_eq!(scope["error"]["code"], "pattern");
+    assert_eq!(scope["answer"]["kind"], "configuration");
+    assert_eq!(scope["answer"]["total"], 0);
     let broken = json(r#"{"verb": "select", "program": {"file": ["bug.wave"]}, "pattern": "A B"}"#);
     assert_eq!(broken["error"]["code"], "pattern");
 }
@@ -459,9 +460,27 @@ fn scope() {
         "{}",
         answer[1]
     );
-    assert_eq!(answer[2]["error"]["code"], "target", "{}", answer[2]);
-    assert_eq!(answer[3]["error"]["code"], "target", "{}", answer[3]);
-    assert_eq!(answer[4]["error"]["code"], "pattern", "{}", answer[4]);
+    assert_eq!(
+        answer[2]["answer"]["claim"][0]["answer"], "holds",
+        "{}",
+        answer[2]
+    );
+    assert_eq!(
+        answer[2]["answer"]["claim"][0]["witness"], "s0",
+        "{}",
+        answer[2]
+    );
+    let near = &answer[3]["answer"]["near"][0];
+    assert_eq!(near["handle"], "s0", "{}", answer[3]);
+    assert_eq!(near["distance"], 1, "{}", answer[3]);
+    assert_eq!(near["extra"], serde_json::json!(["Z"]), "{}", answer[3]);
+    assert_eq!(answer[4]["answer"]["total"], 1, "{}", answer[4]);
+    assert_eq!(
+        answer[4]["answer"]["found"][0]["frame"],
+        serde_json::json!(["s0.f1"]),
+        "{}",
+        answer[4]
+    );
     let explored = session(&[
         r#"{"verb": "explore", "program": {"source": "Z, (X, [X] Y), A, [A] (B, [B] C)"}}"#,
         r#"{"verb": "inspect", "program": {"source": "Z, (X, [X] Y), A, [A] (B, [B] C)"}, "handle": "s0.f1"}"#,

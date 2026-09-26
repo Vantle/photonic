@@ -123,6 +123,7 @@ struct Pending {
 }
 
 struct Goal {
+    source: source::Program,
     record: Record,
     signature: u64,
 }
@@ -137,7 +138,6 @@ enum Stage {
 
 pub struct Search {
     program: source::Program,
-    target: Option<source::Program>,
     compiled: Arc<Program>,
     goal: Option<Goal>,
     runtime: crate::reduction::Search,
@@ -152,17 +152,18 @@ pub struct Search {
 }
 
 impl Search {
-    pub fn new(program: source::Program, target: Option<source::Program>) -> Self {
+    pub fn new(program: source::Program, goal: Option<source::Program>) -> Self {
         let compiled = Program::new(&program);
         let initial = Arc::new(State::initial(&compiled));
         let fingerprint = crate::fingerprint::state(&initial);
-        let goal = target
-            .as_ref()
-            .and_then(|target| State::target(&compiled, target))
-            .map(|state| Goal {
+        let goal = goal.map(|source| {
+            let state = State::target(&compiled, &source);
+            Goal {
                 signature: crate::fingerprint::state(&state),
                 record: Record::new(Arc::new(state)),
-            });
+                source,
+            }
+        });
         let stage = match &goal {
             Some(goal) if goal.record.state == initial => Stage::Reached,
             Some(goal) if goal.signature == fingerprint => Stage::Initial,
@@ -171,7 +172,6 @@ impl Search {
         let compiled = Arc::new(compiled);
         Self {
             program,
-            target,
             goal,
             runtime: crate::reduction::Search::new(compiled.clone(), initial.clone()),
             structure: crate::structure::Structure::default(),
