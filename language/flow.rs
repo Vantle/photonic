@@ -73,6 +73,7 @@ impl Flow {
         target: &State,
         selection: &[crate::slot::Slot],
         frame: usize,
+        read: Option<Place>,
     ) -> Option<Binding> {
         let mut footprint = BTreeSet::new();
         let mut exact = BTreeSet::new();
@@ -121,7 +122,7 @@ impl Flow {
             world: world.into(),
             footprint: footprint.into(),
             exact: exact.into(),
-            read: Set::default(),
+            read: read.map_or_else(Set::default, |read| self.resource[&read].clone()),
         })
     }
 }
@@ -173,6 +174,7 @@ impl Binding {
         state: &State,
         selection: &[crate::slot::Slot],
         frame: usize,
+        read: Set<Place>,
     ) -> Option<Self> {
         let place = selection
             .iter()
@@ -197,7 +199,7 @@ impl Binding {
             world,
             exact: footprint.clone(),
             footprint,
-            read: Set::default(),
+            read,
         })
     }
 }

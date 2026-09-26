@@ -102,7 +102,9 @@ fn mutation() {
             2 => frame.particle = frame.particle.iter().cloned().collect(),
             3 => {
                 if !frame.particle.is_empty() {
-                    frame.particle[0].capture = Some(0);
+                    let mut particle = frame.particle.iter().cloned().collect::<Vec<_>>();
+                    particle[0].capture = Some(0);
+                    frame.particle = particle.into();
                 }
             }
             _ => frame.lexical = Some(0),

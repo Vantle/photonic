@@ -71,7 +71,7 @@ fn scope() {
 fn depth() {
     let source = parse("A, A, [A] B, [B] C").unwrap();
     let result = walk(&source, limit(), Bound::default(), |_| 0);
-    assert_eq!(result.work, 4);
+    assert_eq!(result.step, 4);
     assert_eq!(result.depth, 2);
     assert_eq!(label(&result.terminal.unwrap()), vec![vec!["C"], vec!["C"]]);
 }
@@ -129,7 +129,7 @@ fn bound() {
         |_| 0,
     );
     assert!(step.overflow && step.terminal.is_none());
-    assert_eq!(step.work, 2);
+    assert_eq!(step.step, 2);
     let work = Bound {
         work: 0,
         ..Bound::default()

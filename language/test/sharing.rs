@@ -52,10 +52,9 @@ fn projection() {
             .iter()
             .map(|input| {
                 Join::planned(Request {
-                    input,
+                    context: input.context(0),
                     index: &index,
                     frame: 0,
-                    owner: 0,
                     store: &store,
                 })
             })
@@ -78,7 +77,8 @@ fn projection() {
                 .unwrap();
             let world = state.world.remove(position);
             state.world.push(world);
-            index.advance(
+            crate::test::advance(
+                &mut index,
                 Arc::new(state.clone()),
                 &crate::basis::Set::single(position),
             );
@@ -112,7 +112,8 @@ fn projection() {
             };
             let world = state.world.remove(position);
             state.world.push(world);
-            index.advance(
+            crate::test::advance(
+                &mut index,
                 Arc::new(state.clone()),
                 &crate::basis::Set::single(position),
             );
@@ -145,8 +146,7 @@ fn projection() {
         drop(query);
         store.evict();
         assert_eq!(store.retained(), 0);
-        assert!(store.budget().reserve(65536));
-        store.budget().release(65536);
+        assert!(store.available(65536));
     }
 }
 
@@ -158,7 +158,7 @@ fn revision() {
     let right = Index::new(state.clone());
     let previous = left.revision().clone();
     assert!(previous != *right.revision());
-    left.advance(state, &crate::basis::Set::default());
+    crate::test::advance(&mut left, state, &crate::basis::Set::default());
     assert!(previous != *left.revision());
 }
 
@@ -179,14 +179,14 @@ fn isolation() {
         node.push(store.subscribe(super::key::Key::new(&space, &[0])).unwrap());
     }
     assert!(!Arc::ptr_eq(&node[0], &node[1]));
-    let mut trace = super::trace::Trace::new(store.budget().clone(), 1).unwrap();
+    let mut trace = super::trace::Trace::new(&store.budget, 1).unwrap();
     assert!(trace.append(&Poll::Ready(None), 0.., 4096));
     let trace = Arc::new(trace);
     node[0].publish(&index, &trace);
     assert!(Arc::ptr_eq(&node[0].find(&index).unwrap(), &trace));
     assert!(node[1].find(&index).is_none());
     assert!(node[0].find(&other).is_none());
-    index.advance(state, &crate::basis::Set::single(0));
+    crate::test::advance(&mut index, state, &crate::basis::Set::single(0));
     assert!(node[0].find(&index).is_none());
     node[0].publish(&index, &trace);
     drop(trace);
@@ -194,8 +194,7 @@ fn isolation() {
     drop(node);
     store.evict();
     assert_eq!(store.retained(), 0);
-    assert!(store.budget().reserve(128));
-    store.budget().release(128);
+    assert!(store.available(128));
 }
 
 #[test]
@@ -231,8 +230,7 @@ fn pressure() {
     assert_eq!(store.retained(), 3);
     drop(second);
     assert_eq!(store.retained(), 0);
-    assert!(store.budget().reserve(3));
-    store.budget().release(3);
+    assert!(store.available(3));
 }
 
 fn advance(query: &mut Join, reference: &mut Join, index: &Index, length: usize) {
@@ -275,10 +273,9 @@ fn unfinished() {
             .iter()
             .map(|input| {
                 let mut query = Join::planned(Request {
-                    input,
+                    context: input.context(0),
                     index: &index,
                     frame: 0,
-                    owner: 0,
                     store: &store,
                 });
                 query.traversal =
@@ -333,15 +330,14 @@ fn unfinished() {
         drop(query);
         drop(node);
         store.evict();
-        assert!(store.budget().reserve(65536));
-        store.budget().release(65536);
+        assert!(store.available(65536));
     }
 }
 
 #[test]
 fn snapshot() {
-    let budget = Arc::new(crate::budget::Budget::new(65536));
-    let mut trace = super::trace::Trace::new(budget.clone(), 1).unwrap();
+    let budget = crate::budget::Account::new(65536);
+    let mut trace = super::trace::Trace::new(&budget, 1).unwrap();
     for length in [3, 1, 5, 2] {
         for _ in 0..length {
             assert!(trace.append(&Poll::Pending, 0.., 4096));
@@ -356,8 +352,8 @@ fn snapshot() {
             4096
         ));
     }
-    assert!(trace.duplicate(trace.retained - 1).is_none());
-    let snapshot = trace.duplicate(trace.retained).unwrap();
+    assert!(trace.duplicate(trace.retained() - 1).is_none());
+    let snapshot = trace.duplicate(trace.retained()).unwrap();
     assert!(trace.append(&Poll::Pending, 0.., 4096));
     assert_eq!(snapshot.length + 1, trace.length);
     for offset in 0..=snapshot.length {
@@ -377,8 +373,7 @@ fn snapshot() {
     }
     drop(trace);
     drop(snapshot);
-    assert!(budget.reserve(65536));
-    budget.release(65536);
+    assert!(budget.reserve(65536).is_some());
 }
 
 #[test]
@@ -405,10 +400,9 @@ fn mutation() {
                     .iter()
                     .map(|input| {
                         let mut query = Join::planned(Request {
-                            input,
+                            context: input.context(0),
                             index: &index,
                             frame: 0,
-                            owner: 0,
                             store: &store,
                         });
                         query.traversal =
@@ -442,7 +436,8 @@ fn mutation() {
                     token.id += 1000;
                 }
                 state.world.push(world.into());
-                index.advance(
+                crate::test::advance(
+                    &mut index,
                     Arc::new(state.clone()),
                     &crate::basis::Set::single(position),
                 );
@@ -463,8 +458,7 @@ fn mutation() {
                 }
                 drop(query);
                 store.evict();
-                assert!(store.budget().reserve(capacity));
-                store.budget().release(capacity);
+                assert!(store.available(capacity));
             }
         }
     }

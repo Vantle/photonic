@@ -54,7 +54,7 @@ The optional-slot version also made repeated inspection about 5.5% slower in its
 Resource identity maintenance still scans complete changed populations, and color recomputation still copies whole frame arrays. Six-factor execution allocation remains above the earlier pre-population baseline of about 102.4 MB. Canonical incidence construction and refinement remain major reporting costs. This increment closes a measured dependency-maintenance cost; it does not establish completion of the runtime roadmap.
 
 ```sh
-bazel test -c opt //... //toolchain/browser:check --test_output=errors
+bazel test -c opt //... //book:check --test_output=errors
 bazel run -c opt //:format -- --check
 bazel run -c opt //benchmark:lifecycle -- expression '2*2*2*2*2*2' 2101 --sample 3 --export view --writer
 bazel run -c opt //benchmark:allocation -- expression '2*2*2*2*2*2' 2101 --sample 2 --export view --writer

@@ -9,10 +9,9 @@ use std::sync::Arc;
 fn pair(program: &Program, index: &Index, store: &Arc<Store>, depth: [usize; 2]) -> (Join, Join) {
     let input = Input::new(&program.rule[0].input);
     let mut actual = Join::planned(Request {
-        input: &input,
+        context: input.context(0),
         index,
         frame: 0,
-        owner: 0,
         store,
     });
     actual.traversal = Join::product(
@@ -54,8 +53,7 @@ fn boundary() {
                 assert!(compare(&mut actual, &mut expected, &index, 10000));
                 drop(actual);
                 store.evict();
-                assert!(store.budget().reserve(65536));
-                store.budget().release(65536);
+                assert!(store.available(65536));
             }
         }
     }
@@ -110,7 +108,7 @@ fn mutation() {
                 }
                 state.world.push(world.into());
             }
-            index.advance(Arc::new(state.clone()), &removed);
+            crate::test::advance(&mut index, Arc::new(state.clone()), &removed);
             actual.advance(&index);
             expected.advance(&index);
             assert_eq!(actual.retained(), actual.size());
@@ -118,8 +116,7 @@ fn mutation() {
         assert!(compare(&mut actual, &mut expected, &index, 100000));
         drop(actual);
         store.evict();
-        assert!(store.budget().reserve(capacity));
-        store.budget().release(capacity);
+        assert!(store.available(capacity));
     }
 }
 
@@ -144,8 +141,7 @@ fn saturation() {
     }
     drop(actual);
     store.evict();
-    assert!(store.budget().reserve(65536));
-    store.budget().release(65536);
+    assert!(store.available(65536));
 }
 
 #[test]
@@ -162,10 +158,9 @@ fn activation() {
     let input = Input::new(&program.rule[0].input);
     let store = Arc::new(Store::new(65536));
     let mut actual = Join::planned(Request {
-        input: &input,
+        context: input.context(0),
         index: &index,
         frame: 0,
-        owner: 0,
         store: &store,
     });
     let mut expected = Join::new(input.pattern(0), &index, 0);
@@ -175,7 +170,8 @@ fn activation() {
         let position = index.world(actual.space.domain[actual.order[depth]][0].site);
         let world = state.world.remove(position);
         state.world.push(world);
-        index.advance(
+        crate::test::advance(
+            &mut index,
             Arc::new(state.clone()),
             &crate::basis::Set::single(position),
         );
@@ -208,8 +204,7 @@ fn context() {
         }
         drop(actual);
         store.evict();
-        assert!(store.budget().reserve(65536));
-        store.budget().release(65536);
+        assert!(store.available(65536));
     }
 }
 
@@ -244,6 +239,5 @@ fn depth() {
     assert!(compare(&mut actual, &mut expected, &index, 1000));
     drop(actual);
     store.evict();
-    assert!(store.budget().reserve(65536));
-    store.budget().release(65536);
+    assert!(store.available(65536));
 }

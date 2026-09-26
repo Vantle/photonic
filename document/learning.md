@@ -63,6 +63,7 @@ The same change renamed `train --grow` and `curriculum --train` to `--fresh`, th
 | [gpu](../gpu/) | The same network on Metal: batched inference and training with AdamW, checked against the CPU gradient. |
 | [learning](../learning/) | Tasks and their goals, rule-tree navigation, edits and rule analogy, the objective and configuration distance, encoding, planning, self-play, the learned judge, lessons, training, exhaustive and guided solving, the curriculum, the archive and the command. |
 | [random](../random/) | A seeded generator shared by the layers. |
+| [hashing](../hashing/) | The fast deterministic hasher and mixing functions that `code`, the runtime and the analyzers share, so canonical keys agree everywhere. |
 
 The network never sees a name. Atoms enter as identities drawn from a fresh random permutation every episode, as do rule, particle and example slots, so the only thing that can be learned is structure. Names return only when a program is written as Photonic text.
 

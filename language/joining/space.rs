@@ -134,7 +134,7 @@ impl Space {
             if domain.len() > 16
                 && change.as_ref().map_or_else(
                     || !self.query.affected(position, index, self.frame),
-                    |change| !change.affected,
+                    |change| !change.affected(),
                 )
             {
                 continue;
@@ -155,7 +155,7 @@ impl Space {
             let candidate = change
                 .as_ref()
                 .map_or(index.delta().insertion.as_slice(), |change| {
-                    change.insertion.site.as_slice()
+                    change.insertion()
                 });
             for &site in candidate {
                 let eligible = change.is_some() || {
@@ -196,7 +196,7 @@ impl Space {
                 .store
                 .as_ref()
                 .filter(|_| crate::particle::wide(self.query.width(position)))
-                .map(|store| store.budget().clone());
+                .map(|store| store.budget.clone());
             member.rejected = !particle.viable();
             member.particle = Some(crate::factor::Cursor::new(particle, budget));
         }

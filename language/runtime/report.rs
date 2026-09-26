@@ -97,12 +97,12 @@ impl Runtime {
         })
     }
 
-    fn assemble<State, Transition, Projection>(
+    fn assemble<Configuration, Transition, Projection>(
         &self,
-        state: State,
+        state: Configuration,
         event: Transition,
         view: Projection,
-    ) -> Snapshot<State, Transition, Projection> {
+    ) -> Snapshot<Configuration, Transition, Projection> {
         Snapshot {
             definition: Builder::new(&self.program).definition(),
             closed: self.closed(),
@@ -118,7 +118,7 @@ impl Runtime {
         }
     }
 
-    pub fn view(&self) -> impl Serialize + '_ {
+    pub fn stream(&self) -> impl Serialize + '_ {
         self.assemble(
             Sequence::new(|| self.node()),
             Sequence::new(|| self.transition()),

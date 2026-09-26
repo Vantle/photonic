@@ -22,14 +22,14 @@ pub struct Verdict {
 
 pub struct Reach {
     program: Arc<Program>,
-    state: IndexSet<Arc<State>, crate::hashing::Builder>,
+    state: IndexSet<Arc<State>, hashing::Builder>,
     status: Vec<Status>,
     closed: bool,
 }
 
 pub(crate) fn verdict(
     program: &Program,
-    state: &IndexSet<Arc<State>, crate::hashing::Builder>,
+    state: &IndexSet<Arc<State>, hashing::Builder>,
     status: impl Fn(usize) -> Status,
     closed: bool,
     target: &source::Program,
@@ -49,7 +49,7 @@ pub(crate) fn verdict(
 impl Reach {
     pub(crate) fn new(
         program: Arc<Program>,
-        state: IndexSet<Arc<State>, crate::hashing::Builder>,
+        state: IndexSet<Arc<State>, hashing::Builder>,
         status: Vec<Status>,
         closed: bool,
     ) -> Self {

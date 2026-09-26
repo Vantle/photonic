@@ -1,7 +1,7 @@
 use super::{Application, Identity};
 use crate::canonical::Search;
 use crate::flow::{Applied, Flow};
-use crate::hashing::Builder;
+use hashing::Builder;
 use std::collections::HashMap;
 
 #[derive(Clone, Copy)]

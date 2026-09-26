@@ -213,11 +213,19 @@ fn context() {
         }
         for variant in 0..5 {
             let mut changed = state.clone();
+            let mut particle = state.frame[0].particle.iter().cloned().collect::<Vec<_>>();
             match variant {
-                0 => Arc::make_mut(&mut changed.frame[0]).particle[0].id += 1000,
-                1 => Arc::make_mut(&mut changed.frame[0]).particle[0].capture = Some(1),
+                0 => {
+                    particle[0].id += 1000;
+                    Arc::make_mut(&mut changed.frame[0]).particle = particle.into();
+                }
+                1 => {
+                    particle[0].capture = Some(1);
+                    Arc::make_mut(&mut changed.frame[0]).particle = particle.into();
+                }
                 2 => {
-                    Arc::make_mut(&mut changed.frame[0]).particle.pop();
+                    particle.pop();
+                    Arc::make_mut(&mut changed.frame[0]).particle = particle.into();
                 }
                 3 => Arc::make_mut(&mut changed.frame[1]).lexical = None,
                 4 => changed.frame[0] = Arc::new((*state.frame[0]).clone()),

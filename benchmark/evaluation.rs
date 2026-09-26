@@ -46,7 +46,7 @@ pub fn evaluate(
     Ok(Measurement {
         initialization,
         execution,
-        event: summary.event,
+        event: summary.length,
         work: summary.work,
         statistic,
         #[cfg(feature = "measurement")]

@@ -48,6 +48,7 @@ rust_library(
         "//code",
         "//frontend",
         "//gpu",
+        "//hashing",
         "//language:photonic",
         "//machine",
         "//network",
@@ -78,6 +79,7 @@ rust_binary(
     deps = [
         ":library",
         "//code",
+        "//hashing",
         "@crate//:clap",
         "@crate//:miette",
     ],
@@ -118,6 +120,7 @@ rust_test(
         "//code",
         "//frontend",
         "//gpu",
+        "//hashing",
         "//language:photonic",
         "//machine",
         "//network",

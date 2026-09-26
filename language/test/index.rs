@@ -8,7 +8,7 @@ fn verify(index: &Index) {
     use crate::location::Location;
     let state = &index.state;
     let fresh = Index::new(state.clone());
-    assert_eq!(index.reach.frame, fresh.reach.frame);
+    assert_eq!(index.reach, fresh.reach);
     assert_eq!(index.symbol, fresh.symbol);
     assert_eq!(index.lexicon, fresh.lexicon);
     assert_eq!(index.retained, fresh.retained);
@@ -217,8 +217,10 @@ fn retirement() {
                 let mut value = (*initial.frame[0]).clone();
                 value.parent = (frame > 0).then_some(0);
                 value.lexical = (frame > 0).then_some(0);
-                value.particle[0].id += frame * 2;
-                value.particle[0].capture = Some(frame);
+                let mut particle = value.particle.iter().cloned().collect::<Vec<_>>();
+                particle[0].id += frame * 2;
+                particle[0].capture = Some(frame);
+                value.particle = particle.into();
                 value.into()
             })
             .collect();
@@ -406,7 +408,11 @@ fn intersection() {
             }
             .into(),
         );
-        index.advance(Arc::new(state.clone()), &crate::basis::Set::single(removed));
+        crate::test::advance(
+            &mut index,
+            Arc::new(state.clone()),
+            &crate::basis::Set::single(removed),
+        );
     }
 }
 
@@ -433,7 +439,7 @@ fn batch() {
             state.world.remove(world);
         }
         state.world.extend(replacement);
-        index.advance(Arc::new(state.clone()), &removed);
+        crate::test::advance(&mut index, Arc::new(state.clone()), &removed);
         for symbol in program
             .atom
             .iter()

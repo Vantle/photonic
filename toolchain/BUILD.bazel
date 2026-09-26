@@ -28,25 +28,13 @@ filegroup(
     visibility = ["//:__pkg__"],
 )
 
-node(
-    name = "node",
-    visibility = [
-        "//book:__pkg__",
-        "//program/ternary:__pkg__",
-        "//toolchain/browser:__pkg__",
-    ],
-)
+node(name = "node")
 
 rust_binary(
     name = "execute",
     srcs = ["execute.rs"],
     crate_root = "execute.rs",
     lint_config = "//:lint",
-    visibility = [
-        "//book:__pkg__",
-        "//program/ternary:__pkg__",
-        "//toolchain/browser:__pkg__",
-    ],
     deps = [
         ":relay",
         "@rules_rust//rust/runfiles",

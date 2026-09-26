@@ -1,6 +1,6 @@
 use super::dependency::Dependency;
 use super::trace::Trace;
-use crate::hashing::Builder;
+use hashing::Builder;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
@@ -42,7 +42,7 @@ impl Retention {
         let mut retained = 0;
         for dependency in dependency {
             if let Some(trace) = self.record.remove(&dependency) {
-                retained += trace.retained;
+                retained += trace.retained();
             }
             for site in dependency.site() {
                 if let Some(entry) = self.reverse.get_mut(&site) {

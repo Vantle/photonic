@@ -4,7 +4,7 @@ use crate::objective::Setting;
 use crate::problem::{self, Problem};
 use crate::synthetic::generate;
 use crate::task::{Goal, Task};
-use code::hashing::combine;
+use hashing::combine;
 use random::Generator;
 
 pub(crate) const HIDDEN: usize = 4;

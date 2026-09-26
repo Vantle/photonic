@@ -231,6 +231,28 @@ fn resume() {
 }
 
 #[test]
+fn slice() {
+    for source in [
+        "A.A, [A] B, [A] C, [B, C] D",
+        "Seed.A, [Seed] ().([A] B)",
+        "A, [A] (B, [B] C), [C] D",
+    ] {
+        let program = frontend::lowering::parse(source).unwrap();
+        let mut whole = Runtime::new(&program);
+        whole.run(100_000, Limit::default());
+        let mut sliced = Runtime::new(&program);
+        while !sliced.closed() {
+            sliced.run(1, Limit::default());
+        }
+        let expected = serde_json::to_value(whole.snapshot()).unwrap();
+        let actual = serde_json::to_value(sliced.snapshot()).unwrap();
+        for field in ["work", "state", "event"] {
+            assert_eq!(actual[field], expected[field], "{field}: {source}");
+        }
+    }
+}
+
+#[test]
 fn gate() {
     use crate::gate::Gate;
     use crate::program::Symbol;

@@ -1,13 +1,12 @@
 use super::playback::Playback;
 use super::slot::Slot;
 use super::trace::Trace;
-use crate::budget::Budget;
-use std::sync::Arc;
+use crate::budget::Account;
 use std::task::Poll;
 
 #[test]
 fn boundary() {
-    let mut trace = Trace::new(Arc::new(Budget::new(4096)), 1).unwrap();
+    let mut trace = Trace::new(&Account::new(4096), 1).unwrap();
     for position in 0..3 {
         for _ in 0..[7, 11, 1][position] {
             assert!(trace.append(&Poll::Pending, 0.., 4096));

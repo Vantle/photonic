@@ -109,7 +109,7 @@ bazel run -c opt //benchmark:arithmetic -- 1234567890 add 9876543210 --radix 10 
 bazel run -c opt //benchmark:arithmetic -- 12345 multiply 67890 --radix 10 --sample 5
 bazel run -c opt //benchmark:retention -- --width 20000 --length 1000 --sample 5
 bazel run -c opt //benchmark:storage -- --width 10000 --length 1000 --sample 5
-bazel test -c opt --nocache_test_results //... //toolchain/browser:check
+bazel test -c opt --nocache_test_results //... //book:check
 ```
 
 Earlier measurements remain available in [incremental.json](incremental.json) and [refactoring.json](refactoring.json).

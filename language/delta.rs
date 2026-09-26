@@ -1,5 +1,5 @@
-use crate::hashing::Builder;
 use crate::program::Symbol;
+use hashing::Builder;
 use std::collections::HashSet;
 
 #[derive(Default)]

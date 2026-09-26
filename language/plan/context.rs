@@ -71,6 +71,9 @@ impl Context {
                 .iter()
                 .any(|group| matches!(group.value, crate::program::Symbol::Rule(_)))
         {
+            if self.shape.pattern[position].is_empty() {
+                return crate::particle::Match::impossible();
+            }
             let particle = index.particle(site, self.pattern(position));
             return self.prepare(position, &particle);
         }
@@ -111,7 +114,7 @@ impl Context {
         self.prepare(position, &world.particle)
     }
 
-    pub fn prepare(
+    pub(super) fn prepare(
         &self,
         position: usize,
         particle: &[crate::state::Token],

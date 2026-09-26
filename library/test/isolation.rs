@@ -82,7 +82,29 @@ fn nested(rule: &Definition) -> Vec<&Definition> {
         .collect()
 }
 
-fn every() -> Vec<(&'static str, &'static str, Definition)> {
+fn carried(rule: &Definition) -> Vec<&Definition> {
+    std::iter::once(rule)
+        .chain(
+            rule.output
+                .iter()
+                .flat_map(|output| {
+                    output
+                        .particle
+                        .iter()
+                        .filter_map(|value| match value {
+                            Value::Rule { rule } => Some(rule.as_ref()),
+                            Value::Atom(_) => None,
+                        })
+                        .chain(output.body.iter().flatten())
+                })
+                .flat_map(carried),
+        )
+        .collect()
+}
+
+fn every(
+    reach: fn(&Definition) -> Vec<&Definition>,
+) -> Vec<(&'static str, &'static str, Definition)> {
     LIBRARY
         .iter()
         .flat_map(|entry| {
@@ -90,7 +112,7 @@ fn every() -> Vec<(&'static str, &'static str, Definition)> {
                 .unwrap()
                 .rule
                 .iter()
-                .flat_map(nested)
+                .flat_map(reach)
                 .cloned()
                 .collect::<Vec<_>>()
                 .into_iter()
@@ -99,9 +121,14 @@ fn every() -> Vec<(&'static str, &'static str, Definition)> {
         .collect()
 }
 
-fn returns(value: &[Value]) -> bool {
-    value.contains(&Value::Atom("Return".to_owned()))
-}
+const ANSWER: [&str; 10] = [
+    "Built", "Clean", "Lifted", "Linked", "Return", "Seen", "Stored", "Taken", "Unlinked", "Yield",
+];
+
+// A round of the sort takes runs from a lifted stack, Sort.Pile or Sort.Heap, and the sort writes a
+// stack's empty linked form, Linked.Sort.Pile.Nil or Linked.Sort.Heap.Nil, only while no round takes
+// from that stack, so those labels never meet the linked stacks they fit inside.
+const BOOKKEEPING: (&str, &str, &str) = ("vector", "sort", "Linked");
 
 #[test]
 fn boundary() {
@@ -117,27 +144,35 @@ fn boundary() {
             );
         }
     }
-    let definition = every();
-    let reply = definition
-        .iter()
+    let definition = every(nested);
+    let produced = every(carried)
+        .into_iter()
         .flat_map(|(package, name, rule)| {
             rule.output
-                .iter()
-                .map(|output| particle(&output.particle))
-                .filter(|value| returns(value))
-                .map(move |value| (*package, *name, value))
+                .into_iter()
+                .map(move |output| (package, name, particle(&output.particle)))
         })
         .collect::<Vec<_>>();
-    for (package, name, rule) in &definition {
-        for pattern in rule.input.iter().map(|value| particle(value)) {
-            if pattern.is_empty() || returns(&pattern) {
-                continue;
-            }
-            for (owner, file, value) in &reply {
-                assert!(
-                    !contains(value, &pattern),
-                    "{package}/{name} {pattern:?} can take the answer {value:?} of {owner}/{file}"
-                );
+    for word in ANSWER {
+        let atom = Value::Atom(word.to_owned());
+        let reply = produced
+            .iter()
+            .filter(|(_, _, value)| value.contains(&atom))
+            .collect::<Vec<_>>();
+        assert!(!reply.is_empty(), "no rule answers {word}");
+        for (package, name, rule) in &definition {
+            for pattern in rule.input.iter().map(|value| particle(value)) {
+                if pattern.is_empty() || pattern.contains(&atom) {
+                    continue;
+                }
+                for (owner, file, value) in &reply {
+                    let exempt = (*package, *name, word) == BOOKKEEPING
+                        && (*owner, *file, word) == BOOKKEEPING;
+                    assert!(
+                        exempt || !contains(value, &pattern),
+                        "{package}/{name} {pattern:?} can take the answer {value:?} of {owner}/{file}"
+                    );
+                }
             }
         }
     }

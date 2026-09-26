@@ -38,3 +38,18 @@ pub(crate) fn atom(token: &crate::snapshot::Token) -> Option<&str> {
 pub(crate) fn executor(worker: usize) -> crate::executor::Executor {
     crate::executor::Executor::new(std::num::NonZeroUsize::new(worker).unwrap()).unwrap()
 }
+
+pub(crate) fn advance(
+    index: &mut crate::index::Index,
+    state: std::sync::Arc<crate::state::State>,
+    removed: &crate::basis::Set<usize>,
+) {
+    let change = crate::change::Change {
+        world: removed.clone(),
+        insertion: index.state.world.len() - removed.len()..state.world.len(),
+        frame: (0..index.state.frame.len().max(state.frame.len()))
+            .filter(|&frame| index.state.frame.get(frame) != state.frame.get(frame))
+            .collect(),
+    };
+    index.update(state, &change);
+}

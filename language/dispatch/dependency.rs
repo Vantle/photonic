@@ -52,14 +52,14 @@ impl Network {
         };
         let selected: SmallVec<[(Key, usize); 4]> = if index.invalidated(frame) {
             self.entry
-                .range(Key::frame(frame))
+                .range(frame, None)
                 .map(|(key, &position)| (key, position))
                 .collect()
         } else if count <= 16
             || count <= self.broad.len() + dependency().map(Vec::len).sum::<usize>()
         {
             self.entry
-                .range(Key::frame(frame))
+                .range(frame, None)
                 .filter(|(key, _)| {
                     let plan = self.catalog.input(key.input);
                     plan.broad()
@@ -77,7 +77,7 @@ impl Network {
                 .chain(&self.broad)
                 .collect::<BTreeSet<_>>()
                 .into_iter()
-                .flat_map(|input| self.entry.range(Key::input(frame, input)))
+                .flat_map(|input| self.entry.range(frame, Some(input)))
                 .map(|(key, &position)| (key, position))
                 .collect()
         };

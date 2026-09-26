@@ -4,9 +4,8 @@ use super::playback::Playback;
 use super::prefix::Prefix;
 use super::slot::Slot;
 use super::space::Space;
-use crate::budget::Budget;
+use crate::budget::Account;
 use crate::index::Index;
-use std::sync::Arc;
 use std::task::Poll;
 
 struct Replay {
@@ -24,7 +23,7 @@ pub(super) struct Update<'update> {
 
 pub(super) struct Tree {
     source: Cursor,
-    budget: Arc<Budget>,
+    budget: Account,
     layer: Vec<Layer>,
     playback: Option<Replay>,
     restoration: Option<usize>,
@@ -33,7 +32,7 @@ pub(super) struct Tree {
 }
 
 impl Tree {
-    pub fn new(width: usize, depth: [usize; 2], budget: Arc<Budget>) -> Self {
+    pub fn new(width: usize, depth: [usize; 2], budget: Account) -> Self {
         let mut layer = depth.into_iter().map(Layer::new).collect::<Vec<_>>();
         layer.sort_by_key(|layer| layer.depth);
         layer.dedup_by_key(|layer| layer.depth);

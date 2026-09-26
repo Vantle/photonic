@@ -25,6 +25,17 @@ impl Position {
             owner: self.owner,
         }
     }
+
+    fn interval(input: Option<usize>) -> RangeInclusive<Self> {
+        let (first, last) = input.map_or((0, usize::MAX), |input| (input, input));
+        Self {
+            input: first,
+            owner: 0,
+        }..=Self {
+            input: last,
+            owner: usize::MAX,
+        }
+    }
 }
 
 pub(super) struct Registry {
@@ -78,14 +89,12 @@ impl Registry {
         })
     }
 
-    pub fn values(&self) -> impl Iterator<Item = &usize> {
+    pub fn value(&self) -> impl Iterator<Item = &usize> {
         self.frame.iter().flat_map(BTreeMap::values)
     }
 
-    pub fn range(&self, interval: RangeInclusive<Key>) -> impl Iterator<Item = (Key, &usize)> {
-        assert_eq!(interval.start().frame, interval.end().frame);
-        let frame = interval.start().frame;
-        let interval = Position::from(interval.start())..=Position::from(interval.end());
+    pub fn range(&self, frame: usize, input: Option<usize>) -> impl Iterator<Item = (Key, &usize)> {
+        let interval = Position::interval(input);
         self.frame
             .get(frame)
             .into_iter()
@@ -95,15 +104,13 @@ impl Registry {
 
     pub fn extract(
         &mut self,
-        interval: RangeInclusive<Key>,
+        frame: usize,
+        input: Option<usize>,
         mut predicate: impl FnMut(&Key, &mut usize) -> bool,
     ) -> impl Iterator<Item = (Key, usize)> {
-        assert_eq!(interval.start().frame, interval.end().frame);
-        let frame = interval.start().frame;
-        let interval = Position::from(interval.start())..=Position::from(interval.end());
         let count = &mut self.count;
         self.frame[frame]
-            .extract_if(interval, move |key, value| {
+            .extract_if(Position::interval(input), move |key, value| {
                 predicate(&key.key(frame), value)
             })
             .map(move |(key, value)| (key.key(frame), value))

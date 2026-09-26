@@ -111,7 +111,7 @@
             return current;
         };
         const send = (kind, body, { timeout = 20000, signal } = {}) => {
-            if (!served) return Promise.reject(new Error('Live execution needs the local server: bazel run -c opt //toolchain/browser:serve'));
+            if (!served) return Promise.reject(new Error('Live execution needs the local server: bazel run -c opt //book:serve'));
             if (signal?.aborted) return Promise.reject(new Error('Stopped.'));
             const number = ++serial;
             return new Promise((resolve, reject) => {

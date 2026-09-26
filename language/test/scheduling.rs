@@ -700,7 +700,7 @@ fn factorization() {
 
 #[test]
 fn bulk() {
-    use crate::work::{Result, Work};
+    use crate::work::{Progress, Work};
     let executor = crate::test::executor(4);
     for width in [16, 4096] {
         let state = Arc::new(root(
@@ -728,7 +728,7 @@ fn bulk() {
             };
             batch = Vec::new();
             for (position, result) in result.into_iter().enumerate() {
-                let Result::Normalize(index, search, complete) = result else {
+                let Progress::Normalize(index, search, complete) = result else {
                     unreachable!()
                 };
                 assert_eq!(index, position);
@@ -745,7 +745,7 @@ fn bulk() {
 
 #[test]
 fn preparation() {
-    use crate::work::{Result, Work};
+    use crate::work::{Progress, Work};
     let executor = crate::test::executor(4);
     for (width, arity) in [32, 4096]
         .into_iter()
@@ -787,7 +787,7 @@ fn preparation() {
             };
             batch = Vec::new();
             for (position, result) in result.into_iter().enumerate() {
-                let Result::Search(identity, search, progress) = result else {
+                let Progress::Search(identity, search, progress) = result else {
                     unreachable!()
                 };
                 assert_eq!(position, identity);

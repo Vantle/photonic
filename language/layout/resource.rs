@@ -3,9 +3,8 @@ use crate::state::State;
 
 fn extent(value: &Set, previous: Option<&Set>) -> usize {
     if let Some(previous) = previous.filter(|previous| value.shared(previous)) {
-        return value
-            .removed(previous)
-            .into_iter()
+        let (_, inserted) = previous.difference(value);
+        return inserted
             .map(|position| value.at(position).id + 1)
             .max()
             .unwrap_or(0);

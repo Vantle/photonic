@@ -1,10 +1,10 @@
 use crate::basis::Set;
 use crate::flow::{Applied, Binding, Closure, Flow};
-use crate::hashing::Builder;
 use crate::place::Place;
 use crate::profile;
 use crate::program::Instruction;
 use crate::state::{Frame, State, Token};
+use hashing::Builder;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]

@@ -4,7 +4,7 @@ use crate::flat::Flat;
 use crate::limit::Limit;
 use crate::schedule::lineage;
 use crate::state::State;
-use code::hashing::Builder;
+use hashing::Builder;
 use std::collections::HashSet;
 
 #[derive(Clone, Debug)]

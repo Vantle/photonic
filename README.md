@@ -61,7 +61,7 @@ Every command also runs from the checkout without installing, as `bazel run -c o
 Serve the webbook from a checkout, then open http://127.0.0.1:8080:
 
 ```sh
-bazel run -c opt //toolchain/browser:serve
+bazel run -c opt //book:serve
 ```
 
 ## Develop

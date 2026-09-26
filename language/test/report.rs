@@ -40,7 +40,7 @@ fn resume() {
                 };
                 actual.run(budget, limit);
                 expected.run(budget, limit);
-                compare(&actual.view(), &expected.report());
+                compare(&actual.stream(), &expected.report());
                 compare(&actual.statistic(), &expected.statistic());
             }
         }
@@ -64,7 +64,7 @@ fn exhaustive() {
         for budget in [0, 1, 2, 7, 31, 128] {
             actual.run(budget, Limit::default());
             expected.run(budget, Limit::default());
-            compare(&actual.view(), &expected.snapshot());
+            compare(&actual.stream(), &expected.snapshot());
         }
         let owned = actual.snapshot();
         drop(actual);
@@ -102,14 +102,14 @@ fn failure() {
         expected.run(31, Limit::default());
         let mut writer = Writer { remaining };
         assert!(
-            serde_json::to_writer(&mut writer, &actual.view())
+            serde_json::to_writer(&mut writer, &actual.stream())
                 .unwrap_err()
                 .is_io()
         );
-        compare(&actual.view(), &expected.report());
+        compare(&actual.stream(), &expected.report());
         actual.run(128, Limit::default());
         expected.run(128, Limit::default());
-        compare(&actual.view(), &expected.report());
+        compare(&actual.stream(), &expected.report());
         compare(&actual.statistic(), &expected.statistic());
     }
 }
@@ -119,7 +119,7 @@ fn catalog() {
     let program = frontend::lowering::parse("[A] B, [A] B, [[A] B] C").unwrap();
     let mut runtime = crate::runtime::Runtime::new(&program);
     runtime.run(100_000, Limit::default());
-    let value = serde_json::to_value(runtime.view()).unwrap();
+    let value = serde_json::to_value(runtime.stream()).unwrap();
     assert_eq!(value["definition"].as_array().unwrap().len(), 2);
     assert_eq!(value, serde_json::to_value(runtime.snapshot()).unwrap());
     for state in value["state"].as_array().unwrap() {

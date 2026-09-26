@@ -27,8 +27,8 @@ impl Accumulator {
     }
 
     pub fn value(&self) -> u64 {
-        crate::hashing::mix(self.sum)
-            .wrapping_add(crate::hashing::mix(self.square).rotate_left(21))
-            .wrapping_add(crate::hashing::mix(self.count).rotate_left(42))
+        hashing::mix(self.sum)
+            .wrapping_add(hashing::mix(self.square).rotate_left(21))
+            .wrapping_add(hashing::mix(self.count).rotate_left(42))
     }
 }

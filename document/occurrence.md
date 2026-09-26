@@ -30,7 +30,7 @@ Distinct input positions require distinct locations. Multiple operands inside on
 
 These rules generalize to arbitrary arity within explicit resource limits. Zero-input execution does not manufacture an input coherence or impose a one-shot restriction. A context-owned zero-input rule executes at its owning context, not once per visibility path. A coherence-owned zero-input rule reads its occurrence without implicitly selecting the containing coherence as an operand.
 
-Brackets that share a term are separate sources. Each consumes what it names and produces every other part of the term, one rule per part: `[A] [B]` loads `[A] B` and `[B] A`, so A and B become each other, and `[A] [B] C` adds `[A] C` and `[B] C`. Lowering writes these rules out directly, and the frontend budget bounds their size. Report notation such as `⟨…⟩`, `§0`, and `@f0` is diagnostic labeling, not additional source grammar; capture and ownership are explicit structured report fields.
+Brackets that share a term are separate sources. Each consumes what it names and produces every other part of the term, one rule per part: `[A] [B]` loads `[A] B` and `[B] A`, so A and B become each other, and `[A] [B] C` adds `[A] C` and `[B] C`. Lowering writes these rules out directly. The frontend budget bounds everything it writes, rule names included, to 1,000,000 units plus eight per byte of source, because a rule's name repeats the text of every rule nested inside it. Report notation such as `⟨…⟩`, `§0`, and `@f0` is diagnostic labeling, not additional source grammar; capture and ownership are explicit structured report fields.
 
 ## One evaluator
 
@@ -58,7 +58,7 @@ The one source fixture formerly using `[]` to select an existing empty particle 
 
 ### Validation
 
-The final `bazel test -c opt //... //toolchain/browser:check` run passes all 111 test targets, including native execution, WebAssembly, frontend conformance, programs, arithmetic, libraries, the pinned-runtime comparison, and headless Chrome. The runtime suite contains 249 passing tests. Interface checks cover explicit target export, context inspection, and live complete-state WebAssembly queries. `bazel run -c opt //:format -- --check` passes.
+The final `bazel test -c opt //... //book:check` run passes all 111 test targets, including native execution, WebAssembly, frontend conformance, programs, arithmetic, libraries, the pinned-runtime comparison, and headless Chrome. The runtime suite contains 249 passing tests. Interface checks cover explicit target export, context inspection, and live complete-state WebAssembly queries. `bazel run -c opt //:format -- --check` passes.
 
 Regression coverage includes zero-input startup and repetition; empty and mixed input arities; loaded and emitted rule matching; equal code with distinct occurrence and capture identities; lexical visibility without duplication; consumption, read-plus-consume, and merge remainders; surviving provenance and immutable history; captured environment import; context retirement; incremental matching versus rebuilt search; eviction and recycled storage; tight limits, interruption, and resumption. Exact-target cases run through direct and exhaustive searches.
 

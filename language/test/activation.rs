@@ -24,10 +24,9 @@ fn boundary() {
         let index = Index::new(Arc::new(State::initial(&program)));
         let store = Arc::new(Store::new(65536));
         let mut join = Join::planned(Request {
-            input: &input,
+            context: input.context(0),
             index: &index,
             frame: 0,
-            owner: 0,
             store: &store,
         });
         for _ in 0..3 {
@@ -64,10 +63,9 @@ fn activation() {
     let reference = Arc::new(Store::new(65536));
     let construct = |store| {
         Join::planned(Request {
-            input: &input,
+            context: input.context(0),
             index: &index,
             frame: 0,
-            owner: 0,
             store,
         })
     };
@@ -108,7 +106,8 @@ fn activation() {
         );
         world.particle[0].id += 1;
         state.world.push(world.into());
-        index.advance(
+        crate::test::advance(
+            &mut index,
             Arc::new(state.clone()),
             &crate::basis::Set::single(position),
         );

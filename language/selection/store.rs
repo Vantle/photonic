@@ -1,10 +1,10 @@
 use crate::budget::{Account, Reservation};
-use crate::hashing::Builder;
 use crate::particle::Match;
 use crate::pattern::Pattern;
 use crate::preparation::cache::{Cache, Request};
 use crate::state::World;
 use crate::term::Term;
+use hashing::Builder;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};

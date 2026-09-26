@@ -74,7 +74,7 @@ Complete reports still spend most of streaming export canonicalizing each state 
 
 ```sh
 bazel test -c opt //...
-bazel test -c opt //toolchain/browser:check
+bazel test -c opt //book:check
 bazel run -c opt //:format -- --check
 bazel run -c opt //benchmark:expression -- '2*2*2*2*2*2' 2101 --sample 15
 bazel run -c opt //benchmark:lifecycle -- expression '2*2*2*2*2*2' 2101 --sample 3 --export view --writer

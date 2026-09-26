@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import { runInThisContext } from 'node:vm';
 
-const [javascript, webassembly, table, ...script] = process.argv.slice(2);
+const [javascript, webassembly, table, numeral, ...script] = process.argv.slice(2);
 const runtime = await import(pathToFileURL(javascript));
 runtime.initSync({ module: await readFile(webassembly) });
 const { version } = JSON.parse(runtime.lower('{}'));
@@ -84,6 +84,34 @@ for (const entry of listed) {
     assert.deepEqual({ kind: found.kind, total: found.match.size }, { kind: entry.kind, total: entry.total }, `${entry.pattern} on ${entry.program}`);
 }
 console.log(`The book selects what Spectrum selects in all ${listed.length} shared pattern cases.`);
+
+const { decode } = await import(pathToFileURL(numeral));
+const evaluate = input => {
+    const path = runtime.Path.expression(JSON.stringify({ version, source: input }));
+    const result = JSON.parse(path.run());
+    path.free();
+    return result;
+};
+for (const [input, expected] of [
+    ['12 + 2', '21'], ['12+2', '21'], ['12 * 2', '101'], ['21 / 2 - 1', '2'],
+    ['-(12 + 2) * 10', '-210'], ['-21 / 2', '-10'],
+    ['1212 * 10 / 2 + 11 - 1', '2220'], ['0', '0'], ['00012', '12'],
+    ['2 + 1 * 2', '11'], ['(2 + 1) * 2', '20'], ['--2', '2'], ['-(12+2)*2', '-112'], ['(-2)*(-2)', '11'], ['(-2)*0', '0'],
+]) {
+    const result = evaluate(input);
+    assert.equal(result.error, undefined, input);
+    assert.equal(decode(result.state, result.definition).ternary, expected, input);
+}
+for (const input of ['', '1+', '(1', '1**2', '1/0']) {
+    const result = evaluate(input);
+    assert.throws(() => decode(result.state, result.definition), input === '1/0' ? /Division by zero/ : /syntax/, input);
+}
+console.log('Numerals decode what the engine’s expressions compute, including signed arithmetic, syntax errors and division by zero.');
+
+const start = performance.now();
+const repeated = evaluate('2*2*2*2*2*2*2*2*2*2');
+console.log(JSON.stringify({ repeated: { elapsed: performance.now() - start, event: repeated.event, work: repeated.work, state: repeated.state?.id } }));
+assert.equal(decode(repeated.state, repeated.definition).ternary, '1101221');
 
 for (const [name, entry] of Object.entries(record.example)) {
     if (!entry.result.execution) continue;

@@ -1,12 +1,10 @@
-#[cfg(test)]
-use crate::basis::Set;
 use crate::delta::Delta;
-use crate::hashing::Builder;
 use crate::location::Location;
 use crate::program::Symbol;
 use crate::revision::Revision;
 use crate::state::State;
 use crate::term::Term;
+use hashing::Builder;
 use std::collections::HashMap;
 use std::sync::{Arc, OnceLock};
 
@@ -21,7 +19,7 @@ pub(crate) struct Index {
     revision: OnceLock<Revision>,
     previous: Option<Revision>,
     frame: Vec<crate::membership::Set>,
-    reach: crate::reachability::Index,
+    reach: Arc<Vec<usize>>,
     lexical: crate::lexical::Index,
     location: Vec<Option<Location>>,
     coherence: Vec<usize>,
@@ -40,13 +38,13 @@ pub(crate) struct Index {
 
 impl Index {
     pub fn new(state: Arc<State>) -> Self {
-        let reach = crate::reachability::Index::new(&state);
-        Self::prepared(state, reach)
+        let frame = crate::reachability::frame(&state);
+        Self::prepared(state, frame)
     }
 
-    pub(crate) fn prepared(state: Arc<State>, reach: crate::reachability::Index) -> Self {
+    pub(crate) fn prepared(state: Arc<State>, frame: Arc<Vec<usize>>) -> Self {
         let mut index = Self {
-            reach,
+            reach: frame,
             lexical: crate::lexical::Index::new(&state),
             state,
             revision: OnceLock::new(),
@@ -74,10 +72,10 @@ impl Index {
             index.insert(world);
         }
         index.owner.resize(index.state.frame.len(), None);
-        for &frame in index.reach.frame.clone().iter() {
+        for &frame in index.reach.clone().iter() {
             index.attach(frame);
         }
-        index.delta.invalidated = (*index.reach.frame).clone();
+        index.delta.invalidated = (*index.reach).clone();
         index.delta.affected.seal();
         index
     }
@@ -177,18 +175,6 @@ impl Index {
         }
     }
 
-    #[cfg(test)]
-    pub(crate) fn advance(&mut self, state: Arc<State>, removed: &Set<usize>) {
-        let change = crate::change::Change {
-            world: removed.clone(),
-            insertion: self.state.world.len() - removed.len()..state.world.len(),
-            frame: (0..self.state.frame.len().max(state.frame.len()))
-                .filter(|&frame| self.state.frame.get(frame) != state.frame.get(frame))
-                .collect(),
-        };
-        self.update(state, &change);
-    }
-
     pub fn candidate(&self, pattern: impl IntoIterator<Item = Term>, frame: usize) -> Vec<usize> {
         let mut pattern = pattern.into_iter().peekable();
         let empty = pattern.peek().is_none();
@@ -224,19 +210,19 @@ impl Index {
         })
     }
 
-    pub(crate) fn occurrence(
+    fn occurrence(
         &self,
         frame: usize,
         symbol: Symbol,
     ) -> impl Iterator<Item = (crate::place::Place, &crate::state::Token)> {
-        let start = (frame < self.state.frame.len() && self.vocabulary.contains_key(&symbol))
-            .then_some(frame);
-        std::iter::successors(start, |&frame| self.state.frame[frame].lexical).flat_map(
-            move |frame| {
+        (frame < self.state.frame.len() && self.vocabulary.contains_key(&symbol))
+            .then(|| self.state.ancestry(frame))
+            .into_iter()
+            .flatten()
+            .flat_map(move |frame| {
                 self.local(frame, symbol)
                     .map(move |token| (crate::place::Place::Context(frame, token.id), token))
-            },
-        )
+            })
     }
 
     pub(crate) fn local(
@@ -251,7 +237,7 @@ impl Index {
             .map(move |&position| self.state.frame[frame].particle.at(position))
     }
 
-    pub(crate) fn visible<'index>(
+    fn visible<'index>(
         &'index self,
         frame: usize,
         term: &'index Term,
@@ -359,7 +345,7 @@ impl Index {
 
     pub fn retained(&self) -> usize {
         self.frame.len()
-            + self.reach.retained()
+            + self.reach.len()
             + self.lexical.retained()
             + self.location.len()
             + self.coherence.len()
@@ -380,11 +366,11 @@ impl Index {
     }
 
     pub(crate) fn present(&self, frame: usize) -> bool {
-        self.reach.frame.binary_search(&frame).is_ok()
+        self.reach.binary_search(&frame).is_ok()
     }
 
     pub(crate) fn frame(&self) -> impl Iterator<Item = usize> + '_ {
-        self.reach.frame.iter().copied()
+        self.reach.iter().copied()
     }
 
     pub(crate) fn available(&self) -> impl Iterator<Item = Symbol> + '_ {

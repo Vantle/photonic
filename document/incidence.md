@@ -46,7 +46,7 @@ The reporting benchmark also exposes execution and initialization phase profiles
 Graph construction and refinement still consume about a second in the six-factor export. Execution-side identity scans and arithmetic allocation traffic also remain open. This increment removes duplicated resource-incidence reconstruction during renaming; it does not establish completion of the broader runtime roadmap.
 
 ```sh
-bazel test -c opt //... //toolchain/browser:check --test_output=errors
+bazel test -c opt //... //book:check --test_output=errors
 bazel run -c opt //:format -- --check
 bazel run -c opt //benchmark:lifecycle -- expression '2*2*2*2*2*2' 2101 --sample 3 --export view --writer
 bazel run -c opt //benchmark:allocation -- expression '2*2*2*2*2*2' 2101 --sample 2 --export view --writer

@@ -46,7 +46,7 @@ impl Rule {
         &self.output
     }
 
-    pub fn flat(&self) -> bool {
+    pub(crate) fn flat(&self) -> bool {
         self.input
             .iter()
             .chain(self.output.iter().map(Output::particle))

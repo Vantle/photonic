@@ -1,8 +1,8 @@
-use crate::hashing::Builder;
 use crate::link::Link;
 use crate::profile;
 use crate::program::Symbol;
 use crate::state::State;
+use hashing::Builder;
 use std::collections::HashMap;
 
 #[derive(Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]

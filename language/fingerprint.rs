@@ -1,8 +1,8 @@
 use crate::accumulator::Accumulator;
-use crate::hashing::mix;
 use crate::profile;
 use crate::program::Symbol;
 use crate::state::{State, Token};
+use hashing::mix;
 use std::sync::Arc;
 
 mod context;
@@ -49,14 +49,13 @@ pub(crate) struct Index {
     aggregate: Accumulator,
     context: u64,
     dependency: usize,
-    pub value: u64,
-    pub layout: crate::layout::Layout,
+    value: u64,
+    reach: Arc<Vec<usize>>,
     retained: usize,
 }
 
 impl Index {
-    pub(crate) fn new(state: Arc<State>) -> Self {
-        let layout = crate::layout::Layout::new(&state);
+    pub(crate) fn new(state: Arc<State>, reach: &Arc<Vec<usize>>) -> Self {
         let frame = context::Index::new(&state);
         let world = state
             .world
@@ -67,13 +66,12 @@ impl Index {
         for world in &world {
             aggregate.insert(world.value);
         }
-        let context =
-            Accumulator::collect(layout.reach.frame.iter().map(|&index| frame.color()[index]));
+        let context = Accumulator::collect(reach.iter().map(|&index| frame.color()[index]));
         let dependency = world
             .iter()
             .map(|world| world.dependency.len())
             .sum::<usize>();
-        let retained = layout.reach.retained() + 1 + frame.retained() + world.len() + dependency;
+        let retained = 1 + frame.retained() + world.len() + dependency;
         Self {
             value: mix(aggregate.value()).wrapping_add(context.rotate_left(31)),
             frame,
@@ -81,7 +79,7 @@ impl Index {
             aggregate,
             context,
             dependency,
-            layout,
+            reach: reach.clone(),
             retained,
         }
     }
@@ -90,7 +88,7 @@ impl Index {
         &self,
         state: Arc<State>,
         change: &crate::change::Change,
-        layout: crate::layout::Layout,
+        reach: &Arc<Vec<usize>>,
     ) -> Self {
         let _scope = profile::Scope::new(profile::Phase::Fingerprint);
         let (frame, changed) = self.frame.advance(&state, &change.frame);
@@ -125,14 +123,13 @@ impl Index {
             dependency += value.dependency.len();
             world.push(value);
         }
-        let context =
-            if changed.is_empty() && Arc::ptr_eq(&layout.reach.frame, &self.layout.reach.frame) {
-                self.context
-            } else {
-                Accumulator::collect(layout.reach.frame.iter().map(|&index| frame.color()[index]))
-            };
+        let context = if changed.is_empty() && Arc::ptr_eq(reach, &self.reach) {
+            self.context
+        } else {
+            Accumulator::collect(reach.iter().map(|&index| frame.color()[index]))
+        };
         let value = mix(aggregate.value()).wrapping_add(context.rotate_left(31));
-        let retained = layout.reach.retained() + 1 + frame.retained() + world.len() + dependency;
+        let retained = 1 + frame.retained() + world.len() + dependency;
         Self {
             frame,
             world,
@@ -140,13 +137,18 @@ impl Index {
             context,
             dependency,
             value,
-            layout,
+            reach: reach.clone(),
             retained,
         }
     }
 
+    #[inline]
+    pub(crate) fn value(&self) -> u64 {
+        self.value
+    }
+
     pub(crate) fn evict(&mut self) -> usize {
-        let released = self.layout.reach.evict() + self.frame.evict();
+        let released = self.frame.evict();
         self.retained -= released;
         released
     }
@@ -157,7 +159,7 @@ impl Index {
 }
 
 pub(crate) fn state(state: &State) -> u64 {
-    Index::new(Arc::new(state.clone())).value
+    Index::new(Arc::new(state.clone()), &crate::reachability::frame(state)).value
 }
 
 pub(crate) fn signature(state: &State) -> u64 {
@@ -173,7 +175,7 @@ fn refine(state: &State, depth: usize) -> u64 {
     let mut color = incidence
         .label
         .iter()
-        .map(crate::hashing::value)
+        .map(crate::color::label)
         .collect::<Vec<_>>();
     for _ in 0..depth {
         color = incidence
@@ -183,7 +185,7 @@ fn refine(state: &State, depth: usize) -> u64 {
             .map(|(index, edge)| {
                 mix(color[index]).wrapping_add(Accumulator::collect(
                     edge.iter()
-                        .map(|&(kind, target)| crate::hashing::edge(kind, color[target])),
+                        .map(|&(kind, target)| crate::color::edge(kind, color[target])),
                 ))
             })
             .collect();

@@ -93,10 +93,10 @@ enum Task {
 
 pub struct Runtime {
     pub(crate) program: Arc<Program>,
-    pub(crate) state: IndexSet<Arc<State>, crate::hashing::Builder>,
+    pub(crate) state: IndexSet<Arc<State>, hashing::Builder>,
     index: Vec<Option<Arc<crate::index::Index>>>,
     indexed: usize,
-    view: IndexSet<Arc<View>, crate::hashing::Builder>,
+    view: IndexSet<Arc<View>, hashing::Builder>,
     origin: Vec<Option<Origin>>,
     event: Vec<Event>,
     normalization: normalization::Store,
@@ -106,7 +106,7 @@ pub struct Runtime {
     outgoing: Vec<Vec<usize>>,
     incoming: Vec<Vec<usize>>,
     agenda: crate::agenda::Queue<Task>,
-    pending: IndexSet<Application, crate::hashing::Builder>,
+    pending: IndexSet<Application, hashing::Builder>,
     limit: Limit,
     pub(crate) work: usize,
     peak: usize,
@@ -252,10 +252,10 @@ impl Runtime {
                 for result in result {
                     self.flying -= 1;
                     match result {
-                        crate::work::Result::Search(index, search, progress) => {
+                        crate::work::Progress::Search(index, search, progress) => {
                             self.search(index, search, progress);
                         }
-                        crate::work::Result::Normalize(index, search, complete) => {
+                        crate::work::Progress::Normalize(index, search, complete) => {
                             self.normalize(index, search, complete);
                         }
                     }

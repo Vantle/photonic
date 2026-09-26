@@ -73,39 +73,59 @@ pub fn rename(structure: &Structure, map: impl Fn(Atom) -> Atom) -> Structure {
     }
 }
 
-pub fn closure(generator: &mut Generator, structure: &Structure) -> Structure {
-    let atom = structure.atom();
-    let mut image = atom.clone();
-    generator.shuffle(&mut image);
-    let map = atom.iter().copied().zip(image).collect::<BTreeMap<_, _>>();
-    let mut rule = structure.program.program.rule().to_vec();
-    let mut coherence = structure.program.configuration.coherence().to_vec();
-    let mut current = structure.clone();
-    for _ in 0..generator.below(4) {
-        current = rename(&current, |atom| map[&atom]);
-        rule.extend(current.program.program.rule().iter().cloned());
-        coherence.extend(current.program.configuration.coherence().iter().cloned());
-    }
-    Structure {
-        program: Part {
-            program: Program::from(rule),
-            configuration: Configuration::from(coherence),
-        },
-        target: None,
-        pin: Vec::new(),
+fn free(structure: &Structure) -> Vec<Atom> {
+    structure
+        .atom()
+        .into_iter()
+        .filter(|atom| !structure.pin.contains(atom))
+        .collect()
+}
+
+fn join(left: &Part, right: &Part) -> Part {
+    Part {
+        program: Program::from([left.program.rule(), right.program.rule()].concat()),
+        configuration: Configuration::from(
+            [
+                left.configuration.coherence(),
+                right.configuration.coherence(),
+            ]
+            .concat(),
+        ),
     }
 }
 
-pub fn shuffle(
-    generator: &mut Generator,
-    structure: &Structure,
-) -> (Structure, BTreeMap<Atom, Atom>) {
-    let atom = structure.atom();
-    let mut image = (0..u16::MAX).map(Atom).collect::<Vec<_>>();
-    image.truncate(atom.len() * 3 + 1);
-    generator.shuffle(&mut image);
-    let map = atom.iter().copied().zip(image).collect::<BTreeMap<_, _>>();
-    (rename(structure, |atom| map[&atom]), map)
+pub fn closure(generator: &mut Generator, structure: &Structure) -> Structure {
+    let atom = free(structure);
+    let mut order = atom.clone();
+    generator.shuffle(&mut order);
+    let map = atom.into_iter().zip(order).collect::<BTreeMap<_, _>>();
+    let mut current = structure.clone();
+    let mut result = structure.clone();
+    for _ in 0..generator.below(4) {
+        current = rename(&current, |atom| map.get(&atom).copied().unwrap_or(atom));
+        result = Structure {
+            program: join(&result.program, &current.program),
+            target: result
+                .target
+                .as_ref()
+                .zip(current.target.as_ref())
+                .map(|(own, copy)| join(own, copy)),
+            pin: result.pin,
+        };
+    }
+    result
+}
+
+pub fn shuffle(generator: &mut Generator, structure: &Structure) -> Structure {
+    let atom = free(structure);
+    let mut fresh = (0..u16::MAX)
+        .map(Atom)
+        .filter(|atom| !structure.pin.contains(atom))
+        .take(atom.len() * 3 + 1)
+        .collect::<Vec<_>>();
+    generator.shuffle(&mut fresh);
+    let map = atom.into_iter().zip(fresh).collect::<BTreeMap<_, _>>();
+    rename(structure, |atom| map.get(&atom).copied().unwrap_or(atom))
 }
 
 pub fn permutation(atom: &[Atom]) -> Vec<Vec<Atom>> {

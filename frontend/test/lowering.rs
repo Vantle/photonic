@@ -268,6 +268,17 @@ fn depth() {
         Err(Failure::Depth { .. })
     ));
     assert!(lowering::parse(&"[A] B, ".repeat(10_000)).is_ok());
+    let atom = "A".repeat(20_000);
+    let named = format!("{}{atom}{}", "[".repeat(100), "]".repeat(100));
+    assert!(matches!(
+        lowering::parse(&named),
+        Err(Failure::Expansion {
+            limit: 1_161_600,
+            ..
+        })
+    ));
+    let shallow = format!("{}{atom}{}", "[".repeat(8), "]".repeat(8));
+    assert!(lowering::parse(&shallow).is_ok());
     assert!(matches!(
         lowering::parse(&"[".repeat(limit + 1)),
         Err(Failure::Depth { .. })

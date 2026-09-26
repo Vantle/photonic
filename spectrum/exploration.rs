@@ -162,7 +162,7 @@ fn key(canonical: &Canonical, mode: Mode, budget: Budget, goal: Option<&Program>
     let goal = goal.map(|goal| (&goal.initial, &goal.rule));
     format!(
         "{:016x}",
-        code::hashing::value(&(
+        hashing::value(&(
             &program.initial,
             &program.rule,
             &canonical.naming,

@@ -12,8 +12,8 @@ use std::sync::Arc;
 
 pub(crate) struct Builder<'program> {
     program: &'program Program,
-    atom: HashMap<usize, Arc<str>, crate::hashing::Builder>,
-    scope: HashMap<usize, Arc<str>, crate::hashing::Builder>,
+    atom: HashMap<usize, Arc<str>, hashing::Builder>,
+    scope: HashMap<usize, Arc<str>, hashing::Builder>,
 }
 
 impl<'program> Builder<'program> {

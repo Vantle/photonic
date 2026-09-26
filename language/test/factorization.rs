@@ -34,10 +34,9 @@ fn mutation() {
             let input = crate::plan::Input::new(&program.rule[0].input);
             let store = Arc::new(crate::joining::Store::new(capacity));
             let mut actual = Join::planned(super::Request {
-                input: &input,
+                context: input.context(0),
                 index: &index,
                 frame: 0,
-                owner: 0,
                 store: &store,
             });
             let mut expected = Join::new(input.pattern(0), &index, 0);
@@ -49,7 +48,11 @@ fn mutation() {
                 let removed = iteration % state.world.len();
                 let world = state.world.remove(removed);
                 state.world.push(world);
-                index.advance(Arc::new(state.clone()), &crate::basis::Set::single(removed));
+                crate::test::advance(
+                    &mut index,
+                    Arc::new(state.clone()),
+                    &crate::basis::Set::single(removed),
+                );
                 actual.advance(&index);
                 expected.advance(&index);
                 compare(&mut actual, &mut expected, &index, 10000);
@@ -70,10 +73,9 @@ fn survival() {
     let input = crate::plan::Input::new(&program.rule[0].input);
     let store = Arc::new(crate::joining::Store::new(65536));
     let mut actual = Join::planned(super::Request {
-        input: &input,
+        context: input.context(0),
         index: &index,
         frame: 0,
-        owner: 0,
         store: &store,
     });
     let mut expected = Join::new(input.pattern(0), &index, 0);
@@ -86,14 +88,18 @@ fn survival() {
     let retained = actual.space.cached;
     let world = state.world.remove(1);
     state.world.push(world);
-    index.advance(Arc::new(state.clone()), &crate::basis::Set::single(1));
+    crate::test::advance(
+        &mut index,
+        Arc::new(state.clone()),
+        &crate::basis::Set::single(1),
+    );
     actual.advance(&index);
     expected.advance(&index);
     assert_eq!(actual.space.cached, retained);
     compare(&mut actual, &mut expected, &index, 100);
     let world = state.world.remove(0);
     state.world.push(world);
-    index.advance(Arc::new(state), &crate::basis::Set::single(0));
+    crate::test::advance(&mut index, Arc::new(state), &crate::basis::Set::single(0));
     actual.advance(&index);
     expected.advance(&index);
     assert_eq!(actual.space.cached, 0);
@@ -110,10 +116,9 @@ fn locality() {
         let input = crate::plan::Input::new(&program.rule[0].input);
         let store = Arc::new(crate::joining::Store::new(65536));
         let mut actual = Join::planned(super::Request {
-            input: &input,
+            context: input.context(0),
             index: &index,
             frame: 0,
-            owner: 0,
             store: &store,
         });
         let mut expected = Join::new(input.pattern(0), &index, 0);
@@ -126,7 +131,11 @@ fn locality() {
             };
             let world = state.world.remove(removed);
             state.world.push(world);
-            index.advance(Arc::new(state.clone()), &crate::basis::Set::single(removed));
+            crate::test::advance(
+                &mut index,
+                Arc::new(state.clone()),
+                &crate::basis::Set::single(removed),
+            );
             actual.advance(&index);
             expected.advance(&index);
             compare(&mut actual, &mut expected, &index, 10000);
@@ -154,10 +163,9 @@ fn prefix() {
             let input = crate::plan::Input::new(&program.rule[0].input);
             let store = Arc::new(crate::joining::Store::new(capacity));
             let mut actual = Join::planned(super::Request {
-                input: &input,
+                context: input.context(0),
                 index: &index,
                 frame: 0,
-                owner: 0,
                 store: &store,
             });
             let mut expected = Join::new(input.pattern(0), &index, 0);
@@ -177,14 +185,17 @@ fn prefix() {
                 };
                 let world = state.world.remove(removed);
                 state.world.push(world);
-                index.advance(Arc::new(state.clone()), &crate::basis::Set::single(removed));
+                crate::test::advance(
+                    &mut index,
+                    Arc::new(state.clone()),
+                    &crate::basis::Set::single(removed),
+                );
                 actual.advance(&index);
                 expected.advance(&index);
             }
             drop(actual);
             store.evict();
-            assert!(store.budget().reserve(capacity));
-            store.budget().release(capacity);
+            assert!(store.available(capacity));
         }
     }
 }
@@ -199,17 +210,20 @@ fn saturation() {
     let input = crate::plan::Input::new(&program.rule[0].input);
     let store = Arc::new(crate::joining::Store::new(65536));
     let mut actual = Join::planned(super::Request {
-        input: &input,
+        context: input.context(0),
         index: &index,
         frame: 0,
-        owner: 0,
         store: &store,
     });
     let mut expected = Join::new(input.pattern(0), &index, 0);
     for _ in 0..3 {
         let world = state.world.remove(2);
         state.world.push(world);
-        index.advance(Arc::new(state.clone()), &crate::basis::Set::single(2));
+        crate::test::advance(
+            &mut index,
+            Arc::new(state.clone()),
+            &crate::basis::Set::single(2),
+        );
         actual.advance(&index);
         expected.advance(&index);
     }
@@ -233,10 +247,9 @@ fn persistence() {
     let input = crate::plan::Input::new(&program.rule[0].input);
     let store = Arc::new(crate::joining::Store::new(65536));
     let mut actual = Join::planned(super::Request {
-        input: &input,
+        context: input.context(0),
         index: &index,
         frame: 0,
-        owner: 0,
         store: &store,
     });
     let mut expected = Join::new(input.pattern(0), &index, 0);
@@ -248,7 +261,11 @@ fn persistence() {
         compare(&mut actual, &mut expected, &index, 100);
         let world = state.world.remove(2);
         state.world.push(world);
-        index.advance(Arc::new(state.clone()), &crate::basis::Set::single(2));
+        crate::test::advance(
+            &mut index,
+            Arc::new(state.clone()),
+            &crate::basis::Set::single(2),
+        );
         actual.advance(&index);
         expected.advance(&index);
     }
@@ -257,7 +274,11 @@ fn persistence() {
     for _ in 0..32 {
         let world = state.world.remove(2);
         state.world.push(world);
-        index.advance(Arc::new(state.clone()), &crate::basis::Set::single(2));
+        crate::test::advance(
+            &mut index,
+            Arc::new(state.clone()),
+            &crate::basis::Set::single(2),
+        );
         actual.advance(&index);
         expected.advance(&index);
         assert_eq!(cached(&actual), retained);
@@ -271,7 +292,7 @@ fn persistence() {
     compare(&mut actual, &mut expected, &index, 100);
     let world = state.world.remove(0);
     state.world.push(world);
-    index.advance(Arc::new(state), &crate::basis::Set::single(0));
+    crate::test::advance(&mut index, Arc::new(state), &crate::basis::Set::single(0));
     actual.advance(&index);
     expected.advance(&index);
     assert_eq!(cached(&actual), 0);
@@ -289,10 +310,9 @@ fn reordering() {
     let input = crate::plan::Input::new(&program.rule[0].input);
     let store = Arc::new(crate::joining::Store::new(65536));
     let mut actual = Join::planned(super::Request {
-        input: &input,
+        context: input.context(0),
         index: &index,
         frame: 0,
-        owner: 0,
         store: &store,
     });
     let mut expected = Join::new(input.pattern(0), &index, 0);
@@ -333,7 +353,7 @@ fn reordering() {
                 state.world.push(template[1].clone());
             }
         }
-        index.advance(Arc::new(state.clone()), &removed);
+        crate::test::advance(&mut index, Arc::new(state.clone()), &removed);
         actual.advance(&index);
         expected.advance(&index);
         compare(&mut actual, &mut expected, &index, 10000);
@@ -354,10 +374,9 @@ fn frontier() {
     let input = crate::plan::Input::new(&program.rule[0].input);
     let store = Arc::new(crate::joining::Store::new(65536));
     let mut actual = Join::planned(super::Request {
-        input: &input,
+        context: input.context(0),
         index: &index,
         frame: 0,
-        owner: 0,
         store: &store,
     });
     let mut expected = Join::new(input.pattern(0), &index, 0);
@@ -365,7 +384,8 @@ fn frontier() {
         let position = state.world.len() - 1;
         let world = state.world.remove(position);
         state.world.push(world);
-        index.advance(
+        crate::test::advance(
+            &mut index,
             Arc::new(state.clone()),
             &crate::basis::Set::single(position),
         );

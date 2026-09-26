@@ -29,9 +29,10 @@ impl Network {
         if self.enabled.is_empty() || !index.present(frame) {
             return;
         }
-        let ancestry =
-            std::iter::successors(Some(frame), |&frame| index.state.frame[frame].lexical)
-                .collect::<smallvec::SmallVec<[usize; 4]>>();
+        let ancestry = index
+            .state
+            .ancestry(frame)
+            .collect::<smallvec::SmallVec<[usize; 4]>>();
         for input in selected
             .unwrap_or(&self.enabled)
             .iter()

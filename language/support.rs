@@ -1,5 +1,5 @@
-use crate::hashing::Builder;
 use crate::status::Status;
+use hashing::Builder;
 use smallvec::SmallVec;
 use std::collections::{HashMap, HashSet};
 

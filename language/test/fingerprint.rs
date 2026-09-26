@@ -1,9 +1,9 @@
 use super::Index;
 use crate::accumulator::Accumulator;
 use crate::change::Change;
-use crate::hashing::mix;
 use crate::program::Symbol;
 use crate::state::{Frame, State, Token, World};
+use hashing::mix;
 use std::sync::Arc;
 
 fn symbol(value: Symbol) -> u64 {
@@ -112,7 +112,7 @@ fn state(width: usize) -> State {
 }
 
 fn verify(index: &Index, state: &State) {
-    let fresh = Index::new(Arc::new(state.clone()));
+    let fresh = Index::new(Arc::new(state.clone()), &crate::reachability::frame(state));
     assert_eq!(index.value, reference(state));
     assert_eq!(index.value, fresh.value);
     assert_eq!(index.frame.color(), fresh.frame.color());
@@ -136,9 +136,12 @@ fn verify(index: &Index, state: &State) {
 fn dependency() {
     for width in [1, 2, 8, 65, 257] {
         let original = state(width);
-        let root = Index::new(Arc::new(original.clone()));
+        let root = Index::new(
+            Arc::new(original.clone()),
+            &crate::reachability::frame(&original),
+        );
         let mut state = original.clone();
-        let mut index = Index::new(Arc::new(state.clone()));
+        let mut index = Index::new(Arc::new(state.clone()), &crate::reachability::frame(&state));
         for iteration in 0..48 {
             let position = iteration * 17 % width;
             let frame = Arc::make_mut(&mut state.frame[position]);
@@ -167,7 +170,7 @@ fn dependency() {
             index = index.advance(
                 Arc::new(state.clone()),
                 &change,
-                crate::layout::Layout::new(&state),
+                &crate::reachability::frame(&state),
             );
             verify(&index, &state);
             verify(&root, &original);
@@ -179,7 +182,10 @@ fn dependency() {
 fn retirement() {
     let program = crate::program::Program::new(&frontend::lowering::parse("A, [A] B").unwrap());
     let original = State::initial(&program);
-    let mut index = Index::new(Arc::new(original.clone()));
+    let mut index = Index::new(
+        Arc::new(original.clone()),
+        &crate::reachability::frame(&original),
+    );
     for iteration in 0..16 {
         let mut state = original.clone();
         state.frame.push(Arc::new(Frame {
@@ -206,7 +212,7 @@ fn retirement() {
         index = index.advance(
             Arc::new(state.clone()),
             &change,
-            crate::layout::Layout::new(&state),
+            &crate::reachability::frame(&state),
         );
         verify(&index, &state);
         let change = Change {
@@ -217,7 +223,7 @@ fn retirement() {
         index = index.advance(
             Arc::new(original.clone()),
             &change,
-            crate::layout::Layout::new(&original),
+            &crate::reachability::frame(&original),
         );
         verify(&index, &original);
     }
@@ -236,7 +242,7 @@ fn locality() {
     for world in 0..state.world.len() {
         Arc::make_mut(&mut state.world[world]).particle.clear();
     }
-    let index = Index::new(Arc::new(state.clone()));
+    let index = Index::new(Arc::new(state.clone()), &crate::reachability::frame(&state));
     Arc::make_mut(&mut state.frame[3]).scope += 1;
     let change = Change {
         world: Default::default(),
@@ -246,7 +252,7 @@ fn locality() {
     let advanced = index.advance(
         Arc::new(state.clone()),
         &change,
-        crate::layout::Layout::new(&state),
+        &crate::reachability::frame(&state),
     );
     verify(&advanced, &state);
     for world in 0..state.world.len() {
@@ -343,7 +349,9 @@ fn population() {
                 value = value.iter().cloned().collect();
             }
             if position % 17 == 0 {
-                value.reverse();
+                let mut reversed = value.iter().cloned().collect::<Vec<_>>();
+                reversed.reverse();
+                value = reversed.into();
             }
             index = index.advance(&value);
             let target = value
@@ -365,10 +373,13 @@ fn population() {
         let restored = index.advance(&original);
         assert_eq!(restored.reference(std::iter::empty()), expected);
         assert_eq!(restored.retained(), root.retained());
-        let mut replacement = original.clone();
-        for position in 0..replacement.len() {
-            replacement[position].capture = Some(31);
-        }
+        let replacement = original
+            .iter()
+            .map(|token| Token {
+                capture: Some(31),
+                ..token.clone()
+            })
+            .collect::<crate::population::Set>();
         let replaced = restored.advance(&replacement);
         assert_eq!(
             replaced
@@ -416,7 +427,7 @@ fn multiplicity() {
 #[test]
 fn eviction() {
     let mut state = state(65);
-    let mut index = Index::new(Arc::new(state.clone()));
+    let mut index = Index::new(Arc::new(state.clone()), &crate::reachability::frame(&state));
     let retained = index.retained();
     let released = index.evict();
     assert!(released > 0);
@@ -436,11 +447,11 @@ fn eviction() {
         index = index.advance(
             Arc::new(state.clone()),
             &change,
-            crate::layout::Layout::new(&state),
+            &crate::reachability::frame(&state),
         );
         assert_eq!(index.value, reference(&state));
         assert_eq!(index.evict(), 0);
-        let mut fresh = Index::new(Arc::new(state.clone()));
+        let mut fresh = Index::new(Arc::new(state.clone()), &crate::reachability::frame(&state));
         fresh.evict();
         assert_eq!(index.retained(), fresh.retained());
     }

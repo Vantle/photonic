@@ -59,17 +59,15 @@ impl Runtime {
         {
             return;
         }
-        let Some(mut binding) = view.flow.project(
+        let Some(binding) = view.flow.project(
             &self.state[view.source],
             &self.state[view.target],
             &selection,
             consumer.frame,
+            consumer.read,
         ) else {
             return;
         };
-        if let Some(read) = consumer.read {
-            binding.read = view.flow.resource[&read].clone();
-        }
         self.agenda.push(Task::Apply(Application {
             view: consumer.view,
             frame: consumer.frame,

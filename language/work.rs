@@ -8,7 +8,7 @@ pub(crate) enum Work {
     Normalize(usize, canonical::Search),
 }
 
-pub(crate) enum Result {
+pub(crate) enum Progress {
     Search(usize, search::Search, Poll<Option<Vec<Slot>>>),
     Normalize(usize, canonical::Search, bool),
 }
@@ -30,15 +30,15 @@ impl Work {
         count >= 2 && cost >= 8192
     }
 
-    pub(crate) fn advance(self) -> Result {
+    pub(crate) fn advance(self) -> Progress {
         match self {
             Self::Search(index, mut search) => {
                 let progress = search.step();
-                Result::Search(index, search, progress)
+                Progress::Search(index, search, progress)
             }
             Self::Normalize(index, mut search) => {
                 let complete = search.step();
-                Result::Normalize(index, search, complete)
+                Progress::Normalize(index, search, complete)
             }
         }
     }

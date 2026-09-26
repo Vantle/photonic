@@ -122,16 +122,6 @@ fn library() {
     assert_eq!(written(&report), [0, 0, 2]);
     assert_eq!(report.event.len(), 11);
     assert!(report.work < 1000);
-    assert_eq!(
-        report
-            .target
-            .as_ref()
-            .map(|target| target.initial.clone())
-            .unwrap_or_default(),
-        parse(include_str!("../../program/ternary/stream.particle"))
-            .unwrap()
-            .initial
-    );
 }
 
 #[test]

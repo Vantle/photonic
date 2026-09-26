@@ -6,8 +6,8 @@ use crate::search::{Exhausted, search};
 use crate::twin::reduce;
 use code::atom::Atom;
 use code::configuration::Configuration;
-use code::hashing::combine;
 use code::program::Program;
+use hashing::combine;
 use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Clone, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]

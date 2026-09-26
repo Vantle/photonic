@@ -1,9 +1,6 @@
-load("@rules_rs//rs:rust_binary.bzl", "rust_binary")
 load("@rules_rs//rs:rust_shared_library.bzl", "rust_shared_library")
-load("@rules_rs//rs:rust_test.bzl", "rust_test")
 load("@rules_rust_wasm_bindgen//:defs.bzl", "rust_wasm_bindgen")
-load("//book:site.bzl", "REPOSITORY")
-load("//toolchain:defs.bzl", "hermetic_test")
+load("//toolchain:defs.bzl", "script_test")
 load(":defs.bzl", "asset")
 
 rust_shared_library(
@@ -79,92 +76,13 @@ filegroup(
     visibility = ["//:__pkg__"],
 )
 
-rust_binary(
-    name = "serve",
-    srcs = [
-        "route.rs",
-        "serve.rs",
-    ],
-    crate_root = "serve.rs",
-    data = [
-        ":javascript",
-        ":webassembly",
-        "//:lightbox",
-        "//:page",
-        "//book:asset",
-    ],
-    env = {
-        "BOOK": "$(rlocationpaths //book:asset) $(rlocationpath //:page) $(rlocationpath //:lightbox) $(rlocationpath :javascript) $(rlocationpath :webassembly)",
-    },
-    lint_config = "//:lint",
-    rustc_env = {"REPOSITORY": REPOSITORY},
-    deps = ["@rules_rust//rust/runfiles"],
-)
-
-rust_test(
-    name = "route",
-    size = "small",
-    srcs = [
-        "route.rs",
-        "test/route.rs",
-    ],
-    crate_root = "route.rs",
-    lint_config = "//:lint",
-)
-
-hermetic_test(
+script_test(
     name = "test",
     size = "small",
-    argument = [
-        "$(rlocationpath //toolchain:node)",
-        "$(rlocationpath test.mjs)",
-        "$(rlocationpath :webassembly)",
-        "$(rlocationpath :javascript)",
-        "$(rlocationpath //command:photonic)",
-        "$(rlocationpath //book:numeral)",
-    ],
-    data = [
-        "test.mjs",
-        ":javascript",
+    runfile = [
         ":webassembly",
-        "//book:numeral",
+        ":javascript",
         "//command:photonic",
-        "//toolchain:node",
     ],
-    entrypoint = "//toolchain:execute",
-)
-
-hermetic_test(
-    name = "check",
-    size = "small",
-    argument = [
-        "$(rlocationpath //toolchain:node)",
-        "$(rlocationpath check.mjs)",
-        "$(rlocationpath @rules_browsers_chrome_mac_arm//:chrome-headless-shell-mac-arm64/chrome-headless-shell)",
-        "$(rlocationpath @rules_browsers_chromedriver_mac_arm//:chromedriver-mac-arm64/chromedriver)",
-        "$(rlocationpath :webassembly)",
-        "$(rlocationpath :javascript)",
-    ],
-    data = [
-        "check.mjs",
-        ":javascript",
-        ":webassembly",
-        "//:lightbox",
-        "//:page",
-        "//book:asset",
-        "//toolchain:node",
-        "@rules_browsers_chrome_mac_arm//:chrome-headless-shell-mac-arm64/chrome-headless-shell",
-        "@rules_browsers_chrome_mac_arm//:info",
-        "@rules_browsers_chromedriver_mac_arm//:chromedriver-mac-arm64/chromedriver",
-        "@rules_browsers_chromedriver_mac_arm//:info",
-    ],
-    entrypoint = "//toolchain:execute",
-    tags = [
-        "manual",
-        "requires-network",
-    ],
-    target_compatible_with = [
-        "@platforms//os:macos",
-        "@platforms//cpu:aarch64",
-    ],
+    script = "test.mjs",
 )

@@ -60,10 +60,9 @@ fn retraction() {
     let input = Input::new(&program.rule[0].input);
     let store = Arc::new(Store::new(65536));
     let mut actual = Join::planned(Request {
-        input: &input,
+        context: input.context(0),
         index: &index,
         frame: 0,
-        owner: 0,
         store: &store,
     });
     let mut expected = Join::new(input.pattern(0), &index, 0);
@@ -84,7 +83,11 @@ fn retraction() {
             token.id += 1000;
         }
         state.world.push(world.into());
-        index.advance(Arc::new(state.clone()), &crate::basis::Set::single(removed));
+        crate::test::advance(
+            &mut index,
+            Arc::new(state.clone()),
+            &crate::basis::Set::single(removed),
+        );
         actual.advance(&index);
         expected.advance(&index);
         if iteration > 5 {
@@ -94,8 +97,7 @@ fn retraction() {
     }
     drop(actual);
     store.evict();
-    assert!(store.budget().reserve(65536));
-    store.budget().release(65536);
+    assert!(store.available(65536));
 }
 
 #[test]
@@ -119,10 +121,9 @@ fn mutation() {
             let input = Input::new(&program.rule[0].input);
             let store = Arc::new(Store::new(capacity));
             let mut actual = Join::planned(Request {
-                input: &input,
+                context: input.context(0),
                 index: &index,
                 frame: 0,
-                owner: 0,
                 store: &store,
             });
             let mut expected = Join::new(input.pattern(0), &index, 0);
@@ -167,14 +168,13 @@ fn mutation() {
                         removed = crate::basis::Set::single(position);
                     }
                 }
-                index.advance(Arc::new(state.clone()), &removed);
+                crate::test::advance(&mut index, Arc::new(state.clone()), &removed);
                 actual.advance(&index);
                 expected.advance(&index);
             }
             drop(actual);
             store.evict();
-            assert!(store.budget().reserve(capacity));
-            store.budget().release(capacity);
+            assert!(store.available(capacity));
         }
     }
 }
@@ -194,10 +194,9 @@ fn eviction() {
         let input = Input::new(&program.rule[0].input);
         let store = Arc::new(Store::new(65536));
         let mut actual = Join::planned(Request {
-            input: &input,
+            context: input.context(0),
             index: &index,
             frame: 0,
-            owner: 0,
             store: &store,
         });
         let mut expected = Join::new(input.pattern(0), &index, 0);
@@ -217,8 +216,7 @@ fn eviction() {
         assert!(compare(&mut actual, &mut expected, &index, 10000));
         drop(actual);
         store.evict();
-        assert!(store.budget().reserve(65536));
-        store.budget().release(65536);
+        assert!(store.available(65536));
     }
 }
 
@@ -237,10 +235,9 @@ fn membership() {
     let input = Input::new(&program.rule[0].input);
     let store = Arc::new(Store::new(65536));
     let mut actual = Join::planned(Request {
-        input: &input,
+        context: input.context(0),
         index: &index,
         frame: 0,
-        owner: 0,
         store: &store,
     });
     let mut expected = Join::new(input.pattern(0), &index, 0);
@@ -255,7 +252,7 @@ fn membership() {
         let retained = cached(&actual);
         assert!(retained > 0);
         state.world.push(template.clone());
-        index.advance(Arc::new(state.clone()), &Default::default());
+        crate::test::advance(&mut index, Arc::new(state.clone()), &Default::default());
         actual.advance(&index);
         expected.advance(&index);
         assert_eq!(cached(&actual), retained);
@@ -263,7 +260,11 @@ fn membership() {
         assert!(cached(&actual) > retained);
         let removed = state.world.len() - 1;
         state.world.remove(removed);
-        index.advance(Arc::new(state.clone()), &crate::basis::Set::single(removed));
+        crate::test::advance(
+            &mut index,
+            Arc::new(state.clone()),
+            &crate::basis::Set::single(removed),
+        );
         actual.advance(&index);
         expected.advance(&index);
         assert_eq!(cached(&actual), retained);
@@ -284,10 +285,9 @@ fn saturation() {
         let input = Input::new(&program.rule[0].input);
         let store = Arc::new(Store::new(65536));
         let mut actual = Join::planned(Request {
-            input: &input,
+            context: input.context(0),
             index: &index,
             frame: 0,
-            owner: 0,
             store: &store,
         });
         let mut expected = Join::new(input.pattern(0), &index, 0);
@@ -305,8 +305,7 @@ fn saturation() {
         }
         drop(actual);
         store.evict();
-        assert!(store.budget().reserve(65536));
-        store.budget().release(65536);
+        assert!(store.available(65536));
     }
 }
 
@@ -322,10 +321,9 @@ fn interior() {
         let input = Input::new(&program.rule[0].input);
         let store = Arc::new(Store::new(65536));
         let mut actual = Join::planned(Request {
-            input: &input,
+            context: input.context(0),
             index: &index,
             frame: 0,
-            owner: 0,
             store: &store,
         });
         let mut expected = Join::new(input.pattern(0), &index, 0);
@@ -338,7 +336,11 @@ fn interior() {
                 token.id += 1000;
             }
             state.world.push(world.into());
-            index.advance(Arc::new(state.clone()), &crate::basis::Set::single(removed));
+            crate::test::advance(
+                &mut index,
+                Arc::new(state.clone()),
+                &crate::basis::Set::single(removed),
+            );
             actual.advance(&index);
             expected.advance(&index);
             if iteration > 2 {
@@ -352,8 +354,7 @@ fn interior() {
         }
         drop(actual);
         store.evict();
-        assert!(store.budget().reserve(65536));
-        store.budget().release(65536);
+        assert!(store.available(65536));
     }
 }
 
@@ -372,10 +373,9 @@ fn boundary() {
                 let input = Input::new(&program.rule[0].input);
                 let store = Arc::new(Store::new(65536));
                 let mut actual = Join::planned(Request {
-                    input: &input,
+                    context: input.context(0),
                     index: &index,
                     frame: 0,
-                    owner: 0,
                     store: &store,
                 });
                 let mut expected = Join::new(input.pattern(0), &index, 0);
@@ -395,8 +395,7 @@ fn boundary() {
                 assert!(compare(&mut actual, &mut expected, &index, 10000));
                 drop(actual);
                 store.evict();
-                assert!(store.budget().reserve(65536));
-                store.budget().release(65536);
+                assert!(store.available(65536));
             }
         }
     }
@@ -418,10 +417,9 @@ fn transition() {
         let input = Input::new(&program.rule[0].input);
         let store = Arc::new(Store::new(capacity));
         let mut actual = Join::planned(Request {
-            input: &input,
+            context: input.context(0),
             index: &index,
             frame: 0,
-            owner: 0,
             store: &store,
         });
         let mut expected = Join::new(input.pattern(0), &index, 0);
@@ -452,14 +450,13 @@ fn transition() {
                 }
                 state.world.push(world.into());
             }
-            index.advance(Arc::new(state.clone()), &removed);
+            crate::test::advance(&mut index, Arc::new(state.clone()), &removed);
             actual.advance(&index);
             expected.advance(&index);
         }
         assert!(compare(&mut actual, &mut expected, &index, 10000));
         drop(actual);
         store.evict();
-        assert!(store.budget().reserve(capacity));
-        store.budget().release(capacity);
+        assert!(store.available(capacity));
     }
 }

@@ -1,4 +1,5 @@
 use crate::flow::Binding;
+use crate::layout::Layout;
 use crate::program::Program;
 use crate::runtime::Limit;
 use crate::state::State;
@@ -11,15 +12,25 @@ pub(crate) struct Event {
     pub rule: usize,
     pub binding: Binding,
     pub fingerprint: crate::fingerprint::Index,
+    pub layout: Layout,
 }
 
 impl Event {
     fn admitted(&self, limit: Limit) -> bool {
         limit.admits(
             self.state.world.len(),
-            self.fingerprint.layout.cell,
-            self.fingerprint.layout.reach.frame.len(),
+            self.layout.cell,
+            self.layout.reach.frame.len(),
         )
+    }
+
+    #[inline]
+    pub(crate) fn retained(&self) -> usize {
+        self.fingerprint.retained() + self.layout.reach.retained()
+    }
+
+    pub(crate) fn evict(&mut self) -> usize {
+        self.fingerprint.evict() + self.layout.reach.evict()
     }
 }
 
@@ -31,7 +42,8 @@ pub(crate) struct Search {
     index: crate::index::Index,
     network: crate::dispatch::Network,
     fingerprint: crate::fingerprint::Index,
-    pub work: usize,
+    layout: Layout,
+    work: usize,
 }
 
 impl Search {
@@ -45,11 +57,13 @@ impl Search {
     }
 
     pub(crate) fn new(program: Arc<Program>, state: Arc<State>) -> Self {
-        let fingerprint = crate::fingerprint::Index::new(state.clone());
-        let index = crate::index::Index::prepared(state.clone(), fingerprint.layout.reach.clone());
+        let layout = Layout::new(&state);
+        let fingerprint = crate::fingerprint::Index::new(state.clone(), &layout.reach.frame);
+        let index = crate::index::Index::prepared(state.clone(), layout.reach.frame.clone());
         Self {
             network: crate::dispatch::Network::new(&program, &index),
             fingerprint,
+            layout,
             program,
             state,
             pending: Vec::new(),
@@ -57,6 +71,11 @@ impl Search {
             index,
             work: 0,
         }
+    }
+
+    #[inline]
+    pub(crate) fn work(&self) -> usize {
+        self.work
     }
 
     pub(crate) fn deferred(&self) -> usize {
@@ -74,21 +93,19 @@ impl Search {
     pub(crate) fn evict(&mut self) -> usize {
         self.network.evict()
             + self.fingerprint.evict()
-            + self
-                .pending
-                .iter_mut()
-                .map(|event| event.fingerprint.evict())
-                .sum::<usize>()
+            + self.layout.reach.evict()
+            + self.pending.iter_mut().map(Event::evict).sum::<usize>()
     }
 
     #[inline]
     pub(crate) fn record(&self) -> usize {
         self.pending
             .iter()
-            .map(|event| event.fingerprint.retained() + event.change.retained() + 1)
+            .map(|event| event.retained() + event.change.retained() + 1)
             .sum::<usize>()
             + self.index.retained()
             + self.fingerprint.retained()
+            + self.layout.reach.retained()
             + self.network.retained()
             + 1
     }
@@ -98,44 +115,50 @@ impl Search {
         state: Arc<State>,
         change: &crate::change::Change,
         fingerprint: crate::fingerprint::Index,
+        layout: Layout,
     ) {
         self.pending.clear();
         self.index
-            .apply(state.clone(), change, fingerprint.layout.reach.clone());
+            .apply(state.clone(), change, layout.reach.frame.clone());
         self.network.advance(&self.index);
         self.state = state;
         self.fingerprint = fingerprint;
+        self.layout = layout;
         self.initialized = false;
     }
 
-    pub(crate) fn run(&mut self, limit: Limit) -> Option<Event> {
+    pub(crate) fn run(&mut self, limit: Limit) -> Poll<Option<Event>> {
         if let Some(index) = self.pending.iter().position(|event| event.admitted(limit)) {
-            return Some(self.pending.remove(index));
+            return Poll::Ready(Some(self.pending.remove(index)));
         }
         if !self.initialized {
             self.initialized = true;
             self.work += 1;
-            return None;
+            return Poll::Pending;
         }
         let candidate = match self.network.next(&self.index) {
-            Poll::Ready(Some(candidate)) => Some(candidate),
-            Poll::Ready(None) => return None,
-            Poll::Pending => None,
+            Poll::Ready(Some(candidate)) => candidate,
+            Poll::Ready(None) => return Poll::Ready(None),
+            Poll::Pending => {
+                self.work += 1;
+                return Poll::Pending;
+            }
         };
         self.work += 1;
-        let candidate = candidate?;
         let selection = candidate.selection;
         if let Some(crate::reader::Read::World(site, _)) = candidate.read
             && !crate::slot::admits(&selection, self.index.world(site))
         {
-            return None;
+            return Poll::Pending;
         }
-        let mut binding = Binding::select(&self.state, &selection, candidate.frame)?;
-        binding.read = candidate
+        let read = candidate
             .read
             .map(|read| read.place(&self.index))
             .into_iter()
             .collect();
+        let Some(binding) = Binding::select(&self.state, &selection, candidate.frame, read) else {
+            return Poll::Pending;
+        };
         let result = crate::evaluation::apply(crate::evaluation::Request {
             source: &self.state,
             frame: candidate.frame,
@@ -143,25 +166,26 @@ impl Search {
             rule: &self.program.rule[candidate.rule],
             scope: &self.program.scope,
             state: self.state.as_ref().clone(),
-            next: self.fingerprint.layout.resource,
+            next: self.layout.resource,
             binding: &binding,
-            layout: &self.fingerprint.layout,
+            layout: &self.layout,
         });
         let state = Arc::new(result.state);
-        let fingerprint = self
-            .fingerprint
-            .advance(state.clone(), &result.change, result.layout);
+        let fingerprint =
+            self.fingerprint
+                .advance(state.clone(), &result.change, &result.layout.reach.frame);
         let event = Event {
             state,
             change: result.change,
             fingerprint,
+            layout: result.layout,
             rule: candidate.rule,
             binding,
         };
         if !event.admitted(limit) {
             self.pending.push(event);
-            return None;
+            return Poll::Pending;
         }
-        Some(event)
+        Poll::Ready(Some(event))
     }
 }

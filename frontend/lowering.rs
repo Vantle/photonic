@@ -8,6 +8,10 @@ use crate::source::{Definition, Output, Program, Value};
 use crate::syntax::{Kind, Tree};
 
 const BUDGET: usize = 1_000_000;
+// A rule's name repeats the text of every rule nested inside it, so names alone can cost the
+// nesting depth times the source; the library's deepest programs spend about four times their
+// source on names, and this keeps any program within a constant multiple of what it reads.
+const RATIO: usize = 8;
 
 enum Member {
     Particle(Vec<Value>),
@@ -35,9 +39,13 @@ pub fn parse(source: &str) -> Result<Program, Failure> {
     let tree = crate::parser::parse(source)?;
     Reader {
         tree: &tree,
-        budget: BUDGET,
+        budget: allowance(source),
     }
     .program()
+}
+
+fn allowance(source: &str) -> usize {
+    BUDGET.saturating_add(source.len().saturating_mul(RATIO))
 }
 
 impl<'tree> Reader<'tree, '_> {
@@ -60,9 +68,9 @@ impl<'tree> Reader<'tree, '_> {
         }
     }
 
-    fn expansion(span: Range<usize>) -> Failure {
+    fn expansion(&self, span: Range<usize>) -> Failure {
         Failure::Expansion {
-            limit: BUDGET,
+            limit: allowance(self.tree.source()),
             span: (span.start, span.len()).into(),
         }
     }
@@ -168,7 +176,7 @@ impl<'tree> Reader<'tree, '_> {
         for &factor in factor {
             let value = self.factor(factor)?;
             result = crate::expansion::combine(result, value, &mut self.budget)
-                .ok_or_else(|| Self::expansion(self.span(factor)))?;
+                .ok_or_else(|| self.expansion(self.span(factor)))?;
         }
         Ok(result)
     }
@@ -223,7 +231,7 @@ impl<'tree> Reader<'tree, '_> {
             output,
         }
         .rule(&mut self.budget)
-        .ok_or_else(|| Self::expansion(span))
+        .ok_or_else(|| self.expansion(span))
     }
 
     fn input(&mut self, index: usize) -> Result<Vec<Vec<Value>>, Failure> {

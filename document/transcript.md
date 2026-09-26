@@ -29,7 +29,7 @@ Three alternating rounds of the corrected key remain within the existing control
 The final optimized suite passes all 111 Bazel test targets, including 259 runtime tests, the independent occurrence oracle, the pinned historical comparison, WebAssembly and headless Chrome. The [incremental occurrence audit](invalidation.md) records the main runtime changes and their separate timing and allocation matrix. The replay correction changes exhaustive cache dependency tracking; it does not change the direct-path indexing measurements in that audit.
 
 ```sh
-bazel test -c opt //... //toolchain/browser:check
+bazel test -c opt //... //book:check
 bazel run -c opt //benchmark:runtime -- --source /path/to/closed.wave
 ```
 

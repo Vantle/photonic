@@ -21,7 +21,7 @@ fn relabeling() {
             .expect("the search fits its budget");
         let form = &symmetry.form;
         for _ in 0..4 {
-            let (image, _) = shuffle(&mut generator, &structure);
+            let image = shuffle(&mut generator, &structure);
             let other = image
                 .symmetry(1_000_000)
                 .expect("the search fits its budget");

@@ -1,5 +1,5 @@
 load("//photonic:defs.bzl", "photonic_binary", "photonic_test")
-load("//toolchain:defs.bzl", "hermetic_binary", "hermetic_test")
+load("//toolchain:defs.bzl", "script_binary", "script_test")
 
 exports_files(
     ["reversal.wave"],
@@ -68,7 +68,6 @@ filegroup(
     srcs = [
         "carry.particle",
         "numeral.particle",
-        "stream.particle",
         "stream.wave",
         "word.particle",
     ],
@@ -317,47 +316,28 @@ photonic_binary(
     deps = ["//library/expression:evaluate"],
 )
 
-hermetic_binary(
+script_binary(
     name = "record",
-    argument = [
-        "$(rlocationpath //toolchain:node)",
-        "$(rlocationpath record.mjs)",
-        "$(rlocationpath //command:photonic)",
-        "$(rlocationpath :infix.program)",
-        "$(rlocationpath result.particle)",
-    ],
-    data = [
-        "record.mjs",
-        "result.particle",
-        "trace.mjs",
-        ":infix.program",
+    data = ["trace.mjs"],
+    runfile = [
         "//command:photonic",
-        "//toolchain:node",
+        ":infix.program",
+        "result.particle",
     ],
-    entrypoint = "//toolchain:execute",
+    script = "record.mjs",
 )
 
-hermetic_test(
+script_test(
     name = "performance",
     size = "medium",
-    argument = [
-        "$(rlocationpath //toolchain:node)",
-        "$(rlocationpath record.mjs)",
-        "$(rlocationpath //command:photonic)",
-        "$(rlocationpath :infix.program)",
-        "$(rlocationpath result.particle)",
-        "$(rlocationpath expression.record.json)",
-    ],
-    data = [
-        "expression.record.json",
-        "record.mjs",
-        "result.particle",
-        "trace.mjs",
-        ":infix.program",
+    data = ["trace.mjs"],
+    runfile = [
         "//command:photonic",
-        "//toolchain:node",
+        ":infix.program",
+        "result.particle",
+        "expression.record.json",
     ],
-    entrypoint = "//toolchain:execute",
+    script = "record.mjs",
     tags = ["memory"],
 )
 
@@ -441,60 +421,33 @@ photonic_test(
     deps = ["//library/expression:evaluate"],
 )
 
-hermetic_binary(
+script_binary(
     name = "demo.record",
-    argument = [
-        "$(rlocationpath //toolchain:node)",
-        "$(rlocationpath demo.mjs)",
-        "$(rlocationpath //command:photonic)",
-        "$(rlocationpath :demo.addition.program)",
-        "$(rlocationpath demo/addition.particle)",
-        "$(rlocationpath :demo.multiplication.program)",
-        "$(rlocationpath demo/multiplication.particle)",
-        "$(rlocationpath :demo.division.program)",
-        "$(rlocationpath demo/division.particle)",
-    ],
-    data = [
-        "demo.mjs",
-        "demo/addition.particle",
-        "demo/division.particle",
-        "demo/multiplication.particle",
-        "trace.mjs",
-        ":demo.addition.program",
-        ":demo.division.program",
-        ":demo.multiplication.program",
+    data = ["trace.mjs"],
+    runfile = [
         "//command:photonic",
-        "//toolchain:node",
+        ":demo.addition.program",
+        "demo/addition.particle",
+        ":demo.multiplication.program",
+        "demo/multiplication.particle",
+        ":demo.division.program",
+        "demo/division.particle",
     ],
-    entrypoint = "//toolchain:execute",
+    script = "demo.mjs",
 )
 
-hermetic_test(
+script_test(
     name = "demo.record.check",
-    argument = [
-        "$(rlocationpath //toolchain:node)",
-        "$(rlocationpath demo.mjs)",
-        "$(rlocationpath //command:photonic)",
-        "$(rlocationpath :demo.addition.program)",
-        "$(rlocationpath demo/addition.particle)",
-        "$(rlocationpath :demo.multiplication.program)",
-        "$(rlocationpath demo/multiplication.particle)",
-        "$(rlocationpath :demo.division.program)",
-        "$(rlocationpath demo/division.particle)",
-        "$(rlocationpath demo.record.json)",
-    ],
-    data = [
-        "demo.mjs",
-        "demo.record.json",
-        "demo/addition.particle",
-        "demo/division.particle",
-        "demo/multiplication.particle",
-        "trace.mjs",
-        ":demo.addition.program",
-        ":demo.division.program",
-        ":demo.multiplication.program",
+    data = ["trace.mjs"],
+    runfile = [
         "//command:photonic",
-        "//toolchain:node",
+        ":demo.addition.program",
+        "demo/addition.particle",
+        ":demo.multiplication.program",
+        "demo/multiplication.particle",
+        ":demo.division.program",
+        "demo/division.particle",
+        "demo.record.json",
     ],
-    entrypoint = "//toolchain:execute",
+    script = "demo.mjs",
 )

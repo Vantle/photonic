@@ -49,10 +49,9 @@ fn location() {
             let mut index = Index::new(Arc::new(state.clone()));
             let store = Arc::new(Store::new(65536));
             let mut join = Join::planned(Request {
-                input: &input,
+                context: input.context(0),
                 index: &index,
                 frame: 0,
-                owner: 0,
                 store: &store,
             });
             let mut displaced = false;
@@ -99,7 +98,8 @@ fn location() {
                 let position = iteration % state.world.len();
                 let world = state.world.remove(position);
                 state.world.push(world);
-                index.advance(
+                crate::test::advance(
+                    &mut index,
                     Arc::new(state.clone()),
                     &crate::basis::Set::single(position),
                 );
@@ -142,10 +142,9 @@ fn context() {
     let store = Arc::new(Store::new(65536));
     let create = |index: &Index| {
         Join::planned(Request {
-            input: &input,
+            context: input.context(0),
             index,
             frame: 0,
-            owner: 0,
             store: &store,
         })
     };

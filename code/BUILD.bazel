@@ -9,7 +9,6 @@ filegroup(
         "code.rs",
         "configuration.rs",
         "forest.rs",
-        "hashing.rs",
         "observation.rs",
         "output.rs",
         "particle.rs",
@@ -32,7 +31,10 @@ rust_library(
         "//toolchain/browser:__pkg__",
         "//translation:__pkg__",
     ],
-    deps = ["@crate//:serde"],
+    deps = [
+        "//hashing",
+        "@crate//:serde",
+    ],
 )
 
 rust_test(
@@ -49,7 +51,10 @@ rust_test(
     ],
     crate_root = "code.rs",
     lint_config = "//:lint",
-    deps = ["@crate//:serde"],
+    deps = [
+        "//hashing",
+        "@crate//:serde",
+    ],
 )
 
 filegroup(

@@ -6,7 +6,7 @@
 
 Every step, including pipeline upload, uses the existing `linux-small` hosted queue: AMD64 Linux with 2 vCPU and 4 GB memory. Buildkite’s [Free plan](https://buildkite.com/pricing/) includes up to 2,000 Linux vCPU minutes per month on this shape. The allowance is finite; this configuration does not require paid machine shapes or self-hosted agents.
 
-macOS, Windows, ARM64 Linux, and browser CI are excluded. Browser verification currently requires ARM64 macOS and can still be run locally with `bazel test -c opt //toolchain/browser:check`. The repository’s platform definitions and hermetic toolchains remain available for local builds on the other supported systems.
+macOS, Windows, ARM64 Linux, and browser CI are excluded. Browser verification currently requires ARM64 macOS and can still be run locally with `bazel test -c opt //book:check`. The repository’s platform definitions and hermetic toolchains remain available for local builds on the other supported systems.
 
 The test job selects Bazel’s `continuous` configuration, which excludes tests tagged `memory` and runs at most one test action at a time. Compilation retains two jobs. This reserves headroom for Bazel and build actions on the 4 GB agent while keeping ordinary semantic, native/WebAssembly and allocation checks enabled.
 

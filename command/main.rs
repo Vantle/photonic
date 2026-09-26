@@ -75,7 +75,7 @@ fn run(argument: &argument::Run) -> miette::Result<ExitCode> {
     let mut runtime = Runtime::new(&program);
     runtime.parallel(&executor, budget.work, budget.limit());
     if argument.json {
-        output::write(&runtime.view(), argument.compact)?;
+        output::write(&runtime.stream(), argument.compact)?;
         return Ok(ExitCode::SUCCESS);
     }
     let mut output = std::io::stdout().lock();
@@ -130,7 +130,7 @@ fn prism(argument: &argument::Prism) -> miette::Result<ExitCode> {
                 witness: verdict.witness,
                 program: &program,
                 target: &target,
-                execution: runtime.view(),
+                execution: runtime.stream(),
             },
             argument.run.compact,
         )?;
@@ -181,7 +181,7 @@ fn walk(
     let mut search = photonic::path::Search::new(program, Some(target));
     search.run(budget.work, budget.limit());
     if argument.run.json {
-        output::write(&search.view(), argument.run.compact)?;
+        output::write(&search.stream(), argument.run.compact)?;
         return Ok(ExitCode::SUCCESS);
     }
     let mut output = std::io::stdout().lock();
@@ -199,7 +199,7 @@ fn walk(
     writeln!(
         output,
         "{} events; {} work steps; alternative paths not exhausted",
-        summary.event, summary.work
+        summary.length, summary.work
     )
     .into_diagnostic()?;
     Ok(ExitCode::SUCCESS)

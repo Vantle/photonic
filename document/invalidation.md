@@ -62,7 +62,7 @@ The subsequent [exhaustive replay audit](transcript.md) corrects a recycled-site
 The later [population audit](population.md) replaces context vectors with immutable populations and membership bitmaps, and replaces repeated fingerprint dependency discovery with a maintained graph. It substantially improves wide consumption, but records an unresolved small-scope phase regression and increased arithmetic allocation traffic. Its measurements and validation supersede the storage and fingerprint boundary above without changing this audit's historical results.
 
 ```sh
-bazel test -c opt //... //toolchain/browser:check
+bazel test -c opt //... //book:check
 bazel run -c opt //:format -- --check
 bazel run -c opt //benchmark:expression -- '2*2*2*2*2*2' 2101 --sample 21
 bazel run -c opt //benchmark:scope -- --width 256 --depth 16 --length 64 --sample 21

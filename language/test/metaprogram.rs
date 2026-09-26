@@ -44,7 +44,7 @@ fn generation() {
     for depth in [1, 2, 3, 8, 16, 32] {
         let (source, target) = tower(depth);
         let complete = execute(&source, &target);
-        assert_eq!(complete.summary().event, depth);
+        assert_eq!(complete.summary().length, depth);
         let mut chunk = {
             let program = parse(&source).unwrap();
             let target = crate::test::target(&program, &target);
@@ -75,7 +75,7 @@ fn structure() {
         }
         let source = format!("().({value}), [{other}] Forbidden, [{value}] Accepted");
         let search = execute(&source, "Accepted");
-        assert_eq!(search.summary().event, 1);
+        assert_eq!(search.summary().length, 1);
         assert!(
             search
                 .report()

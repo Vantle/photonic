@@ -1,5 +1,5 @@
 use crate::graph::{Edge, Graph, Relation};
-use code::hashing::combine;
+use hashing::combine;
 use std::collections::VecDeque;
 
 #[derive(Clone, Debug)]

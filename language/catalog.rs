@@ -1,6 +1,6 @@
-use crate::hashing::Builder;
 use crate::plan::Input;
 use crate::program::Program;
+use hashing::Builder;
 use std::collections::HashMap;
 
 pub(crate) struct Catalog {

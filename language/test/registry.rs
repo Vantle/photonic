@@ -1,5 +1,19 @@
 use super::{Key, Registry};
 use std::collections::BTreeMap;
+use std::ops::RangeInclusive;
+
+fn interval(frame: usize, input: Option<usize>) -> RangeInclusive<Key> {
+    let (first, last) = input.map_or((0, usize::MAX), |input| (input, input));
+    Key {
+        frame,
+        input: first,
+        owner: 0,
+    }..=Key {
+        frame,
+        input: last,
+        owner: usize::MAX,
+    }
+}
 
 #[test]
 fn reconciliation() {
@@ -27,21 +41,21 @@ fn reconciliation() {
             actual.insert(key, iteration);
             expected.insert(key, iteration);
         } else {
-            let interval = if iteration % 2 == 0 {
-                Key::frame(frame)
+            let input = if iteration % 2 == 0 {
+                None
             } else {
-                Key::input(frame, key.input)
+                Some(key.input)
             };
             assert!(
-                actual.range(interval.clone()).eq(expected
-                    .range(interval.clone())
+                actual.range(frame, input).eq(expected
+                    .range(interval(frame, input))
                     .map(|(&key, value)| (key, value)))
             );
             let before = expected
-                .extract_if(interval.clone(), |_, position| *position % 2 == 0)
+                .extract_if(interval(frame, input), |_, position| *position % 2 == 0)
                 .collect::<Vec<_>>();
             let after = actual
-                .extract(interval, |_, position| *position % 2 == 0)
+                .extract(frame, input, |_, position| *position % 2 == 0)
                 .collect::<Vec<_>>();
             assert!(before == after);
         }
@@ -49,14 +63,14 @@ fn reconciliation() {
         assert_eq!(actual.get(&key), expected.get(&key));
         assert_eq!(
             actual.count(frame),
-            expected.range(Key::frame(frame)).count()
+            expected.range(interval(frame, None)).count()
         );
         assert!(
             actual
                 .iter()
                 .eq(expected.iter().map(|(&key, value)| (key, value)))
         );
-        assert!(actual.values().eq(expected.values()));
+        assert!(actual.value().eq(expected.values()));
     }
 }
 
@@ -78,17 +92,17 @@ fn extraction() {
             expected.insert(key, position);
         }
         for frame in 0..3 {
-            for interval in [Key::input(frame, 17), Key::frame(frame)] {
+            for input in [Some(17), None] {
                 let predicate = |_: &Key, position: &mut usize| {
                     *position += 1;
                     !position.is_multiple_of(3)
                 };
                 let before = expected
-                    .extract_if(interval.clone(), predicate)
+                    .extract_if(interval(frame, input), predicate)
                     .take(maximum)
                     .collect::<Vec<_>>();
                 let after = actual
-                    .extract(interval, predicate)
+                    .extract(frame, input, predicate)
                     .take(maximum)
                     .collect::<Vec<_>>();
                 assert_eq!(before.len(), after.len());
@@ -101,7 +115,7 @@ fn extraction() {
                 );
                 assert_eq!(
                     actual.count(frame),
-                    expected.range(Key::frame(frame)).count()
+                    expected.range(interval(frame, None)).count()
                 );
             }
         }

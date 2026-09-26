@@ -46,17 +46,15 @@ fn activation() {
             let store = Arc::new(Store::new(65536));
             let reference = Arc::new(Store::new(65536));
             let mut actual = Search::planned(Request {
-                input: &input,
+                context: input.context(owner),
                 index: &index,
                 frame: 0,
-                owner,
                 store: &store,
             });
             let mut expected = Join::planned(Request {
-                input: &input,
+                context: input.context(owner),
                 index: &index,
                 frame: 0,
-                owner,
                 store: &reference,
             });
             assert!(matches!(actual.mode, Mode::Dormant));
@@ -106,7 +104,7 @@ fn activation() {
                         .into(),
                     );
                 }
-                index.advance(Arc::new(state.clone()), &removal);
+                crate::test::advance(&mut index, Arc::new(state.clone()), &removal);
                 actual.advance(&index);
                 expected.advance(&index);
                 actual.reset(&index);
@@ -130,28 +128,25 @@ fn subscription() {
     let mut index = Index::new(Arc::new(state.clone()));
     let store = Arc::new(Store::new(65536));
     let previous = Search::planned(Request {
-        input: &input,
+        context: input.context(0),
         index: &index,
         frame: 0,
-        owner: 0,
         store: &store,
     });
     for _ in 0..40 {
         state.world.remove(0);
     }
-    index.advance(Arc::new(state), &(0..40).collect());
+    crate::test::advance(&mut index, Arc::new(state), &(0..40).collect());
     let actual = Search::planned(Request {
-        input: &input,
+        context: input.context(0),
         index: &index,
         frame: 0,
-        owner: 0,
         store: &store,
     });
     let expected = Join::planned(Request {
-        input: &input,
+        context: input.context(0),
         index: &index,
         frame: 0,
-        owner: 0,
         store: &store,
     });
     assert_eq!(actual.retained(), expected.retained());

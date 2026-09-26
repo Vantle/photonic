@@ -6,6 +6,7 @@ mod formula;
 #[derive(Parser)]
 struct Argument {
     input: String,
+    #[arg(allow_hyphen_values = true)]
     expected: String,
     #[arg(long, default_value_t = 5)]
     sample: usize,

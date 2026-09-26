@@ -1,12 +1,12 @@
 use crate::catalog::Catalog;
 use crate::delta::Delta;
-use crate::hashing::Builder;
 use crate::index::Index;
 use crate::mask::Set;
 use crate::profile;
 use crate::program::Symbol;
 use crate::slot::Slot;
 use entry::Entry;
+use hashing::Builder;
 use key::Key;
 use smallvec::SmallVec;
 use std::collections::{BTreeMap, HashMap, VecDeque};
@@ -189,7 +189,7 @@ impl Network {
         if let Some(ready) = &self.ready {
             ready.values().for_each(&mut reset);
         } else {
-            self.entry.values().for_each(reset);
+            self.entry.value().for_each(reset);
         }
     }
 
@@ -271,7 +271,7 @@ impl Network {
 
     pub fn evict(&mut self) -> usize {
         let previous = self.storage + self.sharing.retained();
-        for &position in self.entry.values() {
+        for &position in self.entry.value() {
             let entry = &mut self.store[position];
             self.storage -= entry.retained();
             entry.evict();

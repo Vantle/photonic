@@ -25,7 +25,10 @@ rust_library(
         "//learning:__pkg__",
         "//translation:__pkg__",
     ],
-    deps = ["//code"],
+    deps = [
+        "//code",
+        "//hashing",
+    ],
 )
 
 rust_test(
@@ -41,7 +44,10 @@ rust_test(
     ],
     crate_root = "machine.rs",
     lint_config = "//:lint",
-    deps = ["//code"],
+    deps = [
+        "//code",
+        "//hashing",
+    ],
 )
 
 filegroup(

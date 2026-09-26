@@ -77,6 +77,9 @@ impl Selection {
         )
     }
 
+    // Exhaustive searches accept any term pattern, including rule terms that capture different
+    // owners, so they prepare sites from their terms instead of through a plan context, which
+    // gives every rule term one owner.
     pub(crate) fn prepare(
         &self,
         position: usize,

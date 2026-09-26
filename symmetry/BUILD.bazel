@@ -29,7 +29,10 @@ rust_library(
         "//spectrum:__pkg__",
         "//toolchain/browser:__pkg__",
     ],
-    deps = ["//code"],
+    deps = [
+        "//code",
+        "//hashing",
+    ],
 )
 
 rust_test(
@@ -50,6 +53,7 @@ rust_test(
     lint_config = "//:lint",
     deps = [
         "//code",
+        "//hashing",
         "//random",
     ],
 )

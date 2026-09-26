@@ -1,4 +1,4 @@
-use crate::lifecycle::Engine;
+use crate::engine::Engine;
 use crate::meter::{self, Measurement};
 use clap::ValueEnum;
 use serde::Serialize;
@@ -45,7 +45,7 @@ pub struct Record {
     byte: usize,
     fingerprint: u64,
     #[cfg(feature = "allocation")]
-    footprint: crate::lifecycle::Footprint,
+    footprint: crate::engine::Footprint,
 }
 
 pub fn measure<Value: Engine>(
@@ -55,7 +55,7 @@ pub fn measure<Value: Engine>(
     writer: bool,
 ) -> Record {
     let (mut engine, initialization) = meter::measure(initialize);
-    let ((), execution) = meter::measure(|| engine.execute(budget, crate::lifecycle::limit()));
+    let ((), execution) = meter::measure(|| engine.execute(budget, crate::engine::limit()));
     let (output, export) = meter::measure(|| {
         let mut output = Output {
             buffer: (!writer).then(Vec::new),
@@ -64,7 +64,7 @@ pub fn measure<Value: Engine>(
         };
         match mode {
             Mode::Owned => serde_json::to_writer(&mut output, &engine.report()).unwrap(),
-            Mode::View => serde_json::to_writer(&mut output, &engine.view()).unwrap(),
+            Mode::View => serde_json::to_writer(&mut output, &engine.stream()).unwrap(),
         }
         output
     });
@@ -77,12 +77,7 @@ pub fn measure<Value: Engine>(
         mode,
         writer,
         #[cfg(feature = "allocation")]
-        footprint: crate::lifecycle::Footprint::new([
-            &initialization,
-            &execution,
-            &export,
-            &release,
-        ]),
+        footprint: crate::engine::Footprint::new([&initialization, &execution, &export, &release]),
         initialization,
         execution,
         export,

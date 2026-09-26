@@ -9,7 +9,7 @@ mod store;
 pub(crate) use store::Store;
 
 #[derive(Eq, Hash, PartialEq)]
-pub(super) struct Constraint {
+struct Constraint {
     group: usize,
     location: crate::location::Location,
 }
@@ -31,7 +31,7 @@ enum Task {
 pub(crate) struct Gate {
     shared: Option<sharing::Sharing>,
     group: Vec<usize>,
-    candidate: Vec<IndexSet<Slot, crate::hashing::Builder>>,
+    candidate: Vec<IndexSet<Slot, hashing::Builder>>,
     prefix: Vec<Vec<Option<usize>>>,
     binding: crate::prefix::Arena,
     agenda: VecDeque<Task>,

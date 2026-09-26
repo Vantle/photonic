@@ -237,3 +237,151 @@ fn differential() {
         });
     }
 }
+
+struct Random(u64);
+
+impl Random {
+    fn below(&mut self, bound: usize) -> usize {
+        self.0 = self
+            .0
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
+        ((self.0 >> 33) % bound as u64) as usize
+    }
+
+    fn shuffle<Value>(&mut self, value: &mut [Value]) {
+        for index in (1..value.len()).rev() {
+            value.swap(index, self.below(index + 1));
+        }
+    }
+}
+
+fn generate(random: &mut Random) -> State {
+    let count = 1 + random.below(4);
+    let resource = (0..1 + random.below(12))
+        .map(|position| {
+            let rule = random.below(3) == 0;
+            Token {
+                id: 1000 + position * 7,
+                value: if rule {
+                    Symbol::Rule(random.below(2))
+                } else {
+                    Symbol::Atom(random.below(3))
+                },
+                capture: rule.then(|| random.below(count)),
+            }
+        })
+        .collect::<Vec<_>>();
+    let mut world = (0..random.below(9))
+        .map(|_| (random.below(count), Vec::new()))
+        .collect::<Vec<_>>();
+    let mut particle = vec![Vec::new(); count];
+    let mut held = vec![Vec::new(); count];
+    for token in &resource {
+        for _ in 0..1 + usize::from(random.below(3) == 0) {
+            match random.below(3) {
+                0 if !world.is_empty() => {
+                    let target = random.below(world.len());
+                    world[target].1.push(token.clone());
+                }
+                1 if token.capture.is_some() => particle[random.below(count)].push(token.clone()),
+                _ => held[random.below(count)].push(token.clone()),
+            }
+        }
+    }
+    State {
+        world: world
+            .into_iter()
+            .map(|(frame, particle)| Arc::new(World { frame, particle }))
+            .collect(),
+        frame: (0..count)
+            .map(|index| {
+                let mut particle = std::mem::take(&mut particle[index]);
+                particle.sort_by_key(|token| token.id);
+                particle.dedup_by_key(|token| token.id);
+                Arc::new(Frame {
+                    scope: random.below(2),
+                    parent: (index > 0).then(|| random.below(index)),
+                    lexical: (index > 0).then(|| random.below(index)),
+                    particle: particle.into_iter().collect(),
+                    held: std::mem::take(&mut held[index]),
+                })
+            })
+            .collect(),
+    }
+}
+
+fn renumber(state: &State, random: &mut Random) -> State {
+    let count = state.frame.len();
+    let mut order = (1..count).collect::<Vec<_>>();
+    random.shuffle(&mut order);
+    let mapping = std::iter::once(0)
+        .chain((1..count).map(|index| 1 + order.iter().position(|&frame| frame == index).unwrap()))
+        .collect::<Vec<_>>();
+    let offset = 5000 + random.below(1000);
+    let stride = 1 + 2 * random.below(5);
+    let token = |token: &Token| Token {
+        id: offset + (1_000_000 - token.id) * stride,
+        value: token.value,
+        capture: token.capture.map(|frame| mapping[frame]),
+    };
+    let mut world = state
+        .world
+        .iter()
+        .map(|world| {
+            Arc::new(World {
+                frame: mapping[world.frame],
+                particle: world.particle.iter().rev().map(token).collect(),
+            })
+        })
+        .collect::<Vec<_>>();
+    random.shuffle(&mut world);
+    let mut frame = vec![None; count];
+    for (index, value) in state.frame.iter().enumerate() {
+        let mut particle = value.particle.iter().map(token).collect::<Vec<_>>();
+        particle.sort_by_key(|token| token.id);
+        frame[mapping[index]] = Some(Arc::new(Frame {
+            scope: value.scope,
+            parent: value.parent.map(|frame| mapping[frame]),
+            lexical: value.lexical.map(|frame| mapping[frame]),
+            particle: particle.into_iter().collect(),
+            held: value.held.iter().rev().map(token).collect(),
+        }));
+    }
+    State {
+        world: world.into_iter().collect(),
+        frame: frame.into_iter().map(Option::unwrap).collect(),
+    }
+}
+
+#[test]
+fn renumbering() {
+    let mut random = Random(7);
+    for _ in 0..4096 {
+        let state = generate(&mut random);
+        let expected = state.canonical().state;
+        assert_eq!(expected.canonical().state, expected, "{state:?}");
+        for _ in 0..4 {
+            let renamed = renumber(&state, &mut random);
+            assert_eq!(
+                renamed.canonical().state,
+                expected,
+                "{state:?}\n{renamed:?}"
+            );
+        }
+        let mut world = state.world.iter().cloned().collect::<Vec<_>>();
+        let Some(first) = world.first_mut() else {
+            continue;
+        };
+        Arc::make_mut(first).particle.push(Token {
+            id: 999_999,
+            value: Symbol::Atom(3),
+            capture: None,
+        });
+        let changed = State {
+            world: world.into_iter().collect(),
+            frame: state.frame.clone(),
+        };
+        assert_ne!(changed.canonical().state, expected, "{state:?}");
+    }
+}

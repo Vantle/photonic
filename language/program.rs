@@ -1,5 +1,5 @@
-use crate::hashing::Builder;
 use frontend::source;
+use hashing::Builder;
 use indexmap::IndexSet;
 use std::collections::HashMap;
 

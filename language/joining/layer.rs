@@ -2,7 +2,7 @@ use super::dependency::Dependency;
 use super::retention::Retention;
 use super::slot::Slot;
 use super::trace::{self, Trace};
-use crate::budget::Budget;
+use crate::budget::Account;
 use crate::index::Index;
 use std::sync::Arc;
 use std::task::Poll;
@@ -29,7 +29,7 @@ impl Layer {
         }
     }
 
-    pub fn prepare(&mut self, dependency: Dependency, budget: &Arc<Budget>, allowance: usize) {
+    pub fn prepare(&mut self, dependency: Dependency, budget: &Account, allowance: usize) {
         if self.active.is_some() {
             return;
         }
@@ -38,8 +38,8 @@ impl Layer {
             if retained > allowance {
                 return None;
             }
-            let trace = Trace::new(budget.clone(), retained)?;
-            self.cached += trace.retained;
+            let trace = Trace::new(budget, retained)?;
+            self.cached += trace.retained();
             Some((Arc::new(dependency), Box::new(trace)))
         });
         self.active = record.map(|(dependency, trace)| Active { dependency, trace });
@@ -65,14 +65,14 @@ impl Layer {
         let Some(active) = self.active.as_mut().filter(|active| !active.trace.complete) else {
             return;
         };
-        let previous = active.trace.retained;
+        let previous = active.trace.retained();
         if active.trace.length >= trace::LENGTH
             || !active.trace.append(result, self.depth.., allowance)
         {
             self.finish();
             return;
         }
-        self.cached += active.trace.retained - previous;
+        self.cached += active.trace.retained() - previous;
     }
 
     pub fn seal(&mut self) {
@@ -86,12 +86,12 @@ impl Layer {
         let Some(active) = self.active.as_mut().filter(|active| !active.trace.complete) else {
             return;
         };
-        let previous = active.trace.retained;
+        let previous = active.trace.retained();
         if active.trace.length >= trace::LENGTH || !active.trace.extend(trace, prefix, allowance) {
             self.finish();
             return;
         }
-        self.cached += active.trace.retained - previous;
+        self.cached += active.trace.retained() - previous;
     }
 
     pub fn finish(&mut self) {
@@ -101,7 +101,7 @@ impl Layer {
         if active.trace.complete {
             self.record.insert(active.dependency, active.trace);
         } else {
-            self.cached -= active.trace.retained;
+            self.cached -= active.trace.retained();
         }
     }
 

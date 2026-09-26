@@ -1,7 +1,7 @@
 use crate::graph::Graph;
 use crate::partition::Partition;
 use code::forest::Forest;
-use code::hashing::combine;
+use hashing::combine;
 use std::cmp::Ordering;
 
 const LEAF: u64 = 0x2545_f491_4f6c_dd1d;

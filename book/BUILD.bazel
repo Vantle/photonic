@@ -1,5 +1,7 @@
-load("//toolchain:defs.bzl", "hermetic_binary", "hermetic_test")
-load(":site.bzl", "site")
+load("@rules_rs//rs:rust_binary.bzl", "rust_binary")
+load("@rules_rs//rs:rust_test.bzl", "rust_test")
+load("//toolchain:defs.bzl", "script_binary", "script_test")
+load(":site.bzl", "REPOSITORY", "site")
 
 filegroup(
     name = "asset",
@@ -32,13 +34,6 @@ filegroup(
         "workbench.js",
         "worker.js",
     ],
-    visibility = ["//toolchain/browser:__pkg__"],
-)
-
-filegroup(
-    name = "numeral",
-    srcs = ["numeral.js"],
-    visibility = ["//toolchain/browser:__pkg__"],
 )
 
 filegroup(
@@ -87,99 +82,116 @@ site(
     ],
 )
 
-hermetic_binary(
-    name = "record",
-    argument = [
-        "$(rlocationpath //toolchain:node)",
-        "$(rlocationpath record.mjs)",
-        "$(rlocationpath //toolchain/browser:javascript)",
-        "$(rlocationpath //toolchain/browser:webassembly)",
-        "$(rlocationpath numeral.js)",
-        "$(rlocationpath //:page)",
-        "$(rlocationpath //:lightbox)",
-        "$(rlocationpath record.js)",
-        "--",
-        "write",
+rust_binary(
+    name = "serve",
+    srcs = [
+        "route.rs",
+        "serve.rs",
     ],
+    crate_root = "serve.rs",
     data = [
-        "numeral.js",
-        "record.js",
-        "record.mjs",
-        ":source",
+        ":asset",
         "//:lightbox",
         "//:page",
-        "//toolchain:node",
         "//toolchain/browser:javascript",
         "//toolchain/browser:webassembly",
     ],
-    entrypoint = "//toolchain:execute",
+    env = {
+        "BOOK": "$(rlocationpaths :asset) $(rlocationpath //:page) $(rlocationpath //:lightbox) $(rlocationpath //toolchain/browser:javascript) $(rlocationpath //toolchain/browser:webassembly)",
+    },
+    lint_config = "//:lint",
+    rustc_env = {"REPOSITORY": REPOSITORY},
+    deps = ["@rules_rust//rust/runfiles"],
 )
 
-hermetic_test(
+rust_test(
+    name = "route",
+    size = "small",
+    srcs = [
+        "route.rs",
+        "test/route.rs",
+    ],
+    crate_root = "route.rs",
+    lint_config = "//:lint",
+)
+
+script_binary(
+    name = "record",
+    argument = ["write"],
+    data = [":source"],
+    runfile = [
+        "//toolchain/browser:javascript",
+        "//toolchain/browser:webassembly",
+        "numeral.js",
+        "//:page",
+        "//:lightbox",
+        "record.js",
+    ],
+    script = "record.mjs",
+)
+
+script_test(
     name = "record.check",
     size = "small",
-    argument = [
-        "$(rlocationpath //toolchain:node)",
-        "$(rlocationpath record.mjs)",
-        "$(rlocationpath //toolchain/browser:javascript)",
-        "$(rlocationpath //toolchain/browser:webassembly)",
-        "$(rlocationpath numeral.js)",
-        "$(rlocationpath //:page)",
-        "$(rlocationpath //:lightbox)",
-        "$(rlocationpath record.js)",
-        "--",
-        "check",
-    ],
-    data = [
-        "numeral.js",
-        "record.js",
-        "record.mjs",
-        ":source",
-        "//:lightbox",
-        "//:page",
-        "//toolchain:node",
+    argument = ["check"],
+    data = [":source"],
+    runfile = [
         "//toolchain/browser:javascript",
         "//toolchain/browser:webassembly",
+        "numeral.js",
+        "//:page",
+        "//:lightbox",
+        "record.js",
     ],
-    entrypoint = "//toolchain:execute",
+    script = "record.mjs",
 )
 
-hermetic_test(
+script_test(
     name = "test",
     size = "small",
-    argument = [
-        "$(rlocationpath //toolchain:node)",
-        "$(rlocationpath test.mjs)",
-        "$(rlocationpath //toolchain/browser:javascript)",
-        "$(rlocationpath //toolchain/browser:webassembly)",
-        "$(rlocationpath pattern.json)",
-        "$(rlocationpath record.js)",
-        "$(rlocationpath engine.js)",
-        "$(rlocationpath syntax.js)",
-        "$(rlocationpath render.js)",
-        "$(rlocationpath editor.js)",
-        "$(rlocationpath graph.js)",
-        "$(rlocationpath pattern.js)",
-        "$(rlocationpath symmetry.js)",
-        "$(rlocationpath share.js)",
-    ],
-    data = [
-        "editor.js",
-        "engine.js",
-        "graph.js",
-        "pattern.js",
-        "pattern.json",
-        "record.js",
-        "render.js",
-        "share.js",
-        "symmetry.js",
-        "syntax.js",
-        "test.mjs",
-        "//toolchain:node",
+    runfile = [
         "//toolchain/browser:javascript",
         "//toolchain/browser:webassembly",
+        "pattern.json",
+        "numeral.js",
+        "record.js",
+        "engine.js",
+        "syntax.js",
+        "render.js",
+        "editor.js",
+        "graph.js",
+        "pattern.js",
+        "symmetry.js",
+        "share.js",
     ],
-    entrypoint = "//toolchain:execute",
+    script = "test.mjs",
+)
+
+script_test(
+    name = "check",
+    size = "small",
+    data = [
+        ":asset",
+        "//:lightbox",
+        "//:page",
+        "@rules_browsers_chrome_mac_arm//:info",
+        "@rules_browsers_chromedriver_mac_arm//:info",
+    ],
+    runfile = [
+        "@rules_browsers_chrome_mac_arm//:chrome-headless-shell-mac-arm64/chrome-headless-shell",
+        "@rules_browsers_chromedriver_mac_arm//:chromedriver-mac-arm64/chromedriver",
+        "//toolchain/browser:webassembly",
+        "//toolchain/browser:javascript",
+    ],
+    script = "check.mjs",
+    tags = [
+        "manual",
+        "requires-network",
+    ],
+    target_compatible_with = [
+        "@platforms//os:macos",
+        "@platforms//cpu:aarch64",
+    ],
 )
 
 exports_files(

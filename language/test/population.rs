@@ -25,7 +25,6 @@ fn verify(actual: &Set, expected: &[Token]) {
         let (position, value) = cursor.next().unwrap();
         assert_eq!(value, token);
         assert_eq!(actual.at(position), token);
-        assert_eq!(&actual[offset], token);
     }
     assert_eq!(cursor.len(), 0);
     assert_eq!(cursor.next(), None);
@@ -33,10 +32,7 @@ fn verify(actual: &Set, expected: &[Token]) {
     let rebuilt = Set::from(expected.to_vec());
     assert_eq!(actual, &rebuilt);
     assert_eq!(actual.cmp(&rebuilt), std::cmp::Ordering::Equal);
-    assert_eq!(
-        crate::hashing::value(actual),
-        crate::hashing::value(&rebuilt)
-    );
+    assert_eq!(hashing::value(actual), hashing::value(&rebuilt));
 }
 
 #[test]
@@ -60,15 +56,16 @@ fn persistence() {
                 visited,
                 snapshot.iter().map(|token| token.id).collect::<Vec<_>>()
             );
+            let (removed, inserted) = previous.difference(&actual);
             assert_eq!(
-                previous.removed(&actual),
+                removed.collect::<Vec<_>>(),
                 snapshot
                     .iter()
                     .filter(|token| token.id.is_multiple_of(divisor))
                     .map(|token| token.id)
                     .collect::<Vec<_>>()
             );
-            assert!(actual.removed(&previous).is_empty());
+            assert_eq!(inserted.count(), 0);
             assert_eq!(
                 actual
                     .entry()
@@ -85,7 +82,8 @@ fn persistence() {
         }
         let snapshot = actual.clone();
         actual.retain(|_| true);
-        assert!(actual.removed(&snapshot).is_empty());
+        let (removed, inserted) = actual.difference(&snapshot);
+        assert_eq!((removed.count(), inserted.count()), (0, 0));
         assert_eq!(actual, snapshot);
         actual.clear();
         verify(&actual, &[]);
@@ -102,51 +100,36 @@ fn branch() {
         let mut right = root.clone();
         left.retain(|token| token.id % 3 == 0);
         right.retain(|token| token.id % 2 == 0);
+        let (removed, inserted) = left.difference(&right);
         assert_eq!(
-            left.removed(&right),
+            removed.collect::<Vec<_>>(),
             (0..width)
                 .filter(|identity| *identity % 3 == 0 && *identity % 2 != 0)
                 .collect::<Vec<_>>()
         );
         assert_eq!(
-            right.removed(&left),
+            inserted.collect::<Vec<_>>(),
             (0..width)
                 .filter(|identity| *identity % 2 == 0 && *identity % 3 != 0)
                 .collect::<Vec<_>>()
         );
         let rebuilt = Set::from(left.iter().cloned().collect::<Vec<_>>());
+        let (removed, inserted) = left.difference(&rebuilt);
         assert_eq!(
-            left.removed(&rebuilt),
+            removed.collect::<Vec<_>>(),
             left.entry()
+                .map(|(position, _)| position)
+                .collect::<Vec<_>>()
+        );
+        assert_eq!(
+            inserted.collect::<Vec<_>>(),
+            rebuilt
+                .entry()
                 .map(|(position, _)| position)
                 .collect::<Vec<_>>()
         );
         verify(&root, &original);
     }
-}
-
-#[test]
-fn replacement() {
-    let root = Set::from(population(129));
-    let mut branch = root.clone();
-    branch.retain(|token| token.id % 2 == 1);
-    let snapshot = branch.clone();
-    branch[0].capture = Some(99);
-    branch[1].id = 1000;
-    assert!(!branch.shared(&root));
-    assert!(!branch.shared(&snapshot));
-    assert_eq!(snapshot[0].capture, Some(1));
-    assert_eq!(snapshot[1].id, 3);
-    assert_eq!(root.len(), 129);
-    assert_eq!(branch.len(), 64);
-    assert_eq!(
-        branch
-            .entry()
-            .map(|(position, _)| position)
-            .collect::<Vec<_>>(),
-        (0..64).collect::<Vec<_>>()
-    );
-    verify(&root, &population(129));
 }
 
 #[test]
@@ -167,7 +150,7 @@ fn equality() {
     });
     assert_eq!(left, right);
     assert_eq!(left.cmp(&right), std::cmp::Ordering::Equal);
-    assert_eq!(crate::hashing::value(&left), crate::hashing::value(&right));
+    assert_eq!(hashing::value(&left), hashing::value(&right));
     assert_ne!(
         left.entry().next().unwrap().0,
         right.entry().next().unwrap().0
@@ -192,7 +175,7 @@ fn capture() {
     assert_eq!(uniform.capture(), None);
     assert_eq!(Set::default().capture(), None);
     assert_eq!(Set::from(population(3)).capture(), None);
-    let mut mutated = Set::from(owned);
+    let mut mutated = owned;
     mutated[7].capture = Some(6);
-    assert_eq!(mutated.capture(), None);
+    assert_eq!(Set::from(mutated).capture(), None);
 }

@@ -4,7 +4,7 @@ use crate::limit::Limit;
 use crate::state::State;
 use code::atom::Atom;
 use code::canonical::Key;
-use code::hashing::Builder;
+use hashing::Builder;
 use std::collections::{HashMap, HashSet};
 
 #[derive(Clone, Debug)]

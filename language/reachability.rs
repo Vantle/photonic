@@ -31,11 +31,18 @@ fn closure(state: &State, anchor: &List<usize>) -> Vec<usize> {
     )
 }
 
+fn root(state: &State) -> impl Iterator<Item = usize> + '_ {
+    std::iter::once(0).chain(state.world.iter().flat_map(|world| world.reference()))
+}
+
+pub(crate) fn frame(state: &State) -> Arc<Vec<usize>> {
+    Arc::new(state.closure(root(state)))
+}
+
 impl Index {
     pub fn new(state: &State) -> Self {
         let mut anchor = std::iter::repeat_n(0, state.frame.len()).collect::<List<_>>();
-        anchor[0] = 1;
-        for frame in state.world.iter().flat_map(|world| world.reference()) {
+        for frame in root(state) {
             anchor[frame] += 1;
         }
         let frame = Arc::new(closure(state, &anchor));

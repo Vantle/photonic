@@ -1,5 +1,5 @@
-use crate::hashing::Builder;
 use crate::state::State;
+use hashing::Builder;
 use std::collections::HashMap;
 use std::sync::{Arc, Weak};
 

@@ -77,6 +77,23 @@ fn sharing() {
 }
 
 #[test]
+fn empty() {
+    let program = crate::program::Program::new(&frontend::lowering::parse("A, [A] B").unwrap());
+    let index = crate::index::Index::new(Arc::new(crate::state::State::initial(&program)));
+    let owner = index.locate(crate::location::Location::Context(0));
+    let world = index.site(0);
+    let context = Input::new(&[Vec::new()]).context(0);
+    let selection = crate::selection::Selection::new(Arc::new(vec![Vec::new()]), &index, 0);
+    assert_eq!(context.select(0, &index, owner, None).step(), None);
+    assert_eq!(selection.prepare(0, &index, owner).step(), None);
+    assert_eq!(
+        context.select(0, &index, world, None).step(),
+        Some(Vec::new())
+    );
+    assert_eq!(selection.prepare(0, &index, world).step(), Some(Vec::new()));
+}
+
+#[test]
 fn predicate() {
     let program = crate::program::Program::new(
         &frontend::lowering::parse("A.A.B,A.B.B,A.A.([A] B),B.([A] B)").unwrap(),
@@ -172,7 +189,11 @@ fn mutation() {
             world.particle.truncate(8);
         }
         state.world.push(world.into());
-        index.advance(Arc::new(state.clone()), &crate::basis::Set::single(removed));
+        crate::test::advance(
+            &mut index,
+            Arc::new(state.clone()),
+            &crate::basis::Set::single(removed),
+        );
     }
 }
 

@@ -66,7 +66,7 @@ impl Particle {
         let mut count = 0;
         loop {
             match (left.peek(), right.peek()) {
-                (Some(a), Some(b)) => match a.cmp(b) {
+                (Some(first), Some(second)) => match first.cmp(second) {
                     std::cmp::Ordering::Equal => {
                         left.next();
                         right.next();

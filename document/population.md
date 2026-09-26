@@ -59,7 +59,7 @@ The initial bitmap implementation improved wide consumption but regressed the th
 The next execution work should maintain subscription consumers from owner changes instead of reconstructing complete request lists. That work must also address the scope control and avoid increasing allocation traffic merely to preserve more cached objects. Reporting remains a separate dominant cost for complete-history consumers. The existing eager retention and broader replay experiments remain rejected; this increment does not reopen them without a distinct measured benefit.
 
 ```sh
-bazel test -c opt //... //toolchain/browser:check
+bazel test -c opt //... //book:check
 bazel run -c opt //:format -- --check
 bazel run -c opt //benchmark:expression -- '2*2*2*2*2*2' 2101 --sample 21
 bazel run -c opt //benchmark:scope -- --width 256 --depth 16 --length 64 --sample 51

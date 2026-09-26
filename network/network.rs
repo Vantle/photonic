@@ -1,11 +1,11 @@
 #![forbid(unsafe_code)]
 
-pub mod attention;
-pub mod block;
+mod attention;
+mod block;
 pub mod checkpoint;
 pub mod configuration;
-pub mod embedding;
-pub mod feed;
+mod embedding;
+mod feed;
 pub mod grow;
 pub mod head;
 pub mod input;

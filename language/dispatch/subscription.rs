@@ -1,6 +1,6 @@
+use super::Network;
 use super::consumer::Request;
 use super::entry::Entry;
-use super::{Key, Network};
 use crate::index::Index;
 use crate::mask::Set;
 use crate::profile;
@@ -30,10 +30,9 @@ impl Network {
             } else {
                 let _scope = profile::Scope::new(profile::Phase::Admission);
                 let Some(search) = Search::admit(crate::joining::Request {
-                    input: plan,
+                    context: plan.context(key.owner),
                     index,
                     frame,
-                    owner: key.owner,
                     store: &self.sharing,
                 }) else {
                     continue;
@@ -65,20 +64,15 @@ impl Network {
 
     fn prune(&mut self, frame: usize, selected: Option<&Set>, request: &[Request]) {
         let _scope = profile::Scope::new(profile::Phase::Removal);
-        let interval: SmallVec<[_; 4]> = selected
+        let input: SmallVec<[_; 4]> = selected
             .filter(|selected| selected.len() < self.entry.count(frame))
             .map_or_else(
-                || smallvec::smallvec![Key::frame(frame)],
-                |selected| {
-                    selected
-                        .iter()
-                        .map(|input| Key::input(frame, input))
-                        .collect()
-                },
+                || smallvec::smallvec![None],
+                |selected| selected.iter().map(Some).collect(),
             );
         let mut expected = request.iter().peekable();
-        for interval in interval {
-            let removal = self.entry.extract(interval, |key, _| {
+        for input in input {
+            let removal = self.entry.extract(frame, input, |key, _| {
                 if selected.is_some_and(|selected| !selected.contains(key.input)) {
                     return false;
                 }

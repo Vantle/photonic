@@ -5,12 +5,9 @@ pub struct Generator {
     state: [u64; 4],
 }
 
-fn mix(value: &mut u64) -> u64 {
+fn step(value: &mut u64) -> u64 {
     *value = value.wrapping_add(0x9E37_79B9_7F4A_7C15);
-    let mut result = *value;
-    result = (result ^ (result >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
-    result = (result ^ (result >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
-    result ^ (result >> 31)
+    hashing::mix(*value)
 }
 
 impl Generator {
@@ -18,10 +15,10 @@ impl Generator {
         let mut value = seed;
         Self {
             state: [
-                mix(&mut value),
-                mix(&mut value),
-                mix(&mut value),
-                mix(&mut value),
+                step(&mut value),
+                step(&mut value),
+                step(&mut value),
+                step(&mut value),
             ],
         }
     }

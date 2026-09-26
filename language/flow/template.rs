@@ -1,8 +1,8 @@
 use super::composition::Composition;
 use super::{Flow, Place};
 use crate::basis::Set;
-use crate::hashing::Builder;
 use crate::profile;
+use hashing::Builder;
 use std::collections::HashMap;
 
 pub(super) struct Template {

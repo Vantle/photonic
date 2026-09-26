@@ -1,10 +1,10 @@
 use crate::application::Owner;
-use crate::hashing::Builder;
 use crate::index::Index;
 use crate::place::Place;
 use crate::search::Search;
 use crate::slot::Slot;
 use crate::term::Term;
+use hashing::Builder;
 use indexmap::IndexSet;
 use std::collections::HashMap;
 use std::sync::Arc;

@@ -438,11 +438,15 @@ fn capture() {
     Arc::make_mut(&mut state.frame[0]).lexical = Some(1);
     for frame in 0..2 {
         let value = Arc::make_mut(&mut state.frame[frame]);
-        value
+        let mut particle = value
             .particle
-            .retain(|token| token.value == Symbol::Rule(0));
-        value.particle[0].id = frame + 1;
-        value.particle[0].capture = Some(frame);
+            .iter()
+            .filter(|token| token.value == Symbol::Rule(0))
+            .cloned()
+            .collect::<Vec<_>>();
+        particle[0].id = frame + 1;
+        particle[0].capture = Some(frame);
+        value.particle = particle.into();
     }
     state.world = vec![
         World {
@@ -485,12 +489,17 @@ fn arrival() {
     state.frame.push(state.frame[0].clone());
     Arc::make_mut(&mut state.frame[1]).particle.clear();
     let root = Arc::make_mut(&mut state.frame[0]);
-    root.particle.retain(|token| token.value == Symbol::Rule(0));
-    root.particle.push(Token {
-        id: 100,
-        value: Symbol::Rule(0),
-        capture: Some(1),
-    });
+    root.particle = root
+        .particle
+        .iter()
+        .filter(|token| token.value == Symbol::Rule(0))
+        .cloned()
+        .chain([Token {
+            id: 100,
+            value: Symbol::Rule(0),
+            capture: Some(1),
+        }])
+        .collect();
     state.world = vec![
         World {
             frame: 0,

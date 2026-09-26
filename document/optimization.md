@@ -124,7 +124,7 @@ bazel run -c opt //benchmark:expression -- '2*2*2*2*2*2' 2101 --sample 7
 bazel run -c opt //benchmark:arithmetic -- 1234567890 add 9876543210 --radix 10 --sample 7
 bazel run -c opt //benchmark:storage -- --width 4096 --length 1000 --rule --sample 7
 bazel run -c opt //benchmark:runtime
-bazel test -c opt --nocache_test_results //... //toolchain/browser:check
+bazel test -c opt --nocache_test_results //... //book:check
 ```
 
 These benchmarks were removed after `0daf296` and still run at that commit:

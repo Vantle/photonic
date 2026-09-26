@@ -112,7 +112,7 @@ impl Match {
                 .group
                 .iter()
                 .map(|group| (term(&group.value), Vec::new()))
-                .collect::<std::collections::HashMap<_, _, crate::hashing::Builder>>();
+                .collect::<std::collections::HashMap<_, _, hashing::Builder>>();
             for token in particle {
                 if let Some(candidate) = candidate.get_mut(&Term::new(token.value, token.capture)) {
                     candidate.push(token.id);

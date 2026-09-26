@@ -68,13 +68,15 @@ fn population() {
         assert_eq!(restored.resource, root.resource);
         for iteration in 0..width {
             let previous = state.clone();
+            let removed = original.frame[0].particle.iter().nth(iteration).unwrap().id;
             Arc::make_mut(&mut state.frame[0])
                 .particle
-                .retain(|token| token.id != original.frame[0].particle[iteration].id);
+                .retain(|token| token.id != removed);
             if iteration % 11 == 0 {
                 let frame = Arc::make_mut(&mut state.frame[0]);
-                frame.particle = frame.particle.iter().cloned().collect();
-                frame.particle.reverse();
+                let mut particle = frame.particle.iter().cloned().collect::<Vec<_>>();
+                particle.reverse();
+                frame.particle = particle.into();
             }
             layout = verify(&layout, &previous, &state, &change);
             if iteration % 17 == 0 {
@@ -93,8 +95,12 @@ fn multiplicity() {
     let mut state = state(3);
     let largest = usize::MAX - 1;
     let frame = Arc::make_mut(&mut state.frame[0]);
-    frame.particle.push(token(largest));
-    frame.particle.push(token(largest));
+    frame.particle = frame
+        .particle
+        .iter()
+        .cloned()
+        .chain([token(largest), token(largest)])
+        .collect();
     frame.held.push(token(largest));
     Arc::make_mut(&mut state.world[0])
         .particle
@@ -127,7 +133,14 @@ fn multiplicity() {
                 change.insertion = 0..1;
             }
             3 => frame.held.clear(),
-            4 => frame.particle.push(token(9000)),
+            4 => {
+                frame.particle = frame
+                    .particle
+                    .iter()
+                    .cloned()
+                    .chain([token(9000)])
+                    .collect()
+            }
             _ => frame.particle.clear(),
         }
         layout = verify(&layout, &source, &state, &change);
@@ -185,9 +198,13 @@ fn unreachable() {
         frame: vec![0],
     };
     let source = state.clone();
-    Arc::make_mut(&mut state.frame[0])
+    let particle = state.frame[0]
         .particle
-        .push(token(1000));
+        .iter()
+        .cloned()
+        .chain([token(1000)])
+        .collect();
+    Arc::make_mut(&mut state.frame[0]).particle = particle;
     layout = verify(&layout, &source, &state, &change);
     assert_eq!(layout.resource, 1001);
     let source = state.clone();

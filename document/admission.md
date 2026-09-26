@@ -41,7 +41,7 @@ A separate five-sample instrumented profile shows median dispatch time falling f
 Subscription admission is now cheaper, but dispatch still reconstructs request lists and tries candidates for unavailable local combinations. The runtime is not yet at the desired endpoint. Broad identity maintenance, arithmetic allocation traffic and complete-history reporting remain material. Further subscription work should target a measured repeated layer cost while preserving late activation and exact suspension; it should not retain every inactive search.
 
 ```sh
-bazel test -c opt //... //toolchain/browser:check
+bazel test -c opt //... //book:check
 bazel run -c opt //:format -- --check
 bazel run -c opt //benchmark:expression -- '2*2*2*2*2*2' 2101 --sample 21
 bazel run -c opt //benchmark:scope -- --width 256 --depth 16 --length 64 --sample 51

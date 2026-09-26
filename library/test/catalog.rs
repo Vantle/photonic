@@ -1,5 +1,23 @@
+use std::collections::BTreeSet;
 use std::path::Path;
 use std::sync::LazyLock;
+
+const PACKAGE: [&str; 14] = [
+    "binary",
+    "boolean",
+    "carry",
+    "chain",
+    "collection",
+    "expression",
+    "field",
+    "function",
+    "integer",
+    "natural",
+    "selection",
+    "stream",
+    "ternary",
+    "vector",
+];
 
 pub struct Entry {
     pub package: String,
@@ -24,6 +42,15 @@ pub static LIBRARY: LazyLock<Vec<Entry>> = LazyLock::new(|| {
         })
         .collect::<Vec<_>>();
     entry.sort_by(|left, right| (&left.package, &left.name).cmp(&(&right.package, &right.name)));
+    let package = entry
+        .iter()
+        .map(|entry| entry.package.as_str())
+        .collect::<BTreeSet<_>>();
+    assert_eq!(
+        package,
+        BTreeSet::from(PACKAGE),
+        "PHOTONIC_LIBRARY loads every library package"
+    );
     entry
 });
 

@@ -14,12 +14,13 @@ rust_binary(
 )
 
 rust_test(
-    name = "availability",
+    name = "scope.test",
     size = "small",
     srcs = [
         "scope.rs",
         "test/scope.rs",
     ],
+    crate_name = "scope",
     crate_root = "scope.rs",
     lint_config = "//:lint",
     deps = [
@@ -261,14 +262,14 @@ rust_binary(
     name = "lifecycle",
     srcs = [
         "directory.rs",
+        "engine.rs",
         "export.rs",
         "formula.rs",
         "lifecycle.rs",
-        "lifetime.rs",
         "meter.rs",
     ],
     compile_data = ["//library/expression:evaluate"],
-    crate_root = "lifetime.rs",
+    crate_root = "lifecycle.rs",
     lint_config = "//:lint",
     rustc_env = {"FORMULA": "$(execpath //library/expression:evaluate)"},
     deps = [
@@ -286,15 +287,15 @@ rust_binary(
     srcs = [
         "allocation.rs",
         "directory.rs",
+        "engine.rs",
         "export.rs",
         "formula.rs",
         "lifecycle.rs",
-        "lifetime.rs",
         "meter.rs",
     ],
     compile_data = ["//library/expression:evaluate"],
     crate_features = ["allocation"],
-    crate_root = "lifetime.rs",
+    crate_root = "lifecycle.rs",
     lint_config = "//:lint",
     rustc_env = {"FORMULA": "$(execpath //library/expression:evaluate)"},
     deps = [
@@ -308,21 +309,23 @@ rust_binary(
 )
 
 rust_test(
-    name = "allocator",
+    name = "allocation.test",
     size = "small",
     srcs = [
         "allocation.rs",
         "test/allocation.rs",
     ],
+    crate_name = "allocation",
     crate_root = "allocation.rs",
     lint_config = "//:lint",
     deps = ["@crate//:serde"],
 )
 
 rust_test(
-    name = "lifetime",
+    name = "lifecycle.test",
     size = "small",
     srcs = ["test/lifecycle.rs"],
+    crate_name = "lifecycle",
     crate_root = "test/lifecycle.rs",
     data = [
         ":allocation",

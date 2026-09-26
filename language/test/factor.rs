@@ -1,9 +1,8 @@
-use super::{Budget, Cursor};
+use super::{Account, Cursor};
 use crate::particle::Match;
 use crate::program::Symbol;
 use crate::state::Token;
 use crate::term::Term;
-use std::sync::Arc;
 
 fn search() -> Match {
     Match::new(
@@ -20,7 +19,7 @@ fn search() -> Match {
 
 #[test]
 fn impossible() {
-    let budget = Arc::new(Budget::new(8192));
+    let budget = Account::new(8192);
     let mut cursor = Cursor::new(Match::impossible(), Some(budget.clone()));
     for _ in 0..4 {
         assert_eq!(cursor.step(8192), None);
@@ -33,7 +32,7 @@ fn impossible() {
 #[test]
 fn continuation() {
     for capacity in [0, 1, 10, 64, 8192] {
-        let budget = Arc::new(Budget::new(capacity));
+        let budget = Account::new(capacity);
         let mut cursor = Cursor::new(search(), Some(budget.clone()));
         let mut reference = search();
         for length in [0, 1, 7, 3, 13, 500, 9, 500] {
@@ -52,7 +51,7 @@ fn continuation() {
 
 #[test]
 fn pressure() {
-    let budget = Arc::new(Budget::new(128));
+    let budget = Account::new(128);
     let mut left = Cursor::new(search(), Some(budget.clone()));
     let mut right = Cursor::new(search(), Some(budget.clone()));
     let mut reference = search();
@@ -75,7 +74,7 @@ fn pressure() {
 #[test]
 fn eviction() {
     for length in [0, 1, 7, 49, 495, 496, 500] {
-        let budget = Arc::new(Budget::new(8192));
+        let budget = Account::new(8192);
         let mut cursor = Cursor::new(search(), Some(budget.clone()));
         for _ in 0..2 {
             while cursor.step(8192 - cursor.cached()).is_some() {}

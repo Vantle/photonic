@@ -5,6 +5,7 @@ use crate::program::Symbol;
 use crate::runtime::Limit;
 use crate::state::{Frame, State, Token, World};
 use std::sync::Arc;
+use std::task::Poll;
 
 fn token(id: usize, capture: usize) -> Token {
     Token {
@@ -47,10 +48,12 @@ fn identity() {
     let mut renamed = original.clone();
     for index in 0..renamed.frame.len() {
         let frame = Arc::make_mut(&mut renamed.frame[index]);
-        frame.particle.reverse();
-        for index in 0..frame.particle.len() {
-            frame.particle[index].id = 100 - frame.particle[index].id;
+        let mut particle = frame.particle.iter().cloned().collect::<Vec<_>>();
+        particle.reverse();
+        for token in &mut particle {
+            token.id = 100 - token.id;
         }
+        frame.particle = particle.into();
         for token in &mut frame.held {
             token.id = 100 - token.id;
         }
@@ -67,15 +70,19 @@ fn identity() {
     let mut structure = crate::structure::Structure::default();
     assert_eq!(structure.advance(&original), structure.advance(&renamed));
     let mut changed = original.clone();
-    Arc::make_mut(&mut changed.frame[0]).particle[0].capture = Some(1);
+    let mut particle = changed.frame[0]
+        .particle
+        .iter()
+        .cloned()
+        .collect::<Vec<_>>();
+    particle[0].capture = Some(1);
+    Arc::make_mut(&mut changed.frame[0]).particle = particle.into();
     assert_ne!(original.canonical().state, changed.canonical().state);
     Arc::make_mut(&mut changed.frame[0]).particle = vec![token(7, 0), token(11, 0)].into();
     let duplicate = changed.canonical().state;
-    assert_eq!(duplicate.frame[0].particle.len(), 2);
-    assert_ne!(
-        duplicate.frame[0].particle[0].id,
-        duplicate.frame[0].particle[1].id
-    );
+    let particle = duplicate.frame[0].particle.iter().collect::<Vec<_>>();
+    assert_eq!(particle.len(), 2);
+    assert_ne!(particle[0].id, particle[1].id);
 }
 
 #[test]
@@ -122,6 +129,7 @@ fn projection() {
                 position: 0,
             }],
             1,
+            None,
         )
         .unwrap();
     let expected = [Place::Context(0, 7), Place::Context(1, 19)]
@@ -168,9 +176,12 @@ fn allocation() {
     assert_eq!(layout.cell, 4);
     assert_eq!(layout.resource, 24);
     let mut changed = original.clone();
-    Arc::make_mut(&mut changed.frame[1])
+    Arc::make_mut(&mut changed.frame[1]).particle = original.frame[1]
         .particle
-        .push(token(41, 0));
+        .iter()
+        .cloned()
+        .chain([token(41, 0)])
+        .collect();
     let change = crate::change::Change {
         world: Set::default(),
         insertion: 1..1,
@@ -180,9 +191,9 @@ fn allocation() {
     let advanced = layout.advance(&original, &changed, &change, reach);
     assert_eq!(advanced.resource, 42);
     assert_eq!(advanced.cell, changed.size());
-    let fingerprint = crate::fingerprint::Index::new(Arc::new(original));
-    let advanced = fingerprint.advance(Arc::new(changed.clone()), &change, advanced);
-    assert_eq!(advanced.value, crate::fingerprint::state(&changed));
+    let fingerprint = crate::fingerprint::Index::new(Arc::new(original), &layout.reach.frame);
+    let advanced = fingerprint.advance(Arc::new(changed.clone()), &change, &advanced.reach.frame);
+    assert_eq!(advanced.value(), crate::fingerprint::state(&changed));
 }
 
 #[test]
@@ -309,7 +320,7 @@ fn import() {
     });
     assert_eq!(result.state.frame.len(), 3);
     assert_eq!(result.state.frame[2].particle.len(), 1);
-    let imported = &result.state.frame[2].particle[0];
+    let imported = result.state.frame[2].particle.iter().next().unwrap();
     assert_eq!(imported.capture, Some(2));
     assert!(imported.id > 23);
     assert_eq!(result.state.world[1].particle[0].capture, Some(2));
@@ -327,15 +338,11 @@ fn import() {
 
 fn transition(search: &mut crate::reduction::Search) -> Option<crate::reduction::Event> {
     for _ in 0..100_000 {
-        let previous = search.work;
-        if let Some(event) = search.run(crate::runtime::Limit {
+        if let Poll::Ready(event) = search.run(crate::runtime::Limit {
             coherence: 64,
             ..crate::runtime::Limit::default()
         }) {
-            return Some(event);
-        }
-        if previous == search.work {
-            return None;
+            return event;
         }
     }
     panic!("finite matching exceeded its work bound")
@@ -390,7 +397,7 @@ fn startup() {
             assert_eq!(event.state.world[initial + count - 1].particle.len(), 1);
             assert_eq!(event.state.frame[0].particle, state.frame[0].particle);
             state = event.state.clone();
-            search.advance(event.state, &event.change, event.fingerprint);
+            search.advance(event.state, &event.change, event.fingerprint, event.layout);
         }
         let mut runtime = crate::runtime::Runtime::new(&frontend::lowering::parse(source).unwrap());
         runtime.run(
@@ -442,8 +449,11 @@ fn entry() {
     let event = transition(&mut search).unwrap();
     assert_eq!(event.state.frame.len(), 2);
     assert_eq!(event.state.frame[1].particle.len(), 1);
-    assert_eq!(event.state.frame[1].particle[0].capture, Some(1));
-    search.advance(event.state, &event.change, event.fingerprint);
+    assert_eq!(
+        event.state.frame[1].particle.iter().next().unwrap().capture,
+        Some(1)
+    );
+    search.advance(event.state, &event.change, event.fingerprint, event.layout);
     let event = transition(&mut search).unwrap();
     assert_eq!(event.state.frame.len(), 1);
     assert_eq!(event.state.world[0].frame, 0);
@@ -473,7 +483,7 @@ fn operand() {
         Symbol::Atom(program.atom.get_index_of("C").unwrap())
     );
     let expected = event.state.canonical().state;
-    direct.advance(event.state, &event.change, event.fingerprint);
+    direct.advance(event.state, &event.change, event.fingerprint, event.layout);
     assert!(transition(&mut direct).is_none());
     let mut exhaustive = crate::runtime::Runtime::seed(program, initial.clone());
     exhaustive.run(100_000, Limit::default());
@@ -526,7 +536,7 @@ fn invalidation() {
         assert_eq!(event.state.frame[0].particle.len(), remaining);
         let mut fresh = crate::reduction::Search::new(program.clone(), event.state.clone());
         let state = event.state.clone();
-        cached.advance(event.state, &event.change, event.fingerprint);
+        cached.advance(event.state, &event.change, event.fingerprint, event.layout);
         cached.evict();
         assert_eq!(
             transition(&mut cached).map(|event| event.state.canonical().state),
@@ -642,7 +652,7 @@ fn mixed() {
         }
     };
     let mut fresh = crate::reduction::Search::new(program, event.state.clone());
-    cached.advance(event.state, &event.change, event.fingerprint);
+    cached.advance(event.state, &event.change, event.fingerprint, event.layout);
     let drain = |search: &mut crate::reduction::Search| {
         std::iter::from_fn(|| transition(search))
             .map(|event| (event.rule, event.binding.world, event.binding.exact))

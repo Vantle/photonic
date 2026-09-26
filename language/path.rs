@@ -1,6 +1,5 @@
 mod report;
 
-use crate::hashing::Builder;
 use crate::place::Place;
 use crate::prism::Outcome;
 use crate::program::Program;
@@ -9,10 +8,12 @@ use crate::snapshot::Node;
 use crate::state::{Canonical, State};
 use crate::status::Status;
 use frontend::source;
+use hashing::Builder;
 use serde::Serialize;
 use smallvec::{SmallVec, smallvec};
 use std::collections::HashMap;
 use std::sync::{Arc, OnceLock};
+use std::task::Poll;
 
 #[derive(Clone, Debug, Serialize)]
 pub struct Event {
@@ -26,25 +27,25 @@ pub struct Event {
 
 #[derive(Debug, Serialize)]
 pub struct Report<
-    State = Vec<Node>,
+    Configuration = Vec<Node>,
     Transition = Vec<Event>,
-    Program = source::Program,
+    Source = source::Program,
     Target = Option<source::Program>,
 > {
     pub definition: Vec<crate::snapshot::Definition>,
     pub outcome: Outcome,
     pub witness: Option<usize>,
     pub work: usize,
-    pub program: Program,
+    pub program: Source,
     pub target: Target,
-    pub state: State,
+    pub state: Configuration,
     pub event: Transition,
 }
 
 pub struct Summary {
     pub outcome: Outcome,
     pub witness: Option<Node>,
-    pub event: usize,
+    pub length: usize,
     pub work: usize,
 }
 
@@ -206,19 +207,18 @@ impl Search {
                     remaining -= skipped - 1;
                     continue;
                 }
-                let before = self.runtime.work;
+                let before = self.runtime.work();
                 let event = self.runtime.run(limit);
-                self.work += self.runtime.work - before;
-                let Some(event) = event else {
-                    if self.runtime.work == before {
-                        return;
-                    }
-                    continue;
+                self.work += self.runtime.work() - before;
+                let event = match event {
+                    Poll::Ready(Some(event)) => event,
+                    Poll::Ready(None) => return,
+                    Poll::Pending => continue,
                 };
                 let record = Record::new(event.state.clone());
                 (event, record)
             };
-            let fingerprint = event.fingerprint.value;
+            let fingerprint = event.fingerprint.value();
             let aimed = self
                 .goal
                 .as_ref()
@@ -257,7 +257,7 @@ impl Search {
                 self.index.entry(fingerprint).or_default().push(target);
             }
             self.runtime
-                .advance(event.state, &event.change, event.fingerprint);
+                .advance(event.state, &event.change, event.fingerprint, event.layout);
             self.event.push(Step {
                 source: self.cursor,
                 target,
@@ -284,7 +284,7 @@ impl Search {
             + self
                 .pending
                 .as_ref()
-                .map_or(0, |pending| pending.event.fingerprint.retained() + 2)
+                .map_or(0, |pending| pending.event.retained() + 2)
     }
 
     fn fits(&mut self, record: usize) -> bool {
@@ -296,7 +296,7 @@ impl Search {
         retained -= self
             .pending
             .as_mut()
-            .map_or(0, |pending| pending.event.fingerprint.evict());
+            .map_or(0, |pending| pending.event.evict());
         retained -= self.structure.retained();
         self.structure = crate::structure::Structure::default();
         retained < record
@@ -438,7 +438,7 @@ impl Search {
         Summary {
             outcome: self.outcome(),
             witness: self.reached().then(|| self.current()),
-            event: self.event.len(),
+            length: self.event.len(),
             work: self.work,
         }
     }

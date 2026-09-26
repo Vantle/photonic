@@ -198,10 +198,9 @@ fn subscription() {
         .map(|input| {
             (
                 Join::planned(crate::joining::Request {
-                    input,
+                    context: input.context(0),
                     index: &index,
                     frame: 0,
-                    owner: 0,
                     store: &store,
                 }),
                 Join::new(input.pattern(0), &index, 0),
@@ -240,7 +239,8 @@ fn subscription() {
             token.id += 1000;
         }
         state.world.push(world.into());
-        index.advance(
+        crate::test::advance(
+            &mut index,
             Arc::new(state.clone()),
             &crate::basis::Set::single(position),
         );
@@ -251,6 +251,5 @@ fn subscription() {
     }
     drop(search);
     store.evict();
-    assert!(store.budget().reserve(65536));
-    store.budget().release(65536);
+    assert!(store.available(65536));
 }

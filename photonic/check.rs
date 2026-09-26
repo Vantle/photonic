@@ -109,7 +109,7 @@ fn main() -> miette::Result<ExitCode> {
         if success { "passed" } else { "failed" }
     );
     if let (false, Some(runtime)) = (success, &exploration) {
-        record(&directory, "execution.json", &runtime.view())?;
+        record(&directory, "execution.json", &runtime.stream())?;
     }
     Ok(if success {
         ExitCode::SUCCESS

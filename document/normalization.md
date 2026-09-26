@@ -41,7 +41,7 @@ The new reporting profile separates complete normalization, incidence constructi
 Demand-driven ordering avoids the graph on ordinary and wide-consumption histories. It still needs refinement for 9,707 of the six-factor history's 10,101 newly normalized states, explaining that workload's modest gain. Its graph construction, refinement and renaming costs remain substantial. The next reporting work needs to reduce those repeated costs while preserving exact canonical identities; merely removing node rendering cannot address most of the measured latency.
 
 ```sh
-bazel test -c opt //... //toolchain/browser:check
+bazel test -c opt //... //book:check
 bazel run -c opt //:format -- --check
 bazel run -c opt //benchmark:lifecycle -- expression '2*2*2*2*2*2' 2101 --sample 3 --export view --writer
 bazel run -c opt //benchmark:allocation -- expression '2*2*2*2*2*2' 2101 --sample 2 --export view --writer

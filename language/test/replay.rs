@@ -51,7 +51,11 @@ fn continuation() {
             .unwrap();
         let world = state.world.remove(removed);
         state.world.push(world);
-        index.advance(Arc::new(state.clone()), &crate::basis::Set::single(removed));
+        crate::test::advance(
+            &mut index,
+            Arc::new(state.clone()),
+            &crate::basis::Set::single(removed),
+        );
         if program.rule[0].input.is_empty() {
             search.advance(&index);
             reference.advance(&index);
@@ -59,7 +63,7 @@ fn continuation() {
         compare(&mut search, &mut reference, &index, 1000);
         let world = state.world.remove(0);
         state.world.push(world);
-        index.advance(Arc::new(state), &crate::basis::Set::single(0));
+        crate::test::advance(&mut index, Arc::new(state), &crate::basis::Set::single(0));
         search.advance(&index);
         reference.advance(&index);
         compare(&mut search, &mut reference, &index, 1000);
@@ -104,7 +108,11 @@ fn invalidation() {
         .unwrap();
     let world = state.world.remove(removed);
     state.world.push(world);
-    index.advance(Arc::new(state.clone()), &crate::basis::Set::single(removed));
+    crate::test::advance(
+        &mut index,
+        Arc::new(state.clone()),
+        &crate::basis::Set::single(removed),
+    );
     search.advance(&index);
     reference.advance(&index);
     assert!(matches!(search.mode, Mode::Recording(_)));
@@ -117,7 +125,11 @@ fn invalidation() {
         .unwrap();
     let world = state.world.remove(removed);
     state.world.push(world);
-    index.advance(Arc::new(state), &crate::basis::Set::single(removed));
+    crate::test::advance(
+        &mut index,
+        Arc::new(state),
+        &crate::basis::Set::single(removed),
+    );
     search.advance(&index);
     reference.advance(&index);
     assert!(matches!(search.mode, Mode::Dormant));

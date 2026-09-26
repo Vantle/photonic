@@ -26,7 +26,8 @@ impl Index {
             };
         };
         let mut capture = previous.clone();
-        for position in self.value.removed(value) {
+        let (removed, inserted) = self.value.difference(value);
+        for position in removed {
             let Some(frame) = self.value.at(position).capture else {
                 continue;
             };
@@ -36,7 +37,7 @@ impl Index {
                 capture.remove(&frame);
             }
         }
-        for position in value.removed(&self.value) {
+        for position in inserted {
             if let Some(frame) = value.at(position).capture {
                 *capture.entry(frame).or_default() += 1;
             }

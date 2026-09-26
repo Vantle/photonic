@@ -14,7 +14,7 @@ impl Index {
         &mut self,
         state: &State,
         change: &Change,
-        reach: &crate::reachability::Index,
+        reach: &[usize],
     ) -> Context {
         let _scope = profile::Scope::new(profile::Phase::Context);
         let changed = change
@@ -48,17 +48,15 @@ impl Index {
                 },
             )
             .collect::<Vec<_>>();
-        if self.reach.frame != reach.frame {
+        if self.reach.as_slice() != reach {
             let changed = self
                 .reach
-                .frame
                 .iter()
-                .filter(|frame| reach.frame.binary_search(frame).is_err())
+                .filter(|frame| reach.binary_search(frame).is_err())
                 .chain(
                     reach
-                        .frame
                         .iter()
-                        .filter(|frame| self.reach.frame.binary_search(frame).is_err()),
+                        .filter(|frame| self.reach.binary_search(frame).is_err()),
                 )
                 .copied();
             frame.extend(changed.clone());
@@ -102,10 +100,11 @@ impl Index {
     pub(super) fn reconcile(&mut self, frame: usize, current: &crate::population::Set) {
         let state = self.state.clone();
         let previous = &state.frame[frame].particle;
-        for position in previous.removed(current) {
+        let (removed, inserted) = previous.difference(current);
+        for position in removed {
             self.leave(frame, position, previous.at(position).value);
         }
-        for position in current.removed(previous) {
+        for position in inserted {
             self.enter(frame, position, current.at(position).value);
         }
     }

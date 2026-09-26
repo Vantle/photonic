@@ -28,10 +28,9 @@ fn subscription() {
             .iter()
             .map(|input| {
                 Join::planned(Request {
-                    input,
+                    context: input.context(0),
                     index: &index,
                     frame: 0,
-                    owner: 0,
                     store: &store,
                 })
             })
@@ -65,7 +64,8 @@ fn subscription() {
             let second = state.world.remove(position);
             state.world.push(second);
             state.world.push(first);
-            index.advance(
+            crate::test::advance(
+                &mut index,
                 Arc::new(state.clone()),
                 &[position, position + 1].into_iter().collect(),
             );
@@ -75,10 +75,9 @@ fn subscription() {
             }
             if iteration % 11 == 1 {
                 query[0] = Join::planned(Request {
-                    input: &input[0],
+                    context: input[0].context(0),
                     index: &index,
                     frame: 0,
-                    owner: 0,
                     store: &store,
                 });
                 reference[0] = Join::new(input[0].pattern(0), &index, 0);
@@ -87,7 +86,6 @@ fn subscription() {
         drop(query);
         store.evict();
         assert_eq!(store.retained(), 0);
-        assert!(store.budget().reserve(capacity));
-        store.budget().release(capacity);
+        assert!(store.available(capacity));
     }
 }

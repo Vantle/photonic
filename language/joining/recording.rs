@@ -50,7 +50,7 @@ impl Recording {
             .unwrap()
             .append(result, 0.., allowance);
         if !recorded && self.publication.take().is_some() {
-            let allowance = trace::CAPACITY - self.trace.retained;
+            let allowance = trace::CAPACITY - self.trace.retained();
             recorded = Arc::get_mut(&mut self.trace)
                 .unwrap()
                 .append(result, 0.., allowance);
@@ -63,7 +63,11 @@ impl Recording {
     }
 
     pub fn retained(&self) -> usize {
-        self.trace.retained + self.publication.as_ref().map_or(0, |trace| trace.retained)
+        self.trace.retained()
+            + self
+                .publication
+                .as_ref()
+                .map_or(0, |trace| trace.retained())
     }
 
     pub fn publish(&mut self, node: &Node, index: &Index) {
@@ -77,7 +81,10 @@ impl Recording {
         }
         self.threshold *= 2;
         self.publication = None;
-        if let Some(trace) = self.trace.duplicate(trace::CAPACITY - self.trace.retained) {
+        if let Some(trace) = self
+            .trace
+            .duplicate(trace::CAPACITY - self.trace.retained())
+        {
             let trace = Arc::new(trace);
             node.publish(index, &trace);
             self.publication = Some(trace);

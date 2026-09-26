@@ -24,7 +24,7 @@ impl Search {
         (0..self.event.len()).map(|index| self.transition(index).unwrap())
     }
 
-    pub fn view(&self) -> impl Serialize + '_ {
+    pub fn stream(&self) -> impl Serialize + '_ {
         Report {
             definition: self.definition(),
             outcome: self.outcome(),

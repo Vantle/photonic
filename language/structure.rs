@@ -1,8 +1,8 @@
-use crate::hashing::Builder;
 use crate::incidence::Label;
 use crate::link::Link;
 use crate::profile;
 use crate::state::{State, Token};
+use hashing::Builder;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 

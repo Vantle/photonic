@@ -19,14 +19,14 @@ enum Mode {
 
 pub(super) struct Stream {
     source: Cursor,
-    budget: Arc<crate::budget::Budget>,
+    budget: crate::budget::Account,
     node: Option<Arc<Node>>,
     mode: Mode,
     restoration: Option<usize>,
 }
 
 impl Stream {
-    pub fn new(width: usize, budget: Arc<crate::budget::Budget>, node: Option<Arc<Node>>) -> Self {
+    pub fn new(width: usize, budget: crate::budget::Account, node: Option<Arc<Node>>) -> Self {
         Self {
             source: Cursor::new(width),
             budget,
@@ -58,7 +58,7 @@ impl Stream {
             self.mode = Mode::Visited;
         }
         if matches!(self.mode, Mode::Repeated) {
-            self.mode = if let Some(trace) = Trace::new(self.budget.clone(), 1) {
+            self.mode = if let Some(trace) = Trace::new(&self.budget, 1) {
                 Mode::Recording(Box::new(Recording::new(trace)))
             } else {
                 Mode::Streaming

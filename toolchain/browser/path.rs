@@ -116,7 +116,7 @@ impl Session {
         Ok(Progress {
             outcome,
             work: summary.work,
-            event: summary.event,
+            event: summary.length,
             definition: &self.definition,
             evaluation,
         })

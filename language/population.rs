@@ -22,6 +22,14 @@ pub(crate) struct Entry<'set> {
     remaining: usize,
 }
 
+pub(crate) struct Difference<'set> {
+    value: &'set Set,
+    excluded: Option<&'set Set>,
+    width: usize,
+    position: usize,
+    word: u64,
+}
+
 impl Set {
     pub fn len(&self) -> usize {
         self.selection.as_ref().map_or_else(
@@ -89,55 +97,56 @@ impl Set {
         }
     }
 
-    pub fn removed(&self, other: &Self) -> Vec<usize> {
-        if !self.shared(other) {
-            return self.entry().map(|(position, _)| position).collect();
+    #[inline]
+    pub fn difference<'set>(&'set self, next: &'set Self) -> (Difference<'set>, Difference<'set>) {
+        let shared = self.shared(next);
+        (
+            Difference::new(self, next, shared),
+            Difference::new(next, self, shared),
+        )
+    }
+
+    #[inline]
+    fn word(&self, position: usize) -> u64 {
+        self.selection
+            .as_ref()
+            .map_or(u64::MAX, |selection| selection.word[position])
+    }
+}
+
+impl<'set> Difference<'set> {
+    #[inline]
+    fn new(value: &'set Set, other: &'set Set, shared: bool) -> Self {
+        Self {
+            value,
+            excluded: shared.then_some(other),
+            width: value.value.as_ref().map_or(0, |value| value.len()),
+            position: 0,
+            word: 0,
         }
-        let width = self.value.as_ref().map_or(0, |value| value.len());
-        let mut result = Vec::new();
-        for position in 0..width.div_ceil(64) {
-            let selected = |value: &Self| {
-                value
-                    .selection
-                    .as_ref()
-                    .map_or(u64::MAX, |value| value.word[position])
-            };
-            let mut word = selected(self) & !selected(other);
-            word &= u64::MAX >> (64 - (width - position * 64).min(64));
-            while word != 0 {
-                let bit = word.trailing_zeros() as usize;
-                word &= word - 1;
-                result.push(position * 64 + bit);
+    }
+}
+
+impl Iterator for Difference<'_> {
+    type Item = usize;
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        while self.word == 0 {
+            let offset = self.position * 64;
+            if offset >= self.width {
+                return None;
             }
+            let excluded = self
+                .excluded
+                .map_or(0, |excluded| excluded.word(self.position));
+            self.word = self.value.word(self.position) & !excluded;
+            self.word &= u64::MAX >> (64 - (self.width - offset).min(64));
+            self.position += 1;
         }
-        result
-    }
-
-    #[cfg(test)]
-    fn mutable(&mut self) -> &mut [Token] {
-        if self.selection.is_some() {
-            *self = self.iter().cloned().collect();
-        }
-        self.capture = None;
-        Arc::make_mut(self.value.get_or_insert_with(|| Arc::from([])))
-    }
-
-    #[cfg(test)]
-    pub fn push(&mut self, value: Token) {
-        *self = self.iter().cloned().chain([value]).collect();
-    }
-
-    #[cfg(test)]
-    pub fn pop(&mut self) -> Option<Token> {
-        let mut value = self.iter().cloned().collect::<Vec<_>>();
-        let last = value.pop();
-        *self = value.into();
-        last
-    }
-
-    #[cfg(test)]
-    pub fn reverse(&mut self) {
-        self.mutable().reverse();
+        let bit = self.word.trailing_zeros() as usize;
+        self.word &= self.word - 1;
+        Some((self.position - 1) * 64 + bit)
     }
 }
 
@@ -210,21 +219,6 @@ impl<'set> IntoIterator for &'set Set {
     type IntoIter = Traversal<'set>;
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
-    }
-}
-
-#[cfg(test)]
-impl std::ops::Index<usize> for Set {
-    type Output = Token;
-    fn index(&self, position: usize) -> &Token {
-        self.iter().nth(position).unwrap()
-    }
-}
-
-#[cfg(test)]
-impl std::ops::IndexMut<usize> for Set {
-    fn index_mut(&mut self, position: usize) -> &mut Token {
-        &mut self.mutable()[position]
     }
 }
 

@@ -57,7 +57,7 @@ The final implementation combines scalar bounds from each population. It retains
 Exact fingerprint summaries, whole-array color copying, canonical graph construction and refinement, and reporting allocation remain open. The larger fixture makes fingerprint maintenance the next measured execution priority: investigate maintaining the owned-symbol aggregate for the initial color round inside the existing population summary. That round depends on symbol multiplicity; later rounds still incorporate changing captured colors. Preserve the current fingerprint formula and measure the new summary across replacement, restoration and eviction. This increment improves resource-bound maintenance and larger consumption execution; it does not complete the runtime roadmap.
 
 ```sh
-bazel test -c opt //... //toolchain/browser:check --test_output=errors
+bazel test -c opt //... //book:check --test_output=errors
 bazel run -c opt //:format -- --check
 bazel run -c opt //benchmark:lifecycle -- expression '2*2*2*2*2*2' 2101 --sample 3 --export view --writer
 ```

@@ -1,12 +1,13 @@
-use crate::hashing::Builder;
 use crate::program::Program;
 use crate::reduction::{Event, Search};
 use crate::runtime::Limit;
 use crate::state::State;
 use frontend::source;
+use hashing::Builder;
 use serde::Serialize;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
+use std::task::Poll;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 pub struct Bound {
@@ -66,7 +67,7 @@ impl<Terminal> Exploration<Terminal> {
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct Walk<Terminal = Observation> {
     pub terminal: Option<Terminal>,
-    pub work: usize,
+    pub step: usize,
     pub depth: usize,
     pub cycle: bool,
     pub overflow: bool,
@@ -76,7 +77,7 @@ impl<Terminal> Walk<Terminal> {
     pub fn map<Other>(self, change: impl FnOnce(Terminal) -> Other) -> Walk<Other> {
         Walk {
             terminal: self.terminal.map(change),
-            work: self.work,
+            step: self.step,
             depth: self.depth,
             cycle: self.cycle,
             overflow: self.overflow,
@@ -113,12 +114,11 @@ fn successor(
     let mut search = Search::new(program.clone(), state.clone());
     let mut result = Vec::new();
     loop {
-        let work = search.work;
         match search.run(limit) {
-            Some(event) => result.push(event),
-            None if search.work == work => break,
-            None if search.work > bound.work => return None,
-            None => {}
+            Poll::Ready(Some(event)) => result.push(event),
+            Poll::Ready(None) => break,
+            Poll::Pending if search.work() > bound.work => return None,
+            Poll::Pending => {}
         }
     }
     (search.deferred() == 0).then_some(result)
@@ -233,7 +233,7 @@ pub fn walk(
             result.terminal = Some(observation(&program, &state));
             return result;
         }
-        if result.work >= bound.step {
+        if result.step >= bound.step {
             result.overflow = true;
             return result;
         }
@@ -253,7 +253,7 @@ pub fn walk(
             .chain(std::iter::repeat_n(depth, chosen.change.insertion.len()))
             .collect();
         result.depth = result.depth.max(depth);
-        result.work += 1;
+        result.step += 1;
         state = chosen.state;
         if !seen.insert(state.canonical().state) {
             result.cycle = true;

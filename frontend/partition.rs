@@ -13,6 +13,7 @@ impl Partition<'_> {
     pub(crate) fn rule(self, budget: &mut usize) -> Option<Vec<Definition>> {
         if self.pattern.len() == 1 {
             let name = self.source[self.span.clone()].to_owned();
+            *budget = budget.checked_sub(name.len())?;
             let input = self.pattern.into_iter().next()?;
             return Some(vec![Definition {
                 name,

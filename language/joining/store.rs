@@ -1,13 +1,14 @@
 use super::key::Key;
 use super::node::Node;
-use crate::budget::{Account, Budget};
-use crate::hashing::Builder;
+use crate::budget::Account;
+use hashing::Builder;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 pub(crate) struct Store {
-    pub domain: crate::candidate::Store,
-    pub preparation: Arc<crate::preparation::Store>,
+    pub(super) domain: crate::candidate::Store,
+    pub(super) preparation: Arc<crate::preparation::Store>,
+    pub(super) budget: Account,
     account: Account,
     node: Mutex<HashMap<Key, Arc<Node>, Builder>>,
 }
@@ -18,13 +19,10 @@ impl Store {
         Self {
             domain: crate::candidate::Store::new(account.clone()),
             preparation: Arc::new(crate::preparation::Store::new(account.clone())),
+            budget: account.share(),
             account,
             node: Mutex::new(HashMap::default()),
         }
-    }
-
-    pub fn budget(&self) -> &Arc<Budget> {
-        self.account.budget()
     }
 
     pub(super) fn subscribe(&self, key: Key) -> Option<Arc<Node>> {
@@ -39,6 +37,11 @@ impl Store {
         let entry = Arc::new(Node::new(reservation));
         node.insert(key, entry.clone());
         Some(entry)
+    }
+
+    #[cfg(test)]
+    pub fn available(&self, size: usize) -> bool {
+        self.budget.reserve(size).is_some()
     }
 
     pub fn evict(&self) {

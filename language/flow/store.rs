@@ -2,7 +2,7 @@ use super::Flow;
 use super::composition::Composition;
 use super::key::Key;
 use super::template::Template;
-use crate::hashing::Builder;
+use hashing::Builder;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::sync::Arc;

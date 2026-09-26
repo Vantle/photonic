@@ -1,5 +1,5 @@
 use super::Constraint;
-use crate::hashing::Builder;
+use hashing::Builder;
 use std::collections::HashMap;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicUsize, Ordering};

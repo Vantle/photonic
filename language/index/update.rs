@@ -12,28 +12,23 @@ use std::sync::Arc;
 impl Index {
     #[cfg(any(test, feature = "measurement"))]
     pub(crate) fn update(&mut self, state: Arc<State>, change: &Change) {
-        let reach = self.reach.advance(&self.state, &state, change);
-        self.apply(state, change, reach);
+        let frame = crate::reachability::frame(&state);
+        self.apply(state, change, frame);
     }
 
-    pub(crate) fn apply(
-        &mut self,
-        state: Arc<State>,
-        change: &Change,
-        reach: crate::reachability::Index,
-    ) {
+    pub(crate) fn apply(&mut self, state: Arc<State>, change: &Change, frame: Arc<Vec<usize>>) {
         let _scope = profile::Scope::new(profile::Phase::Index);
         self.previous = self.revision.take();
         self.delta.clear();
-        let context = self.contextual(&state, change, &reach);
+        let context = self.contextual(&state, change, &frame);
         self.delta.invalidated = context.invalidated;
         let touched = self.touched(&state, change);
         let posting = self.withdraw(&change.world);
         self.prune(&touched, posting);
         self.renumber();
         self.invalidate();
-        let replacement = self.replace(&state, &reach, &context.repopulated);
-        self.install(state, reach);
+        let replacement = self.replace(&state, &frame, &context.repopulated);
+        self.install(state, frame);
         self.admit(replacement, change.insertion.clone());
         self.seal();
         self.delta.repopulated = context.repopulated;
@@ -120,16 +115,11 @@ impl Index {
         }
     }
 
-    fn replace(
-        &mut self,
-        state: &State,
-        reach: &crate::reachability::Index,
-        repopulated: &[usize],
-    ) -> Vec<usize> {
+    fn replace(&mut self, state: &State, reach: &[usize], repopulated: &[usize]) -> Vec<usize> {
         let mut replacement = Vec::new();
         for &frame in repopulated {
             if self.present(frame)
-                && reach.frame.binary_search(&frame).is_ok()
+                && reach.binary_search(&frame).is_ok()
                 && self.state.frame[frame]
                     .particle
                     .shared(&state.frame[frame].particle)
@@ -137,13 +127,13 @@ impl Index {
                 self.reconcile(frame, &state.frame[frame].particle);
                 continue;
             }
-            self.detach(frame, reach.frame.binary_search(&frame).is_err());
+            self.detach(frame, reach.binary_search(&frame).is_err());
             replacement.push(frame);
         }
         replacement
     }
 
-    fn install(&mut self, state: Arc<State>, reach: crate::reachability::Index) {
+    fn install(&mut self, state: Arc<State>, reach: Arc<Vec<usize>>) {
         self.state = state;
         self.reach = reach;
         self.owner.resize(self.state.frame.len(), None);

@@ -4,7 +4,6 @@ pub mod atom;
 pub mod canonical;
 pub mod configuration;
 pub mod forest;
-pub mod hashing;
 pub mod observation;
 pub mod output;
 pub mod particle;

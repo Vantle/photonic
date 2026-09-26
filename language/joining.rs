@@ -63,10 +63,9 @@ impl Traversal {
 }
 
 pub(crate) struct Request<'request> {
-    pub input: &'request crate::plan::Input,
+    pub context: crate::plan::Context,
     pub index: &'request Index,
     pub frame: usize,
-    pub owner: usize,
     pub store: &'request Arc<Store>,
 }
 
@@ -145,15 +144,15 @@ impl Join {
                     let node = store.subscribe(key::Key::new(space, &order[..width]));
                     Traversal::Factored(Box::new(Product::new(Stream::new(
                         width,
-                        store.budget().clone(),
+                        store.budget.clone(),
                         node,
                     ))))
                 }
                 Strategy::Layered { previous, depth } => Traversal::Layered(Box::new(
-                    Product::new(Tree::new(width, [previous, depth], store.budget().clone())),
+                    Product::new(Tree::new(width, [previous, depth], store.budget.clone())),
                 )),
                 Strategy::Partitioned(depth) => Traversal::Partitioned(Box::new(Product::new(
-                    Partition::new(width, depth, store.budget().clone()),
+                    Partition::new(width, depth, store.budget.clone()),
                 ))),
             });
         }
@@ -163,7 +162,7 @@ impl Join {
     #[cfg(test)]
     pub fn planned(request: Request<'_>) -> Self {
         let mut join = Self::construct(Space::new(
-            query::Query::Planned(request.input.context(request.owner)),
+            query::Query::Planned(request.context),
             request.index,
             request.frame,
             Some(request.store),
@@ -174,7 +173,7 @@ impl Join {
 
     pub fn admit(request: Request<'_>) -> Option<Self> {
         Some(Self::construct(Space::admit(
-            query::Query::Planned(request.input.context(request.owner)),
+            query::Query::Planned(request.context),
             request.index,
             request.frame,
             Some(request.store),

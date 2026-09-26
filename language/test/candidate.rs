@@ -45,7 +45,8 @@ fn mutation() {
             let position = iteration % state.world.len();
             let world = state.world.remove(position);
             state.world.push(world);
-            index.advance(
+            crate::test::advance(
+                &mut index,
                 Arc::new(state.clone()),
                 &crate::basis::Set::single(position),
             );
@@ -79,8 +80,7 @@ fn mutation() {
         drop(initial);
         store.evict();
         assert_eq!(account.retained(), 0);
-        assert!(account.budget().reserve(capacity));
-        account.budget().release(capacity);
+        assert!(account.reserve(capacity).is_some());
     }
 }
 
@@ -149,7 +149,7 @@ fn identity() {
     let other = Index::new(Arc::new(state.clone()));
     assert_eq!(first.select(&other).site, scan(&other, &pattern, 0));
     assert_eq!(first.select(&index).site, previous.site);
-    index.advance(Arc::new(state), &crate::basis::Set::single(0));
+    crate::test::advance(&mut index, Arc::new(state), &crate::basis::Set::single(0));
     assert_eq!(first.select(&index).site, scan(&index, &pattern, 0));
     assert!(!Arc::ptr_eq(&previous, &first.select(&index)));
 }
@@ -178,14 +178,22 @@ fn continuity() {
     let previous = node.select(&index);
     let world = state.world.remove(40);
     state.world.push(world);
-    index.advance(Arc::new(state.clone()), &crate::basis::Set::single(40));
+    crate::test::advance(
+        &mut index,
+        Arc::new(state.clone()),
+        &crate::basis::Set::single(40),
+    );
     assert!(Arc::ptr_eq(&previous, &node.select(&index)));
     let change = node.change(&index);
     assert!(!change.affected);
     assert!(change.insertion.site.is_empty());
     let world = state.world.remove(0);
     state.world.push(world);
-    index.advance(Arc::new(state.clone()), &crate::basis::Set::single(0));
+    crate::test::advance(
+        &mut index,
+        Arc::new(state.clone()),
+        &crate::basis::Set::single(0),
+    );
     assert_eq!(node.change(&index).insertion.site, index.delta().insertion);
     let current = node.select(&index);
     assert_eq!(current.site, scan(&index, &pattern, 0));
@@ -193,7 +201,11 @@ fn continuity() {
     for _ in 0..2 {
         let world = state.world.remove(0);
         state.world.push(world);
-        index.advance(Arc::new(state.clone()), &crate::basis::Set::single(0));
+        crate::test::advance(
+            &mut index,
+            Arc::new(state.clone()),
+            &crate::basis::Set::single(0),
+        );
     }
     assert_eq!(node.select(&index).site, scan(&index, &pattern, 0));
     assert!(!Arc::ptr_eq(&current, &node.select(&index)));
@@ -272,7 +284,8 @@ fn context() {
             }
         }
         state.world.push(world.into());
-        index.advance(
+        crate::test::advance(
+            &mut index,
             Arc::new(state.clone()),
             &crate::basis::Set::single(position),
         );
@@ -314,7 +327,7 @@ fn saturation() {
     assert!(previous.admitted());
     let world = state.world.remove(0);
     state.world.push(world);
-    index.advance(Arc::new(state), &crate::basis::Set::single(0));
+    crate::test::advance(&mut index, Arc::new(state), &crate::basis::Set::single(0));
     let current = node.select(&index);
     assert_eq!(current.site, scan(&index, &pattern, 0));
     assert!(!current.admitted());
@@ -325,7 +338,7 @@ fn saturation() {
     drop(node);
     drop(current);
     assert_eq!(account.retained(), 0);
-    assert!(account.budget().reserve(64));
+    assert!(account.reserve(64).is_some());
 }
 
 #[test]
@@ -368,7 +381,7 @@ fn concurrency() {
     });
     store.evict();
     assert_eq!(account.retained(), 0);
-    assert!(account.budget().reserve(128));
+    assert!(account.reserve(128).is_some());
 }
 
 #[test]
@@ -398,7 +411,7 @@ fn growth() {
         }
         world.into()
     }));
-    index.advance(Arc::new(state.clone()), &Default::default());
+    crate::test::advance(&mut index, Arc::new(state.clone()), &Default::default());
     let change = node.change(&index);
     assert_eq!(change.insertion.site, index.delta().insertion);
     assert!(!change.insertion.admitted());
@@ -408,10 +421,10 @@ fn growth() {
     assert!(!selection.admitted());
     let removed = (0..state.world.len()).collect();
     state.world = Default::default();
-    index.advance(Arc::new(state.clone()), &removed);
+    crate::test::advance(&mut index, Arc::new(state.clone()), &removed);
     assert!(node.select(&index).site.is_empty());
     state.world.push(original);
-    index.advance(Arc::new(state), &Default::default());
+    crate::test::advance(&mut index, Arc::new(state), &Default::default());
     assert_eq!(node.select(&index).site, scan(&index, &pattern, 0));
     assert_eq!(node.select(&index).site.len(), 1);
     drop(selection);
@@ -419,5 +432,5 @@ fn growth() {
     drop(node);
     store.evict();
     assert_eq!(account.retained(), 0);
-    assert!(account.budget().reserve(65536));
+    assert!(account.reserve(65536).is_some());
 }

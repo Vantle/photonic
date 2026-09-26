@@ -1,5 +1,5 @@
 use crate::forest::Forest;
-use crate::hashing::{combine, mix, value};
+use hashing::{combine, mix, value};
 use std::hash::Hash;
 
 const INDIVIDUAL: u64 = 0x5bd1_e995_7f4a_7c15;

@@ -1,7 +1,7 @@
 use crate::argument::Improve;
 use crate::output::{line, proof, report};
 use crate::setup::{archive, open, pool, session, setting};
-use code::hashing::combine;
+use hashing::combine;
 use learning::attempt;
 use learning::home;
 use learning::pool::{self, SYNTHETIC};

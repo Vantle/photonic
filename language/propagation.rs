@@ -1,7 +1,8 @@
 use crate::accumulator::Accumulator;
-use crate::hashing::{self, mix};
+use crate::color;
 use crate::incidence::Label;
 use crate::link::Link;
+use hashing::mix;
 
 pub(crate) const DEPTH: usize = 4;
 
@@ -37,13 +38,7 @@ impl Network {
         });
         self.vertex[index] = Vertex {
             active: true,
-            color: std::array::from_fn(|phase| {
-                if phase == 0 {
-                    hashing::value(&value)
-                } else {
-                    0
-                }
-            }),
+            color: std::array::from_fn(|phase| if phase == 0 { color::label(&value) } else { 0 }),
             ..Vertex::default()
         };
         self.summary.insert(0);
@@ -58,8 +53,8 @@ impl Network {
         self.vertex[target].edge.push((kind.reverse(), source));
         self.edge += 2;
         for phase in 0..DEPTH {
-            let forward = hashing::edge(kind, self.vertex[target].color[phase]);
-            let backward = hashing::edge(kind.reverse(), self.vertex[source].color[phase]);
+            let forward = color::edge(kind, self.vertex[target].color[phase]);
+            let backward = color::edge(kind.reverse(), self.vertex[source].color[phase]);
             self.vertex[source].summary[phase].insert(forward);
             self.vertex[target].summary[phase].insert(backward);
             self.mark(source, phase);
@@ -77,8 +72,8 @@ impl Network {
         self.vertex[target].edge.swap_remove(position);
         self.edge -= 2;
         for phase in 0..DEPTH {
-            let forward = hashing::edge(kind, self.vertex[target].color[phase]);
-            let backward = hashing::edge(kind.reverse(), self.vertex[source].color[phase]);
+            let forward = color::edge(kind, self.vertex[target].color[phase]);
+            let backward = color::edge(kind.reverse(), self.vertex[source].color[phase]);
             self.vertex[source].summary[phase].remove(forward);
             self.vertex[target].summary[phase].remove(backward);
             self.mark(source, phase);
@@ -109,14 +104,14 @@ impl Network {
         for position in 0..self.vertex[vertex].edge.len() {
             let (kind, target) = self.vertex[vertex].edge[position];
             let kind = kind.reverse();
-            self.vertex[target].summary[phase].remove(hashing::edge(kind, previous));
-            self.vertex[target].summary[phase].insert(hashing::edge(kind, value));
+            self.vertex[target].summary[phase].remove(color::edge(kind, previous));
+            self.vertex[target].summary[phase].insert(color::edge(kind, value));
             self.mark(target, phase);
         }
     }
 
     pub fn replace(&mut self, vertex: usize, value: Label) {
-        self.color(vertex, 0, hashing::value(&value));
+        self.color(vertex, 0, color::label(&value));
     }
 
     fn rebuild(&mut self, phase: usize) {
@@ -141,7 +136,7 @@ impl Network {
             }
             let mut summary = Accumulator::default();
             for &(kind, target) in &self.vertex[index].edge {
-                summary.insert(hashing::edge(kind, self.vertex[target].color[phase + 1]));
+                summary.insert(color::edge(kind, self.vertex[target].color[phase + 1]));
             }
             self.vertex[index].summary[phase + 1] = summary;
             self.mark(index, phase + 1);

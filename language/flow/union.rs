@@ -1,5 +1,5 @@
 use crate::basis::Set;
-use crate::hashing::Builder;
+use hashing::Builder;
 use std::collections::HashMap;
 use std::hash::Hash;
 

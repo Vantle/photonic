@@ -13,6 +13,7 @@ rust_library(
         "//symmetry:__pkg__",
         "//translation:__pkg__",
     ],
+    deps = ["//hashing"],
 )
 
 rust_test(
@@ -24,6 +25,7 @@ rust_test(
     ],
     crate_root = "random.rs",
     lint_config = "//:lint",
+    deps = ["//hashing"],
 )
 
 filegroup(

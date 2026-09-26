@@ -1,6 +1,5 @@
-use crate::budget::Budget;
+use crate::budget::{Account, Reservation};
 use crate::particle::Match;
-use std::sync::Arc;
 
 enum Mode {
     Fresh,
@@ -11,17 +10,10 @@ enum Mode {
 }
 
 struct Cache {
-    budget: Arc<Budget>,
+    reservation: Reservation,
     binding: Vec<Vec<usize>>,
     cursor: usize,
-    retained: usize,
     complete: bool,
-}
-
-impl Drop for Cache {
-    fn drop(&mut self) {
-        self.budget.release(self.retained);
-    }
 }
 
 enum Storage {
@@ -32,7 +24,7 @@ enum Storage {
 pub(crate) struct Cursor(Storage);
 
 impl Cursor {
-    pub fn new(search: Match, budget: Option<Arc<Budget>>) -> Self {
+    pub fn new(search: Match, budget: Option<Account>) -> Self {
         Self(match budget.filter(|_| search.viable()) {
             Some(budget) => Storage::Retained(Box::new(Stream::new(search, budget))),
             None => Storage::Direct(search),
@@ -76,12 +68,12 @@ impl Cursor {
 
 struct Stream {
     search: Match,
-    budget: Arc<Budget>,
+    budget: Account,
     mode: Mode,
 }
 
 impl Stream {
-    fn new(search: Match, budget: Arc<Budget>) -> Self {
+    fn new(search: Match, budget: Account) -> Self {
         Self {
             search,
             budget,
@@ -105,18 +97,19 @@ impl Stream {
             self.mode = Mode::Visited;
         }
         if matches!(self.mode, Mode::Repeated) {
-            let budget = &self.budget;
-            self.mode = if allowance > 0 && budget.reserve(1) {
+            let reservation = if allowance > 0 {
+                self.budget.reserve(1)
+            } else {
+                None
+            };
+            self.mode = reservation.map_or(Mode::Streaming, |reservation| {
                 Mode::Recording(Box::new(Cache {
-                    budget: budget.clone(),
+                    reservation,
                     binding: Vec::new(),
                     cursor: 0,
-                    retained: 1,
                     complete: false,
                 }))
-            } else {
-                Mode::Streaming
-            };
+            });
             return self.advance(allowance.saturating_sub(1));
         }
         self.advance(allowance)
@@ -139,8 +132,7 @@ impl Stream {
             return result;
         };
         let size = binding.len() + 1;
-        if size <= allowance && cache.budget.reserve(size) {
-            cache.retained += size;
+        if size <= allowance && cache.reservation.grow(size) {
             cache.binding.push(binding.clone());
             cache.cursor += 1;
         } else {
@@ -151,7 +143,7 @@ impl Stream {
 
     fn cached(&self) -> usize {
         match &self.mode {
-            Mode::Recording(cache) => cache.retained,
+            Mode::Recording(cache) => cache.reservation.size(),
             _ => 0,
         }
     }

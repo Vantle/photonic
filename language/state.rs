@@ -1,7 +1,7 @@
-use crate::hashing::Builder;
 use crate::link::Link;
 use crate::profile;
 use crate::program::{Program, Symbol};
+use hashing::Builder;
 use smallvec::SmallVec;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -77,11 +77,16 @@ impl State {
         }
     }
 
+    #[inline]
+    pub(crate) fn ancestry(&self, frame: usize) -> impl Iterator<Item = usize> + '_ {
+        std::iter::successors(Some(frame), |&frame| self.frame[frame].lexical)
+    }
+
     pub(crate) fn visible(
         &self,
         frame: usize,
     ) -> impl Iterator<Item = (crate::place::Place, &Token)> {
-        std::iter::successors(Some(frame), |&frame| self.frame[frame].lexical).flat_map(|frame| {
+        self.ancestry(frame).flat_map(|frame| {
             self.frame[frame]
                 .particle
                 .iter()

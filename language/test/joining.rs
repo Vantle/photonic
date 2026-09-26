@@ -105,7 +105,11 @@ fn differential() {
                 token.capture = None;
             }
             state.world.push(world.into());
-            index.advance(Arc::new(state.clone()), &crate::basis::Set::single(removed));
+            crate::test::advance(
+                &mut index,
+                Arc::new(state.clone()),
+                &crate::basis::Set::single(removed),
+            );
             join.advance(&index);
         }
     }

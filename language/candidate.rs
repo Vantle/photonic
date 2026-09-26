@@ -5,9 +5,9 @@ mod selection;
 pub(crate) use node::Node;
 
 use crate::budget::Account;
-use crate::hashing::Builder;
 use crate::index::Index;
 use crate::term::Term;
+use hashing::Builder;
 use key::Key;
 use selection::Selection;
 use std::collections::HashMap;
@@ -22,8 +22,20 @@ pub(crate) struct Request<'request, Pattern> {
 }
 
 pub(crate) struct Change {
-    pub affected: bool,
-    pub insertion: Arc<Selection>,
+    affected: bool,
+    insertion: Arc<Selection>,
+}
+
+impl Change {
+    #[inline]
+    pub fn affected(&self) -> bool {
+        self.affected
+    }
+
+    #[inline]
+    pub fn insertion(&self) -> &[usize] {
+        &self.insertion.site
+    }
 }
 
 pub(crate) struct Domain {

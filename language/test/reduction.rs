@@ -5,6 +5,7 @@ use crate::runtime::{Limit, Runtime};
 use crate::state::State;
 use std::collections::BTreeSet;
 use std::sync::Arc;
+use std::task::Poll;
 
 fn binding(state: &State, value: &Binding) -> (Vec<Place>, Vec<Place>, Vec<Place>) {
     let canonical = state.canonical();
@@ -74,25 +75,24 @@ fn reference() {
             let mut search = crate::reduction::Search::new(program.clone(), state.clone());
             let mut actual = BTreeSet::new();
             for _ in 0..100_000 {
-                let work = search.work;
-                if let Some(event) = search.run(Limit::default()) {
-                    assert_eq!(
-                        event.fingerprint.value,
-                        crate::fingerprint::state(&event.state)
-                    );
-                    let layout = crate::layout::Layout::new(&event.state);
-                    assert_eq!(event.fingerprint.layout.cell, layout.cell);
-                    assert_eq!(event.fingerprint.layout.resource, layout.resource);
-                    assert_eq!(event.fingerprint.layout.reach.frame, layout.reach.frame);
-                    actual.insert((
-                        event.state.canonical().state,
-                        event.rule,
-                        binding(state, &event.binding),
-                    ));
-                }
-                if search.work == work {
-                    break;
-                }
+                let event = match search.run(Limit::default()) {
+                    Poll::Ready(Some(event)) => event,
+                    Poll::Ready(None) => break,
+                    Poll::Pending => continue,
+                };
+                assert_eq!(
+                    event.fingerprint.value(),
+                    crate::fingerprint::state(&event.state)
+                );
+                let layout = crate::layout::Layout::new(&event.state);
+                assert_eq!(event.layout.cell, layout.cell);
+                assert_eq!(event.layout.resource, layout.resource);
+                assert_eq!(event.layout.reach.frame, layout.reach.frame);
+                actual.insert((
+                    event.state.canonical().state,
+                    event.rule,
+                    binding(state, &event.binding),
+                ));
             }
             assert_eq!(actual, expected, "{source} {state:?}");
         }
@@ -143,35 +143,33 @@ fn incremental() {
             let mut chosen = None;
             let mut actual = BTreeSet::new();
             for _ in 0..10000 {
-                let work = cached.work;
-                if let Some(event) = cached.run(Limit::default()) {
-                    actual.insert((
-                        event.rule,
-                        event.state.canonical().state,
-                        binding(&state, &event.binding),
-                    ));
-                    if chosen.is_none() {
-                        chosen = Some(event);
-                    }
-                }
-                if cached.work == work {
-                    break;
+                let event = match cached.run(Limit::default()) {
+                    Poll::Ready(Some(event)) => event,
+                    Poll::Ready(None) => break,
+                    Poll::Pending => continue,
+                };
+                actual.insert((
+                    event.rule,
+                    event.state.canonical().state,
+                    binding(&state, &event.binding),
+                ));
+                if chosen.is_none() {
+                    chosen = Some(event);
                 }
             }
             let mut fresh = crate::reduction::Search::new(program.clone(), state.clone());
             let mut expected = BTreeSet::new();
             for _ in 0..10000 {
-                let work = fresh.work;
-                if let Some(event) = fresh.run(Limit::default()) {
-                    expected.insert((
-                        event.rule,
-                        event.state.canonical().state,
-                        binding(&state, &event.binding),
-                    ));
-                }
-                if fresh.work == work {
-                    break;
-                }
+                let event = match fresh.run(Limit::default()) {
+                    Poll::Ready(Some(event)) => event,
+                    Poll::Ready(None) => break,
+                    Poll::Pending => continue,
+                };
+                expected.insert((
+                    event.rule,
+                    event.state.canonical().state,
+                    binding(&state, &event.binding),
+                ));
             }
             assert_eq!(actual, expected, "{source}");
             let Some(event) = chosen else {
@@ -187,16 +185,16 @@ fn incremental() {
                 "{source}"
             );
             assert_eq!(
-                event.fingerprint.value,
+                event.fingerprint.value(),
                 crate::fingerprint::state(&event.state),
                 "{source}"
             );
             let layout = crate::layout::Layout::new(&event.state);
-            assert_eq!(event.fingerprint.layout.cell, layout.cell);
-            assert_eq!(event.fingerprint.layout.resource, layout.resource);
-            assert_eq!(event.fingerprint.layout.reach.frame, layout.reach.frame);
+            assert_eq!(event.layout.cell, layout.cell);
+            assert_eq!(event.layout.resource, layout.resource);
+            assert_eq!(event.layout.reach.frame, layout.reach.frame);
             state = event.state.clone();
-            cached.advance(event.state, &event.change, event.fingerprint);
+            cached.advance(event.state, &event.change, event.fingerprint, event.layout);
         }
     }
 }
@@ -216,17 +214,16 @@ fn scaling() {
         let mut search = crate::reduction::Search::new(program, state);
         let mut count = 0;
         for _ in 0..10_000 {
-            let work = search.work;
-            if let Some(event) = search.run(Limit {
+            let event = match search.run(Limit {
                 occurrence: width + 131,
                 ..Limit::default()
             }) {
-                count += 1;
-                search.advance(event.state, &event.change, event.fingerprint);
-            }
-            if search.work == work {
-                break;
-            }
+                Poll::Ready(Some(event)) => event,
+                Poll::Ready(None) => break,
+                Poll::Pending => continue,
+            };
+            count += 1;
+            search.advance(event.state, &event.change, event.fingerprint, event.layout);
         }
         assert_eq!(count, 128);
         assert_eq!(search.preparation(), 129);

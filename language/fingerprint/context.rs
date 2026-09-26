@@ -1,8 +1,8 @@
 use super::{particle, symbol};
 use crate::accumulator::Accumulator;
-use crate::hashing::mix;
 use crate::profile;
 use crate::state::{Frame, State};
+use hashing::mix;
 use std::sync::Arc;
 
 #[derive(Clone)]

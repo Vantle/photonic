@@ -1,9 +1,9 @@
 use super::entry::Consumer;
 use crate::catalog::Catalog;
-use crate::hashing::Builder;
 use crate::program::Symbol;
 use crate::reader::Read;
 use crate::state::Token;
+use hashing::Builder;
 use smallvec::SmallVec;
 use std::collections::HashMap;
 
@@ -56,19 +56,21 @@ impl Population {
     }
 
     fn advance(&mut self, frame: usize, value: &crate::population::Set, catalog: &Catalog) {
-        if self.value != *value {
-            for position in self.value.removed(value) {
-                if let Some(consumer) = consumer(frame, self.value.at(position)) {
-                    self.remove(consumer, catalog);
-                }
-            }
-            for position in value.removed(&self.value) {
-                if let Some(consumer) = consumer(frame, value.at(position)) {
-                    self.insert(consumer, catalog);
-                }
+        let previous = std::mem::replace(&mut self.value, value.clone());
+        if previous == *value {
+            return;
+        }
+        let (removed, inserted) = previous.difference(value);
+        for position in removed {
+            if let Some(consumer) = consumer(frame, previous.at(position)) {
+                self.remove(consumer, catalog);
             }
         }
-        self.value = value.clone();
+        for position in inserted {
+            if let Some(consumer) = consumer(frame, value.at(position)) {
+                self.insert(consumer, catalog);
+            }
+        }
     }
 }
 

@@ -75,6 +75,7 @@ filegroup(
         "//command:build",
         "//frontend:build",
         "//gpu:build",
+        "//hashing:build",
         "//language:build",
         "//learning:build",
         "//library:build",
@@ -138,19 +139,13 @@ filegroup(
 filegroup(
     name = "page",
     srcs = ["index.html"],
-    visibility = [
-        "//book:__pkg__",
-        "//toolchain/browser:__pkg__",
-    ],
+    visibility = ["//book:__pkg__"],
 )
 
 filegroup(
     name = "lightbox",
     srcs = ["lightbox.html"],
-    visibility = [
-        "//book:__pkg__",
-        "//toolchain/browser:__pkg__",
-    ],
+    visibility = ["//book:__pkg__"],
 )
 
 alias(
@@ -159,10 +154,12 @@ alias(
     visibility = [
         "//arithmetic:__pkg__",
         "//benchmark:__pkg__",
+        "//book:__pkg__",
         "//code:__pkg__",
         "//command:__pkg__",
         "//frontend:__pkg__",
         "//gpu:__pkg__",
+        "//hashing:__pkg__",
         "//language:__pkg__",
         "//learning:__pkg__",
         "//library:__pkg__",

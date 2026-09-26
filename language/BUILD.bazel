@@ -19,6 +19,7 @@ rust_library(
     ],
     deps = [
         "//frontend",
+        "//hashing",
         "@crate//:imbl",
         "@crate//:indexmap",
         "@crate//:miette",
@@ -118,6 +119,7 @@ rust_test(
     lint_config = "//:lint",
     deps = [
         "//frontend",
+        "//hashing",
         "@crate//:imbl",
         "@crate//:indexmap",
         "@crate//:miette",
@@ -157,6 +159,7 @@ filegroup(
         "canonical/storage.rs",
         "catalog.rs",
         "change.rs",
+        "color.rs",
         "consumption.rs",
         "delta.rs",
         "dispatch.rs",
@@ -185,7 +188,6 @@ filegroup(
         "gate/sharing.rs",
         "gate/store.rs",
         "graph.rs",
-        "hashing.rs",
         "incidence.rs",
         "index.rs",
         "index/context.rs",
@@ -299,6 +301,7 @@ rust_library(
     visibility = ["//benchmark:__pkg__"],
     deps = [
         "//frontend",
+        "//hashing",
         "@crate//:imbl",
         "@crate//:indexmap",
         "@crate//:miette",

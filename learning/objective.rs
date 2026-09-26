@@ -4,13 +4,13 @@ use crate::tree::{Node, walk};
 use code::atom::Atom;
 use code::canonical::Key;
 use code::configuration::Configuration;
-use code::hashing::value;
 use code::observation::Observation;
 use code::output::Output;
 use code::particle::Particle;
 use code::program::Program;
 use code::rule::Rule;
 use code::value::Value;
+use hashing::value;
 use machine::exploration::explore;
 use machine::flat::Flat;
 use machine::limit::Limit;
@@ -304,7 +304,7 @@ impl Context<'_> {
         }
         Some(Run {
             terminal: result.terminal,
-            work: result.work,
+            work: result.step,
             depth: result.depth,
         })
     }

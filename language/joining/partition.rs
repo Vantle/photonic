@@ -6,7 +6,7 @@ use super::retention::Retention;
 use super::slot::Slot;
 use super::space::Space;
 use super::trace::{self, Trace};
-use crate::budget::Budget;
+use crate::budget::Account;
 use crate::index::Index;
 use std::sync::Arc;
 use std::task::Poll;
@@ -19,7 +19,7 @@ struct Active {
 pub(super) struct Partition {
     source: Cursor,
     depth: usize,
-    budget: Arc<Budget>,
+    budget: Account,
     record: Retention,
     active: Option<Active>,
     playback: Playback,
@@ -29,7 +29,7 @@ pub(super) struct Partition {
 }
 
 impl Partition {
-    pub fn new(width: usize, depth: usize, budget: Arc<Budget>) -> Self {
+    pub fn new(width: usize, depth: usize, budget: Account) -> Self {
         Self {
             source: Cursor::new(width),
             depth,
@@ -56,7 +56,7 @@ impl Partition {
             if active.trace.complete {
                 self.record.insert(active.dependency, active.trace);
             } else {
-                self.cached -= active.trace.retained;
+                self.cached -= active.trace.retained();
             }
         }
         self.playback = Playback::default();
@@ -85,8 +85,8 @@ impl Partition {
             if retained > trace::CAPACITY - self.cached {
                 return None;
             }
-            let trace = Trace::new(self.budget.clone(), retained)?;
-            self.cached += trace.retained;
+            let trace = Trace::new(&self.budget, retained)?;
+            self.cached += trace.retained();
             Some((Arc::new(dependency), Box::new(trace)))
         });
         self.active = record.map(|(dependency, trace)| Active { dependency, trace });
@@ -125,7 +125,7 @@ impl Partition {
         let Some(active) = &mut self.active else {
             return result;
         };
-        let previous = active.trace.retained;
+        let previous = active.trace.retained();
         if self.playback.progress == trace::LENGTH
             || !active
                 .trace
@@ -134,7 +134,7 @@ impl Partition {
             self.finish();
             return result;
         }
-        self.cached += active.trace.retained - previous;
+        self.cached += active.trace.retained() - previous;
         self.playback.progress += 1;
         if self.source.boundary(self.depth).is_some() {
             active.trace.complete = true;

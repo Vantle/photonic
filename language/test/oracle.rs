@@ -4,6 +4,7 @@ use crate::program::{Program, Symbol};
 use crate::state::{Frame, State, Token, World};
 use std::collections::{BTreeMap, BTreeSet, HashSet, VecDeque};
 use std::sync::Arc;
+use std::task::Poll;
 
 #[derive(Debug, Eq, Hash, PartialEq)]
 struct Transition {
@@ -312,18 +313,18 @@ fn actual(program: &Arc<Program>, state: &Arc<State>) -> HashSet<Transition> {
     };
     let mut result = HashSet::new();
     for _ in 0..100_000 {
-        let previous = search.work;
-        if let Some(event) = search.run(limit) {
-            result.insert(Transition {
-                rule: event.rule,
-                read: *event.binding.read.first().unwrap(),
-                world: event.binding.world.iter().copied().collect(),
-                resource: event.binding.exact.iter().copied().collect(),
-                state: event.state.canonical().state,
-            });
-        } else if previous == search.work {
-            return result;
-        }
+        let event = match search.run(limit) {
+            Poll::Ready(Some(event)) => event,
+            Poll::Ready(None) => return result,
+            Poll::Pending => continue,
+        };
+        result.insert(Transition {
+            rule: event.rule,
+            read: *event.binding.read.first().unwrap(),
+            world: event.binding.world.iter().copied().collect(),
+            resource: event.binding.exact.iter().copied().collect(),
+            state: event.state.canonical().state,
+        });
     }
     panic!("reference comparison did not complete");
 }
@@ -413,19 +414,19 @@ fn incremental() {
             let mut result = HashSet::new();
             let mut selected = None;
             for _ in 0..100_000 {
-                let previous = search.work;
-                if let Some(event) = search.run(limit) {
-                    result.insert(Transition {
-                        rule: event.rule,
-                        read: *event.binding.read.first().unwrap(),
-                        world: event.binding.world.iter().copied().collect(),
-                        resource: event.binding.exact.iter().copied().collect(),
-                        state: event.state.canonical().state,
-                    });
-                    selected = Some(event);
-                } else if search.work == previous {
-                    break;
-                }
+                let event = match search.run(limit) {
+                    Poll::Ready(Some(event)) => event,
+                    Poll::Ready(None) => break,
+                    Poll::Pending => continue,
+                };
+                result.insert(Transition {
+                    rule: event.rule,
+                    read: *event.binding.read.first().unwrap(),
+                    world: event.binding.world.iter().copied().collect(),
+                    resource: event.binding.exact.iter().copied().collect(),
+                    state: event.state.canonical().state,
+                });
+                selected = Some(event);
             }
             assert_eq!(result, expected, "{source}, step {step}");
             let Some(event) = selected else {
@@ -435,7 +436,12 @@ fn incremental() {
                 search.evict();
             }
             state = event.state;
-            search.advance(state.clone(), &event.change, event.fingerprint);
+            search.advance(
+                state.clone(),
+                &event.change,
+                event.fingerprint,
+                event.layout,
+            );
         }
     }
 }

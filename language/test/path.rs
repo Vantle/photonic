@@ -218,7 +218,7 @@ fn summary() {
         let summary = path.summary();
         let report = path.report();
         assert_eq!(summary.outcome, report.outcome);
-        assert_eq!(summary.event, report.event.len());
+        assert_eq!(summary.length, report.event.len());
         assert_eq!(summary.work, report.work);
         assert_eq!(
             serde_json::to_value(summary.witness).unwrap(),
@@ -338,8 +338,8 @@ fn suspension() {
             paused.current();
             paused.run(1, Limit::default());
             let summary = paused.summary();
-            if summary.event > 0 {
-                paused.transition(summary.event - 1).unwrap();
+            if summary.length > 0 {
+                paused.transition(summary.length - 1).unwrap();
             }
             if summary.outcome == Outcome::Reached {
                 break;

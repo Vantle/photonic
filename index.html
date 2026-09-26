@@ -112,7 +112,7 @@
 <div class="note">
 <strong>Every example runs</strong>
 <p>Each program in this book was executed by the Rust runtime compiled to WebAssembly, and each graph is its real output. At <a href="https://photonic.vantle.org">photonic.vantle.org</a>, or in a checkout served with the command below, you can edit any example and run it again.</p>
-<pre class="listing">bazel run -c opt //toolchain/browser:serve</pre>
+<pre class="listing">bazel run -c opt //book:serve</pre>
 <p>A served checkout opens at <a href="http://127.0.0.1:8080">127.0.0.1:8080</a>. Opened as a local file, the book shows the recorded runs.</p>
 </div>
 <div class="action"><a class="button primary" href="#value">Start reading</a><a class="button accent" href="lightbox.html">Open the Lightbox</a><a class="button" href="#reference">Grammar and glossary</a></div>
@@ -364,7 +364,7 @@ Add.Unit.Unit.Unit,
 <h2>Fields and shorthand</h2>
 <p class="lead">Particles are unordered, so a role needs its value attached. A one-rule value does that.</p>
 <p><code>Digit.0.Carry.1</code> cannot say which number is the digit. <code>([Digit] 0).([Carry] 1)</code> can: each role and its value form one rule value, a <strong>field</strong>.</p>
-<p>Fields are live rules. Beside a bare <code>P</code>, the field <code>([P] True)</code> fires and turns it into <code>True</code>. The theorems use this on purpose, and the library never uses a role name as a plain atom.</p>
+<p>Fields are live rules. Beside a bare <code>P</code>, the field <code>([P] True)</code> fires and turns it into <code>True</code>. The theorems use this on purpose. The library keeps role names out of plain atoms, except the callback triggers <code>Each</code> and <code>Operation</code> and the operand sides <code>Left</code> and <code>Right</code>, which <code>//library:test</code> allows by name.</p>
 <figure class="example wide" data-example="field">
 <pre>P.([P] True)</pre>
 </figure>
@@ -505,7 +505,7 @@ bazel run -c opt //command:photonic -- mcp</pre>
 </div>
 <p>A claim holds, fails or is unknown. Unknown means a budget stopped the search or a direct path followed one run of many; it is never evidence of absence. <code>--json</code> prints each answer as data. <code>mcp</code> serves the same questions to agents over the Model Context Protocol, and the repository's <code>.mcp.json</code> starts it. <a href="document/spectrum.md">Spectrum</a> is the full contract.</p>
 <h3>This book</h3>
-<pre class="listing">bazel run -c opt //toolchain/browser:serve
+<pre class="listing">bazel run -c opt //book:serve
 bazel run -c opt //book:record
 bazel test -c opt //book:record.check</pre>
 <p>The server runs every example live in WebAssembly. <code>//book:record</code> reruns every example, lens and expression in this page and stores the results in <code>book/record.js</code>, which makes the book work as a local file. <code>//book:record.check</code> fails when that record is stale or an example contradicts its stated verdict.</p>

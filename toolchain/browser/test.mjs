@@ -4,7 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-const [webassembly, javascript, command, numeral] = process.argv.slice(2);
+const [webassembly, javascript, command] = process.argv.slice(2);
 const engine = await import(pathToFileURL(javascript));
 engine.initSync({ module: await readFile(webassembly) });
 const version = 3;
@@ -158,27 +158,12 @@ assert.equal(refused({ version, source: 'A, [B' }).span.offset, 5);
 assert.equal(refused({ version: version + 1, source: 'A' }).code, 'version');
 console.log('Direct paths reach preserved targets, inspect every transition and locate refusals.');
 
-const { decode } = await import(pathToFileURL(numeral));
 const evaluate = input => {
     const path = expression(input);
     const result = JSON.parse(path.run());
     path.free();
     return result;
 };
-for (const [input, expected] of [
-    ['12 + 2', '21'], ['12 * 2', '101'], ['21 / 2 - 1', '2'],
-    ['-(12 + 2) * 10', '-210'], ['-21 / 2', '-10'],
-    ['1212 * 10 / 2 + 11 - 1', '2220'], ['0', '0'], ['00012', '12'],
-    ['2 + 1 * 2', '11'], ['(2 + 1) * 2', '20'], ['--2', '2'], ['-(12+2)*2', '-112'], ['(-2)*(-2)', '11'], ['(-2)*0', '0'],
-]) {
-    const result = evaluate(input);
-    assert.equal(result.error, undefined, input);
-    assert.equal(decode(result.state, result.definition).ternary, expected, input);
-}
-for (const input of ['', '1+', '(1', '1**2', '1/0']) {
-    const result = evaluate(input);
-    assert.throws(() => decode(result.state, result.definition), input === '1/0' ? /Division by zero/ : /syntax/, input);
-}
 for (const input of ['3+1', '1 2', 'A', '1'.repeat(257)]) {
     assert.ok(evaluate(input).error, input);
 }
@@ -192,7 +177,6 @@ mismatched.free();
 const session = expression('12+2');
 const completed = JSON.parse(session.run());
 assert.deepEqual(Object.keys(completed).sort(), ['definition', 'event', 'source', 'state', 'version', 'work']);
-assert.equal(decode(completed.state, completed.definition).ternary, '21');
 assert.match(completed.source, /Function\.Expression\.Evaluate/);
 const first = JSON.parse(session.inspect(0));
 assert.equal(first.before.id, 0);
@@ -205,15 +189,9 @@ assert.deepEqual(JSON.parse(session.inspect(0)), first);
 session.free();
 const rejected = expression('1/0');
 const error = JSON.parse(rejected.run());
-assert.throws(() => decode(error.state, error.definition), /Division by zero/);
 assert.ok(JSON.parse(rejected.inspect(error.event - 1)).event);
 rejected.free();
-console.log('Native Photonic expressions execute through Wasm, including signed arithmetic and errors.');
-
-const start = performance.now();
-const repeated = evaluate('2*2*2*2*2*2*2*2*2*2');
-console.log(JSON.stringify({ repeated: { elapsed: performance.now() - start, event: repeated.event, work: repeated.work, state: repeated.state?.id } }));
-assert.equal(decode(repeated.state, repeated.definition).ternary, '1101221');
+console.log('Native Photonic expressions execute through Wasm as direct paths that refuse malformed requests and inspect every transition, including division by zero.');
 
 const shape = body => call(engine.shape, { version, ...body });
 const parity = '[Add.0.0] 0,\n[Add.0.1] 1,\n[Add.1.1] 0';

@@ -1,8 +1,8 @@
 use super::key::Key;
 use crate::budget::{Account, Reservation};
-use crate::hashing::Builder;
 use crate::particle::{Match, Preparation};
 use crate::state::World;
+use hashing::Builder;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
