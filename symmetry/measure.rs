@@ -1,6 +1,8 @@
 use code::atom::Atom;
+use code::output::Output;
 use code::particle::Particle;
 use code::rule::Rule;
+use code::scope::Scope;
 use code::value::Value;
 use std::collections::BTreeSet;
 
@@ -28,10 +30,24 @@ pub(crate) fn rule(rule: &Rule, atom: &mut BTreeSet<Atom>) -> usize {
         size += particle(entry, atom);
     }
     for output in rule.output() {
-        size += particle(output.particle(), atom);
-        for nested in output.body().unwrap_or_default() {
-            size += self::rule(nested, atom);
-        }
+        size += match output {
+            Output::Particle(value) => particle(value, atom),
+            Output::Scope(value) => scope(value, atom),
+        };
+    }
+    size
+}
+
+pub(crate) fn scope(scope: &Scope, atom: &mut BTreeSet<Atom>) -> usize {
+    let mut size = 0;
+    for entry in scope.coherence() {
+        size += particle(entry, atom);
+    }
+    for entry in scope.rule() {
+        size += rule(entry, atom);
+    }
+    for entry in scope.scope() {
+        size += self::scope(entry, atom);
     }
     size
 }

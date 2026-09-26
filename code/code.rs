@@ -9,6 +9,7 @@ pub mod output;
 pub mod particle;
 pub mod program;
 pub mod rule;
+pub mod scope;
 pub mod value;
 
 #[cfg(test)]

@@ -9,6 +9,7 @@ filegroup(
         "archive.rs",
         "attempt.rs",
         "bar.rs",
+        "coherence.rs",
         "corpus.rs",
         "curriculum.rs",
         "demonstration.rs",

@@ -14,6 +14,7 @@ filegroup(
         "particle.rs",
         "program.rs",
         "rule.rs",
+        "scope.rs",
         "value.rs",
     ],
 )
@@ -54,6 +55,7 @@ rust_test(
     deps = [
         "//hashing",
         "@crate//:serde",
+        "@crate//:serde_json",
     ],
 )
 

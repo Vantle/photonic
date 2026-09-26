@@ -2,6 +2,7 @@ use code::output::Output;
 use code::particle::Particle;
 use code::program::Program;
 use code::rule::Rule;
+use code::scope::Scope;
 use code::value::Value;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -27,21 +28,43 @@ fn visit<'program>(
     let index = result.len();
     result.push(Node { rule, depth, place });
     for particle in rule.input() {
-        for value in particle.value() {
-            if let Value::Rule(nested) = value {
-                visit(nested, depth + 1, Place::Value { parent: index }, result);
-            }
-        }
+        value(particle, depth, index, result);
     }
     for output in rule.output() {
-        for value in output.particle().value() {
-            if let Value::Rule(nested) = value {
-                visit(nested, depth + 1, Place::Value { parent: index }, result);
-            }
+        match output {
+            Output::Particle(particle) => value(particle, depth, index, result),
+            Output::Scope(scope) => enclose(scope, depth, index, result),
         }
-        for nested in output.body().unwrap_or_default() {
-            visit(nested, depth + 1, Place::Body { parent: index }, result);
+    }
+}
+
+fn value<'program>(
+    particle: &'program Particle,
+    depth: usize,
+    parent: usize,
+    result: &mut Vec<Node<'program>>,
+) {
+    for value in particle.value() {
+        if let Value::Rule(nested) = value {
+            visit(nested, depth + 1, Place::Value { parent }, result);
         }
+    }
+}
+
+fn enclose<'program>(
+    scope: &'program Scope,
+    depth: usize,
+    parent: usize,
+    result: &mut Vec<Node<'program>>,
+) {
+    for particle in scope.coherence() {
+        value(particle, depth, parent, result);
+    }
+    for nested in scope.rule() {
+        visit(nested, depth + 1, Place::Body { parent }, result);
+    }
+    for nested in scope.scope() {
+        enclose(nested, depth, parent, result);
     }
 }
 
@@ -75,13 +98,25 @@ impl<Change: FnOnce(&Rule) -> Vec<Rule>> Rewrite<Change> {
         let output = rule
             .output()
             .iter()
-            .map(|output| {
-                let particle = self.particle(output.particle());
-                let body = output.body().map(|body| self.list(body));
-                Output::new(particle, body)
+            .flat_map(|output| match output {
+                Output::Particle(particle) => vec![Output::Particle(self.particle(particle))],
+                Output::Scope(scope) => self.scope(scope),
             })
             .collect();
         vec![Rule::new(input, output)]
+    }
+
+    fn scope(&mut self, scope: &Scope) -> Vec<Output> {
+        let mut member = scope
+            .coherence()
+            .iter()
+            .map(|particle| Output::Particle(self.particle(particle)))
+            .collect::<Vec<_>>();
+        let rule = self.list(scope.rule());
+        for nested in scope.scope() {
+            member.extend(self.scope(nested));
+        }
+        Output::group(member, rule)
     }
 
     fn particle(&mut self, particle: &Particle) -> Particle {
@@ -116,5 +151,5 @@ pub fn transform(
         counter: 0,
         change: Some(change),
     };
-    Program::from(rewrite.list(program.rule()))
+    Program::new(rewrite.list(program.rule()), program.scope().to_vec())
 }

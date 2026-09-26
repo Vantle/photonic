@@ -120,7 +120,7 @@ fn execution() {
 #[test]
 fn format() {
     let fixture = Fixture::new();
-    let source = r#"{"initial":[["A"]],"rule":[{"input":[["A"]],"output":[{"particle":["B"]}]}]}"#;
+    let source = r#"{"initial":[["A"]],"rule":[{"input":[["A"]],"output":[["B"]]}]}"#;
     let path = fixture.write("program.json", source);
     let lower = report(&execute("run", &path, &["--json"]));
     let path = fixture.write("program.JSON", source);
@@ -387,9 +387,16 @@ fn serialization() {
     let lowered = report(&execute("lower", &path, &[]));
     assert_eq!(lowered["initial"], serde_json::json!([]));
     assert_eq!(lowered["rule"][0]["input"], serde_json::json!([]));
+    assert_eq!(lowered["rule"][0]["output"][0], serde_json::json!(["A"]));
+    let path = fixture.write("scope.wave", "Z, (X, [X] Y), [A] (B, C, [B, C] D)");
+    let lowered = report(&execute("lower", &path, &[]));
     assert_eq!(
-        lowered["rule"][0]["output"][0]["particle"],
-        serde_json::json!(["A"])
+        lowered["scope"],
+        serde_json::json!([{"initial": [["X"]], "rule": [{"name": "[X] Y", "input": [["X"]], "output": [["Y"]]}]}])
+    );
+    assert_eq!(
+        lowered["rule"][0]["output"][0]["initial"],
+        serde_json::json!([["B"], ["C"]])
     );
 }
 

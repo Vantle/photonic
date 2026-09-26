@@ -4,6 +4,7 @@ mod analogy;
 pub mod archive;
 pub mod attempt;
 mod bar;
+mod coherence;
 mod corpus;
 pub mod curriculum;
 mod demonstration;

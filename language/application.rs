@@ -239,7 +239,12 @@ pub(crate) fn apply(request: Request<'_>) -> Applied {
         }
     };
     let returning = owner == frame && frame != 0;
-    let result = crate::evaluation::apply(crate::evaluation::Request {
+    let crate::evaluation::Result {
+        state,
+        change,
+        opened,
+        ..
+    } = crate::evaluation::apply(crate::evaluation::Request {
         source,
         scope,
         frame,
@@ -250,13 +255,13 @@ pub(crate) fn apply(request: Request<'_>) -> Applied {
         next,
         layout: &layout,
     });
-    let state = result.state;
     flow.frame.resize(state.frame.len(), None);
-    let mut target = 0;
-    for (index, world) in source.world.iter().enumerate() {
-        if binding.world.contains(&index) {
-            continue;
-        }
+    let surviving = source
+        .world
+        .iter()
+        .enumerate()
+        .filter(|(index, _)| !binding.world.contains(index));
+    for (target, (index, world)) in surviving.enumerate() {
         flow.context.push(Set::single(index));
         for token in &world.particle {
             flow.resource.push((
@@ -264,7 +269,6 @@ pub(crate) fn apply(request: Request<'_>) -> Applied {
                 Set::single(Place::World(index, token.id)),
             ));
         }
-        target += 1;
     }
     let consumed = if returning {
         source.frame[frame]
@@ -280,7 +284,7 @@ pub(crate) fn apply(request: Request<'_>) -> Applied {
         .union(&consumed)
         .copied()
         .collect::<Set<_>>();
-    let nested = rule.output.iter().any(|output| output.body.is_some());
+    let nested = !opened.is_empty();
     let mut reserve = BTreeMap::<usize, BTreeSet<Place>>::new();
     if nested {
         for &place in binding.exact.union(&consumed) {
@@ -290,26 +294,25 @@ pub(crate) fn apply(request: Request<'_>) -> Applied {
     }
     let flat = origin(source, binding, &binding.footprint);
     let scoped = nested.then(|| origin(source, binding, &binding.exact));
-    for output in &rule.output {
-        let remainder = match (&output.body, &scoped) {
-            (Some(_), Some(scoped)) => scoped,
+    for &frame in &opened {
+        flow.frame[frame] = None;
+        for token in &state.frame[frame].held {
+            flow.resource.push((
+                Place::Held(frame, token.id),
+                reserve[&token.id].iter().copied().collect(),
+            ));
+        }
+        for token in &state.frame[frame].particle {
+            flow.resource
+                .push((Place::Context(frame, token.id), basis.clone()));
+        }
+    }
+    for target in change.insertion {
+        let world = &state.world[target];
+        let remainder = match &scoped {
+            Some(scoped) if opened.contains(&world.frame) => scoped,
             _ => &flat,
         };
-        let world = &state.world[target];
-        if output.body.is_some() {
-            let frame = world.frame;
-            flow.frame[frame] = None;
-            for token in &state.frame[frame].held {
-                flow.resource.push((
-                    Place::Held(frame, token.id),
-                    reserve[&token.id].iter().copied().collect(),
-                ));
-            }
-            for token in &state.frame[frame].particle {
-                flow.resource
-                    .push((Place::Context(frame, token.id), basis.clone()));
-            }
-        }
         for token in &world.particle {
             let origin = if token.id >= next {
                 basis.clone()
@@ -319,7 +322,6 @@ pub(crate) fn apply(request: Request<'_>) -> Applied {
             flow.resource.push((Place::World(target, token.id), origin));
         }
         flow.context.push(binding.world.clone());
-        target += 1;
     }
     flow.resource
         .retain(|(place, _)| state.token(*place).is_some());

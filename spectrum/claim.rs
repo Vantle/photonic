@@ -213,7 +213,8 @@ fn exact(claim: &Claim, exploration: &Exploration) -> Result<Evidence, Failure> 
             "a direct path checks an exact target as its goal; explore in path mode with goal",
         ));
     }
-    let target = crate::subject::lower("pattern", &claim.pattern, Code::Target)?;
+    let target = crate::subject::lower("pattern", &claim.pattern, Code::Target)
+        .and_then(crate::subject::target)?;
     let verdict = exploration
         .verdict(&target, claim.preserve)
         .ok_or_else(|| Failure::new(Code::Claim, "this exploration cannot check exact targets"))?;

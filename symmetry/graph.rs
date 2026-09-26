@@ -3,6 +3,7 @@ use code::atom::Atom;
 use code::output::Output;
 use code::particle::Particle;
 use code::rule::Rule;
+use code::scope::Scope;
 use code::value::Value;
 use std::collections::HashMap;
 
@@ -15,6 +16,7 @@ pub enum Relation {
     Body,
     Rule,
     Coherence,
+    Scope,
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -98,15 +100,39 @@ impl Builder<'_> {
     }
 
     fn output(&mut self, output: &Output) -> u32 {
-        let mut child = vec![Edge {
-            relation: Relation::Product,
-            vertex: self.particle(output.particle()),
-            count: 1,
-        }];
-        for (rule, count) in run(output.body().unwrap_or_default()) {
+        match output {
+            Output::Particle(particle) => {
+                let child = vec![Edge {
+                    relation: Relation::Product,
+                    vertex: self.particle(particle),
+                    count: 1,
+                }];
+                self.intern(Color::Output, child)
+            }
+            Output::Scope(scope) => self.scope(scope),
+        }
+    }
+
+    fn scope(&mut self, scope: &Scope) -> u32 {
+        let mut child = Vec::new();
+        for (particle, count) in run(scope.coherence()) {
+            child.push(Edge {
+                relation: Relation::Product,
+                vertex: self.particle(particle),
+                count,
+            });
+        }
+        for (rule, count) in run(scope.rule()) {
             child.push(Edge {
                 relation: Relation::Body,
                 vertex: self.rule(rule),
+                count,
+            });
+        }
+        for (nested, count) in run(scope.scope()) {
+            child.push(Edge {
+                relation: Relation::Scope,
+                vertex: self.scope(nested),
                 count,
             });
         }
@@ -145,6 +171,13 @@ impl Builder<'_> {
             child.push(Edge {
                 relation: Relation::Coherence,
                 vertex: self.particle(particle),
+                count,
+            });
+        }
+        for (scope, count) in run(part.program.scope()) {
+            child.push(Edge {
+                relation: Relation::Scope,
+                vertex: self.scope(scope),
                 count,
             });
         }

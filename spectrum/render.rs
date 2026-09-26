@@ -168,7 +168,7 @@ pub fn brief(exploration: &Exploration, rule: usize) -> String {
         .definition
         .output
         .iter()
-        .all(|output| output.body.is_none())
+        .all(|output| matches!(output, source::Output::Particle(_)))
     {
         return entry.text.clone();
     }

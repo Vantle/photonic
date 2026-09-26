@@ -110,7 +110,7 @@ fn order() {
     let mut generator = Generator::new(7);
     let mut symmetric = 0;
     let mut pinned = 0;
-    for _ in 0..800 {
+    for _ in 0..1000 {
         let structure = sample(&mut generator);
         let symmetry = structure
             .symmetry(BUDGET)

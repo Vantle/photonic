@@ -294,10 +294,7 @@ fn import() {
         frame: vec![Some(0), Some(1), None],
     };
     let rule = crate::program::Instruction {
-        output: vec![crate::program::Output {
-            particle: vec![Symbol::Rule(0)],
-            body: None,
-        }],
+        output: vec![crate::program::Output::Particle(vec![Symbol::Rule(0)])],
         ..Default::default()
     };
     let binding = crate::flow::Binding {
@@ -377,6 +374,42 @@ fn loading() {
         3
     );
     assert_eq!(program.rule.len(), 1);
+}
+
+#[test]
+fn opening() {
+    let program = crate::program::Program::new(
+        &frontend::lowering::parse("Z, (X, (Y, [Y] W), [X] V)").unwrap(),
+    );
+    let state = State::initial(&program);
+    assert_eq!(
+        state
+            .frame
+            .iter()
+            .map(|frame| (
+                frame.scope,
+                frame.parent,
+                frame.lexical,
+                frame.particle.len()
+            ))
+            .collect::<Vec<_>>(),
+        [
+            (0, None, None, 0),
+            (1, Some(0), Some(0), 1),
+            (2, Some(1), Some(1), 1)
+        ]
+    );
+    assert!(state.frame.iter().all(|frame| frame.held.is_empty()));
+    let atom = |name: &str| Symbol::Atom(program.atom.get_index_of(name).unwrap());
+    assert_eq!(
+        state
+            .world
+            .iter()
+            .map(|world| (world.frame, world.particle[0].value))
+            .collect::<Vec<_>>(),
+        [(0, atom("Z")), (1, atom("X")), (2, atom("Y"))]
+    );
+    assert_eq!(state, state.canonical().state);
 }
 
 #[test]
@@ -573,10 +606,7 @@ fn remainder() {
         read: Set::single(Place::World(0, 31)),
     };
     let rule = crate::program::Instruction {
-        output: vec![crate::program::Output {
-            particle: Vec::new(),
-            body: None,
-        }],
+        output: vec![crate::program::Output::Particle(Vec::new())],
         ..Default::default()
     };
     let result = crate::application::apply(crate::application::Request {

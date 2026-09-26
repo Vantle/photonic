@@ -90,10 +90,12 @@ pub fn import(
     validate(name)?;
     let mut vocabulary = Vocabulary::default();
     let mut rule = Vec::new();
+    let mut scope = Vec::new();
     let mut initial: Vec<Particle> = Vec::new();
     for source in program {
         let (lifted, configuration) = lift::program(&parse(source)?, &mut vocabulary)?;
-        rule.extend(Vec::from(lifted));
+        rule.extend(lifted.rule().iter().cloned());
+        scope.extend(lifted.scope().iter().cloned());
         initial.extend(Vec::from(configuration));
     }
     let mut given = Vec::new();
@@ -116,7 +118,7 @@ pub fn import(
             Configuration::from(initial),
         ));
     }
-    let reference = Program::from(rule);
+    let reference = Program::new(rule, scope);
     let example = given
         .into_iter()
         .map(|(origin, input)| {

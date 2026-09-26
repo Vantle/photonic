@@ -60,7 +60,8 @@ impl Context<'_> {
             .goal
             .as_ref()
             .map(|goal| {
-                let mut target = crate::subject::lower("goal", &goal.configuration, Code::Target)?;
+                let mut target = crate::subject::lower("goal", &goal.configuration, Code::Target)
+                    .and_then(crate::subject::target)?;
                 if goal.preserve {
                     target.preserve(source);
                 }

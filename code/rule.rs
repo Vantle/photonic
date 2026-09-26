@@ -47,10 +47,9 @@ impl Rule {
     }
 
     pub(crate) fn flat(&self) -> bool {
-        self.input
-            .iter()
-            .chain(self.output.iter().map(Output::particle))
-            .all(|particle| particle.flat().is_some())
-            && self.output.iter().all(|output| output.body().is_none())
+        self.input.iter().all(|particle| particle.flat().is_some())
+            && self.output.iter().all(
+                |output| matches!(output, Output::Particle(particle) if particle.flat().is_some()),
+            )
     }
 }

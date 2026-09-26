@@ -35,20 +35,44 @@ pub fn rule(generator: &mut Generator, shape: &Shape, depth: usize) -> Rule {
         .map(|_| particle(generator, shape, depth))
         .collect();
     let output = (0..generator.below(3))
-        .map(|_| {
-            let body = (depth < shape.depth && generator.chance(0.1))
-                .then(|| vec![rule(generator, shape, depth + 1)]);
-            Output::new(particle(generator, shape, depth), body)
+        .flat_map(|_| {
+            if depth < shape.depth && generator.chance(0.1) {
+                return group(generator, shape, depth);
+            }
+            vec![Output::Particle(particle(generator, shape, depth))]
         })
         .collect();
     Rule::new(input, output)
 }
 
+fn group(generator: &mut Generator, shape: &Shape, depth: usize) -> Vec<Output> {
+    let mut member = (0..generator.below(3))
+        .map(|_| Output::Particle(particle(generator, shape, depth)))
+        .collect::<Vec<_>>();
+    if depth + 1 < shape.depth && generator.chance(0.1) {
+        member.extend(group(generator, shape, depth + 1));
+    }
+    Output::group(member, vec![rule(generator, shape, depth + 1)])
+}
+
 pub fn structure(generator: &mut Generator, shape: &Shape) -> Structure {
-    let program = Program::from(
-        (0..shape.rule)
-            .map(|_| rule(generator, shape, 0))
-            .collect::<Vec<_>>(),
+    let rule = (0..shape.rule)
+        .map(|_| rule(generator, shape, 0))
+        .collect::<Vec<_>>();
+    let scope = if shape.depth > 0 && generator.chance(0.1) {
+        group(generator, shape, 0)
+    } else {
+        Vec::new()
+    };
+    let program = Program::new(
+        rule,
+        scope
+            .into_iter()
+            .filter_map(|output| match output {
+                Output::Scope(scope) => Some(scope),
+                Output::Particle(_) => None,
+            })
+            .collect(),
     );
     let configuration = Configuration::from(
         (0..generator.below(3))
@@ -173,7 +197,7 @@ pub fn named(program: &[Written<'_>], name: &mut Vec<String>) -> Program {
                     input.iter().map(&mut particle).collect(),
                     output
                         .iter()
-                        .map(|entry| Output::plain(particle(entry)))
+                        .map(|entry| Output::Particle(particle(entry)))
                         .collect(),
                 )
             })

@@ -27,14 +27,21 @@
         if (!definition.output.length) output.append(element('span', 'summary', 'no coherence'));
         box.append(input, output);
         definition.output.forEach(item => {
-            output.append(particle(item.particle));
-            if (!item.body) return;
-            const body = element('div', 'body');
-            body.append(element('span', 'side', 'scope with rules'));
-            item.body.forEach(inner => body.append(rule(inner)));
-            box.append(body);
+            if (Array.isArray(item)) output.append(particle(item));
+            else box.append(scope(item));
         });
         return box;
+    };
+
+    const scope = program => {
+        const body = element('div', 'body');
+        body.append(element('span', 'side', 'opens a scope'));
+        const row = element('div', 'row');
+        program.initial.forEach(content => row.append(particle(content)));
+        if (program.initial.length) body.append(row);
+        program.rule.forEach(inner => body.append(rule(inner)));
+        (program.scope ?? []).forEach(inner => body.append(scope(inner)));
+        return body;
     };
 
     const draw = (host, program) => {
@@ -47,6 +54,15 @@
         result.append(element('h4', undefined, count(program.rule.length, 'rule')));
         program.rule.forEach(definition => result.append(rule(definition)));
         if (!program.rule.length) result.append(element('span', 'summary', 'none'));
+        const opened = program.scope ?? [];
+        if (opened.length) {
+            result.append(element('h4', undefined, count(opened.length, 'scope')));
+            opened.forEach(inner => {
+                const box = element('div', 'shape');
+                box.append(scope(inner));
+                result.append(box);
+            });
+        }
         host.replaceChildren(result);
     };
 

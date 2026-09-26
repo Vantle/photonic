@@ -33,7 +33,7 @@ fn program(generator: &mut Generator, atom: usize, rule: usize) -> Program {
                     .map(|_| particle(generator, atom, 1, 2))
                     .collect();
                 let output = (0..generator.below(3))
-                    .map(|_| Output::plain(particle(generator, atom, 0, 2)))
+                    .map(|_| Output::Particle(particle(generator, atom, 0, 2)))
                     .collect();
                 Rule::new(input, output)
             })

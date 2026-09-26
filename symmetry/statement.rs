@@ -6,12 +6,14 @@ use code::configuration::Configuration;
 use code::particle::Particle;
 use code::program::Program;
 use code::rule::Rule;
+use code::scope::Scope;
 use std::collections::BTreeSet;
 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum Statement {
     Rule(Rule),
     Coherence(Particle),
+    Scope(Scope),
 }
 
 impl Statement {
@@ -19,6 +21,7 @@ impl Statement {
         match self {
             Self::Rule(entry) => measure::rule(entry, atom),
             Self::Coherence(entry) => measure::particle(entry, atom),
+            Self::Scope(entry) => measure::scope(entry, atom),
         }
     }
 
@@ -36,28 +39,25 @@ impl Statement {
         match self {
             Self::Rule(entry) => Self::Rule(rename::rule(entry, &map)),
             Self::Coherence(entry) => Self::Coherence(rename::particle(entry, &map)),
+            Self::Scope(entry) => Self::Scope(rename::scope(entry, &map)),
         }
     }
 }
 
 pub fn structure(statement: &[Statement]) -> Structure {
-    let rule = statement
-        .iter()
-        .filter_map(|entry| match entry {
-            Statement::Rule(rule) => Some(rule.clone()),
-            Statement::Coherence(_) => None,
-        })
-        .collect::<Vec<_>>();
-    let coherence = statement
-        .iter()
-        .filter_map(|entry| match entry {
-            Statement::Coherence(particle) => Some(particle.clone()),
-            Statement::Rule(_) => None,
-        })
-        .collect::<Vec<_>>();
+    let mut rule = Vec::new();
+    let mut coherence = Vec::new();
+    let mut scope = Vec::new();
+    for entry in statement {
+        match entry {
+            Statement::Rule(value) => rule.push(value.clone()),
+            Statement::Coherence(value) => coherence.push(value.clone()),
+            Statement::Scope(value) => scope.push(value.clone()),
+        }
+    }
     Structure {
         program: Part {
-            program: Program::from(rule),
+            program: Program::new(rule, scope),
             configuration: Configuration::from(coherence),
         },
         target: None,

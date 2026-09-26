@@ -68,7 +68,7 @@ for (const [text, message, span] of [
     assert.deepEqual(error.detail.span, span, text);
 }
 assert.match(refusal('A, [B] C').message, /not both/);
-assert.match(refusal('(A, [B] C)').message, /Only a rule’s output opens a scope/);
+assert.match(refusal('(A, [B] C)').message, /a group that lists a rule beside a coherence is a scope/);
 assert.equal(editor.describe(refusal('[A..X] B')), 'A dot joins two things; put something on each side (at character 4)');
 console.log('Patterns match coherences, rule values and rules by meaning, whatever the spacing or order, and refuse what the grammar refuses.');
 

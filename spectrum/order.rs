@@ -44,13 +44,9 @@ fn definition(definition: &Definition, map: &mut impl FnMut(&str) -> String) -> 
         output: definition
             .output
             .iter()
-            .map(|output| Output {
-                particle: particle(&output.particle, map),
-                body: output.body.as_ref().map(|body| {
-                    body.iter()
-                        .map(|entry| self::definition(entry, map))
-                        .collect()
-                }),
+            .map(|output| match output {
+                Output::Particle(value) => Output::Particle(particle(value, map)),
+                Output::Scope(value) => Output::Scope(program(value, map)),
             })
             .collect(),
     };
@@ -60,23 +56,28 @@ fn definition(definition: &Definition, map: &mut impl FnMut(&str) -> String) -> 
     }
 }
 
-fn program(program: &Program, mut map: impl FnMut(&str) -> String) -> Program {
+fn program(program: &Program, map: &mut impl FnMut(&str) -> String) -> Program {
     Program {
         initial: program
             .initial
             .iter()
-            .map(|entry| particle(entry, &mut map))
+            .map(|entry| particle(entry, map))
             .collect(),
         rule: program
             .rule
             .iter()
-            .map(|entry| definition(entry, &mut map))
+            .map(|entry| definition(entry, map))
+            .collect(),
+        scope: program
+            .scope
+            .iter()
+            .map(|entry| self::program(entry, map))
             .collect(),
     }
 }
 
 fn named(source: &Program) -> Program {
-    program(source, str::to_owned)
+    program(source, &mut str::to_owned)
 }
 
 impl Naming {
@@ -112,7 +113,7 @@ impl Naming {
         }
         let mut fresh = HashMap::<String, String>::new();
         let count = self.atom.len();
-        program(source, |name| {
+        program(source, &mut |name| {
             if let Some(atom) = self.atom.get(name) {
                 return atom.clone();
             }
@@ -129,13 +130,19 @@ fn text(program: &Program) -> Canonical {
     let Program {
         mut initial,
         mut rule,
+        mut scope,
     } = program.canonical();
     rule.sort_by_cached_key(frontend::text::definition);
     initial.sort_by_cached_key(|entry| frontend::text::coherence(entry));
+    scope.sort_by_cached_key(frontend::text::scope);
     Canonical {
         order: Order::Text,
         shape: None,
-        program: named(&Program { initial, rule }),
+        program: named(&Program {
+            initial,
+            rule,
+            scope,
+        }),
         naming: Naming::default(),
     }
 }
@@ -156,10 +163,22 @@ fn rule<'value>(definition: &'value Definition, name: &mut BTreeSet<&'value str>
         atom(particle, name);
     }
     for output in &definition.output {
-        atom(&output.particle, name);
-        for entry in output.body.iter().flatten() {
-            rule(entry, name);
+        match output {
+            Output::Particle(particle) => atom(particle, name),
+            Output::Scope(program) => scope(program, name),
         }
+    }
+}
+
+fn scope<'value>(program: &'value Program, name: &mut BTreeSet<&'value str>) {
+    for particle in &program.initial {
+        atom(particle, name);
+    }
+    for entry in &program.rule {
+        rule(entry, name);
+    }
+    for entry in &program.scope {
+        scope(entry, name);
     }
 }
 
@@ -167,12 +186,7 @@ fn rule<'value>(definition: &'value Definition, name: &mut BTreeSet<&'value str>
 // by name instead of by first appearance keeps keys and handles independent of term order.
 fn vocabulary(program: &Program) -> Option<Vocabulary> {
     let mut name = BTreeSet::new();
-    for particle in &program.initial {
-        atom(particle, &mut name);
-    }
-    for entry in &program.rule {
-        rule(entry, &mut name);
-    }
+    scope(program, &mut name);
     Vocabulary::try_from(name.into_iter().map(str::to_owned).collect::<Vec<_>>()).ok()
 }
 

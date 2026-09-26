@@ -1,6 +1,6 @@
 use crate::catalog::LIBRARY;
 use frontend::lowering::parse;
-use frontend::source::{Definition, Value};
+use frontend::source::{Definition, Output, Program, Value};
 use std::collections::BTreeSet;
 
 const BOUNDED: [&str; 9] = [
@@ -71,14 +71,35 @@ fn root() -> Vec<(&'static str, &'static str, Vec<Vec<Value>>)> {
         .collect()
 }
 
+fn enclosure(program: &Program) -> Vec<&Program> {
+    std::iter::once(program)
+        .chain(program.scope.iter().flat_map(enclosure))
+        .collect()
+}
+
+fn coherence(output: &Output) -> Vec<&[Value]> {
+    match output {
+        Output::Particle(particle) => vec![particle],
+        Output::Scope(program) => enclosure(program)
+            .into_iter()
+            .flat_map(|scope| scope.initial.iter().map(Vec::as_slice))
+            .collect(),
+    }
+}
+
+fn body(output: &Output) -> Vec<&Definition> {
+    match output {
+        Output::Particle(_) => Vec::new(),
+        Output::Scope(program) => enclosure(program)
+            .into_iter()
+            .flat_map(|scope| &scope.rule)
+            .collect(),
+    }
+}
+
 fn nested(rule: &Definition) -> Vec<&Definition> {
     std::iter::once(rule)
-        .chain(
-            rule.output
-                .iter()
-                .flat_map(|output| output.body.iter().flatten())
-                .flat_map(nested),
-        )
+        .chain(rule.output.iter().flat_map(body).flat_map(nested))
         .collect()
 }
 
@@ -88,14 +109,14 @@ fn carried(rule: &Definition) -> Vec<&Definition> {
             rule.output
                 .iter()
                 .flat_map(|output| {
-                    output
-                        .particle
-                        .iter()
+                    coherence(output)
+                        .into_iter()
+                        .flatten()
                         .filter_map(|value| match value {
                             Value::Rule { rule } => Some(rule.as_ref()),
                             Value::Atom(_) => None,
                         })
-                        .chain(output.body.iter().flatten())
+                        .chain(body(output))
                 })
                 .flat_map(carried),
         )
@@ -149,8 +170,10 @@ fn boundary() {
         .into_iter()
         .flat_map(|(package, name, rule)| {
             rule.output
-                .into_iter()
-                .map(move |output| (package, name, particle(&output.particle)))
+                .iter()
+                .flat_map(coherence)
+                .map(|value| (package, name, particle(value)))
+                .collect::<Vec<_>>()
         })
         .collect::<Vec<_>>();
     for word in ANSWER {
@@ -201,10 +224,10 @@ fn declaration(rule: &Definition, bounded: bool) {
         spelling(value);
     }
     for output in &rule.output {
-        for value in &output.particle {
+        for value in coherence(output).into_iter().flatten() {
             spelling(value);
         }
-        for nested in output.body.iter().flatten() {
+        for nested in body(output) {
             declaration(nested, bounded);
         }
     }
@@ -214,7 +237,7 @@ fn declaration(rule: &Definition, bounded: bool) {
 fn vocabulary() {
     for entry in LIBRARY.iter() {
         let library = parse(&entry.source).unwrap();
-        assert!(library.initial.is_empty());
+        assert!(library.initial.is_empty() && library.scope.is_empty());
         for rule in &library.rule {
             declaration(rule, BOUNDED.contains(&entry.package.as_str()));
         }
@@ -254,8 +277,10 @@ fn gather(value: &[Value], role: &mut BTreeSet<String>, plain: &mut BTreeSet<Str
 
 fn produce(rule: &Definition, role: &mut BTreeSet<String>, plain: &mut BTreeSet<String>) {
     for output in &rule.output {
-        gather(&output.particle, role, plain);
-        for nested in output.body.iter().flatten() {
+        for value in coherence(output) {
+            gather(value, role, plain);
+        }
+        for nested in body(output) {
             walk(nested, role, plain);
         }
     }

@@ -1,6 +1,6 @@
 use frontend::failure::Failure;
 use frontend::lowering;
-use frontend::source::{Program, Value};
+use frontend::source::{Output, Program, Value};
 
 fn atom(value: &[&str]) -> Vec<Value> {
     value
@@ -10,20 +10,22 @@ fn atom(value: &[&str]) -> Vec<Value> {
 }
 
 fn same(left: &str, right: &str) {
-    let canonical = |source: &str| {
-        let program = lowering::parse(source).unwrap();
-        let mut initial = program.initial;
-        initial.iter_mut().for_each(|particle| particle.sort());
-        initial.sort();
-        let mut rule = program
-            .rule
-            .iter()
-            .map(|rule| rule.canonical())
-            .collect::<Vec<_>>();
-        rule.sort();
-        (initial, rule)
-    };
+    let canonical = |source: &str| lowering::parse(source).unwrap().canonical();
     assert_eq!(canonical(left), canonical(right), "{left} and {right}");
+}
+
+fn particle(output: &Output) -> &[Value] {
+    match output {
+        Output::Particle(particle) => particle,
+        Output::Scope(_) => panic!("expected a particle, found a scope"),
+    }
+}
+
+fn program(output: &Output) -> &Program {
+    match output {
+        Output::Scope(program) => program,
+        Output::Particle(_) => panic!("expected a scope, found a particle"),
+    }
 }
 
 fn syntax(source: &str) -> String {
@@ -39,10 +41,10 @@ fn conjunction() {
     assert_eq!(source.initial, [atom(&["And", "True", "False", "Extra"])]);
     assert_eq!(source.rule.len(), 3);
     assert_eq!(source.rule[2].input, [atom(&["And", "Boolean", "Boolean"])]);
-    let body = source.rule[2].output[0].body.as_ref().unwrap();
-    assert!(source.rule[2].output[0].particle.is_empty());
-    assert_eq!(body[1].input, [atom(&["True", "False"])]);
-    assert_eq!(body[1].output[0].particle, atom(&["False"]));
+    let body = program(&source.rule[2].output[0]);
+    assert_eq!(body.initial, [Vec::<Value>::new()]);
+    assert_eq!(body.rule[1].input, [atom(&["True", "False"])]);
+    assert_eq!(particle(&body.rule[1].output[0]), atom(&["False"]));
 }
 
 #[test]
@@ -51,8 +53,8 @@ fn partition() {
     assert_eq!(source.initial, [atom(&["A", "X"]), atom(&["B", "Y"])]);
     assert_eq!(source.rule[0].input, [atom(&["A"]), atom(&["B"])]);
     assert_eq!(source.rule[0].output.len(), 2);
-    assert_eq!(source.rule[0].output[0].particle, atom(&["C"]));
-    assert_eq!(source.rule[0].output[1].particle, atom(&["D"]));
+    assert_eq!(particle(&source.rule[0].output[0]), atom(&["C"]));
+    assert_eq!(particle(&source.rule[0].output[1]), atom(&["D"]));
     let source = lowering::parse("[1] 1, [2.3] 6, [3.7] 21, 3.7").unwrap();
     assert_eq!(source.initial, [atom(&["3", "7"])]);
     assert_eq!(source.rule.len(), 3);
@@ -65,8 +67,8 @@ fn partition() {
     same("A, B,", "A, B");
     let source = lowering::parse("[X] (A.B, C)").unwrap();
     assert_eq!(source.rule[0].output.len(), 2);
-    assert_eq!(source.rule[0].output[0].particle, atom(&["A", "B"]));
-    assert_eq!(source.rule[0].output[1].particle, atom(&["C"]));
+    assert_eq!(particle(&source.rule[0].output[0]), atom(&["A", "B"]));
+    assert_eq!(particle(&source.rule[0].output[1]), atom(&["C"]));
 }
 
 #[test]
@@ -106,12 +108,11 @@ fn closure() {
         panic!("expected rule");
     };
     assert_eq!(rule.input, [atom(&["A"])]);
-    assert_eq!(rule.output[0].particle, atom(&["B"]));
-    let Value::Rule { rule } = &source.rule[0].output[0].particle[0] else {
+    assert_eq!(particle(&rule.output[0]), atom(&["B"]));
+    let Value::Rule { rule } = &particle(&source.rule[0].output[0])[0] else {
         panic!("expected rule");
     };
-    assert_eq!(rule.output[0].particle, atom(&["C"]));
-    assert!(source.rule[0].output[0].body.is_none());
+    assert_eq!(particle(&rule.output[0]), atom(&["C"]));
     let source = lowering::parse("[[A,B]] ([B])").unwrap();
     let Value::Rule { rule } = &source.rule[0].input[0][0] else {
         panic!("expected rule");
@@ -119,7 +120,7 @@ fn closure() {
     assert_eq!(rule.input, [atom(&["A"]), atom(&["B"])]);
     assert!(rule.output.is_empty());
     assert_eq!(
-        source.rule[0].output[0].body.as_ref().unwrap()[0].input,
+        program(&source.rule[0].output[0]).rule[0].input,
         [atom(&["B"])]
     );
     let source = lowering::parse("().([A] B), [A] B").unwrap();
@@ -134,32 +135,60 @@ fn scope() {
     let source =
         lowering::parse("Enter, [Enter] (Make, [Make] ().([Call] (Payload, [Payload] Done)))")
             .unwrap();
-    let outer = &source.rule[0].output[0];
-    assert_eq!(outer.particle, atom(&["Make"]));
-    let Value::Rule { rule } = &outer.body.as_ref().unwrap()[0].output[0].particle[0] else {
+    let outer = program(&source.rule[0].output[0]);
+    assert_eq!(outer.initial, [atom(&["Make"])]);
+    let Value::Rule { rule } = &particle(&outer.rule[0].output[0])[0] else {
         panic!("expected rule");
     };
-    assert_eq!(
-        rule.output[0].body.as_ref().unwrap()[0].input,
-        [atom(&["Payload"])]
-    );
+    assert_eq!(program(&rule.output[0]).rule[0].input, [atom(&["Payload"])]);
     let source = lowering::parse("[A] (B, (X, [X] Y))").unwrap();
-    assert_eq!(source.rule[0].output.len(), 2);
-    assert!(source.rule[0].output[0].body.is_none());
-    assert_eq!(source.rule[0].output[1].particle, atom(&["X"]));
-    assert_eq!(source.rule[0].output[1].body.as_ref().unwrap().len(), 1);
+    assert_eq!(particle(&source.rule[0].output[0]), atom(&["B"]));
+    let inner = program(&source.rule[0].output[1]);
+    assert_eq!(inner.initial, [atom(&["X"])]);
+    assert_eq!(inner.rule.len(), 1);
     let source = lowering::parse("[A] ([B] C, [C] D,)").unwrap();
-    assert!(source.rule[0].output[0].particle.is_empty());
-    assert_eq!(source.rule[0].output[0].body.as_ref().unwrap().len(), 2);
-    let source = lowering::parse("[A] (X, [X] Y)").unwrap();
-    assert_eq!(source.rule[0].output[0].particle, atom(&["X"]));
-    assert_eq!(source.rule[0].output[0].body.as_ref().unwrap().len(), 1);
+    let body = program(&source.rule[0].output[0]);
+    assert_eq!(body.initial, [Vec::<Value>::new()]);
+    assert_eq!(body.rule.len(), 2);
     let source = lowering::parse("[A] X.([X] Y)").unwrap();
-    assert!(source.rule[0].output[0].body.is_none());
     assert!(matches!(
-        source.rule[0].output[0].particle[..],
+        particle(&source.rule[0].output[0]),
         [Value::Atom(_), Value::Rule { .. }]
     ));
+    let source = lowering::parse("[A] (B, C, [B] D)").unwrap();
+    let body = program(&source.rule[0].output[0]);
+    assert_eq!(body.initial, [atom(&["B"]), atom(&["C"])]);
+    assert_eq!(body.rule.len(), 1);
+    same("[Enter] (A.(B, C), [A] D)", "[Enter] (A.B, A.C, [A] D)");
+    let source = lowering::parse("[A] ((), B, [B] C)").unwrap();
+    assert_eq!(
+        program(&source.rule[0].output[0]).initial,
+        [Vec::new(), atom(&["B"])]
+    );
+    let source = lowering::parse("[A] ((X, [X] Y), [B] C)").unwrap();
+    let outer = program(&source.rule[0].output[0]);
+    assert!(outer.initial.is_empty());
+    assert_eq!(outer.scope[0].initial, [atom(&["X"])]);
+    let source = lowering::parse("[A] ((), (X, [X] Y), [B] C)").unwrap();
+    assert_eq!(
+        program(&source.rule[0].output[0]).initial,
+        [Vec::<Value>::new()]
+    );
+    assert!(matches!(
+        lowering::parse("Z, (X, [X] Y)").unwrap().target(),
+        Err(Failure::Target)
+    ));
+    assert!(
+        lowering::parse("Z, [A] (X, [X] Y)")
+            .unwrap()
+            .target()
+            .is_ok()
+    );
+    let source = lowering::parse("Z, (X, [X] Y), ([B] C)").unwrap();
+    assert_eq!(source.initial, [atom(&["Z"])]);
+    assert_eq!(source.scope[0].initial, [atom(&["X"])]);
+    assert_eq!(source.scope[1].initial, [Vec::<Value>::new()]);
+    assert!(source.rule.is_empty());
 }
 
 #[test]
@@ -168,7 +197,7 @@ fn empty() {
     assert_eq!(source.initial, [Vec::<Value>::new()]);
     assert_eq!(source.rule[0].input, [Vec::<Value>::new()]);
     assert_eq!(source.rule[1].output.len(), 1);
-    assert!(source.rule[1].output[0].particle.is_empty());
+    assert!(particle(&source.rule[1].output[0]).is_empty());
     assert!(source.rule[2].output.is_empty());
     assert!(source.rule[3].input.is_empty());
     assert_eq!(source.rule[4].input.len(), 2);
@@ -187,7 +216,7 @@ fn alphabet() {
     assert_eq!(source.initial, [atom(&["Box", "A", "B"])]);
     let source = lowering::parse("[Box.(A)] Box.(B)").unwrap();
     assert_eq!(source.rule[0].input, [atom(&["Box", "A"])]);
-    assert_eq!(source.rule[0].output[0].particle, atom(&["Box", "B"]));
+    assert_eq!(particle(&source.rule[0].output[0]), atom(&["Box", "B"]));
     assert!(serde_json::from_str::<Value>(r#"{"variable":"x"}"#).is_err());
     assert!(serde_json::from_str::<Value>(r#"{"structure":"Box","particle":["A"]}"#).is_err());
 }
@@ -196,7 +225,7 @@ fn alphabet() {
 fn unicode() {
     let source = lowering::parse("人.世界, [人] 🌋").unwrap();
     assert_eq!(source.initial, [atom(&["人", "世界"])]);
-    assert_eq!(source.rule[0].output[0].particle, atom(&["🌋"]));
+    assert_eq!(particle(&source.rule[0].output[0]), atom(&["🌋"]));
     let Failure::Syntax { span, .. } = lowering::parse("人]").unwrap_err() else {
         panic!("expected diagnostic");
     };
@@ -212,17 +241,7 @@ fn malformed() {
             "{source}"
         );
     }
-    assert!(syntax("(X, [A] B)").contains("output"));
     assert!(syntax("[([A] B)] C").contains("input"));
-    assert!(syntax("[A] ((X, [X] Y), [B] C)").contains("scope"));
-    assert!(matches!(
-        lowering::parse("[A] (B, C, [B] D)"),
-        Err(Failure::Scope { count: 2, .. })
-    ));
-    assert!(matches!(
-        lowering::parse("[Enter] (A.(B,C), [A] D)"),
-        Err(Failure::Scope { count: 2, .. })
-    ));
 }
 
 #[test]
@@ -235,7 +254,7 @@ fn grouping() {
 #[test]
 fn schema() {
     for source in [
-        r#"{"rule":[{"input":[["A"]],"output":[{"particle":["B"]}],"negative":[["C"]]}]}"#,
+        r#"{"rule":[{"input":[["A"]],"output":[["B"]],"negative":[["C"]]}]}"#,
         r#"{"initial":[[{"rule":{"input":[["A"]],"output":[]},"negative":[["C"]]}]]}"#,
         r#"{"initial":[[{"rule":{"input":[["A"]],"output":[],"negative":[["C"]]}}]]}"#,
     ] {

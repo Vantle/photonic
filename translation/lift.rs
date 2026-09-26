@@ -63,23 +63,36 @@ fn lower<Name: Naming>(definition: &Definition, naming: &mut Name) -> Result<Rul
         .iter()
         .map(|entry| group(entry, naming))
         .collect::<Result<Vec<_>, _>>()?;
-    let output = definition
-        .output
-        .iter()
-        .map(|output| {
-            let body = output
-                .body
-                .as_ref()
-                .map(|body| {
-                    body.iter()
-                        .map(|definition| lower(definition, naming))
-                        .collect::<Result<Vec<_>, _>>()
-                })
-                .transpose()?;
-            Ok(Output::new(group(&output.particle, naming)?, body))
-        })
-        .collect::<Result<Vec<_>, _>>()?;
+    let mut output = Vec::new();
+    for entry in &definition.output {
+        match entry {
+            source::Output::Particle(particle) => {
+                output.push(Output::Particle(group(particle, naming)?));
+            }
+            source::Output::Scope(program) => output.extend(enclose(program, naming)?),
+        }
+    }
     Ok(Rule::new(input, output))
+}
+
+fn enclose<Name: Naming>(
+    program: &source::Program,
+    naming: &mut Name,
+) -> Result<Vec<Output>, Name::Failure> {
+    let rule = program
+        .rule
+        .iter()
+        .map(|definition| lower(definition, naming))
+        .collect::<Result<Vec<_>, _>>()?;
+    let mut member = program
+        .initial
+        .iter()
+        .map(|entry| group(entry, naming).map(Output::Particle))
+        .collect::<Result<Vec<_>, _>>()?;
+    for program in &program.scope {
+        member.extend(enclose(program, naming)?);
+    }
+    Ok(Output::group(member, rule))
 }
 
 pub fn particle(entry: &[source::Value], vocabulary: &mut Vocabulary) -> Result<Particle, Failure> {
@@ -88,6 +101,13 @@ pub fn particle(entry: &[source::Value], vocabulary: &mut Vocabulary) -> Result<
 
 pub fn rule(definition: &Definition, vocabulary: &mut Vocabulary) -> Result<Rule, Failure> {
     lower(definition, vocabulary)
+}
+
+pub fn scope(
+    program: &source::Program,
+    vocabulary: &mut Vocabulary,
+) -> Result<Vec<Output>, Failure> {
+    enclose(program, vocabulary)
 }
 
 pub fn program(
@@ -99,12 +119,21 @@ pub fn program(
         .iter()
         .map(|definition| lower(definition, vocabulary))
         .collect::<Result<Vec<_>, _>>()?;
-    let coherence = source
+    let mut coherence = source
         .initial
         .iter()
         .map(|entry| group(entry, vocabulary))
         .collect::<Result<Vec<_>, _>>()?;
-    Ok((Program::from(rule), Configuration::from(coherence)))
+    let mut scope = Vec::new();
+    for program in &source.scope {
+        for output in enclose(program, vocabulary)? {
+            match output {
+                Output::Particle(particle) => coherence.push(particle),
+                Output::Scope(value) => scope.push(value),
+            }
+        }
+    }
+    Ok((Program::new(rule, scope), Configuration::from(coherence)))
 }
 
 pub(crate) fn observation(

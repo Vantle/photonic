@@ -362,10 +362,7 @@ fn capture() {
             context: Vec::new(),
         };
         let rule = Instruction {
-            output: vec![Output {
-                particle: vec![Symbol::Rule(0)],
-                body: None,
-            }],
+            output: vec![Output::Particle(vec![Symbol::Rule(0)])],
             ..Instruction::default()
         };
         let binding = Binding {
@@ -608,10 +605,7 @@ fn inheritance() {
                     .chain([(Place::Held(1, 9), crate::basis::Set::single(basis))])
                     .collect();
                 let rule = Instruction {
-                    output: vec![Output {
-                        particle: vec![Symbol::Rule(1)],
-                        body: None,
-                    }],
+                    output: vec![Output::Particle(vec![Symbol::Rule(1)])],
                     ..Instruction::default()
                 };
                 let binding = Binding {

@@ -57,6 +57,29 @@ fn pairing() {
 }
 
 #[test]
+fn scope() {
+    check("Z, (X, [X] Y)", "Z, Y", Outcome::Reached);
+    check("Z, (X, [X] Y)", "Z, X", Outcome::Unreachable);
+    check("A.X, [A] (B, C, [B, C] D)", "D.X", Outcome::Reached);
+    check("A.X, [A] (B, C, [B, C] D)", "D.X.X", Outcome::Unreachable);
+    check("Go, [Go] ((C, [C] D), [D] E)", "E", Outcome::Reached);
+    check(
+        "Go, [Go] ((), (C, [C] D), [D] E)",
+        "E",
+        Outcome::Unreachable,
+    );
+    let program = parse("Z, (X, [X] Y)").unwrap();
+    let mut runtime = Runtime::new(&program);
+    runtime.run(50_000, Limit::default());
+    assert!(runtime.snapshot().closed);
+    assert_eq!(
+        runtime.verdict(&program).outcome,
+        Outcome::Unknown,
+        "a target that opens a scope names no configuration"
+    );
+}
+
+#[test]
 fn provenance() {
     check("A.(X,X)", "A.X,A.X", Outcome::Reached);
     check("Seed.X, [Seed] A.((),()), [A,A] ()", "X", Outcome::Reached);

@@ -1,6 +1,6 @@
 use crate::location::Location;
 use crate::place::Place;
-use crate::program::{Program, Symbol};
+use crate::program::{Output, Program, Symbol};
 use crate::state::{Frame, State, Token, World};
 use std::collections::{BTreeMap, BTreeSet, HashSet, VecDeque};
 use std::sync::Arc;
@@ -141,6 +141,56 @@ fn introduce(value: Symbol, capture: usize, next: &mut usize) -> Token {
     token
 }
 
+struct Opening<'program> {
+    program: &'program Program,
+    held: Vec<Token>,
+    remainder: Vec<Token>,
+    owner: usize,
+}
+
+impl Opening<'_> {
+    fn coherence(&self, particle: &[Symbol], next: &mut usize) -> Vec<Token> {
+        self.remainder
+            .iter()
+            .cloned()
+            .chain(
+                particle
+                    .iter()
+                    .map(|&value| introduce(value, self.owner, next)),
+            )
+            .collect()
+    }
+
+    fn open(
+        &self,
+        result: &mut State,
+        scope: usize,
+        parent: usize,
+        lexical: usize,
+        next: &mut usize,
+    ) {
+        let frame = result.frame.len();
+        result.frame.push(Arc::new(Frame {
+            scope,
+            parent: Some(parent),
+            lexical: Some(lexical),
+            particle: self.program.scope[scope]
+                .rule
+                .iter()
+                .map(|&rule| introduce(Symbol::Rule(rule), frame, next))
+                .collect(),
+            held: self.held.clone(),
+        }));
+        for particle in &self.program.scope[scope].initial {
+            let particle = self.coherence(particle, next);
+            result.world.push(Arc::new(World { frame, particle }));
+        }
+        for &scope in &self.program.scope[scope].scope {
+            self.open(result, scope, frame, frame, next);
+        }
+    }
+}
+
 fn apply(
     program: &Program,
     state: &State,
@@ -215,38 +265,23 @@ fn apply(
             held.insert(token.id, token.clone());
         }
     }
+    let opening = Opening {
+        program,
+        held: held.into_values().collect(),
+        remainder: remainder.into_values().collect(),
+        owner,
+    };
     for output in &program.rule[rule].output {
-        let destination = if let Some(scope) = output.body {
-            let destination = result.frame.len();
-            result.frame.push(Arc::new(Frame {
-                scope,
-                parent: Some(parent),
-                lexical: Some(owner),
-                particle: program.scope[scope]
-                    .rule
-                    .iter()
-                    .map(|&rule| introduce(Symbol::Rule(rule), destination, &mut next))
-                    .collect(),
-                held: held.values().cloned().collect(),
-            }));
-            destination
-        } else {
-            parent
-        };
-        let particle = remainder
-            .values()
-            .cloned()
-            .chain(
-                output
-                    .particle
-                    .iter()
-                    .map(|&value| introduce(value, owner, &mut next)),
-            )
-            .collect();
-        result.world.push(Arc::new(World {
-            frame: destination,
-            particle,
-        }));
+        match output {
+            Output::Particle(particle) => {
+                let particle = opening.coherence(particle, &mut next);
+                result.world.push(Arc::new(World {
+                    frame: parent,
+                    particle,
+                }));
+            }
+            Output::Scope(scope) => opening.open(&mut result, *scope, parent, owner, &mut next),
+        }
     }
     result.canonical().state
 }
@@ -346,6 +381,13 @@ fn occurrence() {
         "A, [A] (B), [B] C, [[A] (B)] D",
         "A, [A] (B, [B] C), [B] D",
         "A, [A] (B, [] C, [B,C] D)",
+        "A.X, [A] (B, C, [B] D)",
+        "A.X, [A] (B, C, [B, C] D)",
+        "A.X, [A] ((B, [B] C), [X] D)",
+        "Go, [Go] ((C, [D] E), [C] D)",
+        "A.X, [A] (B, (C, [C] D), [D] E)",
+        "Z, (X, [X] Y), ([Z] W)",
+        "Z, (X, (Y, [Y] W), [X] V)",
     ] {
         verify(source, 3);
     }
@@ -384,7 +426,14 @@ fn verify(source: &str, maximum: usize) {
 fn generated() {
     for data in ["", "()", "A", "A.A", "A,B", "A.A,B", "A.([A] B)"] {
         for input in ["", "()", "A", "A.A", "A,B", "[A] B", "A.([A] B)"] {
-            for output in ["B", "(B, C)", "([A] B)", "(A, [A] B)"] {
+            for output in [
+                "B",
+                "(B, C)",
+                "([A] B)",
+                "(A, [A] B)",
+                "(A, B, [A] B)",
+                "((A, [A] B), [B] C)",
+            ] {
                 verify(&format!("[A] B, [{input}] {output}, {data}"), 2);
             }
         }
@@ -398,6 +447,7 @@ fn incremental() {
         "A, [A] (B, [] C, [B,C] D), [D] E",
         "A, [A] B, [A] B, [[A] B] C, [C] (D, [D] E)",
         "A.X, [A] (B, C), [B,C] D, [D] (E, [E] F)",
+        "A.X, [A] (B, C, (D, [D] E), [B, C] F), [F] G",
     ] {
         let program = Arc::new(Program::new(&frontend::lowering::parse(source).unwrap()));
         let mut state = Arc::new(State::initial(&program));

@@ -1,4 +1,4 @@
-use crate::source::{Definition, Output, Value};
+use crate::source::{Definition, Output, Program, Value};
 
 pub(crate) fn rule(input: &[Vec<Value>], output: &[Output]) -> String {
     std::iter::once(pattern(input))
@@ -38,13 +38,22 @@ fn product(output: &[Output]) -> Option<String> {
 }
 
 fn item(output: &Output) -> String {
-    let Some(body) = &output.body else {
-        return coherence(&output.particle);
+    match output {
+        Output::Particle(particle) => coherence(particle),
+        Output::Scope(program) => scope(program),
+    }
+}
+
+pub fn scope(program: &Program) -> String {
+    let initial = match &program.initial[..] {
+        [particle] if particle.is_empty() && program.scope.is_empty() => &[],
+        initial => initial,
     };
-    let entry = (!output.particle.is_empty())
-        .then(|| coherence(&output.particle))
-        .into_iter()
-        .chain(body.iter().map(definition))
+    let entry = initial
+        .iter()
+        .map(|particle| coherence(particle))
+        .chain(program.rule.iter().map(definition))
+        .chain(program.scope.iter().map(scope))
         .collect::<Vec<_>>();
     format!("({})", entry.join(", "))
 }

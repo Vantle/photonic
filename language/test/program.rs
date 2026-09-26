@@ -1,4 +1,4 @@
-use super::{Program, Symbol};
+use super::{Output, Program, Symbol};
 
 fn program(source: &str) -> Program {
     Program::new(&frontend::lowering::parse(source).unwrap())
@@ -12,6 +12,13 @@ fn identity() {
         ("[A] (B, C)", "[A] (C, B)"),
         ("[A] B.([C.D] E)", "[A] B.([D.C] E)"),
         ("[A] (X, [B] C, [C] D)", "[A] (X, [C] D, [B] C)"),
+        ("[A] (X, Y, [B] C)", "[A] (Y, X, [B] C)"),
+        (
+            "[A] ((X, [X] Y), (Z, [Z] W), [B] C)",
+            "[A] ([B] C, (Z, [Z] W), (X, [X] Y))",
+        ),
+        ("[A] ((X, [B] C))", "[A] (X, [B] C)"),
+        ("[A] ([B] C)", "[A] ((), [B] C)"),
     ] {
         let compiled = program(&format!("{left},\n{right}"));
         assert_eq!(
@@ -25,6 +32,10 @@ fn identity() {
         ("[A.A] B", "[A,A] B"),
         ("[A] B.C", "[A] (B, C)"),
         ("[A] (X, [B] C)", "[A] (X, [B] D)"),
+        ("[A] (X, [B] C)", "[A] (X, X, [B] C)"),
+        ("[A] (X, [B] C)", "[A] (X, (), [B] C)"),
+        ("[A] ((X, [X] Y), [B] C)", "[A] (X, [X] Y, [B] C)"),
+        ("[A] ((X, [X] Y), [B] C)", "[A] ((X, [X] W), [B] C)"),
     ] {
         let compiled = program(&format!("{left},\n{right}"));
         assert_ne!(
@@ -38,7 +49,7 @@ fn identity() {
 fn numbering() {
     let compiled = program("().([Seed] Value), [A] (X, [X] Y), [C] D, [A] (X, [X] Y)");
     assert_eq!(compiled.scope[0].rule, [0, 2, 0]);
-    assert_eq!(compiled.initial, [[Symbol::Rule(3)]]);
+    assert_eq!(compiled.scope[0].initial, [[Symbol::Rule(3)]]);
     assert_eq!(
         compiled
             .rule
@@ -50,8 +61,8 @@ fn numbering() {
     let unnamed = Program::new(
         &serde_json::from_str(
             r#"{"rule": [
-                {"input": [["A"]], "output": [{"particle": [{"rule": {"input": [["B"]], "output": [{"particle": ["C"]}]}}]}]},
-                {"input": [["D"]], "output": [{"body": [{"input": [["E"]], "output": []}]}]}
+                {"input": [["A"]], "output": [[{"rule": {"input": [["B"]], "output": [["C"]]}}]]},
+                {"input": [["D"]], "output": [{"initial": [[]], "rule": [{"input": [["E"]], "output": []}]}]}
             ]}"#,
         )
         .unwrap(),
@@ -79,8 +90,9 @@ fn target() {
     let compiled = program("A.B, [A] (X, [X] Y), [B] C");
     let atom = compiled.atom.len();
     let rule = compiled.rule.len();
-    let known =
-        compiled.target(&frontend::lowering::parse("B.A, ().([A] (X, [X] Y)), [B] C").unwrap());
+    let known = compiled
+        .target(&frontend::lowering::parse("B.A, ().([A] (X, [X] Y)), [B] C").unwrap())
+        .unwrap();
     assert_eq!(known.rule, [compiled.scope[0].rule[1]]);
     assert_eq!(
         known.initial,
@@ -92,11 +104,65 @@ fn target() {
             vec![Symbol::Rule(compiled.scope[0].rule[0])]
         ]
     );
-    let unknown = compiled.target(&frontend::lowering::parse("Z, [B] C, [Q] R").unwrap());
+    let unknown = compiled
+        .target(&frontend::lowering::parse("Z, [B] C, [Q] R").unwrap())
+        .unwrap();
     assert_eq!(unknown.rule, [compiled.scope[0].rule[1], rule]);
     assert_eq!(unknown.initial, [[Symbol::Atom(atom + 2)]]);
     assert_eq!(compiled.atom.len(), atom);
     assert_eq!(compiled.rule.len(), rule);
+    assert!(
+        compiled
+            .target(&frontend::lowering::parse("A.B, (X, [X] Y)").unwrap())
+            .is_none()
+    );
+}
+
+#[test]
+fn scope() {
+    let compiled = program("Z, (X, [X] Y), [A] ((B, [B] C), D, [D] E)");
+    assert_eq!(
+        compiled
+            .scope
+            .iter()
+            .map(|scope| (scope.name.as_str(), scope.opener))
+            .collect::<Vec<_>>(),
+        [
+            ("root", None),
+            ("root/0/0", Some(0)),
+            ("root/0/0/1", Some(0)),
+            ("root/1", None),
+        ]
+    );
+    assert_eq!(compiled.scope[0].scope, [3]);
+    assert_eq!(compiled.scope[1].scope, [2]);
+    assert_eq!(compiled.scope[1].rule, [1]);
+    assert_eq!(compiled.scope[2].rule, [2]);
+    assert_eq!(compiled.scope[3].rule, [3]);
+    let atom = |name: &str| Symbol::Atom(compiled.atom.get_index_of(name).unwrap());
+    assert_eq!(compiled.scope[0].initial, [[atom("Z")]]);
+    assert_eq!(compiled.scope[1].initial, [[atom("D")]]);
+    assert_eq!(compiled.scope[2].initial, [[atom("B")]]);
+    assert_eq!(compiled.scope[3].initial, [[atom("X")]]);
+    assert!(matches!(compiled.rule[0].output[..], [Output::Scope(1)]));
+    assert_eq!(
+        compiled.definition(0),
+        frontend::lowering::parse("[A] ((B, [B] C), D, [D] E)")
+            .unwrap()
+            .rule
+            .remove(0)
+            .canonical()
+    );
+}
+
+fn outline(compiled: &Program, scope: usize) -> String {
+    let scope = &compiled.scope[scope];
+    let nested = scope
+        .scope
+        .iter()
+        .map(|&scope| outline(compiled, scope))
+        .collect::<Vec<_>>();
+    format!("({:?}, {:?}, {nested:?})", scope.initial, scope.rule)
 }
 
 fn structure(compiled: &Program) -> impl PartialEq + std::fmt::Debug + use<> {
@@ -110,18 +176,15 @@ fn structure(compiled: &Program) -> impl PartialEq + std::fmt::Debug + use<> {
                     rule.input.clone(),
                     rule.output
                         .iter()
-                        .map(|output| {
-                            (
-                                output.particle.clone(),
-                                output.body.map(|scope| compiled.scope[scope].rule.clone()),
-                            )
+                        .map(|output| match output {
+                            Output::Particle(particle) => format!("{particle:?}"),
+                            Output::Scope(scope) => outline(compiled, *scope),
                         })
                         .collect::<Vec<_>>(),
                 )
             })
             .collect::<Vec<_>>(),
-        compiled.scope[0].rule.clone(),
-        compiled.initial.clone(),
+        outline(compiled, 0),
     )
 }
 

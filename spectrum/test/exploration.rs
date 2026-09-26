@@ -175,7 +175,10 @@ fn opener() {
             .definition
             .output
             .iter()
-            .flat_map(|output| output.body.iter().flatten())
+            .flat_map(|output| match output {
+                frontend::source::Output::Scope(program) => program.rule.as_slice(),
+                frontend::source::Output::Particle(_) => &[],
+            })
             .map(frontend::text::definition)
             .collect::<Vec<_>>();
         for occurrence in &frame.rule {

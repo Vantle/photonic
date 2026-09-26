@@ -167,6 +167,7 @@ fn statement(structure: &Structure) -> Vec<Statement> {
                 .cloned()
                 .map(Statement::Coherence),
         )
+        .chain(part.program.scope().iter().cloned().map(Statement::Scope))
         .collect()
 }
 
@@ -179,6 +180,7 @@ fn write(statement: &Statement, vocabulary: &Vocabulary) -> String {
                 vocabulary,
             )[0],
         ),
+        Statement::Scope(scope) => text::scope(scope, vocabulary),
     }
 }
 

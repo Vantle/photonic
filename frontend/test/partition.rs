@@ -1,35 +1,11 @@
 use frontend::failure::Failure;
 use frontend::lowering;
-use frontend::source::{Definition, Value};
+use frontend::source::Program;
 
-fn value(value: &Value) -> Value {
-    match value {
-        Value::Atom(atom) => Value::Atom(atom.clone()),
-        Value::Rule { rule } => Value::Rule {
-            rule: Box::new(rule.canonical()),
-        },
-    }
-}
-
-fn canonical(source: &str) -> (Vec<Vec<Value>>, Vec<Definition>) {
-    let program = lowering::parse(source).unwrap_or_else(|failure| panic!("{source}: {failure}"));
-    let mut initial = program
-        .initial
-        .iter()
-        .map(|particle| {
-            let mut particle = particle.iter().map(value).collect::<Vec<_>>();
-            particle.sort();
-            particle
-        })
-        .collect::<Vec<_>>();
-    initial.sort();
-    let mut rule = program
-        .rule
-        .iter()
-        .map(Definition::canonical)
-        .collect::<Vec<_>>();
-    rule.sort();
-    (initial, rule)
+fn canonical(source: &str) -> Program {
+    lowering::parse(source)
+        .unwrap_or_else(|failure| panic!("{source}: {failure}"))
+        .canonical()
 }
 
 fn permutation(piece: &[&str]) -> Vec<String> {
@@ -129,6 +105,10 @@ fn name() {
     for (source, text) in [
         ("[A.X, ()] (C, D)", "[A.X, ()] (C, D)"),
         ("[A] (K, [K] L)", "[A] (K, [K] L)"),
+        ("[A] ([K] L)", "[A] ([K] L)"),
+        ("[A] (K, M, [K] L)", "[A] (K, M, [K] L)"),
+        ("[A] ((K, [K] L), [M] N)", "[A] ([M] N, (K, [K] L))"),
+        ("[A] ((), (K, [K] L), [M] N)", "[A] ((), [M] N, (K, [K] L))"),
         ("[A] ().([K] L)", "[A] ().([K] L)"),
         ("[[K] L] X.([K] L)", "[[K] L] X.([K] L)"),
         ("[A]", "[A]"),
@@ -172,7 +152,9 @@ fn edge() {
     for source in ["X.[A] B", "[A].B", "B.[A]", "[A] B.[C]", "[A] [B].C"] {
         assert!(syntax(source).contains("parentheses"), "{source}");
     }
-    assert!(syntax("(K, [K] C) [A], (X, [X] Y)").contains("scope"));
+    let program = lowering::parse("(K, [K] C) [A], (X, [X] Y)").unwrap();
+    assert_eq!(program.rule.len(), 1);
+    assert_eq!(program.scope.len(), 1);
 }
 
 #[test]

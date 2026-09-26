@@ -7,13 +7,15 @@ use crate::failure::Failure;
 // default of 128 would refuse programs nested about 32 levels deep.
 const NESTING: usize = 8 * crate::parser::DEPTH;
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Program {
     #[serde(default)]
     pub initial: Vec<Vec<Value>>,
     #[serde(default)]
     pub rule: Vec<Definition>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub scope: Vec<Self>,
 }
 
 impl Program {
@@ -32,24 +34,33 @@ impl Program {
 
     pub fn canonical(&self) -> Self {
         Self {
-            initial: self.initial.iter().map(|value| particle(value)).collect(),
-            rule: self.rule.iter().map(Definition::canonical).collect(),
+            initial: input(&self.initial),
+            rule: sorted(self.rule.iter().map(Definition::canonical).collect()),
+            scope: sorted(self.scope.iter().map(Self::canonical).collect()),
         }
     }
 
     pub fn append(&mut self, program: Self) {
         self.initial.extend(program.initial);
         self.rule.extend(program.rule);
+        self.scope.extend(program.scope);
     }
 
     pub fn declare(&mut self, library: Self, name: impl std::fmt::Display) -> Result<(), Failure> {
-        if !library.initial.is_empty() {
+        if !library.initial.is_empty() || !library.scope.is_empty() {
             return Err(Failure::Library {
                 library: name.to_string(),
             });
         }
         self.rule.extend(library.rule);
         Ok(())
+    }
+
+    pub fn target(self) -> Result<Self, Failure> {
+        if !self.scope.is_empty() {
+            return Err(Failure::Target);
+        }
+        Ok(self)
     }
 
     pub fn preserve(&mut self, program: &Self) {
@@ -73,58 +84,52 @@ pub struct Definition {
     pub output: Vec<Output>,
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct Output {
-    #[serde(default)]
-    pub particle: Vec<Value>,
-    #[serde(default)]
-    pub body: Option<Vec<Definition>>,
+#[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+#[serde(untagged)]
+pub enum Output {
+    Particle(Vec<Value>),
+    Scope(Program),
 }
 
 impl Definition {
     pub fn canonical(&self) -> Self {
-        let mut output = self
-            .output
-            .iter()
-            .map(|value| Output {
-                particle: particle(&value.particle),
-                body: value.body.as_ref().map(|value| {
-                    let mut result = value.iter().map(Self::canonical).collect::<Vec<_>>();
-                    result.sort();
-                    result
-                }),
-            })
-            .collect::<Vec<_>>();
-        output.sort();
         Self {
             name: String::new(),
             input: input(&self.input),
-            output,
+            output: sorted(
+                self.output
+                    .iter()
+                    .map(|value| match value {
+                        Output::Particle(value) => Output::Particle(particle(value)),
+                        Output::Scope(program) => Output::Scope(program.canonical()),
+                    })
+                    .collect(),
+            ),
         }
     }
 }
 
 fn particle(value: &[Value]) -> Vec<Value> {
-    let mut result = value
-        .iter()
-        .map(|value| match value {
-            Value::Atom(atom) => Value::Atom(atom.clone()),
-            Value::Rule { rule } => Value::Rule {
-                rule: Box::new(rule.canonical()),
-            },
-        })
-        .collect::<Vec<_>>();
-    result.sort();
-    result
+    sorted(
+        value
+            .iter()
+            .map(|value| match value {
+                Value::Atom(atom) => Value::Atom(atom.clone()),
+                Value::Rule { rule } => Value::Rule {
+                    rule: Box::new(rule.canonical()),
+                },
+            })
+            .collect(),
+    )
 }
+
 fn input(value: &[Vec<Value>]) -> Vec<Vec<Value>> {
-    let mut result = value
-        .iter()
-        .map(|value| particle(value))
-        .collect::<Vec<_>>();
-    result.sort();
-    result
+    sorted(value.iter().map(|value| particle(value)).collect())
+}
+
+fn sorted<Item: Ord>(mut value: Vec<Item>) -> Vec<Item> {
+    value.sort();
+    value
 }
 
 fn nesting(text: &str) -> usize {

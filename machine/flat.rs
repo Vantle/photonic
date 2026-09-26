@@ -1,4 +1,5 @@
 use code::atom::Atom;
+use code::output::Output;
 use code::program::Program;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -14,13 +15,13 @@ pub struct Flat {
 
 impl Flat {
     pub fn new(program: &Program) -> Option<Self> {
+        if !program.scope().is_empty() {
+            return None;
+        }
         let rule = program
             .rule()
             .iter()
             .map(|rule| {
-                if rule.output().iter().any(|output| output.body().is_some()) {
-                    return None;
-                }
                 Some(Pattern {
                     input: rule
                         .input()
@@ -30,7 +31,10 @@ impl Flat {
                     output: rule
                         .output()
                         .iter()
-                        .map(|output| output.particle().flat())
+                        .map(|output| match output {
+                            Output::Particle(particle) => particle.flat(),
+                            Output::Scope(_) => None,
+                        })
                         .collect::<Option<_>>()?,
                 })
             })

@@ -5,22 +5,27 @@ use code::output::Output;
 use code::particle::Particle;
 use code::program::Program;
 use code::rule::Rule;
+use code::scope::Scope;
 use code::value::Value;
 
 fn sample() -> Program {
     let inner = rule(&[&[C]], &[&[D]]);
     let carrier = Rule::new(
         vec![particle(&[A])],
-        vec![Output::plain(Particle::from(vec![
+        vec![Output::Particle(Particle::from(vec![
             Value::Atom(Atom(B)),
             nested(inner.clone()),
         ]))],
     );
-    let scope = Rule::new(
-        vec![particle(&[B])],
-        vec![Output::new(particle(&[]), Some(vec![inner]))],
-    );
+    let scope = Rule::new(vec![particle(&[B])], Output::group(Vec::new(), vec![inner]));
     Program::from(vec![carrier, scope])
+}
+
+fn scope(output: &Output) -> &Scope {
+    let Output::Scope(scope) = output else {
+        panic!("expected a scope, found {output:?}");
+    };
+    scope
 }
 
 #[test]
@@ -42,13 +47,64 @@ fn rewrite() {
     let program = sample();
     let deleted = transform(&program, 1, |_| Vec::new());
     assert_eq!(walk(&deleted).len(), 3);
-    assert!(deleted.rule()[0].output()[0].particle().flat().is_some());
+    assert!(matches!(
+        &deleted.rule()[0].output()[0],
+        Output::Particle(particle) if particle.flat().is_some()
+    ));
     let doubled = transform(&program, 3, |rule| vec![rule.clone(), rule.clone()]);
-    assert_eq!(doubled.rule()[1].output()[0].body().unwrap().len(), 2);
+    assert_eq!(scope(&doubled.rule()[1].output()[0]).rule().len(), 2);
     let emptied = transform(&program, 3, |_| Vec::new());
-    assert!(emptied.rule()[1].output()[0].body().is_none());
+    assert_eq!(
+        emptied.rule()[1].output(),
+        [Output::Particle(Particle::default())]
+    );
     let replaced = transform(&program, 0, |_| vec![rule(&[&[D]], &[])]);
     assert_eq!(walk(&replaced).len(), 3);
     assert!(replaced.rule().iter().any(|rule| rule.output().is_empty()));
     assert_eq!(transform(&program, 9, |_| Vec::new()), program);
+}
+
+#[test]
+fn nesting() {
+    let inner = rule(&[&[C]], &[&[D]]);
+    let valued = rule(&[&[D]], &[&[B]]);
+    let enclosed = Output::group(
+        vec![Output::Particle(Particle::from(vec![nested(
+            inner.clone(),
+        )]))],
+        vec![valued.clone()],
+    );
+    let output = Output::group(
+        [particle(&[B]), particle(&[C])]
+            .into_iter()
+            .map(Output::Particle)
+            .chain(enclosed)
+            .collect(),
+        vec![inner.clone()],
+    );
+    let root = Output::group(Vec::new(), vec![valued.clone()]);
+    let [Output::Scope(root)] = &root[..] else {
+        panic!("a group that lists a rule is a scope");
+    };
+    let program = Program::new(
+        vec![Rule::new(vec![particle(&[A])], output)],
+        vec![root.clone()],
+    );
+    let node = walk(&program);
+    assert_eq!(
+        node.iter()
+            .map(|node| (node.rule.clone(), node.depth, node.place))
+            .collect::<Vec<_>>(),
+        [
+            (program.rule()[0].clone(), 0, Place::Program),
+            (inner.clone(), 1, Place::Body { parent: 0 }),
+            (inner, 1, Place::Value { parent: 0 }),
+            (valued, 1, Place::Body { parent: 0 }),
+        ]
+    );
+    let deleted = transform(&program, 3, |_| Vec::new());
+    let outer = scope(&deleted.rule()[0].output()[0]);
+    assert!(outer.scope().is_empty());
+    assert_eq!(outer.coherence().len(), 3);
+    assert_eq!(deleted.scope(), program.scope());
 }

@@ -59,6 +59,9 @@ impl Structure {
             for entry in part.configuration.coherence() {
                 measure::particle(entry, &mut atom);
             }
+            for entry in part.program.scope() {
+                measure::scope(entry, &mut atom);
+            }
         }
         atom.into_iter().collect()
     }

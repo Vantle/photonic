@@ -1,10 +1,11 @@
 use crate::change::Change;
 use crate::flow::Binding;
 use crate::layout::Layout;
+use crate::opening::{Opening, world};
 use crate::place::Place;
 use crate::profile;
-use crate::program::{Instruction, Scope, Symbol};
-use crate::state::{Frame, State, Token, World};
+use crate::program::{Instruction, Output, Scope};
+use crate::state::{State, Token};
 use smallvec::SmallVec;
 use std::collections::BTreeMap;
 
@@ -12,6 +13,7 @@ pub(crate) struct Result {
     pub state: State,
     pub change: Change,
     pub layout: Layout,
+    pub opened: Vec<usize>,
 }
 
 pub(crate) struct Request<'source> {
@@ -64,14 +66,17 @@ pub(crate) fn apply(request: Request<'_>) -> Result {
     } else {
         frame
     };
-    let nested = rule.output.iter().any(|output| output.body.is_some());
+    let nested = rule
+        .output
+        .iter()
+        .any(|output| matches!(output, Output::Scope(_)));
     for &world in binding.world.iter().rev() {
         state.world.remove(world);
     }
     let start = state.world.len();
     let mut change = Change {
         world: binding.world.clone(),
-        insertion: start..start + rule.output.len(),
+        insertion: start..start,
         frame: (source.frame.len()..state.frame.len()).collect(),
     };
     change
@@ -80,6 +85,7 @@ pub(crate) fn apply(request: Request<'_>) -> Result {
     let remainder = remainder(source, binding, &binding.footprint);
     let enclosed = (nested && binding.exact != binding.footprint)
         .then(|| self::remainder(source, binding, &binding.exact));
+    let enclosed = enclosed.as_ref().unwrap_or(&remainder);
     let mut reserve = BTreeMap::new();
     if nested {
         for place in &binding.exact {
@@ -93,57 +99,31 @@ pub(crate) fn apply(request: Request<'_>) -> Result {
         }
     }
     let reserve = reserve.into_values().collect::<Vec<_>>();
-    let mut vacant =
-        (1..source.frame.len()).filter(|index| layout.reach.frame.binary_search(index).is_err());
-    let mut next = next;
+    let mut opening = Opening {
+        scope,
+        held: &reserve,
+        base: enclosed,
+        capture: owner,
+        vacant: (1..source.frame.len())
+            .filter(|index| layout.reach.frame.binary_search(index).is_err()),
+        next,
+        opened: Vec::new(),
+    };
     for output in &rule.output {
-        let target = if let Some(body) = output.body {
-            let target = vacant.next().unwrap_or(state.frame.len());
-            let value = Frame {
-                scope: body,
-                parent: Some(parent),
-                lexical: Some(owner),
-                particle: scope[body]
-                    .rule
-                    .iter()
-                    .map(|&rule| Token::new(Symbol::Rule(rule), target, &mut next))
-                    .collect(),
-                held: reserve.clone(),
-            }
-            .into();
-            if target == state.frame.len() {
-                state.frame.push(value);
-            } else {
-                state.frame[target] = value;
-            }
-            change.frame.push(target);
-            target
-        } else {
-            parent
-        };
-        let base = match output.body {
-            Some(_) => enclosed.as_ref().unwrap_or(&remainder),
-            None => &remainder,
-        };
-        let particle = base
-            .iter()
-            .copied()
-            .cloned()
-            .chain(
-                output
-                    .particle
-                    .iter()
-                    .map(|&value| Token::new(value, owner, &mut next)),
-            )
-            .collect();
-        state.world.push(
-            World {
-                frame: target,
+        match output {
+            Output::Particle(particle) => state.world.push(world(
+                parent,
+                &remainder,
                 particle,
-            }
-            .into(),
-        );
+                owner,
+                &mut opening.next,
+            )),
+            Output::Scope(body) => opening.apply(&mut state, *body, Some(parent), Some(owner)),
+        }
     }
+    let opened = opening.opened;
+    change.insertion = start..state.world.len();
+    change.frame.extend(&opened);
     let reach = layout.reach.advance(source, &state, &change);
     if !std::sync::Arc::ptr_eq(&layout.reach.frame, &reach.frame) {
         change.frame.extend(
@@ -163,6 +143,7 @@ pub(crate) fn apply(request: Request<'_>) -> Result {
         state,
         change,
         layout,
+        opened,
     }
 }
 

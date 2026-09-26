@@ -11,6 +11,7 @@ fn target(particle: Vec<Value>) -> Program {
     Program {
         initial: vec![particle],
         rule: Vec::new(),
+        scope: Vec::new(),
     }
 }
 
@@ -55,6 +56,7 @@ fn successor() {
         let program = Program {
             initial: vec![input],
             rule: rule.clone(),
+            scope: Vec::new(),
         };
         assert_eq!(
             outcome(program.clone(), target(numeral(count + 1))),
@@ -78,6 +80,7 @@ fn membership() {
             Program {
                 initial: vec![particle],
                 rule: rule.clone(),
+                scope: Vec::new(),
             },
             parse("Natural").unwrap(),
         )

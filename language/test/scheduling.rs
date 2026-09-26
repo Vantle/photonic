@@ -240,6 +240,7 @@ fn initialization() {
     let source = frontend::source::Program {
         initial: vec![vec![frontend::source::Value::Atom("A".into())]; 100],
         rule: Vec::new(),
+        scope: Vec::new(),
     };
     let runtime = Runtime::new(&source);
     assert_eq!(runtime.snapshot().state[0].world.len(), 100);
@@ -255,6 +256,7 @@ fn initialization() {
         let program = crate::program::Program::new(&frontend::source::Program {
             initial,
             rule: Vec::new(),
+            scope: Vec::new(),
         });
         let state = State::initial(&program);
         assert_eq!(state, state.canonical().state);

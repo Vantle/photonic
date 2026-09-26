@@ -4,6 +4,7 @@ use code::output::Output;
 use code::particle::Particle;
 use code::program::Program;
 use code::rule::Rule;
+use code::scope::Scope;
 use code::value::Value;
 
 pub fn value(value: &Value, map: &impl Fn(Atom) -> Atom) -> Value {
@@ -31,25 +32,32 @@ pub fn rule(rule: &Rule, map: &impl Fn(Atom) -> Atom) -> Rule {
             .collect(),
         rule.output()
             .iter()
-            .map(|output| {
-                Output::new(
-                    particle(output.particle(), map),
-                    output
-                        .body()
-                        .map(|body| body.iter().map(|entry| self::rule(entry, map)).collect()),
-                )
+            .map(|output| match output {
+                Output::Particle(value) => Output::Particle(particle(value, map)),
+                Output::Scope(value) => Output::Scope(scope(value, map)),
             })
             .collect(),
     )
 }
 
+pub fn scope(scope: &Scope, map: &impl Fn(Atom) -> Atom) -> Scope {
+    scope.map(&mut |entry| particle(entry, map), &mut |entry| {
+        rule(entry, map)
+    })
+}
+
 pub fn program(program: &Program, map: &impl Fn(Atom) -> Atom) -> Program {
-    Program::from(
+    Program::new(
         program
             .rule()
             .iter()
             .map(|entry| rule(entry, map))
-            .collect::<Vec<_>>(),
+            .collect(),
+        program
+            .scope()
+            .iter()
+            .map(|entry| scope(entry, map))
+            .collect(),
     )
 }
 

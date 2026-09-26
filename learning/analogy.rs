@@ -1,4 +1,5 @@
 use code::atom::Atom;
+use code::output::Output;
 use code::rule::Rule;
 use std::collections::BTreeMap;
 
@@ -35,9 +36,6 @@ struct Profile {
 }
 
 fn shape(rule: &Rule) -> Option<Shape> {
-    if rule.output().iter().any(|output| output.body().is_some()) {
-        return None;
-    }
     Some(Shape {
         input: rule
             .input()
@@ -47,7 +45,10 @@ fn shape(rule: &Rule) -> Option<Shape> {
         output: rule
             .output()
             .iter()
-            .map(|output| output.particle().flat())
+            .map(|output| match output {
+                Output::Particle(particle) => particle.flat(),
+                Output::Scope(_) => None,
+            })
             .collect::<Option<_>>()?,
     })
 }

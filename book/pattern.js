@@ -116,10 +116,13 @@
             return [scope(value)];
         };
         const scope = value => {
-            if (value.some(entry => entry.scope)) refuse('A scope cannot hold another scope; to keep a rule in its coherence, join it, as in ().([A] B).');
-            const particle = value.filter(entry => entry.particle).map(entry => entry.particle);
-            if (particle.length > 1) refuse(`A scope holds at most one coherence; found ${particle.length}.`);
-            return { scope: { particle: particle[0] ?? [], body: value.flatMap(entry => entry.rule ?? []) } };
+            const initial = value.filter(entry => entry.particle).map(entry => entry.particle);
+            const nested = value.filter(entry => entry.scope).map(entry => entry.scope);
+            return { scope: {
+                initial: initial.length || nested.length ? initial : [[]],
+                rule: value.flatMap(entry => entry.rule ?? []),
+                scope: nested,
+            } };
         };
         const combine = (left, right) => {
             if (left.length === 1 && right.length === 1) return [[...left[0], ...right[0]]];
@@ -138,34 +141,35 @@
         });
         const partition = term => {
             const pattern = term.bracket.map(input);
-            const output = body(term.join).map(entry => entry.scope ?? { particle: entry.particle });
+            const output = body(term.join).map(entry => entry.scope ?? entry.particle);
             if (pattern.length === 1) return [{ input: pattern[0], output }];
             const rule = pattern.flatMap((source, index) => [
-                ...pattern.filter((_, other) => other !== index).map(target => target.map(particle => ({ particle }))),
+                ...pattern.filter((_, other) => other !== index),
                 ...(output.length ? [output] : []),
             ].map(target => ({ input: source, output: target })));
             spend(rule.length);
             return rule;
         };
         const listed = member(tree);
-        if (listed.some(entry => entry.scope)) refuse('Only a rule’s output opens a scope; to keep a rule in a coherence, join it, as in ().([A] B).');
         return {
             initial: listed.filter(entry => entry.particle).map(entry => entry.particle),
             rule: listed.flatMap(entry => entry.rule ?? []),
+            scope: listed.filter(entry => entry.scope).map(entry => entry.scope),
         };
     };
 
     const key = {
         value: value => value.rule ? `rule:${key.rule(value.rule)}` : `atom:${value.atom}`,
         particle: value => JSON.stringify(value.map(key.value).sort()),
-        output: value => JSON.stringify([key.particle(value.particle), value.body ? value.body.map(key.rule).sort() : null]),
+        scope: value => JSON.stringify([value.initial.map(key.particle).sort(), value.rule.map(key.rule).sort(), (value.scope ?? []).map(key.scope).sort()]),
+        output: value => Array.isArray(value) ? key.particle(value) : key.scope(value),
         rule: value => JSON.stringify([value.input.map(key.particle).sort(), value.output.map(key.output).sort()]),
     };
 
     const canonical = text => {
         try {
             const program = lower(parse(text));
-            return program.rule.length === 1 && !program.initial.length ? key.rule(program.rule[0]) : undefined;
+            return program.rule.length === 1 && !program.initial.length && !program.scope.length ? key.rule(program.rule[0]) : undefined;
         } catch {
             return undefined;
         }
@@ -180,6 +184,7 @@
     const read = text => {
         if (!text.trim()) return undefined;
         const program = lower(shorthand(parse(text)));
+        if (program.scope.length) refuse('A pattern matches coherences or rules, and a group that lists a rule beside a coherence is a scope; to match a rule inside a coherence, join it, as in ().([A] B).');
         if (program.rule.length && program.initial.length) refuse('Search for coherences or for rules, such as B.X or [B, C] D, not both.');
         if (program.rule.length) return { rule: new Set(program.rule.map(key.rule)) };
         return { particle: program.initial.map(particle => particle.map(key.value)) };

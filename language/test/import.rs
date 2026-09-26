@@ -68,10 +68,7 @@ fn coalescence() {
         frame: vec![Some(0), None],
     };
     let rule = Instruction {
-        output: vec![Output {
-            particle: vec![Symbol::Rule(0)],
-            body: None,
-        }],
+        output: vec![Output::Particle(vec![Symbol::Rule(0)])],
         ..Default::default()
     };
     let binding = Binding {

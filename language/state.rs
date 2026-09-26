@@ -1,6 +1,7 @@
 use crate::link::Link;
+use crate::opening::Opening;
 use crate::profile;
-use crate::program::{Program, Symbol};
+use crate::program::{Program, Scope, Symbol};
 use hashing::Builder;
 use smallvec::SmallVec;
 use std::collections::HashMap;
@@ -136,45 +137,28 @@ impl State {
     }
 
     pub fn initial(program: &Program) -> Self {
-        Self::configuration(&program.initial, &program.scope[0].rule)
+        Self::load(&program.scope)
     }
 
-    pub(crate) fn target(program: &Program, source: &frontend::source::Program) -> Self {
-        let target = program.target(source);
-        Self::configuration(&target.initial, &target.rule)
+    pub(crate) fn target(program: &Program, source: &frontend::source::Program) -> Option<Self> {
+        Some(Self::load(std::slice::from_ref(&program.target(source)?)))
     }
 
-    fn configuration(initial: &[Vec<Symbol>], rule: &[usize]) -> Self {
-        let mut id = 0;
-        let state = Self {
-            world: initial
-                .iter()
-                .map(|particle| {
-                    World {
-                        frame: 0,
-                        particle: particle
-                            .iter()
-                            .map(|&value| Token::new(value, 0, &mut id))
-                            .collect(),
-                    }
-                    .into()
-                })
-                .collect(),
-            frame: vec![
-                Frame {
-                    scope: 0,
-                    parent: None,
-                    lexical: None,
-                    particle: rule
-                        .iter()
-                        .map(|&rule| Token::new(Symbol::Rule(rule), 0, &mut id))
-                        .collect(),
-                    held: Vec::new(),
-                }
-                .into(),
-            ]
-            .into(),
+    fn load(scope: &[Scope]) -> Self {
+        let mut state = Self {
+            world: crate::sequence::List::default(),
+            frame: crate::sequence::List::default(),
         };
+        let mut opening = Opening {
+            scope,
+            held: &[],
+            base: &[],
+            capture: 0,
+            vacant: std::iter::empty(),
+            next: 0,
+            opened: Vec::new(),
+        };
+        opening.apply(&mut state, 0, None, None);
         let mut world = (0..state.world.len()).collect::<Vec<_>>();
         world.sort_by_key(|&index| {
             let mut particle = state.world[index]
@@ -185,7 +169,8 @@ impl State {
             particle.sort();
             particle
         });
-        state.rename(&world, &[0]).state
+        let frame = (0..state.frame.len()).collect::<Vec<_>>();
+        state.rename(&world, &frame).state
     }
 
     pub fn reachable(&self) -> Vec<usize> {

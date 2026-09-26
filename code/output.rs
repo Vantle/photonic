@@ -1,58 +1,29 @@
 use crate::particle::Particle;
 use crate::rule::Rule;
+use crate::scope::Scope;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
-#[serde(from = "Form", into = "Form")]
-pub struct Output {
-    particle: Particle,
-    body: Option<Vec<Rule>>,
-}
-
-#[derive(Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-struct Form {
-    particle: Particle,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    body: Option<Vec<Rule>>,
-}
-
-impl From<Form> for Output {
-    fn from(form: Form) -> Self {
-        Self::new(form.particle, form.body)
-    }
-}
-
-impl From<Output> for Form {
-    fn from(output: Output) -> Self {
-        Self {
-            particle: output.particle,
-            body: output.body,
-        }
-    }
+#[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+pub enum Output {
+    Particle(Particle),
+    Scope(Scope),
 }
 
 impl Output {
-    pub fn new(particle: Particle, body: Option<Vec<Rule>>) -> Self {
-        let body = body.filter(|rule| !rule.is_empty()).map(|mut rule| {
-            rule.sort_unstable();
-            rule
-        });
-        Self { particle, body }
-    }
-
-    pub fn plain(particle: Particle) -> Self {
-        Self {
-            particle,
-            body: None,
+    // A group that lists no rule builds nothing, as in the text, so its members belong to the
+    // enclosing list and every scope lists a rule.
+    pub fn group(member: Vec<Self>, rule: Vec<Rule>) -> Vec<Self> {
+        if rule.is_empty() {
+            return member;
         }
-    }
-
-    pub fn particle(&self) -> &Particle {
-        &self.particle
-    }
-
-    pub fn body(&self) -> Option<&[Rule]> {
-        self.body.as_deref()
+        let mut coherence = Vec::new();
+        let mut scope = Vec::new();
+        for member in member {
+            match member {
+                Self::Particle(particle) => coherence.push(particle),
+                Self::Scope(value) => scope.push(value),
+            }
+        }
+        vec![Self::Scope(Scope::new(coherence, rule, scope))]
     }
 }

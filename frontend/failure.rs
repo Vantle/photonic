@@ -31,14 +31,15 @@ pub enum Failure {
         #[label("expanding this exceeds the frontend budget")]
         span: SourceSpan,
     },
-    #[error("a scope holds at most one coherence; found {count}")]
-    #[diagnostic(code(photonic::scope))]
-    Scope {
-        count: usize,
-        #[label("list one coherence beside the scope's rules")]
-        span: SourceSpan,
-    },
-    #[error("library {library} contains initial coherences; supply declarations only")]
+    #[error(
+        "a target cannot open a scope: no text names the declaration a frame belongs to or the tokens it holds"
+    )]
+    #[diagnostic(
+        code(photonic::target),
+        help("write the coherences and rules of the root")
+    )]
+    Target,
+    #[error("library {library} contains initial coherences or scopes; supply declarations only")]
     #[diagnostic(code(photonic::library))]
     Library { library: String },
     #[error("could not read {path}")]

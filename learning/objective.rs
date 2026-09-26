@@ -148,9 +148,7 @@ impl Outcome {
 }
 
 fn particle(rule: &Rule) -> impl Iterator<Item = &Particle> {
-    rule.input()
-        .iter()
-        .chain(rule.output().iter().map(Output::particle))
+    rule.input().iter().chain(crate::coherence::list(rule))
 }
 
 pub(crate) fn atom(node: &[Node<'_>]) -> Vec<Atom> {
@@ -572,7 +570,7 @@ pub(crate) fn memorization(example: &[Example], vocabulary: &Vocabulary, setting
                         .coherence()
                         .iter()
                         .cloned()
-                        .map(Output::plain)
+                        .map(Output::Particle)
                         .collect(),
                 )
             })

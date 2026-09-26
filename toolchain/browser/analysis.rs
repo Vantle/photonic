@@ -1,4 +1,5 @@
-use frontend::source::{Definition, Program, Value};
+use code::output::Output;
+use frontend::source::{self, Definition, Program, Value};
 use serde::Serialize;
 use std::collections::{BTreeMap, BTreeSet};
 use symmetry::analysis::analyze;
@@ -45,10 +46,22 @@ fn visit<'source>(rule: &'source Definition, name: &mut Vec<&'source str>) {
         scan(particle, name);
     }
     for output in &rule.output {
-        scan(&output.particle, name);
-        for nested in output.body.iter().flatten() {
-            visit(nested, name);
+        match output {
+            source::Output::Particle(particle) => scan(particle, name),
+            source::Output::Scope(program) => enclose(program, name),
         }
+    }
+}
+
+fn enclose<'source>(program: &'source Program, name: &mut Vec<&'source str>) {
+    for particle in &program.initial {
+        scan(particle, name);
+    }
+    for rule in &program.rule {
+        visit(rule, name);
+    }
+    for nested in &program.scope {
+        enclose(nested, name);
     }
 }
 
@@ -60,31 +73,38 @@ fn scan<'source>(particle: &'source [Value], name: &mut Vec<&'source str>) {
     }
 }
 
-fn translate(program: &Program, vocabulary: &mut Vocabulary) -> Option<Vec<Statement>> {
+fn named<'source>(collect: impl FnOnce(&mut Vec<&'source str>)) -> Vec<&'source str> {
+    let mut name = Vec::new();
+    collect(&mut name);
+    name
+}
+
+fn translate<'source>(
+    program: &'source Program,
+    vocabulary: &mut Vocabulary,
+) -> Option<(Vec<Statement>, Vec<Vec<&'source str>>)> {
     let mut statement = Vec::new();
+    let mut name = Vec::new();
     for entry in &program.rule {
         statement.push(Statement::Rule(lift::rule(entry, vocabulary).ok()?));
+        name.push(named(|name| visit(entry, name)));
     }
     for entry in &program.initial {
         statement.push(Statement::Coherence(
             lift::particle(entry, vocabulary).ok()?,
         ));
+        name.push(named(|name| scan(entry, name)));
     }
-    Some(statement)
-}
-
-fn mention(program: &Program) -> Vec<Vec<&str>> {
-    let rule = program.rule.iter().map(|entry| {
-        let mut name = Vec::new();
-        visit(entry, &mut name);
-        name
-    });
-    let coherence = program.initial.iter().map(|entry| {
-        let mut name = Vec::new();
-        scan(entry, &mut name);
-        name
-    });
-    rule.chain(coherence).collect()
+    for entry in &program.scope {
+        for output in lift::scope(entry, vocabulary).ok()? {
+            statement.push(match output {
+                Output::Particle(particle) => Statement::Coherence(particle),
+                Output::Scope(scope) => Statement::Scope(scope),
+            });
+            name.push(named(|name| enclose(entry, name)));
+        }
+    }
+    Some((statement, name))
 }
 
 fn attribute(class: &[symmetry::analysis::Class], name: &[Vec<&str>]) -> Vec<Vec<String>> {
@@ -111,7 +131,7 @@ fn attribute(class: &[symmetry::analysis::Class], name: &[Vec<&str>]) -> Vec<Vec
 
 pub fn analysis(program: &Program) -> Option<Analysis> {
     let mut vocabulary = Vocabulary::default();
-    let statement = translate(program, &mut vocabulary)?;
+    let (statement, name) = translate(program, &mut vocabulary)?;
     let result = analyze(
         &statement::structure(&statement),
         &statement,
@@ -119,7 +139,7 @@ pub fn analysis(program: &Program) -> Option<Analysis> {
     )
     .ok()?;
     let class = result.class(&statement);
-    let rule = attribute(&class, &mention(program));
+    let rule = attribute(&class, &name);
     Some(Analysis {
         size: result.symmetry.size.to_string(),
         class: class

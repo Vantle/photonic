@@ -6,7 +6,6 @@ use crate::play::{self, bound};
 use crate::problem::Problem;
 use crate::task::Task;
 use code::atom::Atom;
-use code::output::Output;
 use code::particle::Particle;
 use code::program::Program;
 use code::rule::Rule;
@@ -84,7 +83,7 @@ fn side(from: &[&Particle], to: &[&Particle]) -> usize {
 }
 
 fn output(rule: &Rule) -> Vec<&Particle> {
-    rule.output().iter().map(Output::particle).collect()
+    crate::coherence::list(rule)
 }
 
 fn edit(from: &Rule, to: &Rule) -> usize {

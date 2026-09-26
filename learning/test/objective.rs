@@ -14,13 +14,13 @@ use translation::vocabulary::Vocabulary;
 fn inert(program: &Program, atom: Atom) -> Program {
     let value = Rule::new(
         vec![Particle::atom(&[atom])],
-        vec![Output::plain(Particle::default())],
+        vec![Output::Particle(Particle::default())],
     );
     let carrier = Rule::new(
         vec![Particle::atom(&[atom])],
-        vec![Output::plain(Particle::from(vec![Value::Rule(Box::new(
-            value,
-        ))]))],
+        vec![Output::Particle(Particle::from(vec![Value::Rule(
+            Box::new(value),
+        )]))],
     );
     let mut rule = program.rule().to_vec();
     rule.push(carrier);

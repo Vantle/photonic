@@ -32,7 +32,7 @@ pub fn rule(input: &[&[u16]], output: &[&[u16]]) -> Rule {
         input.iter().map(|atom| particle(atom)).collect(),
         output
             .iter()
-            .map(|atom| Output::plain(particle(atom)))
+            .map(|atom| Output::Particle(particle(atom)))
             .collect(),
     )
 }

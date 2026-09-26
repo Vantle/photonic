@@ -82,9 +82,14 @@ impl Request {
             .iter()
             .enumerate()
             .map(|(index, source)| {
-                let mut target = frontend::lowering::parse(source).map_err(|error| {
-                    Failure::located(Code::Target, &error, source).within(Item::Target(index))
-                })?;
+                let mut target = frontend::lowering::parse(source)
+                    .map_err(|error| {
+                        Failure::located(Code::Target, &error, source).within(Item::Target(index))
+                    })?
+                    .target()
+                    .map_err(|error| {
+                        Failure::new(Code::Target, error.to_string()).within(Item::Target(index))
+                    })?;
                 if self.preserve {
                     target.preserve(program);
                 }

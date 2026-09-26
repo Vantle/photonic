@@ -16,7 +16,7 @@ const RATIO: usize = 8;
 enum Member {
     Particle(Vec<Value>),
     Rule(Vec<Definition>),
-    Scope(Output, Range<usize>),
+    Scope(Program, Range<usize>),
 }
 
 struct Reader<'tree, 'source> {
@@ -76,20 +76,7 @@ impl<'tree> Reader<'tree, '_> {
     }
 
     fn program(&mut self) -> Result<Program, Failure> {
-        let mut program = Program::default();
-        for member in self.list(self.child(0)[0])? {
-            match member {
-                Member::Particle(particle) => program.initial.push(particle),
-                Member::Rule(rule) => program.rule.extend(rule),
-                Member::Scope(_, span) => {
-                    return Err(Self::failure(
-                        span,
-                        "only a rule's output opens a scope; to keep a rule in a coherence, join it, as in ().([A] B)",
-                    ));
-                }
-            }
-        }
-        Ok(program)
+        Ok(assemble(self.list(self.child(0)[0])?))
     }
 
     fn list(&mut self, index: usize) -> Result<Vec<Member>, Failure> {
@@ -137,38 +124,18 @@ impl<'tree> Reader<'tree, '_> {
         {
             return Ok(member);
         }
-        Ok(vec![self.scope(index, member)?])
+        Ok(vec![self.scope(index, member)])
     }
 
-    fn scope(&self, index: usize, member: Vec<Member>) -> Result<Member, Failure> {
-        let span = self.span(index);
-        let mut particle = Vec::new();
-        let mut body = Vec::new();
-        for member in member {
-            match member {
-                Member::Particle(value) => particle.push(value),
-                Member::Rule(rule) => body.extend(rule),
-                Member::Scope(_, span) => {
-                    return Err(Self::failure(
-                        span,
-                        "a scope cannot hold another scope; to keep a rule in its coherence, join it, as in ().([A] B)",
-                    ));
-                }
-            }
+    fn scope(&self, index: usize, member: Vec<Member>) -> Member {
+        let mut program = assemble(member);
+        // A scope that lists neither a coherence nor a scope holds the empty coherence, as () is the
+        // empty coherence, so the remainder of the rule that opens a scope always has a coherence to
+        // enter.
+        if program.initial.is_empty() && program.scope.is_empty() {
+            program.initial.push(Vec::new());
         }
-        if particle.len() > 1 {
-            return Err(Failure::Scope {
-                count: particle.len(),
-                span: (span.start, span.len()).into(),
-            });
-        }
-        Ok(Member::Scope(
-            Output {
-                particle: particle.pop().unwrap_or_default(),
-                body: Some(body),
-            },
-            span,
-        ))
+        Member::Scope(program, self.span(index))
     }
 
     fn join(&mut self, factor: &[usize]) -> Result<Vec<Vec<Value>>, Failure> {
@@ -215,11 +182,8 @@ impl<'tree> Reader<'tree, '_> {
         let mut output = Vec::new();
         for member in self.body(&sink)? {
             output.push(match member {
-                Member::Particle(particle) => Output {
-                    particle,
-                    body: None,
-                },
-                Member::Scope(output, _) => output,
+                Member::Particle(particle) => Output::Particle(particle),
+                Member::Scope(program, _) => Output::Scope(program),
                 Member::Rule(_) => unreachable!("a group that lists a rule is a scope"),
             });
         }
@@ -256,4 +220,16 @@ fn value(rule: Definition) -> Value {
     Value::Rule {
         rule: Box::new(rule),
     }
+}
+
+fn assemble(member: Vec<Member>) -> Program {
+    let mut program = Program::default();
+    for member in member {
+        match member {
+            Member::Particle(particle) => program.initial.push(particle),
+            Member::Rule(rule) => program.rule.extend(rule),
+            Member::Scope(scope, _) => program.scope.push(scope),
+        }
+    }
+    program
 }

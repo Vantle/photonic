@@ -437,6 +437,30 @@ fn nearest() {
 }
 
 #[test]
+fn scope() {
+    let answer = session(&[
+        r#"{"verb": "check", "program": {"source": "Z, (X, [X] Y), [A] (B, C, [B, C] D)"}, "claim": [{"kind": "reach", "pattern": "Y, Z"}]}"#,
+        r#"{"verb": "check", "program": {"source": "Z, (X, [X] Y)"}, "claim": [{"kind": "reach", "pattern": "Y, Z", "exact": true}]}"#,
+        r#"{"verb": "check", "program": {"source": "Z, (X, [X] Y)"}, "claim": [{"kind": "reach", "pattern": "Z, (X, [X] Y)", "exact": true}]}"#,
+        r#"{"verb": "miss", "program": {"source": "Z, (X, [X] Y)"}, "target": "(X, [X] Y)", "exact": true}"#,
+        r#"{"verb": "select", "program": {"source": "Z, (X, [X] Y)"}, "pattern": "(X, [X] Y)"}"#,
+    ]);
+    assert_eq!(
+        answer[0]["answer"]["claim"][0]["answer"], "holds",
+        "{}",
+        answer[0]
+    );
+    assert_eq!(
+        answer[1]["answer"]["claim"][0]["answer"], "holds",
+        "{}",
+        answer[1]
+    );
+    assert_eq!(answer[2]["error"]["code"], "target", "{}", answer[2]);
+    assert_eq!(answer[3]["error"]["code"], "target", "{}", answer[3]);
+    assert_eq!(answer[4]["error"]["code"], "pattern", "{}", answer[4]);
+}
+
+#[test]
 fn step() {
     let value = json(r#"{"verb": "step", "program": {"file": ["bug.wave"]}}"#);
     assert_eq!(value["answer"]["handle"], "s0");

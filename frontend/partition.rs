@@ -44,10 +44,7 @@ impl Partition<'_> {
             .map(|(_, pattern)| {
                 pattern
                     .iter()
-                    .map(|particle| Output {
-                        particle: particle.clone(),
-                        body: None,
-                    })
+                    .map(|particle| Output::Particle(particle.clone()))
                     .collect()
             })
             .chain((!self.output.is_empty()).then(|| self.output.clone()))

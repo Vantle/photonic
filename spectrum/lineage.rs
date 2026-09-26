@@ -43,7 +43,7 @@ fn nested(exploration: &Exploration, event: &Event) -> bool {
         .definition
         .output
         .iter()
-        .any(|output| output.body.is_some())
+        .any(|output| matches!(output, frontend::source::Output::Scope(_)))
 }
 
 fn same(exploration: &Exploration, event: &Event, target: Place, source: Place) -> bool {

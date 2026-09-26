@@ -261,7 +261,8 @@ fn depth(exploration: &Exploration, index: usize) -> usize {
 
 fn target(request: &Request, text: &str, exploration: &Exploration) -> Result<Miss, Failure> {
     let (particle, exact) = if request.exact {
-        let target = crate::subject::lower("target", text, Code::Target)?;
+        let target =
+            crate::subject::lower("target", text, Code::Target).and_then(crate::subject::target)?;
         let mut rule = target
             .rule
             .iter()

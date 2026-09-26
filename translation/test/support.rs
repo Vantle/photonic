@@ -5,6 +5,7 @@ use code::output::Output;
 use code::particle::Particle;
 use code::program::Program;
 use code::rule::Rule;
+use code::scope::Scope;
 use code::value::Value;
 use random::Generator;
 
@@ -47,25 +48,47 @@ fn rule(generator: &mut Generator, shape: &Shape, depth: usize) -> Rule {
         })
         .collect();
     let output = (0..generator.below(3))
-        .map(|_| {
-            let explicit = particle(generator, shape, depth, 0, 2);
-            let body = (depth < shape.depth && generator.chance(shape.nesting)).then(|| {
-                (0..1 + generator.below(2))
-                    .map(|_| rule(generator, shape, depth + 1))
-                    .collect()
-            });
-            Output::new(explicit, body)
+        .flat_map(|_| {
+            if depth < shape.depth && generator.chance(shape.nesting) {
+                return group(generator, shape, depth);
+            }
+            vec![Output::Particle(particle(generator, shape, depth, 0, 2))]
         })
         .collect();
     Rule::new(input, output)
 }
 
+fn group(generator: &mut Generator, shape: &Shape, depth: usize) -> Vec<Output> {
+    let mut member = (0..generator.below(3))
+        .map(|_| Output::Particle(particle(generator, shape, depth, 0, 2)))
+        .collect::<Vec<_>>();
+    if depth + 1 < shape.depth && generator.chance(shape.nesting) {
+        member.extend(group(generator, shape, depth + 1));
+    }
+    let rule = (0..1 + generator.below(2))
+        .map(|_| rule(generator, shape, depth + 1))
+        .collect();
+    Output::group(member, rule)
+}
+
+fn scope(generator: &mut Generator, shape: &Shape) -> Vec<Scope> {
+    if !generator.chance(shape.nesting) {
+        return Vec::new();
+    }
+    group(generator, shape, 0)
+        .into_iter()
+        .filter_map(|output| match output {
+            Output::Scope(scope) => Some(scope),
+            Output::Particle(_) => None,
+        })
+        .collect()
+}
+
 fn program(generator: &mut Generator, shape: &Shape) -> Program {
-    Program::from(
-        (0..1 + generator.below(3))
-            .map(|_| rule(generator, shape, 0))
-            .collect::<Vec<_>>(),
-    )
+    let rule = (0..1 + generator.below(3))
+        .map(|_| rule(generator, shape, 0))
+        .collect::<Vec<_>>();
+    Program::new(rule, scope(generator, shape))
 }
 
 pub fn flat(generator: &mut Generator) -> Program {

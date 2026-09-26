@@ -222,6 +222,7 @@ filegroup(
         "location.rs",
         "mask.rs",
         "membership.rs",
+        "opening.rs",
         "ordering.rs",
         "particle.rs",
         "particle/group.rs",

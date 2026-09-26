@@ -1,4 +1,5 @@
 use crate::analogy::{correspond, partition};
+use crate::coherence;
 use crate::tree::{Place, transform, walk};
 use code::atom::Atom;
 use code::output::Output;
@@ -138,7 +139,7 @@ impl Default for Bound {
 pub(crate) fn seed(atom: Atom) -> Rule {
     Rule::new(
         vec![Particle::atom(&[atom])],
-        vec![Output::plain(Particle::default())],
+        vec![Output::Particle(Particle::default())],
     )
 }
 
@@ -164,7 +165,7 @@ pub(crate) fn apply(program: &Program, action: Action) -> Program {
         Action::Create { atom } => {
             let mut rule = program.rule().to_vec();
             rule.push(seed(atom));
-            Program::from(rule)
+            Program::new(rule, program.scope().to_vec())
         }
         Action::Duplicate { rule } => {
             transform(program, rule, |value| vec![value.clone(), value.clone()])
@@ -176,7 +177,7 @@ pub(crate) fn apply(program: &Program, action: Action) -> Program {
             }),
             Side::Output => modify(program, rule, |value| {
                 output(value, |output| {
-                    output.push(Output::plain(Particle::default()))
+                    output.push(Output::Particle(Particle::default()))
                 })
             }),
         },
@@ -214,13 +215,12 @@ pub(crate) fn apply(program: &Program, action: Action) -> Program {
             output: index,
             atom,
         } => modify(program, rule, |value| {
-            output(value, |entry| {
-                let mut body = entry[index]
-                    .body()
-                    .map(<[Rule]>::to_vec)
-                    .unwrap_or_default();
-                body.push(seed(atom));
-                entry[index] = Output::new(entry[index].particle().clone(), Some(body));
+            let mut seed = Some(seed(atom));
+            coherence::map(value, |slot, particle, group| {
+                group.coherence.push(particle.clone());
+                if slot == index {
+                    group.rule.extend(seed.take());
+                }
             })
         }),
         Action::Detach { rule, atom } => modify(program, rule, |value| detach(value, atom)),
@@ -233,8 +233,10 @@ fn close(rule: &Rule, side: Side, particle: usize) -> Rule {
         Side::Input => input(rule, |entry| {
             entry.remove(particle);
         }),
-        Side::Output => output(rule, |output| {
-            output.remove(particle);
+        Side::Output => coherence::map(rule, |slot, entry, group| {
+            if slot != particle {
+                group.coherence.push(entry.clone());
+            }
         }),
     }
 }
@@ -247,29 +249,25 @@ fn remove(rule: &Rule, side: Side, particle: usize, atom: Atom) -> Rule {
                 entry[particle] = reduced;
             }
         }),
-        Side::Output => output(rule, |output| {
-            if let Some(reduced) = output[particle].particle().remove(&target) {
-                output[particle] =
-                    Output::new(reduced, output[particle].body().map(<[Rule]>::to_vec));
-            }
+        Side::Output => coherence::map(rule, |slot, entry, group| {
+            let reduced = (slot == particle).then(|| entry.remove(&target)).flatten();
+            group
+                .coherence
+                .push(reduced.unwrap_or_else(|| entry.clone()));
         }),
     }
 }
 
 fn detach(rule: &Rule, atom: Atom) -> Rule {
     let target = Value::Atom(atom);
-    Rule::new(
-        rule.input()
-            .iter()
-            .filter(|particle| !particle.value().contains(&target))
-            .cloned()
-            .collect(),
-        rule.output()
-            .iter()
-            .filter(|output| !output.particle().value().contains(&target))
-            .cloned()
-            .collect(),
-    )
+    let kept = coherence::map(rule, |_, entry, group| {
+        if !entry.value().contains(&target) {
+            group.coherence.push(entry.clone());
+        }
+    });
+    input(&kept, |entry| {
+        entry.retain(|particle| !particle.value().contains(&target));
+    })
 }
 
 fn top(program: &Program) -> Vec<usize> {
@@ -339,7 +337,7 @@ fn analogy(program: &Program, local: Local) -> Program {
             }
         })
         .collect();
-    Program::from(rule)
+    Program::new(rule, program.scope().to_vec())
 }
 
 fn place(program: &Program, rule: usize, side: Side, particle: usize, value: Value) -> Program {
@@ -354,15 +352,17 @@ fn place(program: &Program, rule: usize, side: Side, particle: usize, value: Val
             })
         }),
         Side::Output => modify(program, rule, |current| {
-            output(current, |output| {
-                if particle == output.len() {
-                    output.push(Output::plain(Particle::from(vec![value])));
+            if particle == coherence::list(current).len() {
+                return output(current, |output| {
+                    output.push(Output::Particle(Particle::from(vec![value])));
+                });
+            }
+            coherence::map(current, |slot, entry, group| {
+                group.coherence.push(if slot == particle {
+                    entry.insert(value.clone())
                 } else {
-                    output[particle] = Output::new(
-                        output[particle].particle().insert(value),
-                        output[particle].body().map(<[Rule]>::to_vec),
-                    );
-                }
+                    entry.clone()
+                });
             })
         }),
     }
@@ -371,7 +371,7 @@ fn place(program: &Program, rule: usize, side: Side, particle: usize, value: Val
 fn particle(rule: &Rule, side: Side) -> Vec<&Particle> {
     match side {
         Side::Input => rule.input().iter().collect(),
-        Side::Output => rule.output().iter().map(Output::particle).collect(),
+        Side::Output => coherence::list(rule),
     }
 }
 
@@ -404,7 +404,7 @@ fn local(index: usize, rule: &Rule) -> Vec<Local> {
     let mut mentioned = rule
         .input()
         .iter()
-        .chain(rule.output().iter().map(Output::particle))
+        .chain(coherence::list(rule))
         .flat_map(|particle| particle.value().iter().filter_map(Value::atom))
         .collect::<Vec<_>>();
     mentioned.sort_unstable();
@@ -475,7 +475,7 @@ pub(crate) fn legal(program: &Program, vocabulary: usize, bound: &Bound) -> Vec<
             }
         }
         if nesting {
-            for output in 0..entry.rule.output().len() {
+            for output in 0..coherence::list(entry.rule).len() {
                 result.extend(atom().map(|atom| Action::Enclose {
                     rule: index,
                     output,

@@ -39,6 +39,12 @@ pub(crate) fn lower(file: &str, text: &str, code: Code) -> Result<Program, Failu
     frontend::lowering::parse(text).map_err(|error| Failure::located(code, &error, file, text))
 }
 
+pub fn target(program: Program) -> Result<Program, Failure> {
+    program
+        .target()
+        .map_err(|error| Failure::new(Code::Target, error.to_string()))
+}
+
 impl Subject {
     pub fn assemble(&self, reader: &dyn Reader) -> Result<Program, Failure> {
         if self.file.is_empty() && self.source.is_none() {

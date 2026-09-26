@@ -243,10 +243,10 @@ fn assemble(atom: &[Atom], budget: usize) -> Vec<Candidate> {
             }
             let rule = Rule::new(
                 build(input),
-                build(output).into_iter().map(Output::plain).collect(),
+                build(output).into_iter().map(Output::Particle).collect(),
             );
             let need = mask(rule.input().iter());
-            let make = mask(rule.output().iter().map(Output::particle));
+            let make = mask(crate::coherence::list(&rule).into_iter());
             result.push(Candidate {
                 mask: need | make,
                 need,

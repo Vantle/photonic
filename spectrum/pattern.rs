@@ -84,6 +84,12 @@ impl Pattern {
                 original(offset, &insertion)
             })
         })?;
+        if !program.scope.is_empty() {
+            return Err(Failure::new(
+                Code::Pattern,
+                "a pattern matches coherences or rules, and a group that lists a rule beside a coherence is a scope; to match a rule inside a coherence, join it, as in ().([A] B)",
+            ));
+        }
         if !program.rule.is_empty() && !program.initial.is_empty() {
             return Err(Failure::new(
                 Code::Pattern,

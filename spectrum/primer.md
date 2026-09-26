@@ -23,7 +23,7 @@ Five rules give it meaning.
 1. A comma separates, a dot joins, and a space means nothing. Two particles side by side are an error until a dot or a comma says which you mean.
 2. A join multiplies its factors: `A.(B, C)` is `A.B, A.C`, and `()` is the empty coherence.
 3. A term is brackets beside at most one particle, in any order. Each bracket consumes what it names and becomes every other part of its term, so `[A] [B]` yields the rules `[A] B` and `[B] A`, and `[A] [B] C` adds `[A] C` and `[B] C`. Listed in a program or a scope, those rules are separate terms, as if written with commas; inside a particle, as in `X.([A] [B])` or the input of `[[A] [B]] C`, they are values of that one particle. Several outputs are a group, as in `[A] (B, C)`. A rule joins a particle only inside parentheses: `X.([A] B)`.
-4. A group that lists a rule on its own is a scope. Only a rule's output can open one.
+4. A group that lists a rule on its own is a scope: a program in parentheses, holding coherences, rules and scopes. A rule's output opens it when the rule fires, and the program opens its own scopes when it starts. A scope that lists neither a coherence nor a scope holds the empty coherence.
 5. A rule listed in a program or a scope is live there. Anywhere else it is a value.
 
 There are no keywords, operators or reserved words: `Not`, `->` and `unless` are ordinary atoms.
@@ -35,7 +35,7 @@ There are no keywords, operators or reserved words: `Not`, `->` and `unless` are
 - An event is one rule applied to one match. When several events are possible, the runtime explores every one, so a program has a graph of configurations joined by events.
 - Occurrences have identity. One remainder handed to several outputs is one occurrence in each.
 - A rule can apply to what a configuration can become. That event is inferred: it happens at the original configuration, and its deduction is the path to where the rule matched. Occurrences reached that way are the witness; the rest of the match is exact.
-- A scope's own rules send their output to the enclosing scope. Rules of enclosing scopes also apply inside, and their output stays inside.
+- A scope's own rules send their output to the enclosing scope. Rules of enclosing scopes also apply inside, and their output stays inside. Every coherence a rule introduces receives the remainder, in its scopes as in its other outputs.
 - Configurations that differ only in how occurrences are named are one configuration.
 - Prism asks whether an exact configuration, live rules included, is reached. It answers reached, unreachable after a closed exploration, or unknown when a budget stopped the search.
 

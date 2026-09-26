@@ -17,21 +17,30 @@ pub struct Instruction {
 }
 
 #[derive(Clone, Debug)]
-pub struct Output {
-    pub particle: Vec<Symbol>,
-    pub body: Option<usize>,
+pub enum Output {
+    Particle(Vec<Symbol>),
+    Scope(usize),
 }
 
 #[derive(Clone, Debug)]
 pub struct Scope {
     pub name: String,
+    pub initial: Vec<Vec<Symbol>>,
     pub rule: Vec<usize>,
+    pub scope: Vec<usize>,
     pub opener: Option<usize>,
 }
 
-pub(crate) struct Target {
-    pub initial: Vec<Vec<Symbol>>,
-    pub rule: Vec<usize>,
+impl Scope {
+    fn root(initial: Vec<Vec<Symbol>>, rule: Vec<usize>) -> Self {
+        Self {
+            name: "root".into(),
+            initial,
+            rule,
+            scope: Vec::new(),
+            opener: None,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -41,9 +50,16 @@ struct Form {
 }
 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-struct Product {
-    particle: Vec<Symbol>,
-    body: Option<Vec<usize>>,
+enum Product {
+    Particle(Vec<Symbol>),
+    Scope(Body),
+}
+
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+struct Body {
+    initial: Vec<Vec<Symbol>>,
+    rule: Vec<usize>,
+    scope: Vec<Self>,
 }
 
 #[derive(Clone, Debug)]
@@ -51,7 +67,6 @@ pub struct Program {
     pub atom: IndexSet<String, Builder>,
     pub rule: Vec<Instruction>,
     pub scope: Vec<Scope>,
-    pub initial: Vec<Vec<Symbol>>,
     interner: HashMap<Form, usize, Builder>,
 }
 
@@ -69,15 +84,18 @@ impl Program {
             atom: IndexSet::default(),
             rule: Vec::new(),
             scope: Vec::new(),
-            initial: Vec::new(),
             interner: HashMap::default(),
         };
-        program.declare(&source.rule, "root".into(), None);
-        program.initial = program.input(&source.initial);
+        program.declare(source, "root".into(), None);
         program
     }
 
-    pub(crate) fn target(&self, source: &source::Program) -> Target {
+    pub(crate) fn target(&self, source: &source::Program) -> Option<Scope> {
+        // A frame belongs to one scope declaration and holds the tokens that opened it, and a
+        // target can write neither, so a target that opens a scope names no configuration.
+        if !source.scope.is_empty() {
+            return None;
+        }
         let rule = source
             .rule
             .iter()
@@ -94,7 +112,7 @@ impl Program {
             })
             .collect::<Option<Vec<_>>>();
         if let (Some(rule), Some(initial)) = (rule, initial) {
-            return Target { initial, rule };
+            return Some(Scope::root(initial, rule));
         }
         let mut program = self.clone();
         let rule = source
@@ -103,10 +121,7 @@ impl Program {
             .enumerate()
             .map(|(position, rule)| program.intern(rule, format!("root/{position}")))
             .collect();
-        Target {
-            initial: program.input(&source.initial),
-            rule,
-        }
+        Some(Scope::root(program.input(&source.initial), rule))
     }
 
     fn symbol(&self, value: &source::Value) -> Option<Symbol> {
@@ -139,26 +154,35 @@ impl Program {
     fn sink(&self, output: &[source::Output]) -> Option<Vec<Product>> {
         let mut output = output
             .iter()
-            .map(|output| {
-                let body = match &output.body {
-                    Some(body) => {
-                        let mut rule = body
-                            .iter()
-                            .map(|value| self.find(value))
-                            .collect::<Option<Vec<_>>>()?;
-                        rule.sort_unstable();
-                        Some(rule)
-                    }
-                    None => None,
-                };
-                Some(Product {
-                    particle: self.multiset(&output.particle)?,
-                    body,
-                })
+            .map(|output| match output {
+                source::Output::Particle(particle) => {
+                    self.multiset(particle).map(Product::Particle)
+                }
+                source::Output::Scope(program) => self.body(program).map(Product::Scope),
             })
             .collect::<Option<Vec<_>>>()?;
         output.sort_unstable();
         Some(output)
+    }
+
+    fn body(&self, value: &source::Program) -> Option<Body> {
+        let mut rule = value
+            .rule
+            .iter()
+            .map(|rule| self.find(rule))
+            .collect::<Option<Vec<_>>>()?;
+        rule.sort_unstable();
+        let mut scope = value
+            .scope
+            .iter()
+            .map(|scope| self.body(scope))
+            .collect::<Option<Vec<_>>>()?;
+        scope.sort_unstable();
+        Some(Body {
+            initial: self.pattern(&value.initial)?,
+            rule,
+            scope,
+        })
     }
 
     fn shape(&self, instruction: &Instruction) -> Form {
@@ -175,15 +199,30 @@ impl Program {
     }
 
     fn product(&self, output: &Output) -> Product {
-        let mut particle = output.particle.clone();
-        particle.sort_unstable();
-        Product {
-            particle,
-            body: output.body.map(|scope| {
-                let mut rule = self.scope[scope].rule.clone();
-                rule.sort_unstable();
-                rule
-            }),
+        match output {
+            Output::Particle(particle) => {
+                let mut particle = particle.clone();
+                particle.sort_unstable();
+                Product::Particle(particle)
+            }
+            Output::Scope(scope) => Product::Scope(self.outline(*scope)),
+        }
+    }
+
+    fn outline(&self, scope: usize) -> Body {
+        let value = &self.scope[scope];
+        let mut rule = value.rule.clone();
+        rule.sort_unstable();
+        let mut scope = value
+            .scope
+            .iter()
+            .map(|&scope| self.outline(scope))
+            .collect::<Vec<_>>();
+        scope.sort_unstable();
+        Body {
+            initial: sorted(&value.initial),
+            rule,
+            scope,
         }
     }
 
@@ -253,12 +292,11 @@ impl Program {
             .output
             .iter()
             .enumerate()
-            .map(|(position, output)| Output {
-                particle: self.particle(&output.particle),
-                body: output
-                    .body
-                    .as_ref()
-                    .map(|value| self.declare(value, format!("{path}/{position}"), Some(index))),
+            .map(|(position, output)| match output {
+                source::Output::Particle(particle) => Output::Particle(self.particle(particle)),
+                source::Output::Scope(program) => {
+                    Output::Scope(self.declare(program, format!("{path}/{position}"), Some(index)))
+                }
             })
             .collect();
         Instruction {
@@ -268,21 +306,27 @@ impl Program {
         }
     }
 
-    fn declare(
-        &mut self,
-        value: &[source::Definition],
-        name: String,
-        opener: Option<usize>,
-    ) -> usize {
+    fn declare(&mut self, value: &source::Program, name: String, opener: Option<usize>) -> usize {
         let scope = self.scope.len();
         self.scope.push(Scope {
             name: name.clone(),
+            initial: Vec::new(),
             rule: Vec::new(),
+            scope: Vec::new(),
             opener,
         });
-        for (position, value) in value.iter().enumerate() {
-            let index = self.intern(value, format!("{name}/{position}"));
+        for (position, rule) in value.rule.iter().enumerate() {
+            let index = self.intern(rule, format!("{name}/{position}"));
             self.scope[scope].rule.push(index);
+        }
+        self.scope[scope].initial = self.input(&value.initial);
+        for (position, program) in value.scope.iter().enumerate() {
+            let index = self.declare(
+                program,
+                format!("{name}/{}", value.rule.len() + position),
+                opener,
+            );
+            self.scope[scope].scope.push(index);
         }
         scope
     }
@@ -303,32 +347,47 @@ impl Program {
             input: instruction
                 .input
                 .iter()
-                .map(|particle| {
-                    particle
-                        .iter()
-                        .map(|&symbol| self.express(symbol))
-                        .collect()
-                })
+                .map(|particle| self.coherence(particle))
                 .collect(),
             output: instruction
                 .output
                 .iter()
-                .map(|output| source::Output {
-                    particle: output
-                        .particle
-                        .iter()
-                        .map(|&symbol| self.express(symbol))
-                        .collect(),
-                    body: output.body.map(|scope| {
-                        self.scope[scope]
-                            .rule
-                            .iter()
-                            .map(|&rule| self.definition(rule))
-                            .collect()
-                    }),
+                .map(|output| match output {
+                    Output::Particle(particle) => {
+                        source::Output::Particle(self.coherence(particle))
+                    }
+                    Output::Scope(scope) => source::Output::Scope(self.declaration(*scope)),
                 })
                 .collect(),
         }
+    }
+
+    fn declaration(&self, scope: usize) -> source::Program {
+        let value = &self.scope[scope];
+        source::Program {
+            initial: value
+                .initial
+                .iter()
+                .map(|particle| self.coherence(particle))
+                .collect(),
+            rule: value
+                .rule
+                .iter()
+                .map(|&rule| self.definition(rule))
+                .collect(),
+            scope: value
+                .scope
+                .iter()
+                .map(|&scope| self.declaration(scope))
+                .collect(),
+        }
+    }
+
+    fn coherence(&self, particle: &[Symbol]) -> Vec<source::Value> {
+        particle
+            .iter()
+            .map(|&symbol| self.express(symbol))
+            .collect()
     }
 }
 

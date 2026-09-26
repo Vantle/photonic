@@ -263,7 +263,7 @@ Add.Unit.Unit.Unit,
 <section class="chapter" id="scope">
 <p class="eyebrow">Language · 5</p>
 <h2>Scopes</h2>
-<p class="lead">A group that lists rules is a scope: a local place with its own rules. It is written like a program, in parentheses, and only a rule's output can open one.</p>
+<p class="lead">A group that lists rules is a scope: a local place with its own rules, written like a program in parentheses. A rule's output opens one each time the rule fires.</p>
 <figure class="example wide" data-example="brew">
 <pre>Brew.Tea,
 [Brew] (Kettle, [Kettle.Tea] Cup)</pre>
@@ -273,11 +273,24 @@ Add.Unit.Unit.Unit,
 <li>A scope's own rules send their output to the enclosing scope. That is how a scope returns.</li>
 <li>Rules of enclosing scopes also apply inside a scope, and their output stays inside.</li>
 <li>A rule joins coherences only within one scope.</li>
-<li>A scope holds at most one coherence: <code>(Kettle, [Kettle.Tea] Cup)</code> is valid, <code>(A, B, [A] C)</code> is not.</li>
 <li>A rule listed on its own in the group belongs to the scope. Joined with a dot instead, as in <code>Kettle.([Kettle.Tea] Cup)</code>, it is a field of that particle and opens no scope.</li>
-<li>The scope holds what the entering rule matched exactly; a state view shows it after <em>holds</em>.</li>
+<li>Each scope a rule opens holds what the rule matched exactly; a state view shows it after <em>holds</em>.</li>
 </ul>
 <p>A scope works like a function body: it receives the remainder, runs its local rules and returns through them.</p>
+<h3>What a scope holds</h3>
+<p>A scope is a program in parentheses, so it holds any coherences, rules and scopes. Every coherence a rule introduces receives the remainder, inside a scope as outside:</p>
+<figure class="example wide" data-example="pour">
+<pre>Brew.Leaf,
+[Brew] (Kettle, Cup, [Kettle, Cup] Tea)</pre>
+<figcaption>Consuming <code>Brew</code> opens a scope with two coherences, and each receives the remainder: the same <code>Leaf</code> in both. The scope's rule joins them, the shared <code>Leaf</code> counts once, and <code>Tea.Leaf</code> returns.</figcaption>
+</figure>
+<p>A scope that lists neither a coherence nor a scope holds the empty coherence <code>()</code>, so the remainder always has a place to go. A scope inside a scope returns to it, and sees the rules of every scope around it:</p>
+<figure class="example wide" data-example="nest">
+<pre>Brew.Leaf,
+[Brew] ((Kettle, [Kettle] Hot), [Hot] Tea)</pre>
+<figcaption>The inner scope's rule returns <code>Hot.Leaf</code> to the outer scope, and the outer scope's rule returns <code>Tea.Leaf</code>. The outer scope lists a scope, so it holds no coherence of its own.</figcaption>
+</figure>
+<p>A scope written in the program itself opens when the program starts: in <code>Z, (X, [X] Y)</code>, the scope holding <code>X</code> returns <code>Y</code> beside <code>Z</code>.</p>
 <p class="onward"><a href="#inference">Next: Inference</a></p>
 </section>
 
@@ -775,7 +788,7 @@ WHITESPACE = _{ " " | "\t" | "\r" | "\n" | "\u{000B}" | "\u{000C}" }</pre>
 <li>A comma separates, a dot joins, and a space means nothing. Two particles side by side are an error until a dot or a comma says which you mean.</li>
 <li>A join multiplies its factors into particles. Joining distributes over a group, and <code>()</code> is the empty coherence.</li>
 <li>A term is brackets beside at most one particle, in any order. Each bracket consumes what it names and becomes every other part of its term, one rule for each: <code>[A] [B]</code> is <code>[A] B</code> and <code>[B] A</code>, and <code>[A] [B] C</code> adds <code>[A] C</code> and <code>[B] C</code>. Several outputs are a group, as in <code>[A] (B, C)</code>. A rule joins a particle only inside parentheses: <code>X.([A] B)</code>.</li>
-<li>A group that lists a rule on its own is a scope. Only a rule's output can open one.</li>
+<li>A group that lists a rule on its own is a scope: a program in parentheses, holding coherences, rules and scopes. A rule's output opens it when the rule fires, and the program opens its own when it starts. A scope that lists neither a coherence nor a scope holds <code>()</code>.</li>
 <li>A rule listed in a program or scope is live there. Anywhere else it is a value.</li>
 </ul>
 <p>There are no keywords, operators or reserved words: <code>Not</code>, <code>-&gt;</code> and <code>unless</code> are ordinary atoms.</p>
@@ -796,6 +809,9 @@ WHITESPACE = _{ " " | "\t" | "\r" | "\n" | "\u{000B}" | "\u{000C}" }</pre>
 <tr><td>Zero inputs</td><td><code>[] A</code></td><td>Produce a coherence from nothing</td></tr>
 <tr><td>Any coherence</td><td><code>[()] A</code>, <code>[(), ()] A</code></td><td>Match one or two coherences by position alone</td></tr>
 <tr><td>Scope</td><td><code>[A] (B, [B] C)</code></td><td>Open a scope with a local rule</td></tr>
+<tr><td>Scope with coherences</td><td><code>[A] (B, C, [B, C] D)</code></td><td>Open a scope holding two coherences</td></tr>
+<tr><td>Scope in a scope</td><td><code>[A] ((B, [B] C), [C] D)</code></td><td>The inner scope returns to the outer one</td></tr>
+<tr><td>Scope at the start</td><td><code>A, (B, [B] C)</code></td><td>The program opens the scope when it starts</td></tr>
 <tr><td>Produced rule</td><td><code>[Seed] ().([A] B)</code></td><td>Produce the rule <code>[A] B</code> as a value</td></tr>
 <tr><td>Matched rule</td><td><code>[[A] B] C</code></td><td>Consume the rule <code>[A] B</code></td></tr>
 <tr><td>Field</td><td><code>X.([Digit] 0)</code></td><td>A role with its value</td></tr>
@@ -815,7 +831,7 @@ WHITESPACE = _{ " " | "\t" | "\r" | "\n" | "\u{000B}" | "\u{000C}" }</pre>
 <dt>Rule</dt><dd>Inputs in brackets and one output; a group gives several outputs. Also a value.</dd>
 <dt>Event</dt><dd>One rule applied to one match; an arrow of the graph.</dd>
 <dt>Remainder</dt><dd>What a match leaves in its coherences; every output receives it.</dd>
-<dt>Scope</dt><dd>A local place: a group of rules and at most one coherence, opened by a rule's output. Its own rules return to the enclosing scope.</dd>
+<dt>Scope</dt><dd>A local place written like a program in parentheses: coherences, rules and scopes. A rule's output opens it when the rule fires, and the program opens its own when it starts. Its own rules return to the enclosing scope.</dd>
 <dt>Inference</dt><dd>Applying a rule to what a configuration can become, at the configuration itself.</dd>
 <dt>Witness</dt><dd>The concrete occurrences an inferred match reached through evidence.</dd>
 <dt>Deduction</dt><dd>The events that lead from an inferred event's configuration to the one where its rule matched.</dd>

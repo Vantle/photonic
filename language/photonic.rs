@@ -33,6 +33,7 @@ mod link;
 mod location;
 mod mask;
 mod membership;
+mod opening;
 mod ordering;
 mod particle;
 mod partition;

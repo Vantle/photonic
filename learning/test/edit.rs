@@ -55,7 +55,10 @@ fn structure() {
     );
     assert_eq!(walk(&enclosed)[1].place, Place::Body { parent: 0 });
     let unwrapped = apply(&enclosed, Action::Delete { rule: 1 });
-    assert!(unwrapped.rule()[0].output()[0].body().is_none());
+    assert!(matches!(
+        unwrapped.rule()[0].output()[0],
+        code::output::Output::Particle(_)
+    ));
     let extended = apply(
         &created,
         Action::Insert {
@@ -234,4 +237,91 @@ fn analogy() {
         assert!(evaluation.correct);
         assert!(evaluation.cost < reference.cost);
     }
+}
+
+#[test]
+fn coherence() {
+    use code::output::Output;
+    use code::rule::Rule;
+    let particle = |atom: &[u16]| {
+        code::particle::Particle::atom(&atom.iter().map(|&value| Atom(value)).collect::<Vec<_>>())
+    };
+    let plain = |input: u16, output: u16| {
+        Rule::new(
+            vec![particle(&[input])],
+            vec![Output::Particle(particle(&[output]))],
+        )
+    };
+    let nested = Output::group(vec![Output::Particle(particle(&[3]))], vec![plain(3, 1)]);
+    let output = Output::group(
+        [particle(&[1]), particle(&[2])]
+            .into_iter()
+            .map(Output::Particle)
+            .chain(nested)
+            .collect(),
+        vec![plain(2, 3)],
+    );
+    let program = Program::from(vec![Rule::new(vec![particle(&[0])], output)]);
+    let slot = |program: &Program| {
+        crate::coherence::list(&program.rule()[0])
+            .into_iter()
+            .cloned()
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(
+        slot(&program),
+        [particle(&[1]), particle(&[2]), particle(&[3])]
+    );
+    let inserted = apply(
+        &program,
+        Action::Insert {
+            rule: 0,
+            side: Side::Output,
+            particle: 2,
+            atom: Atom(0),
+        },
+    );
+    assert_eq!(
+        slot(&inserted),
+        [particle(&[1]), particle(&[2]), particle(&[0, 3])]
+    );
+    let closed = apply(
+        &program,
+        Action::Close {
+            rule: 0,
+            side: Side::Output,
+            particle: 0,
+        },
+    );
+    assert_eq!(slot(&closed), [particle(&[2]), particle(&[3])]);
+    let enclosed = apply(
+        &program,
+        Action::Enclose {
+            rule: 0,
+            output: 2,
+            atom: Atom(2),
+        },
+    );
+    assert_eq!(walk(&enclosed).len(), walk(&program).len() + 1);
+    assert_eq!(slot(&enclosed), slot(&program));
+    let detached = apply(
+        &program,
+        Action::Detach {
+            rule: 0,
+            atom: Atom(3),
+        },
+    );
+    assert_eq!(
+        slot(&detached),
+        [particle(&[1]), particle(&[2]), particle(&[])]
+    );
+    let emptied = apply(&program, Action::Delete { rule: 2 });
+    assert_eq!(
+        slot(&emptied),
+        [particle(&[1]), particle(&[2]), particle(&[3])]
+    );
+    let Output::Scope(scope) = &emptied.rule()[0].output()[0] else {
+        panic!("the outer scope keeps its rule");
+    };
+    assert!(scope.scope().is_empty());
 }

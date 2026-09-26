@@ -208,7 +208,7 @@ fn exhaustive(task: &Task, size: usize, setting: &Setting) -> Vec<(Program, Eval
             if total <= size {
                 rule.push(Rule::new(
                     build(input),
-                    build(output).into_iter().map(Output::plain).collect(),
+                    build(output).into_iter().map(Output::Particle).collect(),
                 ));
                 cost.push(total);
             }

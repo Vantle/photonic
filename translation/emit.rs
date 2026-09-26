@@ -1,10 +1,12 @@
 use crate::vocabulary::Vocabulary;
 use code::configuration::Configuration;
+use code::output::Output;
 use code::particle::Particle;
 use code::program::Program;
 use code::rule::Rule;
+use code::scope::Scope;
 use code::value::Value;
-use frontend::source::{self, Definition, Output};
+use frontend::source::{self, Definition};
 
 fn value(value: &Value, vocabulary: &Vocabulary) -> source::Value {
     match value {
@@ -34,14 +36,30 @@ pub(crate) fn definition(rule: &Rule, vocabulary: &Vocabulary) -> Definition {
         output: rule
             .output()
             .iter()
-            .map(|output| Output {
-                particle: particle(output.particle(), vocabulary),
-                body: output.body().map(|body| {
-                    body.iter()
-                        .map(|rule| definition(rule, vocabulary))
-                        .collect()
-                }),
+            .map(|output| match output {
+                Output::Particle(value) => source::Output::Particle(particle(value, vocabulary)),
+                Output::Scope(value) => source::Output::Scope(scope(value, vocabulary)),
             })
+            .collect(),
+    }
+}
+
+pub(crate) fn scope(scope: &Scope, vocabulary: &Vocabulary) -> source::Program {
+    source::Program {
+        initial: scope
+            .coherence()
+            .iter()
+            .map(|entry| particle(entry, vocabulary))
+            .collect(),
+        rule: scope
+            .rule()
+            .iter()
+            .map(|rule| definition(rule, vocabulary))
+            .collect(),
+        scope: scope
+            .scope()
+            .iter()
+            .map(|entry| self::scope(entry, vocabulary))
             .collect(),
     }
 }
@@ -73,5 +91,10 @@ pub fn program(
     source::Program {
         initial: self::configuration(configuration, vocabulary),
         rule: rule(program, vocabulary),
+        scope: program
+            .scope()
+            .iter()
+            .map(|entry| scope(entry, vocabulary))
+            .collect(),
     }
 }

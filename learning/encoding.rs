@@ -3,7 +3,6 @@ use crate::objective::{Evaluation, Outcome};
 use crate::task::{Goal, Task};
 use crate::tree::{Place, walk};
 use code::configuration::Configuration;
-use code::output::Output;
 use code::particle::Particle;
 use code::program::Program;
 use code::rule::Rule;
@@ -265,10 +264,7 @@ impl Writer {
             place: Location::Value as u16,
             ..template
         });
-        let particle = rule
-            .input()
-            .iter()
-            .chain(rule.output().iter().map(Output::particle));
+        let particle = rule.input().iter().chain(crate::coherence::list(rule));
         for (index, particle) in particle.enumerate() {
             let inner = Token {
                 group: permutation.group(index),
@@ -365,7 +361,7 @@ fn program(writer: &mut Writer, program: &Program, permutation: &Permutation) ->
             } as u16;
             let particle = match side {
                 Side::Input => entry.rule.input().iter().collect::<Vec<_>>(),
-                Side::Output => entry.rule.output().iter().map(Output::particle).collect(),
+                Side::Output => crate::coherence::list(entry.rule),
             };
             for (position, value) in particle.iter().enumerate() {
                 let group = permutation.group(position);

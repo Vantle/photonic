@@ -1,4 +1,4 @@
-use crate::source::{Definition, Output, Value};
+use crate::source::{Definition, Output, Program, Value};
 
 pub(crate) fn definition(value: &Definition) -> usize {
     1 + value.name.len() + input(&value.input) + output(&value.output)
@@ -12,10 +12,18 @@ pub(crate) fn output(value: &[Output]) -> usize {
     value
         .iter()
         .map(|value| {
-            1 + particle(&value.particle)
-                + value.body.iter().flatten().map(definition).sum::<usize>()
+            1 + match value {
+                Output::Particle(value) => particle(value),
+                Output::Scope(value) => program(value),
+            }
         })
         .sum()
+}
+
+fn program(value: &Program) -> usize {
+    input(&value.initial)
+        + value.rule.iter().map(definition).sum::<usize>()
+        + value.scope.iter().map(program).sum::<usize>()
 }
 
 pub(crate) fn particle(value: &[Value]) -> usize {
