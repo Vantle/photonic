@@ -491,7 +491,7 @@ photonic_test(
 <pre class="listing">bazel run -c opt //command:photonic -- lower program/language/inference.wave
 bazel run -c opt //command:photonic -- run program/language/inference.wave
 bazel run -c opt //command:photonic -- prism program/language/inference.wave --target target.wave</pre>
-<p><code>lower</code> prints the program as JSON, <code>run</code> the explored configurations, and <code>prism</code> a verdict for the complete configuration in a target file. <code>--library</code> loads a rules-only file; <code>--path</code> follows a direct path. Every command reads paths relative to where <code>bazel run</code> started.</p>
+<p><code>lower</code> prints the program as JSON, <code>run</code> the explored configurations, and <code>prism</code> a verdict for the complete configuration in a target file. <code>--library</code> loads a rules-only file; <code>--path</code> follows a direct path; <code>--engine laser</code> explores with Laser, the second engine. Every command reads paths relative to where <code>bazel run</code> started.</p>
 <pre class="listing">bazel test -c opt //...
 bazel run -c opt //program/language:inference
 bazel test -c opt //program/language:conjunction.check</pre>
@@ -714,6 +714,7 @@ bazel run -c opt //command:photonic -- shape library/ternary/compare.particle</p
 <div><strong>Verify</strong>Prism compares the exact target and reports its verdict.</div>
 </div>
 <p>The kernel is <a href="language/evaluation.rs">language/evaluation.rs</a>. Exhaustive search in <a href="language/runtime.rs">language/runtime.rs</a> also performs inference and records <strong>support</strong>: the events and derivations that justify each configuration. A configuration counts as reached only with support grounded in the start, so a cycle cannot justify itself. Direct paths live in <a href="language/path.rs">language/path.rs</a>, and Prism in <a href="language/prism.rs">language/prism.rs</a>.</p>
+<p><strong>Laser</strong>, in <a href="language/laser.rs">language/laser.rs</a>, is a second engine for exhaustive search. It names each configuration by its components instead of searching for the canonical form of the whole, remembers what each rule does to the components it touches, and carries matches back along events in rounds that run in parallel. A closed exploration reaches the same configurations, events, support and verdicts on both engines, and every exhaustive <code>photonic_test</code> case runs on both. Laser is far faster once explorations grow: on six dials, 729 configurations and 13,122 events, it finishes about three hundred times sooner than the interpreter. <code>--engine laser</code> selects it on the command line and in every question; <a href="document/laser.md">Laser</a> is its contract.</p>
 <p>Reports are identical with one, two or four workers; the tests check it. A budget defers work instead of dropping it, so a larger budget resumes. The command line and <code>photonic_test</code> share one set of default budgets.</p>
 <div class="table wide">
 <table>

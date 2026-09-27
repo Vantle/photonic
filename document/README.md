@@ -14,6 +14,7 @@ These describe the repository as it is and change with it.
 | [Continuous verification](automation.md) | The Buildkite jobs, their agent capacity and the fixtures tagged `memory`. |
 | [Theorems](../theorem/README.md) | The proof contract, how to write a theorem, and the order in which the layers are proved. |
 | [Spectrum](spectrum.md) | Questions about programs and every configuration they reach: explorations, handles, patterns, claims, the verbs, failures and the Model Context Protocol server. |
+| [Laser](laser.md) | The second engine for exploring every future: configurations named by their components, remembered transitions and matches carried back along events; what it agrees on with the interpreter, its budgets, verification and measurements. |
 | [Program symmetry](symmetry.md) | Shapes, renamings and symmetries of programs: how the engine finds them, how to use it to connect fields, and what it finds in this repository. |
 | [Program optimization learner](learning.md) | Correctness under every schedule, the objective and goals, edits, planning, inferring instead of checking, solving and proving optimality, learning loops and curriculum, training and results. |
 
