@@ -51,8 +51,8 @@ fn identity() {
     assert!(!Arc::ptr_eq(&first, &target));
     assert_eq!(first, target);
     assert_ne!(first, capture);
-    assert_eq!(*first, state.environment(0));
-    assert_eq!(*capture, state.environment(1));
+    assert_eq!(*first, state.environment(0).state);
+    assert_eq!(*capture, state.environment(1).state);
     let weak = Arc::downgrade(&first);
     drop(first);
     drop(repeated);
@@ -78,7 +78,7 @@ fn capacity() {
                 capture: target % 2,
                 state: &state,
             });
-            assert_eq!(*environment, state.environment(target % 2));
+            assert_eq!(*environment, state.environment(target % 2).state);
             retained.push(environment);
             assert!(store.entry.len() <= capacity);
         }
@@ -88,7 +88,7 @@ fn capacity() {
             capture: 0,
             state: &state,
         });
-        assert_eq!(*environment, state.environment(0));
+        assert_eq!(*environment, state.environment(0).state);
         assert_eq!(store.entry.len(), usize::from(capacity != 0));
     }
 }

@@ -350,7 +350,7 @@ impl State {
                 .sum::<usize>()
     }
 
-    pub fn environment(&self, capture: usize) -> Self {
+    pub fn environment(&self, capture: usize) -> Canonical {
         Self {
             world: vec![
                 World {
@@ -363,7 +363,6 @@ impl State {
             frame: self.frame.clone(),
         }
         .canonical()
-        .state
     }
 }
 

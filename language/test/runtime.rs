@@ -391,7 +391,10 @@ fn capture() {
             .unwrap()
             .capture
             .unwrap();
-        assert_eq!(output.state.environment(capture), witness.environment(2));
+        assert_eq!(
+            output.state.environment(capture).state,
+            witness.environment(2).state
+        );
         assert_eq!(
             output
                 .state

@@ -33,7 +33,7 @@ impl Store {
         if let Some(environment) = self.entry.get(&key).and_then(Weak::upgrade) {
             return environment;
         }
-        let environment = Arc::new(request.state.environment(request.capture));
+        let environment = Arc::new(request.state.environment(request.capture).state);
         if self.entry.len() == self.capacity {
             self.entry.retain(|_, value| value.strong_count() != 0);
         }

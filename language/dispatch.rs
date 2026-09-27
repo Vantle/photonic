@@ -29,7 +29,7 @@ pub(crate) struct Delivery {
 }
 
 pub(crate) struct Network {
-    catalog: Catalog,
+    catalog: std::sync::Arc<Catalog>,
     membership: membership::Index,
     sharing: std::sync::Arc<crate::joining::Store>,
     trigger: HashMap<Symbol, Vec<usize>, Builder>,
@@ -113,7 +113,10 @@ impl Network {
     }
 
     pub fn new(program: &crate::program::Program, index: &Index) -> Self {
-        let catalog = Catalog::new(program);
+        Self::with(std::sync::Arc::new(Catalog::new(program)), index)
+    }
+
+    pub fn with(catalog: std::sync::Arc<Catalog>, index: &Index) -> Self {
         let mut trigger: HashMap<_, Vec<_>, Builder> = HashMap::default();
         let mut missing = Vec::new();
         let mut enabled = Set::default();

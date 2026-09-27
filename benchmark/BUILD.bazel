@@ -195,6 +195,43 @@ rust_binary(
 )
 
 rust_binary(
+    name = "agreement",
+    srcs = [
+        "agreement.rs",
+        "corpus.rs",
+        "directory.rs",
+    ],
+    crate_root = "agreement.rs",
+    lint_config = "//:lint",
+    deps = [
+        "//frontend",
+        "//language:photonic",
+        "@crate//:clap",
+        "@crate//:rayon",
+        "@crate//:serde",
+        "@crate//:serde_json",
+    ],
+)
+
+rust_binary(
+    name = "laser",
+    srcs = [
+        "directory.rs",
+        "laser.rs",
+    ],
+    compile_data = ["//language:fixture"],
+    crate_root = "laser.rs",
+    lint_config = "//:lint",
+    deps = [
+        "//frontend",
+        "//language:photonic",
+        "@crate//:clap",
+        "@crate//:serde",
+        "@crate//:serde_json",
+    ],
+)
+
+rust_binary(
     name = "runtime",
     srcs = [
         "directory.rs",
