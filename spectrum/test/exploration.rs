@@ -1,9 +1,9 @@
-use super::support::{BUG, FIX, ORIGINAL, explore};
+use super::support::{BUG, FIX, ORIGINAL, engine, explore};
 use crate::cause::Role;
 use crate::claim::{self, Answer, Claim, Kind};
 use crate::configuration::{Opener, Value};
 use crate::lineage;
-use crate::recording::Order;
+use crate::recording::{Engine, Order};
 use crate::render;
 
 fn claim(kind: Kind, pattern: &str) -> Claim {
@@ -216,4 +216,102 @@ fn inevitable() {
     let witness = verdict.witness.expect("a witness");
     assert_eq!(witness, format!("s{cursor}"));
     assert_eq!(render::configuration(&exploration, cursor), "E");
+}
+
+// Both engines close with the same configurations and events and answer every claim alike; only
+// the order of their handles may differ.
+#[test]
+fn laser() {
+    let pattern = [
+        "False.Extra",
+        "True.Extra",
+        "Boolean",
+        "Boolean.Boolean",
+        "Extra",
+        "Nothing",
+        "B",
+        "C",
+    ];
+    for source in [
+        BUG,
+        ORIGINAL,
+        FIX,
+        "A, [A] M, [A] N, [M] E, [N] P, [P] E",
+        "A, B, [A] ([X] Y), [B] ([P] Q)",
+        "A.B, [A] C, [B] D",
+        &photonic::family::dial(3),
+        &photonic::family::diner(2),
+    ] {
+        let interpreter = explore(source);
+        let compiled = engine(source, Engine::Laser);
+        assert_eq!(compiled.engine, Engine::Laser, "{source}");
+        assert_ne!(interpreter.key, compiled.key, "{source}");
+        assert!(interpreter.closed && compiled.closed, "{source}");
+        let inferred = |exploration: &crate::exploration::Exploration| {
+            (0..exploration.event.len())
+                .filter(|&index| exploration.inferred(index))
+                .count()
+        };
+        assert_eq!(
+            (
+                interpreter.configuration.len(),
+                interpreter.event.len(),
+                inferred(&interpreter)
+            ),
+            (
+                compiled.configuration.len(),
+                compiled.event.len(),
+                inferred(&compiled)
+            ),
+            "{source}"
+        );
+        for kind in [
+            Kind::Reach,
+            Kind::Avoid,
+            Kind::Always,
+            Kind::Inevitable,
+            Kind::Outcome,
+        ] {
+            for pattern in pattern {
+                let answer = |exploration| {
+                    claim::evaluate(&claim(kind, pattern), exploration)
+                        .unwrap()
+                        .answer
+                };
+                assert_eq!(
+                    answer(&interpreter),
+                    answer(&compiled),
+                    "{source} {kind:?} {pattern}"
+                );
+            }
+        }
+        let target = frontend::lowering::parse(pattern[0]).unwrap();
+        assert_eq!(
+            interpreter
+                .verdict(&target, true)
+                .map(|verdict| verdict.outcome),
+            compiled
+                .verdict(&target, true)
+                .map(|verdict| verdict.outcome),
+            "{source}"
+        );
+        for (index, configuration) in compiled.configuration.iter().enumerate() {
+            if compiled.path(index).is_none() {
+                continue;
+            }
+            for occurrence in configuration
+                .coherence
+                .iter()
+                .flat_map(|coherence| &coherence.occurrence)
+            {
+                let line = lineage::lineage(&compiled, index, occurrence.id).unwrap();
+                let last = line.last().expect("a lineage has a line").role;
+                assert!(
+                    matches!(last, Role::Initial | Role::Produced),
+                    "{source} s{index}.o{}",
+                    occurrence.id
+                );
+            }
+        }
+    }
 }

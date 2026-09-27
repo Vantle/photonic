@@ -4,7 +4,7 @@ use spectrum::claim::{Claim, Kind};
 use spectrum::context::Context;
 use spectrum::failure::{Code, Failure};
 use spectrum::handle::Handle;
-use spectrum::recording::{Goal, Mode, Recording};
+use spectrum::recording::{Engine, Goal, Mode, Recording};
 use spectrum::request::{self, Answer, Request};
 use spectrum::store::Store;
 use spectrum::subject::{Reader, Subject};
@@ -40,12 +40,14 @@ fn recording(
     program: Subject,
     budget: &argument::Budget,
     path: bool,
+    engine: Option<Engine>,
     goal: Option<Goal>,
 ) -> Recording {
     Recording {
         program: Some(program),
         exploration: None,
         mode: Some(if path { Mode::Path } else { Mode::Exhaustive }),
+        engine,
         budget: Some(budget.into()),
         goal,
     }
@@ -136,6 +138,7 @@ fn pointer(
         subject(&file, &pointer.source),
         &pointer.budget,
         pointer.path,
+        pointer.engine,
         None,
     );
     let Some(handle) = handle else {
@@ -154,6 +157,7 @@ pub fn check(check: argument::Check) -> miette::Result<ExitCode> {
             subject(&check.file, &check.source),
             &check.budget,
             check.path,
+            check.engine,
             goal(check.goal, check.claim.preserve),
         ),
         claim: claim(&check.claim),
@@ -167,6 +171,7 @@ pub fn explore(explore: argument::Explore) -> miette::Result<ExitCode> {
             subject(&explore.file, &explore.source),
             &explore.budget,
             explore.path,
+            explore.engine,
             goal(explore.goal, explore.preserve),
         ),
         limit: explore.limit,
@@ -180,6 +185,7 @@ pub fn select(select: argument::Select) -> miette::Result<ExitCode> {
             subject(&select.file, &select.source),
             &select.budget,
             select.path,
+            select.engine,
             None,
         ),
         pattern: select.pattern,
@@ -208,6 +214,7 @@ pub fn step(pointer: argument::Pointer) -> miette::Result<ExitCode> {
             subject(&file, &pointer.source),
             &pointer.budget,
             pointer.path,
+            pointer.engine,
             None,
         ),
         handle: handle.unwrap_or_else(|| "s0".to_owned()),
@@ -218,7 +225,13 @@ pub fn step(pointer: argument::Pointer) -> miette::Result<ExitCode> {
 pub fn miss(miss: argument::Miss) -> miette::Result<ExitCode> {
     let (file, rule) = split(&miss.argument);
     let request = Request::Miss(spectrum::miss::Request {
-        recording: recording(subject(&file, &miss.source), &miss.budget, miss.path, None),
+        recording: recording(
+            subject(&file, &miss.source),
+            &miss.budget,
+            miss.path,
+            miss.engine,
+            None,
+        ),
         target: miss.target,
         exact: miss.exact,
         preserve: miss.preserve,
@@ -234,6 +247,7 @@ pub fn compare(compare: argument::Compare) -> miette::Result<ExitCode> {
             subject(std::slice::from_ref(path), &compare.source),
             &compare.budget,
             compare.path,
+            compare.engine,
             None,
         )
     };

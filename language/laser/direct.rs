@@ -6,8 +6,13 @@ use std::collections::{HashMap, HashSet};
 // An event is direct when a match found at its own source derives it, through an empty walk or a
 // closed one. Empty walks are known when an event fires. A closed walk never leaves its strongly
 // connected component, so the traces of cyclic components form a graph, searched from the matches
-// of each configuration that still has events not known to be direct.
-fn component(successor: &[Vec<usize>]) -> Vec<usize> {
+// of each configuration that still has events not known to be direct. The graph has an edge for
+// every crossing, so its nodes are numbered in 32 bits.
+fn number(value: usize) -> u32 {
+    u32::try_from(value).expect("fewer than 2^32 traces")
+}
+
+fn component(successor: &[Vec<u32>]) -> Vec<usize> {
     let count = successor.len();
     let mut index = vec![usize::MAX; count];
     let mut low = vec![0; count];
@@ -31,6 +36,7 @@ fn component(successor: &[Vec<usize>]) -> Vec<usize> {
                 member[node] = true;
             }
             if let Some(&target) = successor[node].get(position) {
+                let target = target as usize;
                 work.push((node, position + 1));
                 if index[target] == usize::MAX {
                     work.push((target, 0));
@@ -57,11 +63,12 @@ fn component(successor: &[Vec<usize>]) -> Vec<usize> {
     label
 }
 
-fn condense(edge: &[Vec<usize>], label: &[usize]) -> Vec<Vec<usize>> {
+fn condense(edge: &[Vec<u32>], label: &[usize]) -> Vec<Vec<usize>> {
     let count = label.iter().max().map_or(0, |&value| value + 1);
     let mut successor = vec![Vec::new(); count];
     for (node, list) in edge.iter().enumerate() {
         for &next in list {
+            let next = next as usize;
             if label[node] != label[next] {
                 successor[label[node]].push(label[next]);
             }
@@ -93,7 +100,7 @@ fn cyclic(laser: &Laser, label: &[usize]) -> Vec<bool> {
 
 struct Graph {
     offset: Vec<usize>,
-    edge: Vec<Vec<usize>>,
+    edge: Vec<Vec<u32>>,
     event: Vec<Option<usize>>,
 }
 
@@ -130,13 +137,14 @@ fn graph(
                     return None;
                 }
                 let found = laser.crossed[event][position]?;
-                Some(offset[source] + found.get() as usize - 1)
+                Some(number(offset[source] + found.get() as usize - 1))
             }));
             (id, list)
         });
         frontier = Vec::new();
         for (id, list) in expanded {
             for &next in &list {
+                let next = next as usize;
                 if !std::mem::replace(&mut reached[next], true) {
                     frontier.push(next);
                 }
@@ -217,7 +225,7 @@ pub(super) fn mark(laser: &mut Laser, executor: Option<&Executor>) {
     }
     let mut successor = vec![Vec::new(); laser.state.len()];
     for event in &laser.event {
-        successor[event.source].push(event.target);
+        successor[event.source].push(number(event.target));
     }
     let label = component(&successor);
     let cyclic = cyclic(laser, &label);

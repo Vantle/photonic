@@ -1,4 +1,5 @@
 use clap::{Args, Parser, Subcommand};
+use spectrum::recording::Engine;
 use std::num::NonZeroUsize;
 use std::path::PathBuf;
 
@@ -151,21 +152,14 @@ pub struct Run {
     pub worker: NonZeroUsize,
     #[arg(
         long,
-        value_enum,
-        default_value_t = Engine::Interpreter,
-        help = "The engine that explores every future: the interpreter, or Laser, which propagates matches along events and names configurations by their components; both close with the same answers"
+        default_value = "interpreter",
+        help = "The engine that explores every future: interpreter, or laser, which carries matches back along events and names configurations by their components; both close with the same answers"
     )]
     pub engine: Engine,
     #[arg(long, help = "Print the complete execution report as JSON")]
     pub json: bool,
     #[arg(long, requires = "json", help = "Serialize JSON without indentation")]
     pub compact: bool,
-}
-
-#[derive(Clone, Copy, Eq, PartialEq, clap::ValueEnum)]
-pub enum Engine {
-    Interpreter,
-    Laser,
 }
 
 #[derive(Args)]
@@ -197,6 +191,12 @@ pub struct Check {
     pub path: bool,
     #[arg(
         long,
+        conflicts_with = "path",
+        help = "The engine that explores every future: interpreter or laser; both close with the same configurations, events and answers, and each numbers handles in its own order"
+    )]
+    pub engine: Option<Engine>,
+    #[arg(
+        long,
         help = "In path mode, the complete configuration the path stops at"
     )]
     pub goal: Option<String>,
@@ -219,6 +219,12 @@ pub struct Explore {
         help = "Follow one direct path instead of exploring every future; each step fires the first event within the limits that the scheduler finds"
     )]
     pub path: bool,
+    #[arg(
+        long,
+        conflicts_with = "path",
+        help = "The engine that explores every future: interpreter or laser; both close with the same configurations, events and answers, and each numbers handles in its own order"
+    )]
+    pub engine: Option<Engine>,
     #[arg(
         long,
         help = "In path mode, the complete configuration the path stops at"
@@ -254,6 +260,12 @@ pub struct Select {
         help = "Follow one direct path instead of exploring every future; each step fires the first event within the limits that the scheduler finds"
     )]
     pub path: bool,
+    #[arg(
+        long,
+        conflicts_with = "path",
+        help = "The engine that explores every future: interpreter or laser; both close with the same configurations, events and answers, and each numbers handles in its own order"
+    )]
+    pub engine: Option<Engine>,
     #[command(flatten)]
     pub print: Print,
 }
@@ -274,6 +286,12 @@ pub struct Pointer {
         help = "Follow one direct path instead of exploring every future; each step fires the first event within the limits that the scheduler finds"
     )]
     pub path: bool,
+    #[arg(
+        long,
+        conflicts_with = "path",
+        help = "The engine that explores every future: interpreter or laser; both close with the same configurations, events and answers, and each numbers handles in its own order"
+    )]
+    pub engine: Option<Engine>,
     #[command(flatten)]
     pub print: Print,
 }
@@ -311,6 +329,12 @@ pub struct Miss {
         help = "Follow one direct path instead of exploring every future; each step fires the first event within the limits that the scheduler finds"
     )]
     pub path: bool,
+    #[arg(
+        long,
+        conflicts_with = "path",
+        help = "The engine that explores every future: interpreter or laser; both close with the same configurations, events and answers, and each numbers handles in its own order"
+    )]
+    pub engine: Option<Engine>,
     #[command(flatten)]
     pub print: Print,
 }
@@ -332,6 +356,12 @@ pub struct Compare {
         help = "Follow one direct path instead of exploring every future; each step fires the first event within the limits that the scheduler finds"
     )]
     pub path: bool,
+    #[arg(
+        long,
+        conflicts_with = "path",
+        help = "The engine that explores every future: interpreter or laser; both close with the same configurations, events and answers, and each numbers handles in its own order"
+    )]
+    pub engine: Option<Engine>,
     #[command(flatten)]
     pub claim: Claim,
     #[command(flatten)]

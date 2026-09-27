@@ -99,7 +99,7 @@ pub struct Origin {
     pub event: usize,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct Link {
     pub target: Place,
     pub source: Vec<Place>,

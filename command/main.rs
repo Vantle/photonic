@@ -21,7 +21,8 @@ use photonic::status::Status;
 use serde::Serialize;
 use spectrum::failure::Failure;
 
-use argument::{Argument, Engine, Operation};
+use argument::{Argument, Operation};
+use spectrum::recording::Engine;
 
 #[derive(Serialize)]
 struct Report<'program, Execution> {

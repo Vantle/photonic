@@ -163,6 +163,7 @@ fn scope(exploration: &Exploration, configuration: usize, index: usize) -> Scope
 
 fn produced(exploration: &Exploration, event: usize) -> Vec<Item> {
     let target = exploration.event[event].target;
+    let link = exploration.resource(event);
     exploration.configuration[target]
         .coherence
         .iter()
@@ -173,7 +174,7 @@ fn produced(exploration: &Exploration, event: usize) -> Vec<Item> {
                 .iter()
                 .map(move |occurrence| Place::World(world, occurrence.id))
         })
-        .filter(|&place| lineage::origin(exploration, event, place).0 == Role::Produced)
+        .filter(|&place| lineage::origin(exploration, event, &link, place).0 == Role::Produced)
         .map(|place| render::item(exploration, target, exploration::id(place)))
         .collect()
 }

@@ -1,6 +1,6 @@
 use crate::exploration::{Exploration, Plan};
 use crate::failure::{Code, Failure};
-use crate::recording::{Mode, Recording};
+use crate::recording::{Engine, Mode, Recording};
 use crate::store::Store;
 use crate::subject::Reader;
 use frontend::source::Program;
@@ -23,12 +23,13 @@ impl Context<'_> {
             }
             (None, Some(key)) => {
                 if recording.mode.is_some()
+                    || recording.engine.is_some()
                     || recording.budget.is_some()
                     || recording.goal.is_some()
                 {
                     return Err(Failure::new(
                         Code::Request,
-                        "an exploration key fixes the mode, budget and goal; give them with program instead",
+                        "an exploration key fixes the mode, engine, budget and goal; give them with program instead",
                     ));
                 }
                 self.store.find(key)
@@ -50,6 +51,13 @@ impl Context<'_> {
         recording: &Recording,
     ) -> Result<Arc<Exploration>, Failure> {
         let mode = recording.mode.unwrap_or_default();
+        let engine = recording.engine.unwrap_or_default();
+        if mode == Mode::Path && engine == Engine::Laser {
+            return Err(Failure::new(
+                Code::Request,
+                "a direct path follows the interpreter's scheduler; laser explores every future, so leave engine out in path mode",
+            ));
+        }
         if mode != Mode::Path && recording.goal.is_some() {
             return Err(Failure::new(
                 Code::Request,
@@ -70,6 +78,7 @@ impl Context<'_> {
         Ok(self.store.explore(Plan::new(
             source,
             mode,
+            engine,
             recording.budget.unwrap_or_default(),
             goal,
         )))

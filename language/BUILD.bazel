@@ -221,6 +221,7 @@ filegroup(
         "laser/agreement.rs",
         "laser/capture.rs",
         "laser/component.rs",
+        "laser/deduction.rs",
         "laser/direct.rs",
         "laser/forest.rs",
         "laser/layout.rs",

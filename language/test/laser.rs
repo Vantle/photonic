@@ -1,6 +1,23 @@
 use super::Laser;
 use crate::runtime::{Limit, Runtime};
 
+// A deduction walks from its event's source, each event starting where the one before it ends.
+fn walk(laser: &Laser, source: &str) {
+    let report = laser.report();
+    for transition in &report.event {
+        assert_eq!(
+            transition.deduction.is_empty(),
+            !transition.inferred,
+            "{source}"
+        );
+        let mut at = transition.source;
+        for &step in &transition.deduction {
+            assert_eq!(report.event[step].source, at, "{source}");
+            at = report.event[step].target;
+        }
+    }
+}
+
 pub(crate) fn agree(source: &str, budget: usize, limit: Limit) {
     let program = frontend::lowering::parse(source).unwrap();
     let mut runtime = Runtime::new(&program);
@@ -9,6 +26,7 @@ pub(crate) fn agree(source: &str, budget: usize, limit: Limit) {
     laser.run(budget, limit);
     assert!(runtime.closed(), "the interpreter did not close {source}");
     assert_eq!(laser.agree(&runtime), Ok(()), "{source}");
+    walk(&laser, source);
 }
 
 #[test]

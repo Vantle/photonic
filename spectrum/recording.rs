@@ -14,6 +14,31 @@ pub enum Mode {
     Path,
 }
 
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Hash, JsonSchema, PartialEq, Serialize)]
+#[serde(rename_all = "lowercase")]
+#[schemars(
+    description = "The engine that explores every future: the interpreter, or laser, which carries matches back along events and names configurations by their components. Both close with the same configurations, events and answers; each numbers handles in its own order. Direct paths always follow the interpreter's scheduler."
+)]
+pub enum Engine {
+    #[default]
+    Interpreter,
+    Laser,
+}
+
+impl std::str::FromStr for Engine {
+    type Err = String;
+
+    fn from_str(text: &str) -> Result<Self, Self::Err> {
+        match text {
+            "interpreter" => Ok(Self::Interpreter),
+            "laser" => Ok(Self::Laser),
+            _ => Err(format!(
+                "{text} is not an engine; the engines are interpreter and laser"
+            )),
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, Hash, JsonSchema, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
 #[schemars(
@@ -39,6 +64,8 @@ pub struct Recording {
     pub exploration: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub mode: Option<Mode>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub engine: Option<Engine>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub budget: Option<Budget>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

@@ -3,6 +3,7 @@ use crate::exploration::{self, Event, Exploration};
 use crate::failure::{Code, Failure};
 use crate::recording::Mode;
 use photonic::place::Place;
+use photonic::snapshot::Link;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Line {
@@ -78,10 +79,14 @@ fn role(exploration: &Exploration, event: &Event, target: Place, source: &[Place
     Role::Produced
 }
 
-pub fn origin(exploration: &Exploration, event: usize, target: Place) -> (Role, Vec<Place>) {
+pub fn origin(
+    exploration: &Exploration,
+    event: usize,
+    link: &[Link],
+    target: Place,
+) -> (Role, Vec<Place>) {
     let entry = &exploration.event[event];
-    let source = entry
-        .resource
+    let source = link
         .iter()
         .filter(|link| link.target == target)
         .flat_map(|link| link.source.iter().copied())
@@ -126,7 +131,7 @@ pub fn lineage(
                 format!("s{node}.o{id} names no occurrence in s{node}"),
             )
         })?;
-        let (role, source) = origin(exploration, event, target);
+        let (role, source) = origin(exploration, event, &exploration.resource(event), target);
         let next = match (role, source.as_slice()) {
             (Role::Produced, _) | (_, []) => None,
             (_, [first, ..]) => Some(exploration::id(*first)),

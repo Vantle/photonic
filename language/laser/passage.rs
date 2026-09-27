@@ -12,7 +12,7 @@ use std::sync::Arc;
 // A composed passage keeps the parts the event did not touch as moves between layouts and asks
 // the event's transition about the parts it made and the root.
 pub(super) enum Passage {
-    Flat(Flat),
+    Flat(Box<Flat>),
     Composed(Composed),
 }
 
@@ -46,23 +46,25 @@ fn rebuild(place: Place, container: usize, id: usize) -> Place {
     }
 }
 
+// Where each part after an event comes from: a part before it, or one the event's transition made.
+// Every event keeps one per part, so they are small.
 #[derive(Clone, Copy)]
 pub(super) enum Origin {
-    Same(usize),
-    Produced(usize),
+    Same(u32),
+    Produced(u32),
 }
 
 pub(super) struct Composed {
     pub source: Arc<Layout>,
     pub target: Arc<Layout>,
-    pub origin: Vec<Origin>,
+    pub origin: Box<[Origin]>,
     pub involved: SmallVec<[usize; 4]>,
     pub transition: Arc<Transition>,
 }
 
 impl Passage {
     pub fn new(flow: Flow) -> Self {
-        Self::Flat(Flat::new(flow))
+        Self::Flat(Box::new(Flat::new(flow)))
     }
 
     pub fn resource(&self, place: Place) -> Set<Place> {
@@ -130,9 +132,14 @@ impl Composed {
             return passage.place(place).map(|value| self.lift(sub, value));
         };
         match self.origin[part] {
-            Origin::Same(other) => Some(self.target.move_place(place, part, &self.source, other)),
+            Origin::Same(other) => {
+                Some(
+                    self.target
+                        .move_place(place, part, &self.source, other as usize),
+                )
+            }
             Origin::Produced(index) => {
-                let local = self.target.move_place(place, part, result, index);
+                let local = self.target.move_place(place, part, result, index as usize);
                 passage.place(local).map(|value| self.lift(sub, value))
             }
         }
@@ -142,9 +149,14 @@ impl Composed {
         let (sub, result, passage) = self.local();
         let part = self.target.world(world);
         match self.origin[part] {
-            Origin::Same(other) => Some(self.target.move_world(world, part, &self.source, other)),
+            Origin::Same(other) => {
+                Some(
+                    self.target
+                        .move_world(world, part, &self.source, other as usize),
+                )
+            }
             Origin::Produced(index) => {
-                let local = self.target.move_world(world, part, result, index);
+                let local = self.target.move_world(world, part, result, index as usize);
                 passage.world(local).map(|value| {
                     let position = sub.world(value);
                     sub.move_world(value, position, &self.source, self.involved[position])
@@ -160,10 +172,13 @@ impl Composed {
         };
         match self.origin[part] {
             Origin::Same(other) => {
-                Set::single(self.target.move_place(place, part, &self.source, other))
+                Set::single(
+                    self.target
+                        .move_place(place, part, &self.source, other as usize),
+                )
             }
             Origin::Produced(index) => {
-                let local = self.target.move_place(place, part, result, index);
+                let local = self.target.move_place(place, part, result, index as usize);
                 self.back(sub, &passage.resource(local))
             }
         }
@@ -174,10 +189,13 @@ impl Composed {
         let part = self.target.world(world);
         match self.origin[part] {
             Origin::Same(other) => {
-                Set::single(self.target.move_world(world, part, &self.source, other))
+                Set::single(
+                    self.target
+                        .move_world(world, part, &self.source, other as usize),
+                )
             }
             Origin::Produced(index) => {
-                let local = self.target.move_world(world, part, result, index);
+                let local = self.target.move_world(world, part, result, index as usize);
                 passage
                     .context(local)
                     .iter()
@@ -202,9 +220,14 @@ impl Composed {
             return passage.frame(frame).map(back);
         };
         match self.origin[part] {
-            Origin::Same(other) => Some(self.target.move_frame(frame, part, &self.source, other)),
+            Origin::Same(other) => {
+                Some(
+                    self.target
+                        .move_frame(frame, part, &self.source, other as usize),
+                )
+            }
             Origin::Produced(index) => passage
-                .frame(self.target.move_frame(frame, part, result, index))
+                .frame(self.target.move_frame(frame, part, result, index as usize))
                 .map(back),
         }
     }

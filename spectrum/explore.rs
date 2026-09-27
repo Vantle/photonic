@@ -4,7 +4,7 @@ use crate::context::Context;
 use crate::exploration::Exploration;
 use crate::failure::Failure;
 use crate::handle::Handle;
-use crate::recording::{Mode, Order, Recording};
+use crate::recording::{Engine, Mode, Order, Recording};
 use crate::render;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -54,6 +54,7 @@ pub(crate) struct Activity {
 pub(crate) struct Summary {
     pub(crate) exploration: String,
     pub(crate) mode: Mode,
+    pub(crate) engine: Engine,
     pub(crate) order: Order,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) shape: Option<String>,
@@ -83,6 +84,7 @@ pub(crate) fn brief(exploration: &Exploration) -> Summary {
     Summary {
         exploration: exploration.name(),
         mode: exploration.mode,
+        engine: exploration.engine,
         order: exploration.order,
         shape: exploration.shape.map(|shape| format!("{shape:016x}")),
         complete: exploration.closed,
@@ -148,9 +150,11 @@ pub(crate) fn state(summary: &Summary) -> String {
         (Mode::Exhaustive, true, _) => "closed",
         (Mode::Exhaustive, false, _) => "open: a budget stopped it",
     };
-    let mut part = vec![
-        summary.exploration.clone(),
-        status.to_owned(),
+    let mut part = vec![summary.exploration.clone(), status.to_owned()];
+    if summary.engine == Engine::Laser {
+        part.push("laser".to_owned());
+    }
+    part.extend([
         render::count(summary.configuration, "configuration"),
         format!(
             "{}, {} inferred",
@@ -159,7 +163,7 @@ pub(crate) fn state(summary: &Summary) -> String {
         ),
         format!("depth {}", summary.depth),
         format!("work {}", summary.work),
-    ];
+    ]);
     if let Some(shape) = &summary.shape {
         part.push(format!("shape {shape}"));
     }

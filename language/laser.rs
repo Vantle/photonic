@@ -1,6 +1,7 @@
 mod agreement;
 mod capture;
 mod component;
+mod deduction;
 mod direct;
 mod forest;
 mod layout;
@@ -25,6 +26,7 @@ use crate::runtime::Limit;
 use crate::state::{Canonical, State};
 use crate::status::Status;
 use capture::{Capture, Environment};
+use deduction::Deduction;
 use hashing::Builder;
 use indexmap::{IndexMap, IndexSet};
 use layout::Layout;
@@ -81,12 +83,13 @@ enum Landing {
     New(usize),
 }
 
+// Each new trace remembers the position it was carried from, which is where its deduction goes on.
 struct Carried {
     event: usize,
     source: usize,
     count: usize,
     landing: Vec<Landing>,
-    list: Vec<Trace>,
+    list: Vec<(Trace, usize)>,
 }
 
 // Each round scans new configurations, carries traces back across the events they have not
@@ -191,7 +194,8 @@ pub struct Summary {
 }
 
 // A configuration is scanned before it is the source of any event, so its own matches come first
-// in its traces and a count marks them.
+// in its traces and a count marks them. Every later trace keeps the event and the position it was
+// first carried from.
 pub struct Laser {
     program: Arc<Program>,
     catalog: Arc<Catalog>,
@@ -206,6 +210,7 @@ pub struct Laser {
     incoming: Vec<Vec<usize>>,
     trace: Vec<IndexSet<Trace, Builder>>,
     origin: Vec<usize>,
+    parent: Vec<Vec<(u32, u32)>>,
     progress: Vec<Progress>,
     link: Vec<Vec<Link>>,
     passage: Vec<Passage>,
@@ -214,6 +219,7 @@ pub struct Laser {
     pool: Pool,
     blocked: HashMap<Identity, (usize, usize), Builder>,
     support: Option<support::Support>,
+    deduction: Deduction,
     round: Round,
     limit: Limit,
     work: usize,
@@ -277,11 +283,15 @@ fn merge(
         if keep {
             let part = kept.next().expect("a kept part was seen");
             kind.push(source.kind[part]);
-            origin.push(Origin::Same(part));
+            origin.push(Origin::Same(
+                u32::try_from(part).expect("fewer than 2^32 parts"),
+            ));
         } else {
             let (index, value) = made.next().expect("a made part was seen");
             kind.push(value);
-            origin.push(Origin::Produced(index));
+            origin.push(Origin::Produced(
+                u32::try_from(index).expect("fewer than 2^32 parts"),
+            ));
         }
     }
     (Makeup { root, kind }, origin)
@@ -323,6 +333,7 @@ impl Laser {
             incoming: Vec::new(),
             trace: Vec::new(),
             origin: Vec::new(),
+            parent: Vec::new(),
             progress: Vec::new(),
             link: Vec::new(),
             passage: Vec::new(),
@@ -331,6 +342,7 @@ impl Laser {
             pool: Pool::default(),
             blocked: HashMap::default(),
             support: None,
+            deduction: Deduction::default(),
             round: Round::default(),
             limit: Limit::default(),
             work: 0,
@@ -352,7 +364,7 @@ impl Laser {
             .space
             .admit(None, vec![(space::hash(&makeup), makeup, index)]);
         laser.round.fresh.push(index);
-        laser.peak = laser.record();
+        laser.peak = laser.retained();
         laser
     }
 
@@ -437,19 +449,20 @@ impl Laser {
         }
         let open = !self.closed();
         let mut remaining = budget;
-        while remaining > 0 && !self.idle() && self.record() < self.limit.record {
+        while remaining > 0 && !self.idle() && self.retained() < self.limit.record {
             let work = self.step(executor);
             self.work += work;
-            self.peak = self.peak.max(self.record());
+            self.peak = self.peak.max(self.retained());
             remaining = remaining.saturating_sub(work.max(1));
         }
         if open && self.closed() {
-            self.passage = Vec::new();
             self.pool.release();
             direct::mark(self, executor);
             self.support = Some(support::establish(self));
+            self.deduction = Deduction::derive(self);
             self.trace = Vec::new();
             self.traced = 0;
+            self.parent = Vec::new();
             self.link = Vec::new();
             self.crossed = Vec::new();
         }
@@ -457,7 +470,7 @@ impl Laser {
 
     // A record is a configuration, an event or a trace, the parts that grow with exploration;
     // closing releases the traces.
-    fn record(&self) -> usize {
+    fn retained(&self) -> usize {
         self.state.len() + self.event.len() + self.traced
     }
 
@@ -474,6 +487,7 @@ impl Laser {
         self.incoming.push(Vec::new());
         self.trace.push(IndexSet::default());
         self.origin.push(0);
+        self.parent.push(Vec::new());
         self.progress.push(Progress::default());
         self.link.push(Vec::new());
         self.state.len() - 1
@@ -551,7 +565,7 @@ impl Laser {
                 if let Some(found) = known.get_index_of(&carried) {
                     return Landing::Known(found);
                 }
-                list.push(carried);
+                list.push((carried, position));
                 Landing::New(list.len() - 1)
             })
             .collect();
@@ -690,27 +704,40 @@ impl Laser {
         }
         let taken = group
             .into_iter()
-            .map(|(index, list)| (index, std::mem::take(&mut self.trace[index]), list))
+            .map(|(index, list)| {
+                let set = std::mem::take(&mut self.trace[index]);
+                let parent = std::mem::take(&mut self.parent[index]);
+                (index, set, parent, list)
+            })
             .collect::<Vec<_>>();
-        let inserted = map(executor, taken, |(index, mut set, list)| {
+        let inserted = map(executor, taken, |(index, mut set, mut parent, list)| {
             let start = set.len();
             let settled = list
                 .into_iter()
                 .map(|(position, carried)| {
+                    let event = u32::try_from(carried.event).expect("fewer than 2^32 events");
                     let found = carried
                         .list
                         .into_iter()
-                        .map(|trace| set.insert_full(trace).0)
+                        .map(|(trace, from)| {
+                            let (found, fresh) = set.insert_full(trace);
+                            if fresh {
+                                let from = u32::try_from(from).expect("fewer than 2^32 traces");
+                                parent.push((event, from));
+                            }
+                            found
+                        })
                         .collect::<Vec<_>>();
                     (position, settle(carried.landing, &found))
                 })
                 .collect::<Vec<_>>();
-            (index, start, set, settled)
+            (index, start, set, parent, settled)
         });
         let mut grown = Vec::new();
-        for (index, start, set, settled) in inserted {
+        for (index, start, set, parent, settled) in inserted {
             let end = set.len();
             self.trace[index] = set;
+            self.parent[index] = parent;
             if start < end {
                 grown.push((index, start..end));
             }
@@ -982,7 +1009,7 @@ impl Laser {
                         .clone()
                         .expect("a move starts from a hub"),
                     target: self.layout[resolved].clone().expect("a move ends at a hub"),
-                    origin,
+                    origin: origin.into_boxed_slice(),
                     involved,
                     transition,
                 }),

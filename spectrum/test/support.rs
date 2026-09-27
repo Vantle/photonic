@@ -1,6 +1,6 @@
 use crate::budget::Budget;
 use crate::exploration::{Exploration, Plan};
-use crate::recording::Mode;
+use crate::recording::{Engine, Mode};
 
 pub const ORIGINAL: &str = "And.True.False.Extra,
 [True] Boolean,
@@ -41,10 +41,15 @@ pub const FIX: &str = "And.True.False.Extra,
 ";
 
 pub fn explore(source: &str) -> Exploration {
+    engine(source, Engine::Interpreter)
+}
+
+pub fn engine(source: &str, engine: Engine) -> Exploration {
     let program = frontend::lowering::parse(source).expect("the example lowers");
     Exploration::new(Plan::new(
         &program,
         Mode::Exhaustive,
+        engine,
         Budget::default(),
         None,
     ))

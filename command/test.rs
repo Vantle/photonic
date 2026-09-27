@@ -582,6 +582,58 @@ fn question() {
 }
 
 #[test]
+fn spectrum() {
+    let fixture = Fixture::new();
+    let path = fixture.write("bug.wave", BUG);
+    let laser = ["--engine", "laser"];
+    let interpreter = envelope(&execute("explore", &path, &["--json"]));
+    let compiled = envelope(&execute("explore", &path, &["--json", "--engine", "laser"]));
+    assert_eq!(interpreter["answer"]["engine"], "interpreter");
+    assert_eq!(compiled["answer"]["engine"], "laser");
+    for field in ["complete", "configuration", "event", "inferred", "depth"] {
+        assert_eq!(
+            compiled["answer"][field], interpreter["answer"][field],
+            "{field}"
+        );
+    }
+    assert_ne!(
+        compiled["answer"]["exploration"],
+        interpreter["answer"]["exploration"]
+    );
+    let text = execute("explore", &path, &laser);
+    assert!(String::from_utf8_lossy(&text.stdout).contains(" · laser · "));
+    let held = execute(
+        "check",
+        &path,
+        &[
+            "--reach",
+            "False.Extra",
+            "--exact",
+            "--preserve",
+            "--engine",
+            "laser",
+        ],
+    );
+    assert!(held.status.success());
+    let failed = execute("check", &path, &["--reach", "Nothing", "--engine", "laser"]);
+    assert!(!failed.status.success());
+    let step = envelope(&execute("step", &path, &["--json", "--engine", "laser"]));
+    assert_eq!(step["answer"]["handle"], "s0");
+    let select = envelope(&execute(
+        "select",
+        &path,
+        &["--pattern", "[False] False", "--json", "--engine", "laser"],
+    ));
+    assert_eq!(select["answer"]["total"], 3);
+    let conflict = execute("explore", &path, &["--path", "--engine", "laser"]);
+    assert!(!conflict.status.success());
+    assert!(String::from_utf8_lossy(&conflict.stderr).contains("--engine"));
+    let invalid = execute("explore", &path, &["--engine", "gpu"]);
+    assert!(!invalid.status.success());
+    assert!(String::from_utf8_lossy(&invalid.stderr).contains("interpreter and laser"));
+}
+
+#[test]
 fn compare() {
     let fixture = Fixture::new();
     let original = fixture.write("original.wave", ORIGINAL);

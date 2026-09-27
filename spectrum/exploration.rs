@@ -1,12 +1,13 @@
 use crate::budget::Budget;
 use crate::configuration::{Coherence, Configuration, Frame, Occurrence, Opener, Value};
 use crate::order::{self, Canonical, Naming};
-use crate::recording::{Mode, Order};
+use crate::recording::{Engine, Mode, Order};
 use frontend::source::{Definition, Program};
+use photonic::laser::Laser;
 use photonic::place::Place;
 use photonic::prism::{Outcome, Reach, Verdict};
 use photonic::runtime::Runtime;
-use photonic::snapshot::{self, Node};
+use photonic::snapshot::{self, Link, Node};
 use photonic::status::Status;
 use std::collections::VecDeque;
 
@@ -16,12 +17,6 @@ pub struct Rule {
     pub definition: Definition,
     pub canonical: Definition,
     pub scope: Option<Opener>,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Link {
-    pub target: Place,
-    pub source: Vec<Place>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -35,12 +30,23 @@ pub struct Event {
     pub read: Vec<Place>,
     pub world: Vec<usize>,
     pub deduction: Vec<usize>,
-    pub resource: Vec<Link>,
+}
+
+// What an exploration keeps to answer verdicts and place maps later: the interpreter's are
+// recorded as it runs, Laser answers them itself, and a direct path keeps neither.
+enum Explorer {
+    Path,
+    Interpreter {
+        reach: Reach,
+        resource: Vec<Vec<Link>>,
+    },
+    Laser(Box<Laser>),
 }
 
 pub struct Exploration {
     pub key: String,
     pub mode: Mode,
+    pub engine: Engine,
     pub order: Order,
     pub shape: Option<u64>,
     pub naming: Naming,
@@ -55,12 +61,13 @@ pub struct Exploration {
     pub incoming: Vec<Vec<usize>>,
     pub parent: Vec<Option<usize>>,
     pub depth: Vec<Option<usize>>,
-    reach: Option<Reach>,
+    explorer: Explorer,
 }
 
 pub struct Plan {
     pub canonical: Canonical,
     pub mode: Mode,
+    pub engine: Engine,
     pub budget: Budget,
     pub goal: Option<Program>,
     pub key: String,
@@ -130,7 +137,13 @@ fn rule(definition: &snapshot::Definition, naming: &Naming) -> Rule {
     }
 }
 
-fn key(canonical: &Canonical, mode: Mode, budget: Budget, goal: Option<&Program>) -> String {
+fn key(
+    canonical: &Canonical,
+    mode: Mode,
+    engine: Engine,
+    budget: Budget,
+    goal: Option<&Program>,
+) -> String {
     let program = &canonical.program;
     let goal = goal.map(|goal| (&goal.initial, &goal.rule));
     format!(
@@ -140,6 +153,7 @@ fn key(canonical: &Canonical, mode: Mode, budget: Budget, goal: Option<&Program>
             &program.rule,
             &canonical.naming,
             mode,
+            engine,
             budget,
             goal
         ))
@@ -147,7 +161,13 @@ fn key(canonical: &Canonical, mode: Mode, budget: Budget, goal: Option<&Program>
 }
 
 impl Plan {
-    pub fn new(program: &Program, mode: Mode, budget: Budget, goal: Option<Program>) -> Self {
+    pub fn new(
+        program: &Program,
+        mode: Mode,
+        engine: Engine,
+        budget: Budget,
+        goal: Option<Program>,
+    ) -> Self {
         let canonical = match mode {
             Mode::Exhaustive => order::exhaustive(program),
             Mode::Path => order::source(program),
@@ -157,10 +177,11 @@ impl Plan {
             hidden.rule.sort();
             hidden
         });
-        let key = key(&canonical, mode, budget, goal.as_ref());
+        let key = key(&canonical, mode, engine, budget, goal.as_ref());
         Self {
             canonical,
             mode,
+            engine,
             budget,
             goal,
             key,
@@ -170,13 +191,14 @@ impl Plan {
 
 impl Exploration {
     pub fn new(plan: Plan) -> Self {
-        match plan.mode {
-            Mode::Exhaustive => Self::exhaustive(plan),
-            Mode::Path => Self::walk(plan),
+        match (plan.mode, plan.engine) {
+            (Mode::Exhaustive, Engine::Interpreter) => Self::interpret(plan),
+            (Mode::Exhaustive, Engine::Laser) => Self::compile(plan),
+            (Mode::Path, _) => Self::walk(plan),
         }
     }
 
-    fn exhaustive(plan: Plan) -> Self {
+    fn interpret(plan: Plan) -> Self {
         let naming = &plan.canonical.naming;
         let mut runtime = Runtime::new(&plan.canonical.program);
         runtime.run(plan.budget.work, plan.budget.limit());
@@ -194,16 +216,12 @@ impl Exploration {
                 read: event.read.clone(),
                 world: event.world.clone(),
                 deduction: snapshot.deduction(event.id),
-                resource: runtime
-                    .resource(event.id)
-                    .unwrap_or_default()
-                    .into_iter()
-                    .map(|link| Link {
-                        target: link.target,
-                        source: link.source,
-                    })
-                    .collect(),
             })
+            .collect();
+        let resource = snapshot
+            .event
+            .iter()
+            .map(|event| runtime.resource(event.id).unwrap_or_default())
             .collect();
         let record = Record {
             closed: snapshot.closed,
@@ -221,7 +239,49 @@ impl Exploration {
                 .collect(),
             event,
         };
-        Self::assemble(plan, record, Some(runtime.reach()))
+        let explorer = Explorer::Interpreter {
+            reach: runtime.reach(),
+            resource,
+        };
+        Self::assemble(plan, record, explorer)
+    }
+
+    fn compile(plan: Plan) -> Self {
+        let naming = &plan.canonical.naming;
+        let mut laser = Laser::new(&plan.canonical.program);
+        laser.run(plan.budget.work, plan.budget.limit());
+        let report = laser.report();
+        let record = Record {
+            closed: report.closed,
+            reached: false,
+            work: report.work,
+            rule: report
+                .definition
+                .iter()
+                .map(|entry| self::rule(entry, naming))
+                .collect(),
+            configuration: report
+                .state
+                .iter()
+                .map(|node| self::configuration(node, naming))
+                .collect(),
+            event: report
+                .event
+                .into_iter()
+                .map(|event| Event {
+                    source: event.source,
+                    target: event.target,
+                    rule: event.rule,
+                    supported: event.status == Status::Supported,
+                    footprint: event.footprint,
+                    exact: event.exact,
+                    read: event.read,
+                    world: event.world,
+                    deduction: event.deduction,
+                })
+                .collect(),
+        };
+        Self::assemble(plan, record, Explorer::Laser(Box::new(laser)))
     }
 
     fn walk(mut plan: Plan) -> Self {
@@ -243,7 +303,6 @@ impl Exploration {
                 read: event.read.clone(),
                 world: Vec::new(),
                 deduction: Vec::new(),
-                resource: Vec::new(),
             })
             .collect();
         let reached = report.outcome == Outcome::Reached;
@@ -263,10 +322,10 @@ impl Exploration {
                 .collect(),
             event,
         };
-        Self::assemble(plan, record, None)
+        Self::assemble(plan, record, Explorer::Path)
     }
 
-    fn assemble(plan: Plan, record: Record, reach: Option<Reach>) -> Self {
+    fn assemble(plan: Plan, record: Record, explorer: Explorer) -> Self {
         let count = record.configuration.len();
         let mut outgoing = vec![Vec::new(); count];
         let mut incoming = vec![Vec::new(); count];
@@ -314,6 +373,7 @@ impl Exploration {
         Self {
             key: plan.key,
             mode: plan.mode,
+            engine: plan.engine,
             order: plan.canonical.order,
             shape: plan.canonical.shape,
             naming: plan.canonical.naming,
@@ -328,7 +388,7 @@ impl Exploration {
             incoming,
             parent,
             depth,
-            reach,
+            explorer,
         }
     }
 
@@ -345,12 +405,24 @@ impl Exploration {
     }
 
     pub fn verdict(&self, target: &Program, preserve: bool) -> Option<Verdict> {
-        let reach = self.reach.as_ref()?;
         let mut hidden = self.naming.hide(target);
         if preserve {
             hidden.preserve(&self.program);
         }
-        Some(reach.verdict(&hidden))
+        match &self.explorer {
+            Explorer::Path => None,
+            Explorer::Interpreter { reach, .. } => Some(reach.verdict(&hidden)),
+            Explorer::Laser(laser) => Some(laser.verdict(&hidden)),
+        }
+    }
+
+    // Each place after an event and the places it came from before; a direct path keeps none.
+    pub fn resource(&self, event: usize) -> Vec<Link> {
+        match &self.explorer {
+            Explorer::Path => Vec::new(),
+            Explorer::Interpreter { resource, .. } => resource[event].clone(),
+            Explorer::Laser(laser) => laser.resource(event),
+        }
     }
 
     pub fn stuck(&self, index: usize) -> bool {
