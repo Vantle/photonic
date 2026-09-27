@@ -14,13 +14,14 @@ fn component(successor: &[Vec<usize>]) -> Vec<usize> {
     let mut member = vec![false; count];
     let mut label = vec![usize::MAX; count];
     let mut stack = Vec::new();
+    let mut work = Vec::new();
     let mut counter = 0;
     let mut next = 0;
     for root in 0..count {
         if index[root] != usize::MAX {
             continue;
         }
-        let mut work = vec![(root, 0)];
+        work.push((root, 0));
         while let Some((node, position)) = work.pop() {
             if position == 0 {
                 index[node] = counter;
@@ -121,18 +122,16 @@ fn graph(
     while !frontier.is_empty() {
         let expanded = map(executor, frontier, |id| {
             let (state, position) = node[id];
-            let list = laser.incoming[state]
-                .iter()
-                .filter_map(|&event| {
-                    let value = &laser.event[event];
-                    let source = value.source;
-                    if label[source] != label[state] {
-                        return None;
-                    }
-                    let found = laser.crossed[event][position]?;
-                    Some(offset[source] + found.get() as usize - 1)
-                })
-                .collect::<Vec<_>>();
+            let mut list = Vec::with_capacity(laser.incoming[state].len());
+            list.extend(laser.incoming[state].iter().filter_map(|&event| {
+                let value = &laser.event[event];
+                let source = value.source;
+                if label[source] != label[state] {
+                    return None;
+                }
+                let found = laser.crossed[event][position]?;
+                Some(offset[source] + found.get() as usize - 1)
+            }));
             (id, list)
         });
         frontier = Vec::new();

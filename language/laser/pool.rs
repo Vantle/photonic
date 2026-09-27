@@ -210,14 +210,11 @@ fn image<Value: Single>(
     find(shard, buffer)
 }
 
-fn direct<Value: Single>(id: u64, part: impl Fn(Value) -> Set<Value>) -> Option<u64> {
+fn direct<Value: Single>(id: u64, part: impl Fn(Value) -> Option<Value>) -> Option<u64> {
     if id & SINGLE == 0 {
         return None;
     }
-    match part(Value::decode(id)).iter().as_slice() {
-        [single] => single.encode(),
-        _ => None,
-    }
+    part(Value::decode(id))?.encode()
 }
 
 fn intern<Value: Eq + Send + Sync>(
@@ -336,14 +333,14 @@ impl Pool {
     }
 
     pub fn carry(&self, basis: u64, event: usize, flow: &Passage) -> u64 {
-        direct(basis, |place| flow.resource(place)).unwrap_or_else(|| {
+        direct(basis, |place| flow.place(place)).unwrap_or_else(|| {
             lookup(&self.image[event].basis, basis)
                 .expect("every image is prepared before a carry reads it")
         })
     }
 
     pub fn follow(&self, world: u64, event: usize, flow: &Passage) -> u64 {
-        direct(world, |index| flow.context(index)).unwrap_or_else(|| {
+        direct(world, |index| flow.world(index)).unwrap_or_else(|| {
             lookup(&self.image[event].world, world)
                 .expect("every image is prepared before a carry reads it")
         })
@@ -359,14 +356,14 @@ impl Pool {
     ) {
         let image = self.image.get(event);
         for id in basis {
-            if direct(id, |place| flow.resource(place)).is_some()
+            if direct(id, |place| flow.place(place)).is_some()
                 || image.is_some_and(|image| lookup(&image.basis, id).is_some())
             {
                 continue;
             }
             demand.basis.push(id);
         }
-        if direct(world, |index| flow.context(index)).is_none()
+        if direct(world, |index| flow.world(index)).is_none()
             && image.is_none_or(|image| lookup(&image.world, world).is_none())
         {
             demand.world.push(world);

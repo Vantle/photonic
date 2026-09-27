@@ -85,6 +85,22 @@ impl Passage {
             Self::Composed(composed) => composed.frame(frame),
         }
     }
+
+    // The one place a place came from, or none when it came from several or from nothing; most
+    // places come from one, so carrying them needs no set.
+    pub fn place(&self, place: Place) -> Option<Place> {
+        match self {
+            Self::Flat(flat) => flat.place(place),
+            Self::Composed(composed) => composed.place(place),
+        }
+    }
+
+    pub fn world(&self, world: usize) -> Option<usize> {
+        match self {
+            Self::Flat(flat) => flat.world(world),
+            Self::Composed(composed) => composed.world(world),
+        }
+    }
 }
 
 impl Composed {
@@ -95,15 +111,46 @@ impl Composed {
         (&effect.source, &effect.result, &effect.passage)
     }
 
+    fn lift(&self, sub: &Layout, place: Place) -> Place {
+        match sub.site(place) {
+            Site::Root => place,
+            Site::Part(position) => {
+                sub.move_place(place, position, &self.source, self.involved[position])
+            }
+        }
+    }
+
     fn back(&self, sub: &Layout, set: &Set<Place>) -> Set<Place> {
-        set.iter()
-            .map(|&place| match sub.site(place) {
-                Site::Root => place,
-                Site::Part(position) => {
-                    sub.move_place(place, position, &self.source, self.involved[position])
-                }
-            })
-            .collect()
+        set.iter().map(|&place| self.lift(sub, place)).collect()
+    }
+
+    fn place(&self, place: Place) -> Option<Place> {
+        let (sub, result, passage) = self.local();
+        let Site::Part(part) = self.target.site(place) else {
+            return passage.place(place).map(|value| self.lift(sub, value));
+        };
+        match self.origin[part] {
+            Origin::Same(other) => Some(self.target.move_place(place, part, &self.source, other)),
+            Origin::Produced(index) => {
+                let local = self.target.move_place(place, part, result, index);
+                passage.place(local).map(|value| self.lift(sub, value))
+            }
+        }
+    }
+
+    fn world(&self, world: usize) -> Option<usize> {
+        let (sub, result, passage) = self.local();
+        let part = self.target.world(world);
+        match self.origin[part] {
+            Origin::Same(other) => Some(self.target.move_world(world, part, &self.source, other)),
+            Origin::Produced(index) => {
+                let local = self.target.move_world(world, part, result, index);
+                passage.world(local).map(|value| {
+                    let position = sub.world(value);
+                    sub.move_world(value, position, &self.source, self.involved[position])
+                })
+            }
+        }
     }
 
     fn resource(&self, place: Place) -> Set<Place> {
@@ -249,5 +296,35 @@ impl Flat {
             return self.context[position].1.clone();
         }
         Set::single(decode(self.world[world]).expect("a world the flow keeps has a source"))
+    }
+
+    fn place(&self, place: Place) -> Option<Place> {
+        if let Ok(position) = self
+            .resource
+            .binary_search_by(|(candidate, _)| candidate.cmp(&place))
+        {
+            return match self.resource[position].1.iter().as_slice() {
+                [single] => Some(*single),
+                _ => None,
+            };
+        }
+        let container = self
+            .container(place)
+            .expect("a place the flow keeps has a container");
+        let id = decode(self.token[part(place).1]).expect("a place the flow keeps has a token");
+        Some(rebuild(place, container, id))
+    }
+
+    fn world(&self, world: usize) -> Option<usize> {
+        if let Ok(position) = self
+            .context
+            .binary_search_by(|(candidate, _)| candidate.cmp(&world))
+        {
+            return match self.context[position].1.iter().as_slice() {
+                [single] => Some(*single),
+                _ => None,
+            };
+        }
+        Some(decode(self.world[world]).expect("a world the flow keeps has a source"))
     }
 }
