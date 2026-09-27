@@ -463,7 +463,7 @@ fn authority() {
     let consumed = Arc::new(consumed);
     let mut direct = crate::reduction::Search::new(program.clone(), consumed.clone());
     assert!(transition(&mut direct).is_none());
-    let mut exhaustive = crate::runtime::Runtime::seed(program, consumed);
+    let mut exhaustive = crate::runtime::Runtime::seed(program, &consumed);
     exhaustive.run(100_000, Limit::default());
     assert!(exhaustive.closed());
     assert!(exhaustive.snapshot().event.is_empty());
@@ -518,7 +518,7 @@ fn operand() {
     let expected = event.state.canonical().state;
     direct.advance(event.state, &event.change, event.fingerprint, event.layout);
     assert!(transition(&mut direct).is_none());
-    let mut exhaustive = crate::runtime::Runtime::seed(program, initial.clone());
+    let mut exhaustive = crate::runtime::Runtime::seed(program, &initial);
     exhaustive.run(100_000, Limit::default());
     assert!(exhaustive.closed());
     assert!(
@@ -542,7 +542,7 @@ fn multiplicity() {
         let initial = Arc::new(State::initial(&program));
         let mut direct = crate::reduction::Search::new(program.clone(), initial.clone());
         assert!(transition(&mut direct).is_none(), "{source}");
-        let mut exhaustive = crate::runtime::Runtime::seed(program, initial);
+        let mut exhaustive = crate::runtime::Runtime::seed(program, &initial);
         exhaustive.run(100_000, Limit::default());
         assert!(exhaustive.closed());
         assert!(exhaustive.snapshot().event.is_empty(), "{source}");

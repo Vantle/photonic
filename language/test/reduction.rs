@@ -49,11 +49,11 @@ fn reference() {
         "Seed.A.X, [Seed] (([A] B), ([A] C))",
     ] {
         let program = Arc::new(Program::new(&frontend::lowering::parse(source).unwrap()));
-        let initial = Arc::new(State::initial(&program));
-        let mut graph = Runtime::seed(program.clone(), initial);
+        let initial = State::initial(&program);
+        let mut graph = Runtime::seed(program.clone(), &initial);
         graph.run(100_000, Limit::default());
         for state in graph.state.iter().take(32) {
-            let mut runtime = Runtime::seed(program.clone(), state.clone());
+            let mut runtime = Runtime::seed(program.clone(), state);
             runtime.run(100_000, Limit::default());
             let snapshot = runtime.snapshot();
             let expected = snapshot

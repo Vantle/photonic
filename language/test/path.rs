@@ -205,7 +205,7 @@ fn metadata() {
                 expected.read
             );
             let next = runtime.state[event.target].clone();
-            runtime = crate::runtime::Runtime::seed(runtime.program.clone(), next);
+            runtime = crate::runtime::Runtime::seed(runtime.program.clone(), &next);
         }
     }
 }

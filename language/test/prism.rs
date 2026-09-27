@@ -61,6 +61,19 @@ fn reachability() {
         outcome("Seed.Extra, [Seed] A, [A] Result", "Result.Extra"),
         Outcome::Reached
     );
+    let scoped = Case::new("[A.A] Z, B, (A, [Q] R)", "B, (A, [Q] R)").verdict();
+    assert_eq!(scoped.outcome, Outcome::Reached);
+    assert_eq!(scoped.witness, Some(0));
+}
+
+#[test]
+fn start() {
+    let mut case = Case::new("[A.A] Z, B, [B] C, [C] B, (A, [Q] R)", "B, (A, [Q] R)");
+    case.runtime.run(12_000, Limit::default());
+    let snapshot = case.runtime.snapshot();
+    assert!(snapshot.closed);
+    assert_eq!(snapshot.state.len(), 2);
+    assert_eq!(case.verdict().witness, Some(0));
 }
 
 #[test]

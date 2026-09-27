@@ -117,10 +117,10 @@ impl Runtime {
     pub fn new(source: &source::Program) -> Self {
         let program = Program::new(source);
         let initial = State::initial(&program);
-        Self::seed(Arc::new(program), Arc::new(initial))
+        Self::seed(Arc::new(program), &initial)
     }
 
-    pub(crate) fn seed(program: Arc<Program>, initial: Arc<State>) -> Self {
+    pub(crate) fn seed(program: Arc<Program>, initial: &State) -> Self {
         let mut runtime = Self {
             program,
             state: IndexSet::default(),
@@ -142,7 +142,7 @@ impl Runtime {
             peak: 0,
             flying: 0,
         };
-        runtime.intern(initial);
+        runtime.intern(Arc::new(initial.canonical().state));
         runtime.support(Atom::State(0), []);
         runtime.peak = runtime.record();
         runtime
