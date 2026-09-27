@@ -67,7 +67,7 @@ impl Trace {
     }
 
     pub fn need(&self, event: usize, flow: &Passage, pool: &Pool, demand: &mut Demand) {
-        if flow.frame[self.frame].is_none() {
+        if flow.frame(self.frame).is_none() {
             return;
         }
         let capture = self.capture.iter().flat_map(|capture| capture.basis());
@@ -81,14 +81,14 @@ impl Trace {
     }
 
     pub fn carry(&self, event: usize, flow: &Passage, pool: &Pool) -> Option<Self> {
-        let frame = flow.frame[self.frame]?;
+        let frame = flow.frame(self.frame)?;
         let mut occurrence = self
             .occurrence
             .iter()
             .map(|value| Occurrence {
                 basis: pool.carry(value.basis, event),
                 value: value.value,
-                capture: value.capture.and_then(|capture| flow.frame[capture]),
+                capture: value.capture.and_then(|capture| flow.frame(capture)),
             })
             .collect::<SmallVec<[Occurrence; 4]>>();
         occurrence.sort_unstable();

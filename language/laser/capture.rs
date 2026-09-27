@@ -91,11 +91,11 @@ impl Capture {
         Arc::new(Self {
             origin: self.origin,
             frame: self.frame,
-            current: self.current.and_then(|frame| flow.frame[frame]),
+            current: self.current.and_then(|frame| flow.frame(frame)),
             attachment: self
                 .attachment
                 .iter()
-                .map(|&(index, value)| (index, value.and_then(|frame| flow.frame[frame])))
+                .map(|&(index, value)| (index, value.and_then(|frame| flow.frame(frame))))
                 .collect(),
             resource: self
                 .resource

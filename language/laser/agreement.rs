@@ -25,6 +25,8 @@ fn difference(reference: &BTreeMap<Key, usize>, observed: &BTreeMap<Key, usize>)
     (count(reference, observed), count(observed, reference))
 }
 
+// Laser names configurations by their components, so each is renamed to the interpreter's name
+// before comparing, and every event's places move with the renaming of its source.
 impl Laser {
     pub fn agree(&self, runtime: &Runtime) -> Result<(), Disagreement> {
         if runtime.closed() != self.closed() {
@@ -38,10 +40,14 @@ impl Laser {
             .iter()
             .map(AsRef::as_ref)
             .collect::<HashSet<&State>>();
-        let observed = self
+        let named = self
             .state
             .iter()
-            .map(AsRef::as_ref)
+            .map(|state| state.canonical())
+            .collect::<Vec<_>>();
+        let observed = named
+            .iter()
+            .map(|named| &named.state)
             .collect::<HashSet<&State>>();
         if reference != observed {
             return Err(Disagreement::Configuration {
@@ -78,14 +84,33 @@ impl Laser {
         for (index, event) in self.event.iter().enumerate() {
             let identity = self.identity(index);
             let binding = &identity.binding;
+            let source = &named[event.source];
+            let rename = |set: &crate::basis::Set<Place>| {
+                let mut list = set
+                    .iter()
+                    .map(|&place| {
+                        source
+                            .place(place)
+                            .expect("a bound place survives renaming")
+                    })
+                    .collect::<Vec<_>>();
+                list.sort_unstable();
+                list
+            };
+            let mut world = binding
+                .world
+                .iter()
+                .map(|&index| source.world[index].expect("a bound world survives renaming"))
+                .collect::<Vec<_>>();
+            world.sort_unstable();
             let key = Key {
-                source: number[self.state[event.source].as_ref()],
-                target: number[self.state[event.target].as_ref()],
+                source: number[&source.state],
+                target: number[&named[event.target].state],
                 rule: identity.rule,
-                world: binding.world.iter().copied().collect(),
-                footprint: binding.footprint.iter().copied().collect(),
-                exact: binding.exact.iter().copied().collect(),
-                read: binding.read.iter().copied().collect(),
+                world,
+                footprint: rename(&binding.footprint),
+                exact: rename(&binding.exact),
+                read: rename(&binding.read),
                 direct: event.direct,
             };
             *compiled.entry(key).or_default() += 1;

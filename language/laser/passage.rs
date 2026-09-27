@@ -1,14 +1,23 @@
+use super::layout::{Layout, Site};
+use super::transition::Transition;
 use crate::basis::Set;
 use crate::flow::Flow;
 use crate::place::Place;
+use smallvec::SmallVec;
 use std::num::NonZeroU32;
+use std::sync::Arc;
 
-// An event's flow mostly renames: a surviving token keeps its place up to the renaming of its
-// world, frame and id. The passage keeps those renamings and only the places and worlds that do
-// not follow them, a small fraction of a set for every place, and answers every lookup exactly as
-// the flow would.
-pub(super) struct Passage {
-    pub frame: Vec<Option<usize>>,
+// A passage answers, for each place, world and frame after an event, where it came from before.
+// A flat passage keeps an event's own flow as renamings plus the places that do not follow them.
+// A composed passage keeps the parts the event did not touch as moves between layouts and asks
+// the event's transition about the parts it made and the root.
+pub(super) enum Passage {
+    Flat(Flat),
+    Composed(Composed),
+}
+
+pub(super) struct Flat {
+    frame: Vec<Option<usize>>,
     world: Vec<Option<NonZeroU32>>,
     token: Vec<Option<NonZeroU32>>,
     resource: Vec<(Place, Set<Place>)>,
@@ -37,8 +46,125 @@ fn rebuild(place: Place, container: usize, id: usize) -> Place {
     }
 }
 
+#[derive(Clone, Copy)]
+pub(super) enum Origin {
+    Same(usize),
+    Produced(usize),
+}
+
+pub(super) struct Composed {
+    pub source: Arc<Layout>,
+    pub target: Arc<Layout>,
+    pub origin: Vec<Origin>,
+    pub involved: SmallVec<[usize; 4]>,
+    pub transition: Arc<Transition>,
+}
+
 impl Passage {
     pub fn new(flow: Flow) -> Self {
+        Self::Flat(Flat::new(flow))
+    }
+
+    pub fn resource(&self, place: Place) -> Set<Place> {
+        match self {
+            Self::Flat(flat) => flat.resource(place),
+            Self::Composed(composed) => composed.resource(place),
+        }
+    }
+
+    pub fn context(&self, world: usize) -> Set<usize> {
+        match self {
+            Self::Flat(flat) => flat.context(world),
+            Self::Composed(composed) => composed.context(world),
+        }
+    }
+
+    pub fn frame(&self, frame: usize) -> Option<usize> {
+        match self {
+            Self::Flat(flat) => flat.frame[frame],
+            Self::Composed(composed) => composed.frame(frame),
+        }
+    }
+}
+
+impl Composed {
+    fn local(&self) -> (&Layout, &Layout, &Passage) {
+        let Transition::Local(effect) = &*self.transition else {
+            unreachable!("a composed passage holds a local transition")
+        };
+        (&effect.source, &effect.result, &effect.passage)
+    }
+
+    fn back(&self, sub: &Layout, set: &Set<Place>) -> Set<Place> {
+        set.iter()
+            .map(|&place| match sub.site(place) {
+                Site::Root => place,
+                Site::Part(position) => {
+                    sub.move_place(place, position, &self.source, self.involved[position])
+                }
+            })
+            .collect()
+    }
+
+    fn resource(&self, place: Place) -> Set<Place> {
+        let (sub, result, passage) = self.local();
+        let Site::Part(part) = self.target.site(place) else {
+            return self.back(sub, &passage.resource(place));
+        };
+        match self.origin[part] {
+            Origin::Same(other) => {
+                Set::single(self.target.move_place(place, part, &self.source, other))
+            }
+            Origin::Produced(index) => {
+                let local = self.target.move_place(place, part, result, index);
+                self.back(sub, &passage.resource(local))
+            }
+        }
+    }
+
+    fn context(&self, world: usize) -> Set<usize> {
+        let (sub, result, passage) = self.local();
+        let part = self.target.world(world);
+        match self.origin[part] {
+            Origin::Same(other) => {
+                Set::single(self.target.move_world(world, part, &self.source, other))
+            }
+            Origin::Produced(index) => {
+                let local = self.target.move_world(world, part, result, index);
+                passage
+                    .context(local)
+                    .iter()
+                    .map(|&value| {
+                        let position = sub.world(value);
+                        sub.move_world(value, position, &self.source, self.involved[position])
+                    })
+                    .collect()
+            }
+        }
+    }
+
+    fn frame(&self, frame: usize) -> Option<usize> {
+        let (sub, result, passage) = self.local();
+        let back = |value: usize| match sub.frame(value) {
+            Site::Root => value,
+            Site::Part(position) => {
+                sub.move_frame(value, position, &self.source, self.involved[position])
+            }
+        };
+        let Site::Part(part) = self.target.frame(frame) else {
+            return passage.frame(frame).map(back);
+        };
+        match self.origin[part] {
+            Origin::Same(other) => Some(self.target.move_frame(frame, part, &self.source, other)),
+            Origin::Produced(index) => passage
+                .frame(self.target.move_frame(frame, part, result, index))
+                .map(back),
+        }
+    }
+}
+
+impl Flat {
+    fn new(flow: Flow) -> Self {
         let world = flow
             .context
             .iter()

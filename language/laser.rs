@@ -1,31 +1,40 @@
 mod agreement;
 mod capture;
+mod component;
 mod direct;
+mod forest;
+mod layout;
 mod passage;
 mod pool;
 mod scan;
 mod space;
+mod taxonomy;
 mod trace;
+mod transition;
 
 use crate::application::Owner;
 use crate::catalog::Catalog;
 use crate::executor::Executor;
-use crate::flow::{Binding, Closure};
+use crate::flow::{Binding, Closure, Flow};
 use crate::program::Program;
 use crate::runtime::Limit;
 use crate::state::{Canonical, State};
 use capture::{Capture, Environment};
 use hashing::Builder;
 use indexmap::{IndexMap, IndexSet};
-use passage::Passage;
+use layout::Layout;
+use passage::{Composed, Origin, Passage};
 use pool::{Demand, Pool};
 use serde::Serialize;
+use smallvec::SmallVec;
 use space::{Found, Space};
 use std::collections::{BTreeMap, HashMap};
 use std::num::NonZeroU32;
 use std::ops::Range;
 use std::sync::{Arc, Mutex};
+use taxonomy::{Draft, Makeup, Taxonomy};
 use trace::Trace;
+use transition::{Effect, Key, Local, Transition};
 
 const CHUNK: usize = 256;
 
@@ -85,20 +94,56 @@ struct Round {
     retry: Vec<(Identity, usize, usize)>,
 }
 
+// An application is named in two steps: its components are named where it is made, and their
+// numbers are given in a fixed order, so naming never depends on which worker applied first.
+struct Product {
+    draft: Draft,
+    flow: Flow,
+    original: (usize, usize),
+    whole: Option<Key>,
+}
+
+// An event over the parts it touches either finds its transition or applies itself to those parts
+// alone, and what it learns serves every later event with the same key.
+struct Move {
+    local: Local,
+    known: Option<Arc<Transition>>,
+    product: Option<Product>,
+}
+
 enum Outcome {
-    Applied {
-        hash: u64,
-        state: State,
-        flow: Box<Passage>,
-    },
+    Product(Box<Product>),
+    Move(Box<Move>),
     Blocked,
+}
+
+enum Route {
+    Flat(Passage),
+    Composed {
+        source: usize,
+        origin: Vec<Origin>,
+        involved: SmallVec<[usize; 4]>,
+        transition: Arc<Transition>,
+    },
+}
+
+struct Named {
+    hash: u64,
+    makeup: Makeup,
+    route: Route,
 }
 
 enum Settled {
     Blocked,
-    Existing(usize, Box<Passage>),
-    Repeat(usize, Box<Passage>),
-    New(u64, Arc<State>, Box<Passage>),
+    Existing(usize, Box<Route>),
+    Repeat(usize, Box<Route>),
+    New(
+        u64,
+        Arc<Makeup>,
+        Arc<State>,
+        Option<Arc<Layout>>,
+        Box<Route>,
+    ),
 }
 
 // Each trace remembers the event it identifies, so the direct pass reads it instead of forming
@@ -145,6 +190,10 @@ pub struct Laser {
     program: Arc<Program>,
     catalog: Arc<Catalog>,
     pub(crate) state: Vec<Arc<State>>,
+    makeup: Vec<Arc<Makeup>>,
+    layout: Vec<Option<Arc<Layout>>>,
+    taxonomy: Taxonomy,
+    memo: HashMap<Key, Arc<Transition>, Builder>,
     space: Space,
     event: Vec<Event>,
     identity: Vec<IndexMap<Identity, usize, Builder>>,
@@ -174,6 +223,61 @@ fn map<Input: Send, Output: Send>(
     }
 }
 
+fn learn(taxonomy: &Taxonomy, mut value: Box<Move>, root: u32, kind: &[u32]) -> Box<Move> {
+    let Product {
+        draft,
+        flow,
+        original,
+        ..
+    } = value
+        .product
+        .take()
+        .expect("a move without its transition applied itself");
+    let (makeup, renaming) = taxonomy.assemble(draft, root, kind, original);
+    let extent = taxonomy.extent(&makeup);
+    let key = &value.local.key;
+    value.known = Some(Arc::new(Transition::Local(Box::new(Effect {
+        root: makeup.root,
+        source: Layout::of(taxonomy, key.root, key.kind.iter().copied()),
+        result: Layout::new(taxonomy, &makeup),
+        passage: Passage::new(renaming.flow(flow, extent.0, extent.1)),
+        produced: makeup.kind,
+    }))));
+    value
+}
+
+fn merge(
+    source: &Makeup,
+    involved: &[usize],
+    produced: &[u32],
+    root: u32,
+) -> (Makeup, Vec<Origin>) {
+    let mut kind = Vec::with_capacity(source.kind.len() + produced.len());
+    let mut origin = Vec::with_capacity(source.kind.len() + produced.len());
+    let mut kept = (0..source.kind.len())
+        .filter(|part| involved.binary_search(part).is_err())
+        .peekable();
+    let mut made = produced.iter().copied().enumerate().peekable();
+    loop {
+        let keep = match (kept.peek(), made.peek()) {
+            (Some(&part), Some(&(_, value))) => source.kind[part] <= value,
+            (Some(_), None) => true,
+            (None, Some(_)) => false,
+            (None, None) => break,
+        };
+        if keep {
+            let part = kept.next().expect("a kept part was seen");
+            kind.push(source.kind[part]);
+            origin.push(Origin::Same(part));
+        } else {
+            let (index, value) = made.next().expect("a made part was seen");
+            kind.push(value);
+            origin.push(Origin::Produced(index));
+        }
+    }
+    (Makeup { root, kind }, origin)
+}
+
 fn land(position: usize) -> Option<NonZeroU32> {
     Some(
         NonZeroU32::new(u32::try_from(position + 1).expect("fewer than 2^32 traces"))
@@ -200,6 +304,10 @@ impl Laser {
             catalog: Arc::new(Catalog::new(&program)),
             program,
             state: Vec::new(),
+            makeup: Vec::new(),
+            layout: Vec::new(),
+            taxonomy: Taxonomy::default(),
+            memo: HashMap::default(),
             space: Space::default(),
             event: Vec::new(),
             identity: Vec::new(),
@@ -217,11 +325,20 @@ impl Laser {
             limit: Limit::default(),
             work: 0,
         };
-        let state = Arc::new(initial.canonical().state);
-        let index = laser.push(state.clone());
+        let draft = laser.taxonomy.analyze(&initial);
+        let (root, kind) = laser.taxonomy.intern(&draft);
+        let original = (initial.world.len(), initial.frame.len());
+        let (makeup, _) = laser.taxonomy.assemble(draft, root, &kind, original);
+        let state = Arc::new(laser.taxonomy.materialize(&makeup));
+        let layout = laser
+            .taxonomy
+            .hub(&makeup)
+            .then(|| Arc::new(Layout::new(&laser.taxonomy, &makeup)));
+        let makeup = Arc::new(makeup);
+        let index = laser.push(state, makeup.clone(), layout);
         laser
             .space
-            .admit(None, vec![(space::hash(&state), state, index)]);
+            .admit(None, vec![(space::hash(&makeup), makeup, index)]);
         laser.round.fresh.push(index);
         laser
     }
@@ -282,8 +399,15 @@ impl Laser {
         }
     }
 
-    fn push(&mut self, state: Arc<State>) -> usize {
+    fn push(
+        &mut self,
+        state: Arc<State>,
+        makeup: Arc<Makeup>,
+        layout: Option<Arc<Layout>>,
+    ) -> usize {
         self.state.push(state);
+        self.makeup.push(makeup);
+        self.layout.push(layout);
         self.identity.push(IndexMap::default());
         self.incoming.push(Vec::new());
         self.trace.push(IndexSet::default());
@@ -570,60 +694,164 @@ impl Laser {
         outcome: Vec<Outcome>,
         next: &mut Round,
     ) -> Vec<Option<usize>> {
-        let item = outcome
-            .iter()
-            .filter_map(|outcome| match outcome {
-                Outcome::Applied { hash, state, .. } => Some((*hash, state)),
+        let mut number = Vec::with_capacity(outcome.len());
+        for outcome in &outcome {
+            number.push(match outcome {
+                Outcome::Product(product) => Some(self.taxonomy.intern(&product.draft)),
+                Outcome::Move(value) => value
+                    .product
+                    .as_ref()
+                    .map(|product| self.taxonomy.intern(&product.draft)),
                 Outcome::Blocked => None,
-            })
+            });
+        }
+        let taxonomy = &self.taxonomy;
+        let mut learned = map(
+            executor,
+            outcome.into_iter().zip(number).collect(),
+            |(outcome, number)| match outcome {
+                Outcome::Move(value) if value.product.is_some() => {
+                    let (root, kind) = number.expect("a product is numbered");
+                    (Outcome::Move(learn(taxonomy, value, root, &kind)), None)
+                }
+                other => (other, number),
+            },
+        );
+        for (outcome, _) in &mut learned {
+            match outcome {
+                Outcome::Move(value) => {
+                    let found = value.known.take().expect("a move knows its transition");
+                    let key = value.local.key.clone();
+                    value.known = Some(self.memo.entry(key).or_insert(found).clone());
+                }
+                Outcome::Product(product) => {
+                    if let Some(key) = product.whole.take() {
+                        self.memo
+                            .entry(key)
+                            .or_insert_with(|| Arc::new(Transition::Whole));
+                    }
+                }
+                Outcome::Blocked => {}
+            }
+        }
+        let taxonomy = &self.taxonomy;
+        let makeup = &self.makeup;
+        let limit = self.limit;
+        let named = map(
+            executor,
+            learned
+                .into_iter()
+                .zip(pending.iter().map(|&(_, source, _)| source))
+                .collect(),
+            |((outcome, number), source)| match outcome {
+                Outcome::Product(product) => {
+                    let (root, kind) = number.expect("a product is numbered");
+                    let Product {
+                        draft,
+                        flow,
+                        original,
+                        ..
+                    } = *product;
+                    let (makeup, renaming) = taxonomy.assemble(draft, root, &kind, original);
+                    let extent = taxonomy.extent(&makeup);
+                    let passage = Passage::new(renaming.flow(flow, extent.0, extent.1));
+                    Some(Named {
+                        hash: space::hash(&makeup),
+                        makeup,
+                        route: Route::Flat(passage),
+                    })
+                }
+                Outcome::Move(value) => {
+                    let Move { local, known, .. } = *value;
+                    let transition = known.expect("a move knows its transition");
+                    let Transition::Local(effect) = &*transition else {
+                        unreachable!("a move holds a local transition")
+                    };
+                    let (makeup, origin) = merge(
+                        &makeup[source],
+                        &local.involved,
+                        &effect.produced,
+                        effect.root,
+                    );
+                    let (coherence, occurrence, scope) = taxonomy.measure(&makeup);
+                    if !limit.admits(coherence, occurrence, scope) {
+                        return None;
+                    }
+                    Some(Named {
+                        hash: space::hash(&makeup),
+                        makeup,
+                        route: Route::Composed {
+                            source,
+                            origin,
+                            involved: local.involved,
+                            transition,
+                        },
+                    })
+                }
+                Outcome::Blocked => None,
+            },
+        );
+        let item = named
+            .iter()
+            .flatten()
+            .map(|named| (named.hash, &named.makeup))
             .collect::<Vec<_>>();
         let mut found = self.space.resolve(executor, &item).into_iter();
-        let paired = outcome
+        let paired = named
             .into_iter()
-            .map(|outcome| {
-                let found = matches!(outcome, Outcome::Applied { .. })
+            .map(|named| {
+                let found = named
+                    .is_some()
                     .then(|| found.next().expect("one answer for each applied event"));
-                (outcome, found)
+                (named, found)
             })
             .collect::<Vec<_>>();
-        let settled = map(executor, paired, |(outcome, found)| {
-            match (outcome, found) {
-                (Outcome::Applied { flow, .. }, Some(Found::Existing(index))) => {
-                    Settled::Existing(index, flow)
-                }
-                (Outcome::Applied { flow, .. }, Some(Found::Repeat(earlier))) => {
-                    Settled::Repeat(earlier, flow)
-                }
-                (Outcome::Applied { hash, state, flow }, Some(Found::New)) => {
-                    Settled::New(hash, Arc::new(state), flow)
-                }
-                _ => Settled::Blocked,
+        let settled = map(executor, paired, |(named, found)| match (named, found) {
+            (Some(named), Some(Found::Existing(index))) => {
+                Settled::Existing(index, Box::new(named.route))
             }
+            (Some(named), Some(Found::Repeat(earlier))) => {
+                Settled::Repeat(earlier, Box::new(named.route))
+            }
+            (Some(named), Some(Found::New)) => {
+                let state = Arc::new(taxonomy.materialize(&named.makeup));
+                let layout = taxonomy
+                    .hub(&named.makeup)
+                    .then(|| Arc::new(Layout::new(taxonomy, &named.makeup)));
+                Settled::New(
+                    named.hash,
+                    Arc::new(named.makeup),
+                    state,
+                    layout,
+                    Box::new(named.route),
+                )
+            }
+            _ => Settled::Blocked,
         });
         let mut target = Vec::<Option<usize>>::new();
         let mut admitted = Vec::new();
         let mut created = Vec::with_capacity(pending.len());
         let mut fired = Vec::new();
         for ((identity, source, position), settled) in pending.into_iter().zip(settled) {
-            let (resolved, flow) = match settled {
+            let (resolved, route) = match settled {
                 Settled::Blocked => {
                     self.blocked.insert(identity, (source, position));
                     created.push(None);
                     continue;
                 }
-                Settled::Existing(index, flow) => (Some(index), flow),
-                Settled::Repeat(earlier, flow) => (target[earlier], flow),
+                Settled::Existing(index, route) => (Some(index), route),
+                Settled::Repeat(earlier, route) => (target[earlier], route),
                 Settled::New(..) if self.state.len() >= self.limit.configuration => {
                     target.push(None);
                     self.blocked.insert(identity, (source, position));
                     created.push(None);
                     continue;
                 }
-                Settled::New(hash, state, flow) => {
-                    let index = self.push(state.clone());
-                    admitted.push((hash, state, index));
+                Settled::New(hash, makeup, state, layout, route) => {
+                    let index = self.push(state, makeup.clone(), layout);
+                    admitted.push((hash, makeup, index));
                     next.fresh.push(index);
-                    (Some(index), flow)
+                    (Some(index), route)
                 }
             };
             target.push(resolved);
@@ -634,7 +862,24 @@ impl Laser {
             };
             let event = self.event.len();
             self.crossed.push(Vec::new());
-            self.passage.push(*flow);
+            let passage = match *route {
+                Route::Flat(passage) => passage,
+                Route::Composed {
+                    source,
+                    origin,
+                    involved,
+                    transition,
+                } => Passage::Composed(Composed {
+                    source: self.layout[source]
+                        .clone()
+                        .expect("a move starts from a hub"),
+                    target: self.layout[resolved].clone().expect("a move ends at a hub"),
+                    origin,
+                    involved,
+                    transition,
+                }),
+            };
+            self.passage.push(passage);
             fired.push((source, event, identity));
             self.event.push(Event {
                 source,
@@ -726,6 +971,58 @@ impl Laser {
     }
 
     fn apply(&self, identity: &Identity, source: usize, trace: &Trace) -> Outcome {
+        let mut whole = None;
+        if let (Some(layout), Owner::Frame(owner)) = (&self.layout[source], &identity.owner) {
+            let local = transition::localize(
+                &self.taxonomy,
+                layout,
+                &self.makeup[source],
+                identity.frame,
+                *owner,
+                identity.rule,
+                &identity.binding,
+            );
+            match self.memo.get(&local.key) {
+                Some(known) if matches!(**known, Transition::Local(_)) => {
+                    return Outcome::Move(Box::new(Move {
+                        local,
+                        known: Some(known.clone()),
+                        product: None,
+                    }));
+                }
+                Some(_) => {}
+                None => {
+                    let makeup = Makeup {
+                        root: local.key.root,
+                        kind: local.key.kind.to_vec(),
+                    };
+                    let part = self.taxonomy.materialize(&makeup);
+                    let result = crate::application::apply(crate::application::Request {
+                        source: &part,
+                        scope: &self.program.scope,
+                        frame: local.key.frame,
+                        owner: Owner::Frame(local.key.owner),
+                        rule: &self.program.rule[local.key.rule],
+                        binding: &local.key.binding,
+                    });
+                    let draft = self.taxonomy.analyze(&result.state);
+                    if !matches!(draft, Draft::Whole(_)) {
+                        let product = Product {
+                            draft,
+                            original: (result.state.world.len(), result.state.frame.len()),
+                            flow: result.flow,
+                            whole: None,
+                        };
+                        return Outcome::Move(Box::new(Move {
+                            local,
+                            known: None,
+                            product: Some(product),
+                        }));
+                    }
+                    whole = Some(local.key);
+                }
+            }
+        }
         let flow = match &trace.capture {
             Some(capture) if capture.current.is_none() => Some((
                 capture.origin,
@@ -758,13 +1055,12 @@ impl Laser {
         ) {
             return Outcome::Blocked;
         }
-        let canonical = result.state.canonical();
-        let applied = result.flow.rename(canonical);
-        Outcome::Applied {
-            hash: space::hash(&applied.state),
-            state: applied.state,
-            flow: Box::new(Passage::new(applied.flow)),
-        }
+        Outcome::Product(Box::new(Product {
+            draft: self.taxonomy.analyze(&result.state),
+            original: (result.state.world.len(), result.state.frame.len()),
+            flow: result.flow,
+            whole,
+        }))
     }
 }
 

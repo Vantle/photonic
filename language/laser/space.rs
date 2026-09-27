@@ -1,24 +1,24 @@
 use super::map;
+use super::taxonomy::Makeup;
 use crate::executor::Executor;
-use crate::state::State;
 use hashing::Builder;
 use indexmap::{Equivalent, IndexMap};
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
-// Configurations carry the hash computed where they were made, so shards find them in parallel
-// and only numbering the new ones happens in order.
+// Configurations are found by their makeup, hashed where it is made, so shards find them in
+// parallel and only numbering the new ones happens in order.
 const SHARD: usize = 64;
 
 struct Entry {
     hash: u64,
-    state: Arc<State>,
+    makeup: Arc<Makeup>,
 }
 
 #[derive(Clone, Copy)]
-struct Probe<'state> {
+struct Probe<'makeup> {
     hash: u64,
-    state: &'state State,
+    makeup: &'makeup Makeup,
 }
 
 impl Hash for Entry {
@@ -29,7 +29,7 @@ impl Hash for Entry {
 
 impl PartialEq for Entry {
     fn eq(&self, other: &Self) -> bool {
-        self.hash == other.hash && self.state == other.state
+        self.hash == other.hash && self.makeup == other.makeup
     }
 }
 
@@ -43,7 +43,7 @@ impl Hash for Probe<'_> {
 
 impl PartialEq for Probe<'_> {
     fn eq(&self, other: &Self) -> bool {
-        self.hash == other.hash && self.state == other.state
+        self.hash == other.hash && self.makeup == other.makeup
     }
 }
 
@@ -51,7 +51,7 @@ impl Eq for Probe<'_> {}
 
 impl Equivalent<Entry> for Probe<'_> {
     fn equivalent(&self, key: &Entry) -> bool {
-        self.hash == key.hash && *self.state == *key.state
+        self.hash == key.hash && *self.makeup == *key.makeup
     }
 }
 
@@ -79,12 +79,12 @@ fn slot(hash: u64) -> usize {
     (hash >> 40) as usize % SHARD
 }
 
-pub(super) fn hash(state: &State) -> u64 {
-    hashing::value(state)
+pub(super) fn hash(makeup: &Makeup) -> u64 {
+    hashing::value(makeup)
 }
 
 impl Space {
-    pub fn resolve(&self, executor: Option<&Executor>, item: &[(u64, &State)]) -> Vec<Found> {
+    pub fn resolve(&self, executor: Option<&Executor>, item: &[(u64, &Makeup)]) -> Vec<Found> {
         let mut group = (0..SHARD).map(|_| Vec::new()).collect::<Vec<_>>();
         for (position, &(hash, _)) in item.iter().enumerate() {
             group[slot(hash)].push(position);
@@ -94,8 +94,8 @@ impl Space {
             let mut first = IndexMap::<Probe<'_>, usize, Builder>::default();
             list.into_iter()
                 .map(|position| {
-                    let (hash, state) = item[position];
-                    let probe = Probe { hash, state };
+                    let (hash, makeup) = item[position];
+                    let probe = Probe { hash, makeup };
                     if let Some(&index) = self.shard[slot(hash)].get(&probe) {
                         return (position, Found::Existing(index));
                     }
@@ -116,10 +116,10 @@ impl Space {
         found
     }
 
-    pub fn admit(&mut self, executor: Option<&Executor>, admitted: Vec<(u64, Arc<State>, usize)>) {
+    pub fn admit(&mut self, executor: Option<&Executor>, admitted: Vec<(u64, Arc<Makeup>, usize)>) {
         let mut group = (0..SHARD).map(|_| Vec::new()).collect::<Vec<_>>();
-        for (hash, state, index) in admitted {
-            group[slot(hash)].push((Entry { hash, state }, index));
+        for (hash, makeup, index) in admitted {
+            group[slot(hash)].push((Entry { hash, makeup }, index));
         }
         let taken = group
             .into_iter()
