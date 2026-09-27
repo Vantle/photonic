@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Hash, JsonSchema, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
 #[schemars(
-    description = "exhaustive explores every future; path follows one run in source order, which can witness a target but never prove it unreachable."
+    description = "exhaustive explores every future; path follows one run, firing at each step the first event within the limits that the scheduler finds, which can witness a target but never prove it unreachable."
 )]
 pub enum Mode {
     #[default]

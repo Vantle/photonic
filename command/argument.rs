@@ -178,7 +178,7 @@ pub struct Check {
     pub budget: Budget,
     #[arg(
         long,
-        help = "Follow one direct path in source order instead of exploring every future"
+        help = "Follow one direct path instead of exploring every future; each step fires the first event within the limits that the scheduler finds"
     )]
     pub path: bool,
     #[arg(
@@ -202,7 +202,7 @@ pub struct Explore {
     pub budget: Budget,
     #[arg(
         long,
-        help = "Follow one direct path in source order instead of exploring every future"
+        help = "Follow one direct path instead of exploring every future; each step fires the first event within the limits that the scheduler finds"
     )]
     pub path: bool,
     #[arg(
@@ -237,7 +237,7 @@ pub struct Select {
     pub budget: Budget,
     #[arg(
         long,
-        help = "Follow one direct path in source order instead of exploring every future"
+        help = "Follow one direct path instead of exploring every future; each step fires the first event within the limits that the scheduler finds"
     )]
     pub path: bool,
     #[command(flatten)]
@@ -257,7 +257,7 @@ pub struct Pointer {
     pub budget: Budget,
     #[arg(
         long,
-        help = "Follow one direct path in source order instead of exploring every future"
+        help = "Follow one direct path instead of exploring every future; each step fires the first event within the limits that the scheduler finds"
     )]
     pub path: bool,
     #[command(flatten)]
@@ -294,7 +294,7 @@ pub struct Miss {
     pub budget: Budget,
     #[arg(
         long,
-        help = "Follow one direct path in source order instead of exploring every future"
+        help = "Follow one direct path instead of exploring every future; each step fires the first event within the limits that the scheduler finds"
     )]
     pub path: bool,
     #[command(flatten)]
@@ -315,7 +315,7 @@ pub struct Compare {
     pub budget: Budget,
     #[arg(
         long,
-        help = "Follow one direct path in source order instead of exploring every future"
+        help = "Follow one direct path instead of exploring every future; each step fires the first event within the limits that the scheduler finds"
     )]
     pub path: bool,
     #[command(flatten)]

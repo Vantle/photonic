@@ -12,8 +12,8 @@ def theorem(name, srcs, deps, occurrence = 256, configuration = 4096, path = Tru
             states cases.
         occurrence: Occurrence limit, which grows with the claim and its cases.
         configuration: Configuration limit; a direct path retains every configuration it visits.
-        path: Follow one direct execution, which suffices when every execution reaches Theorem;
-            otherwise Prism explores every order of the rules.
+        path: Follow the one direct execution the scheduler takes, which proves the claim when it
+            reaches Theorem; with False, Prism explores every order of the rules.
     """
     photonic_binary(name = name, srcs = srcs, deps = deps)
     photonic_test(
