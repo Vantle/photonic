@@ -642,3 +642,35 @@ fn inheritance() {
         }
     }
 }
+
+#[test]
+fn witness() {
+    let program = frontend::lowering::parse("A, K, [A] B, [[A] B] C, [C, K] D").unwrap();
+    let mut runtime = Runtime::new(&program);
+    runtime.run(100_000, Limit::default());
+    let snapshot = runtime.snapshot();
+    assert!(snapshot.closed);
+    let live = snapshot
+        .definition
+        .iter()
+        .position(|definition| definition.name == "[A] B")
+        .unwrap();
+    let observed = snapshot
+        .state
+        .iter()
+        .map(|node| {
+            let produced = node
+                .world
+                .iter()
+                .flat_map(|world| &world.particle)
+                .any(|token| crate::test::atom(token) == Some("D"));
+            let kept = node.frame[0]
+                .particle
+                .iter()
+                .any(|token| token.value == crate::snapshot::Value::Rule(live));
+            (produced, kept)
+        })
+        .collect::<Vec<_>>();
+    assert!(observed.iter().any(|&(produced, _)| produced));
+    assert!(!observed.contains(&(true, true)));
+}

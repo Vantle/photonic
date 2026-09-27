@@ -79,9 +79,14 @@ pub(crate) fn apply(request: Request<'_>) -> Result {
         insertion: start..start,
         frame: (source.frame.len()..state.frame.len()).collect(),
     };
-    change
-        .frame
-        .extend(crate::consumption::apply(&mut state, binding));
+    change.frame.extend(crate::consumption::apply(
+        &mut state,
+        if nested {
+            &binding.exact
+        } else {
+            &binding.footprint
+        },
+    ));
     let remainder = remainder(source, binding, &binding.footprint);
     let enclosed = (nested && binding.exact != binding.footprint)
         .then(|| self::remainder(source, binding, &binding.exact));

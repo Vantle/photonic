@@ -1,12 +1,11 @@
-use crate::flow::Binding;
+use crate::basis::Set;
 use crate::place::Place;
 use crate::state::State;
 use smallvec::SmallVec;
 use std::sync::Arc;
 
-pub(crate) fn apply(state: &mut State, binding: &Binding) -> Vec<usize> {
-    let selection = binding
-        .exact
+pub(crate) fn apply(state: &mut State, consumed: &Set<Place>) -> Vec<usize> {
+    let selection = consumed
         .iter()
         .filter_map(|&place| match place {
             Place::Context(frame, resource) => Some((frame, resource)),
