@@ -16,14 +16,14 @@ pub(super) struct Capture {
     pub frame: usize,
     pub current: Option<usize>,
     attachment: Vec<(usize, Option<usize>)>,
-    resource: Vec<(Place, u32)>,
+    resource: Vec<(Place, u64)>,
 }
 
 #[derive(Debug, Eq, Hash, PartialEq)]
 pub(super) struct Environment {
     state: State,
     frame: Vec<Option<usize>>,
-    resource: Vec<(Place, u32)>,
+    resource: Vec<(Place, u64)>,
 }
 
 fn place(state: &State, index: usize) -> impl Iterator<Item = Place> + '_ {
@@ -100,12 +100,12 @@ impl Capture {
             resource: self
                 .resource
                 .iter()
-                .map(|&(place, basis)| (place, pool.carry(basis, event)))
+                .map(|&(place, basis)| (place, pool.carry(basis, event, flow)))
                 .collect(),
         })
     }
 
-    pub fn basis(&self) -> impl Iterator<Item = u32> + '_ {
+    pub fn basis(&self) -> impl Iterator<Item = u64> + '_ {
         self.resource.iter().map(|&(_, basis)| basis)
     }
 
@@ -118,7 +118,7 @@ impl Capture {
         let attached = self
             .resource
             .iter()
-            .map(|&(place, basis)| (place, pool.place(basis).clone()))
+            .map(|&(place, basis)| (place, pool.place(basis).iter().collect::<Set<_>>()))
             .collect::<HashMap<_, _>>();
         let resource = (0..origin.frame.len())
             .flat_map(|index| place(origin, index))

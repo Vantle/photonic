@@ -124,9 +124,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     if let Some(path) = &argument.program {
         let program = frontend::lowering::parse(&std::fs::read_to_string(path)?)?;
+        #[cfg(feature = "measurement")]
+        photonic::profile::take();
         let engine = measure(argument.sample, argument.patience, || {
             laser(&program, &executor, argument.budget, limit)
         });
+        #[cfg(feature = "measurement")]
+        eprintln!(
+            "{}",
+            serde_json::to_string_pretty(&photonic::profile::take())?
+        );
         println!("{}", serde_json::to_string_pretty(&engine)?);
         return Ok(());
     }

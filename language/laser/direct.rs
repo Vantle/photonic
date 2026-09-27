@@ -206,6 +206,7 @@ fn search(
 }
 
 pub(super) fn mark(laser: &mut Laser, executor: Option<&Executor>) {
+    let _scope = crate::profile::Scope::new(crate::profile::Phase::Marking);
     let mut open = vec![false; laser.state.len()];
     for event in &laser.event {
         if !event.direct {

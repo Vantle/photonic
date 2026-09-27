@@ -13,7 +13,7 @@ use std::sync::Arc;
 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub(super) struct Occurrence {
-    basis: u32,
+    basis: u64,
     value: Symbol,
     capture: Option<usize>,
 }
@@ -23,8 +23,8 @@ pub(super) struct Trace {
     pub rule: usize,
     pub frame: usize,
     pub capture: Option<Arc<Capture>>,
-    read: u32,
-    world: u32,
+    read: u64,
+    world: u64,
     occurrence: SmallVec<[Occurrence; 4]>,
 }
 
@@ -77,7 +77,7 @@ impl Trace {
             .map(|value| value.basis)
             .chain([self.read])
             .chain(capture);
-        pool.demand(event, basis, self.world, demand);
+        pool.demand(event, basis, self.world, flow, demand);
     }
 
     pub fn carry(&self, event: usize, flow: &Passage, pool: &Pool) -> Option<Self> {
@@ -86,7 +86,7 @@ impl Trace {
             .occurrence
             .iter()
             .map(|value| Occurrence {
-                basis: pool.carry(value.basis, event),
+                basis: pool.carry(value.basis, event, flow),
                 value: value.value,
                 capture: value.capture.and_then(|capture| flow.frame(capture)),
             })
@@ -99,8 +99,8 @@ impl Trace {
                 .capture
                 .as_ref()
                 .map(|capture| capture.carry(event, flow, pool)),
-            read: pool.carry(self.read, event),
-            world: pool.follow(self.world, event),
+            read: pool.carry(self.read, event, flow),
+            world: pool.follow(self.world, event, flow),
             occurrence,
         })
     }
@@ -116,11 +116,11 @@ impl Trace {
         let mut exact = SmallVec::<[Place; 8]>::new();
         for value in &self.occurrence {
             let basis = pool.place(value.basis);
-            footprint.extend(basis.iter().copied());
+            footprint.extend(basis.iter());
             if basis.len() != 1 {
                 continue;
             }
-            let place = *basis.first()?;
+            let place = basis.iter().next()?;
             if state
                 .token(place)
                 .is_some_and(|token| token.value == value.value && token.capture == value.capture)
@@ -135,7 +135,6 @@ impl Trace {
         let mut world = pool
             .site(self.world)
             .iter()
-            .copied()
             .collect::<SmallVec<[usize; 8]>>();
         for place in &footprint {
             match place {
@@ -156,7 +155,7 @@ impl Trace {
             world: world.into_iter().collect(),
             footprint: footprint.into_iter().collect(),
             exact: exact.into_iter().collect(),
-            read: pool.place(self.read).clone(),
+            read: pool.place(self.read).iter().collect(),
         })
     }
 }

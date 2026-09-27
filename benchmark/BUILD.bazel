@@ -232,6 +232,26 @@ rust_binary(
 )
 
 rust_binary(
+    name = "laser.profile",
+    srcs = [
+        "directory.rs",
+        "laser.rs",
+    ],
+    compile_data = ["//language:fixture"],
+    crate_features = ["measurement"],
+    crate_name = "laser",
+    crate_root = "laser.rs",
+    lint_config = "//:lint",
+    deps = [
+        "//frontend",
+        "//language:measurement",
+        "@crate//:clap",
+        "@crate//:serde",
+        "@crate//:serde_json",
+    ],
+)
+
+rust_binary(
     name = "runtime",
     srcs = [
         "directory.rs",

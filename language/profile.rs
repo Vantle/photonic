@@ -31,6 +31,15 @@ pub(crate) enum Phase {
     Renaming,
     Dependency,
     Color,
+    Discovery,
+    Planning,
+    Imaging,
+    Carriage,
+    Insertion,
+    Identification,
+    Firing,
+    Creation,
+    Marking,
 }
 
 #[cfg(not(feature = "measurement"))]
@@ -73,7 +82,7 @@ impl Drop for Scope {
 }
 
 #[cfg(feature = "measurement")]
-const PHASE: [Phase; 26] = [
+const PHASE: [Phase; 35] = [
     Phase::Matching,
     Phase::Dispatch,
     Phase::Index,
@@ -100,6 +109,15 @@ const PHASE: [Phase; 26] = [
     Phase::Renaming,
     Phase::Dependency,
     Phase::Color,
+    Phase::Discovery,
+    Phase::Planning,
+    Phase::Imaging,
+    Phase::Carriage,
+    Phase::Insertion,
+    Phase::Identification,
+    Phase::Firing,
+    Phase::Creation,
+    Phase::Marking,
 ];
 
 #[cfg(feature = "measurement")]

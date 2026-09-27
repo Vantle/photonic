@@ -7,12 +7,78 @@ use hashing::Builder;
 use indexmap::{Equivalent, IndexSet};
 use std::hash::{Hash, Hasher};
 
-// Traces carried along many paths share their bases, so bases and coherence sets are interned
-// once and each event remembers its image of every interned set carried across it. A carry reads
-// only its own event's small table; each round first fills the tables with the images it lacks.
-// Images are found by their contents without building a set, and only new sets are interned,
-// shard by shard.
+// Traces carried along many paths share their bases, so bases and coherence sets are named by a
+// number. A single place or world is its own number, and its image across an event is computed
+// where it is needed; only larger sets are interned, shard by shard, and each event remembers its
+// image of every one carried across it or of a single one whose image is larger. A carry reads
+// only its own event's small table; each round first fills the tables with the images it lacks,
+// found by their contents without building a set.
 const SHARD: usize = 64;
+
+const SINGLE: u64 = 1 << 63;
+
+trait Single: Copy + Ord + Hash {
+    fn encode(self) -> Option<u64>;
+    fn decode(value: u64) -> Self;
+}
+
+impl Single for usize {
+    fn encode(self) -> Option<u64> {
+        let value = u64::try_from(self).ok()?;
+        (value < SINGLE).then_some(SINGLE | value)
+    }
+
+    fn decode(value: u64) -> Self {
+        (value & !SINGLE) as Self
+    }
+}
+
+impl Single for Place {
+    fn encode(self) -> Option<u64> {
+        let (kind, container, id) = match self {
+            Self::World(container, id) => (0, container, id),
+            Self::Context(container, id) => (1, container, id),
+            Self::Held(container, id) => (2, container, id),
+        };
+        let container = u64::try_from(container)
+            .ok()
+            .filter(|&value| value < 1 << 29)?;
+        let id = u64::try_from(id).ok().filter(|&value| value < 1 << 32)?;
+        Some(SINGLE | kind << 61 | container << 32 | id)
+    }
+
+    fn decode(value: u64) -> Self {
+        let container = ((value >> 32) & ((1 << 29) - 1)) as usize;
+        let id = (value & ((1 << 32) - 1)) as usize;
+        match (value >> 61) & 3 {
+            0 => Self::World(container, id),
+            1 => Self::Context(container, id),
+            _ => Self::Held(container, id),
+        }
+    }
+}
+
+pub(super) enum View<'pool, Value> {
+    Single(Value),
+    Many(&'pool [Value]),
+}
+
+impl<Value: Copy> View<'_, Value> {
+    pub fn len(&self) -> usize {
+        match self {
+            Self::Single(_) => 1,
+            Self::Many(value) => value.len(),
+        }
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = Value> + '_ {
+        let (single, many) = match self {
+            Self::Single(value) => (Some(*value), &[][..]),
+            Self::Many(value) => (None, *value),
+        };
+        single.into_iter().chain(many.iter().copied())
+    }
+}
 
 struct Entry<Value> {
     hash: u64,
@@ -52,25 +118,25 @@ impl<Value: Eq> Equivalent<Entry<Value>> for Probe<'_, Value> {
 
 #[derive(Default)]
 struct Image {
-    basis: Vec<(u32, u32)>,
-    world: Vec<(u32, u32)>,
+    basis: Vec<(u64, u64)>,
+    world: Vec<(u64, u64)>,
 }
 
 #[derive(Default)]
 pub(super) struct Demand {
-    basis: Vec<u32>,
-    world: Vec<u32>,
+    basis: Vec<u64>,
+    world: Vec<u64>,
 }
 
 enum Found<Value> {
-    Known(u32),
+    Known(u64),
     New(u64, Set<Value>),
 }
 
 struct Computed {
     event: usize,
-    basis: Vec<(u32, Found<Place>)>,
-    world: Vec<(u32, Found<usize>)>,
+    basis: Vec<(u64, Found<Place>)>,
+    world: Vec<(u64, Found<usize>)>,
 }
 
 pub(super) struct Pool {
@@ -99,14 +165,26 @@ fn slot(hash: u64) -> usize {
     (hash >> 40) as usize % SHARD
 }
 
-fn identify(shard: usize, local: usize) -> u32 {
-    u32::try_from(local * SHARD + shard).expect("fewer than 2^32 sets")
+fn identify(shard: usize, local: usize) -> u64 {
+    let id = u64::try_from(local * SHARD + shard).expect("fewer than 2^63 sets");
+    assert!(id < SINGLE, "fewer than 2^63 sets");
+    id
 }
 
-fn find<Value: Copy + Ord + Hash>(
-    shard: &[IndexSet<Entry<Value>, Builder>],
-    slice: &[Value],
-) -> Found<Value> {
+fn view<Value: Single>(shard: &[IndexSet<Entry<Value>, Builder>], id: u64) -> View<'_, Value> {
+    if id & SINGLE != 0 {
+        return View::Single(Value::decode(id));
+    }
+    let id = id as usize;
+    View::Many(shard[id % SHARD][id / SHARD].set.iter().as_slice())
+}
+
+fn find<Value: Single>(shard: &[IndexSet<Entry<Value>, Builder>], slice: &[Value]) -> Found<Value> {
+    if let [single] = slice
+        && let Some(code) = single.encode()
+    {
+        return Found::Known(code);
+    }
     let hash = digest(slice);
     let position = slot(hash);
     match shard[position].get_index_of(&Probe { hash, slice }) {
@@ -115,14 +193,14 @@ fn find<Value: Copy + Ord + Hash>(
     }
 }
 
-fn image<Value: Copy + Ord + Hash>(
+fn image<Value: Single>(
     shard: &[IndexSet<Entry<Value>, Builder>],
-    set: &Set<Value>,
+    set: &View<'_, Value>,
     buffer: &mut Vec<Value>,
-    part: impl Fn(&Value) -> Set<Value>,
+    part: impl Fn(Value) -> Set<Value>,
 ) -> Found<Value> {
     buffer.clear();
-    for value in set {
+    for value in set.iter() {
         buffer.extend(part(value).iter().copied());
     }
     if set.len() > 1 {
@@ -132,11 +210,21 @@ fn image<Value: Copy + Ord + Hash>(
     find(shard, buffer)
 }
 
+fn direct<Value: Single>(id: u64, part: impl Fn(Value) -> Set<Value>) -> Option<u64> {
+    if id & SINGLE == 0 {
+        return None;
+    }
+    match part(Value::decode(id)).iter().as_slice() {
+        [single] => single.encode(),
+        _ => None,
+    }
+}
+
 fn intern<Value: Eq + Send + Sync>(
     executor: Option<&Executor>,
     shard: &mut [IndexSet<Entry<Value>, Builder>],
     fresh: Vec<(u64, Set<Value>)>,
-) -> Vec<u32> {
+) -> Vec<u64> {
     let count = fresh.len();
     if count == 0 {
         return Vec::new();
@@ -171,8 +259,8 @@ fn intern<Value: Eq + Send + Sync>(
 fn resolve<Value: Eq + Send + Sync>(
     executor: Option<&Executor>,
     shard: &mut [IndexSet<Entry<Value>, Builder>],
-    mut found: Vec<Vec<(u32, Found<Value>)>>,
-) -> Vec<Vec<(u32, u32)>> {
+    mut found: Vec<Vec<(u64, Found<Value>)>>,
+) -> Vec<Vec<(u64, u64)>> {
     let mut fresh = Vec::new();
     for (_, value) in found.iter_mut().flatten() {
         if let Found::New(hash, set) = value {
@@ -193,14 +281,28 @@ fn resolve<Value: Eq + Send + Sync>(
         .collect()
 }
 
-fn lookup(table: &[(u32, u32)], id: u32) -> Option<u32> {
+fn lookup(table: &[(u64, u64)], id: u64) -> Option<u64> {
     let position = table.binary_search_by_key(&id, |&(key, _)| key).ok()?;
     Some(table[position].1)
 }
 
-fn merge(table: &mut Vec<(u32, u32)>, found: Vec<(u32, u32)>) {
+fn merge(table: &mut Vec<(u64, u64)>, found: Vec<(u64, u64)>) {
     table.extend(found);
     table.sort_unstable_by_key(|&(key, _)| key);
+}
+
+fn add<Value: Eq + Hash + Single>(
+    shard: &mut [IndexSet<Entry<Value>, Builder>],
+    set: Set<Value>,
+) -> u64 {
+    if let [single] = set.iter().as_slice()
+        && let Some(code) = single.encode()
+    {
+        return code;
+    }
+    let hash = digest(set.iter().as_slice());
+    let position = slot(hash);
+    identify(position, shard[position].insert_full(Entry { hash, set }).0)
 }
 
 impl Demand {
@@ -213,60 +315,60 @@ impl Demand {
 }
 
 impl Pool {
-    pub fn basis(&mut self, basis: Set<Place>) -> u32 {
-        let hash = digest(basis.iter().as_slice());
-        let position = slot(hash);
-        let entry = Entry { hash, set: basis };
-        identify(position, self.basis[position].insert_full(entry).0)
+    pub fn basis(&mut self, basis: Set<Place>) -> u64 {
+        add(&mut self.basis, basis)
     }
 
-    pub fn world(&mut self, world: Set<usize>) -> u32 {
-        let hash = digest(world.iter().as_slice());
-        let position = slot(hash);
-        let entry = Entry { hash, set: world };
-        identify(position, self.world[position].insert_full(entry).0)
+    pub fn world(&mut self, world: Set<usize>) -> u64 {
+        add(&mut self.world, world)
     }
 
     pub fn release(&mut self) {
         self.image = Vec::new();
     }
 
-    pub fn place(&self, basis: u32) -> &Set<Place> {
-        let basis = basis as usize;
-        &self.basis[basis % SHARD][basis / SHARD].set
+    pub fn place(&self, basis: u64) -> View<'_, Place> {
+        view(&self.basis, basis)
     }
 
-    pub fn site(&self, world: u32) -> &Set<usize> {
-        let world = world as usize;
-        &self.world[world % SHARD][world / SHARD].set
+    pub fn site(&self, world: u64) -> View<'_, usize> {
+        view(&self.world, world)
     }
 
-    pub fn carry(&self, basis: u32, event: usize) -> u32 {
-        lookup(&self.image[event].basis, basis)
-            .expect("every image is prepared before a carry reads it")
+    pub fn carry(&self, basis: u64, event: usize, flow: &Passage) -> u64 {
+        direct(basis, |place| flow.resource(place)).unwrap_or_else(|| {
+            lookup(&self.image[event].basis, basis)
+                .expect("every image is prepared before a carry reads it")
+        })
     }
 
-    pub fn follow(&self, world: u32, event: usize) -> u32 {
-        lookup(&self.image[event].world, world)
-            .expect("every image is prepared before a carry reads it")
+    pub fn follow(&self, world: u64, event: usize, flow: &Passage) -> u64 {
+        direct(world, |index| flow.context(index)).unwrap_or_else(|| {
+            lookup(&self.image[event].world, world)
+                .expect("every image is prepared before a carry reads it")
+        })
     }
 
     pub fn demand(
         &self,
         event: usize,
-        basis: impl Iterator<Item = u32>,
-        world: u32,
+        basis: impl Iterator<Item = u64>,
+        world: u64,
+        flow: &Passage,
         demand: &mut Demand,
     ) {
-        let Some(image) = self.image.get(event) else {
-            demand.basis.extend(basis);
-            demand.world.push(world);
-            return;
-        };
-        demand
-            .basis
-            .extend(basis.filter(|&id| lookup(&image.basis, id).is_none()));
-        if lookup(&image.world, world).is_none() {
+        let image = self.image.get(event);
+        for id in basis {
+            if direct(id, |place| flow.resource(place)).is_some()
+                || image.is_some_and(|image| lookup(&image.basis, id).is_some())
+            {
+                continue;
+            }
+            demand.basis.push(id);
+        }
+        if direct(world, |index| flow.context(index)).is_none()
+            && image.is_none_or(|image| lookup(&image.world, world).is_none())
+        {
             demand.world.push(world);
         }
     }
@@ -288,16 +390,16 @@ impl Pool {
                     .basis
                     .into_iter()
                     .map(|id| {
-                        let part = |value: &Place| flow.resource(*value);
-                        (id, image(&self.basis, self.place(id), &mut place, part))
+                        let part = |value: Place| flow.resource(value);
+                        (id, image(&self.basis, &self.place(id), &mut place, part))
                     })
                     .collect(),
                 world: demand
                     .world
                     .into_iter()
                     .map(|id| {
-                        let part = |value: &usize| flow.context(*value);
-                        (id, image(&self.world, self.site(id), &mut site, part))
+                        let part = |value: usize| flow.context(value);
+                        (id, image(&self.world, &self.site(id), &mut site, part))
                     })
                     .collect(),
             }

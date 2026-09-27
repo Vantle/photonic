@@ -16,6 +16,7 @@ use crate::application::Owner;
 use crate::catalog::Catalog;
 use crate::executor::Executor;
 use crate::flow::{Binding, Closure, Flow};
+use crate::profile;
 use crate::program::Program;
 use crate::runtime::Limit;
 use crate::state::{Canonical, State};
@@ -428,7 +429,10 @@ impl Laser {
         self.origin[index] = self.trace[index].len();
     }
 
-    fn plan(&mut self, changed: Vec<usize>) -> Vec<Crossing> {
+    fn plan(&mut self, mut changed: Vec<usize>) -> Vec<Crossing> {
+        let _scope = profile::Scope::new(profile::Phase::Planning);
+        changed.sort_unstable();
+        changed.dedup();
         let mut crossing = Vec::new();
         for index in changed {
             let before = self.progress[index];
@@ -546,6 +550,7 @@ impl Laser {
         executor: Option<&Executor>,
         fresh: Vec<usize>,
     ) -> Vec<(usize, Range<usize>)> {
+        let _scope = profile::Scope::new(profile::Phase::Discovery);
         let scanned = map(executor, fresh, |index| {
             (index, scan::scan(&self.catalog, &self.state[index]))
         });
@@ -561,16 +566,30 @@ impl Laser {
     fn propagate(
         &mut self,
         executor: Option<&Executor>,
-        mut changed: Vec<usize>,
+        changed: Vec<usize>,
     ) -> (usize, Vec<(usize, Range<usize>)>) {
-        changed.sort_unstable();
-        changed.dedup();
         let crossing = self.plan(changed);
-        let demand = map(executor, crossing.iter().collect(), |crossing| {
+        let demand = self.survey(executor, &crossing);
+        self.prepare(executor, demand);
+        let carried = self.carry(executor, crossing);
+        self.insert(executor, carried)
+    }
+
+    fn survey(&self, executor: Option<&Executor>, crossing: &[Crossing]) -> Vec<(usize, Demand)> {
+        let _scope = profile::Scope::new(profile::Phase::Planning);
+        map(executor, crossing.iter().collect(), |crossing| {
             self.need(crossing)
-        });
+        })
+    }
+
+    fn prepare(&mut self, executor: Option<&Executor>, demand: Vec<(usize, Demand)>) {
+        let _scope = profile::Scope::new(profile::Phase::Imaging);
         let passage = &self.passage;
         self.pool.prepare(executor, demand, |index| &passage[index]);
+    }
+
+    fn carry(&self, executor: Option<&Executor>, crossing: Vec<Crossing>) -> Vec<Carried> {
+        let _scope = profile::Scope::new(profile::Phase::Carriage);
         let chunk = crossing
             .into_iter()
             .flat_map(|crossing| {
@@ -581,7 +600,15 @@ impl Laser {
                 })
             })
             .collect();
-        let carried = map(executor, chunk, |crossing| self.cross(crossing));
+        map(executor, chunk, |crossing| self.cross(crossing))
+    }
+
+    fn insert(
+        &mut self,
+        executor: Option<&Executor>,
+        carried: Vec<Carried>,
+    ) -> (usize, Vec<(usize, Range<usize>)>) {
+        let _scope = profile::Scope::new(profile::Phase::Insertion);
         let mut count = 0;
         let mut event = Vec::with_capacity(carried.len());
         let mut landing = Vec::with_capacity(carried.len());
@@ -642,9 +669,7 @@ impl Laser {
         retry: Vec<(Identity, usize, usize)>,
         next: &mut Round,
     ) -> usize {
-        let candidate = map(executor, novel, |(index, range)| {
-            self.candidate(index, range)
-        });
+        let candidate = self.select(executor, novel);
         let revisit = retry
             .iter()
             .map(|&(_, source, position)| (source, position))
@@ -661,13 +686,7 @@ impl Laser {
             );
         }
         let count = pending.len();
-        let outcome = map(
-            executor,
-            pending.iter().collect(),
-            |(identity, source, position)| {
-                self.apply(identity, *source, &self.trace[*source][*position])
-            },
-        );
+        let outcome = self.attempt(executor, &pending);
         let created = self.create(executor, pending, outcome, next);
         for (index, offset, resolution) in resolved {
             self.link[index].extend(resolution.into_iter().map(|value| match value {
@@ -687,6 +706,32 @@ impl Laser {
         count
     }
 
+    fn select(
+        &self,
+        executor: Option<&Executor>,
+        novel: Vec<(usize, Range<usize>)>,
+    ) -> Vec<Candidate> {
+        let _scope = profile::Scope::new(profile::Phase::Identification);
+        map(executor, novel, |(index, range)| {
+            self.candidate(index, range)
+        })
+    }
+
+    fn attempt(
+        &self,
+        executor: Option<&Executor>,
+        pending: &[(Identity, usize, usize)],
+    ) -> Vec<Outcome> {
+        let _scope = profile::Scope::new(profile::Phase::Firing);
+        map(
+            executor,
+            pending.iter().collect(),
+            |(identity, source, position)| {
+                self.apply(identity, *source, &self.trace[*source][*position])
+            },
+        )
+    }
+
     fn create(
         &mut self,
         executor: Option<&Executor>,
@@ -694,6 +739,7 @@ impl Laser {
         outcome: Vec<Outcome>,
         next: &mut Round,
     ) -> Vec<Option<usize>> {
+        let _scope = profile::Scope::new(profile::Phase::Creation);
         let mut number = Vec::with_capacity(outcome.len());
         for outcome in &outcome {
             number.push(match outcome {
