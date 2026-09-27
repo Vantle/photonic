@@ -1,5 +1,6 @@
 use frontend::source::Program;
 use miette::{IntoDiagnostic, WrapErr};
+use photonic::laser::Laser;
 use photonic::prism::Outcome;
 use photonic::runtime::{Limit, Runtime};
 use serde::Deserialize;
@@ -72,15 +73,28 @@ fn main() -> miette::Result<ExitCode> {
     let exploration = (!case.path).then(|| {
         let mut runtime = Runtime::new(&program);
         runtime.run(case.work, limit);
-        runtime
+        let mut laser = Laser::new(&program);
+        laser.run(usize::MAX, limit);
+        (runtime, laser)
     });
     let directory = std::env::var_os("TEST_UNDECLARED_OUTPUTS_DIR").map(std::path::PathBuf::from);
     let mut success = true;
     for (index, target) in target.into_iter().enumerate() {
         let name = format!("{index}.json");
-        let result = if let Some(runtime) = &exploration {
+        let result = if let Some((runtime, laser)) = &exploration {
             let verdict = runtime.verdict(&target);
-            if verdict.outcome != expected {
+            let compiled = laser.verdict(&target).outcome;
+            let agree = compiled == verdict.outcome
+                || !runtime.closed()
+                    && (compiled == Outcome::Unknown || verdict.outcome == Outcome::Unknown);
+            if !agree {
+                println!(
+                    "Laser answers {compiled:?} where the interpreter answers {:?}",
+                    verdict.outcome
+                );
+            }
+            success &= agree;
+            if verdict.outcome != expected || !agree {
                 record(
                     &directory,
                     &name,
@@ -88,6 +102,7 @@ fn main() -> miette::Result<ExitCode> {
                         "target": case.target[index],
                         "outcome": verdict.outcome,
                         "witness": verdict.witness,
+                        "laser": compiled,
                     }),
                 )?;
             }
@@ -108,7 +123,7 @@ fn main() -> miette::Result<ExitCode> {
         "Prism: expected {expected:?}; {}",
         if success { "passed" } else { "failed" }
     );
-    if let (false, Some(runtime)) = (success, &exploration) {
+    if let (false, Some((runtime, _))) = (success, &exploration) {
         record(&directory, "execution.json", &runtime.stream())?;
     }
     Ok(if success {

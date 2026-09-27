@@ -2,6 +2,7 @@ use super::{Disagreement, Laser};
 use crate::place::Place;
 use crate::runtime::Runtime;
 use crate::state::State;
+use crate::status::Status;
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 #[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -14,6 +15,7 @@ struct Key {
     exact: Vec<Place>,
     read: Vec<Place>,
     direct: bool,
+    supported: bool,
 }
 
 fn difference(reference: &BTreeMap<Key, usize>, observed: &BTreeMap<Key, usize>) -> (usize, usize) {
@@ -62,6 +64,17 @@ impl Laser {
             .map(|(index, state)| (state.as_ref(), index))
             .collect::<HashMap<&State, usize>>();
         let snapshot = runtime.snapshot();
+        let (state, status) = self.status();
+        let differ = named
+            .iter()
+            .zip(&state)
+            .filter(|(named, status)| snapshot.state[number[&named.state]].status != **status)
+            .count();
+        if differ != 0 {
+            return Err(Disagreement::Support {
+                configuration: differ,
+            });
+        }
         let mut expected = BTreeMap::<Key, usize>::new();
         for event in &snapshot.event {
             let direct = event
@@ -77,6 +90,7 @@ impl Laser {
                 exact: event.exact.clone(),
                 read: event.read.clone(),
                 direct,
+                supported: event.status == Status::Supported,
             };
             *expected.entry(key).or_default() += 1;
         }
@@ -112,6 +126,7 @@ impl Laser {
                 exact: rename(&binding.exact),
                 read: rename(&binding.read),
                 direct: event.direct,
+                supported: status[index] == Status::Supported,
             };
             *compiled.entry(key).or_default() += 1;
         }

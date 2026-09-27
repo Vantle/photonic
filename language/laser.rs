@@ -8,6 +8,7 @@ mod passage;
 mod pool;
 mod scan;
 mod space;
+mod support;
 mod taxonomy;
 mod trace;
 mod transition;
@@ -16,10 +17,12 @@ use crate::application::Owner;
 use crate::catalog::Catalog;
 use crate::executor::Executor;
 use crate::flow::{Binding, Closure, Flow};
+use crate::prism::Verdict;
 use crate::profile;
 use crate::program::Program;
 use crate::runtime::Limit;
 use crate::state::{Canonical, State};
+use crate::status::Status;
 use capture::{Capture, Environment};
 use hashing::Builder;
 use indexmap::{IndexMap, IndexSet};
@@ -174,6 +177,7 @@ pub enum Disagreement {
     Closed { interpreter: bool, laser: bool },
     Configuration { missing: usize, extra: usize },
     Event { missing: usize, extra: usize },
+    Support { configuration: usize },
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
@@ -208,6 +212,7 @@ pub struct Laser {
     environment: Mutex<HashMap<(usize, usize), Arc<Canonical>, Builder>>,
     pool: Pool,
     blocked: HashMap<Identity, (usize, usize), Builder>,
+    support: Option<support::Support>,
     round: Round,
     limit: Limit,
     work: usize,
@@ -322,6 +327,7 @@ impl Laser {
             environment: Mutex::new(HashMap::default()),
             pool: Pool::default(),
             blocked: HashMap::default(),
+            support: None,
             round: Round::default(),
             limit: Limit::default(),
             work: 0,
@@ -366,6 +372,46 @@ impl Laser {
         }
     }
 
+    pub fn status(&self) -> (Vec<Status>, Vec<Status>) {
+        let found;
+        let support = match &self.support {
+            Some(support) => support,
+            None => {
+                found = support::establish(self);
+                &found
+            }
+        };
+        let status = |value: &bool| {
+            if *value {
+                Status::Supported
+            } else {
+                Status::Unsupported
+            }
+        };
+        (
+            support.state.iter().map(status).collect(),
+            support.event.iter().map(status).collect(),
+        )
+    }
+
+    pub fn verdict(&self, target: &frontend::source::Program) -> Verdict {
+        let state = State::target(&self.program, target);
+        let candidate = self
+            .taxonomy
+            .find(&state)
+            .and_then(|makeup| self.space.find(space::hash(&makeup), &makeup));
+        let (status, _) = self.status();
+        let outcome = match candidate.map(|index| status[index]) {
+            Some(Status::Supported) => crate::prism::Outcome::Reached,
+            _ if self.closed() => crate::prism::Outcome::Unreachable,
+            _ => crate::prism::Outcome::Unknown,
+        };
+        Verdict {
+            outcome,
+            witness: candidate.filter(|_| outcome == crate::prism::Outcome::Reached),
+        }
+    }
+
     fn idle(&self) -> bool {
         self.round.fresh.is_empty() && self.round.changed.is_empty() && self.round.retry.is_empty()
     }
@@ -394,6 +440,7 @@ impl Laser {
             self.passage = Vec::new();
             self.pool.release();
             direct::mark(self, executor);
+            self.support = Some(support::establish(self));
             self.trace = Vec::new();
             self.link = Vec::new();
             self.crossed = Vec::new();

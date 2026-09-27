@@ -84,6 +84,10 @@ pub(super) fn hash(makeup: &Makeup) -> u64 {
 }
 
 impl Space {
+    pub fn find(&self, hash: u64, makeup: &Makeup) -> Option<usize> {
+        self.shard[slot(hash)].get(&Probe { hash, makeup }).copied()
+    }
+
     pub fn resolve(&self, executor: Option<&Executor>, item: &[(u64, &Makeup)]) -> Vec<Found> {
         let mut group = (0..SHARD).map(|_| Vec::new()).collect::<Vec<_>>();
         for (position, &(hash, _)) in item.iter().enumerate() {

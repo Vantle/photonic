@@ -212,6 +212,27 @@ impl Taxonomy {
         }
     }
 
+    pub fn find(&self, state: &State) -> Option<Makeup> {
+        let number = |id: usize| u32::try_from(id).ok();
+        match self.analyze(state) {
+            Draft::Whole(canonical) => Some(Makeup {
+                root: number(self.root.get_index_of(&Root::Whole(canonical.state))?)?,
+                kind: Vec::new(),
+            }),
+            Draft::Split { root, piece, .. } => {
+                let mut kind = piece
+                    .iter()
+                    .map(|piece| number(self.kind.get_index_of(&piece.named.state)?))
+                    .collect::<Option<Vec<_>>>()?;
+                kind.sort_unstable();
+                Some(Makeup {
+                    root: number(self.root.get_index_of(&Root::Hub(root))?)?,
+                    kind,
+                })
+            }
+        }
+    }
+
     pub fn kind(&self, id: u32) -> (&State, Size) {
         let (state, &size) = self
             .kind

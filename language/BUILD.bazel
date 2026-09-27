@@ -228,6 +228,7 @@ filegroup(
         "laser/pool.rs",
         "laser/scan.rs",
         "laser/space.rs",
+        "laser/support.rs",
         "laser/taxonomy.rs",
         "laser/trace.rs",
         "laser/transition.rs",

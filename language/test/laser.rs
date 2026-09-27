@@ -119,3 +119,54 @@ fn resume() {
         assert_eq!(laser.agree(&runtime), Ok(()), "{source}");
     }
 }
+
+#[test]
+fn verdict() {
+    for (source, target, budget) in [
+        ("A.B", "B.A", 0),
+        ("A, [A] B", "B", 0),
+        ("A, [A] B", "B", 12_000),
+        ("A, [A] B, [B] A", "C", 12_000),
+        ("Seed.Extra, [Seed] A, [A] Result", "Result.Extra", 12_000),
+        ("[A.A] Z, B, (A, [Q] R)", "B, (A, [Q] R)", 12_000),
+        (
+            "[A.A] Z, B, [B] C, [C] B, (A, [Q] R)",
+            "B, (A, [Q] R)",
+            12_000,
+        ),
+        (
+            "Pair.Seed, Pair.Other, [Seed] Intermediate, [Intermediate] Kind, [Other] Kind, \
+             [Pair.Kind, Pair.Kind] ([()] Result)",
+            "Result.Seed.Other",
+            12_000,
+        ),
+        (
+            "Pair.Seed, Pair.Other, [Seed] Kind, [Pair.Kind, Pair.Kind] ([()] Result)",
+            "Result.Seed.Other",
+            12_000,
+        ),
+        ("A", "A.A", 12_000),
+        ("A.Extra, [A] B", "B", 12_000),
+        ("A.Extra, [A] B", "B.Extra", 12_000),
+        ("Enter, [Enter] (Goal, [Missing] Done)", "Goal", 12_000),
+        ("Seed.X, [Seed] (A, B)", "A.X, B.X", 12_000),
+        ("$x, [$y] Result", "Result", 12_000),
+        ("().([A.B] C)", "().([B.A] C)", 12_000),
+        ("A, [A] B, [B] C, [C] A", "C", 12_000),
+    ] {
+        let program = frontend::lowering::parse(source).unwrap();
+        let target = crate::test::target(&program, target);
+        let mut runtime = Runtime::new(&program);
+        runtime.run(budget, Limit::default());
+        let mut laser = Laser::new(&program);
+        laser.run(budget, Limit::default());
+        let expected = runtime.verdict(&target);
+        let observed = laser.verdict(&target);
+        assert_eq!(observed.outcome, expected.outcome, "{source}");
+        assert_eq!(
+            observed.witness.is_some(),
+            expected.witness.is_some(),
+            "{source}"
+        );
+    }
+}
