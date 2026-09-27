@@ -13,6 +13,7 @@ use clap::Parser;
 use frontend::source::Program;
 use miette::IntoDiagnostic;
 use photonic::executor::Executor;
+use photonic::laser::Laser;
 use photonic::prism::Outcome;
 use photonic::runtime::Runtime;
 use photonic::snapshot::{Definition, Node, Token, Value};
@@ -20,7 +21,7 @@ use photonic::status::Status;
 use serde::Serialize;
 use spectrum::failure::Failure;
 
-use argument::{Argument, Operation};
+use argument::{Argument, Engine, Operation};
 
 #[derive(Serialize)]
 struct Report<'program, Execution> {
@@ -72,6 +73,9 @@ fn run(argument: &argument::Run) -> miette::Result<ExitCode> {
     };
     let budget = spectrum::budget::Budget::from(&argument.budget);
     let executor = Executor::new(argument.worker).into_diagnostic()?;
+    if argument.engine == Engine::Laser {
+        return compile(argument, &program, &budget, &executor);
+    }
     let mut runtime = Runtime::new(&program);
     runtime.parallel(&executor, budget.work, budget.limit());
     if argument.json {
@@ -104,6 +108,42 @@ fn run(argument: &argument::Run) -> miette::Result<ExitCode> {
     Ok(ExitCode::SUCCESS)
 }
 
+fn compile(
+    argument: &argument::Run,
+    program: &Program,
+    budget: &spectrum::budget::Budget,
+    executor: &Executor,
+) -> miette::Result<ExitCode> {
+    let mut laser = Laser::new(program);
+    laser.parallel(executor, budget.work, budget.limit());
+    let report = laser.report();
+    if argument.json {
+        output::write(&report, argument.compact)?;
+        return Ok(ExitCode::SUCCESS);
+    }
+    let mut output = std::io::stdout().lock();
+    writeln!(
+        output,
+        "{}: {} configurations, {} applications, {} work items",
+        if report.closed { "Closed" } else { "Paused" },
+        report.state.len(),
+        report.event.len(),
+        report.work,
+    )
+    .into_diagnostic()?;
+    for node in &report.state {
+        writeln!(
+            output,
+            "s{} {} {}",
+            node.id,
+            status(node.status),
+            display(node, &report.definition)
+        )
+        .into_diagnostic()?;
+    }
+    Ok(ExitCode::SUCCESS)
+}
+
 fn prism(argument: &argument::Prism) -> miette::Result<ExitCode> {
     let (program, target) = match (
         load(&argument.run.file, &argument.run.source),
@@ -120,6 +160,9 @@ fn prism(argument: &argument::Prism) -> miette::Result<ExitCode> {
         return walk(argument, program, target, budget);
     }
     let executor = Executor::new(argument.run.worker).into_diagnostic()?;
+    if argument.run.engine == Engine::Laser {
+        return aim(argument, &program, &target, &budget, &executor);
+    }
     let mut runtime = Runtime::new(&program);
     runtime.parallel(&executor, budget.work, budget.limit());
     let verdict = runtime.verdict(&target);
@@ -138,14 +181,10 @@ fn prism(argument: &argument::Prism) -> miette::Result<ExitCode> {
     }
     let mut output = std::io::stdout().lock();
     let snapshot = runtime.snapshot();
-    let outcome = match verdict.outcome {
-        Outcome::Reached => "Reached",
-        Outcome::Unreachable => "Unreachable",
-        Outcome::Unknown => "Unknown",
-    };
     writeln!(
         output,
-        "{outcome}: exact target configuration under the supplied program"
+        "{}: exact target configuration under the supplied program",
+        answer(verdict.outcome)
     )
     .into_diagnostic()?;
     if let Some(witness) = verdict.witness {
@@ -170,6 +209,67 @@ fn prism(argument: &argument::Prism) -> miette::Result<ExitCode> {
     )
     .into_diagnostic()?;
     Ok(ExitCode::SUCCESS)
+}
+
+fn aim(
+    argument: &argument::Prism,
+    program: &Program,
+    target: &Program,
+    budget: &spectrum::budget::Budget,
+    executor: &Executor,
+) -> miette::Result<ExitCode> {
+    let mut laser = Laser::new(program);
+    laser.parallel(executor, budget.work, budget.limit());
+    let verdict = laser.verdict(target);
+    let report = laser.report();
+    if argument.run.json {
+        output::write(
+            &Report {
+                outcome: verdict.outcome,
+                witness: verdict.witness,
+                program,
+                target,
+                execution: report,
+            },
+            argument.run.compact,
+        )?;
+        return Ok(ExitCode::SUCCESS);
+    }
+    let mut output = std::io::stdout().lock();
+    writeln!(
+        output,
+        "{}: exact target configuration under the supplied program",
+        answer(verdict.outcome)
+    )
+    .into_diagnostic()?;
+    if let Some(witness) = verdict.witness {
+        writeln!(
+            output,
+            "Witness s{witness}: {}",
+            display(&report.state[witness], &report.definition)
+        )
+        .into_diagnostic()?;
+    }
+    writeln!(
+        output,
+        "{} configurations; exploration {}",
+        report.state.len(),
+        if report.closed {
+            "closed"
+        } else {
+            "unfinished"
+        },
+    )
+    .into_diagnostic()?;
+    Ok(ExitCode::SUCCESS)
+}
+
+fn answer(outcome: Outcome) -> &'static str {
+    match outcome {
+        Outcome::Reached => "Reached",
+        Outcome::Unreachable => "Unreachable",
+        Outcome::Unknown => "Unknown",
+    }
 }
 
 fn walk(

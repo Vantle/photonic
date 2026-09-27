@@ -27,8 +27,6 @@ fn difference(reference: &BTreeMap<Key, usize>, observed: &BTreeMap<Key, usize>)
     (count(reference, observed), count(observed, reference))
 }
 
-// Laser names configurations by their components, so each is renamed to the interpreter's name
-// before comparing, and every event's places move with the renaming of its source.
 impl Laser {
     pub fn agree(&self, runtime: &Runtime) -> Result<(), Disagreement> {
         if runtime.closed() != self.closed() {
@@ -42,11 +40,7 @@ impl Laser {
             .iter()
             .map(AsRef::as_ref)
             .collect::<HashSet<&State>>();
-        let named = self
-            .state
-            .iter()
-            .map(|state| state.canonical())
-            .collect::<Vec<_>>();
+        let named = self.name();
         let observed = named
             .iter()
             .map(|named| &named.state)
@@ -95,38 +89,18 @@ impl Laser {
             *expected.entry(key).or_default() += 1;
         }
         let mut compiled = BTreeMap::<Key, usize>::new();
-        for (index, event) in self.event.iter().enumerate() {
-            let identity = self.identity(index);
-            let binding = &identity.binding;
-            let source = &named[event.source];
-            let rename = |set: &crate::basis::Set<Place>| {
-                let mut list = set
-                    .iter()
-                    .map(|&place| {
-                        source
-                            .place(place)
-                            .expect("a bound place survives renaming")
-                    })
-                    .collect::<Vec<_>>();
-                list.sort_unstable();
-                list
-            };
-            let mut world = binding
-                .world
-                .iter()
-                .map(|&index| source.world[index].expect("a bound world survives renaming"))
-                .collect::<Vec<_>>();
-            world.sort_unstable();
+        for (index, &status) in status.iter().enumerate() {
+            let transition = self.transition(index, &named, status);
             let key = Key {
-                source: number[&source.state],
-                target: number[&named[event.target].state],
-                rule: identity.rule,
-                world,
-                footprint: rename(&binding.footprint),
-                exact: rename(&binding.exact),
-                read: rename(&binding.read),
-                direct: event.direct,
-                supported: status[index] == Status::Supported,
+                source: number[&named[transition.source].state],
+                target: number[&named[transition.target].state],
+                rule: transition.rule,
+                world: transition.world,
+                footprint: transition.footprint,
+                exact: transition.exact,
+                read: transition.read,
+                direct: !transition.inferred,
+                supported: transition.status == Status::Supported,
             };
             *compiled.entry(key).or_default() += 1;
         }

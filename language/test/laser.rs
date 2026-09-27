@@ -117,6 +117,16 @@ fn resume() {
         assert!(!laser.closed(), "{source}");
         laser.run(100_000_000, limit);
         assert_eq!(laser.agree(&runtime), Ok(()), "{source}");
+        let peak = laser.report().peak;
+        for record in [1, peak / 2] {
+            let mut laser = Laser::new(&program);
+            laser.run(100_000_000, Limit { record, ..limit });
+            assert!(!laser.closed(), "{source} {record}");
+            assert!(laser.report().record >= record, "{source} {record}");
+            laser.run(100_000_000, limit);
+            assert_eq!(laser.agree(&runtime), Ok(()), "{source} {record}");
+            assert_eq!(laser.report().peak, peak, "{source} {record}");
+        }
     }
 }
 

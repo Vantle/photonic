@@ -226,6 +226,7 @@ filegroup(
         "laser/layout.rs",
         "laser/passage.rs",
         "laser/pool.rs",
+        "laser/report.rs",
         "laser/scan.rs",
         "laser/space.rs",
         "laser/support.rs",

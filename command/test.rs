@@ -214,6 +214,95 @@ fn prism() {
     );
 }
 
+fn listing(output: &Output) -> Vec<String> {
+    assert!(output.status.success());
+    let mut line = String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .skip(1)
+        .map(|line| line.split_once(' ').unwrap().1.to_owned())
+        .collect::<Vec<_>>();
+    line.sort();
+    line
+}
+
+#[test]
+fn engine() {
+    let fixture = Fixture::new();
+    let path = fixture.write("program.wave", "Seed.A, [Seed] ().([A] B)");
+    let laser = ["--engine", "laser"];
+    assert_eq!(
+        listing(&execute("run", &path, &laser)),
+        listing(&execute("run", &path, &[]))
+    );
+    let interpreter = report(&execute("run", &path, &["--json"]));
+    let compiled = report(&execute("run", &path, &["--json", "--engine", "laser"]));
+    assert_eq!(compiled["closed"], true);
+    assert_eq!(compiled["definition"], interpreter["definition"]);
+    assert_eq!(compiled["limit"], interpreter["limit"]);
+    for field in ["state", "event"] {
+        assert_eq!(
+            compiled[field].as_array().unwrap().len(),
+            interpreter[field].as_array().unwrap().len()
+        );
+    }
+    let parallel = report(&execute(
+        "run",
+        &path,
+        &["--json", "--engine", "laser", "--worker", "4"],
+    ));
+    assert_eq!(compiled, parallel);
+    let paused = report(&execute(
+        "run",
+        &path,
+        &["--json", "--engine", "laser", "--record", "1"],
+    ));
+    assert_eq!(paused["closed"], false);
+    assert_eq!(paused["work"], 0);
+    let path = fixture.write("prism.wave", "A, [A] B");
+    let target = fixture.write("target.particle", "B, [A] B");
+    let missing = fixture.write("missing.particle", "C, [A] B");
+    for (target, argument, outcome) in [
+        (&target, &[][..], "reached"),
+        (&missing, &[][..], "unreachable"),
+        (&target, &["--work", "0"][..], "unknown"),
+    ] {
+        let argument = [
+            &["--target", target.to_str().unwrap(), "--json"][..],
+            argument,
+        ]
+        .concat();
+        let interpreter = report(&execute("prism", &path, &argument));
+        let compiled = report(&execute("prism", &path, &[&argument, &laser[..]].concat()));
+        assert_eq!(interpreter["outcome"], outcome);
+        assert_eq!(compiled["outcome"], outcome);
+        assert_eq!(compiled["witness"].is_u64(), outcome == "reached");
+        assert_eq!(compiled["target"], interpreter["target"]);
+    }
+    let output = execute(
+        "prism",
+        &path,
+        &["--target", target.to_str().unwrap(), "--engine", "laser"],
+    );
+    assert!(output.status.success());
+    let text = String::from_utf8(output.stdout).unwrap();
+    assert!(text.starts_with("Reached:"));
+    assert!(text.contains("Witness s"));
+    assert!(text.ends_with("exploration closed\n"));
+    let conflict = execute(
+        "prism",
+        &path,
+        &[
+            "--target",
+            target.to_str().unwrap(),
+            "--path",
+            "--engine",
+            "laser",
+        ],
+    );
+    assert!(!conflict.status.success());
+    assert!(String::from_utf8_lossy(&conflict.stderr).contains("--engine"));
+}
+
 #[test]
 fn depth() {
     let fixture = Fixture::new();

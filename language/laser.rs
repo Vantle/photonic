@@ -6,6 +6,7 @@ mod forest;
 mod layout;
 mod passage;
 mod pool;
+pub mod report;
 mod scan;
 mod space;
 mod support;
@@ -216,6 +217,8 @@ pub struct Laser {
     round: Round,
     limit: Limit,
     work: usize,
+    traced: usize,
+    peak: usize,
 }
 
 fn map<Input: Send, Output: Send>(
@@ -331,6 +334,8 @@ impl Laser {
             round: Round::default(),
             limit: Limit::default(),
             work: 0,
+            traced: 0,
+            peak: 0,
         };
         let draft = laser.taxonomy.analyze(&initial);
         let (root, kind) = laser.taxonomy.intern(&draft);
@@ -347,6 +352,7 @@ impl Laser {
             .space
             .admit(None, vec![(space::hash(&makeup), makeup, index)]);
         laser.round.fresh.push(index);
+        laser.peak = laser.record();
         laser
     }
 
@@ -431,9 +437,10 @@ impl Laser {
         }
         let open = !self.closed();
         let mut remaining = budget;
-        while remaining > 0 && !self.idle() {
+        while remaining > 0 && !self.idle() && self.record() < self.limit.record {
             let work = self.step(executor);
             self.work += work;
+            self.peak = self.peak.max(self.record());
             remaining = remaining.saturating_sub(work.max(1));
         }
         if open && self.closed() {
@@ -442,9 +449,16 @@ impl Laser {
             direct::mark(self, executor);
             self.support = Some(support::establish(self));
             self.trace = Vec::new();
+            self.traced = 0;
             self.link = Vec::new();
             self.crossed = Vec::new();
         }
+    }
+
+    // A record is a configuration, an event or a trace, the parts that grow with exploration;
+    // closing releases the traces.
+    fn record(&self) -> usize {
+        self.state.len() + self.event.len() + self.traced
     }
 
     fn push(
@@ -587,6 +601,7 @@ impl Laser {
         let (carried, grown) = self.propagate(executor, changed);
         next.changed.extend(grown.iter().map(|(index, _)| *index));
         novel.extend(grown);
+        self.traced += novel.iter().map(|(_, range)| range.len()).sum::<usize>();
         let fired = self.fire(executor, novel, round.retry, &mut next);
         self.round = next;
         scanned + carried + fired

@@ -149,10 +149,23 @@ pub struct Run {
     pub budget: Budget,
     #[arg(long, default_value_t = NonZeroUsize::MIN, help = "Threads that explore in parallel")]
     pub worker: NonZeroUsize,
+    #[arg(
+        long,
+        value_enum,
+        default_value_t = Engine::Interpreter,
+        help = "The engine that explores every future: the interpreter, or Laser, which propagates matches along events and names configurations by their components; both close with the same answers"
+    )]
+    pub engine: Engine,
     #[arg(long, help = "Print the complete execution report as JSON")]
     pub json: bool,
     #[arg(long, requires = "json", help = "Serialize JSON without indentation")]
     pub compact: bool,
+}
+
+#[derive(Clone, Copy, Eq, PartialEq, clap::ValueEnum)]
+pub enum Engine {
+    Interpreter,
+    Laser,
 }
 
 #[derive(Args)]
@@ -163,6 +176,7 @@ pub struct Prism {
     pub target: PathBuf,
     #[arg(
         long,
+        conflicts_with = "engine",
         help = "Follow one direct execution path; failure to reach the target stays unknown"
     )]
     pub path: bool,
