@@ -72,6 +72,10 @@ rust_test(
         "PHOTONIC_EXECUTE": "$(rlocationpath :execute)",
         "PHOTONIC_NODE": "$(rlocationpath :node)",
         "PHOTONIC_SCRIPT": "$(rlocationpath exit.mjs)",
+        # The manifest case runs a binary it has just copied. On Linux, a child that another case
+        # forks while the copy is open inherits it for writing, and running the copy then fails
+        # with ETXTBSY, so the cases run one at a time.
+        "RUST_TEST_THREADS": "1",
     },
     lint_config = "//:lint",
     deps = ["@rules_rust//rust/runfiles"],
