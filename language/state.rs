@@ -232,11 +232,16 @@ impl State {
     pub(crate) fn rename(&self, world: &[usize], frame: &[usize]) -> Canonical {
         let _scope = profile::Scope::new(profile::Phase::Renaming);
         self.remap(world, frame, |mapping| {
+            let count = world
+                .iter()
+                .map(|&index| self.world[index].particle.len())
+                .chain(frame.iter().map(|&index| self.frame[index].size()))
+                .sum();
             let mut incidence = HashMap::<
                 usize,
                 (Symbol, Option<usize>, SmallVec<[(Link, usize); 1]>),
                 Builder,
-            >::default();
+            >::with_capacity_and_hasher(count, Builder);
             let mut link = |token: &Token, kind: Link, position: usize| {
                 incidence
                     .entry(token.id)

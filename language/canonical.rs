@@ -2,6 +2,7 @@ use crate::ordering::Ordering;
 use crate::profile;
 use crate::refinement::Refinement;
 use crate::state::{Canonical, State};
+use smallvec::SmallVec;
 use std::sync::{Arc, OnceLock};
 
 mod renaming;
@@ -21,15 +22,21 @@ pub(crate) struct Search {
 impl Search {
     pub fn new(state: Arc<State>) -> Self {
         let refinement = OnceLock::new();
+        let chain = (0..state.frame.len())
+            .map(|_| OnceLock::new())
+            .collect::<Vec<OnceLock<_>>>();
         let key = |index: usize| {
             let world = &state.world[index];
             let mut particle = world
                 .particle
                 .iter()
                 .map(|token| token.value)
-                .collect::<Vec<_>>();
+                .collect::<SmallVec<[_; 4]>>();
             particle.sort();
-            (state.chain(world.frame), particle)
+            (
+                chain[world.frame].get_or_init(|| state.chain(world.frame)),
+                particle,
+            )
         };
         let world = Ordering::new(0..state.world.len(), key).refine(|index| {
             refinement
