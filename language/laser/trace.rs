@@ -80,7 +80,13 @@ impl Trace {
         pool.demand(event, basis, self.world, flow, demand);
     }
 
-    pub fn carry(&self, event: usize, flow: &Passage, pool: &Pool) -> Option<Self> {
+    pub fn carry(
+        &self,
+        event: usize,
+        flow: &Passage,
+        pool: &Pool,
+        store: &capture::Store,
+    ) -> Option<Self> {
         let frame = flow.frame(self.frame)?;
         let mut occurrence = self
             .occurrence
@@ -98,7 +104,7 @@ impl Trace {
             capture: self
                 .capture
                 .as_ref()
-                .map(|capture| capture.carry(event, flow, pool)),
+                .map(|capture| store.carry(capture, event, flow, pool)),
             read: pool.carry(self.read, event, flow),
             world: pool.follow(self.world, event, flow),
             occurrence,

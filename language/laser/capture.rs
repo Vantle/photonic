@@ -22,25 +22,38 @@ pub(super) struct Capture {
     resource: Vec<(Place, u64)>,
 }
 
-// Traces carried back along different walks often hold equal captures, so each inserted trace
-// takes the store's copy and equal captures are kept once. Insertions run in parallel, and shards
-// keep them from waiting on one another.
+// Traces carried back along different walks often hold equal captures, so every stored trace
+// holds the store's copy and equal captures are kept once. The traces that share a capture carry
+// it across the same events, so each carry of a capture across an event is remembered until the
+// batch ends; a capture a trace holds lives as long as the trace, so its address names it while it
+// is remembered. Carries run in parallel, and shards keep them from waiting on one another.
 pub(super) struct Store {
     shard: Vec<Mutex<HashSet<Arc<Capture>, Builder>>>,
+    carried: Vec<Mutex<HashMap<Crossing, Arc<Capture>, Builder>>>,
+}
+
+#[derive(Clone, Copy, Eq, Hash, PartialEq)]
+struct Crossing {
+    event: usize,
+    capture: usize,
+}
+
+fn slot(hash: u64) -> usize {
+    (hash >> 40) as usize % SHARD
 }
 
 impl Default for Store {
     fn default() -> Self {
         Self {
             shard: (0..SHARD).map(|_| Mutex::default()).collect(),
+            carried: (0..SHARD).map(|_| Mutex::default()).collect(),
         }
     }
 }
 
 impl Store {
     pub fn share(&self, capture: Arc<Capture>) -> Arc<Capture> {
-        let hash = hashing::value(&*capture);
-        let mut set = self.shard[(hash >> 40) as usize % SHARD]
+        let mut set = self.shard[slot(hashing::value(&*capture))]
             .lock()
             .expect("an unpoisoned store");
         if let Some(known) = set.get(&*capture) {
@@ -48,6 +61,36 @@ impl Store {
         }
         set.insert(capture.clone());
         capture
+    }
+
+    pub fn carry(
+        &self,
+        capture: &Arc<Capture>,
+        event: usize,
+        flow: &Passage,
+        pool: &Pool,
+    ) -> Arc<Capture> {
+        let key = Crossing {
+            event,
+            capture: Arc::as_ptr(capture) as usize,
+        };
+        let shard = &self.carried[slot(hashing::value(&key))];
+        if let Some(known) = shard.lock().expect("an unpoisoned store").get(&key) {
+            return known.clone();
+        }
+        let carried = Arc::new(capture.carry(event, flow, pool));
+        shard
+            .lock()
+            .expect("an unpoisoned store")
+            .entry(key)
+            .or_insert(carried)
+            .clone()
+    }
+
+    pub fn forget(&mut self) {
+        for shard in &mut self.carried {
+            shard.get_mut().expect("an unpoisoned store").clear();
+        }
     }
 }
 
@@ -97,7 +140,7 @@ fn enclosure(state: &State, frame: usize) -> Vec<usize> {
 }
 
 impl Capture {
-    pub fn new(frame: usize, state: &State, origin: usize, pool: &mut Pool) -> Option<Arc<Self>> {
+    pub fn new(frame: usize, state: &State, origin: usize, pool: &mut Pool) -> Option<Self> {
         if frame == 0 {
             return None;
         }
@@ -107,7 +150,7 @@ impl Capture {
             .flat_map(|&index| place(state, index))
             .map(|place| (place, pool.basis(Set::single(place))))
             .collect();
-        Some(Arc::new(Self {
+        Some(Self {
             origin,
             frame,
             current: Some(frame),
@@ -116,11 +159,11 @@ impl Capture {
                 .map(|index| (index, Some(index)))
                 .collect(),
             resource,
-        }))
+        })
     }
 
-    pub fn carry(&self, event: usize, flow: &Passage, pool: &Pool) -> Arc<Self> {
-        Arc::new(Self {
+    fn carry(&self, event: usize, flow: &Passage, pool: &Pool) -> Self {
+        Self {
             origin: self.origin,
             frame: self.frame,
             current: self.current.and_then(|frame| flow.frame(frame)),
@@ -134,7 +177,7 @@ impl Capture {
                 .iter()
                 .map(|&(place, basis)| (place, pool.carry(basis, event, flow)))
                 .collect(),
-        })
+        }
     }
 
     pub fn basis(&self) -> impl Iterator<Item = u64> + '_ {

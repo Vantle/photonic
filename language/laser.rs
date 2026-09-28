@@ -536,7 +536,7 @@ impl Laser {
         let state = self.state[index].clone();
         for found in found {
             let capture = Capture::new(found.owner, &state, index, &mut self.pool)
-                .map(|capture| self.capture.share(capture));
+                .map(|capture| self.capture.share(Arc::new(capture)));
             if let Some(trace) = Trace::initial(found, &state, capture, &mut self.pool) {
                 self.trace[index].insert(trace);
             }
@@ -598,7 +598,9 @@ impl Laser {
             .range
             .map(|position| {
                 let flow = &self.passage[crossing.event];
-                let Some(carried) = set[position].carry(crossing.event, flow, &self.pool) else {
+                let Some(carried) =
+                    set[position].carry(crossing.event, flow, &self.pool, &self.capture)
+                else {
                     return Landing::Lost;
                 };
                 count += 1;
@@ -691,6 +693,7 @@ impl Laser {
             self.prepare(executor, demand);
             let carried = self.carry(executor, crossing);
             let (value, range) = self.insert(executor, carried);
+            self.capture.forget();
             count += value;
             for (index, range) in range {
                 grown
