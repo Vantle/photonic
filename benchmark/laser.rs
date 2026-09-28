@@ -17,8 +17,13 @@ struct Argument {
     budget: usize,
     #[arg(long, default_value_t = 10.0)]
     patience: f64,
-    #[arg(long, help = "Measure only this program, on Laser alone")]
+    #[arg(
+        long,
+        help = "Measure only this program, on Laser alone: Photonic source, or a .json program assembled by Bazel"
+    )]
     program: Option<std::path::PathBuf>,
+    #[arg(long, default_value_t = usize::MAX, help = "Configurations Laser keeps")]
+    configuration: usize,
     #[arg(long, default_value_t = std::num::NonZeroUsize::MIN, help = "Threads Laser explores with")]
     worker: std::num::NonZeroUsize,
     #[arg(long, help = "Measure only cases whose names contain this text")]
@@ -119,11 +124,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let executor = Executor::new(argument.worker)?;
     let limit = Limit {
         record: usize::MAX,
-        configuration: usize::MAX,
+        configuration: argument.configuration,
         ..Limit::default()
     };
     if let Some(path) = &argument.program {
-        let program = frontend::lowering::parse(&std::fs::read_to_string(path)?)?;
+        let text = std::fs::read_to_string(path)?;
+        let program = if path
+            .extension()
+            .is_some_and(|extension| extension == "json")
+        {
+            frontend::source::Program::read(&text)?
+        } else {
+            frontend::lowering::parse(&text)?
+        };
         #[cfg(feature = "measurement")]
         photonic::profile::take();
         let engine = measure(argument.sample, argument.patience, || {

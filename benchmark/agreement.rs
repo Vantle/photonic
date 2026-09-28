@@ -23,6 +23,10 @@ struct Argument {
     budget: usize,
     #[arg(long, default_value_t = 200_000_000, help = "Laser work steps")]
     allowance: usize,
+    #[arg(long, default_value_t = Limit::default().configuration, help = "Configurations kept")]
+    configuration: usize,
+    #[arg(long, default_value_t = Limit::default().record, help = "Records each engine retains")]
+    record: usize,
     #[arg(long, help = "Check only programs whose name contains this text")]
     filter: Option<String>,
     #[arg(
@@ -34,16 +38,23 @@ struct Argument {
 }
 
 #[derive(Serialize)]
+struct Engine {
+    closed: bool,
+    second: f64,
+}
+
+// Laser runs on every program, so the census also finds programs that only Laser finishes; the
+// engines are compared where both close.
+#[derive(Serialize)]
 struct Outcome {
     name: String,
     group: String,
-    closed: bool,
+    interpreter: Engine,
+    laser: Engine,
     verdict: Option<String>,
     state: usize,
     event: usize,
     inferred: usize,
-    interpreter: f64,
-    laser: f64,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -58,27 +69,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .is_none_or(|filter| entry.name.contains(filter.as_str()))
         })
         .collect::<Vec<_>>();
-    let limit = Limit::default();
+    let limit = Limit {
+        configuration: argument.configuration,
+        record: argument.record,
+        ..Limit::default()
+    };
     let outcome = entry
         .par_iter()
         .map(|entry| {
             let start = Instant::now();
             let mut runtime = Runtime::new(&entry.program);
             runtime.run(argument.budget, limit);
-            let interpreter = start.elapsed().as_secs_f64();
-            if !runtime.closed() {
-                return Outcome {
-                    name: entry.name.clone(),
-                    group: entry.group.clone(),
-                    closed: false,
-                    verdict: None,
-                    state: 0,
-                    event: 0,
-                    inferred: 0,
-                    interpreter,
-                    laser: 0.0,
-                };
-            }
+            let interpreter = Engine {
+                closed: runtime.closed(),
+                second: start.elapsed().as_secs_f64(),
+            };
             let start = Instant::now();
             let mut laser = Laser::new(&entry.program);
             laser.run(argument.allowance, limit);
@@ -88,36 +93,52 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
             let second = start.elapsed().as_secs_f64() / argument.repeat as f64;
             let summary = laser.summary();
-            let verdict = match laser.agree(&runtime) {
-                Ok(()) => "agree".to_owned(),
-                Err(disagreement) => format!("{disagreement:?}"),
-            };
+            let verdict =
+                (interpreter.closed && summary.closed).then(|| match laser.agree(&runtime) {
+                    Ok(()) => "agree".to_owned(),
+                    Err(disagreement) => format!("{disagreement:?}"),
+                });
             Outcome {
                 name: entry.name.clone(),
                 group: entry.group.clone(),
-                closed: true,
-                verdict: Some(verdict),
+                interpreter,
+                laser: Engine {
+                    closed: summary.closed,
+                    second,
+                },
+                verdict,
                 state: summary.state,
                 event: summary.event,
                 inferred: summary.inferred,
-                interpreter,
-                laser: second,
             }
         })
         .collect::<Vec<_>>();
-    let closed = outcome.iter().filter(|outcome| outcome.closed).count();
+    let closed = outcome
+        .iter()
+        .filter(|outcome| outcome.interpreter.closed)
+        .count();
     let agree = outcome
         .iter()
         .filter(|outcome| outcome.verdict.as_deref() == Some("agree"))
         .count();
+    let only = outcome
+        .iter()
+        .filter(|outcome| outcome.laser.closed && !outcome.interpreter.closed)
+        .count();
+    let open = outcome
+        .iter()
+        .filter(|outcome| outcome.interpreter.closed && !outcome.laser.closed)
+        .count();
     eprintln!(
-        "{} programs, {closed} closed on the interpreter, {agree} agree",
+        "{} programs, {closed} closed on the interpreter, {agree} agree; {only} close only on Laser and {open} only on the interpreter",
         outcome.len()
     );
-    for outcome in outcome
-        .iter()
-        .filter(|outcome| outcome.closed && outcome.verdict.as_deref() != Some("agree"))
-    {
+    for outcome in outcome.iter().filter(|outcome| {
+        outcome
+            .verdict
+            .as_deref()
+            .is_some_and(|verdict| verdict != "agree")
+    }) {
         eprintln!(
             "disagree {}: {}",
             outcome.name,

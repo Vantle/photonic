@@ -4,8 +4,11 @@ use crate::basis::Set;
 use crate::flow::Flow;
 use crate::place::Place;
 use crate::state::{Canonical, State};
-use std::collections::HashMap;
-use std::sync::Arc;
+use hashing::Builder;
+use std::collections::{HashMap, HashSet};
+use std::sync::{Arc, Mutex};
+
+const SHARD: usize = 64;
 
 // A rule captured by a frame made after a configuration imports that frame's environment from the
 // configuration where the match was found, attached through the flow back to it; carrying the
@@ -17,6 +20,35 @@ pub(super) struct Capture {
     pub current: Option<usize>,
     attachment: Vec<(usize, Option<usize>)>,
     resource: Vec<(Place, u64)>,
+}
+
+// Traces carried back along different walks often hold equal captures, so each inserted trace
+// takes the store's copy and equal captures are kept once. Insertions run in parallel, and shards
+// keep them from waiting on one another.
+pub(super) struct Store {
+    shard: Vec<Mutex<HashSet<Arc<Capture>, Builder>>>,
+}
+
+impl Default for Store {
+    fn default() -> Self {
+        Self {
+            shard: (0..SHARD).map(|_| Mutex::default()).collect(),
+        }
+    }
+}
+
+impl Store {
+    pub fn share(&self, capture: Arc<Capture>) -> Arc<Capture> {
+        let hash = hashing::value(&*capture);
+        let mut set = self.shard[(hash >> 40) as usize % SHARD]
+            .lock()
+            .expect("an unpoisoned store");
+        if let Some(known) = set.get(&*capture) {
+            return known.clone();
+        }
+        set.insert(capture.clone());
+        capture
+    }
 }
 
 #[derive(Debug, Eq, Hash, PartialEq)]

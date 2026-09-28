@@ -45,6 +45,16 @@ use transition::{Effect, Key, Local, Transition};
 
 const CHUNK: usize = 256;
 
+// A round can carry millions of traces. Carrying and inserting them a batch at a time keeps only
+// one batch of new traces waiting, and every trace a batch inserts is known to the batches after
+// it, so the traces, their positions and their landings are the ones a single batch would give.
+const BATCH: usize = 1 << 20;
+
+// Applying an event holds its whole result until it is named, so a round applies and names its
+// events a batch at a time; each batch finds the configurations and transitions the batches before
+// it made, and events are numbered in the same order as with one batch.
+const FIRING: usize = 1 << 14;
+
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 struct Identity {
     source: usize,
@@ -215,6 +225,7 @@ pub struct Laser {
     link: Vec<Vec<Link>>,
     passage: Vec<Passage>,
     crossed: Vec<Vec<Option<NonZeroU32>>>,
+    capture: capture::Store,
     environment: Mutex<HashMap<(usize, usize), Arc<Canonical>, Builder>>,
     pool: Pool,
     blocked: HashMap<Identity, (usize, usize), Builder>,
@@ -297,6 +308,32 @@ fn merge(
     (Makeup { root, kind }, origin)
 }
 
+fn batch(crossing: Vec<Crossing>) -> Vec<Vec<Crossing>> {
+    let mut batch = Vec::new();
+    let mut current = Vec::new();
+    let mut size = 0;
+    for crossing in crossing {
+        let mut start = crossing.range.start;
+        while start < crossing.range.end {
+            let end = crossing.range.end.min(start + BATCH - size);
+            current.push(Crossing {
+                event: crossing.event,
+                range: start..end,
+            });
+            size += end - start;
+            start = end;
+            if size == BATCH {
+                batch.push(std::mem::take(&mut current));
+                size = 0;
+            }
+        }
+    }
+    if !current.is_empty() {
+        batch.push(current);
+    }
+    batch
+}
+
 fn land(position: usize) -> Option<NonZeroU32> {
     Some(
         NonZeroU32::new(u32::try_from(position + 1).expect("fewer than 2^32 traces"))
@@ -338,6 +375,7 @@ impl Laser {
             link: Vec::new(),
             passage: Vec::new(),
             crossed: Vec::new(),
+            capture: capture::Store::default(),
             environment: Mutex::new(HashMap::default()),
             pool: Pool::default(),
             blocked: HashMap::default(),
@@ -465,6 +503,7 @@ impl Laser {
             self.parent = Vec::new();
             self.link = Vec::new();
             self.crossed = Vec::new();
+            self.capture = capture::Store::default();
         }
     }
 
@@ -496,7 +535,8 @@ impl Laser {
     fn seed(&mut self, index: usize, found: &[scan::Match]) {
         let state = self.state[index].clone();
         for found in found {
-            let capture = Capture::new(found.owner, &state, index, &mut self.pool);
+            let capture = Capture::new(found.owner, &state, index, &mut self.pool)
+                .map(|capture| self.capture.share(capture));
             if let Some(trace) = Trace::initial(found, &state, capture, &mut self.pool) {
                 self.trace[index].insert(trace);
             }
@@ -644,11 +684,22 @@ impl Laser {
         executor: Option<&Executor>,
         changed: Vec<usize>,
     ) -> (usize, Vec<(usize, Range<usize>)>) {
-        let crossing = self.plan(changed);
-        let demand = self.survey(executor, &crossing);
-        self.prepare(executor, demand);
-        let carried = self.carry(executor, crossing);
-        self.insert(executor, carried)
+        let mut count = 0;
+        let mut grown = BTreeMap::<usize, Range<usize>>::new();
+        for crossing in batch(self.plan(changed)) {
+            let demand = self.survey(executor, &crossing);
+            self.prepare(executor, demand);
+            let carried = self.carry(executor, crossing);
+            let (value, range) = self.insert(executor, carried);
+            count += value;
+            for (index, range) in range {
+                grown
+                    .entry(index)
+                    .and_modify(|known| known.end = range.end)
+                    .or_insert(range);
+            }
+        }
+        (count, grown.into_iter().collect())
     }
 
     fn survey(&self, executor: Option<&Executor>, crossing: &[Crossing]) -> Vec<(usize, Demand)> {
@@ -710,6 +761,7 @@ impl Laser {
                 (index, set, parent, list)
             })
             .collect::<Vec<_>>();
+        let store = &self.capture;
         let inserted = map(executor, taken, |(index, mut set, mut parent, list)| {
             let start = set.len();
             let settled = list
@@ -720,7 +772,7 @@ impl Laser {
                         .list
                         .into_iter()
                         .map(|(trace, from)| {
-                            let (found, fresh) = set.insert_full(trace);
+                            let (found, fresh) = set.insert_full(trace.share(store));
                             if fresh {
                                 let from = u32::try_from(from).expect("fewer than 2^32 traces");
                                 parent.push((event, from));
@@ -775,8 +827,14 @@ impl Laser {
             );
         }
         let count = pending.len();
-        let outcome = self.attempt(executor, &pending);
-        let created = self.create(executor, pending, outcome, next);
+        let mut created = Vec::with_capacity(count);
+        let mut rest = pending;
+        while !rest.is_empty() {
+            let later = rest.split_off(rest.len().min(FIRING));
+            let outcome = self.attempt(executor, &rest);
+            created.extend(self.create(executor, rest, outcome, next));
+            rest = later;
+        }
         for (index, offset, resolution) in resolved {
             self.link[index].extend(resolution.into_iter().map(|value| match value {
                 Resolution::Absent => Link::Absent,

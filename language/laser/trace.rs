@@ -1,4 +1,4 @@
-use super::capture::Capture;
+use super::capture::{self, Capture};
 use super::passage::Passage;
 use super::pool::{Demand, Pool};
 use super::scan::Match;
@@ -103,6 +103,11 @@ impl Trace {
             world: pool.follow(self.world, event, flow),
             occurrence,
         })
+    }
+
+    pub fn share(mut self, store: &capture::Store) -> Self {
+        self.capture = self.capture.map(|capture| store.share(capture));
+        self
     }
 
     pub fn current(&self) -> Option<usize> {
