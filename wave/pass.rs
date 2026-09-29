@@ -58,8 +58,8 @@ fn recount(work: &mut Work, table: &Table, joined: &[Joined], begin: u64, count:
 
 impl Engine {
     // Decides one pass of candidates in one command: records them, finds or claims their markings,
-    // ranks the new ones, then writes them and counts the events; only new markings that overflow
-    // the arena's last segment take a second command. The last pass of a window also counts the
+    // ranks the new ones a threadgroup at a time, then writes them and points every candidate at its
+    // marking; only new markings that overflow the arena's last segment take a second command. The last pass of a window also counts the
     // next window, which starts at ahead, in the same command, and tells whether it did.
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn pass(
@@ -91,13 +91,15 @@ impl Engine {
         }
         let width = whole(&self.expand);
         let groups = (range.to - range.from).div_ceil(width);
+        let span = whole(&self.tally).min(whole(&self.place));
+        let blocks = count.div_ceil(4 * span);
         work.record.fit(&self.device, 3 * count)?;
         work.sums.fit(&self.device, range.to - range.from)?;
         work.target.fit(&self.device, count)?;
         work.slot.fit(&self.device, count)?;
-        work.rank.fit(&self.device, count)?;
-        work.partial.fit(&self.device, groups)?;
-        self.scan.prepare(&self.device, &mut work.level, count)?;
+        work.event.fit(&self.device, groups)?;
+        work.block.fit(&self.device, blocks)?;
+        self.scan.prepare(&self.device, &mut work.level, blocks)?;
         let offset = store.offset.swap(&self.device, store.count + most)?;
         let next = ahead
             .map(|first| (first, (store.count + most).saturating_sub(first)))
@@ -173,7 +175,7 @@ impl Engine {
                 &work.start.memory,
                 &work.record.memory,
                 &work.sums.memory,
-                &work.partial.memory,
+                &work.event.memory,
                 &work.summary,
             ],
             &setting.bytes(),
@@ -200,7 +202,7 @@ impl Engine {
             group(&self.insert, count),
         );
         command.dispatch(
-            &self.resolve,
+            &self.tally,
             &[
                 &store.arena.address,
                 &store.offset.memory,
@@ -209,21 +211,21 @@ impl Engine {
                 &work.record.memory,
                 &store.table,
                 &work.slot.memory,
-                &work.rank.memory,
+                &work.block.memory,
             ],
             &decide.bytes(),
-            [count, 1, 1],
-            group(&self.resolve, count),
+            [blocks * span, 1, 1],
+            [span, 1, 1],
         );
         self.scan.encode(
             &mut command,
-            &work.rank.memory,
-            count,
+            &work.block.memory,
+            blocks,
             &work.total,
             0,
             &work.level,
         );
-        self.settle(&mut command, store, tables, work, &decide);
+        self.settle(&mut command, store, tables, work, &decide, span);
         let later = |room: u64| {
             next.map(|(first, size)| Setting {
                 first: saturate(first),
@@ -249,9 +251,9 @@ impl Engine {
         let (winner, words) = ((total >> SHIFT) as usize, (total & WORDS) as usize);
         if words > room {
             let kept = {
-                let rank = &work.rank.memory.view::<u64>()[..count];
-                let last = rank[1..].partition_point(|&value| value & WORDS <= room as u64);
-                rank[last] & WORDS
+                let block = &work.block.memory.view::<u64>()[..blocks];
+                let last = block[1..].partition_point(|&value| value & WORDS <= room as u64);
+                block[last] & WORDS
             };
             let place = store.arena.split(&self.device, kept, words)?;
             let decide = Setting {
@@ -263,7 +265,7 @@ impl Engine {
             };
             let mut command = self.device.command()?;
             command.reach(&store.arena.segment.iter().collect::<Vec<_>>());
-            self.settle(&mut command, store, tables, work, &decide);
+            self.settle(&mut command, store, tables, work, &decide, span);
             if let Some(setting) = later(u64::MAX) {
                 self.census(
                     &mut command,
@@ -279,7 +281,7 @@ impl Engine {
             store.arena.advance(words);
         }
         tally.event += if allowed >= count {
-            let summed = work.partial.memory.view::<u64>()[..groups]
+            let summed = work.event.memory.view::<u64>()[..groups]
                 .iter()
                 .sum::<u64>();
             let host = joined
@@ -307,7 +309,9 @@ impl Engine {
         Ok(next.is_some())
     }
 
-    // Encodes the kernel that numbers and writes the pass's new markings.
+    // Encodes the kernels that number and write the pass's new markings, a threadgroup of span
+    // threads and four candidates a thread at a time, and then point every candidate at its
+    // marking.
     fn settle<'device>(
         &self,
         command: &mut Command<'device>,
@@ -315,6 +319,7 @@ impl Engine {
         tables: &'device Upload,
         work: &'device Work,
         setting: &Setting,
+        span: usize,
     ) {
         let count = setting.count as usize;
         command.dispatch(
@@ -328,13 +333,25 @@ impl Engine {
                 &work.target.memory,
                 &store.table,
                 &work.slot.memory,
-                &work.rank.memory,
+                &work.block.memory,
+                &work.total,
+            ],
+            &setting.bytes(),
+            [count.div_ceil(4 * span) * span, 1, 1],
+            [span, 1, 1],
+        );
+        command.dispatch(
+            &self.point,
+            &[
+                &work.target.memory,
+                &store.table,
+                &work.slot.memory,
                 &work.summary,
                 &work.total,
             ],
             &setting.bytes(),
             [count, 1, 1],
-            group(&self.place, count),
+            group(&self.point, count),
         );
     }
 }

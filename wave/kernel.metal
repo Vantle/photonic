@@ -570,8 +570,21 @@ kernel void insert(
     }
 }
 
-// Marks the candidate that owns its slot, with the words its marking takes.
-kernel void resolve(
+// A candidate's share of the pass's running sum: its rank above SHIFT and the words its marking
+// takes below, when it owns the slot it claimed, and nothing otherwise. A slot's owner is the only
+// thread that changes the slot while a pass places markings, so the share stays the same however
+// far placing has gone.
+static ulong share(uint index, device const Arena& arena, device const ulong* offset, device const uint* entry, device const uint* extra, device const packed_uint3* record, device atomic_uint* table, device const uint* slot) {
+    uint position = slot[index];
+    if (position == NONE || atomic_load_explicit(table + 2 * ulong(position), memory_order_relaxed) != (TAG | index)) {
+        return 0;
+    }
+    return (1ul << SHIFT) | (2 + open(uint3(record[index]), arena, offset, entry, extra).size);
+}
+
+// Sums each threadgroup's shares, four candidates a thread, so a running sum over the groups ranks
+// the winners and places their words without a sum for every candidate.
+kernel void tally(
     device const Arena& arena [[buffer(0)]],
     device const ulong* offset [[buffer(1)]],
     device const uint* entry [[buffer(2)]],
@@ -579,22 +592,35 @@ kernel void resolve(
     device const packed_uint3* record [[buffer(4)]],
     device atomic_uint* table [[buffer(5)]],
     device const uint* slot [[buffer(6)]],
-    device ulong* rank [[buffer(7)]],
+    device ulong* block [[buffer(7)]],
     constant Setting& setting [[buffer(8)]],
-    uint index [[thread_position_in_grid]]) {
-    if (index >= setting.count) {
-        return;
+    uint index [[thread_position_in_grid]],
+    uint member [[thread_index_in_threadgroup]],
+    uint group [[threadgroup_position_in_grid]],
+    uint lane [[thread_index_in_simdgroup]],
+    uint band [[simdgroup_index_in_threadgroup]],
+    uint lanes [[threads_per_simdgroup]],
+    uint bands [[simdgroups_per_threadgroup]]) {
+    threadgroup ulong shared[33];
+    ulong mine = 0;
+    for (uint item = 0; item < 4; item++) {
+        uint candidate = 4 * index + item;
+        if (candidate < setting.count) {
+            mine += share(candidate, arena, offset, entry, extra, record, table, slot);
+        }
     }
-    uint position = slot[index];
-    bool win = position != NONE && (atomic_load_explicit(table + 2 * ulong(position), memory_order_relaxed) & ~TAG) == index;
-    rank[index] = win ? (1ul << SHIFT) | (2 + open(uint3(record[index]), arena, offset, entry, extra).size) : 0;
+    ulong whole = 0;
+    ladder(mine, shared, lane, band, lanes, bands, whole);
+    if (member == 0) {
+        block[group] = whole;
+    }
 }
 
-// Numbers the new markings by the ranks of their winning candidates, writes them to the arena and
-// establishes their slots, and points every candidate that claimed or shared a slot at its marking.
-// A winner past the configuration limit leaves its slot tagged, and nothing looks at tagged slots
-// again. When the new markings need more words than the last segment has left, it does nothing, and
-// the host places them across a new segment.
+// Numbers each winner by its rank, the running sum of its group before it and of the shares before
+// it in its group, writes its marking to the arena and establishes its slot. A winner past the
+// configuration limit leaves its slot tagged, and nothing looks at tagged slots again. When the
+// new markings need more words than the last segment has left, it does nothing, and the host
+// places them across a new segment.
 kernel void place(
     device const Arena& arena [[buffer(0)]],
     device ulong* offset [[buffer(1)]],
@@ -604,10 +630,55 @@ kernel void place(
     device uint* target [[buffer(5)]],
     device atomic_uint* table [[buffer(6)]],
     device const uint* slot [[buffer(7)]],
-    device const ulong* rank [[buffer(8)]],
-    device atomic_uint* summary [[buffer(9)]],
-    device const ulong* sum [[buffer(10)]],
-    constant Setting& setting [[buffer(11)]],
+    device const ulong* block [[buffer(8)]],
+    device const ulong* sum [[buffer(9)]],
+    constant Setting& setting [[buffer(10)]],
+    uint index [[thread_position_in_grid]],
+    uint group [[threadgroup_position_in_grid]],
+    uint lane [[thread_index_in_simdgroup]],
+    uint band [[simdgroup_index_in_threadgroup]],
+    uint lanes [[threads_per_simdgroup]],
+    uint bands [[simdgroups_per_threadgroup]]) {
+    threadgroup ulong shared[33];
+    if ((sum[0] & WORDS) > setting.room) {
+        return;
+    }
+    ulong mine[4];
+    ulong total = 0;
+    for (uint item = 0; item < 4; item++) {
+        uint candidate = 4 * index + item;
+        mine[item] = candidate < setting.count ? share(candidate, arena, offset, entry, extra, record, table, slot) : 0;
+        total += mine[item];
+    }
+    ulong whole = 0;
+    ulong before = block[group] + ladder(total, shared, lane, band, lanes, bands, whole);
+    for (uint item = 0; item < 4; item++) {
+        ulong own = mine[item];
+        ulong at = before;
+        before += own;
+        if (own == 0 || (at >> SHIFT) >= setting.allowed) {
+            continue;
+        }
+        uint candidate = 4 * index + item;
+        uint aim = setting.next + uint(at >> SHIFT);
+        ulong place = at & WORDS;
+        ulong where = place < setting.split ? setting.arena + place : setting.overflow + (place - setting.split);
+        write(open(uint3(record[candidate]), arena, offset, entry, extra), locate(arena, where));
+        offset[aim] = where;
+        atomic_store_explicit(table + 2 * ulong(slot[candidate]), aim + 1, memory_order_relaxed);
+        target[candidate] = aim;
+    }
+}
+
+// Points every candidate that claimed or shared a slot at the marking its slot established, or
+// marks it refused when the configuration limit kept the slot tagged.
+kernel void point(
+    device uint* target [[buffer(0)]],
+    device atomic_uint* table [[buffer(1)]],
+    device const uint* slot [[buffer(2)]],
+    device atomic_uint* summary [[buffer(3)]],
+    device const ulong* sum [[buffer(4)]],
+    constant Setting& setting [[buffer(5)]],
     uint index [[thread_position_in_grid]]) {
     if (index >= setting.count || (sum[0] & WORDS) > setting.room) {
         return;
@@ -616,28 +687,13 @@ kernel void place(
     if (position == NONE) {
         return;
     }
-    device atomic_uint* cell = table + 2 * ulong(position);
-    uint value = atomic_load_explicit(cell, memory_order_relaxed);
+    uint value = atomic_load_explicit(table + 2 * ulong(position), memory_order_relaxed);
     if (value < TAG) {
         target[index] = value - 1;
         return;
     }
-    uint winner = value & ~TAG;
-    ulong order = rank[winner] >> SHIFT;
-    if (order >= setting.allowed) {
-        target[index] = BLOCKED;
-        atomic_store_explicit(&summary[REFUSED], 1u, memory_order_relaxed);
-        return;
-    }
-    uint aim = setting.next + uint(order);
-    if (winner == index) {
-        ulong place = rank[index] & WORDS;
-        ulong at = place < setting.split ? setting.arena + place : setting.overflow + (place - setting.split);
-        write(open(uint3(record[index]), arena, offset, entry, extra), locate(arena, at));
-        offset[aim] = at;
-        atomic_store_explicit(cell, aim + 1, memory_order_relaxed);
-    }
-    target[index] = aim;
+    target[index] = BLOCKED;
+    atomic_store_explicit(&summary[REFUSED], 1u, memory_order_relaxed);
 }
 
 // Enters every established marking into a larger table.

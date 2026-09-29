@@ -4,8 +4,9 @@ use metal::device::{Device, Memory};
 
 // The memory one exploration reuses from window to window and pass to pass: the counts and running
 // sums of a window's markings, the markings it flags, the words of successors the host found, each
-// candidate's record, each source's sum of kind terms, each candidate's target, slot, and rank with
-// arena spot, the event sums of each threadgroup,
+// candidate's record, each source's sum of kind terms, each candidate's target and slot, the
+// events each threadgroup of sources stands for, the winners and words of each threadgroup of
+// candidates,
 // the scan levels, a summary of flags and the scans' totals.
 pub struct Work {
     pub number: Grow<u64>,
@@ -16,8 +17,8 @@ pub struct Work {
     pub sums: Grow<u64>,
     pub target: Grow<u32>,
     pub slot: Grow<u32>,
-    pub rank: Grow<u64>,
-    pub partial: Grow<u64>,
+    pub event: Grow<u64>,
+    pub block: Grow<u64>,
     pub level: Vec<Grow<u64>>,
     pub summary: Memory,
     pub total: Memory,
@@ -34,8 +35,8 @@ impl Work {
             sums: Grow::new(device, initial)?,
             target: Grow::new(device, initial)?,
             slot: Grow::new(device, initial)?,
-            rank: Grow::new(device, initial)?,
-            partial: Grow::new(device, 0)?,
+            event: Grow::new(device, 0)?,
+            block: Grow::new(device, 0)?,
             level: Vec::new(),
             summary: device.memory::<u32>(4)?,
             total: device.memory::<u64>(2)?,

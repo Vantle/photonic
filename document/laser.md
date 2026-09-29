@@ -79,7 +79,7 @@ The [wave](../wave/) crate explores a net's plain schedules on the GPU through M
 
 **Markings.** Each marking is stored once, as its root, its number of kinds and its sorted kinds, in an arena of segments that never move. The first GPU use of a buffer commits all of it, so the arena grows by adding segments rather than by copying, and the kernels reach segments through their device addresses. A table finds a marking by a 64-bit hash: the scrambled sum of a term for its root and a term for each kind. An event changes the sum by the terms of what it removes and adds, so a successor's hash follows from its source's sum and its table entry. The table is made of buckets of eight slots, one cache line each; a slot holds a marking's number and a check from its hash, so a probe reads one line and compares words only when the check matches.
 
-**Passes.** A window of markings is counted first: each marking's successors from the tables, then a running sum that places them. A pass then decides up to 2<sup>23</sup> candidates in one command. Expanding records each candidate as its source, its entry and how many copies of the consumed kind it could take, never as the successor's words, and checks the limits. Inserting finds each candidate's marking: an established one it equals word for word, or a slot it claims, tagged with its index, or shares with an equal candidate; the lowest index keeps the slot, so numbering never depends on timing. One running sum ranks the winners and places their words, and placing numbers the new markings, writes them and points every candidate at its marking. The same command counts the next window, so a small breadth-first level costs one command; only new markings that overflow the arena's last segment take a second.
+**Passes.** A window of markings is counted first: each marking's successors from the tables, then a running sum that places them. A pass then decides up to 2<sup>23</sup> candidates in one command. Expanding records each candidate as its source, its entry and how many copies of the consumed kind it could take, never as the successor's words, and checks the limits. Inserting finds each candidate's marking: an established one it equals word for word, or a slot it claims, tagged with its index, or shares with an equal candidate; the lowest index keeps the slot, so numbering never depends on timing. Each threadgroup of candidates sums its winners and their words, a running sum over the groups places each group, and placing ranks each winner within its group, numbers and writes the new markings and points every candidate at its marking. The same command counts the next window, so a small breadth-first level costs one command; only new markings that overflow the arena's last segment take a second.
 
 **The host's share.** Grounding stays on the host. When a window holds a marking whose parts the tables lack, or whose kinds could fill every input of a rule joining several coherences, the host grounds it as its own net would on expanding it, counts again if it must, and finds the successors of joining events, which the pass decides with the rest. The GPU keeps no edges; when asked whether a run can go on forever, the host keeps every edge and looks for a cycle.
 
@@ -136,16 +136,16 @@ Nets explore every plain schedule fastest on the GPU. `task(n)` runs n tasks fro
 
 | Program | Configurations | Events | Metal | Host net | Laser plain |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| 10 tasks | 59,049 | 393,660 | 6.1 ms | 59.7 ms | 0.33 s |
-| 12 tasks | 531,441 | 4,251,528 | 13.3 ms | 0.68 s | 3.43 s |
-| 14 tasks | 4,782,969 | 44,641,044 | 64.8 ms | 7.80 s | |
+| 10 tasks | 59,049 | 393,660 | 6.5 ms | 59.7 ms | 0.33 s |
+| 12 tasks | 531,441 | 4,251,528 | 13.8 ms | 0.68 s | 3.43 s |
+| 14 tasks | 4,782,969 | 44,641,044 | 62.9 ms | 7.80 s | |
 | 16 tasks | 43,046,721 | 459,165,024 | 0.48 s | | |
-| 10 dials | 59,049 | 590,490 | 7.3 ms | 74.5 ms | 0.46 s |
-| 12 dials | 531,441 | 6,377,292 | 15.0 ms | 0.89 s | 5.01 s |
-| 14 dials | 4,782,969 | 66,961,566 | 82.8 ms | 10.5 s | |
-| 16 dials | 43,046,721 | 688,747,536 | 0.60 s | | |
+| 10 dials | 59,049 | 590,490 | 5.9 ms | 74.5 ms | 0.46 s |
+| 12 dials | 531,441 | 6,377,292 | 15.2 ms | 0.89 s | 5.01 s |
+| 14 dials | 4,782,969 | 66,961,566 | 76.4 ms | 10.5 s | |
+| 16 dials | 43,046,721 | 688,747,536 | 0.58 s | | |
 
-Sixteen tasks explore at 89 million configurations a second and sixteen dials at 72 million. Every command waits for the GPU, so a breadth-first level costs at least one command's round trip, and nets of a few thousand configurations explore as fast on the host. The host also finds every successor of an event that joins several components, and every event of the diners joins two; their plain schedules stay small, 478 configurations for seven diners, which the host's net explores in 2.4 ms and the GPU in 7.5 ms.
+Sixteen tasks explore at 90 million configurations a second and sixteen dials at 74 million. Theorems explore too: the plain schedules of the natural-number `ending` proof pass 50 million configurations in 1.5 s, with every joining event found on the host, and have not ended there. Every command waits for the GPU, so a breadth-first level costs at least one command's round trip, and nets of a few thousand configurations explore as fast on the host. The host also finds every successor of an event that joins several components, and every event of the diners joins two; their plain schedules stay small, 478 configurations for seven diners, which the host's net explores in 2.4 ms and the GPU in 7.5 ms.
 
 ## Not yet built
 
