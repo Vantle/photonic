@@ -1,7 +1,9 @@
 use std::collections::BTreeMap;
+use std::num::NonZeroUsize;
 use std::process::ExitCode;
 
 use clap::Parser;
+use photonic::executor::Executor;
 use photonic::laser::Laser;
 use photonic::laser::net::{Cycle, Net};
 use photonic::runtime::{Limit, Runtime};
@@ -29,11 +31,19 @@ struct Argument {
     configuration: usize,
     #[arg(long, default_value_t = 200_000, help = "Records an engine retains")]
     record: usize,
+    #[arg(
+        long,
+        help = "Also explore each program on this many workers and require the same report; a check waiting on the workers runs other programs meanwhile, so memory grows"
+    )]
+    worker: Option<NonZeroUsize>,
     #[arg(long, help = "Print each written program instead of checking it")]
     write: bool,
 }
 
 const ATOM: [&str; 4] = ["A", "B", "C", "D"];
+
+// Comparing two whole reports holds both in memory at once, so the reports compared stay small.
+const EVENT: usize = 10_000;
 
 // Writes programs from the language's own forms: coherences of dotted atoms, rules with one or two
 // inputs, empty and bare inputs, empty, single, grouped and scoped outputs, rule values held as
@@ -140,10 +150,15 @@ impl Outcome {
 }
 
 // Every check the census makes, on one written program: Laser against the interpreter where both
-// close, also after resuming under raised limits, the plain exploration within the full one, the
-// reduced exploration against the plain one, the net against the plain exploration, and the GPU
-// against the host's net.
-fn check(seed: u64, argument: &Argument, device: Option<&wave::engine::Engine>) -> Option<Outcome> {
+// close, also after resuming under raised limits, Laser on several workers against Laser on one
+// when asked, the plain exploration within the full one, the reduced exploration against the
+// plain one, the net against the plain exploration, and the GPU against the host's net.
+fn check(
+    seed: u64,
+    argument: &Argument,
+    executor: Option<&Executor>,
+    device: Option<&wave::engine::Engine>,
+) -> Option<Outcome> {
     let source = write(seed);
     let program = frontend::lowering::parse(&source).ok()?;
     let limit = Limit {
@@ -168,6 +183,13 @@ fn check(seed: u64, argument: &Argument, device: Option<&wave::engine::Engine>) 
             seed,
             &source,
         );
+    }
+    if let Some(executor) = executor
+        && laser.summary().event <= EVENT
+    {
+        let mut parallel = Laser::new(&program);
+        parallel.parallel(executor, argument.allowance, limit);
+        outcome.record("worker", same(&laser, &parallel), seed, &source);
     }
     let mut plain = Laser::plain(&program);
     plain.run(argument.allowance, limit);
@@ -231,10 +253,29 @@ fn resume(program: &frontend::source::Program, allowance: usize, limit: Limit) -
     laser
 }
 
+// Laser's report is the same for any number of workers, open or closed.
+fn same(sequential: &Laser, parallel: &Laser) -> Result<(), String> {
+    let text =
+        |laser: &Laser| serde_json::to_string(&laser.report()).map_err(|error| error.to_string());
+    if text(sequential)? == text(parallel)? {
+        return Ok(());
+    }
+    Err(format!(
+        "{:?} on one worker, {:?} on several",
+        sequential.summary(),
+        parallel.summary()
+    ))
+}
+
 // A check that panics is a finding too, so one program cannot end the census.
-fn guard(seed: u64, argument: &Argument, device: Option<&wave::engine::Engine>) -> Option<Outcome> {
+fn guard(
+    seed: u64,
+    argument: &Argument,
+    executor: Option<&Executor>,
+    device: Option<&wave::engine::Engine>,
+) -> Option<Outcome> {
     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        check(seed, argument, device)
+        check(seed, argument, executor, device)
     }));
     result.unwrap_or_else(|payload| {
         let detail = payload
@@ -270,9 +311,10 @@ fn main() -> Result<ExitCode, Box<dyn std::error::Error>> {
         return Ok(ExitCode::SUCCESS);
     }
     let device = wave::engine::Engine::new()?;
+    let executor = argument.worker.map(Executor::new).transpose()?;
     let outcome = (argument.seed..argument.seed + argument.count)
         .into_par_iter()
-        .filter_map(|seed| guard(seed, &argument, device.as_ref()))
+        .filter_map(|seed| guard(seed, &argument, executor.as_ref(), device.as_ref()))
         .collect::<Vec<_>>();
     let mut report = Report {
         written: argument.count,
