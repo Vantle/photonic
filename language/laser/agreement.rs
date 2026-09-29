@@ -1,3 +1,4 @@
+use super::net::{Exploration, Net};
 use super::{Disagreement, Laser};
 use crate::place::Place;
 use crate::program::Symbol;
@@ -335,6 +336,111 @@ impl Laser {
             .sum::<usize>();
         if extra != 0 {
             return Err(Disagreement::Event { missing: 0, extra });
+        }
+        Ok(())
+    }
+}
+
+impl Exploration {
+    // Two explorations of one program's net agree number for number when they close alike, find
+    // as many configurations and events, the same end configurations in the same order and, where
+    // both looked for one, a cycle in both or neither; each net numbers kinds in the order it
+    // grounded its parts, so ends are compared by their canonical states.
+    pub fn agrees(&self, net: &Net, reference: &Self, theirs: &Net) -> Result<(), Disagreement> {
+        if self.closed != reference.closed {
+            return Err(Disagreement::Closed {
+                reference: reference.closed,
+                laser: self.closed,
+            });
+        }
+        if let (Some(endless), Some(expected)) = (self.endless, reference.endless)
+            && endless != expected
+        {
+            return Err(Disagreement::Endless {
+                reference: expected,
+                laser: endless,
+            });
+        }
+        if self.configuration != reference.configuration {
+            return Err(Disagreement::Configuration {
+                missing: reference.configuration.saturating_sub(self.configuration),
+                extra: self.configuration.saturating_sub(reference.configuration),
+            });
+        }
+        if self.event != reference.event {
+            return Err(Disagreement::Event {
+                missing: reference.event.saturating_sub(self.event) as usize,
+                extra: self.event.saturating_sub(reference.event) as usize,
+            });
+        }
+        let wanted = reference
+            .end
+            .iter()
+            .map(|marking| theirs.state(marking))
+            .collect::<Vec<_>>();
+        let found = self
+            .end
+            .iter()
+            .map(|marking| net.state(marking))
+            .collect::<Vec<_>>();
+        if wanted != found {
+            return Err(Disagreement::Configuration {
+                missing: wanted.iter().filter(|state| !found.contains(state)).count(),
+                extra: found.iter().filter(|state| !wanted.contains(state)).count(),
+            });
+        }
+        Ok(())
+    }
+
+    // A net's exploration mirrors the plain engine's when both close with the same number of
+    // configurations and events, the same end configurations and a cycle in both or neither.
+    pub fn mirrors(&self, net: &Net, plain: &Laser) -> Result<(), Disagreement> {
+        let summary = plain.summary();
+        if self.closed != summary.closed || !self.closed {
+            return Err(Disagreement::Closed {
+                reference: summary.closed,
+                laser: self.closed,
+            });
+        }
+        let ending = plain.ending();
+        if let Some(endless) = self.endless
+            && endless != ending.endless
+        {
+            return Err(Disagreement::Endless {
+                reference: ending.endless,
+                laser: endless,
+            });
+        }
+        if self.configuration != summary.state {
+            return Err(Disagreement::Configuration {
+                missing: summary.state.saturating_sub(self.configuration),
+                extra: self.configuration.saturating_sub(summary.state),
+            });
+        }
+        let expected = summary.event as u64;
+        if self.event != expected {
+            return Err(Disagreement::Event {
+                missing: expected.saturating_sub(self.event) as usize,
+                extra: self.event.saturating_sub(expected) as usize,
+            });
+        }
+        let mut wanted = ending
+            .end
+            .iter()
+            .map(|&index| plain.state[index].canonical().state)
+            .collect::<Vec<_>>();
+        let mut found = self
+            .end
+            .iter()
+            .map(|marking| net.state(marking))
+            .collect::<Vec<_>>();
+        wanted.sort();
+        found.sort();
+        if wanted != found {
+            return Err(Disagreement::Configuration {
+                missing: wanted.iter().filter(|state| !found.contains(state)).count(),
+                extra: found.iter().filter(|state| !wanted.contains(state)).count(),
+            });
         }
         Ok(())
     }
