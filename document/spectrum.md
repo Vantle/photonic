@@ -16,7 +16,7 @@ bazel run -c opt //command:photonic -- explore program/language/conjunction.wave
 ```
 
 ```
-x5f61ec6db1a472a4 · closed · 14 configurations · 17 events, 4 inferred · depth 3 · work 240 · shape 2a2059d40174b9fb
+x4cb3e60ff1794f1b · closed · 14 configurations · 17 events, 4 inferred · depth 3 · work 240 · shape 2a2059d40174b9fb
 end    s3    Boolean.Extra
        s11   in f1: Boolean.Boolean.Extra
        s12   in f1: Boolean.Extra
@@ -40,7 +40,7 @@ bazel run -c opt //command:photonic -- cause program/language/conjunction.wave s
 ```
 no diagnostics
 reach False.Extra exactly   holds   s6 by e3 e8   s6 is the target
-x5f61ec6db1a472a4 · closed · 14 configurations · 17 events, 4 inferred · depth 3 · work 240 · shape 2a2059d40174b9fb
+x4cb3e60ff1794f1b · closed · 14 configurations · 17 events, 4 inferred · depth 3 · work 240 · shape 2a2059d40174b9fb
 
 s6 False.Extra
 path       e3    r0 [And.Boolean.Boolean] (…)   s4 in f1: True.False.Extra   inferred
@@ -76,7 +76,7 @@ bazel run -c opt //command:photonic -- compare program/language/conjunction.wave
 ```
 
 ```
-compare x5f61ec6db1a472a4 x0bb8e6e14aba0c70
+compare x4cb3e60ff1794f1b x7e8e5304e94f112f
 configurations   14 → 18
   + Boolean.Boolean.Extra   s7   by e3 e10
   + False.Boolean.Extra     s14   by e4 e11 e15
@@ -204,7 +204,7 @@ A request names its verb and carries the question's fields as one JSON object, w
 ```
 
 ```json
-{"version": 1, "verb": "cause", "answer": {"exploration": "x0bb8e6e14aba0c70", "handle": "s6.o1", "kind": "occurrence", "text": "True", "configuration": "False.True.Extra", "lineage": [{"configuration": "s6", "occurrence": "s6.o1", "event": "e11", "rule": "r2 [False] False", "role": "remainder", "source": ["s5.o2"], "text": "consumes False; True stays in the remainder"}, …]}}
+{"version": 1, "verb": "cause", "answer": {"exploration": "x7e8e5304e94f112f", "handle": "s6.o1", "kind": "occurrence", "text": "True", "configuration": "False.True.Extra", "lineage": [{"configuration": "s6", "occurrence": "s6.o1", "event": "e11", "rule": "r2 [False] False", "role": "remainder", "source": ["s5.o2"], "text": "consumes False; True stays in the remainder"}, …]}}
 ```
 
 Every field is checked against the question's schema, so a misspelled field is an error that lists the fields the question takes, never a silent default.

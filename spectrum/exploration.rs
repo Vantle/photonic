@@ -172,6 +172,8 @@ pub(crate) fn rule(definition: &snapshot::Definition, naming: &Naming) -> Rule {
     }
 }
 
+// A key names everything an exploration depends on: the whole program with its scopes, the naming
+// its handles use, the mode, engine and budget, and the goal of a path.
 fn key(
     canonical: &Canonical,
     mode: Mode,
@@ -179,13 +181,10 @@ fn key(
     budget: Budget,
     goal: Option<&Program>,
 ) -> String {
-    let program = &canonical.program;
-    let goal = goal.map(|goal| (&goal.initial, &goal.rule));
     format!(
         "{:016x}",
         hashing::value(&(
-            &program.initial,
-            &program.rule,
+            &canonical.program,
             &canonical.naming,
             mode,
             engine,

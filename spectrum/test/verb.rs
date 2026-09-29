@@ -50,6 +50,8 @@ fn memory() -> Memory {
         ("grow.wave", "Seed, [Seed] Seed.X"),
         ("left.wave", "Seed.A, [Seed] ().([A] B), [B] C"),
         ("right.wave", "[Y] Z, Root.X, [Root] ().([X] Y)"),
+        ("fired.wave", "X, (A, [A] B)"),
+        ("idle.wave", "X, (B, [A] B)"),
     ]))
 }
 
@@ -286,6 +288,16 @@ fn compare() {
             .iter()
             .all(|entry| !entry.text.contains("Extra"))
     );
+    let Ok(Answer::Compare(scoped)) = answer(&Request::Compare(crate::compare::Request {
+        left: recording("fired.wave"),
+        right: recording("idle.wave"),
+        claim: Vec::new(),
+        limit: 12,
+    })) else {
+        panic!("compare answers");
+    };
+    assert_ne!(scoped.left.exploration, scoped.right.exploration);
+    assert_eq!((scoped.left.event, scoped.right.event), (1, 0));
     let open = Recording {
         budget: Some(Budget {
             configuration: 5,
