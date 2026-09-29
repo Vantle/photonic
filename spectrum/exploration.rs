@@ -5,6 +5,7 @@ use crate::order::{self, Canonical, Naming};
 use crate::recording::{Engine, Mode, Order};
 use frontend::source::{Definition, Program};
 use photonic::laser::Laser;
+use photonic::laser::ending;
 use photonic::place::Place;
 use photonic::prism::{Outcome, Reach, Verdict};
 use photonic::runtime::Runtime;
@@ -500,37 +501,13 @@ impl Exploration {
     // A cycle of supported events through configurations that avoided marks, found from the
     // start: the configuration where it closes, and the events from the start around it.
     pub fn cycle(&self, avoided: &[bool]) -> Option<(usize, Vec<usize>)> {
-        let mut state = vec![0u8; self.configuration.len()];
-        let mut stack = vec![(0usize, 0usize)];
-        let mut trail = Vec::<usize>::new();
-        state[0] = 1;
-        while let Some(&mut (node, ref mut position)) = stack.last_mut() {
-            let Some(&event) = self.outgoing[node].get(*position) else {
-                state[node] = 2;
-                stack.pop();
-                trail.pop();
-                continue;
-            };
-            *position += 1;
-            let entry = &self.event[event];
-            if !entry.supported || !avoided[entry.target] {
-                continue;
-            }
-            match state[entry.target] {
-                0 => {
-                    state[entry.target] = 1;
-                    trail.push(event);
-                    stack.push((entry.target, 0));
-                }
-                1 => {
-                    let mut route = trail.clone();
-                    route.push(event);
-                    return Some((entry.target, route));
-                }
-                _ => {}
-            }
-        }
-        None
+        ending::cycle(self.configuration.len(), |node| {
+            self.outgoing[node]
+                .iter()
+                .map(|&event| (event, &self.event[event]))
+                .filter(|(_, entry)| entry.supported && avoided[entry.target])
+                .map(|(event, entry)| (event, entry.target))
+        })
     }
 
     // Whether a run can go on forever: yes once a cycle of supported events is found, and no once
