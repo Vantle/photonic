@@ -24,6 +24,12 @@ struct Argument {
     budget: usize,
     #[arg(long, default_value_t = 200_000_000, help = "Laser work steps")]
     allowance: usize,
+    #[arg(
+        long,
+        default_value_t = 2_000_000,
+        help = "Work steps a net's grounding takes, one for each match it reads"
+    )]
+    work: usize,
     #[arg(long, default_value_t = Limit::default().configuration, help = "Configurations kept")]
     configuration: usize,
     #[arg(long, default_value_t = Limit::default().record, help = "Records each engine retains")]
@@ -80,16 +86,18 @@ struct Outcome {
 // A program's net explored on the host, the reference every other exploration of it answers to.
 fn host(
     program: &frontend::source::Program,
+    work: usize,
     limit: Limit,
 ) -> Result<(Net, Exploration), Unsupported> {
     let mut net = Net::new(program)?;
-    let explored = net.explore(usize::MAX, limit, Cycle::Find)?;
+    let explored = net.explore(work, limit, Cycle::Find)?;
     Ok((net, explored))
 }
 
 fn metal(
     device: &wave::engine::Engine,
     program: &frontend::source::Program,
+    work: usize,
     limit: Limit,
     host: &Result<(Net, Exploration), Unsupported>,
 ) -> String {
@@ -101,7 +109,7 @@ fn metal(
         Ok(net) => net,
         Err(unsupported) => return format!("{unsupported}"),
     };
-    match device.explore(&mut net, usize::MAX, limit, Cycle::Find) {
+    match device.explore(&mut net, work, limit, Cycle::Find) {
         Ok(explored) => match explored.agrees(&net, expected, theirs) {
             Ok(()) => "agrees".to_owned(),
             Err(disagreement) => format!("{disagreement:?}"),
@@ -133,7 +141,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .map(|entry| {
             let mut plain = Laser::plain(&entry.program);
             plain.run(argument.allowance, limit);
-            let host = (plain.closed() || device.is_some()).then(|| host(&entry.program, limit));
+            let host = (plain.closed() || device.is_some())
+                .then(|| host(&entry.program, argument.work, limit));
             let net = host
                 .as_ref()
                 .filter(|_| plain.closed())
@@ -147,7 +156,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let metal = device
                 .as_ref()
                 .zip(host.as_ref())
-                .map(|(device, host)| metal(device, &entry.program, limit, host));
+                .map(|(device, host)| metal(device, &entry.program, argument.work, limit, host));
             let reduction = plain.closed().then(|| {
                 let mut reduced = Laser::reduced(&entry.program);
                 reduced.run(argument.allowance, limit);
