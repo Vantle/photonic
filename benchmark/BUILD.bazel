@@ -215,6 +215,26 @@ rust_binary(
 )
 
 rust_binary(
+    name = "fuzz",
+    srcs = [
+        "directory.rs",
+        "fuzz.rs",
+    ],
+    crate_root = "fuzz.rs",
+    lint_config = "//:lint",
+    deps = [
+        "//frontend",
+        "//language:photonic",
+        "//random",
+        "//wave",
+        "@crate//:clap",
+        "@crate//:rayon",
+        "@crate//:serde",
+        "@crate//:serde_json",
+    ],
+)
+
+rust_binary(
     name = "laser",
     srcs = [
         "directory.rs",
