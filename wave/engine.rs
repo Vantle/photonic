@@ -12,7 +12,19 @@ use metal::device::{Command, Device, Kernel};
 use photonic::laser::net::{Cycle, Exploration, Net};
 use photonic::runtime::Limit;
 
-const SOURCE: &str = include_str!("kernel.metal");
+// The kernels' sources, each beside the host code it serves, in the order they declare what later
+// ones use.
+const SOURCE: [&str; 9] = [
+    include_str!("setting.metal"),
+    include_str!("arena.metal"),
+    include_str!("table.metal"),
+    include_str!("hash.metal"),
+    include_str!("stream.metal"),
+    include_str!("scan.metal"),
+    include_str!("window.metal"),
+    include_str!("pass.metal"),
+    include_str!("store.metal"),
+];
 
 // Explores nets on the GPU through Metal, with its kernels compiled once for every exploration.
 pub struct Engine {
@@ -46,7 +58,7 @@ impl Engine {
         if !device.addressing() {
             return Ok(None);
         }
-        let library = device.library(&(prelude() + SOURCE))?;
+        let library = device.library(&(prelude() + &SOURCE.concat()))?;
         let kernel = |entry: &str| device.kernel(&library, entry);
         Ok(Some(Self {
             tuning,
