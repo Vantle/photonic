@@ -1,5 +1,5 @@
 use crate::failure::Failure;
-use crate::setting::SEGMENT;
+use crate::setting::{SEGMENT, saturate};
 use metal::device::{Device, Memory};
 use photonic::laser::net::Marking;
 
@@ -15,6 +15,13 @@ pub struct Arena {
 
 fn encode(segment: usize, word: usize) -> u64 {
     (segment as u64) << 32 | word as u64
+}
+
+// The words a marking takes in the arena: its root, its number of kinds and its sorted kinds.
+pub fn word(marking: &Marking) -> impl Iterator<Item = u32> {
+    [marking.root, saturate(marking.kind.len())]
+        .into_iter()
+        .chain(marking.kind.iter().copied())
 }
 
 impl Arena {

@@ -1,7 +1,9 @@
+use crate::arena::Arena;
+use crate::dispatch::whole;
 use crate::failure::Failure;
 use crate::scan::Scan;
 use crate::search::Search;
-use crate::setting::{BACKWARD, REFUSED, Setting, WIDTH, prelude, saturate};
+use crate::setting::{BACKWARD, REFUSED, prelude};
 use crate::store::Store;
 use crate::table::Table;
 use crate::tally::Tally;
@@ -26,7 +28,9 @@ const SOURCE: [&str; 9] = [
     include_str!("store.metal"),
 ];
 
-// Explores nets on the GPU through Metal, with its kernels compiled once for every exploration.
+// Explores nets on the GPU through Metal, with its kernels compiled once for every exploration,
+// and the threads of a group that expand markings, one a thread, and that take candidates, four a
+// thread.
 pub struct Engine {
     pub(crate) tuning: Tuning,
     pub(crate) device: Device,
@@ -40,6 +44,8 @@ pub struct Engine {
     pub(crate) weigh: Kernel,
     pub(crate) rehash: Kernel,
     pub(crate) scan: Scan,
+    pub(crate) width: usize,
+    pub(crate) span: usize,
 }
 
 impl Engine {
@@ -60,18 +66,28 @@ impl Engine {
         }
         let library = device.library(&(prelude() + &SOURCE.concat()))?;
         let kernel = |entry: &str| device.kernel(&library, entry);
+        let expand = kernel("expand")?;
+        let tally = kernel("tally")?;
+        let place = kernel("place")?;
+        let weigh = kernel("weigh")?;
+        let width = whole(&expand);
+        // Tallying and placing must share their groups, since placing ranks each winner within the
+        // group tallying summed.
+        let span = whole(&tally).min(whole(&place)).min(whole(&weigh));
         Ok(Some(Self {
             tuning,
             count: kernel("count")?,
-            expand: kernel("expand")?,
+            expand,
             insert: kernel("insert")?,
-            tally: kernel("tally")?,
+            tally,
             bound: kernel("bound")?,
-            place: kernel("place")?,
+            place,
             point: kernel("point")?,
-            weigh: kernel("weigh")?,
+            weigh,
             rehash: kernel("rehash")?,
             scan: Scan::new(kernel("reduce")?, kernel("spread")?),
+            width,
+            span,
             device,
         }))
     }
@@ -79,6 +95,16 @@ impl Engine {
     // The GPU the engine explores on.
     pub fn name(&self) -> &str {
         self.device.name()
+    }
+
+    // A command whose kernels can reach every segment of the arena.
+    pub(crate) fn command<'device>(
+        &'device self,
+        arena: &'device Arena,
+    ) -> Result<Command<'device>, Failure> {
+        let mut command = self.device.command()?;
+        command.reach(&arena.segment);
+        Ok(command)
     }
 
     // Explores every schedule of plain events from the net's start in the order one thread searching
@@ -125,8 +151,7 @@ impl Engine {
         let mut spent = false;
         while cursor < search.store.count && !spent {
             let size = self.tuning.window.min(search.store.count - cursor);
-            let window = self.count(&mut search, cursor, size, counted)?;
-            counted = false;
+            let window = self.window(&mut search, cursor, size, counted)?;
             spent = window.spent;
             end.extend(&window.end);
             let mut from = 0;
@@ -153,28 +178,5 @@ impl Engine {
             endless: (cycle == Cycle::Find).then(|| backward && search.tally.cyclic(count)),
             work: search.net.work() - work,
         })
-    }
-
-    // Encodes entering every established marking into a table just grown.
-    pub(crate) fn fill<'device>(
-        &self,
-        command: &mut Command<'device>,
-        search: &'device Search<'_>,
-    ) -> Result<(), Failure> {
-        let store = &search.store;
-        let setting = Setting {
-            count: saturate(store.count),
-            bucket: saturate(store.slot / WIDTH),
-            ..Setting::default()
-        };
-        command.clear(&store.table)?;
-        command.dispatch(
-            &self.rehash,
-            &[&store.arena.address, &store.offset.memory, &store.table],
-            &setting.byte(),
-            [store.count, 1, 1],
-            self.rehash.group([store.count, 1, 1]),
-        )?;
-        Ok(())
     }
 }

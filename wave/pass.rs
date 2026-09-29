@@ -1,4 +1,3 @@
-use crate::dispatch::whole;
 use crate::engine::Engine;
 use crate::failure::Failure;
 use crate::search::Search;
@@ -8,10 +7,11 @@ use crate::setting::{
 };
 use crate::window::{Joined, Range, Window};
 use crate::work::Work;
-use metal::device::Command;
+use metal::device::{Command, Memory};
 use photonic::laser::net::Cycle;
 
-// Writes the successors the host found for the pass's markings where the running sum places them.
+// Writes the successors the host found for the pass's markings where the running sum places them,
+// marked when the limits refuse them, as expanding records the successors the tables give.
 fn host(work: &mut Work, joined: &[Joined], first: usize, begin: u64) {
     let record = work.record.memory.edit::<u32>();
     for item in joined {
@@ -27,6 +27,27 @@ fn host(work: &mut Work, joined: &[Joined], first: usize, begin: u64) {
             flag,
         ]);
     }
+    if joined.iter().any(|item| !item.admitted) {
+        work.summary.edit::<u32>()[REFUSED] = 1;
+    }
+}
+
+// How many new markings the configuration limit admits in a pass of count candidates, and how many
+// markings there are at most once the pass numbers its winners; a pass numbers its candidates
+// below CANDIDATE and the table its markings below TAG.
+fn admit(search: &Search<'_>, count: usize) -> Result<(usize, usize), Failure> {
+    if count >= CANDIDATE {
+        return Err(Failure::Candidate { count });
+    }
+    let allowed = search
+        .limit
+        .configuration
+        .saturating_sub(search.store.count);
+    let most = search.store.count + count.min(allowed);
+    if most >= TAG as usize - 1 {
+        return Err(Failure::Configuration { count: most });
+    }
+    Ok((allowed, most))
 }
 
 impl Engine {
@@ -43,61 +64,21 @@ impl Engine {
         ahead: Option<usize>,
     ) -> Result<bool, Failure> {
         if search.cycle == Cycle::Find {
-            let origin = search.tally.edge.len() as u64;
-            let start = search.work.start.memory.view::<u64>();
-            search.tally.first.extend(
-                start[range.from..range.to]
-                    .iter()
-                    .map(|&value| origin + (value - range.begin)),
-            );
+            search
+                .tally
+                .source(search.work.start.memory.view::<u64>(), &range);
         }
-        let count = (range.end - range.begin) as usize;
+        let count = range.count();
         if count == 0 {
             return Ok(false);
         }
-        if count >= CANDIDATE {
-            return Err(Failure::Candidate { count });
-        }
-        let allowed = search
-            .limit
-            .configuration
-            .saturating_sub(search.store.count);
-        let most = count.min(allowed);
-        if search.store.count + most >= TAG as usize - 1 {
-            return Err(Failure::Configuration {
-                count: search.store.count + most,
-            });
-        }
-        let width = whole(&self.expand);
-        let group = (range.to - range.from).div_ceil(width);
-        let span = self.span();
-        let block = count.div_ceil(4 * span);
-        let work = &mut search.work;
-        work.record.fit(&self.device, 3 * count)?;
-        work.sum.fit(&self.device, range.to - range.from)?;
-        work.target.fit(&self.device, count)?;
-        work.slot.fit(&self.device, count)?;
-        work.share.fit(&self.device, count)?;
-        work.event.fit(&self.device, group.max(block))?;
-        work.block.fit(&self.device, block)?;
-        self.scan.prepare(&self.device, &mut work.level, block)?;
-        let offset = search
-            .store
-            .offset
-            .swap(&self.device, search.store.count + most)?;
+        let (allowed, most) = admit(search, count)?;
         let next = ahead
-            .map(|first| (first, (search.store.count + most).saturating_sub(first)))
-            .map(|(first, size)| (first, size.min(self.tuning.window)))
+            .map(|first| (first, most.saturating_sub(first).min(self.tuning.window)))
             .filter(|&(_, size)| size > 0);
-        let start = match next {
-            Some((_, size)) => self.room(&mut search.work, size)?,
-            None => None,
-        };
+        let (offset, start) = self.reserve(search, &range, most, next)?;
         let joined = window.found(&range);
         host(&mut search.work, joined, window.first, range.begin);
-        if joined.iter().any(|item| !item.admitted) {
-            search.work.summary.edit::<u32>()[REFUSED] = 1;
-        }
         let (safe, likely) = if allowed > 0 {
             let fresh = (count as f64 * search.store.fresh).ceil() as usize;
             (
@@ -111,19 +92,15 @@ impl Engine {
         search.upload.refresh(&self.device, &mut search.table)?;
         search.work.summary.edit::<u32>()[FLAGGED] = 0;
         search.work.total.edit::<u64>()[BOUND] = u64::MAX;
-        let room = search.store.arena.room();
         let setting = Setting {
             base: range.begin,
             arena: search.store.arena.base(),
             split: u64::MAX,
-            room: room as u64,
+            room: search.store.arena.room() as u64,
             first: saturate(window.first + range.from),
             count: saturate(range.to - range.from),
             shift: saturate(range.from),
             key: search.upload.slot,
-            root: search.upload.root,
-            rule: saturate(search.table.joining()),
-            wide: u32::from(search.table.wide),
             coherence: saturate(search.limit.coherence),
             occurrence: saturate(search.limit.occurrence),
             scope: saturate(search.limit.scope),
@@ -141,8 +118,7 @@ impl Engine {
             allowed: saturate(allowed),
             ..Self::alone(search, first, size)
         });
-        let mut command = self.device.command()?;
-        command.reach(&search.store.arena.segment);
+        let mut command = self.command(&search.store.arena)?;
         if let Some(old) = &offset {
             command.copy::<u64>(old, &search.store.offset.memory, search.store.count)?;
         }
@@ -150,9 +126,78 @@ impl Engine {
             command.copy::<u64>(old, &search.work.start.memory, window.size)?;
         }
         if grown {
-            self.fill(&mut command, search)?;
+            self.fill(&mut command, &search.store)?;
         }
+        self.claim(&mut command, search, &setting, &decide)?;
+        self.settle(
+            &mut command,
+            search,
+            &decide,
+            later.map(|setting| Setting {
+                room: decide.room,
+                ..setting
+            }),
+        )?;
+        command.run()?;
+        self.spill(search, &decide, later)?;
+        self.account(search, joined, &range, allowed);
+        Ok(next.is_some())
+    }
+
+    // The threadgroups that expand markings, one a thread.
+    fn group(&self, marking: usize) -> usize {
+        marking.div_ceil(self.width)
+    }
+
+    // The threadgroups that take candidates, four a thread.
+    fn block(&self, count: usize) -> usize {
+        count.div_ceil(4 * self.span)
+    }
+
+    // Makes room for a pass's candidates, for the offsets of the most markings there can be once it
+    // numbers its winners and for counting the next window, when there is one; hands back the
+    // memory the offsets and the running sums leave, whose values the pass copies over.
+    fn reserve(
+        &self,
+        search: &mut Search<'_>,
+        range: &Range,
+        most: usize,
+        next: Option<(usize, usize)>,
+    ) -> Result<(Option<Memory>, Option<Memory>), Failure> {
+        let count = range.count();
+        let marking = range.to - range.from;
+        let group = self.group(marking);
+        let block = self.block(count);
+        let work = &mut search.work;
+        work.record.fit(&self.device, 3 * count)?;
+        work.sum.fit(&self.device, marking)?;
+        work.target.fit(&self.device, count)?;
+        work.slot.fit(&self.device, count)?;
+        work.share.fit(&self.device, count)?;
+        work.event.fit(&self.device, group.max(block))?;
+        work.block.fit(&self.device, block)?;
+        self.scan.prepare(&self.device, &mut work.level, block)?;
+        let offset = search.store.offset.swap(&self.device, most)?;
+        let start = match next {
+            Some((_, size)) => self.room(&mut search.work, size)?,
+            None => None,
+        };
+        Ok((offset, start))
+    }
+
+    // Encodes the kernels that record a pass's candidates from the tables, find the marking each
+    // one equals or claim a slot for it, and sum each threadgroup's winners and their words, with
+    // the words of the threadgroups the configuration limit admits when it may refuse winners.
+    fn claim<'device>(
+        &self,
+        command: &mut Command<'device>,
+        search: &'device Search<'_>,
+        setting: &Setting,
+        decide: &Setting,
+    ) -> Result<(), Failure> {
         let (store, upload, work) = (&search.store, &search.upload, &search.work);
+        let count = decide.count as usize;
+        let block = self.block(count);
         command.dispatch(
             &self.expand,
             &[
@@ -170,8 +215,8 @@ impl Engine {
                 &work.summary,
             ],
             &setting.byte(),
-            [group * width, 1, 1],
-            [width, 1, 1],
+            [self.group(setting.count as usize) * self.width, 1, 1],
+            [self.width, 1, 1],
         )?;
         command.dispatch(
             &self.insert,
@@ -206,21 +251,21 @@ impl Engine {
                 &work.block.memory,
             ],
             &decide.byte(),
-            [block * span, 1, 1],
-            [span, 1, 1],
+            [block * self.span, 1, 1],
+            [self.span, 1, 1],
         )?;
         self.scan.encode(
-            &mut command,
+            command,
             &work.block.memory,
             block,
             &work.total,
             WINNER,
             &work.level,
         )?;
-        if allowed < count {
+        if decide.allowed < decide.count {
             let bound = Setting {
                 count: saturate(block),
-                allowed: saturate(allowed),
+                allowed: decide.allowed,
                 ..Setting::default()
             };
             command.dispatch(
@@ -231,65 +276,7 @@ impl Engine {
                 self.bound.group([block + 1, 1, 1]),
             )?;
         }
-        self.settle(
-            &mut command,
-            search,
-            &decide,
-            later.map(|setting| Setting {
-                room: room as u64,
-                ..setting
-            }),
-        )?;
-        command.run()?;
-        let total = search.work.total.view::<u64>();
-        let winner = (total[WINNER] >> SHIFT) as usize;
-        let word = total[BOUND].min(total[WINNER] & WORD) as usize;
-        if word > room {
-            let kept = {
-                let prefix = &search.work.block.memory.view::<u64>()[..block];
-                let last = prefix[1..].partition_point(|&value| value & WORD <= room as u64);
-                prefix[last] & WORD
-            };
-            let overflow = search.store.arena.split(&self.device, kept, word)?;
-            let decide = Setting {
-                split: kept,
-                overflow,
-                room: u64::MAX,
-                ..decide
-            };
-            let mut command = self.device.command()?;
-            command.reach(&search.store.arena.segment);
-            self.settle(&mut command, search, &decide, later)?;
-            command.run()?;
-        } else {
-            search.store.arena.advance(word);
-        }
-        let weighed = if allowed < count { block } else { group };
-        let summed = search.work.event.memory.view::<u64>()[..weighed]
-            .iter()
-            .sum::<u64>();
-        let target = search.work.target.memory.view::<u32>();
-        let found = joined
-            .iter()
-            .filter(|item| target[(item.position - range.begin) as usize] != BLOCKED)
-            .map(|item| item.weight)
-            .sum::<u64>();
-        search.tally.event += summed + found;
-        if search.cycle == Cycle::Find {
-            search.tally.edge.extend_from_slice(&target[..count]);
-        }
-        search.store.count += winner.min(allowed);
-        search.store.fresh = winner as f64 / count as f64;
-        Ok(next.is_some())
-    }
-
-    // The threads of a group for the kernels that take four candidates a thread; tallying and
-    // placing must share their groups, since placing ranks each winner within the group tallying
-    // summed.
-    fn span(&self) -> usize {
-        whole(&self.tally)
-            .min(whole(&self.place))
-            .min(whole(&self.weigh))
+        Ok(())
     }
 
     // Encodes the kernels that number and write the pass's new markings, a threadgroup and four
@@ -305,8 +292,7 @@ impl Engine {
     ) -> Result<(), Failure> {
         let (store, upload, work) = (&search.store, &search.upload, &search.work);
         let count = decide.count as usize;
-        let span = self.span();
-        let block = count.div_ceil(4 * span);
+        let block = self.block(count);
         command.dispatch(
             &self.place,
             &[
@@ -323,8 +309,8 @@ impl Engine {
                 &work.total,
             ],
             &decide.byte(),
-            [block * span, 1, 1],
-            [span, 1, 1],
+            [block * self.span, 1, 1],
+            [self.span, 1, 1],
         )?;
         command.dispatch(
             &self.point,
@@ -350,13 +336,78 @@ impl Engine {
                     &work.total,
                 ],
                 &decide.byte(),
-                [block * span, 1, 1],
-                [span, 1, 1],
+                [block * self.span, 1, 1],
+                [self.span, 1, 1],
             )?;
         }
         if let Some(setting) = later {
             self.census(command, search, &setting)?;
         }
         Ok(())
+    }
+
+    // Keeps the pass's new markings in the arena: the command wrote them to its last segment when
+    // they fit, and otherwise a second command writes those that fit there and the rest to a new
+    // segment.
+    fn spill(
+        &self,
+        search: &mut Search<'_>,
+        decide: &Setting,
+        later: Option<Setting>,
+    ) -> Result<(), Failure> {
+        let total = search.work.total.view::<u64>();
+        let word = total[BOUND].min(total[WINNER] & WORD);
+        if word <= decide.room {
+            search.store.arena.advance(word as usize);
+            return Ok(());
+        }
+        let kept = {
+            let block = self.block(decide.count as usize);
+            let prefix = &search.work.block.memory.view::<u64>()[..block];
+            let last = prefix[1..].partition_point(|&value| value & WORD <= decide.room);
+            prefix[last] & WORD
+        };
+        let overflow = search
+            .store
+            .arena
+            .split(&self.device, kept, word as usize)?;
+        let decide = Setting {
+            split: kept,
+            overflow,
+            room: u64::MAX,
+            ..*decide
+        };
+        let mut command = self.command(&search.store.arena)?;
+        self.settle(&mut command, search, &decide, later)?;
+        command.run()?;
+        Ok(())
+    }
+
+    // Adds up what a decided pass found: its events, those the kernels summed a threadgroup at a
+    // time and those of the successors the host found that reached a marking, every candidate's
+    // target when cycles matter, and the new markings the configuration limit admits.
+    fn account(&self, search: &mut Search<'_>, joined: &[Joined], range: &Range, allowed: usize) {
+        let count = range.count();
+        let weighed = if allowed < count {
+            self.block(count)
+        } else {
+            self.group(range.to - range.from)
+        };
+        let summed = search.work.event.memory.view::<u64>()[..weighed]
+            .iter()
+            .sum::<u64>();
+        let target = search.work.target.memory.view::<u32>();
+        let found = joined
+            .iter()
+            .filter(|item| target[(item.position - range.begin) as usize] != BLOCKED)
+            .map(|item| item.weight)
+            .sum::<u64>();
+        search.tally.event += summed + found;
+        if search.cycle == Cycle::Find {
+            search.tally.link(&target[..count]);
+        }
+        let winner = (search.work.total.view::<u64>()[WINNER] >> SHIFT) as usize;
+        search.store.count += winner.min(allowed);
+        search.store.fresh = winner as f64 / count as f64;
     }
 }

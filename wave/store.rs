@@ -1,10 +1,11 @@
-use crate::arena::Arena;
+use crate::arena::{self, Arena};
+use crate::engine::Engine;
 use crate::failure::Failure;
 use crate::grow::Grow;
 use crate::hash;
-use crate::setting::{NONE, WIDTH};
+use crate::setting::{NONE, Setting, WIDTH, saturate};
 use crate::tuning::Tuning;
-use metal::device::{Device, Memory};
+use metal::device::{Command, Device, Memory};
 use photonic::laser::net::Marking;
 
 // Every marking found so far: its words in the arena, where each starts, and the table that finds a
@@ -21,8 +22,7 @@ pub struct Store {
 
 impl Store {
     pub fn new(device: &Device, start: &Marking, tuning: Tuning) -> Result<Self, Failure> {
-        let mut word = vec![start.root, start.kind.len() as u32];
-        word.extend(&start.kind);
+        let word = arena::word(start).collect::<Vec<_>>();
         let arena = Arena::new(device, &word, tuning.first, tuning.largest)?;
         let mut offset = Grow::<u64>::new(device, tuning.initial)?;
         offset.memory.edit::<u64>()[0] = 0;
@@ -63,5 +63,29 @@ impl Store {
         self.table = device.space::<u32>(2 * slot)?;
         self.slot = slot;
         Ok(true)
+    }
+}
+
+impl Engine {
+    // Encodes entering every established marking into a table just grown.
+    pub(crate) fn fill<'device>(
+        &self,
+        command: &mut Command<'device>,
+        store: &'device Store,
+    ) -> Result<(), Failure> {
+        let setting = Setting {
+            count: saturate(store.count),
+            bucket: saturate(store.slot / WIDTH),
+            ..Setting::default()
+        };
+        command.clear(&store.table)?;
+        command.dispatch(
+            &self.rehash,
+            &[&store.arena.address, &store.offset.memory, &store.table],
+            &setting.byte(),
+            [store.count, 1, 1],
+            self.rehash.group([store.count, 1, 1]),
+        )?;
+        Ok(())
     }
 }

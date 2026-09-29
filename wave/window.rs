@@ -1,3 +1,4 @@
+use crate::arena;
 use crate::engine::Engine;
 use crate::failure::Failure;
 use crate::hash;
@@ -32,6 +33,14 @@ pub struct Window {
     pub spent: bool,
 }
 
+// A marking the host visited: its place in the window, what counting flagged it for, and the
+// successors of its events joining several components.
+struct Visit {
+    index: usize,
+    state: u32,
+    successor: Vec<Successor>,
+}
+
 // The markings a pass covers: the window's markings from one to another, and the candidates between
 // their running sums.
 pub struct Range {
@@ -39,6 +48,13 @@ pub struct Range {
     pub to: usize,
     pub begin: u64,
     pub end: u64,
+}
+
+impl Range {
+    // How many candidates the pass decides.
+    pub fn count(&self) -> usize {
+        (self.end - self.begin) as usize
+    }
 }
 
 impl Window {
@@ -137,7 +153,7 @@ impl Engine {
             count: saturate(size),
             key: search.upload.slot,
             root: search.upload.root,
-            rule: saturate(search.table.joining()),
+            rule: saturate(search.table.need.len()),
             wide: u32::from(search.table.wide),
             next: saturate(first + size),
             room: u64::MAX,
@@ -146,30 +162,52 @@ impl Engine {
     }
 
     // Counts the successors of a window of markings and their running sum, unless the pass before
-    // counted them already. The host visits every flagged marking in order, as its own net would on
-    // expanding it, and counts again if the tables lacked a part; then it writes the successors of
-    // events joining several components, and sums again if there were any. A marking whose parts
-    // the budget cannot ground ends the window before it, as it ends the host's exploration, and
-    // the shorter window is counted again.
-    pub(crate) fn count(
+    // counted them already, has the host visit every marking counting flagged, and writes the
+    // successors of events joining several components. A marking whose parts the budget cannot
+    // ground ends the window before it, as it ends the host's exploration.
+    pub(crate) fn window(
         &self,
         search: &mut Search<'_>,
         first: usize,
         size: usize,
         counted: bool,
     ) -> Result<Window, Failure> {
-        let mut counted = counted;
-        let mut size = size;
-        let mut spent = false;
-        let mut attempt = 0;
-        let visited = loop {
+        let (visited, kept) = self.visit(search, first, size, counted)?;
+        let end = visited
+            .iter()
+            .filter(|visit| visit.state & BARE != 0 && visit.successor.is_empty())
+            .map(|visit| first + visit.index)
+            .collect();
+        let joined = self.join(search, kept, visited)?;
+        Ok(Window {
+            first,
+            size: kept,
+            total: search.work.total.view::<u64>()[WINDOW],
+            joined,
+            end,
+            spent: kept < size,
+        })
+    }
+
+    // Visits every marking of a window that counting flagged, in order, as the host's own net would
+    // on expanding it, and gives the visits with the size of the window they cover. When the tables
+    // lacked a part, the visits ground it and the window is counted again, once; a marking whose
+    // parts the budget cannot ground ends the window before it, and the shorter window is counted
+    // again.
+    fn visit(
+        &self,
+        search: &mut Search<'_>,
+        first: usize,
+        mut size: usize,
+        mut counted: bool,
+    ) -> Result<(Vec<Visit>, usize), Failure> {
+        for _ in 0..2 {
             if !counted {
                 self.room(&mut search.work, size)?;
                 search.upload.refresh(&self.device, &mut search.table)?;
                 search.work.summary.edit::<u32>()[FLAGGED] = 0;
                 let setting = Self::alone(search, first, size);
-                let mut command = self.device.command()?;
-                command.reach(&search.store.arena.segment);
+                let mut command = self.command(&search.store.arena)?;
                 self.census(&mut command, search, &setting)?;
                 command.run()?;
             }
@@ -185,70 +223,67 @@ impl Engine {
             let mut visited = Vec::with_capacity(flagged.len());
             let mut shortened = false;
             for (index, state) in flagged {
-                let successor = if state & (MISSING | JOIN) == 0 {
-                    Vec::new()
-                } else {
-                    let marking = search.store.marking(first + index);
-                    let Some(successor) =
-                        search
-                            .table
-                            .prepare(search.net, &marking, search.allowance)?
-                    else {
-                        size = index;
-                        spent = true;
-                        shortened = true;
-                        break;
-                    };
-                    successor
+                if state & (MISSING | JOIN) == 0 {
+                    visited.push(Visit {
+                        index,
+                        state,
+                        successor: Vec::new(),
+                    });
+                    continue;
+                }
+                let marking = search.store.marking(first + index);
+                let Some(successor) =
+                    search
+                        .table
+                        .prepare(search.net, &marking, search.allowance)?
+                else {
+                    size = index;
+                    shortened = true;
+                    break;
                 };
-                visited.push((index, state, successor));
-            }
-            if size == 0 {
-                return Ok(Window {
-                    first,
-                    size,
-                    total: 0,
-                    joined: Vec::new(),
-                    end: Vec::new(),
-                    spent,
+                visited.push(Visit {
+                    index,
+                    state,
+                    successor,
                 });
             }
-            if !shortened && visited.iter().all(|(_, state, _)| state & MISSING == 0) {
-                break visited;
+            if !shortened && visited.iter().all(|visit| visit.state & MISSING == 0) {
+                return Ok((visited, size));
             }
-            attempt += 1;
-            if attempt > 1 {
-                return Err(Failure::Missing);
-            }
-        };
+        }
+        Err(Failure::Missing)
+    }
+
+    // Writes the words of the successors the host found to the extra memory and places each after
+    // the successors the tables give its marking, summing the window again if there were any.
+    fn join(
+        &self,
+        search: &mut Search<'_>,
+        size: usize,
+        visited: Vec<Visit>,
+    ) -> Result<Vec<Joined>, Failure> {
         let mut joined = Vec::new();
-        let mut end = Vec::new();
         let mut extra = Vec::<u32>::new();
-        for (index, state, successor) in visited {
-            if state & BARE != 0 && successor.is_empty() {
-                end.push(first + index);
-            }
-            if successor.is_empty() {
+        for visit in visited {
+            if visit.successor.is_empty() {
                 continue;
             }
-            let number = &mut search.work.number.memory.edit::<u64>()[index];
+            let number = &mut search.work.number.memory.edit::<u64>()[visit.index];
             let own = *number;
-            *number += successor.len() as u64;
-            for (order, Successor { marking, count }) in successor.into_iter().enumerate() {
+            *number += visit.successor.len() as u64;
+            for (order, Successor { marking, count }) in visit.successor.into_iter().enumerate() {
                 search.table.know(search.net, &marking);
                 let digest = hash::digest(marking.root, &marking.kind);
                 extra.extend([digest as u32, (digest >> 32) as u32]);
                 joined.push(Joined {
-                    index,
+                    index: visit.index,
                     order: own + order as u64,
                     position: 0,
                     extra: saturate(extra.len()),
                     weight: count,
                     admitted: search.net.admits(&marking, search.limit),
                 });
-                extra.push(marking.root);
-                extra.push(saturate(marking.kind.len()));
-                extra.extend(&marking.kind);
+                extra.extend(arena::word(&marking));
             }
         }
         if !joined.is_empty() {
@@ -262,13 +297,6 @@ impl Engine {
         }
         search.work.extra.fit(&self.device, extra.len())?;
         search.work.extra.memory.edit::<u32>()[..extra.len()].copy_from_slice(&extra);
-        Ok(Window {
-            first,
-            size,
-            total: search.work.total.view::<u64>()[WINDOW],
-            joined,
-            end,
-            spent,
-        })
+        Ok(joined)
     }
 }

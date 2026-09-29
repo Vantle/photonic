@@ -42,18 +42,19 @@ impl Table {
     pub fn new(net: &Net) -> Self {
         let arity = net.arity();
         let wide = arity.iter().sum::<usize>() > 64;
-        let mut need = Vec::with_capacity(arity.len());
-        let mut next = 0;
-        for count in arity {
-            let mut value = 0u64;
-            for index in next..next + count {
-                if index < 64 {
-                    value |= 1 << index;
-                }
-            }
-            next += count;
-            need.push(value);
-        }
+        let need = if wide {
+            Vec::new()
+        } else {
+            arity
+                .iter()
+                .scan(0, |next, &count| {
+                    let value =
+                        (*next..*next + count).fold(0u64, |value, index| value | 1 << index);
+                    *next += count;
+                    Some(value)
+                })
+                .collect()
+        };
         Self {
             entry: Vec::new(),
             single: HashMap::default(),
@@ -61,7 +62,7 @@ impl Table {
             size: Vec::new(),
             base: Vec::new(),
             mask: Vec::new(),
-            need: if wide { Vec::new() } else { need },
+            need,
             wide,
             dirty: true,
         }
@@ -195,9 +196,5 @@ impl Table {
             key[4 * slot..4 * slot + 4].copy_from_slice(&[root, kind, start, number]);
         }
         (key, capacity)
-    }
-
-    pub fn joining(&self) -> usize {
-        if self.wide { 0 } else { self.need.len() }
     }
 }
