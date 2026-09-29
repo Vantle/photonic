@@ -309,8 +309,16 @@ impl Laser {
             .0
     }
 
-    pub(super) fn find(&self, source: usize, trace: &Trace) -> Option<usize> {
-        let identity = self.identify(source, trace)?;
-        self.identity[source].get(&identity).copied()
+    // The event a trace identifies: its link names it, or the trace forms its identity again when
+    // the identity was blocked when the trace was found.
+    pub(super) fn linked(&self, state: usize, position: usize) -> Option<usize> {
+        match self.link[state].get(position)? {
+            Link::Absent => None,
+            Link::Event(event) => Some(*event),
+            Link::Unresolved => {
+                let identity = self.identify(state, &self.trace[state][position])?;
+                self.identity[state].get(&identity).copied()
+            }
+        }
     }
 }

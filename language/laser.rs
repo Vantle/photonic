@@ -89,8 +89,8 @@ struct Round {
     retry: Vec<(Identity, usize, usize)>,
 }
 
-// Each trace remembers the event it identifies, so the direct pass reads it instead of forming
-// the identity again; a trace whose identity was blocked is formed again if needed.
+// Each trace remembers the event it identifies, so the passes after closing read it instead of
+// forming the identity again; a trace whose identity was blocked is formed again if needed.
 #[derive(Clone, Copy)]
 enum Link {
     Absent,

@@ -1,5 +1,6 @@
-use super::{Laser, Link, map};
+use super::{Laser, map};
 use crate::executor::Executor;
+use crate::profile;
 use hashing::Builder;
 use std::collections::{HashMap, HashSet};
 
@@ -131,13 +132,12 @@ fn graph(
             let (state, position) = node[id];
             let mut list = Vec::with_capacity(laser.incoming[state].len());
             list.extend(laser.incoming[state].iter().filter_map(|&event| {
-                let value = &laser.event[event];
-                let source = value.source;
+                let source = laser.event[event].source;
                 if label[source] != label[state] {
                     return None;
                 }
-                let found = laser.crossed[event][position]?;
-                Some(number(offset[source] + found.get() as usize - 1))
+                let landed = laser.landing(event, position)?;
+                Some(number(offset[source] + landed))
             }));
             (id, list)
         });
@@ -157,12 +157,9 @@ fn graph(
         if !reached[id] || !open[state] {
             return None;
         }
-        let event = match laser.link[state][position] {
-            Link::Absent => None,
-            Link::Event(event) => Some(event),
-            Link::Unresolved => laser.find(state, &laser.trace[state][position]),
-        };
-        event.filter(|&event| !laser.event[event].direct)
+        laser
+            .linked(state, position)
+            .filter(|&event| !laser.event[event].direct)
     });
     Graph {
         offset,
@@ -213,7 +210,7 @@ fn search(
 }
 
 pub(super) fn mark(laser: &mut Laser, executor: Option<&Executor>) {
-    let _scope = crate::profile::Scope::new(crate::profile::Phase::Marking);
+    let _scope = profile::Scope::new(profile::Phase::Marking);
     let mut open = vec![false; laser.state.len()];
     for event in &laser.event {
         if !event.direct {

@@ -1,5 +1,7 @@
-use super::{CHUNK, Laser, Link, map};
+use super::{CHUNK, Laser, map};
 use crate::executor::Executor;
+use crate::profile;
+use std::cmp::Reverse;
 
 // Support is the least set closed under the interpreter's clauses, read over traces instead of
 // views: the initial configuration and every configuration's own matches are given; a trace
@@ -9,8 +11,8 @@ use crate::executor::Executor;
 // finds in parallel what that supports, given everything supported so far; a clause with two
 // premises is found by whichever premise enters last, since each round sees all the rounds before
 // it, so the rounds reach the same least set as any order would. Each trace, event and
-// configuration enters a round once, so establishing support is linear in the traces and their
-// crossings.
+// configuration enters a round once and reads only the crossings recorded for it, so establishing
+// support is linear in the traces, the events and their recorded crossings.
 pub(super) struct Support {
     pub state: Vec<bool>,
     pub event: Vec<bool>,
@@ -23,75 +25,72 @@ enum Item {
     Trace(usize, usize),
 }
 
+// What is supported so far, and for each configuration the incoming events that carried any of
+// its traces, those that carried the most first, so a trace reads only the events it crossed.
 struct Mark {
     state: Vec<bool>,
     event: Vec<bool>,
     trace: Vec<Vec<bool>>,
-}
-
-fn identify(laser: &Laser, state: usize, position: usize) -> Option<usize> {
-    match laser.link[state].get(position)? {
-        Link::Absent => None,
-        Link::Event(event) => Some(*event),
-        Link::Unresolved => laser.find(state, &laser.trace[state][position]),
-    }
-}
-
-fn landing(laser: &Laser, event: usize, position: usize) -> Option<usize> {
-    let found = laser.crossed[event].get(position).copied().flatten()?;
-    Some(found.get() as usize - 1)
+    carrier: Vec<Vec<usize>>,
 }
 
 impl Mark {
     fn admit(&mut self, item: Item) -> bool {
         let slot = match item {
-            Item::State(index) => &mut self.state[index],
-            Item::Event(value) => &mut self.event[value],
-            Item::Trace(index, position) => &mut self.trace[index][position],
+            Item::State(state) => &mut self.state[state],
+            Item::Event(event) => &mut self.event[event],
+            Item::Trace(state, position) => &mut self.trace[state][position],
         };
         !std::mem::replace(slot, true)
     }
 
+    // A supported trace at a supported configuration supports the event it identifies.
+    fn identify(&self, laser: &Laser, state: usize, position: usize, found: &mut Vec<Item>) {
+        if let Some(event) = laser.linked(state, position)
+            && !self.event[event]
+        {
+            found.push(Item::Event(event));
+        }
+    }
+
+    // A supported trace carried across a supported event supports the trace it lands on.
+    fn carry(&self, laser: &Laser, event: usize, position: usize, found: &mut Vec<Item>) {
+        let source = laser.event[event].source;
+        if let Some(landed) = laser.landing(event, position)
+            && !self.trace[source][landed]
+        {
+            found.push(Item::Trace(source, landed));
+        }
+    }
+
     fn follow(&self, laser: &Laser, item: Item, found: &mut Vec<Item>) {
         match item {
-            Item::State(index) => {
-                for (position, &supported) in self.trace[index].iter().enumerate() {
-                    if supported
-                        && let Some(value) = identify(laser, index, position)
-                        && !self.event[value]
-                    {
-                        found.push(Item::Event(value));
+            Item::State(state) => {
+                for (position, &supported) in self.trace[state].iter().enumerate() {
+                    if supported {
+                        self.identify(laser, state, position, found);
                     }
                 }
             }
-            Item::Event(value) => {
-                let (source, target) = (laser.event[value].source, laser.event[value].target);
+            Item::Event(event) => {
+                let target = laser.event[event].target;
                 if !self.state[target] {
                     found.push(Item::State(target));
                 }
-                for (position, &supported) in self.trace[target].iter().enumerate() {
-                    if supported
-                        && let Some(landed) = landing(laser, value, position)
-                        && !self.trace[source][landed]
-                    {
-                        found.push(Item::Trace(source, landed));
+                for position in 0..laser.crossed[event].len() {
+                    if self.trace[target][position] {
+                        self.carry(laser, event, position, found);
                     }
                 }
             }
-            Item::Trace(index, position) => {
-                if self.state[index]
-                    && let Some(value) = identify(laser, index, position)
-                    && !self.event[value]
-                {
-                    found.push(Item::Event(value));
+            Item::Trace(state, position) => {
+                if self.state[state] {
+                    self.identify(laser, state, position, found);
                 }
-                for &value in &laser.incoming[index] {
-                    let source = laser.event[value].source;
-                    if self.event[value]
-                        && let Some(landed) = landing(laser, value, position)
-                        && !self.trace[source][landed]
-                    {
-                        found.push(Item::Trace(source, landed));
+                let crossed = |event: &&usize| laser.crossed[**event].len() > position;
+                for &event in self.carrier[state].iter().take_while(crossed) {
+                    if self.event[event] {
+                        self.carry(laser, event, position, found);
                     }
                 }
             }
@@ -100,7 +99,16 @@ impl Mark {
 }
 
 pub(super) fn establish(laser: &Laser, executor: Option<&Executor>) -> Support {
-    let _scope = crate::profile::Scope::new(crate::profile::Phase::Support);
+    let _scope = profile::Scope::new(profile::Phase::Support);
+    let carrier = map(executor, (0..laser.state.len()).collect(), |state| {
+        let mut carrier = laser.incoming[state]
+            .iter()
+            .copied()
+            .filter(|&event| !laser.crossed[event].is_empty())
+            .collect::<Vec<_>>();
+        carrier.sort_unstable_by_key(|&event| Reverse(laser.crossed[event].len()));
+        carrier
+    });
     let mut mark = Mark {
         state: vec![false; laser.state.len()],
         event: vec![false; laser.event.len()],
@@ -109,12 +117,13 @@ pub(super) fn establish(laser: &Laser, executor: Option<&Executor>) -> Support {
             .iter()
             .map(|set| vec![false; set.len()])
             .collect(),
+        carrier,
     };
     let mut frontier = vec![Item::State(0)];
     mark.state[0] = true;
-    for (index, &origin) in laser.origin.iter().enumerate() {
-        mark.trace[index][..origin].fill(true);
-        frontier.extend((0..origin).map(|position| Item::Trace(index, position)));
+    for (state, &origin) in laser.origin.iter().enumerate() {
+        mark.trace[state][..origin].fill(true);
+        frontier.extend((0..origin).map(|position| Item::Trace(state, position)));
     }
     while !frontier.is_empty() {
         let chunk = frontier.chunks(CHUNK).map(<[Item]>::to_vec).collect();

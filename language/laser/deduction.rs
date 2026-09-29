@@ -1,4 +1,5 @@
-use super::{Laser, Link};
+use super::Laser;
+use crate::profile;
 
 // An inferred event's deduction is the walk its match took back to its source: the events from its
 // source to the configuration where the rule matched. Each carried trace remembers the crossing
@@ -24,16 +25,14 @@ fn walk(laser: &Laser, mut state: usize, mut position: usize) -> Vec<u32> {
 
 impl Deduction {
     pub fn derive(laser: &Laser) -> Self {
-        let _scope = crate::profile::Scope::new(crate::profile::Phase::Deduction);
+        let _scope = profile::Scope::new(profile::Phase::Deduction);
         let mut shortest = vec![None::<Vec<u32>>; laser.event.len()];
-        for (state, link) in laser.link.iter().enumerate() {
-            for (position, link) in link.iter().enumerate() {
-                let event = match link {
-                    Link::Absent => None,
-                    Link::Event(event) => Some(*event),
-                    Link::Unresolved => laser.find(state, &laser.trace[state][position]),
-                };
-                let Some(event) = event.filter(|&event| !laser.event[event].direct) else {
+        for (state, list) in laser.link.iter().enumerate() {
+            for position in 0..list.len() {
+                let Some(event) = laser
+                    .linked(state, position)
+                    .filter(|&event| !laser.event[event].direct)
+                else {
                     continue;
                 };
                 let step = walk(laser, state, position);

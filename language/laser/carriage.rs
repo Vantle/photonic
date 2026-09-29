@@ -61,11 +61,9 @@ fn batch(crossing: Vec<Crossing>) -> Vec<Vec<Crossing>> {
     batch
 }
 
-fn land(position: usize) -> Option<NonZeroU32> {
-    Some(
-        NonZeroU32::new(u32::try_from(position + 1).expect("fewer than 2^32 traces"))
-            .expect("a position after zero"),
-    )
+fn land(position: usize) -> NonZeroU32 {
+    NonZeroU32::new(u32::try_from(position + 1).expect("fewer than 2^32 traces"))
+        .expect("a position after zero")
 }
 
 fn settle(landing: Vec<Landing>, position: &[usize]) -> Vec<Option<NonZeroU32>> {
@@ -73,13 +71,19 @@ fn settle(landing: Vec<Landing>, position: &[usize]) -> Vec<Option<NonZeroU32>> 
         .into_iter()
         .map(|landing| match landing {
             Landing::Lost => None,
-            Landing::Known(found) => land(found),
-            Landing::New(index) => land(position[index]),
+            Landing::Known(found) => Some(land(found)),
+            Landing::New(index) => Some(land(position[index])),
         })
         .collect()
 }
 
 impl Laser {
+    // Where a trace of an event's target landed at its source, once the event carried it.
+    pub(super) fn landing(&self, event: usize, position: usize) -> Option<usize> {
+        let found = self.crossed[event].get(position).copied().flatten()?;
+        Some(found.get() as usize - 1)
+    }
+
     pub(super) fn propagate(
         &mut self,
         executor: Option<&Executor>,
