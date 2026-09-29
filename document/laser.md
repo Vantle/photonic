@@ -40,7 +40,7 @@ The engines differ in what depends on the order of work. Each numbers configurat
 
 **Rounds.** Each round scans the new configurations, carries traces across the events they have not crossed, and fires the applications they identify. Scanning, carrying, applying and naming run in parallel, and every result is merged in a fixed order, so the exploration and its report are the same for any number of workers. A round carries traces and applies events in batches, so what waits to be merged is one batch rather than a round; each batch finds what the batches before it made, which gives exactly the traces, positions and events a single batch would. Traces carried along different walks often hold equal captures, which they share.
 
-**Closing.** When no work remains, three passes finish the exploration. The first marks as direct every inferred event that a match found at its own source still derives through a cycle of crossings. The second establishes support, the least set closed under the interpreter's rules: the start, a configuration's own matches, a trace carried across a supported event from a supported trace, an event identified at a supported source by a supported trace, and a configuration a supported event reaches. The third records each inferred event's deduction. The traces are then released; each event keeps its passage, the map from the places after it to the places before it, so place maps are answered later.
+**Closing.** When no work remains, three passes finish the exploration. The first marks as direct every inferred event that a match found at its own source still derives through a cycle of crossings. The second establishes support in parallel rounds, the least set closed under the interpreter's rules: the start, a configuration's own matches, a trace carried across a supported event from a supported trace, an event identified at a supported source by a supported trace, and a configuration a supported event reaches. The third records each inferred event's deduction. The traces are then released; each event keeps its passage, the map from the places after it to the places before it, so place maps are answered later.
 
 **Reports.** Laser renames each configuration it reports into the interpreter's canonical form, and every event's places with it, so reports, targets and Spectrum answers read alike on both engines.
 
@@ -64,27 +64,27 @@ Two families in [language/family.rs](../language/family.rs) grow as large as wan
 
 | Program | Configurations | Events | Interpreter | Laser |
 | --- | ---: | ---: | ---: | ---: |
-| 4 dials | 81 | 972 | 49.5 ms | 2.2 ms |
-| 6 dials | 729 | 13,122 | 9.60 s | 31.6 ms |
-| 3 diners | 62 | 525 | 84.3 ms | 3.9 ms |
-| 4 diners | 238 | 3,128 | 6.55 s | 24.4 ms |
+| 4 dials | 81 | 972 | 50.1 ms | 2.3 ms |
+| 6 dials | 729 | 13,122 | 9.64 s | 32.3 ms |
+| 3 diners | 62 | 525 | 82.6 ms | 4.0 ms |
+| 4 diners | 238 | 3,128 | 6.58 s | 24.9 ms |
 
 Beyond these the interpreter takes minutes and tens of gigabytes, so Laser runs alone.
 
 | Program | Configurations | Events | One worker | 16 workers | Memory |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| 8 dials | 6,561 | 157,464 | 0.51 s | 0.20 s | 0.32 GB |
-| 9 dials | 19,683 | 531,441 | 2.04 s | 0.79 s | 0.99 GB |
-| 10 dials | 59,049 | 1,771,470 | 7.72 s | 2.98 s | 3.76 GB |
+| 8 dials | 6,561 | 157,464 | 0.49 s | 0.19 s | 0.32 GB |
+| 9 dials | 19,683 | 531,441 | 1.93 s | 0.70 s | 1.00 GB |
+| 10 dials | 59,049 | 1,771,470 | 7.33 s | 2.60 s | 3.75 GB |
 | 5 diners | 937 | 17,365 | 0.16 s | 0.07 s | 0.09 GB |
-| 6 diners | 3,697 | 89,880 | 1.02 s | 0.32 s | 0.39 GB |
-| 7 diners | 14,583 | 440,496 | 5.88 s | 1.53 s | 1.69 GB |
+| 6 diners | 3,697 | 89,880 | 1.01 s | 0.31 s | 0.39 GB |
+| 7 diners | 14,583 | 440,496 | 5.78 s | 1.46 s | 1.73 GB |
 
 Memory grows with events: every event keeps its identity and its passage, and until the exploration closes each trace keeps where it landed across every event it crossed. Small programs pay for work the interpreter shares between configurations, since Laser scans each configuration from scratch and names every component it makes: the 19 closed reference programs in [reference.json](../language/test/reference.json), with 2 to 29 configurations, take 8 to 71 percent longer on Laser, from 14.5 µs against 8.8 µs for the smallest to 373 µs against 316 µs for the largest.
 
 Theorems explored in every order are heavier. With inference, a match found late can be carried back to many configurations along many walks, and each walk can bind different occurrences: the proof of natural restoration, stopped at 4,096 configurations, holds 3.3 million traces and crosses 105.8 million times to reach its 117,419 events, taking 40.6 s on one worker and 6.7 s on 16, with a peak of 5.5 GB.
 
-Of the 458 distinct programs the census gathers, 287 close on the interpreter within the default budget, and Laser agrees on all 287. Four more close only on Laser: the proof of Boolean domination, 6 dials, and 4 and 5 diners. With the configuration limit raised to 300,000, Laser alone also closes six more theorem proofs in every order: Boolean complement (4,357 configurations), identity (16,513) and idempotence (22,953), componentwise reflexivity (9,478), relation trichotomy (5,755) and sum irreflexivity (6,401).
+Of the 458 distinct programs the census gathers, 287 close on the interpreter within the default budget, and Laser agrees on all 287. Four more close only on Laser: the proof of Boolean domination, 6 dials, and 4 and 5 diners. With the configuration limit raised to 300,000, Laser also closes six more theorem proofs in every order, which the interpreter leaves open within its default limits: Boolean complement (4,357 configurations), identity (16,513) and idempotence (22,953), componentwise reflexivity (9,478), relation trichotomy (5,755) and sum irreflexivity (6,401).
 
 ## Not yet built
 
