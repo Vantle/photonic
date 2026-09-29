@@ -13,10 +13,10 @@ pub struct Tally {
 
 impl Tally {
     // Whether the edges of every marking hold a cycle the start reaches; a candidate the limits
-    // refused is no edge.
-    pub fn cyclic(&mut self) -> bool {
-        self.first.push(self.edge.len() as u64);
-        ending::cyclic(self.first.len() - 1, |node| {
+    // refused is no edge, and a marking the budget left unexpanded has none.
+    pub fn cyclic(&mut self, count: usize) -> bool {
+        self.first.resize(count + 1, self.edge.len() as u64);
+        ending::cyclic(count, |node| {
             self.edge[self.first[node] as usize..self.first[node + 1] as usize]
                 .iter()
                 .filter(|&&aim| aim != BLOCKED)

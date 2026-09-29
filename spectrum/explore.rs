@@ -66,9 +66,10 @@ pub(crate) struct Summary {
     pub(crate) complete: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) reached: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[schemars(description = "Work steps the engine took; metal counts none.")]
-    pub(crate) work: Option<usize>,
+    #[schemars(
+        description = "Work steps the engine took; metal counts a step for each match its grounding read."
+    )]
+    pub(crate) work: usize,
     pub(crate) configuration: usize,
     pub(crate) event: usize,
     pub(crate) inferred: usize,
@@ -104,7 +105,7 @@ pub(crate) fn brief(explored: &Explored) -> Summary {
             shape: exploration.shape.map(|shape| format!("{shape:016x}")),
             complete: exploration.closed,
             reached: (exploration.mode == Mode::Path).then_some(exploration.reached),
-            work: Some(exploration.work),
+            work: exploration.work,
             configuration: exploration.configuration.len(),
             event: exploration.event.len(),
             inferred: (0..exploration.event.len())
@@ -121,7 +122,7 @@ pub(crate) fn brief(explored: &Explored) -> Summary {
             shape: survey.shape.map(|shape| format!("{shape:016x}")),
             complete: survey.closed,
             reached: None,
-            work: None,
+            work: survey.work,
             configuration: survey.configuration,
             event: usize::try_from(survey.event).unwrap_or(usize::MAX),
             inferred: 0,
@@ -219,7 +220,7 @@ pub(crate) fn state(summary: &Summary) -> String {
         ),
     ]);
     part.extend(summary.depth.map(|depth| format!("depth {depth}")));
-    part.extend(summary.work.map(|work| format!("work {work}")));
+    part.push(format!("work {}", summary.work));
     part.extend(summary.shape.as_ref().map(|shape| format!("shape {shape}")));
     if summary.endless == Some(true) {
         part.push("a run can go on forever".to_owned());

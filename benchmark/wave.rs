@@ -123,7 +123,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     for _ in 0..argument.sample {
         let mut net = Net::new(&program)?;
         let start = Instant::now();
-        let explored = device.explore(&mut net, limit, Cycle::Ignore)?;
+        let explored = device.explore(&mut net, usize::MAX, limit, Cycle::Ignore)?;
         second.push(start.elapsed().as_secs_f64());
         last = Some((explored, net));
     }
@@ -147,7 +147,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         for _ in 0..argument.sample {
             let mut theirs = Net::new(&program)?;
             let start = Instant::now();
-            let expected = theirs.explore(limit, Cycle::Ignore)?;
+            let expected = theirs.explore(usize::MAX, limit, Cycle::Ignore)?;
             second.push(start.elapsed().as_secs_f64());
             last = Some((expected, theirs));
         }

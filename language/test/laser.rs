@@ -219,9 +219,58 @@ fn net() {
         let mut plain = Laser::plain(&program);
         plain.run(100_000_000, limit);
         let mut net = Net::new(&program).unwrap();
-        let explored = net.explore(limit, Cycle::Find).unwrap();
+        let explored = net.explore(usize::MAX, limit, Cycle::Find).unwrap();
         assert_eq!(explored.mirrors(&net, &plain), Ok(()), "{source}");
     }
+}
+
+// Grounding takes a step of work for each match it reads. A budget too small for a configuration's
+// parts stops the net before it expands that configuration, a budget as large as a closed
+// exploration's work closes it alike, and parts with millions of matches stop within the budget.
+#[test]
+fn budget() {
+    let limit = Limit::default();
+    let explore = |program: &frontend::source::Program, budget: usize, limit: Limit| {
+        Net::new(program)
+            .unwrap()
+            .explore(budget, limit, Cycle::Find)
+            .unwrap()
+    };
+    for source in [
+        crate::family::dial(3),
+        crate::family::diner(3),
+        "A, [A] B, [B] C, [C] A".to_owned(),
+        "Go.A, Go.B, [Go] (X, [X] Y), [Y.A] Z, [Y.B, Z] W".to_owned(),
+    ] {
+        let program = frontend::lowering::parse(&source).unwrap();
+        let whole = explore(&program, usize::MAX, limit);
+        assert!(whole.closed, "{source}");
+        let mut previous = 0;
+        for budget in 0..whole.work {
+            let explored = explore(&program, budget, limit);
+            assert!(!explored.closed, "{source} {budget}");
+            assert!(explored.work <= budget, "{source} {budget}");
+            assert!(explored.configuration >= previous, "{source} {budget}");
+            previous = explored.configuration;
+        }
+        let exact = explore(&program, whole.work, limit);
+        assert!(exact.closed, "{source}");
+        assert_eq!(
+            (exact.configuration, exact.event, exact.work),
+            (whole.configuration, whole.event, whole.work),
+            "{source}"
+        );
+    }
+    let program =
+        frontend::lowering::parse("[C.C.D] B.A, B, D.([B.A.B, B.B] D.D), [()] B.B.A, [C.D, B.C]")
+            .unwrap();
+    let small = Limit {
+        configuration: 256,
+        ..limit
+    };
+    let explored = explore(&program, 100_000, small);
+    assert!(!explored.closed);
+    assert!(explored.work <= 100_000);
 }
 
 #[test]

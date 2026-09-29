@@ -83,7 +83,7 @@ fn host(
     limit: Limit,
 ) -> Result<(Net, Exploration), Unsupported> {
     let mut net = Net::new(program)?;
-    let explored = net.explore(limit, Cycle::Find)?;
+    let explored = net.explore(usize::MAX, limit, Cycle::Find)?;
     Ok((net, explored))
 }
 
@@ -101,7 +101,7 @@ fn metal(
         Ok(net) => net,
         Err(unsupported) => return format!("{unsupported}"),
     };
-    match device.explore(&mut net, limit, Cycle::Find) {
+    match device.explore(&mut net, usize::MAX, limit, Cycle::Find) {
         Ok(explored) => match explored.agrees(&net, expected, theirs) {
             Ok(()) => "agrees".to_owned(),
             Err(disagreement) => format!("{disagreement:?}"),

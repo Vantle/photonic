@@ -17,28 +17,41 @@ pub(super) struct Match {
     pub selection: Vec<Slot>,
 }
 
-pub(super) fn scan(catalog: &Arc<Catalog>, state: &Arc<State>) -> Vec<Match> {
+// The matches of a configuration, one at a time, so a caller can stop before it has them all.
+struct Scan {
+    index: Index,
+    network: Network,
+}
+
+impl Iterator for Scan {
+    type Item = Match;
+
+    fn next(&mut self) -> Option<Match> {
+        loop {
+            let delivery = match self.network.next(&self.index) {
+                Poll::Ready(Some(delivery)) => delivery,
+                Poll::Ready(None) => return None,
+                Poll::Pending => continue,
+            };
+            if let Some(Read::World(site, _)) = delivery.read
+                && !crate::slot::admits(&delivery.selection, self.index.world(site))
+            {
+                continue;
+            }
+            return Some(Match {
+                rule: delivery.rule,
+                frame: delivery.frame,
+                owner: delivery.owner,
+                read: delivery.read.map(|read| read.place(&self.index)),
+                selection: delivery.selection,
+            });
+        }
+    }
+}
+
+pub(super) fn scan(catalog: &Arc<Catalog>, state: &Arc<State>) -> impl Iterator<Item = Match> {
     let layout = Layout::new(state);
     let index = Index::prepared(state.clone(), layout.reach.frame);
-    let mut network = Network::with(catalog.clone(), &index);
-    let mut found = Vec::new();
-    loop {
-        let delivery = match network.next(&index) {
-            Poll::Ready(Some(delivery)) => delivery,
-            Poll::Ready(None) => return found,
-            Poll::Pending => continue,
-        };
-        if let Some(Read::World(site, _)) = delivery.read
-            && !crate::slot::admits(&delivery.selection, index.world(site))
-        {
-            continue;
-        }
-        found.push(Match {
-            rule: delivery.rule,
-            frame: delivery.frame,
-            owner: delivery.owner,
-            read: delivery.read.map(|read| read.place(&index)),
-            selection: delivery.selection,
-        });
-    }
+    let network = Network::with(catalog.clone(), &index);
+    Scan { index, network }
 }

@@ -163,14 +163,22 @@ impl Table {
     }
 
     // Visits a marking as the host's net does when it expands it, enters the parts it holds and
-    // gives the successors of its events joining several components.
-    pub fn prepare(&mut self, net: &mut Net, marking: &Marking) -> Result<Vec<Successor>, Failure> {
-        let successor = net.visit(marking)?;
+    // gives the successors of its events joining several components; none when grounding its parts
+    // would take the net's work past the allowance.
+    pub fn prepare(
+        &mut self,
+        net: &mut Net,
+        marking: &Marking,
+        allowance: usize,
+    ) -> Result<Option<Vec<Successor>>, Failure> {
+        let Some(successor) = net.visit(marking, allowance)? else {
+            return Ok(None);
+        };
         self.lone(net, marking.root)?;
         for &kind in &marking.kind {
             self.single(net, marking.root, kind)?;
         }
-        Ok(successor)
+        Ok(Some(successor))
     }
 
     // The hashed index from a root and a kind to its entries, with its number of slots: four words a

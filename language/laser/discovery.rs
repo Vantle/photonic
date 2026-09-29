@@ -14,7 +14,8 @@ impl Laser {
     ) -> Vec<(usize, Range<usize>)> {
         let _scope = profile::Scope::new(profile::Phase::Discovery);
         let scanned = map(executor, fresh, |index| {
-            (index, scan::scan(&self.catalog, &self.state[index]))
+            let found = scan::scan(&self.catalog, &self.state[index]).collect::<Vec<_>>();
+            (index, found)
         });
         scanned
             .into_iter()

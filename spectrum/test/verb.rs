@@ -565,7 +565,8 @@ fn explore() {
 }
 
 // On metal, explore lists the ends of every plain schedule by their text alone, without handles or
-// rule activity, and the questions that follow events refuse it.
+// rule activity, counts the matches its grounding read as its work, and the questions that follow
+// events refuse it.
 #[test]
 fn metal() {
     let value = json(
@@ -580,7 +581,8 @@ fn metal() {
     assert_eq!(end.len(), 3);
     assert!(end.iter().all(|end| end.get("handle").is_none()));
     assert_eq!(answer["rule"].as_array().map(Vec::len), Some(0));
-    assert!(answer.get("depth").is_none() && answer.get("work").is_none());
+    assert!(answer.get("depth").is_none());
+    assert_eq!(answer["work"], 3);
     let refused = json(
         r#"{"verb": "select", "program": {"file": ["light.wave"]}, "mode": "plain", "engine": "metal", "pattern": "Red"}"#,
     );

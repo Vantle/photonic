@@ -21,14 +21,15 @@ pub struct Joined {
 }
 
 // A run of markings whose successors are counted together: the first marking's id, how many, how
-// many successors they have, the successors the host found, sorted by marking, and the markings
-// with no successor at all.
+// many successors they have, the successors the host found, sorted by marking, the markings with
+// no successor at all, and whether the budget stopped the exploration at the marking after them.
 pub struct Window {
     pub first: usize,
     pub size: usize,
     pub total: u64,
     pub joined: Vec<Joined>,
     pub end: Vec<usize>,
+    pub spent: bool,
 }
 
 // The markings a pass covers: the window's markings from one to another, and the candidates between
@@ -148,7 +149,9 @@ impl Engine {
     // Counts the successors of a window of markings and their running sum, unless the pass before
     // counted them already. The host visits every flagged marking in order, as its own net would on
     // expanding it, and counts again if the tables lacked a part; then it writes the successors of
-    // events joining several components, and sums again if there were any.
+    // events joining several components, and sums again if there were any. A marking whose parts
+    // the budget cannot ground ends the window before it, as it ends the host's exploration, and
+    // the shorter window is counted again.
     pub(crate) fn count(
         &self,
         search: &mut Search<'_>,
@@ -157,6 +160,8 @@ impl Engine {
         counted: bool,
     ) -> Result<Window, Failure> {
         let mut counted = counted;
+        let mut size = size;
+        let mut spent = false;
         let mut attempt = 0;
         let visited = loop {
             if !counted {
@@ -179,16 +184,37 @@ impl Engine {
                 .collect::<Vec<_>>();
             flagged.sort_unstable();
             let mut visited = Vec::with_capacity(flagged.len());
+            let mut shortened = false;
             for (index, state) in flagged {
                 let successor = if state & (MISSING | JOIN) == 0 {
                     Vec::new()
                 } else {
                     let marking = search.store.marking(first + index);
-                    search.table.prepare(search.net, &marking)?
+                    let Some(successor) =
+                        search
+                            .table
+                            .prepare(search.net, &marking, search.allowance)?
+                    else {
+                        size = index;
+                        spent = true;
+                        shortened = true;
+                        break;
+                    };
+                    successor
                 };
                 visited.push((index, state, successor));
             }
-            if visited.iter().all(|(_, state, _)| state & MISSING == 0) {
+            if size == 0 {
+                return Ok(Window {
+                    first,
+                    size,
+                    total: 0,
+                    joined: Vec::new(),
+                    end: Vec::new(),
+                    spent,
+                });
+            }
+            if !shortened && visited.iter().all(|(_, state, _)| state & MISSING == 0) {
                 break visited;
             }
             attempt += 1;
@@ -243,6 +269,7 @@ impl Engine {
             total: search.work.total.view::<u64>()[WINDOW],
             joined,
             end,
+            spent,
         })
     }
 }

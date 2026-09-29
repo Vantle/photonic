@@ -68,14 +68,15 @@ pub enum Cycle {
 }
 
 // Where exploring a net ends: whether it closed, how many configurations and events it found, the
-// configurations where runs end, in the order they were found, and, when asked, whether a run can
-// go on forever.
+// configurations where runs end, in the order they were found, whether a run can go on forever,
+// when asked, and the work its grounding took.
 pub struct Exploration {
     pub closed: bool,
     pub configuration: usize,
     pub event: u64,
     pub end: Vec<Marking>,
     pub endless: Option<bool>,
+    pub work: usize,
 }
 
 // A net names a configuration as Laser does, by its root and its components' kinds, and knows
@@ -84,7 +85,8 @@ pub struct Exploration {
 // root. So a part's events are found once, by the interpreter's matcher on the part alone, and
 // each is applied once to the part; exploring then asks only the tables. The events of a
 // component repeat for every copy of its kind, and the events joining several components repeat
-// for every choice of copies.
+// for every choice of copies. Grounding takes a step of work for each match it reads, and the
+// tables it fills cost nothing to read again, so a net's work is the work its parts took.
 pub struct Net {
     program: Arc<Program>,
     catalog: Arc<Catalog>,
@@ -95,6 +97,7 @@ pub struct Net {
     join: HashMap<(u32, Vec<u32>), Vec<Entry>, Builder>,
     pattern: Vec<Vec<Vec<Symbol>>>,
     surface: HashMap<u32, Vec<Vec<Symbol>>, Builder>,
+    work: usize,
 }
 
 fn group(effect: impl IntoIterator<Item = (u32, Vec<u32>)>) -> Vec<Entry> {
@@ -191,6 +194,7 @@ impl Net {
             join: HashMap::default(),
             pattern,
             surface: HashMap::default(),
+            work: 0,
         })
     }
 
@@ -234,7 +238,13 @@ impl Net {
     // Every distinct plain event of the part holding the root and these kinds that involves every
     // component of it, as the plain engines identify and apply it, grouped by what it makes of the
     // part; an event involving fewer components is an event of a smaller part, grounded with it.
-    fn ground(&mut self, root: u32, kind: &[u32]) -> Result<Vec<Entry>, Unsupported> {
+    // None when reading the part's matches would take the net's work past the allowance.
+    fn ground(
+        &mut self,
+        root: u32,
+        kind: &[u32],
+        allowance: usize,
+    ) -> Result<Option<Vec<Entry>>, Unsupported> {
         let makeup = Makeup {
             root,
             kind: kind.to_vec(),
@@ -244,6 +254,10 @@ impl Net {
         let mut pool = Pool::default();
         let mut seen = IndexSet::<(usize, usize, usize, Binding), Builder>::default();
         for found in scan::scan(&self.catalog, &state) {
+            if self.work >= allowance {
+                return Ok(None);
+            }
+            self.work += 1;
             let Some(trace) = Trace::initial(&found, &state, None, &mut pool) else {
                 continue;
             };
@@ -274,7 +288,12 @@ impl Net {
             produced.sort_unstable();
             effect.push((root, produced));
         }
-        Ok(group(effect))
+        Ok(Some(group(effect)))
+    }
+
+    // The work grounding has taken so far.
+    pub fn work(&self) -> usize {
+        self.work
     }
 
     // The events that bind nothing but the root, once a visit grounded them.
@@ -290,30 +309,44 @@ impl Net {
     // Grounds every part a marking holds, and the multisets its kinds could join, as expanding the
     // marking does and in the same order, so a net that visits markings in the order this one
     // expands them numbers kinds as it does; then gives every configuration an event joining
-    // several components leads to from the marking, in the order expanding it finds them.
-    pub fn visit(&mut self, marking: &Marking) -> Result<Vec<Successor>, Unsupported> {
-        self.prepare(marking.root, &marking.kind)?;
-        Ok(self
-            .joined(marking.root, &marking.kind)
-            .into_iter()
-            .map(|(makeup, count)| Successor {
-                marking: Marking {
-                    root: makeup.root,
-                    kind: makeup.kind,
-                },
-                count,
-            })
-            .collect())
+    // several components leads to from the marking, in the order expanding it finds them. None
+    // when grounding would take the net's work past the allowance, and then the marking is not
+    // expanded.
+    pub fn visit(
+        &mut self,
+        marking: &Marking,
+        allowance: usize,
+    ) -> Result<Option<Vec<Successor>>, Unsupported> {
+        if !self.prepare(marking.root, &marking.kind, allowance)? {
+            return Ok(None);
+        }
+        Ok(Some(
+            self.joined(marking.root, &marking.kind)
+                .into_iter()
+                .map(|(makeup, count)| Successor {
+                    marking: Marking {
+                        root: makeup.root,
+                        kind: makeup.kind,
+                    },
+                    count,
+                })
+                .collect(),
+        ))
     }
 
-    fn prepare(&mut self, root: u32, kind: &[u32]) -> Result<(), Unsupported> {
+    // Whether every part a makeup holds is grounded within the allowance.
+    fn prepare(&mut self, root: u32, kind: &[u32], allowance: usize) -> Result<bool, Unsupported> {
         if !self.lone.contains_key(&root) {
-            let entry = self.ground(root, &[])?;
+            let Some(entry) = self.ground(root, &[], allowance)? else {
+                return Ok(false);
+            };
             self.lone.insert(root, entry);
         }
         for (value, _) in run(kind) {
             if !self.single.contains_key(&(root, value)) {
-                let entry = self.ground(root, &[value])?;
+                let Some(entry) = self.ground(root, &[value], allowance)? else {
+                    return Ok(false);
+                };
                 self.single.insert((root, value), entry);
             }
             self.survey(value);
@@ -321,11 +354,13 @@ impl Net {
         for (multiset, _) in self.candidate(kind) {
             let key = (root, multiset);
             if !self.join.contains_key(&key) {
-                let entry = self.ground(key.0, &key.1)?;
+                let Some(entry) = self.ground(key.0, &key.1, allowance)? else {
+                    return Ok(false);
+                };
                 self.join.insert(key, entry);
             }
         }
-        Ok(())
+        Ok(true)
     }
 
     fn survey(&mut self, kind: u32) {
@@ -510,9 +545,15 @@ impl Net {
     }
 
     // Every configuration an event leads to from a makeup, with how many distinct events lead
-    // there that way.
-    fn expand(&mut self, makeup: &Makeup) -> Result<Vec<(Makeup, u64)>, Unsupported> {
-        self.prepare(makeup.root, &makeup.kind)?;
+    // there that way; none when grounding its parts would take the work past the allowance.
+    fn expand(
+        &mut self,
+        makeup: &Makeup,
+        allowance: usize,
+    ) -> Result<Option<Vec<(Makeup, u64)>>, Unsupported> {
+        if !self.prepare(makeup.root, &makeup.kind, allowance)? {
+            return Ok(None);
+        }
         let mut result = Vec::new();
         for entry in &self.lone[&makeup.root] {
             let kind = replace(&makeup.kind, &[], &entry.produced);
@@ -537,14 +578,22 @@ impl Net {
             }
         }
         result.extend(self.joined(makeup.root, &makeup.kind));
-        Ok(result)
+        Ok(Some(result))
     }
 
     // Explores every schedule of plain events breadth first, numbering configurations in the order
-    // they are found, and stops short of any configuration or application the limits refuse.
-    // Looking for a run that goes on forever keeps every edge, and searches them only when one
-    // leads to a configuration found no later than its source, since every cycle has such an edge.
-    pub fn explore(&mut self, limit: Limit, cycle: Cycle) -> Result<Exploration, Unsupported> {
+    // they are found, and stops short of any configuration or application the limits refuse, and
+    // before the first configuration whose parts would take grounding past the budget. Looking for
+    // a run that goes on forever keeps every edge, and searches them only when one leads to a
+    // configuration found no later than its source, since every cycle has such an edge.
+    pub fn explore(
+        &mut self,
+        budget: usize,
+        limit: Limit,
+        cycle: Cycle,
+    ) -> Result<Exploration, Unsupported> {
+        let start = self.work;
+        let allowance = start.saturating_add(budget);
         let mut space = IndexSet::<Makeup, Builder>::default();
         space.insert(self.start.clone());
         let mut first = Vec::new();
@@ -553,9 +602,13 @@ impl Net {
         let mut event = 0;
         let mut end = Vec::new();
         let mut blocked = false;
+        let mut spent = false;
         let mut next = 0;
         while next < space.len() {
-            let successor = self.expand(&space[next])?;
+            let Some(successor) = self.expand(&space[next], allowance)? else {
+                spent = true;
+                break;
+            };
             if successor.is_empty() {
                 end.push(next);
             }
@@ -585,14 +638,14 @@ impl Net {
             next += 1;
         }
         let endless = (cycle == Cycle::Find).then(|| {
-            first.push(edge.len());
+            first.resize(space.len() + 1, edge.len());
             backward
                 && ending::cyclic(space.len(), |node| {
                     edge[first[node]..first[node + 1]].iter().copied()
                 })
         });
         Ok(Exploration {
-            closed: !blocked,
+            closed: !blocked && !spent,
             configuration: space.len(),
             event,
             end: end
@@ -603,6 +656,7 @@ impl Net {
                 })
                 .collect(),
             endless,
+            work: self.work - start,
         })
     }
 }

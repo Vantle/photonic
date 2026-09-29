@@ -1,3 +1,4 @@
+use crate::budget::Budget;
 use crate::configuration::Configuration;
 use crate::exploration::{self, Plan, Rule};
 use crate::failure::{Code, Failure};
@@ -5,12 +6,12 @@ use crate::order::Naming;
 use crate::recording::Order;
 use frontend::source::Program;
 use photonic::laser::net::{self, Cycle, Marking, Net};
-use photonic::runtime::Limit;
 use std::sync::OnceLock;
 
 // Every schedule of plain events of a program, explored through its net of parts on the GPU through
-// Metal where there is one and on the host otherwise: counts, the configurations where runs end
-// and whether a run can go on forever. It keeps no events, so it names nothing by a handle.
+// Metal where there is one and on the host otherwise: counts, the configurations where runs end,
+// whether a run can go on forever and the work grounding took, one step for each match it read.
+// It keeps no events, so it names nothing by a handle.
 pub struct Survey {
     pub(crate) key: String,
     pub(crate) order: Order,
@@ -19,6 +20,7 @@ pub struct Survey {
     pub(crate) configuration: usize,
     pub(crate) event: u64,
     pub(crate) endless: bool,
+    pub(crate) work: usize,
     pub(crate) rule: Vec<Rule>,
     pub(crate) end: Vec<Configuration>,
     naming: Naming,
@@ -40,10 +42,15 @@ fn device() -> Result<Option<&'static wave::engine::Engine>, Failure> {
     }
 }
 
-fn explore(net: &mut Net, limit: Limit) -> Result<net::Exploration, Failure> {
+fn explore(net: &mut Net, budget: &Budget) -> Result<net::Exploration, Failure> {
+    let limit = budget.limit();
     match device()? {
-        Some(engine) => engine.explore(net, limit, Cycle::Find).map_err(failure),
-        None => net.explore(limit, Cycle::Find).map_err(failure),
+        Some(engine) => engine
+            .explore(net, budget.work, limit, Cycle::Find)
+            .map_err(failure),
+        None => net
+            .explore(budget.work, limit, Cycle::Find)
+            .map_err(failure),
     }
 }
 
@@ -56,7 +63,7 @@ impl Survey {
         };
         let program = plan.canonical.program;
         let mut net = Net::new(&program).map_err(unsupported)?;
-        let explored = explore(&mut net, plan.budget.limit())?;
+        let explored = explore(&mut net, &plan.budget)?;
         let naming = plan.canonical.naming;
         let rule = net
             .definition()
@@ -78,6 +85,7 @@ impl Survey {
             configuration: explored.configuration,
             event: explored.event,
             endless: explored.endless.unwrap_or_default(),
+            work: explored.work,
             rule,
             end,
             naming,

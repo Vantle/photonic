@@ -83,18 +83,31 @@ impl Engine {
 
     // Explores every schedule of plain events from the net's start in the order one thread searching
     // breadth first would, a window of markings at a time, until no new marking appears; the limits
-    // refuse what they refuse, and past the configuration limit only known markings are reached.
-    // It agrees with the net's own exploration number for number, and searches the edges for a
-    // cycle only when one leads to a marking found no later than its source.
+    // refuse what they refuse, past the configuration limit only known markings are reached, and
+    // the budget stops it before the first marking whose parts it cannot ground. It agrees with the
+    // net's own exploration number for number, and searches the edges for a cycle only when one
+    // leads to a marking found no later than its source.
     pub fn explore(
         &self,
         net: &mut Net,
+        budget: usize,
         limit: Limit,
         cycle: Cycle,
     ) -> Result<Exploration, Failure> {
+        let work = net.work();
+        let allowance = work.saturating_add(budget);
         let start = net.start();
         let mut table = Table::new(net);
-        table.prepare(net, &start)?;
+        if table.prepare(net, &start, allowance)?.is_none() {
+            return Ok(Exploration {
+                closed: false,
+                configuration: 1,
+                event: 0,
+                end: Vec::new(),
+                endless: (cycle == Cycle::Find).then_some(false),
+                work: net.work() - work,
+            });
+        }
         let mut search = Search {
             upload: Upload::new(&self.device, &table)?,
             store: Store::new(&self.device, &start, self.tuning)?,
@@ -102,42 +115,43 @@ impl Engine {
             tally: Tally::default(),
             table,
             net,
+            allowance,
             limit,
             cycle,
         };
         let mut end = Vec::new();
         let mut cursor = 0;
         let mut counted = false;
-        while cursor < search.store.count {
+        let mut spent = false;
+        while cursor < search.store.count && !spent {
             let size = self.tuning.window.min(search.store.count - cursor);
             let window = self.count(&mut search, cursor, size, counted)?;
             counted = false;
+            spent = window.spent;
             end.extend(&window.end);
             let mut from = 0;
-            while from < size {
+            while from < window.size {
                 let range = window.range(
                     search.work.start.memory.view::<u64>(),
                     from,
                     self.tuning.pass as u64,
                 );
                 from = range.to;
-                counted = self.pass(
-                    &mut search,
-                    &window,
-                    range,
-                    (from == size).then_some(cursor + size),
-                )?;
+                let ahead = (from == window.size && !spent).then_some(cursor + window.size);
+                counted = self.pass(&mut search, &window, range, ahead)?;
             }
-            cursor += size;
+            cursor += window.size;
         }
         let summary = search.work.summary.view::<u32>();
         let (refused, backward) = (summary[REFUSED] != 0, summary[BACKWARD] != 0);
+        let count = search.store.count;
         Ok(Exploration {
-            closed: !refused,
-            configuration: search.store.count,
+            closed: !refused && !spent,
+            configuration: count,
             event: search.tally.event,
             end: end.into_iter().map(|id| search.store.marking(id)).collect(),
-            endless: (cycle == Cycle::Find).then(|| backward && search.tally.cyclic()),
+            endless: (cycle == Cycle::Find).then(|| backward && search.tally.cyclic(count)),
+            work: search.net.work() - work,
         })
     }
 

@@ -105,6 +105,7 @@ pub enum Disagreement {
     Configuration { missing: usize, extra: usize },
     Event { missing: usize, extra: usize },
     Support { configuration: usize },
+    Work { reference: usize, laser: usize },
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]

@@ -14,7 +14,13 @@ impl Engine {
         match *self {}
     }
 
-    pub fn explore(&self, _: &mut Net, _: Limit, _: Cycle) -> Result<Exploration, Failure> {
+    pub fn explore(
+        &self,
+        _: &mut Net,
+        _: usize,
+        _: Limit,
+        _: Cycle,
+    ) -> Result<Exploration, Failure> {
         match *self {}
     }
 }

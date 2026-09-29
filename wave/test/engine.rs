@@ -6,10 +6,11 @@ use photonic::laser::net::{Cycle, Net};
 use photonic::runtime::Limit;
 
 // Every tuning explores exactly as the host's net does, number for number: the same configurations,
-// events, end configurations in the same order and cycles, whether it counts a few markings at a
-// time, decides a few candidates at a time or writes markings across many small segments, and
-// under every limit, including a configuration limit reached in the middle of a pass. Both nets
-// ground parts in the same order, so even their kinds are numbered alike.
+// events, end configurations in the same order, cycles and work, whether it counts a few markings
+// at a time, decides a few candidates at a time or writes markings across many small segments, and
+// under every limit, including a configuration limit reached in the middle of a pass, and every
+// budget, including one that runs out in the middle of a window. Both nets ground parts in the same
+// order, so even their kinds are numbered alike.
 #[test]
 fn identical() {
     let tuning = [
@@ -80,17 +81,23 @@ fn identical() {
         };
         for source in &program {
             let parsed = frontend::lowering::parse(source).unwrap();
-            for limit in limit {
+            let mut whole = Net::new(&parsed).unwrap();
+            let work = whole.explore(usize::MAX, open, Cycle::Find).unwrap().work;
+            let budget = [0, 1, work / 3, work / 2, work.saturating_sub(1), work];
+            let case = limit
+                .iter()
+                .map(|&limit| (usize::MAX, limit))
+                .chain(budget.map(|budget| (budget, open)));
+            for (budget, limit) in case {
                 let mut theirs = Net::new(&parsed).unwrap();
-                let expected = theirs.explore(limit, Cycle::Find).unwrap();
+                let expected = theirs.explore(budget, limit, Cycle::Find).unwrap();
                 let mut net = Net::new(&parsed).unwrap();
-                let explored = engine.explore(&mut net, limit, Cycle::Find).unwrap();
-                assert_eq!(
-                    explored.agrees(&net, &expected, &theirs),
-                    Ok(()),
-                    "{source} {tuning:?} {limit:?}"
-                );
-                assert_eq!(explored.end, expected.end, "{source} {tuning:?} {limit:?}");
+                let explored = engine
+                    .explore(&mut net, budget, limit, Cycle::Find)
+                    .unwrap();
+                let name = format!("{source} {tuning:?} {budget} {limit:?}");
+                assert_eq!(explored.agrees(&net, &expected, &theirs), Ok(()), "{name}");
+                assert_eq!(explored.end, expected.end, "{name}");
             }
         }
     }
@@ -138,7 +145,9 @@ fn agreement() {
         let mut plain = Laser::plain(&program);
         plain.run(100_000_000, limit);
         let mut net = Net::new(&program).unwrap();
-        let explored = engine.explore(&mut net, limit, Cycle::Find).unwrap();
+        let explored = engine
+            .explore(&mut net, usize::MAX, limit, Cycle::Find)
+            .unwrap();
         assert_eq!(explored.mirrors(&net, &plain), Ok(()), "{source}");
     }
 }
@@ -153,7 +162,7 @@ fn limit() {
     let program = frontend::lowering::parse("A, [A] A.A").unwrap();
     let mut net = Net::new(&program).unwrap();
     let explored = engine
-        .explore(&mut net, Limit::default(), Cycle::Ignore)
+        .explore(&mut net, usize::MAX, Limit::default(), Cycle::Ignore)
         .unwrap();
     assert!(!explored.closed);
     let program = frontend::lowering::parse(&family::dial(6)).unwrap();
@@ -162,7 +171,9 @@ fn limit() {
         configuration: 100,
         ..Limit::default()
     };
-    let explored = engine.explore(&mut net, small, Cycle::Ignore).unwrap();
+    let explored = engine
+        .explore(&mut net, usize::MAX, small, Cycle::Ignore)
+        .unwrap();
     assert!(!explored.closed);
     assert_eq!(explored.configuration, 100);
 }
@@ -185,7 +196,9 @@ fn repeat() {
     plain.run(usize::MAX, limit);
     for _ in 0..4 {
         let mut net = Net::new(&program).unwrap();
-        let explored = engine.explore(&mut net, limit, Cycle::Find).unwrap();
+        let explored = engine
+            .explore(&mut net, usize::MAX, limit, Cycle::Find)
+            .unwrap();
         assert_eq!(explored.mirrors(&net, &plain), Ok(()));
     }
 }
