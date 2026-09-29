@@ -305,7 +305,76 @@ fn add<Value: Eq + Hash + Single>(
     identify(position, table[position].insert_full(Entry { hash, set }).0)
 }
 
+// The images one trace takes across one event: a basis or world set's image is its place's own
+// when it is a single place whose image is one, otherwise the one the event's table learned. An
+// image the table lacks is demanded, stands for itself meanwhile, and makes the reading wait.
+pub(super) struct Reading<'read> {
+    pool: &'read Pool,
+    passage: &'read Passage,
+    event: usize,
+    demand: &'read mut Demand,
+    start: usize,
+}
+
+impl<'read> Reading<'read> {
+    pub fn new(
+        pool: &'read Pool,
+        passage: &'read Passage,
+        event: usize,
+        demand: &'read mut Demand,
+    ) -> Self {
+        let start = demand.basis.len() + demand.world.len();
+        Self {
+            pool,
+            passage,
+            event,
+            demand,
+            start,
+        }
+    }
+
+    pub fn event(&self) -> usize {
+        self.event
+    }
+
+    pub fn frame(&self, frame: usize) -> Option<usize> {
+        self.passage.frame(frame)
+    }
+
+    pub fn basis(&mut self, basis: u64) -> u64 {
+        let image = direct(basis, |place| self.passage.place(place))
+            .or_else(|| lookup(&self.pool.image.get(self.event)?.basis, basis));
+        image.unwrap_or_else(|| {
+            self.demand.basis.push(basis);
+            basis
+        })
+    }
+
+    pub fn world(&mut self, world: u64) -> u64 {
+        let image = direct(world, |index| self.passage.world(index))
+            .or_else(|| lookup(&self.pool.image.get(self.event)?.world, world));
+        image.unwrap_or_else(|| {
+            self.demand.world.push(world);
+            world
+        })
+    }
+
+    // How many images this reading lacked so far.
+    pub fn lacking(&self) -> usize {
+        self.demand.basis.len() + self.demand.world.len() - self.start
+    }
+}
+
 impl Demand {
+    pub fn is_empty(&self) -> bool {
+        self.basis.is_empty() && self.world.is_empty()
+    }
+
+    pub fn add(&mut self, other: Self) {
+        self.basis.extend(other.basis);
+        self.world.extend(other.world);
+    }
+
     fn settle(&mut self) {
         self.basis.sort_unstable();
         self.basis.dedup();
@@ -333,44 +402,6 @@ impl Pool {
 
     pub fn site(&self, world: u64) -> View<'_, usize> {
         view(&self.world, world)
-    }
-
-    pub fn carry(&self, basis: u64, event: usize, passage: &Passage) -> u64 {
-        direct(basis, |place| passage.place(place)).unwrap_or_else(|| {
-            lookup(&self.image[event].basis, basis)
-                .expect("every image is prepared before a carry reads it")
-        })
-    }
-
-    pub fn follow(&self, world: u64, event: usize, passage: &Passage) -> u64 {
-        direct(world, |index| passage.world(index)).unwrap_or_else(|| {
-            lookup(&self.image[event].world, world)
-                .expect("every image is prepared before a carry reads it")
-        })
-    }
-
-    pub fn demand(
-        &self,
-        event: usize,
-        basis: impl Iterator<Item = u64>,
-        world: u64,
-        passage: &Passage,
-        demand: &mut Demand,
-    ) {
-        let image = self.image.get(event);
-        for id in basis {
-            if direct(id, |place| passage.place(place)).is_some()
-                || image.is_some_and(|image| lookup(&image.basis, id).is_some())
-            {
-                continue;
-            }
-            demand.basis.push(id);
-        }
-        if direct(world, |index| passage.world(index)).is_none()
-            && image.is_none_or(|image| lookup(&image.world, world).is_none())
-        {
-            demand.world.push(world);
-        }
     }
 
     pub fn prepare(

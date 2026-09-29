@@ -1,6 +1,5 @@
 use super::memo::Memo;
-use super::passage::Passage;
-use super::pool::Pool;
+use super::pool::{Pool, Reading};
 use super::shard;
 use crate::basis::Set;
 use crate::executor::Executor;
@@ -60,19 +59,21 @@ impl Store {
         capture
     }
 
-    pub fn carry(
-        &self,
-        capture: &Arc<Capture>,
-        event: usize,
-        passage: &Passage,
-        pool: &Pool,
-    ) -> Arc<Capture> {
+    // A capture carried across an event; only a carry that lacked no image is remembered.
+    pub fn carry(&self, capture: &Arc<Capture>, reading: &mut Reading<'_>) -> Arc<Capture> {
         let key = Carry {
-            event,
+            event: reading.event(),
             capture: Arc::as_ptr(capture) as usize,
         };
-        self.carried
-            .get(key, |_| Arc::new(capture.carry(event, passage, pool)))
+        if let Some(found) = self.carried.find(&key) {
+            return found;
+        }
+        let lacking = reading.lacking();
+        let carried = Arc::new(capture.carry(reading));
+        if reading.lacking() > lacking {
+            return carried;
+        }
+        self.carried.keep(key, carried)
     }
 
     pub fn forget(&mut self, executor: Option<&Executor>) {
@@ -139,26 +140,22 @@ impl Capture {
         })
     }
 
-    fn carry(&self, event: usize, passage: &Passage, pool: &Pool) -> Self {
+    fn carry(&self, reading: &mut Reading<'_>) -> Self {
         Self {
             origin: self.origin,
             frame: self.frame,
-            current: self.current.and_then(|frame| passage.frame(frame)),
+            current: self.current.and_then(|frame| reading.frame(frame)),
             attachment: self
                 .attachment
                 .iter()
-                .map(|&(index, value)| (index, value.and_then(|frame| passage.frame(frame))))
+                .map(|&(index, value)| (index, value.and_then(|frame| reading.frame(frame))))
                 .collect(),
             resource: self
                 .resource
                 .iter()
-                .map(|&(place, basis)| (place, pool.carry(basis, event, passage)))
+                .map(|&(place, basis)| (place, reading.basis(basis)))
                 .collect(),
         }
-    }
-
-    pub fn basis(&self) -> impl Iterator<Item = u64> + '_ {
-        self.resource.iter().map(|&(_, basis)| basis)
     }
 
     pub fn flow(&self, origin: &State, pool: &Pool) -> Flow {

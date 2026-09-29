@@ -1,6 +1,5 @@
 use super::capture::{self, Capture};
-use super::passage::Passage;
-use super::pool::{Demand, Pool};
+use super::pool::{Pool, Reading};
 use super::scan::Match;
 use crate::application::Owner;
 use crate::basis::Set;
@@ -18,6 +17,9 @@ struct Occurrence {
     value: Symbol,
     capture: Option<usize>,
 }
+
+// A trace waits to be carried across an event until the event's table learns an image it needs.
+pub(super) struct Wait;
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub(super) struct Trace {
@@ -67,49 +69,42 @@ impl Trace {
         })
     }
 
-    pub fn need(&self, event: usize, passage: &Passage, pool: &Pool, demand: &mut Demand) {
-        if passage.frame(self.frame).is_none() {
-            return;
-        }
-        let capture = self.capture.iter().flat_map(|capture| capture.basis());
-        let basis = self
-            .occurrence
-            .iter()
-            .map(|value| value.basis)
-            .chain([self.read])
-            .chain(capture);
-        pool.demand(event, basis, self.world, passage, demand);
-    }
-
+    // The trace carried back across an event, none when its frame did not exist before the event; a
+    // trace waits while the event's table lacks an image it takes.
     pub fn carry(
         &self,
-        event: usize,
-        passage: &Passage,
-        pool: &Pool,
+        reading: &mut Reading<'_>,
         store: &capture::Store,
-    ) -> Option<Self> {
-        let frame = passage.frame(self.frame)?;
-        let mut occurrence = self
-            .occurrence
-            .iter()
-            .map(|value| Occurrence {
-                basis: pool.carry(value.basis, event, passage),
+    ) -> Result<Option<Self>, Wait> {
+        let Some(frame) = reading.frame(self.frame) else {
+            return Ok(None);
+        };
+        let mut occurrence = SmallVec::<[Occurrence; 4]>::with_capacity(self.occurrence.len());
+        for value in &self.occurrence {
+            occurrence.push(Occurrence {
+                basis: reading.basis(value.basis),
                 value: value.value,
-                capture: value.capture.and_then(|capture| passage.frame(capture)),
-            })
-            .collect::<SmallVec<[Occurrence; 4]>>();
+                capture: value.capture.and_then(|capture| reading.frame(capture)),
+            });
+        }
+        let capture = self
+            .capture
+            .as_ref()
+            .map(|capture| store.carry(capture, reading));
+        let read = reading.basis(self.read);
+        let world = reading.world(self.world);
+        if reading.lacking() > 0 {
+            return Err(Wait);
+        }
         occurrence.sort_unstable();
-        Some(Self {
+        Ok(Some(Self {
             rule: self.rule,
             frame,
-            capture: self
-                .capture
-                .as_ref()
-                .map(|capture| store.carry(capture, event, passage, pool)),
-            read: pool.carry(self.read, event, passage),
-            world: pool.follow(self.world, event, passage),
+            capture,
+            read,
+            world,
             occurrence,
-        })
+        }))
     }
 
     pub fn share(mut self, store: &capture::Store) -> Self {

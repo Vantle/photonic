@@ -1,6 +1,6 @@
 use super::capture;
-use super::pool::Demand;
-use super::trace::Trace;
+use super::pool::{Demand, Reading};
+use super::trace::{Trace, Wait};
 use super::{CHUNK, Laser, Progress, map};
 use crate::executor::Executor;
 use crate::profile;
@@ -21,21 +21,27 @@ struct Crossing {
 }
 
 // Where each trace of a crossing lands: nowhere when its frame did not exist before the event,
-// otherwise at a trace the source already had or at one of the new traces the crossing carried.
+// at a trace the source already had, at one of the new traces the crossing carried, or, until the
+// event's table learns an image it needs, nowhere yet.
 #[derive(Clone, Copy)]
 enum Landing {
     Lost,
     Known(usize),
     New(usize),
+    Waiting,
 }
 
 // Each new trace remembers the position it was carried from, which is where its deduction goes on.
+// The images most traces take across an event are their places' own, so a crossing is carried
+// first, and only the images its waiting traces need are learned before they are carried.
 struct Carried {
     event: usize,
     source: usize,
+    first: usize,
     count: usize,
     landing: Vec<Landing>,
     list: Vec<(Trace, usize)>,
+    demand: Demand,
 }
 
 fn batch(crossing: Vec<Crossing>) -> Vec<Vec<Crossing>> {
@@ -99,6 +105,7 @@ fn settle(landing: Vec<Landing>, position: &[usize]) -> Vec<Option<NonZeroU32>> 
             Landing::Lost => None,
             Landing::Known(found) => Some(land(found)),
             Landing::New(index) => Some(land(position[index])),
+            Landing::Waiting => unreachable!("a waiting trace lands once its images are learned"),
         })
         .collect()
 }
@@ -118,9 +125,8 @@ impl Laser {
         let mut count = 0;
         let mut grown = BTreeMap::<usize, Range<usize>>::new();
         for crossing in batch(self.plan(changed)) {
-            let demand = self.survey(executor, &crossing);
-            self.prepare(executor, demand);
             let carried = self.carry(executor, crossing);
+            let carried = self.complete(executor, carried);
             let (value, range) = self.insert(executor, carried);
             self.capture.forget(executor);
             count += value;
@@ -163,26 +169,21 @@ impl Laser {
         crossing
     }
 
-    fn survey(&self, executor: Option<&Executor>, crossing: &[Crossing]) -> Vec<(usize, Demand)> {
-        let _scope = profile::Scope::new(profile::Phase::Planning);
-        map(executor, crossing.iter().collect(), |crossing| {
-            self.need(crossing)
-        })
-    }
-
-    fn need(&self, crossing: &Crossing) -> (usize, Demand) {
-        let event = &self.event[crossing.event];
-        let set = &self.trace[event.target];
-        let mut demand = Demand::default();
-        for position in crossing.range.clone() {
-            set[position].need(
-                crossing.event,
-                &self.passage[crossing.event],
-                &self.pool,
-                &mut demand,
-            );
+    // Learns the images the waiting traces of a batch need, then carries those traces.
+    fn complete(&mut self, executor: Option<&Executor>, mut carried: Vec<Carried>) -> Vec<Carried> {
+        let mut demand = BTreeMap::<usize, Demand>::new();
+        for value in &mut carried {
+            if !value.demand.is_empty() {
+                let found = std::mem::take(&mut value.demand);
+                demand.entry(value.event).or_default().add(found);
+            }
         }
-        (crossing.event, demand)
+        if demand.is_empty() {
+            return carried;
+        }
+        self.prepare(executor, demand.into_iter().collect());
+        let _scope = profile::Scope::new(profile::Phase::Carriage);
+        map(executor, carried, |value| self.resume(value))
     }
 
     fn prepare(&mut self, executor: Option<&Executor>, demand: Vec<(usize, Demand)>) {
@@ -212,13 +213,16 @@ impl Laser {
         let passage = &self.passage[crossing.event];
         let mut count = 0;
         let mut list = Vec::new();
+        let mut demand = Demand::default();
         let landing = crossing
             .range
+            .clone()
             .map(|position| {
-                let Some(carried) =
-                    set[position].carry(crossing.event, passage, &self.pool, &self.capture)
-                else {
-                    return Landing::Lost;
+                let mut reading = Reading::new(&self.pool, passage, crossing.event, &mut demand);
+                let carried = match set[position].carry(&mut reading, &self.capture) {
+                    Ok(None) => return Landing::Lost,
+                    Ok(Some(carried)) => carried,
+                    Err(Wait) => return Landing::Waiting,
                 };
                 count += 1;
                 if let Some(found) = known.get_index_of(&carried) {
@@ -231,9 +235,62 @@ impl Laser {
         Carried {
             event: crossing.event,
             source: event.source,
+            first: crossing.range.start,
             count,
             landing,
             list,
+            demand,
+        }
+    }
+
+    // Carries a crossing's waiting traces once their images are learned, keeping its new traces in
+    // the order of their positions.
+    fn resume(&self, carried: Carried) -> Carried {
+        if !carried
+            .landing
+            .iter()
+            .any(|landing| matches!(landing, Landing::Waiting))
+        {
+            return carried;
+        }
+        let event = &self.event[carried.event];
+        let set = &self.trace[event.target];
+        let known = &self.trace[event.source];
+        let passage = &self.passage[carried.event];
+        let mut earlier = carried.list.into_iter().map(Some).collect::<Vec<_>>();
+        let mut demand = Demand::default();
+        let mut count = carried.count;
+        let mut list = Vec::with_capacity(earlier.len());
+        let landing = carried
+            .landing
+            .into_iter()
+            .enumerate()
+            .map(|(offset, landing)| match landing {
+                Landing::Lost | Landing::Known(_) => landing,
+                Landing::New(index) => {
+                    list.push(earlier[index].take().expect("each new trace is kept once"));
+                    Landing::New(list.len() - 1)
+                }
+                Landing::Waiting => {
+                    let position = carried.first + offset;
+                    let mut reading = Reading::new(&self.pool, passage, carried.event, &mut demand);
+                    let Ok(Some(trace)) = set[position].carry(&mut reading, &self.capture) else {
+                        unreachable!("a waiting trace exists at its source and has its images")
+                    };
+                    count += 1;
+                    if let Some(found) = known.get_index_of(&trace) {
+                        return Landing::Known(found);
+                    }
+                    list.push((trace, position));
+                    Landing::New(list.len() - 1)
+                }
+            })
+            .collect();
+        Carried {
+            count,
+            landing,
+            list,
+            ..carried
         }
     }
 

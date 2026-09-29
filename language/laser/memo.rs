@@ -21,16 +21,28 @@ impl<Key, Value> Default for Memo<Key, Value> {
 
 impl<Key: Eq + Hash, Value: Clone> Memo<Key, Value> {
     pub fn get(&self, key: Key, make: impl FnOnce(&Key) -> Value) -> Value {
-        let shard = &self.shard[shard::slot(hashing::value(&key))];
-        if let Some(found) = shard.lock().expect("an unpoisoned memo").get(&key) {
-            return found.clone();
+        if let Some(found) = self.find(&key) {
+            return found;
         }
         let made = make(&key);
-        shard
+        self.keep(key, made)
+    }
+
+    pub fn find(&self, key: &Key) -> Option<Value> {
+        self.shard[shard::slot(hashing::value(key))]
+            .lock()
+            .expect("an unpoisoned memo")
+            .get(key)
+            .cloned()
+    }
+
+    // Remembers a value unless a worker remembered one first, and gives the one remembered.
+    pub fn keep(&self, key: Key, value: Value) -> Value {
+        self.shard[shard::slot(hashing::value(&key))]
             .lock()
             .expect("an unpoisoned memo")
             .entry(key)
-            .or_insert(made)
+            .or_insert(value)
             .clone()
     }
 }
