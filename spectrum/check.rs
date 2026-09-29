@@ -37,33 +37,28 @@ pub struct Answer {
 }
 
 fn diagnostic(failure: Failure) -> Diagnostic {
-    let code = failure
-        .diagnostic
-        .clone()
-        .unwrap_or_else(|| render::name(failure.code));
     Diagnostic {
-        code,
+        code: failure
+            .diagnostic
+            .unwrap_or_else(|| render::name(failure.code)),
         message: failure.message,
         location: failure.location,
     }
 }
 
+// A program that does not assemble is answered with its diagnostic, and only assembling fails with
+// a source or library code; every other failure is the request's.
 pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Answer, Failure> {
-    let explored = match (&request.recording.program, &request.recording.exploration) {
-        (Some(program), None) => match program.assemble(context.reader) {
-            Ok(source) => context.explore(&source, &request.recording)?,
-            Err(failure) if matches!(failure.code, Code::Request | Code::File) => {
-                return Err(failure);
-            }
-            Err(failure) => {
-                return Ok(Answer {
-                    diagnostic: vec![diagnostic(failure)],
-                    summary: None,
-                    claim: Vec::new(),
-                });
-            }
-        },
-        _ => context.explored(&request.recording)?,
+    let explored = match context.explored(&request.recording) {
+        Ok(explored) => explored,
+        Err(failure) if matches!(failure.code, Code::Source | Code::Library) => {
+            return Ok(Answer {
+                diagnostic: vec![diagnostic(failure)],
+                summary: None,
+                claim: Vec::new(),
+            });
+        }
+        Err(failure) => return Err(failure),
     };
     Ok(Answer {
         diagnostic: Vec::new(),
@@ -107,7 +102,7 @@ impl Answer {
             line.push("no diagnostics".to_owned());
         }
         for verdict in &self.claim {
-            line.push(explore::verdict(verdict));
+            line.push(verdict.text());
         }
         if let Some(summary) = &self.summary {
             line.push(explore::state(summary));

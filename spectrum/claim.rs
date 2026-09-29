@@ -1,10 +1,11 @@
-use crate::exploration::Exploration;
+use crate::exploration::{self, Exploration};
 use crate::failure::{Code, Failure};
 use crate::handle::Handle;
 use crate::pattern::{self, Pattern};
 use crate::recording::Mode;
 use crate::render;
 use crate::survey::Survey;
+use frontend::source::Program;
 use photonic::prism::Outcome;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -153,18 +154,20 @@ fn inevitable(exploration: &Exploration, matched: &[bool], word: &Word) -> Evide
     if !exploration.closed {
         return Evidence::plain(Answer::Unknown, open(exploration));
     }
-    let route = avoiding(exploration, &avoided);
+    let (parent, depth) = exploration::tree(&exploration.outgoing, &exploration.event, |node| {
+        avoided[node]
+    });
     let end = exploration
         .leaf()
-        .filter(|&index| route[index].is_some())
-        .min_by_key(|&index| (route[index].as_ref().map_or(usize::MAX, Vec::len), index));
+        .filter(|&index| depth[index].is_some())
+        .min_by_key(|&index| (depth[index], index));
     let Some(index) = end else {
         return Evidence::plain(Answer::Holds, format!("every run reaches {}", word.noun));
     };
     Evidence {
         answer: Answer::Fails,
         witness: Some(index),
-        path: route[index].clone().unwrap_or_default(),
+        path: exploration::trail(&parent, &exploration.event, index),
         reason: format!("a run ends at s{index} without {}", word.noun),
     }
 }
@@ -196,28 +199,6 @@ fn end(exploration: &Exploration, matched: &[bool], word: &Word) -> Evidence {
     }
 }
 
-fn avoiding(exploration: &Exploration, avoided: &[bool]) -> Vec<Option<Vec<usize>>> {
-    let mut route = vec![None; exploration.configuration.len()];
-    if !avoided.first().copied().unwrap_or(false) {
-        return route;
-    }
-    route[0] = Some(Vec::new());
-    let mut queue = std::collections::VecDeque::from([0]);
-    while let Some(node) = queue.pop_front() {
-        for &event in &exploration.outgoing[node] {
-            let entry = &exploration.event[event];
-            if !entry.supported || !avoided[entry.target] || route[entry.target].is_some() {
-                continue;
-            }
-            let mut path = route[node].clone().unwrap_or_default();
-            path.push(event);
-            route[entry.target] = Some(path);
-            queue.push_back(entry.target);
-        }
-    }
-    route
-}
-
 fn body(claim: &Claim) -> Result<pattern::Body, Failure> {
     match Pattern::read(&claim.pattern)? {
         Pattern::Configuration(body) => Ok(body),
@@ -226,6 +207,10 @@ fn body(claim: &Claim) -> Result<pattern::Body, Failure> {
             "a claim is about configurations; write a pattern of coherences and scopes, such as False.Extra",
         )),
     }
+}
+
+fn target(claim: &Claim) -> Result<Program, Failure> {
+    crate::subject::lower("pattern", &claim.pattern, Code::Target)
 }
 
 // Which configurations a claim's pattern matches, or, when exact, which one is its target.
@@ -247,9 +232,8 @@ fn matched(claim: &Claim, exploration: &Exploration) -> Result<Vec<bool>, Failur
             "a direct path checks an exact target as its goal; explore in path mode with goal",
         ));
     }
-    let target = crate::subject::lower("pattern", &claim.pattern, Code::Target)?;
     let verdict = exploration
-        .verdict(&target, claim.preserve)
+        .verdict(&target(claim)?, claim.preserve)
         .ok_or_else(|| Failure::new(Code::Claim, "this exploration cannot check exact targets"))?;
     let mut matched = vec![false; exploration.configuration.len()];
     if let (Outcome::Reached, Some(witness)) = (verdict.outcome, verdict.witness) {
@@ -269,34 +253,25 @@ fn decide(claim: &Claim, exploration: &Exploration, matched: &[bool]) -> Evidenc
         supported(exploration).filter(|&index| !matched[index]),
     );
     let path = exploration.mode == Mode::Path;
-    let closed = exploration.closed && !path;
+    let closed = exploration.settled();
     match claim.kind {
-        Kind::Reach => match found {
-            Some(index) => Evidence::at(
-                Answer::Holds,
-                exploration,
-                index,
-                format!("s{index} {}", word.is),
-            ),
-            None if closed => Evidence::plain(
-                Answer::Fails,
-                format!("no configuration {}, and the exploration closed", word.is),
-            ),
-            None => Evidence::plain(Answer::Unknown, unexplored(exploration)),
-        },
-        Kind::Avoid => match found {
-            Some(index) => Evidence::at(
-                Answer::Fails,
-                exploration,
-                index,
-                format!("s{index} {}", word.is),
-            ),
-            None if closed => Evidence::plain(
-                Answer::Holds,
-                format!("no configuration {}, and the exploration closed", word.is),
-            ),
-            None => Evidence::plain(Answer::Unknown, unexplored(exploration)),
-        },
+        Kind::Reach | Kind::Avoid => {
+            let (present, absent) = if claim.kind == Kind::Reach {
+                (Answer::Holds, Answer::Fails)
+            } else {
+                (Answer::Fails, Answer::Holds)
+            };
+            match found {
+                Some(index) => {
+                    Evidence::at(present, exploration, index, format!("s{index} {}", word.is))
+                }
+                None if closed => Evidence::plain(
+                    absent,
+                    format!("no configuration {}, and the exploration closed", word.is),
+                ),
+                None => Evidence::plain(Answer::Unknown, unexplored(exploration)),
+            }
+        }
         Kind::Always => match missing {
             Some(index) => Evidence::at(
                 Answer::Fails,
@@ -367,8 +342,7 @@ pub(crate) fn survey(claim: &Claim, survey: &Survey) -> Result<Verdict, Failure>
         ));
     }
     let matched = if claim.exact {
-        let target = crate::subject::lower("pattern", &claim.pattern, Code::Target)?;
-        survey.target(&target, claim.preserve)
+        survey.target(&target(claim)?, claim.preserve)
     } else {
         let body = body(claim)?;
         survey
@@ -406,4 +380,21 @@ pub(crate) fn survey(claim: &Claim, survey: &Survey) -> Result<Verdict, Failure>
         ),
     };
     Ok(verdict(claim, evidence))
+}
+
+impl Verdict {
+    pub(crate) fn text(&self) -> String {
+        let kind = render::name(self.claim.kind);
+        let answer = render::name(self.answer);
+        let exact = if self.claim.exact { " exactly" } else { "" };
+        let mut line = format!("{kind} {}{exact}   {answer}", self.claim.pattern);
+        if let Some(witness) = &self.witness {
+            line.push_str(&format!("   {witness}"));
+            if !self.path.is_empty() {
+                line.push_str(&format!(" by {}", self.path.join(" ")));
+            }
+        }
+        line.push_str(&format!("   {}", self.reason));
+        line
+    }
 }

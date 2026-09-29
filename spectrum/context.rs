@@ -57,11 +57,7 @@ impl Context<'_> {
         }
     }
 
-    pub(crate) fn explore(
-        &mut self,
-        source: &Program,
-        recording: &Recording,
-    ) -> Result<Explored, Failure> {
+    fn explore(&mut self, source: &Program, recording: &Recording) -> Result<Explored, Failure> {
         let mode = recording.mode.unwrap_or_default();
         let engine = match (mode, recording.engine) {
             (Mode::Plain, Some(Engine::Interpreter)) => {

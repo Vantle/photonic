@@ -97,10 +97,7 @@ impl Survey {
 
     // Which ends are the complete configuration of a target, as Prism reads it.
     pub(crate) fn target(&self, target: &Program, preserve: bool) -> Vec<bool> {
-        let mut hidden = self.naming.hide(target);
-        if preserve {
-            hidden.preserve(&self.program);
-        }
+        let hidden = exploration::hide(&self.naming, &self.program, target, preserve);
         let found = self.net.find(&hidden);
         self.marking
             .iter()

@@ -1,4 +1,3 @@
-use crate::claim::Verdict;
 use crate::configuration::Opener;
 use crate::context::Context;
 use crate::exploration::Exploration;
@@ -226,21 +225,6 @@ pub(crate) fn state(summary: &Summary) -> String {
         part.push("a run can go on forever".to_owned());
     }
     part.join(" · ")
-}
-
-pub(crate) fn verdict(verdict: &Verdict) -> String {
-    let kind = render::name(verdict.claim.kind);
-    let answer = render::name(verdict.answer);
-    let exact = if verdict.claim.exact { " exactly" } else { "" };
-    let mut line = format!("{kind} {}{exact}   {answer}", verdict.claim.pattern);
-    if let Some(witness) = &verdict.witness {
-        line.push_str(&format!("   {witness}"));
-        if !verdict.path.is_empty() {
-            line.push_str(&format!(" by {}", verdict.path.join(" ")));
-        }
-    }
-    line.push_str(&format!("   {}", verdict.reason));
-    line
 }
 
 impl Answer {

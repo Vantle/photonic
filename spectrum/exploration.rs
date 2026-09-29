@@ -172,6 +172,58 @@ pub(crate) fn rule(definition: &snapshot::Definition, naming: &Naming) -> Rule {
     }
 }
 
+// An exact target in the canonical program's names, which also lists every root rule of the
+// program when preserve asks for them.
+pub(crate) fn hide(
+    naming: &Naming,
+    program: &Program,
+    target: &Program,
+    preserve: bool,
+) -> Program {
+    let mut hidden = naming.hide(target);
+    if preserve {
+        hidden.preserve(program);
+    }
+    hidden
+}
+
+// The breadth-first tree of supported events from the start through the configurations admit
+// accepts: each configuration's parent event and depth, none where the tree does not reach.
+pub(crate) fn tree(
+    outgoing: &[Vec<usize>],
+    event: &[Event],
+    admit: impl Fn(usize) -> bool,
+) -> (Vec<Option<usize>>, Vec<Option<usize>>) {
+    let count = outgoing.len();
+    let mut parent = vec![None; count];
+    let mut depth = vec![None; count];
+    if count == 0 || !admit(0) {
+        return (parent, depth);
+    }
+    depth[0] = Some(0);
+    let mut queue = VecDeque::from([(0, 0)]);
+    while let Some((current, level)) = queue.pop_front() {
+        for &index in &outgoing[current] {
+            let target = event[index].target;
+            if !event[index].supported || !admit(target) || depth[target].is_some() {
+                continue;
+            }
+            depth[target] = Some(level + 1);
+            parent[target] = Some(index);
+            queue.push_back((target, level + 1));
+        }
+    }
+    (parent, depth)
+}
+
+// The events from the start to a configuration a tree reaches, read back along parent events.
+pub(crate) fn trail(parent: &[Option<usize>], event: &[Event], node: usize) -> Vec<usize> {
+    let mut trail = std::iter::successors(parent[node], |&index| parent[event[index].source])
+        .collect::<Vec<_>>();
+    trail.reverse();
+    trail
+}
+
 // A key names everything an exploration depends on: the whole program with its scopes, the naming
 // its handles use, the mode, engine and budget, and the goal of a path.
 fn key(
@@ -372,26 +424,7 @@ impl Exploration {
             outgoing[event.source].push(index);
             incoming[event.target].push(index);
         }
-        let mut parent = vec![None; count];
-        let mut depth = vec![None; count];
-        if count > 0 {
-            depth[0] = Some(0);
-        }
-        let mut queue = VecDeque::from([0]);
-        while let Some(current) = queue.pop_front() {
-            let Some(level) = depth.get(current).copied().flatten() else {
-                continue;
-            };
-            for &index in &outgoing[current] {
-                let event = &record.event[index];
-                if !event.supported || depth[event.target].is_some() {
-                    continue;
-                }
-                depth[event.target] = Some(level + 1);
-                parent[event.target] = Some(index);
-                queue.push_back(event.target);
-            }
-        }
+        let (parent, depth) = tree(&outgoing, &record.event, |_| true);
         let mut rule = record.rule;
         for frame in record
             .configuration
@@ -434,21 +467,11 @@ impl Exploration {
 
     pub fn path(&self, configuration: usize) -> Option<Vec<usize>> {
         self.depth.get(configuration).copied().flatten()?;
-        let mut result = Vec::new();
-        let mut cursor = configuration;
-        while let Some(event) = self.parent[cursor] {
-            result.push(event);
-            cursor = self.event[event].source;
-        }
-        result.reverse();
-        Some(result)
+        Some(trail(&self.parent, &self.event, configuration))
     }
 
     pub fn verdict(&self, target: &Program, preserve: bool) -> Option<Verdict> {
-        let mut hidden = self.naming.hide(target);
-        if preserve {
-            hidden.preserve(&self.program);
-        }
+        let hidden = hide(&self.naming, &self.program, target, preserve);
         let verdict = match &self.explorer {
             Explorer::Path => None,
             Explorer::Interpreter { reach, .. } => Some(reach.verdict(&hidden)),
