@@ -88,6 +88,10 @@ impl Laser {
             self.taxonomy.forget(executor);
             rest = later;
         }
+        if !revisit.is_empty() {
+            self.blocked
+                .retain(|identity, _| !self.identity[identity.source].contains_key(identity));
+        }
         for (index, offset, resolution) in resolved {
             self.link[index].extend(resolution.into_iter().map(|value| match value {
                 Resolution::Absent => Link::Absent,

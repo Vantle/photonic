@@ -305,14 +305,15 @@ impl Laser {
     }
 
     fn execute(&mut self, executor: Option<&Executor>, budget: usize, limit: Limit) {
+        // A blocked identity stays blocked until its retry fires it, so a trace that identifies it
+        // meanwhile waits for that event instead of firing it a second time.
         if limit != self.limit {
             self.limit = limit;
-            let blocked = std::mem::take(&mut self.blocked);
-            self.round.retry.extend(
-                blocked
-                    .into_iter()
-                    .map(|(identity, (source, position))| (identity, source, position)),
-            );
+            self.round.retry = self
+                .blocked
+                .iter()
+                .map(|(identity, &(source, position))| (identity.clone(), source, position))
+                .collect();
             self.round
                 .retry
                 .sort_unstable_by_key(|(_, source, position)| (*source, *position));

@@ -316,6 +316,40 @@ fn resume() {
     }
 }
 
+// Exploring a step at a time under limits that rise retries the identities each limit blocked, while
+// new traces keep arriving; one they identify meanwhile waits for its retry instead of firing twice.
+#[test]
+fn retry() {
+    let limit = Limit {
+        configuration: 256,
+        ..Limit::default()
+    };
+    for source in [
+        "D.([A.D, C.B.B] C.D.B), A.C.A, B, [A] ([B.A.C] B.B.C, B, B.C, D, C)",
+        "(A.D.B.([A]), [A.C, D.B] A, [B.C] (), C.B.D, [A.D]), [D.D, D.A] C.C.D, A.A, [B.D] (B.B.A, A.D.C), [A.D.B] D.B.C",
+        "([B, A.B.B] A.B.C, [C.B.B] B, [()], B.A.([B.A] ())), B.B.([C, D] ()), ([B, C.D.C], A.C.([()]), [A.C] (A.C.D, C)), A.D.A.([C] A.D), A.D.([D, C] ())",
+    ] {
+        let program = frontend::lowering::parse(source).unwrap();
+        let mut runtime = Runtime::new(&program);
+        runtime.run(200_000, limit);
+        assert!(runtime.closed(), "{source}");
+        let mut laser = Laser::new(&program);
+        for configuration in [2, 4, 8, 16] {
+            for _ in 0..2 {
+                laser.run(
+                    1,
+                    Limit {
+                        configuration,
+                        ..limit
+                    },
+                );
+            }
+        }
+        laser.run(2_000_000, limit);
+        assert_eq!(laser.agree(&runtime), Ok(()), "{source}");
+    }
+}
+
 #[test]
 fn verdict() {
     for (source, target, budget) in [
