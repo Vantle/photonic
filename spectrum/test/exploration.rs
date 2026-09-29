@@ -448,7 +448,7 @@ fn metal() {
             "{source}"
         );
         assert_eq!(survey.event, recorded.event.len() as u64, "{source}");
-        assert_eq!(Some(survey.endless), recorded.endless(), "{source}");
+        assert_eq!(survey.endless, recorded.endless(), "{source}");
         let mut end = recorded
             .leaf()
             .map(|index| render::configuration(&recorded, index))

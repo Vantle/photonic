@@ -7,9 +7,18 @@ use std::collections::VecDeque;
 // outweigh thousands of small ones; the newest is always kept.
 const CAPACITY: usize = 2_000_000;
 
+// An exploration and its size, weighed once when it is stored, since weighing walks every
+// configuration it holds.
+#[derive(Clone)]
+struct Entry {
+    explored: Explored,
+    size: usize,
+}
+
 #[derive(Default)]
 pub struct Store {
-    entry: VecDeque<Explored>,
+    entry: VecDeque<Entry>,
+    weight: usize,
 }
 
 impl Store {
@@ -17,19 +26,29 @@ impl Store {
         let entry = self.entry[position].clone();
         self.entry.remove(position);
         self.entry.push_back(entry.clone());
-        entry
+        entry.explored
     }
 
     pub(crate) fn explore(&mut self, plan: Plan) -> Result<Explored, Failure> {
-        if let Some(position) = self.entry.iter().position(|entry| entry.key() == plan.key) {
+        if let Some(position) = self
+            .entry
+            .iter()
+            .position(|entry| entry.explored.key() == plan.key)
+        {
             return Ok(self.touch(position));
         }
         let explored = Explored::new(plan)?;
-        self.entry.push_back(explored.clone());
+        let size = explored.size();
+        self.weight += size;
+        self.entry.push_back(Entry {
+            explored: explored.clone(),
+            size,
+        });
         while self.entry.len() > 1
-            && self.entry.iter().map(Explored::size).sum::<usize>() > CAPACITY
+            && self.weight > CAPACITY
+            && let Some(evicted) = self.entry.pop_front()
         {
-            self.entry.pop_front();
+            self.weight -= evicted.size;
         }
         Ok(explored)
     }
@@ -40,7 +59,7 @@ impl Store {
             .entry
             .iter()
             .enumerate()
-            .filter(|(_, entry)| key.len() >= 4 && entry.key().starts_with(key))
+            .filter(|(_, entry)| key.len() >= 4 && entry.explored.key().starts_with(key))
             .map(|(position, _)| position)
             .collect::<Vec<_>>();
         match found.as_slice() {

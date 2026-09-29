@@ -126,30 +126,33 @@ pub(crate) fn brief(explored: &Explored) -> Summary {
             event: usize::try_from(survey.event).unwrap_or(usize::MAX),
             inferred: 0,
             depth: None,
-            endless: if survey.endless {
-                Some(true)
-            } else {
-                survey.closed.then_some(false)
-            },
+            endless: survey.endless,
         },
     }
 }
 
+// Every rule's supported events are gathered in one pass, since asking each rule for its own would
+// read every event once for every rule.
 fn activity(exploration: &Exploration) -> Vec<Activity> {
-    (0..exploration.rule.len())
-        .map(|index| {
-            let event = exploration.firing(index).collect::<Vec<_>>();
-            Activity {
-                handle: Handle::Rule(index).to_string(),
-                text: render::brief(exploration, index),
-                fired: event.len(),
-                inferred: event
-                    .iter()
-                    .filter(|&&event| exploration.inferred(event))
-                    .count(),
-                first: event.first().map(|&event| Handle::Event(event).to_string()),
-                scope: exploration.rule[index].scope,
-            }
+    let mut firing = vec![Vec::new(); exploration.rule.len()];
+    for (index, event) in exploration.event.iter().enumerate() {
+        if event.supported {
+            firing[event.rule].push(index);
+        }
+    }
+    firing
+        .into_iter()
+        .enumerate()
+        .map(|(index, event)| Activity {
+            handle: Handle::Rule(index).to_string(),
+            text: render::brief(exploration, index),
+            fired: event.len(),
+            inferred: event
+                .iter()
+                .filter(|&&event| exploration.inferred(event))
+                .count(),
+            first: event.first().map(|&event| Handle::Event(event).to_string()),
+            scope: exploration.rule[index].scope,
         })
         .collect()
 }

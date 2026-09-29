@@ -356,7 +356,7 @@ pub(crate) fn survey(claim: &Claim, survey: &Survey) -> Result<Verdict, Failure>
     let word = word(claim);
     let stray = matched.iter().position(|&matched| !matched);
     let evidence = match (claim.kind, stray) {
-        (Kind::End, _) if survey.endless => {
+        (Kind::End, _) if survey.endless == Some(true) => {
             Evidence::plain(Answer::Fails, "a run can go on forever")
         }
         _ if !survey.closed => Evidence::plain(

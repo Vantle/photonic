@@ -42,7 +42,7 @@ impl std::str::FromStr for Engine {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, Hash, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
 #[schemars(
     description = "How handles are numbered. shape: by the program's canonical form, so they survive reordering and renaming; text: by the sorted program, so they survive reordering; source: as written, for direct paths."
@@ -75,7 +75,7 @@ pub struct Recording {
     pub goal: Option<Goal>,
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
 #[schemars(
     description = "In path mode, the complete configuration the path stops at, as Prism reads it."
 )]

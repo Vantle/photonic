@@ -19,7 +19,7 @@ pub struct Survey {
     pub(crate) closed: bool,
     pub(crate) configuration: usize,
     pub(crate) event: u64,
-    pub(crate) endless: bool,
+    pub(crate) endless: Option<bool>,
     pub(crate) work: usize,
     pub(crate) rule: Vec<Rule>,
     pub(crate) end: Vec<Configuration>,
@@ -42,25 +42,31 @@ fn device() -> Result<Option<&'static wave::engine::Engine>, Failure> {
     }
 }
 
+// A net meets a configuration whose root ties to one of its components at the start or while it
+// explores, on the host or the GPU, and each time it has no net of parts for metal.
+fn unsupported(reason: net::Unsupported) -> Failure {
+    failure(format!(
+        "{reason}, so the program has no net of parts for metal; explore it with laser"
+    ))
+}
+
 fn explore(net: &mut Net, budget: &Budget) -> Result<net::Exploration, Failure> {
     let limit = budget.limit();
     match device()? {
         Some(engine) => engine
             .explore(net, budget.work, limit, Cycle::Find)
-            .map_err(failure),
+            .map_err(|error| match error {
+                wave::failure::Failure::Unsupported(reason) => unsupported(reason),
+                error => failure(error),
+            }),
         None => net
             .explore(budget.work, limit, Cycle::Find)
-            .map_err(failure),
+            .map_err(unsupported),
     }
 }
 
 impl Survey {
     pub(crate) fn new(plan: Plan) -> Result<Self, Failure> {
-        let unsupported = |unsupported: net::Unsupported| {
-            failure(format!(
-                "{unsupported}, so the program has no net of parts for metal; explore it with laser"
-            ))
-        };
         let program = plan.canonical.program;
         let mut net = Net::new(&program).map_err(unsupported)?;
         let explored = explore(&mut net, &plan.budget)?;
@@ -84,7 +90,9 @@ impl Survey {
             closed: explored.closed,
             configuration: explored.configuration,
             event: explored.event,
-            endless: explored.endless.unwrap_or_default(),
+            endless: explored
+                .endless
+                .filter(|&endless| endless || explored.closed),
             work: explored.work,
             rule,
             end,

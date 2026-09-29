@@ -76,12 +76,12 @@ pub struct Plan {
     pub key: String,
 }
 
-struct Record {
+struct Record<'report> {
     closed: bool,
     reached: bool,
     work: usize,
-    rule: Vec<Rule>,
-    configuration: Vec<Configuration>,
+    definition: &'report [snapshot::Definition],
+    state: &'report [Node],
     event: Vec<Event>,
 }
 
@@ -133,14 +133,13 @@ pub(crate) fn show(configuration: Configuration, naming: &Naming) -> Configurati
 }
 
 pub(crate) fn configuration(node: &Node) -> Configuration {
-    let token = occurrence;
     Configuration {
         coherence: node
             .world
             .iter()
             .map(|world| Coherence {
                 frame: world.frame,
-                occurrence: world.particle.iter().map(token).collect(),
+                occurrence: world.particle.iter().map(occurrence).collect(),
             })
             .collect(),
         frame: node
@@ -154,8 +153,8 @@ pub(crate) fn configuration(node: &Node) -> Configuration {
                 },
                 parent: frame.parent,
                 lexical: frame.lexical,
-                rule: frame.particle.iter().map(token).collect(),
-                held: frame.held.iter().map(token).collect(),
+                rule: frame.particle.iter().map(occurrence).collect(),
+                held: frame.held.iter().map(occurrence).collect(),
             })
             .collect(),
         supported: node.status == Status::Supported,
@@ -285,7 +284,6 @@ impl Exploration {
     }
 
     fn interpret(plan: Plan) -> Self {
-        let naming = &plan.canonical.naming;
         let mut runtime = Runtime::new(&plan.canonical.program);
         runtime.run(plan.budget.work, plan.budget.limit());
         let snapshot = runtime.snapshot();
@@ -313,12 +311,8 @@ impl Exploration {
             closed: snapshot.closed,
             reached: false,
             work: snapshot.work,
-            rule: snapshot
-                .definition
-                .iter()
-                .map(|entry| self::rule(entry, naming))
-                .collect(),
-            configuration: snapshot.state.iter().map(self::configuration).collect(),
+            definition: &snapshot.definition,
+            state: &snapshot.state,
             event,
         };
         let explorer = Explorer::Interpreter {
@@ -329,7 +323,6 @@ impl Exploration {
     }
 
     fn compile(plan: Plan) -> Self {
-        let naming = &plan.canonical.naming;
         let mut laser = match plan.mode {
             Mode::Plain => Laser::plain(&plan.canonical.program),
             Mode::Exhaustive | Mode::Path => Laser::new(&plan.canonical.program),
@@ -340,12 +333,8 @@ impl Exploration {
             closed: report.closed,
             reached: false,
             work: report.work,
-            rule: report
-                .definition
-                .iter()
-                .map(|entry| self::rule(entry, naming))
-                .collect(),
-            configuration: report.state.iter().map(self::configuration).collect(),
+            definition: &report.definition,
+            state: &report.state,
             event: report
                 .event
                 .into_iter()
@@ -366,7 +355,6 @@ impl Exploration {
     }
 
     fn walk(mut plan: Plan) -> Self {
-        let naming = &plan.canonical.naming;
         let mut search =
             photonic::path::Search::new(plan.canonical.program.clone(), plan.goal.take());
         search.run(plan.budget.work, plan.budget.limit());
@@ -391,43 +379,44 @@ impl Exploration {
             closed: reached,
             reached,
             work: report.work,
-            rule: report
-                .definition
-                .iter()
-                .map(|entry| self::rule(entry, naming))
-                .collect(),
-            configuration: report.state.iter().map(self::configuration).collect(),
+            definition: &report.definition,
+            state: &report.state,
             event,
         };
         Self::assemble(plan, record, Explorer::Path)
     }
 
-    fn assemble(plan: Plan, mut record: Record, explorer: Explorer) -> Self {
-        let numbering = (plan.mode != Mode::Path).then(|| {
-            let numbering = Numbering::new(&record.configuration, &record.event);
-            let (configuration, event) = numbering.apply(
-                std::mem::take(&mut record.configuration),
-                std::mem::take(&mut record.event),
-            );
-            record.configuration = configuration;
-            record.event = event;
-            numbering
-        });
-        record.configuration = std::mem::take(&mut record.configuration)
+    fn assemble(plan: Plan, record: Record<'_>, explorer: Explorer) -> Self {
+        let naming = &plan.canonical.naming;
+        let configuration = record
+            .state
+            .iter()
+            .map(self::configuration)
+            .collect::<Vec<_>>();
+        let numbering =
+            (plan.mode != Mode::Path).then(|| Numbering::new(&configuration, &record.event));
+        let (configuration, event) = match &numbering {
+            Some(numbering) => numbering.apply(configuration, record.event),
+            None => (configuration, record.event),
+        };
+        let configuration = configuration
             .into_iter()
-            .map(|configuration| show(configuration, &plan.canonical.naming))
-            .collect();
-        let count = record.configuration.len();
+            .map(|configuration| show(configuration, naming))
+            .collect::<Vec<_>>();
+        let count = configuration.len();
         let mut outgoing = vec![Vec::new(); count];
         let mut incoming = vec![Vec::new(); count];
-        for (index, event) in record.event.iter().enumerate() {
-            outgoing[event.source].push(index);
-            incoming[event.target].push(index);
+        for (index, entry) in event.iter().enumerate() {
+            outgoing[entry.source].push(index);
+            incoming[entry.target].push(index);
         }
-        let (parent, depth) = tree(&outgoing, &record.event, |_| true);
-        let mut rule = record.rule;
-        for frame in record
-            .configuration
+        let (parent, depth) = tree(&outgoing, &event, |_| true);
+        let mut rule = record
+            .definition
+            .iter()
+            .map(|entry| self::rule(entry, naming))
+            .collect::<Vec<_>>();
+        for frame in configuration
             .iter()
             .flat_map(|configuration| &configuration.frame)
         {
@@ -454,8 +443,8 @@ impl Exploration {
             reached: record.reached,
             work: record.work,
             rule,
-            configuration: record.configuration,
-            event: record.event,
+            configuration,
+            event,
             outgoing,
             incoming,
             parent,
