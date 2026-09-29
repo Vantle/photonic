@@ -180,10 +180,14 @@ pub struct Run {
     pub worker: NonZeroUsize,
     #[arg(
         long,
-        default_value = "interpreter",
-        help = "The engine that explores every future: interpreter, or laser, which carries matches back along events and names configurations by their components; both close with the same answers"
+        help = "Explore every schedule of plain events, those a configuration's own matches identify, without inference, on laser"
     )]
-    pub engine: Engine,
+    pub plain: bool,
+    #[arg(
+        long,
+        help = "The engine that explores: interpreter, the default, or laser, which carries matches back along events and names configurations by their components; both close with the same answers, and plain mode runs on laser"
+    )]
+    pub engine: Option<Engine>,
     #[arg(long, help = "Print the complete execution report as JSON")]
     pub json: bool,
     #[arg(long, requires = "json", help = "Serialize JSON without indentation")]
@@ -198,7 +202,7 @@ pub struct Prism {
     pub target: PathBuf,
     #[arg(
         long,
-        conflicts_with = "engine",
+        conflicts_with_all = ["engine", "plain"],
         help = "Follow one direct execution path; failure to reach the target stays unknown"
     )]
     pub path: bool,

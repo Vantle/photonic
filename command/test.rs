@@ -374,6 +374,37 @@ fn engine() {
     assert!(String::from_utf8_lossy(&conflict.stderr).contains("--engine"));
 }
 
+// run and prism explore every schedule of plain events on Laser with --plain, as the questions do;
+// inference lets a rule consume Claim early, so the full exploration holds more configurations.
+#[test]
+fn schedule() {
+    let fixture = Fixture::new();
+    let path = fixture.write("early.wave", "Claim, [Claim] P.Work, [Work] Done, [P] X");
+    let full = report(&execute("run", &path, &["--json", "--engine", "laser"]));
+    let schedule = report(&execute("run", &path, &["--json", "--plain"]));
+    assert_eq!(schedule["closed"], true);
+    assert!(schedule["state"].as_array().unwrap().len() < full["state"].as_array().unwrap().len());
+    let refused = execute("run", &path, &["--plain", "--engine", "interpreter"]);
+    assert!(!refused.status.success());
+    assert!(String::from_utf8_lossy(&refused.stderr).contains("plain mode runs on laser"));
+    let target = fixture.write(
+        "done.particle",
+        "P.Done, [Claim] P.Work, [Work] Done, [P] X",
+    );
+    let reached = report(&execute(
+        "prism",
+        &path,
+        &["--target", target.to_str().unwrap(), "--plain", "--json"],
+    ));
+    assert_eq!(reached["outcome"], "reached");
+    let both = execute(
+        "prism",
+        &path,
+        &["--target", target.to_str().unwrap(), "--plain", "--path"],
+    );
+    assert!(!both.status.success());
+}
+
 #[test]
 fn depth() {
     let fixture = Fixture::new();

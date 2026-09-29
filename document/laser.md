@@ -6,8 +6,8 @@ Laser is Photonic's second engine for exploring every future of a program, besid
 
 | Where | How |
 | --- | --- |
-| `photonic run` | `--engine laser` lists the configurations Laser reaches; `--worker` sets its threads and `--json` prints its report. |
-| `photonic prism` | `--engine laser` answers reached, unreachable or unknown for an exact target from Laser's exploration. `--path` follows the interpreter's scheduler, so it refuses an engine. |
+| `photonic run` | `--engine laser` lists the configurations Laser reaches, and `--plain` those of every schedule of plain events; `--worker` sets its threads and `--json` prints its report. |
+| `photonic prism` | `--engine laser` answers reached, unreachable or unknown for an exact target from Laser's exploration, and `--plain` from every schedule of plain events. `--path` follows the interpreter's scheduler, so it refuses an engine and plain mode. |
 | Spectrum | Every question takes `engine: laser` in exhaustive mode, and every verb takes `--engine laser`; see [Spectrum](spectrum.md#recordings). `mode: plain`, or `--plain`, explores every schedule of plain events on Laser, and with `engine: metal`, or `--engine metal`, through the program's [net of parts](#nets-of-parts) on the GPU through [Metal](#the-metal-backend), for `explore` and `check`. `check --plain --engine metal --end` with `--exact` and `--preserve` asks what `photonic_test(every = True)` checks. |
 | `photonic_test` | Every exhaustive case also runs on Laser and fails unless Laser gives the interpreter's answer, or the interpreter's exploration stayed open and one of the two answers is unknown. `every = True` runs Laser alone and requires every schedule of plain events to end exactly at a target; see [every schedule](#every-schedule). |
 
@@ -152,4 +152,4 @@ Sixteen tasks explore at 86 million configurations a second and sixteen dials at
 
 ## Not yet built
 
-Laser does not follow direct paths; `--path` and Spectrum's `path` mode use the interpreter's scheduler. `photonic run` and `prism` do not offer plain mode. Deductions are each engine's own; shortest derivations shared by both would let `inspect` and `cause` read alike on either. The webbook's WebAssembly engine runs the interpreter only. The Metal backend explores nets and keeps no events, so of Spectrum's questions it answers `explore` and `check` alone, and of the claims `end` and `outcome`; it decides claims on the host from the ends and cycles it found, grounds and joins on the host, looks for cycles on the host from every edge, and does not infer.
+Laser does not follow direct paths; `--path` and Spectrum's `path` mode use the interpreter's scheduler. Deductions are each engine's own; shortest derivations shared by both would let `inspect` and `cause` read alike on either. The webbook's WebAssembly engine runs the interpreter only. The Metal backend explores nets and keeps no events, so of Spectrum's questions it answers `explore` and `check` alone, and of the claims `end` and `outcome`; it decides claims on the host from the ends and cycles it found, grounds and joins on the host, looks for cycles on the host from every edge, and does not infer.

@@ -50,6 +50,27 @@ fn load(file: &[PathBuf], source: &argument::Source) -> Result<Program, Failure>
     verb::subject(file, source).assemble(&verb::Disk)
 }
 
+// The engine a run explores with: the interpreter unless asked otherwise, and laser in plain mode,
+// since the interpreter explores with inference.
+fn engine(argument: &argument::Run) -> Result<Engine, Failure> {
+    match (argument.plain, argument.engine) {
+        (true, Some(Engine::Interpreter)) => Err(Failure::new(
+            Code::Request,
+            "plain mode runs on laser; the interpreter explores with inference",
+        )),
+        (true, engine) => Ok(engine.unwrap_or(Engine::Laser)),
+        (false, engine) => Ok(engine.unwrap_or_default()),
+    }
+}
+
+// Every schedule of plain events on Laser, or every future.
+fn laser(argument: &argument::Run, program: &Program) -> Laser {
+    if argument.plain {
+        return Laser::plain(program);
+    }
+    Laser::new(program)
+}
+
 fn refuse(verb: &str) -> Failure {
     Failure::new(
         Code::Request,
@@ -73,9 +94,13 @@ pub fn run(argument: &argument::Run) -> miette::Result<ExitCode> {
         Ok(program) => program,
         Err(failure) => return verb::fail(&failure),
     };
+    let engine = match engine(argument) {
+        Ok(engine) => engine,
+        Err(failure) => return verb::fail(&failure),
+    };
     let budget = spectrum::budget::Budget::from(&argument.budget);
     let executor = Executor::new(argument.worker).into_diagnostic()?;
-    match argument.engine {
+    match engine {
         Engine::Interpreter => {
             let mut runtime = Runtime::new(&program);
             runtime.parallel(&executor, budget.work, budget.limit());
@@ -94,7 +119,7 @@ pub fn run(argument: &argument::Run) -> miette::Result<ExitCode> {
             })?;
         }
         Engine::Laser => {
-            let mut laser = Laser::new(&program);
+            let mut laser = laser(argument, &program);
             laser.parallel(&executor, budget.work, budget.limit());
             let report = laser.report();
             if argument.json {
@@ -155,9 +180,13 @@ pub fn prism(argument: &argument::Prism) -> miette::Result<ExitCode> {
     if argument.path {
         return path(argument, program, target, budget);
     }
+    let engine = match engine(&argument.run) {
+        Ok(engine) => engine,
+        Err(failure) => return verb::fail(&failure),
+    };
     let executor = Executor::new(argument.run.worker).into_diagnostic()?;
     let json = argument.run.json;
-    match argument.run.engine {
+    match engine {
         Engine::Interpreter => {
             let mut runtime = Runtime::new(&program);
             runtime.parallel(&executor, budget.work, budget.limit());
@@ -189,7 +218,7 @@ pub fn prism(argument: &argument::Prism) -> miette::Result<ExitCode> {
             )?;
         }
         Engine::Laser => {
-            let mut laser = Laser::new(&program);
+            let mut laser = laser(&argument.run, &program);
             laser.parallel(&executor, budget.work, budget.limit());
             let verdict = laser.verdict(&target);
             let execution = laser.report();

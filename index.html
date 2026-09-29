@@ -491,7 +491,7 @@ photonic_test(
 <pre class="listing">bazel run -c opt //command:photonic -- lower program/language/inference.wave
 bazel run -c opt //command:photonic -- run program/language/inference.wave
 bazel run -c opt //command:photonic -- prism program/language/inference.wave --target target.wave</pre>
-<p><code>lower</code> prints the program as JSON, <code>run</code> the explored configurations, and <code>prism</code> a verdict for the complete configuration in a target file. <code>--library</code> loads a rules-only file; <code>--path</code> follows a direct path; <code>--engine laser</code> explores with Laser, the second engine. Every command reads paths relative to where <code>bazel run</code> started.</p>
+<p><code>lower</code> prints the program as JSON, <code>run</code> the explored configurations, and <code>prism</code> a verdict for the complete configuration in a target file. <code>--library</code> loads a rules-only file; <code>--path</code> follows a direct path; <code>--engine laser</code> explores with Laser, the second engine, and <code>--plain</code> explores every schedule of plain events on it. Every command reads paths relative to where <code>bazel run</code> started.</p>
 <pre class="listing">bazel test -c opt //...
 bazel run -c opt //program/language:inference
 bazel test -c opt //program/language:conjunction.check</pre>
