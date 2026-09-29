@@ -3,12 +3,13 @@ use super::layout::Layout;
 use super::passage::{Composed, Flat, Origin, Passage};
 use super::space::{self, Found};
 use super::taxonomy::{Makeup, Taxonomy};
-use super::transition::Effect;
+use super::transition::{Effect, Key};
 use super::{Event, Identity, Laser, Round, build, map, update};
 use crate::executor::Executor;
 use crate::profile;
 use crate::state::State;
 use smallvec::SmallVec;
+use std::collections::hash_map::Entry;
 use std::sync::Arc;
 
 enum Route {
@@ -121,17 +122,23 @@ impl Laser {
         next: &mut Round,
     ) -> Vec<Option<usize>> {
         let _scope = profile::Scope::new(profile::Phase::Creation);
-        let learned = self.learn(executor, outcome);
+        let (learned, fresh) = self.learn(executor, outcome);
         let named = self.label(executor, learned, &pending);
         let settled = self.locate(executor, named);
         let (created, fired) = self.commit(executor, pending, settled, next);
         self.register(executor, fired);
+        self.prune(fresh);
         created
     }
 
     // Numbers every product in the batch's order, learns the effect of each move that applied
-    // itself to its parts, and remembers every effect and every key named whole.
-    fn learn(&mut self, executor: Option<&Executor>, outcome: Vec<Outcome>) -> Vec<Learned> {
+    // itself to its parts, and remembers every effect and every key named whole; gives the keys
+    // whose effects this batch learned.
+    fn learn(
+        &mut self,
+        executor: Option<&Executor>,
+        outcome: Vec<Outcome>,
+    ) -> (Vec<Learned>, Vec<Key>) {
         let number = outcome
             .iter()
             .map(|outcome| match outcome {
@@ -158,12 +165,19 @@ impl Laser {
                 outcome => Learned { outcome, number },
             },
         );
+        let mut fresh = Vec::new();
         for Learned { outcome, .. } in &mut learned {
             match outcome {
                 Outcome::Move(value) => {
                     let found = value.known.take().expect("a move knows its effect");
-                    let key = value.local.key.clone();
-                    value.known = Some(self.memo.entry(key).or_insert(found).clone());
+                    let known = match self.memo.entry(value.local.key.clone()) {
+                        Entry::Occupied(entry) => entry.get().clone(),
+                        Entry::Vacant(entry) => {
+                            fresh.push(entry.key().clone());
+                            entry.insert(found).clone()
+                        }
+                    };
+                    value.known = Some(known);
                 }
                 Outcome::Product(product) => {
                     if let Some(key) = product.whole.take() {
@@ -173,7 +187,21 @@ impl Laser {
                 Outcome::Blocked => {}
             }
         }
-        learned
+        (learned, fresh)
+    }
+
+    // An effect this batch learned that no event it created holds was learned for events the
+    // limits refused, and remembering it would keep an effect for every refused application.
+    fn prune(&mut self, fresh: Vec<Key>) {
+        for key in fresh {
+            if self
+                .memo
+                .get(&key)
+                .is_some_and(|effect| Arc::strong_count(effect) == 1)
+            {
+                self.memo.remove(&key);
+            }
+        }
     }
 
     // Each result's makeup, hash and passage back to its source; a move's result the limits
