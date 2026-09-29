@@ -59,21 +59,18 @@ impl Store {
         capture
     }
 
-    // A capture carried across an event; only a carry that lacked no image is remembered.
-    pub fn carry(&self, capture: &Arc<Capture>, reading: &mut Reading<'_>) -> Arc<Capture> {
+    // A capture carried across an event, none when the reading lacked an image it takes; only a
+    // finished carry is remembered.
+    pub fn carry(&self, capture: &Arc<Capture>, reading: &mut Reading<'_>) -> Option<Arc<Capture>> {
         let key = Carry {
             event: reading.event(),
             capture: Arc::as_ptr(capture) as usize,
         };
-        if let Some(found) = self.carried.find(&key) {
-            return found;
-        }
         let lacking = reading.lacking();
-        let carried = Arc::new(capture.carry(reading));
-        if reading.lacking() > lacking {
-            return carried;
-        }
-        self.carried.keep(key, carried)
+        self.carried.attempt(key, |_| {
+            let carried = capture.carry(reading);
+            (reading.lacking() == lacking).then(|| Arc::new(carried))
+        })
     }
 
     pub fn forget(&mut self, executor: Option<&Executor>) {

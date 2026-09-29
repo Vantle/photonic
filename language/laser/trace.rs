@@ -90,7 +90,7 @@ impl Trace {
         let capture = self
             .capture
             .as_ref()
-            .map(|capture| store.carry(capture, reading));
+            .and_then(|capture| store.carry(capture, reading));
         let read = reading.basis(self.read);
         let world = reading.world(self.world);
         if reading.lacking() > 0 {

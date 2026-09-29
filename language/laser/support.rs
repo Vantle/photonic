@@ -1,7 +1,6 @@
 use super::{CHUNK, Laser, map};
 use crate::executor::Executor;
 use crate::profile;
-use std::cmp::Reverse;
 
 // Support is the least set closed under the interpreter's clauses, read over traces instead of
 // views: the initial configuration and every configuration's own matches are given; a trace
@@ -11,8 +10,8 @@ use std::cmp::Reverse;
 // finds in parallel what that supports, given everything supported so far; a clause with two
 // premises is found by whichever premise enters last, since each round sees all the rounds before
 // it, so the rounds reach the same least set as any order would. Each trace, event and
-// configuration enters a round once and reads only the crossings recorded for it, so establishing
-// support is linear in the traces, the events and their recorded crossings.
+// configuration enters a round once and reads only the crossings recorded for it and the events
+// that recorded any, so a plain exploration, which carries nothing, reads no crossing at all.
 pub(super) struct Support {
     pub state: Vec<bool>,
     pub event: Vec<bool>,
@@ -26,7 +25,7 @@ enum Item {
 }
 
 // What is supported so far, and for each configuration the incoming events that carried any of
-// its traces, those that carried the most first, so a trace reads only the events it crossed.
+// its traces.
 struct Mark {
     state: Vec<bool>,
     event: Vec<bool>,
@@ -87,8 +86,7 @@ impl Mark {
                 if self.state[state] {
                     self.identify(laser, state, position, found);
                 }
-                let crossed = |event: &&usize| laser.crossed[**event].len() > position;
-                for &event in self.carrier[state].iter().take_while(crossed) {
+                for &event in &self.carrier[state] {
                     if self.event[event] {
                         self.carry(laser, event, position, found);
                     }
@@ -101,13 +99,11 @@ impl Mark {
 pub(super) fn establish(laser: &Laser, executor: Option<&Executor>) -> Support {
     let _scope = profile::Scope::new(profile::Phase::Support);
     let carrier = map(executor, (0..laser.state.len()).collect(), |state| {
-        let mut carrier = laser.incoming[state]
+        laser.incoming[state]
             .iter()
             .copied()
             .filter(|&event| !laser.crossed[event].is_empty())
-            .collect::<Vec<_>>();
-        carrier.sort_unstable_by_key(|&event| Reverse(laser.crossed[event].len()));
-        carrier
+            .collect::<Vec<_>>()
     });
     let mut mark = Mark {
         state: vec![false; laser.state.len()],

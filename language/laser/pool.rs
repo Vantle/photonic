@@ -309,7 +309,7 @@ fn add<Value: Eq + Hash + Single>(
 // when it is a single place whose image is one, otherwise the one the event's table learned. An
 // image the table lacks is demanded, stands for itself meanwhile, and makes the reading wait.
 pub(super) struct Reading<'read> {
-    pool: &'read Pool,
+    image: Option<&'read Image>,
     passage: &'read Passage,
     event: usize,
     demand: &'read mut Demand,
@@ -325,7 +325,7 @@ impl<'read> Reading<'read> {
     ) -> Self {
         let start = demand.basis.len() + demand.world.len();
         Self {
-            pool,
+            image: pool.image.get(event),
             passage,
             event,
             demand,
@@ -343,7 +343,7 @@ impl<'read> Reading<'read> {
 
     pub fn basis(&mut self, basis: u64) -> u64 {
         let image = direct(basis, |place| self.passage.place(place))
-            .or_else(|| lookup(&self.pool.image.get(self.event)?.basis, basis));
+            .or_else(|| lookup(&self.image?.basis, basis));
         image.unwrap_or_else(|| {
             self.demand.basis.push(basis);
             basis
@@ -352,7 +352,7 @@ impl<'read> Reading<'read> {
 
     pub fn world(&mut self, world: u64) -> u64 {
         let image = direct(world, |index| self.passage.world(index))
-            .or_else(|| lookup(&self.pool.image.get(self.event)?.world, world));
+            .or_else(|| lookup(&self.image?.world, world));
         image.unwrap_or_else(|| {
             self.demand.world.push(world);
             world

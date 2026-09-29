@@ -21,29 +21,35 @@ impl<Key, Value> Default for Memo<Key, Value> {
 
 impl<Key: Eq + Hash, Value: Clone> Memo<Key, Value> {
     pub fn get(&self, key: Key, make: impl FnOnce(&Key) -> Value) -> Value {
-        if let Some(found) = self.find(&key) {
-            return found;
+        let shard = &self.shard[shard::slot(hashing::value(&key))];
+        if let Some(found) = shard.lock().expect("an unpoisoned memo").get(&key) {
+            return found.clone();
         }
         let made = make(&key);
-        self.keep(key, made)
-    }
-
-    pub fn find(&self, key: &Key) -> Option<Value> {
-        self.shard[shard::slot(hashing::value(key))]
-            .lock()
-            .expect("an unpoisoned memo")
-            .get(key)
-            .cloned()
-    }
-
-    // Remembers a value unless a worker remembered one first, and gives the one remembered.
-    pub fn keep(&self, key: Key, value: Value) -> Value {
-        self.shard[shard::slot(hashing::value(&key))]
+        shard
             .lock()
             .expect("an unpoisoned memo")
             .entry(key)
-            .or_insert(value)
+            .or_insert(made)
             .clone()
+    }
+
+    // The value remembered for a key, or the one made from it, which is remembered unless a worker
+    // remembered one first; a key whose value cannot be made yet is not remembered.
+    pub fn attempt(&self, key: Key, make: impl FnOnce(&Key) -> Option<Value>) -> Option<Value> {
+        let shard = &self.shard[shard::slot(hashing::value(&key))];
+        if let Some(found) = shard.lock().expect("an unpoisoned memo").get(&key) {
+            return Some(found.clone());
+        }
+        let made = make(&key)?;
+        Some(
+            shard
+                .lock()
+                .expect("an unpoisoned memo")
+                .entry(key)
+                .or_insert(made)
+                .clone(),
+        )
     }
 }
 
