@@ -17,6 +17,7 @@ use crate::status::Status;
 use hashing::Builder;
 use indexmap::{IndexMap, IndexSet};
 use std::collections::HashMap;
+use std::ops::Range;
 use std::sync::Arc;
 use thiserror::Error;
 
@@ -94,22 +95,22 @@ pub struct Net {
     start: Makeup,
     lone: HashMap<u32, Vec<Entry>, Builder>,
     single: HashMap<(u32, u32), Vec<Entry>, Builder>,
-    join: HashMap<(u32, Vec<u32>), Vec<Entry>, Builder>,
+    join: HashMap<Makeup, Vec<Entry>, Builder>,
     pattern: Vec<Vec<Vec<Symbol>>>,
     surface: HashMap<u32, Vec<Vec<Symbol>>, Builder>,
     work: usize,
 }
 
-fn group(effect: impl IntoIterator<Item = (u32, Vec<u32>)>) -> Vec<Entry> {
-    let mut count = IndexMap::<(u32, Vec<u32>), u32, Builder>::default();
-    for key in effect {
-        *count.entry(key).or_default() += 1;
+fn group(effect: impl IntoIterator<Item = Makeup>) -> Vec<Entry> {
+    let mut count = IndexMap::<Makeup, u32, Builder>::default();
+    for makeup in effect {
+        *count.entry(makeup).or_default() += 1;
     }
     count
         .into_iter()
-        .map(|((root, produced), count)| Entry {
-            root,
-            produced,
+        .map(|(makeup, count)| Entry {
+            root: makeup.root,
+            produced: makeup.kind,
             count,
         })
         .collect()
@@ -167,17 +168,50 @@ fn run(kind: &[u32]) -> Vec<(u32, usize)> {
     result
 }
 
+// The makeup that names a configuration, its root and its components' kinds, sorted, numbering the
+// roots and kinds the net meets for the first time; a configuration whose root ties to one of its
+// components has none.
+fn name(taxonomy: &mut Taxonomy, state: &State) -> Result<Makeup, Unsupported> {
+    let draft = taxonomy.analyze(state);
+    if matches!(draft, Draft::Whole(_)) {
+        return Err(Unsupported::Whole);
+    }
+    let (root, mut kind) = taxonomy.intern(&draft);
+    kind.sort_unstable();
+    Ok(Makeup { root, kind })
+}
+
+// Whether some coherence of a kind's surface holds every value an input binds, so a component of
+// the kind could fill the input.
+fn fills(surface: &[Vec<Symbol>], input: &[Symbol]) -> bool {
+    surface
+        .iter()
+        .any(|world| input.iter().all(|symbol| world.contains(symbol)))
+}
+
+// Moves a counter whose digits each run over a range to its next value, the first digit fastest:
+// the first digit below its range's last value goes up by one, and every digit before it returns
+// to its range's start. False once every digit holds its range's last value.
+fn step(digit: &mut [usize], range: &[Range<usize>]) -> bool {
+    let Some(position) = digit
+        .iter()
+        .zip(range)
+        .position(|(&value, range)| value + 1 < range.end)
+    else {
+        return false;
+    };
+    digit[position] += 1;
+    for (value, range) in digit.iter_mut().zip(range).take(position) {
+        *value = range.start;
+    }
+    true
+}
+
 impl Net {
     pub fn new(source: &frontend::source::Program) -> Result<Self, Unsupported> {
         let program = Arc::new(Program::new(source));
         let mut taxonomy = Taxonomy::default();
-        let initial = State::initial(&program);
-        let draft = taxonomy.analyze(&initial);
-        if matches!(draft, Draft::Whole(_)) {
-            return Err(Unsupported::Whole);
-        }
-        let (root, mut kind) = taxonomy.intern(&draft);
-        kind.sort_unstable();
+        let start = name(&mut taxonomy, &State::initial(&program))?;
         let pattern = program
             .rule
             .iter()
@@ -188,7 +222,7 @@ impl Net {
             catalog: Arc::new(Catalog::new(&program)),
             program,
             taxonomy,
-            start: Makeup { root, kind },
+            start,
             lone: HashMap::default(),
             single: HashMap::default(),
             join: HashMap::default(),
@@ -280,13 +314,7 @@ impl Net {
                 rule: &self.program.rule[rule],
                 binding: &binding,
             });
-            let draft = self.taxonomy.analyze(&applied.state);
-            if matches!(draft, Draft::Whole(_)) {
-                return Err(Unsupported::Whole);
-            }
-            let (root, mut produced) = self.taxonomy.intern(&draft);
-            produced.sort_unstable();
-            effect.push((root, produced));
+            effect.push(name(&mut self.taxonomy, &applied.state)?);
         }
         Ok(Some(group(effect)))
     }
@@ -317,11 +345,11 @@ impl Net {
         marking: &Marking,
         allowance: usize,
     ) -> Result<Option<Vec<Successor>>, Unsupported> {
-        if !self.prepare(marking.root, &marking.kind, allowance)? {
+        let Some(part) = self.prepare(marking.root, &marking.kind, allowance)? else {
             return Ok(None);
-        }
+        };
         Ok(Some(
-            self.joined(marking.root, &marking.kind)
+            self.joined(&marking.kind, &part)
                 .into_iter()
                 .map(|(makeup, count)| Successor {
                     marking: Marking {
@@ -334,33 +362,40 @@ impl Net {
         ))
     }
 
-    // Whether every part a makeup holds is grounded within the allowance.
-    fn prepare(&mut self, root: u32, kind: &[u32], allowance: usize) -> Result<bool, Unsupported> {
+    // Grounds every part a makeup of the root and these kinds holds, and gives the parts of two or
+    // more components its kinds could join, each with the number of ways to choose their copies;
+    // none when grounding would take the net's work past the allowance.
+    fn prepare(
+        &mut self,
+        root: u32,
+        kind: &[u32],
+        allowance: usize,
+    ) -> Result<Option<Vec<(Makeup, u64)>>, Unsupported> {
         if !self.lone.contains_key(&root) {
             let Some(entry) = self.ground(root, &[], allowance)? else {
-                return Ok(false);
+                return Ok(None);
             };
             self.lone.insert(root, entry);
         }
         for (value, _) in run(kind) {
             if !self.single.contains_key(&(root, value)) {
                 let Some(entry) = self.ground(root, &[value], allowance)? else {
-                    return Ok(false);
+                    return Ok(None);
                 };
                 self.single.insert((root, value), entry);
             }
             self.survey(value);
         }
-        for (multiset, _) in self.candidate(kind) {
-            let key = (root, multiset);
-            if !self.join.contains_key(&key) {
-                let Some(entry) = self.ground(key.0, &key.1, allowance)? else {
-                    return Ok(false);
+        let part = self.candidate(root, kind);
+        for (makeup, _) in &part {
+            if !self.join.contains_key(makeup) {
+                let Some(entry) = self.ground(root, &makeup.kind, allowance)? else {
+                    return Ok(None);
                 };
-                self.join.insert(key, entry);
+                self.join.insert(makeup.clone(), entry);
             }
         }
-        Ok(true)
+        Ok(Some(part))
     }
 
     fn survey(&mut self, kind: u32) {
@@ -370,17 +405,17 @@ impl Net {
         }
     }
 
-    // Every configuration an event joining several components leads to from a makeup of the root
-    // and these kinds, whose parts are grounded, with how many distinct events lead there that way.
-    fn joined(&self, root: u32, kind: &[u32]) -> Vec<(Makeup, u64)> {
+    // Every configuration an event joining several components leads to from a makeup of these
+    // kinds, through the grounded parts its kinds could join, with how many distinct events lead
+    // there that way.
+    fn joined(&self, kind: &[u32], part: &[(Makeup, u64)]) -> Vec<(Makeup, u64)> {
         let mut result = Vec::new();
-        for (multiset, choice) in self.candidate(kind) {
-            let key = (root, multiset);
-            for entry in &self.join[&key] {
+        for (makeup, choice) in part {
+            for entry in &self.join[makeup] {
                 result.push((
                     Makeup {
                         root: entry.root,
-                        kind: replace(kind, &key.1, &entry.produced),
+                        kind: replace(kind, &makeup.kind, &entry.produced),
                     },
                     choice * u64::from(entry.count),
                 ));
@@ -428,11 +463,7 @@ impl Net {
             .iter()
             .flatten()
             .enumerate()
-            .filter(|(_, input)| {
-                surface
-                    .iter()
-                    .any(|world| input.iter().all(|symbol| world.contains(symbol)))
-            })
+            .filter(|(_, input)| fills(&surface, input))
             .map(|(index, _)| index)
             .collect()
     }
@@ -449,12 +480,11 @@ impl Net {
             .collect()
     }
 
-    // The multisets of kinds, two or more parts, that some rule joining several coherences could
-    // bind in a makeup, each with the number of ways to choose its copies. A rule binds a distinct
-    // coherence for each input, and a copy of a kind hosts more than one input only when it holds
-    // more than one coherence of the root frame. Every multiset is kept once, since its table holds
-    // the events of every rule that binds exactly those parts.
-    fn candidate(&self, kind: &[u32]) -> Vec<(Vec<u32>, u64)> {
+    // The parts, the root and two or more components, that some rule joining several coherences
+    // could bind in a makeup of the root and these kinds, each with the number of ways to choose
+    // its copies, whichever present kind each input of the rule picks. Every part is kept once,
+    // since its table holds the events of every rule that binds exactly those components.
+    fn candidate(&self, root: u32, kind: &[u32]) -> Vec<(Makeup, u64)> {
         let present = run(kind)
             .into_iter()
             .filter(|(kind, _)| {
@@ -466,19 +496,14 @@ impl Net {
         if present.is_empty() {
             return Vec::new();
         }
-        let holds = |kind: u32, input: &[Symbol]| {
-            self.surface[&kind]
-                .iter()
-                .any(|world| input.iter().all(|symbol| world.contains(symbol)))
-        };
-        let mut result = IndexMap::<Vec<u32>, u64, Builder>::default();
+        let mut result = IndexMap::<Makeup, u64, Builder>::default();
         for rule in &self.pattern {
             let option = rule
                 .iter()
                 .map(|input| {
                     present
                         .iter()
-                        .filter(|(kind, _)| holds(*kind, input))
+                        .filter(|(kind, _)| fills(&self.surface[kind], input))
                         .copied()
                         .collect::<Vec<_>>()
                 })
@@ -486,62 +511,70 @@ impl Net {
             if option.iter().any(Vec::is_empty) {
                 continue;
             }
+            let range = option
+                .iter()
+                .map(|input| 0..input.len())
+                .collect::<Vec<_>>();
             let mut index = vec![0; option.len()];
             loop {
-                let mut used = HashMap::<u32, (usize, usize), Builder>::default();
-                for (input, &position) in index.iter().enumerate() {
-                    let (kind, count) = option[input][position];
-                    used.entry(kind).or_insert((0, count)).0 += 1;
-                }
-                let mut chosen = used.into_iter().collect::<Vec<_>>();
-                chosen.sort_unstable_by_key(|(kind, _)| *kind);
-                let range = chosen
+                let pick = index
                     .iter()
-                    .map(|&(kind, (filled, count))| {
-                        let high = filled.min(count);
-                        let low = if self.surface[&kind].len() > 1 {
-                            1
-                        } else {
-                            filled
-                        };
-                        (low, high)
-                    })
-                    .collect::<Vec<_>>();
-                if range.iter().all(|(low, high)| low <= high) {
-                    let mut taken = range.iter().map(|&(low, _)| low).collect::<Vec<_>>();
-                    loop {
-                        if taken.iter().sum::<usize>() >= 2 {
-                            let mut multiset = Vec::new();
-                            let mut choice = 1;
-                            for (position, &(kind, (_, count))) in chosen.iter().enumerate() {
-                                multiset.extend(std::iter::repeat_n(kind, taken[position]));
-                                choice *= choose(count, taken[position]);
-                            }
-                            result.insert(multiset, choice);
-                        }
-                        let Some(position) =
-                            (0..taken.len()).find(|&position| taken[position] < range[position].1)
-                        else {
-                            break;
-                        };
-                        taken[position] += 1;
-                        for (earlier, &(low, _)) in taken.iter_mut().zip(&range).take(position) {
-                            *earlier = low;
-                        }
-                    }
-                }
-                let Some(input) =
-                    (0..index.len()).find(|&input| index[input] + 1 < option[input].len())
-                else {
+                    .zip(&option)
+                    .map(|(&position, input)| input[position]);
+                self.bind(root, pick, &mut result);
+                if !step(&mut index, &range) {
                     break;
-                };
-                index[input] += 1;
-                for earlier in index.iter_mut().take(input) {
-                    *earlier = 0;
                 }
             }
         }
         result.into_iter().collect()
+    }
+
+    // Keeps the parts a rule could bind once each of its inputs has picked a present kind. A rule
+    // binds a distinct coherence for each input, and a copy of a kind hosts more than one input
+    // only when it holds more than one coherence of the root frame, so a kind several inputs picked
+    // gives a part a copy for each, or as few as one, and never more copies than the makeup has.
+    fn bind(
+        &self,
+        root: u32,
+        pick: impl IntoIterator<Item = (u32, usize)>,
+        result: &mut IndexMap<Makeup, u64, Builder>,
+    ) {
+        let mut used = HashMap::<u32, (usize, usize), Builder>::default();
+        for (kind, count) in pick {
+            used.entry(kind).or_insert((0, count)).0 += 1;
+        }
+        let mut chosen = used.into_iter().collect::<Vec<_>>();
+        chosen.sort_unstable_by_key(|(kind, _)| *kind);
+        let range = chosen
+            .iter()
+            .map(|&(kind, (filled, count))| {
+                let low = if self.surface[&kind].len() > 1 {
+                    1
+                } else {
+                    filled
+                };
+                low..filled.min(count) + 1
+            })
+            .collect::<Vec<_>>();
+        if range.iter().any(Range::is_empty) {
+            return;
+        }
+        let mut taken = range.iter().map(|range| range.start).collect::<Vec<_>>();
+        loop {
+            if taken.iter().sum::<usize>() >= 2 {
+                let mut kind = Vec::new();
+                let mut choice = 1;
+                for (&(value, (_, count)), &number) in chosen.iter().zip(&taken) {
+                    kind.extend(std::iter::repeat_n(value, number));
+                    choice *= choose(count, number);
+                }
+                result.insert(Makeup { root, kind }, choice);
+            }
+            if !step(&mut taken, &range) {
+                return;
+            }
+        }
     }
 
     // Every configuration an event leads to from a makeup, with how many distinct events lead
@@ -551,9 +584,9 @@ impl Net {
         makeup: &Makeup,
         allowance: usize,
     ) -> Result<Option<Vec<(Makeup, u64)>>, Unsupported> {
-        if !self.prepare(makeup.root, &makeup.kind, allowance)? {
+        let Some(part) = self.prepare(makeup.root, &makeup.kind, allowance)? else {
             return Ok(None);
-        }
+        };
         let mut result = Vec::new();
         for entry in &self.lone[&makeup.root] {
             let kind = replace(&makeup.kind, &[], &entry.produced);
@@ -577,7 +610,7 @@ impl Net {
                 ));
             }
         }
-        result.extend(self.joined(makeup.root, &makeup.kind));
+        result.extend(self.joined(&makeup.kind, &part));
         Ok(Some(result))
     }
 
