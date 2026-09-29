@@ -13,7 +13,7 @@ static ulong climb(ulong value, uint lane, uint width) {
 
 // A threadgroup's exclusive running sum, with the group's whole sum in total. Every thread of the
 // group calls it, and the group is height whole SIMD groups of width lanes, with height at most
-// width, so one SIMD group sums the others.
+// width and at most BAND, so one SIMD group sums the others and the scratch keeps their sums.
 static ulong ladder(ulong value, threadgroup ulong* shared, uint lane, uint band, uint width, uint height, thread ulong& total) {
     ulong inclusive = climb(value, lane, width);
     if (lane == width - 1) {
@@ -27,11 +27,11 @@ static ulong ladder(ulong value, threadgroup ulong* shared, uint lane, uint band
             shared[lane] = prefix - own;
         }
         if (lane == width - 1) {
-            shared[32] = prefix;
+            shared[BAND] = prefix;
         }
     }
     threadgroup_barrier(mem_flags::mem_threadgroup);
-    total = shared[32];
+    total = shared[BAND];
     return shared[band] + inclusive - value;
 }
 
@@ -47,7 +47,7 @@ kernel void reduce(
     uint band [[simdgroup_index_in_threadgroup]],
     uint width [[threads_per_simdgroup]],
     uint height [[simdgroups_per_threadgroup]]) {
-    threadgroup ulong shared[33];
+    threadgroup ulong shared[BAND + 1];
     ulong begin = (ulong(group) * size + member) * 4;
     ulong sum = 0;
     for (uint item = 0; item < 4; item++) {
@@ -76,7 +76,7 @@ kernel void spread(
     uint band [[simdgroup_index_in_threadgroup]],
     uint width [[threads_per_simdgroup]],
     uint height [[simdgroups_per_threadgroup]]) {
-    threadgroup ulong shared[33];
+    threadgroup ulong shared[BAND + 1];
     ulong begin = (ulong(group) * size + member) * 4;
     ulong item[4];
     ulong sum = 0;

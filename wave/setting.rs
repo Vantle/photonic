@@ -16,6 +16,9 @@ pub const BARE: u32 = 4;
 pub const HEADER: usize = 9;
 pub const WIDTH: usize = 8;
 pub const SEGMENT: usize = 1024;
+// The most SIMD groups in a threadgroup whose kernel sums them in one SIMD group; its scratch keeps
+// a sum for each and the group's whole sum after them.
+pub const BAND: usize = 32;
 // The summary's words: how many markings a count flagged, and whether a limit refused a candidate
 // or a candidate found a marking no later than its source.
 pub const FLAGGED: usize = 0;
@@ -34,11 +37,12 @@ macro_rules! declare {
     };
 }
 
-// The constants every kernel reads, declared ahead of the kernels' source.
+// The constants every kernel can read, declared ahead of the kernels' source.
 pub fn prelude() -> String {
     declare!(
-        "uint", EMPTY, LONE, NONE, BLOCKED, TAG, LIMITED, JOINED, COPY, SHIFT, MISSING, JOIN, BARE,
-        HEADER, WIDTH, SEGMENT, FLAGGED, REFUSED, BACKWARD, WINNER, BOUND
+        "uint", EMPTY, LONE, NONE, BLOCKED, TAG, LIMITED, JOINED, COPY, SHIFT, CANDIDATE, MISSING,
+        JOIN, BARE, HEADER, WIDTH, SEGMENT, BAND, FLAGGED, REFUSED, BACKWARD, WINNER, WINDOW,
+        BOUND
     ) + &declare!("ulong", WORD)
 }
 

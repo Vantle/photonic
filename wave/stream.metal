@@ -37,14 +37,14 @@ static Stream open(uint3 record, device const Arena& arena, device const ulong* 
         return stored(extra + record.y);
     }
     device const uint* marking = locate(arena, offset[record.x]);
-    device const uint* item = entry + record.y;
+    device const Header* item = header(entry, record.y);
     Stream stream = stored(marking);
-    stream.made = item + HEADER;
-    stream.count = item[2];
-    stream.consumed = item[8];
-    stream.skip = item[8] != LONE;
-    stream.root = item[0];
-    stream.size = marking[1] - (stream.skip ? 1u : 0u) + item[2];
+    stream.made = entry + record.y + HEADER;
+    stream.count = item->length;
+    stream.consumed = item->consumed;
+    stream.skip = item->consumed != LONE;
+    stream.root = item->root;
+    stream.size = marking[1] - (stream.skip ? 1u : 0u) + item->length;
     return stream;
 }
 
@@ -54,9 +54,9 @@ static ulong digest(uint3 record, device const ulong* sum, uint first, device co
     if ((record.z & JOINED) != 0) {
         return ulong(extra[record.y - 2]) | (ulong(extra[record.y - 1]) << 32);
     }
-    device const uint* item = entry + record.y;
-    ulong total = sum[record.x - first] + (ulong(item[3]) | (ulong(item[4]) << 32));
-    return scramble(item[8] == LONE ? total : total - term(item[8]));
+    device const Header* item = header(entry, record.y);
+    ulong total = sum[record.x - first] + as_type<ulong>(uint2(item->gain));
+    return scramble(item->consumed == LONE ? total : total - term(item->consumed));
 }
 
 static uint next(thread Stream& stream) {

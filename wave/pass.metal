@@ -4,7 +4,7 @@
 // The lowest index wins, so numbering never depends on timing and follows the order in which one
 // thread searching breadth first would find the markings. A winner's rank and the words its
 // marking takes share one running sum, the rank above SHIFT bits and the words below: a pass holds
-// fewer than 2^24 candidates, and no device holds 2^40 words.
+// fewer than CANDIDATE candidates, and no device holds 2^40 words.
 
 // Records one successor: its source, its entry and how many copies of the consumed kind could be
 // consumed, marked when the limits refuse it; returns how many events it stands for when the limits
@@ -20,15 +20,15 @@ static ulong emit(
     device packed_uint3* record,
     device atomic_uint* summary,
     constant Setting& setting) {
-    device const uint* item = entry + cursor;
-    uint3 grown = total + uint3(item[5], item[6], item[7]);
-    bool admitted = grown.x <= setting.coherence && base[item[0]] + grown.y <= setting.occurrence && 1 + grown.z <= setting.scope;
+    device const Header* item = header(entry, cursor);
+    uint3 grown = total + uint3(item->size);
+    bool admitted = grown.x <= setting.coherence && base[item->root] + grown.y <= setting.occurrence && 1 + grown.z <= setting.scope;
     record[candidate] = packed_uint3(source, cursor, admitted ? copy : copy | LIMITED);
     if (!admitted) {
         atomic_store_explicit(&summary[REFUSED], 1u, memory_order_relaxed);
         return 0;
     }
-    return ulong(copy) * ulong(item[1]);
+    return ulong(copy) * ulong(item->count);
 }
 
 // Records every successor the tables give a marking, in the order the host's net expands it: the
@@ -57,7 +57,7 @@ kernel void expand(
     uint band [[simdgroup_index_in_threadgroup]],
     uint width [[threads_per_simdgroup]],
     uint height [[simdgroups_per_threadgroup]]) {
-    threadgroup ulong shared[33];
+    threadgroup ulong shared[BAND + 1];
     ulong weight = 0;
     if (index < setting.count) {
         uint source = setting.first + index;
@@ -79,7 +79,7 @@ kernel void expand(
         for (uint item = 0; item < number; item++) {
             weight += emit(entry, cursor, source, 1, total, candidate, base, record, summary, setting);
             candidate += 1;
-            cursor += HEADER + entry[cursor + 2];
+            cursor += HEADER + header(entry, cursor)->length;
         }
         uint position = 0;
         while (position < length) {
@@ -96,7 +96,7 @@ kernel void expand(
             for (uint item = 0; item < found; item++) {
                 weight += emit(entry, cursor, source, end - position, rest, candidate, base, record, summary, setting);
                 candidate += 1;
-                cursor += HEADER + entry[cursor + 2];
+                cursor += HEADER + header(entry, cursor)->length;
             }
             position = end;
         }
@@ -141,9 +141,10 @@ kernel void insert(
     uint group = uint(mine) & (setting.bucket - 1);
     uint item = 0;
     Stream stream = open(own, arena, offset, entry, extra);
+    static_assert(WIDTH == 8, "a bucket of eight two-word slots is four uint4");
     while (true) {
-        device const uint4* line = bucket + 4 * ulong(group);
-        uint4 pair[4] = {line[0], line[1], line[2], line[3]};
+        device const uint4* line = bucket + (WIDTH / 2) * ulong(group);
+        uint4 pair[WIDTH / 2] = {line[0], line[1], line[2], line[3]};
         uint value = 0;
         uint seen = 0;
         for (; item < WIDTH; item++) {
@@ -229,7 +230,7 @@ kernel void tally(
     uint band [[simdgroup_index_in_threadgroup]],
     uint width [[threads_per_simdgroup]],
     uint height [[simdgroups_per_threadgroup]]) {
-    threadgroup ulong shared[33];
+    threadgroup ulong shared[BAND + 1];
     ulong mine = 0;
     for (uint item = 0; item < 4; item++) {
         uint candidate = 4 * index + item;
@@ -291,7 +292,7 @@ kernel void place(
     uint band [[simdgroup_index_in_threadgroup]],
     uint width [[threads_per_simdgroup]],
     uint height [[simdgroups_per_threadgroup]]) {
-    threadgroup ulong shared[33];
+    threadgroup ulong shared[BAND + 1];
     if (used(total) > setting.room) {
         return;
     }
@@ -367,7 +368,7 @@ kernel void weigh(
     uint band [[simdgroup_index_in_threadgroup]],
     uint width [[threads_per_simdgroup]],
     uint height [[simdgroups_per_threadgroup]]) {
-    threadgroup ulong shared[33];
+    threadgroup ulong shared[BAND + 1];
     if (used(total) > setting.room) {
         return;
     }
@@ -379,7 +380,7 @@ kernel void weigh(
         }
         uint3 own = uint3(record[candidate]);
         if ((own.z & JOINED) == 0) {
-            weight += ulong(own.z & COPY) * ulong(entry[own.y + 1]);
+            weight += ulong(own.z & COPY) * ulong(header(entry, own.y)->count);
         }
     }
     ulong whole = 0;
