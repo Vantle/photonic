@@ -1,4 +1,4 @@
-use super::{Laser, map};
+use super::{CHUNK, Laser, map};
 use crate::executor::Executor;
 use crate::profile;
 use hashing::Builder;
@@ -13,42 +13,61 @@ fn number(value: usize) -> u32 {
     u32::try_from(value).expect("fewer than 2^32 nodes")
 }
 
-fn component(successor: &[Vec<u32>]) -> Vec<usize> {
-    let count = successor.len();
-    let mut index = vec![usize::MAX; count];
+// A graph's edges kept in one list, each node's edges lying in the span it keeps, so reading them
+// follows no pointer per node; a node with no edges keeps an empty span.
+struct Adjacency {
+    span: Vec<(usize, usize)>,
+    target: Vec<u32>,
+}
+
+impl Adjacency {
+    fn edge(&self, node: usize) -> &[u32] {
+        let (start, end) = self.span[node];
+        &self.target[start..end]
+    }
+}
+
+// The strongly connected components of a graph, by Tarjan's algorithm, as each node's component.
+// Each node on the path the search follows keeps the next of its edges to read, and a node the
+// search reached but gave no component yet is still on the stack.
+fn component(graph: &Adjacency) -> Vec<usize> {
+    const UNSEEN: u32 = u32::MAX;
+    let count = graph.span.len();
+    let mut index = vec![UNSEEN; count];
     let mut low = vec![0; count];
-    let mut member = vec![false; count];
     let mut label = vec![usize::MAX; count];
     let mut stack = Vec::new();
-    let mut work = Vec::new();
+    let mut path = Vec::<(usize, usize)>::new();
     let mut counter = 0;
     let mut next = 0;
     for root in 0..count {
-        if index[root] != usize::MAX {
+        if index[root] != UNSEEN {
             continue;
         }
-        work.push((root, 0));
-        while let Some((node, position)) = work.pop() {
-            if position == 0 {
-                index[node] = counter;
-                low[node] = counter;
-                counter += 1;
-                stack.push(node);
-                member[node] = true;
-            }
-            if let Some(&target) = successor[node].get(position) {
-                let target = target as usize;
-                work.push((node, position + 1));
-                if index[target] == usize::MAX {
-                    work.push((target, 0));
-                } else if member[target] {
+        index[root] = counter;
+        low[root] = counter;
+        counter += 1;
+        stack.push(root);
+        path.push((root, graph.span[root].0));
+        while let Some((node, position)) = path.last_mut() {
+            let node = *node;
+            if *position < graph.span[node].1 {
+                let target = graph.target[*position] as usize;
+                *position += 1;
+                if index[target] == UNSEEN {
+                    index[target] = counter;
+                    low[target] = counter;
+                    counter += 1;
+                    stack.push(target);
+                    path.push((target, graph.span[target].0));
+                } else if label[target] == usize::MAX {
                     low[node] = low[node].min(index[target]);
                 }
                 continue;
             }
+            path.pop();
             if low[node] == index[node] {
                 while let Some(top) = stack.pop() {
-                    member[top] = false;
                     label[top] = next;
                     if top == node {
                         break;
@@ -56,7 +75,7 @@ fn component(successor: &[Vec<u32>]) -> Vec<usize> {
                 }
                 next += 1;
             }
-            if let Some(&(parent, _)) = work.last() {
+            if let Some(&(parent, _)) = path.last() {
                 low[parent] = low[parent].min(low[node]);
             }
         }
@@ -64,14 +83,14 @@ fn component(successor: &[Vec<u32>]) -> Vec<usize> {
     label
 }
 
-fn condense(edge: &[Vec<u32>], label: &[usize]) -> Vec<Vec<usize>> {
+fn condense(graph: &Adjacency, label: &[usize]) -> Vec<Vec<usize>> {
     let count = label.iter().max().map_or(0, |&value| value + 1);
     let mut successor = vec![Vec::new(); count];
-    for (node, list) in edge.iter().enumerate() {
-        for &next in list {
-            let next = next as usize;
-            if label[node] != label[next] {
-                successor[label[node]].push(label[next]);
+    for (node, &value) in label.iter().enumerate() {
+        for &next in graph.edge(node) {
+            let next = label[next as usize];
+            if value != next {
+                successor[value].push(next);
             }
         }
     }
@@ -80,6 +99,31 @@ fn condense(edge: &[Vec<u32>], label: &[usize]) -> Vec<Vec<usize>> {
         list.dedup();
     }
     successor
+}
+
+// Configurations and the events between them, each configuration's edges leading to its events'
+// targets.
+fn successor(laser: &Laser) -> Adjacency {
+    let count = laser.state.len();
+    let mut first = vec![0; count + 1];
+    for event in &laser.event {
+        first[event.source + 1] += 1;
+    }
+    for node in 0..count {
+        first[node + 1] += first[node];
+    }
+    let mut fill = first.clone();
+    let mut target = vec![0; laser.event.len()];
+    for event in &laser.event {
+        target[fill[event.source]] = number(event.target);
+        fill[event.source] += 1;
+    }
+    Adjacency {
+        span: (0..count)
+            .map(|node| (first[node], first[node + 1]))
+            .collect(),
+        target,
+    }
 }
 
 fn cyclic(laser: &Laser, label: &[usize]) -> Vec<bool> {
@@ -101,7 +145,7 @@ fn cyclic(laser: &Laser, label: &[usize]) -> Vec<bool> {
 
 struct Graph {
     offset: Vec<usize>,
-    edge: Vec<Vec<u32>>,
+    edge: Adjacency,
     event: Vec<Option<usize>>,
 }
 
@@ -126,30 +170,42 @@ fn graph(
     for &id in &frontier {
         reached[id] = true;
     }
-    let mut edge = vec![Vec::new(); node.len()];
+    let mut span = vec![(0, 0); node.len()];
+    let mut target = Vec::new();
     while !frontier.is_empty() {
-        let expanded = map(executor, frontier, |id| {
-            let (state, position) = node[id];
-            let mut list = Vec::with_capacity(laser.incoming[state].len());
-            list.extend(laser.incoming[state].iter().filter_map(|&event| {
-                let source = laser.event[event].source;
-                if label[source] != label[state] {
-                    return None;
-                }
-                let landed = laser.landing(event, position)?;
-                Some(number(offset[source] + landed))
-            }));
-            (id, list)
+        let chunk = frontier.chunks(CHUNK).map(<[usize]>::to_vec).collect();
+        let expanded = map(executor, chunk, |chunk: Vec<usize>| {
+            let mut edge = Vec::new();
+            let mut length = Vec::with_capacity(chunk.len());
+            for &id in &chunk {
+                let before = edge.len();
+                let (state, position) = node[id];
+                edge.extend(laser.incoming[state].iter().filter_map(|&event| {
+                    let source = laser.event[event].source;
+                    if label[source] != label[state] {
+                        return None;
+                    }
+                    let landed = laser.landing(event, position)?;
+                    Some(number(offset[source] + landed))
+                }));
+                length.push(edge.len() - before);
+            }
+            (chunk, length, edge)
         });
         frontier = Vec::new();
-        for (id, list) in expanded {
-            for &next in &list {
+        for (chunk, length, edge) in expanded {
+            let mut start = target.len();
+            for (&id, &length) in chunk.iter().zip(&length) {
+                span[id] = (start, start + length);
+                start += length;
+            }
+            for &next in &edge {
                 let next = next as usize;
                 if !std::mem::replace(&mut reached[next], true) {
                     frontier.push(next);
                 }
             }
-            edge[id] = list;
+            target.extend(edge);
         }
     }
     let event = map(executor, (0..node.len()).collect(), |id| {
@@ -163,7 +219,7 @@ fn graph(
     });
     Graph {
         offset,
-        edge,
+        edge: Adjacency { span, target },
         event,
     }
 }
@@ -220,11 +276,7 @@ pub(super) fn mark(laser: &mut Laser, executor: Option<&Executor>) {
     if !open.contains(&true) {
         return;
     }
-    let mut successor = vec![Vec::new(); laser.state.len()];
-    for event in &laser.event {
-        successor[event.source].push(number(event.target));
-    }
-    let label = component(&successor);
+    let label = component(&successor(laser));
     let cyclic = cyclic(laser, &label);
     let start = (0..laser.state.len())
         .filter(|&state| cyclic[state] && open[state])
