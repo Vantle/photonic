@@ -1,5 +1,5 @@
 use crate::failure::Failure;
-use crate::runtime::{Command, Device, Kernel, Memory};
+use metal::device::{Command, Device, Kernel, Memory};
 
 const SOURCE: &str = include_str!("kernel.metal");
 pub const TILE: usize = 32;

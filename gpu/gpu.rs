@@ -15,13 +15,7 @@ pub mod failure;
 #[cfg(target_os = "macos")]
 mod occurrence;
 #[cfg(target_os = "macos")]
-mod operand;
-#[cfg(target_os = "macos")]
 mod pipeline;
-#[cfg(target_os = "macos")]
-mod plain;
-#[cfg(target_os = "macos")]
-mod runtime;
 #[cfg(target_os = "macos")]
 mod trace;
 

@@ -1,4 +1,4 @@
-use crate::runtime::Memory;
+use crate::device::Memory;
 
 #[derive(Clone, Copy)]
 pub struct Operand<'memory> {

@@ -94,6 +94,7 @@ filegroup(
         "//library/ternary:build",
         "//library/vector:build",
         "//machine:build",
+        "//metal:build",
         "//network:build",
         "//photonic:build",
         "//platform:build",
@@ -132,6 +133,7 @@ filegroup(
         "//toolchain/browser:build",
         "//toolchain/wasm:build",
         "//translation:build",
+        "//wave:build",
     ],
     visibility = ["//toolchain:__pkg__"],
 )
@@ -164,6 +166,7 @@ alias(
         "//learning:__pkg__",
         "//library:__pkg__",
         "//machine:__pkg__",
+        "//metal:__pkg__",
         "//network:__pkg__",
         "//photonic:__pkg__",
         "//random:__pkg__",
@@ -172,5 +175,6 @@ alias(
         "//toolchain:__pkg__",
         "//toolchain/browser:__pkg__",
         "//translation:__pkg__",
+        "//wave:__pkg__",
     ],
 )

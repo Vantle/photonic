@@ -45,15 +45,14 @@ fn touch(layout: &Layout, place: Place, involved: &mut SmallVec<[usize; 4]>) {
     }
 }
 
-pub(super) fn localize(
-    taxonomy: &Taxonomy,
+// The parts an event touches: those holding the coherences and places it binds, the frame where it
+// fires and the frame that owns its rule; the root is not a part.
+pub(super) fn involve(
     layout: &Layout,
-    makeup: &Makeup,
     frame: usize,
     owner: usize,
-    rule: usize,
     binding: &Binding,
-) -> Local {
+) -> SmallVec<[usize; 4]> {
     let mut involved = SmallVec::<[usize; 4]>::new();
     involved.extend(binding.world.iter().map(|&world| layout.world(world)));
     for &place in binding
@@ -71,6 +70,19 @@ pub(super) fn localize(
     }
     involved.sort_unstable();
     involved.dedup();
+    involved
+}
+
+pub(super) fn localize(
+    taxonomy: &Taxonomy,
+    layout: &Layout,
+    makeup: &Makeup,
+    frame: usize,
+    owner: usize,
+    rule: usize,
+    binding: &Binding,
+) -> Local {
+    let involved = involve(layout, frame, owner, binding);
     let kind = involved
         .iter()
         .map(|&part| makeup.kind[part])

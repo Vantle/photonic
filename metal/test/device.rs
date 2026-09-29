@@ -1,5 +1,5 @@
+use crate::device::Device;
 use crate::operand::{Operand, Product};
-use crate::runtime::Device;
 use random::Generator;
 
 fn product(left: &[f32], right: &[f32], shape: [usize; 3], transpose: [bool; 2]) -> Vec<f32> {
@@ -105,4 +105,74 @@ fn memory() {
     memory.edit::<f32>()[3] = 2.5;
     assert_eq!(memory.view::<f32>()[3], 2.5);
     assert!(device.library("kernel void broken(").is_err());
+}
+
+#[test]
+fn copy() {
+    let Ok(device) = Device::open() else {
+        return;
+    };
+    let value = (0..1000u64).map(|index| index * index).collect::<Vec<_>>();
+    let source = device.upload(&value).unwrap();
+    let mut target = device.space::<u64>(1200).unwrap();
+    target.edit::<u64>().fill(7);
+    let mut command = device.command().unwrap();
+    command.copy::<u64>(&source, &target, 600).unwrap();
+    command.run().unwrap();
+    let copied = target.view::<u64>();
+    assert_eq!(&copied[..600], &value[..600]);
+    assert!(copied[600..].iter().all(|&item| item == 7));
+    let mut command = device.command().unwrap();
+    assert!(command.copy::<u64>(&source, &target, 1001).is_err());
+}
+
+#[test]
+fn clear() {
+    let Ok(device) = Device::open() else {
+        return;
+    };
+    let mut memory = device.space::<u32>(4099).unwrap();
+    memory.edit::<u32>().fill(u32::MAX);
+    let mut command = device.command().unwrap();
+    command.clear(&memory).unwrap();
+    command.run().unwrap();
+    assert!(memory.view::<u32>().iter().all(|&item| item == 0));
+}
+
+#[test]
+fn reach() {
+    let Ok(device) = Device::open() else {
+        return;
+    };
+    let source = "
+        #include <metal_stdlib>
+        using namespace metal;
+        struct Table { device uint* part[2]; };
+        kernel void gather(device const Table& table [[buffer(0)]], device uint* out [[buffer(1)]], uint index [[thread_position_in_grid]]) {
+            out[index] = table.part[index % 2][index / 2];
+            table.part[index % 2][8 + index / 2] = index;
+        }
+    ";
+    let library = device.library(source).unwrap();
+    let kernel = device.kernel(&library, "gather").unwrap();
+    let first = device.upload(&(0..16u32).collect::<Vec<_>>()).unwrap();
+    let second = device.upload(&(100..116u32).collect::<Vec<_>>()).unwrap();
+    let table = device.upload(&[first.address(), second.address()]).unwrap();
+    let mut out = device.memory::<u32>(16).unwrap();
+    let mut command = device.command().unwrap();
+    command.reach(&[&first, &second]);
+    command.dispatch(&kernel, &[&table, &out], &[], [16, 1, 1], [16, 1, 1]);
+    command.run().unwrap();
+    let expected = (0..16u32)
+        .map(|index| {
+            if index % 2 == 0 {
+                index / 2
+            } else {
+                100 + index / 2
+            }
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(out.view::<u32>(), expected.as_slice());
+    let mut first = first;
+    assert_eq!(&first.view::<u32>()[8..16], &[0, 2, 4, 6, 8, 10, 12, 14]);
 }

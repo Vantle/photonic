@@ -26,6 +26,13 @@ struct Size {
     depth: u64,
 }
 
+#[derive(Clone, Copy, Debug)]
+#[repr(C)]
+struct Range {
+    location: u64,
+    length: u64,
+}
+
 #[link(name = "objc")]
 unsafe extern "C" {
     fn objc_getClass(name: *const c_char) -> Object;
@@ -46,6 +53,7 @@ const GLOBAL: i32 = 8;
 const FLOAT: u32 = 0x1000_0000 | 32;
 const ENCODING: u64 = 4;
 const COMPLETED: u64 = 4;
+const READWRITE: u64 = 3;
 
 // Every call goes through objc_msgSend cast to the exact signature of the selector it names,
 // which is how the Objective-C runtime expects to be called from C.
@@ -189,6 +197,14 @@ impl Device {
     }
 
     pub fn memory<Element: Plain>(&self, count: usize) -> Result<Memory, Failure> {
+        let mut memory = self.space::<Element>(count)?;
+        memory.edit::<u32>().fill(0);
+        Ok(memory)
+    }
+
+    // Memory left as the device hands it out, for kernels that write it before anything reads it;
+    // large buffers skip the host's pass over every byte.
+    pub fn space<Element: Plain>(&self, count: usize) -> Result<Memory, Failure> {
         let length = count * std::mem::size_of::<Element>();
         let handle = Handle::new(send!(
             self.handle.0,
@@ -198,9 +214,7 @@ impl Device {
             Object
         ))
         .ok_or(Failure::Allocation { length })?;
-        let mut memory = Memory { handle, length };
-        memory.edit::<u32>().fill(0);
-        Ok(memory)
+        Ok(Memory { handle, length })
     }
 
     pub fn upload<Element: Plain>(&self, value: &[Element]) -> Result<Memory, Failure> {
@@ -258,6 +272,7 @@ impl Device {
             buffer,
             encoder: None,
             retained: Vec::new(),
+            reached: Vec::new(),
             borrow: PhantomData,
             local: PhantomData,
         })
@@ -272,6 +287,11 @@ pub struct Memory {
 // The buffers use shared storage, so contents points at length bytes that stay valid while
 // the buffer lives, and the borrow of self keeps any Command that writes them from running.
 impl Memory {
+    // Where kernels find the memory when they reach it through an address rather than a binding.
+    pub fn address(&self) -> u64 {
+        send!(self.handle.0, c"gpuAddress"; u64)
+    }
+
     pub fn view<Element: Plain>(&mut self) -> &[Element] {
         let pointer = send!(self.handle.0, c"contents"; *mut c_void);
         unsafe {
@@ -318,6 +338,7 @@ pub struct Command<'device> {
     buffer: Handle,
     encoder: Option<Handle>,
     retained: Vec<Handle>,
+    reached: Vec<Object>,
     borrow: PhantomData<&'device Memory>,
     local: PhantomData<*const ()>,
 }
@@ -337,7 +358,35 @@ impl<'device> Command<'device> {
         let encoder = Handle::retain(send!(self.buffer.0, c"computeCommandEncoder"; Object));
         let id = encoder.as_ref().map_or(Object::NONE, |encoder| encoder.0);
         self.encoder = encoder;
+        Self::resident(id, &self.reached);
         id
+    }
+
+    fn resident(encoder: Object, memory: &[Object]) {
+        if memory.is_empty() {
+            return;
+        }
+        send!(
+            encoder,
+            c"useResources:count:usage:",
+            memory.as_ptr() => *const Object,
+            memory.len() as u64 => u64,
+            READWRITE => u64;
+            ()
+        );
+    }
+
+    // Lets every dispatch encoded after this read and write memories that kernels reach through
+    // device addresses rather than bindings.
+    pub fn reach(&mut self, memory: &[&'device Memory]) {
+        let object = memory
+            .iter()
+            .map(|entry| entry.handle.0)
+            .collect::<Vec<_>>();
+        if let Some(encoder) = &self.encoder {
+            Self::resident(encoder.0, &object);
+        }
+        self.reached.extend(object);
     }
 
     fn close(&mut self) {
@@ -464,6 +513,66 @@ impl<'device> Command<'device> {
             ()
         );
         self.retained.extend([left, right, result, kernel]);
+        Ok(())
+    }
+
+    // Blit commands run in their own encoder, after every dispatch before them and before every
+    // dispatch after them.
+    fn blit(&mut self) -> Result<Handle, Failure> {
+        self.close();
+        Handle::retain(send!(self.buffer.0, c"blitCommandEncoder"; Object))
+            .ok_or_else(|| Failure::Execution("no blit encoder".to_owned()))
+    }
+
+    // Copies the first count elements of one memory to the start of another.
+    pub fn copy<Element: Plain>(
+        &mut self,
+        source: &'device Memory,
+        target: &'device Memory,
+        count: usize,
+    ) -> Result<(), Failure> {
+        let length = count * std::mem::size_of::<Element>();
+        if length > source.length || length > target.length {
+            return Err(Failure::Execution("a copy exceeds its memory".to_owned()));
+        }
+        if length == 0 {
+            return Ok(());
+        }
+        let _pool = Pool::new();
+        let encoder = self.blit()?;
+        send!(
+            encoder.0,
+            c"copyFromBuffer:sourceOffset:toBuffer:destinationOffset:size:",
+            source.handle.0 => Object,
+            0 => u64,
+            target.handle.0 => Object,
+            0 => u64,
+            length as u64 => u64;
+            ()
+        );
+        send!(encoder.0, c"endEncoding"; ());
+        Ok(())
+    }
+
+    // Sets every byte of a memory to zero on the device.
+    pub fn clear(&mut self, memory: &'device Memory) -> Result<(), Failure> {
+        if memory.length == 0 {
+            return Ok(());
+        }
+        let _pool = Pool::new();
+        let encoder = self.blit()?;
+        send!(
+            encoder.0,
+            c"fillBuffer:range:value:",
+            memory.handle.0 => Object,
+            Range {
+                location: 0,
+                length: memory.length as u64,
+            } => Range,
+            0 => u8;
+            ()
+        );
+        send!(encoder.0, c"endEncoding"; ());
         Ok(())
     }
 

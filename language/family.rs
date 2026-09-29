@@ -6,6 +6,14 @@ pub fn dial(count: usize) -> String {
     text
 }
 
+pub fn task(count: usize) -> String {
+    let mut text = (1..=count)
+        .map(|index| format!("Task.T{index}.Pending, "))
+        .collect::<String>();
+    text.push_str("[Pending] Running, [Running] Done");
+    text
+}
+
 pub fn diner(count: usize) -> String {
     let mut term = (1..=count)
         .map(|index| format!("Think.D{index}, Fork.F{index}"))

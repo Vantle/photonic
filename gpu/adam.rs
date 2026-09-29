@@ -1,5 +1,5 @@
 use crate::failure::Failure;
-use crate::runtime::{Device, Memory};
+use metal::device::{Device, Memory};
 use network::model::Model;
 use network::optimizer::{Optimizer, Setting};
 

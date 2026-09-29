@@ -4,6 +4,7 @@ use std::time::Instant;
 use clap::Parser;
 use photonic::executor::Executor;
 use photonic::laser::Laser;
+use photonic::laser::ground::Ground;
 use photonic::runtime::{Limit, Runtime};
 use serde::{Deserialize, Serialize};
 
@@ -31,7 +32,7 @@ struct Argument {
         value_enum,
         default_value_t = Mode::Exhaustive,
         requires = "program",
-        help = "Explore every future, every schedule of plain events, or those schedules one commuting scope at a time"
+        help = "Explore every future, every schedule of plain events, those schedules one commuting part at a time, or every schedule through the net of parts"
     )]
     mode: Mode,
     #[arg(long, default_value_t = std::num::NonZeroUsize::MIN, help = "Threads Laser explores with")]
@@ -45,6 +46,7 @@ enum Mode {
     Exhaustive,
     Plain,
     Reduced,
+    Ground,
 }
 
 #[derive(Deserialize)]
@@ -87,8 +89,20 @@ fn laser(
     limit: Limit,
 ) -> Run {
     let start = Instant::now();
+    if matches!(mode, Mode::Ground) {
+        let explored = Ground::new(black_box(program))
+            .and_then(|mut ground| ground.explore(limit))
+            .expect("the program splits into parts");
+        return Run {
+            closed: explored.closed,
+            state: explored.configuration,
+            event: usize::try_from(explored.event).expect("fewer than 2^64 events"),
+            work: 0,
+            second: start.elapsed().as_secs_f64(),
+        };
+    }
     let mut laser = match mode {
-        Mode::Exhaustive => Laser::new(black_box(program)),
+        Mode::Exhaustive | Mode::Ground => Laser::new(black_box(program)),
         Mode::Plain => Laser::plain(black_box(program)),
         Mode::Reduced => Laser::reduced(black_box(program)),
     };

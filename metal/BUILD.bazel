@@ -4,31 +4,24 @@ load("@rules_rs//rs:rust_test.bzl", "rust_test")
 filegroup(
     name = "source",
     srcs = [
-        "absent.rs",
-        "adam.rs",
-        "batch.rs",
-        "delta.rs",
-        "engine.rs",
+        "device.rs",
         "failure.rs",
-        "gpu.rs",
-        "occurrence.rs",
-        "pipeline.rs",
-        "trace.rs",
+        "metal.rs",
+        "operand.rs",
+        "plain.rs",
     ],
 )
 
 rust_library(
-    name = "gpu",
+    name = "metal",
     srcs = [":source"],
-    compile_data = ["kernel.metal"],
-    crate_root = "gpu.rs",
+    crate_root = "metal.rs",
     lint_config = "//:lint",
-    visibility = ["//learning:__pkg__"],
-    deps = [
-        "//metal",
-        "//network",
-        "@crate//:thiserror",
+    visibility = [
+        "//gpu:__pkg__",
+        "//wave:__pkg__",
     ],
+    deps = ["@crate//:thiserror"],
 )
 
 # The macOS sandbox denies access to the GPU, so the tests would never reach a Metal device.
@@ -36,19 +29,14 @@ rust_test(
     name = "test",
     size = "small",
     srcs = [
-        "test/absent.rs",
-        "test/engine.rs",
+        "test/device.rs",
         "test/suite.rs",
-        "test/support.rs",
         ":source",
     ],
-    compile_data = ["kernel.metal"],
-    crate_root = "gpu.rs",
+    crate_root = "metal.rs",
     lint_config = "//:lint",
     tags = ["no-sandbox"],
     deps = [
-        "//metal",
-        "//network",
         "//random",
         "@crate//:thiserror",
     ],

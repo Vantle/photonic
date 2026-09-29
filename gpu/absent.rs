@@ -8,9 +8,9 @@ pub enum Engine {}
 
 impl Engine {
     pub fn new(_: &Model) -> Result<Self, Failure> {
-        Err(Failure::Unavailable(
+        Err(Failure::Metal(metal::failure::Failure::Unavailable(
             "Metal requires macOS on Apple hardware".to_owned(),
-        ))
+        )))
     }
 
     pub fn name(&self) -> &str {

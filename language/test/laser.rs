@@ -167,6 +167,80 @@ fn reduction() {
     }
 }
 
+// The net explores every schedule of plain events from tables of parts, and closes with the plain
+// engine's configurations, events, end configurations and cycles.
+#[test]
+fn ground() {
+    let limit = Limit {
+        record: usize::MAX,
+        ..Limit::default()
+    };
+    let family = [
+        crate::family::dial(3),
+        crate::family::dial(4),
+        crate::family::diner(3),
+        crate::family::diner(4),
+    ];
+    for source in family.iter().map(String::as_str).chain([
+        "A, [A] B",
+        "A, A, [A] B",
+        "A.B, A.C, [A, B] X, [A, C] Y",
+        "A.A.A.A, [A.A] B",
+        "A, K, [A] B, [[A] B] C, [C, K] D",
+        "B, [B] C, [C] B",
+        "[A.A] Z, B, [B] C, [C] B, (A, [Q] R)",
+        "Seed.Extra, [Seed] A, [A] Result",
+        "A, [A] (B, [B] C)",
+        "A,B, [A] (C, [C,B] D)",
+        "Seed.A.X, [Seed] (([A] B), ([A] C))",
+        "A.([A] B),A.([A] C)",
+        "A,A,A, [A,A] B",
+        "A.X, [A] (B, C), [X, X] X, [X.B.C] Done",
+        "Go.Y, K, [K] L, [Go] (X, [X] ().([Y] Z))",
+        "A, [A] (X, [X] Y), [Y] Z",
+        "Go.Y, [Go] (X, [X] ().([Y] Z))",
+        "Go.K, [Go] ().([K] A)",
+        "A, Key, [A] B, [B, Key] (C, [Q] R)",
+        "Case.(([P] True), ([P] False)), [Claim] Done, Claim",
+        "A, [A] B, [A] C, [C] A",
+        "Go, Go, [Go] (X, [X] Y)",
+        "Go.A, Go.B, [Go] (X, [X] Y), [Y.A] Z, [Y.B, Z] W",
+        "Go, Go, [Go] (X, [Q] R), [X] Y, [Y] X",
+        "Go, Go, Go, [Go] (X, [X] Y, [X] W)",
+        "Go, Go, [Go] (X, [Q] R), [X] Y, [X] W, [Y, W] Done",
+        "Go, Go, [X] Y, [Go] (A), [A.([X] Y)] Z",
+        "X.([A, C] B).A, C, C",
+        "A, A, A, [A, A, A] B",
+        "A.B, A.B, A, [A, A.B] C",
+        "Claim, [Claim] P.Work, [Work] Done, [P] X",
+    ]) {
+        let program = frontend::lowering::parse(source).unwrap();
+        let mut plain = Laser::plain(&program);
+        plain.run(100_000_000, limit);
+        let mut ground = super::ground::Ground::new(&program).unwrap();
+        let explored = ground.explore(limit).unwrap();
+        let summary = plain.summary();
+        assert_eq!(explored.closed, summary.closed, "{source}");
+        assert_eq!(explored.configuration, summary.state, "{source}");
+        assert_eq!(explored.event, summary.event as u64, "{source}");
+        let ending = plain.ending();
+        assert_eq!(explored.endless, Some(ending.endless), "{source}");
+        let mut expected = ending
+            .end
+            .iter()
+            .map(|&index| plain.state[index].canonical().state)
+            .collect::<Vec<_>>();
+        let mut found = explored
+            .end
+            .iter()
+            .map(|marking| ground.state(marking))
+            .collect::<Vec<_>>();
+        expected.sort();
+        found.sort();
+        assert_eq!(found, expected, "{source}");
+    }
+}
+
 #[test]
 fn family() {
     for count in [1, 2, 3, 4] {

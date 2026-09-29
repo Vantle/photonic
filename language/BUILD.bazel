@@ -16,6 +16,7 @@ rust_library(
         "//spectrum:__pkg__",
         "//toolchain/browser:__pkg__",
         "//translation:__pkg__",
+        "//wave:__pkg__",
     ],
     deps = [
         "//frontend",
@@ -227,6 +228,7 @@ filegroup(
         "laser/ending.rs",
         "laser/focus.rs",
         "laser/forest.rs",
+        "laser/ground.rs",
         "laser/independence.rs",
         "laser/layout.rs",
         "laser/passage.rs",

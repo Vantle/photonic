@@ -9,6 +9,7 @@ rust_library(
     visibility = [
         "//gpu:__pkg__",
         "//learning:__pkg__",
+        "//metal:__pkg__",
         "//network:__pkg__",
         "//symmetry:__pkg__",
         "//translation:__pkg__",

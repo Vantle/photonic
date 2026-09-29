@@ -1,6 +1,6 @@
 use crate::failure::{Defect, Failure};
 use crate::pipeline::TILE;
-use crate::runtime::{Device, Memory};
+use metal::device::{Device, Memory};
 use network::configuration::Configuration;
 use network::input::{Input, Pointer};
 use network::pack::Pack;

@@ -3,6 +3,7 @@ use std::time::Instant;
 
 use clap::Parser;
 use photonic::laser::Laser;
+use photonic::laser::ground::Ground;
 use photonic::runtime::{Limit, Runtime};
 use rayon::prelude::*;
 use serde::Serialize;
@@ -58,7 +59,8 @@ struct Reduction {
 // Laser runs on every program, so the census also finds programs that only Laser finishes; the
 // engines are compared where both close, where Laser closes its plain exploration must be the part
 // of its full one that matched events reach, and where the plain exploration closes the reduced one
-// must keep its end configurations and cycles.
+// must keep its end configurations and cycles. Every net the host explores is explored again on
+// Metal, where there is a device, and must agree number for number, limits included.
 #[derive(Serialize)]
 struct Outcome {
     name: String,
@@ -68,9 +70,33 @@ struct Outcome {
     verdict: Option<String>,
     plain: Option<String>,
     reduction: Option<Reduction>,
+    ground: Option<String>,
+    metal: Option<String>,
     state: usize,
     event: usize,
     inferred: usize,
+}
+
+fn metal(
+    device: &wave::engine::Engine,
+    program: &frontend::source::Program,
+    limit: Limit,
+) -> String {
+    let (mut theirs, mut ground) = match (Ground::new(program), Ground::new(program)) {
+        (Ok(theirs), Ok(ground)) => (theirs, ground),
+        (Err(unsupported), _) | (_, Err(unsupported)) => return format!("{unsupported}"),
+    };
+    let expected = match theirs.explore(limit) {
+        Ok(expected) => expected,
+        Err(unsupported) => return format!("{unsupported}"),
+    };
+    match device.explore(&mut ground, limit, true) {
+        Ok(explored) => match explored.agrees(&ground, &expected, &theirs) {
+            Ok(()) => "agrees".to_owned(),
+            Err(disagreement) => format!("{disagreement:?}"),
+        },
+        Err(failure) => format!("{failure}"),
+    }
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -90,11 +116,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         record: argument.record,
         ..Limit::default()
     };
+    let device = wave::engine::Engine::new().ok();
     let outcome = entry
         .par_iter()
         .map(|entry| {
             let mut plain = Laser::plain(&entry.program);
             plain.run(argument.allowance, limit);
+            let ground = plain.closed().then(|| match Ground::new(&entry.program) {
+                Err(unsupported) => format!("{unsupported}"),
+                Ok(mut ground) => match ground.explore(limit) {
+                    Err(unsupported) => format!("{unsupported}"),
+                    Ok(explored) => match explored.mirrors(&ground, &plain) {
+                        Ok(()) => "mirrors".to_owned(),
+                        Err(disagreement) => format!("{disagreement:?}"),
+                    },
+                },
+            });
+            let metal = device
+                .as_ref()
+                .map(|device| metal(device, &entry.program, limit));
             let reduction = plain.closed().then(|| {
                 let mut reduced = Laser::reduced(&entry.program);
                 reduced.run(argument.allowance, limit);
@@ -117,6 +157,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     verdict: None,
                     plain: None,
                     reduction,
+                    ground,
+                    metal,
                     state: summary.state,
                     event: summary.event,
                     inferred: summary.inferred,
@@ -158,6 +200,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 verdict,
                 plain,
                 reduction,
+                ground,
+                metal,
                 state: summary.state,
                 event: summary.event,
                 inferred: summary.inferred,
@@ -208,8 +252,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .flat_map(|outcome| &outcome.reduction)
         .filter(|reduction| reduction.reduced < reduction.plain)
         .count();
+    let mirror = outcome
+        .iter()
+        .filter(|outcome| outcome.ground.as_deref() == Some("mirrors"))
+        .count();
+    let grounded = outcome
+        .iter()
+        .filter(|outcome| outcome.ground.is_some())
+        .count();
+    let agreeing = outcome
+        .iter()
+        .filter(|outcome| outcome.metal.as_deref() == Some("agrees"))
+        .count();
+    let explored = outcome
+        .iter()
+        .filter(|outcome| outcome.metal.is_some())
+        .count();
     let reduction = format!(
-        "{preserve} of {reducible} reduced explorations preserve their plain ones, {smaller} of them smaller"
+        "{preserve} of {reducible} reduced explorations preserve their plain ones, {smaller} of them smaller; {mirror} of {grounded} nets mirror their plain explorations; {agreeing} of {explored} nets explore identically on Metal"
     );
     if argument.reduction {
         eprintln!("{} programs; {reduction}", outcome.len());
@@ -244,12 +304,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
     }
     for outcome in &outcome {
+        if let Some(ground) = outcome
+            .ground
+            .as_ref()
+            .filter(|ground| ground.as_str() != "mirrors")
+        {
+            eprintln!("ground {}: {ground}", outcome.name);
+        }
         if let Some(reduction) = outcome
             .reduction
             .as_ref()
             .filter(|reduction| reduction.verdict != "preserves")
         {
             eprintln!("reduced {}: {}", outcome.name, reduction.verdict);
+        }
+        if let Some(metal) = outcome
+            .metal
+            .as_ref()
+            .filter(|metal| metal.as_str() != "agrees")
+        {
+            eprintln!("metal {}: {metal}", outcome.name);
         }
     }
     println!("{}", serde_json::to_string_pretty(&outcome)?);

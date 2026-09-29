@@ -7,6 +7,7 @@ mod enclosure;
 pub mod ending;
 mod focus;
 mod forest;
+pub mod ground;
 mod independence;
 mod layout;
 mod passage;

@@ -14,7 +14,7 @@ fn malformed() {
     let model = Model::new(configuration.clone(), &mut generator);
     let mut engine = match Engine::new(&model) {
         Ok(engine) => engine,
-        Err(Failure::Unavailable(_)) => return,
+        Err(Failure::Metal(metal::failure::Failure::Unavailable(_))) => return,
         Err(error) => panic!("{error}"),
     };
     assert!(matches!(
@@ -96,7 +96,7 @@ fn agreement() {
     }
     let mut engine = match Engine::new(&model) {
         Ok(engine) => engine,
-        Err(Failure::Unavailable(_)) => return,
+        Err(Failure::Metal(metal::failure::Failure::Unavailable(_))) => return,
         Err(error) => panic!("{error}"),
     };
     let input = (0..9)
@@ -145,7 +145,7 @@ fn training() {
     }
     let mut engine = match Engine::new(&model) {
         Ok(engine) => engine,
-        Err(Failure::Unavailable(_)) => return,
+        Err(Failure::Metal(metal::failure::Failure::Unavailable(_))) => return,
         Err(error) => panic!("{error}"),
     };
     let sample = (0..7)

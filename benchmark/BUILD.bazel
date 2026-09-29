@@ -206,6 +206,7 @@ rust_binary(
     deps = [
         "//frontend",
         "//language:photonic",
+        "//wave",
         "@crate//:clap",
         "@crate//:rayon",
         "@crate//:serde",
@@ -245,6 +246,25 @@ rust_binary(
     deps = [
         "//frontend",
         "//language:measurement",
+        "@crate//:clap",
+        "@crate//:serde",
+        "@crate//:serde_json",
+    ],
+)
+
+rust_binary(
+    name = "wave",
+    srcs = [
+        "directory.rs",
+        "wave.rs",
+    ],
+    compile_data = ["//language:fixture"],
+    crate_root = "wave.rs",
+    lint_config = "//:lint",
+    deps = [
+        "//frontend",
+        "//language:photonic",
+        "//wave",
         "@crate//:clap",
         "@crate//:serde",
         "@crate//:serde_json",

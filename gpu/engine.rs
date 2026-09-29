@@ -3,10 +3,10 @@ use crate::batch::{Batch, Extent};
 use crate::delta::Delta;
 use crate::failure::Failure;
 use crate::occurrence::Occurrence;
-use crate::operand::{Operand, Product};
 use crate::pipeline::{Pipeline, TILE, dispatch, tiled};
-use crate::runtime::{Command, Device, Memory};
 use crate::trace::{Stage, Trace};
+use metal::device::{Command, Device, Memory};
+use metal::operand::{Operand, Product};
 use network::input::{Input, Output, Sample};
 use network::linear::Linear;
 use network::loss::{Loss, Weight, measure};
@@ -80,9 +80,9 @@ fn read(batch: &Batch, trace: &mut Trace, judge: usize) -> Vec<Output> {
 impl Engine {
     pub fn new(model: &Model) -> Result<Self, Failure> {
         if model.configuration().dimension() > CAPACITY {
-            return Err(Failure::Kernel(format!(
+            return Err(Failure::Metal(metal::failure::Failure::Kernel(format!(
                 "attention heads wider than {CAPACITY} exceed the kernel"
-            )));
+            ))));
         }
         let device = Device::open()?;
         let table = &model.embedding().table;
@@ -262,7 +262,7 @@ impl Engine {
             ],
             [weight.column, layer.row, 1],
         );
-        command.multiply(Product {
+        Ok(command.multiply(Product {
             left: operand(layer.input, 0, layer.row, weight.row, false),
             right: operand(
                 &self.parameter,
@@ -274,7 +274,7 @@ impl Engine {
             result: operand(layer.output, 0, layer.row, weight.column, false),
             alpha: 1.0,
             beta: 1.0,
-        })
+        })?)
     }
 
     fn project<'memory>(
@@ -285,13 +285,13 @@ impl Engine {
         span: Span,
         output: &'memory Memory,
     ) -> Result<(), Failure> {
-        command.multiply(Product {
+        Ok(command.multiply(Product {
             left: operand(input, 0, row, span.row, false),
             right: operand(&self.parameter, span.start, span.row, span.column, false),
             result: operand(output, 0, row, span.column, false),
             alpha: 1.0,
             beta: 0.0,
-        })
+        })?)
     }
 
     fn norm<'memory>(
@@ -560,13 +560,13 @@ impl Engine {
         output: &'memory Memory,
         accumulate: bool,
     ) -> Result<(), Failure> {
-        command.multiply(Product {
+        Ok(command.multiply(Product {
             left: operand(change, 0, row, span.column, false),
             right: operand(&self.parameter, span.start, span.row, span.column, true),
             result: operand(output, 0, row, span.row, false),
             alpha: 1.0,
             beta: if accumulate { 1.0 } else { 0.0 },
-        })
+        })?)
     }
 
     fn unnorm<'memory>(

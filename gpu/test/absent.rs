@@ -18,5 +18,8 @@ fn unavailable() {
         judge: 2,
     };
     let model = Model::new(configuration, &mut Generator::new(1));
-    assert!(matches!(Engine::new(&model), Err(Failure::Unavailable(_))));
+    assert!(matches!(
+        Engine::new(&model),
+        Err(Failure::Metal(metal::failure::Failure::Unavailable(_)))
+    ));
 }

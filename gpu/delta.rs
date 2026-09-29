@@ -1,6 +1,6 @@
 use crate::batch::Extent;
 use crate::failure::Failure;
-use crate::runtime::{Device, Memory};
+use metal::device::{Device, Memory};
 use network::configuration::Configuration;
 
 pub struct Delta {
