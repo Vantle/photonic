@@ -18,6 +18,7 @@ use crate::state::State;
 use crate::status::Status;
 use hashing::Builder;
 use indexmap::{IndexMap, IndexSet};
+use smallvec::SmallVec;
 use std::collections::HashMap;
 use std::ops::Range;
 use std::sync::Arc;
@@ -84,8 +85,16 @@ pub struct Net {
     single: HashMap<(u32, u32), Vec<Entry>, Builder>,
     join: HashMap<Makeup, Vec<Entry>, Builder>,
     pattern: Vec<Vec<Vec<Symbol>>>,
-    surface: HashMap<u32, Vec<Vec<Symbol>>, Builder>,
+    slot: Vec<(usize, usize)>,
+    surface: HashMap<u32, Surface, Builder>,
     work: usize,
+}
+
+// What a rule joining several coherences can bind of a kind: how many coherences of the root frame
+// a component of it holds, and the inputs, numbered across rules in order, that one could fill.
+struct Surface {
+    coherence: usize,
+    reach: Vec<usize>,
 }
 
 fn group(effect: impl IntoIterator<Item = Makeup>) -> Vec<Entry> {
@@ -106,34 +115,20 @@ fn group(effect: impl IntoIterator<Item = Makeup>) -> Vec<Entry> {
 // The kinds of a makeup after its consumed kinds give way to the produced ones; both lists and the
 // result are sorted.
 fn replace(kind: &[u32], consumed: &[u32], produced: &[u32]) -> Vec<u32> {
-    let mut kept = Vec::with_capacity(kind.len());
-    let mut taken = consumed.iter().peekable();
+    let mut result =
+        Vec::with_capacity((kind.len() + produced.len()).saturating_sub(consumed.len()));
+    let mut taken = consumed.iter().copied().peekable();
+    let mut added = produced.iter().copied().peekable();
     for &value in kind {
-        if taken.peek() == Some(&&value) {
-            taken.next();
+        if taken.next_if_eq(&value).is_some() {
             continue;
         }
-        kept.push(value);
-    }
-    let mut result = Vec::with_capacity(kept.len() + produced.len());
-    let (mut left, mut right) = (kept.iter().peekable(), produced.iter().peekable());
-    loop {
-        match (left.peek(), right.peek()) {
-            (Some(&&first), Some(&&second)) if first <= second => {
-                result.push(first);
-                left.next();
-            }
-            (_, Some(&&second)) => {
-                result.push(second);
-                right.next();
-            }
-            (Some(&&first), None) => {
-                result.push(first);
-                left.next();
-            }
-            (None, None) => break,
+        while let Some(next) = added.next_if(|&next| next < value) {
+            result.push(next);
         }
+        result.push(value);
     }
+    result.extend(added);
     result
 }
 
@@ -168,10 +163,10 @@ fn name(taxonomy: &mut Taxonomy, state: &State) -> Result<Makeup, Unsupported> {
     Ok(Makeup { root, kind })
 }
 
-// Whether some coherence of a kind's surface holds every value an input binds, so a component of
-// the kind could fill the input.
-fn fills(surface: &[Vec<Symbol>], input: &[Symbol]) -> bool {
-    surface
+// Whether some coherence of the root frame holds every value an input binds, so a component with
+// these coherences could fill the input.
+fn fills(coherence: &[Vec<Symbol>], input: &[Symbol]) -> bool {
+    coherence
         .iter()
         .any(|world| input.iter().all(|symbol| world.contains(symbol)))
 }
@@ -204,6 +199,11 @@ impl Net {
             .iter()
             .filter(|rule| rule.input.len() > 1)
             .map(|rule| rule.input.clone())
+            .collect::<Vec<_>>();
+        let slot = pattern
+            .iter()
+            .enumerate()
+            .flat_map(|(rule, input)| (0..input.len()).map(move |index| (rule, index)))
             .collect();
         Ok(Self {
             catalog: Arc::new(Catalog::new(&program)),
@@ -214,6 +214,7 @@ impl Net {
             single: HashMap::default(),
             join: HashMap::default(),
             pattern,
+            slot,
             surface: HashMap::default(),
             work: 0,
         })
@@ -345,7 +346,8 @@ impl Net {
             };
             self.lone.insert(root, entry);
         }
-        for (value, _) in run(kind) {
+        let run = run(kind);
+        for &(value, _) in &run {
             if !self.single.contains_key(&(root, value)) {
                 let Some(entry) = self.ground(root, &[value], allowance)? else {
                     return Ok(None);
@@ -354,7 +356,7 @@ impl Net {
             }
             self.survey(value);
         }
-        let part = self.candidate(root, kind);
+        let part = self.candidate(root, &run);
         for (makeup, _) in &part {
             if !self.join.contains_key(makeup) {
                 let Some(entry) = self.ground(root, &makeup.kind, allowance)? else {
@@ -418,69 +420,69 @@ impl Net {
     // The inputs of the joining rules, numbered across rules in order, that a coherence of the root
     // frame in a component of this kind could fill.
     pub fn reach(&self, kind: u32) -> Vec<usize> {
-        let surface = self.shape(kind);
-        self.pattern
-            .iter()
-            .flatten()
-            .enumerate()
-            .filter(|(_, input)| fills(&surface, input))
-            .map(|(index, _)| index)
-            .collect()
+        self.shape(kind).reach
     }
 
-    // The values held by each coherence of the root frame in a kind, which is all a rule joining
-    // several coherences can bind of it.
-    fn shape(&self, kind: u32) -> Vec<Vec<Symbol>> {
-        let state = self.taxonomy.kind(kind);
-        state
+    // The values held by each coherence of the root frame in a kind are all a rule joining several
+    // coherences can bind of it.
+    fn shape(&self, kind: u32) -> Surface {
+        let world = self
+            .taxonomy
+            .kind(kind)
             .world
             .iter()
             .filter(|world| world.frame == 0)
             .map(|world| world.particle.iter().map(|token| token.value).collect())
-            .collect()
+            .collect::<Vec<Vec<Symbol>>>();
+        Surface {
+            coherence: world.len(),
+            reach: self
+                .pattern
+                .iter()
+                .flatten()
+                .enumerate()
+                .filter(|(_, input)| fills(&world, input))
+                .map(|(index, _)| index)
+                .collect(),
+        }
     }
 
     // The parts, the root and two or more components, that some rule joining several coherences
     // could bind in a makeup of the root and these kinds, each with the number of ways to choose
     // its copies, whichever present kind each input of the rule picks. Every part is kept once,
-    // since its table holds the events of every rule that binds exactly those components.
-    fn candidate(&self, root: u32, kind: &[u32]) -> Vec<(Makeup, u64)> {
-        let present = run(kind)
-            .into_iter()
-            .filter(|(kind, _)| {
-                self.surface
-                    .get(kind)
-                    .is_some_and(|surface| !surface.is_empty())
-            })
-            .collect::<Vec<_>>();
-        if present.is_empty() {
-            return Vec::new();
+    // since its table holds the events of every rule that binds exactly those components. Each
+    // present kind offers itself to the inputs it reaches, in the makeup's order, so a rule no
+    // present kind reaches costs nothing.
+    fn candidate(&self, root: u32, run: &[(u32, usize)]) -> Vec<(Makeup, u64)> {
+        let mut offer = SmallVec::<[(usize, u32, usize); 16]>::new();
+        for &(value, count) in run {
+            offer.extend(
+                self.surface[&value]
+                    .reach
+                    .iter()
+                    .map(|&index| (index, value, count)),
+            );
         }
+        offer.sort_unstable_by_key(|&(index, value, _)| (index, value));
         let mut result = IndexMap::<Makeup, u64, Builder>::default();
-        for rule in &self.pattern {
-            let option = rule
-                .iter()
-                .map(|input| {
-                    present
-                        .iter()
-                        .filter(|(kind, _)| fills(&self.surface[kind], input))
-                        .copied()
-                        .collect::<Vec<_>>()
-                })
-                .collect::<Vec<_>>();
-            if option.iter().any(Vec::is_empty) {
+        for group in offer.chunk_by(|left, right| self.slot[left.0].0 == self.slot[right.0].0) {
+            let rule = self.slot[group[0].0].0;
+            let option = group
+                .chunk_by(|left, right| left.0 == right.0)
+                .collect::<SmallVec<[_; 4]>>();
+            if option.len() < self.pattern[rule].len() {
                 continue;
             }
             let range = option
                 .iter()
                 .map(|input| 0..input.len())
-                .collect::<Vec<_>>();
-            let mut index = vec![0; option.len()];
+                .collect::<SmallVec<[_; 4]>>();
+            let mut index = SmallVec::<[usize; 4]>::from_elem(0, option.len());
             loop {
-                let pick = index
-                    .iter()
-                    .zip(&option)
-                    .map(|(&position, input)| input[position]);
+                let pick = index.iter().zip(&option).map(|(&position, input)| {
+                    let (_, value, count) = input[position];
+                    (value, count)
+                });
                 self.bind(root, pick, &mut result);
                 if !step(&mut index, &range) {
                     break;
@@ -500,32 +502,39 @@ impl Net {
         pick: impl IntoIterator<Item = (u32, usize)>,
         result: &mut IndexMap<Makeup, u64, Builder>,
     ) {
-        let mut used = HashMap::<u32, (usize, usize), Builder>::default();
+        let mut pick = pick.into_iter().collect::<SmallVec<[(u32, usize); 4]>>();
+        pick.sort_unstable_by_key(|&(kind, _)| kind);
+        let mut chosen = SmallVec::<[(u32, usize, usize); 4]>::new();
         for (kind, count) in pick {
-            used.entry(kind).or_insert((0, count)).0 += 1;
+            match chosen.last_mut() {
+                Some((last, filled, _)) if *last == kind => *filled += 1,
+                _ => chosen.push((kind, 1, count)),
+            }
         }
-        let mut chosen = used.into_iter().collect::<Vec<_>>();
-        chosen.sort_unstable_by_key(|(kind, _)| *kind);
         let range = chosen
             .iter()
-            .map(|&(kind, (filled, count))| {
-                let low = if self.surface[&kind].len() > 1 {
+            .map(|&(kind, filled, count)| {
+                let low = if self.surface[&kind].coherence > 1 {
                     1
                 } else {
                     filled
                 };
                 low..filled.min(count) + 1
             })
-            .collect::<Vec<_>>();
+            .collect::<SmallVec<[_; 4]>>();
         if range.iter().any(Range::is_empty) {
             return;
         }
-        let mut taken = range.iter().map(|range| range.start).collect::<Vec<_>>();
+        let mut taken = range
+            .iter()
+            .map(|range| range.start)
+            .collect::<SmallVec<[_; 4]>>();
         loop {
-            if taken.iter().sum::<usize>() >= 2 {
-                let mut kind = Vec::new();
+            let size = taken.iter().sum::<usize>();
+            if size >= 2 {
+                let mut kind = Vec::with_capacity(size);
                 let mut choice = 1;
-                for (&(value, (_, count)), &number) in chosen.iter().zip(&taken) {
+                for (&(value, _, count), &number) in chosen.iter().zip(&taken) {
                     kind.extend(std::iter::repeat_n(value, number));
                     choice *= choose(count, number);
                 }
