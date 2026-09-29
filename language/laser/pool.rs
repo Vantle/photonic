@@ -17,6 +17,10 @@ const SHARD: usize = 64;
 
 const SINGLE: u64 = 1 << 63;
 
+const KIND: u32 = 61;
+
+const CONTAINER: u32 = 32;
+
 trait Single: Copy + Ord + Hash {
     fn encode(self) -> Option<u64>;
     fn decode(value: u64) -> Self;
@@ -42,15 +46,17 @@ impl Single for Place {
         };
         let container = u64::try_from(container)
             .ok()
-            .filter(|&value| value < 1 << 29)?;
-        let id = u64::try_from(id).ok().filter(|&value| value < 1 << 32)?;
-        Some(SINGLE | kind << 61 | container << 32 | id)
+            .filter(|&value| value < 1 << (KIND - CONTAINER))?;
+        let id = u64::try_from(id)
+            .ok()
+            .filter(|&value| value < 1 << CONTAINER)?;
+        Some(SINGLE | kind << KIND | container << CONTAINER | id)
     }
 
     fn decode(value: u64) -> Self {
-        let container = ((value >> 32) & ((1 << 29) - 1)) as usize;
-        let id = (value & ((1 << 32) - 1)) as usize;
-        match (value >> 61) & 3 {
+        let container = ((value >> CONTAINER) & ((1 << (KIND - CONTAINER)) - 1)) as usize;
+        let id = (value & ((1 << CONTAINER) - 1)) as usize;
+        match (value >> KIND) & 3 {
             0 => Self::World(container, id),
             1 => Self::Context(container, id),
             _ => Self::Held(container, id),
@@ -332,15 +338,15 @@ impl Pool {
         view(&self.world, world)
     }
 
-    pub fn carry(&self, basis: u64, event: usize, flow: &Passage) -> u64 {
-        direct(basis, |place| flow.place(place)).unwrap_or_else(|| {
+    pub fn carry(&self, basis: u64, event: usize, passage: &Passage) -> u64 {
+        direct(basis, |place| passage.place(place)).unwrap_or_else(|| {
             lookup(&self.image[event].basis, basis)
                 .expect("every image is prepared before a carry reads it")
         })
     }
 
-    pub fn follow(&self, world: u64, event: usize, flow: &Passage) -> u64 {
-        direct(world, |index| flow.world(index)).unwrap_or_else(|| {
+    pub fn follow(&self, world: u64, event: usize, passage: &Passage) -> u64 {
+        direct(world, |index| passage.world(index)).unwrap_or_else(|| {
             lookup(&self.image[event].world, world)
                 .expect("every image is prepared before a carry reads it")
         })
@@ -351,52 +357,55 @@ impl Pool {
         event: usize,
         basis: impl Iterator<Item = u64>,
         world: u64,
-        flow: &Passage,
+        passage: &Passage,
         demand: &mut Demand,
     ) {
         let image = self.image.get(event);
         for id in basis {
-            if direct(id, |place| flow.place(place)).is_some()
+            if direct(id, |place| passage.place(place)).is_some()
                 || image.is_some_and(|image| lookup(&image.basis, id).is_some())
             {
                 continue;
             }
             demand.basis.push(id);
         }
-        if direct(world, |index| flow.world(index)).is_none()
+        if direct(world, |index| passage.world(index)).is_none()
             && image.is_none_or(|image| lookup(&image.world, world).is_none())
         {
             demand.world.push(world);
         }
     }
 
-    pub fn prepare<'flow>(
+    pub fn prepare(
         &mut self,
         executor: Option<&Executor>,
         demand: Vec<(usize, Demand)>,
-        flow: impl Fn(usize) -> &'flow Passage + Sync + Send,
+        passage: &[Passage],
     ) {
         let computed = map(executor, demand, |(event, mut demand)| {
             demand.settle();
-            let flow = flow(event);
-            let mut place = Vec::new();
-            let mut site = Vec::new();
+            let mut resource = Vec::new();
+            let mut context = Vec::new();
             Computed {
                 event,
                 basis: demand
                     .basis
                     .into_iter()
                     .map(|id| {
-                        let part = |value: Place| flow.resource(value);
-                        (id, image(&self.basis, &self.place(id), &mut place, part))
+                        let found = image(&self.basis, &self.place(id), &mut resource, |value| {
+                            passage[event].resource(value)
+                        });
+                        (id, found)
                     })
                     .collect(),
                 world: demand
                     .world
                     .into_iter()
                     .map(|id| {
-                        let part = |value: usize| flow.context(value);
-                        (id, image(&self.world, &self.site(id), &mut site, part))
+                        let found = image(&self.world, &self.site(id), &mut context, |value| {
+                            passage[event].context(value)
+                        });
+                        (id, found)
                     })
                     .collect(),
             }

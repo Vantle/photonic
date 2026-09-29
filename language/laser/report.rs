@@ -60,6 +60,16 @@ fn place(state: &State) -> impl Iterator<Item = Place> + '_ {
     world.chain(frame)
 }
 
+// Where an event's binding lies, named as the report names its source: the coherences it binds and
+// the places of its footprint, of its exact match and of what it reads.
+#[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub(super) struct Placement {
+    pub world: Vec<usize>,
+    pub footprint: Vec<Place>,
+    pub exact: Vec<Place>,
+    pub read: Vec<Place>,
+}
+
 fn rename(named: &Canonical, set: &Set<Place>) -> Vec<Place> {
     let mut list = set
         .iter()
@@ -74,11 +84,24 @@ impl Laser {
         self.state.iter().map(|state| state.canonical()).collect()
     }
 
-    pub(super) fn derived(&self) -> Option<Deduction> {
-        (!self.closed()).then(|| Deduction::derive(self))
+    pub(super) fn placement(&self, index: usize, named: &[Canonical]) -> Placement {
+        let binding = &self.identity(index).binding;
+        let source = &named[self.event[index].source];
+        let mut world = binding
+            .world
+            .iter()
+            .map(|&world| source.world[world].expect("a bound world survives renaming"))
+            .collect::<Vec<_>>();
+        world.sort_unstable();
+        Placement {
+            world,
+            footprint: rename(source, &binding.footprint),
+            exact: rename(source, &binding.exact),
+            read: rename(source, &binding.read),
+        }
     }
 
-    pub(super) fn transition(
+    fn transition(
         &self,
         index: usize,
         named: &[Canonical],
@@ -86,24 +109,21 @@ impl Laser {
         deduction: &Deduction,
     ) -> Transition {
         let event = &self.event[index];
-        let identity = self.identity(index);
-        let binding = &identity.binding;
-        let source = &named[event.source];
-        let mut world = binding
-            .world
-            .iter()
-            .map(|&index| source.world[index].expect("a bound world survives renaming"))
-            .collect::<Vec<_>>();
-        world.sort_unstable();
+        let Placement {
+            world,
+            footprint,
+            exact,
+            read,
+        } = self.placement(index, named);
         Transition {
             id: index,
             source: event.source,
             target: event.target,
-            rule: identity.rule,
+            rule: self.identity(index).rule,
             status,
-            footprint: rename(source, &binding.footprint),
-            exact: rename(source, &binding.exact),
-            read: rename(source, &binding.read),
+            footprint,
+            exact,
+            read,
             inferred: !event.direct,
             deduction: deduction.get(index),
             world,
@@ -145,7 +165,7 @@ impl Laser {
     pub fn report(&self) -> Report {
         let named = self.name();
         let (state, event) = self.status();
-        let derived = self.derived();
+        let derived = (!self.closed()).then(|| Deduction::derive(self));
         let deduction = derived.as_ref().unwrap_or(&self.deduction);
         let mut builder = Builder::new(&self.program);
         Report {

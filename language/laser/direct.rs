@@ -10,7 +10,7 @@ use std::collections::{HashMap, HashSet};
 // of each configuration that still has events not known to be direct. The graph has an edge for
 // every crossing, so its nodes are numbered in 32 bits.
 fn number(value: usize) -> u32 {
-    u32::try_from(value).expect("fewer than 2^32 traces")
+    u32::try_from(value).expect("fewer than 2^32 nodes")
 }
 
 fn component(successor: &[Vec<u32>]) -> Vec<usize> {
@@ -226,20 +226,16 @@ pub(super) fn mark(laser: &mut Laser, executor: Option<&Executor>) {
     }
     let label = component(&successor);
     let cyclic = cyclic(laser, &label);
-    if !cyclic
-        .iter()
-        .zip(&open)
-        .any(|(&cyclic, &open)| cyclic && open)
-    {
+    let start = (0..laser.state.len())
+        .filter(|&state| cyclic[state] && open[state])
+        .collect::<Vec<_>>();
+    if start.is_empty() {
         return;
     }
     let graph = graph(laser, executor, &label, &cyclic, &open);
     let group = component(&graph.edge);
     let dag = condense(&graph.edge, &group);
-    let origin = (0..laser.state.len())
-        .filter(|&state| cyclic[state] && open[state])
-        .collect::<Vec<_>>();
-    let found = map(executor, origin, |state| {
+    let found = map(executor, start, |state| {
         search(laser, &graph, &group, &dag, state)
     });
     for event in found.into_iter().flatten() {

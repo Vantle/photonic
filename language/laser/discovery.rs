@@ -27,11 +27,11 @@ impl Laser {
     }
 
     fn seed(&mut self, index: usize, found: &[scan::Match]) {
-        let state = self.state[index].clone();
+        let state = &self.state[index];
         for found in found {
-            let capture = Capture::new(found.owner, &state, index, &mut self.pool)
+            let capture = Capture::new(found.owner, state, index, &mut self.pool)
                 .map(|capture| self.capture.share(Arc::new(capture)));
-            if let Some(trace) = Trace::initial(found, &state, capture, &mut self.pool) {
+            if let Some(trace) = Trace::initial(found, state, capture, &mut self.pool) {
                 self.trace[index].insert(trace);
             }
         }

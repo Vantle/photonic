@@ -28,7 +28,7 @@ use crate::application::Owner;
 use crate::catalog::Catalog;
 use crate::executor::Executor;
 use crate::flow::Binding;
-use crate::prism::Verdict;
+use crate::prism::{Outcome, Verdict};
 use crate::program::Program;
 use crate::runtime::Limit;
 use crate::state::{Canonical, State};
@@ -41,7 +41,6 @@ use indexmap::{IndexMap, IndexSet};
 use layout::Layout;
 use passage::Passage;
 use pool::Pool;
-use serde::Serialize;
 use space::Space;
 use std::collections::HashMap;
 use std::num::NonZeroU32;
@@ -108,7 +107,7 @@ pub enum Disagreement {
     Work { reference: usize, laser: usize },
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Summary {
     pub closed: bool,
     pub state: usize,
@@ -123,7 +122,7 @@ pub struct Summary {
 pub struct Laser {
     program: Arc<Program>,
     catalog: Arc<Catalog>,
-    pub(crate) state: Vec<Arc<State>>,
+    state: Vec<Arc<State>>,
     makeup: Vec<Arc<Makeup>>,
     layout: Vec<Option<Arc<Layout>>>,
     taxonomy: Taxonomy,
@@ -207,7 +206,7 @@ impl Laser {
             passage: Vec::new(),
             crossed: Vec::new(),
             capture: capture::Store::default(),
-            environment: Mutex::new(HashMap::default()),
+            environment: Mutex::default(),
             pool: Pool::default(),
             blocked: HashMap::default(),
             support: None,
@@ -227,7 +226,7 @@ impl Laser {
         let state = Arc::new(laser.taxonomy.materialize(&makeup));
         let layout = laser
             .taxonomy
-            .hub(&makeup)
+            .split(&makeup)
             .then(|| Arc::new(Layout::new(&laser.taxonomy, &makeup)));
         let makeup = Arc::new(makeup);
         let index = laser.push(state, makeup.clone(), layout);
@@ -288,16 +287,16 @@ impl Laser {
         let candidate = self
             .taxonomy
             .find(&state)
-            .and_then(|makeup| self.space.find(space::hash(&makeup), &makeup));
+            .and_then(|makeup| self.space.find(&makeup));
         let (status, _) = self.status();
         let outcome = match candidate.map(|index| status[index]) {
-            Some(Status::Supported) => crate::prism::Outcome::Reached,
-            _ if self.closed() => crate::prism::Outcome::Unreachable,
-            _ => crate::prism::Outcome::Unknown,
+            Some(Status::Supported) => Outcome::Reached,
+            _ if self.closed() => Outcome::Unreachable,
+            _ => Outcome::Unknown,
         };
         Verdict {
             outcome,
-            witness: candidate.filter(|_| outcome == crate::prism::Outcome::Reached),
+            witness: candidate.filter(|_| outcome == Outcome::Reached),
         }
     }
 
@@ -328,17 +327,28 @@ impl Laser {
             remaining = remaining.saturating_sub(work.max(1));
         }
         if open && self.closed() {
-            self.pool.release();
-            direct::mark(self, executor);
-            self.support = Some(support::establish(self, executor));
-            self.deduction = Deduction::derive(self);
-            self.trace = Vec::new();
-            self.traced = 0;
-            self.parent = Vec::new();
-            self.link = Vec::new();
-            self.crossed = Vec::new();
-            self.capture = capture::Store::default();
+            self.close(executor);
         }
+    }
+
+    // Closing settles which events are direct, what is supported and the deductions, then keeps
+    // what later questions read and releases what only traces reach: the traces, their links,
+    // crossings, captures and bases, the environments they identify with and the transitions
+    // firing learned. The images go first, before the closing passes allocate.
+    fn close(&mut self, executor: Option<&Executor>) {
+        self.pool.release();
+        direct::mark(self, executor);
+        self.support = Some(support::establish(self, executor));
+        self.deduction = Deduction::derive(self);
+        self.trace = Vec::new();
+        self.traced = 0;
+        self.parent = Vec::new();
+        self.link = Vec::new();
+        self.crossed = Vec::new();
+        self.capture = capture::Store::default();
+        self.pool = Pool::default();
+        self.environment = Mutex::default();
+        self.memo = HashMap::default();
     }
 
     // A record is a configuration, an event or a trace, the parts that grow with exploration;

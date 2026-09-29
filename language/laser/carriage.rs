@@ -161,8 +161,7 @@ impl Laser {
 
     fn prepare(&mut self, executor: Option<&Executor>, demand: Vec<(usize, Demand)>) {
         let _scope = profile::Scope::new(profile::Phase::Imaging);
-        let passage = &self.passage;
-        self.pool.prepare(executor, demand, |index| &passage[index]);
+        self.pool.prepare(executor, demand, &self.passage);
     }
 
     fn carry(&self, executor: Option<&Executor>, crossing: Vec<Crossing>) -> Vec<Carried> {
@@ -184,14 +183,14 @@ impl Laser {
         let event = &self.event[crossing.event];
         let set = &self.trace[event.target];
         let known = &self.trace[event.source];
+        let passage = &self.passage[crossing.event];
         let mut count = 0;
         let mut list = Vec::new();
         let landing = crossing
             .range
             .map(|position| {
-                let flow = &self.passage[crossing.event];
                 let Some(carried) =
-                    set[position].carry(crossing.event, flow, &self.pool, &self.capture)
+                    set[position].carry(crossing.event, passage, &self.pool, &self.capture)
                 else {
                     return Landing::Lost;
                 };

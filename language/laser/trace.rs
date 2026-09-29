@@ -12,7 +12,7 @@ use std::collections::BTreeSet;
 use std::sync::Arc;
 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub(super) struct Occurrence {
+struct Occurrence {
     basis: u64,
     value: Symbol,
     capture: Option<usize>,
@@ -66,8 +66,8 @@ impl Trace {
         })
     }
 
-    pub fn need(&self, event: usize, flow: &Passage, pool: &Pool, demand: &mut Demand) {
-        if flow.frame(self.frame).is_none() {
+    pub fn need(&self, event: usize, passage: &Passage, pool: &Pool, demand: &mut Demand) {
+        if passage.frame(self.frame).is_none() {
             return;
         }
         let capture = self.capture.iter().flat_map(|capture| capture.basis());
@@ -77,24 +77,24 @@ impl Trace {
             .map(|value| value.basis)
             .chain([self.read])
             .chain(capture);
-        pool.demand(event, basis, self.world, flow, demand);
+        pool.demand(event, basis, self.world, passage, demand);
     }
 
     pub fn carry(
         &self,
         event: usize,
-        flow: &Passage,
+        passage: &Passage,
         pool: &Pool,
         store: &capture::Store,
     ) -> Option<Self> {
-        let frame = flow.frame(self.frame)?;
+        let frame = passage.frame(self.frame)?;
         let mut occurrence = self
             .occurrence
             .iter()
             .map(|value| Occurrence {
-                basis: pool.carry(value.basis, event, flow),
+                basis: pool.carry(value.basis, event, passage),
                 value: value.value,
-                capture: value.capture.and_then(|capture| flow.frame(capture)),
+                capture: value.capture.and_then(|capture| passage.frame(capture)),
             })
             .collect::<SmallVec<[Occurrence; 4]>>();
         occurrence.sort_unstable();
@@ -104,9 +104,9 @@ impl Trace {
             capture: self
                 .capture
                 .as_ref()
-                .map(|capture| store.carry(capture, event, flow, pool)),
-            read: pool.carry(self.read, event, flow),
-            world: pool.follow(self.world, event, flow),
+                .map(|capture| store.carry(capture, event, passage, pool)),
+            read: pool.carry(self.read, event, passage),
+            world: pool.follow(self.world, event, passage),
             occurrence,
         })
     }

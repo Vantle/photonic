@@ -39,21 +39,13 @@ pub(super) struct Effect {
     pub passage: Passage,
 }
 
-fn touch(layout: &Layout, place: Place, involved: &mut SmallVec<[usize; 4]>) {
-    if let Site::Part(part) = layout.site(place) {
-        involved.push(part);
-    }
-}
-
-// The parts an event touches: those holding the coherences and places it binds, the frame where it
-// fires and the frame that owns its rule; the root is not a part.
 pub(super) fn involve(
     layout: &Layout,
     frame: usize,
     owner: usize,
     binding: &Binding,
 ) -> SmallVec<[usize; 4]> {
-    let mut involved = SmallVec::<[usize; 4]>::new();
+    let mut involved = SmallVec::new();
     involved.extend(binding.world.iter().map(|&world| layout.world(world)));
     for &place in binding
         .footprint
@@ -61,7 +53,9 @@ pub(super) fn involve(
         .chain(&binding.exact)
         .chain(&binding.read)
     {
-        touch(layout, place, &mut involved);
+        if let Site::Part(part) = layout.site(place) {
+            involved.push(part);
+        }
     }
     for index in [frame, owner] {
         if let Site::Part(part) = layout.frame(index) {
@@ -87,7 +81,7 @@ pub(super) fn localize(
         .iter()
         .map(|&part| makeup.kind[part])
         .collect::<SmallVec<[u32; 4]>>();
-    let sub = Layout::of(taxonomy, makeup.root, kind.iter().copied());
+    let sub = Layout::of(taxonomy, makeup.root, &kind);
     let position = |part: usize| {
         involved
             .binary_search(&part)

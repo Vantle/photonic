@@ -33,6 +33,14 @@ pub fn cyclic<Next: Iterator<Item = usize>>(
     cycle(count, |node| outgoing(node).map(|target| ((), target))).is_some()
 }
 
+// Where a depth-first search stands with a configuration: not reached yet, inside it, or past it.
+#[derive(Clone, Copy)]
+enum Visit {
+    Unseen,
+    Open,
+    Done,
+}
+
 // A run from the first of count configurations that goes on forever, which a search following
 // edges depth first finds when it meets a configuration it is still inside: that configuration,
 // and the edges from the first one around to it.
@@ -43,28 +51,28 @@ pub fn cycle<Edge, Next: Iterator<Item = (Edge, usize)>>(
     if count == 0 {
         return None;
     }
-    let mut color = vec![0u8; count];
+    let mut visit = vec![Visit::Unseen; count];
     let mut stack = vec![(0, outgoing(0))];
     let mut trail = Vec::new();
-    color[0] = 1;
+    visit[0] = Visit::Open;
     while let Some((node, next)) = stack.last_mut() {
         let Some((edge, target)) = next.next() else {
-            color[*node] = 2;
+            visit[*node] = Visit::Done;
             stack.pop();
             trail.pop();
             continue;
         };
-        match color[target] {
-            0 => {
-                color[target] = 1;
+        match visit[target] {
+            Visit::Unseen => {
+                visit[target] = Visit::Open;
                 trail.push(edge);
                 stack.push((target, outgoing(target)));
             }
-            1 => {
+            Visit::Open => {
                 trail.push(edge);
                 return Some((target, trail));
             }
-            _ => {}
+            Visit::Done => {}
         }
     }
     None

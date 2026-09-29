@@ -112,6 +112,11 @@ impl Default for Taxonomy {
     }
 }
 
+// Roots and kinds are numbered in 32 bits.
+fn number(id: usize) -> u32 {
+    u32::try_from(id).expect("fewer than 2^32 roots and kinds")
+}
+
 fn size(state: &State) -> Size {
     let mut token = state
         .world
@@ -134,19 +139,14 @@ fn hub(state: &State) -> (Frame, Vec<(usize, usize)>) {
     let frame = &state.frame[0];
     let mut incidence =
         HashMap::<usize, (Symbol, Option<usize>, SmallVec<[Link; 2]>), Builder>::default();
-    for token in &frame.held {
+    let held = frame.held.iter().map(|token| (token, Link::Holder));
+    let particle = frame.particle.iter().map(|token| (token, Link::Owner));
+    for (token, link) in held.chain(particle) {
         incidence
             .entry(token.id)
             .or_insert_with(|| (token.value, token.capture, SmallVec::new()))
             .2
-            .push(Link::Holder);
-    }
-    for token in &frame.particle {
-        incidence
-            .entry(token.id)
-            .or_insert_with(|| (token.value, token.capture, SmallVec::new()))
-            .2
-            .push(Link::Owner);
+            .push(link);
     }
     let mut order = incidence.into_iter().collect::<Vec<_>>();
     order.sort_by(|left, right| left.1.cmp(&right.1).then_with(|| left.0.cmp(&right.0)));
@@ -224,20 +224,19 @@ impl Taxonomy {
     }
 
     pub fn find(&self, state: &State) -> Option<Makeup> {
-        let number = |id: usize| u32::try_from(id).ok();
         match self.analyze(state) {
             Draft::Whole(canonical) => Some(Makeup {
-                root: number(self.root.get_index_of(&Root::Whole(canonical.state))?)?,
+                root: number(self.root.get_index_of(&Root::Whole(canonical.state))?),
                 kind: Vec::new(),
             }),
             Draft::Split { root, piece, .. } => {
                 let mut kind = piece
                     .iter()
-                    .map(|piece| number(self.kind.get_index_of(&piece.named.state)?))
+                    .map(|piece| self.kind.get_index_of(&piece.named.state).map(number))
                     .collect::<Option<Vec<_>>>()?;
                 kind.sort_unstable();
                 Some(Makeup {
-                    root: number(self.root.get_index_of(&Root::Hub(root))?)?,
+                    root: number(self.root.get_index_of(&Root::Hub(root))?),
                     kind,
                 })
             }
@@ -271,25 +270,17 @@ impl Taxonomy {
         match draft {
             Draft::Whole(canonical) => {
                 let root = Root::Whole(canonical.state.clone());
-                let id = self.root.insert_full(root, 0).0;
-                (
-                    u32::try_from(id).expect("fewer than 2^32 roots"),
-                    Vec::new(),
-                )
+                (number(self.root.insert_full(root, 0).0), Vec::new())
             }
             Draft::Split {
                 root,
                 rename,
                 piece,
             } => {
-                let id = match self.root.get_index_of(&Root::Hub(root.clone())) {
-                    Some(id) => id,
-                    None => {
-                        self.root
-                            .insert_full(Root::Hub(root.clone()), rename.len())
-                            .0
-                    }
-                };
+                let id = self
+                    .root
+                    .insert_full(Root::Hub(root.clone()), rename.len())
+                    .0;
                 let kind = piece
                     .iter()
                     .map(|piece| {
@@ -298,10 +289,10 @@ impl Taxonomy {
                             Some(id) => id,
                             None => self.kind.insert_full(state.clone(), size(state)).0,
                         };
-                        u32::try_from(id).expect("fewer than 2^32 kinds")
+                        number(id)
                     })
                     .collect();
-                (u32::try_from(id).expect("fewer than 2^32 roots"), kind)
+                (number(id), kind)
             }
         }
     }
@@ -316,7 +307,8 @@ impl Taxonomy {
         })
     }
 
-    pub fn hub(&self, makeup: &Makeup) -> bool {
+    // Whether a configuration is named by its parts, not whole.
+    pub fn split(&self, makeup: &Makeup) -> bool {
         matches!(self.root(makeup.root), Root::Hub(_))
     }
 
@@ -344,20 +336,20 @@ impl Taxonomy {
         kind: &[u32],
         original: (usize, usize),
     ) -> (Makeup, Renaming) {
-        let Draft::Split { rename, piece, .. } = draft else {
-            let Draft::Whole(canonical) = draft else {
-                unreachable!("a draft is whole or split")
-            };
-            let makeup = Makeup {
-                root,
-                kind: Vec::new(),
-            };
-            let renaming = Renaming {
-                world: canonical.world,
-                frame: canonical.frame,
-                resource: canonical.resource,
-            };
-            return (makeup, renaming);
+        let (rename, piece) = match draft {
+            Draft::Whole(canonical) => {
+                let makeup = Makeup {
+                    root,
+                    kind: Vec::new(),
+                };
+                let renaming = Renaming {
+                    world: canonical.world,
+                    frame: canonical.frame,
+                    resource: canonical.resource,
+                };
+                return (makeup, renaming);
+            }
+            Draft::Split { rename, piece, .. } => (rename, piece),
         };
         let mut order = (0..piece.len()).collect::<Vec<_>>();
         order.sort_by_key(|&index| kind[index]);
@@ -365,26 +357,29 @@ impl Taxonomy {
         let mut frame = vec![None; original.1];
         frame[0] = Some(0);
         let mut resource = rename;
-        let mut offset = (0, 1, self.token(root));
+        let mut start = Size {
+            world: 0,
+            frame: 1,
+            token: self.token(root),
+            occurrence: 0,
+        };
         for &index in &order {
             let piece = &piece[index];
             let size = self.kind(kind[index]).1;
             for (position, &original) in piece.world.iter().enumerate() {
                 let named = piece.named.world[position].expect("a named kind keeps its worlds");
-                world[original] = Some(offset.0 + named);
+                world[original] = Some(start.world + named);
             }
             for (position, &original) in piece.frame.iter().enumerate() {
                 let named = piece.named.frame[position + 1].expect("a named kind keeps its frames");
-                frame[original] = Some(offset.1 + named - 1);
+                frame[original] = Some(start.frame + named - 1);
             }
             for &(original, normalized) in &piece.normal {
-                resource.push((original, offset.2 + piece.named.resource[&normalized]));
+                resource.push((original, start.token + piece.named.resource[&normalized]));
             }
-            offset = (
-                offset.0 + size.world,
-                offset.1 + size.frame,
-                offset.2 + size.token,
-            );
+            start.world += size.world;
+            start.frame += size.frame;
+            start.token += size.token;
         }
         let makeup = Makeup {
             root,
@@ -405,34 +400,34 @@ impl Taxonomy {
         };
         let mut world = Vec::new();
         let mut frame = vec![Arc::new(root)];
-        let mut offset = (1, self.token(makeup.root));
+        let mut base = 0;
+        let mut shift = self.token(makeup.root);
         for &kind in &makeup.kind {
             let (state, size) = self.kind(kind);
-            let base = offset.0 - 1;
-            let shift = offset.1;
-            let place = |index: usize| if index == 0 { 0 } else { base + index };
+            let lift = |index: usize| if index == 0 { 0 } else { base + index };
             let token = |token: &Token| Token {
                 id: token.id + shift,
                 value: token.value,
-                capture: token.capture.map(place),
+                capture: token.capture.map(lift),
             };
             for value in state.frame.iter().skip(1) {
                 let particle = value.particle.iter().map(token).collect::<Vec<_>>();
                 frame.push(Arc::new(Frame {
                     scope: value.scope,
-                    parent: value.parent.map(place),
-                    lexical: value.lexical.map(place),
+                    parent: value.parent.map(lift),
+                    lexical: value.lexical.map(lift),
                     particle: particle.into(),
                     held: value.held.iter().map(token).collect(),
                 }));
             }
             for value in &state.world {
                 world.push(Arc::new(World {
-                    frame: place(value.frame),
+                    frame: lift(value.frame),
                     particle: value.particle.iter().map(token).collect(),
                 }));
             }
-            offset = (offset.0 + size.frame, offset.1 + size.token);
+            base += size.frame;
+            shift += size.token;
         }
         State {
             world: world.into_iter().collect(),

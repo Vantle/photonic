@@ -1,10 +1,11 @@
 use super::net::{Exploration, Net};
+use super::report::Placement;
 use super::{Disagreement, Laser};
 use crate::place::Place;
 use crate::program::Symbol;
 use crate::runtime::Runtime;
-use crate::snapshot::Link;
-use crate::state::{State, Token};
+use crate::snapshot::{Link, Snapshot};
+use crate::state::{Canonical, State, Token};
 use crate::status::Status;
 use std::collections::{BTreeMap, HashMap, HashSet};
 
@@ -23,19 +24,18 @@ fn value(token: &Token) -> (Symbol, bool) {
 }
 
 fn class(state: &State, place: Place) -> Class {
-    let (kind, container) = match place {
-        Place::World(index, _) => (0, state.world[index].particle.iter().collect::<Vec<_>>()),
-        Place::Context(index, _) | Place::Held(index, _) => {
-            let frame = &state.frame[index];
-            let kind = if matches!(place, Place::Context(..)) {
-                1
-            } else {
-                2
-            };
-            (kind, frame.particle.iter().chain(&frame.held).collect())
-        }
+    let (kind, mut container) = match place {
+        Place::World(index, _) => (
+            0,
+            state.world[index]
+                .particle
+                .iter()
+                .map(value)
+                .collect::<Vec<_>>(),
+        ),
+        Place::Context(index, _) => (1, state.frame[index].token().map(value).collect()),
+        Place::Held(index, _) => (2, state.frame[index].token().map(value).collect()),
     };
-    let mut container = container.into_iter().map(value).collect::<Vec<_>>();
     container.sort_unstable();
     Class {
         kind,
@@ -66,13 +66,19 @@ struct Key {
     source: usize,
     target: usize,
     rule: usize,
-    world: Vec<usize>,
-    footprint: Vec<Place>,
-    exact: Vec<Place>,
-    read: Vec<Place>,
+    placement: Placement,
     direct: bool,
     supported: bool,
     resource: Vec<(Class, Vec<Class>)>,
+}
+
+// How many times each value occurs.
+fn tally<Value: Ord>(value: impl IntoIterator<Item = Value>) -> BTreeMap<Value, usize> {
+    let mut tally = BTreeMap::new();
+    for value in value {
+        *tally.entry(value).or_default() += 1;
+    }
+    tally
 }
 
 fn difference<Value: Ord>(
@@ -85,6 +91,47 @@ fn difference<Value: Ord>(
             .sum::<usize>()
     };
     (count(reference, observed), count(observed, reference))
+}
+
+// Two lists of end configurations agree when they hold the same configurations in the same order.
+fn end(wanted: &[State], found: &[State]) -> Result<(), Disagreement> {
+    if wanted == found {
+        return Ok(());
+    }
+    Err(Disagreement::Configuration {
+        missing: wanted.iter().filter(|state| !found.contains(state)).count(),
+        extra: found.iter().filter(|state| !wanted.contains(state)).count(),
+    })
+}
+
+// The interpreter's events as keys, with the places its snapshot names.
+fn expected(runtime: &Runtime, snapshot: Snapshot) -> BTreeMap<Key, usize> {
+    let Snapshot { event, view, .. } = snapshot;
+    tally(event.into_iter().map(|event| {
+        let direct = event
+            .evidence
+            .iter()
+            .any(|&index| view[index].source == view[index].target);
+        let resource = shape(
+            &runtime.state[event.source],
+            &runtime.state[event.target],
+            &runtime.resource(event.id).unwrap_or_default(),
+        );
+        Key {
+            source: event.source,
+            target: event.target,
+            rule: event.rule,
+            placement: Placement {
+                world: event.world,
+                footprint: event.footprint,
+                exact: event.exact,
+                read: event.read,
+            },
+            direct,
+            supported: event.status == Status::Supported,
+            resource,
+        }
+    }))
 }
 
 impl Laser {
@@ -118,7 +165,7 @@ impl Laser {
             .map(|(index, state)| (state.as_ref(), index))
             .collect::<HashMap<&State, usize>>();
         let snapshot = runtime.snapshot();
-        let (state, status) = self.status();
+        let (state, event) = self.status();
         let differ = named
             .iter()
             .zip(&state)
@@ -129,55 +176,24 @@ impl Laser {
                 configuration: differ,
             });
         }
-        let mut expected = BTreeMap::<Key, usize>::new();
-        for event in &snapshot.event {
-            let direct = event
-                .evidence
-                .iter()
-                .any(|&view| snapshot.view[view].source == snapshot.view[view].target);
-            let key = Key {
-                source: event.source,
-                target: event.target,
-                rule: event.rule,
-                world: event.world.clone(),
-                footprint: event.footprint.clone(),
-                exact: event.exact.clone(),
-                read: event.read.clone(),
-                direct,
-                supported: event.status == Status::Supported,
+        let expected = expected(runtime, snapshot);
+        let compiled = tally(event.iter().enumerate().map(|(index, &status)| {
+            let value = &self.event[index];
+            let (source, target) = (&named[value.source], &named[value.target]);
+            Key {
+                source: number[&source.state],
+                target: number[&target.state],
+                rule: self.identity(index).rule,
+                placement: self.placement(index, &named),
+                direct: value.direct,
+                supported: status == Status::Supported,
                 resource: shape(
-                    &runtime.state[event.source],
-                    &runtime.state[event.target],
-                    &runtime.resource(event.id).unwrap_or_default(),
+                    &source.state,
+                    &target.state,
+                    &self.link(index, source, target),
                 ),
-            };
-            *expected.entry(key).or_default() += 1;
-        }
-        let derived = self.derived();
-        let deduction = derived.as_ref().unwrap_or(&self.deduction);
-        let mut compiled = BTreeMap::<Key, usize>::new();
-        for (index, &status) in status.iter().enumerate() {
-            let transition = self.transition(index, &named, status, deduction);
-            let (source, target) = (&named[transition.source], &named[transition.target]);
-            let resource = shape(
-                &source.state,
-                &target.state,
-                &self.link(index, source, target),
-            );
-            let key = Key {
-                source: number[&named[transition.source].state],
-                target: number[&named[transition.target].state],
-                rule: transition.rule,
-                world: transition.world,
-                footprint: transition.footprint,
-                exact: transition.exact,
-                read: transition.read,
-                direct: !transition.inferred,
-                supported: transition.status == Status::Supported,
-                resource,
-            };
-            *compiled.entry(key).or_default() += 1;
-        }
+            }
+        }));
         let (missing, extra) = difference(&expected, &compiled);
         if missing != 0 || extra != 0 {
             return Err(Disagreement::Event { missing, extra });
@@ -214,23 +230,17 @@ struct Edge<'state> {
     source: &'state State,
     target: &'state State,
     rule: usize,
-    world: Vec<usize>,
-    footprint: Vec<Place>,
-    exact: Vec<Place>,
-    read: Vec<Place>,
+    placement: Placement,
 }
 
 impl<'state> Edge<'state> {
-    fn new(laser: &Laser, named: &'state [crate::state::Canonical], index: usize) -> Self {
-        let transition = laser.transition(index, named, Status::Supported, &laser.deduction);
+    fn new(laser: &Laser, named: &'state [Canonical], index: usize) -> Self {
+        let event = &laser.event[index];
         Self {
-            source: &named[transition.source].state,
-            target: &named[transition.target].state,
-            rule: transition.rule,
-            world: transition.world,
-            footprint: transition.footprint,
-            exact: transition.exact,
-            read: transition.read,
+            source: &named[event.source].state,
+            target: &named[event.target].state,
+            rule: laser.identity(index).rule,
+            placement: laser.placement(index, named),
         }
     }
 }
@@ -259,16 +269,14 @@ impl Laser {
                 extra: observed.difference(&expected).count(),
             });
         }
-        let mut wanted = BTreeMap::<Edge<'_>, usize>::new();
-        for (index, event) in full.event.iter().enumerate() {
-            if event.matched && reached[event.source] {
-                *wanted.entry(Edge::new(full, &outer, index)).or_default() += 1;
-            }
-        }
-        let mut found = BTreeMap::<Edge<'_>, usize>::new();
-        for index in 0..self.event.len() {
-            *found.entry(Edge::new(self, &inner, index)).or_default() += 1;
-        }
+        let wanted = tally(
+            full.event
+                .iter()
+                .enumerate()
+                .filter(|(_, event)| event.matched && reached[event.source])
+                .map(|(index, _)| Edge::new(full, &outer, index)),
+        );
+        let found = tally((0..self.event.len()).map(|index| Edge::new(self, &inner, index)));
         let (missing, extra) = difference(&wanted, &found);
         if missing != 0 || extra != 0 {
             return Err(Disagreement::Event { missing, extra });
@@ -278,9 +286,10 @@ impl Laser {
 }
 
 impl Laser {
-    // A reduced exploration fires, at each configuration, only the events of one scope whose events
-    // commute with every other event, so it keeps a subset of the plain configurations and events,
-    // every configuration where a plain run ends, and a cycle exactly when the plain one has one.
+    // A reduced exploration fires, at each configuration, only the events of one coherence or scope
+    // whose events commute with every other event, so it keeps a subset of the plain configurations
+    // and events, every configuration where a plain run ends, and a cycle exactly when the plain one
+    // has one.
     pub fn preserves(&self, plain: &Self) -> Result<(), Disagreement> {
         if !self.closed() || !plain.closed() {
             return Err(Disagreement::Closed {
@@ -320,20 +329,9 @@ impl Laser {
                 laser: ending.endless,
             });
         }
-        let mut available = BTreeMap::<Edge<'_>, usize>::new();
-        for index in 0..plain.event.len() {
-            *available
-                .entry(Edge::new(plain, &outer, index))
-                .or_default() += 1;
-        }
-        let mut used = BTreeMap::<Edge<'_>, usize>::new();
-        for index in 0..self.event.len() {
-            *used.entry(Edge::new(self, &inner, index)).or_default() += 1;
-        }
-        let extra = used
-            .iter()
-            .map(|(edge, &count)| count.saturating_sub(available.get(edge).copied().unwrap_or(0)))
-            .sum::<usize>();
+        let available = tally((0..plain.event.len()).map(|index| Edge::new(plain, &outer, index)));
+        let used = tally((0..self.event.len()).map(|index| Edge::new(self, &inner, index)));
+        let (_, extra) = difference(&available, &used);
         if extra != 0 {
             return Err(Disagreement::Event { missing: 0, extra });
         }
@@ -389,13 +387,7 @@ impl Exploration {
             .iter()
             .map(|marking| net.state(marking))
             .collect::<Vec<_>>();
-        if wanted != found {
-            return Err(Disagreement::Configuration {
-                missing: wanted.iter().filter(|state| !found.contains(state)).count(),
-                extra: found.iter().filter(|state| !wanted.contains(state)).count(),
-            });
-        }
-        Ok(())
+        end(&wanted, &found)
     }
 
     // A net's exploration mirrors the plain engine's when both close with the same number of
@@ -442,12 +434,6 @@ impl Exploration {
             .collect::<Vec<_>>();
         wanted.sort();
         found.sort();
-        if wanted != found {
-            return Err(Disagreement::Configuration {
-                missing: wanted.iter().filter(|state| !found.contains(state)).count(),
-                extra: found.iter().filter(|state| !wanted.contains(state)).count(),
-            });
-        }
-        Ok(())
+        end(&wanted, &found)
     }
 }

@@ -18,20 +18,24 @@ pub(super) enum Site {
 
 impl Layout {
     pub fn new(taxonomy: &Taxonomy, makeup: &Makeup) -> Self {
-        Self::of(taxonomy, makeup.root, makeup.kind.iter().copied())
+        Self::of(taxonomy, makeup.root, &makeup.kind)
     }
 
-    pub fn of(taxonomy: &Taxonomy, root: u32, kind: impl Iterator<Item = u32>) -> Self {
+    pub fn of(taxonomy: &Taxonomy, root: u32, kind: &[u32]) -> Self {
+        let (mut world, mut frame, mut token) = (0, 1, taxonomy.token(root));
         let mut layout = Self {
-            world: vec![0],
-            frame: vec![1],
-            token: vec![taxonomy.token(root)],
+            world: vec![world],
+            frame: vec![frame],
+            token: vec![token],
         };
-        for kind in kind {
+        for &kind in kind {
             let size = taxonomy.kind(kind).1;
-            layout.world.push(layout.world.last().unwrap() + size.world);
-            layout.frame.push(layout.frame.last().unwrap() + size.frame);
-            layout.token.push(layout.token.last().unwrap() + size.token);
+            world += size.world;
+            frame += size.frame;
+            token += size.token;
+            layout.world.push(world);
+            layout.frame.push(frame);
+            layout.token.push(token);
         }
         layout
     }

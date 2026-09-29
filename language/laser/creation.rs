@@ -55,7 +55,7 @@ fn learn(taxonomy: &Taxonomy, mut value: Box<Move>, root: u32, kind: &[u32]) -> 
     let key = &value.local.key;
     value.known = Some(Arc::new(Transition::Local(Box::new(Effect {
         root: makeup.root,
-        source: Layout::of(taxonomy, key.root, key.kind.iter().copied()),
+        source: Layout::of(taxonomy, key.root, &key.kind),
         result: Layout::new(taxonomy, &makeup),
         passage: Passage::new(renaming.flow(flow, extent.0, extent.1)),
         produced: makeup.kind,
@@ -230,7 +230,7 @@ impl Laser {
             (Some(named), Some(Found::New)) => {
                 let state = Arc::new(taxonomy.materialize(&named.makeup));
                 let layout = taxonomy
-                    .hub(&named.makeup)
+                    .split(&named.makeup)
                     .then(|| Arc::new(Layout::new(taxonomy, &named.makeup)));
                 Settled::New(
                     named.hash,

@@ -30,11 +30,11 @@ pub(super) struct Capture {
 // is remembered. Carries run in parallel, and shards keep them from waiting on one another.
 pub(super) struct Store {
     shard: Vec<Mutex<HashSet<Arc<Capture>, Builder>>>,
-    carried: Vec<Mutex<HashMap<Crossing, Arc<Capture>, Builder>>>,
+    carried: Vec<Mutex<HashMap<Carry, Arc<Capture>, Builder>>>,
 }
 
 #[derive(Clone, Copy, Eq, Hash, PartialEq)]
-struct Crossing {
+struct Carry {
     event: usize,
     capture: usize,
 }
@@ -68,10 +68,10 @@ impl Store {
         &self,
         capture: &Arc<Capture>,
         event: usize,
-        flow: &Passage,
+        passage: &Passage,
         pool: &Pool,
     ) -> Arc<Capture> {
-        let key = Crossing {
+        let key = Carry {
             event,
             capture: Arc::as_ptr(capture) as usize,
         };
@@ -79,7 +79,7 @@ impl Store {
         if let Some(known) = shard.lock().expect("an unpoisoned store").get(&key) {
             return known.clone();
         }
-        let carried = Arc::new(capture.carry(event, flow, pool));
+        let carried = Arc::new(capture.carry(event, passage, pool));
         shard
             .lock()
             .expect("an unpoisoned store")
@@ -126,16 +126,7 @@ fn enclosure(state: &State, frame: usize) -> Vec<usize> {
         if std::mem::replace(&mut selected[index], true) {
             continue;
         }
-        let value = &state.frame[index];
-        pending.extend(value.parent);
-        pending.extend(value.lexical);
-        pending.extend(
-            value
-                .particle
-                .iter()
-                .chain(&value.held)
-                .filter_map(|token| token.capture),
-        );
+        pending.extend(state.frame[index].reference());
     }
     (1..state.frame.len())
         .filter(|&index| selected[index])
@@ -165,20 +156,20 @@ impl Capture {
         })
     }
 
-    fn carry(&self, event: usize, flow: &Passage, pool: &Pool) -> Self {
+    fn carry(&self, event: usize, passage: &Passage, pool: &Pool) -> Self {
         Self {
             origin: self.origin,
             frame: self.frame,
-            current: self.current.and_then(|frame| flow.frame(frame)),
+            current: self.current.and_then(|frame| passage.frame(frame)),
             attachment: self
                 .attachment
                 .iter()
-                .map(|&(index, value)| (index, value.and_then(|frame| flow.frame(frame))))
+                .map(|&(index, value)| (index, value.and_then(|frame| passage.frame(frame))))
                 .collect(),
             resource: self
                 .resource
                 .iter()
-                .map(|&(place, basis)| (place, pool.carry(basis, event, flow)))
+                .map(|&(place, basis)| (place, pool.carry(basis, event, passage)))
                 .collect(),
         }
     }

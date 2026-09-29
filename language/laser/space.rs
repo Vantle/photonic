@@ -84,7 +84,8 @@ pub(super) fn hash(makeup: &Makeup) -> u64 {
 }
 
 impl Space {
-    pub fn find(&self, hash: u64, makeup: &Makeup) -> Option<usize> {
+    pub fn find(&self, makeup: &Makeup) -> Option<usize> {
+        let hash = hash(makeup);
         self.shard[slot(hash)].get(&Probe { hash, makeup }).copied()
     }
 
@@ -120,9 +121,9 @@ impl Space {
         found
     }
 
-    pub fn admit(&mut self, executor: Option<&Executor>, admitted: Vec<(u64, Arc<Makeup>, usize)>) {
+    pub fn admit(&mut self, executor: Option<&Executor>, item: Vec<(u64, Arc<Makeup>, usize)>) {
         let mut group = (0..SHARD).map(|_| Vec::new()).collect::<Vec<_>>();
-        for (hash, makeup, index) in admitted {
+        for (hash, makeup, index) in item {
             group[slot(hash)].push((Entry { hash, makeup }, index));
         }
         let taken = group
