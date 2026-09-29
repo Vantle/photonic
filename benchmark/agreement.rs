@@ -3,7 +3,7 @@ use std::time::Instant;
 
 use clap::Parser;
 use photonic::laser::Laser;
-use photonic::laser::ground::Ground;
+use photonic::laser::net::{Cycle, Net};
 use photonic::runtime::{Limit, Runtime};
 use rayon::prelude::*;
 use serde::Serialize;
@@ -70,7 +70,7 @@ struct Outcome {
     verdict: Option<String>,
     plain: Option<String>,
     reduction: Option<Reduction>,
-    ground: Option<String>,
+    net: Option<String>,
     metal: Option<String>,
     state: usize,
     event: usize,
@@ -82,16 +82,16 @@ fn metal(
     program: &frontend::source::Program,
     limit: Limit,
 ) -> String {
-    let (mut theirs, mut ground) = match (Ground::new(program), Ground::new(program)) {
-        (Ok(theirs), Ok(ground)) => (theirs, ground),
+    let (mut theirs, mut net) = match (Net::new(program), Net::new(program)) {
+        (Ok(theirs), Ok(net)) => (theirs, net),
         (Err(unsupported), _) | (_, Err(unsupported)) => return format!("{unsupported}"),
     };
-    let expected = match theirs.explore(limit) {
+    let expected = match theirs.explore(limit, Cycle::Find) {
         Ok(expected) => expected,
         Err(unsupported) => return format!("{unsupported}"),
     };
-    match device.explore(&mut ground, limit, true) {
-        Ok(explored) => match explored.agrees(&ground, &expected, &theirs) {
+    match device.explore(&mut net, limit, Cycle::Find) {
+        Ok(explored) => match explored.agrees(&net, &expected, &theirs) {
             Ok(()) => "agrees".to_owned(),
             Err(disagreement) => format!("{disagreement:?}"),
         },
@@ -122,11 +122,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .map(|entry| {
             let mut plain = Laser::plain(&entry.program);
             plain.run(argument.allowance, limit);
-            let ground = plain.closed().then(|| match Ground::new(&entry.program) {
+            let net = plain.closed().then(|| match Net::new(&entry.program) {
                 Err(unsupported) => format!("{unsupported}"),
-                Ok(mut ground) => match ground.explore(limit) {
+                Ok(mut net) => match net.explore(limit, Cycle::Find) {
                     Err(unsupported) => format!("{unsupported}"),
-                    Ok(explored) => match explored.mirrors(&ground, &plain) {
+                    Ok(explored) => match explored.mirrors(&net, &plain) {
                         Ok(()) => "mirrors".to_owned(),
                         Err(disagreement) => format!("{disagreement:?}"),
                     },
@@ -157,7 +157,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     verdict: None,
                     plain: None,
                     reduction,
-                    ground,
+                    net,
                     metal,
                     state: summary.state,
                     event: summary.event,
@@ -200,7 +200,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 verdict,
                 plain,
                 reduction,
-                ground,
+                net,
                 metal,
                 state: summary.state,
                 event: summary.event,
@@ -254,11 +254,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .count();
     let mirror = outcome
         .iter()
-        .filter(|outcome| outcome.ground.as_deref() == Some("mirrors"))
+        .filter(|outcome| outcome.net.as_deref() == Some("mirrors"))
         .count();
-    let grounded = outcome
+    let mirrored = outcome
         .iter()
-        .filter(|outcome| outcome.ground.is_some())
+        .filter(|outcome| outcome.net.is_some())
         .count();
     let agreeing = outcome
         .iter()
@@ -269,7 +269,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .filter(|outcome| outcome.metal.is_some())
         .count();
     let reduction = format!(
-        "{preserve} of {reducible} reduced explorations preserve their plain ones, {smaller} of them smaller; {mirror} of {grounded} nets mirror their plain explorations; {agreeing} of {explored} nets explore identically on Metal"
+        "{preserve} of {reducible} reduced explorations preserve their plain ones, {smaller} of them smaller; {mirror} of {mirrored} nets mirror their plain explorations; {agreeing} of {explored} nets explore identically on Metal"
     );
     if argument.reduction {
         eprintln!("{} programs; {reduction}", outcome.len());
@@ -304,12 +304,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
     }
     for outcome in &outcome {
-        if let Some(ground) = outcome
-            .ground
-            .as_ref()
-            .filter(|ground| ground.as_str() != "mirrors")
-        {
-            eprintln!("ground {}: {ground}", outcome.name);
+        if let Some(net) = outcome.net.as_ref().filter(|net| net.as_str() != "mirrors") {
+            eprintln!("net {}: {net}", outcome.name);
         }
         if let Some(reduction) = outcome
             .reduction

@@ -3,6 +3,8 @@
 #[cfg(target_os = "macos")]
 mod arena;
 #[cfg(target_os = "macos")]
+mod dispatch;
+#[cfg(target_os = "macos")]
 pub mod engine;
 #[cfg(not(target_os = "macos"))]
 #[path = "absent.rs"]
@@ -18,11 +20,14 @@ mod pass;
 mod scan;
 #[cfg(target_os = "macos")]
 mod setting;
-pub mod shape;
 #[cfg(target_os = "macos")]
 mod store;
 #[cfg(target_os = "macos")]
 mod table;
+#[cfg(target_os = "macos")]
+mod tally;
+#[cfg(target_os = "macos")]
+mod tuning;
 #[cfg(target_os = "macos")]
 mod upload;
 #[cfg(target_os = "macos")]

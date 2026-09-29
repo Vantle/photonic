@@ -1,6 +1,6 @@
 use crate::failure::Failure;
 use metal::device::{Device, Memory};
-use photonic::laser::ground::Marking;
+use photonic::laser::net::Marking;
 
 // The most segments an arena holds, as the kernels' Arena lays them out.
 pub const SEGMENT: usize = 1024;

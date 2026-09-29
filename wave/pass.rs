@@ -1,16 +1,18 @@
-use crate::engine::{Engine, Tally, group};
+use crate::dispatch::{group, whole};
+use crate::engine::Engine;
 use crate::failure::Failure;
-use crate::scan::whole;
 use crate::setting::{
     BLOCKED, CANDIDATE, COPIES, FLAGGED, JOINED, LIMITED, REFUSED, SHIFT, Setting, TAG, WIDTH,
     WORDS, saturate,
 };
 use crate::store::Store;
 use crate::table::Table;
+use crate::tally::Tally;
 use crate::upload::{Upload, refresh};
 use crate::window::{Joined, Window};
 use crate::work::Work;
 use metal::device::Command;
+use photonic::laser::net::Cycle;
 use photonic::runtime::Limit;
 
 // The markings a pass covers: the window's markings from one to another, and the candidates between
@@ -72,7 +74,7 @@ impl Engine {
         range: Range,
         ahead: Option<usize>,
         limit: Limit,
-        cycle: bool,
+        cycle: Cycle,
         tally: &mut Tally,
     ) -> Result<bool, Failure> {
         let count = (range.end - range.begin) as usize;
@@ -103,7 +105,7 @@ impl Engine {
         let offset = store.offset.swap(&self.device, store.count + most)?;
         let next = ahead
             .map(|first| (first, (store.count + most).saturating_sub(first)))
-            .map(|(first, size)| (first, size.min(self.shape.window)))
+            .map(|(first, size)| (first, size.min(self.tuning.window)))
             .filter(|&(_, size)| size > 0);
         let start = match next {
             Some((_, size)) => self.room(work, size)?,
@@ -122,7 +124,7 @@ impl Engine {
         } else {
             (store.count + 1, store.count)
         };
-        let grown = self.grow(store, safe, likely)?;
+        let grown = store.grow(&self.device, safe, likely)?;
         let tables = refresh(&self.device, table, upload)?;
         work.summary.edit::<u32>()[REFUSED] = 0;
         work.summary.edit::<u32>()[FLAGGED] = 0;
@@ -296,7 +298,7 @@ impl Engine {
         tally.refused |= work.summary.view::<u32>()[REFUSED] != 0;
         store.count += winner.min(allowed);
         store.fresh = winner as f64 / count as f64;
-        if cycle {
+        if cycle == Cycle::Find {
             let target = work.target.memory.view::<u32>()[..count].to_vec();
             let record = work.record.memory.view::<u32>();
             for (index, &aim) in target.iter().enumerate() {

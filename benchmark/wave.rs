@@ -4,7 +4,7 @@ use std::time::Instant;
 use clap::Parser;
 use photonic::executor::Executor;
 use photonic::laser::Laser;
-use photonic::laser::ground::Ground;
+use photonic::laser::net::{Cycle, Net};
 use photonic::runtime::Limit;
 use serde::Serialize;
 
@@ -66,7 +66,7 @@ struct Engine {
 struct Measurement {
     device: String,
     metal: Engine,
-    ground: Option<Engine>,
+    net: Option<Engine>,
     plain: Option<Engine>,
     agree: Option<String>,
 }
@@ -121,13 +121,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut second = Vec::new();
     let mut last = None;
     for _ in 0..argument.sample {
-        let mut ground = Ground::new(&program)?;
+        let mut net = Net::new(&program)?;
         let start = Instant::now();
-        let explored = device.explore(&mut ground, limit, false)?;
+        let explored = device.explore(&mut net, limit, Cycle::Ignore)?;
         second.push(start.elapsed().as_secs_f64());
-        last = Some((explored, ground));
+        last = Some((explored, net));
     }
-    let (explored, ground) = last.ok_or("at least one sample")?;
+    let (explored, net) = last.ok_or("at least one sample")?;
     let metal = engine(
         explored.closed,
         explored.configuration,
@@ -137,7 +137,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut measurement = Measurement {
         device: device.name().to_owned(),
         metal,
-        ground: None,
+        net: None,
         plain: None,
         agree: None,
     };
@@ -145,18 +145,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut second = Vec::new();
         let mut last = None;
         for _ in 0..argument.sample {
-            let mut theirs = Ground::new(&program)?;
+            let mut theirs = Net::new(&program)?;
             let start = Instant::now();
-            let expected = theirs.explore(limit)?;
+            let expected = theirs.explore(limit, Cycle::Ignore)?;
             second.push(start.elapsed().as_secs_f64());
             last = Some((expected, theirs));
         }
         let (expected, theirs) = last.ok_or("at least one sample")?;
-        measurement.agree = Some(match explored.agrees(&ground, &expected, &theirs) {
+        measurement.agree = Some(match explored.agrees(&net, &expected, &theirs) {
             Ok(()) => "agrees".to_owned(),
             Err(disagreement) => format!("{disagreement:?}"),
         });
-        measurement.ground = Some(engine(
+        measurement.net = Some(engine(
             expected.closed,
             expected.configuration,
             expected.event,

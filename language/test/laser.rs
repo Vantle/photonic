@@ -1,4 +1,5 @@
 use super::Laser;
+use super::net::{Cycle, Net};
 use crate::runtime::{Limit, Runtime};
 
 // A deduction walks from its event's source, each event starting where the one before it ends.
@@ -170,7 +171,7 @@ fn reduction() {
 // The net explores every schedule of plain events from tables of parts, and closes with the plain
 // engine's configurations, events, end configurations and cycles.
 #[test]
-fn ground() {
+fn net() {
     let limit = Limit {
         record: usize::MAX,
         ..Limit::default()
@@ -217,27 +218,9 @@ fn ground() {
         let program = frontend::lowering::parse(source).unwrap();
         let mut plain = Laser::plain(&program);
         plain.run(100_000_000, limit);
-        let mut ground = super::ground::Ground::new(&program).unwrap();
-        let explored = ground.explore(limit).unwrap();
-        let summary = plain.summary();
-        assert_eq!(explored.closed, summary.closed, "{source}");
-        assert_eq!(explored.configuration, summary.state, "{source}");
-        assert_eq!(explored.event, summary.event as u64, "{source}");
-        let ending = plain.ending();
-        assert_eq!(explored.endless, Some(ending.endless), "{source}");
-        let mut expected = ending
-            .end
-            .iter()
-            .map(|&index| plain.state[index].canonical().state)
-            .collect::<Vec<_>>();
-        let mut found = explored
-            .end
-            .iter()
-            .map(|marking| ground.state(marking))
-            .collect::<Vec<_>>();
-        expected.sort();
-        found.sort();
-        assert_eq!(found, expected, "{source}");
+        let mut net = Net::new(&program).unwrap();
+        let explored = net.explore(limit, Cycle::Find).unwrap();
+        assert_eq!(explored.mirrors(&net, &plain), Ok(()), "{source}");
     }
 }
 

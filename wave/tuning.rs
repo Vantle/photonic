@@ -4,7 +4,7 @@
 // markings, candidates and table slots the first buffers hold, so small explorations never grow
 // them.
 #[derive(Clone, Copy, Debug)]
-pub struct Shape {
+pub struct Tuning {
     pub window: usize,
     pub pass: usize,
     pub first: usize,
@@ -12,7 +12,7 @@ pub struct Shape {
     pub initial: usize,
 }
 
-impl Default for Shape {
+impl Default for Tuning {
     fn default() -> Self {
         Self {
             window: 1 << 20,

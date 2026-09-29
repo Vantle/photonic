@@ -1,28 +1,28 @@
 use crate::engine::Engine;
 use crate::failure::Failure;
-use crate::shape::Shape;
+use crate::tuning::Tuning;
 use photonic::family;
 use photonic::laser::Laser;
-use photonic::laser::ground::Ground;
+use photonic::laser::net::{Cycle, Net};
 use photonic::runtime::Limit;
 
-// Every shape explores exactly as the host's net does, number for number: the same configurations,
+// Every tuning explores exactly as the host's net does, number for number: the same configurations,
 // events, end configurations in the same order and cycles, whether it counts a few markings at a
 // time, decides a few candidates at a time or writes markings across many small segments, and
 // under every limit, including a configuration limit reached in the middle of a pass. Both nets
 // ground parts in the same order, so even their kinds are numbered alike.
 #[test]
 fn identical() {
-    let shape = [
-        Shape::default(),
-        Shape {
+    let tuning = [
+        Tuning::default(),
+        Tuning {
             window: 3,
             pass: 7,
             first: 16,
             largest: 64,
             initial: 1,
         },
-        Shape {
+        Tuning {
             window: 17,
             pass: 61,
             first: 40,
@@ -74,8 +74,8 @@ fn identical() {
         "A, A, A, [A, A, A] B".to_owned(),
         "Go.A, Go.B, [Go] (X, [X] Y), [Y.A] Z, [Y.B, Z] W".to_owned(),
     ];
-    for shape in shape {
-        let engine = match Engine::shaped(shape) {
+    for tuning in tuning {
+        let engine = match Engine::tuned(tuning) {
             Ok(engine) => engine,
             Err(Failure::Metal(metal::failure::Failure::Unavailable(_))) => return,
             Err(failure) => panic!("{failure}"),
@@ -83,16 +83,16 @@ fn identical() {
         for source in &program {
             let parsed = frontend::lowering::parse(source).unwrap();
             for limit in limit {
-                let mut theirs = Ground::new(&parsed).unwrap();
-                let expected = theirs.explore(limit).unwrap();
-                let mut ground = Ground::new(&parsed).unwrap();
-                let explored = engine.explore(&mut ground, limit, true).unwrap();
+                let mut theirs = Net::new(&parsed).unwrap();
+                let expected = theirs.explore(limit, Cycle::Find).unwrap();
+                let mut net = Net::new(&parsed).unwrap();
+                let explored = engine.explore(&mut net, limit, Cycle::Find).unwrap();
                 assert_eq!(
-                    explored.agrees(&ground, &expected, &theirs),
+                    explored.agrees(&net, &expected, &theirs),
                     Ok(()),
-                    "{source} {shape:?} {limit:?}"
+                    "{source} {tuning:?} {limit:?}"
                 );
-                assert_eq!(explored.end, expected.end, "{source} {shape:?} {limit:?}");
+                assert_eq!(explored.end, expected.end, "{source} {tuning:?} {limit:?}");
             }
         }
     }
@@ -141,9 +141,9 @@ fn agreement() {
         let program = frontend::lowering::parse(source).unwrap();
         let mut plain = Laser::plain(&program);
         plain.run(100_000_000, limit);
-        let mut ground = Ground::new(&program).unwrap();
-        let explored = engine.explore(&mut ground, limit, true).unwrap();
-        assert_eq!(explored.mirrors(&ground, &plain), Ok(()), "{source}");
+        let mut net = Net::new(&program).unwrap();
+        let explored = engine.explore(&mut net, limit, Cycle::Find).unwrap();
+        assert_eq!(explored.mirrors(&net, &plain), Ok(()), "{source}");
     }
 }
 
@@ -157,18 +157,18 @@ fn limit() {
         Err(failure) => panic!("{failure}"),
     };
     let program = frontend::lowering::parse("A, [A] A.A").unwrap();
-    let mut ground = Ground::new(&program).unwrap();
+    let mut net = Net::new(&program).unwrap();
     let explored = engine
-        .explore(&mut ground, Limit::default(), false)
+        .explore(&mut net, Limit::default(), Cycle::Ignore)
         .unwrap();
     assert!(!explored.closed);
     let program = frontend::lowering::parse(&family::dial(6)).unwrap();
-    let mut ground = Ground::new(&program).unwrap();
+    let mut net = Net::new(&program).unwrap();
     let small = Limit {
         configuration: 100,
         ..Limit::default()
     };
-    let explored = engine.explore(&mut ground, small, false).unwrap();
+    let explored = engine.explore(&mut net, small, Cycle::Ignore).unwrap();
     assert!(!explored.closed);
     assert_eq!(explored.configuration, 100);
 }
@@ -192,8 +192,8 @@ fn repeat() {
     let mut plain = Laser::plain(&program);
     plain.run(usize::MAX, limit);
     for _ in 0..4 {
-        let mut ground = Ground::new(&program).unwrap();
-        let explored = engine.explore(&mut ground, limit, true).unwrap();
-        assert_eq!(explored.mirrors(&ground, &plain), Ok(()));
+        let mut net = Net::new(&program).unwrap();
+        let explored = engine.explore(&mut net, limit, Cycle::Find).unwrap();
+        assert_eq!(explored.mirrors(&net, &plain), Ok(()));
     }
 }

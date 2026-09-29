@@ -1,4 +1,5 @@
-use crate::engine::{Engine, group};
+use crate::dispatch::group;
+use crate::engine::Engine;
 use crate::failure::Failure;
 use crate::hash;
 use crate::setting::{BARE, FLAGGED, JOIN, MISSING, SUM, Setting, saturate};
@@ -7,7 +8,7 @@ use crate::table::Table;
 use crate::upload::{Upload, refresh};
 use crate::work::Work;
 use metal::device::{Command, Memory};
-use photonic::laser::ground::Ground;
+use photonic::laser::net::{Net, Successor};
 use photonic::runtime::Limit;
 
 // A successor the host found for a marking whose kinds could join in one event: the marking's place
@@ -134,7 +135,7 @@ impl Engine {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn count(
         &self,
-        ground: &mut Ground,
+        net: &mut Net,
         table: &mut Table,
         upload: &mut Option<Upload>,
         store: &mut Store,
@@ -169,7 +170,7 @@ impl Engine {
             for &(index, state) in &flagged {
                 if state & (MISSING | JOIN) != 0 {
                     let marking = store.marking(first + index);
-                    table.prepare(ground, &marking)?;
+                    table.prepare(net, &marking)?;
                 }
             }
             if flagged.iter().all(|&(_, state)| state & MISSING == 0) {
@@ -186,7 +187,7 @@ impl Engine {
         for (index, state) in flagged {
             let successor = if state & JOIN != 0 {
                 let marking = store.marking(first + index);
-                ground.joined(&marking)?
+                net.joined(&marking)?
             } else {
                 Vec::new()
             };
@@ -199,8 +200,8 @@ impl Engine {
             let number = &mut work.number.memory.edit::<u64>()[index];
             let own = *number;
             *number += successor.len() as u64;
-            for (order, (marking, weight)) in successor.into_iter().enumerate() {
-                table.know(ground, &marking);
+            for (order, Successor { marking, count }) in successor.into_iter().enumerate() {
+                table.know(net, &marking);
                 let digest = hash::digest(marking.root, &marking.kind);
                 extra.extend([digest as u32, (digest >> 32) as u32]);
                 joined.push(Joined {
@@ -208,7 +209,7 @@ impl Engine {
                     order: own + order as u64,
                     position: 0,
                     extra: saturate(extra.len()),
-                    weight,
+                    weight: count,
                     admitted: admits(table, marking.root, &marking.kind, limit),
                 });
                 extra.push(marking.root);

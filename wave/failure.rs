@@ -1,4 +1,4 @@
-use photonic::laser::ground::Unsupported;
+use photonic::laser::net::Unsupported;
 use thiserror::Error;
 
 #[derive(Debug, Error)]

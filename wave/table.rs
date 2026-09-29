@@ -1,5 +1,5 @@
 use crate::hash;
-use photonic::laser::ground::{Entry, Ground, Marking, Unsupported};
+use photonic::laser::net::{Entry, Marking, Net, Unsupported};
 use std::collections::HashMap;
 
 pub const EMPTY: u32 = u32::MAX;
@@ -43,8 +43,8 @@ pub struct Table {
 }
 
 impl Table {
-    pub fn new(ground: &Ground) -> Self {
-        let pattern = ground.pattern();
+    pub fn new(net: &Net) -> Self {
+        let pattern = net.join();
         let input = pattern.iter().sum::<usize>();
         let wide = input > 64;
         let mut need = Vec::with_capacity(pattern.len());
@@ -73,9 +73,9 @@ impl Table {
     }
 
     // Every root and kind an entry leads to is numbered before a kernel can read its size.
-    fn pack(&mut self, ground: &mut Ground, entry: &[Entry], consumed: u32) -> (u32, u32) {
+    fn pack(&mut self, net: &mut Net, entry: &[Entry], consumed: u32) -> (u32, u32) {
         for value in entry {
-            self.register(ground, value.root, &value.produced);
+            self.register(net, value.root, &value.produced);
         }
         let start = saturate(self.entry.len());
         for value in entry {
@@ -103,10 +103,10 @@ impl Table {
         (start, saturate(entry.len()))
     }
 
-    fn register(&mut self, ground: &mut Ground, root: u32, kind: &[u32]) {
+    fn register(&mut self, net: &mut Net, root: u32, kind: &[u32]) {
         while self.base.len() <= root as usize {
             let next = saturate(self.base.len());
-            self.base.push(saturate(ground.base(next)));
+            self.base.push(saturate(net.occurrence(next)));
             self.lone.extend([EMPTY, 0]);
             self.dirty = true;
         }
@@ -117,8 +117,10 @@ impl Table {
             .map_or(0, |value| value as usize + 1);
         while self.mask.len() < top {
             let next = saturate(self.mask.len());
-            self.size.extend(ground.size(next).map(saturate));
-            let reach = ground.reach(next);
+            let size = net.size(next);
+            self.size
+                .extend([size.world, size.occurrence, size.frame].map(saturate));
+            let reach = net.reach(next);
             let mask = if self.wide {
                 u64::from(!reach.is_empty())
             } else {
@@ -141,40 +143,40 @@ impl Table {
         })
     }
 
-    fn lone(&mut self, ground: &mut Ground, root: u32) -> Result<(), Unsupported> {
-        self.register(ground, root, &[]);
+    fn lone(&mut self, net: &mut Net, root: u32) -> Result<(), Unsupported> {
+        self.register(net, root, &[]);
         if self.lone[2 * root as usize] != EMPTY {
             return Ok(());
         }
-        let entry = ground.lone(root)?.to_vec();
-        let (start, number) = self.pack(ground, &entry, LONE);
+        let entry = net.lone(root)?.to_vec();
+        let (start, number) = self.pack(net, &entry, LONE);
         self.lone[2 * root as usize] = start;
         self.lone[2 * root as usize + 1] = number;
         Ok(())
     }
 
-    fn single(&mut self, ground: &mut Ground, root: u32, kind: u32) -> Result<(), Unsupported> {
-        self.register(ground, root, &[kind]);
+    fn single(&mut self, net: &mut Net, root: u32, kind: u32) -> Result<(), Unsupported> {
+        self.register(net, root, &[kind]);
         if self.single.contains_key(&(root, kind)) {
             return Ok(());
         }
-        let entry = ground.single(root, kind)?.to_vec();
-        let location = self.pack(ground, &entry, kind);
+        let entry = net.single(root, kind)?.to_vec();
+        let location = self.pack(net, &entry, kind);
         self.single.insert((root, kind), location);
         Ok(())
     }
 
     // Numbers the root and kinds of a marking the host made, so its sizes are known.
-    pub fn know(&mut self, ground: &mut Ground, marking: &Marking) {
-        self.register(ground, marking.root, &marking.kind);
+    pub fn know(&mut self, net: &mut Net, marking: &Marking) {
+        self.register(net, marking.root, &marking.kind);
     }
 
     // Grounds a marking as the host's net does when it expands it, then enters the parts it holds.
-    pub fn prepare(&mut self, ground: &mut Ground, marking: &Marking) -> Result<(), Unsupported> {
-        ground.visit(marking)?;
-        self.lone(ground, marking.root)?;
+    pub fn prepare(&mut self, net: &mut Net, marking: &Marking) -> Result<(), Unsupported> {
+        net.visit(marking)?;
+        self.lone(net, marking.root)?;
         for &kind in &marking.kind {
-            self.single(ground, marking.root, kind)?;
+            self.single(net, marking.root, kind)?;
         }
         Ok(())
     }

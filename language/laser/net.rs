@@ -44,6 +44,32 @@ pub struct Marking {
     pub kind: Vec<u32>,
 }
 
+// A configuration an event joining several components leads to, with how many distinct events
+// lead there that way.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Successor {
+    pub marking: Marking,
+    pub count: u64,
+}
+
+// What a component of a kind holds beside the root: its coherences, occurrences and frames.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct Size {
+    pub world: usize,
+    pub occurrence: usize,
+    pub frame: usize,
+}
+
+// Whether an exploration also looks for a run that goes on forever, which keeps every edge.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Cycle {
+    Find,
+    Ignore,
+}
+
+// Where exploring a net ends: whether it closed, how many configurations and events it found, the
+// configurations where runs end, in the order they were found, and, when asked, whether a run can
+// go on forever.
 pub struct Exploration {
     pub closed: bool,
     pub configuration: usize,
@@ -59,7 +85,7 @@ pub struct Exploration {
 // each is applied once to the part; exploring then asks only the tables. The events of a
 // component repeat for every copy of its kind, and the events joining several components repeat
 // for every choice of copies.
-pub struct Ground {
+pub struct Net {
     program: Arc<Program>,
     catalog: Arc<Catalog>,
     taxonomy: Taxonomy,
@@ -145,7 +171,7 @@ fn run(kind: &[u32]) -> Vec<(u32, usize)> {
     result
 }
 
-impl Ground {
+impl Net {
     pub fn new(source: &frontend::source::Program) -> Result<Self, Unsupported> {
         let program = Arc::new(Program::new(source));
         let mut taxonomy = Taxonomy::default();
@@ -320,9 +346,9 @@ impl Ground {
         }
     }
 
-    // Every configuration an event joining several components leads to from a marking, with how
-    // many distinct events lead there that way.
-    pub fn joined(&mut self, marking: &Marking) -> Result<Vec<(Marking, u64)>, Unsupported> {
+    // Every configuration an event joining several components leads to from a marking, in the
+    // order expanding the marking finds them.
+    pub fn joined(&mut self, marking: &Marking) -> Result<Vec<Successor>, Unsupported> {
         let makeup = Makeup {
             root: marking.root,
             kind: marking.kind.clone(),
@@ -331,26 +357,29 @@ impl Ground {
         let mut result = Vec::new();
         for (multiset, ways) in self.candidate(&makeup) {
             for entry in &self.join[&(makeup.root, multiset.clone())] {
-                result.push((
-                    Marking {
+                result.push(Successor {
+                    marking: Marking {
                         root: entry.root,
                         kind: replace(&makeup.kind, &multiset, &entry.produced),
                     },
-                    ways * u64::from(entry.count),
-                ));
+                    count: ways * u64::from(entry.count),
+                });
             }
         }
         Ok(result)
     }
 
-    // The coherences, occurrences and frames beside the root that a component of a kind holds.
-    pub fn size(&self, kind: u32) -> [usize; 3] {
+    pub fn size(&self, kind: u32) -> Size {
         let size = self.taxonomy.kind(kind).1;
-        [size.world, size.occurrence, size.frame]
+        Size {
+            world: size.world,
+            occurrence: size.occurrence,
+            frame: size.frame,
+        }
     }
 
-    // The occurrences of a root's frame.
-    pub fn base(&self, root: u32) -> usize {
+    // The occurrences a root's frame holds.
+    pub fn occurrence(&self, root: u32) -> usize {
         match self.taxonomy.root(root) {
             super::taxonomy::Root::Hub(frame) => frame.size(),
             super::taxonomy::Root::Whole(state) => state.size(),
@@ -358,7 +387,7 @@ impl Ground {
     }
 
     // How many input coherences each rule joining several coherences has.
-    pub fn pattern(&self) -> Vec<usize> {
+    pub fn join(&self) -> Vec<usize> {
         self.pattern.iter().map(Vec::len).collect()
     }
 
@@ -531,7 +560,7 @@ impl Ground {
 
     // Explores every schedule of plain events breadth first, numbering configurations in the order
     // they are found, and stops short of any configuration or application the limits refuse.
-    pub fn explore(&mut self, limit: Limit) -> Result<Exploration, Unsupported> {
+    pub fn explore(&mut self, limit: Limit, cycle: Cycle) -> Result<Exploration, Unsupported> {
         let mut space = HashMap::<Makeup, usize, Builder>::default();
         space.insert(self.start.clone(), 0);
         let mut marking = vec![self.start.clone()];
@@ -571,7 +600,7 @@ impl Ground {
             outgoing.push(target);
             next += 1;
         }
-        let endless = Some(cyclic(&outgoing));
+        let endless = (cycle == Cycle::Find).then(|| cyclic(&outgoing));
         Ok(Exploration {
             closed: !blocked,
             configuration: marking.len(),
@@ -593,12 +622,7 @@ impl Exploration {
     // as many configurations and events, the same end configurations in the same order and, where
     // both looked for one, a cycle in both or neither; each net numbers kinds in the order it
     // grounded its parts, so ends are compared by their canonical states.
-    pub fn agrees(
-        &self,
-        ground: &Ground,
-        reference: &Self,
-        theirs: &Ground,
-    ) -> Result<(), Disagreement> {
+    pub fn agrees(&self, net: &Net, reference: &Self, theirs: &Net) -> Result<(), Disagreement> {
         if self.closed != reference.closed {
             return Err(Disagreement::Closed {
                 reference: reference.closed,
@@ -633,7 +657,7 @@ impl Exploration {
         let found = self
             .end
             .iter()
-            .map(|marking| ground.state(marking))
+            .map(|marking| net.state(marking))
             .collect::<Vec<_>>();
         if wanted != found {
             return Err(Disagreement::Configuration {
@@ -646,7 +670,7 @@ impl Exploration {
 
     // A net's exploration mirrors the plain engine's when both close with the same number of
     // configurations and events, the same end configurations and a cycle in both or neither.
-    pub fn mirrors(&self, ground: &Ground, plain: &Laser) -> Result<(), Disagreement> {
+    pub fn mirrors(&self, net: &Net, plain: &Laser) -> Result<(), Disagreement> {
         let summary = plain.summary();
         if self.closed != summary.closed || !self.closed {
             return Err(Disagreement::Closed {
@@ -684,7 +708,7 @@ impl Exploration {
         let mut found = self
             .end
             .iter()
-            .map(|marking| ground.state(marking))
+            .map(|marking| net.state(marking))
             .collect::<Vec<_>>();
         wanted.sort();
         found.sort();

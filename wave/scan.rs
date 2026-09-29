@@ -1,15 +1,8 @@
+use crate::dispatch::whole;
 use crate::failure::Failure;
 use crate::grow::Grow;
 use crate::setting::{Span, saturate};
 use metal::device::{Command, Device, Kernel, Memory};
-
-// The threads of a group for kernels that work in whole SIMD groups, at most as many groups as a
-// SIMD group has lanes.
-pub fn whole(kernel: &Kernel) -> usize {
-    let lanes = kernel.width().max(1);
-    let most = kernel.capacity().min(1024).min(32 * lanes);
-    (most / lanes * lanes).max(lanes)
-}
 
 // Exclusive running sums of 64-bit values on the device. A tile is four values a thread; each level
 // sums the tiles of the one below, until one tile remains, whose pass writes the whole sum.

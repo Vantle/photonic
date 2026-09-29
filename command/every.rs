@@ -1,7 +1,7 @@
 use crate::argument;
 use crate::verb;
 use miette::IntoDiagnostic;
-use photonic::laser::ground::{Exploration, Ground};
+use photonic::laser::net::{Cycle, Exploration, Net};
 use photonic::runtime::Limit;
 use serde::Serialize;
 use std::io::Write;
@@ -38,18 +38,12 @@ fn count(value: u64, noun: &str) -> String {
 
 // The GPU where there is one and the caller did not ask for the host, and the host's net otherwise;
 // both explore alike, number for number.
-fn explore(
-    ground: &mut Ground,
-    limit: Limit,
-    host: bool,
-) -> miette::Result<(Exploration, &'static str)> {
+fn explore(net: &mut Net, limit: Limit, host: bool) -> miette::Result<(Exploration, &'static str)> {
     if let Some(engine) = (!host).then(wave::engine::Engine::new).and_then(Result::ok) {
-        return Ok((
-            engine.explore(ground, limit, true).into_diagnostic()?,
-            "metal",
-        ));
+        let explored = engine.explore(net, limit, Cycle::Find).into_diagnostic()?;
+        return Ok((explored, "metal"));
     }
-    Ok((ground.explore(limit).into_diagnostic()?, "host"))
+    Ok((net.explore(limit, Cycle::Find).into_diagnostic()?, "host"))
 }
 
 pub fn every(argument: &argument::Every) -> miette::Result<ExitCode> {
@@ -76,21 +70,21 @@ pub fn every(argument: &argument::Every) -> miette::Result<ExitCode> {
         scope: argument.scope,
         record: usize::MAX,
     };
-    let mut ground = Ground::new(&program).into_diagnostic()?;
-    let (explored, engine) = explore(&mut ground, limit, argument.host)?;
+    let mut net = Net::new(&program).into_diagnostic()?;
+    let (explored, engine) = explore(&mut net, limit, argument.host)?;
     let endless = explored.endless.unwrap_or_default();
     let found = target
         .iter()
-        .map(|value| ground.find(value))
+        .map(|value| net.find(value))
         .collect::<Vec<_>>();
     let checked = !target.is_empty();
-    let definition = ground.definition();
+    let definition = net.definition();
     let end = explored
         .end
         .iter()
         .take(argument.list)
         .map(|marking| End {
-            text: crate::display(&ground.node(marking), &definition),
+            text: crate::display(&net.node(marking), &definition),
             target: checked.then(|| found.contains(&Some(marking.clone()))),
         })
         .collect::<Vec<_>>();

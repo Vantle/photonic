@@ -4,7 +4,7 @@ use std::time::Instant;
 use clap::Parser;
 use photonic::executor::Executor;
 use photonic::laser::Laser;
-use photonic::laser::ground::Ground;
+use photonic::laser::net::{Cycle, Net};
 use photonic::runtime::{Limit, Runtime};
 use serde::{Deserialize, Serialize};
 
@@ -46,7 +46,7 @@ enum Mode {
     Exhaustive,
     Plain,
     Reduced,
-    Ground,
+    Net,
 }
 
 #[derive(Deserialize)]
@@ -89,9 +89,9 @@ fn laser(
     limit: Limit,
 ) -> Run {
     let start = Instant::now();
-    if matches!(mode, Mode::Ground) {
-        let explored = Ground::new(black_box(program))
-            .and_then(|mut ground| ground.explore(limit))
+    if matches!(mode, Mode::Net) {
+        let explored = Net::new(black_box(program))
+            .and_then(|mut net| net.explore(limit, Cycle::Find))
             .expect("the program splits into parts");
         return Run {
             closed: explored.closed,
@@ -102,7 +102,7 @@ fn laser(
         };
     }
     let mut laser = match mode {
-        Mode::Exhaustive | Mode::Ground => Laser::new(black_box(program)),
+        Mode::Exhaustive | Mode::Net => Laser::new(black_box(program)),
         Mode::Plain => Laser::plain(black_box(program)),
         Mode::Reduced => Laser::reduced(black_box(program)),
     };

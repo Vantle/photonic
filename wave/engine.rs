@@ -1,43 +1,22 @@
+use crate::dispatch::group;
 use crate::failure::Failure;
 use crate::pass::Range;
 use crate::scan::Scan;
 use crate::setting::{Setting, WIDTH, saturate};
-use crate::shape::Shape;
 use crate::store::Store;
 use crate::table::Table;
+use crate::tally::Tally;
+use crate::tuning::Tuning;
 use crate::work::Work;
 use metal::device::{Command, Device, Kernel};
-use photonic::laser::ground::{Exploration, Ground};
+use photonic::laser::net::{Cycle, Exploration, Net};
 use photonic::runtime::Limit;
 
 const SOURCE: &str = include_str!("kernel.metal");
 
-pub fn group(kernel: &Kernel, thread: usize) -> [usize; 3] {
-    [kernel.capacity().min(thread).max(1), 1, 1]
-}
-
-// What the passes of an exploration add up to: its events, whether a limit refused anything, and,
-// when cycles matter, every marking's edges, the targets of each marking's edges lying from its
-// first position to the next marking's.
-#[derive(Default)]
-pub struct Tally {
-    pub event: u64,
-    pub refused: bool,
-    pub first: Vec<u64>,
-    pub edge: Vec<u32>,
-}
-
-impl Tally {
-    // Ends the edges of every marking before this one.
-    pub fn reach(&mut self, marking: usize) {
-        while self.first.len() <= marking {
-            self.first.push(self.edge.len() as u64);
-        }
-    }
-}
-
+// Explores nets on the GPU through Metal, with its kernels compiled once for every exploration.
 pub struct Engine {
-    pub(crate) shape: Shape,
+    pub(crate) tuning: Tuning,
     pub(crate) device: Device,
     pub(crate) count: Kernel,
     pub(crate) expand: Kernel,
@@ -49,44 +28,17 @@ pub struct Engine {
     pub(crate) scan: Scan,
 }
 
-fn cyclic(first: &[u64], edge: &[u32]) -> bool {
-    if first.len() < 2 {
-        return false;
-    }
-    let mut color = vec![0u8; first.len() - 1];
-    let mut stack = vec![(0usize, first[0])];
-    color[0] = 1;
-    while let Some(&mut (node, ref mut position)) = stack.last_mut() {
-        if *position == first[node + 1] {
-            color[node] = 2;
-            stack.pop();
-            continue;
-        }
-        let next = edge[*position as usize] as usize;
-        *position += 1;
-        match color[next] {
-            0 => {
-                color[next] = 1;
-                stack.push((next, first[next]));
-            }
-            1 => return true,
-            _ => {}
-        }
-    }
-    false
-}
-
 impl Engine {
     pub fn new() -> Result<Self, Failure> {
-        Self::shaped(Shape::default())
+        Self::tuned(Tuning::default())
     }
 
-    pub fn shaped(shape: Shape) -> Result<Self, Failure> {
+    pub(crate) fn tuned(tuning: Tuning) -> Result<Self, Failure> {
         let device = Device::open()?;
         let library = device.library(SOURCE)?;
         let kernel = |entry: &str| device.kernel(&library, entry);
         Ok(Self {
-            shape,
+            tuning,
             count: kernel("count")?,
             expand: kernel("expand")?,
             insert: kernel("insert")?,
@@ -99,77 +51,34 @@ impl Engine {
         })
     }
 
+    // The GPU the engine explores on.
     pub fn name(&self) -> &str {
         self.device.name()
-    }
-
-    // Moves to a larger table when a pass could fill the table or would likely leave it more than
-    // half full, since probes stay short below that, and tells whether the pass must enter every
-    // marking into it first.
-    pub(crate) fn grow(
-        &self,
-        store: &mut Store,
-        safe: usize,
-        likely: usize,
-    ) -> Result<bool, Failure> {
-        let wanted = (2 * likely).max(safe);
-        if wanted <= store.slot {
-            return Ok(false);
-        }
-        let slot = wanted.next_power_of_two();
-        if slot > 1 << 32 {
-            return Err(Failure::Configuration { count: likely });
-        }
-        store.table = self.device.space::<u32>(2 * slot)?;
-        store.slot = slot;
-        Ok(true)
-    }
-
-    // Encodes entering every established marking into a table just grown.
-    pub(crate) fn fill<'device>(
-        &self,
-        command: &mut Command<'device>,
-        store: &'device Store,
-    ) -> Result<(), Failure> {
-        let setting = Setting {
-            count: saturate(store.count),
-            bucket: saturate(store.slot / WIDTH),
-            ..Setting::default()
-        };
-        command.clear(&store.table)?;
-        command.dispatch(
-            &self.rehash,
-            &[&store.arena.address, &store.offset.memory, &store.table],
-            &setting.bytes(),
-            [store.count, 1, 1],
-            group(&self.rehash, store.count),
-        );
-        Ok(())
     }
 
     // Explores every schedule of plain events from the net's start in the order one thread searching
     // breadth first would, a window of markings at a time, until no new marking appears; the limits
     // refuse what they refuse, and past the configuration limit only known markings are reached.
-    // With cycle, it also keeps every edge to tell whether a run can go on forever.
+    // It agrees with the net's own exploration number for number.
     pub fn explore(
         &self,
-        ground: &mut Ground,
+        net: &mut Net,
         limit: Limit,
-        cycle: bool,
+        cycle: Cycle,
     ) -> Result<Exploration, Failure> {
-        let mut table = Table::new(ground);
-        table.prepare(ground, &ground.start())?;
+        let mut table = Table::new(net);
+        table.prepare(net, &net.start())?;
         let mut upload = None;
-        let mut store = Store::new(&self.device, &ground.start(), self.shape)?;
-        let mut work = Work::new(&self.device, self.shape.initial)?;
+        let mut store = Store::new(&self.device, &net.start(), self.tuning)?;
+        let mut work = Work::new(&self.device, self.tuning.initial)?;
         let mut tally = Tally::default();
         let mut end = Vec::new();
         let mut cursor = 0;
         let mut counted = false;
         while cursor < store.count {
-            let size = self.shape.window.min(store.count - cursor);
+            let size = self.tuning.window.min(store.count - cursor);
             let window = self.count(
-                ground,
+                net,
                 &mut table,
                 &mut upload,
                 &mut store,
@@ -185,7 +94,7 @@ impl Engine {
             while from < size {
                 let range = {
                     let start = work.start.memory.view::<u64>();
-                    let to = window.bound(start, from, self.shape.pass as u64);
+                    let to = window.bound(start, from, self.tuning.pass as u64);
                     Range {
                         from,
                         to,
@@ -209,15 +118,34 @@ impl Engine {
             }
             cursor += size;
         }
-        if cycle {
-            tally.reach(store.count);
-        }
         Ok(Exploration {
             closed: !tally.refused,
             configuration: store.count,
             event: tally.event,
             end: end.into_iter().map(|id| store.marking(id)).collect(),
-            endless: cycle.then(|| cyclic(&tally.first, &tally.edge)),
+            endless: (cycle == Cycle::Find).then(|| tally.cyclic(store.count)),
         })
+    }
+
+    // Encodes entering every established marking into a table just grown.
+    pub(crate) fn fill<'device>(
+        &self,
+        command: &mut Command<'device>,
+        store: &'device Store,
+    ) -> Result<(), Failure> {
+        let setting = Setting {
+            count: saturate(store.count),
+            bucket: saturate(store.slot / WIDTH),
+            ..Setting::default()
+        };
+        command.clear(&store.table)?;
+        command.dispatch(
+            &self.rehash,
+            &[&store.arena.address, &store.offset.memory, &store.table],
+            &setting.bytes(),
+            [store.count, 1, 1],
+            group(&self.rehash, store.count),
+        );
+        Ok(())
     }
 }
