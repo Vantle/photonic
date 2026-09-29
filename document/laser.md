@@ -9,6 +9,7 @@ Laser is Photonic's second engine for exploring every future of a program, besid
 | `photonic run` | `--engine laser` lists the configurations Laser reaches; `--worker` sets its threads and `--json` prints its report. |
 | `photonic prism` | `--engine laser` answers reached, unreachable or unknown for an exact target from Laser's exploration. `--path` follows the interpreter's scheduler, so it refuses an engine. |
 | Spectrum | Every question takes `engine: laser` in exhaustive mode, and every verb takes `--engine laser`; see [Spectrum](spectrum.md#recordings). `mode: plain`, or `--plain`, explores every schedule of plain events on Laser. |
+| `photonic every` | Explores every schedule of plain events through the program's [net of parts](#nets-of-parts), on the GPU through [Metal](#the-metal-backend) where there is one and on the host otherwise: configurations, events, where runs end and whether one can go on forever. `--target` files, with `--preserve` to add the program's root rules, check that every schedule ends exactly at a target, as `photonic_test(every = True)` does. |
 | `photonic_test` | Every exhaustive case also runs on Laser and fails unless Laser gives the interpreter's answer, or the interpreter's exploration stayed open and one of the two answers is unknown. `every = True` runs Laser alone and requires every schedule of plain events to end exactly at a target; see [every schedule](#every-schedule). |
 
 ```sh
@@ -83,7 +84,10 @@ The [wave](../wave/) crate explores a net's plain schedules on the GPU through M
 
 **The host's share.** Grounding stays on the host. When a window holds a marking whose parts the tables lack, or whose kinds could fill every input of a rule joining several coherences, the host grounds it as its own net would on expanding it, counts again if it must, and finds the successors of joining events, which the pass decides with the rest. The GPU keeps no edges; when asked whether a run can go on forever, the host keeps every edge and looks for a cycle.
 
+`photonic every` is its command. It exits 1 unless the exploration closes and, given targets, no run goes on forever and every end configuration is a target; it keeps every edge to look for cycles, about four bytes an event.
+
 ```sh
+bazel run -c opt //command:photonic -- every program/language/inference.wave
 bazel run -c opt //benchmark:wave -- --family task --count 14
 bazel run -c opt //benchmark:wave -- --family dial --count 12 --compare --worker 16
 ```
@@ -149,4 +153,4 @@ Sixteen tasks explore at 90 million configurations a second and sixteen dials at
 
 ## Not yet built
 
-Laser does not follow direct paths; `--path` and Spectrum's `path` mode use the interpreter's scheduler. `photonic run` and `prism` do not offer plain mode. Deductions are each engine's own; shortest derivations shared by both would let `inspect` and `cause` read alike on either. The webbook's WebAssembly engine runs the interpreter only. The Metal backend explores nets and keeps no recording, so the commands and Spectrum do not offer it yet; it checks no claim on the GPU, grounds and joins on the host, looks for cycles on the host from every edge, and does not infer.
+Laser does not follow direct paths; `--path` and Spectrum's `path` mode use the interpreter's scheduler. `photonic run` and `prism` do not offer plain mode. Deductions are each engine's own; shortest derivations shared by both would let `inspect` and `cause` read alike on either. The webbook's WebAssembly engine runs the interpreter only. The Metal backend explores nets and keeps no recording, so Spectrum does not offer it, and of the commands only `every` does; it checks no claim on the GPU, grounds and joins on the host, looks for cycles on the host from every edge, and does not infer.

@@ -17,12 +17,23 @@ pub fn group(kernel: &Kernel, thread: usize) -> [usize; 3] {
 }
 
 // What the passes of an exploration add up to: its events, whether a limit refused anything, and,
-// when cycles matter, every marking's edges.
+// when cycles matter, every marking's edges, the targets of each marking's edges lying from its
+// first position to the next marking's.
 #[derive(Default)]
 pub struct Tally {
     pub event: u64,
     pub refused: bool,
-    pub outgoing: Vec<Vec<u32>>,
+    pub first: Vec<u64>,
+    pub edge: Vec<u32>,
+}
+
+impl Tally {
+    // Ends the edges of every marking before this one.
+    pub fn reach(&mut self, marking: usize) {
+        while self.first.len() <= marking {
+            self.first.push(self.edge.len() as u64);
+        }
+    }
 }
 
 pub struct Engine {
@@ -38,24 +49,25 @@ pub struct Engine {
     pub(crate) scan: Scan,
 }
 
-fn cyclic(outgoing: &[Vec<u32>]) -> bool {
-    if outgoing.is_empty() {
+fn cyclic(first: &[u64], edge: &[u32]) -> bool {
+    if first.len() < 2 {
         return false;
     }
-    let mut color = vec![0u8; outgoing.len()];
-    let mut stack = vec![(0usize, 0usize)];
+    let mut color = vec![0u8; first.len() - 1];
+    let mut stack = vec![(0usize, first[0])];
     color[0] = 1;
     while let Some(&mut (node, ref mut position)) = stack.last_mut() {
-        let Some(&next) = outgoing[node].get(*position) else {
+        if *position == first[node + 1] {
             color[node] = 2;
             stack.pop();
             continue;
-        };
+        }
+        let next = edge[*position as usize] as usize;
         *position += 1;
-        match color[next as usize] {
+        match color[next] {
             0 => {
-                color[next as usize] = 1;
-                stack.push((next as usize, 0));
+                color[next] = 1;
+                stack.push((next, first[next]));
             }
             1 => return true,
             _ => {}
@@ -198,14 +210,14 @@ impl Engine {
             cursor += size;
         }
         if cycle {
-            tally.outgoing.resize(store.count, Vec::new());
+            tally.reach(store.count);
         }
         Ok(Exploration {
             closed: !tally.refused,
             configuration: store.count,
             event: tally.event,
             end: end.into_iter().map(|id| store.marking(id)).collect(),
-            endless: cycle.then(|| cyclic(&tally.outgoing)),
+            endless: cycle.then(|| cyclic(&tally.first, &tally.edge)),
         })
     }
 }

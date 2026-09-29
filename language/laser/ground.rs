@@ -9,8 +9,11 @@ use crate::application::{Owner, Request};
 use crate::catalog::Catalog;
 use crate::flow::Binding;
 use crate::program::{Program, Symbol};
+use crate::render;
 use crate::runtime::Limit;
+use crate::snapshot::{Definition, Node};
 use crate::state::State;
+use crate::status::Status;
 use hashing::Builder;
 use indexmap::{IndexMap, IndexSet};
 use std::collections::HashMap;
@@ -177,6 +180,26 @@ impl Ground {
             root: self.start.root,
             kind: self.start.kind.clone(),
         }
+    }
+
+    // The marking of an exact target configuration, or none when a part of it is a kind the net
+    // has never met, since then no marking it reached is the target.
+    pub fn find(&self, target: &frontend::source::Program) -> Option<Marking> {
+        let makeup = self.taxonomy.find(&State::target(&self.program, target))?;
+        Some(Marking {
+            root: makeup.root,
+            kind: makeup.kind,
+        })
+    }
+
+    // A marking as the interpreter reports a configuration, in its canonical form, with the
+    // program's rules to name the rule values it holds.
+    pub fn node(&self, marking: &Marking) -> Node {
+        render::Builder::new(&self.program).node(0, &self.state(marking), Status::Supported)
+    }
+
+    pub fn definition(&self) -> Vec<Definition> {
+        render::Builder::new(&self.program).definition()
     }
 
     pub(crate) fn state(&self, marking: &Marking) -> State {

@@ -299,10 +299,10 @@ impl Engine {
         if cycle {
             let target = work.target.memory.view::<u32>()[..count].to_vec();
             let record = work.record.memory.view::<u32>();
-            tally.outgoing.resize(store.count, Vec::new());
             for (index, &aim) in target.iter().enumerate() {
+                tally.reach(record[3 * index] as usize);
                 if aim != BLOCKED {
-                    tally.outgoing[record[3 * index] as usize].push(aim);
+                    tally.edge.push(aim);
                 }
             }
         }

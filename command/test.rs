@@ -173,6 +173,52 @@ fn worker() {
     assert!(String::from_utf8_lossy(&invalid.stderr).contains("--worker"));
 }
 
+// The every command explores the plain schedules of a program's net, on the host in Bazel's sandbox,
+// and passes only when every schedule ends exactly at a target.
+#[test]
+fn every() {
+    let fixture = Fixture::new();
+    let path = fixture.write(
+        "task.wave",
+        "Task.T1.Pending, Task.T2.Pending, [Pending] Running, [Running] Done",
+    );
+    let done = fixture.write("done.wave", "Task.T1.Done, Task.T2.Done");
+    let stray = fixture.write("stray.wave", "Task.T1.Done, Task.T2.Running");
+    let target = ["--target", done.to_str().unwrap(), "--preserve", "--json"];
+    let answer = report(&execute("every", &path, &target));
+    assert_eq!(answer["closed"], true);
+    assert_eq!(answer["configuration"], 9);
+    assert_eq!(answer["event"], 12);
+    assert_eq!(answer["endless"], false);
+    assert_eq!(answer["end"].as_array().unwrap().len(), 1);
+    assert_eq!(answer["end"][0]["target"], true);
+    assert_eq!(answer["stray"], 0);
+    assert_eq!(answer["passed"], true);
+    let failed = execute(
+        "every",
+        &path,
+        &["--target", stray.to_str().unwrap(), "--preserve"],
+    );
+    assert!(!failed.status.success());
+    let text = String::from_utf8_lossy(&failed.stdout);
+    assert!(text.contains("1 end configuration, 1 of them not a target"));
+    assert!(text.contains("Every schedule ends at a target: failed"));
+    let dial = fixture.write(
+        "dial.wave",
+        "Dial.D1.Zero, [Zero] One, [One] Two, [Two] Zero",
+    );
+    let answer = report(&execute("every", &dial, &["--json"]));
+    assert_eq!(answer["configuration"], 3);
+    assert_eq!(answer["endless"], true);
+    assert_eq!(answer["end"].as_array().unwrap().len(), 0);
+    let open = execute("every", &dial, &["--configuration", "2", "--host"]);
+    assert!(!open.status.success());
+    assert!(
+        String::from_utf8_lossy(&open.stdout)
+            .starts_with("Every schedule: open after 2 configurations")
+    );
+}
+
 #[test]
 fn prism() {
     let fixture = Fixture::new();

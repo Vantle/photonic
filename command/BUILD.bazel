@@ -5,6 +5,7 @@ rust_binary(
     name = "photonic",
     srcs = [
         "argument.rs",
+        "every.rs",
         "main.rs",
         "output.rs",
         "server.rs",
@@ -23,6 +24,7 @@ rust_binary(
         "//frontend",
         "//language:photonic",
         "//spectrum",
+        "//wave",
         "@crate//:clap",
         "@crate//:miette",
         "@crate//:serde",

@@ -29,7 +29,10 @@ rust_library(
     compile_data = ["kernel.metal"],
     crate_root = "wave.rs",
     lint_config = "//:lint",
-    visibility = ["//benchmark:__pkg__"],
+    visibility = [
+        "//benchmark:__pkg__",
+        "//command:__pkg__",
+    ],
     deps = [
         "//language:photonic",
         "//metal",

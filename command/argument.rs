@@ -28,6 +28,10 @@ pub enum Operation {
         about = "Explore every future and summarize configurations, end configurations and rules"
     )]
     Explore(Explore),
+    #[command(
+        about = "Explore every schedule of plain events through the program's net of parts, on the GPU through Metal where there is one: configurations, events, where runs end and whether one can go on forever; with targets, whether every schedule ends exactly at one; exits 1 unless it closes and, given targets, every schedule ends at one"
+    )]
+    Every(Every),
     #[command(about = "Find the configurations or events that match a Photonic pattern")]
     Select(Select),
     #[command(
@@ -183,6 +187,42 @@ pub struct Run {
     pub json: bool,
     #[arg(long, requires = "json", help = "Serialize JSON without indentation")]
     pub compact: bool,
+}
+
+#[derive(Args)]
+pub struct Every {
+    #[arg(
+        required = true,
+        help = "Program files: .wave or .particle source, or .json programs assembled by Bazel"
+    )]
+    pub file: Vec<PathBuf>,
+    #[command(flatten)]
+    pub source: Source,
+    #[arg(long, default_value_t = 1 << 24, help = "Configurations kept")]
+    pub configuration: usize,
+    #[arg(long, default_value_t = spectrum::budget::Budget::default().coherence, help = "Coherences in one configuration")]
+    pub coherence: usize,
+    #[arg(long, default_value_t = spectrum::budget::Budget::default().occurrence, help = "Occurrences in one configuration")]
+    pub occurrence: usize,
+    #[arg(long, default_value_t = spectrum::budget::Budget::default().scope, help = "Scopes in one configuration")]
+    pub scope: usize,
+    #[arg(
+        long,
+        help = "A file holding a complete target configuration; repeat for each"
+    )]
+    pub target: Vec<PathBuf>,
+    #[arg(long, help = "Targets also list every loaded root rule")]
+    pub preserve: bool,
+    #[arg(
+        long,
+        default_value_t = 12,
+        help = "End configurations listed; the rest are counted"
+    )]
+    pub list: usize,
+    #[arg(long, help = "Explore on the host even where there is a GPU")]
+    pub host: bool,
+    #[arg(long, help = "Print the answer as JSON")]
+    pub json: bool,
 }
 
 #[derive(Args)]

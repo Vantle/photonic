@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 
 mod argument;
+mod every;
 mod output;
 mod server;
 mod verb;
@@ -43,6 +44,7 @@ fn main() -> miette::Result<ExitCode> {
         Operation::Prism(argument) => prism(&argument),
         Operation::Check(argument) => verb::check(argument),
         Operation::Explore(argument) => verb::explore(argument),
+        Operation::Every(argument) => every::every(&argument),
         Operation::Select(argument) => verb::select(argument),
         Operation::Inspect(argument) => verb::inspect(argument),
         Operation::Cause(argument) => verb::cause(argument),
