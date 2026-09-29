@@ -64,6 +64,79 @@ fn every(program: &Program, target: &[Program], limit: Limit) -> bool {
     !ending.endless && stray == 0
 }
 
+// Each target's outcome against the one expected: the interpreter's, which Laser must agree with
+// wherever both settle, or one direct path's. What a failure found goes to the test's undeclared
+// outputs, so a failing test can be read without running it again.
+fn prism(
+    case: &Case,
+    program: &Program,
+    target: Vec<Program>,
+    expected: Outcome,
+) -> miette::Result<bool> {
+    let exploration = (!case.path).then(|| {
+        let mut runtime = Runtime::new(program);
+        runtime.run(case.work, case.limit);
+        let mut laser = Laser::new(program);
+        laser.run(usize::MAX, case.limit);
+        (runtime, laser)
+    });
+    let directory = std::env::var_os("TEST_UNDECLARED_OUTPUTS_DIR").map(std::path::PathBuf::from);
+    let mut success = true;
+    for (index, target) in target.into_iter().enumerate() {
+        let name = format!("{index}.json");
+        let result = if let Some((runtime, laser)) = &exploration {
+            let verdict = runtime.verdict(&target);
+            let compiled = laser.verdict(&target).outcome;
+            let agree = compiled == verdict.outcome
+                || !runtime.closed()
+                    && (compiled == Outcome::Unknown || verdict.outcome == Outcome::Unknown);
+            if !agree {
+                println!(
+                    "Laser answers {compiled:?} where the interpreter answers {:?}",
+                    verdict.outcome
+                );
+            }
+            success &= agree;
+            if verdict.outcome != expected || !agree {
+                record(
+                    &directory,
+                    &name,
+                    &serde_json::json!({
+                        "target": case.target[index],
+                        "outcome": verdict.outcome,
+                        "witness": verdict.witness,
+                        "laser": compiled,
+                    }),
+                )?;
+            }
+            verdict.outcome
+        } else {
+            let mut search = photonic::path::Search::new(program.clone(), Some(target));
+            search.run(case.work, case.limit);
+            let outcome = search.summary().outcome;
+            if outcome != expected {
+                record(&directory, &name, &search.report())?;
+            }
+            outcome
+        };
+        println!("Prism target {index}: {result:?}; {}", case.target[index]);
+        success &= result == expected;
+    }
+    if let (false, Some((runtime, _))) = (success, &exploration) {
+        record(&directory, "execution.json", &runtime.stream())?;
+    }
+    Ok(success)
+}
+
+fn finish(prefix: &str, success: bool) -> ExitCode {
+    if !success {
+        println!("{prefix}failed");
+        return ExitCode::FAILURE;
+    }
+    println!("{prefix}passed");
+    ExitCode::SUCCESS
+}
+
 fn lower(source: &str) -> miette::Result<Program> {
     frontend::lowering::parse(source)
         .map_err(|failure| miette::Report::new(failure).with_source_code(source.to_string()))
@@ -107,16 +180,10 @@ fn main() -> miette::Result<ExitCode> {
                 "every schedule ends at a target explores every plain schedule and expects reached"
             );
         }
-        let success = every(&program, &target, case.limit);
-        println!(
-            "Every schedule ends at a target: {}",
-            if success { "passed" } else { "failed" }
-        );
-        return Ok(if success {
-            ExitCode::SUCCESS
-        } else {
-            ExitCode::FAILURE
-        });
+        return Ok(finish(
+            "Every schedule ends at a target: ",
+            every(&program, &target, case.limit),
+        ));
     }
     let expected = match (case.expect, case.path) {
         (Expect::Reached, _) => Outcome::Reached,
@@ -125,68 +192,8 @@ fn main() -> miette::Result<ExitCode> {
             miette::bail!("a direct path can witness reachability but cannot prove unreachability")
         }
     };
-    let limit = case.limit;
-    let exploration = (!case.path).then(|| {
-        let mut runtime = Runtime::new(&program);
-        runtime.run(case.work, limit);
-        let mut laser = Laser::new(&program);
-        laser.run(usize::MAX, limit);
-        (runtime, laser)
-    });
-    let directory = std::env::var_os("TEST_UNDECLARED_OUTPUTS_DIR").map(std::path::PathBuf::from);
-    let mut success = true;
-    for (index, target) in target.into_iter().enumerate() {
-        let name = format!("{index}.json");
-        let result = if let Some((runtime, laser)) = &exploration {
-            let verdict = runtime.verdict(&target);
-            let compiled = laser.verdict(&target).outcome;
-            let agree = compiled == verdict.outcome
-                || !runtime.closed()
-                    && (compiled == Outcome::Unknown || verdict.outcome == Outcome::Unknown);
-            if !agree {
-                println!(
-                    "Laser answers {compiled:?} where the interpreter answers {:?}",
-                    verdict.outcome
-                );
-            }
-            success &= agree;
-            if verdict.outcome != expected || !agree {
-                record(
-                    &directory,
-                    &name,
-                    &serde_json::json!({
-                        "target": case.target[index],
-                        "outcome": verdict.outcome,
-                        "witness": verdict.witness,
-                        "laser": compiled,
-                    }),
-                )?;
-            }
-            verdict.outcome
-        } else {
-            let mut search = photonic::path::Search::new(program.clone(), Some(target));
-            search.run(case.work, limit);
-            let outcome = search.summary().outcome;
-            if outcome != expected {
-                record(&directory, &name, &search.report())?;
-            }
-            outcome
-        };
-        println!("Prism target {index}: {result:?}; {}", case.target[index]);
-        success &= result == expected;
-    }
-    println!(
-        "Prism: expected {expected:?}; {}",
-        if success { "passed" } else { "failed" }
-    );
-    if let (false, Some((runtime, _))) = (success, &exploration) {
-        record(&directory, "execution.json", &runtime.stream())?;
-    }
-    Ok(if success {
-        ExitCode::SUCCESS
-    } else {
-        ExitCode::FAILURE
-    })
+    let success = prism(&case, &program, target, expected)?;
+    Ok(finish(&format!("Prism: expected {expected:?}; "), success))
 }
 
 fn record(
