@@ -1,5 +1,6 @@
 use crate::budget::Budget;
 use crate::configuration::{Coherence, Configuration, Frame, Occurrence, Opener, Value};
+use crate::numbering::Numbering;
 use crate::order::{self, Canonical, Naming};
 use crate::recording::{Engine, Mode, Order};
 use frontend::source::{Definition, Program};
@@ -62,6 +63,7 @@ pub struct Exploration {
     pub parent: Vec<Option<usize>>,
     pub depth: Vec<Option<usize>>,
     explorer: Explorer,
+    numbering: Option<Numbering>,
 }
 
 pub struct Plan {
@@ -87,18 +89,50 @@ pub fn id(place: Place) -> usize {
     id
 }
 
-fn occurrence(token: &snapshot::Token, naming: &Naming) -> Occurrence {
+fn occurrence(token: &snapshot::Token) -> Occurrence {
     Occurrence {
         id: token.id,
         value: match &token.value {
-            snapshot::Value::Atom(atom) => Value::Atom(naming.name(atom).to_owned()),
+            snapshot::Value::Atom(atom) => Value::Atom(atom.to_string()),
             snapshot::Value::Rule(rule) => Value::Rule(*rule),
         },
     }
 }
 
-fn configuration(node: &Node, naming: &Naming) -> Configuration {
-    let token = |token: &snapshot::Token| occurrence(token, naming);
+// Configurations are numbered in the canonical program's own names, so renaming atoms keeps every
+// handle, and only then shown in the program's names.
+fn show(configuration: Configuration, naming: &Naming) -> Configuration {
+    let occurrence = |value: Occurrence| Occurrence {
+        value: match value.value {
+            Value::Atom(atom) => Value::Atom(naming.name(&atom).to_owned()),
+            rule => rule,
+        },
+        ..value
+    };
+    Configuration {
+        coherence: configuration
+            .coherence
+            .into_iter()
+            .map(|coherence| Coherence {
+                occurrence: coherence.occurrence.into_iter().map(occurrence).collect(),
+                ..coherence
+            })
+            .collect(),
+        frame: configuration
+            .frame
+            .into_iter()
+            .map(|frame| Frame {
+                rule: frame.rule.into_iter().map(occurrence).collect(),
+                held: frame.held.into_iter().map(occurrence).collect(),
+                ..frame
+            })
+            .collect(),
+        ..configuration
+    }
+}
+
+fn configuration(node: &Node) -> Configuration {
+    let token = occurrence;
     Configuration {
         coherence: node
             .world
@@ -237,11 +271,7 @@ impl Exploration {
                 .iter()
                 .map(|entry| self::rule(entry, naming))
                 .collect(),
-            configuration: snapshot
-                .state
-                .iter()
-                .map(|node| self::configuration(node, naming))
-                .collect(),
+            configuration: snapshot.state.iter().map(self::configuration).collect(),
             event,
         };
         let explorer = Explorer::Interpreter {
@@ -268,11 +298,7 @@ impl Exploration {
                 .iter()
                 .map(|entry| self::rule(entry, naming))
                 .collect(),
-            configuration: report
-                .state
-                .iter()
-                .map(|node| self::configuration(node, naming))
-                .collect(),
+            configuration: report.state.iter().map(self::configuration).collect(),
             event: report
                 .event
                 .into_iter()
@@ -323,17 +349,27 @@ impl Exploration {
                 .iter()
                 .map(|entry| self::rule(entry, naming))
                 .collect(),
-            configuration: report
-                .state
-                .iter()
-                .map(|node| self::configuration(node, naming))
-                .collect(),
+            configuration: report.state.iter().map(self::configuration).collect(),
             event,
         };
         Self::assemble(plan, record, Explorer::Path)
     }
 
-    fn assemble(plan: Plan, record: Record, explorer: Explorer) -> Self {
+    fn assemble(plan: Plan, mut record: Record, explorer: Explorer) -> Self {
+        let numbering = (plan.mode != Mode::Path).then(|| {
+            let numbering = Numbering::new(&record.configuration, &record.event);
+            let (configuration, event) = numbering.apply(
+                std::mem::take(&mut record.configuration),
+                std::mem::take(&mut record.event),
+            );
+            record.configuration = configuration;
+            record.event = event;
+            numbering
+        });
+        record.configuration = std::mem::take(&mut record.configuration)
+            .into_iter()
+            .map(|configuration| show(configuration, &plan.canonical.naming))
+            .collect();
         let count = record.configuration.len();
         let mut outgoing = vec![Vec::new(); count];
         let mut incoming = vec![Vec::new(); count];
@@ -397,6 +433,7 @@ impl Exploration {
             parent,
             depth,
             explorer,
+            numbering,
         }
     }
 
@@ -417,15 +454,27 @@ impl Exploration {
         if preserve {
             hidden.preserve(&self.program);
         }
-        match &self.explorer {
+        let verdict = match &self.explorer {
             Explorer::Path => None,
             Explorer::Interpreter { reach, .. } => Some(reach.verdict(&hidden)),
             Explorer::Laser(laser) => Some(laser.verdict(&hidden)),
-        }
+        }?;
+        Some(Verdict {
+            witness: verdict.witness.map(|witness| {
+                self.numbering
+                    .as_ref()
+                    .map_or(witness, |numbering| numbering.configuration(witness))
+            }),
+            ..verdict
+        })
     }
 
     // Each place after an event and the places it came from before; a direct path keeps none.
     pub fn resource(&self, event: usize) -> Vec<Link> {
+        let event = self
+            .numbering
+            .as_ref()
+            .map_or(event, |numbering| numbering.event(event));
         match &self.explorer {
             Explorer::Path => Vec::new(),
             Explorer::Interpreter { resource, .. } => resource[event].clone(),

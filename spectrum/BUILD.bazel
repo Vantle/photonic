@@ -19,6 +19,7 @@ filegroup(
         "lineage.rs",
         "matching.rs",
         "miss.rs",
+        "numbering.rs",
         "order.rs",
         "pattern.rs",
         "recording.rs",

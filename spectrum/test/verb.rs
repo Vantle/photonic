@@ -206,7 +206,7 @@ fn check() {
     assert!(
         result
             .text()
-            .contains("reach False.Extra exactly   holds   s8 by e1 e7 e8")
+            .contains("reach False.Extra exactly   holds   s13 by e0 e7 e19")
     );
     let Ok(Answer::Check(broken)) = answer(&Request::Check(crate::check::Request {
         recording: Recording {
@@ -251,10 +251,10 @@ fn compare() {
     assert_eq!(
         gained,
         vec![
-            ("s11", "False.True.Extra"),
-            ("s14", "Boolean.True.Extra"),
-            ("s15", "False.Boolean.Extra"),
-            ("s17", "Boolean.Boolean.Extra"),
+            ("s14", "False.Boolean.Extra"),
+            ("s4", "Boolean.True.Extra"),
+            ("s6", "False.True.Extra"),
+            ("s7", "Boolean.Boolean.Extra"),
         ]
     );
     let Ok(Answer::Compare(fix)) = answer(&request("fix.wave")) else {
@@ -319,7 +319,7 @@ fn compare() {
 
 #[test]
 fn cause() {
-    let value = json(r#"{"verb": "cause", "program": {"file": ["bug.wave"]}, "handle": "s11.o1"}"#);
+    let value = json(r#"{"verb": "cause", "program": {"file": ["bug.wave"]}, "handle": "s6.o1"}"#);
     assert_eq!(value["verb"], "cause");
     let lineage = value["answer"]["lineage"].as_array().expect("a lineage");
     let role = lineage
@@ -329,7 +329,7 @@ fn cause() {
     assert_eq!(role, vec!["remainder", "witness", "initial"]);
     assert_eq!(
         lineage[1]["text"],
-        "inferred by e0 e2; the scope receives True as witness"
+        "inferred by e2 e8; the scope receives True as witness"
     );
     assert_eq!(
         lineage[0]["text"],
@@ -362,18 +362,18 @@ fn select() {
 fn inspect() {
     for (handle, kind) in [
         ("r2", "rule"),
-        ("s11", "configuration"),
-        ("s10.c0", "coherence"),
-        ("s11.o1", "occurrence"),
-        ("s10.f1", "frame"),
-        ("e12", "event"),
+        ("s6", "configuration"),
+        ("s5.c0", "coherence"),
+        ("s6.o1", "occurrence"),
+        ("s5.f1", "frame"),
+        ("e11", "event"),
     ] {
         let value = json(&format!(
             r#"{{"verb": "inspect", "program": {{"file": ["bug.wave"]}}, "handle": "{handle}"}}"#
         ));
         assert_eq!(value["answer"]["kind"], kind, "{handle}");
     }
-    let event = json(r#"{"verb": "inspect", "program": {"file": ["bug.wave"]}, "handle": "e11"}"#);
+    let event = json(r#"{"verb": "inspect", "program": {"file": ["bug.wave"]}, "handle": "e4"}"#);
     let witness = event["answer"]["witness"]
         .as_array()
         .expect("witness occurrences")
@@ -382,8 +382,8 @@ fn inspect() {
         .collect::<Vec<_>>();
     assert_eq!(witness, vec!["False", "True"]);
     let produce =
-        json(r#"{"verb": "inspect", "program": {"file": ["original.wave"]}, "handle": "e10"}"#);
-    assert_eq!(produce["answer"]["produced"][0]["handle"], "s9.o0");
+        json(r#"{"verb": "inspect", "program": {"file": ["original.wave"]}, "handle": "e8"}"#);
+    assert_eq!(produce["answer"]["produced"][0]["handle"], "s6.o0");
     assert_eq!(produce["answer"]["produced"][0]["text"], "False");
     let missing =
         json(r#"{"verb": "inspect", "program": {"file": ["bug.wave"]}, "handle": "s99"}"#);
@@ -426,7 +426,7 @@ fn nearest() {
     let bare = &exact[0]["answer"]["near"][0];
     assert_ne!(bare["distance"], 0, "{bare}");
     let preserved = &exact[1]["answer"]["near"][0];
-    assert_eq!(preserved["handle"], "s9", "{preserved}");
+    assert_eq!(preserved["handle"], "s6", "{preserved}");
     assert_eq!(preserved["distance"], 0, "{preserved}");
     let Ok(Answer::Compare(hidden)) = answer(&Request::Compare(crate::compare::Request {
         left: recording("original.wave"),
@@ -545,7 +545,7 @@ fn explore() {
         &mut context,
     );
     let again = respond(
-        &format!(r#"{{"verb": "cause", "exploration": "{key}", "handle": "s12"}}"#),
+        &format!(r#"{{"verb": "cause", "exploration": "{key}", "handle": "s3"}}"#),
         &mut context,
     );
     assert!(first.contains(&key));
@@ -659,14 +659,14 @@ fn schema() {
         r#"{"verb": "select", "program": {"file": ["bug.wave"]}, "pattern": "False"}"#,
         r#"{"verb": "select", "program": {"file": ["bug.wave"]}, "pattern": "[False] False"}"#,
         r#"{"verb": "inspect", "program": {"file": ["bug.wave"]}, "handle": "r2"}"#,
-        r#"{"verb": "inspect", "program": {"file": ["bug.wave"]}, "handle": "s10"}"#,
-        r#"{"verb": "inspect", "program": {"file": ["bug.wave"]}, "handle": "s10.c0"}"#,
-        r#"{"verb": "inspect", "program": {"file": ["bug.wave"]}, "handle": "s11.o1"}"#,
-        r#"{"verb": "inspect", "program": {"file": ["bug.wave"]}, "handle": "s10.f1"}"#,
-        r#"{"verb": "inspect", "program": {"file": ["bug.wave"]}, "handle": "e11"}"#,
-        r#"{"verb": "cause", "program": {"file": ["bug.wave"]}, "handle": "s11"}"#,
-        r#"{"verb": "cause", "program": {"file": ["bug.wave"]}, "handle": "e11"}"#,
-        r#"{"verb": "cause", "program": {"file": ["bug.wave"]}, "handle": "s11.o1"}"#,
+        r#"{"verb": "inspect", "program": {"file": ["bug.wave"]}, "handle": "s5"}"#,
+        r#"{"verb": "inspect", "program": {"file": ["bug.wave"]}, "handle": "s5.c0"}"#,
+        r#"{"verb": "inspect", "program": {"file": ["bug.wave"]}, "handle": "s6.o1"}"#,
+        r#"{"verb": "inspect", "program": {"file": ["bug.wave"]}, "handle": "s5.f1"}"#,
+        r#"{"verb": "inspect", "program": {"file": ["bug.wave"]}, "handle": "e4"}"#,
+        r#"{"verb": "cause", "program": {"file": ["bug.wave"]}, "handle": "s6"}"#,
+        r#"{"verb": "cause", "program": {"file": ["bug.wave"]}, "handle": "e4"}"#,
+        r#"{"verb": "cause", "program": {"file": ["bug.wave"]}, "handle": "s6.o1"}"#,
         r#"{"verb": "miss", "program": {"file": ["bug.wave"]}, "target": "True.True"}"#,
         r#"{"verb": "miss", "program": {"file": ["original.wave"]}, "target": "False.Extra", "exact": true}"#,
         r#"{"verb": "miss", "program": {"file": ["bug.wave"]}, "rule": "r3"}"#,
@@ -718,8 +718,8 @@ fn strict() {
         .to_owned();
     let reuse = session(&[
         r#"{"verb": "explore", "program": {"file": ["bug.wave"]}}"#,
-        &format!(r#"{{"verb": "cause", "exploration": "{key}", "handle": "s11"}}"#),
-        &format!(r#"{{"verb": "cause", "exploration": "{key}", "mode": "path", "handle": "s11"}}"#),
+        &format!(r#"{{"verb": "cause", "exploration": "{key}", "handle": "s6"}}"#),
+        &format!(r#"{{"verb": "cause", "exploration": "{key}", "mode": "path", "handle": "s6"}}"#),
         &format!(
             r#"{{"verb": "check", "exploration": "{key}", "claim": [{{"kind": "reach", "pattern": "False.True"}}]}}"#
         ),

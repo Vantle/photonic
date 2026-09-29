@@ -1,25 +1,25 @@
 use crate::handle::Handle;
 use serde::{Serialize, Serializer};
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum Value {
     Atom(String),
     Rule(usize),
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Occurrence {
     pub id: usize,
     pub value: Value,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Coherence {
     pub frame: usize,
     pub occurrence: Vec<Occurrence>,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum Opener {
     Program,
     Rule(usize),
@@ -34,7 +34,7 @@ impl Serialize for Opener {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Frame {
     pub opener: Option<Opener>,
     pub parent: Option<usize>,
@@ -43,7 +43,7 @@ pub struct Frame {
     pub held: Vec<Occurrence>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Configuration {
     pub coherence: Vec<Coherence>,
     pub frame: Vec<Frame>,

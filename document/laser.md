@@ -28,7 +28,7 @@ For an exploration that closes, both engines agree on:
 
 A configuration can hold interchangeable occurrences, three equal `X` in one coherence for instance. Each engine's canonical labeling settles on one order for them, not necessarily the same one, so the two place maps of an event can differ by an exchange of equal occurrences. Agreement compares place maps by what every automorphism keeps: each place's kind, its occurrence and the occurrences beside it.
 
-The engines differ in what depends on the order of work. Each numbers configurations and events in the order it finds them, so Spectrum handles and keys differ between them. When a match reached an inferred event along several walks, each reports its own deduction: Laser gives the shortest walk among the traces that identify the event, each followed back along the crossing that first carried it. Each counts its own work and retained records. An exploration stopped by a budget ends at a different point on each engine, but a definite answer never contradicts the other engine's: reached needs a supported configuration, and support only grows as exploration continues, while unreachable needs a closed exploration.
+The engines differ in what depends on the order of work. Each numbers configurations and events in the order it finds them, and Spectrum renumbers both canonically, so a closed exploration names the same handles on either; their keys differ. When a match reached an inferred event along several walks, each reports its own deduction: Laser gives the shortest walk among the traces that identify the event, each followed back along the crossing that first carried it. Each counts its own work and retained records. An exploration stopped by a budget ends at a different point on each engine, but a definite answer never contradicts the other engine's: reached needs a supported configuration, and support only grows as exploration continues, while unreachable needs a closed exploration.
 
 ## How it explores
 
@@ -111,4 +111,4 @@ Of the 467 distinct programs the census gathers, 296 close on the interpreter wi
 
 ## Not yet built
 
-Laser does not follow direct paths; `--path` and Spectrum's `path` mode use the interpreter's scheduler. `photonic run` and `prism` do not offer plain mode. Handles are numbered in each engine's own order; a numbering and deductions shared by both engines would let their answers name the same handles. The webbook's WebAssembly engine runs the interpreter only. There is no GPU backend yet.
+Laser does not follow direct paths; `--path` and Spectrum's `path` mode use the interpreter's scheduler. `photonic run` and `prism` do not offer plain mode. Deductions are each engine's own; shortest derivations shared by both would let `inspect` and `cause` read alike on either. The webbook's WebAssembly engine runs the interpreter only. There is no GPU backend yet.

@@ -548,7 +548,7 @@ fn check() {
         &["--reach", "False.Extra", "--exact", "--preserve"],
     );
     assert!(held.status.success());
-    assert!(String::from_utf8_lossy(&held.stdout).contains("holds   s8 by e1 e7 e8"));
+    assert!(String::from_utf8_lossy(&held.stdout).contains("holds   s13 by e0 e7 e19"));
     let failed = execute("check", &path, &["--reach", "Nothing"]);
     assert!(!failed.status.success());
     let broken = fixture.write("broken.wave", "A B");
@@ -562,9 +562,9 @@ fn question() {
     let path = fixture.write("bug.wave", BUG);
     let explored = envelope(&execute("explore", &path, &["--json"]));
     assert_eq!(explored["answer"]["configuration"], 18);
-    let cause = execute("cause", &path, &["s11.o1"]);
+    let cause = execute("cause", &path, &["s6.o1"]);
     assert!(String::from_utf8_lossy(&cause.stdout).contains("the scope receives True as witness"));
-    let inspect = envelope(&execute("inspect", &path, &["e12", "--json"]));
+    let inspect = envelope(&execute("inspect", &path, &["e11", "--json"]));
     assert_eq!(inspect["answer"]["kind"], "event");
     let select = envelope(&execute(
         "select",
@@ -740,7 +740,7 @@ fn server() {
             json!({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "test", "version": "1"}}}),
             json!({"jsonrpc": "2.0", "method": "notifications/initialized"}),
             json!({"jsonrpc": "2.0", "id": 2, "method": "tools/list"}),
-            json!({"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "cause", "arguments": {"program": {"file": ["bug.wave"]}, "handle": "s11.o1"}}}),
+            json!({"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "cause", "arguments": {"program": {"file": ["bug.wave"]}, "handle": "s6.o1"}}}),
             json!({"jsonrpc": "2.0", "id": 4, "method": "resources/read", "params": {"uri": "photonic://primer"}}),
             json!({"jsonrpc": "2.0", "id": 5, "method": "tools/call", "params": {"name": "inspect", "arguments": {"program": {"file": ["bug.wave"]}, "handle": "s99"}}}),
             json!({"jsonrpc": "2.0", "id": 6, "method": "tools/call", "params": {"name": "nothing", "arguments": {}}}),

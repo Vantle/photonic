@@ -16,11 +16,11 @@ bazel run -c opt //command:photonic -- explore program/language/conjunction.wave
 ```
 
 ```
-x91c7f6619ec81b4b · closed · 14 configurations · 17 events, 4 inferred · depth 3 · work 240 · shape 2a2059d40174b9fb
-end    s4    in f1: Extra
-       s6    in f1: Boolean.Extra
-       s12   Boolean.Extra
-       s13   in f1: Boolean.Boolean.Extra
+x5f61ec6db1a472a4 · closed · 14 configurations · 17 events, 4 inferred · depth 3 · work 240 · shape 2a2059d40174b9fb
+end    s3    Boolean.Extra
+       s11   in f1: Boolean.Boolean.Extra
+       s12   in f1: Boolean.Extra
+       s13   in f1: Extra
 rule   r0    [And.Boolean.Boolean] (…)   4, 3 inferred
        r1    [True.True] True            never   in the scope r0 opens
        r2    [True.False] False          1   in the scope r0 opens
@@ -33,28 +33,28 @@ The first line is the exploration's key, whether it closed, its size and its sha
 
 ```sh
 bazel run -c opt //command:photonic -- check program/language/conjunction.wave --reach False.Extra --exact --preserve
-bazel run -c opt //command:photonic -- cause program/language/conjunction.wave s9
-bazel run -c opt //command:photonic -- cause program/language/conjunction.wave s9.o0
+bazel run -c opt //command:photonic -- cause program/language/conjunction.wave s6
+bazel run -c opt //command:photonic -- cause program/language/conjunction.wave s6.o0
 ```
 
 ```
 no diagnostics
-reach False.Extra exactly   holds   s9 by e9 e10   s9 is the target
-x91c7f6619ec81b4b · closed · 14 configurations · 17 events, 4 inferred · depth 3 · work 240 · shape 2a2059d40174b9fb
+reach False.Extra exactly   holds   s6 by e3 e8   s6 is the target
+x5f61ec6db1a472a4 · closed · 14 configurations · 17 events, 4 inferred · depth 3 · work 240 · shape 2a2059d40174b9fb
 
-s9 False.Extra
-path       e9    r0 [And.Boolean.Boolean] (…)   s8 in f1: True.False.Extra   inferred
-           e10   r2 [True.False] False          s9 False.Extra
+s6 False.Extra
+path       e3    r0 [And.Boolean.Boolean] (…)   s4 in f1: True.False.Extra   inferred
+           e8    r2 [True.False] False          s6 False.Extra
 
-False in s9 = False.Extra
-  e10   r2 [True.False] False   produces False from s8.o1 True, s8.o2 False, s8.o0 And
+False in s6 = False.Extra
+  e8    r2 [True.False] False   produces False from s4.o1 True, s4.o2 False, s4.o0 And
 ```
 
-`e9` is inferred: `r0` matches `And.Boolean.Boolean` in what `s0` becomes after `e0` and `e2`, so `inspect e9` separates the exact part of the match from the witness that the deduction supplied:
+`e3` is inferred: `r0` matches `And.Boolean.Boolean` in what `s0` becomes after `e1` and `e6`, so `inspect e3` separates the exact part of the match from the witness that the deduction supplied:
 
 ```
-e9 r0 [And.Boolean.Boolean] ([True.True] True, [True.False] False, [False.False] False) · s0 → s8
-deduction  inferred by e0 e2
+e3 r0 [And.Boolean.Boolean] ([True.True] True, [True.False] False, [False.False] False) · s0 → s4
+deduction  inferred by e1 e6
 exact      s0.o0 And
 witness    s0.o1 True · s0.o2 False
 reads      s0.o4 ([And.Boolean.Boolean] ([True.True] True, [True.False] False, [False.False] False))
@@ -64,9 +64,9 @@ reads      s0.o4 ([And.Boolean.Boolean] ([True.True] True, [True.False] False, [
 
 ```
 r1 [True.True] True   never fires · closed · live in 8 configurations where it does not fire
-s8    in f1: True.False.Extra     [True.True] lacks True in s8.c0
-s7    in f1: True.Extra           [True.True] lacks True in s7.c0
-s11   in f1: Boolean.True.Extra   [True.True] lacks True in s11.c0
+s4    in f1: True.False.Extra     [True.True] lacks True in s4.c0
+s7    in f1: Boolean.True.Extra   [True.True] lacks True in s7.c0
+s9    in f1: True.Extra           [True.True] lacks True in s9.c0
 ```
 
 Suppose an edit shortens the scope's last two rules to one, `[False] False`, and saves the result as `bug.wave`. `compare` shows what the edit changed, handles on the right naming the edited program:
@@ -76,12 +76,12 @@ bazel run -c opt //command:photonic -- compare program/language/conjunction.wave
 ```
 
 ```
-compare x91c7f6619ec81b4b x89472f7eb450ddf2
+compare x5f61ec6db1a472a4 x0bb8e6e14aba0c70
 configurations   14 → 18
-  + Boolean.Boolean.Extra   s17   by e24 e20
-  + False.Boolean.Extra     s15   by e11 e12 e16
-  + Boolean.True.Extra      s14   by e24
-  + False.True.Extra        s11   by e11 e12
+  + Boolean.Boolean.Extra   s7   by e3 e10
+  + False.Boolean.Extra     s14   by e4 e11 e15
+  + Boolean.True.Extra      s4   by e3
+  + False.True.Extra        s6   by e4 e11
 events           17 → 25
   + [False] Boolean      False.Boolean.Extra → Boolean.Boolean.Extra
   + [False] Boolean      False.True.Extra → Boolean.True.Extra
@@ -98,13 +98,13 @@ events           17 → 25
 `[False] False` matches `False` alone, so the conjunction's `True` survives it. The lineage of that `True` in `bug.wave` shows where it came from:
 
 ```
-True in s11 = False.True.Extra
+True in s6 = False.True.Extra
   s0                                   initial in False.And.True.Extra
-  e11   r1 [And.Boolean.Boolean] (…)   inferred by e0 e2; the scope receives True as witness
-  e12   r2 [False] False               consumes False; True stays in the remainder
+  e4    r1 [And.Boolean.Boolean] (…)   inferred by e2 e8; the scope receives True as witness
+  e11   r2 [False] False               consumes False; True stays in the remainder
 ```
 
-The claim `--avoid False.True.Extra --exact --preserve` holds on the original and fails on the edit with `s11 by e11 e12`, and `compare` accepts the same claims to report both answers.
+The claim `--avoid False.True.Extra --exact --preserve` holds on the original and fails on the edit with `s6 by e4 e11`, and `compare` accepts the same claims to report both answers.
 
 ## Recordings
 
@@ -115,7 +115,7 @@ Every question except `shape` is about a recording: a program to explore, or the
 | `program` | The program: `file`, a list of `.wave` or `.particle` sources or `.json` programs that Bazel assembled, read in order; `source`, Photonic written inline and read after the files; and `library`, files of declarations loaded first. |
 | `exploration` | The key of an exploration, such as `x91c7f6619ec81b4b`, instead of `program`. A key already fixes the mode, engine, budget and goal, so it comes alone. |
 | `mode` | `exhaustive`, the default, explores every configuration within the budget; `plain` explores every schedule of plain events, the events a configuration's own matches identify, without inference, and always runs on Laser; `path` follows one direct path, as `photonic_test(path = True)` does. |
-| `engine` | In exhaustive mode, `interpreter`, the default, or `laser`, which carries matches back along events and names configurations by their components. Both close with the same configurations, events, inferred events and answers. Each numbers configurations and events in the order it finds them and counts its own work, so their handles and keys differ. A direct path always follows the interpreter's scheduler. |
+| `engine` | In exhaustive mode, `interpreter`, the default, or `laser`, which carries matches back along events and names configurations by their components. Both close with the same configurations, events, inferred events and answers, and Spectrum numbers both the same way, so an exploration that closes names the same handles on either. Each counts its own work and gives its own deductions, and their keys differ. A direct path always follows the interpreter's scheduler. |
 | `budget` | The limits below. |
 | `goal` | In path mode only, the configuration the path stops at: `{"configuration": "False.Extra", "preserve": true}`, where `preserve` adds every loaded root rule, as Prism reads targets. |
 
@@ -132,7 +132,7 @@ The defaults and the names are `photonic_test`'s; each engine counts work and re
 
 ### Canonical order
 
-Before exploring, Spectrum names the program's atoms A, B, C and so on in the order of its shape, the canonical form the symmetry engine computes, and lists its rules and coherences in that form's order. Answers translate the letters back to the program's own names, and each rule's name is its printed text. Configurations, events and rules are numbered in the order the engine explores this canonical program, so reordering a program's terms, or the parts of a term, keeps every handle, and so does renaming its atoms. When the symmetry search visits more than 100,000 nodes, Spectrum sorts the program's printed rules and coherences instead, which keeps handles under reordering only. A direct path follows the program as written: each step fires the first event within the limits that its scheduler finds, and which event that is depends on the order of the program's terms, so reordering them can change the path. Each summary's `order` says which of `shape`, `text` and `source` numbered its handles.
+Before exploring, Spectrum names the program's atoms A, B, C and so on in the order of its shape, the canonical form the symmetry engine computes, and lists its rules and coherences in that form's order. Answers translate the letters back to the program's own names, and each rule's name is its printed text. Rules are numbered in this canonical program's order. Configurations are numbered by their distance from the start along supported events, then along any events, then by their canonical form in the canonical program's names; events by their source, target, rule and binding. So reordering a program's terms, or the parts of a term, keeps every handle, and so does renaming its atoms, and an exploration that closes names the same handles on both engines. When the symmetry search visits more than 100,000 nodes, Spectrum sorts the program's printed rules and coherences instead, which keeps handles under reordering only. A direct path follows the program as written: each step fires the first event within the limits that its scheduler finds, and which event that is depends on the order of the program's terms, so reordering them can change the path. Each summary's `order` says which of `shape`, `text` and `source` numbered its handles.
 
 Within a particle, answers list occurrences in canonical order, which is the order of their handles; `bug.wave` prints its first configuration as `False.And.True.Extra`. Two programs can order the same particle differently, so `compare` may print one particle two ways.
 
@@ -199,11 +199,11 @@ In plain mode a claim speaks of every schedule of plain events instead of every 
 A request names its verb and carries the question's fields as one JSON object, which `Request::read` checks; `envelope` returns the answer with the verb and the envelope's version, beside `answer` or `error`:
 
 ```json
-{"program": {"file": ["bug.wave"]}, "handle": "s11.o1"}
+{"program": {"file": ["bug.wave"]}, "handle": "s6.o1"}
 ```
 
 ```json
-{"version": 1, "verb": "cause", "answer": {"exploration": "x89472f7eb450ddf2", "handle": "s11.o1", "kind": "occurrence", "text": "True", "configuration": "False.True.Extra", "lineage": [{"configuration": "s11", "occurrence": "s11.o1", "event": "e12", "rule": "r2 [False] False", "role": "remainder", "source": ["s10.o2"], "text": "consumes False; True stays in the remainder"}, …]}}
+{"version": 1, "verb": "cause", "answer": {"exploration": "x0bb8e6e14aba0c70", "handle": "s6.o1", "kind": "occurrence", "text": "True", "configuration": "False.True.Extra", "lineage": [{"configuration": "s6", "occurrence": "s6.o1", "event": "e11", "rule": "r2 [False] False", "role": "remainder", "source": ["s5.o2"], "text": "consumes False; True stays in the remainder"}, …]}}
 ```
 
 Every field is checked against the question's schema, so a misspelled field is an error that lists the fields the question takes, never a silent default.
@@ -246,7 +246,7 @@ Two resources describe the language to agents: `photonic://primer`, the grammar,
 
 ## Verification
 
-`//spectrum:test` checks exploration counts and handles on the conjunction and its edits; that every scope is credited to the rule that opens it; every claim kind with its evidence, including an `inevitable` counterexample that avoids every match; occurrence lineage through remainder, witness, held and produced occurrences; that reordering keeps keys and handles while renaming keeps handles and changes the key; every question's answer through the JSON protocol, checked against its declared output schema; that unknown fields, keys with settings and goals outside path mode are refused; `miss` assignments that a greedy choice gets wrong, exact targets with and without their rules, and many parts placed at once; `compare` counts beyond its limit and on open explorations; `shape`, with the pins `fix` keeps and the webbook's recorded pattern; that both engines close with the same counts, claim answers and exact verdicts, with lineage traced on Laser's explorations; and that plain mode answers for every schedule of plain events where an inferred event strands a run. `//command:test` runs the commands and their exit codes, and sessions of the protocol server in the legacy and stateless revisions, including discovery, batches and each protocol error.
+`//spectrum:test` checks exploration counts and handles on the conjunction and its edits; that every scope is credited to the rule that opens it; every claim kind with its evidence, including an `inevitable` counterexample that avoids every match; occurrence lineage through remainder, witness, held and produced occurrences; that reordering keeps keys and handles while renaming keeps handles and changes the key; every question's answer through the JSON protocol, checked against its declared output schema; that unknown fields, keys with settings and goals outside path mode are refused; `miss` assignments that a greedy choice gets wrong, exact targets with and without their rules, and many parts placed at once; `compare` counts beyond its limit and on open explorations; `shape`, with the pins `fix` keeps and the webbook's recorded pattern; that both engines close with the same configurations, events, handles, paths, claim answers and exact verdicts, with lineage traced on Laser's explorations, and that a renaming which reorders atoms alphabetically keeps every handle; and that plain mode answers for every schedule of plain events where an inferred event strands a run. `//command:test` runs the commands and their exit codes, and sessions of the protocol server in the legacy and stateless revisions, including discovery, batches and each protocol error.
 
 ```sh
 bazel test -c opt //spectrum:test //command:test

@@ -40,7 +40,7 @@ Over MCP the verbs are tools with the same fields. Pass the `exploration` key fr
 ```sh
 bazel run -c opt //command:photonic -- check program/language/conjunction.wave --reach False.Extra --exact --preserve
 bazel run -c opt //command:photonic -- explore program/language/conjunction.wave
-bazel run -c opt //command:photonic -- cause program/language/conjunction.wave s9.o0
+bazel run -c opt //command:photonic -- cause program/language/conjunction.wave s6.o0
 bazel run -c opt //command:photonic -- miss program/language/conjunction.wave r1
 bazel run -c opt //command:photonic -- compare before.wave after.wave --reach False.Extra
 bazel run -c opt //command:photonic -- shape library/boolean/and.particle library/boolean/or.particle

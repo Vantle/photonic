@@ -15,6 +15,7 @@ pub mod inspect;
 mod lineage;
 mod matching;
 pub mod miss;
+mod numbering;
 mod order;
 pub mod pattern;
 pub mod recording;

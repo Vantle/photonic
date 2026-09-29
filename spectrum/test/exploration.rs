@@ -49,15 +49,15 @@ fn size() {
 #[test]
 fn handle() {
     let bug = explore(BUG);
-    assert_eq!(render::configuration(&bug, 11), "False.True.Extra");
-    assert_eq!(render::configuration(&bug, 8), "False.Extra");
-    assert_eq!(render::configuration(&bug, 10), "in f1: False.True.Extra");
+    assert_eq!(render::configuration(&bug, 6), "False.True.Extra");
+    assert_eq!(render::configuration(&bug, 13), "False.Extra");
+    assert_eq!(render::configuration(&bug, 5), "in f1: False.True.Extra");
     assert_eq!(bug.rule[2].text, "[False] False");
     assert_eq!(bug.rule[2].scope, Some(Opener::Rule(1)));
-    assert_eq!(bug.event[12].rule, 2);
-    assert_eq!((bug.event[12].source, bug.event[12].target), (10, 11));
-    assert_eq!(bug.path(11), Some(vec![11, 12]));
-    assert_eq!(bug.event[11].deduction, vec![0, 2]);
+    assert_eq!(bug.event[11].rule, 2);
+    assert_eq!((bug.event[11].source, bug.event[11].target), (5, 6));
+    assert_eq!(bug.path(6), Some(vec![4, 11]));
+    assert_eq!(bug.event[4].deduction, vec![2, 8]);
 }
 
 #[test]
@@ -77,8 +77,8 @@ fn evaluation() {
     )
     .unwrap();
     assert_eq!(exact.answer, Answer::Holds);
-    assert_eq!(exact.witness.as_deref(), Some("s8"));
-    assert_eq!(exact.path, vec!["e1", "e7", "e8"]);
+    assert_eq!(exact.witness.as_deref(), Some("s13"));
+    assert_eq!(exact.path, vec!["e0", "e7", "e19"]);
     let absent = claim::evaluate(&claim(Kind::Reach, "Nothing"), &bug).unwrap();
     assert_eq!(absent.answer, Answer::Fails);
     let avoid = claim::evaluate(&claim(Kind::Avoid, "False.True.Extra"), &bug).unwrap();
@@ -97,19 +97,19 @@ fn evaluation() {
 #[test]
 fn lineage() {
     let bug = explore(BUG);
-    let line = lineage::lineage(&bug, 11, 1).unwrap();
+    let line = lineage::lineage(&bug, 6, 1).unwrap();
     let role = line.iter().map(|line| line.role).collect::<Vec<_>>();
     assert_eq!(role, vec![Role::Remainder, Role::Witness, Role::Initial]);
-    assert_eq!(line[0].event, Some(12));
-    assert_eq!(line[1].event, Some(11));
+    assert_eq!(line[0].event, Some(11));
+    assert_eq!(line[1].event, Some(4));
     assert_eq!((line[2].configuration, line[2].occurrence), (0, 2));
     let original = explore(ORIGINAL);
-    let produced = lineage::lineage(&original, 9, 0).unwrap();
+    let produced = lineage::lineage(&original, 6, 0).unwrap();
     assert_eq!(produced.len(), 1);
     assert_eq!(produced[0].role, Role::Produced);
-    assert_eq!(produced[0].event, Some(10));
+    assert_eq!(produced[0].event, Some(8));
     assert_eq!(produced[0].source.len(), 3);
-    let held = lineage::lineage(&original, 8, 0).unwrap();
+    let held = lineage::lineage(&original, 4, 0).unwrap();
     let role = held.iter().map(|line| line.role).collect::<Vec<_>>();
     assert_eq!(role, vec![Role::Held, Role::Initial]);
 }
@@ -121,12 +121,16 @@ fn invariance() {
     assert_ne!(bug.key, renamed.key);
     assert_eq!(bug.shape, renamed.shape);
     assert_eq!(bug.event.len(), renamed.event.len());
-    assert_eq!(render::configuration(&renamed, 11), "False.True.Rest");
+    assert_eq!(render::configuration(&renamed, 6), "False.True.Rest");
+    let reversed = explore(&BUG.replace("Boolean", "Zeta").replace("Extra", "Alpha"));
+    assert_eq!(bug.shape, reversed.shape);
+    assert_eq!(render::configuration(&reversed, 6), "False.True.Alpha");
+    assert_eq!(render::configuration(&reversed, 13), "False.Alpha");
     let reordered = explore(
         "[And.Boolean.Boolean] (\n    [False] False,\n    [True.True] True,\n),\n[False] Boolean,\n[True] Boolean,\nAnd.True.False.Extra\n",
     );
     assert_eq!(bug.key, reordered.key);
-    assert_eq!(render::configuration(&reordered, 11), "False.True.Extra");
+    assert_eq!(render::configuration(&reordered, 6), "False.True.Extra");
 }
 
 #[test]
@@ -289,12 +293,30 @@ fn laser() {
         assert_eq!(
             interpreter
                 .verdict(&target, true)
-                .map(|verdict| verdict.outcome),
+                .map(|verdict| (verdict.outcome, verdict.witness)),
             compiled
                 .verdict(&target, true)
-                .map(|verdict| verdict.outcome),
+                .map(|verdict| (verdict.outcome, verdict.witness)),
             "{source}"
         );
+        assert_eq!(
+            interpreter.configuration, compiled.configuration,
+            "{source}"
+        );
+        let shared = |exploration: &crate::exploration::Exploration| {
+            exploration
+                .event
+                .iter()
+                .map(|event| crate::exploration::Event {
+                    deduction: Vec::new(),
+                    ..event.clone()
+                })
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(shared(&interpreter), shared(&compiled), "{source}");
+        for index in 0..interpreter.configuration.len() {
+            assert_eq!(interpreter.path(index), compiled.path(index), "{source}");
+        }
         for (index, configuration) in compiled.configuration.iter().enumerate() {
             if compiled.path(index).is_none() {
                 continue;
