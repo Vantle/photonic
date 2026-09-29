@@ -1,4 +1,5 @@
 use super::component::{decompose, extract};
+use super::memo::Memo;
 use crate::basis::Set;
 use crate::executor::Executor;
 use crate::flow::Flow;
@@ -10,14 +11,7 @@ use hashing::Builder;
 use indexmap::IndexMap;
 use smallvec::SmallVec;
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
-
-// Kinds are the canonical forms of components and roots the canonical forms of root frames, or of
-// whole configurations whose root is tied to a component. Both are numbered in the order a run
-// meets them, so a configuration is named by its root and its sorted kinds, and the numbering is
-// the same for any number of workers because new forms are numbered in a fixed order. Naming an
-// extracted component is remembered by its contents; the name is a function of them alone.
-const SHARD: usize = 64;
+use std::sync::Arc;
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub(super) enum Root {
@@ -96,20 +90,16 @@ impl Renaming {
     }
 }
 
+// Kinds are the canonical forms of components and roots the canonical forms of root frames, or of
+// whole configurations whose root is tied to a component. Both are numbered in the order a run
+// meets them, so a configuration is named by its root and its sorted kinds, and the numbering is
+// the same for any number of workers because new forms are numbered in a fixed order. Naming an
+// extracted component is remembered by its contents; the name is a function of them alone.
+#[derive(Default)]
 pub(super) struct Taxonomy {
     kind: IndexMap<State, Size, Builder>,
     root: IndexMap<Root, usize, Builder>,
-    name: Vec<Mutex<HashMap<State, Arc<Canonical>, Builder>>>,
-}
-
-impl Default for Taxonomy {
-    fn default() -> Self {
-        Self {
-            kind: IndexMap::default(),
-            root: IndexMap::default(),
-            name: (0..SHARD).map(|_| Mutex::default()).collect(),
-        }
-    }
+    name: Memo<State, Arc<Canonical>>,
 }
 
 // Roots and kinds are numbered in 32 bits.
@@ -178,25 +168,11 @@ impl Taxonomy {
     // Names are remembered for one batch of applications, where the components they leave
     // untouched repeat; remembering every name would keep a copy of every component ever made.
     pub fn forget(&mut self, executor: Option<&Executor>) {
-        let name = std::mem::replace(
-            &mut self.name,
-            (0..SHARD).map(|_| Mutex::default()).collect(),
-        );
-        super::map(executor, name, drop);
+        self.name.forget(executor);
     }
 
     fn name(&self, state: State) -> Arc<Canonical> {
-        let shard = &self.name[(hashing::value(&state) >> 40) as usize % SHARD];
-        if let Some(found) = shard.lock().expect("an unpoisoned cache").get(&state) {
-            return found.clone();
-        }
-        let named = Arc::new(state.canonical());
-        shard
-            .lock()
-            .expect("an unpoisoned cache")
-            .entry(state)
-            .or_insert(named)
-            .clone()
+        self.name.get(state, |state| Arc::new(state.canonical()))
     }
 
     pub fn analyze(&self, state: &State) -> Draft {

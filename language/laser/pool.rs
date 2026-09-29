@@ -1,19 +1,11 @@
-use super::map;
 use super::passage::Passage;
+use super::{map, shard};
 use crate::basis::Set;
 use crate::executor::Executor;
 use crate::place::Place;
 use hashing::Builder;
 use indexmap::{Equivalent, IndexSet};
 use std::hash::{Hash, Hasher};
-
-// Traces carried along many paths share their bases, so bases and coherence sets are named by a
-// number. A single place or world is its own number, and its image across an event is computed
-// where it is needed; only larger sets are interned, shard by shard, and each event remembers its
-// image of every one carried across it or of a single one whose image is larger. A carry reads
-// only its own event's small table; each round first fills the tables with the images it lacks,
-// found by their contents without building a set.
-const SHARD: usize = 64;
 
 const SINGLE: u64 = 1 << 63;
 
@@ -145,6 +137,12 @@ struct Computed {
     world: Vec<(u64, Found<usize>)>,
 }
 
+// Traces carried along many paths share their bases, so bases and coherence sets are named by a
+// number. A single place or world is its own number, and its image across an event is computed
+// where it is needed; only larger sets are interned, shard by shard, and each event remembers its
+// image of every one carried across it or of a single one whose image is larger. A carry reads
+// only its own event's small table; each round first fills the tables with the images it lacks,
+// found by their contents without building a set.
 pub(super) struct Pool {
     basis: Vec<IndexSet<Entry<Place>, Builder>>,
     world: Vec<IndexSet<Entry<usize>, Builder>>,
@@ -154,8 +152,8 @@ pub(super) struct Pool {
 impl Default for Pool {
     fn default() -> Self {
         Self {
-            basis: (0..SHARD).map(|_| IndexSet::default()).collect(),
-            world: (0..SHARD).map(|_| IndexSet::default()).collect(),
+            basis: shard::empty(),
+            world: shard::empty(),
             image: Vec::new(),
         }
     }
@@ -165,42 +163,41 @@ fn digest<Value: Hash>(slice: &[Value]) -> u64 {
     hashing::value(&slice)
 }
 
-// Tables inside a shard place entries by the low bits of the same hash, so shards take middle
-// bits that the tables do not use.
-fn slot(hash: u64) -> usize {
-    (hash >> 40) as usize % SHARD
-}
-
-fn identify(shard: usize, local: usize) -> u64 {
-    let id = u64::try_from(local * SHARD + shard).expect("fewer than 2^63 sets");
+fn identify(index: usize, local: usize) -> u64 {
+    let id = u64::try_from(local * shard::COUNT + index).expect("fewer than 2^63 sets");
     assert!(id < SINGLE, "fewer than 2^63 sets");
     id
 }
 
-fn view<Value: Single>(shard: &[IndexSet<Entry<Value>, Builder>], id: u64) -> View<'_, Value> {
+fn view<Value: Single>(table: &[IndexSet<Entry<Value>, Builder>], id: u64) -> View<'_, Value> {
     if id & SINGLE != 0 {
         return View::Single(Value::decode(id));
     }
     let id = id as usize;
-    View::Many(shard[id % SHARD][id / SHARD].set.iter().as_slice())
+    View::Many(
+        table[id % shard::COUNT][id / shard::COUNT]
+            .set
+            .iter()
+            .as_slice(),
+    )
 }
 
-fn find<Value: Single>(shard: &[IndexSet<Entry<Value>, Builder>], slice: &[Value]) -> Found<Value> {
+fn find<Value: Single>(table: &[IndexSet<Entry<Value>, Builder>], slice: &[Value]) -> Found<Value> {
     if let [single] = slice
         && let Some(code) = single.encode()
     {
         return Found::Known(code);
     }
     let hash = digest(slice);
-    let position = slot(hash);
-    match shard[position].get_index_of(&Probe { hash, slice }) {
+    let position = shard::slot(hash);
+    match table[position].get_index_of(&Probe { hash, slice }) {
         Some(local) => Found::Known(identify(position, local)),
         None => Found::New(hash, slice.iter().copied().collect()),
     }
 }
 
 fn image<Value: Single>(
-    shard: &[IndexSet<Entry<Value>, Builder>],
+    table: &[IndexSet<Entry<Value>, Builder>],
     set: &View<'_, Value>,
     buffer: &mut Vec<Value>,
     part: impl Fn(Value) -> Set<Value>,
@@ -213,7 +210,7 @@ fn image<Value: Single>(
         buffer.sort_unstable();
         buffer.dedup();
     }
-    find(shard, buffer)
+    find(table, buffer)
 }
 
 fn direct<Value: Single>(id: u64, part: impl Fn(Value) -> Option<Value>) -> Option<u64> {
@@ -225,22 +222,22 @@ fn direct<Value: Single>(id: u64, part: impl Fn(Value) -> Option<Value>) -> Opti
 
 fn intern<Value: Eq + Send + Sync>(
     executor: Option<&Executor>,
-    shard: &mut [IndexSet<Entry<Value>, Builder>],
+    table: &mut [IndexSet<Entry<Value>, Builder>],
     fresh: Vec<(u64, Set<Value>)>,
 ) -> Vec<u64> {
     let count = fresh.len();
     if count == 0 {
         return Vec::new();
     }
-    let mut group = (0..SHARD).map(|_| Vec::new()).collect::<Vec<_>>();
+    let mut group = shard::empty::<Vec<_>>();
     for (position, (hash, set)) in fresh.into_iter().enumerate() {
-        group[slot(hash)].push((position, Entry { hash, set }));
+        group[shard::slot(hash)].push((position, Entry { hash, set }));
     }
     let taken = group
         .into_iter()
         .enumerate()
         .filter(|(_, list)| !list.is_empty())
-        .map(|(index, list)| (index, std::mem::take(&mut shard[index]), list))
+        .map(|(index, list)| (index, std::mem::take(&mut table[index]), list))
         .collect::<Vec<_>>();
     let interned = map(executor, taken, |(index, mut set, list)| {
         let found = list
@@ -251,7 +248,7 @@ fn intern<Value: Eq + Send + Sync>(
     });
     let mut id = vec![0; count];
     for (index, set, list) in interned {
-        shard[index] = set;
+        table[index] = set;
         for (position, found) in list {
             id[position] = found;
         }
@@ -261,7 +258,7 @@ fn intern<Value: Eq + Send + Sync>(
 
 fn resolve<Value: Eq + Send + Sync>(
     executor: Option<&Executor>,
-    shard: &mut [IndexSet<Entry<Value>, Builder>],
+    table: &mut [IndexSet<Entry<Value>, Builder>],
     mut found: Vec<Vec<(u64, Found<Value>)>>,
 ) -> Vec<Vec<(u64, u64)>> {
     let mut fresh = Vec::new();
@@ -270,7 +267,7 @@ fn resolve<Value: Eq + Send + Sync>(
             fresh.push((*hash, std::mem::take(set)));
         }
     }
-    let mut interned = intern(executor, shard, fresh).into_iter();
+    let mut interned = intern(executor, table, fresh).into_iter();
     found
         .into_iter()
         .map(|list| {
@@ -295,7 +292,7 @@ fn merge(table: &mut Vec<(u64, u64)>, found: Vec<(u64, u64)>) {
 }
 
 fn add<Value: Eq + Hash + Single>(
-    shard: &mut [IndexSet<Entry<Value>, Builder>],
+    table: &mut [IndexSet<Entry<Value>, Builder>],
     set: Set<Value>,
 ) -> u64 {
     if let [single] = set.iter().as_slice()
@@ -304,8 +301,8 @@ fn add<Value: Eq + Hash + Single>(
         return code;
     }
     let hash = digest(set.iter().as_slice());
-    let position = slot(hash);
-    identify(position, shard[position].insert_full(Entry { hash, set }).0)
+    let position = shard::slot(hash);
+    identify(position, table[position].insert_full(Entry { hash, set }).0)
 }
 
 impl Demand {

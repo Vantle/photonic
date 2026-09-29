@@ -1,14 +1,10 @@
-use super::map;
 use super::taxonomy::Makeup;
+use super::{map, shard, update};
 use crate::executor::Executor;
 use hashing::Builder;
 use indexmap::{Equivalent, IndexMap};
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
-
-// Configurations are found by their makeup, hashed where it is made, so shards find them in
-// parallel and only numbering the new ones happens in order.
-const SHARD: usize = 64;
 
 struct Entry {
     hash: u64,
@@ -61,22 +57,18 @@ pub(super) enum Found {
     Repeat(usize),
 }
 
+// Configurations are found by their makeup, hashed where it is made, so shards find them in
+// parallel and only numbering the new ones happens in order.
 pub(super) struct Space {
-    shard: Vec<IndexMap<Entry, usize, Builder>>,
+    table: Vec<IndexMap<Entry, usize, Builder>>,
 }
 
 impl Default for Space {
     fn default() -> Self {
         Self {
-            shard: (0..SHARD).map(|_| IndexMap::default()).collect(),
+            table: shard::empty(),
         }
     }
-}
-
-// Tables inside a shard place entries by the low bits of the same hash, so shards take middle
-// bits that the tables do not use.
-fn slot(hash: u64) -> usize {
-    (hash >> 40) as usize % SHARD
 }
 
 pub(super) fn hash(makeup: &Makeup) -> u64 {
@@ -86,13 +78,15 @@ pub(super) fn hash(makeup: &Makeup) -> u64 {
 impl Space {
     pub fn find(&self, makeup: &Makeup) -> Option<usize> {
         let hash = hash(makeup);
-        self.shard[slot(hash)].get(&Probe { hash, makeup }).copied()
+        self.table[shard::slot(hash)]
+            .get(&Probe { hash, makeup })
+            .copied()
     }
 
     pub fn resolve(&self, executor: Option<&Executor>, item: &[(u64, &Makeup)]) -> Vec<Found> {
-        let mut group = (0..SHARD).map(|_| Vec::new()).collect::<Vec<_>>();
+        let mut group = shard::empty::<Vec<_>>();
         for (position, &(hash, _)) in item.iter().enumerate() {
-            group[slot(hash)].push(position);
+            group[shard::slot(hash)].push(position);
         }
         group.retain(|list| !list.is_empty());
         let resolved = map(executor, group, |list| {
@@ -101,7 +95,7 @@ impl Space {
                 .map(|position| {
                     let (hash, makeup) = item[position];
                     let probe = Probe { hash, makeup };
-                    if let Some(&index) = self.shard[slot(hash)].get(&probe) {
+                    if let Some(&index) = self.table[shard::slot(hash)].get(&probe) {
                         return (position, Found::Existing(index));
                     }
                     match first.get(&probe) {
@@ -122,22 +116,17 @@ impl Space {
     }
 
     pub fn admit(&mut self, executor: Option<&Executor>, item: Vec<(u64, Arc<Makeup>, usize)>) {
-        let mut group = (0..SHARD).map(|_| Vec::new()).collect::<Vec<_>>();
+        let mut group = shard::empty::<Vec<_>>();
         for (hash, makeup, index) in item {
-            group[slot(hash)].push((Entry { hash, makeup }, index));
+            group[shard::slot(hash)].push((Entry { hash, makeup }, index));
         }
-        let taken = group
+        let group = group
             .into_iter()
             .enumerate()
             .filter(|(_, list)| !list.is_empty())
-            .map(|(index, list)| (index, std::mem::take(&mut self.shard[index]), list))
-            .collect::<Vec<_>>();
-        let admitted = map(executor, taken, |(index, mut shard, list)| {
-            shard.extend(list);
-            (index, shard)
+            .collect();
+        update(executor, &mut self.table, group, |table, list| {
+            table.extend(list);
         });
-        for (index, shard) in admitted {
-            self.shard[index] = shard;
-        }
     }
 }

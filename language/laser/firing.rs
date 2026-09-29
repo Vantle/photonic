@@ -269,21 +269,9 @@ impl Laser {
     }
 
     fn canonical(&self, origin: usize, frame: usize) -> Arc<Canonical> {
-        if let Some(found) = self
-            .environment
-            .lock()
-            .expect("an unpoisoned cache")
-            .get(&(origin, frame))
-        {
-            return found.clone();
-        }
-        let canonical = Arc::new(self.state[origin].environment(frame));
-        self.environment
-            .lock()
-            .expect("an unpoisoned cache")
-            .entry((origin, frame))
-            .or_insert(canonical)
-            .clone()
+        self.environment.get((origin, frame), |&(origin, frame)| {
+            Arc::new(self.state[origin].environment(frame))
+        })
     }
 
     fn identify(&self, source: usize, trace: &Trace) -> Option<Identity> {

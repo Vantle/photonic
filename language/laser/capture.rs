@@ -1,5 +1,7 @@
+use super::memo::Memo;
 use super::passage::Passage;
 use super::pool::Pool;
+use super::shard;
 use crate::basis::Set;
 use crate::executor::Executor;
 use crate::flow::Flow;
@@ -8,8 +10,6 @@ use crate::state::{Canonical, State};
 use hashing::Builder;
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
-
-const SHARD: usize = 64;
 
 // A rule captured by a frame made after a configuration imports that frame's environment from the
 // configuration where the match was found, attached through the flow back to it; carrying the
@@ -29,8 +29,8 @@ pub(super) struct Capture {
 // batch ends; a capture a trace holds lives as long as the trace, so its address names it while it
 // is remembered. Carries run in parallel, and shards keep them from waiting on one another.
 pub(super) struct Store {
-    shard: Vec<Mutex<HashSet<Arc<Capture>, Builder>>>,
-    carried: Vec<Mutex<HashMap<Carry, Arc<Capture>, Builder>>>,
+    capture: Vec<Mutex<HashSet<Arc<Capture>, Builder>>>,
+    carried: Memo<Carry, Arc<Capture>>,
 }
 
 #[derive(Clone, Copy, Eq, Hash, PartialEq)]
@@ -39,22 +39,18 @@ struct Carry {
     capture: usize,
 }
 
-fn slot(hash: u64) -> usize {
-    (hash >> 40) as usize % SHARD
-}
-
 impl Default for Store {
     fn default() -> Self {
         Self {
-            shard: (0..SHARD).map(|_| Mutex::default()).collect(),
-            carried: (0..SHARD).map(|_| Mutex::default()).collect(),
+            capture: shard::empty(),
+            carried: Memo::default(),
         }
     }
 }
 
 impl Store {
     pub fn share(&self, capture: Arc<Capture>) -> Arc<Capture> {
-        let mut set = self.shard[slot(hashing::value(&*capture))]
+        let mut set = self.capture[shard::slot(hashing::value(&*capture))]
             .lock()
             .expect("an unpoisoned store");
         if let Some(known) = set.get(&*capture) {
@@ -75,25 +71,12 @@ impl Store {
             event,
             capture: Arc::as_ptr(capture) as usize,
         };
-        let shard = &self.carried[slot(hashing::value(&key))];
-        if let Some(known) = shard.lock().expect("an unpoisoned store").get(&key) {
-            return known.clone();
-        }
-        let carried = Arc::new(capture.carry(event, passage, pool));
-        shard
-            .lock()
-            .expect("an unpoisoned store")
-            .entry(key)
-            .or_insert(carried)
-            .clone()
+        self.carried
+            .get(key, |_| Arc::new(capture.carry(event, passage, pool)))
     }
 
     pub fn forget(&mut self, executor: Option<&Executor>) {
-        let carried = std::mem::replace(
-            &mut self.carried,
-            (0..SHARD).map(|_| Mutex::default()).collect(),
-        );
-        super::map(executor, carried, drop);
+        self.carried.forget(executor);
     }
 }
 

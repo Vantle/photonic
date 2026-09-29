@@ -13,11 +13,13 @@ mod focus;
 mod forest;
 mod independence;
 mod layout;
+mod memo;
 pub mod net;
 mod passage;
 mod pool;
 pub mod report;
 mod scan;
+mod shard;
 mod space;
 mod support;
 mod taxonomy;
@@ -39,12 +41,13 @@ use hashing::Builder;
 use independence::Independence;
 use indexmap::{IndexMap, IndexSet};
 use layout::Layout;
+use memo::Memo;
 use passage::Passage;
 use pool::Pool;
 use space::Space;
 use std::collections::HashMap;
 use std::num::NonZeroU32;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use taxonomy::{Makeup, Taxonomy};
 use trace::Trace;
 use transition::{Key, Transition};
@@ -139,7 +142,7 @@ pub struct Laser {
     passage: Vec<Passage>,
     crossed: Vec<Vec<Option<NonZeroU32>>>,
     capture: capture::Store,
-    environment: Mutex<HashMap<(usize, usize), Arc<Canonical>, Builder>>,
+    environment: Memo<(usize, usize), Arc<Canonical>>,
     pool: Pool,
     blocked: HashMap<Identity, (usize, usize), Builder>,
     support: Option<support::Support>,
@@ -151,6 +154,27 @@ pub struct Laser {
     plain: bool,
     independence: Option<Independence>,
     peak: usize,
+}
+
+// Changes some of a list of tables in parallel: each named table is taken out, changed with its
+// input by one worker and put back.
+fn update<Table: Default + Send, Input: Send>(
+    executor: Option<&Executor>,
+    table: &mut [Table],
+    input: Vec<(usize, Input)>,
+    change: impl Fn(&mut Table, Input) + Sync + Send,
+) {
+    let taken = input
+        .into_iter()
+        .map(|(index, input)| (index, std::mem::take(&mut table[index]), input))
+        .collect();
+    let changed = map(executor, taken, |(index, mut value, input)| {
+        change(&mut value, input);
+        (index, value)
+    });
+    for (index, value) in changed {
+        table[index] = value;
+    }
 }
 
 fn map<Input: Send, Output: Send>(
@@ -206,7 +230,7 @@ impl Laser {
             passage: Vec::new(),
             crossed: Vec::new(),
             capture: capture::Store::default(),
-            environment: Mutex::default(),
+            environment: Memo::default(),
             pool: Pool::default(),
             blocked: HashMap::default(),
             support: None,
@@ -347,7 +371,7 @@ impl Laser {
         self.crossed = Vec::new();
         self.capture = capture::Store::default();
         self.pool = Pool::default();
-        self.environment = Mutex::default();
+        self.environment = Memo::default();
         self.memo = HashMap::default();
     }
 

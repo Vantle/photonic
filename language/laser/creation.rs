@@ -4,7 +4,7 @@ use super::passage::{Composed, Origin, Passage};
 use super::space::{self, Found};
 use super::taxonomy::{Makeup, Taxonomy};
 use super::transition::{Effect, Transition};
-use super::{Event, Identity, Laser, Round, map};
+use super::{Event, Identity, Laser, Round, map, update};
 use crate::executor::Executor;
 use crate::profile;
 use crate::state::State;
@@ -321,17 +321,9 @@ impl Laser {
                 self.event[event].slot = base + offset;
             }
         }
-        let taken = group
-            .into_iter()
-            .map(|(index, list)| (index, std::mem::take(&mut self.identity[index]), list))
-            .collect::<Vec<_>>();
-        let inserted = map(executor, taken, |(index, mut table, list)| {
+        update(executor, &mut self.identity, group, |table, list| {
             table.extend(list);
-            (index, table)
         });
-        for (index, table) in inserted {
-            self.identity[index] = table;
-        }
         created
     }
 }
