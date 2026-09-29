@@ -1,9 +1,9 @@
-use super::support::{BUG, FIX, ORIGINAL, engine, explore};
+use super::support::{BUG, FIX, ORIGINAL, engine, explore, plain};
 use crate::cause::Role;
 use crate::claim::{self, Answer, Claim, Kind};
 use crate::configuration::{Opener, Value};
 use crate::lineage;
-use crate::recording::{Engine, Order};
+use crate::recording::{Engine, Mode, Order};
 use crate::render;
 
 fn claim(kind: Kind, pattern: &str) -> Claim {
@@ -314,4 +314,37 @@ fn laser() {
             }
         }
     }
+}
+
+// Inference lets a rule consume what a configuration will become, so an inferred event can strand a
+// run that every schedule of plain events would finish; plain mode answers for those schedules.
+#[test]
+fn schedule() {
+    let source = "Claim, [Claim] P.Work, [Work] Done, [P] X";
+    let full = explore(source);
+    let every = plain(source);
+    assert_eq!(every.mode, Mode::Plain);
+    assert_eq!(every.engine, Engine::Laser);
+    assert!(full.closed && every.closed);
+    assert!(every.configuration.len() < full.configuration.len());
+    assert_eq!(
+        (0..every.event.len())
+            .filter(|&index| every.inferred(index))
+            .count(),
+        0
+    );
+    for (kind, exhaustive, schedule) in [
+        (Kind::Reach, Answer::Holds, Answer::Holds),
+        (Kind::Inevitable, Answer::Fails, Answer::Holds),
+        (Kind::Outcome, Answer::Fails, Answer::Holds),
+    ] {
+        let answer = |exploration| {
+            claim::evaluate(&claim(kind, "Done"), exploration)
+                .unwrap()
+                .answer
+        };
+        assert_eq!(answer(&full), exhaustive, "{kind:?}");
+        assert_eq!(answer(&every), schedule, "{kind:?}");
+    }
+    assert_ne!(full.key, every.key);
 }

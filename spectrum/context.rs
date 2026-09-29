@@ -51,7 +51,16 @@ impl Context<'_> {
         recording: &Recording,
     ) -> Result<Arc<Exploration>, Failure> {
         let mode = recording.mode.unwrap_or_default();
-        let engine = recording.engine.unwrap_or_default();
+        let engine = match (mode, recording.engine) {
+            (Mode::Plain, Some(Engine::Interpreter)) => {
+                return Err(Failure::new(
+                    Code::Request,
+                    "plain mode runs on laser; the interpreter explores with inference",
+                ));
+            }
+            (Mode::Plain, _) => Engine::Laser,
+            (_, engine) => engine.unwrap_or_default(),
+        };
         if mode == Mode::Path && engine == Engine::Laser {
             return Err(Failure::new(
                 Code::Request,

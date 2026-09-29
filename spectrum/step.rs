@@ -60,10 +60,10 @@ impl Answer {
         let mut line = vec![format!("{} {}", self.handle, self.text)];
         let (label, empty) = match (self.mode, self.complete) {
             (Mode::Path, _) => ("taken", "the path stops here"),
-            (Mode::Exhaustive, true) => {
+            (Mode::Exhaustive | Mode::Plain, true) => {
                 ("agenda", "no event can happen here: an end configuration")
             }
-            (Mode::Exhaustive, false) => (
+            (Mode::Exhaustive | Mode::Plain, false) => (
                 "agenda",
                 "no event is recorded here; the exploration is open, so one may still happen",
             ),

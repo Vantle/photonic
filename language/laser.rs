@@ -64,11 +64,14 @@ struct Identity {
     binding: Binding,
 }
 
+// An event is matched when a match found at its own source identifies it; marking closed walks can
+// make more events direct, never more matched.
 struct Event {
     source: usize,
     slot: usize,
     target: usize,
     direct: bool,
+    matched: bool,
 }
 
 // The traces of a configuration before the first count have crossed its incoming events before
@@ -188,7 +191,7 @@ struct Candidate {
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum Disagreement {
-    Closed { interpreter: bool, laser: bool },
+    Closed { reference: bool, laser: bool },
     Configuration { missing: usize, extra: usize },
     Event { missing: usize, extra: usize },
     Support { configuration: usize },
@@ -235,6 +238,7 @@ pub struct Laser {
     limit: Limit,
     work: usize,
     traced: usize,
+    plain: bool,
     peak: usize,
 }
 
@@ -354,6 +358,16 @@ fn settle(landing: Vec<Landing>, position: &[usize]) -> Vec<Option<NonZeroU32>> 
 
 impl Laser {
     pub fn new(source: &frontend::source::Program) -> Self {
+        Self::begin(source, false)
+    }
+
+    // A plain exploration fires only what each configuration's own matches identify, so it
+    // reaches every schedule of plain events and no inferred event: nothing is carried back.
+    pub fn plain(source: &frontend::source::Program) -> Self {
+        Self::begin(source, true)
+    }
+
+    fn begin(source: &frontend::source::Program, plain: bool) -> Self {
         let program = Arc::new(Program::new(source));
         let initial = State::initial(&program);
         let mut laser = Self {
@@ -385,6 +399,7 @@ impl Laser {
             limit: Limit::default(),
             work: 0,
             traced: 0,
+            plain,
             peak: 0,
         };
         let draft = laser.taxonomy.analyze(&initial);
@@ -654,11 +669,18 @@ impl Laser {
         let mut novel = self.discover(executor, round.fresh);
         let mut changed = round.changed;
         changed.extend(novel.iter().map(|(index, _)| *index));
-        let (carried, grown) = self.propagate(executor, changed);
+        let (carried, grown) = if self.plain {
+            (0, Vec::new())
+        } else {
+            self.propagate(executor, changed)
+        };
         next.changed.extend(grown.iter().map(|(index, _)| *index));
         novel.extend(grown);
         self.traced += novel.iter().map(|(_, range)| range.len()).sum::<usize>();
         let fired = self.fire(executor, novel, round.retry, &mut next);
+        if self.plain {
+            next.changed.clear();
+        }
         self.round = next;
         scanned + carried + fired
     }
@@ -1082,6 +1104,7 @@ impl Laser {
                 slot: 0,
                 target: resolved,
                 direct: position < self.origin[source],
+                matched: position < self.origin[source],
             });
             self.incoming[resolved].push(event);
             next.changed.push(resolved);

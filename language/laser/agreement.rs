@@ -74,8 +74,11 @@ struct Key {
     resource: Vec<(Class, Vec<Class>)>,
 }
 
-fn difference(reference: &BTreeMap<Key, usize>, observed: &BTreeMap<Key, usize>) -> (usize, usize) {
-    let count = |from: &BTreeMap<Key, usize>, to: &BTreeMap<Key, usize>| {
+fn difference<Value: Ord>(
+    reference: &BTreeMap<Value, usize>,
+    observed: &BTreeMap<Value, usize>,
+) -> (usize, usize) {
+    let count = |from: &BTreeMap<Value, usize>, to: &BTreeMap<Value, usize>| {
         from.iter()
             .map(|(key, &count)| count.saturating_sub(to.get(key).copied().unwrap_or(0)))
             .sum::<usize>()
@@ -87,7 +90,7 @@ impl Laser {
     pub fn agree(&self, runtime: &Runtime) -> Result<(), Disagreement> {
         if runtime.closed() != self.closed() {
             return Err(Disagreement::Closed {
-                interpreter: runtime.closed(),
+                reference: runtime.closed(),
                 laser: self.closed(),
             });
         }
@@ -175,6 +178,97 @@ impl Laser {
             *compiled.entry(key).or_default() += 1;
         }
         let (missing, extra) = difference(&expected, &compiled);
+        if missing != 0 || extra != 0 {
+            return Err(Disagreement::Event { missing, extra });
+        }
+        Ok(())
+    }
+}
+
+// A plain exploration is the part of a full one that matched events reach from the start: the same
+// configurations, and among them the same events.
+fn part(full: &Laser) -> Vec<bool> {
+    let mut outgoing = vec![Vec::new(); full.state.len()];
+    for (index, event) in full.event.iter().enumerate() {
+        if event.matched {
+            outgoing[event.source].push(index);
+        }
+    }
+    let mut reached = vec![false; full.state.len()];
+    reached[0] = true;
+    let mut pending = vec![0];
+    while let Some(state) = pending.pop() {
+        for &event in &outgoing[state] {
+            let target = full.event[event].target;
+            if !std::mem::replace(&mut reached[target], true) {
+                pending.push(target);
+            }
+        }
+    }
+    reached
+}
+
+#[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
+struct Edge<'state> {
+    source: &'state State,
+    target: &'state State,
+    rule: usize,
+    world: Vec<usize>,
+    footprint: Vec<Place>,
+    exact: Vec<Place>,
+    read: Vec<Place>,
+}
+
+impl<'state> Edge<'state> {
+    fn new(laser: &Laser, named: &'state [crate::state::Canonical], index: usize) -> Self {
+        let transition = laser.transition(index, named, Status::Supported, &laser.deduction);
+        Self {
+            source: &named[transition.source].state,
+            target: &named[transition.target].state,
+            rule: transition.rule,
+            world: transition.world,
+            footprint: transition.footprint,
+            exact: transition.exact,
+            read: transition.read,
+        }
+    }
+}
+
+impl Laser {
+    pub fn within(&self, full: &Self) -> Result<(), Disagreement> {
+        if !self.closed() || !full.closed() {
+            return Err(Disagreement::Closed {
+                reference: full.closed(),
+                laser: self.closed(),
+            });
+        }
+        let reached = part(full);
+        let (outer, inner) = (full.name(), self.name());
+        let expected = (0..full.state.len())
+            .filter(|&index| reached[index])
+            .map(|index| &outer[index].state)
+            .collect::<HashSet<&State>>();
+        let observed = inner
+            .iter()
+            .map(|named| &named.state)
+            .collect::<HashSet<&State>>();
+        if expected != observed {
+            return Err(Disagreement::Configuration {
+                missing: expected.difference(&observed).count(),
+                extra: observed.difference(&expected).count(),
+            });
+        }
+        let mut wanted = BTreeMap::<Edge<'_>, usize>::new();
+        for (index, event) in full.event.iter().enumerate() {
+            if event.matched && reached[event.source] {
+                *wanted.entry(Edge::new(full, &outer, index)).or_default() += 1;
+            }
+        }
+        let mut found = BTreeMap::<Edge<'_>, usize>::new();
+        for index in 0..self.event.len() {
+            *found.entry(Edge::new(self, &inner, index)).or_default() += 1;
+        }
+        let (missing, extra) = difference(&wanted, &found);
         if missing != 0 || extra != 0 {
             return Err(Disagreement::Event { missing, extra });
         }

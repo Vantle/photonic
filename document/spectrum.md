@@ -114,7 +114,7 @@ Every question except `shape` is about a recording: a program to explore, or the
 | --- | --- |
 | `program` | The program: `file`, a list of `.wave` or `.particle` sources or `.json` programs that Bazel assembled, read in order; `source`, Photonic written inline and read after the files; and `library`, files of declarations loaded first. |
 | `exploration` | The key of an exploration, such as `x91c7f6619ec81b4b`, instead of `program`. A key already fixes the mode, engine, budget and goal, so it comes alone. |
-| `mode` | `exhaustive`, the default, explores every configuration within the budget; `path` follows one direct path, as `photonic_test(path = True)` does. |
+| `mode` | `exhaustive`, the default, explores every configuration within the budget; `plain` explores every schedule of plain events, the events a configuration's own matches identify, without inference, and always runs on Laser; `path` follows one direct path, as `photonic_test(path = True)` does. |
 | `engine` | In exhaustive mode, `interpreter`, the default, or `laser`, which carries matches back along events and names configurations by their components. Both close with the same configurations, events, inferred events and answers. Each numbers configurations and events in the order it finds them and counts its own work, so their handles and keys differ. A direct path always follows the interpreter's scheduler. |
 | `budget` | The limits below. |
 | `goal` | In path mode only, the configuration the path stops at: `{"configuration": "False.Extra", "preserve": true}`, where `preserve` adds every loaded root rule, as Prism reads targets. |
@@ -178,6 +178,8 @@ A claim is a pattern with a kind. Its answer is `holds`, `fails` or `unknown`, a
 | `inevitable` | Every run reaches a match: no run ends, or cycles forever, without one. | Holds when the start matches; fails with a cycle that avoids every match. A run that ends without a match counts once the exploration closes. The path reported avoids every match. |
 | `outcome` | Every end configuration matches. | Never: until the exploration closes, a configuration without events may be unexplored rather than an end. |
 
+In plain mode a claim speaks of every schedule of plain events instead of every future: `inevitable` holds when every such schedule reaches a match, even where inference lets a rule consume part of a configuration early and strand a run.
+
 `exact` compares whole configurations as Prism does, and `preserve` adds every loaded root rule to the target; only `reach` and `avoid` take an exact target, and only in exhaustive mode. Inference lets a rule apply to what a configuration can become, so a run can skip configurations a longer run passes through. A direct path follows one run of many, so on a path `reach` can hold, `avoid` and `always` can fail, and every other answer is unknown. Unknown means the search could not settle the claim, because a budget stopped it or because a path follows one run. It is never evidence of absence.
 
 ## Questions
@@ -212,7 +214,7 @@ A failure carries a `code`, a `message` and, when it points into text, a `locati
 
 | Code | Meaning |
 | --- | --- |
-| `request` | The request is malformed: not an object, an unknown field, no program, a program and a key together, a key with a mode, engine, budget or goal, a goal outside path mode, or `laser` in path mode. |
+| `request` | The request is malformed: not an object, an unknown field, no program, a program and a key together, a key with a mode, engine, budget or goal, a goal outside path mode, `laser` in path mode, or `interpreter` in plain mode. |
 | `file` | A file cannot be read. |
 | `source` | A program does not parse or lower; `check` reports it as a diagnostic instead. |
 | `library` | A library does not parse or holds more than declarations; `check` reports it as a diagnostic instead. |
@@ -244,7 +246,7 @@ Two resources describe the language to agents: `photonic://primer`, the grammar,
 
 ## Verification
 
-`//spectrum:test` checks exploration counts and handles on the conjunction and its edits; that every scope is credited to the rule that opens it; every claim kind with its evidence, including an `inevitable` counterexample that avoids every match; occurrence lineage through remainder, witness, held and produced occurrences; that reordering keeps keys and handles while renaming keeps handles and changes the key; every question's answer through the JSON protocol, checked against its declared output schema; that unknown fields, keys with settings and goals outside path mode are refused; `miss` assignments that a greedy choice gets wrong, exact targets with and without their rules, and many parts placed at once; `compare` counts beyond its limit and on open explorations; `shape`, with the pins `fix` keeps and the webbook's recorded pattern; and that both engines close with the same counts, claim answers and exact verdicts, with lineage traced on Laser's explorations. `//command:test` runs the commands and their exit codes, and sessions of the protocol server in the legacy and stateless revisions, including discovery, batches and each protocol error.
+`//spectrum:test` checks exploration counts and handles on the conjunction and its edits; that every scope is credited to the rule that opens it; every claim kind with its evidence, including an `inevitable` counterexample that avoids every match; occurrence lineage through remainder, witness, held and produced occurrences; that reordering keeps keys and handles while renaming keeps handles and changes the key; every question's answer through the JSON protocol, checked against its declared output schema; that unknown fields, keys with settings and goals outside path mode are refused; `miss` assignments that a greedy choice gets wrong, exact targets with and without their rules, and many parts placed at once; `compare` counts beyond its limit and on open explorations; `shape`, with the pins `fix` keeps and the webbook's recorded pattern; that both engines close with the same counts, claim answers and exact verdicts, with lineage traced on Laser's explorations; and that plain mode answers for every schedule of plain events where an inferred event strands a run. `//command:test` runs the commands and their exit codes, and sessions of the protocol server in the legacy and stateless revisions, including discovery, batches and each protocol error.
 
 ```sh
 bazel test -c opt //spectrum:test //command:test

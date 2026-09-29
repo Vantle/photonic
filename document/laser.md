@@ -8,7 +8,7 @@ Laser is Photonic's second engine for exploring every future of a program, besid
 | --- | --- |
 | `photonic run` | `--engine laser` lists the configurations Laser reaches; `--worker` sets its threads and `--json` prints its report. |
 | `photonic prism` | `--engine laser` answers reached, unreachable or unknown for an exact target from Laser's exploration. `--path` follows the interpreter's scheduler, so it refuses an engine. |
-| Spectrum | Every question takes `engine: laser` in exhaustive mode, and every verb takes `--engine laser`; see [Spectrum](spectrum.md#recordings). |
+| Spectrum | Every question takes `engine: laser` in exhaustive mode, and every verb takes `--engine laser`; see [Spectrum](spectrum.md#recordings). `mode: plain`, or `--plain`, explores every schedule of plain events on Laser. |
 | `photonic_test` | Every exhaustive case also runs on Laser and fails unless Laser gives the interpreter's answer, or the interpreter's exploration stayed open and one of the two answers is unknown. |
 
 ```sh
@@ -44,6 +44,16 @@ The engines differ in what depends on the order of work. Each numbers configurat
 
 **Reports.** Laser renames each configuration it reports into the interpreter's canonical form, and every event's places with it, so reports, targets and Spectrum answers read alike on both engines.
 
+## Plain exploration
+
+`Laser::plain` explores every schedule of plain events: it fires only what each configuration's own matches identify and carries nothing back, so it has no inferred event. Its configurations are those that plain events reach from the start, and its events are the full exploration's events that a match at their own source identifies. Inference lets a rule consume what a configuration will become, so an inferred event can strand a run that every plain schedule would finish: in `Claim, [Claim] P.Work, [Work] Done, [P] X`, the rule `[P] X` can consume `Claim` before `Work` exists, and `inevitable Done` fails, while every plain schedule reaches `Done`. Plain mode is how Spectrum asks whether every order of rule applications reaches a result.
+
+```sh
+bazel run -c opt //command:photonic -- check "$(bazel info -c opt bazel-bin)/theorem/boolean/identity.proof.case.json" --plain --inevitable Theorem --outcome Theorem
+```
+
+Checked this way with up to 50,000 configurations, 39 of the 80 theorem proofs reach `Theorem` in every plain schedule, with `Theorem` in every end configuration. Four have plain schedules that end without it: group cancellation, lattice transitivity, and left and right ring annihilation. In left annihilation, the rules that chain two equations through a shared side can combine them in an order that never yields 0 · X = 0. The other 37 exceed 50,000 configurations.
+
 ## Budgets
 
 Laser takes the interpreter's limits. The configuration, coherence, occurrence and scope limits block an application whose result exceeds them, as the interpreter does. Work counts one item for each configuration scanned, each trace carried across an event and each application tried, so a work budget stops the two engines at different points. Laser's retained records are its configurations, events and traces, and it pauses when they reach the record budget. Every budget defers work rather than dropping it: running again with a larger budget resumes where the last run stopped.
@@ -52,7 +62,7 @@ Laser takes the interpreter's limits. The configuration, coherence, occurrence a
 
 `laser::test` in [language/test/laser.rs](../language/test/laser.rs) compares Laser with the interpreter on programs with scopes, captured rules, inference and rule values, and on the dial and diner families; it checks runs left open, identical results for one and four workers, resuming after configuration and record limits, Prism verdicts, and that every deduction walks from its event's source. Each comparison covers configurations, events with their bindings, inferred events, support and place maps. `//spectrum:test` checks that both engines give the same counts, claim answers and verdicts, and `//command:test` runs the commands with Laser.
 
-`//benchmark:agreement` compares the engines on every program in the repository, each once: the webbook's examples and workbench presets, every `photonic_test` case and assembled program of the standard library, the programs and the theorems, the programs written in the language tests, the reference programs and the dial and diner families.
+`laser::test` also checks that every plain exploration is exactly the part of the full one that matched events reach. `//benchmark:agreement` compares the engines on every program in the repository, each once, and checks every plain exploration of a program Laser closes against its full one: the webbook's examples and workbench presets, every `photonic_test` case and assembled program of the standard library, the programs and the theorems, the programs written in the language tests, the reference programs and the dial and diner families.
 
 ```sh
 bazel run -c opt //benchmark:agreement -- --root "$PWD" --bin "$(bazel info -c opt bazel-bin)"
@@ -84,8 +94,8 @@ Memory grows with events: every event keeps its identity and its passage, and un
 
 Theorems explored in every order are heavier. With inference, a match found late can be carried back to many configurations along many walks, and each walk can bind different occurrences: the proof of natural restoration, stopped at 4,096 configurations, holds 3.3 million traces and crosses 105.8 million times to reach its 117,419 events, taking 40.6 s on one worker and 6.7 s on 16, with a peak of 5.5 GB.
 
-Of the 458 distinct programs the census gathers, 287 close on the interpreter within the default budget, and Laser agrees on all 287. Four more close only on Laser: the proof of Boolean domination, 6 dials, and 4 and 5 diners. With the configuration limit raised to 300,000, Laser also closes six more theorem proofs in every order, which the interpreter leaves open within its default limits: Boolean complement (4,357 configurations), identity (16,513) and idempotence (22,953), componentwise reflexivity (9,478), relation trichotomy (5,755) and sum irreflexivity (6,401).
+Of the 459 distinct programs the census gathers, 288 close on the interpreter within the default budget, and Laser agrees on all 288. Every one of the 292 plain explorations of programs Laser closes is the matched part of its full exploration. Four more close only on Laser: the proof of Boolean domination, 6 dials, and 4 and 5 diners. With the configuration limit raised to 300,000, Laser also closes six more theorem proofs in every order, which the interpreter leaves open within its default limits: Boolean complement (4,357 configurations), identity (16,513) and idempotence (22,953), componentwise reflexivity (9,478), relation trichotomy (5,755) and sum irreflexivity (6,401).
 
 ## Not yet built
 
-Laser does not follow direct paths; `--path` and Spectrum's `path` mode use the interpreter's scheduler. Handles are numbered in each engine's own order; a numbering and deductions shared by both engines would let their answers name the same handles. The webbook's WebAssembly engine runs the interpreter only. There is no GPU backend yet.
+Laser does not follow direct paths; `--path` and Spectrum's `path` mode use the interpreter's scheduler. `photonic run`, `prism` and `photonic_test` do not offer plain mode. Handles are numbered in each engine's own order; a numbering and deductions shared by both engines would let their answers name the same handles. The webbook's WebAssembly engine runs the interpreter only. There is no GPU backend yet.

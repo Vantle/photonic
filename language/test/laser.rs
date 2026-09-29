@@ -56,6 +56,48 @@ fn agreement() {
     }
 }
 
+// A plain exploration is the part of the full one that matched events reach, and has no inferred
+// event.
+#[test]
+fn plain() {
+    let limit = Limit {
+        record: usize::MAX,
+        ..Limit::default()
+    };
+    let family = [
+        crate::family::dial(3),
+        crate::family::diner(3),
+        "A, [A] B, [B] C, [C] A".to_owned(),
+        "Case.(([P] True), ([P] False)), [Claim] Done, Claim".to_owned(),
+    ];
+    for source in family.iter().map(String::as_str).chain([
+        "A, [A] B",
+        "A, A, [A] B",
+        "A.B, A.C, [A, B] X, [A, C] Y",
+        "A.A.A.A, [A.A] B",
+        "A, K, [A] B, [[A] B] C, [C, K] D",
+        "B, [B] C, [C] B",
+        "[A.A] Z, B, [B] C, [C] B, (A, [Q] R)",
+        "Seed.Extra, [Seed] A, [A] Result",
+        "A, [A] (B, [B] C)",
+        "A,B, [A] (C, [C,B] D)",
+        "Seed.A.X, [Seed] (([A] B), ([A] C))",
+        "A.([A] B),A.([A] C)",
+        "A.X, [A] (B, C), [X, X] X, [X.B.C] Done",
+        "Go.Y, K, [K] L, [Go] (X, [X] ().([Y] Z))",
+        "Go.Y, [Go] (X, [X] ().([Y] Z))",
+        "A, Key, [A] B, [B, Key] (C, [Q] R)",
+    ]) {
+        let program = frontend::lowering::parse(source).unwrap();
+        let mut full = Laser::new(&program);
+        full.run(100_000_000, limit);
+        let mut plain = Laser::plain(&program);
+        plain.run(100_000_000, limit);
+        assert_eq!(plain.within(&full), Ok(()), "{source}");
+        assert_eq!(plain.summary().inferred, 0, "{source}");
+    }
+}
+
 #[test]
 fn family() {
     for count in [1, 2, 3, 4] {

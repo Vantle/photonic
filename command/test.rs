@@ -631,6 +631,17 @@ fn spectrum() {
     let invalid = execute("explore", &path, &["--engine", "gpu"]);
     assert!(!invalid.status.success());
     assert!(String::from_utf8_lossy(&invalid.stderr).contains("interpreter and laser"));
+    let early = fixture.write("early.wave", "Claim, [Claim] P.Work, [Work] Done, [P] X");
+    let inferred = execute("check", &early, &["--inevitable", "Done"]);
+    assert!(!inferred.status.success());
+    let schedule = execute("check", &early, &["--inevitable", "Done", "--plain"]);
+    assert!(schedule.status.success());
+    assert!(String::from_utf8_lossy(&schedule.stdout).contains(" · plain · "));
+    let interpreter = execute("check", &early, &["--plain", "--engine", "interpreter"]);
+    assert!(!interpreter.status.success());
+    assert!(String::from_utf8_lossy(&interpreter.stderr).contains("plain mode runs on laser"));
+    let both = execute("explore", &early, &["--plain", "--path"]);
+    assert!(!both.status.success());
 }
 
 #[test]

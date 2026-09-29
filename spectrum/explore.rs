@@ -147,11 +147,13 @@ pub(crate) fn state(summary: &Summary) -> String {
     let status = match (summary.mode, summary.complete, summary.reached) {
         (Mode::Path, _, Some(true)) => "path reached its goal",
         (Mode::Path, _, _) => "path stopped",
-        (Mode::Exhaustive, true, _) => "closed",
-        (Mode::Exhaustive, false, _) => "open: a budget stopped it",
+        (Mode::Exhaustive | Mode::Plain, true, _) => "closed",
+        (Mode::Exhaustive | Mode::Plain, false, _) => "open: a budget stopped it",
     };
     let mut part = vec![summary.exploration.clone(), status.to_owned()];
-    if summary.engine == Engine::Laser {
+    if summary.mode == Mode::Plain {
+        part.push("plain".to_owned());
+    } else if summary.engine == Engine::Laser {
         part.push("laser".to_owned());
     }
     part.extend([
@@ -192,8 +194,8 @@ impl Answer {
             line.push("end    none".to_owned());
         }
         let heading = match (self.summary.mode, self.summary.complete) {
-            (Mode::Exhaustive, true) => "end",
-            (Mode::Exhaustive, false) => "leaf",
+            (Mode::Exhaustive | Mode::Plain, true) => "end",
+            (Mode::Exhaustive | Mode::Plain, false) => "leaf",
             (Mode::Path, _) => "stop",
         };
         for (position, end) in self.end.iter().enumerate() {

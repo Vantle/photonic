@@ -169,8 +169,13 @@ impl Plan {
         goal: Option<Program>,
     ) -> Self {
         let canonical = match mode {
-            Mode::Exhaustive => order::exhaustive(program),
+            Mode::Exhaustive | Mode::Plain => order::exhaustive(program),
             Mode::Path => order::source(program),
+        };
+        let engine = if mode == Mode::Plain {
+            Engine::Laser
+        } else {
+            engine
         };
         let goal = goal.map(|goal| {
             let mut hidden = canonical.naming.hide(&goal);
@@ -193,7 +198,7 @@ impl Exploration {
     pub fn new(plan: Plan) -> Self {
         match (plan.mode, plan.engine) {
             (Mode::Exhaustive, Engine::Interpreter) => Self::interpret(plan),
-            (Mode::Exhaustive, Engine::Laser) => Self::compile(plan),
+            (Mode::Exhaustive, Engine::Laser) | (Mode::Plain, _) => Self::compile(plan),
             (Mode::Path, _) => Self::walk(plan),
         }
     }
@@ -248,7 +253,10 @@ impl Exploration {
 
     fn compile(plan: Plan) -> Self {
         let naming = &plan.canonical.naming;
-        let mut laser = Laser::new(&plan.canonical.program);
+        let mut laser = match plan.mode {
+            Mode::Plain => Laser::plain(&plan.canonical.program),
+            Mode::Exhaustive | Mode::Path => Laser::new(&plan.canonical.program),
+        };
         laser.run(plan.budget.work, plan.budget.limit());
         let report = laser.report();
         let record = Record {
@@ -442,7 +450,7 @@ impl Exploration {
     }
 
     pub fn settled(&self) -> bool {
-        self.closed && self.mode == Mode::Exhaustive
+        self.closed && self.mode != Mode::Path
     }
 
     pub fn find(&self, configuration: usize, id: usize) -> Option<&Occurrence> {

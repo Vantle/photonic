@@ -93,6 +93,29 @@ impl From<&Budget> for spectrum::budget::Budget {
     }
 }
 
+// How a question's recording explores its program: every future, every schedule of plain events,
+// or one direct path.
+#[derive(Args)]
+pub struct Search {
+    #[arg(
+        long,
+        help = "Follow one direct path instead of exploring every future; each step fires the first event within the limits that the scheduler finds"
+    )]
+    pub path: bool,
+    #[arg(
+        long,
+        conflicts_with = "path",
+        help = "Explore every schedule of plain events, those a configuration's own matches identify, without inference; runs on laser"
+    )]
+    pub plain: bool,
+    #[arg(
+        long,
+        conflicts_with = "path",
+        help = "The engine that explores every future: interpreter or laser; both close with the same configurations, events and answers, and each numbers handles in its own order"
+    )]
+    pub engine: Option<Engine>,
+}
+
 #[derive(Args)]
 pub struct Print {
     #[arg(long, help = "Print the answer as a JSON envelope")]
@@ -184,17 +207,8 @@ pub struct Check {
     pub source: Source,
     #[command(flatten)]
     pub budget: Budget,
-    #[arg(
-        long,
-        help = "Follow one direct path instead of exploring every future; each step fires the first event within the limits that the scheduler finds"
-    )]
-    pub path: bool,
-    #[arg(
-        long,
-        conflicts_with = "path",
-        help = "The engine that explores every future: interpreter or laser; both close with the same configurations, events and answers, and each numbers handles in its own order"
-    )]
-    pub engine: Option<Engine>,
+    #[command(flatten)]
+    pub search: Search,
     #[arg(
         long,
         help = "In path mode, the complete configuration the path stops at"
@@ -214,17 +228,8 @@ pub struct Explore {
     pub source: Source,
     #[command(flatten)]
     pub budget: Budget,
-    #[arg(
-        long,
-        help = "Follow one direct path instead of exploring every future; each step fires the first event within the limits that the scheduler finds"
-    )]
-    pub path: bool,
-    #[arg(
-        long,
-        conflicts_with = "path",
-        help = "The engine that explores every future: interpreter or laser; both close with the same configurations, events and answers, and each numbers handles in its own order"
-    )]
-    pub engine: Option<Engine>,
+    #[command(flatten)]
+    pub search: Search,
     #[arg(
         long,
         help = "In path mode, the complete configuration the path stops at"
@@ -255,17 +260,8 @@ pub struct Select {
     pub source: Source,
     #[command(flatten)]
     pub budget: Budget,
-    #[arg(
-        long,
-        help = "Follow one direct path instead of exploring every future; each step fires the first event within the limits that the scheduler finds"
-    )]
-    pub path: bool,
-    #[arg(
-        long,
-        conflicts_with = "path",
-        help = "The engine that explores every future: interpreter or laser; both close with the same configurations, events and answers, and each numbers handles in its own order"
-    )]
-    pub engine: Option<Engine>,
+    #[command(flatten)]
+    pub search: Search,
     #[command(flatten)]
     pub print: Print,
 }
@@ -281,17 +277,8 @@ pub struct Pointer {
     pub source: Source,
     #[command(flatten)]
     pub budget: Budget,
-    #[arg(
-        long,
-        help = "Follow one direct path instead of exploring every future; each step fires the first event within the limits that the scheduler finds"
-    )]
-    pub path: bool,
-    #[arg(
-        long,
-        conflicts_with = "path",
-        help = "The engine that explores every future: interpreter or laser; both close with the same configurations, events and answers, and each numbers handles in its own order"
-    )]
-    pub engine: Option<Engine>,
+    #[command(flatten)]
+    pub search: Search,
     #[command(flatten)]
     pub print: Print,
 }
@@ -324,17 +311,8 @@ pub struct Miss {
     pub source: Source,
     #[command(flatten)]
     pub budget: Budget,
-    #[arg(
-        long,
-        help = "Follow one direct path instead of exploring every future; each step fires the first event within the limits that the scheduler finds"
-    )]
-    pub path: bool,
-    #[arg(
-        long,
-        conflicts_with = "path",
-        help = "The engine that explores every future: interpreter or laser; both close with the same configurations, events and answers, and each numbers handles in its own order"
-    )]
-    pub engine: Option<Engine>,
+    #[command(flatten)]
+    pub search: Search,
     #[command(flatten)]
     pub print: Print,
 }
@@ -351,17 +329,8 @@ pub struct Compare {
     pub source: Source,
     #[command(flatten)]
     pub budget: Budget,
-    #[arg(
-        long,
-        help = "Follow one direct path instead of exploring every future; each step fires the first event within the limits that the scheduler finds"
-    )]
-    pub path: bool,
-    #[arg(
-        long,
-        conflicts_with = "path",
-        help = "The engine that explores every future: interpreter or laser; both close with the same configurations, events and answers, and each numbers handles in its own order"
-    )]
-    pub engine: Option<Engine>,
+    #[command(flatten)]
+    pub search: Search,
     #[command(flatten)]
     pub claim: Claim,
     #[command(flatten)]

@@ -45,12 +45,14 @@ pub fn explore(source: &str) -> Exploration {
 }
 
 pub fn engine(source: &str, engine: Engine) -> Exploration {
+    record(source, Mode::Exhaustive, engine)
+}
+
+pub fn plain(source: &str) -> Exploration {
+    record(source, Mode::Plain, Engine::Laser)
+}
+
+fn record(source: &str, mode: Mode, engine: Engine) -> Exploration {
     let program = frontend::lowering::parse(source).expect("the example lowers");
-    Exploration::new(Plan::new(
-        &program,
-        Mode::Exhaustive,
-        engine,
-        Budget::default(),
-        None,
-    ))
+    Exploration::new(Plan::new(&program, mode, engine, Budget::default(), None))
 }

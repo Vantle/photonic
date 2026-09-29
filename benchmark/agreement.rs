@@ -44,7 +44,8 @@ struct Engine {
 }
 
 // Laser runs on every program, so the census also finds programs that only Laser finishes; the
-// engines are compared where both close.
+// engines are compared where both close, and where Laser closes its plain exploration must be the
+// part of its full one that matched events reach.
 #[derive(Serialize)]
 struct Outcome {
     name: String,
@@ -52,6 +53,7 @@ struct Outcome {
     interpreter: Engine,
     laser: Engine,
     verdict: Option<String>,
+    plain: Option<String>,
     state: usize,
     event: usize,
     inferred: usize,
@@ -98,6 +100,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     Ok(()) => "agree".to_owned(),
                     Err(disagreement) => format!("{disagreement:?}"),
                 });
+            let plain = summary.closed.then(|| {
+                let mut plain = Laser::plain(&entry.program);
+                plain.run(argument.allowance, limit);
+                match plain.within(&laser) {
+                    Ok(()) => "within".to_owned(),
+                    Err(disagreement) => format!("{disagreement:?}"),
+                }
+            });
             Outcome {
                 name: entry.name.clone(),
                 group: entry.group.clone(),
@@ -107,6 +117,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     second,
                 },
                 verdict,
+                plain,
                 state: summary.state,
                 event: summary.event,
                 inferred: summary.inferred,
@@ -129,8 +140,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .iter()
         .filter(|outcome| outcome.interpreter.closed && !outcome.laser.closed)
         .count();
+    let within = outcome
+        .iter()
+        .filter(|outcome| outcome.plain.as_deref() == Some("within"))
+        .count();
+    let plain = outcome
+        .iter()
+        .filter(|outcome| outcome.plain.is_some())
+        .count();
     eprintln!(
-        "{} programs, {closed} closed on the interpreter, {agree} agree; {only} close only on Laser and {open} only on the interpreter",
+        "{} programs, {closed} closed on the interpreter, {agree} agree; {only} close only on Laser and {open} only on the interpreter; {within} of {plain} plain explorations lie within their full ones",
         outcome.len()
     );
     for outcome in outcome.iter().filter(|outcome| {
@@ -143,6 +162,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "disagree {}: {}",
             outcome.name,
             outcome.verdict.as_deref().unwrap_or_default()
+        );
+    }
+    for outcome in outcome.iter().filter(|outcome| {
+        outcome
+            .plain
+            .as_deref()
+            .is_some_and(|plain| plain != "within")
+    }) {
+        eprintln!(
+            "plain {}: {}",
+            outcome.name,
+            outcome.plain.as_deref().unwrap_or_default()
         );
     }
     println!("{}", serde_json::to_string_pretty(&outcome)?);
