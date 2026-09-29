@@ -21,17 +21,13 @@ pub enum Operation {
     )]
     Prism(Prism),
     #[command(
-        about = "Check a program: diagnostics, then claims answered holds, fails or unknown; exits 1 unless all hold"
+        about = "Check a program: diagnostics, then claims answered holds, fails or unknown, over every future or every plain schedule; exits 1 unless all hold"
     )]
     Check(Check),
     #[command(
         about = "Explore every future and summarize configurations, end configurations and rules"
     )]
     Explore(Explore),
-    #[command(
-        about = "Explore every schedule of plain events through the program's net of parts, on the GPU through Metal where there is one: configurations, events, where runs end and whether one can go on forever; with targets, whether every schedule ends exactly at one; exits 1 unless it closes and, given targets, every schedule ends at one"
-    )]
-    Every(Every),
     #[command(about = "Find the configurations or events that match a Photonic pattern")]
     Select(Select),
     #[command(
@@ -109,13 +105,13 @@ pub struct Search {
     #[arg(
         long,
         conflicts_with = "path",
-        help = "Explore every schedule of plain events, those a configuration's own matches identify, without inference; runs on laser"
+        help = "Explore every schedule of plain events, those a configuration's own matches identify, without inference, on laser or metal"
     )]
     pub plain: bool,
     #[arg(
         long,
         conflicts_with = "path",
-        help = "The engine that explores every future: interpreter or laser; both close with the same configurations, events and answers, and each numbers handles in its own order"
+        help = "The engine: interpreter or laser record every event of every future; with --plain, laser records every plain schedule, and metal explores them at GPU scale through the program's net of parts, keeping only counts, ends and cycles, so it answers explore and check alone"
     )]
     pub engine: Option<Engine>,
 }
@@ -143,7 +139,12 @@ pub struct Claim {
     pub outcome: Vec<String>,
     #[arg(
         long,
-        help = "Read reach and avoid patterns as complete configurations, as Prism does"
+        help = "Claim that every run ends, and ends at a configuration matching this pattern"
+    )]
+    pub end: Vec<String>,
+    #[arg(
+        long,
+        help = "Read every claim's pattern as a complete configuration, as Prism does"
     )]
     pub exact: bool,
     #[arg(
@@ -187,42 +188,6 @@ pub struct Run {
     pub json: bool,
     #[arg(long, requires = "json", help = "Serialize JSON without indentation")]
     pub compact: bool,
-}
-
-#[derive(Args)]
-pub struct Every {
-    #[arg(
-        required = true,
-        help = "Program files: .wave or .particle source, or .json programs assembled by Bazel"
-    )]
-    pub file: Vec<PathBuf>,
-    #[command(flatten)]
-    pub source: Source,
-    #[arg(long, default_value_t = 1 << 24, help = "Configurations kept")]
-    pub configuration: usize,
-    #[arg(long, default_value_t = spectrum::budget::Budget::default().coherence, help = "Coherences in one configuration")]
-    pub coherence: usize,
-    #[arg(long, default_value_t = spectrum::budget::Budget::default().occurrence, help = "Occurrences in one configuration")]
-    pub occurrence: usize,
-    #[arg(long, default_value_t = spectrum::budget::Budget::default().scope, help = "Scopes in one configuration")]
-    pub scope: usize,
-    #[arg(
-        long,
-        help = "A file holding a complete target configuration; repeat for each"
-    )]
-    pub target: Vec<PathBuf>,
-    #[arg(long, help = "Targets also list every loaded root rule")]
-    pub preserve: bool,
-    #[arg(
-        long,
-        default_value_t = 12,
-        help = "End configurations listed; the rest are counted"
-    )]
-    pub list: usize,
-    #[arg(long, help = "Explore on the host even where there is a GPU")]
-    pub host: bool,
-    #[arg(long, help = "Print the answer as JSON")]
-    pub json: bool,
 }
 
 #[derive(Args)]

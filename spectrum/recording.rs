@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Hash, JsonSchema, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
 #[schemars(
-    description = "exhaustive explores every future; plain explores every schedule of plain events, those a configuration's own matches identify, without inference, on laser; path follows one run, firing at each step the first event within the limits that the scheduler finds, which can witness a target but never prove it unreachable."
+    description = "exhaustive explores every future; plain explores every schedule of plain events, those a configuration's own matches identify, without inference, on laser or metal; path follows one run, firing at each step the first event within the limits that the scheduler finds, which can witness a target but never prove it unreachable."
 )]
 pub enum Mode {
     #[default]
@@ -18,12 +18,13 @@ pub enum Mode {
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Hash, JsonSchema, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
 #[schemars(
-    description = "The engine that explores every future: the interpreter, or laser, which carries matches back along events and names configurations by their components. Both close with the same configurations, events and answers; each numbers handles in its own order. Direct paths always follow the interpreter's scheduler."
+    description = "The engine that explores: the interpreter, or laser, which carries matches back along events and names configurations by their components, explore every future and record every event, and both close with the same configurations, events and answers, each numbering handles in its own order. Plain mode runs on laser, or on metal, which explores the program's net of parts on the GPU through Metal where there is one and on the host otherwise; it keeps only counts, the configurations where runs end and whether a run can go on forever, so it answers explore and check alone, at a scale no recording reaches. Direct paths always follow the interpreter's scheduler."
 )]
 pub enum Engine {
     #[default]
     Interpreter,
     Laser,
+    Metal,
 }
 
 impl std::str::FromStr for Engine {
@@ -33,8 +34,9 @@ impl std::str::FromStr for Engine {
         match text {
             "interpreter" => Ok(Self::Interpreter),
             "laser" => Ok(Self::Laser),
+            "metal" => Ok(Self::Metal),
             _ => Err(format!(
-                "{text} is not an engine; the engines are interpreter and laser"
+                "{text} is not an engine; the engines are interpreter, laser and metal"
             )),
         }
     }

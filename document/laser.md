@@ -8,8 +8,7 @@ Laser is Photonic's second engine for exploring every future of a program, besid
 | --- | --- |
 | `photonic run` | `--engine laser` lists the configurations Laser reaches; `--worker` sets its threads and `--json` prints its report. |
 | `photonic prism` | `--engine laser` answers reached, unreachable or unknown for an exact target from Laser's exploration. `--path` follows the interpreter's scheduler, so it refuses an engine. |
-| Spectrum | Every question takes `engine: laser` in exhaustive mode, and every verb takes `--engine laser`; see [Spectrum](spectrum.md#recordings). `mode: plain`, or `--plain`, explores every schedule of plain events on Laser. |
-| `photonic every` | Explores every schedule of plain events through the program's [net of parts](#nets-of-parts), on the GPU through [Metal](#the-metal-backend) where there is one and on the host otherwise: configurations, events, where runs end and whether one can go on forever. `--target` files, with `--preserve` to add the program's root rules, check that every schedule ends exactly at a target, as `photonic_test(every = True)` does. |
+| Spectrum | Every question takes `engine: laser` in exhaustive mode, and every verb takes `--engine laser`; see [Spectrum](spectrum.md#recordings). `mode: plain`, or `--plain`, explores every schedule of plain events on Laser, and with `engine: metal`, or `--engine metal`, through the program's [net of parts](#nets-of-parts) on the GPU through [Metal](#the-metal-backend), for `explore` and `check`. `check --plain --engine metal --end` with `--exact` and `--preserve` asks what `photonic_test(every = True)` checks. |
 | `photonic_test` | Every exhaustive case also runs on Laser and fails unless Laser gives the interpreter's answer, or the interpreter's exploration stayed open and one of the two answers is unknown. `every = True` runs Laser alone and requires every schedule of plain events to end exactly at a target; see [every schedule](#every-schedule). |
 
 ```sh
@@ -84,15 +83,15 @@ The [wave](../wave/) crate explores a net's plain schedules on the GPU through M
 
 **The host's share.** Grounding stays on the host. When a window holds a marking whose parts the tables lack, or whose kinds could fill every input of a rule joining several coherences, the host grounds it as its own net would on expanding it, counts again if it must, and finds the successors of joining events, which the pass decides with the rest. When asked whether a run can go on forever, the host keeps every successor's marking as an edge, and inserting flags a successor that is a marking found no later than its source. Every cycle holds such an edge, so the host searches the edges for a cycle only when one is flagged.
 
-`photonic every` is its command. It exits 1 unless the exploration closes and, given targets, no run goes on forever and every end configuration is a target; it keeps four bytes a successor and eight a configuration to look for cycles. An exploration a limit leaves open says a run can go on forever when it finds a cycle, and otherwise that it cannot tell, since what the limit refused could close one.
+Spectrum's `metal` engine runs it: `explore` and `check` with `--plain --engine metal` give the counts, the configurations where runs end and whether a run can go on forever, and answer `end` and `outcome` claims, keeping four bytes a successor and eight a configuration to look for cycles. An exploration a limit leaves open says a run can go on forever when it finds a cycle, and otherwise leaves it unknown, since what the limit refused could close one.
 
 ```sh
-bazel run -c opt //command:photonic -- every program/language/inference.wave
+bazel run -c opt //command:photonic -- explore program/language/inference.wave --plain --engine metal
 bazel run -c opt //benchmark:wave -- --family task --count 14
 bazel run -c opt //benchmark:wave -- --family dial --count 12 --compare --worker 16
 ```
 
-The macOS sandbox denies Bazel's test actions the GPU, so `//wave:test`, `//metal:test` and `//gpu:test` run outside it, while their builds stay sandboxed. Elsewhere `Engine::new` gives no engine, and `photonic every` explores on the host.
+The macOS sandbox denies Bazel's test actions the GPU, so `//wave:test`, `//metal:test` and `//gpu:test` run outside it, while their builds stay sandboxed. Elsewhere `Engine::new` gives no engine, and metal explores on the host's net.
 
 ## Budgets
 
@@ -153,4 +152,4 @@ Sixteen tasks explore at 86 million configurations a second and sixteen dials at
 
 ## Not yet built
 
-Laser does not follow direct paths; `--path` and Spectrum's `path` mode use the interpreter's scheduler. `photonic run` and `prism` do not offer plain mode. Deductions are each engine's own; shortest derivations shared by both would let `inspect` and `cause` read alike on either. The webbook's WebAssembly engine runs the interpreter only. The Metal backend explores nets and keeps no recording, so Spectrum does not offer it, and of the commands only `every` does; it checks no claim on the GPU, grounds and joins on the host, looks for cycles on the host from every edge, and does not infer.
+Laser does not follow direct paths; `--path` and Spectrum's `path` mode use the interpreter's scheduler. `photonic run` and `prism` do not offer plain mode. Deductions are each engine's own; shortest derivations shared by both would let `inspect` and `cause` read alike on either. The webbook's WebAssembly engine runs the interpreter only. The Metal backend explores nets and keeps no events, so of Spectrum's questions it answers `explore` and `check` alone, and of the claims `end` and `outcome`; it decides claims on the host from the ends and cycles it found, grounds and joins on the host, looks for cycles on the host from every edge, and does not infer.

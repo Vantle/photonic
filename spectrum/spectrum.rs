@@ -9,6 +9,7 @@ pub mod configuration;
 pub mod context;
 mod exploration;
 pub mod explore;
+mod explored;
 pub mod failure;
 pub mod handle;
 pub mod inspect;
@@ -27,6 +28,7 @@ pub mod shape;
 pub mod step;
 pub mod store;
 pub mod subject;
+mod survey;
 
 #[cfg(test)]
 #[path = "test/suite.rs"]

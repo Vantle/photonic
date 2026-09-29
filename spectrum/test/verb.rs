@@ -552,6 +552,32 @@ fn explore() {
     assert!(again.contains("\"path\""), "{again}");
 }
 
+// On metal, explore lists the ends of every plain schedule by their text alone, without handles or
+// rule activity, and the questions that follow events refuse it.
+#[test]
+fn metal() {
+    let value = json(
+        r#"{"verb": "explore", "program": {"file": ["light.wave"]}, "mode": "plain", "engine": "metal"}"#,
+    );
+    let answer = &value["answer"];
+    assert_eq!(answer["engine"], "metal");
+    assert_eq!(answer["configuration"], 4);
+    assert_eq!(answer["event"], 3);
+    assert_eq!(answer["endless"], false);
+    let end = answer["end"].as_array().expect("end configurations");
+    assert_eq!(end.len(), 3);
+    assert!(end.iter().all(|end| end.get("handle").is_none()));
+    assert_eq!(answer["rule"].as_array().map(Vec::len), Some(0));
+    assert!(answer.get("depth").is_none() && answer.get("work").is_none());
+    let refused = json(
+        r#"{"verb": "select", "program": {"file": ["light.wave"]}, "mode": "plain", "engine": "metal", "pattern": "Red"}"#,
+    );
+    assert_eq!(refused["error"]["code"], "engine");
+    let exhaustive =
+        json(r#"{"verb": "explore", "program": {"file": ["light.wave"]}, "engine": "metal"}"#);
+    assert_eq!(exhaustive["error"]["code"], "request");
+}
+
 #[test]
 fn shape() {
     let describe = |path: &str, fix: Vec<String>| {

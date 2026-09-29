@@ -1,6 +1,7 @@
 use crate::claim::{self, Claim, Verdict};
 use crate::context::Context;
 use crate::explore::{self, Summary};
+use crate::explored::Explored;
 use crate::failure::{Code, Failure, Location};
 use crate::recording::Recording;
 use crate::render;
@@ -48,7 +49,7 @@ fn diagnostic(failure: Failure) -> Diagnostic {
 }
 
 pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Answer, Failure> {
-    let exploration = match (&request.recording.program, &request.recording.exploration) {
+    let explored = match (&request.recording.program, &request.recording.exploration) {
         (Some(program), None) => match program.assemble(context.reader) {
             Ok(source) => context.explore(&source, &request.recording)?,
             Err(failure) if matches!(failure.code, Code::Request | Code::File) => {
@@ -62,15 +63,18 @@ pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Ans
                 });
             }
         },
-        _ => context.exploration(&request.recording)?,
+        _ => context.explored(&request.recording)?,
     };
     Ok(Answer {
         diagnostic: Vec::new(),
-        summary: Some(explore::brief(&exploration)),
+        summary: Some(explore::brief(&explored)),
         claim: request
             .claim
             .iter()
-            .map(|claim| claim::evaluate(claim, &exploration))
+            .map(|claim| match &explored {
+                Explored::Exploration(exploration) => claim::evaluate(claim, exploration),
+                Explored::Survey(survey) => claim::survey(claim, survey),
+            })
             .collect::<Result<_, _>>()?,
     })
 }

@@ -173,57 +173,75 @@ fn worker() {
     assert!(String::from_utf8_lossy(&invalid.stderr).contains("--worker"));
 }
 
-// The every command explores the plain schedules of a program's net, on the host in Bazel's sandbox,
-// and passes only when every schedule ends exactly at a target.
+// The flags that explore every plain schedule on metal, then the others.
+fn plain<'text>(flag: &[&'text str]) -> Vec<&'text str> {
+    [&["--plain", "--engine", "metal"][..], flag].concat()
+}
+
+// Metal explores every plain schedule through a program's net of parts, on the host in Bazel's
+// sandbox, and answers explore and check from counts, ends and cycles alone.
 #[test]
-fn every() {
+fn metal() {
     let fixture = Fixture::new();
     let path = fixture.write(
         "task.wave",
         "Task.T1.Pending, Task.T2.Pending, [Pending] Running, [Running] Done",
     );
-    let done = fixture.write("done.wave", "Task.T1.Done, Task.T2.Done");
-    let stray = fixture.write("stray.wave", "Task.T1.Done, Task.T2.Running");
-    let target = ["--target", done.to_str().unwrap(), "--preserve", "--json"];
-    let answer = report(&execute("every", &path, &target));
-    assert_eq!(answer["closed"], true);
+    let explored = report(&execute("explore", &path, &plain(&["--json"])));
+    let answer = &explored["answer"];
+    assert_eq!(answer["engine"], "metal");
+    assert_eq!(answer["complete"], true);
     assert_eq!(answer["configuration"], 9);
     assert_eq!(answer["event"], 12);
     assert_eq!(answer["endless"], false);
     assert_eq!(answer["end"].as_array().unwrap().len(), 1);
-    assert_eq!(answer["end"][0]["target"], true);
-    assert_eq!(answer["stray"], 0);
-    assert_eq!(answer["passed"], true);
-    let failed = execute(
-        "every",
-        &path,
-        &["--target", stray.to_str().unwrap(), "--preserve"],
-    );
+    assert!(answer["end"][0].get("handle").is_none());
+    let done = [
+        "--end",
+        "Task.T1.Done, Task.T2.Done",
+        "--exact",
+        "--preserve",
+    ];
+    let passed = execute("check", &path, &plain(&done));
+    assert!(passed.status.success());
+    let text = String::from_utf8_lossy(&passed.stdout);
+    assert!(text.contains("end Task.T1.Done, Task.T2.Done exactly   holds"));
+    assert!(text.contains(" · plain · metal · 9 configurations"));
+    let stray = [
+        "--end",
+        "Task.T1.Done, Task.T2.Running",
+        "--exact",
+        "--preserve",
+    ];
+    let failed = execute("check", &path, &plain(&stray));
     assert!(!failed.status.success());
-    let text = String::from_utf8_lossy(&failed.stdout);
-    assert!(text.contains("1 end configuration, 1 of them not a target"));
-    assert!(text.contains("Every schedule ends at a target: failed"));
+    assert!(String::from_utf8_lossy(&failed.stdout).contains("a run ends at"));
     let dial = fixture.write(
         "dial.wave",
         "Dial.D1.Zero, [Zero] One, [One] Two, [Two] Zero",
     );
-    let answer = report(&execute("every", &dial, &["--json"]));
-    assert_eq!(answer["configuration"], 3);
-    assert_eq!(answer["endless"], true);
-    assert_eq!(answer["end"].as_array().unwrap().len(), 0);
-    let open = execute("every", &dial, &["--configuration", "2", "--host"]);
-    assert!(!open.status.success());
-    let text = String::from_utf8_lossy(&open.stdout);
-    assert!(text.starts_with("Every schedule: open after 2 configurations"));
-    assert!(text.contains("whether a run goes on forever is unknown"));
+    let endless = execute("check", &dial, &plain(&["--end", "Zero"]));
+    assert!(!endless.status.success());
+    assert!(String::from_utf8_lossy(&endless.stdout).contains("a run can go on forever"));
     let open = execute(
-        "every",
+        "check",
         &dial,
-        &["--configuration", "2", "--host", "--json"],
+        &plain(&["--end", "Zero", "--configuration", "2", "--json"]),
     );
-    let answer = serde_json::from_slice::<serde_json::Value>(&open.stdout).unwrap();
-    assert_eq!(answer["closed"], false);
-    assert!(answer["endless"].is_null());
+    let open = serde_json::from_slice::<serde_json::Value>(&open.stdout).unwrap();
+    assert_eq!(open["answer"]["claim"][0]["answer"], "unknown");
+    assert_eq!(open["answer"]["summary"]["complete"], false);
+    let reach = execute("check", &path, &plain(&["--reach", "Done"]));
+    assert!(String::from_utf8_lossy(&reach.stderr).contains("answers outcome and end"));
+    let step = execute("step", &path, &plain(&[]));
+    assert!(!step.status.success());
+    assert!(
+        String::from_utf8_lossy(&step.stderr).contains("metal keeps only counts, ends and cycles")
+    );
+    let exhaustive = execute("explore", &path, &["--engine", "metal"]);
+    assert!(String::from_utf8_lossy(&exhaustive.stderr).contains("set mode to plain"));
+    let run = execute("run", &path, &["--engine", "metal"]);
+    assert!(!run.status.success());
 }
 
 #[test]
@@ -683,7 +701,7 @@ fn spectrum() {
     assert!(String::from_utf8_lossy(&conflict.stderr).contains("--engine"));
     let invalid = execute("explore", &path, &["--engine", "gpu"]);
     assert!(!invalid.status.success());
-    assert!(String::from_utf8_lossy(&invalid.stderr).contains("interpreter and laser"));
+    assert!(String::from_utf8_lossy(&invalid.stderr).contains("interpreter, laser and metal"));
     let early = fixture.write("early.wave", "Claim, [Claim] P.Work, [Work] Done, [P] X");
     let inferred = execute("check", &early, &["--inevitable", "Done"]);
     assert!(!inferred.status.success());

@@ -12,6 +12,7 @@ pub enum Code {
     Pattern,
     Handle,
     Exploration,
+    Engine,
     Claim,
     Shape,
 }

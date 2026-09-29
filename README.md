@@ -54,10 +54,10 @@ Save the program above as `light.wave`, then run it and ask Spectrum what it doe
 photonic run light.wave
 photonic explore light.wave
 photonic check light.wave --reach Red --avoid Red.Green
-photonic every light.wave
+photonic check light.wave --plain --engine metal --end Red
 ```
 
-`photonic every` follows every order in which the rules can fire, without inference, on the GPU through Metal where there is one, so programs whose orders reach millions of configurations finish in seconds.
+`--plain` follows every order in which the rules can fire, without inference, and `--engine metal` explores those orders on the GPU through Metal where there is one, so programs whose orders reach millions of configurations finish in seconds. The last command claims that every run ends at `Red`; it fails, because a run can end at `Green` instead.
 
 Every command also runs from the checkout without installing, as `bazel run -c opt //command:photonic -- explore light.wave`. Agents ask the same questions over the Model Context Protocol; the repository's `.mcp.json` starts the server, and [the Spectrum contract](document/spectrum.md) describes every question and answer.
 

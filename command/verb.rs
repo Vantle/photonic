@@ -71,6 +71,7 @@ fn claim(flag: &argument::Claim) -> Vec<Claim> {
         (Kind::Always, &flag.always),
         (Kind::Inevitable, &flag.inevitable),
         (Kind::Outcome, &flag.outcome),
+        (Kind::End, &flag.end),
     ]
     .into_iter()
     .flat_map(|(kind, pattern)| {

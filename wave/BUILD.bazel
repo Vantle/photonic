@@ -35,7 +35,7 @@ rust_library(
     lint_config = "//:lint",
     visibility = [
         "//benchmark:__pkg__",
-        "//command:__pkg__",
+        "//spectrum:__pkg__",
     ],
     deps = [
         "//hashing",

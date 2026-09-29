@@ -1,49 +1,48 @@
-use crate::configuration::{Coherence, Occurrence, Value};
-use crate::exploration::{self, Exploration};
+use crate::configuration::{Coherence, Configuration, Occurrence, Value};
+use crate::exploration::{self, Exploration, Rule};
 use crate::handle::Handle;
 use crate::inspect::{Item, Move};
 use frontend::source;
 use photonic::place::Place;
 use serde::Serialize;
 
-pub fn value(exploration: &Exploration, value: &Value) -> source::Value {
+pub fn value(rule: &[Rule], value: &Value) -> source::Value {
     match value {
         Value::Atom(atom) => source::Value::Atom(atom.clone()),
-        Value::Rule(rule) => source::Value::Rule {
-            rule: Box::new(exploration.rule[*rule].definition.clone()),
+        Value::Rule(index) => source::Value::Rule {
+            rule: Box::new(rule[*index].definition.clone()),
         },
     }
 }
 
-pub fn particle(exploration: &Exploration, occurrence: &[Occurrence]) -> String {
+pub fn particle(rule: &[Rule], occurrence: &[Occurrence]) -> String {
     let particle = occurrence
         .iter()
-        .map(|entry| value(exploration, &entry.value))
+        .map(|entry| value(rule, &entry.value))
         .collect::<Vec<_>>();
     frontend::text::coherence(&particle)
 }
 
-pub fn occurrence(exploration: &Exploration, occurrence: &Occurrence) -> String {
+pub fn occurrence(rule: &[Rule], occurrence: &Occurrence) -> String {
     match &occurrence.value {
         Value::Atom(atom) => atom.clone(),
-        Value::Rule(rule) => format!("({})", exploration.rule[*rule].text),
+        Value::Rule(index) => format!("({})", rule[*index].text),
     }
 }
 
-pub fn coherence(exploration: &Exploration, coherence: &Coherence) -> String {
-    particle(exploration, &coherence.occurrence)
+pub fn coherence(rule: &[Rule], coherence: &Coherence) -> String {
+    particle(rule, &coherence.occurrence)
 }
 
-pub fn configuration(exploration: &Exploration, index: usize) -> String {
-    let Some(configuration) = exploration.configuration.get(index) else {
-        return String::new();
-    };
+// A configuration's coherences, those of the root first and then each scope's, with the rules its
+// rule values name.
+pub fn text(rule: &[Rule], configuration: &Configuration) -> String {
     let inside = |frame: usize| {
         configuration
             .coherence
             .iter()
             .filter(|entry| entry.frame == frame)
-            .map(|entry| coherence(exploration, entry))
+            .map(|entry| coherence(rule, entry))
             .collect::<Vec<_>>()
             .join(", ")
     };
@@ -63,16 +62,20 @@ pub fn configuration(exploration: &Exploration, index: usize) -> String {
     part.join(" · ")
 }
 
-pub fn scope(exploration: &Exploration, index: usize) -> bool {
+pub fn configuration(exploration: &Exploration, index: usize) -> String {
     exploration
         .configuration
         .get(index)
-        .is_some_and(|configuration| {
-            configuration
-                .coherence
-                .iter()
-                .any(|coherence| coherence.frame != 0)
-        })
+        .map(|configuration| text(&exploration.rule, configuration))
+        .unwrap_or_default()
+}
+
+// Whether a configuration holds a coherence inside a scope.
+pub fn scope(configuration: &Configuration) -> bool {
+    configuration
+        .coherence
+        .iter()
+        .any(|coherence| coherence.frame != 0)
 }
 
 pub fn name(value: impl Serialize) -> String {
@@ -94,7 +97,7 @@ pub fn item(exploration: &Exploration, configuration: usize, id: usize) -> Item 
         handle: Handle::Occurrence(configuration, id).to_string(),
         text: exploration
             .find(configuration, id)
-            .map(|entry| occurrence(exploration, entry))
+            .map(|entry| occurrence(&exploration.rule, entry))
             .unwrap_or_default(),
     }
 }

@@ -139,7 +139,7 @@ fn part(exploration: &Exploration, configuration: usize, world: usize) -> Part {
     Part {
         handle: Handle::Coherence(configuration, world).to_string(),
         frame: frame(configuration, coherence.frame),
-        text: render::coherence(exploration, coherence),
+        text: render::coherence(&exploration.rule, coherence),
         occurrence: coherence
             .occurrence
             .iter()

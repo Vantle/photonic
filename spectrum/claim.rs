@@ -4,6 +4,7 @@ use crate::handle::Handle;
 use crate::pattern::{self, Pattern};
 use crate::recording::Mode;
 use crate::render;
+use crate::survey::Survey;
 use photonic::prism::Outcome;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -16,11 +17,12 @@ pub enum Kind {
     Always,
     Inevitable,
     Outcome,
+    End,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
 #[schemars(
-    description = "A claim about every future. reach: some configuration matches; avoid: none does; always: every one does; inevitable: every run reaches a match; outcome: every end configuration matches."
+    description = "A claim about every future. reach: some configuration matches; avoid: none does; always: every one does; inevitable: every run reaches a match; outcome: every end configuration matches; end: every run ends, and ends at a match."
 )]
 pub struct Claim {
     pub kind: Kind,
@@ -29,7 +31,7 @@ pub struct Claim {
     )]
     pub pattern: String,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    #[schemars(description = "Compare whole configurations, as Prism does; reach and avoid only.")]
+    #[schemars(description = "Compare whole configurations, as Prism does.")]
     pub exact: bool,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     #[schemars(description = "With exact, the target also lists every loaded root rule.")]
@@ -106,57 +108,46 @@ fn unexplored(exploration: &Exploration) -> String {
     open(exploration)
 }
 
-fn cycle(exploration: &Exploration, avoided: &[bool]) -> Option<(usize, Vec<usize>)> {
-    let count = exploration.configuration.len();
-    let mut state = vec![0u8; count];
-    let mut stack = vec![(0usize, 0usize)];
-    let mut trail = Vec::<usize>::new();
-    state[0] = 1;
-    while let Some(&mut (node, ref mut position)) = stack.last_mut() {
-        let outgoing = &exploration.outgoing[node];
-        let Some(&event) = outgoing.get(*position) else {
-            state[node] = 2;
-            stack.pop();
-            trail.pop();
-            continue;
-        };
-        *position += 1;
-        let entry = &exploration.event[event];
-        if !entry.supported || !avoided[entry.target] {
-            continue;
-        }
-        match state[entry.target] {
-            0 => {
-                state[entry.target] = 1;
-                trail.push(event);
-                stack.push((entry.target, 0));
-            }
-            1 => {
-                let mut route = trail.clone();
-                route.push(event);
-                return Some((entry.target, route));
-            }
-            _ => {}
-        }
-    }
-    None
+// How reasons speak of what a claim looks for: a match of its pattern, or its exact target.
+struct Word {
+    noun: &'static str,
+    is: &'static str,
+    not: &'static str,
 }
 
-fn inevitable(exploration: &Exploration, matched: &[bool]) -> Evidence {
+fn word(claim: &Claim) -> Word {
+    if claim.exact {
+        return Word {
+            noun: "the target",
+            is: "is the target",
+            not: "is not the target",
+        };
+    }
+    Word {
+        noun: "a match",
+        is: "matches",
+        not: "does not match",
+    }
+}
+
+fn inevitable(exploration: &Exploration, matched: &[bool], word: &Word) -> Evidence {
     if matched.first().copied().unwrap_or(false) {
-        return Evidence::plain(Answer::Holds, "the start matches");
+        return Evidence::plain(Answer::Holds, format!("the start {}", word.is));
     }
     let avoided = matched
         .iter()
         .zip(&exploration.configuration)
         .map(|(&matched, configuration)| !matched && configuration.supported)
         .collect::<Vec<_>>();
-    if let Some((entry, route)) = cycle(exploration, &avoided) {
+    if let Some((entry, route)) = exploration.cycle(&avoided) {
         return Evidence {
             answer: Answer::Fails,
             witness: Some(entry),
             path: route,
-            reason: format!("a run can cycle through s{entry} forever without a match"),
+            reason: format!(
+                "a run can cycle through s{entry} forever without {}",
+                word.noun
+            ),
         };
     }
     if !exploration.closed {
@@ -168,13 +159,40 @@ fn inevitable(exploration: &Exploration, matched: &[bool]) -> Evidence {
         .filter(|&index| route[index].is_some())
         .min_by_key(|&index| (route[index].as_ref().map_or(usize::MAX, Vec::len), index));
     let Some(index) = end else {
-        return Evidence::plain(Answer::Holds, "every run reaches a match");
+        return Evidence::plain(Answer::Holds, format!("every run reaches {}", word.noun));
     };
     Evidence {
         answer: Answer::Fails,
         witness: Some(index),
         path: route[index].clone().unwrap_or_default(),
-        reason: format!("a run ends at s{index} without a match"),
+        reason: format!("a run ends at s{index} without {}", word.noun),
+    }
+}
+
+// Every run ends, and at a match: a cycle any run reaches fails it at once, and a run that ends
+// without a match fails it once the exploration closes.
+fn end(exploration: &Exploration, matched: &[bool], word: &Word) -> Evidence {
+    let every = vec![true; exploration.configuration.len()];
+    if let Some((entry, route)) = exploration.cycle(&every) {
+        return Evidence {
+            answer: Answer::Fails,
+            witness: Some(entry),
+            path: route,
+            reason: format!("a run can cycle through s{entry} forever"),
+        };
+    }
+    if !exploration.closed {
+        return Evidence::plain(Answer::Unknown, open(exploration));
+    }
+    let stray = exploration.leaf().filter(|&index| !matched[index]);
+    match shallowest(exploration, stray) {
+        Some(index) => Evidence::at(
+            Answer::Fails,
+            exploration,
+            index,
+            format!("a run ends at s{index} without {}", word.noun),
+        ),
+        None => Evidence::plain(Answer::Holds, format!("every run ends at {}", word.noun)),
     }
 }
 
@@ -200,12 +218,28 @@ fn avoiding(exploration: &Exploration, avoided: &[bool]) -> Vec<Option<Vec<usize
     route
 }
 
-fn exact(claim: &Claim, exploration: &Exploration) -> Result<Evidence, Failure> {
-    if !matches!(claim.kind, Kind::Reach | Kind::Avoid) {
-        return Err(Failure::new(
+fn body(claim: &Claim) -> Result<pattern::Body, Failure> {
+    match Pattern::read(&claim.pattern)? {
+        Pattern::Configuration(body) => Ok(body),
+        Pattern::Rule(_) => Err(Failure::new(
             Code::Claim,
-            "only reach and avoid take an exact target",
-        ));
+            "a claim is about configurations; write a pattern of coherences and scopes, such as False.Extra",
+        )),
+    }
+}
+
+// Which configurations a claim's pattern matches, or, when exact, which one is its target.
+fn matched(claim: &Claim, exploration: &Exploration) -> Result<Vec<bool>, Failure> {
+    if !claim.exact {
+        let body = body(claim)?;
+        return Ok(exploration
+            .configuration
+            .iter()
+            .map(|configuration| {
+                configuration.supported
+                    && pattern::assign(&body, configuration, exploration.rule.as_slice()).is_some()
+            })
+            .collect());
     }
     if exploration.mode == Mode::Path {
         return Err(Failure::new(
@@ -217,34 +251,15 @@ fn exact(claim: &Claim, exploration: &Exploration) -> Result<Evidence, Failure> 
     let verdict = exploration
         .verdict(&target, claim.preserve)
         .ok_or_else(|| Failure::new(Code::Claim, "this exploration cannot check exact targets"))?;
-    let reach = claim.kind == Kind::Reach;
-    Ok(match (verdict.outcome, verdict.witness) {
-        (Outcome::Reached, Some(witness)) => Evidence::at(
-            if reach { Answer::Holds } else { Answer::Fails },
-            exploration,
-            witness,
-            format!("s{witness} is the target"),
-        ),
-        (Outcome::Unreachable, _) => Evidence::plain(
-            if reach { Answer::Fails } else { Answer::Holds },
-            "the exploration closed without the target",
-        ),
-        _ => Evidence::plain(Answer::Unknown, open(exploration)),
-    })
+    let mut matched = vec![false; exploration.configuration.len()];
+    if let (Outcome::Reached, Some(witness)) = (verdict.outcome, verdict.witness) {
+        matched[witness] = true;
+    }
+    Ok(matched)
 }
 
-fn pattern(claim: &Claim, exploration: &Exploration, body: &pattern::Body) -> Evidence {
-    let matched = (0..exploration.configuration.len())
-        .map(|index| {
-            exploration.configuration[index].supported
-                && pattern::assign(
-                    body,
-                    &exploration.configuration[index],
-                    exploration.rule.as_slice(),
-                )
-                .is_some()
-        })
-        .collect::<Vec<_>>();
+fn decide(claim: &Claim, exploration: &Exploration, matched: &[bool]) -> Evidence {
+    let word = word(claim);
     let found = shallowest(
         exploration,
         supported(exploration).filter(|&index| matched[index]),
@@ -254,17 +269,18 @@ fn pattern(claim: &Claim, exploration: &Exploration, body: &pattern::Body) -> Ev
         supported(exploration).filter(|&index| !matched[index]),
     );
     let path = exploration.mode == Mode::Path;
+    let closed = exploration.closed && !path;
     match claim.kind {
         Kind::Reach => match found {
             Some(index) => Evidence::at(
                 Answer::Holds,
                 exploration,
                 index,
-                format!("s{index} matches"),
+                format!("s{index} {}", word.is),
             ),
-            None if exploration.closed && !path => Evidence::plain(
+            None if closed => Evidence::plain(
                 Answer::Fails,
-                "no configuration matches, and the exploration closed",
+                format!("no configuration {}, and the exploration closed", word.is),
             ),
             None => Evidence::plain(Answer::Unknown, unexplored(exploration)),
         },
@@ -273,11 +289,11 @@ fn pattern(claim: &Claim, exploration: &Exploration, body: &pattern::Body) -> Ev
                 Answer::Fails,
                 exploration,
                 index,
-                format!("s{index} matches"),
+                format!("s{index} {}", word.is),
             ),
-            None if exploration.closed && !path => Evidence::plain(
+            None if closed => Evidence::plain(
                 Answer::Holds,
-                "no configuration matches, and the exploration closed",
+                format!("no configuration {}, and the exploration closed", word.is),
             ),
             None => Evidence::plain(Answer::Unknown, unexplored(exploration)),
         },
@@ -286,50 +302,42 @@ fn pattern(claim: &Claim, exploration: &Exploration, body: &pattern::Body) -> Ev
                 Answer::Fails,
                 exploration,
                 index,
-                format!("s{index} does not match"),
+                format!("s{index} {}", word.not),
             ),
-            None if exploration.closed && !path => {
-                Evidence::plain(Answer::Holds, "every configuration matches")
+            None if closed => {
+                Evidence::plain(Answer::Holds, format!("every configuration {}", word.is))
             }
             None => Evidence::plain(Answer::Unknown, unexplored(exploration)),
         },
-        Kind::Inevitable if path => Evidence::plain(Answer::Unknown, PATH),
-        Kind::Inevitable => inevitable(exploration, &matched),
-        Kind::Outcome if path => Evidence::plain(Answer::Unknown, PATH),
+        Kind::Inevitable | Kind::Outcome | Kind::End if path => {
+            Evidence::plain(Answer::Unknown, PATH)
+        }
+        Kind::Inevitable => inevitable(exploration, matched, &word),
         Kind::Outcome if !exploration.closed => Evidence::plain(
             Answer::Unknown,
             "end configurations are known once the exploration closes",
         ),
         Kind::Outcome => {
-            let end = exploration.leaf().filter(|&index| !matched[index]);
-            match shallowest(exploration, end) {
+            let stray = exploration.leaf().filter(|&index| !matched[index]);
+            match shallowest(exploration, stray) {
                 Some(index) => Evidence::at(
                     Answer::Fails,
                     exploration,
                     index,
-                    format!("s{index} ends without a match"),
+                    format!("s{index} ends without {}", word.noun),
                 ),
-                None => Evidence::plain(Answer::Holds, "every end configuration matches"),
+                None => Evidence::plain(
+                    Answer::Holds,
+                    format!("every end configuration {}", word.is),
+                ),
             }
         }
+        Kind::End => end(exploration, matched, &word),
     }
 }
 
-pub(crate) fn evaluate(claim: &Claim, exploration: &Exploration) -> Result<Verdict, Failure> {
-    let evidence = if claim.exact {
-        exact(claim, exploration)?
-    } else {
-        match Pattern::read(&claim.pattern)? {
-            Pattern::Configuration(body) => pattern(claim, exploration, &body),
-            Pattern::Rule(_) => {
-                return Err(Failure::new(
-                    Code::Claim,
-                    "a claim is about configurations; write a pattern of coherences and scopes, such as False.Extra",
-                ));
-            }
-        }
-    };
-    Ok(Verdict {
+fn verdict(claim: &Claim, evidence: Evidence) -> Verdict {
+    Verdict {
         claim: claim.clone(),
         answer: evidence.answer,
         witness: evidence
@@ -341,5 +349,61 @@ pub(crate) fn evaluate(claim: &Claim, exploration: &Exploration) -> Result<Verdi
             .map(|&event| Handle::Event(event).to_string())
             .collect(),
         reason: evidence.reason,
-    })
+    }
+}
+
+pub(crate) fn evaluate(claim: &Claim, exploration: &Exploration) -> Result<Verdict, Failure> {
+    let matched = matched(claim, exploration)?;
+    Ok(verdict(claim, decide(claim, exploration, &matched)))
+}
+
+// A survey keeps only its ends and whether a run can go on forever, so it answers outcome and end,
+// and names an end by its text, since it numbers nothing.
+pub(crate) fn survey(claim: &Claim, survey: &Survey) -> Result<Verdict, Failure> {
+    if !matches!(claim.kind, Kind::Outcome | Kind::End) {
+        return Err(Failure::new(
+            Code::Claim,
+            "metal keeps only counts, ends and cycles, so it answers outcome and end; ask reach, avoid, always and inevitable with laser",
+        ));
+    }
+    let matched = if claim.exact {
+        let target = crate::subject::lower("pattern", &claim.pattern, Code::Target)?;
+        survey.target(&target, claim.preserve)
+    } else {
+        let body = body(claim)?;
+        survey
+            .end
+            .iter()
+            .map(|configuration| {
+                pattern::assign(&body, configuration, survey.rule.as_slice()).is_some()
+            })
+            .collect()
+    };
+    let word = word(claim);
+    let stray = matched.iter().position(|&matched| !matched);
+    let evidence = match (claim.kind, stray) {
+        (Kind::End, _) if survey.endless => {
+            Evidence::plain(Answer::Fails, "a run can go on forever")
+        }
+        _ if !survey.closed => Evidence::plain(
+            Answer::Unknown,
+            "end configurations are known once the exploration closes",
+        ),
+        (_, Some(index)) => Evidence::plain(
+            Answer::Fails,
+            format!(
+                "a run ends at {} without {}",
+                render::text(&survey.rule, &survey.end[index]),
+                word.noun
+            ),
+        ),
+        (Kind::End, None) => {
+            Evidence::plain(Answer::Holds, format!("every run ends at {}", word.noun))
+        }
+        (_, None) => Evidence::plain(
+            Answer::Holds,
+            format!("every end configuration {}", word.is),
+        ),
+    };
+    Ok(verdict(claim, evidence))
 }

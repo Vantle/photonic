@@ -13,6 +13,7 @@ filegroup(
         "context.rs",
         "exploration.rs",
         "explore.rs",
+        "explored.rs",
         "failure.rs",
         "handle.rs",
         "inspect.rs",
@@ -32,6 +33,7 @@ filegroup(
         "step.rs",
         "store.rs",
         "subject.rs",
+        "survey.rs",
     ],
 )
 
@@ -55,6 +57,7 @@ rust_library(
         "//language:photonic",
         "//symmetry",
         "//translation",
+        "//wave",
         "@crate//:miette",
         "@crate//:schemars",
         "@crate//:serde",
@@ -87,6 +90,7 @@ rust_test(
         "//language:photonic",
         "//symmetry",
         "//translation",
+        "//wave",
         "@crate//:miette",
         "@crate//:schemars",
         "@crate//:serde",

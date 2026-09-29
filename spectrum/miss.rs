@@ -340,7 +340,12 @@ fn equal(body: &Body, frame: usize, exploration: &Exploration, configuration: us
             .occurrence
             .iter()
             .filter(|occurrence| !fit.matched.contains(&occurrence.id))
-            .map(|occurrence| format!("{prefix}{}", render::occurrence(exploration, occurrence)))
+            .map(|occurrence| {
+                format!(
+                    "{prefix}{}",
+                    render::occurrence(&exploration.rule, occurrence)
+                )
+            })
             .collect::<Vec<_>>();
         tally.distance += surplus.len();
         tally.extra.extend(surplus);
@@ -350,7 +355,7 @@ fn equal(body: &Body, frame: usize, exploration: &Exploration, configuration: us
             tally.distance += coherence.occurrence.len().max(1);
             tally.extra.push(format!(
                 "{prefix}{}",
-                render::coherence(exploration, coherence)
+                render::coherence(&exploration.rule, coherence)
             ));
         }
     }
@@ -371,7 +376,7 @@ fn equal(body: &Body, frame: usize, exploration: &Exploration, configuration: us
         tally.extra.push(format!(
             "in f{}: {}",
             coherence.frame,
-            render::coherence(exploration, coherence)
+            render::coherence(&exploration.rule, coherence)
         ));
     }
     let mut live = entry.frame[frame]
@@ -394,11 +399,12 @@ fn equal(body: &Body, frame: usize, exploration: &Exploration, configuration: us
         }
     }
     tally.distance += live.len();
-    tally.extra.extend(
-        live.iter().map(|(_, occurrence)| {
-            format!("{prefix}{}", render::occurrence(exploration, occurrence))
-        }),
-    );
+    tally.extra.extend(live.iter().map(|(_, occurrence)| {
+        format!(
+            "{prefix}{}",
+            render::occurrence(&exploration.rule, occurrence)
+        )
+    }));
     tally
 }
 

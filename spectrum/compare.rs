@@ -124,7 +124,7 @@ fn group(exploration: &Exploration, place: &str, occurrence: &[Occurrence]) -> V
                 u32::try_from(occurrence.id).unwrap_or(u32::MAX),
                 Element {
                     place: place.to_owned(),
-                    text: render::occurrence(exploration, occurrence),
+                    text: render::occurrence(&exploration.rule, occurrence),
                 },
             )
         })

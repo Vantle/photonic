@@ -1,4 +1,4 @@
-use super::support::{BUG, FIX, ORIGINAL, engine, explore, plain};
+use super::support::{BUG, FIX, ORIGINAL, engine, explore, plain, survey};
 use crate::cause::Role;
 use crate::claim::{self, Answer, Claim, Kind};
 use crate::configuration::{Opener, Value};
@@ -369,4 +369,114 @@ fn schedule() {
         assert_eq!(answer(&every), schedule, "{kind:?}");
     }
     assert_ne!(full.key, every.key);
+}
+
+fn exact(kind: Kind, pattern: &str) -> Claim {
+    Claim {
+        exact: true,
+        preserve: true,
+        ..claim(kind, pattern)
+    }
+}
+
+// An exact target is one whole configuration, so every claim can ask for it: which configuration a
+// claim looks for changes, and how its kind decides does not.
+#[test]
+fn target() {
+    let exploration = explore("A, [A] B");
+    for (kind, pattern, expected) in [
+        (Kind::Reach, "A", Answer::Holds),
+        (Kind::Avoid, "B", Answer::Fails),
+        (Kind::Always, "B", Answer::Fails),
+        (Kind::Inevitable, "B", Answer::Holds),
+        (Kind::Outcome, "B", Answer::Holds),
+        (Kind::End, "B", Answer::Holds),
+        (Kind::End, "A", Answer::Fails),
+    ] {
+        let verdict = claim::evaluate(&exact(kind, pattern), &exploration).unwrap();
+        assert_eq!(verdict.answer, expected, "{kind:?} {pattern}");
+    }
+    let always = claim::evaluate(&exact(Kind::Always, "B"), &exploration).unwrap();
+    assert_eq!(always.witness.as_deref(), Some("s0"));
+    assert!(always.reason.contains("is not the target"));
+}
+
+// Every run ends, and at a match: a cycle any run reaches fails the claim at once, an end without a
+// match fails it once the exploration closes, and outcome, which speaks only of ends, holds where
+// no run ends at all.
+#[test]
+fn end() {
+    let task = plain("Task.T1.Pending, Task.T2.Pending, [Pending] Running, [Running] Done");
+    assert_eq!(task.endless(), Some(false));
+    let done = claim::evaluate(&claim(Kind::End, "Done"), &task).unwrap();
+    assert_eq!(done.answer, Answer::Holds);
+    let whole = claim::evaluate(&exact(Kind::End, "Task.T1.Done, Task.T2.Done"), &task).unwrap();
+    assert_eq!(whole.answer, Answer::Holds);
+    let stray = claim::evaluate(&exact(Kind::End, "Task.T1.Done, Task.T2.Running"), &task).unwrap();
+    assert_eq!(stray.answer, Answer::Fails);
+    assert!(stray.witness.is_some());
+    let dial = plain(&photonic::family::dial(2));
+    assert_eq!(dial.endless(), Some(true));
+    let endless = claim::evaluate(&claim(Kind::End, "Zero"), &dial).unwrap();
+    assert_eq!(endless.answer, Answer::Fails);
+    assert!(endless.reason.contains("forever"), "{}", endless.reason);
+    assert!(!endless.path.is_empty());
+    let outcome = claim::evaluate(&claim(Kind::Outcome, "Zero"), &dial).unwrap();
+    assert_eq!(outcome.answer, Answer::Holds);
+}
+
+// Metal keeps only counts, ends and cycles, and those agree with laser's recording of the same plain
+// schedules, as do its answers to every end and outcome claim; it refuses the claims that need every
+// configuration.
+#[test]
+fn metal() {
+    let pattern = ["Done", "Running", "Zero", "Nothing", "B", "C", "X"];
+    for source in [
+        "Task.T1.Pending, Task.T2.Pending, [Pending] Running, [Running] Done",
+        "A, [A] B, [A] C",
+        "Claim, [Claim] P.Work, [Work] Done, [P] X",
+        "A.B, A.C, [A, B] X, [A, C] Y",
+        &photonic::family::dial(3),
+        &photonic::family::diner(2),
+    ] {
+        let recorded = plain(source);
+        let survey = survey(source);
+        assert_eq!(survey.closed, recorded.closed, "{source}");
+        assert_eq!(
+            survey.configuration,
+            recorded.configuration.len(),
+            "{source}"
+        );
+        assert_eq!(survey.event, recorded.event.len() as u64, "{source}");
+        assert_eq!(Some(survey.endless), recorded.endless(), "{source}");
+        let mut end = recorded
+            .leaf()
+            .map(|index| render::configuration(&recorded, index))
+            .collect::<Vec<_>>();
+        let mut found = survey
+            .end
+            .iter()
+            .map(|configuration| render::text(&survey.rule, configuration))
+            .collect::<Vec<_>>();
+        end.sort();
+        found.sort();
+        assert_eq!(found, end, "{source}");
+        for kind in [Kind::End, Kind::Outcome] {
+            for pattern in pattern {
+                let claim = claim(kind, pattern);
+                assert_eq!(
+                    claim::survey(&claim, &survey).unwrap().answer,
+                    claim::evaluate(&claim, &recorded).unwrap().answer,
+                    "{source} {kind:?} {pattern}"
+                );
+            }
+        }
+    }
+    let task = survey("Task.T1.Pending, Task.T2.Pending, [Pending] Running, [Running] Done");
+    let whole = claim::survey(&exact(Kind::End, "Task.T1.Done, Task.T2.Done"), &task).unwrap();
+    assert_eq!(whole.answer, Answer::Holds);
+    let stray = claim::survey(&exact(Kind::Outcome, "Task.T1.Done"), &task).unwrap();
+    assert_eq!(stray.answer, Answer::Fails);
+    assert!(stray.witness.is_none());
+    assert!(claim::survey(&claim(Kind::Reach, "Done"), &task).is_err());
 }

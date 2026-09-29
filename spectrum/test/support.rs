@@ -1,6 +1,7 @@
 use crate::budget::Budget;
 use crate::exploration::{Exploration, Plan};
 use crate::recording::{Engine, Mode};
+use crate::survey::Survey;
 
 pub const ORIGINAL: &str = "And.True.False.Extra,
 [True] Boolean,
@@ -55,4 +56,16 @@ pub fn plain(source: &str) -> Exploration {
 fn record(source: &str, mode: Mode, engine: Engine) -> Exploration {
     let program = frontend::lowering::parse(source).expect("the example lowers");
     Exploration::new(Plan::new(&program, mode, engine, Budget::default(), None))
+}
+
+pub fn survey(source: &str) -> Survey {
+    let program = frontend::lowering::parse(source).expect("the example lowers");
+    Survey::new(Plan::new(
+        &program,
+        Mode::Plain,
+        Engine::Metal,
+        Budget::default(),
+        None,
+    ))
+    .expect("the example is a net of parts")
 }

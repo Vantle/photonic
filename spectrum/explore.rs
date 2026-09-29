@@ -2,6 +2,7 @@ use crate::claim::Verdict;
 use crate::configuration::Opener;
 use crate::context::Context;
 use crate::exploration::Exploration;
+use crate::explored::Explored;
 use crate::failure::Failure;
 use crate::handle::Handle;
 use crate::recording::{Engine, Mode, Order, Recording};
@@ -17,7 +18,7 @@ fn limit() -> usize {
 
 #[derive(Clone, Debug, Deserialize, JsonSchema, Serialize)]
 #[schemars(
-    description = "Explore every future of a program and summarize it: counts, end configurations and rule activity."
+    description = "Explore every future of a program and summarize it: counts, end configurations and rule activity; on metal, counts and end configurations alone."
 )]
 pub struct Request {
     #[serde(flatten)]
@@ -29,7 +30,11 @@ pub struct Request {
 
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 pub(crate) struct End {
-    pub(crate) handle: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schemars(
+        description = "The configuration's handle; metal numbers nothing, so its ends have none."
+    )]
+    pub(crate) handle: Option<String>,
     pub(crate) scope: bool,
     pub(crate) text: String,
 }
@@ -61,11 +66,20 @@ pub(crate) struct Summary {
     pub(crate) complete: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) reached: Option<bool>,
-    pub(crate) work: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schemars(description = "Work steps the engine took; metal counts none.")]
+    pub(crate) work: Option<usize>,
     pub(crate) configuration: usize,
     pub(crate) event: usize,
     pub(crate) inferred: usize,
-    pub(crate) depth: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schemars(description = "The longest shortest path from the start; metal keeps no paths.")]
+    pub(crate) depth: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schemars(
+        description = "Whether a run can go on forever: true once a cycle is found, false once the exploration closes without one."
+    )]
+    pub(crate) endless: Option<bool>,
 }
 
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
@@ -80,67 +94,106 @@ pub struct Answer {
     pub(crate) rule: Vec<Activity>,
 }
 
-pub(crate) fn brief(exploration: &Exploration) -> Summary {
-    Summary {
-        exploration: exploration.name(),
-        mode: exploration.mode,
-        engine: exploration.engine,
-        order: exploration.order,
-        shape: exploration.shape.map(|shape| format!("{shape:016x}")),
-        complete: exploration.closed,
-        reached: (exploration.mode == Mode::Path).then_some(exploration.reached),
-        work: exploration.work,
-        configuration: exploration.configuration.len(),
-        event: exploration.event.len(),
-        inferred: (0..exploration.event.len())
-            .filter(|&index| exploration.inferred(index))
-            .count(),
-        depth: exploration
-            .depth
-            .iter()
-            .flatten()
-            .copied()
-            .max()
-            .unwrap_or(0),
+pub(crate) fn brief(explored: &Explored) -> Summary {
+    match explored {
+        Explored::Exploration(exploration) => Summary {
+            exploration: exploration.name(),
+            mode: exploration.mode,
+            engine: exploration.engine,
+            order: exploration.order,
+            shape: exploration.shape.map(|shape| format!("{shape:016x}")),
+            complete: exploration.closed,
+            reached: (exploration.mode == Mode::Path).then_some(exploration.reached),
+            work: Some(exploration.work),
+            configuration: exploration.configuration.len(),
+            event: exploration.event.len(),
+            inferred: (0..exploration.event.len())
+                .filter(|&index| exploration.inferred(index))
+                .count(),
+            depth: exploration.depth.iter().flatten().copied().max(),
+            endless: exploration.endless(),
+        },
+        Explored::Survey(survey) => Summary {
+            exploration: format!("x{}", survey.key),
+            mode: Mode::Plain,
+            engine: Engine::Metal,
+            order: survey.order,
+            shape: survey.shape.map(|shape| format!("{shape:016x}")),
+            complete: survey.closed,
+            reached: None,
+            work: None,
+            configuration: survey.configuration,
+            event: usize::try_from(survey.event).unwrap_or(usize::MAX),
+            inferred: 0,
+            depth: None,
+            endless: if survey.endless {
+                Some(true)
+            } else {
+                survey.closed.then_some(false)
+            },
+        },
     }
 }
 
-fn summary(exploration: &Exploration, limit: usize) -> Answer {
-    let end = exploration.leaf().collect::<Vec<_>>();
+fn activity(exploration: &Exploration) -> Vec<Activity> {
+    (0..exploration.rule.len())
+        .map(|index| {
+            let event = exploration.firing(index).collect::<Vec<_>>();
+            Activity {
+                handle: Handle::Rule(index).to_string(),
+                text: render::brief(exploration, index),
+                fired: event.len(),
+                inferred: event
+                    .iter()
+                    .filter(|&&event| exploration.inferred(event))
+                    .count(),
+                first: event.first().map(|&event| Handle::Event(event).to_string()),
+                scope: exploration.rule[index].scope,
+            }
+        })
+        .collect()
+}
+
+fn summary(explored: &Explored, limit: usize) -> Answer {
+    let (count, end, rule) = match explored {
+        Explored::Exploration(exploration) => {
+            let leaf = exploration.leaf().collect::<Vec<_>>();
+            let end = leaf
+                .iter()
+                .take(limit)
+                .map(|&index| End {
+                    handle: Some(Handle::Configuration(index).to_string()),
+                    scope: render::scope(&exploration.configuration[index]),
+                    text: render::configuration(exploration, index),
+                })
+                .collect();
+            (leaf.len(), end, activity(exploration))
+        }
+        Explored::Survey(survey) => {
+            let end = survey
+                .end
+                .iter()
+                .take(limit)
+                .map(|configuration| End {
+                    handle: None,
+                    scope: render::scope(configuration),
+                    text: render::text(&survey.rule, configuration),
+                })
+                .collect();
+            (survey.end.len(), end, Vec::new())
+        }
+    };
     Answer {
-        summary: brief(exploration),
-        more: end.len().saturating_sub(limit),
-        end: end
-            .iter()
-            .take(limit)
-            .map(|&index| End {
-                handle: Handle::Configuration(index).to_string(),
-                scope: render::scope(exploration, index),
-                text: render::configuration(exploration, index),
-            })
-            .collect(),
-        rule: (0..exploration.rule.len())
-            .map(|index| {
-                let event = exploration.firing(index).collect::<Vec<_>>();
-                Activity {
-                    handle: Handle::Rule(index).to_string(),
-                    text: render::brief(exploration, index),
-                    fired: event.len(),
-                    inferred: event
-                        .iter()
-                        .filter(|&&event| exploration.inferred(event))
-                        .count(),
-                    first: event.first().map(|&event| Handle::Event(event).to_string()),
-                    scope: exploration.rule[index].scope,
-                }
-            })
-            .collect(),
+        summary: brief(explored),
+        more: count.saturating_sub(limit),
+        end,
+        rule,
     }
 }
 
 pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Answer, Failure> {
-    let exploration = context.exploration(&request.recording)?;
-    Ok(summary(&exploration, request.limit))
+    let explored = context.explored(&request.recording)?;
+    Ok(summary(&explored, request.limit))
 }
 
 pub(crate) fn state(summary: &Summary) -> String {
@@ -151,10 +204,11 @@ pub(crate) fn state(summary: &Summary) -> String {
         (Mode::Exhaustive | Mode::Plain, false, _) => "open: a budget stopped it",
     };
     let mut part = vec![summary.exploration.clone(), status.to_owned()];
-    if summary.mode == Mode::Plain {
-        part.push("plain".to_owned());
-    } else if summary.engine == Engine::Laser {
-        part.push("laser".to_owned());
+    match (summary.mode, summary.engine) {
+        (Mode::Plain, Engine::Metal) => part.extend(["plain".to_owned(), "metal".to_owned()]),
+        (Mode::Plain, _) => part.push("plain".to_owned()),
+        (_, Engine::Laser) => part.push("laser".to_owned()),
+        _ => {}
     }
     part.extend([
         render::count(summary.configuration, "configuration"),
@@ -163,11 +217,12 @@ pub(crate) fn state(summary: &Summary) -> String {
             render::count(summary.event, "event"),
             summary.inferred
         ),
-        format!("depth {}", summary.depth),
-        format!("work {}", summary.work),
     ]);
-    if let Some(shape) = &summary.shape {
-        part.push(format!("shape {shape}"));
+    part.extend(summary.depth.map(|depth| format!("depth {depth}")));
+    part.extend(summary.work.map(|work| format!("work {work}")));
+    part.extend(summary.shape.as_ref().map(|shape| format!("shape {shape}")));
+    if summary.endless == Some(true) {
+        part.push("a run can go on forever".to_owned());
     }
     part.join(" · ")
 }
@@ -200,7 +255,10 @@ impl Answer {
         };
         for (position, end) in self.end.iter().enumerate() {
             let label = if position == 0 { heading } else { "" };
-            line.push(format!("{label:<6} {:<5} {}", end.handle, end.text));
+            line.push(match &end.handle {
+                Some(handle) => format!("{label:<6} {handle:<5} {}", end.text),
+                None => format!("{label:<6} {}", end.text),
+            });
         }
         if self.more > 0 {
             line.push(format!("       and {} more", self.more));

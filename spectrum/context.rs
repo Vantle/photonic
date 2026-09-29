@@ -1,4 +1,5 @@
 use crate::exploration::{Exploration, Plan};
+use crate::explored::Explored;
 use crate::failure::{Code, Failure};
 use crate::recording::{Engine, Mode, Recording};
 use crate::store::Store;
@@ -12,10 +13,21 @@ pub struct Context<'context> {
 }
 
 impl Context<'_> {
+    // An exploration that records every event, which every question but explore and check needs.
     pub(crate) fn exploration(
         &mut self,
         recording: &Recording,
     ) -> Result<Arc<Exploration>, Failure> {
+        match self.explored(recording)? {
+            Explored::Exploration(exploration) => Ok(exploration),
+            Explored::Survey(_) => Err(Failure::new(
+                Code::Engine,
+                "metal keeps only counts, ends and cycles, no events, so it answers explore and check alone; ask this with laser",
+            )),
+        }
+    }
+
+    pub(crate) fn explored(&mut self, recording: &Recording) -> Result<Explored, Failure> {
         match (&recording.program, &recording.exploration) {
             (Some(program), None) => {
                 let source = program.assemble(self.reader)?;
@@ -49,16 +61,22 @@ impl Context<'_> {
         &mut self,
         source: &Program,
         recording: &Recording,
-    ) -> Result<Arc<Exploration>, Failure> {
+    ) -> Result<Explored, Failure> {
         let mode = recording.mode.unwrap_or_default();
         let engine = match (mode, recording.engine) {
             (Mode::Plain, Some(Engine::Interpreter)) => {
                 return Err(Failure::new(
                     Code::Request,
-                    "plain mode runs on laser; the interpreter explores with inference",
+                    "plain mode runs on laser or metal; the interpreter explores with inference",
                 ));
             }
-            (Mode::Plain, _) => Engine::Laser,
+            (Mode::Plain, engine) => engine.unwrap_or(Engine::Laser),
+            (_, Some(Engine::Metal)) => {
+                return Err(Failure::new(
+                    Code::Request,
+                    "metal explores every schedule of plain events; set mode to plain",
+                ));
+            }
             (_, engine) => engine.unwrap_or_default(),
         };
         if mode == Mode::Path && engine == Engine::Laser {
@@ -84,12 +102,12 @@ impl Context<'_> {
                 Ok::<_, Failure>(target)
             })
             .transpose()?;
-        Ok(self.store.explore(Plan::new(
+        self.store.explore(Plan::new(
             source,
             mode,
             engine,
             recording.budget.unwrap_or_default(),
             goal,
-        )))
+        ))
     }
 }

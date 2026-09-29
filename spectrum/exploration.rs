@@ -101,7 +101,7 @@ fn occurrence(token: &snapshot::Token) -> Occurrence {
 
 // Configurations are numbered in the canonical program's own names, so renaming atoms keeps every
 // handle, and only then shown in the program's names.
-fn show(configuration: Configuration, naming: &Naming) -> Configuration {
+pub(crate) fn show(configuration: Configuration, naming: &Naming) -> Configuration {
     let occurrence = |value: Occurrence| Occurrence {
         value: match value.value {
             Value::Atom(atom) => Value::Atom(naming.name(&atom).to_owned()),
@@ -131,7 +131,7 @@ fn show(configuration: Configuration, naming: &Naming) -> Configuration {
     }
 }
 
-fn configuration(node: &Node) -> Configuration {
+pub(crate) fn configuration(node: &Node) -> Configuration {
     let token = occurrence;
     Configuration {
         coherence: node
@@ -161,7 +161,7 @@ fn configuration(node: &Node) -> Configuration {
     }
 }
 
-fn rule(definition: &snapshot::Definition, naming: &Naming) -> Rule {
+pub(crate) fn rule(definition: &snapshot::Definition, naming: &Naming) -> Rule {
     let plain = naming.show(&definition.rule);
     Rule {
         text: frontend::text::definition(&plain),
@@ -206,11 +206,6 @@ impl Plan {
             Mode::Exhaustive | Mode::Plain => order::exhaustive(program),
             Mode::Path => order::source(program),
         };
-        let engine = if mode == Mode::Plain {
-            Engine::Laser
-        } else {
-            engine
-        };
         let goal = goal.map(|goal| {
             let mut hidden = canonical.naming.hide(&goal);
             hidden.rule.sort();
@@ -232,8 +227,8 @@ impl Exploration {
     pub fn new(plan: Plan) -> Self {
         match (plan.mode, plan.engine) {
             (Mode::Exhaustive, Engine::Interpreter) => Self::interpret(plan),
-            (Mode::Exhaustive, Engine::Laser) | (Mode::Plain, _) => Self::compile(plan),
             (Mode::Path, _) => Self::walk(plan),
+            _ => Self::compile(plan),
         }
     }
 
@@ -500,6 +495,51 @@ impl Exploration {
 
     pub fn settled(&self) -> bool {
         self.closed && self.mode != Mode::Path
+    }
+
+    // A cycle of supported events through configurations that avoided marks, found from the
+    // start: the configuration where it closes, and the events from the start around it.
+    pub fn cycle(&self, avoided: &[bool]) -> Option<(usize, Vec<usize>)> {
+        let mut state = vec![0u8; self.configuration.len()];
+        let mut stack = vec![(0usize, 0usize)];
+        let mut trail = Vec::<usize>::new();
+        state[0] = 1;
+        while let Some(&mut (node, ref mut position)) = stack.last_mut() {
+            let Some(&event) = self.outgoing[node].get(*position) else {
+                state[node] = 2;
+                stack.pop();
+                trail.pop();
+                continue;
+            };
+            *position += 1;
+            let entry = &self.event[event];
+            if !entry.supported || !avoided[entry.target] {
+                continue;
+            }
+            match state[entry.target] {
+                0 => {
+                    state[entry.target] = 1;
+                    trail.push(event);
+                    stack.push((entry.target, 0));
+                }
+                1 => {
+                    let mut route = trail.clone();
+                    route.push(event);
+                    return Some((entry.target, route));
+                }
+                _ => {}
+            }
+        }
+        None
+    }
+
+    // Whether a run can go on forever: yes once a cycle of supported events is found, and no once
+    // the exploration settles without one.
+    pub fn endless(&self) -> Option<bool> {
+        if self.cycle(&vec![true; self.configuration.len()]).is_some() {
+            return Some(true);
+        }
+        self.settled().then_some(false)
     }
 
     pub fn find(&self, configuration: usize, id: usize) -> Option<&Occurrence> {
