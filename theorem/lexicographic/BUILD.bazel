@@ -3,6 +3,7 @@ load("//theorem:defs.bzl", "theorem")
 theorem(
     name = "irreflexive",
     srcs = ["irreflexive.wave"],
+    every = True,
     deps = [
         "//theorem:case",
         "//theorem:cover",

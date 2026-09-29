@@ -1,4 +1,3 @@
-load("//photonic:defs.bzl", "photonic_test")
 load("//theorem:defs.bzl", "theorem")
 
 theorem(
@@ -16,22 +15,7 @@ theorem(
 theorem(
     name = "lookahead",
     srcs = ["lookahead.wave"],
-    deps = [
-        "//library/carry:combine",
-        "//library/carry:evaluate",
-        "//library/ternary:equal",
-        "//theorem:case",
-        "//theorem/carry:role",
-    ],
-)
-
-photonic_test(
-    name = "lookahead.order",
-    srcs = ["lookahead.wave"],
-    configuration = 131072,
     every = True,
-    tags = ["memory"],
-    target = ["Theorem"],
     deps = [
         "//library/carry:combine",
         "//library/carry:evaluate",

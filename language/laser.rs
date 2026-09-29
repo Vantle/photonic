@@ -3,8 +3,11 @@ mod capture;
 mod component;
 mod deduction;
 mod direct;
+mod enclosure;
 pub mod ending;
+mod focus;
 mod forest;
+mod independence;
 mod layout;
 mod passage;
 mod pool;
@@ -28,7 +31,9 @@ use crate::state::{Canonical, State};
 use crate::status::Status;
 use capture::{Capture, Environment};
 use deduction::Deduction;
+use focus::Focus;
 use hashing::Builder;
+use independence::Independence;
 use indexmap::{IndexMap, IndexSet};
 use layout::Layout;
 use passage::{Composed, Origin, Passage};
@@ -193,6 +198,7 @@ struct Candidate {
 #[derive(Debug, Eq, PartialEq)]
 pub enum Disagreement {
     Closed { reference: bool, laser: bool },
+    Endless { reference: bool, laser: bool },
     Configuration { missing: usize, extra: usize },
     Event { missing: usize, extra: usize },
     Support { configuration: usize },
@@ -240,6 +246,7 @@ pub struct Laser {
     work: usize,
     traced: usize,
     plain: bool,
+    independence: Option<Independence>,
     peak: usize,
 }
 
@@ -368,6 +375,14 @@ impl Laser {
         Self::begin(source, true)
     }
 
+    // A reduced exploration fires, at each configuration, the events of one part that commute with
+    // every other event, and reaches every configuration where a plain run ends.
+    pub fn reduced(source: &frontend::source::Program) -> Self {
+        let mut laser = Self::begin(source, true);
+        laser.independence = Independence::new(&laser.program);
+        laser
+    }
+
     fn begin(source: &frontend::source::Program, plain: bool) -> Self {
         let program = Arc::new(Program::new(source));
         let initial = State::initial(&program);
@@ -401,6 +416,7 @@ impl Laser {
             work: 0,
             traced: 0,
             plain,
+            independence: None,
             peak: 0,
         };
         let draft = laser.taxonomy.analyze(&initial);
@@ -639,11 +655,23 @@ impl Laser {
     fn candidate(&self, index: usize, range: Range<usize>) -> Candidate {
         let mut seen = IndexMap::<Identity, usize, Builder>::default();
         let mut resolution = Vec::with_capacity(range.len());
-        for position in range {
-            let Some(identity) = self.identify(index, &self.trace[index][position]) else {
+        let identity = range
+            .clone()
+            .map(|position| self.identify(index, &self.trace[index][position]))
+            .collect::<Vec<_>>();
+        let chosen = self.independence.as_ref().and_then(|independence| {
+            let found = identity.iter().flatten().collect::<Vec<_>>();
+            Focus::choose(&self.state[index], &found, independence)
+        });
+        for (position, identity) in range.zip(identity) {
+            let Some(identity) = identity else {
                 resolution.push(Resolution::Absent);
                 continue;
             };
+            if chosen.as_ref().is_some_and(|focus| !focus.holds(&identity)) {
+                resolution.push(Resolution::Absent);
+                continue;
+            }
             if let Some(&event) = self.identity[index].get(&identity) {
                 resolution.push(Resolution::Known(event));
                 continue;

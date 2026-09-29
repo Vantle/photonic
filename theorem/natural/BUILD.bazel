@@ -17,6 +17,8 @@ theorem(
 theorem(
     name = "comparison",
     srcs = ["comparison.wave"],
+    configuration = 16384,
+    every = True,
     occurrence = 1024,
     deps = [
         ":feed",

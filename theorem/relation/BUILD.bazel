@@ -3,6 +3,7 @@ load("//theorem:defs.bzl", "theorem")
 theorem(
     name = "asymmetry",
     srcs = ["asymmetry.wave"],
+    every = True,
     deps = [
         "//theorem:case",
         "//theorem:cover",

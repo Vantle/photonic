@@ -28,14 +28,23 @@ struct Argument {
     occurrence: usize,
     #[arg(
         long,
+        value_enum,
+        default_value_t = Mode::Exhaustive,
         requires = "program",
-        help = "Explore every schedule of plain events instead of every future"
+        help = "Explore every future, every schedule of plain events, or those schedules one commuting scope at a time"
     )]
-    plain: bool,
+    mode: Mode,
     #[arg(long, default_value_t = std::num::NonZeroUsize::MIN, help = "Threads Laser explores with")]
     worker: std::num::NonZeroUsize,
     #[arg(long, help = "Measure only cases whose names contain this text")]
     filter: Option<String>,
+}
+
+#[derive(Clone, Copy, clap::ValueEnum)]
+enum Mode {
+    Exhaustive,
+    Plain,
+    Reduced,
 }
 
 #[derive(Deserialize)]
@@ -72,16 +81,16 @@ struct Run {
 
 fn laser(
     program: &frontend::source::Program,
-    plain: bool,
+    mode: Mode,
     executor: &Executor,
     budget: usize,
     limit: Limit,
 ) -> Run {
     let start = Instant::now();
-    let mut laser = if plain {
-        Laser::plain(black_box(program))
-    } else {
-        Laser::new(black_box(program))
+    let mut laser = match mode {
+        Mode::Exhaustive => Laser::new(black_box(program)),
+        Mode::Plain => Laser::plain(black_box(program)),
+        Mode::Reduced => Laser::reduced(black_box(program)),
     };
     laser.parallel(executor, budget, limit);
     let summary = black_box(laser.summary());
@@ -154,7 +163,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         #[cfg(feature = "measurement")]
         photonic::profile::take();
         let engine = measure(argument.sample, argument.patience, || {
-            laser(&program, argument.plain, &executor, argument.budget, limit)
+            laser(&program, argument.mode, &executor, argument.budget, limit)
         });
         #[cfg(feature = "measurement")]
         eprintln!(
@@ -193,7 +202,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut report = Vec::new();
     for (name, program, compare) in case {
         let laser = measure(argument.sample, argument.patience, || {
-            laser(&program, false, &executor, argument.budget, limit)
+            laser(
+                &program,
+                Mode::Exhaustive,
+                &executor,
+                argument.budget,
+                limit,
+            )
         });
         let interpreter = compare.then(|| {
             measure(argument.sample, argument.patience, || {

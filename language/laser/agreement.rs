@@ -275,3 +275,67 @@ impl Laser {
         Ok(())
     }
 }
+
+impl Laser {
+    // A reduced exploration fires, at each configuration, only the events of one scope whose events
+    // commute with every other event, so it keeps a subset of the plain configurations and events,
+    // every configuration where a plain run ends, and a cycle exactly when the plain one has one.
+    pub fn preserves(&self, plain: &Self) -> Result<(), Disagreement> {
+        if !self.closed() || !plain.closed() {
+            return Err(Disagreement::Closed {
+                reference: plain.closed(),
+                laser: self.closed(),
+            });
+        }
+        let (outer, inner) = (plain.name(), self.name());
+        let known = outer
+            .iter()
+            .map(|named| &named.state)
+            .collect::<HashSet<&State>>();
+        let (expected, ending) = (plain.ending(), self.ending());
+        let wanted = expected
+            .end
+            .iter()
+            .map(|&index| &outer[index].state)
+            .collect::<HashSet<&State>>();
+        let found = ending
+            .end
+            .iter()
+            .map(|&index| &inner[index].state)
+            .collect::<HashSet<&State>>();
+        let stray = inner
+            .iter()
+            .filter(|named| !known.contains(&named.state))
+            .count();
+        if wanted != found || stray != 0 {
+            return Err(Disagreement::Configuration {
+                missing: wanted.difference(&found).count(),
+                extra: found.difference(&wanted).count() + stray,
+            });
+        }
+        if expected.endless != ending.endless {
+            return Err(Disagreement::Endless {
+                reference: expected.endless,
+                laser: ending.endless,
+            });
+        }
+        let mut available = BTreeMap::<Edge<'_>, usize>::new();
+        for index in 0..plain.event.len() {
+            *available
+                .entry(Edge::new(plain, &outer, index))
+                .or_default() += 1;
+        }
+        let mut used = BTreeMap::<Edge<'_>, usize>::new();
+        for index in 0..self.event.len() {
+            *used.entry(Edge::new(self, &inner, index)).or_default() += 1;
+        }
+        let extra = used
+            .iter()
+            .map(|(edge, &count)| count.saturating_sub(available.get(edge).copied().unwrap_or(0)))
+            .sum::<usize>();
+        if extra != 0 {
+            return Err(Disagreement::Event { missing: 0, extra });
+        }
+        Ok(())
+    }
+}

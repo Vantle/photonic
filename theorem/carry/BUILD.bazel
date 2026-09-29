@@ -10,6 +10,7 @@ photonic_library(
 theorem(
     name = "action",
     srcs = ["action.wave"],
+    every = True,
     deps = [
         ":role",
         "//library/carry:combine",
@@ -22,6 +23,7 @@ theorem(
 theorem(
     name = "associativity",
     srcs = ["associativity.wave"],
+    every = True,
     occurrence = 512,
     deps = [
         ":role",
@@ -34,6 +36,7 @@ theorem(
 theorem(
     name = "identity",
     srcs = ["identity.wave"],
+    every = True,
     deps = [
         ":role",
         "//library/carry:combine",

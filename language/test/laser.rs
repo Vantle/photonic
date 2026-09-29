@@ -119,6 +119,54 @@ fn ending() {
     }
 }
 
+// A reduced exploration keeps every configuration where a plain run ends and every cycle, firing one
+// coherence or scope at a time when its events commute with the rest, and in any number of workers;
+// a rule that can consume a live rule turns the reduction off.
+#[test]
+fn reduction() {
+    let executor = crate::executor::Executor::new(std::num::NonZeroUsize::new(4).unwrap()).unwrap();
+    let limit = Limit {
+        record: usize::MAX,
+        ..Limit::default()
+    };
+    let family = [
+        (crate::family::dial(3), true),
+        (crate::family::diner(3), false),
+    ];
+    for (source, smaller) in family
+        .iter()
+        .map(|(source, smaller)| (source.as_str(), *smaller))
+        .chain([
+            ("Case.(([P] True), ([P] False)), [Claim] Done, Claim", false),
+            ("A, [A] B, [A] C, [C] A", false),
+            ("B, [B] C, [C] B", false),
+            ("Go.Y, K, [K] L, [Go] (X, [X] ().([Y] Z))", true),
+            ("A, Key, [A] B, [B, Key] (C, [Q] R)", false),
+            ("Go, Go, [Go] (X, [X] Y)", true),
+            ("Go.A, Go.B, [Go] (X, [X] Y), [Y.A] Z, [Y.B, Z] W", true),
+            ("Go, Go, [Go] (X, [Q] R), [X] Y, [Y] X", true),
+            ("Go, Go, Go, [Go] (X, [X] Y, [X] W)", true),
+            ("Go, Go, [Go] (X, [Q] R), [X] Y, [X] W, [Y, W] Done", true),
+            ("Go, Go, [X] Y, [Go] (A), [A.([X] Y)] Z", false),
+        ])
+    {
+        let program = frontend::lowering::parse(source).unwrap();
+        let mut plain = Laser::plain(&program);
+        plain.run(100_000_000, limit);
+        let mut reduced = Laser::reduced(&program);
+        reduced.run(100_000_000, limit);
+        assert_eq!(reduced.preserves(&plain), Ok(()), "{source}");
+        assert_eq!(
+            reduced.summary().state < plain.summary().state,
+            smaller,
+            "{source}"
+        );
+        let mut parallel = Laser::reduced(&program);
+        parallel.parallel(&executor, 100_000_000, limit);
+        assert!(parallel.state.iter().eq(reduced.state.iter()), "{source}");
+    }
+}
+
 #[test]
 fn family() {
     for count in [1, 2, 3, 4] {

@@ -35,6 +35,11 @@ struct Argument {
         help = "Laser runs per program, for profiling"
     )]
     repeat: usize,
+    #[arg(
+        long,
+        help = "Explore only every plain schedule and its reduction, to check the reduction on large programs"
+    )]
+    reduction: bool,
 }
 
 #[derive(Serialize)]
@@ -43,17 +48,26 @@ struct Engine {
     second: f64,
 }
 
+#[derive(Serialize)]
+struct Reduction {
+    verdict: String,
+    plain: usize,
+    reduced: usize,
+}
+
 // Laser runs on every program, so the census also finds programs that only Laser finishes; the
-// engines are compared where both close, and where Laser closes its plain exploration must be the
-// part of its full one that matched events reach.
+// engines are compared where both close, where Laser closes its plain exploration must be the part
+// of its full one that matched events reach, and where the plain exploration closes the reduced one
+// must keep its end configurations and cycles.
 #[derive(Serialize)]
 struct Outcome {
     name: String,
     group: String,
-    interpreter: Engine,
-    laser: Engine,
+    interpreter: Option<Engine>,
+    laser: Option<Engine>,
     verdict: Option<String>,
     plain: Option<String>,
+    reduction: Option<Reduction>,
     state: usize,
     event: usize,
     inferred: usize,
@@ -79,6 +93,35 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let outcome = entry
         .par_iter()
         .map(|entry| {
+            let mut plain = Laser::plain(&entry.program);
+            plain.run(argument.allowance, limit);
+            let reduction = plain.closed().then(|| {
+                let mut reduced = Laser::reduced(&entry.program);
+                reduced.run(argument.allowance, limit);
+                Reduction {
+                    verdict: match reduced.preserves(&plain) {
+                        Ok(()) => "preserves".to_owned(),
+                        Err(disagreement) => format!("{disagreement:?}"),
+                    },
+                    plain: plain.summary().state,
+                    reduced: reduced.summary().state,
+                }
+            });
+            if argument.reduction {
+                let summary = plain.summary();
+                return Outcome {
+                    name: entry.name.clone(),
+                    group: entry.group.clone(),
+                    interpreter: None,
+                    laser: None,
+                    verdict: None,
+                    plain: None,
+                    reduction,
+                    state: summary.state,
+                    event: summary.event,
+                    inferred: summary.inferred,
+                };
+            }
             let start = Instant::now();
             let mut runtime = Runtime::new(&entry.program);
             runtime.run(argument.budget, limit);
@@ -100,24 +143,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     Ok(()) => "agree".to_owned(),
                     Err(disagreement) => format!("{disagreement:?}"),
                 });
-            let plain = summary.closed.then(|| {
-                let mut plain = Laser::plain(&entry.program);
-                plain.run(argument.allowance, limit);
-                match plain.within(&laser) {
-                    Ok(()) => "within".to_owned(),
-                    Err(disagreement) => format!("{disagreement:?}"),
-                }
+            let plain = summary.closed.then(|| match plain.within(&laser) {
+                Ok(()) => "within".to_owned(),
+                Err(disagreement) => format!("{disagreement:?}"),
             });
             Outcome {
                 name: entry.name.clone(),
                 group: entry.group.clone(),
-                interpreter,
-                laser: Engine {
+                interpreter: Some(interpreter),
+                laser: Some(Engine {
                     closed: summary.closed,
                     second,
-                },
+                }),
                 verdict,
                 plain,
+                reduction,
                 state: summary.state,
                 event: summary.event,
                 inferred: summary.inferred,
@@ -126,19 +166,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .collect::<Vec<_>>();
     let closed = outcome
         .iter()
-        .filter(|outcome| outcome.interpreter.closed)
+        .filter(|outcome| {
+            outcome
+                .interpreter
+                .as_ref()
+                .is_some_and(|engine| engine.closed)
+        })
         .count();
     let agree = outcome
         .iter()
         .filter(|outcome| outcome.verdict.as_deref() == Some("agree"))
         .count();
+    let finished = |engine: &Option<Engine>| engine.as_ref().is_some_and(|engine| engine.closed);
     let only = outcome
         .iter()
-        .filter(|outcome| outcome.laser.closed && !outcome.interpreter.closed)
+        .filter(|outcome| finished(&outcome.laser) && !finished(&outcome.interpreter))
         .count();
     let open = outcome
         .iter()
-        .filter(|outcome| outcome.interpreter.closed && !outcome.laser.closed)
+        .filter(|outcome| finished(&outcome.interpreter) && !finished(&outcome.laser))
         .count();
     let within = outcome
         .iter()
@@ -148,10 +194,31 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .iter()
         .filter(|outcome| outcome.plain.is_some())
         .count();
-    eprintln!(
-        "{} programs, {closed} closed on the interpreter, {agree} agree; {only} close only on Laser and {open} only on the interpreter; {within} of {plain} plain explorations lie within their full ones",
-        outcome.len()
+    let reducible = outcome
+        .iter()
+        .filter(|outcome| outcome.reduction.is_some())
+        .count();
+    let preserve = outcome
+        .iter()
+        .flat_map(|outcome| &outcome.reduction)
+        .filter(|reduction| reduction.verdict == "preserves")
+        .count();
+    let smaller = outcome
+        .iter()
+        .flat_map(|outcome| &outcome.reduction)
+        .filter(|reduction| reduction.reduced < reduction.plain)
+        .count();
+    let reduction = format!(
+        "{preserve} of {reducible} reduced explorations preserve their plain ones, {smaller} of them smaller"
     );
+    if argument.reduction {
+        eprintln!("{} programs; {reduction}", outcome.len());
+    } else {
+        eprintln!(
+            "{} programs, {closed} closed on the interpreter, {agree} agree; {only} close only on Laser and {open} only on the interpreter; {within} of {plain} plain explorations lie within their full ones; {reduction}",
+            outcome.len()
+        );
+    }
     for outcome in outcome.iter().filter(|outcome| {
         outcome
             .verdict
@@ -175,6 +242,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             outcome.name,
             outcome.plain.as_deref().unwrap_or_default()
         );
+    }
+    for outcome in &outcome {
+        if let Some(reduction) = outcome
+            .reduction
+            .as_ref()
+            .filter(|reduction| reduction.verdict != "preserves")
+        {
+            eprintln!("reduced {}: {}", outcome.name, reduction.verdict);
+        }
     }
     println!("{}", serde_json::to_string_pretty(&outcome)?);
     Ok(())

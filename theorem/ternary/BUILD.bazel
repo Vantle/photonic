@@ -14,6 +14,7 @@ photonic_library(
 theorem(
     name = "converse",
     srcs = ["converse.wave"],
+    every = True,
     deps = [
         ":role",
         "//library/ternary:compare",
@@ -25,6 +26,7 @@ theorem(
 theorem(
     name = "field",
     srcs = ["field.wave"],
+    every = True,
     occurrence = 512,
     deps = [
         ":unpack",
@@ -38,6 +40,7 @@ theorem(
 theorem(
     name = "group",
     srcs = ["group.wave"],
+    every = True,
     occurrence = 512,
     deps = [
         ":role",
@@ -52,6 +55,7 @@ theorem(
 theorem(
     name = "order",
     srcs = ["order.wave"],
+    every = True,
     occurrence = 512,
     deps = [
         ":role",

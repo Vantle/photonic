@@ -13,6 +13,7 @@ theorem(
 theorem(
     name = "equality",
     srcs = ["equality.wave"],
+    every = True,
     deps = [
         "//theorem:case",
         "//theorem:judge",
@@ -22,7 +23,7 @@ theorem(
 theorem(
     name = "transitive",
     srcs = ["transitive.wave"],
-    configuration = 32768,
+    configuration = 16384,
     every = True,
     deps = [
         "//theorem:case",

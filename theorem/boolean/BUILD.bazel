@@ -8,6 +8,7 @@ exports_files(
 theorem(
     name = "absorption",
     srcs = ["absorption.wave"],
+    every = True,
     deps = [
         "//library/boolean:and",
         "//library/boolean:equal",
@@ -19,6 +20,7 @@ theorem(
 theorem(
     name = "associativity",
     srcs = ["associativity.wave"],
+    every = True,
     deps = [
         "//library/boolean:and",
         "//library/boolean:equal",
@@ -43,6 +45,7 @@ theorem(
 theorem(
     name = "distributivity",
     srcs = ["distributivity.wave"],
+    every = True,
     deps = [
         "//library/boolean:and",
         "//library/boolean:equal",
@@ -66,6 +69,7 @@ theorem(
 theorem(
     name = "duality",
     srcs = ["duality.wave"],
+    every = True,
     deps = [
         "//library/boolean:and",
         "//library/boolean:equal",
@@ -78,6 +82,7 @@ theorem(
 theorem(
     name = "equality",
     srcs = ["equality.wave"],
+    every = True,
     deps = [
         "//library/boolean:equal",
         "//theorem:case",
@@ -87,6 +92,7 @@ theorem(
 theorem(
     name = "equivalence",
     srcs = ["equivalence.wave"],
+    every = True,
     deps = [
         "//library/boolean:equal",
         "//theorem:case",
@@ -131,7 +137,6 @@ theorem(
 theorem(
     name = "peirce",
     srcs = ["peirce.wave"],
-    configuration = 131072,
     every = True,
     deps = [
         "//library/boolean:not",

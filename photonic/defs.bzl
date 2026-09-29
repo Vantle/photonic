@@ -144,8 +144,9 @@ def photonic_test(name, target, source = "", srcs = [], deps = [], expect = "rea
         deps: Photonic declaration libraries.
         expect: Required reached or unreachable outcome for every target.
         path: Follow one path to witness a reachable target.
-        every: Require every schedule of plain events to end exactly at a target, exploring each
-            schedule without inference on Laser; no run may go on forever.
+        every: Require every schedule of plain events to end exactly at a target, exploring the
+            schedules without inference on Laser, one commuting coherence or scope at a time; no run
+            may go on forever.
         work: Work budget.
         configuration: Configuration limit.
         occurrence: Occurrence limit.

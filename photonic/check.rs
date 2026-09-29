@@ -27,9 +27,10 @@ struct Case {
 }
 
 // Every schedule of plain events ends exactly at a target when the plain exploration closes, no run
-// can go on forever, and every configuration a run ends at is one of the targets.
+// can go on forever, and every configuration a run ends at is one of the targets. The reduced
+// exploration keeps exactly those end configurations and cycles.
 fn every(program: &Program, target: &[Program], limit: Limit) -> bool {
-    let mut laser = Laser::plain(program);
+    let mut laser = Laser::reduced(program);
     laser.run(usize::MAX, limit);
     let summary = laser.summary();
     if !summary.closed {

@@ -1,9 +1,11 @@
-load("//photonic:defs.bzl", "photonic_library")
+load("//photonic:defs.bzl", "photonic_library", "photonic_test")
 load("//theorem:defs.bzl", "refutation", "theorem")
 
 theorem(
     name = "pigeonhole.four",
     srcs = ["pigeonhole.four.wave"],
+    configuration = 8192,
+    every = True,
     deps = [
         "//library/boolean:or",
         "//library/ternary:equal",
@@ -34,6 +36,21 @@ theorem(
     ],
 )
 
+photonic_test(
+    name = "progression.nine.order",
+    srcs = ["progression.nine.wave"],
+    configuration = 131072,
+    every = True,
+    occurrence = 512,
+    tags = ["memory"],
+    target = ["Theorem"],
+    deps = [
+        ":uniform",
+        "//library/boolean:or",
+        "//theorem:case",
+    ],
+)
+
 refutation(
     name = "progression.eight",
     srcs = ["progression.eight.wave"],
@@ -50,6 +67,7 @@ refutation(
 theorem(
     name = "sum.five",
     srcs = ["sum.five.wave"],
+    every = True,
     deps = [
         ":uniform",
         "//library/boolean:or",
@@ -72,6 +90,7 @@ theorem(
     name = "triangle.six",
     srcs = ["triangle.six.wave"],
     configuration = 16384,
+    every = True,
     occurrence = 512,
     deps = [
         ":uniform",
