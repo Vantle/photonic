@@ -5,7 +5,8 @@ use crate::failure::{Code, Failure};
 use crate::order::Naming;
 use crate::recording::Order;
 use frontend::source::Program;
-use photonic::laser::net::{self, Cycle, Marking, Net};
+use photonic::laser::makeup::Makeup;
+use photonic::laser::net::{self, Cycle, Net};
 use std::sync::OnceLock;
 
 // Every schedule of plain events of a program, explored through its net of parts on the GPU through
@@ -25,7 +26,7 @@ pub struct Survey {
     pub(crate) end: Vec<Configuration>,
     naming: Naming,
     program: Program,
-    marking: Vec<Marking>,
+    marking: Vec<Makeup>,
     net: Net,
 }
 

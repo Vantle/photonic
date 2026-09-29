@@ -1,6 +1,7 @@
 use super::layout::{Layout, Site};
+use super::makeup::Makeup;
 use super::passage::Flat;
-use super::taxonomy::{Makeup, Taxonomy};
+use super::taxonomy::Taxonomy;
 use crate::basis::Set;
 use crate::flow::Binding;
 use crate::place::Place;

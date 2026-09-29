@@ -1,8 +1,10 @@
 use super::ending;
 use super::layout::Layout;
+use super::makeup::Makeup;
 use super::pool::Pool;
 use super::scan;
-use super::taxonomy::{Draft, Makeup, Taxonomy};
+use super::size::Size;
+use super::taxonomy::{Draft, Taxonomy};
 use super::trace::Trace;
 use super::transition;
 use crate::application::{Owner, Request};
@@ -38,27 +40,12 @@ pub struct Entry {
     pub count: u32,
 }
 
-// A configuration of the net: its root and its components' kinds, sorted.
-#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct Marking {
-    pub root: u32,
-    pub kind: Vec<u32>,
-}
-
 // A configuration an event joining several components leads to, with how many distinct events
 // lead there that way.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Successor {
-    pub marking: Marking,
+    pub marking: Makeup,
     pub count: u64,
-}
-
-// What a component of a kind holds beside the root: its coherences, occurrences and frames.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct Size {
-    pub world: usize,
-    pub occurrence: usize,
-    pub frame: usize,
 }
 
 // Whether an exploration also looks for a run that goes on forever, which keeps every edge.
@@ -75,7 +62,7 @@ pub struct Exploration {
     pub closed: bool,
     pub configuration: usize,
     pub event: u64,
-    pub end: Vec<Marking>,
+    pub end: Vec<Makeup>,
     pub endless: Option<bool>,
     pub work: usize,
 }
@@ -232,26 +219,19 @@ impl Net {
         })
     }
 
-    pub fn start(&self) -> Marking {
-        Marking {
-            root: self.start.root,
-            kind: self.start.kind.clone(),
-        }
+    pub fn start(&self) -> Makeup {
+        self.start.clone()
     }
 
     // The marking of an exact target configuration, or none when a part of it is a kind the net
     // has never met, since then no marking it reached is the target.
-    pub fn find(&self, target: &frontend::source::Program) -> Option<Marking> {
-        let makeup = self.taxonomy.find(&State::target(&self.program, target))?;
-        Some(Marking {
-            root: makeup.root,
-            kind: makeup.kind,
-        })
+    pub fn find(&self, target: &frontend::source::Program) -> Option<Makeup> {
+        self.taxonomy.find(&State::target(&self.program, target))
     }
 
     // A marking as the interpreter reports a configuration, in its canonical form, with the
     // program's rules to name the rule values it holds.
-    pub fn node(&self, marking: &Marking) -> Node {
+    pub fn node(&self, marking: &Makeup) -> Node {
         render::Builder::new(&self.program).node(0, &self.state(marking), Status::Supported)
     }
 
@@ -259,14 +239,8 @@ impl Net {
         render::Builder::new(&self.program).definition()
     }
 
-    pub(crate) fn state(&self, marking: &Marking) -> State {
-        self.taxonomy
-            .materialize(&Makeup {
-                root: marking.root,
-                kind: marking.kind.clone(),
-            })
-            .canonical()
-            .state
+    pub(crate) fn state(&self, marking: &Makeup) -> State {
+        self.taxonomy.materialize(marking).canonical().state
     }
 
     // Every distinct plain event of the part holding the root and these kinds that involves every
@@ -342,7 +316,7 @@ impl Net {
     // expanded.
     pub fn visit(
         &mut self,
-        marking: &Marking,
+        marking: &Makeup,
         allowance: usize,
     ) -> Result<Option<Vec<Successor>>, Unsupported> {
         let Some(part) = self.prepare(marking.root, &marking.kind, allowance)? else {
@@ -351,13 +325,7 @@ impl Net {
         Ok(Some(
             self.joined(&marking.kind, &part)
                 .into_iter()
-                .map(|(makeup, count)| Successor {
-                    marking: Marking {
-                        root: makeup.root,
-                        kind: makeup.kind,
-                    },
-                    count,
-                })
+                .map(|(marking, count)| Successor { marking, count })
                 .collect(),
         ))
     }
@@ -425,21 +393,13 @@ impl Net {
     }
 
     // Whether the limits admit a marking's coherences, occurrences and scopes.
-    pub fn admits(&self, marking: &Marking, limit: Limit) -> bool {
-        let (coherence, occurrence, scope) = self.taxonomy.measure(&Makeup {
-            root: marking.root,
-            kind: marking.kind.clone(),
-        });
+    pub fn admits(&self, marking: &Makeup, limit: Limit) -> bool {
+        let (coherence, occurrence, scope) = self.taxonomy.measure(marking);
         limit.admits(coherence, occurrence, scope)
     }
 
     pub fn size(&self, kind: u32) -> Size {
-        let size = self.taxonomy.kind(kind).1;
-        Size {
-            world: size.world,
-            occurrence: size.occurrence,
-            frame: size.frame,
-        }
+        self.taxonomy.size(kind)
     }
 
     // The occurrences a root's frame holds.
@@ -471,7 +431,7 @@ impl Net {
     // The values held by each coherence of the root frame in a kind, which is all a rule joining
     // several coherences can bind of it.
     fn shape(&self, kind: u32) -> Vec<Vec<Symbol>> {
-        let (state, _) = self.taxonomy.kind(kind);
+        let state = self.taxonomy.kind(kind);
         state
             .world
             .iter()
@@ -681,13 +641,7 @@ impl Net {
             closed: !blocked && !spent,
             configuration: space.len(),
             event,
-            end: end
-                .into_iter()
-                .map(|index| Marking {
-                    root: space[index].root,
-                    kind: space[index].kind.clone(),
-                })
-                .collect(),
+            end: end.into_iter().map(|index| space[index].clone()).collect(),
             endless,
             work: self.work - start,
         })

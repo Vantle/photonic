@@ -6,7 +6,7 @@ use crate::hash;
 use crate::setting::{NONE, Setting, WIDTH, saturate};
 use crate::tuning::Tuning;
 use metal::device::{Command, Device, Memory};
-use photonic::laser::net::Marking;
+use photonic::laser::makeup::Makeup;
 
 // Every marking found so far: its words in the arena, where each starts, and the table that finds a
 // marking by its contents, two words a slot, with the share of the last pass's candidates that
@@ -21,7 +21,7 @@ pub struct Store {
 }
 
 impl Store {
-    pub fn new(device: &Device, start: &Marking, tuning: Tuning) -> Result<Self, Failure> {
+    pub fn new(device: &Device, start: &Makeup, tuning: Tuning) -> Result<Self, Failure> {
         let word = arena::word(start).collect::<Vec<_>>();
         let arena = Arena::new(device, &word, tuning.first, tuning.largest)?;
         let mut offset = Grow::<u64>::new(device, tuning.initial)?;
@@ -42,7 +42,7 @@ impl Store {
         })
     }
 
-    pub fn marking(&mut self, id: usize) -> Marking {
+    pub fn marking(&mut self, id: usize) -> Makeup {
         let offset = self.offset.memory.view::<u64>()[id];
         self.arena.marking(offset)
     }

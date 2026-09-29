@@ -1,8 +1,9 @@
 use super::firing::{Move, Outcome, Product};
 use super::layout::Layout;
+use super::makeup::Makeup;
 use super::passage::{Composed, Flat, Origin, Passage};
 use super::space::{self, Found};
-use super::taxonomy::{Makeup, Taxonomy};
+use super::taxonomy::Taxonomy;
 use super::transition::{Effect, Key};
 use super::{Event, Identity, Laser, Round, build, map, update};
 use crate::executor::Executor;

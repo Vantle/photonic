@@ -1,4 +1,4 @@
-use super::taxonomy::Makeup;
+use super::makeup::Makeup;
 use super::{map, shard, update};
 use crate::executor::Executor;
 use hashing::Builder;

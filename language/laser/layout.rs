@@ -1,4 +1,5 @@
-use super::taxonomy::{Makeup, Taxonomy};
+use super::makeup::Makeup;
+use super::taxonomy::Taxonomy;
 use crate::place::Place;
 
 // A configuration built from its makeup holds the root frame first, then each kind in order: its
@@ -38,7 +39,7 @@ impl Layout {
             token: vec![token],
         };
         for &kind in kind {
-            let size = taxonomy.kind(kind).1;
+            let size = taxonomy.size(kind);
             world += size.world;
             frame += size.frame;
             token += size.token;

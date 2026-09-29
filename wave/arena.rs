@@ -1,9 +1,9 @@
 use crate::failure::Failure;
 use crate::setting::{SEGMENT, saturate};
 use metal::device::{Device, Memory};
-use photonic::laser::net::Marking;
+use photonic::laser::makeup::Makeup;
 
-// Markings' words in segments that never move, so the arena grows without copying and each segment
+// Makeups' words in segments that never move, so the arena grows without copying and each segment
 // is committed once; the kernels reach the segments through their device addresses. An offset names
 // a segment in its high half and a word within it in its low half.
 pub struct Arena {
@@ -18,7 +18,7 @@ fn encode(segment: usize, word: usize) -> u64 {
 }
 
 // The words a marking takes in the arena: its root, its number of kinds and its sorted kinds.
-pub fn word(marking: &Marking) -> impl Iterator<Item = u32> {
+pub fn word(marking: &Makeup) -> impl Iterator<Item = u32> {
     [marking.root, saturate(marking.kind.len())]
         .into_iter()
         .chain(marking.kind.iter().copied())
@@ -78,11 +78,11 @@ impl Arena {
         Ok(encode(self.segment.len() - 1, 0))
     }
 
-    pub fn marking(&mut self, offset: u64) -> Marking {
+    pub fn marking(&mut self, offset: u64) -> Makeup {
         let word = self.segment[(offset >> 32) as usize].view::<u32>();
         let start = (offset & 0xffff_ffff) as usize;
         let length = word[start + 1] as usize;
-        Marking {
+        Makeup {
             root: word[start],
             kind: word[start + 2..start + 2 + length].to_vec(),
         }

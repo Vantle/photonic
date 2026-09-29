@@ -2,7 +2,8 @@ use crate::failure::Failure;
 use crate::hash;
 use crate::setting::{EMPTY, HEADER, LONE, saturate};
 use hashing::Builder;
-use photonic::laser::net::{Entry, Marking, Net, Successor};
+use photonic::laser::makeup::Makeup;
+use photonic::laser::net::{Entry, Net, Successor};
 use std::collections::HashMap;
 
 fn mix(mut value: u32) -> u32 {
@@ -159,7 +160,7 @@ impl Table {
     }
 
     // Numbers the root and kinds of a marking the host made, so its sizes are known.
-    pub fn know(&mut self, net: &Net, marking: &Marking) {
+    pub fn know(&mut self, net: &Net, marking: &Makeup) {
         self.register(net, marking.root, &marking.kind);
     }
 
@@ -169,7 +170,7 @@ impl Table {
     pub fn prepare(
         &mut self,
         net: &mut Net,
-        marking: &Marking,
+        marking: &Makeup,
         allowance: usize,
     ) -> Result<Option<Vec<Successor>>, Failure> {
         let Some(successor) = net.visit(marking, allowance)? else {

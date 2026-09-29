@@ -1,5 +1,6 @@
 use super::focus::Focus;
-use super::taxonomy::{Draft, Makeup};
+use super::makeup::Makeup;
+use super::taxonomy::Draft;
 use super::trace::Trace;
 use super::transition::{self, Effect, Key, Local};
 use super::{Identity, Laser, Link, Round, map};

@@ -1,5 +1,7 @@
 use super::component::{decompose, extract};
+use super::makeup::Makeup;
 use super::memo::Memo;
+use super::size::Size;
 use crate::executor::Executor;
 use crate::link::Link;
 use crate::program::Symbol;
@@ -16,25 +18,11 @@ pub(super) enum Root {
     Whole(State),
 }
 
-#[derive(Clone, Copy)]
-pub(super) struct Size {
-    pub world: usize,
-    pub frame: usize,
-    pub token: usize,
-    pub occurrence: usize,
-}
-
 // How many coherences and frames a configuration holds.
 #[derive(Clone, Copy)]
 pub(super) struct Extent {
     pub world: usize,
     pub frame: usize,
-}
-
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub(super) struct Makeup {
-    pub root: u32,
-    pub kind: Vec<u32>,
 }
 
 pub(super) struct Piece {
@@ -69,24 +57,6 @@ pub(super) struct Taxonomy {
 // Roots and kinds are numbered in 32 bits.
 fn number(id: usize) -> u32 {
     u32::try_from(id).expect("fewer than 2^32 roots and kinds")
-}
-
-fn size(state: &State) -> Size {
-    let mut token = state
-        .world
-        .iter()
-        .flat_map(|world| world.particle.iter())
-        .chain(state.frame.iter().flat_map(|frame| frame.token()))
-        .map(|token| token.id)
-        .collect::<Vec<_>>();
-    token.sort_unstable();
-    token.dedup();
-    Size {
-        world: state.world.len(),
-        frame: state.frame.len() - 1,
-        token: token.len(),
-        occurrence: state.size(),
-    }
 }
 
 fn hub(state: &State) -> (Frame, Vec<(usize, usize)>) {
@@ -187,12 +157,19 @@ impl Taxonomy {
         }
     }
 
-    pub fn kind(&self, id: u32) -> (&State, Size) {
-        let (state, &size) = self
+    pub fn kind(&self, id: u32) -> &State {
+        self.kind
+            .get_index(id as usize)
+            .expect("a kind is numbered before it is used")
+            .0
+    }
+
+    pub fn size(&self, id: u32) -> Size {
+        *self
             .kind
             .get_index(id as usize)
-            .expect("a kind is numbered before it is used");
-        (state, size)
+            .expect("a kind is numbered before it is used")
+            .1
     }
 
     pub fn root(&self, id: u32) -> &Root {
@@ -232,7 +209,7 @@ impl Taxonomy {
                         let state = &piece.named.state;
                         let id = match self.kind.get_index_of(state) {
                             Some(id) => id,
-                            None => self.kind.insert_full(state.clone(), size(state)).0,
+                            None => self.kind.insert_full(state.clone(), Size::new(state)).0,
                         };
                         number(id)
                     })
@@ -253,7 +230,7 @@ impl Taxonomy {
             .kind
             .iter()
             .fold(Extent { world: 0, frame: 1 }, |extent, &kind| {
-                let size = self.kind(kind).1;
+                let size = self.size(kind);
                 Extent {
                     world: extent.world + size.world,
                     frame: extent.frame + size.frame,
@@ -272,7 +249,7 @@ impl Taxonomy {
             Root::Hub(frame) => makeup.kind.iter().fold(
                 (0, frame.size(), 1),
                 |(world, occurrence, scope), &kind| {
-                    let size = self.kind(kind).1;
+                    let size = self.size(kind);
                     (
                         world + size.world,
                         occurrence + size.occurrence,
@@ -313,7 +290,7 @@ impl Taxonomy {
         };
         for &index in &order {
             let piece = &piece[index];
-            let size = self.kind(kind[index]).1;
+            let size = self.size(kind[index]);
             for (position, &original) in piece.world.iter().enumerate() {
                 let named =
                     piece.named.renaming.world[position].expect("a named kind keeps its worlds");
@@ -356,7 +333,7 @@ impl Taxonomy {
         let mut base = 0;
         let mut shift = self.token(makeup.root);
         for &kind in &makeup.kind {
-            let (state, size) = self.kind(kind);
+            let (state, size) = (self.kind(kind), self.size(kind));
             let lift = |index: usize| if index == 0 { 0 } else { base + index };
             let token = |token: &Token| Token {
                 id: token.id + shift,
