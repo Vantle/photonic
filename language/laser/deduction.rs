@@ -24,6 +24,7 @@ fn walk(laser: &Laser, mut state: usize, mut position: usize) -> Vec<u32> {
 
 impl Deduction {
     pub fn derive(laser: &Laser) -> Self {
+        let _scope = crate::profile::Scope::new(crate::profile::Phase::Deduction);
         let mut shortest = vec![None::<Vec<u32>>; laser.event.len()];
         for (state, link) in laser.link.iter().enumerate() {
             for (position, link) in link.iter().enumerate() {

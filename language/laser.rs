@@ -433,7 +433,7 @@ impl Laser {
         let support = match &self.support {
             Some(support) => support,
             None => {
-                found = support::establish(self);
+                found = support::establish(self, None);
                 &found
             }
         };
@@ -496,7 +496,7 @@ impl Laser {
         if open && self.closed() {
             self.pool.release();
             direct::mark(self, executor);
-            self.support = Some(support::establish(self));
+            self.support = Some(support::establish(self, executor));
             self.deduction = Deduction::derive(self);
             self.trace = Vec::new();
             self.traced = 0;
