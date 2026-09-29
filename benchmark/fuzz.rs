@@ -25,11 +25,11 @@ struct Argument {
     count: u64,
     #[arg(long, default_value_t = 200_000, help = "Interpreter work steps")]
     budget: usize,
-    #[arg(long, default_value_t = 1_000_000, help = "Laser and net work steps")]
+    #[arg(long, default_value_t = 500_000, help = "Laser and net work steps")]
     allowance: usize,
     #[arg(long, default_value_t = 256, help = "Configurations kept")]
     configuration: usize,
-    #[arg(long, default_value_t = 200_000, help = "Records an engine retains")]
+    #[arg(long, default_value_t = 100_000, help = "Records an engine retains")]
     record: usize,
     #[arg(
         long,
@@ -45,9 +45,10 @@ const ATOM: [&str; 4] = ["A", "B", "C", "D"];
 // Comparing two whole reports holds both in memory at once, so the reports compared stay small.
 const EVENT: usize = 10_000;
 
-// Writes programs from the language's own forms: coherences of dotted atoms, rules with one or two
-// inputs, empty and bare inputs, empty, single, grouped and scoped outputs, rule values held as
-// fields and scopes the program opens, over few atoms so that rules meet what others produce.
+// Writes programs from the language's own forms: coherences of dotted atoms, rules with one to
+// three inputs, empty inputs and inputs that hold a rule value, empty, single, grouped and scoped
+// outputs, outputs that carry rules in an empty particle or in scopes of their own, rule values
+// held as fields and scopes the program opens, over few atoms so that rules meet what others make.
 struct Writer {
     generator: Generator,
 }
@@ -65,27 +66,31 @@ impl Writer {
             .join(".")
     }
 
-    fn input(&mut self) -> String {
-        if self.generator.chance(0.1) {
-            return "()".to_owned();
+    fn input(&mut self, depth: usize) -> String {
+        match self.generator.below(20) {
+            0 | 1 => "()".to_owned(),
+            2 if depth > 0 => format!("{}.({})", self.particle(), self.rule(depth - 1)),
+            _ => self.particle(),
         }
-        self.particle()
     }
 
     fn output(&mut self, depth: usize) -> String {
-        match self.generator.below(if depth == 0 { 5 } else { 6 }) {
+        match self.generator.below(if depth == 0 { 5 } else { 9 }) {
             0 => String::new(),
             1 => "()".to_owned(),
             2 | 3 => self.particle(),
             4 => format!("({}, {})", self.particle(), self.particle()),
+            5 => format!("().({})", self.rule(depth - 1)),
+            6 => format!("(({}), ({}))", self.rule(depth - 1), self.rule(depth - 1)),
             _ => format!("({})", self.program(depth - 1)),
         }
     }
 
     fn rule(&mut self, depth: usize) -> String {
-        let count = 1 + usize::from(self.generator.chance(0.3));
+        let count =
+            1 + usize::from(self.generator.chance(0.3)) + usize::from(self.generator.chance(0.1));
         let input = (0..count)
-            .map(|_| self.input())
+            .map(|_| self.input(depth))
             .collect::<Vec<_>>()
             .join(", ");
         let output = self.output(depth);
@@ -96,10 +101,16 @@ impl Writer {
     }
 
     fn term(&mut self, depth: usize) -> String {
-        match self.generator.below(if depth == 0 { 8 } else { 9 }) {
+        match self.generator.below(if depth == 0 { 9 } else { 10 }) {
             0..=2 => self.particle(),
             3 => format!("{}.({})", self.particle(), self.rule(0)),
-            4..=7 => self.rule(depth),
+            4 => format!(
+                "{}.(({}), ({}))",
+                self.particle(),
+                self.rule(0),
+                self.rule(0)
+            ),
+            5..=8 => self.rule(depth),
             _ => format!("({})", self.program(depth - 1)),
         }
     }
