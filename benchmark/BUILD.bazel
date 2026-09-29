@@ -258,7 +258,6 @@ rust_binary(
         "directory.rs",
         "wave.rs",
     ],
-    compile_data = ["//language:fixture"],
     crate_root = "wave.rs",
     lint_config = "//:lint",
     deps = [

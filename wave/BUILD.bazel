@@ -11,8 +11,10 @@ filegroup(
         "failure.rs",
         "grow.rs",
         "hash.rs",
+        "mirror.rs",
         "pass.rs",
         "scan.rs",
+        "search.rs",
         "setting.rs",
         "store.rs",
         "table.rs",
@@ -36,6 +38,7 @@ rust_library(
         "//command:__pkg__",
     ],
     deps = [
+        "//hashing",
         "//language:photonic",
         "//metal",
         "@crate//:thiserror",
@@ -57,6 +60,7 @@ rust_test(
     tags = ["no-sandbox"],
     deps = [
         "//frontend",
+        "//hashing",
         "//language:photonic",
         "//metal",
         "@crate//:thiserror",

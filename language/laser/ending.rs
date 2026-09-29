@@ -20,29 +20,37 @@ impl Laser {
         let end = (0..self.state.len())
             .filter(|&index| state[index] == Status::Supported && outgoing[index].is_empty())
             .collect();
-        let mut color = vec![0u8; self.state.len()];
-        let mut stack = vec![(0, 0)];
-        color[0] = 1;
-        let mut endless = false;
-        while let Some(&mut (node, ref mut position)) = stack.last_mut() {
-            let Some(&next) = outgoing[node].get(*position) else {
-                color[node] = 2;
-                stack.pop();
-                continue;
-            };
-            *position += 1;
-            match color[next] {
-                0 => {
-                    color[next] = 1;
-                    stack.push((next, 0));
-                }
-                1 => {
-                    endless = true;
-                    break;
-                }
-                _ => {}
-            }
-        }
+        let endless = cyclic(self.state.len(), |node| outgoing[node].iter().copied());
         Ending { end, endless }
     }
+}
+
+// Whether a run from the first of count configurations can go on forever, which a search that
+// follows edges depth first finds when it meets a configuration it is still inside.
+pub fn cyclic<Next: Iterator<Item = usize>>(
+    count: usize,
+    outgoing: impl Fn(usize) -> Next,
+) -> bool {
+    if count == 0 {
+        return false;
+    }
+    let mut color = vec![0u8; count];
+    let mut stack = vec![(0, outgoing(0))];
+    color[0] = 1;
+    while let Some((node, next)) = stack.last_mut() {
+        let Some(target) = next.next() else {
+            color[*node] = 2;
+            stack.pop();
+            continue;
+        };
+        match color[target] {
+            0 => {
+                color[target] = 1;
+                stack.push((target, outgoing(target)));
+            }
+            1 => return true,
+            _ => {}
+        }
+    }
+    false
 }

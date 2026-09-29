@@ -1,20 +1,46 @@
-// Words the kernels and the host share.
+// Words the kernels and the host share; the kernels read them as constants of the same names.
+pub const EMPTY: u32 = u32::MAX;
+pub const LONE: u32 = u32::MAX;
+pub const NONE: u32 = u32::MAX;
 pub const BLOCKED: u32 = u32::MAX - 1;
 pub const TAG: u32 = 1 << 31;
 pub const LIMITED: u32 = 1 << 31;
 pub const JOINED: u32 = 1 << 30;
-pub const COPIES: u32 = JOINED - 1;
+pub const COPY: u32 = JOINED - 1;
 pub const SHIFT: u32 = 40;
-pub const WORDS: u64 = (1 << SHIFT) - 1;
+pub const WORD: u64 = (1 << SHIFT) - 1;
 pub const CANDIDATE: usize = 1 << (64 - SHIFT);
 pub const MISSING: u32 = 1;
 pub const JOIN: u32 = 2;
 pub const BARE: u32 = 4;
-pub const FLAGGED: usize = 0;
-// The scans' totals: a pass's winners and words, then a window's candidates.
-pub const SUM: u32 = 1;
-pub const REFUSED: usize = 1;
+pub const HEADER: usize = 9;
 pub const WIDTH: usize = 8;
+pub const SEGMENT: usize = 1024;
+// The summary's words: how many markings a count flagged, and whether a limit refused a candidate
+// or a candidate found a marking no later than its source.
+pub const FLAGGED: usize = 0;
+pub const REFUSED: usize = 1;
+pub const BACKWARD: usize = 2;
+// The totals' slots: a pass's winners and their words, a window's candidates, and, when the
+// configuration limit can cut a pass short, the words of its admitted winners at most.
+pub const WINNER: usize = 0;
+pub const WINDOW: usize = 1;
+pub const BOUND: usize = 2;
+
+// Declares constants to the kernels by the names and values the host gives them.
+macro_rules! declare {
+    ($kind:literal, $($name:ident),+) => {
+        [$(format!("constant {} {} = {};\n", $kind, stringify!($name), $name)),+].concat()
+    };
+}
+
+// The constants every kernel reads, declared ahead of the kernels' source.
+pub fn prelude() -> String {
+    declare!(
+        "uint", EMPTY, LONE, NONE, BLOCKED, TAG, LIMITED, JOINED, COPY, SHIFT, MISSING, JOIN, BARE,
+        HEADER, WIDTH, SEGMENT, FLAGGED, REFUSED, BACKWARD, WINNER, BOUND
+    ) + &declare!("ulong", WORD)
+}
 
 // The values every kernel reads, laid out as the kernels' Setting.
 #[derive(Clone, Copy, Default)]
@@ -41,10 +67,10 @@ pub struct Setting {
 
 impl Setting {
     // The kernels' layout rounds the structure up to its eight-byte alignment.
-    pub fn bytes(&self) -> Vec<u8> {
-        let mut bytes = Vec::with_capacity(96);
+    pub fn byte(&self) -> Vec<u8> {
+        let mut byte = Vec::with_capacity(96);
         for value in [self.base, self.arena, self.split, self.overflow, self.room] {
-            bytes.extend(value.to_le_bytes());
+            byte.extend(value.to_le_bytes());
         }
         for value in [
             self.first,
@@ -61,10 +87,10 @@ impl Setting {
             self.next,
             self.allowed,
         ] {
-            bytes.extend(value.to_le_bytes());
+            byte.extend(value.to_le_bytes());
         }
-        bytes.resize(bytes.len().next_multiple_of(8), 0);
-        bytes
+        byte.resize(byte.len().next_multiple_of(8), 0);
+        byte
     }
 }
 
@@ -78,7 +104,7 @@ pub struct Span {
 }
 
 impl Span {
-    pub fn bytes(&self) -> Vec<u8> {
+    pub fn byte(&self) -> Vec<u8> {
         [self.count, self.add, self.slot]
             .iter()
             .flat_map(|value| value.to_le_bytes())

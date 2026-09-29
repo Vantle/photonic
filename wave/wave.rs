@@ -15,9 +15,13 @@ mod grow;
 #[cfg(target_os = "macos")]
 mod hash;
 #[cfg(target_os = "macos")]
+mod mirror;
+#[cfg(target_os = "macos")]
 mod pass;
 #[cfg(target_os = "macos")]
 mod scan;
+#[cfg(target_os = "macos")]
+mod search;
 #[cfg(target_os = "macos")]
 mod setting;
 #[cfg(target_os = "macos")]

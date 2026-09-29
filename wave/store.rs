@@ -2,7 +2,7 @@ use crate::arena::Arena;
 use crate::failure::Failure;
 use crate::grow::Grow;
 use crate::hash;
-use crate::setting::WIDTH;
+use crate::setting::{NONE, WIDTH};
 use crate::tuning::Tuning;
 use metal::device::{Device, Memory};
 use photonic::laser::net::Marking;
@@ -21,9 +21,9 @@ pub struct Store {
 
 impl Store {
     pub fn new(device: &Device, start: &Marking, tuning: Tuning) -> Result<Self, Failure> {
-        let mut words = vec![start.root, start.kind.len() as u32];
-        words.extend(&start.kind);
-        let arena = Arena::new(device, &words, tuning.first, tuning.largest)?;
+        let mut word = vec![start.root, start.kind.len() as u32];
+        word.extend(&start.kind);
+        let arena = Arena::new(device, &word, tuning.first, tuning.largest)?;
         let mut offset = Grow::<u64>::new(device, tuning.initial)?;
         offset.memory.edit::<u64>()[0] = 0;
         let slot = tuning.initial.next_power_of_two().max(WIDTH);
@@ -49,14 +49,15 @@ impl Store {
 
     // Moves to a larger table when a pass could fill the table or would likely leave it more than
     // half full, since probes stay short below that, and tells whether the pass must enter every
-    // marking into it first.
+    // marking into it first. Every slot's position stays below NONE, which marks a candidate that
+    // claimed no slot.
     pub fn grow(&mut self, device: &Device, safe: usize, likely: usize) -> Result<bool, Failure> {
         let wanted = (2 * likely).max(safe);
         if wanted <= self.slot {
             return Ok(false);
         }
         let slot = wanted.next_power_of_two();
-        if slot > 1 << 32 {
+        if slot > NONE as usize {
             return Err(Failure::Configuration { count: likely });
         }
         self.table = device.space::<u32>(2 * slot)?;

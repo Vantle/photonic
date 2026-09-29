@@ -56,15 +56,6 @@ impl Pipeline {
     }
 }
 
-fn group(kernel: &Kernel, thread: [usize; 3]) -> [usize; 3] {
-    if thread[1] == 1 {
-        return [kernel.capacity().min(thread[0]).max(1), 1, 1];
-    }
-    let width = kernel.width().min(thread[0]).max(1);
-    let height = (kernel.capacity() / width).min(thread[1]).max(1);
-    [width, height, 1]
-}
-
 fn constant(shape: &[usize]) -> Vec<u8> {
     shape
         .iter()
@@ -84,7 +75,7 @@ pub fn dispatch<'memory>(
         memory,
         &constant(shape),
         thread,
-        group(kernel, thread),
+        kernel.group(thread),
     );
 }
 

@@ -3,7 +3,7 @@ use std::time::Instant;
 
 use clap::Parser;
 use photonic::laser::Laser;
-use photonic::laser::net::{Cycle, Net};
+use photonic::laser::net::{Cycle, Exploration, Net, Unsupported};
 use photonic::runtime::{Limit, Runtime};
 use rayon::prelude::*;
 use serde::Serialize;
@@ -38,7 +38,7 @@ struct Argument {
     repeat: usize,
     #[arg(
         long,
-        help = "Explore only every plain schedule and its reduction, to check the reduction on large programs"
+        help = "Explore only every plain schedule, its reduction and its net, to check them on large programs"
     )]
     reduction: bool,
 }
@@ -77,21 +77,32 @@ struct Outcome {
     inferred: usize,
 }
 
+// A program's net explored on the host, the reference every other exploration of it answers to.
+fn host(
+    program: &frontend::source::Program,
+    limit: Limit,
+) -> Result<(Net, Exploration), Unsupported> {
+    let mut net = Net::new(program)?;
+    let explored = net.explore(limit, Cycle::Find)?;
+    Ok((net, explored))
+}
+
 fn metal(
     device: &wave::engine::Engine,
     program: &frontend::source::Program,
     limit: Limit,
+    host: &Result<(Net, Exploration), Unsupported>,
 ) -> String {
-    let (mut theirs, mut net) = match (Net::new(program), Net::new(program)) {
-        (Ok(theirs), Ok(net)) => (theirs, net),
-        (Err(unsupported), _) | (_, Err(unsupported)) => return format!("{unsupported}"),
+    let (theirs, expected) = match host {
+        Ok(reference) => reference,
+        Err(unsupported) => return format!("{unsupported}"),
     };
-    let expected = match theirs.explore(limit, Cycle::Find) {
-        Ok(expected) => expected,
+    let mut net = match Net::new(program) {
+        Ok(net) => net,
         Err(unsupported) => return format!("{unsupported}"),
     };
     match device.explore(&mut net, limit, Cycle::Find) {
-        Ok(explored) => match explored.agrees(&net, &expected, &theirs) {
+        Ok(explored) => match explored.agrees(&net, expected, theirs) {
             Ok(()) => "agrees".to_owned(),
             Err(disagreement) => format!("{disagreement:?}"),
         },
@@ -116,25 +127,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         record: argument.record,
         ..Limit::default()
     };
-    let device = wave::engine::Engine::new().ok();
+    let device = wave::engine::Engine::new()?;
     let outcome = entry
         .par_iter()
         .map(|entry| {
             let mut plain = Laser::plain(&entry.program);
             plain.run(argument.allowance, limit);
-            let net = plain.closed().then(|| match Net::new(&entry.program) {
-                Err(unsupported) => format!("{unsupported}"),
-                Ok(mut net) => match net.explore(limit, Cycle::Find) {
+            let host = (plain.closed() || device.is_some()).then(|| host(&entry.program, limit));
+            let net = host
+                .as_ref()
+                .filter(|_| plain.closed())
+                .map(|host| match host {
                     Err(unsupported) => format!("{unsupported}"),
-                    Ok(explored) => match explored.mirrors(&net, &plain) {
+                    Ok((net, explored)) => match explored.mirrors(net, &plain) {
                         Ok(()) => "mirrors".to_owned(),
                         Err(disagreement) => format!("{disagreement:?}"),
                     },
-                },
-            });
+                });
             let metal = device
                 .as_ref()
-                .map(|device| metal(device, &entry.program, limit));
+                .zip(host.as_ref())
+                .map(|(device, host)| metal(device, &entry.program, limit, host));
             let reduction = plain.closed().then(|| {
                 let mut reduced = Laser::reduced(&entry.program);
                 reduced.run(argument.allowance, limit);

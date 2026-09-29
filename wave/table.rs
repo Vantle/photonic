@@ -1,9 +1,9 @@
+use crate::failure::Failure;
 use crate::hash;
-use photonic::laser::net::{Entry, Marking, Net, Unsupported};
+use crate::setting::{EMPTY, HEADER, LONE, saturate};
+use hashing::Builder;
+use photonic::laser::net::{Entry, Marking, Net, Successor};
 use std::collections::HashMap;
-
-pub const EMPTY: u32 = u32::MAX;
-pub const LONE: u32 = u32::MAX;
 
 fn mix(mut value: u32) -> u32 {
     value ^= value >> 16;
@@ -18,21 +18,17 @@ fn position(root: u32, kind: u32, mask: usize) -> usize {
     mix(root.wrapping_mul(0x9e37_79b9) ^ mix(kind.wrapping_add(0x7f4a_7c15))) as usize & mask
 }
 
-fn saturate(value: usize) -> u32 {
-    u32::try_from(value).unwrap_or(u32::MAX)
-}
-
-// The net's tables as the kernels read them. Each entry is its root, its count, the number of
-// produced kinds, the two halves of the sum its root and produced kinds add to a marking's hash, the
-// coherences, occurrences and frames its produced kinds hold, the kind it consumes or LONE, then
-// the kinds; a part's entries lie
-// together, and a table hashed by root and kind finds them. Kinds and roots are numbered by the net,
-// so their sizes and join masks are arrays. Every part a marking holds is grounded before the
-// marking is expanded, in the order the host's net grounds them, so both nets number kinds alike
-// and a marking's runs of kinds come in the same order on both.
+// The net's tables as the kernels read them. Each entry is a header of HEADER words, its root, its
+// count, the number of produced kinds, the two halves of the sum its root and produced kinds add to
+// a marking's hash, the coherences, occurrences and frames its produced kinds hold and the kind it
+// consumes or LONE, then the kinds; a part's entries lie together, and a table hashed by root and
+// kind finds them. Kinds and roots are numbered by the net, so their sizes and join masks are
+// arrays. Every part a marking holds is grounded before the marking is expanded, in the order the
+// host's net grounds them, so both nets number kinds alike and a marking's runs of kinds come in
+// the same order on both.
 pub struct Table {
     pub entry: Vec<u32>,
-    pub single: HashMap<(u32, u32), (u32, u32)>,
+    pub single: HashMap<(u32, u32), (u32, u32), Builder>,
     pub lone: Vec<u32>,
     pub size: Vec<u32>,
     pub base: Vec<u32>,
@@ -44,12 +40,11 @@ pub struct Table {
 
 impl Table {
     pub fn new(net: &Net) -> Self {
-        let pattern = net.join();
-        let input = pattern.iter().sum::<usize>();
-        let wide = input > 64;
-        let mut need = Vec::with_capacity(pattern.len());
+        let arity = net.arity();
+        let wide = arity.iter().sum::<usize>() > 64;
+        let mut need = Vec::with_capacity(arity.len());
         let mut next = 0;
-        for count in pattern {
+        for count in arity {
             let mut value = 0u64;
             for index in next..next + count {
                 if index < 64 {
@@ -61,7 +56,7 @@ impl Table {
         }
         Self {
             entry: Vec::new(),
-            single: HashMap::new(),
+            single: HashMap::default(),
             lone: Vec::new(),
             size: Vec::new(),
             base: Vec::new(),
@@ -73,20 +68,15 @@ impl Table {
     }
 
     // Every root and kind an entry leads to is numbered before a kernel can read its size.
-    fn pack(&mut self, net: &mut Net, entry: &[Entry], consumed: u32) -> (u32, u32) {
+    fn pack(&mut self, net: &Net, entry: &[Entry], consumed: u32) -> (u32, u32) {
         for value in entry {
             self.register(net, value.root, &value.produced);
         }
         let start = saturate(self.entry.len());
         for value in entry {
-            let gain = value
-                .produced
-                .iter()
-                .fold(hash::head(value.root), |sum, &kind| {
-                    sum.wrapping_add(hash::term(kind))
-                });
+            let gain = hash::sum(value.root, &value.produced);
             let [world, occurrence, frame] = self.measure(&value.produced);
-            self.entry.extend([
+            let header: [u32; HEADER] = [
                 value.root,
                 value.count,
                 saturate(value.produced.len()),
@@ -96,14 +86,15 @@ impl Table {
                 occurrence,
                 frame,
                 consumed,
-            ]);
+            ];
+            self.entry.extend(header);
             self.entry.extend(&value.produced);
         }
         self.dirty = true;
         (start, saturate(entry.len()))
     }
 
-    fn register(&mut self, net: &mut Net, root: u32, kind: &[u32]) {
+    fn register(&mut self, net: &Net, root: u32, kind: &[u32]) {
         while self.base.len() <= root as usize {
             let next = saturate(self.base.len());
             self.base.push(saturate(net.occurrence(next)));
@@ -132,7 +123,7 @@ impl Table {
     }
 
     // The coherences, occurrences and frames that components of these kinds hold together.
-    pub fn measure(&self, kind: &[u32]) -> [u32; 3] {
+    fn measure(&self, kind: &[u32]) -> [u32; 3] {
         kind.iter().fold([0u32; 3], |sum, &value| {
             let size = &self.size[3 * value as usize..3 * value as usize + 3];
             [
@@ -143,42 +134,43 @@ impl Table {
         })
     }
 
-    fn lone(&mut self, net: &mut Net, root: u32) -> Result<(), Unsupported> {
+    fn lone(&mut self, net: &Net, root: u32) -> Result<(), Failure> {
         self.register(net, root, &[]);
         if self.lone[2 * root as usize] != EMPTY {
             return Ok(());
         }
-        let entry = net.lone(root)?.to_vec();
-        let (start, number) = self.pack(net, &entry, LONE);
+        let entry = net.lone(root).ok_or(Failure::Missing)?;
+        let (start, number) = self.pack(net, entry, LONE);
         self.lone[2 * root as usize] = start;
         self.lone[2 * root as usize + 1] = number;
         Ok(())
     }
 
-    fn single(&mut self, net: &mut Net, root: u32, kind: u32) -> Result<(), Unsupported> {
+    fn single(&mut self, net: &Net, root: u32, kind: u32) -> Result<(), Failure> {
         self.register(net, root, &[kind]);
         if self.single.contains_key(&(root, kind)) {
             return Ok(());
         }
-        let entry = net.single(root, kind)?.to_vec();
-        let location = self.pack(net, &entry, kind);
+        let entry = net.single(root, kind).ok_or(Failure::Missing)?;
+        let location = self.pack(net, entry, kind);
         self.single.insert((root, kind), location);
         Ok(())
     }
 
     // Numbers the root and kinds of a marking the host made, so its sizes are known.
-    pub fn know(&mut self, net: &mut Net, marking: &Marking) {
+    pub fn know(&mut self, net: &Net, marking: &Marking) {
         self.register(net, marking.root, &marking.kind);
     }
 
-    // Grounds a marking as the host's net does when it expands it, then enters the parts it holds.
-    pub fn prepare(&mut self, net: &mut Net, marking: &Marking) -> Result<(), Unsupported> {
-        net.visit(marking)?;
+    // Visits a marking as the host's net does when it expands it, enters the parts it holds and
+    // gives the successors of its events joining several components.
+    pub fn prepare(&mut self, net: &mut Net, marking: &Marking) -> Result<Vec<Successor>, Failure> {
+        let successor = net.visit(marking)?;
         self.lone(net, marking.root)?;
         for &kind in &marking.kind {
             self.single(net, marking.root, kind)?;
         }
-        Ok(())
+        Ok(successor)
     }
 
     // The hashed index from a root and a kind to its entries, with its number of slots: four words a

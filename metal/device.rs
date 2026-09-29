@@ -53,7 +53,10 @@ const GLOBAL: i32 = 8;
 const FLOAT: u32 = 0x1000_0000 | 32;
 const ENCODING: u64 = 4;
 const COMPLETED: u64 = 4;
-const READWRITE: u64 = 3;
+const READ: u64 = 1;
+const WRITE: u64 = 2;
+// Metal 3's GPU family, the first whose kernels reach memory through device addresses.
+const FAMILY: i64 = 5001;
 
 // Every call goes through objc_msgSend cast to the exact signature of the selector it names,
 // which is how the Objective-C runtime expects to be called from C.
@@ -196,6 +199,11 @@ impl Device {
         &self.name
     }
 
+    // Whether kernels on the device can reach memory through device addresses.
+    pub fn addressing(&self) -> bool {
+        send!(self.handle.0, c"supportsFamily:", FAMILY => i64; i8) != 0
+    }
+
     pub fn memory<Element: Plain>(&self, count: usize) -> Result<Memory, Failure> {
         let mut memory = self.space::<Element>(count)?;
         memory.edit::<u32>().fill(0);
@@ -218,7 +226,7 @@ impl Device {
     }
 
     pub fn upload<Element: Plain>(&self, value: &[Element]) -> Result<Memory, Failure> {
-        let mut memory = self.memory::<Element>(value.len())?;
+        let mut memory = self.space::<Element>(value.len())?;
         memory.edit::<Element>().copy_from_slice(value);
         Ok(memory)
     }
@@ -292,6 +300,10 @@ impl Memory {
         send!(self.handle.0, c"gpuAddress"; u64)
     }
 
+    pub fn length(&self) -> usize {
+        self.length
+    }
+
     pub fn view<Element: Plain>(&mut self) -> &[Element] {
         let pointer = send!(self.handle.0, c"contents"; *mut c_void);
         unsafe {
@@ -330,6 +342,17 @@ impl Kernel {
 
     pub fn capacity(&self) -> usize {
         self.capacity
+    }
+
+    // The threads of a group for a grid of threads: a row of as many as the kernel takes, or, for
+    // a grid of rows, a SIMD group's width of columns and as many rows as fit.
+    pub fn group(&self, thread: [usize; 3]) -> [usize; 3] {
+        if thread[1] == 1 {
+            return [self.capacity.min(thread[0]).max(1), 1, 1];
+        }
+        let width = self.width.min(thread[0]).max(1);
+        let height = (self.capacity / width).min(thread[1]).max(1);
+        [width, height, 1]
     }
 }
 
@@ -371,7 +394,7 @@ impl<'device> Command<'device> {
             c"useResources:count:usage:",
             memory.as_ptr() => *const Object,
             memory.len() as u64 => u64,
-            READWRITE => u64;
+            READ | WRITE => u64;
             ()
         );
     }

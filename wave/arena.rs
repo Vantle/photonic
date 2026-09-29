@@ -1,9 +1,7 @@
 use crate::failure::Failure;
+use crate::setting::SEGMENT;
 use metal::device::{Device, Memory};
 use photonic::laser::net::Marking;
-
-// The most segments an arena holds, as the kernels' Arena lays them out.
-pub const SEGMENT: usize = 1024;
 
 // Markings' words in segments that never move, so the arena grows without copying and each segment
 // is committed once; the kernels reach the segments through their device addresses. An offset names
@@ -11,17 +9,8 @@ pub const SEGMENT: usize = 1024;
 pub struct Arena {
     pub segment: Vec<Memory>,
     pub address: Memory,
-    capacity: usize,
     used: usize,
     largest: usize,
-}
-
-// Where a pass's new markings go: those whose spots come before the split follow the last segment's
-// words from the base, and the rest start the next segment at the overflow.
-pub struct Place {
-    pub base: u64,
-    pub split: u64,
-    pub overflow: u64,
 }
 
 fn encode(segment: usize, word: usize) -> u64 {
@@ -33,22 +22,24 @@ impl Arena {
     // to largest words unless one pass needs more.
     pub fn new(
         device: &Device,
-        words: &[u32],
+        word: &[u32],
         first: usize,
         largest: usize,
     ) -> Result<Self, Failure> {
-        let capacity = first.max(words.len());
-        let mut segment = device.space::<u32>(capacity)?;
-        segment.edit::<u32>()[..words.len()].copy_from_slice(words);
+        let mut segment = device.space::<u32>(first.max(word.len()))?;
+        segment.edit::<u32>()[..word.len()].copy_from_slice(word);
         let mut address = device.memory::<u64>(SEGMENT)?;
         address.edit::<u64>()[0] = segment.address();
         Ok(Self {
             segment: vec![segment],
             address,
-            capacity,
-            used: words.len(),
+            used: word.len(),
             largest,
         })
+    }
+
+    fn capacity(&self) -> usize {
+        self.segment[self.segment.len() - 1].length() / std::mem::size_of::<u32>()
     }
 
     // Where the next marking would start in the last segment, and how many words the segment has
@@ -58,42 +49,35 @@ impl Arena {
     }
 
     pub fn room(&self) -> usize {
-        self.capacity - self.used
+        self.capacity() - self.used
     }
 
-    pub fn advance(&mut self, words: usize) {
-        self.used += words;
+    pub fn advance(&mut self, word: usize) {
+        self.used += word;
     }
 
     // Places a pass's new markings that take more words than the last segment has left: those in
-    // the first kept words stay in the last segment, and the rest start a new one.
-    pub fn split(&mut self, device: &Device, kept: u64, words: usize) -> Result<Place, Failure> {
+    // the first kept words stay in the last segment, and the rest start a new one, whose first word
+    // it gives.
+    pub fn split(&mut self, device: &Device, kept: u64, word: usize) -> Result<u64, Failure> {
         if self.segment.len() == SEGMENT {
-            return Err(Failure::Arena { words });
+            return Err(Failure::Arena { word });
         }
-        let split = kept;
-        let rest = words - split as usize;
-        let capacity = (2 * self.capacity).min(self.largest).max(rest);
-        let fresh = device.space::<u32>(capacity)?;
+        let rest = word - kept as usize;
+        let fresh = device.space::<u32>((2 * self.capacity()).min(self.largest).max(rest))?;
         self.address.edit::<u64>()[self.segment.len()] = fresh.address();
-        let place = Place {
-            base: self.base(),
-            split,
-            overflow: encode(self.segment.len(), 0),
-        };
         self.segment.push(fresh);
-        self.capacity = capacity;
         self.used = rest;
-        Ok(place)
+        Ok(encode(self.segment.len() - 1, 0))
     }
 
     pub fn marking(&mut self, offset: u64) -> Marking {
-        let words = self.segment[(offset >> 32) as usize].view::<u32>();
+        let word = self.segment[(offset >> 32) as usize].view::<u32>();
         let start = (offset & 0xffff_ffff) as usize;
-        let length = words[start + 1] as usize;
+        let length = word[start + 1] as usize;
         Marking {
-            root: words[start],
-            kind: words[start + 2..start + 2 + length].to_vec(),
+            root: word[start],
+            kind: word[start + 2..start + 2 + length].to_vec(),
         }
     }
 }

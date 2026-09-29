@@ -117,7 +117,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         occurrence: argument.occurrence,
         ..Limit::default()
     };
-    let device = wave::engine::Engine::new()?;
+    let device = wave::engine::Engine::new()?.ok_or("no Metal device to explore on")?;
     let mut second = Vec::new();
     let mut last = None;
     for _ in 0..argument.sample {

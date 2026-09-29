@@ -14,13 +14,21 @@ struct End {
     target: Option<bool>,
 }
 
+// The backend an exploration ran on.
+#[derive(Clone, Copy, Serialize)]
+#[serde(rename_all = "lowercase")]
+enum Backend {
+    Metal,
+    Host,
+}
+
 #[derive(Serialize)]
 struct Answer {
-    engine: &'static str,
+    engine: Backend,
     closed: bool,
     configuration: usize,
     event: u64,
-    endless: bool,
+    endless: Option<bool>,
     end: Vec<End>,
     more: usize,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -38,12 +46,20 @@ fn count(value: u64, noun: &str) -> String {
 
 // The GPU where there is one and the caller did not ask for the host, and the host's net otherwise;
 // both explore alike, number for number.
-fn explore(net: &mut Net, limit: Limit, host: bool) -> miette::Result<(Exploration, &'static str)> {
-    if let Some(engine) = (!host).then(wave::engine::Engine::new).and_then(Result::ok) {
-        let explored = engine.explore(net, limit, Cycle::Find).into_diagnostic()?;
-        return Ok((explored, "metal"));
+fn explore(net: &mut Net, limit: Limit, host: bool) -> miette::Result<(Exploration, Backend)> {
+    let device = if host {
+        None
+    } else {
+        wave::engine::Engine::new().into_diagnostic()?
+    };
+    if let Some(device) = device {
+        let explored = device.explore(net, limit, Cycle::Find).into_diagnostic()?;
+        return Ok((explored, Backend::Metal));
     }
-    Ok((net.explore(limit, Cycle::Find).into_diagnostic()?, "host"))
+    Ok((
+        net.explore(limit, Cycle::Find).into_diagnostic()?,
+        Backend::Host,
+    ))
 }
 
 pub fn every(argument: &argument::Every) -> miette::Result<ExitCode> {
@@ -72,7 +88,13 @@ pub fn every(argument: &argument::Every) -> miette::Result<ExitCode> {
     };
     let mut net = Net::new(&program).into_diagnostic()?;
     let (explored, engine) = explore(&mut net, limit, argument.host)?;
-    let endless = explored.endless.unwrap_or_default();
+    // A cycle among the configurations found is a run that goes on forever, but an open exploration
+    // without one leaves it unknown, since what the limits refused could close a cycle.
+    let endless = match explored.endless {
+        Some(true) => Some(true),
+        _ if explored.closed => Some(false),
+        _ => None,
+    };
     let found = target
         .iter()
         .map(|value| net.find(value))
@@ -95,7 +117,7 @@ pub fn every(argument: &argument::Every) -> miette::Result<ExitCode> {
             .filter(|marking| !found.contains(&Some((*marking).clone())))
             .count()
     });
-    let passed = stray.map(|stray| explored.closed && !endless && stray == 0);
+    let passed = stray.map(|stray| explored.closed && endless == Some(false) && stray == 0);
     let answer = Answer {
         engine,
         closed: explored.closed,
@@ -123,20 +145,19 @@ pub fn every(argument: &argument::Every) -> miette::Result<ExitCode> {
         if answer.closed { "closed" } else { "open" },
         count(answer.configuration as u64, "configuration"),
         count(answer.event, "event"),
-        if engine == "metal" {
-            "Metal"
-        } else {
-            "the host"
+        match engine {
+            Backend::Metal => "Metal",
+            Backend::Host => "the host",
         },
         count(explored.end.len() as u64, "end configuration"),
         answer
             .stray
             .map(|stray| format!(", {stray} of them not a target"))
             .unwrap_or_default(),
-        if endless {
-            "a run can go on forever"
-        } else {
-            "no run goes on forever"
+        match endless {
+            Some(true) => "a run can go on forever",
+            Some(false) => "no run goes on forever",
+            None => "whether a run goes on forever is unknown",
         },
     )
     .into_diagnostic()?;

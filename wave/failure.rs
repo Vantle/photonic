@@ -13,6 +13,6 @@ pub enum Failure {
     Candidate { count: usize },
     #[error("{count} configurations are more than the table can number")]
     Configuration { count: usize },
-    #[error("the arena's segments cannot hold {words} more words")]
-    Arena { words: usize },
+    #[error("the arena's segments cannot hold {word} more words")]
+    Arena { word: usize },
 }

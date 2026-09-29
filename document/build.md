@@ -1,6 +1,6 @@
 # Build organization
 
-Bazel 9.2.0 is the only system build dependency. Rust, LLVM, Node, browser tools, launcher templates, and binding tools are pinned. Build actions remain sandboxed with network access disabled and a strict environment.
+Bazel 9.2.0 is the only system build dependency. Rust, LLVM, Node, browser tools, launcher templates, and binding tools are pinned. Build actions remain sandboxed with network access disabled and a strict environment. A target's tags reach only its test action, since `--noincompatible_allow_tags_propagation` keeps them from its build actions, so the GPU tests run outside the macOS sandbox, which denies them the device, and still build inside it.
 
 ## Incremental boundaries
 

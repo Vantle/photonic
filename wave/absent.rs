@@ -5,10 +5,9 @@ use photonic::runtime::Limit;
 pub enum Engine {}
 
 impl Engine {
-    pub fn new() -> Result<Self, Failure> {
-        Err(Failure::Metal(metal::failure::Failure::Unavailable(
-            "Metal requires macOS on Apple hardware".to_owned(),
-        )))
+    // Metal requires macOS, so there is never a GPU to explore on.
+    pub fn new() -> Result<Option<Self>, Failure> {
+        Ok(None)
     }
 
     pub fn name(&self) -> &str {

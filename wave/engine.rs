@@ -1,12 +1,12 @@
-use crate::dispatch::group;
 use crate::failure::Failure;
-use crate::pass::Range;
 use crate::scan::Scan;
-use crate::setting::{Setting, WIDTH, saturate};
+use crate::search::Search;
+use crate::setting::{BACKWARD, REFUSED, Setting, WIDTH, prelude, saturate};
 use crate::store::Store;
 use crate::table::Table;
 use crate::tally::Tally;
 use crate::tuning::Tuning;
+use crate::upload::Upload;
 use crate::work::Work;
 use metal::device::{Command, Device, Kernel};
 use photonic::laser::net::{Cycle, Exploration, Net};
@@ -22,33 +22,46 @@ pub struct Engine {
     pub(crate) expand: Kernel,
     pub(crate) insert: Kernel,
     pub(crate) tally: Kernel,
+    pub(crate) bound: Kernel,
     pub(crate) place: Kernel,
     pub(crate) point: Kernel,
+    pub(crate) weigh: Kernel,
     pub(crate) rehash: Kernel,
     pub(crate) scan: Scan,
 }
 
 impl Engine {
-    pub fn new() -> Result<Self, Failure> {
+    // The engine on the system's GPU, or none when there is no GPU whose kernels can reach memory
+    // through device addresses.
+    pub fn new() -> Result<Option<Self>, Failure> {
         Self::tuned(Tuning::default())
     }
 
-    pub(crate) fn tuned(tuning: Tuning) -> Result<Self, Failure> {
-        let device = Device::open()?;
-        let library = device.library(SOURCE)?;
+    pub(crate) fn tuned(tuning: Tuning) -> Result<Option<Self>, Failure> {
+        let device = match Device::open() {
+            Ok(device) => device,
+            Err(metal::failure::Failure::Unavailable(_)) => return Ok(None),
+            Err(failure) => return Err(failure.into()),
+        };
+        if !device.addressing() {
+            return Ok(None);
+        }
+        let library = device.library(&(prelude() + SOURCE))?;
         let kernel = |entry: &str| device.kernel(&library, entry);
-        Ok(Self {
+        Ok(Some(Self {
             tuning,
             count: kernel("count")?,
             expand: kernel("expand")?,
             insert: kernel("insert")?,
             tally: kernel("tally")?,
+            bound: kernel("bound")?,
             place: kernel("place")?,
             point: kernel("point")?,
+            weigh: kernel("weigh")?,
             rehash: kernel("rehash")?,
             scan: Scan::new(kernel("reduce")?, kernel("spread")?),
             device,
-        })
+        }))
     }
 
     // The GPU the engine explores on.
@@ -59,71 +72,60 @@ impl Engine {
     // Explores every schedule of plain events from the net's start in the order one thread searching
     // breadth first would, a window of markings at a time, until no new marking appears; the limits
     // refuse what they refuse, and past the configuration limit only known markings are reached.
-    // It agrees with the net's own exploration number for number.
+    // It agrees with the net's own exploration number for number, and searches the edges for a
+    // cycle only when one leads to a marking found no later than its source.
     pub fn explore(
         &self,
         net: &mut Net,
         limit: Limit,
         cycle: Cycle,
     ) -> Result<Exploration, Failure> {
+        let start = net.start();
         let mut table = Table::new(net);
-        table.prepare(net, &net.start())?;
-        let mut upload = None;
-        let mut store = Store::new(&self.device, &net.start(), self.tuning)?;
-        let mut work = Work::new(&self.device, self.tuning.initial)?;
-        let mut tally = Tally::default();
+        table.prepare(net, &start)?;
+        let mut search = Search {
+            upload: Upload::new(&self.device, &table)?,
+            store: Store::new(&self.device, &start, self.tuning)?,
+            work: Work::new(&self.device, self.tuning.initial)?,
+            tally: Tally::default(),
+            table,
+            net,
+            limit,
+            cycle,
+        };
         let mut end = Vec::new();
         let mut cursor = 0;
         let mut counted = false;
-        while cursor < store.count {
-            let size = self.tuning.window.min(store.count - cursor);
-            let window = self.count(
-                net,
-                &mut table,
-                &mut upload,
-                &mut store,
-                &mut work,
-                cursor,
-                size,
-                limit,
-                counted,
-            )?;
+        while cursor < search.store.count {
+            let size = self.tuning.window.min(search.store.count - cursor);
+            let window = self.count(&mut search, cursor, size, counted)?;
             counted = false;
             end.extend(&window.end);
             let mut from = 0;
             while from < size {
-                let range = {
-                    let start = work.start.memory.view::<u64>();
-                    let to = window.bound(start, from, self.tuning.pass as u64);
-                    Range {
-                        from,
-                        to,
-                        begin: window.before(start, from),
-                        end: window.before(start, to),
-                    }
-                };
+                let range = window.range(
+                    search.work.start.memory.view::<u64>(),
+                    from,
+                    self.tuning.pass as u64,
+                );
                 from = range.to;
                 counted = self.pass(
-                    &mut table,
-                    &mut upload,
-                    &mut store,
-                    &mut work,
+                    &mut search,
                     &window,
                     range,
                     (from == size).then_some(cursor + size),
-                    limit,
-                    cycle,
-                    &mut tally,
                 )?;
             }
             cursor += size;
         }
+        let summary = search.work.summary.view::<u32>();
+        let (refused, backward) = (summary[REFUSED] != 0, summary[BACKWARD] != 0);
         Ok(Exploration {
-            closed: !tally.refused,
-            configuration: store.count,
-            event: tally.event,
-            end: end.into_iter().map(|id| store.marking(id)).collect(),
-            endless: (cycle == Cycle::Find).then(|| tally.cyclic(store.count)),
+            closed: !refused,
+            configuration: search.store.count,
+            event: search.tally.event,
+            end: end.into_iter().map(|id| search.store.marking(id)).collect(),
+            endless: (cycle == Cycle::Find).then(|| backward && search.tally.cyclic()),
         })
     }
 
@@ -131,8 +133,9 @@ impl Engine {
     pub(crate) fn fill<'device>(
         &self,
         command: &mut Command<'device>,
-        store: &'device Store,
+        search: &'device Search<'_>,
     ) -> Result<(), Failure> {
+        let store = &search.store;
         let setting = Setting {
             count: saturate(store.count),
             bucket: saturate(store.slot / WIDTH),
@@ -142,9 +145,9 @@ impl Engine {
         command.dispatch(
             &self.rehash,
             &[&store.arena.address, &store.offset.memory, &store.table],
-            &setting.bytes(),
+            &setting.byte(),
             [store.count, 1, 1],
-            group(&self.rehash, store.count),
+            self.rehash.group([store.count, 1, 1]),
         );
         Ok(())
     }

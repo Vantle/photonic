@@ -5,6 +5,7 @@ common:windows --host_platform=//platform:windows
 
 build --host_compilation_mode=fastbuild
 build --incompatible_strict_action_env
+build --noincompatible_allow_tags_propagation
 build --sandbox_default_allow_network=false
 build --nostamp
 build --symlink_prefix=/

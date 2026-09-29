@@ -1,15 +1,11 @@
-use crate::dispatch::group;
 use crate::engine::Engine;
 use crate::failure::Failure;
 use crate::hash;
-use crate::setting::{BARE, FLAGGED, JOIN, MISSING, SUM, Setting, saturate};
-use crate::store::Store;
-use crate::table::Table;
-use crate::upload::{Upload, refresh};
+use crate::search::Search;
+use crate::setting::{BARE, FLAGGED, JOIN, MISSING, Setting, WINDOW, saturate};
 use crate::work::Work;
 use metal::device::{Command, Memory};
-use photonic::laser::net::{Net, Successor};
-use photonic::runtime::Limit;
+use photonic::laser::net::Successor;
 
 // A successor the host found for a marking whose kinds could join in one event: the marking's place
 // in the window, the successor's place among the marking's, and then among the window's candidates,
@@ -35,31 +31,44 @@ pub struct Window {
     pub end: Vec<usize>,
 }
 
-impl Window {
-    // The end of the pass that starts at a marking: as many markings as fit within the candidates
-    // a pass may hold, and at least one.
-    pub fn bound(&self, start: &[u64], from: usize, most: u64) -> usize {
-        let limit = start[from] + most;
-        if self.total <= limit {
-            return self.size;
-        }
-        let fitting = start[from + 1..self.size].partition_point(|&value| value <= limit);
-        (from + fitting).max(from + 1)
-    }
-
-    // The candidates before a marking of the window, or all of them.
-    pub fn before(&self, start: &[u64], index: usize) -> u64 {
-        if index == self.size {
-            return self.total;
-        }
-        start[index]
-    }
+// The markings a pass covers: the window's markings from one to another, and the candidates between
+// their running sums.
+pub struct Range {
+    pub from: usize,
+    pub to: usize,
+    pub begin: u64,
+    pub end: u64,
 }
 
-fn admits(table: &Table, root: u32, kind: &[u32], limit: Limit) -> bool {
-    let [world, occurrence, frame] = table.measure(kind).map(|value| value as usize);
-    let base = table.base[root as usize] as usize;
-    world <= limit.coherence && base + occurrence <= limit.occurrence && frame < limit.scope
+impl Window {
+    // The pass that starts at a marking: as many markings as fit within the candidates a pass may
+    // hold, and at least one.
+    pub fn range(&self, start: &[u64], from: usize, most: u64) -> Range {
+        let limit = start[from] + most;
+        let to = if self.total <= limit {
+            self.size
+        } else {
+            let fitting = start[from + 1..self.size].partition_point(|&value| value <= limit);
+            (from + fitting).max(from + 1)
+        };
+        Range {
+            from,
+            to,
+            begin: start[from],
+            end: if to == self.size {
+                self.total
+            } else {
+                start[to]
+            },
+        }
+    }
+
+    // The successors the host found for the markings of a range.
+    pub fn found(&self, range: &Range) -> &[Joined] {
+        let low = self.joined.partition_point(|item| item.index < range.from);
+        let high = self.joined.partition_point(|item| item.index < range.to);
+        &self.joined[low..high]
+    }
 }
 
 impl Engine {
@@ -72,56 +81,64 @@ impl Engine {
         work.start.swap(&self.device, size)
     }
 
-    // Encodes the count of a window's successors, flagging markings the host must look at, and
-    // their running sum.
-    pub(crate) fn census<'device>(
+    // Encodes the running sum of a window's successor counts.
+    fn sum<'device>(
         &self,
         command: &mut Command<'device>,
-        store: &'device Store,
-        tables: &'device Upload,
         work: &'device Work,
-        setting: &Setting,
         size: usize,
     ) -> Result<(), Failure> {
-        command.dispatch(
-            &self.count,
-            &[
-                &store.arena.address,
-                &store.offset.memory,
-                &tables.key,
-                &tables.lone,
-                &tables.mask,
-                &tables.need,
-                &work.number.memory,
-                &work.flagged.memory,
-                &work.summary,
-                &work.total,
-            ],
-            &setting.bytes(),
-            [size, 1, 1],
-            group(&self.count, size),
-        );
         command.copy::<u64>(&work.number.memory, &work.start.memory, size)?;
         self.scan.encode(
             command,
             &work.start.memory,
             size,
             &work.total,
-            SUM,
+            WINDOW,
             &work.level,
         );
         Ok(())
     }
 
+    // Encodes the count of a window's successors, flagging markings the host must look at, and
+    // their running sum.
+    pub(crate) fn census<'device>(
+        &self,
+        command: &mut Command<'device>,
+        search: &'device Search<'_>,
+        setting: &Setting,
+    ) -> Result<(), Failure> {
+        let size = setting.count as usize;
+        command.dispatch(
+            &self.count,
+            &[
+                &search.store.arena.address,
+                &search.store.offset.memory,
+                &search.upload.key.memory,
+                &search.upload.lone.memory,
+                &search.upload.mask.memory,
+                &search.upload.need.memory,
+                &search.work.number.memory,
+                &search.work.flagged.memory,
+                &search.work.summary,
+                &search.work.total,
+            ],
+            &setting.byte(),
+            [size, 1, 1],
+            self.count.group([size, 1, 1]),
+        );
+        self.sum(command, &search.work, size)
+    }
+
     // The values that count a window of markings on its own.
-    pub(crate) fn alone(table: &Table, tables: &Upload, first: usize, size: usize) -> Setting {
+    pub(crate) fn alone(search: &Search<'_>, first: usize, size: usize) -> Setting {
         Setting {
             first: saturate(first),
             count: saturate(size),
-            key: tables.slot,
-            root: tables.root,
-            rule: saturate(table.joining()),
-            wide: u32::from(table.wide),
+            key: search.upload.slot,
+            root: search.upload.root,
+            rule: saturate(search.table.joining()),
+            wide: u32::from(search.table.wide),
             next: saturate(first + size),
             room: u64::MAX,
             ..Setting::default()
@@ -129,52 +146,50 @@ impl Engine {
     }
 
     // Counts the successors of a window of markings and their running sum, unless the pass before
-    // counted them already. The host grounds every flagged marking in order, as its own net would
-    // on expanding it, and counts again if the tables lacked a part; then it finds the successors of
+    // counted them already. The host visits every flagged marking in order, as its own net would on
+    // expanding it, and counts again if the tables lacked a part; then it writes the successors of
     // events joining several components, and sums again if there were any.
-    #[allow(clippy::too_many_arguments)]
     pub(crate) fn count(
         &self,
-        net: &mut Net,
-        table: &mut Table,
-        upload: &mut Option<Upload>,
-        store: &mut Store,
-        work: &mut Work,
+        search: &mut Search<'_>,
         first: usize,
         size: usize,
-        limit: Limit,
         counted: bool,
     ) -> Result<Window, Failure> {
         let mut counted = counted;
         let mut attempt = 0;
-        let flagged = loop {
+        let visited = loop {
             if !counted {
-                self.room(work, size)?;
-                let tables = refresh(&self.device, table, upload)?;
-                work.summary.edit::<u32>()[FLAGGED] = 0;
-                let setting = Self::alone(table, tables, first, size);
+                self.room(&mut search.work, size)?;
+                search.upload.refresh(&self.device, &mut search.table)?;
+                search.work.summary.edit::<u32>()[FLAGGED] = 0;
+                let setting = Self::alone(search, first, size);
                 let mut command = self.device.command()?;
-                command.reach(&store.arena.segment.iter().collect::<Vec<_>>());
-                self.census(&mut command, store, tables, work, &setting, size)?;
+                command.reach(&search.store.arena.segment.iter().collect::<Vec<_>>());
+                self.census(&mut command, search, &setting)?;
                 command.run()?;
             }
             counted = false;
-            let count = work.summary.view::<u32>()[FLAGGED] as usize;
-            let mut flagged = work.flagged.memory.view::<u32>()[..2 * count]
+            let count = search.work.summary.view::<u32>()[FLAGGED] as usize;
+            let mut flagged = search.work.flagged.memory.view::<u32>()[..2 * count]
                 .as_chunks::<2>()
                 .0
                 .iter()
                 .map(|&[index, state]| (index as usize, state))
                 .collect::<Vec<_>>();
             flagged.sort_unstable();
-            for &(index, state) in &flagged {
-                if state & (MISSING | JOIN) != 0 {
-                    let marking = store.marking(first + index);
-                    table.prepare(net, &marking)?;
-                }
+            let mut visited = Vec::with_capacity(flagged.len());
+            for (index, state) in flagged {
+                let successor = if state & (MISSING | JOIN) == 0 {
+                    Vec::new()
+                } else {
+                    let marking = search.store.marking(first + index);
+                    search.table.prepare(search.net, &marking)?
+                };
+                visited.push((index, state, successor));
             }
-            if flagged.iter().all(|&(_, state)| state & MISSING == 0) {
-                break flagged;
+            if visited.iter().all(|(_, state, _)| state & MISSING == 0) {
+                break visited;
             }
             attempt += 1;
             if attempt > 1 {
@@ -184,24 +199,18 @@ impl Engine {
         let mut joined = Vec::new();
         let mut end = Vec::new();
         let mut extra = Vec::<u32>::new();
-        for (index, state) in flagged {
-            let successor = if state & JOIN != 0 {
-                let marking = store.marking(first + index);
-                net.joined(&marking)?
-            } else {
-                Vec::new()
-            };
+        for (index, state, successor) in visited {
             if state & BARE != 0 && successor.is_empty() {
                 end.push(first + index);
             }
             if successor.is_empty() {
                 continue;
             }
-            let number = &mut work.number.memory.edit::<u64>()[index];
+            let number = &mut search.work.number.memory.edit::<u64>()[index];
             let own = *number;
             *number += successor.len() as u64;
             for (order, Successor { marking, count }) in successor.into_iter().enumerate() {
-                table.know(net, &marking);
+                search.table.know(search.net, &marking);
                 let digest = hash::digest(marking.root, &marking.kind);
                 extra.extend([digest as u32, (digest >> 32) as u32]);
                 joined.push(Joined {
@@ -210,7 +219,7 @@ impl Engine {
                     position: 0,
                     extra: saturate(extra.len()),
                     weight: count,
-                    admitted: admits(table, marking.root, &marking.kind, limit),
+                    admitted: search.net.admits(&marking, search.limit),
                 });
                 extra.push(marking.root);
                 extra.push(saturate(marking.kind.len()));
@@ -219,27 +228,19 @@ impl Engine {
         }
         if !joined.is_empty() {
             let mut command = self.device.command()?;
-            command.copy::<u64>(&work.number.memory, &work.start.memory, size)?;
-            self.scan.encode(
-                &mut command,
-                &work.start.memory,
-                size,
-                &work.total,
-                SUM,
-                &work.level,
-            );
+            self.sum(&mut command, &search.work, size)?;
             command.run()?;
-            let start = work.start.memory.view::<u64>();
+            let start = search.work.start.memory.view::<u64>();
             for item in &mut joined {
                 item.position = start[item.index] + item.order;
             }
         }
-        work.extra.fit(&self.device, extra.len())?;
-        work.extra.memory.edit::<u32>()[..extra.len()].copy_from_slice(&extra);
+        search.work.extra.fit(&self.device, extra.len())?;
+        search.work.extra.memory.edit::<u32>()[..extra.len()].copy_from_slice(&extra);
         Ok(Window {
             first,
             size,
-            total: work.total.view::<u64>()[SUM as usize],
+            total: search.work.total.view::<u64>()[WINDOW],
             joined,
             end,
         })

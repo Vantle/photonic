@@ -1,5 +1,4 @@
 use crate::engine::Engine;
-use crate::failure::Failure;
 use crate::tuning::Tuning;
 use photonic::family;
 use photonic::laser::Laser;
@@ -73,12 +72,11 @@ fn identical() {
         "X.([A, C] B).A, C, C".to_owned(),
         "A, A, A, [A, A, A] B".to_owned(),
         "Go.A, Go.B, [Go] (X, [X] Y), [Y.A] Z, [Y.B, Z] W".to_owned(),
+        "S, [S] E, [S] F, [S] G, [S] X, [X] Y, [Y] X".to_owned(),
     ];
     for tuning in tuning {
-        let engine = match Engine::tuned(tuning) {
-            Ok(engine) => engine,
-            Err(Failure::Metal(metal::failure::Failure::Unavailable(_))) => return,
-            Err(failure) => panic!("{failure}"),
+        let Some(engine) = Engine::tuned(tuning).unwrap() else {
+            return;
         };
         for source in &program {
             let parsed = frontend::lowering::parse(source).unwrap();
@@ -102,10 +100,8 @@ fn identical() {
 // engine's configurations, events, end configurations and cycles.
 #[test]
 fn agreement() {
-    let engine = match Engine::new() {
-        Ok(engine) => engine,
-        Err(Failure::Metal(metal::failure::Failure::Unavailable(_))) => return,
-        Err(failure) => panic!("{failure}"),
+    let Some(engine) = Engine::new().unwrap() else {
+        return;
     };
     let limit = Limit {
         record: usize::MAX,
@@ -151,10 +147,8 @@ fn agreement() {
 // open, and the configuration limit ends it.
 #[test]
 fn limit() {
-    let engine = match Engine::new() {
-        Ok(engine) => engine,
-        Err(Failure::Metal(metal::failure::Failure::Unavailable(_))) => return,
-        Err(failure) => panic!("{failure}"),
+    let Some(engine) = Engine::new().unwrap() else {
+        return;
     };
     let program = frontend::lowering::parse("A, [A] A.A").unwrap();
     let mut net = Net::new(&program).unwrap();
@@ -178,10 +172,8 @@ fn limit() {
 // agree every time.
 #[test]
 fn repeat() {
-    let engine = match Engine::new() {
-        Ok(engine) => engine,
-        Err(Failure::Metal(metal::failure::Failure::Unavailable(_))) => return,
-        Err(failure) => panic!("{failure}"),
+    let Some(engine) = Engine::new().unwrap() else {
+        return;
     };
     let limit = Limit {
         record: usize::MAX,

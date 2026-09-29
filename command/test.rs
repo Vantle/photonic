@@ -213,10 +213,17 @@ fn every() {
     assert_eq!(answer["end"].as_array().unwrap().len(), 0);
     let open = execute("every", &dial, &["--configuration", "2", "--host"]);
     assert!(!open.status.success());
-    assert!(
-        String::from_utf8_lossy(&open.stdout)
-            .starts_with("Every schedule: open after 2 configurations")
+    let text = String::from_utf8_lossy(&open.stdout);
+    assert!(text.starts_with("Every schedule: open after 2 configurations"));
+    assert!(text.contains("whether a run goes on forever is unknown"));
+    let open = execute(
+        "every",
+        &dial,
+        &["--configuration", "2", "--host", "--json"],
     );
+    let answer = serde_json::from_slice::<serde_json::Value>(&open.stdout).unwrap();
+    assert_eq!(answer["closed"], false);
+    assert!(answer["endless"].is_null());
 }
 
 #[test]
