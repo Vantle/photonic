@@ -87,6 +87,7 @@ struct Embedding<'composed> {
 }
 
 impl Embedding<'_> {
+    #[inline]
     fn place(&self, place: Place) -> Place {
         match self.sub.site(place) {
             Site::Root => place,
@@ -97,6 +98,7 @@ impl Embedding<'_> {
         }
     }
 
+    #[inline]
     fn world(&self, world: usize) -> usize {
         let position = self.sub.world(world);
         self.sub
@@ -104,6 +106,7 @@ impl Embedding<'_> {
             .world(world)
     }
 
+    #[inline]
     fn frame(&self, frame: usize) -> usize {
         match self.sub.frame(frame) {
             Site::Root => frame,
@@ -116,6 +119,7 @@ impl Embedding<'_> {
 }
 
 impl Passage {
+    #[inline]
     pub fn resource(&self, place: Place) -> Set<Place> {
         match self {
             Self::Flat(flat) => flat.resource(place),
@@ -123,6 +127,7 @@ impl Passage {
         }
     }
 
+    #[inline]
     pub fn context(&self, world: usize) -> Set<usize> {
         match self {
             Self::Flat(flat) => flat.context(world),
@@ -130,6 +135,7 @@ impl Passage {
         }
     }
 
+    #[inline]
     pub fn frame(&self, frame: usize) -> Option<usize> {
         match self {
             Self::Flat(flat) => flat.frame(frame),
@@ -139,6 +145,7 @@ impl Passage {
 
     // The one place a place came from, or none when it came from several or from nothing; most
     // places come from one, so carrying them needs no set.
+    #[inline]
     pub fn place(&self, place: Place) -> Option<Place> {
         match self {
             Self::Flat(flat) => flat.place(place),
@@ -146,6 +153,7 @@ impl Passage {
         }
     }
 
+    #[inline]
     pub fn world(&self, world: usize) -> Option<usize> {
         match self {
             Self::Flat(flat) => flat.world(world),
@@ -164,6 +172,7 @@ impl Composed {
         (embedding, &self.effect.result, &self.effect.passage)
     }
 
+    #[inline]
     fn place(&self, place: Place) -> Option<Place> {
         let (embedding, result, passage) = self.local();
         let Site::Part(part) = self.target.site(place) else {
@@ -182,6 +191,7 @@ impl Composed {
         }
     }
 
+    #[inline]
     fn world(&self, world: usize) -> Option<usize> {
         let (embedding, result, passage) = self.local();
         let part = self.target.world(world);
@@ -198,6 +208,7 @@ impl Composed {
         }
     }
 
+    #[inline]
     fn resource(&self, place: Place) -> Set<Place> {
         let (embedding, result, passage) = self.local();
         let Site::Part(part) = self.target.site(place) else {
@@ -224,6 +235,7 @@ impl Composed {
         }
     }
 
+    #[inline]
     fn context(&self, world: usize) -> Set<usize> {
         let (embedding, result, passage) = self.local();
         let part = self.target.world(world);
@@ -244,6 +256,7 @@ impl Composed {
         }
     }
 
+    #[inline]
     fn frame(&self, frame: usize) -> Option<usize> {
         let (embedding, result, passage) = self.local();
         let Site::Part(part) = self.target.frame(frame) else {
@@ -332,6 +345,7 @@ impl Flat {
         rebuild(place, container, id)
     }
 
+    #[inline]
     fn resource(&self, place: Place) -> Set<Place> {
         match lookup(&self.resource, &place) {
             Some(set) => set.clone(),
@@ -339,6 +353,7 @@ impl Flat {
         }
     }
 
+    #[inline]
     fn context(&self, world: usize) -> Set<usize> {
         match lookup(&self.context, &world) {
             Some(set) => set.clone(),
@@ -348,10 +363,12 @@ impl Flat {
         }
     }
 
+    #[inline]
     fn frame(&self, frame: usize) -> Option<usize> {
         self.frame[frame]
     }
 
+    #[inline]
     fn place(&self, place: Place) -> Option<Place> {
         match lookup(&self.resource, &place) {
             Some(set) => single(set),
@@ -359,6 +376,7 @@ impl Flat {
         }
     }
 
+    #[inline]
     fn world(&self, world: usize) -> Option<usize> {
         match lookup(&self.context, &world) {
             Some(set) => single(set),

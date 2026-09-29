@@ -333,6 +333,7 @@ impl<'read> Reading<'read> {
         }
     }
 
+    #[inline]
     pub fn event(&self) -> usize {
         self.event
     }
@@ -341,6 +342,7 @@ impl<'read> Reading<'read> {
         self.passage.frame(frame)
     }
 
+    #[inline]
     pub fn basis(&mut self, basis: u64) -> u64 {
         let image = direct(basis, |place| self.passage.place(place))
             .or_else(|| lookup(&self.image?.basis, basis));
@@ -350,6 +352,7 @@ impl<'read> Reading<'read> {
         })
     }
 
+    #[inline]
     pub fn world(&mut self, world: u64) -> u64 {
         let image = direct(world, |index| self.passage.world(index))
             .or_else(|| lookup(&self.image?.world, world));
@@ -360,6 +363,7 @@ impl<'read> Reading<'read> {
     }
 
     // How many images this reading lacked so far.
+    #[inline]
     pub fn lacking(&self) -> usize {
         self.demand.basis.len() + self.demand.world.len() - self.start
     }
@@ -384,10 +388,12 @@ impl Demand {
 }
 
 impl Pool {
+    #[inline]
     pub fn basis(&mut self, basis: Set<Place>) -> u64 {
         add(&mut self.basis, basis)
     }
 
+    #[inline]
     pub fn world(&mut self, world: Set<usize>) -> u64 {
         add(&mut self.world, world)
     }

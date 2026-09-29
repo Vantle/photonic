@@ -50,10 +50,12 @@ impl Layout {
         layout
     }
 
+    #[inline]
     pub fn world(&self, world: usize) -> usize {
         self.world.partition_point(|&start| start <= world) - 1
     }
 
+    #[inline]
     pub fn frame(&self, frame: usize) -> Site {
         if frame == 0 {
             return Site::Root;
@@ -61,6 +63,7 @@ impl Layout {
         Site::Part(self.frame.partition_point(|&start| start <= frame) - 1)
     }
 
+    #[inline]
     pub fn site(&self, place: Place) -> Site {
         match place {
             Place::World(world, _) => Site::Part(self.world(world)),
@@ -68,6 +71,7 @@ impl Layout {
         }
     }
 
+    #[inline]
     pub fn shift<'layout>(
         &'layout self,
         part: usize,
@@ -84,14 +88,17 @@ impl Layout {
 }
 
 impl Shift<'_> {
+    #[inline]
     pub fn world(&self, world: usize) -> usize {
         world - self.from.world[self.part] + self.to.world[self.other]
     }
 
+    #[inline]
     pub fn frame(&self, frame: usize) -> usize {
         frame - self.from.frame[self.part] + self.to.frame[self.other]
     }
 
+    #[inline]
     pub fn place(&self, place: Place) -> Place {
         let id = |id: usize| id - self.from.token[self.part] + self.to.token[self.other];
         match place {
