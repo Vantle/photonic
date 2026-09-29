@@ -97,7 +97,7 @@ The macOS sandbox denies Bazel's test actions the GPU, so `//wave:test`, `//meta
 
 ## Budgets
 
-Laser takes the interpreter's limits. The configuration, coherence, occurrence and scope limits block an application whose result exceeds them, as the interpreter does. Work counts one item for each configuration scanned, each trace carried across an event and each application tried, so a work budget stops the two engines at different points. Laser's retained records are its configurations, events and traces, and it pauses when they reach the record budget. Every budget defers work rather than dropping it: running again with a larger budget resumes where the last run stopped.
+Laser takes the interpreter's limits. The configuration, coherence, occurrence and scope limits block an application whose result exceeds them, as the interpreter does. Work counts one item for each configuration scanned, each trace carried across an event and each application tried, so a work budget stops the two engines at different points. Laser's retained records are its configurations, events and traces, and it pauses when they reach the record budget. The work budget is checked between rounds and between a round's batches of applications, so a round that would apply more than the budget allows defers the rest, which wait as blocked applications do and fire first in the next round. Every budget defers work rather than dropping it: running again with a larger budget resumes where the last run stopped.
 
 ## Verification
 

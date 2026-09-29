@@ -352,7 +352,7 @@ impl Laser {
         let open = !self.closed();
         let mut remaining = budget;
         while remaining > 0 && !self.idle() && self.retained() < self.limit.record {
-            let work = self.step(executor);
+            let work = self.step(executor, remaining);
             self.work += work;
             self.peak = self.peak.max(self.retained());
             remaining = remaining.saturating_sub(work.max(1));
@@ -408,7 +408,7 @@ impl Laser {
         self.state.len() - 1
     }
 
-    fn step(&mut self, executor: Option<&Executor>) -> usize {
+    fn step(&mut self, executor: Option<&Executor>, allowance: usize) -> usize {
         let round = std::mem::take(&mut self.round);
         let mut next = Round::default();
         let scanned = round.fresh.len();
@@ -423,7 +423,8 @@ impl Laser {
         next.changed.extend(grown.iter().map(|(index, _)| *index));
         novel.extend(grown);
         self.traced += novel.iter().map(|(_, range)| range.len()).sum::<usize>();
-        let fired = self.fire(executor, novel, round.retry, &mut next);
+        let rest = allowance.saturating_sub(scanned + carried);
+        let fired = self.fire(executor, novel, round.retry, &mut next, rest);
         if self.plain {
             next.changed.clear();
         }

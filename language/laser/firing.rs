@@ -60,6 +60,7 @@ impl Laser {
         novel: Vec<(usize, Range<usize>)>,
         retry: Vec<(Identity, usize)>,
         next: &mut Round,
+        allowance: usize,
     ) -> usize {
         let candidate = self.select(executor, novel);
         let revisit = retry
@@ -72,8 +73,7 @@ impl Laser {
             resolved.push((value.index, pending.len(), value.resolution));
             pending.extend(value.pending);
         }
-        let count = pending.len();
-        let mut created = Vec::with_capacity(count);
+        let mut created = Vec::with_capacity(pending.len());
         let mut rest = pending.into_iter();
         loop {
             let batch = rest.by_ref().take(FIRING).collect::<Vec<_>>();
@@ -83,6 +83,17 @@ impl Laser {
             let outcome = self.attempt(executor, &batch);
             created.extend(self.create(executor, batch, outcome, next));
             self.taxonomy.forget(executor);
+            if created.len() >= allowance {
+                break;
+            }
+        }
+        // A budget spent within a round defers the identities its batches did not reach: they wait
+        // as blocked identities do, so no trace fires one of them twice, and fire first next round.
+        let count = created.len();
+        for (identity, position) in rest {
+            self.blocked.insert(identity.clone(), position);
+            next.retry.push((identity, position));
+            created.push(None);
         }
         if !revisit.is_empty() {
             self.blocked
