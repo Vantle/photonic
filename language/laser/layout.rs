@@ -16,6 +16,15 @@ pub(super) enum Site {
     Part(usize),
 }
 
+// A part of one layout laid over another part of another layout: its worlds, frames and token ids
+// keep their offsets from the part's start.
+pub(super) struct Shift<'layout> {
+    from: &'layout Layout,
+    part: usize,
+    to: &'layout Layout,
+    other: usize,
+}
+
 impl Layout {
     pub fn new(taxonomy: &Taxonomy, makeup: &Makeup) -> Self {
         Self::of(taxonomy, makeup.root, &makeup.kind)
@@ -58,26 +67,36 @@ impl Layout {
         }
     }
 
-    pub fn move_world(&self, world: usize, part: usize, to: &Self, other: usize) -> usize {
-        world - self.world[part] + to.world[other]
+    pub fn shift<'layout>(
+        &'layout self,
+        part: usize,
+        to: &'layout Self,
+        other: usize,
+    ) -> Shift<'layout> {
+        Shift {
+            from: self,
+            part,
+            to,
+            other,
+        }
+    }
+}
+
+impl Shift<'_> {
+    pub fn world(&self, world: usize) -> usize {
+        world - self.from.world[self.part] + self.to.world[self.other]
     }
 
-    pub fn move_frame(&self, frame: usize, part: usize, to: &Self, other: usize) -> usize {
-        frame - self.frame[part] + to.frame[other]
+    pub fn frame(&self, frame: usize) -> usize {
+        frame - self.from.frame[self.part] + self.to.frame[self.other]
     }
 
-    pub fn move_place(&self, place: Place, part: usize, to: &Self, other: usize) -> Place {
-        let id = |id: usize| id - self.token[part] + to.token[other];
+    pub fn place(&self, place: Place) -> Place {
+        let id = |id: usize| id - self.from.token[self.part] + self.to.token[self.other];
         match place {
-            Place::World(world, token) => {
-                Place::World(self.move_world(world, part, to, other), id(token))
-            }
-            Place::Context(frame, token) => {
-                Place::Context(self.move_frame(frame, part, to, other), id(token))
-            }
-            Place::Held(frame, token) => {
-                Place::Held(self.move_frame(frame, part, to, other), id(token))
-            }
+            Place::World(world, token) => Place::World(self.world(world), id(token)),
+            Place::Context(frame, token) => Place::Context(self.frame(frame), id(token)),
+            Place::Held(frame, token) => Place::Held(self.frame(frame), id(token)),
         }
     }
 }

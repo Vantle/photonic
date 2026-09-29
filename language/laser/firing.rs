@@ -1,9 +1,9 @@
 use super::focus::Focus;
 use super::taxonomy::{Draft, Makeup};
 use super::trace::Trace;
-use super::transition::{self, Key, Local, Transition};
+use super::transition::{self, Effect, Key, Local};
 use super::{Identity, Laser, Link, Round, map};
-use crate::application::Owner;
+use crate::application::{self, Owner, Request};
 use crate::executor::Executor;
 use crate::flow::{Closure, Flow};
 use crate::profile;
@@ -23,7 +23,6 @@ const FIRING: usize = 1 << 14;
 pub(super) struct Product {
     pub(super) draft: Draft,
     pub(super) flow: Flow,
-    pub(super) original: (usize, usize),
     pub(super) whole: Option<Key>,
 }
 
@@ -31,7 +30,7 @@ pub(super) struct Product {
 // alone, and what it learns serves every later event with the same key.
 pub(super) struct Move {
     pub(super) local: Local,
-    pub(super) known: Option<Arc<Transition>>,
+    pub(super) known: Option<Arc<Effect>>,
     pub(super) product: Option<Product>,
 }
 
@@ -175,77 +174,86 @@ impl Laser {
         )
     }
 
+    // An event over parts applies to the parts it touches alone, once for every key, unless its
+    // key made a configuration named whole; then, and for every other event, it applies to its
+    // whole source.
     fn apply(&self, identity: &Identity, source: usize, trace: &Trace) -> Outcome {
-        let mut whole = None;
-        if let (Some(layout), Owner::Frame(owner)) = (&self.layout[source], &identity.owner) {
-            let local = transition::localize(
-                &self.taxonomy,
-                layout,
-                &self.makeup[source],
-                identity.frame,
-                *owner,
-                identity.rule,
-                &identity.binding,
-            );
-            match self.memo.get(&local.key) {
-                Some(known) if matches!(**known, Transition::Local(_)) => {
-                    return Outcome::Move(Box::new(Move {
-                        local,
-                        known: Some(known.clone()),
-                        product: None,
-                    }));
-                }
-                Some(_) => {}
-                None => {
-                    let makeup = Makeup {
-                        root: local.key.root,
-                        kind: local.key.kind.to_vec(),
-                    };
-                    let part = self.taxonomy.materialize(&makeup);
-                    let result = crate::application::apply(crate::application::Request {
-                        source: &part,
-                        scope: &self.program.scope,
-                        frame: local.key.frame,
-                        owner: Owner::Frame(local.key.owner),
-                        rule: &self.program.rule[local.key.rule],
-                        binding: &local.key.binding,
-                    });
-                    let draft = self.taxonomy.analyze(&result.state);
-                    if !matches!(draft, Draft::Whole(_)) {
-                        let product = Product {
-                            draft,
-                            original: (result.state.world.len(), result.state.frame.len()),
-                            flow: result.flow,
-                            whole: None,
-                        };
-                        return Outcome::Move(Box::new(Move {
-                            local,
-                            known: None,
-                            product: Some(product),
-                        }));
-                    }
-                    whole = Some(local.key);
-                }
-            }
+        let (Some(layout), Owner::Frame(owner)) = (&self.layout[source], &identity.owner) else {
+            return self.configuration(identity, source, trace, None);
+        };
+        let local = transition::localize(
+            &self.taxonomy,
+            layout,
+            &self.makeup[source],
+            identity.frame,
+            *owner,
+            identity.rule,
+            &identity.binding,
+        );
+        if let Some(known) = self.memo.get(&local.key) {
+            return Outcome::Move(Box::new(Move {
+                local,
+                known: Some(known.clone()),
+                product: None,
+            }));
         }
-        let flow = match &trace.capture {
-            Some(capture) if capture.current.is_none() => Some((
-                capture.origin,
-                capture.frame,
-                capture.flow(&self.state[capture.origin], &self.pool),
-            )),
-            _ => None,
+        if self.whole.contains(&local.key) {
+            return self.configuration(identity, source, trace, None);
+        }
+        let product = self.part(&local.key);
+        if matches!(product.draft, Draft::Whole(_)) {
+            return self.configuration(identity, source, trace, Some(local.key));
+        }
+        Outcome::Move(Box::new(Move {
+            local,
+            known: None,
+            product: Some(product),
+        }))
+    }
+
+    fn part(&self, key: &Key) -> Product {
+        let makeup = Makeup {
+            root: key.root,
+            kind: key.kind.to_vec(),
         };
-        let owner = match (&identity.owner, &flow) {
-            (Owner::Frame(frame), _) => Owner::Frame(*frame),
-            (Owner::Capture(_), Some((origin, frame, flow))) => Owner::Capture(Closure {
-                state: &self.state[*origin],
+        let part = self.taxonomy.materialize(&makeup);
+        let result = application::apply(Request {
+            source: &part,
+            scope: &self.program.scope,
+            frame: key.frame,
+            owner: Owner::Frame(key.owner),
+            rule: &self.program.rule[key.rule],
+            binding: &key.binding,
+        });
+        Product {
+            draft: self.taxonomy.analyze(&result.state),
+            flow: result.flow,
+            whole: None,
+        }
+    }
+
+    // A rule a detached capture owns applies through the flow back to the configuration where
+    // its match was found.
+    fn configuration(
+        &self,
+        identity: &Identity,
+        source: usize,
+        trace: &Trace,
+        whole: Option<Key>,
+    ) -> Outcome {
+        let attached = trace.owner().map(|capture| {
+            let origin = &self.state[capture.origin];
+            (capture, origin, capture.flow(origin, &self.pool))
+        });
+        let owner = match &attached {
+            Owner::Frame(frame) => Owner::Frame(*frame),
+            Owner::Capture((capture, origin, flow)) => Owner::Capture(Closure {
+                state: origin,
                 flow,
-                capture: *frame,
+                capture: capture.frame,
             }),
-            (Owner::Capture(_), None) => unreachable!("a captured owner carries its attachment"),
         };
-        let result = crate::application::apply(crate::application::Request {
+        let result = application::apply(Request {
             source: &self.state[source],
             scope: &self.program.scope,
             frame: identity.frame,
@@ -262,7 +270,6 @@ impl Laser {
         }
         Outcome::Product(Box::new(Product {
             draft: self.taxonomy.analyze(&result.state),
-            original: (result.state.world.len(), result.state.frame.len()),
             flow: result.flow,
             whole,
         }))
@@ -276,14 +283,10 @@ impl Laser {
 
     fn identify(&self, source: usize, trace: &Trace) -> Option<Identity> {
         let binding = trace.binding(&self.state[source], &self.pool)?;
-        let owner = match (trace.current(), &trace.capture) {
-            (Some(frame), _) => Owner::Frame(frame),
-            (None, Some(capture)) => {
-                let canonical = self.canonical(capture.origin, capture.frame);
-                Owner::Capture(Arc::new(capture.environment(&canonical)))
-            }
-            (None, None) => unreachable!("the root frame exists in every configuration"),
-        };
+        let owner = trace.owner().map(|capture| {
+            let canonical = self.canonical(capture.origin, capture.frame);
+            Arc::new(capture.environment(&canonical))
+        });
         Some(Identity {
             source,
             frame: trace.frame,

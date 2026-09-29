@@ -27,6 +27,13 @@ pub(super) struct Size {
     pub occurrence: usize,
 }
 
+// How many coherences and frames a configuration holds.
+#[derive(Clone, Copy)]
+pub(super) struct Extent {
+    pub world: usize,
+    pub frame: usize,
+}
+
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub(super) struct Makeup {
     pub root: u32,
@@ -46,6 +53,7 @@ pub(super) enum Draft {
         root: Frame,
         rename: Vec<(usize, usize)>,
         piece: Vec<Piece>,
+        original: Extent,
     },
 }
 
@@ -64,19 +72,19 @@ impl Renaming {
         })
     }
 
-    pub fn flow(&self, flow: Flow, world: usize, frame: usize) -> Flow {
+    pub fn flow(&self, flow: Flow, extent: Extent) -> Flow {
         let resource = flow
             .resource
             .into_iter()
             .filter_map(|(place, basis)| Some((self.place(place)?, basis)))
             .collect();
-        let mut context = vec![Set::default(); world];
+        let mut context = vec![Set::default(); extent.world];
         for (index, target) in self.world.iter().enumerate() {
             if let Some(target) = target {
                 context[*target] = flow.context[index].clone();
             }
         }
-        let mut mapping = vec![None; frame];
+        let mut mapping = vec![None; extent.frame];
         for (index, target) in self.frame.iter().enumerate() {
             if let Some(target) = target {
                 mapping[*target] = flow.frame[index];
@@ -196,6 +204,10 @@ impl Taxonomy {
             root,
             rename,
             piece,
+            original: Extent {
+                world: state.world.len(),
+                frame: state.frame.len(),
+            },
         }
     }
 
@@ -252,6 +264,7 @@ impl Taxonomy {
                 root,
                 rename,
                 piece,
+                ..
             } => {
                 let id = self
                     .root
@@ -273,14 +286,23 @@ impl Taxonomy {
         }
     }
 
-    pub fn extent(&self, makeup: &Makeup) -> (usize, usize) {
+    pub fn extent(&self, makeup: &Makeup) -> Extent {
         if let Root::Whole(state) = self.root(makeup.root) {
-            return (state.world.len(), state.frame.len());
+            return Extent {
+                world: state.world.len(),
+                frame: state.frame.len(),
+            };
         }
-        makeup.kind.iter().fold((0, 1), |(world, frame), &kind| {
-            let size = self.kind(kind).1;
-            (world + size.world, frame + size.frame)
-        })
+        makeup
+            .kind
+            .iter()
+            .fold(Extent { world: 0, frame: 1 }, |extent, &kind| {
+                let size = self.kind(kind).1;
+                Extent {
+                    world: extent.world + size.world,
+                    frame: extent.frame + size.frame,
+                }
+            })
     }
 
     // Whether a configuration is named by its parts, not whole.
@@ -305,14 +327,8 @@ impl Taxonomy {
         }
     }
 
-    pub fn assemble(
-        &self,
-        draft: Draft,
-        root: u32,
-        kind: &[u32],
-        original: (usize, usize),
-    ) -> (Makeup, Renaming) {
-        let (rename, piece) = match draft {
+    pub fn assemble(&self, draft: Draft, root: u32, kind: &[u32]) -> (Makeup, Renaming) {
+        let (rename, piece, original) = match draft {
             Draft::Whole(canonical) => {
                 let makeup = Makeup {
                     root,
@@ -325,12 +341,17 @@ impl Taxonomy {
                 };
                 return (makeup, renaming);
             }
-            Draft::Split { rename, piece, .. } => (rename, piece),
+            Draft::Split {
+                rename,
+                piece,
+                original,
+                ..
+            } => (rename, piece, original),
         };
         let mut order = (0..piece.len()).collect::<Vec<_>>();
         order.sort_by_key(|&index| kind[index]);
-        let mut world = vec![None; original.0];
-        let mut frame = vec![None; original.1];
+        let mut world = vec![None; original.world];
+        let mut frame = vec![None; original.frame];
         frame[0] = Some(0);
         let mut resource = rename;
         let mut start = Size {

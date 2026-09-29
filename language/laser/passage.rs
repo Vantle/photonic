@@ -1,5 +1,5 @@
 use super::layout::{Layout, Site};
-use super::transition::Transition;
+use super::transition::Effect;
 use crate::basis::Set;
 use crate::flow::Flow;
 use crate::place::Place;
@@ -10,7 +10,7 @@ use std::sync::Arc;
 // A passage answers, for each place, world and frame after an event, where it came from before.
 // A flat passage keeps an event's own flow as renamings plus the places that do not follow them.
 // A composed passage keeps the parts the event did not touch as moves between layouts and asks
-// the event's transition about the parts it made and the root.
+// the event's effect about the parts it made and the root.
 pub(super) enum Passage {
     Flat(Box<Flat>),
     Composed(Composed),
@@ -32,9 +32,9 @@ fn decode(value: Option<NonZeroU32>) -> Option<usize> {
     value.map(|value| value.get() as usize - 1)
 }
 
-fn part(place: Place) -> (usize, usize) {
+fn token(place: Place) -> usize {
     match place {
-        Place::World(index, id) | Place::Context(index, id) | Place::Held(index, id) => (index, id),
+        Place::World(_, id) | Place::Context(_, id) | Place::Held(_, id) => id,
     }
 }
 
@@ -44,6 +44,22 @@ fn rebuild(place: Place, container: usize, id: usize) -> Place {
         Place::Context(..) => Place::Context(container, id),
         Place::Held(..) => Place::Held(container, id),
     }
+}
+
+// The one value of a set, when it holds exactly one.
+fn single<Value: Copy>(set: &Set<Value>) -> Option<Value> {
+    match set.iter().as_slice() {
+        [single] => Some(*single),
+        _ => None,
+    }
+}
+
+// The value a list sorted by key keeps for a key.
+fn lookup<'list, Key: Ord, Value>(list: &'list [(Key, Value)], key: &Key) -> Option<&'list Value> {
+    let position = list
+        .binary_search_by(|(candidate, _)| candidate.cmp(key))
+        .ok()?;
+    Some(&list[position].1)
 }
 
 // Where each part after an event comes from: a part before it, or one the event's transition made.
@@ -59,14 +75,47 @@ pub(super) struct Composed {
     pub target: Arc<Layout>,
     pub origin: Box<[Origin]>,
     pub involved: SmallVec<[usize; 4]>,
-    pub transition: Arc<Transition>,
+    pub effect: Arc<Effect>,
+}
+
+// Where the parts an event touched lie in its whole source: the effect's layout of them alone, the
+// source's layout, and the source's part each of them is.
+struct Embedding<'composed> {
+    sub: &'composed Layout,
+    source: &'composed Layout,
+    involved: &'composed [usize],
+}
+
+impl Embedding<'_> {
+    fn place(&self, place: Place) -> Place {
+        match self.sub.site(place) {
+            Site::Root => place,
+            Site::Part(position) => self
+                .sub
+                .shift(position, self.source, self.involved[position])
+                .place(place),
+        }
+    }
+
+    fn world(&self, world: usize) -> usize {
+        let position = self.sub.world(world);
+        self.sub
+            .shift(position, self.source, self.involved[position])
+            .world(world)
+    }
+
+    fn frame(&self, frame: usize) -> usize {
+        match self.sub.frame(frame) {
+            Site::Root => frame,
+            Site::Part(position) => self
+                .sub
+                .shift(position, self.source, self.involved[position])
+                .frame(frame),
+        }
+    }
 }
 
 impl Passage {
-    pub fn new(flow: Flow) -> Self {
-        Self::Flat(Box::new(Flat::new(flow)))
-    }
-
     pub fn resource(&self, place: Place) -> Set<Place> {
         match self {
             Self::Flat(flat) => flat.resource(place),
@@ -83,7 +132,7 @@ impl Passage {
 
     pub fn frame(&self, frame: usize) -> Option<usize> {
         match self {
-            Self::Flat(flat) => flat.frame[frame],
+            Self::Flat(flat) => flat.frame(frame),
             Self::Composed(composed) => composed.frame(frame),
         }
     }
@@ -106,142 +155,119 @@ impl Passage {
 }
 
 impl Composed {
-    fn local(&self) -> (&Layout, &Layout, &Passage) {
-        let Transition::Local(effect) = &*self.transition else {
-            unreachable!("a composed passage holds a local transition")
+    fn local(&self) -> (Embedding<'_>, &Layout, &Flat) {
+        let embedding = Embedding {
+            sub: &self.effect.source,
+            source: &self.source,
+            involved: &self.involved,
         };
-        (&effect.source, &effect.result, &effect.passage)
-    }
-
-    fn lift(&self, sub: &Layout, place: Place) -> Place {
-        match sub.site(place) {
-            Site::Root => place,
-            Site::Part(position) => {
-                sub.move_place(place, position, &self.source, self.involved[position])
-            }
-        }
-    }
-
-    fn back(&self, sub: &Layout, set: &Set<Place>) -> Set<Place> {
-        set.iter().map(|&place| self.lift(sub, place)).collect()
+        (embedding, &self.effect.result, &self.effect.passage)
     }
 
     fn place(&self, place: Place) -> Option<Place> {
-        let (sub, result, passage) = self.local();
+        let (embedding, result, passage) = self.local();
         let Site::Part(part) = self.target.site(place) else {
-            return passage.place(place).map(|value| self.lift(sub, value));
+            return passage.place(place).map(|value| embedding.place(value));
         };
         match self.origin[part] {
-            Origin::Same(other) => {
-                Some(
-                    self.target
-                        .move_place(place, part, &self.source, other as usize),
-                )
-            }
+            Origin::Same(other) => Some(
+                self.target
+                    .shift(part, &self.source, other as usize)
+                    .place(place),
+            ),
             Origin::Produced(index) => {
-                let local = self.target.move_place(place, part, result, index as usize);
-                passage.place(local).map(|value| self.lift(sub, value))
+                let local = self.target.shift(part, result, index as usize).place(place);
+                passage.place(local).map(|value| embedding.place(value))
             }
         }
     }
 
     fn world(&self, world: usize) -> Option<usize> {
-        let (sub, result, passage) = self.local();
+        let (embedding, result, passage) = self.local();
         let part = self.target.world(world);
         match self.origin[part] {
-            Origin::Same(other) => {
-                Some(
-                    self.target
-                        .move_world(world, part, &self.source, other as usize),
-                )
-            }
+            Origin::Same(other) => Some(
+                self.target
+                    .shift(part, &self.source, other as usize)
+                    .world(world),
+            ),
             Origin::Produced(index) => {
-                let local = self.target.move_world(world, part, result, index as usize);
-                passage.world(local).map(|value| {
-                    let position = sub.world(value);
-                    sub.move_world(value, position, &self.source, self.involved[position])
-                })
+                let local = self.target.shift(part, result, index as usize).world(world);
+                passage.world(local).map(|value| embedding.world(value))
             }
         }
     }
 
     fn resource(&self, place: Place) -> Set<Place> {
-        let (sub, result, passage) = self.local();
+        let (embedding, result, passage) = self.local();
         let Site::Part(part) = self.target.site(place) else {
-            return self.back(sub, &passage.resource(place));
+            return passage
+                .resource(place)
+                .iter()
+                .map(|&value| embedding.place(value))
+                .collect();
         };
         match self.origin[part] {
-            Origin::Same(other) => {
-                Set::single(
-                    self.target
-                        .move_place(place, part, &self.source, other as usize),
-                )
-            }
+            Origin::Same(other) => Set::single(
+                self.target
+                    .shift(part, &self.source, other as usize)
+                    .place(place),
+            ),
             Origin::Produced(index) => {
-                let local = self.target.move_place(place, part, result, index as usize);
-                self.back(sub, &passage.resource(local))
+                let local = self.target.shift(part, result, index as usize).place(place);
+                passage
+                    .resource(local)
+                    .iter()
+                    .map(|&value| embedding.place(value))
+                    .collect()
             }
         }
     }
 
     fn context(&self, world: usize) -> Set<usize> {
-        let (sub, result, passage) = self.local();
+        let (embedding, result, passage) = self.local();
         let part = self.target.world(world);
         match self.origin[part] {
-            Origin::Same(other) => {
-                Set::single(
-                    self.target
-                        .move_world(world, part, &self.source, other as usize),
-                )
-            }
+            Origin::Same(other) => Set::single(
+                self.target
+                    .shift(part, &self.source, other as usize)
+                    .world(world),
+            ),
             Origin::Produced(index) => {
-                let local = self.target.move_world(world, part, result, index as usize);
+                let local = self.target.shift(part, result, index as usize).world(world);
                 passage
                     .context(local)
                     .iter()
-                    .map(|&value| {
-                        let position = sub.world(value);
-                        sub.move_world(value, position, &self.source, self.involved[position])
-                    })
+                    .map(|&value| embedding.world(value))
                     .collect()
             }
         }
     }
 
     fn frame(&self, frame: usize) -> Option<usize> {
-        let (sub, result, passage) = self.local();
-        let back = |value: usize| match sub.frame(value) {
-            Site::Root => value,
-            Site::Part(position) => {
-                sub.move_frame(value, position, &self.source, self.involved[position])
-            }
-        };
+        let (embedding, result, passage) = self.local();
         let Site::Part(part) = self.target.frame(frame) else {
-            return passage.frame(frame).map(back);
+            return passage.frame(frame).map(|value| embedding.frame(value));
         };
         match self.origin[part] {
-            Origin::Same(other) => {
-                Some(
-                    self.target
-                        .move_frame(frame, part, &self.source, other as usize),
-                )
-            }
+            Origin::Same(other) => Some(
+                self.target
+                    .shift(part, &self.source, other as usize)
+                    .frame(frame),
+            ),
             Origin::Produced(index) => passage
-                .frame(self.target.move_frame(frame, part, result, index as usize))
-                .map(back),
+                .frame(self.target.shift(part, result, index as usize).frame(frame))
+                .map(|value| embedding.frame(value)),
         }
     }
 }
 
 impl Flat {
-    fn new(flow: Flow) -> Self {
+    pub fn new(flow: Flow) -> Self {
         let world = flow
             .context
             .iter()
-            .map(|set| match set.iter().as_slice() {
-                [single] => encode(*single),
-                _ => None,
-            })
+            .map(|set| single(set).and_then(encode))
             .collect::<Vec<_>>();
         let context = flow
             .context
@@ -252,7 +278,7 @@ impl Flat {
         let count = flow
             .resource
             .iter()
-            .map(|(place, _)| part(*place).1 + 1)
+            .map(|(place, _)| token(*place) + 1)
             .max()
             .unwrap_or(0);
         let mut passage = Self {
@@ -263,14 +289,10 @@ impl Flat {
             context,
         };
         for (place, set) in flow.resource {
-            let single = match set.iter().as_slice() {
-                [single] => Some(*single),
-                _ => None,
-            };
-            let followed = single.filter(|&source| passage.propose(place, source));
-            if followed.is_none() {
-                passage.resource.push((place, set));
+            if single(&set).is_some_and(|source| passage.propose(place, source)) {
+                continue;
             }
+            passage.resource.push((place, set));
         }
         passage
     }
@@ -283,9 +305,13 @@ impl Flat {
     }
 
     fn propose(&mut self, place: Place, source: Place) -> bool {
-        let (_, id) = part(place);
-        let (container, origin) = part(source);
-        if rebuild(place, container, origin) != source || self.container(place) != Some(container) {
+        let ((Place::World(_, id), Place::World(container, origin))
+        | (Place::Context(_, id), Place::Context(container, origin))
+        | (Place::Held(_, id), Place::Held(container, origin))) = (place, source)
+        else {
+            return false;
+        };
+        if self.container(place) != Some(container) {
             return false;
         }
         match decode(self.token[id]) {
@@ -297,57 +323,46 @@ impl Flat {
         }
     }
 
-    pub fn resource(&self, place: Place) -> Set<Place> {
-        if let Ok(position) = self
-            .resource
-            .binary_search_by(|(candidate, _)| candidate.cmp(&place))
-        {
-            return self.resource[position].1.clone();
-        }
+    // The place a kept place came from, through the renamings.
+    fn follow(&self, place: Place) -> Place {
         let container = self
             .container(place)
             .expect("a place the flow keeps has a container");
-        let id = decode(self.token[part(place).1]).expect("a place the flow keeps has a token");
-        Set::single(rebuild(place, container, id))
+        let id = decode(self.token[token(place)]).expect("a place the flow keeps has a token");
+        rebuild(place, container, id)
     }
 
-    pub fn context(&self, world: usize) -> Set<usize> {
-        if let Ok(position) = self
-            .context
-            .binary_search_by(|(candidate, _)| candidate.cmp(&world))
-        {
-            return self.context[position].1.clone();
+    fn resource(&self, place: Place) -> Set<Place> {
+        match lookup(&self.resource, &place) {
+            Some(set) => set.clone(),
+            None => Set::single(self.follow(place)),
         }
-        Set::single(decode(self.world[world]).expect("a world the flow keeps has a source"))
+    }
+
+    fn context(&self, world: usize) -> Set<usize> {
+        match lookup(&self.context, &world) {
+            Some(set) => set.clone(),
+            None => {
+                Set::single(decode(self.world[world]).expect("a world the flow keeps has a source"))
+            }
+        }
+    }
+
+    fn frame(&self, frame: usize) -> Option<usize> {
+        self.frame[frame]
     }
 
     fn place(&self, place: Place) -> Option<Place> {
-        if let Ok(position) = self
-            .resource
-            .binary_search_by(|(candidate, _)| candidate.cmp(&place))
-        {
-            return match self.resource[position].1.iter().as_slice() {
-                [single] => Some(*single),
-                _ => None,
-            };
+        match lookup(&self.resource, &place) {
+            Some(set) => single(set),
+            None => Some(self.follow(place)),
         }
-        let container = self
-            .container(place)
-            .expect("a place the flow keeps has a container");
-        let id = decode(self.token[part(place).1]).expect("a place the flow keeps has a token");
-        Some(rebuild(place, container, id))
     }
 
     fn world(&self, world: usize) -> Option<usize> {
-        if let Ok(position) = self
-            .context
-            .binary_search_by(|(candidate, _)| candidate.cmp(&world))
-        {
-            return match self.context[position].1.iter().as_slice() {
-                [single] => Some(*single),
-                _ => None,
-            };
+        match lookup(&self.context, &world) {
+            Some(set) => single(set),
+            None => Some(decode(self.world[world]).expect("a world the flow keeps has a source")),
         }
-        Some(decode(self.world[world]).expect("a world the flow keeps has a source"))
     }
 }

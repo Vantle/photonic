@@ -1,5 +1,5 @@
 use super::layout::{Layout, Site};
-use super::passage::Passage;
+use super::passage::Flat;
 use super::taxonomy::{Makeup, Taxonomy};
 use crate::basis::Set;
 use crate::flow::Binding;
@@ -26,17 +26,14 @@ pub(super) struct Local {
     pub involved: SmallVec<[usize; 4]>,
 }
 
-pub(super) enum Transition {
-    Whole,
-    Local(Box<Effect>),
-}
-
+// What applying a key to its parts alone made: the root after it, the kinds it produced, sorted, the
+// layouts of the parts before and after, and the passage between them.
 pub(super) struct Effect {
     pub root: u32,
     pub produced: Vec<u32>,
     pub source: Layout,
     pub result: Layout,
-    pub passage: Passage,
+    pub passage: Flat,
 }
 
 pub(super) fn involve(
@@ -89,11 +86,11 @@ pub(super) fn localize(
     };
     let relocate = |value: Place| match layout.site(value) {
         Site::Root => value,
-        Site::Part(part) => layout.move_place(value, part, &sub, position(part)),
+        Site::Part(part) => layout.shift(part, &sub, position(part)).place(value),
     };
-    let shift = |value: usize| match layout.frame(value) {
+    let inside = |value: usize| match layout.frame(value) {
         Site::Root => value,
-        Site::Part(part) => layout.move_frame(value, part, &sub, position(part)),
+        Site::Part(part) => layout.shift(part, &sub, position(part)).frame(value),
     };
     let set = |value: &Set<Place>| {
         value
@@ -107,7 +104,7 @@ pub(super) fn localize(
             .iter()
             .map(|&world| {
                 let part = layout.world(world);
-                layout.move_world(world, part, &sub, position(part))
+                layout.shift(part, &sub, position(part)).world(world)
             })
             .collect(),
         footprint: set(&binding.footprint),
@@ -118,8 +115,8 @@ pub(super) fn localize(
         key: Key {
             root: makeup.root,
             kind,
-            frame: shift(frame),
-            owner: shift(owner),
+            frame: inside(frame),
+            owner: inside(owner),
             rule,
             binding,
         },

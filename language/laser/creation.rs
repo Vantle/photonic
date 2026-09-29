@@ -1,10 +1,10 @@
 use super::firing::{Move, Outcome, Product};
 use super::layout::Layout;
-use super::passage::{Composed, Origin, Passage};
+use super::passage::{Composed, Flat, Origin, Passage};
 use super::space::{self, Found};
 use super::taxonomy::{Makeup, Taxonomy};
-use super::transition::{Effect, Transition};
-use super::{Event, Identity, Laser, Round, map, update};
+use super::transition::Effect;
+use super::{Event, Identity, Laser, Round, build, map, update};
 use crate::executor::Executor;
 use crate::profile;
 use crate::state::State;
@@ -12,12 +12,12 @@ use smallvec::SmallVec;
 use std::sync::Arc;
 
 enum Route {
-    Flat(Passage),
+    Flat(Box<Flat>),
     Composed {
         source: usize,
         origin: Vec<Origin>,
         involved: SmallVec<[usize; 4]>,
-        transition: Arc<Transition>,
+        effect: Arc<Effect>,
     },
 }
 
@@ -40,26 +40,27 @@ enum Settled {
     ),
 }
 
+// A numbered product's makeup, and the passage back to what it was applied to.
+fn realize(taxonomy: &Taxonomy, product: Product, root: u32, kind: &[u32]) -> (Makeup, Flat) {
+    let (makeup, renaming) = taxonomy.assemble(product.draft, root, kind);
+    let extent = taxonomy.extent(&makeup);
+    (makeup, Flat::new(renaming.flow(product.flow, extent)))
+}
+
 fn learn(taxonomy: &Taxonomy, mut value: Box<Move>, root: u32, kind: &[u32]) -> Box<Move> {
-    let Product {
-        draft,
-        flow,
-        original,
-        ..
-    } = value
+    let product = value
         .product
         .take()
-        .expect("a move without its transition applied itself");
-    let (makeup, renaming) = taxonomy.assemble(draft, root, kind, original);
-    let extent = taxonomy.extent(&makeup);
+        .expect("a move without its effect applied itself");
+    let (makeup, passage) = realize(taxonomy, product, root, kind);
     let key = &value.local.key;
-    value.known = Some(Arc::new(Transition::Local(Box::new(Effect {
+    value.known = Some(Arc::new(Effect {
         root: makeup.root,
         source: Layout::of(taxonomy, key.root, &key.kind),
         result: Layout::new(taxonomy, &makeup),
-        passage: Passage::new(renaming.flow(flow, extent.0, extent.1)),
+        passage,
         produced: makeup.kind,
-    }))));
+    }));
     value
 }
 
@@ -134,15 +135,13 @@ impl Laser {
         for (outcome, _) in &mut learned {
             match outcome {
                 Outcome::Move(value) => {
-                    let found = value.known.take().expect("a move knows its transition");
+                    let found = value.known.take().expect("a move knows its effect");
                     let key = value.local.key.clone();
                     value.known = Some(self.memo.entry(key).or_insert(found).clone());
                 }
                 Outcome::Product(product) => {
                     if let Some(key) = product.whole.take() {
-                        self.memo
-                            .entry(key)
-                            .or_insert_with(|| Arc::new(Transition::Whole));
+                        self.whole.insert(key);
                     }
                 }
                 Outcome::Blocked => {}
@@ -160,27 +159,16 @@ impl Laser {
             |((outcome, number), source)| match outcome {
                 Outcome::Product(product) => {
                     let (root, kind) = number.expect("a product is numbered");
-                    let Product {
-                        draft,
-                        flow,
-                        original,
-                        ..
-                    } = *product;
-                    let (makeup, renaming) = taxonomy.assemble(draft, root, &kind, original);
-                    let extent = taxonomy.extent(&makeup);
-                    let passage = Passage::new(renaming.flow(flow, extent.0, extent.1));
+                    let (makeup, passage) = realize(taxonomy, *product, root, &kind);
                     Some(Named {
                         hash: space::hash(&makeup),
                         makeup,
-                        route: Route::Flat(passage),
+                        route: Route::Flat(Box::new(passage)),
                     })
                 }
                 Outcome::Move(value) => {
                     let Move { local, known, .. } = *value;
-                    let transition = known.expect("a move knows its transition");
-                    let Transition::Local(effect) = &*transition else {
-                        unreachable!("a move holds a local transition")
-                    };
+                    let effect = known.expect("a move knows its effect");
                     let (makeup, origin) = merge(
                         &makeup[source],
                         &local.involved,
@@ -198,7 +186,7 @@ impl Laser {
                             source,
                             origin,
                             involved: local.involved,
-                            transition,
+                            effect,
                         },
                     })
                 }
@@ -228,10 +216,7 @@ impl Laser {
                 Settled::Repeat(earlier, Box::new(named.route))
             }
             (Some(named), Some(Found::New)) => {
-                let state = Arc::new(taxonomy.materialize(&named.makeup));
-                let layout = taxonomy
-                    .split(&named.makeup)
-                    .then(|| Arc::new(Layout::new(taxonomy, &named.makeup)));
+                let (state, layout) = build(taxonomy, &named.makeup);
                 Settled::New(
                     named.hash,
                     Arc::new(named.makeup),
@@ -277,12 +262,12 @@ impl Laser {
             let event = self.event.len();
             self.crossed.push(Vec::new());
             let passage = match *route {
-                Route::Flat(passage) => passage,
+                Route::Flat(flat) => Passage::Flat(flat),
                 Route::Composed {
                     source,
                     origin,
                     involved,
-                    transition,
+                    effect,
                 } => Passage::Composed(Composed {
                     source: self.layout[source]
                         .clone()
@@ -290,7 +275,7 @@ impl Laser {
                     target: self.layout[resolved].clone().expect("a move ends at a hub"),
                     origin: origin.into_boxed_slice(),
                     involved,
-                    transition,
+                    effect,
                 }),
             };
             self.passage.push(passage);

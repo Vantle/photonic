@@ -45,12 +45,12 @@ use memo::Memo;
 use passage::Passage;
 use pool::Pool;
 use space::Space;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::num::NonZeroU32;
 use std::sync::Arc;
 use taxonomy::{Makeup, Taxonomy};
 use trace::Trace;
-use transition::{Key, Transition};
+use transition::{Effect, Key};
 
 const CHUNK: usize = 256;
 
@@ -129,7 +129,8 @@ pub struct Laser {
     makeup: Vec<Arc<Makeup>>,
     layout: Vec<Option<Arc<Layout>>>,
     taxonomy: Taxonomy,
-    memo: HashMap<Key, Arc<Transition>, Builder>,
+    memo: HashMap<Key, Arc<Effect>, Builder>,
+    whole: HashSet<Key, Builder>,
     space: Space,
     event: Vec<Event>,
     identity: Vec<IndexMap<Identity, usize, Builder>>,
@@ -154,6 +155,15 @@ pub struct Laser {
     plain: bool,
     independence: Option<Independence>,
     peak: usize,
+}
+
+// A configuration made from its makeup, with the layout of its parts when it is split into them.
+fn build(taxonomy: &Taxonomy, makeup: &Makeup) -> (Arc<State>, Option<Arc<Layout>>) {
+    let state = Arc::new(taxonomy.materialize(makeup));
+    let layout = taxonomy
+        .split(makeup)
+        .then(|| Arc::new(Layout::new(taxonomy, makeup)));
+    (state, layout)
 }
 
 // Changes some of a list of tables in parallel: each named table is taken out, changed with its
@@ -218,6 +228,7 @@ impl Laser {
             layout: Vec::new(),
             taxonomy: Taxonomy::default(),
             memo: HashMap::default(),
+            whole: HashSet::default(),
             space: Space::default(),
             event: Vec::new(),
             identity: Vec::new(),
@@ -244,14 +255,10 @@ impl Laser {
             peak: 0,
         };
         let draft = laser.taxonomy.analyze(&initial);
-        let (root, kind) = laser.taxonomy.intern(&draft);
-        let original = (initial.world.len(), initial.frame.len());
-        let (makeup, _) = laser.taxonomy.assemble(draft, root, &kind, original);
-        let state = Arc::new(laser.taxonomy.materialize(&makeup));
-        let layout = laser
-            .taxonomy
-            .split(&makeup)
-            .then(|| Arc::new(Layout::new(&laser.taxonomy, &makeup)));
+        let (root, mut kind) = laser.taxonomy.intern(&draft);
+        kind.sort_unstable();
+        let makeup = Makeup { root, kind };
+        let (state, layout) = build(&laser.taxonomy, &makeup);
         let makeup = Arc::new(makeup);
         let index = laser.push(state, makeup.clone(), layout);
         laser
@@ -373,6 +380,7 @@ impl Laser {
         self.pool = Pool::default();
         self.environment = Memo::default();
         self.memo = HashMap::default();
+        self.whole = HashSet::default();
     }
 
     // A record is a configuration, an event or a trace, the parts that grow with exploration;

@@ -2,6 +2,7 @@ use super::capture::{self, Capture};
 use super::passage::Passage;
 use super::pool::{Demand, Pool};
 use super::scan::Match;
+use crate::application::Owner;
 use crate::basis::Set;
 use crate::flow::Binding;
 use crate::place::Place;
@@ -116,10 +117,16 @@ impl Trace {
         self
     }
 
-    pub fn current(&self) -> Option<usize> {
-        self.capture
-            .as_ref()
-            .map_or(Some(0), |capture| capture.current)
+    // Where the trace's rule lives: a frame of its configuration, or a capture no longer there,
+    // whose environment the rule applies through.
+    pub fn owner(&self) -> Owner<&Capture> {
+        let Some(capture) = &self.capture else {
+            return Owner::Frame(0);
+        };
+        match capture.current {
+            Some(frame) => Owner::Frame(frame),
+            None => Owner::Capture(capture.as_ref()),
+        }
     }
 
     pub fn binding(&self, state: &State, pool: &Pool) -> Option<Binding> {
