@@ -97,8 +97,7 @@ impl Engine {
             &work.total,
             WINDOW,
             &work.level,
-        );
-        Ok(())
+        )
     }
 
     // Encodes the count of a window's successors, flagging markings the host must look at, and
@@ -127,7 +126,7 @@ impl Engine {
             &setting.byte(),
             [size, 1, 1],
             self.count.group([size, 1, 1]),
-        );
+        )?;
         self.sum(command, &search.work, size)
     }
 
@@ -170,7 +169,7 @@ impl Engine {
                 search.work.summary.edit::<u32>()[FLAGGED] = 0;
                 let setting = Self::alone(search, first, size);
                 let mut command = self.device.command()?;
-                command.reach(&search.store.arena.segment.iter().collect::<Vec<_>>());
+                command.reach(&search.store.arena.segment);
                 self.census(&mut command, search, &setting)?;
                 command.run()?;
             }

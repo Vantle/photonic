@@ -142,7 +142,7 @@ impl Engine {
             ..Self::alone(search, first, size)
         });
         let mut command = self.device.command()?;
-        command.reach(&search.store.arena.segment.iter().collect::<Vec<_>>());
+        command.reach(&search.store.arena.segment);
         if let Some(old) = &offset {
             command.copy::<u64>(old, &search.store.offset.memory, search.store.count)?;
         }
@@ -172,7 +172,7 @@ impl Engine {
             &setting.byte(),
             [group * width, 1, 1],
             [width, 1, 1],
-        );
+        )?;
         command.dispatch(
             &self.insert,
             &[
@@ -191,7 +191,7 @@ impl Engine {
             &decide.byte(),
             [count, 1, 1],
             self.insert.group([count, 1, 1]),
-        );
+        )?;
         command.dispatch(
             &self.tally,
             &[
@@ -208,7 +208,7 @@ impl Engine {
             &decide.byte(),
             [block * span, 1, 1],
             [span, 1, 1],
-        );
+        )?;
         self.scan.encode(
             &mut command,
             &work.block.memory,
@@ -216,7 +216,7 @@ impl Engine {
             &work.total,
             WINNER,
             &work.level,
-        );
+        )?;
         if allowed < count {
             let bound = Setting {
                 count: saturate(block),
@@ -229,7 +229,7 @@ impl Engine {
                 &bound.byte(),
                 [block + 1, 1, 1],
                 self.bound.group([block + 1, 1, 1]),
-            );
+            )?;
         }
         self.settle(
             &mut command,
@@ -258,7 +258,7 @@ impl Engine {
                 ..decide
             };
             let mut command = self.device.command()?;
-            command.reach(&search.store.arena.segment.iter().collect::<Vec<_>>());
+            command.reach(&search.store.arena.segment);
             self.settle(&mut command, search, &decide, later)?;
             command.run()?;
         } else {
@@ -325,7 +325,7 @@ impl Engine {
             &decide.byte(),
             [block * span, 1, 1],
             [span, 1, 1],
-        );
+        )?;
         command.dispatch(
             &self.point,
             &[
@@ -338,7 +338,7 @@ impl Engine {
             &decide.byte(),
             [count, 1, 1],
             self.point.group([count, 1, 1]),
-        );
+        )?;
         if decide.allowed < decide.count {
             command.dispatch(
                 &self.weigh,
@@ -352,7 +352,7 @@ impl Engine {
                 &decide.byte(),
                 [block * span, 1, 1],
                 [span, 1, 1],
-            );
+            )?;
         }
         if let Some(setting) = later {
             self.census(command, search, &setting)?;

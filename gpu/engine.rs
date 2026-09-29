@@ -237,7 +237,7 @@ impl Engine {
             &delta,
             &adam.gradient,
         )?;
-        self.update(&mut command, adam);
+        self.update(&mut command, adam)?;
         command.run()?;
         adam.step += 1;
         self.training = Some((trace, delta));
@@ -261,7 +261,7 @@ impl Engine {
                 usize::from(layer.accumulate),
             ],
             [weight.column, layer.row, 1],
-        );
+        )?;
         Ok(command.multiply(Product {
             left: operand(layer.input, 0, layer.row, weight.row, false),
             right: operand(
@@ -302,7 +302,7 @@ impl Engine {
         stage: &'memory Stage,
         row: usize,
         store: bool,
-    ) {
+    ) -> Result<(), Failure> {
         dispatch(
             command,
             &self.pipeline.norm,
@@ -321,7 +321,7 @@ impl Engine {
                 usize::from(store),
             ],
             [row, 1, 1],
-        );
+        )
     }
 
     fn forward<'memory>(
@@ -340,7 +340,7 @@ impl Engine {
             &[&batch.feature, &self.parameter, &self.table, &trace.state],
             &[token, width, configuration.field.len()],
             [width, token, 1],
-        );
+        )?;
         for (index, block) in self.model.block().iter().enumerate() {
             let record = if store {
                 &trace.record[index]
@@ -354,7 +354,7 @@ impl Engine {
                 &record.first,
                 token,
                 store,
-            );
+            )?;
             self.linear(
                 command,
                 Layer {
@@ -376,7 +376,7 @@ impl Engine {
                 ],
                 &[width, configuration.head, usize::from(store)],
                 [batch.tile, configuration.head],
-            );
+            )?;
             self.linear(
                 command,
                 Layer {
@@ -394,7 +394,7 @@ impl Engine {
                 &record.second,
                 token,
                 store,
-            );
+            )?;
             self.linear(
                 command,
                 Layer {
@@ -411,7 +411,7 @@ impl Engine {
                 &[&record.activation, &record.hidden],
                 &[token * hidden],
                 [token * hidden, 1, 1],
-            );
+            )?;
             self.linear(
                 command,
                 Layer {
@@ -430,7 +430,7 @@ impl Engine {
             &trace.last,
             token,
             store,
-        );
+        )?;
         let head = self.model.head();
         dispatch(
             command,
@@ -438,7 +438,7 @@ impl Engine {
             &[&trace.last.output, &batch.summary, &trace.summary],
             &[sample, width],
             [width, sample, 1],
-        );
+        )?;
         self.linear(
             command,
             Layer {
@@ -455,7 +455,7 @@ impl Engine {
             &[&trace.before, &trace.after],
             &[sample * width],
             [sample * width, 1, 1],
-        );
+        )?;
         self.linear(
             command,
             Layer {
@@ -505,8 +505,7 @@ impl Engine {
                 configuration.binary * configuration.key,
             ],
             [batch.extent.pointer, 1, 1],
-        );
-        Ok(())
+        )
     }
 
     fn clear<'memory>(
@@ -514,14 +513,14 @@ impl Engine {
         command: &mut Command<'memory>,
         memory: &'memory Memory,
         count: usize,
-    ) {
+    ) -> Result<(), Failure> {
         dispatch(
             command,
             &self.pipeline.clear,
             &[memory],
             &[count],
             [count, 1, 1],
-        );
+        )
     }
 
     fn weight<'memory>(
@@ -547,8 +546,7 @@ impl Engine {
             &[change, gradient],
             &[row, span.column, linear.bias.start, BLOCK],
             [span.column, row.div_ceil(BLOCK), 1],
-        );
-        Ok(())
+        )
     }
 
     fn back<'memory>(
@@ -577,7 +575,7 @@ impl Engine {
         delta: &'memory Delta,
         gradient: &'memory Memory,
         row: usize,
-    ) {
+    ) -> Result<(), Failure> {
         let width = self.model.configuration().width;
         dispatch(
             command,
@@ -585,7 +583,7 @@ impl Engine {
             &[&delta.normal, &stage.normal, gradient],
             &[row, width, norm.scale.start, norm.shift.start, BLOCK],
             [width, row.div_ceil(BLOCK), 1],
-        );
+        )?;
         dispatch(
             command,
             &self.pipeline.unnorm,
@@ -598,7 +596,7 @@ impl Engine {
             ],
             &[row, width, norm.scale.start, 1],
             [row, 1, 1],
-        );
+        )
     }
 
     fn backward<'memory>(
@@ -615,12 +613,12 @@ impl Engine {
         let (width, hidden) = (configuration.width, configuration.hidden);
         let stride = configuration.binary * configuration.key;
         let head = self.model.head();
-        self.clear(command, gradient, self.model.size());
-        self.clear(command, &delta.choice, token * configuration.unary);
-        self.clear(command, &delta.query, token * stride);
-        self.clear(command, &delta.key, token * stride);
-        self.clear(command, &delta.normal, token * width);
-        self.clear(command, &delta.state, token * width);
+        self.clear(command, gradient, self.model.size())?;
+        self.clear(command, &delta.choice, token * configuration.unary)?;
+        self.clear(command, &delta.query, token * stride)?;
+        self.clear(command, &delta.key, token * stride)?;
+        self.clear(command, &delta.normal, token * width)?;
+        self.clear(command, &delta.state, token * width)?;
         dispatch(
             command,
             &self.pipeline.unpoint,
@@ -640,7 +638,7 @@ impl Engine {
                 stride,
             ],
             [batch.extent.pointer, 1, 1],
-        );
+        )?;
         self.weight(
             command,
             gradient,
@@ -679,7 +677,7 @@ impl Engine {
             &[&delta.before, &trace.before],
             &[sample * width],
             [sample * width, 1, 1],
-        );
+        )?;
         self.weight(
             command,
             gradient,
@@ -702,7 +700,7 @@ impl Engine {
             &[&delta.summary, &batch.summary, &delta.normal],
             &[sample, width],
             [width, sample, 1],
-        );
+        )?;
         self.weight(
             command,
             gradient,
@@ -736,7 +734,7 @@ impl Engine {
             delta,
             gradient,
             token,
-        );
+        )?;
         for (block, record) in self.model.block().iter().zip(&trace.record).rev() {
             self.weight(
                 command,
@@ -760,7 +758,7 @@ impl Engine {
                 &[&delta.hidden, &record.activation],
                 &[token * hidden],
                 [token * hidden, 1, 1],
-            );
+            )?;
             self.weight(
                 command,
                 gradient,
@@ -784,7 +782,7 @@ impl Engine {
                 delta,
                 gradient,
                 token,
-            );
+            )?;
             self.weight(
                 command,
                 gradient,
@@ -815,7 +813,7 @@ impl Engine {
                 ],
                 &[width, configuration.head],
                 [batch.tile, configuration.head],
-            );
+            )?;
             tiled(
                 command,
                 &self.pipeline.release,
@@ -829,7 +827,7 @@ impl Engine {
                 ],
                 &[width, configuration.head],
                 [batch.tile, configuration.head],
-            );
+            )?;
             self.weight(
                 command,
                 gradient,
@@ -846,7 +844,7 @@ impl Engine {
                 &delta.normal,
                 false,
             )?;
-            self.unnorm(command, &block.first, &record.first, delta, gradient, token);
+            self.unnorm(command, &block.first, &record.first, delta, gradient, token)?;
         }
         dispatch(
             command,
@@ -860,20 +858,23 @@ impl Engine {
             ],
             &[width, occurrence.count],
             [width, occurrence.count, 1],
-        );
-        Ok(())
+        )
     }
 
-    fn update<'memory>(&'memory self, command: &mut Command<'memory>, adam: &'memory Adam) {
+    fn update<'memory>(
+        &'memory self,
+        command: &mut Command<'memory>,
+        adam: &'memory Adam,
+    ) -> Result<(), Failure> {
         let size = self.model.size();
-        self.clear(command, &adam.total, 1);
+        self.clear(command, &adam.total, 1)?;
         dispatch(
             command,
             &self.pipeline.square,
             &[&adam.gradient, &adam.total],
             &[size],
             [size, 1, 1],
-        );
+        )?;
         dispatch(
             command,
             &self.pipeline.adam,
@@ -888,6 +889,6 @@ impl Engine {
             ],
             &[size],
             [size, 1, 1],
-        );
+        )
     }
 }

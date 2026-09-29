@@ -56,7 +56,7 @@ impl Scan {
         total: &'device Memory,
         slot: usize,
         level: &'device [Grow<u64>],
-    ) {
+    ) -> Result<(), Failure> {
         if count <= self.tile() {
             let span = Span {
                 count: saturate(count),
@@ -69,8 +69,8 @@ impl Scan {
                 &span.byte(),
                 [self.width, 1, 1],
                 [self.width, 1, 1],
-            );
-            return;
+            )?;
+            return Ok(());
         }
         let group = count.div_ceil(self.tile());
         let partial = &level[0].memory;
@@ -85,14 +85,15 @@ impl Scan {
             &span.byte(),
             [group * self.width, 1, 1],
             [self.width, 1, 1],
-        );
-        self.encode(command, partial, group, total, slot, &level[1..]);
+        )?;
+        self.encode(command, partial, group, total, slot, &level[1..])?;
         command.dispatch(
             &self.spread,
             &[value, partial, total],
             &span.byte(),
             [group * self.width, 1, 1],
             [self.width, 1, 1],
-        );
+        )?;
+        Ok(())
     }
 }

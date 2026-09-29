@@ -281,7 +281,6 @@ impl Device {
             encoder: None,
             retained: Vec::new(),
             reached: Vec::new(),
-            borrow: PhantomData,
             local: PhantomData,
         })
     }
@@ -362,7 +361,6 @@ pub struct Command<'device> {
     encoder: Option<Handle>,
     retained: Vec<Handle>,
     reached: Vec<Object>,
-    borrow: PhantomData<&'device Memory>,
     local: PhantomData<*const ()>,
 }
 
@@ -373,16 +371,17 @@ impl Drop for Command<'_> {
 }
 
 impl<'device> Command<'device> {
-    fn encoder(&mut self) -> Object {
+    fn encoder(&mut self) -> Result<Object, Failure> {
         if let Some(encoder) = &self.encoder {
-            return encoder.0;
+            return Ok(encoder.0);
         }
         let _pool = Pool::new();
-        let encoder = Handle::retain(send!(self.buffer.0, c"computeCommandEncoder"; Object));
-        let id = encoder.as_ref().map_or(Object::NONE, |encoder| encoder.0);
-        self.encoder = encoder;
+        let encoder = Handle::retain(send!(self.buffer.0, c"computeCommandEncoder"; Object))
+            .ok_or_else(|| Failure::Execution("no compute encoder".to_owned()))?;
+        let id = encoder.0;
         Self::resident(id, &self.reached);
-        id
+        self.encoder = Some(encoder);
+        Ok(id)
     }
 
     fn resident(encoder: Object, memory: &[Object]) {
@@ -401,9 +400,9 @@ impl<'device> Command<'device> {
 
     // Lets every dispatch encoded after this read and write memories that kernels reach through
     // device addresses rather than bindings.
-    pub fn reach(&mut self, memory: &[&'device Memory]) {
+    pub fn reach(&mut self, memory: impl IntoIterator<Item = &'device Memory>) {
         let object = memory
-            .iter()
+            .into_iter()
             .map(|entry| entry.handle.0)
             .collect::<Vec<_>>();
         if let Some(encoder) = &self.encoder {
@@ -425,11 +424,11 @@ impl<'device> Command<'device> {
         constant: &[u8],
         thread: [usize; 3],
         group: [usize; 3],
-    ) {
+    ) -> Result<(), Failure> {
         if thread.contains(&0) {
-            return;
+            return Ok(());
         }
-        let encoder = self.encoder();
+        let encoder = self.encoder()?;
         send!(encoder, c"setComputePipelineState:", kernel.handle.0 => Object; ());
         for (index, entry) in memory.iter().enumerate() {
             send!(
@@ -463,6 +462,7 @@ impl<'device> Command<'device> {
             size(group) => Size;
             ()
         );
+        Ok(())
     }
 
     fn matrix(operand: &Operand<'_>) -> Option<Handle> {
@@ -539,12 +539,16 @@ impl<'device> Command<'device> {
         Ok(())
     }
 
-    // Blit commands run in their own encoder, after every dispatch before them and before every
-    // dispatch after them.
-    fn blit(&mut self) -> Result<Handle, Failure> {
+    // Encodes a blit command in an encoder of its own, so it runs after every dispatch before it
+    // and before every dispatch after it.
+    fn blit(&mut self, encode: impl FnOnce(Object)) -> Result<(), Failure> {
+        let _pool = Pool::new();
         self.close();
-        Handle::retain(send!(self.buffer.0, c"blitCommandEncoder"; Object))
-            .ok_or_else(|| Failure::Execution("no blit encoder".to_owned()))
+        let encoder = Handle::retain(send!(self.buffer.0, c"blitCommandEncoder"; Object))
+            .ok_or_else(|| Failure::Execution("no blit encoder".to_owned()))?;
+        encode(encoder.0);
+        send!(encoder.0, c"endEncoding"; ());
+        Ok(())
     }
 
     // Copies the first count elements of one memory to the start of another.
@@ -561,20 +565,18 @@ impl<'device> Command<'device> {
         if length == 0 {
             return Ok(());
         }
-        let _pool = Pool::new();
-        let encoder = self.blit()?;
-        send!(
-            encoder.0,
-            c"copyFromBuffer:sourceOffset:toBuffer:destinationOffset:size:",
-            source.handle.0 => Object,
-            0 => u64,
-            target.handle.0 => Object,
-            0 => u64,
-            length as u64 => u64;
-            ()
-        );
-        send!(encoder.0, c"endEncoding"; ());
-        Ok(())
+        self.blit(|encoder| {
+            send!(
+                encoder,
+                c"copyFromBuffer:sourceOffset:toBuffer:destinationOffset:size:",
+                source.handle.0 => Object,
+                0 => u64,
+                target.handle.0 => Object,
+                0 => u64,
+                length as u64 => u64;
+                ()
+            );
+        })
     }
 
     // Sets every byte of a memory to zero on the device.
@@ -582,21 +584,19 @@ impl<'device> Command<'device> {
         if memory.length == 0 {
             return Ok(());
         }
-        let _pool = Pool::new();
-        let encoder = self.blit()?;
-        send!(
-            encoder.0,
-            c"fillBuffer:range:value:",
-            memory.handle.0 => Object,
-            Range {
-                location: 0,
-                length: memory.length as u64,
-            } => Range,
-            0 => u8;
-            ()
-        );
-        send!(encoder.0, c"endEncoding"; ());
-        Ok(())
+        self.blit(|encoder| {
+            send!(
+                encoder,
+                c"fillBuffer:range:value:",
+                memory.handle.0 => Object,
+                Range {
+                    location: 0,
+                    length: memory.length as u64,
+                } => Range,
+                0 => u8;
+                ()
+            );
+        })
     }
 
     pub fn run(mut self) -> Result<(), Failure> {

@@ -160,8 +160,10 @@ fn reach() {
     let table = device.upload(&[first.address(), second.address()]).unwrap();
     let mut out = device.memory::<u32>(16).unwrap();
     let mut command = device.command().unwrap();
-    command.reach(&[&first, &second]);
-    command.dispatch(&kernel, &[&table, &out], &[], [16, 1, 1], [16, 1, 1]);
+    command.reach([&first, &second]);
+    command
+        .dispatch(&kernel, &[&table, &out], &[], [16, 1, 1], [16, 1, 1])
+        .unwrap();
     command.run().unwrap();
     let expected = (0..16u32)
         .map(|index| {

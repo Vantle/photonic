@@ -174,7 +174,7 @@ impl Engine {
             &setting.byte(),
             [store.count, 1, 1],
             self.rehash.group([store.count, 1, 1]),
-        );
+        )?;
         Ok(())
     }
 }

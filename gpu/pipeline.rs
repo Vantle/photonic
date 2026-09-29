@@ -69,14 +69,14 @@ pub fn dispatch<'memory>(
     memory: &[&'memory Memory],
     shape: &[usize],
     thread: [usize; 3],
-) {
-    command.dispatch(
+) -> Result<(), Failure> {
+    Ok(command.dispatch(
         kernel,
         memory,
         &constant(shape),
         thread,
         kernel.group(thread),
-    );
+    )?)
 }
 
 pub fn tiled<'memory>(
@@ -85,12 +85,12 @@ pub fn tiled<'memory>(
     memory: &[&'memory Memory],
     shape: &[usize],
     tile: [usize; 2],
-) {
-    command.dispatch(
+) -> Result<(), Failure> {
+    Ok(command.dispatch(
         kernel,
         memory,
         &constant(shape),
         [tile[0] * TILE, tile[1], 1],
         [TILE, 1, 1],
-    );
+    )?)
 }
