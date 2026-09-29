@@ -1,4 +1,4 @@
-use crate::verb::Disk;
+use crate::disk::Disk;
 use miette::IntoDiagnostic;
 use serde_json::{Map, Value, json};
 use spectrum::context::Context;

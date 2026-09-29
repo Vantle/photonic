@@ -1,7 +1,8 @@
 use clap::{Args, Parser, Subcommand};
 use spectrum::recording::Engine;
+use spectrum::subject::Subject;
 use std::num::NonZeroUsize;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[derive(Parser)]
 #[command(version, about = "Photonic language tools")]
@@ -64,6 +65,20 @@ pub struct Source {
     pub source: Option<String>,
 }
 
+fn text(path: &Path) -> String {
+    path.to_string_lossy().into_owned()
+}
+
+impl Source {
+    pub fn subject(&self, file: &[PathBuf]) -> Subject {
+        Subject {
+            file: file.iter().map(|path| text(path)).collect(),
+            source: self.source.clone(),
+            library: self.library.iter().map(|path| text(path)).collect(),
+        }
+    }
+}
+
 #[derive(Args)]
 pub struct Budget {
     #[arg(long, default_value_t = spectrum::budget::Budget::default().work, help = "Work steps before the search stops")]
@@ -114,6 +129,18 @@ pub struct Search {
         help = "The engine: interpreter or laser record every event of every future; with --plain, laser records every plain schedule, and metal explores them at GPU scale through the program's net of parts, keeping only counts, ends and cycles, so it answers explore and check alone"
     )]
     pub engine: Option<Engine>,
+}
+
+// The flags every question's recording takes beside its files, grouped so that each verb lists
+// them alike and hands them on as one.
+#[derive(Args)]
+pub struct Recording {
+    #[command(flatten)]
+    pub source: Source,
+    #[command(flatten)]
+    pub budget: Budget,
+    #[command(flatten)]
+    pub search: Search,
 }
 
 #[derive(Args)]
@@ -213,11 +240,7 @@ pub struct Check {
     #[arg(help = "Program files: .wave or .particle source, or .json programs assembled by Bazel")]
     pub file: Vec<PathBuf>,
     #[command(flatten)]
-    pub source: Source,
-    #[command(flatten)]
-    pub budget: Budget,
-    #[command(flatten)]
-    pub search: Search,
+    pub recording: Recording,
     #[arg(
         long,
         help = "In path mode, the complete configuration the path stops at"
@@ -234,11 +257,7 @@ pub struct Explore {
     #[arg(help = "Program files: .wave or .particle source, or .json programs assembled by Bazel")]
     pub file: Vec<PathBuf>,
     #[command(flatten)]
-    pub source: Source,
-    #[command(flatten)]
-    pub budget: Budget,
-    #[command(flatten)]
-    pub search: Search,
+    pub recording: Recording,
     #[arg(
         long,
         help = "In path mode, the complete configuration the path stops at"
@@ -266,11 +285,7 @@ pub struct Select {
     #[arg(long, default_value_t = 0, help = "Matches skipped")]
     pub offset: usize,
     #[command(flatten)]
-    pub source: Source,
-    #[command(flatten)]
-    pub budget: Budget,
-    #[command(flatten)]
-    pub search: Search,
+    pub recording: Recording,
     #[command(flatten)]
     pub print: Print,
 }
@@ -283,11 +298,7 @@ pub struct Pointer {
     )]
     pub argument: Vec<String>,
     #[command(flatten)]
-    pub source: Source,
-    #[command(flatten)]
-    pub budget: Budget,
-    #[command(flatten)]
-    pub search: Search,
+    pub recording: Recording,
     #[command(flatten)]
     pub print: Print,
 }
@@ -317,11 +328,7 @@ pub struct Miss {
     #[arg(long, default_value_t = spectrum::miss::LIMIT, help = "Configurations listed")]
     pub limit: usize,
     #[command(flatten)]
-    pub source: Source,
-    #[command(flatten)]
-    pub budget: Budget,
-    #[command(flatten)]
-    pub search: Search,
+    pub recording: Recording,
     #[command(flatten)]
     pub print: Print,
 }
@@ -335,11 +342,7 @@ pub struct Compare {
     #[arg(long, default_value_t = spectrum::compare::LIMIT, help = "Differences listed on each side")]
     pub limit: usize,
     #[command(flatten)]
-    pub source: Source,
-    #[command(flatten)]
-    pub budget: Budget,
-    #[command(flatten)]
-    pub search: Search,
+    pub recording: Recording,
     #[command(flatten)]
     pub claim: Claim,
     #[command(flatten)]

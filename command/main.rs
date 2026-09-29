@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 
 mod argument;
+mod disk;
 mod engine;
 mod output;
 mod server;

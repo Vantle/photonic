@@ -1,4 +1,5 @@
-use crate::argument;
+use crate::disk::Disk;
+use crate::{argument, output};
 use miette::IntoDiagnostic;
 use spectrum::claim::{Claim, Kind};
 use spectrum::context::Context;
@@ -7,52 +8,22 @@ use spectrum::handle::Handle;
 use spectrum::recording::{Goal, Mode, Recording};
 use spectrum::request::{self, Answer, Request};
 use spectrum::store::Store;
-use spectrum::subject::{Reader, Subject};
 use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::ExitCode;
 
-pub struct Disk;
-
-impl Reader for Disk {
-    fn read(&self, path: &str) -> Result<String, Failure> {
-        let failure = |error: std::io::Error| Failure::new(Code::File, format!("{path}: {error}"));
-        if !std::fs::metadata(path).map_err(failure)?.is_file() {
-            return Err(Failure::new(Code::File, format!("{path}: not a file")));
-        }
-        std::fs::read_to_string(path).map_err(failure)
-    }
-}
-
-fn text(path: &Path) -> String {
-    path.to_string_lossy().into_owned()
-}
-
-pub fn subject(file: &[PathBuf], source: &argument::Source) -> Subject {
-    Subject {
-        file: file.iter().map(|path| text(path)).collect(),
-        source: source.source.clone(),
-        library: source.library.iter().map(|path| text(path)).collect(),
-    }
-}
-
-fn recording(
-    program: Subject,
-    budget: &argument::Budget,
-    search: &argument::Search,
-    goal: Option<Goal>,
-) -> Recording {
-    let mode = match (search.path, search.plain) {
+fn recording(file: &[PathBuf], flag: &argument::Recording, goal: Option<Goal>) -> Recording {
+    let mode = match (flag.search.path, flag.search.plain) {
         (true, _) => Mode::Path,
         (false, true) => Mode::Plain,
         (false, false) => Mode::Exhaustive,
     };
     Recording {
-        program: Some(program),
+        program: Some(flag.source.subject(file)),
         exploration: None,
         mode: Some(mode),
-        engine: search.engine,
-        budget: Some(budget.into()),
+        engine: flag.search.engine,
+        budget: Some((&flag.budget).into()),
         goal,
     }
 }
@@ -94,16 +65,6 @@ fn split(argument: &[String]) -> (Vec<PathBuf>, Option<String>) {
     }
 }
 
-pub fn fail(failure: &Failure) -> miette::Result<ExitCode> {
-    writeln!(
-        std::io::stderr().lock(),
-        "error[{}]: {failure}",
-        failure.code
-    )
-    .into_diagnostic()?;
-    Ok(ExitCode::FAILURE)
-}
-
 fn report(verb: &str, result: &Result<Answer, Failure>, json: bool) -> miette::Result<ExitCode> {
     let code = if result.as_ref().is_ok_and(Answer::passed) {
         ExitCode::SUCCESS
@@ -120,7 +81,7 @@ fn report(verb: &str, result: &Result<Answer, Failure>, json: bool) -> miette::R
             writeln!(std::io::stdout().lock(), "{}", answer.text()).into_diagnostic()?;
             Ok(code)
         }
-        Err(failure) => fail(failure),
+        Err(failure) => output::fail(failure),
     }
 }
 
@@ -139,12 +100,7 @@ fn pointer(
     build: impl FnOnce(Recording, String) -> Request,
 ) -> miette::Result<ExitCode> {
     let (file, handle) = split(&pointer.argument);
-    let recording = recording(
-        subject(&file, &pointer.source),
-        &pointer.budget,
-        &pointer.search,
-        None,
-    );
+    let recording = recording(&file, &pointer.recording, None);
     let Some(handle) = handle else {
         let failure = Failure::new(
             Code::Handle,
@@ -158,9 +114,8 @@ fn pointer(
 pub fn check(check: argument::Check) -> miette::Result<ExitCode> {
     let request = Request::Check(spectrum::check::Request {
         recording: recording(
-            subject(&check.file, &check.source),
-            &check.budget,
-            &check.search,
+            &check.file,
+            &check.recording,
             goal(check.goal, check.claim.preserve),
         ),
         claim: claim(&check.claim),
@@ -171,9 +126,8 @@ pub fn check(check: argument::Check) -> miette::Result<ExitCode> {
 pub fn explore(explore: argument::Explore) -> miette::Result<ExitCode> {
     let request = Request::Explore(spectrum::explore::Request {
         recording: recording(
-            subject(&explore.file, &explore.source),
-            &explore.budget,
-            &explore.search,
+            &explore.file,
+            &explore.recording,
             goal(explore.goal, explore.preserve),
         ),
         limit: explore.limit,
@@ -183,12 +137,7 @@ pub fn explore(explore: argument::Explore) -> miette::Result<ExitCode> {
 
 pub fn select(select: argument::Select) -> miette::Result<ExitCode> {
     let request = Request::Select(spectrum::select::Request {
-        recording: recording(
-            subject(&select.file, &select.source),
-            &select.budget,
-            &select.search,
-            None,
-        ),
+        recording: recording(&select.file, &select.recording, None),
         pattern: select.pattern,
         limit: select.limit,
         offset: select.offset,
@@ -211,12 +160,7 @@ pub fn cause(argument: argument::Pointer) -> miette::Result<ExitCode> {
 pub fn step(pointer: argument::Pointer) -> miette::Result<ExitCode> {
     let (file, handle) = split(&pointer.argument);
     let request = Request::Step(spectrum::step::Request {
-        recording: recording(
-            subject(&file, &pointer.source),
-            &pointer.budget,
-            &pointer.search,
-            None,
-        ),
+        recording: recording(&file, &pointer.recording, None),
         handle: handle.unwrap_or_else(|| "s0".to_owned()),
     });
     answer(&request, pointer.print.json)
@@ -225,12 +169,7 @@ pub fn step(pointer: argument::Pointer) -> miette::Result<ExitCode> {
 pub fn miss(miss: argument::Miss) -> miette::Result<ExitCode> {
     let (file, rule) = split(&miss.argument);
     let request = Request::Miss(spectrum::miss::Request {
-        recording: recording(
-            subject(&file, &miss.source),
-            &miss.budget,
-            &miss.search,
-            None,
-        ),
+        recording: recording(&file, &miss.recording, None),
         target: miss.target,
         exact: miss.exact,
         preserve: miss.preserve,
@@ -241,14 +180,7 @@ pub fn miss(miss: argument::Miss) -> miette::Result<ExitCode> {
 }
 
 pub fn compare(compare: argument::Compare) -> miette::Result<ExitCode> {
-    let side = |path: &PathBuf| {
-        recording(
-            subject(std::slice::from_ref(path), &compare.source),
-            &compare.budget,
-            &compare.search,
-            None,
-        )
-    };
+    let side = |path: &PathBuf| recording(std::slice::from_ref(path), &compare.recording, None);
     let request = Request::Compare(spectrum::compare::Request {
         left: side(&compare.left),
         right: side(&compare.right),
@@ -263,7 +195,7 @@ pub fn shape(shape: argument::Shape) -> miette::Result<ExitCode> {
         program: shape
             .file
             .iter()
-            .map(|file| subject(std::slice::from_ref(file), &shape.source))
+            .map(|file| shape.source.subject(std::slice::from_ref(file)))
             .collect(),
         target: shape.target,
         fix: shape.fix,

@@ -5,6 +5,7 @@ rust_binary(
     name = "photonic",
     srcs = [
         "argument.rs",
+        "disk.rs",
         "engine.rs",
         "main.rs",
         "output.rs",

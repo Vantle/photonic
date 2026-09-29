@@ -1,11 +1,12 @@
-use crate::{argument, output, verb};
+use crate::disk::Disk;
+use crate::{argument, output};
 use frontend::source::Program;
 use miette::IntoDiagnostic;
 use photonic::executor::Executor;
 use photonic::laser::Laser;
 use photonic::prism::{Outcome, Verdict};
 use photonic::runtime::Runtime;
-use photonic::snapshot::{Definition, Node, Token, Value};
+use photonic::snapshot::{Definition, Node, Snapshot, Token, Value};
 use photonic::status::Status;
 use serde::Serialize;
 use spectrum::failure::{Code, Failure};
@@ -38,6 +39,32 @@ struct Listing<'report> {
     definition: &'report [Definition],
 }
 
+impl<'report> From<&'report Snapshot> for Listing<'report> {
+    fn from(snapshot: &'report Snapshot) -> Self {
+        Self {
+            closed: snapshot.closed,
+            state: &snapshot.state,
+            event: snapshot.event.len(),
+            work: snapshot.work,
+            pending: Some((snapshot.queued, snapshot.deferred)),
+            definition: &snapshot.definition,
+        }
+    }
+}
+
+impl<'report> From<&'report photonic::laser::report::Report> for Listing<'report> {
+    fn from(report: &'report photonic::laser::report::Report) -> Self {
+        Self {
+            closed: report.closed,
+            state: &report.state,
+            event: report.event.len(),
+            work: report.work,
+            pending: None,
+            definition: &report.definition,
+        }
+    }
+}
+
 impl Listing<'_> {
     fn pending(&self) -> String {
         self.pending
@@ -47,7 +74,7 @@ impl Listing<'_> {
 }
 
 fn load(file: &[PathBuf], source: &argument::Source) -> Result<Program, Failure> {
-    verb::subject(file, source).assemble(&verb::Disk)
+    source.subject(file).assemble(&Disk)
 }
 
 // The engine a run explores with: the interpreter unless asked otherwise, and laser in plain mode,
@@ -83,20 +110,16 @@ fn refuse(verb: &str) -> Failure {
 pub fn lower(argument: &argument::Lower) -> miette::Result<ExitCode> {
     let program = match load(&argument.file, &argument.source) {
         Ok(program) => program,
-        Err(failure) => return verb::fail(&failure),
+        Err(failure) => return output::fail(&failure),
     };
     output::write(&program, false)?;
     Ok(ExitCode::SUCCESS)
 }
 
 pub fn run(argument: &argument::Run) -> miette::Result<ExitCode> {
-    let program = match load(&argument.file, &argument.source) {
-        Ok(program) => program,
-        Err(failure) => return verb::fail(&failure),
-    };
-    let engine = match engine(argument) {
-        Ok(engine) => engine,
-        Err(failure) => return verb::fail(&failure),
+    let (program, engine) = match (load(&argument.file, &argument.source), engine(argument)) {
+        (Ok(program), Ok(engine)) => (program, engine),
+        (Err(failure), _) | (_, Err(failure)) => return output::fail(&failure),
     };
     let budget = spectrum::budget::Budget::from(&argument.budget);
     let executor = Executor::new(argument.worker).into_diagnostic()?;
@@ -108,15 +131,7 @@ pub fn run(argument: &argument::Run) -> miette::Result<ExitCode> {
                 output::write(&runtime.stream(), argument.compact)?;
                 return Ok(ExitCode::SUCCESS);
             }
-            let snapshot = runtime.snapshot();
-            list(&Listing {
-                closed: snapshot.closed,
-                state: &snapshot.state,
-                event: snapshot.event.len(),
-                work: snapshot.work,
-                pending: Some((snapshot.queued, snapshot.deferred)),
-                definition: &snapshot.definition,
-            })?;
+            list(&Listing::from(&runtime.snapshot()))?;
         }
         Engine::Laser => {
             let mut laser = laser(argument, &program);
@@ -126,16 +141,9 @@ pub fn run(argument: &argument::Run) -> miette::Result<ExitCode> {
                 output::write(&report, argument.compact)?;
                 return Ok(ExitCode::SUCCESS);
             }
-            list(&Listing {
-                closed: report.closed,
-                state: &report.state,
-                event: report.event.len(),
-                work: report.work,
-                pending: None,
-                definition: &report.definition,
-            })?;
+            list(&Listing::from(&report))?;
         }
-        Engine::Metal => return verb::fail(&refuse("run")),
+        Engine::Metal => return output::fail(&refuse("run")),
     }
     Ok(ExitCode::SUCCESS)
 }
@@ -166,24 +174,23 @@ fn list(listing: &Listing<'_>) -> miette::Result<()> {
 }
 
 pub fn prism(argument: &argument::Prism) -> miette::Result<ExitCode> {
-    let (program, target) = match (
+    let (program, target, engine) = match (
         load(&argument.run.file, &argument.run.source),
         load(
             std::slice::from_ref(&argument.target),
             &argument::Source::default(),
         ),
+        engine(&argument.run),
     ) {
-        (Ok(program), Ok(target)) => (program, target),
-        (Err(failure), _) | (_, Err(failure)) => return verb::fail(&failure),
+        (Ok(program), Ok(target), Ok(engine)) => (program, target, engine),
+        (Err(failure), _, _) | (_, Err(failure), _) | (_, _, Err(failure)) => {
+            return output::fail(&failure);
+        }
     };
     let budget = spectrum::budget::Budget::from(&argument.run.budget);
     if argument.path {
         return path(argument, program, target, budget);
     }
-    let engine = match engine(&argument.run) {
-        Ok(engine) => engine,
-        Err(failure) => return verb::fail(&failure),
-    };
     let executor = Executor::new(argument.run.worker).into_diagnostic()?;
     let json = argument.run.json;
     match engine {
@@ -204,18 +211,7 @@ pub fn prism(argument: &argument::Prism) -> miette::Result<ExitCode> {
                 )?;
                 return Ok(ExitCode::SUCCESS);
             }
-            let snapshot = runtime.snapshot();
-            judge(
-                &verdict,
-                &Listing {
-                    closed: snapshot.closed,
-                    state: &snapshot.state,
-                    event: snapshot.event.len(),
-                    work: snapshot.work,
-                    pending: Some((snapshot.queued, snapshot.deferred)),
-                    definition: &snapshot.definition,
-                },
-            )?;
+            judge(&verdict, &Listing::from(&runtime.snapshot()))?;
         }
         Engine::Laser => {
             let mut laser = laser(&argument.run, &program);
@@ -235,19 +231,9 @@ pub fn prism(argument: &argument::Prism) -> miette::Result<ExitCode> {
                 )?;
                 return Ok(ExitCode::SUCCESS);
             }
-            judge(
-                &verdict,
-                &Listing {
-                    closed: execution.closed,
-                    state: &execution.state,
-                    event: execution.event.len(),
-                    work: execution.work,
-                    pending: None,
-                    definition: &execution.definition,
-                },
-            )?;
+            judge(&verdict, &Listing::from(&execution))?;
         }
-        Engine::Metal => return verb::fail(&refuse("prism")),
+        Engine::Metal => return output::fail(&refuse("prism")),
     }
     Ok(ExitCode::SUCCESS)
 }
