@@ -223,6 +223,7 @@ filegroup(
         "laser/component.rs",
         "laser/deduction.rs",
         "laser/direct.rs",
+        "laser/ending.rs",
         "laser/forest.rs",
         "laser/layout.rs",
         "laser/passage.rs",

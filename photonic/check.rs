@@ -21,8 +21,46 @@ struct Case {
     target: Vec<String>,
     expect: Expect,
     path: bool,
+    every: bool,
     work: usize,
     limit: Limit,
+}
+
+// Every schedule of plain events ends exactly at a target when the plain exploration closes, no run
+// can go on forever, and every configuration a run ends at is one of the targets.
+fn every(program: &Program, target: &[Program], limit: Limit) -> bool {
+    let mut laser = Laser::plain(program);
+    laser.run(usize::MAX, limit);
+    let summary = laser.summary();
+    if !summary.closed {
+        println!(
+            "Every schedule: open after {} configurations and {} events",
+            summary.state, summary.event
+        );
+        return false;
+    }
+    let ending = laser.ending();
+    let wanted = target
+        .iter()
+        .filter_map(|target| laser.verdict(target).witness)
+        .collect::<Vec<_>>();
+    let stray = ending
+        .end
+        .iter()
+        .filter(|end| !wanted.contains(end))
+        .count();
+    println!(
+        "Every schedule: closed after {} configurations and {} events; {} end configurations, {stray} of them not a target{}",
+        summary.state,
+        summary.event,
+        ending.end.len(),
+        if ending.endless {
+            "; a run can go on forever"
+        } else {
+            ""
+        },
+    );
+    !ending.endless && stray == 0
 }
 
 fn lower(source: &str) -> miette::Result<Program> {
@@ -62,6 +100,23 @@ fn main() -> miette::Result<ExitCode> {
             Ok(target)
         })
         .collect::<miette::Result<Vec<_>>>()?;
+    if case.every {
+        if case.path || matches!(case.expect, Expect::Unreachable) {
+            miette::bail!(
+                "every schedule ends at a target explores every plain schedule and expects reached"
+            );
+        }
+        let success = every(&program, &target, case.limit);
+        println!(
+            "Every schedule ends at a target: {}",
+            if success { "passed" } else { "failed" }
+        );
+        return Ok(if success {
+            ExitCode::SUCCESS
+        } else {
+            ExitCode::FAILURE
+        });
+    }
     let expected = match (case.expect, case.path) {
         (Expect::Reached, _) => Outcome::Reached,
         (Expect::Unreachable, false) => Outcome::Unreachable,

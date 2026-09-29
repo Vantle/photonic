@@ -98,6 +98,27 @@ fn plain() {
     }
 }
 
+// A run ends where no event leaves its configuration, and goes on forever around a cycle; runs that
+// meet again after different orders are neither.
+#[test]
+fn ending() {
+    for (source, end, endless) in [
+        ("A, [A] B", 1, false),
+        ("A, [A] B, [A] C", 2, false),
+        ("A, B, [A] C, [B] D", 1, false),
+        ("B, [B] C, [C] B", 0, true),
+        ("A, [A] B, [A] C, [C] A", 1, true),
+    ] {
+        let program = frontend::lowering::parse(source).unwrap();
+        let mut laser = Laser::plain(&program);
+        laser.run(1_000_000, Limit::default());
+        assert!(laser.closed(), "{source}");
+        let ending = laser.ending();
+        assert_eq!(ending.end.len(), end, "{source}");
+        assert_eq!(ending.endless, endless, "{source}");
+    }
+}
+
 #[test]
 fn family() {
     for count in [1, 2, 3, 4] {

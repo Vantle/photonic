@@ -1,5 +1,6 @@
 use super::component::{decompose, extract};
 use crate::basis::Set;
+use crate::executor::Executor;
 use crate::flow::Flow;
 use crate::link::Link;
 use crate::place::Place;
@@ -174,6 +175,16 @@ fn hub(state: &State) -> (Frame, Vec<(usize, usize)>) {
 }
 
 impl Taxonomy {
+    // Names are remembered for one batch of applications, where the components they leave
+    // untouched repeat; remembering every name would keep a copy of every component ever made.
+    pub fn forget(&mut self, executor: Option<&Executor>) {
+        let name = std::mem::replace(
+            &mut self.name,
+            (0..SHARD).map(|_| Mutex::default()).collect(),
+        );
+        super::map(executor, name, drop);
+    }
+
     fn name(&self, state: State) -> Arc<Canonical> {
         let shard = &self.name[(hashing::value(&state) >> 40) as usize % SHARD];
         if let Some(found) = shard.lock().expect("an unpoisoned cache").get(&state) {

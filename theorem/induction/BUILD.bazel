@@ -1,9 +1,11 @@
+load("//photonic:defs.bzl", "photonic_test")
 load("//theorem:defs.bzl", "theorem")
 
 theorem(
     name = "associativity",
     srcs = ["associativity.wave"],
     configuration = 65536,
+    every = True,
     deps = [
         "//library/ternary:sum",
         "//theorem:case",
@@ -23,9 +25,26 @@ theorem(
     ],
 )
 
+photonic_test(
+    name = "lookahead.order",
+    srcs = ["lookahead.wave"],
+    configuration = 131072,
+    every = True,
+    tags = ["memory"],
+    target = ["Theorem"],
+    deps = [
+        "//library/carry:combine",
+        "//library/carry:evaluate",
+        "//library/ternary:equal",
+        "//theorem:case",
+        "//theorem/carry:role",
+    ],
+)
+
 theorem(
     name = "subtraction",
     srcs = ["subtraction.wave"],
+    every = True,
     deps = [
         "//library/ternary:equal",
         "//library/ternary:subtract",

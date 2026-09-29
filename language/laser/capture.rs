@@ -1,6 +1,7 @@
 use super::passage::Passage;
 use super::pool::Pool;
 use crate::basis::Set;
+use crate::executor::Executor;
 use crate::flow::Flow;
 use crate::place::Place;
 use crate::state::{Canonical, State};
@@ -87,10 +88,12 @@ impl Store {
             .clone()
     }
 
-    pub fn forget(&mut self) {
-        for shard in &mut self.carried {
-            shard.get_mut().expect("an unpoisoned store").clear();
-        }
+    pub fn forget(&mut self, executor: Option<&Executor>) {
+        let carried = std::mem::replace(
+            &mut self.carried,
+            (0..SHARD).map(|_| Mutex::default()).collect(),
+        );
+        super::map(executor, carried, drop);
     }
 }
 

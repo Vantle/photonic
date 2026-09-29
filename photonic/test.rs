@@ -221,6 +221,7 @@ fn verification() {
                 "target": [target],
                 "expect": expect,
                 "path": path,
+                "every": false,
                 "work": work,
                 "limit": limit(),
             }),
@@ -259,6 +260,7 @@ fn matching() {
                 "target": target,
                 "expect": expect,
                 "path": false,
+                "every": false,
                 "work": work,
                 "limit": limit(),
             }),
@@ -291,6 +293,7 @@ fn preservation() {
                 "target": [target],
                 "expect": expect,
                 "path": false,
+                "every": false,
                 "work": 1000,
                 "limit": limit(),
             }),
@@ -302,5 +305,62 @@ fn preservation() {
             String::from_utf8_lossy(&output.stdout),
             String::from_utf8_lossy(&output.stderr)
         );
+    }
+}
+
+#[test]
+fn every() {
+    let root = directory();
+    let program = program(&root, "");
+    for (source, target, success) in [
+        ("A, [A] B", vec!["B"], true),
+        ("A, [A] B, [A] C", vec!["B"], false),
+        ("A, [A] B, [A] C", vec!["B", "C"], true),
+        ("A, B, [A] C, [B] D", vec!["C, D"], true),
+        ("B, [B] C, [C] B", vec!["C"], false),
+        ("A, [A] B, [A] C, [C] A", vec!["B"], false),
+        (
+            "Claim, [Claim] P.Work, [Work] Done, [P] X",
+            vec!["Done.X"],
+            true,
+        ),
+        ("A, [A] A.A", vec!["A"], false),
+    ] {
+        let output = check(
+            &root,
+            &serde_json::json!({
+                "program": program,
+                "source": source,
+                "target": target,
+                "expect": "reached",
+                "path": false,
+                "every": true,
+                "work": 1000,
+                "limit": limit(),
+            }),
+        );
+        assert_eq!(
+            output.status.success(),
+            success,
+            "{source} => {target:?}: {} {}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+    for (expect, path) in [("unreachable", false), ("reached", true)] {
+        let output = check(
+            &root,
+            &serde_json::json!({
+                "program": program,
+                "source": "A, [A] B",
+                "target": ["B"],
+                "expect": expect,
+                "path": path,
+                "every": true,
+                "work": 1000,
+                "limit": limit(),
+            }),
+        );
+        assert!(!output.status.success(), "{expect}, path={path}");
     }
 }

@@ -30,6 +30,7 @@ theorem(
 theorem(
     name = "complement",
     srcs = ["complement.wave"],
+    every = True,
     deps = [
         "//library/boolean:and",
         "//library/boolean:equal",
@@ -53,6 +54,7 @@ theorem(
 theorem(
     name = "domination",
     srcs = ["domination.wave"],
+    every = True,
     deps = [
         "//library/boolean:and",
         "//library/boolean:equal",
@@ -94,6 +96,7 @@ theorem(
 theorem(
     name = "idempotence",
     srcs = ["idempotence.wave"],
+    every = True,
     deps = [
         "//library/boolean:and",
         "//library/boolean:equal",
@@ -105,6 +108,7 @@ theorem(
 theorem(
     name = "identity",
     srcs = ["identity.wave"],
+    every = True,
     deps = [
         "//library/boolean:and",
         "//library/boolean:equal",
@@ -116,6 +120,7 @@ theorem(
 theorem(
     name = "involution",
     srcs = ["involution.wave"],
+    every = True,
     deps = [
         "//library/boolean:equal",
         "//library/boolean:not",
@@ -126,6 +131,8 @@ theorem(
 theorem(
     name = "peirce",
     srcs = ["peirce.wave"],
+    configuration = 131072,
+    every = True,
     deps = [
         "//library/boolean:not",
         "//library/boolean:or",

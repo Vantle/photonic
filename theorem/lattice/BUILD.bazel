@@ -11,6 +11,7 @@ exports_files(
 theorem(
     name = "antisymmetry",
     srcs = ["antisymmetry.wave"],
+    every = True,
     path = False,
     deps = [],
 )
@@ -18,6 +19,7 @@ theorem(
 theorem(
     name = "complement",
     srcs = ["complement.wave"],
+    every = True,
     path = False,
     deps = [],
 )
@@ -25,6 +27,7 @@ theorem(
 theorem(
     name = "converse",
     srcs = ["converse.wave"],
+    every = True,
     path = False,
     deps = [],
 )
@@ -32,6 +35,7 @@ theorem(
 theorem(
     name = "distributivity",
     srcs = ["distributivity.wave"],
+    every = True,
     path = False,
     deps = [],
 )
@@ -39,6 +43,7 @@ theorem(
 theorem(
     name = "idempotence",
     srcs = ["idempotence.wave"],
+    every = True,
     path = False,
     deps = [],
 )
@@ -46,6 +51,7 @@ theorem(
 theorem(
     name = "modularity",
     srcs = ["modularity.wave"],
+    every = True,
     path = False,
     deps = [],
 )
@@ -53,6 +59,7 @@ theorem(
 theorem(
     name = "order",
     srcs = ["order.wave"],
+    every = True,
     path = False,
     deps = [],
 )

@@ -57,6 +57,7 @@ theorem(
 theorem(
     name = "restoration",
     srcs = ["restoration.wave"],
+    every = True,
     deps = [
         ":feed",
         "//library/natural:successor",

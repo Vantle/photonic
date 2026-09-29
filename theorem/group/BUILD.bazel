@@ -10,6 +10,7 @@ theorem(
 theorem(
     name = "inverse",
     srcs = ["inverse.wave"],
+    every = True,
     path = False,
     deps = [],
 )
@@ -17,6 +18,7 @@ theorem(
 theorem(
     name = "involution",
     srcs = ["involution.wave"],
+    every = True,
     path = False,
     deps = [],
 )
@@ -24,6 +26,7 @@ theorem(
 theorem(
     name = "reversal",
     srcs = ["reversal.wave"],
+    every = True,
     path = False,
     deps = [],
 )
@@ -31,6 +34,7 @@ theorem(
 theorem(
     name = "unit",
     srcs = ["unit.wave"],
+    every = True,
     path = False,
     deps = [],
 )

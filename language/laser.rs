@@ -3,6 +3,7 @@ mod capture;
 mod component;
 mod deduction;
 mod direct;
+pub mod ending;
 mod forest;
 mod layout;
 mod passage;
@@ -715,7 +716,7 @@ impl Laser {
             self.prepare(executor, demand);
             let carried = self.carry(executor, crossing);
             let (value, range) = self.insert(executor, carried);
-            self.capture.forget();
+            self.capture.forget(executor);
             count += value;
             for (index, range) in range {
                 grown
@@ -858,6 +859,7 @@ impl Laser {
             let later = rest.split_off(rest.len().min(FIRING));
             let outcome = self.attempt(executor, &rest);
             created.extend(self.create(executor, rest, outcome, next));
+            self.taxonomy.forget(executor);
             rest = later;
         }
         for (index, offset, resolution) in resolved {

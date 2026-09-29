@@ -3,6 +3,7 @@ load("//theorem:defs.bzl", "theorem")
 theorem(
     name = "identity",
     srcs = ["identity.wave"],
+    every = True,
     path = False,
     deps = [],
 )

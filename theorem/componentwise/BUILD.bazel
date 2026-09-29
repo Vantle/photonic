@@ -3,6 +3,7 @@ load("//theorem:defs.bzl", "theorem")
 theorem(
     name = "antisymmetric",
     srcs = ["antisymmetric.wave"],
+    every = True,
     deps = [
         "//theorem:case",
         "//theorem:cover",
@@ -12,6 +13,7 @@ theorem(
 theorem(
     name = "reflexive",
     srcs = ["reflexive.wave"],
+    every = True,
     deps = [
         "//theorem:case",
         "//theorem:cover",
@@ -21,6 +23,7 @@ theorem(
 theorem(
     name = "transitive",
     srcs = ["transitive.wave"],
+    every = True,
     deps = [
         "//theorem:case",
         "//theorem:cover",

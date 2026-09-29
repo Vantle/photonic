@@ -89,6 +89,8 @@ def photonic_binary(name, srcs, deps = [], visibility = None):
 def _check(context):
     if context.attr.path and context.attr.expect != "reached":
         fail("a direct path can witness reachability but cannot prove unreachability")
+    if context.attr.every and (context.attr.path or context.attr.expect != "reached"):
+        fail("every schedule ends at a target explores every plain schedule and expects reached")
     if any([getattr(context.attr, name) < 0 for name in ["work", "configuration", "occurrence", "scope", "coherence", "record"]]):
         fail("test execution limits must be nonnegative")
     program = _load(context)
@@ -99,6 +101,7 @@ def _check(context):
         "target": context.attr.target,
         "expect": context.attr.expect,
         "path": context.attr.path,
+        "every": context.attr.every,
         "work": context.attr.work,
         "limit": {
             "configuration": context.attr.configuration,
@@ -119,6 +122,7 @@ _case = rule(
         "target": attr.string_list(mandatory = True, allow_empty = False),
         "expect": attr.string(mandatory = True, values = ["reached", "unreachable"]),
         "path": attr.bool(mandatory = True),
+        "every": attr.bool(mandatory = True),
         "work": attr.int(mandatory = True),
         "configuration": attr.int(mandatory = True),
         "occurrence": attr.int(mandatory = True),
@@ -129,7 +133,7 @@ _case = rule(
     },
 )
 
-def photonic_test(name, target, source = "", srcs = [], deps = [], expect = "reached", path = False, work = 2000000, configuration = 4096, occurrence = 256, scope = 64, coherence = 64, record = 2000000, size = "small", tags = []):
+def photonic_test(name, target, source = "", srcs = [], deps = [], expect = "reached", path = False, every = False, work = 2000000, configuration = 4096, occurrence = 256, scope = 64, coherence = 64, record = 2000000, size = "small", tags = []):
     """Check exact configurations with Prism; Unknown always fails.
 
     Args:
@@ -140,6 +144,8 @@ def photonic_test(name, target, source = "", srcs = [], deps = [], expect = "rea
         deps: Photonic declaration libraries.
         expect: Required reached or unreachable outcome for every target.
         path: Follow one path to witness a reachable target.
+        every: Require every schedule of plain events to end exactly at a target, exploring each
+            schedule without inference on Laser; no run may go on forever.
         work: Work budget.
         configuration: Configuration limit.
         occurrence: Occurrence limit.
@@ -149,7 +155,7 @@ def photonic_test(name, target, source = "", srcs = [], deps = [], expect = "rea
         size: Bazel test size.
         tags: Bazel test tags.
     """
-    _case(name = name + ".case", source = source, target = target, srcs = srcs, deps = deps, expect = expect, path = path, work = work, configuration = configuration, occurrence = occurrence, scope = scope, coherence = coherence, record = record, visibility = ["//visibility:private"], testonly = True)
+    _case(name = name + ".case", source = source, target = target, srcs = srcs, deps = deps, expect = expect, path = path, every = every, work = work, configuration = configuration, occurrence = occurrence, scope = scope, coherence = coherence, record = record, visibility = ["//visibility:private"], testonly = True)
     hermetic_test(
         name = name,
         entrypoint = "//photonic:check",

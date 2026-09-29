@@ -3,6 +3,7 @@ load("//theorem:defs.bzl", "theorem")
 theorem(
     name = "converse",
     srcs = ["converse.wave"],
+    every = True,
     deps = [
         "//theorem:case",
         "//theorem:judge",
@@ -21,7 +22,8 @@ theorem(
 theorem(
     name = "transitive",
     srcs = ["transitive.wave"],
-    configuration = 16384,
+    configuration = 32768,
+    every = True,
     deps = [
         "//theorem:case",
         "//theorem:judge",

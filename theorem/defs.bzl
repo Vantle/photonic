@@ -2,7 +2,7 @@
 
 load("//photonic:defs.bzl", "photonic_binary", "photonic_test")
 
-def theorem(name, srcs, deps, occurrence = 256, configuration = 4096, path = True):
+def theorem(name, srcs, deps, occurrence = 256, configuration = 4096, path = True, every = False):
     """Prove a claim by reaching exactly Theorem, with every loaded rule.
 
     Args:
@@ -14,6 +14,8 @@ def theorem(name, srcs, deps, occurrence = 256, configuration = 4096, path = Tru
         configuration: Configuration limit; a direct path retains every configuration it visits.
         path: Follow the one direct execution the scheduler takes, which proves the claim when it
             reaches Theorem; with False, Prism explores every order of the rules.
+        every: Also check, as the test name + ".order", that every schedule of plain events ends
+            exactly at Theorem.
     """
     photonic_binary(name = name, srcs = srcs, deps = deps)
     photonic_test(
@@ -25,6 +27,16 @@ def theorem(name, srcs, deps, occurrence = 256, configuration = 4096, path = Tru
         target = ["Theorem"],
         deps = deps,
     )
+    if every:
+        photonic_test(
+            name = name + ".order",
+            srcs = srcs,
+            occurrence = occurrence,
+            every = True,
+            configuration = configuration,
+            target = ["Theorem"],
+            deps = deps,
+        )
 
 def refutation(name, srcs, deps, outcome, occurrence = 256, configuration = 4096):
     """Refute a claim by reaching exactly its counterexamples.

@@ -13,6 +13,7 @@ theorem(
     name = "transitive",
     srcs = ["transitive.wave"],
     configuration = 8192,
+    every = True,
     deps = [
         "//theorem:case",
         "//theorem:cover",
@@ -22,6 +23,7 @@ theorem(
 theorem(
     name = "trichotomy",
     srcs = ["trichotomy.wave"],
+    every = True,
     deps = [
         "//theorem:case",
         "//theorem:cover",

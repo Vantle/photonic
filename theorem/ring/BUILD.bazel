@@ -17,6 +17,7 @@ theorem(
 theorem(
     name = "negation",
     srcs = ["negation.wave"],
+    every = True,
     path = False,
     deps = [],
 )
@@ -24,6 +25,7 @@ theorem(
 theorem(
     name = "sign",
     srcs = ["sign.wave"],
+    every = True,
     path = False,
     deps = [],
 )
@@ -31,6 +33,7 @@ theorem(
 theorem(
     name = "unit",
     srcs = ["unit.wave"],
+    every = True,
     path = False,
     deps = [],
 )

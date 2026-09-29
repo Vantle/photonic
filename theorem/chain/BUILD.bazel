@@ -3,18 +3,21 @@ load("//theorem:defs.bzl", "theorem")
 theorem(
     name = "forget",
     srcs = ["forget.wave"],
+    every = True,
     deps = ["//library/chain:cell"],
 )
 
 theorem(
     name = "peek",
     srcs = ["peek.wave"],
+    every = True,
     deps = ["//library/chain:cell"],
 )
 
 theorem(
     name = "read",
     srcs = ["read.wave"],
+    every = True,
     deps = ["//library/chain:cell"],
 )
 
