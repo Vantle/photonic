@@ -1,0 +1,316 @@
+use super::focus::Focus;
+use super::taxonomy::{Draft, Makeup};
+use super::trace::Trace;
+use super::transition::{self, Key, Local, Transition};
+use super::{Identity, Laser, Link, Round, map};
+use crate::application::Owner;
+use crate::executor::Executor;
+use crate::flow::{Closure, Flow};
+use crate::profile;
+use crate::state::Canonical;
+use hashing::Builder;
+use indexmap::IndexMap;
+use std::ops::Range;
+use std::sync::Arc;
+
+// Applying an event holds its whole result until it is named, so a round applies and names its
+// events a batch at a time; each batch finds the configurations and transitions the batches before
+// it made, and events are numbered in the same order as with one batch.
+const FIRING: usize = 1 << 14;
+
+// An application is named in two steps: its components are named where it is made, and their
+// numbers are given in a fixed order, so naming never depends on which worker applied first.
+pub(super) struct Product {
+    pub(super) draft: Draft,
+    pub(super) flow: Flow,
+    pub(super) original: (usize, usize),
+    pub(super) whole: Option<Key>,
+}
+
+// An event over the parts it touches either finds its transition or applies itself to those parts
+// alone, and what it learns serves every later event with the same key.
+pub(super) struct Move {
+    pub(super) local: Local,
+    pub(super) known: Option<Arc<Transition>>,
+    pub(super) product: Option<Product>,
+}
+
+pub(super) enum Outcome {
+    Product(Box<Product>),
+    Move(Box<Move>),
+    Blocked,
+}
+
+enum Resolution {
+    Absent,
+    Known(usize),
+    Blocked,
+    Pending(usize),
+}
+
+struct Candidate {
+    index: usize,
+    pending: Vec<(Identity, usize)>,
+    resolution: Vec<Resolution>,
+}
+
+impl Laser {
+    pub(super) fn fire(
+        &mut self,
+        executor: Option<&Executor>,
+        novel: Vec<(usize, Range<usize>)>,
+        retry: Vec<(Identity, usize, usize)>,
+        next: &mut Round,
+    ) -> usize {
+        let candidate = self.select(executor, novel);
+        let revisit = retry
+            .iter()
+            .map(|&(_, source, position)| (source, position))
+            .collect::<Vec<_>>();
+        let mut pending = retry;
+        let mut resolved = Vec::with_capacity(candidate.len());
+        for value in candidate {
+            resolved.push((value.index, pending.len(), value.resolution));
+            pending.extend(
+                value
+                    .pending
+                    .into_iter()
+                    .map(|(identity, position)| (identity, value.index, position)),
+            );
+        }
+        let count = pending.len();
+        let mut created = Vec::with_capacity(count);
+        let mut rest = pending;
+        while !rest.is_empty() {
+            let later = rest.split_off(rest.len().min(FIRING));
+            let outcome = self.attempt(executor, &rest);
+            created.extend(self.create(executor, rest, outcome, next));
+            self.taxonomy.forget(executor);
+            rest = later;
+        }
+        for (index, offset, resolution) in resolved {
+            self.link[index].extend(resolution.into_iter().map(|value| match value {
+                Resolution::Absent => Link::Absent,
+                Resolution::Known(event) => Link::Event(event),
+                Resolution::Blocked => Link::Unresolved,
+                Resolution::Pending(slot) => {
+                    created[offset + slot].map_or(Link::Unresolved, Link::Event)
+                }
+            }));
+        }
+        for ((source, position), &event) in revisit.into_iter().zip(&created) {
+            if let Some(event) = event {
+                self.link[source][position] = Link::Event(event);
+            }
+        }
+        count
+    }
+
+    fn select(
+        &self,
+        executor: Option<&Executor>,
+        novel: Vec<(usize, Range<usize>)>,
+    ) -> Vec<Candidate> {
+        let _scope = profile::Scope::new(profile::Phase::Identification);
+        map(executor, novel, |(index, range)| {
+            self.candidate(index, range)
+        })
+    }
+
+    fn candidate(&self, index: usize, range: Range<usize>) -> Candidate {
+        let mut seen = IndexMap::<Identity, usize, Builder>::default();
+        let mut resolution = Vec::with_capacity(range.len());
+        let identity = range
+            .clone()
+            .map(|position| self.identify(index, &self.trace[index][position]))
+            .collect::<Vec<_>>();
+        let chosen = self.independence.as_ref().and_then(|independence| {
+            let found = identity.iter().flatten().collect::<Vec<_>>();
+            Focus::choose(&self.state[index], &found, independence)
+        });
+        for (position, identity) in range.zip(identity) {
+            let Some(identity) = identity else {
+                resolution.push(Resolution::Absent);
+                continue;
+            };
+            if chosen.as_ref().is_some_and(|focus| !focus.holds(&identity)) {
+                resolution.push(Resolution::Absent);
+                continue;
+            }
+            if let Some(&event) = self.identity[index].get(&identity) {
+                resolution.push(Resolution::Known(event));
+                continue;
+            }
+            if self.blocked.contains_key(&identity) {
+                resolution.push(Resolution::Blocked);
+                continue;
+            }
+            let entry = seen.entry(identity);
+            resolution.push(Resolution::Pending(entry.index()));
+            entry.or_insert(position);
+        }
+        Candidate {
+            index,
+            pending: seen.into_iter().collect(),
+            resolution,
+        }
+    }
+
+    fn attempt(
+        &self,
+        executor: Option<&Executor>,
+        pending: &[(Identity, usize, usize)],
+    ) -> Vec<Outcome> {
+        let _scope = profile::Scope::new(profile::Phase::Firing);
+        map(
+            executor,
+            pending.iter().collect(),
+            |(identity, source, position)| {
+                self.apply(identity, *source, &self.trace[*source][*position])
+            },
+        )
+    }
+
+    fn apply(&self, identity: &Identity, source: usize, trace: &Trace) -> Outcome {
+        let mut whole = None;
+        if let (Some(layout), Owner::Frame(owner)) = (&self.layout[source], &identity.owner) {
+            let local = transition::localize(
+                &self.taxonomy,
+                layout,
+                &self.makeup[source],
+                identity.frame,
+                *owner,
+                identity.rule,
+                &identity.binding,
+            );
+            match self.memo.get(&local.key) {
+                Some(known) if matches!(**known, Transition::Local(_)) => {
+                    return Outcome::Move(Box::new(Move {
+                        local,
+                        known: Some(known.clone()),
+                        product: None,
+                    }));
+                }
+                Some(_) => {}
+                None => {
+                    let makeup = Makeup {
+                        root: local.key.root,
+                        kind: local.key.kind.to_vec(),
+                    };
+                    let part = self.taxonomy.materialize(&makeup);
+                    let result = crate::application::apply(crate::application::Request {
+                        source: &part,
+                        scope: &self.program.scope,
+                        frame: local.key.frame,
+                        owner: Owner::Frame(local.key.owner),
+                        rule: &self.program.rule[local.key.rule],
+                        binding: &local.key.binding,
+                    });
+                    let draft = self.taxonomy.analyze(&result.state);
+                    if !matches!(draft, Draft::Whole(_)) {
+                        let product = Product {
+                            draft,
+                            original: (result.state.world.len(), result.state.frame.len()),
+                            flow: result.flow,
+                            whole: None,
+                        };
+                        return Outcome::Move(Box::new(Move {
+                            local,
+                            known: None,
+                            product: Some(product),
+                        }));
+                    }
+                    whole = Some(local.key);
+                }
+            }
+        }
+        let flow = match &trace.capture {
+            Some(capture) if capture.current.is_none() => Some((
+                capture.origin,
+                capture.frame,
+                capture.flow(&self.state[capture.origin], &self.pool),
+            )),
+            _ => None,
+        };
+        let owner = match (&identity.owner, &flow) {
+            (Owner::Frame(frame), _) => Owner::Frame(*frame),
+            (Owner::Capture(_), Some((origin, frame, flow))) => Owner::Capture(Closure {
+                state: &self.state[*origin],
+                flow,
+                capture: *frame,
+            }),
+            (Owner::Capture(_), None) => unreachable!("a captured owner carries its attachment"),
+        };
+        let result = crate::application::apply(crate::application::Request {
+            source: &self.state[source],
+            scope: &self.program.scope,
+            frame: identity.frame,
+            owner,
+            rule: &self.program.rule[identity.rule],
+            binding: &identity.binding,
+        });
+        if !self.limit.admits(
+            result.state.world.len(),
+            result.state.size(),
+            result.state.reachable().len(),
+        ) {
+            return Outcome::Blocked;
+        }
+        Outcome::Product(Box::new(Product {
+            draft: self.taxonomy.analyze(&result.state),
+            original: (result.state.world.len(), result.state.frame.len()),
+            flow: result.flow,
+            whole,
+        }))
+    }
+
+    fn canonical(&self, origin: usize, frame: usize) -> Arc<Canonical> {
+        if let Some(found) = self
+            .environment
+            .lock()
+            .expect("an unpoisoned cache")
+            .get(&(origin, frame))
+        {
+            return found.clone();
+        }
+        let canonical = Arc::new(self.state[origin].environment(frame));
+        self.environment
+            .lock()
+            .expect("an unpoisoned cache")
+            .entry((origin, frame))
+            .or_insert(canonical)
+            .clone()
+    }
+
+    fn identify(&self, source: usize, trace: &Trace) -> Option<Identity> {
+        let binding = trace.binding(&self.state[source], &self.pool)?;
+        let owner = match (trace.current(), &trace.capture) {
+            (Some(frame), _) => Owner::Frame(frame),
+            (None, Some(capture)) => {
+                let canonical = self.canonical(capture.origin, capture.frame);
+                Owner::Capture(Arc::new(capture.environment(&canonical)))
+            }
+            (None, None) => unreachable!("the root frame exists in every configuration"),
+        };
+        Some(Identity {
+            source,
+            frame: trace.frame,
+            owner,
+            rule: trace.rule,
+            binding,
+        })
+    }
+
+    pub(super) fn identity(&self, event: usize) -> &Identity {
+        let value = &self.event[event];
+        self.identity[value.source]
+            .get_index(value.slot)
+            .expect("every event keeps its identity")
+            .0
+    }
+
+    pub(super) fn find(&self, source: usize, trace: &Trace) -> Option<usize> {
+        let identity = self.identify(source, trace)?;
+        self.identity[source].get(&identity).copied()
+    }
+}
