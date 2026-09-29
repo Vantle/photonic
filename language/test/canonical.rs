@@ -78,9 +78,7 @@ fn verify(state: State) {
             let expected = state.rename(&world, &frame);
             let actual = super::renaming::rename(&state, &incidence, &world, &frame);
             assert_eq!(actual.state, expected.state);
-            assert_eq!(actual.world, expected.world);
-            assert_eq!(actual.frame, expected.frame);
-            assert_eq!(actual.resource, expected.resource);
+            assert_eq!(actual.renaming, expected.renaming);
         }
     }
     let (expected, work) = reference(&state);
@@ -91,9 +89,7 @@ fn verify(state: State) {
     assert!(search.step());
     let actual = search.finish().unwrap();
     assert_eq!(actual.state, expected.state);
-    assert_eq!(actual.world, expected.world);
-    assert_eq!(actual.frame, expected.frame);
-    assert_eq!(actual.resource, expected.resource);
+    assert_eq!(actual.renaming, expected.renaming);
 }
 
 #[test]

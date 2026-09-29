@@ -405,7 +405,7 @@ impl Search {
         let step = self.event.get(index)?;
         Some(step.event.get_or_init(|| {
             let canonical = self.state[step.source].canonical();
-            let place = |place: &Place| canonical.place(*place).unwrap();
+            let place = |place: &Place| canonical.renaming.place(*place).unwrap();
             let selection = |value: &crate::basis::Set<Place>| {
                 let mut value = value.iter().map(place).collect::<Vec<_>>();
                 value.sort_unstable();

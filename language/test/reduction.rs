@@ -12,17 +12,7 @@ fn binding(state: &State, value: &Binding) -> (Vec<Place>, Vec<Place>, Vec<Place
     let map = |value: &crate::basis::Set<Place>| {
         let mut value = value
             .iter()
-            .map(|place| match *place {
-                Place::World(world, token) => {
-                    Place::World(canonical.world[world].unwrap(), canonical.resource[&token])
-                }
-                Place::Context(frame, token) => {
-                    Place::Context(canonical.frame[frame].unwrap(), canonical.resource[&token])
-                }
-                Place::Held(frame, token) => {
-                    Place::Held(canonical.frame[frame].unwrap(), canonical.resource[&token])
-                }
-            })
+            .map(|&place| canonical.renaming.place(place).unwrap())
             .collect::<Vec<_>>();
         value.sort_unstable();
         value

@@ -277,8 +277,8 @@ fn symmetry() {
     assert!((0..4).any(|_| search.step()));
     let result = search.finish().unwrap();
     assert_eq!(result.state.world.len(), 30);
-    assert_eq!(result.resource.len(), 30);
-    assert_eq!(result.world.iter().flatten().count(), 30);
+    assert_eq!(result.renaming.resource.len(), 30);
+    assert_eq!(result.renaming.world.iter().flatten().count(), 30);
     state.world.reverse();
     for position in 0..state.world.len() {
         let world = Arc::make_mut(&mut state.world[position]);
@@ -298,7 +298,7 @@ fn symmetry() {
     assert!((0..4).any(|_| search.step()));
     let shared = search.finish().unwrap();
     assert_eq!(shared.state.world.len(), 30);
-    assert_eq!(shared.resource.len(), 1);
+    assert_eq!(shared.renaming.resource.len(), 1);
     assert_ne!(shared.state, result.state);
 }
 
@@ -332,9 +332,12 @@ fn identity() {
         }
         let actual = changed.canonical();
         assert_eq!(actual.state, expected.state);
-        assert_eq!(actual.resource.len(), identity.len());
+        assert_eq!(actual.renaming.resource.len(), identity.len());
         for (index, identity) in identity.iter().enumerate() {
-            assert_eq!(actual.resource[identity], expected.resource[&index]);
+            assert_eq!(
+                actual.renaming.resource[identity],
+                expected.renaming.resource[&index]
+            );
         }
     }
 }
@@ -417,8 +420,8 @@ fn capture() {
             .collect::<Vec<_>>();
         assert_eq!(capture, vec![(crate::link::Link::Capture, graph.frame[1])]);
         let renamed = state.rename(&[1, 0], &[0, 1]);
-        assert_eq!(renamed.resource.len(), 1);
-        assert_eq!(renamed.resource[&42], 0);
+        assert_eq!(renamed.renaming.resource.len(), 1);
+        assert_eq!(renamed.renaming.resource[&42], 0);
         assert_eq!(renamed.state.size(), 2 * count + 2);
         for token in renamed
             .state

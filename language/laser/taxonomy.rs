@@ -1,12 +1,9 @@
 use super::component::{decompose, extract};
 use super::memo::Memo;
-use crate::basis::Set;
 use crate::executor::Executor;
-use crate::flow::Flow;
 use crate::link::Link;
-use crate::place::Place;
 use crate::program::Symbol;
-use crate::state::{Canonical, Frame, State, Token, World};
+use crate::state::{Canonical, Frame, Renaming, State, Token, World};
 use hashing::Builder;
 use indexmap::IndexMap;
 use smallvec::SmallVec;
@@ -55,47 +52,6 @@ pub(super) enum Draft {
         piece: Vec<Piece>,
         original: Extent,
     },
-}
-
-pub(super) struct Renaming {
-    pub world: Vec<Option<usize>>,
-    pub frame: Vec<Option<usize>>,
-    pub resource: crate::relation::Map<usize, usize>,
-}
-
-impl Renaming {
-    pub fn place(&self, place: Place) -> Option<Place> {
-        Some(match place {
-            Place::World(index, id) => Place::World(self.world[index]?, self.resource[&id]),
-            Place::Context(index, id) => Place::Context(self.frame[index]?, self.resource[&id]),
-            Place::Held(index, id) => Place::Held(self.frame[index]?, self.resource[&id]),
-        })
-    }
-
-    pub fn flow(&self, flow: Flow, extent: Extent) -> Flow {
-        let resource = flow
-            .resource
-            .into_iter()
-            .filter_map(|(place, basis)| Some((self.place(place)?, basis)))
-            .collect();
-        let mut context = vec![Set::default(); extent.world];
-        for (index, target) in self.world.iter().enumerate() {
-            if let Some(target) = target {
-                context[*target] = flow.context[index].clone();
-            }
-        }
-        let mut mapping = vec![None; extent.frame];
-        for (index, target) in self.frame.iter().enumerate() {
-            if let Some(target) = target {
-                mapping[*target] = flow.frame[index];
-            }
-        }
-        Flow {
-            resource,
-            context,
-            frame: mapping,
-        }
-    }
 }
 
 // Kinds are the canonical forms of components and roots the canonical forms of root frames, or of
@@ -334,12 +290,7 @@ impl Taxonomy {
                     root,
                     kind: Vec::new(),
                 };
-                let renaming = Renaming {
-                    world: canonical.world,
-                    frame: canonical.frame,
-                    resource: canonical.resource,
-                };
-                return (makeup, renaming);
+                return (makeup, canonical.renaming);
             }
             Draft::Split {
                 rename,
@@ -364,15 +315,20 @@ impl Taxonomy {
             let piece = &piece[index];
             let size = self.kind(kind[index]).1;
             for (position, &original) in piece.world.iter().enumerate() {
-                let named = piece.named.world[position].expect("a named kind keeps its worlds");
+                let named =
+                    piece.named.renaming.world[position].expect("a named kind keeps its worlds");
                 world[original] = Some(start.world + named);
             }
             for (position, &original) in piece.frame.iter().enumerate() {
-                let named = piece.named.frame[position + 1].expect("a named kind keeps its frames");
+                let named = piece.named.renaming.frame[position + 1]
+                    .expect("a named kind keeps its frames");
                 frame[original] = Some(start.frame + named - 1);
             }
             for &(original, normalized) in &piece.normal {
-                resource.push((original, start.token + piece.named.resource[&normalized]));
+                resource.push((
+                    original,
+                    start.token + piece.named.renaming.resource[&normalized],
+                ));
             }
             start.world += size.world;
             start.frame += size.frame;

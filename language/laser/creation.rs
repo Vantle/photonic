@@ -50,7 +50,10 @@ enum Settled {
 fn realize(taxonomy: &Taxonomy, product: Product, root: u32, kind: &[u32]) -> (Makeup, Flat) {
     let (makeup, renaming) = taxonomy.assemble(product.draft, root, kind);
     let extent = taxonomy.extent(&makeup);
-    (makeup, Flat::new(renaming.flow(product.flow, extent)))
+    (
+        makeup,
+        Flat::new(renaming.flow(product.flow, extent.world, extent.frame)),
+    )
 }
 
 // A move that applied itself to its parts learns its effect from what it made of them.

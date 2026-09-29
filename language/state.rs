@@ -35,14 +35,22 @@ pub struct State {
     pub frame: crate::sequence::List<Arc<Frame>>,
 }
 
+// A configuration in its canonical form, and where its coherences, frames and token ids went.
 pub struct Canonical {
     pub state: State,
+    pub renaming: Renaming,
+}
+
+// Where a configuration's coherences, frames and token ids go in another: none for a coherence or
+// frame it drops.
+#[derive(Debug, Eq, PartialEq)]
+pub struct Renaming {
     pub world: Vec<Option<usize>>,
     pub frame: Vec<Option<usize>>,
     pub resource: crate::relation::Map<usize, usize>,
 }
 
-impl Canonical {
+impl Renaming {
     pub(crate) fn place(&self, place: crate::place::Place) -> Option<crate::place::Place> {
         use crate::place::Place;
         Some(match place {
@@ -50,6 +58,37 @@ impl Canonical {
             Place::Context(index, id) => Place::Context(self.frame[index]?, self.resource[&id]),
             Place::Held(index, id) => Place::Held(self.frame[index]?, self.resource[&id]),
         })
+    }
+
+    // A flow into the renamed configuration, which holds this many coherences and frames.
+    pub(crate) fn flow(
+        &self,
+        flow: crate::flow::Flow,
+        world: usize,
+        frame: usize,
+    ) -> crate::flow::Flow {
+        let resource = flow
+            .resource
+            .into_iter()
+            .filter_map(|(place, basis)| Some((self.place(place)?, basis)))
+            .collect();
+        let mut context = vec![crate::basis::Set::default(); world];
+        for (index, target) in self.world.iter().enumerate() {
+            if let Some(target) = target {
+                context[*target] = flow.context[index].clone();
+            }
+        }
+        let mut mapping = vec![None; frame];
+        for (index, target) in self.frame.iter().enumerate() {
+            if let Some(target) = target {
+                mapping[*target] = flow.frame[index];
+            }
+        }
+        crate::flow::Flow {
+            resource,
+            context,
+            frame: mapping,
+        }
     }
 }
 
@@ -332,9 +371,11 @@ impl State {
         }
         Canonical {
             state,
-            world: rename,
-            frame: mapping,
-            resource,
+            renaming: Renaming {
+                world: rename,
+                frame: mapping,
+                resource,
+            },
         }
     }
 

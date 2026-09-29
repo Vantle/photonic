@@ -137,30 +137,10 @@ impl Applied {
 
 impl Flow {
     pub(crate) fn rename(self, canonical: crate::state::Canonical) -> Applied {
-        let resource = self
-            .resource
-            .into_iter()
-            .filter_map(|(place, basis)| Some((canonical.place(place)?, basis)))
-            .collect();
-        let mut context = vec![Set::default(); canonical.state.world.len()];
-        for (index, target) in canonical.world.iter().enumerate() {
-            if let Some(target) = target {
-                context[*target] = self.context[index].clone();
-            }
-        }
-        let mut frame = vec![None; canonical.state.frame.len()];
-        for (index, target) in canonical.frame.iter().enumerate() {
-            if let Some(target) = target {
-                frame[*target] = self.frame[index];
-            }
-        }
+        let (world, frame) = (canonical.state.world.len(), canonical.state.frame.len());
         Applied {
+            flow: canonical.renaming.flow(self, world, frame),
             state: canonical.state,
-            flow: Self {
-                resource,
-                context,
-                frame,
-            },
         }
     }
 }

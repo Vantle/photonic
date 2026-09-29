@@ -46,9 +46,7 @@ fn ownership() {
     let first = store.insert(canonical());
     let second = store.insert(canonical());
     assert_eq!(first.state, expected.state);
-    assert_eq!(first.world, expected.world);
-    assert_eq!(first.frame, expected.frame);
-    assert_eq!(first.resource, expected.resource);
+    assert_eq!(first.renaming, expected.renaming);
     for index in 0..first.state.frame.len() {
         assert!(Arc::ptr_eq(
             &first.state.frame[index],

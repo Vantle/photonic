@@ -183,14 +183,14 @@ impl Capture {
     pub fn environment(&self, canonical: &Canonical) -> Environment {
         let mut frame = vec![None; canonical.state.frame.len()];
         for &(index, value) in &self.attachment {
-            if let Some(position) = canonical.frame[index] {
+            if let Some(position) = canonical.renaming.frame[index] {
                 frame[position] = value;
             }
         }
         let mut resource = self
             .resource
             .iter()
-            .filter_map(|&(place, basis)| Some((canonical.place(place)?, basis)))
+            .filter_map(|&(place, basis)| Some((canonical.renaming.place(place)?, basis)))
             .collect::<Vec<_>>();
         resource.sort_unstable_by_key(|(place, _)| *place);
         Environment {

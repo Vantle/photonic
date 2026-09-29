@@ -73,7 +73,12 @@ pub(super) struct Placement {
 fn rename(named: &Canonical, set: &Set<Place>) -> Vec<Place> {
     let mut list = set
         .iter()
-        .map(|&place| named.place(place).expect("a bound place survives renaming"))
+        .map(|&place| {
+            named
+                .renaming
+                .place(place)
+                .expect("a bound place survives renaming")
+        })
         .collect::<Vec<_>>();
     list.sort_unstable();
     list
@@ -90,7 +95,7 @@ impl Laser {
         let mut world = binding
             .world
             .iter()
-            .map(|&world| source.world[world].expect("a bound world survives renaming"))
+            .map(|&world| source.renaming.world[world].expect("a bound world survives renaming"))
             .collect::<Vec<_>>();
         world.sort_unstable();
         Placement {
@@ -140,11 +145,11 @@ impl Laser {
                 let mut origin = passage
                     .resource(value)
                     .iter()
-                    .filter_map(|&origin| source.place(origin))
+                    .filter_map(|&origin| source.renaming.place(origin))
                     .collect::<Vec<_>>();
                 origin.sort_unstable();
                 Some(Link {
-                    target: target.place(value)?,
+                    target: target.renaming.place(value)?,
                     source: origin,
                 })
             })
