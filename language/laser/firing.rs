@@ -58,34 +58,31 @@ impl Laser {
         &mut self,
         executor: Option<&Executor>,
         novel: Vec<(usize, Range<usize>)>,
-        retry: Vec<(Identity, usize, usize)>,
+        retry: Vec<(Identity, usize)>,
         next: &mut Round,
     ) -> usize {
         let candidate = self.select(executor, novel);
         let revisit = retry
             .iter()
-            .map(|&(_, source, position)| (source, position))
+            .map(|(identity, position)| (identity.source, *position))
             .collect::<Vec<_>>();
         let mut pending = retry;
         let mut resolved = Vec::with_capacity(candidate.len());
         for value in candidate {
             resolved.push((value.index, pending.len(), value.resolution));
-            pending.extend(
-                value
-                    .pending
-                    .into_iter()
-                    .map(|(identity, position)| (identity, value.index, position)),
-            );
+            pending.extend(value.pending);
         }
         let count = pending.len();
         let mut created = Vec::with_capacity(count);
-        let mut rest = pending;
-        while !rest.is_empty() {
-            let later = rest.split_off(rest.len().min(FIRING));
-            let outcome = self.attempt(executor, &rest);
-            created.extend(self.create(executor, rest, outcome, next));
+        let mut rest = pending.into_iter();
+        loop {
+            let batch = rest.by_ref().take(FIRING).collect::<Vec<_>>();
+            if batch.is_empty() {
+                break;
+            }
+            let outcome = self.attempt(executor, &batch);
+            created.extend(self.create(executor, batch, outcome, next));
             self.taxonomy.forget(executor);
-            rest = later;
         }
         if !revisit.is_empty() {
             self.blocked
@@ -159,32 +156,27 @@ impl Laser {
         }
     }
 
-    fn attempt(
-        &self,
-        executor: Option<&Executor>,
-        pending: &[(Identity, usize, usize)],
-    ) -> Vec<Outcome> {
+    fn attempt(&self, executor: Option<&Executor>, pending: &[(Identity, usize)]) -> Vec<Outcome> {
         let _scope = profile::Scope::new(profile::Phase::Firing);
         map(
             executor,
             pending.iter().collect(),
-            |(identity, source, position)| {
-                self.apply(identity, *source, &self.trace[*source][*position])
-            },
+            |(identity, position)| self.apply(identity, &self.trace[identity.source][*position]),
         )
     }
 
     // An event over parts applies to the parts it touches alone, once for every key, unless its
     // key made a configuration named whole; then, and for every other event, it applies to its
     // whole source.
-    fn apply(&self, identity: &Identity, source: usize, trace: &Trace) -> Outcome {
-        let (Some(layout), Owner::Frame(owner)) = (&self.layout[source], &identity.owner) else {
-            return self.configuration(identity, source, trace, None);
+    fn apply(&self, identity: &Identity, trace: &Trace) -> Outcome {
+        let (Some(layout), Owner::Frame(owner)) = (&self.layout[identity.source], &identity.owner)
+        else {
+            return self.configuration(identity, trace, None);
         };
         let local = transition::localize(
             &self.taxonomy,
             layout,
-            &self.makeup[source],
+            &self.makeup[identity.source],
             identity.frame,
             *owner,
             identity.rule,
@@ -198,11 +190,11 @@ impl Laser {
             }));
         }
         if self.whole.contains(&local.key) {
-            return self.configuration(identity, source, trace, None);
+            return self.configuration(identity, trace, None);
         }
         let product = self.part(&local.key);
         if matches!(product.draft, Draft::Whole(_)) {
-            return self.configuration(identity, source, trace, Some(local.key));
+            return self.configuration(identity, trace, Some(local.key));
         }
         Outcome::Move(Box::new(Move {
             local,
@@ -234,13 +226,7 @@ impl Laser {
 
     // A rule a detached capture owns applies through the flow back to the configuration where
     // its match was found.
-    fn configuration(
-        &self,
-        identity: &Identity,
-        source: usize,
-        trace: &Trace,
-        whole: Option<Key>,
-    ) -> Outcome {
+    fn configuration(&self, identity: &Identity, trace: &Trace, whole: Option<Key>) -> Outcome {
         let attached = trace.owner().map(|capture| {
             let origin = &self.state[capture.origin];
             (capture, origin, capture.flow(origin, &self.pool))
@@ -254,7 +240,7 @@ impl Laser {
             }),
         };
         let result = application::apply(Request {
-            source: &self.state[source],
+            source: &self.state[identity.source],
             scope: &self.program.scope,
             frame: identity.frame,
             owner,

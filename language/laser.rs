@@ -88,7 +88,7 @@ struct Progress {
 struct Round {
     fresh: Vec<usize>,
     changed: Vec<usize>,
-    retry: Vec<(Identity, usize, usize)>,
+    retry: Vec<(Identity, usize)>,
 }
 
 // Each trace remembers the event it identifies, so the passes after closing read it instead of
@@ -145,7 +145,7 @@ pub struct Laser {
     capture: capture::Store,
     environment: Memo<(usize, usize), Arc<Canonical>>,
     pool: Pool,
-    blocked: HashMap<Identity, (usize, usize), Builder>,
+    blocked: HashMap<Identity, usize, Builder>,
     support: Option<support::Support>,
     deduction: Deduction,
     round: Round,
@@ -343,11 +343,11 @@ impl Laser {
             self.round.retry = self
                 .blocked
                 .iter()
-                .map(|(identity, &(source, position))| (identity.clone(), source, position))
+                .map(|(identity, &position)| (identity.clone(), position))
                 .collect();
             self.round
                 .retry
-                .sort_unstable_by_key(|(_, source, position)| (*source, *position));
+                .sort_unstable_by_key(|(identity, position)| (identity.source, *position));
         }
         let open = !self.closed();
         let mut remaining = budget;

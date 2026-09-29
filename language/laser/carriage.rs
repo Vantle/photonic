@@ -1,8 +1,11 @@
+use super::capture;
 use super::pool::Demand;
 use super::trace::Trace;
 use super::{CHUNK, Laser, Progress, map};
 use crate::executor::Executor;
 use crate::profile;
+use hashing::Builder;
+use indexmap::IndexSet;
 use std::collections::BTreeMap;
 use std::num::NonZeroU32;
 use std::ops::Range;
@@ -64,6 +67,29 @@ fn batch(crossing: Vec<Crossing>) -> Vec<Vec<Crossing>> {
 fn land(position: usize) -> NonZeroU32 {
     NonZeroU32::new(u32::try_from(position + 1).expect("fewer than 2^32 traces"))
         .expect("a position after zero")
+}
+
+// Inserts the traces a crossing carried into its source's traces, each new one remembering the
+// crossing that brought it, and gives where every trace of the crossing landed.
+fn absorb(
+    store: &capture::Store,
+    set: &mut IndexSet<Trace, Builder>,
+    parent: &mut Vec<(u32, u32)>,
+    carried: Carried,
+) -> Vec<Option<NonZeroU32>> {
+    let event = u32::try_from(carried.event).expect("fewer than 2^32 events");
+    let found = carried
+        .list
+        .into_iter()
+        .map(|(trace, from)| {
+            let (found, fresh) = set.insert_full(trace.share(store));
+            if fresh {
+                parent.push((event, u32::try_from(from).expect("fewer than 2^32 traces")));
+            }
+            found
+        })
+        .collect::<Vec<_>>();
+    settle(carried.landing, &found)
 }
 
 fn settle(landing: Vec<Landing>, position: &[usize]) -> Vec<Option<NonZeroU32>> {
@@ -248,20 +274,7 @@ impl Laser {
             let settled = list
                 .into_iter()
                 .map(|(position, carried)| {
-                    let event = u32::try_from(carried.event).expect("fewer than 2^32 events");
-                    let found = carried
-                        .list
-                        .into_iter()
-                        .map(|(trace, from)| {
-                            let (found, fresh) = set.insert_full(trace.share(store));
-                            if fresh {
-                                let from = u32::try_from(from).expect("fewer than 2^32 traces");
-                                parent.push((event, from));
-                            }
-                            found
-                        })
-                        .collect::<Vec<_>>();
-                    (position, settle(carried.landing, &found))
+                    (position, absorb(store, &mut set, &mut parent, carried))
                 })
                 .collect::<Vec<_>>();
             (index, start, set, parent, settled)

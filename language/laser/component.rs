@@ -9,28 +9,43 @@ use std::sync::Arc;
 // root that shares a token with a component or refers to one of its frames is tied to it, and a
 // configuration with a tied root is not split; the condition survives renaming, so equal
 // configurations are always split the same way.
+#[derive(Default)]
 pub(super) struct Component {
     pub world: Vec<usize>,
     pub frame: Vec<usize>,
 }
 
+// The component a set of the forest forms, made when its root is first met, so components come in
+// the order their first world or frame does.
+fn member<'component>(
+    group: &mut [Option<usize>],
+    component: &'component mut Vec<Component>,
+    root: usize,
+) -> &'component mut Component {
+    let position = *group[root].get_or_insert_with(|| {
+        component.push(Component::default());
+        component.len() - 1
+    });
+    &mut component[position]
+}
+
 pub(super) fn decompose(state: &State) -> Option<Vec<Component>> {
+    let root = &state.frame[0];
+    if root.parent.is_some_and(|index| index != 0) || root.lexical.is_some_and(|index| index != 0) {
+        return None;
+    }
+    let mut owner = HashMap::<usize, Option<usize>, Builder>::default();
+    for token in root.token() {
+        if token.capture.is_some_and(|capture| capture != 0) {
+            return None;
+        }
+        owner.insert(token.id, None);
+    }
     let reachable = state.reachable();
     let count = state.world.len();
     let mut node = vec![usize::MAX; state.frame.len()];
     for (position, &index) in reachable.iter().enumerate().skip(1) {
         node[index] = count + position - 1;
-    }
-    let root = &state.frame[0];
-    if root.parent.is_some_and(|index| index != 0) || root.lexical.is_some_and(|index| index != 0) {
-        return None;
-    }
-    let mut owner = HashMap::<usize, usize, Builder>::default();
-    for token in root.particle.iter().chain(&root.held) {
-        if token.capture.is_some_and(|capture| capture != 0) {
-            return None;
-        }
-        owner.insert(token.id, usize::MAX);
     }
     let mut forest = Forest::new(count + reachable.len() - 1);
     let mut join = |forest: &mut Forest, holder: usize, token: &Token| -> bool {
@@ -38,13 +53,13 @@ pub(super) fn decompose(state: &State) -> Option<Vec<Component>> {
             forest.union(holder, node[capture]);
         }
         match owner.get(&token.id) {
-            Some(&usize::MAX) => false,
-            Some(&other) => {
+            Some(None) => false,
+            Some(&Some(other)) => {
                 forest.union(holder, other);
                 true
             }
             None => {
-                owner.insert(token.id, holder);
+                owner.insert(token.id, Some(holder));
                 true
             }
         }
@@ -66,30 +81,23 @@ pub(super) fn decompose(state: &State) -> Option<Vec<Component>> {
                 forest.union(node[index], node[link]);
             }
         }
-        for token in value.particle.iter().chain(&value.held) {
+        for token in value.token() {
             if !join(&mut forest, node[index], token) {
                 return None;
             }
         }
     }
-    let mut group = HashMap::<usize, usize, Builder>::default();
-    let mut component = Vec::<Component>::new();
-    let mut place = |root: usize, component: &mut Vec<Component>| {
-        *group.entry(root).or_insert_with(|| {
-            component.push(Component {
-                world: Vec::new(),
-                frame: Vec::new(),
-            });
-            component.len() - 1
-        })
-    };
+    let mut group = vec![None; count + reachable.len() - 1];
+    let mut component = Vec::new();
     for index in 0..count {
-        let position = place(forest.find(index), &mut component);
-        component[position].world.push(index);
+        member(&mut group, &mut component, forest.find(index))
+            .world
+            .push(index);
     }
     for &index in &reachable[1..] {
-        let position = place(forest.find(node[index]), &mut component);
-        component[position].frame.push(index);
+        member(&mut group, &mut component, forest.find(node[index]))
+            .frame
+            .push(index);
     }
     Some(component)
 }

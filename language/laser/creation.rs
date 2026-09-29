@@ -21,6 +21,12 @@ enum Route {
     },
 }
 
+// What an application made, with the numbers its product's root and parts took.
+struct Learned {
+    outcome: Outcome,
+    number: Option<(u32, Vec<u32>)>,
+}
+
 struct Named {
     hash: u64,
     makeup: Makeup,
@@ -47,7 +53,8 @@ fn realize(taxonomy: &Taxonomy, product: Product, root: u32, kind: &[u32]) -> (M
     (makeup, Flat::new(renaming.flow(product.flow, extent)))
 }
 
-fn learn(taxonomy: &Taxonomy, mut value: Box<Move>, root: u32, kind: &[u32]) -> Box<Move> {
+// A move that applied itself to its parts learns its effect from what it made of them.
+fn effect(taxonomy: &Taxonomy, mut value: Box<Move>, root: u32, kind: &[u32]) -> Box<Move> {
     let product = value
         .product
         .take()
@@ -101,25 +108,38 @@ fn merge(
 }
 
 impl Laser {
+    // Names what a batch of applications made, finds or makes the configurations they reach and
+    // records their events, in the batch's order.
     pub(super) fn create(
         &mut self,
         executor: Option<&Executor>,
-        pending: Vec<(Identity, usize, usize)>,
+        pending: Vec<(Identity, usize)>,
         outcome: Vec<Outcome>,
         next: &mut Round,
     ) -> Vec<Option<usize>> {
         let _scope = profile::Scope::new(profile::Phase::Creation);
-        let mut number = Vec::with_capacity(outcome.len());
-        for outcome in &outcome {
-            number.push(match outcome {
+        let learned = self.learn(executor, outcome);
+        let named = self.label(executor, learned, &pending);
+        let settled = self.locate(executor, named);
+        let (created, fired) = self.commit(executor, pending, settled, next);
+        self.register(executor, fired);
+        created
+    }
+
+    // Numbers every product in the batch's order, learns the effect of each move that applied
+    // itself to its parts, and remembers every effect and every key named whole.
+    fn learn(&mut self, executor: Option<&Executor>, outcome: Vec<Outcome>) -> Vec<Learned> {
+        let number = outcome
+            .iter()
+            .map(|outcome| match outcome {
                 Outcome::Product(product) => Some(self.taxonomy.intern(&product.draft)),
                 Outcome::Move(value) => value
                     .product
                     .as_ref()
                     .map(|product| self.taxonomy.intern(&product.draft)),
                 Outcome::Blocked => None,
-            });
-        }
+            })
+            .collect::<Vec<_>>();
         let taxonomy = &self.taxonomy;
         let mut learned = map(
             executor,
@@ -127,12 +147,15 @@ impl Laser {
             |(outcome, number)| match outcome {
                 Outcome::Move(value) if value.product.is_some() => {
                     let (root, kind) = number.expect("a product is numbered");
-                    (Outcome::Move(learn(taxonomy, value, root, &kind)), None)
+                    Learned {
+                        outcome: Outcome::Move(effect(taxonomy, value, root, &kind)),
+                        number: None,
+                    }
                 }
-                other => (other, number),
+                outcome => Learned { outcome, number },
             },
         );
-        for (outcome, _) in &mut learned {
+        for Learned { outcome, .. } in &mut learned {
             match outcome {
                 Outcome::Move(value) => {
                     let found = value.known.take().expect("a move knows its effect");
@@ -147,16 +170,25 @@ impl Laser {
                 Outcome::Blocked => {}
             }
         }
+        learned
+    }
+
+    // Each result's makeup, hash and passage back to its source; a move's result the limits
+    // refuse has none.
+    fn label(
+        &self,
+        executor: Option<&Executor>,
+        learned: Vec<Learned>,
+        pending: &[(Identity, usize)],
+    ) -> Vec<Option<Named>> {
         let taxonomy = &self.taxonomy;
         let makeup = &self.makeup;
         let limit = self.limit;
-        let named = map(
+        let source = pending.iter().map(|(identity, _)| identity.source);
+        map(
             executor,
-            learned
-                .into_iter()
-                .zip(pending.iter().map(|&(_, source, _)| source))
-                .collect(),
-            |((outcome, number), source)| match outcome {
+            learned.into_iter().zip(source).collect(),
+            |(Learned { outcome, number }, source)| match outcome {
                 Outcome::Product(product) => {
                     let (root, kind) = number.expect("a product is numbered");
                     let (makeup, passage) = realize(taxonomy, *product, root, &kind);
@@ -192,7 +224,12 @@ impl Laser {
                 }
                 Outcome::Blocked => None,
             },
-        );
+        )
+    }
+
+    // Where each result lies: a configuration already known, one an earlier result of the batch
+    // makes, or a new one, materialized here in parallel.
+    fn locate(&self, executor: Option<&Executor>, named: Vec<Option<Named>>) -> Vec<Settled> {
         let item = named
             .iter()
             .flatten()
@@ -208,7 +245,8 @@ impl Laser {
                 (named, found)
             })
             .collect::<Vec<_>>();
-        let settled = map(executor, paired, |(named, found)| match (named, found) {
+        let taxonomy = &self.taxonomy;
+        map(executor, paired, |(named, found)| match (named, found) {
             (Some(named), Some(Found::Existing(index))) => {
                 Settled::Existing(index, Box::new(named.route))
             }
@@ -226,25 +264,33 @@ impl Laser {
                 )
             }
             _ => Settled::Blocked,
-        });
+        })
+    }
+
+    // Adds the new configurations and the events in the batch's order, blocking an identity whose
+    // result the limits refuse; gives each identity's event and the events fired.
+    fn commit(
+        &mut self,
+        executor: Option<&Executor>,
+        pending: Vec<(Identity, usize)>,
+        settled: Vec<Settled>,
+        next: &mut Round,
+    ) -> (Vec<Option<usize>>, Vec<(usize, Identity)>) {
         let mut target = Vec::<Option<usize>>::new();
         let mut admitted = Vec::new();
         let mut created = Vec::with_capacity(pending.len());
         let mut fired = Vec::new();
-        for ((identity, source, position), settled) in pending.into_iter().zip(settled) {
+        for ((identity, position), settled) in pending.into_iter().zip(settled) {
             let (resolved, route) = match settled {
                 Settled::Blocked => {
-                    self.blocked.insert(identity, (source, position));
+                    self.blocked.insert(identity, position);
                     created.push(None);
                     continue;
                 }
                 Settled::Existing(index, route) => (Some(index), route),
                 Settled::Repeat(earlier, route) => (target[earlier], route),
-                Settled::New(..) if self.state.len() >= self.limit.configuration => {
-                    target.push(None);
-                    self.blocked.insert(identity, (source, position));
-                    created.push(None);
-                    continue;
+                Settled::New(.., route) if self.state.len() >= self.limit.configuration => {
+                    (None, route)
                 }
                 Settled::New(hash, makeup, state, layout, route) => {
                     let index = self.push(state, makeup.clone(), layout);
@@ -255,10 +301,11 @@ impl Laser {
             };
             target.push(resolved);
             let Some(resolved) = resolved else {
-                self.blocked.insert(identity, (source, position));
+                self.blocked.insert(identity, position);
                 created.push(None);
                 continue;
             };
+            let source = identity.source;
             let event = self.event.len();
             self.crossed.push(Vec::new());
             let passage = match *route {
@@ -279,7 +326,7 @@ impl Laser {
                 }),
             };
             self.passage.push(passage);
-            fired.push((source, event, identity));
+            fired.push((event, identity));
             self.event.push(Event {
                 source,
                 slot: 0,
@@ -292,16 +339,22 @@ impl Laser {
             created.push(Some(event));
         }
         self.space.admit(executor, admitted);
-        fired.sort_by_key(|&(source, event, _)| (source, event));
+        (created, fired)
+    }
+
+    // Numbers each fired event's identity at its source in the order the events fired, and adds
+    // the identities to their sources' tables in parallel.
+    fn register(&mut self, executor: Option<&Executor>, mut fired: Vec<(usize, Identity)>) {
+        fired.sort_by_key(|(event, identity)| (identity.source, *event));
         let mut group = Vec::<(usize, Vec<(Identity, usize)>)>::new();
-        for (source, event, identity) in fired {
+        for (event, identity) in fired {
             match group.last_mut() {
-                Some((index, list)) if *index == source => list.push((identity, event)),
-                _ => group.push((source, vec![(identity, event)])),
+                Some((source, list)) if *source == identity.source => list.push((identity, event)),
+                _ => group.push((identity.source, vec![(identity, event)])),
             }
         }
-        for (index, list) in &group {
-            let base = self.identity[*index].len();
+        for (source, list) in &group {
+            let base = self.identity[*source].len();
             for (offset, &(_, event)) in list.iter().enumerate() {
                 self.event[event].slot = base + offset;
             }
@@ -309,6 +362,5 @@ impl Laser {
         update(executor, &mut self.identity, group, |table, list| {
             table.extend(list);
         });
-        created
     }
 }
