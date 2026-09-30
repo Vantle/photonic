@@ -6,7 +6,7 @@
     const panel = (title, extra) => {
         const box = element('section', 'panel');
         const header = element('header');
-        header.append(element('h4', undefined, title), ...extra);
+        header.append(element('h3', undefined, title), ...extra);
         const host = element('div');
         box.append(header, host);
         return { box, host };

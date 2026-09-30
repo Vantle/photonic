@@ -50,7 +50,7 @@
         const copy = element('button', undefined, 'Copy link');
         copy.type = 'button';
         const run = book.run.button();
-        bar.append(element('span', 'title', 'Program'), badge, fresh, copy, run);
+        bar.append(element('h2', 'title', 'Program'), badge, fresh, copy, run);
         const notice = element('p', 'notice');
         notice.hidden = true;
         const body = element('div', 'body');

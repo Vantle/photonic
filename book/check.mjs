@@ -67,6 +67,10 @@ const capture = async name => {
 };
 const figure = name => `document.querySelector('figure[data-example="${name}"]')`;
 const ready = `return document.querySelectorAll('figure.example').length > 0 && [...document.querySelectorAll('figure.example')].every(value => value.querySelector('.graph, .stepper'))`;
+const outline = `
+    const level = [...document.querySelectorAll('h1, h2, h3, h4, h5, h6')].map(value => Number(value.tagName[1]));
+    return level[0] === 1 && level.filter(value => value === 1).length === 1 && level.every((value, index) => !index || value <= level[index - 1] + 1);
+`;
 const narrow = async () => {
     for (const [width, height] of [[375, 812], [390, 844]]) {
         await resize(width, height);
@@ -176,6 +180,7 @@ try {
         assert.equal(await evaluate(`return ${connection}.querySelectorAll('.output .panel').length`), await evaluate(`return book.record.connection[${JSON.stringify(name)}].result.shape.length`), name);
     }
     assert.match(await evaluate(`return ${connection}.querySelector('.verdict').textContent`), /^One shape: lattice\.converse and lattice\.order/);
+    assert.equal(await evaluate(outline), true);
     await narrow();
     console.log('The recorded book renders every example, verdict, lens, expression, workbench view, filter and connection from a local file.');
 
@@ -199,6 +204,7 @@ try {
     assert.deepEqual(await evaluate("return [...document.querySelectorAll('.lightbox .symmetry .class button')].map(value => value.textContent)"), ['Local False ⇄ True', 'Block Boolean.Not']);
     assert.deepEqual(await evaluate("return [...document.querySelectorAll('.lightbox .option button[aria-pressed=\"true\"]')].map(value => value.title)"), ['library/function/invoke.particle', 'library/boolean/not.particle']);
     assert.deepEqual(await evaluate("return [...document.querySelectorAll('.lightbox .verdict .badge')].map(value => value.textContent)"), ['reached']);
+    assert.equal(await evaluate(outline), true);
     await narrow();
     console.log('The recorded Lightbox shows every example with its libraries, targets and symmetries from a local file.');
 

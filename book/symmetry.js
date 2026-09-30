@@ -44,7 +44,7 @@
         toggle.type = 'checkbox';
         toggle.checked = true;
         check.append(toggle, 'Color');
-        header.append(element('h4', undefined, 'Symmetry'), check);
+        header.append(element('h3', undefined, 'Symmetry'), check);
         const summary = element('p');
         const list = element('div', 'class');
         const body = element('div', 'body');
