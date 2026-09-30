@@ -59,27 +59,14 @@
         const editor = book.editor.create('Lightbox program');
         const goal = book.editor.goal('Target configurations, one per line', 2);
         const option = element('div', 'option');
-        option.append(element('span', undefined, 'Libraries'));
-        const toggle = new Map(Object.keys(book.record?.library ?? {}).map(name => {
-            const button = element('button', undefined, name.replace(/^library\//, ''));
-            button.type = 'button';
-            button.title = `${name}.particle`;
-            button.setAttribute('aria-pressed', 'false');
-            button.addEventListener('click', () => {
-                if (button.hasAttribute('aria-disabled')) return;
-                button.setAttribute('aria-pressed', String(button.getAttribute('aria-pressed') !== 'true'));
-                changed();
-            });
-            option.append(button);
-            return [name, button];
-        }));
         const check = element('label', 'check');
         const keep = element('input');
         keep.type = 'checkbox';
         check.append(keep, 'Targets keep the program’s rules');
         option.append(check);
+        const chooser = book.chooser.create({ change: () => changed(), measure: () => book.engine.size(setting()) });
         const message = book.render.message();
-        body.append(choice.element, editor.element, goal.element, option, message.element);
+        body.append(choice.element, editor.element, goal.element, option, chooser.element, message.element);
         card.append(bar, notice, body);
         const result = element('section', 'result');
         const viewer = book.viewer.create();
@@ -89,14 +76,14 @@
         const setting = () => ({
             source: editor.value,
             target: goal.value,
-            library: [...toggle].filter(([, button]) => button.getAttribute('aria-pressed') === 'true').map(([name]) => name),
+            library: chooser.value,
             preserve: keep.checked,
         });
         const fill = value => {
             editor.value = value.source;
             goal.value = value.target;
-            toggle.forEach((button, name) => button.setAttribute('aria-pressed', String(value.library.includes(name))));
             keep.checked = value.preserve;
+            chooser.value = value.library;
         };
         const address = value => history.replaceState(null, '', book.share.link(value));
 
@@ -111,6 +98,7 @@
         };
         const changed = () => {
             choice.press();
+            chooser.describe();
             draft = setting();
             clearTimeout(timer);
             timer = setTimeout(save, 300);
@@ -120,6 +108,7 @@
 
         const cycle = book.run.create({ trigger: run, message });
         let pending = false;
+        let opening = 0;
         const execute = () => {
             const value = setting();
             const submission = book.editor.submit(root, editor, goal);
@@ -141,6 +130,7 @@
                 message.say('This example has no recorded run. Regenerate the records with bazel run -c opt //book:record.', 'error');
                 return;
             }
+            opening++;
             save();
             cycle.cancel();
             message.say();
@@ -157,6 +147,7 @@
         keep.addEventListener('change', changed);
         run.addEventListener('click', execute);
         fresh.addEventListener('click', () => {
+            opening++;
             cycle.cancel();
             message.say();
             fill({ source: '', target: [], library: [], preserve: false });
@@ -178,14 +169,17 @@
             setTimeout(() => { copy.textContent = 'Copy link'; }, 1600);
         });
 
-        const open = start => {
+        const open = async start => {
+            const mine = ++opening;
             save();
             address(start);
             cycle.cancel();
             message.say();
-            fill(start);
             pending = false;
-            const missing = start.library.filter(name => !toggle.has(name));
+            if (!start.library.every(book.chooser.has)) await book.chooser.load().catch(() => undefined);
+            if (mine !== opening) return;
+            fill(start);
+            const missing = start.library.filter(name => !book.chooser.has(name));
             if (missing.length) {
                 choice.press();
                 message.say(`The Lightbox does not have ${missing.map(name => `${name}.particle`).join(', ')}, so it has not run this program.`, 'error');
@@ -221,10 +215,7 @@
             editor.area.readOnly = !on;
             goal.area.readOnly = !on;
             keep.disabled = !on;
-            toggle.forEach(button => {
-                if (on) button.removeAttribute('aria-disabled');
-                else button.setAttribute('aria-disabled', 'true');
-            });
+            chooser.enable(on);
             badge.textContent = on ? 'live' : 'recorded runs';
             resume();
         });

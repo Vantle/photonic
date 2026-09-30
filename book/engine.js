@@ -5,6 +5,9 @@
     const stale = 'This page and its engine come from different versions of the book. Reload the page.';
     const failure = reason => reason ? `This browser could not start the WebAssembly engine: ${reason}` : 'This browser could not start the WebAssembly engine.';
     const startup = 60000;
+    // The engine refuses a request past 128 KiB (toolchain/browser/request.rs); the Lightbox measures
+    // a program with its libraries before it runs, to say so first.
+    const capacity = 131072;
     const served = /^https?:$/.test(location.protocol);
     const listener = new Set();
     let state = served ? 'unknown' : 'recorded';
@@ -148,16 +151,20 @@
     let shared;
     const send = (kind, body, option) => (shared ??= open()).send(kind, body, option);
 
+    const expand = library => [...new Set(library.flatMap(name => book.library?.[name]?.load ?? [name]))];
+
     const request = program => ({
         source: program.source,
-        library: program.library.map(name => {
-            const text = book.record?.library?.[name];
+        library: expand(program.library).map(name => {
+            const text = book.library?.[name]?.source ?? book.record?.library?.[name];
             if (text === undefined) throw new Error(`${name}.particle is not recorded. Regenerate the records with bazel run -c opt //book:record.`);
             return { name: `${name}.particle`, source: text };
         }),
         target: program.target,
         preserve: program.preserve,
     });
+
+    const size = program => new TextEncoder().encode(JSON.stringify({ version, ...request(program) })).length;
 
     const explore = async (program, signal) => send('explore', request(program), { signal });
 
@@ -177,5 +184,5 @@
         else setTimeout(probe, 1200);
     }
 
-    book.engine = { send, request, explore, path, watch, get state() { return state; }, get advice() { return advice[state]; } };
+    book.engine = { send, expand, request, size, capacity, explore, path, watch, get state() { return state; }, get advice() { return advice[state]; } };
 })();
