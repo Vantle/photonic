@@ -181,6 +181,11 @@ fn diamond() {
 
 #[test]
 fn manifest() {
+    // hermetic_launcher 0.0.15's prebuilt x86-64 macOS stub ignores RUNFILES_MANIFEST_FILE; macOS
+    // always runs from a runfiles tree, which the stub does find.
+    if cfg!(all(target_os = "macos", target_arch = "x86_64")) {
+        return;
+    }
     let root = directory();
     let runfile = runfiles::Runfiles::create().unwrap();
     let executable = executable("LOCAL");

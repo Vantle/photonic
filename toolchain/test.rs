@@ -60,6 +60,11 @@ fn launcher() -> Result<(), Box<dyn std::error::Error>> {
     .concat();
     fs::write(&manifest, content)?;
     for isolated in [false, true] {
+        if isolated && cfg!(all(target_os = "macos", target_arch = "x86_64")) {
+            // hermetic_launcher 0.0.15's prebuilt x86-64 macOS stub ignores RUNFILES_MANIFEST_FILE;
+            // macOS always runs from a runfiles tree, which the stub does find.
+            continue;
+        }
         let mut command = Command::new(&executable);
         command.current_dir(&directory).arg("tail");
         if isolated {
