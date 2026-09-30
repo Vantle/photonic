@@ -30,6 +30,10 @@ The [Verify workflow](.github/workflows/verify.yml) checks every pull request: t
 
 Open an [issue](https://github.com/Vantle/photonic/issues) with the program, the command, the output of `photonic --version` and what you expected. Report security problems privately, as [SECURITY.md](SECURITY.md) describes.
 
+## Conduct
+
+[The code of conduct](CODE_OF_CONDUCT.md) has one rule: no illegal activity. It says whom to tell about a violation.
+
 ## License
 
 Unless you explicitly state otherwise, any contribution you intentionally submit for inclusion in Photonic, as defined in the Apache-2.0 license, is dual licensed under the MIT and Apache-2.0 licenses, without any additional terms or conditions.
