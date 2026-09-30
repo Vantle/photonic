@@ -128,8 +128,7 @@ impl Search<'_> {
     }
 
     fn leave(&mut self, level: usize) {
-        while self.path.len() > level {
-            let vertex = self.path.pop().expect("the path is longer than the level");
+        for vertex in self.path.drain(level..).rev() {
             self.decomposition.leave(&mut self.point, vertex);
         }
         self.trace.truncate(level + 1);
