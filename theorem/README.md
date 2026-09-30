@@ -4,7 +4,7 @@ Photonic proves a claim by executing it. A theorem program states its claim in P
 
 Theorems are stated as generally as a finite check allows. The Boolean laws hold in every Boolean algebra; the relation and type theorems hold for every domain, every relation satisfying their hypotheses and every choice of component types; the group, lattice and ring laws hold in every group, lattice and ring; and the arithmetic laws hold at every width. Only the coloring theorems are specific numbers.
 
-The last three layers prove the standard library itself. They ground its digit tables in counting, prove its chain cells for every item, and check its linked arithmetic one step at a time by running the library's own rules.
+The last three layers prove the standard library itself. They ground its digit tables in counting, prove its chain cells for every item that is not one of the cell's words, and check its linked arithmetic one step at a time by running the library's own rules.
 
 ```sh
 bazel test -c opt //theorem/...
@@ -336,7 +336,7 @@ The second rule is one of nine. Sum's digit must be where b + c strides from a l
 
 ### 8. Linked storage
 
-A chain handle is a coherence that carries its own methods as rule values. [cell.particle](../library/chain/cell.particle) gives each cell `Read`, `Peek` and `Forget` methods. They are sealed by the capture of the rules that built them, and a handle is destroyed by matching its methods whole. The storage theorems hold for every item and every chain below it. The cell's rules mention neither `Item` nor `Below`, so the run with these atoms is the run for any others. The item's alphabet must declare `Drop`, as the digits do, and the chain below must answer `Forget`, as every chain does. From [chain/read.wave](chain/read.wave):
+A chain handle is a coherence that carries its own methods as rule values. [cell.particle](../library/chain/cell.particle) gives each cell `Read`, `Peek` and `Forget` methods. They are sealed by the capture of the rules that built them, and a handle is destroyed by matching its methods whole. The storage theorems hold for every item atom and every chain below it that the cell's rules do not name, and that the claim uses for nothing else. The cell's rules mention neither `Item` nor `Below`, so the run with these atoms is the run for any such others, renamed. An item that is one of the cell's words, such as `Free` or `Seal`, can meet a pattern of the cell instead, and some schedules then lose it; a field such as `([Letter] Free)` is one occurrence that no pattern names, so it is such an item whatever word it holds. The library guide lists [the words each package reserves](../library/README.md#reserved-words). The item's alphabet must declare `Drop`, as the digits do, and the chain below must answer `Forget`, as every chain does. From [chain/read.wave](chain/read.wave):
 
 ```
 Push.Item.Below,

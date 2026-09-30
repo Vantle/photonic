@@ -2,6 +2,7 @@ mod binary;
 mod boolean;
 mod carry;
 mod catalog;
+mod chain;
 mod collection;
 mod composition;
 mod expression;

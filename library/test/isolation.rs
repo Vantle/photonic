@@ -2,7 +2,7 @@ use crate::catalog::LIBRARY;
 use frontend::lowering::parse;
 use frontend::source::{Definition, Output, Program, Value};
 use frontend::text;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 const BOUNDED: [&str; 9] = [
     "binary",
@@ -310,6 +310,74 @@ fn walk(rule: &Definition, role: &mut BTreeSet<String>, plain: &mut BTreeSet<Str
         gather(value, role, plain);
     }
     produce(rule, role, plain);
+}
+
+// The words a library source's rules use, field keys included. Numerals are left out: every pattern
+// also names a word, so a caller that avoids the words never meets a pattern.
+pub fn atom(source: &str) -> BTreeSet<String> {
+    let mut role = BTreeSet::new();
+    let mut plain = BTreeSet::new();
+    for rule in &parse(source).unwrap().rule {
+        walk(rule, &mut role, &mut plain);
+    }
+    role.into_iter()
+        .chain(plain)
+        .filter(|atom| !atom.chars().all(|character| character.is_ascii_digit()))
+        .collect()
+}
+
+const GUIDE: &str = include_str!("../README.md");
+
+// The guide publishes the words each package's rules use, which a caller's data must avoid; they
+// must be exactly those words, or a caller trusts a list that misses one.
+#[test]
+fn reserved() {
+    let published = GUIDE
+        .split("### Reserved words")
+        .nth(1)
+        .unwrap()
+        .lines()
+        .skip_while(|line| !line.starts_with("| ---"))
+        .skip(1)
+        .take_while(|line| line.starts_with('|'))
+        .map(|line| {
+            let mut cell = line
+                .split('|')
+                .map(str::trim)
+                .filter(|cell| !cell.is_empty());
+            let package = cell.next().unwrap().to_owned();
+            let word = cell
+                .next()
+                .unwrap()
+                .split('`')
+                .skip(1)
+                .step_by(2)
+                .map(str::to_owned)
+                .collect::<BTreeSet<_>>();
+            (package, word)
+        })
+        .collect::<BTreeMap<_, _>>();
+    let mut word = BTreeMap::<String, BTreeSet<String>>::new();
+    for entry in LIBRARY.iter() {
+        word.entry(entry.package.clone())
+            .or_default()
+            .extend(atom(&entry.source));
+    }
+    let table = word
+        .iter()
+        .map(|(package, word)| {
+            let word = word
+                .iter()
+                .map(|word| format!("`{word}`"))
+                .collect::<Vec<_>>();
+            format!("| {package} | {} |", word.join(" "))
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(
+        published == word,
+        "the guide's reserved words should read:\n{table}"
+    );
 }
 
 #[test]
