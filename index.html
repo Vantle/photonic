@@ -484,7 +484,9 @@ photonic_test(
 <tr><td><code>target</code></td><td>Complete configurations, each with every loaded root rule added. <code>"A, B"</code> is one target with two coherences; <code>["A", "B"]</code> is two targets.</td></tr>
 <tr><td><code>expect</code></td><td><code>"reached"</code>, the default, or <code>"unreachable"</code>; every target must meet it.</td></tr>
 <tr><td><code>path</code></td><td><code>True</code> follows a direct path per target, which can only expect reached.</td></tr>
+<tr><td><code>every</code></td><td><code>True</code> requires every schedule of plain events to end exactly at a target, and no run to go on forever; Laser explores the schedules without inference. It can only expect reached.</td></tr>
 <tr><td><code>work</code>, <code>configuration</code>, <code>occurrence</code>, <code>scope</code>, <code>coherence</code>, <code>record</code></td><td>Budgets for work, configurations, occurrences, scopes, coherences and records.</td></tr>
+<tr><td><code>size</code>, <code>tags</code></td><td>Bazel's test size, <code>small</code> by default, and tags. A test that needs more than 2 GiB carries <code>memory</code>, which continuous verification skips.</td></tr>
 </tbody>
 </table>
 </div>
@@ -499,9 +501,9 @@ bazel test -c opt //program/language:conjunction.check</pre>
 <h3>Asking questions</h3>
 <pre class="listing">bazel run -c opt //command:photonic -- check program/language/conjunction.wave --reach False.Extra --exact --preserve
 bazel run -c opt //command:photonic -- explore program/language/conjunction.wave
-bazel run -c opt //command:photonic -- cause program/language/conjunction.wave s9
+bazel run -c opt //command:photonic -- cause program/language/conjunction.wave s6
 bazel run -c opt //command:photonic -- mcp</pre>
-<p>Spectrum answers questions about a program and every configuration it reaches. Answers name things by handle: <code>r2</code> is a rule, <code>s9</code> a configuration, <code>e10</code> an event and <code>s9.o0</code> an occurrence. The first command claims that the conjunction reaches exactly <code>False.Extra</code> with its rules, and the third shows the two events that get there.</p>
+<p>Spectrum answers questions about a program and every configuration it reaches. Answers name things by handle: <code>r2</code> is a rule, <code>s6</code> a configuration, <code>e3</code> an event and <code>s6.o0</code> an occurrence. The first command claims that the conjunction reaches exactly <code>False.Extra</code> with its rules, and the third shows the two events that get there.</p>
 <div class="table">
 <table>
 <thead><tr><th>Command</th><th>Answer</th></tr></thead>
@@ -535,7 +537,7 @@ bazel test -c opt //book:record.check</pre>
 <section class="chapter" id="library">
 <p class="eyebrow">Library · 12</p>
 <h2>The standard library</h2>
-<p class="lead">The standard library is written in Photonic: 69 rule files in 14 packages. Rust only loads and checks it.</p>
+<p class="lead">The standard library is written in Photonic: 68 rule files in 14 packages. Rust only loads and checks it.</p>
 <p>Every operation is named <code>Type.Verb</code>, and each type belongs to one package. A request carries <code>Function</code>; its answer carries <code>Return</code>. Scalar requests run inside <code>Invoke</code>, which is the whole of <a href="library/function/invoke.particle">invoke.particle</a>:</p>
 <pre class="code" data-source="library/function/invoke.particle">[Invoke] (
     Function,
@@ -602,7 +604,7 @@ bazel test -c opt //book:record.check</pre>
 </tbody>
 </table>
 </div>
-<p>Every output of an event receives the remainder, so a rule with two outputs duplicates a handle. Programs therefore move a chain by sending it on and forgetting the other copy, then continue on <code>Clean</code>. This program pushes 2, 0 and 1, reverses the chain and reads back 2, 0, 1:</p>
+<p>Every output of an event receives the remainder, so a rule with two outputs duplicates a handle. Programs therefore move a chain by sending it on and forgetting the other copy, then continue on <code>Clean</code>. This program pushes 2, 0 and 1, reverses the chain and reads back 2, 0, 1. It ends at <code>Zero.Done</code>: the last read leaves the empty chain <code>Zero</code> beside the answer.</p>
 <pre class="code" data-source="program/ternary/reversal.wave">Push.([Digit] 2).Zero, Stage.1,
 [Built, Stage.1] (Push.([Digit] 0), Forget.Stage.2),
 [Built, Clean.Stage.2] (Push.([Digit] 1), Forget.Stage.3),
@@ -688,10 +690,12 @@ bazel test -c opt //program/vector:sort.check</pre>
 <p>The renamings that leave a shape unchanged are its symmetries, and each gives another dictionary: any of <code>Across</code>, <code>Along</code> and <code>Turn</code> can stand for 3 modulo 8. Within one field, a dictionary shows a duality. <code>Boolean.Or</code> is <code>Boolean.And</code> with <code>True</code> and <code>False</code> exchanged, which is De Morgan's law. The lattice theorem that x ∨ y = y implies x ∧ y = x, with meet and join exchanged and x and y exchanged, is the theorem that x ∧ y = x implies x ∨ y = y.</p>
 <h3>How it works</h3>
 <p>Each program becomes a graph in which only the atoms are unnamed. Identical parts share one vertex, so only atoms can be interchangeable. Refinement splits the atoms by how they are used until no split remains, and a search tries each remaining choice. Whenever it finds a symmetry, it skips every choice that symmetry makes redundant, as the graph isomorphism programs nauty, bliss and Traces do. The least labeling it reaches names the atoms A, B, C and so on. That renamed program is the shape, and two programs are connected exactly when their shapes are equal. The dictionaries above come from the same search, run in this page.</p>
-<p>A connection can also run inside one program. A group of rules may recur under other names although the program as a whole has no symmetry: the addition library moves its digits through the same rules that borrowing uses, with <code>Add</code> renamed <code>Deduct</code>, and the sorting library merges upward and downward with the same 61 rules. <code>photonic shape</code> finds these local symmetries by growing groups one rule at a time from rules of equal shape and extending every copy the same way, as the frequent subgraph miners gSpan and GraMi grow patterns, and keeps the groups that account for the most of the program, as the compression heuristics of SUBDUE and Stitch do. The <a href="#workbench">workbench</a> and the <a href="lightbox.html">Lightbox</a> run the same analysis on every program and color the global symmetries, the local ones and the atoms that always travel together in both graphs.</p>
+<p>A connection can also run inside one program. A group of rules may recur under other names although the program as a whole has no symmetry. Loaded with the libraries they need, the addition library moves its digits through the same ten rules that borrowing uses, with <code>Add</code> renamed <code>Deduct</code>, and the sorting library merges in both directions with the same 61 rules, <code>Up</code> and <code>Down</code> and <code>Less</code> and <code>Greater</code> among the names exchanged. <code>photonic shape</code> finds these local symmetries by growing groups one rule at a time from rules of equal shape and extending every copy the same way, as the frequent subgraph miners gSpan and GraMi grow patterns, and keeps the groups that account for the most of the program, as the compression heuristics of SUBDUE and Stitch do. The <a href="#workbench">workbench</a> and the <a href="lightbox.html">Lightbox</a> run the same analysis on every program and color the global symmetries, the local ones and the atoms that always travel together in both graphs.</p>
 <pre class="listing">bazel run -c opt //command:photonic -- shape library/boolean/and.particle library/boolean/or.particle
-bazel run -c opt //command:photonic -- shape library/ternary/compare.particle</pre>
-<p>Given several programs, <code>shape</code> groups them by shape and prints each renaming. Given one, it prints the program's shape and canonical form, its symmetries, the rules they exchange, and the groups of rules that repeat under other names. <code>--library</code> loads rules, <code>--target</code> adds a configuration every renaming must keep, and <code>--fix</code> keeps the name of an atom that something outside the program relies on. The <a href="document/symmetry.md">symmetry record</a> describes the algorithm and what it finds in this repository.</p>
+bazel run -c opt //command:photonic -- shape library/ternary/compare.particle
+bazel build -c opt //library/vector:sort
+bazel run -c opt //command:photonic -- shape "$(bazel info -c opt bazel-bin)/library/vector/sort.json"</pre>
+<p>Given several programs, <code>shape</code> groups them by shape and prints each renaming. Given one, it prints the program's shape and canonical form, its symmetries, the rules they exchange, and the groups of rules that repeat under other names. Bazel assembles each library with its dependencies into a <code>.json</code> program, which <code>shape</code> reads like source. <code>--library</code> loads rules, <code>--target</code> adds a configuration every renaming must keep, and <code>--fix</code> keeps the name of an atom that something outside the program relies on. The <a href="document/symmetry.md">symmetry record</a> describes the algorithm and what it finds in this repository.</p>
 <p class="onward"><a href="#runtime">Next: Inside the runtime</a></p>
 </section>
 
@@ -754,14 +758,18 @@ bazel run -c opt //command:photonic -- shape library/ternary/compare.particle</p
 <tr><td><a href="benchmark/">benchmark</a></td><td>Runtime measurements</td></tr>
 <tr><td><a href="code/">code</a>, <a href="machine/">machine</a>, <a href="translation/">translation</a></td><td>Label-free programs, exact flat execution and conversion to Photonic text</td></tr>
 <tr><td><a href="symmetry/">symmetry</a></td><td>Shapes, renamings and symmetries of programs</td></tr>
-<tr><td><a href="network/">network</a>, <a href="gpu/">gpu</a>, <a href="learning/">learning</a>, <a href="random/">random</a></td><td>The program optimization learner</td></tr>
+<tr><td><a href="wave/">wave</a></td><td>Exploration of plain schedules on the GPU</td></tr>
+<tr><td><a href="metal/">metal</a></td><td>The Metal runtime binding that wave and gpu share</td></tr>
+<tr><td><a href="hashing/">hashing</a></td><td>The shared hasher</td></tr>
+<tr><td><a href="random/">random</a></td><td>Seeded randomness</td></tr>
+<tr><td><a href="network/">network</a>, <a href="gpu/">gpu</a>, <a href="learning/">learning</a></td><td>The program optimization learner, which is experimental</td></tr>
 <tr><td><a href="platform/">platform</a></td><td>Supported platforms</td></tr>
 <tr><td><a href="document/">document</a></td><td>Contracts, the roadmap and dated runtime records</td></tr>
 </tbody>
 </table>
 </div>
 <h3>The learner</h3>
-<p><code>//learning:learning</code> optimizes Photonic programs. It edits rules with a planner guided by a label-free transformer, keeps every example correct under every schedule, and minimizes parallel time and program size. <code>solve</code> finds the cheapest small flat program for a task, even one defined only by tests, and proves it optimal by exhausting every program that could beat it.</p>
+<p>The learner is experimental. <code>//learning:learning</code> optimizes Photonic programs. It edits rules with a planner guided by a label-free transformer, keeps every example correct under every schedule, and minimizes parallel time and program size. <code>solve</code> finds the cheapest small flat program for a task, even one defined only by tests, and proves it optimal by exhausting every program that could beat it.</p>
 <pre class="listing">bazel run -c opt //learning:learning -- train --duration 3600
 bazel run -c opt //learning:learning -- solve --input "$PWD/input.wave" --output "$PWD/output.wave"</pre>
 <p>The <a href="document/learning.md">learner guide</a> describes the objective, the search and the results. <a href="document/build.md">Build organization</a> and <a href="document/automation.md">continuous verification</a> describe the build and the Buildkite pipeline.</p>

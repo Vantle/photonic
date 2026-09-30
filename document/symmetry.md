@@ -172,3 +172,11 @@ bazel run -c opt //command:photonic -- shape $(git ls-files '*.particle' '*.wave
 ```
 
 The last command prints every class of isomorphic source files and fails, because the files fall into many classes.
+
+The local symmetries of `Natural.Add` and `Vector.Sort` hold for each library assembled with its dependencies, which Bazel writes as a `.json` program:
+
+```sh
+bazel build -c opt //library/natural:add //library/vector:sort
+bazel run -c opt //command:photonic -- shape "$(bazel info -c opt bazel-bin)/library/natural/add.json"
+bazel run -c opt //command:photonic -- shape "$(bazel info -c opt bazel-bin)/library/vector/sort.json"
+```
