@@ -47,4 +47,5 @@ Programs, answers and links from builds of `main` before 1.0.0 may need these ch
   - Seven natural-number theorems gained every-schedule tests, and 76 of the 80 theorems end at `Theorem` in every schedule of plain events.
 - The webbook and the Lightbox
   - Share links carry the program in a versioned fragment (`lightbox.html#1&source=…`); links in the old form still open. The Lightbox keeps the draft across reloads and loads any file of the standard library.
+  - Graphs, filters and witnesses name every configuration and event by the handle `photonic` gives it.
 - The program optimization learner is experimental and outside the compatibility contract.
