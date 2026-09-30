@@ -28,17 +28,19 @@ impl Adjacency {
 }
 
 // The strongly connected components of a graph, by Tarjan's algorithm, as each node's component.
-// Each node on the path the search follows keeps the next of its edges to read, and a node the
-// search reached but gave no component yet is still on the stack.
+// Each node on the path the search follows keeps the next of its edges to read. A node's index says
+// all an edge needs of its target: unseen, still on the stack, or DONE once its component is known,
+// so reading an edge loads one word; the searches over large graphs wait on those loads.
 fn component(graph: &Adjacency) -> Vec<usize> {
     const UNSEEN: u32 = u32::MAX;
+    const DONE: u32 = u32::MAX - 1;
     let count = graph.span.len();
     let mut index = vec![UNSEEN; count];
-    let mut low = vec![0; count];
-    let mut label = vec![usize::MAX; count];
-    let mut stack = Vec::new();
-    let mut path = Vec::<(usize, usize)>::new();
-    let mut counter = 0;
+    let mut low = vec![0u32; count];
+    let mut label = vec![0; count];
+    let mut stack = Vec::<u32>::new();
+    let mut path = Vec::<(u32, usize)>::new();
+    let mut counter = 0u32;
     let mut next = 0;
     for root in 0..count {
         if index[root] != UNSEEN {
@@ -47,27 +49,31 @@ fn component(graph: &Adjacency) -> Vec<usize> {
         index[root] = counter;
         low[root] = counter;
         counter += 1;
-        stack.push(root);
-        path.push((root, graph.span[root].0));
+        stack.push(root as u32);
+        path.push((root as u32, graph.span[root].0));
         while let Some((node, position)) = path.last_mut() {
-            let node = *node;
+            let node = *node as usize;
             if *position < graph.span[node].1 {
                 let target = graph.target[*position] as usize;
                 *position += 1;
-                if index[target] == UNSEEN {
-                    index[target] = counter;
-                    low[target] = counter;
-                    counter += 1;
-                    stack.push(target);
-                    path.push((target, graph.span[target].0));
-                } else if label[target] == usize::MAX {
-                    low[node] = low[node].min(index[target]);
+                match index[target] {
+                    UNSEEN => {
+                        index[target] = counter;
+                        low[target] = counter;
+                        counter += 1;
+                        stack.push(target as u32);
+                        path.push((target as u32, graph.span[target].0));
+                    }
+                    DONE => {}
+                    value => low[node] = low[node].min(value),
                 }
                 continue;
             }
             path.pop();
             if low[node] == index[node] {
                 while let Some(top) = stack.pop() {
+                    let top = top as usize;
+                    index[top] = DONE;
                     label[top] = next;
                     if top == node {
                         break;
@@ -76,6 +82,7 @@ fn component(graph: &Adjacency) -> Vec<usize> {
                 next += 1;
             }
             if let Some(&(parent, _)) = path.last() {
+                let parent = parent as usize;
                 low[parent] = low[parent].min(low[node]);
             }
         }
