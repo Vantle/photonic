@@ -62,7 +62,7 @@ fn explicit() {
         &[directory.as_os_str()],
     ));
     let again = success(&install("RELEASE", &home, &search, &[OsStr::new("tool")]));
-    let target = executable(&directory);
+    let target = executable(&directory.components().collect::<PathBuf>());
     assert!(first.contains("installed photonic"), "{first}");
     assert!(first.contains(&target.display().to_string()), "{first}");
     assert!(!first.contains("not on your PATH"), "{first}");
