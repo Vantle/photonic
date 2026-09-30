@@ -148,3 +148,40 @@ fn broken() {
     assert!(version.status.success());
     assert!(String::from_utf8_lossy(&version.stdout).contains("photonic"));
 }
+
+#[test]
+fn shadow() {
+    let home = scratch("shadow");
+    let first = home.join("first");
+    let directory = home.join("bin");
+    std::fs::create_dir_all(&first).expect("a directory");
+    std::fs::copy(runfile("PROBE"), executable(&first)).expect("a stand-in command");
+    let output = success(&install(
+        "RELEASE",
+        &home,
+        &[first.clone(), directory.clone()],
+        &[],
+    ));
+    assert!(
+        output.contains(&format!(
+            "{} comes first on your PATH",
+            executable(&first).display()
+        )),
+        "{output}"
+    );
+    let alone = success(&install("RELEASE", &home, &[directory], &[]));
+    assert!(!alone.contains("comes first"), "{alone}");
+}
+
+#[test]
+fn profile() {
+    let home = scratch("profile");
+    let output = success(&install("RELEASE", &home, &[], &[]));
+    assert!(output.contains("not on your PATH"), "{output}");
+    let advice = if cfg!(windows) {
+        "SetEnvironmentVariable"
+    } else {
+        "shell's profile"
+    };
+    assert!(output.contains(advice), "{output}");
+}

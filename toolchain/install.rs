@@ -13,6 +13,24 @@ fn search() -> Vec<PathBuf> {
         .unwrap_or_default()
 }
 
+// Windows compares paths without regard to case or a trailing separator; other systems compare
+// them exactly.
+fn same(left: &Path, right: &Path) -> bool {
+    if !cfg!(windows) {
+        return left == right;
+    }
+    let normal = |path: &Path| {
+        path.to_string_lossy()
+            .trim_end_matches(['\\', '/'])
+            .to_lowercase()
+    };
+    normal(left) == normal(right)
+}
+
+fn listed(search: &[PathBuf], directory: &Path) -> bool {
+    search.iter().any(|entry| same(entry, directory))
+}
+
 fn directory(explicit: Option<OsString>, search: &[PathBuf]) -> Result<PathBuf, Failure> {
     if let Some(explicit) = explicit {
         let base = match std::env::var_os("BUILD_WORKING_DIRECTORY") {
@@ -33,7 +51,7 @@ fn directory(explicit: Option<OsString>, search: &[PathBuf]) -> Result<PathBuf, 
     ];
     let found = conventional
         .iter()
-        .find(|candidate| search.contains(candidate));
+        .find(|candidate| listed(search, candidate));
     Ok(found.unwrap_or(&conventional[0]).clone())
 }
 
@@ -85,8 +103,33 @@ fn place(source: &Path, directory: &Path) -> Result<(PathBuf, String), Failure> 
     let version = check(&partial).inspect_err(|_| {
         let _ = std::fs::remove_file(&partial);
     })?;
-    std::fs::rename(&partial, &target).map_err(Failure::access(&target))?;
+    replace(&partial, &target, directory, suffix)?;
     Ok((target, version))
+}
+
+// Windows refuses to overwrite a running executable but lets it be renamed, so the installed
+// copy moves aside first; other systems replace it in one rename.
+fn replace(partial: &Path, target: &Path, directory: &Path, suffix: &str) -> Result<(), Failure> {
+    if !cfg!(windows) || !target.exists() {
+        return std::fs::rename(partial, target).map_err(Failure::access(target));
+    }
+    let previous = directory.join(format!(".{NAME}.previous{suffix}"));
+    clear(&previous)?;
+    std::fs::rename(target, &previous).map_err(Failure::access(target))?;
+    if let Err(error) = std::fs::rename(partial, target) {
+        let _ = std::fs::rename(&previous, target);
+        return Err(Failure::access(target)(error));
+    }
+    let _ = std::fs::remove_file(&previous);
+    Ok(())
+}
+
+// The first file on the search path that running the command by name would start.
+fn resolve(search: &[PathBuf], suffix: &str) -> Option<PathBuf> {
+    search
+        .iter()
+        .map(|directory| directory.join(format!("{NAME}{suffix}")))
+        .find(|candidate| candidate.is_file())
 }
 
 fn install() -> Result<ExitCode, Failure> {
@@ -110,17 +153,36 @@ fn install() -> Result<ExitCode, Failure> {
     let directory = directory(explicit, &search)?;
     let (target, version) = place(&source, &directory)?;
     println!("installed {version} at {}", target.display());
-    if search.contains(&directory) {
+    if !listed(&search, &directory) {
+        advise(&directory);
         return Ok(ExitCode::SUCCESS);
     }
+    let first = resolve(&search, std::env::consts::EXE_SUFFIX);
+    if let Some(first) = first.filter(|first| !same(first, &target)) {
+        println!(
+            "{} comes first on your PATH, so {NAME} still runs it; remove it or move {} earlier",
+            first.display(),
+            directory.display()
+        );
+    }
+    Ok(ExitCode::SUCCESS)
+}
+
+fn advise(directory: &Path) {
     println!(
         "{} is not on your PATH; add it to run {NAME} by name",
         directory.display()
     );
-    if cfg!(unix) {
-        println!("  export PATH=\"{}:$PATH\"", directory.display());
+    if cfg!(windows) {
+        println!(
+            "  [Environment]::SetEnvironmentVariable(\"Path\", \"{};\" + [Environment]::GetEnvironmentVariable(\"Path\", \"User\"), \"User\")",
+            directory.display()
+        );
+        println!("then open a new terminal");
+        return;
     }
-    Ok(ExitCode::SUCCESS)
+    println!("add this line to your shell's profile, such as ~/.zshrc or ~/.bashrc:");
+    println!("  export PATH=\"{}:$PATH\"", directory.display());
 }
 
 fn main() -> ExitCode {
