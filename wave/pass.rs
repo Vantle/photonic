@@ -5,7 +5,7 @@ use crate::setting::{
     BLOCKED, BOUND, CANDIDATE, FLAGGED, JOINED, LIMITED, SHIFT, Setting, TAG, WIDTH, WINNER, WORD,
     saturate,
 };
-use crate::window::{Joined, Range, Window};
+use crate::window::{Joined, Left, Range, Window};
 use crate::work::Work;
 use metal::device::{Command, Memory};
 use photonic::laser::net::Cycle;
@@ -73,7 +73,7 @@ impl Engine {
         let next = ahead
             .map(|first| (first, most.saturating_sub(first).min(self.tuning.window)))
             .filter(|&(_, size)| size > 0);
-        let (offset, start) = self.reserve(search, &range, most, next)?;
+        let (offset, left) = self.reserve(search, &range, most, next)?;
         let joined = window.found(&range);
         host(&mut search.work, joined, window.first, range.begin);
         let (safe, likely) = if allowed > 0 {
@@ -118,8 +118,11 @@ impl Engine {
         if let Some(old) = &offset {
             command.copy::<u64>(old, &search.store.offset.memory, search.store.count)?;
         }
-        if let Some(old) = &start {
+        if let Some(old) = &left.start {
             command.copy::<u64>(old, &search.work.start.memory, window.size)?;
+        }
+        if let Some(old) = &left.route {
+            command.copy::<u32>(old, &search.work.route.memory, window.size)?;
         }
         if grown {
             self.fill(&mut command, &search.store)?;
@@ -159,7 +162,7 @@ impl Engine {
         range: &Range,
         most: usize,
         next: Option<(usize, usize)>,
-    ) -> Result<(Option<Memory>, Option<Memory>), Failure> {
+    ) -> Result<(Option<Memory>, Left), Failure> {
         let count = range.count();
         let marking = range.to - range.from;
         let group = self.group(marking);
@@ -174,11 +177,14 @@ impl Engine {
         work.block.fit(&self.device, block)?;
         self.scan.prepare(&self.device, &mut work.level, block)?;
         let offset = search.store.offset.swap(&self.device, most)?;
-        let start = match next {
+        let left = match next {
             Some((_, size)) => self.room(&mut search.work, size)?,
-            None => None,
+            None => Left {
+                start: None,
+                route: None,
+            },
         };
-        Ok((offset, start))
+        Ok((offset, left))
     }
 
     // Encodes the kernels that record a pass's candidates from the tables, find the marking each

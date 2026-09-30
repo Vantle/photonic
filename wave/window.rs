@@ -91,15 +91,24 @@ impl Window {
     }
 }
 
+// The memory a window's running sums and join routes leave when counting a larger window moves
+// them, which the pass that still reads them copies over before it does.
+pub struct Left {
+    pub start: Option<Memory>,
+    pub route: Option<Memory>,
+}
+
 impl Engine {
-    // Makes room to count a window of at most size markings; when the running sums move to larger
-    // memory, hands back the memory they leave, whose sums a pass that still reads them copies over.
-    pub(crate) fn room(&self, work: &mut Work, size: usize) -> Result<Option<Memory>, Failure> {
+    // Makes room to count a window of at most size markings, and hands back the memory the running
+    // sums and the join routes leave when they move to larger memory.
+    pub(crate) fn room(&self, work: &mut Work, size: usize) -> Result<Left, Failure> {
         work.number.fit(&self.device, size)?;
-        work.route.fit(&self.device, size)?;
         work.flagged.fit(&self.device, 2 * size)?;
         self.scan.prepare(&self.device, &mut work.level, size)?;
-        work.start.swap(&self.device, size)
+        Ok(Left {
+            start: work.start.swap(&self.device, size)?,
+            route: work.route.swap(&self.device, size)?,
+        })
     }
 
     // Encodes the running sum of a window's successor counts.
