@@ -68,8 +68,23 @@ fn report(output: &Output) -> serde_json::Value {
     serde_json::from_slice(&output.stdout).expect("JSON execution report")
 }
 
+// A report that exits as it may, for verdicts that are not reached.
+fn verdict(output: &Output, code: i32) -> serde_json::Value {
+    assert_eq!(
+        output.status.code(),
+        Some(code),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    serde_json::from_slice(&output.stdout).expect("JSON execution report")
+}
+
 fn text(output: &Output) -> String {
     String::from_utf8_lossy(&output.stdout).into_owned()
+}
+
+fn error(output: &Output) -> String {
+    String::from_utf8_lossy(&output.stderr).into_owned()
 }
 
 #[test]
@@ -98,10 +113,18 @@ fn execution() {
     }));
     let output = execute("run", &path, &[]);
     assert!(output.status.success());
-    let text = String::from_utf8(output.stdout).unwrap();
-    assert!(text.starts_with("Closed:"));
-    assert!(text.contains("supported"));
-    assert!(text.contains("@root"));
+    let listing = text(&output);
+    let line = listing.lines().collect::<Vec<_>>();
+    assert!(line[0].contains(" · closed · 4 configurations · 4 events, 1 inferred"));
+    assert_eq!(
+        line[1..],
+        [
+            "s0    Seed.A",
+            "s1    Seed.B",
+            "s2    A.([A] B)",
+            "s3    B.([A] B)"
+        ]
+    );
     let output = execute(
         "run",
         &path,
@@ -182,6 +205,9 @@ fn worker() {
     let invalid = execute("run", &path, &["--worker", "0"]);
     assert!(!invalid.status.success());
     assert!(String::from_utf8_lossy(&invalid.stderr).contains("--worker"));
+    let listing = execute("run", &path, &["--worker", "4"]);
+    assert_eq!(listing.status.code(), Some(2));
+    assert!(error(&listing).contains("--json"), "{}", error(&listing));
 }
 
 // The flags that explore every plain schedule on metal, then the others.
@@ -252,7 +278,8 @@ fn metal() {
     let exhaustive = execute("explore", &path, &["--engine", "metal"]);
     assert!(String::from_utf8_lossy(&exhaustive.stderr).contains("set mode to plain"));
     let run = execute("run", &path, &["--engine", "metal"]);
-    assert!(!run.status.success());
+    assert_eq!(run.status.code(), Some(1));
+    assert!(error(&run).contains("--plain --engine metal"));
 }
 
 #[test]
@@ -269,62 +296,65 @@ fn prism() {
     assert!(result["witness"].is_u64());
     assert_eq!(result["program"]["initial"][0][0], "A");
     assert_eq!(result["target"]["initial"][0][0], "B");
-    let result = report(&execute(
-        "prism",
-        &path,
-        &[
-            "--target",
-            target.to_str().unwrap(),
-            "--json",
-            "--work",
-            "0",
-        ],
-    ));
+    let result = verdict(
+        &execute(
+            "prism",
+            &path,
+            &[
+                "--target",
+                target.to_str().unwrap(),
+                "--json",
+                "--work",
+                "0",
+            ],
+        ),
+        1,
+    );
     assert_eq!(result["outcome"], "unknown");
     let invalid = fixture.write("invalid.wave", "B, [B] A");
-    assert!(
-        execute("prism", &path, &["--target", invalid.to_str().unwrap()])
-            .status
-            .success()
-    );
+    let output = execute("prism", &path, &["--target", invalid.to_str().unwrap()]);
+    assert_eq!(output.status.code(), Some(1));
+    assert!(text(&output).starts_with("unreachable   "));
     let output = execute("prism", &path, &["--target", target.to_str().unwrap()]);
     assert!(output.status.success());
-    assert!(
-        String::from_utf8(output.stdout)
-            .unwrap()
-            .starts_with("Reached:")
-    );
+    assert!(text(&output).starts_with("reached   s1 by e0   B\n"));
 }
 
+// A listing's configurations by handle, after the summary that names its exploration.
 fn listing(output: &Output) -> Vec<String> {
-    assert!(output.status.success());
-    let mut line = String::from_utf8_lossy(&output.stdout)
-        .lines()
-        .skip(1)
-        .map(|line| line.split_once(' ').unwrap().1.to_owned())
-        .collect::<Vec<_>>();
-    line.sort();
-    line
+    assert!(output.status.success(), "{}", error(output));
+    text(output).lines().skip(1).map(str::to_owned).collect()
 }
 
+// Both engines explore the same configurations, and run numbers them as every question does, so
+// they list the same handles; prism names its witness by the same handle on either.
 #[test]
 fn engine() {
     let fixture = Fixture::new();
     let path = fixture.write("program.wave", "Seed.A, [Seed] ().([A] B)");
     let laser = ["--engine", "laser"];
+    let interpreter = ["--engine", "interpreter"];
+    assert_eq!(
+        listing(&execute("run", &path, &interpreter)),
+        listing(&execute("run", &path, &laser))
+    );
     assert_eq!(
         listing(&execute("run", &path, &laser)),
         listing(&execute("run", &path, &[]))
     );
-    let interpreter = report(&execute("run", &path, &["--json"]));
+    let original = report(&execute(
+        "run",
+        &path,
+        &["--json", "--engine", "interpreter"],
+    ));
     let compiled = report(&execute("run", &path, &["--json", "--engine", "laser"]));
     assert_eq!(compiled["closed"], true);
-    assert_eq!(compiled["definition"], interpreter["definition"]);
-    assert_eq!(compiled["limit"], interpreter["limit"]);
+    assert_eq!(compiled["definition"], original["definition"]);
+    assert_eq!(compiled["limit"], original["limit"]);
     for field in ["state", "event"] {
         assert_eq!(
             compiled[field].as_array().unwrap().len(),
-            interpreter[field].as_array().unwrap().len()
+            original[field].as_array().unwrap().len()
         );
     }
     let parallel = report(&execute(
@@ -343,33 +373,44 @@ fn engine() {
     let path = fixture.write("prism.wave", "A, [A] B");
     let target = fixture.write("target.particle", "B, [A] B");
     let missing = fixture.write("missing.particle", "C, [A] B");
-    for (target, argument, outcome) in [
-        (&target, &[][..], "reached"),
-        (&missing, &[][..], "unreachable"),
-        (&target, &["--work", "0"][..], "unknown"),
+    for (target, argument, outcome, code) in [
+        (&target, &[][..], "reached", 0),
+        (&missing, &[][..], "unreachable", 1),
+        (&target, &["--work", "0"][..], "unknown", 1),
     ] {
         let argument = [
             &["--target", target.to_str().unwrap(), "--json"][..],
             argument,
         ]
         .concat();
-        let interpreter = report(&execute("prism", &path, &argument));
-        let compiled = report(&execute("prism", &path, &[&argument, &laser[..]].concat()));
-        assert_eq!(interpreter["outcome"], outcome);
+        let original = verdict(
+            &execute("prism", &path, &[&argument, &interpreter[..]].concat()),
+            code,
+        );
+        let compiled = verdict(
+            &execute("prism", &path, &[&argument, &laser[..]].concat()),
+            code,
+        );
+        assert_eq!(original["outcome"], outcome);
         assert_eq!(compiled["outcome"], outcome);
         assert_eq!(compiled["witness"].is_u64(), outcome == "reached");
-        assert_eq!(compiled["target"], interpreter["target"]);
+        assert_eq!(compiled["target"], original["target"]);
     }
-    let output = execute(
-        "prism",
-        &path,
-        &["--target", target.to_str().unwrap(), "--engine", "laser"],
-    );
-    assert!(output.status.success());
-    let text = String::from_utf8(output.stdout).unwrap();
-    assert!(text.starts_with("Reached:"));
-    assert!(text.contains("Witness s"));
-    assert!(text.ends_with("exploration closed\n"));
+    let summary = text(&execute("explore", &path, &[]))
+        .lines()
+        .next()
+        .map(str::to_owned);
+    for engine in [&laser, &interpreter] {
+        let output = execute(
+            "prism",
+            &path,
+            &[&["--target", target.to_str().unwrap()][..], &engine[..]].concat(),
+        );
+        assert!(output.status.success());
+        assert!(text(&output).starts_with("reached   s1 by e0   B\n"));
+    }
+    let output = execute("prism", &path, &["--target", target.to_str().unwrap()]);
+    assert_eq!(text(&output).lines().nth(1).map(str::to_owned), summary);
     let conflict = execute(
         "prism",
         &path,
@@ -479,19 +520,60 @@ fn path() {
     ));
     assert_eq!(result["outcome"], "reached");
     assert_eq!(result["event"].as_array().unwrap().len(), 2);
-    let result = report(&execute(
+    let result = verdict(
+        &execute(
+            "prism",
+            &source,
+            &[
+                "--target",
+                target.to_str().unwrap(),
+                "--path",
+                "--json",
+                "--work",
+                "0",
+            ],
+        ),
+        1,
+    );
+    assert_eq!(result["outcome"], "unknown");
+    let reached = execute(
+        "prism",
+        &source,
+        &["--target", target.to_str().unwrap(), "--path"],
+    );
+    assert!(reached.status.success());
+    let line = text(&reached)
+        .lines()
+        .map(str::to_owned)
+        .collect::<Vec<_>>();
+    assert_eq!(line[0], "reached   s2 by e0 e1   C");
+    assert!(
+        line[1].contains(" · path reached its goal · 3 configurations · 2 events, 0 inferred"),
+        "{}",
+        line[1]
+    );
+    let goal = execute("explore", &source, &["--path", "--goal", "C, [A] B, [B] C"]);
+    assert_eq!(text(&goal).lines().next(), Some(line[1].as_str()));
+    let step = fixture.write("step.particle", "B, [A] B, [B] C");
+    let single = execute(
+        "prism",
+        &source,
+        &["--target", step.to_str().unwrap(), "--path"],
+    );
+    assert!(text(&single).contains(" · 1 event, "), "{}", text(&single));
+    let stopped = execute(
         "prism",
         &source,
         &[
             "--target",
             target.to_str().unwrap(),
             "--path",
-            "--json",
             "--work",
             "0",
         ],
-    ));
-    assert_eq!(result["outcome"], "unknown");
+    );
+    assert_eq!(stopped.status.code(), Some(1));
+    assert!(text(&stopped).starts_with("unknown   a direct path follows one run of many"));
 }
 
 #[test]
@@ -609,23 +691,94 @@ fn context() {
     let declaration = fixture.write("rule.wave", "[A] B");
     let output = execute("run", &declaration, &[]);
     assert!(output.status.success());
-    assert!(
-        String::from_utf8(output.stdout)
-            .unwrap()
-            .contains("{⟨[A] B⟩@f0}@root")
-    );
+    assert_eq!(listing(&output), ["s0    nothing"]);
     let target = fixture.write("target.wave", "B");
     let complete = fixture.write("complete.wave", "B, [A] B");
-    for (target, expected) in [(&target, "unreachable"), (&complete, "reached")] {
+    for (target, expected, code) in [(&target, "unreachable", 1), (&complete, "reached", 0)] {
         assert_eq!(
-            report(&execute(
-                "prism",
-                &source,
-                &["--target", target.to_str().unwrap(), "--json"]
-            ))["outcome"],
+            verdict(
+                &execute(
+                    "prism",
+                    &source,
+                    &["--target", target.to_str().unwrap(), "--json"]
+                ),
+                code
+            )["outcome"],
             expected
         );
     }
+}
+
+// --preserve adds every loaded root rule to prism's target, as photonic_test does, in every mode.
+#[test]
+fn preservation() {
+    let fixture = Fixture::new();
+    let source = fixture.write("source.wave", "A, [A] B");
+    let library = fixture.write("library.particle", "[B] C");
+    let target = fixture.write("target.wave", "C");
+    let argument = |extra: &[&'static str]| {
+        [
+            &[
+                "--target",
+                target.to_str().unwrap(),
+                "--library",
+                library.to_str().unwrap(),
+            ][..],
+            extra,
+        ]
+        .concat()
+    };
+    for mode in [
+        &[][..],
+        &["--plain"],
+        &["--engine", "interpreter"],
+        &["--path"],
+    ] {
+        let bare = execute("prism", &source, &argument(mode));
+        assert_eq!(bare.status.code(), Some(1), "{mode:?}: {}", text(&bare));
+        let preserved = execute(
+            "prism",
+            &source,
+            &argument(&[mode, &["--preserve"]].concat()),
+        );
+        assert!(preserved.status.success(), "{mode:?}: {}", text(&preserved));
+        assert!(text(&preserved).starts_with("reached   "));
+        let report = verdict(
+            &execute(
+                "prism",
+                &source,
+                &argument(&[mode, &["--preserve", "--json"]].concat()),
+            ),
+            0,
+        );
+        assert_eq!(report["outcome"], "reached");
+        assert_eq!(report["target"]["rule"].as_array().map(Vec::len), Some(2));
+    }
+    let check = execute(
+        "check",
+        &source,
+        &[
+            "--reach",
+            "C",
+            "--exact",
+            "--preserve",
+            "--library",
+            library.to_str().unwrap(),
+        ],
+    );
+    let witness = text(&check)
+        .lines()
+        .nth(1)
+        .and_then(|line| line.split("holds   ").nth(1))
+        .and_then(|line| line.split("   ").next())
+        .map(str::to_owned)
+        .expect("a witness");
+    let prism = execute("prism", &source, &argument(&["--preserve"]));
+    assert!(
+        text(&prism).starts_with(&format!("reached   {witness}   C\n")),
+        "{witness}: {}",
+        text(&prism)
+    );
 }
 
 const BUG: &str = "And.True.False.Extra,

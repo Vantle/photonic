@@ -15,10 +15,12 @@ pub struct Argument {
 pub enum Operation {
     #[command(about = "Lower a program, with its libraries, into a program value as JSON")]
     Lower(Lower),
-    #[command(about = "Explore every future with the runtime and list its configurations")]
+    #[command(
+        about = "List every configuration a program reaches, by the handles every question uses, or with --json the engine's own report"
+    )]
     Run(Run),
     #[command(
-        about = "Check whether an exact target configuration is reachable, as photonic_test does"
+        about = "Check whether a program reaches an exact target configuration, as Prism does; exits 1 unless it is reached"
     )]
     Prism(Prism),
     #[command(
@@ -200,7 +202,9 @@ fn core() -> NonZeroUsize {
     std::thread::available_parallelism().unwrap_or(NonZeroUsize::MIN)
 }
 
+// Run and prism list every configuration, which metal does not keep, so their help leaves it out.
 #[derive(Args)]
+#[command(mut_arg("configuration", |argument| argument.help("Configurations kept, 4,096 by default")))]
 pub struct Run {
     #[arg(
         required = true,
@@ -213,8 +217,9 @@ pub struct Run {
     pub budget: Budget,
     #[arg(
         long,
+        requires = "json",
         default_value_t = core(),
-        help = "Threads that explore in parallel, every core by default"
+        help = "With --json, threads that explore in parallel, every core by default; the text explores on every core"
     )]
     pub worker: NonZeroUsize,
     #[arg(
@@ -224,10 +229,13 @@ pub struct Run {
     pub plain: bool,
     #[arg(
         long,
-        help = "The engine that explores: laser, the default, which carries matches back along events and names configurations by their components, or interpreter; both close with the same answers, and plain mode runs on laser"
+        help = "The engine that explores: laser, the default, which carries matches back along events and names configurations by their components, or interpreter; both close with the same configurations and handles, and plain mode runs on laser"
     )]
     pub engine: Option<Engine>,
-    #[arg(long, help = "Print the complete execution report as JSON")]
+    #[arg(
+        long,
+        help = "Print the engine's own report as JSON, its configurations numbered in the order the engine found them"
+    )]
     pub json: bool,
     #[arg(long, requires = "json", help = "Serialize JSON without indentation")]
     pub compact: bool,
@@ -241,8 +249,13 @@ pub struct Prism {
     pub target: PathBuf,
     #[arg(
         long,
+        help = "The target also lists every loaded root rule, as photonic_test's targets do"
+    )]
+    pub preserve: bool,
+    #[arg(
+        long,
         conflicts_with_all = ["engine", "plain"],
-        help = "Follow one direct execution path; failure to reach the target stays unknown"
+        help = "Follow one direct execution path; a target it does not reach stays unknown"
     )]
     pub path: bool,
 }

@@ -15,6 +15,7 @@ pub mod failure;
 pub mod handle;
 pub mod inspect;
 mod lineage;
+pub mod listing;
 mod matching;
 pub mod miss;
 mod numbering;

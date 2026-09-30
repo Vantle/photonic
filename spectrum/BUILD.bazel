@@ -19,6 +19,7 @@ filegroup(
         "handle.rs",
         "inspect.rs",
         "lineage.rs",
+        "listing.rs",
         "matching.rs",
         "miss.rs",
         "numbering.rs",
