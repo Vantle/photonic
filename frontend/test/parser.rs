@@ -31,10 +31,12 @@ fn structure() {
         .position(|node| node.kind == Kind::Rule)
         .unwrap();
     assert_eq!(child(&tree, rule), [Kind::List]);
-    assert_eq!(
-        child(&tree, tree.node()[rule].parent.unwrap()),
-        [Kind::Rule, Kind::Group]
-    );
+    let parent = (0..tree.node().len())
+        .find(|&index| tree.child(index).any(|child| child == rule))
+        .unwrap();
+    assert_eq!(child(&tree, parent), [Kind::Rule, Kind::Group]);
+    assert_eq!(child(&tree, 0), [Kind::List]);
+    assert_eq!(tree.child(1).count(), 2);
     let tree = parser::parse("[X] (A.B, C), D.E").unwrap();
     assert_eq!(
         text(&tree, Kind::Term),
@@ -44,8 +46,7 @@ fn structure() {
 
 fn child(tree: &Tree<'_>, parent: usize) -> Vec<Kind> {
     tree.child(parent)
-        .iter()
-        .map(|&index| tree.node()[index].kind)
+        .map(|index| tree.node()[index].kind)
         .collect()
 }
 

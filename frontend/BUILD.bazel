@@ -76,3 +76,13 @@ rust_test(
         "@crate//:serde_json",
     ],
 )
+
+rust_test(
+    name = "memory",
+    size = "small",
+    srcs = ["test/memory.rs"],
+    crate_root = "test/memory.rs",
+    lint_config = "//:lint",
+    tags = ["memory"],
+    deps = [":frontend"],
+)

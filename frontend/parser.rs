@@ -56,17 +56,17 @@ pub fn parse(source: &str) -> Result<Tree<'_>, Failure> {
                     Rule::concept => Kind::Concept,
                     Rule::join | Rule::factor | Rule::WHITESPACE | Rule::EOI => unreachable!(),
                 };
-                let index = node.len();
+                stack.push(node.len());
                 node.push(Node {
                     kind,
                     span: pos.pos()..pos.pos(),
-                    parent: stack.last().copied(),
+                    next: 0,
                 });
-                stack.push(index);
             }
             Token::End { pos, .. } => {
                 let index = stack.pop().expect("balanced parser token stream");
                 node[index].span.end = pos.pos();
+                node[index].next = node.len();
             }
         }
     }

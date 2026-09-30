@@ -11,19 +11,27 @@ pub(crate) fn product(factor: Vec<Vec<Vec<Value>>>, budget: &mut usize) -> Optio
         return Some(Vec::new());
     }
     if count == 1 {
-        return Some(vec![factor.into_iter().flatten().flatten().collect()]);
+        let particle = factor.into_iter().flatten().reduce(|mut particle, next| {
+            particle.extend(next);
+            particle
+        });
+        return Some(vec![particle.unwrap_or_default()]);
     }
     *budget = budget.checked_sub(size(&factor, count)?)?;
     let mut result = Vec::with_capacity(count);
     let mut chosen = vec![0; factor.len()];
     loop {
-        result.push(
+        let mut particle = Vec::with_capacity(
             chosen
                 .iter()
                 .zip(&factor)
-                .flat_map(|(&index, choice)| choice[index].iter().cloned())
-                .collect(),
+                .map(|(&index, choice)| choice[index].len())
+                .sum(),
         );
+        for (&index, choice) in chosen.iter().zip(&factor) {
+            particle.extend(choice[index].iter().cloned());
+        }
+        result.push(particle);
         let Some(position) =
             (0..factor.len()).rfind(|&position| chosen[position] + 1 < factor[position].len())
         else {

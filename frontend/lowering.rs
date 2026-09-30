@@ -55,7 +55,7 @@ pub fn library(source: &str) -> Result<Library, Failure> {
         budget: allowance(source),
     };
     let mut rule = Vec::new();
-    for &term in tree.child(tree.child(0)[0]) {
+    for term in tree.child(reader.first(0)) {
         for member in reader.term(term)? {
             let Member::Rule(definition) = member else {
                 let span = reader.span(term);
@@ -74,8 +74,15 @@ fn allowance(source: &str) -> usize {
 }
 
 impl<'tree> Reader<'tree, '_> {
-    fn child(&self, index: usize) -> &'tree [usize] {
-        self.tree.child(index)
+    fn child(&self, index: usize) -> Vec<usize> {
+        self.tree.child(index).collect()
+    }
+
+    fn first(&self, index: usize) -> usize {
+        self.tree
+            .child(index)
+            .next()
+            .expect("every module, group and bracket holds a list")
     }
 
     fn span(&self, index: usize) -> Range<usize> {
@@ -94,21 +101,27 @@ impl<'tree> Reader<'tree, '_> {
     }
 
     fn program(&mut self) -> Result<Program, Failure> {
-        Ok(assemble(self.list(self.child(0)[0])?))
+        let mut program = Program::default();
+        for term in self.tree.child(self.first(0)) {
+            for member in self.term(term)? {
+                add(&mut program, member);
+            }
+        }
+        Ok(program)
     }
 
     fn list(&mut self, index: usize) -> Result<Vec<Member>, Failure> {
         let mut result = Vec::new();
-        for &term in self.child(index) {
+        for term in self.tree.child(index) {
             result.extend(self.term(term)?);
         }
         Ok(result)
     }
 
     fn bracketed(&self, index: usize) -> bool {
-        self.child(index)
-            .iter()
-            .any(|&node| self.kind(node) == Kind::Rule)
+        self.tree
+            .child(index)
+            .any(|node| self.kind(node) == Kind::Rule)
     }
 
     fn term(&mut self, index: usize) -> Result<Vec<Member>, Failure> {
@@ -116,7 +129,7 @@ impl<'tree> Reader<'tree, '_> {
             return Ok(vec![Member::Rule(self.partition(index)?)]);
         }
         let factor = self.child(index);
-        self.body(factor)
+        self.body(&factor)
     }
 
     fn body(&mut self, factor: &[usize]) -> Result<Vec<Member>, Failure> {
@@ -132,7 +145,7 @@ impl<'tree> Reader<'tree, '_> {
     }
 
     fn group(&mut self, index: usize) -> Result<Vec<Member>, Failure> {
-        let member = self.list(self.child(index)[0])?;
+        let member = self.list(self.first(index))?;
         if member.is_empty() {
             return Ok(vec![Member::Particle(Vec::new())]);
         }
@@ -157,9 +170,15 @@ impl<'tree> Reader<'tree, '_> {
     }
 
     fn join(&mut self, factor: &[usize]) -> Result<Vec<Vec<Value>>, Failure> {
-        let mut choice = Vec::new();
+        let mut choice = Vec::<Vec<Vec<Value>>>::new();
         for &index in factor {
-            choice.push(self.factor(index)?);
+            let alternative = self.factor(index)?;
+            match (choice.last_mut(), alternative.len()) {
+                (Some(last), 1) if last.len() == 1 => {
+                    last[0].extend(alternative.into_iter().flatten());
+                }
+                _ => choice.push(alternative),
+            }
         }
         crate::expansion::product(choice, &mut self.budget).ok_or_else(|| {
             let start = factor.first().map_or(0, |&first| self.span(first).start);
@@ -174,18 +193,18 @@ impl<'tree> Reader<'tree, '_> {
                 self.tree.source()[self.span(index)].into(),
             )]]);
         }
-        let term = self.child(self.child(index)[0]);
+        let term = self.child(self.first(index));
         if term.is_empty() {
             return Ok(vec![Vec::new()]);
         }
         let mut result = Vec::new();
-        for &term in term {
+        for term in term {
             if self.bracketed(term) {
                 result.push(self.partition(term)?.into_iter().map(value).collect());
                 continue;
             }
             let factor = self.child(term);
-            result.extend(self.join(factor)?);
+            result.extend(self.join(&factor)?);
         }
         Ok(result)
     }
@@ -195,18 +214,19 @@ impl<'tree> Reader<'tree, '_> {
         let (rule, sink): (Vec<usize>, Vec<usize>) = child
             .iter()
             .partition(|&&node| self.kind(node) == Kind::Rule);
-        let mut pattern = Vec::new();
-        for node in rule {
-            pattern.push(self.input(self.child(node)[0])?);
-        }
-        let mut output = Vec::new();
-        for member in self.body(&sink)? {
-            output.push(match member {
+        let pattern = rule
+            .into_iter()
+            .map(|node| self.input(self.first(node)))
+            .collect::<Result<_, _>>()?;
+        let output = self
+            .body(&sink)?
+            .into_iter()
+            .map(|member| match member {
                 Member::Particle(particle) => Output::Particle(particle),
                 Member::Scope(program, _) => Output::Scope(program),
                 Member::Rule(_) => unreachable!("a group that lists a rule is a scope"),
-            });
-        }
+            })
+            .collect();
         Partition { pattern, output }
             .rule(&mut self.budget)
             .ok_or_else(|| {
@@ -215,19 +235,16 @@ impl<'tree> Reader<'tree, '_> {
     }
 
     fn input(&mut self, index: usize) -> Result<Vec<Vec<Value>>, Failure> {
-        let mut input = Vec::new();
-        for member in self.list(index)? {
-            input.push(match member {
-                Member::Particle(particle) => particle,
-                Member::Rule(rule) => rule.into_iter().map(value).collect(),
-                Member::Scope(_, span) => {
-                    return Err(Failure::Input {
-                        span: (span.start, span.len()).into(),
-                    });
-                }
-            });
-        }
-        Ok(input)
+        self.list(index)?
+            .into_iter()
+            .map(|member| match member {
+                Member::Particle(particle) => Ok(particle),
+                Member::Rule(rule) => Ok(rule.into_iter().map(value).collect()),
+                Member::Scope(_, span) => Err(Failure::Input {
+                    span: (span.start, span.len()).into(),
+                }),
+            })
+            .collect()
     }
 }
 
@@ -240,11 +257,15 @@ fn value(rule: Definition) -> Value {
 fn assemble(member: Vec<Member>) -> Program {
     let mut program = Program::default();
     for member in member {
-        match member {
-            Member::Particle(particle) => program.initial.push(particle),
-            Member::Rule(rule) => program.rule.extend(rule),
-            Member::Scope(scope, _) => program.scope.push(scope),
-        }
+        add(&mut program, member);
     }
     program
+}
+
+fn add(program: &mut Program, member: Member) {
+    match member {
+        Member::Particle(particle) => program.initial.push(particle),
+        Member::Rule(rule) => program.rule.extend(rule),
+        Member::Scope(scope, _) => program.scope.push(scope),
+    }
 }
