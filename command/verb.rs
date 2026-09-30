@@ -1,6 +1,5 @@
 use crate::disk::Disk;
 use crate::{argument, output};
-use miette::IntoDiagnostic;
 use spectrum::claim::Claim;
 use spectrum::context::Context;
 use spectrum::failure::{Code, Failure};
@@ -8,7 +7,6 @@ use spectrum::handle::Handle;
 use spectrum::recording::{Goal, Mode, Recording};
 use spectrum::request::{self, Answer, Request};
 use spectrum::store::Store;
-use std::io::Write;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
@@ -70,13 +68,12 @@ fn report(verb: &str, result: &Result<Answer, Failure>, json: bool) -> miette::R
         ExitCode::FAILURE
     };
     if json {
-        let envelope = request::envelope(verb, result);
-        writeln!(std::io::stdout().lock(), "{envelope}").into_diagnostic()?;
+        output::print(&request::envelope(verb, result))?;
         return Ok(code);
     }
     match result {
         Ok(answer) => {
-            writeln!(std::io::stdout().lock(), "{}", answer.text()).into_diagnostic()?;
+            output::print(&answer.text())?;
             Ok(code)
         }
         Err(failure) => output::fail(failure),

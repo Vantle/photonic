@@ -343,11 +343,13 @@ fn reply(id: Value, result: Result<Value, Value>) -> Value {
     }
 }
 
+// The server answers until its client closes either end: standard input, or standard output, where
+// nothing more it writes could be read.
 pub fn serve() -> miette::Result<ExitCode> {
     let directory = std::env::current_dir().into_diagnostic()?;
     let mut server = Server::new(Disk::within(&directory).into_diagnostic()?);
     let mut input = std::io::stdin().lock();
-    let mut output = std::io::stdout().lock();
+    let mut writer = std::io::stdout().lock();
     let mut line = Vec::new();
     loop {
         line.clear();
@@ -357,9 +359,12 @@ pub fn serve() -> miette::Result<ExitCode> {
         if line.trim_ascii().is_empty() {
             continue;
         }
-        if let Some(response) = server.handle(&line) {
-            writeln!(output, "{response}").into_diagnostic()?;
-            output.flush().into_diagnostic()?;
+        let Some(response) = server.handle(&line) else {
+            continue;
+        };
+        match writeln!(writer, "{response}").and_then(|()| writer.flush()) {
+            Err(error) if output::closed(&error) => return Ok(ExitCode::SUCCESS),
+            written => written.into_diagnostic()?,
         }
     }
 }

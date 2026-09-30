@@ -1162,6 +1162,54 @@ fn result(response: &serde_json::Value) -> (bool, String) {
     )
 }
 
+// 0 on success; 1 on a failure, or an answer that does not meet what was asked; 2 when the command
+// line is invalid, with or without --json.
+#[test]
+fn status() {
+    let fixture = Fixture::new();
+    let path = fixture.write("light.wave", LIGHT);
+    let path = path.to_str().unwrap();
+    let missing = fixture.path.join("missing.wave");
+    let missing = missing.to_str().unwrap();
+    let target = fixture.write(
+        "target.wave",
+        "Purple, [Light] Red, [Light] Green, [Light] Blue",
+    );
+    let target = target.to_str().unwrap();
+    for (argument, code) in [
+        (vec!["explore", path], 0),
+        (vec!["explore", path, "--json"], 0),
+        (vec!["explore", missing], 1),
+        (vec!["explore", missing, "--json"], 1),
+        (vec!["check", path, "--reach", "Purple"], 1),
+        (vec!["prism", path, "--target", target], 1),
+        (vec!["prism", path, "--target", target, "--json"], 1),
+        (vec!["explore", path, "--bogus"], 2),
+        (vec!["explore", path, "--json", "--bogus"], 2),
+        (vec!["explore", path, "--limit", "many", "--json"], 2),
+        (vec!["nothing"], 2),
+        (vec![], 2),
+        (vec!["--help"], 0),
+        (vec!["--version"], 0),
+    ] {
+        let output = invoke(&argument);
+        assert_eq!(
+            output.status.code(),
+            Some(code),
+            "{argument:?}: {}",
+            error(&output)
+        );
+    }
+    let help = text(&invoke(&["--help"]));
+    assert!(
+        help.contains(
+            "Exit status: 0 on success; 1 on a failure, or when check's claims do not all hold"
+        ),
+        "{help}"
+    );
+    assert!(help.contains("2 when the command line is invalid, with or without --json"));
+}
+
 // A goal reaches every question, --preserve needs an exact target or the goal to complete, and
 // what the command line cannot mean is refused before any work.
 #[test]
@@ -1328,6 +1376,71 @@ fn source() {
     }
     let answer = envelope(&invoke(&["check", "--json"]));
     assert_eq!(answer["error"]["code"], "request");
+}
+
+// A reader that closes standard output early, as head does, ends the command quietly, and the
+// command still exits with its answer's code.
+#[test]
+fn pipe() {
+    use std::io::Read;
+    let fixture = Fixture::new();
+    let bit = (0..10)
+        .map(|index| format!("Bit.B{index}.Off"))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let path = fixture.write("bit.wave", &format!("{bit}, [Off] On"));
+    let target = fixture.write("target.wave", "Purple");
+    let path = path.to_str().unwrap();
+    for (argument, code) in [
+        (&["run", path][..], 0),
+        (&["run", path, "--json"], 0),
+        (
+            &[
+                "prism",
+                path,
+                "--target",
+                target.to_str().unwrap(),
+                "--json",
+            ],
+            1,
+        ),
+    ] {
+        let mut child = Command::new(binary())
+            .args(argument)
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn()
+            .expect("start Photonic");
+        let mut output = child.stdout.take().expect("standard output");
+        let mut first = [0; 1];
+        output.read_exact(&mut first).expect("the first byte");
+        drop(output);
+        let finished = child.wait_with_output().expect("Photonic exits");
+        assert_eq!(finished.status.code(), Some(code), "{argument:?}");
+        assert!(
+            finished.stderr.is_empty(),
+            "{argument:?}: {}",
+            error(&finished)
+        );
+    }
+    let mut child = Command::new(binary())
+        .arg("mcp")
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .expect("start the server");
+    drop(child.stdout.take());
+    {
+        use std::io::Write;
+        let mut input = child.stdin.take().expect("server input");
+        input
+            .write_all(format!("{}\n", initialize()).as_bytes())
+            .expect("send a message");
+    }
+    let finished = child.wait_with_output().expect("the server exits");
+    assert_eq!(finished.status.code(), Some(0));
+    assert!(finished.stderr.is_empty(), "{}", error(&finished));
 }
 
 // A link inside the server's directory to a file outside it, where the platform makes links without

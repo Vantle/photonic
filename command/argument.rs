@@ -8,10 +8,12 @@ use spectrum::subject::Subject;
 use std::num::NonZeroUsize;
 use std::path::{Path, PathBuf};
 
+const EXIT: &str = "Exit status: 0 on success; 1 on a failure, or when check's claims do not all hold, compare's programs do not both close and agree, shape's programs take more than one shape, or prism's target is not reached; 2 when the command line is invalid, with or without --json.";
+
 const FILE: &str = "Program files: .wave or .particle source, or .json programs assembled by Bazel";
 
 #[derive(Parser)]
-#[command(version, about = "Photonic language tools")]
+#[command(version, about = "Photonic language tools", after_help = EXIT)]
 pub struct Argument {
     #[command(subcommand)]
     pub operation: Operation,
