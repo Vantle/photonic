@@ -13,40 +13,28 @@ exports_files(
 photonic_library(
     name = "and",
     srcs = ["and.particle"],
-    visibility = [
-        "//program/composition:__pkg__",
-        "//theorem/boolean:__pkg__",
-    ],
+    visibility = ["//visibility:public"],
     deps = ["//library/function:invoke"],
 )
 
 photonic_library(
     name = "equal",
     srcs = ["equal.particle"],
-    visibility = [
-        "//program/composition:__pkg__",
-        "//theorem/boolean:__pkg__",
-    ],
+    visibility = ["//visibility:public"],
     deps = ["//library/function:invoke"],
 )
 
 photonic_library(
     name = "not",
     srcs = ["not.particle"],
-    visibility = [
-        "//program/composition:__pkg__",
-        "//theorem/boolean:__pkg__",
-    ],
+    visibility = ["//visibility:public"],
     deps = ["//library/function:invoke"],
 )
 
 photonic_library(
     name = "or",
     srcs = ["or.particle"],
-    visibility = [
-        "//theorem/boolean:__pkg__",
-        "//theorem/coloring:__pkg__",
-    ],
+    visibility = ["//visibility:public"],
     deps = ["//library/function:invoke"],
 )
 

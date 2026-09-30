@@ -1,4 +1,4 @@
-"""Native Photonic source libraries and executable programs."""
+"""Native Photonic source libraries, executable programs and tests."""
 
 load("//toolchain:defs.bzl", "hermetic_binary", "hermetic_test")
 
@@ -35,10 +35,11 @@ def _library(context):
 
 photonic_library = rule(
     implementation = _library,
+    doc = "A library of Photonic declarations. Its output is the assembled library, name + \".json\", which the command line's --library also accepts.",
     attrs = {
-        "srcs": attr.label_list(allow_files = [".particle", ".wave"]),
-        "deps": attr.label_list(providers = [Info]),
-        "_assemble": attr.label(default = "//photonic:assemble", executable = True, cfg = "exec"),
+        "srcs": attr.label_list(allow_files = [".particle", ".wave"], doc = "Declaration files; each holds rules only."),
+        "deps": attr.label_list(providers = [Info], doc = "Libraries these declarations build on, loaded first."),
+        "_assemble": attr.label(default = Label("//photonic:assemble"), executable = True, cfg = "exec"),
     },
 )
 
@@ -64,25 +65,29 @@ _program = rule(
     attrs = {
         "srcs": attr.label_list(allow_files = [".particle", ".wave"], mandatory = True),
         "deps": attr.label_list(providers = [Info]),
-        "_assemble": attr.label(default = "//photonic:assemble", executable = True, cfg = "exec"),
+        "_assemble": attr.label(default = Label("//photonic:assemble"), executable = True, cfg = "exec"),
     },
 )
 
 def photonic_binary(name, srcs, deps = [], visibility = None):
-    """Build an executable from N native sources and transitive libraries.
+    """Build an executable from native sources and transitive libraries.
+
+    The executable runs the photonic command on the assembled program, name + ".program": run by
+    default, or the verb given as its first argument, such as check or explore.
 
     Args:
         name: Executable target name.
         srcs: Native source files containing initial data or declarations.
         deps: Photonic libraries supplying declarations.
-        visibility: Packages allowed to depend on the executable and its assembled program.
+        visibility: Packages allowed to depend on the executable and its assembled program; both
+            stay private to the package unless it is given.
     """
     _program(name = name + ".program", srcs = srcs, deps = deps, visibility = visibility)
     hermetic_binary(
         name = name,
-        entrypoint = "//photonic:launch",
-        argument = ["$(rlocationpath //command:photonic)", "$(rlocationpath :" + name + ".program)"],
-        data = [":" + name + ".program", "//command:photonic"],
+        entrypoint = Label("//photonic:launch"),
+        argument = ["$(rlocationpath :{}.program)".format(name)],
+        data = [":{}.program".format(name)],
         visibility = visibility,
     )
 
@@ -129,7 +134,7 @@ _case = rule(
         "scope": attr.int(mandatory = True),
         "coherence": attr.int(mandatory = True),
         "record": attr.int(mandatory = True),
-        "_assemble": attr.label(default = "//photonic:assemble", executable = True, cfg = "exec"),
+        "_assemble": attr.label(default = Label("//photonic:assemble"), executable = True, cfg = "exec"),
     },
 )
 
@@ -159,9 +164,9 @@ def photonic_test(name, target, source = "", srcs = [], deps = [], expect = "rea
     _case(name = name + ".case", source = source, target = target, srcs = srcs, deps = deps, expect = expect, path = path, every = every, work = work, configuration = configuration, occurrence = occurrence, scope = scope, coherence = coherence, record = record, visibility = ["//visibility:private"], testonly = True)
     hermetic_test(
         name = name,
-        entrypoint = "//photonic:check",
-        argument = ["$(rlocationpath :" + name + ".case)"],
-        data = [":" + name + ".case"],
+        entrypoint = Label("//photonic:check"),
+        argument = ["$(rlocationpath :{}.case)".format(name)],
+        data = [":{}.case".format(name)],
         size = size,
         tags = tags,
     )

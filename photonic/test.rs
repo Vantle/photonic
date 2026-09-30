@@ -121,7 +121,7 @@ fn binary() {
 
 #[test]
 fn diamond() {
-    let program = std::fs::read(executable("PIPELINE")).unwrap();
+    let program = std::fs::read(executable("BUNDLE")).unwrap();
     let program: frontend::source::Program = serde_json::from_slice(&program).unwrap();
     let entry = frontend::lowering::parse("[Invoke] (Function, [Return] ())")
         .unwrap()

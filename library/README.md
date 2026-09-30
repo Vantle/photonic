@@ -46,6 +46,61 @@ vector
 stream
 ```
 
+## Using the library
+
+Every target in the table is public, and so are the three rules in [photonic/defs.bzl](../photonic/defs.bzl): `photonic_library`, `photonic_binary` and `photonic_test`. They are Photonic 1.0's Bazel interface; other targets in the repository may change. A program depends on the operations it calls:
+
+```starlark
+load("//photonic:defs.bzl", "photonic_binary", "photonic_library", "photonic_test")
+
+photonic_library(
+    name = "logic",
+    srcs = ["logic.particle"],
+    deps = ["//library/boolean:not"],
+)
+
+photonic_binary(
+    name = "example",
+    srcs = ["request.wave"],
+    deps = [":logic"],
+)
+
+photonic_test(
+    name = "negation",
+    source = "Invoke.Boolean.Not.True",
+    target = ["False"],
+    deps = ["//library/boolean:not"],
+)
+```
+
+A library's output is the library assembled with everything it depends on, `logic.json`. A binary runs the `photonic` command on its assembled program: `bazel run -c opt //pkg:example` explores it, and `bazel run -c opt //pkg:example -- check --reach False` asks any other question the command asks. A binary and its assembled program, `example.program`, are private to their package unless the binary is given a `visibility`.
+
+### From another module
+
+Until Photonic is published to a registry, depend on it through its repository in `MODULE.bazel`:
+
+```starlark
+bazel_dep(name = "photonic", version = "1.0.0")
+git_override(
+    module_name = "photonic",
+    remote = "https://github.com/Vantle/photonic",
+    commit = "…",
+)
+```
+
+Then load `@photonic//photonic:defs.bzl` and depend on `@photonic//library/boolean:not` and the other targets. Bazel builds the `photonic` command and the test runner from source with Photonic's own toolchains, so the module needs no flags. Photonic's Windows builds patch `rules_rs` and `hermetic_launcher` with overrides, which Bazel applies only in the root module, so a module built on Windows copies those `single_version_override` entries and their patches from [MODULE.bazel](../MODULE.bazel) and [platform](../platform/).
+
+### From the command line
+
+`photonic run program.wave --library …` loads each library file in the order given, and a file must follow every file it builds on. The simplest correct order is Bazel's: give the program a `photonic_library` whose `deps` name what it calls, and pass the library's assembled `.json`, which `--library` accepts as one file:
+
+```sh
+bazel build -c opt //library/natural:add
+bazel run -c opt //command:photonic -- run program.wave --library "$(bazel info -c opt bazel-bin)/library/natural/add.json"
+```
+
+The command reads paths relative to where `bazel run` started. From another module, run `@photonic//command:photonic` and pass the `.json` of a library in that module.
+
 ## Scoped invocation
 
 `Invoke` opens a scope, activates `Function` inside it, and releases whatever follows `Return`:
@@ -223,7 +278,7 @@ The [theorems](../theorem/README.md#7-counting) prove more than these bounded ch
 
 ## Extending
 
-Add an operation as its own file in the package that owns its type, give it a `photonic_library` target with explicit dependencies and visibility, and list it in the package's `source` filegroup; the library suite loads every `source` filegroup, so the isolation and composition checks cover it. A new type gets its own package and namespace: its `source` filegroup joins `SOURCE` in [BUILD.bazel](BUILD.bazel), which `//library:test` loads, and its name joins `PACKAGE` in [test/catalog.rs](test/catalog.rs), because the suite fails unless it loads exactly the packages listed there. A consumer outside the library adds its package to each target's `visibility`. Callbacks register themselves with a dispatch rule such as `[Boolean.Not.([Each] Boolean.Not)] Function.Boolean.Not`, and a new chain alphabet declares its `Drop`, Reverse, and Erase rules without editing the chain package.
+Add an operation as its own file in the package that owns its type, give it a public `photonic_library` target with explicit dependencies, name it in the package table, and list it in the package's `source` filegroup; the library suite loads every `source` filegroup, so the isolation and composition checks cover it. A new type gets its own package and namespace: its `source` filegroup joins `SOURCE` in [BUILD.bazel](BUILD.bazel), which `//library:test` loads, and its name joins `PACKAGE` in [test/catalog.rs](test/catalog.rs), because the suite fails unless it loads exactly the packages listed there. Callbacks register themselves with a dispatch rule such as `[Boolean.Not.([Each] Boolean.Not)] Function.Boolean.Not`, and a new chain alphabet declares its `Drop`, Reverse, and Erase rules without editing the chain package.
 
 ## Limits
 
