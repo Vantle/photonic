@@ -9,8 +9,9 @@ use crate::state::State;
 // with every other event, now and after any events outside it: a coherence that only events binding
 // it alone can touch, or a sealed scope. Such events stay enabled until they fire, so every
 // configuration where a run ends is still reached, and a run can go on forever exactly when the
-// reduced exploration has a cycle. A configuration where a rule applies through a capture fires
-// everything.
+// reduced exploration has a cycle. A reduced exploration is plain and carries no trace back, so
+// every rule it applies lives in a frame of the configuration it fires at, never in a capture that
+// is gone.
 pub(super) enum Focus {
     World(usize),
     Scope(Enclosure),
@@ -22,12 +23,6 @@ impl Focus {
         identity: &[&Identity],
         independence: &Independence,
     ) -> Option<Self> {
-        if identity
-            .iter()
-            .any(|identity| matches!(identity.owner, Owner::Capture(_)))
-        {
-            return None;
-        }
         let mut world = vec![0; state.world.len()];
         for identity in identity {
             for &index in &identity.binding.world {
