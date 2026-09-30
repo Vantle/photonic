@@ -79,6 +79,10 @@ impl Setting {
                 deadline,
                 ..self.limit
             },
+            bound: photonic::execution::Bound {
+                deadline,
+                ..self.bound
+            },
             ..*self
         }
     }

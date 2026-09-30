@@ -8,6 +8,7 @@ use serde::Serialize;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::task::Poll;
+use std::time::Instant;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 pub struct Bound {
@@ -15,6 +16,8 @@ pub struct Bound {
     pub terminal: usize,
     pub step: usize,
     pub work: usize,
+    #[serde(skip)]
+    pub deadline: Option<Instant>,
 }
 
 impl Default for Bound {
@@ -24,7 +27,15 @@ impl Default for Bound {
             terminal: 4,
             step: 4_096,
             work: 1_000_000,
+            deadline: None,
         }
+    }
+}
+
+impl Bound {
+    fn expired(&self) -> bool {
+        self.deadline
+            .is_some_and(|deadline| Instant::now() >= deadline)
     }
 }
 
@@ -117,11 +128,24 @@ fn successor(
         match search.run(limit) {
             Poll::Ready(Some(event)) => result.push(event),
             Poll::Ready(None) => break,
-            Poll::Pending if search.work() > bound.work => return None,
+            Poll::Pending if search.work() > bound.work || bound.expired() => return None,
             Poll::Pending => {}
         }
     }
     (search.deferred() == 0).then_some(result)
+}
+
+// A symmetric configuration can take far longer to canonicalize than a deadline allows, so the
+// search runs a step at a time and gives up once the deadline passes.
+fn canonical(state: &Arc<State>, bound: &Bound) -> Option<State> {
+    let _scope = crate::profile::Scope::new(crate::profile::Phase::Normalization);
+    let mut search = crate::canonical::Search::new(state.clone());
+    while !search.step() {
+        if bound.expired() {
+            return None;
+        }
+    }
+    search.finish().map(|canonical| canonical.state)
 }
 
 #[derive(Clone, Copy, Eq, PartialEq)]
@@ -149,7 +173,11 @@ pub fn explore(
         ..Exploration::default()
     };
     let mut index: HashMap<State, usize, Builder> = HashMap::default();
-    index.insert(initial.canonical().state, 0);
+    let Some(start) = canonical(&initial, &bound) else {
+        exploration.overflow = true;
+        return exploration;
+    };
+    index.insert(start, 0);
     let mut mark = vec![Mark::Open];
     let Some(first) = successor(&program, &initial, limit, &bound) else {
         exploration.overflow = true;
@@ -172,7 +200,10 @@ pub fn explore(
         }
         let state = frame.successor[frame.cursor].state.clone();
         frame.cursor += 1;
-        let canonical = state.canonical().state;
+        let Some(canonical) = canonical(&state, &bound) else {
+            exploration.overflow = true;
+            return exploration;
+        };
         if let Some(&known) = index.get(&canonical) {
             if mark[known] == Mark::Open {
                 exploration.cycle = true;
@@ -222,8 +253,12 @@ pub fn walk(
     let mut state = Arc::new(State::initial(&program));
     let mut level = vec![0usize; state.world.len()];
     let mut seen: HashSet<State, Builder> = HashSet::default();
-    seen.insert(state.canonical().state);
     let mut result = Walk::default();
+    let Some(start) = canonical(&state, &bound) else {
+        result.overflow = true;
+        return result;
+    };
+    seen.insert(start);
     loop {
         let Some(mut event) = successor(&program, &state, limit, &bound) else {
             result.overflow = true;
@@ -233,7 +268,7 @@ pub fn walk(
             result.terminal = Some(observation(&program, &state));
             return result;
         }
-        if result.step >= bound.step {
+        if result.step >= bound.step || bound.expired() {
             result.overflow = true;
             return result;
         }
@@ -255,7 +290,11 @@ pub fn walk(
         result.depth = result.depth.max(depth);
         result.step += 1;
         state = chosen.state;
-        if !seen.insert(state.canonical().state) {
+        let Some(canonical) = canonical(&state, &bound) else {
+            result.overflow = true;
+            return result;
+        };
+        if !seen.insert(canonical) {
             result.cycle = true;
             return result;
         }

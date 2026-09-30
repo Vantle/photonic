@@ -239,3 +239,25 @@ fn guided() {
         "{report}"
     );
 }
+
+#[test]
+fn deadline() {
+    let fixture = Fixture::new();
+    let input = fixture.write("input.wave", "X.([A] B)");
+    let output = fixture.write("output.wave", "C");
+    let report = succeed(&[
+        "solve",
+        "--home",
+        &fixture.home(),
+        "--input",
+        &input,
+        "--output",
+        &output,
+        "--enumerate",
+        "1",
+    ]);
+    assert!(
+        report.contains("found programs for 0 of 1 tasks"),
+        "{report}"
+    );
+}
