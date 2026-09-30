@@ -416,3 +416,20 @@ fn rest() {
     assert!(exam.contains("round 1: level 1"), "{exam}");
     assert!(exam.contains("level 1 mastered"), "{exam}");
 }
+
+#[test]
+fn builtin() {
+    let fixture = Fixture::new();
+    let report = succeed(&[
+        "solve",
+        "--home",
+        &fixture.home(),
+        "--task",
+        "boolean.and",
+        "--limit",
+        "2",
+    ]);
+    assert!(report.contains("of 1 tasks"), "{report}");
+    let pool = std::fs::read_to_string(fixture.path.join("home").join(POOL)).unwrap();
+    assert!(pool.contains("boolean.and"));
+}

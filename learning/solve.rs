@@ -49,10 +49,15 @@ fn tested(argument: &Solve) -> miette::Result<Option<Task>> {
 pub fn run(argument: &Solve) -> miette::Result<()> {
     let home = open(&argument.home)?;
     let objective = objective::Setting::default();
-    let mut pool = home
+    let known = home
         .load::<Vec<Task>>(home::POOL)
         .into_diagnostic()?
         .unwrap_or_default();
+    let count = known.len();
+    let mut pool = pool::merge(known).into_diagnostic()?;
+    if pool.len() > count {
+        home.save(home::POOL, &pool).into_diagnostic()?;
+    }
     let mut chosen = argument.task.clone();
     if let Some(task) = tested(argument)? {
         chosen.push(task.name.clone());
