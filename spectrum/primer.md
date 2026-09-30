@@ -8,27 +8,23 @@ This is the whole grammar, the one `frontend/parser.rs` compiles:
 
 ```
 module = { SOI ~ list ~ EOI }
-list = { (term ~ ("," ~ term)* ~ ","?)? }
-term = { rule+ ~ (join ~ rule*)? | join ~ rule* }
-join = _{ factor ~ ("." ~ factor)* }
-factor = _{ concept | group }
+list = { term? ~ ("," ~ term?)* }
+term = { (atom | group | bracket | ".")+ }
 group = { "(" ~ list ~ ")" }
-rule = { "[" ~ list ~ "]" }
-concept = @{ (!("(" | ")" | "[" | "]" | "." | "," | WHITESPACE | CONTROL | BIDI_CONTROL | "\u{200B}" | "\u{2060}") ~ ANY)+ }
-WHITESPACE = _{ WHITE_SPACE | "\u{FEFF}" }
+bracket = { "[" ~ list ~ "]" }
+atom = @{ (!("(" | ")" | "[" | "]" | "." | "," | WHITESPACE | SPACE_SEPARATOR | CONTROL | BIDI_CONTROL | "\u{200B}" | "\u{2060}") ~ ANY)+ }
+WHITESPACE = _{ PATTERN_WHITE_SPACE | "\u{FEFF}" }
 ```
 
-Whitespace is every Unicode space and U+FEFF, the byte order mark. An atom cannot hold a control character, U+200B, U+2060 or a direction control such as U+202E; joiners such as U+200D are part of it. Atoms compare by code point, without normalization.
+Five laws give it meaning, with no exceptions. Every balanced text is a program; only an unclosed or unmatched bracket, or a character no atom may hold, is an error.
 
-Five rules give it meaning.
+1. A comma separates members, and a missing member is nothing: `A,` is `A` and `A,,B` is `A, B`.
+2. Parts of a term side by side join, and a dot only marks the join: `A.B` is `A B`. Joining distributes over groups: `A(B, C)` is `A B, A C`.
+3. A term with brackets is a rule. It consumes what its brackets hold, joined like any parts, and produces the rest of the term, or nothing if nothing is left. Parts are unordered, so `C [A]` is `[A] C`, and `[A] [B] C` is `[A B] C`.
+4. A group always holds a place: one that lists neither a particle nor a scope holds the empty particle, so `()` is the empty particle and `A.()` is `A`.
+5. Brackets aside, a term that is a single group, in the program, in a scope or in what a rule produces, is the group's members, or a scope if it lists a rule. A rule listed in the program or a scope is live there. Anywhere else, joined or inside brackets, parentheses only group and a rule is a value: `X.([A] B)` carries one, `[[A] B] C` consumes one, and `().([A] B)` is a coherence holding nothing else.
 
-1. A comma separates, a dot joins, and a space means nothing. Two particles side by side are an error until a dot or a comma says which you mean, so a forgotten comma is reported instead of quietly joining.
-2. A join multiplies its factors into particles and distributes over a group: `A.(B, C)` is `A.B, A.C`. Joined, a group builds nothing, and a rule inside it is a value of the particle, as in `X.([A] B)`; that is the only way a rule joins a particle. A group that lists neither a coherence nor a scope holds the empty coherence, so `()` is that coherence.
-3. A term is brackets beside at most one particle, in any order. Each bracket consumes what it names and becomes every other part of its term, so `[A] [B]` yields the rules `[A] B` and `[B] A`, and `[A] [B] C` adds `[A] C` and `[B] C`. Listed in a program or a scope, those rules are separate terms, as if written with commas; inside a particle, as in `X.([A] [B])` or the input of `[[A] [B]] C`, they are values of that one particle. Several outputs are a group, as in `[A] (B, C)`.
-4. A group that lists a rule and is not joined is a scope: a program in parentheses, holding coherences, rules and scopes. A rule's output opens it when the rule fires, and the program opens its own scopes when it starts. Like any group, a scope that lists neither a coherence nor a scope holds `()`, as `([A] B)` does.
-5. A rule listed in a program or a scope is live there. Anywhere else it is a value.
-
-There are no keywords, operators or reserved words: `Not`, `->` and `unless` are ordinary atoms.
+There are no keywords, operators or reserved words: `Not`, `->` and `unless` are ordinary atoms. Whitespace is Unicode's pattern whitespace, which never changes, and U+FEFF, the byte order mark. An atom cannot hold any other space, such as U+00A0, nor a control character, U+200B, U+2060 or a direction control such as U+202E; joiners such as U+200D are part of it. Atoms compare by code point, without normalization.
 
 ## Meaning
 
@@ -41,7 +37,7 @@ There are no keywords, operators or reserved words: `Not`, `->` and `unless` are
 - A scope's own rules send their output to the enclosing scope. Rules of enclosing scopes also apply inside, and their output stays inside. Every coherence a rule introduces receives the remainder, in its scopes as in its other outputs.
 - Configurations that differ only in how occurrences are named are one configuration. Scopes written alike and opened by the same rule, or both by the program, are interchangeable in the same way.
 - A search stops at its budgets: work steps, kept configurations and records, and in each configuration its coherences, the occurrences its coherences and scopes hold as values (live rules do not count) and the scopes it has opened. An answer a budget or limit cut says which one. Syntax nests at most 128 levels, and lowering one program has a budget of its own that grows with the source.
-- Prism asks whether an exact configuration, live rules and scopes included, is reached. A target is written as a program and names the configuration that program starts in, so its scopes are ones the program opens at the start. It answers reached, unreachable after a closed exploration, or unknown when a budget stopped the search.
+- Prism asks whether an exact configuration, live rules and scopes included, is reached. A target is written as a program and names the configuration that program starts in, so its scopes are ones the program opens at the start. It answers reached, unreachable after a closed exploration, or unknown when a budget stopped the search. Text writes every occurrence independently, so a target never says that coherences share one; a configuration whose coherences share an occurrence is found through lineage, not named as a target.
 
 ## Asking Spectrum
 

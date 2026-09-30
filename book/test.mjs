@@ -61,11 +61,10 @@ const refusal = text => {
     return Object.assign(new Error(reply.error.message), { detail: reply.error });
 };
 for (const [text, message, span] of [
-    ['A B', /put a dot between these to join them, or a comma to separate them$/, { offset: 2, length: 1 }],
-    ['[A.] B', /a dot joins two things/, { offset: 3, length: 1 }],
-    ['B.', /a dot joins two things/, { offset: 2, length: 0 }],
-    ['A)', /closes nothing/, { offset: 1, length: 1 }],
-    ['A,,B', /a comma separates two things/, { offset: 2, length: 1 }],
+    ['A)', /this \) closes nothing that is open$/, { offset: 1, length: 1 }],
+    ['[A', /this \[ is never closed$/, { offset: 0, length: 1 }],
+    ['(A]', /this \] does not close the \( at 1:1$/, { offset: 2, length: 1 }],
+    ['A\u200BB', /U\+200B cannot appear in an atom$/, { offset: 1, length: 1 }],
 ]) {
     const error = refusal(text);
     assert.match(error.message, message, text);
@@ -73,7 +72,7 @@ for (const [text, message, span] of [
 }
 assert.match(refusal('A, [B] C').message, /not both/);
 assert.match(refusal('(K, [K] L), [B] C').message, /not both/);
-assert.match(editor.describe(refusal('[A..X] B')), /\(at character 4\)$/);
+assert.match(editor.describe(refusal('[AX)] B')), /\(at character 4\)$/);
 console.log('The engine reads patterns as programs and matches coherences, scopes, rule values and rules by containment, whatever the spacing or order.');
 
 const listed = JSON.parse(await readFile(table, 'utf8'));

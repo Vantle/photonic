@@ -235,10 +235,9 @@ A failure carries a `code`, a `message`, when it points into text a `location` w
 
 | Diagnostic | Meaning |
 | --- | --- |
-| `syntax` | The text does not parse, and the message says what to write instead. |
+| `syntax` | A bracket is never closed, closes nothing or closes the wrong opener, which the message names with its line and column, or an atom holds a character it cannot. |
 | `depth` | Parentheses and brackets nest more than 128 levels deep. |
-| `input` | A rule's input is a scope; a rule is matched without parentheses, as in `[[A] B]`. |
-| `expansion` | Distributing joins and partitioning brackets would build more than the frontend's budget of 1,000,000 units and 8 more for each byte of the source. |
+| `expansion` | Distributing joins, among a term's parts or its brackets, would build more than the frontend's budget of 1,000,000 units and 8 more for each byte of the source. |
 | `library` | A library lists a coherence or scope; a library holds only rules. |
 | `json` | A `.json` program is not a program: an object for each program, scope and rule, an array for each particle, a string for each atom as text spells it, and no deeper than text can nest. The message says what was expected there. |
 | `read` | A file cannot be read. |

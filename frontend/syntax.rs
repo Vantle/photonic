@@ -6,8 +6,8 @@ pub enum Kind {
     List,
     Term,
     Group,
-    Rule,
-    Concept,
+    Bracket,
+    Atom,
 }
 
 // Nodes keep the order pest reports them in, each with the index just past its subtree, so a

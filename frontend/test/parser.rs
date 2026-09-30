@@ -18,23 +18,23 @@ fn structure() {
     assert_eq!(tree.source(), source);
     assert_eq!(tree.node()[0].kind, Kind::Module);
     assert_eq!(tree.node()[0].span, 0..source.len());
-    assert_eq!(text(&tree, Kind::Rule), ["[A, B]"]);
+    assert_eq!(text(&tree, Kind::Bracket), ["[A, B]"]);
     assert_eq!(text(&tree, Kind::Group), ["(C.D)"]);
     assert_eq!(
         text(&tree, Kind::Term),
         ["A.A", "[A, B] (C.D)", "A", "B", "C.D"]
     );
-    assert_eq!(text(&tree, Kind::Concept), ["A", "A", "A", "B", "C", "D"]);
+    assert_eq!(text(&tree, Kind::Atom), ["A", "A", "A", "B", "C", "D"]);
     let rule = tree
         .node()
         .iter()
-        .position(|node| node.kind == Kind::Rule)
+        .position(|node| node.kind == Kind::Bracket)
         .unwrap();
     assert_eq!(child(&tree, rule), [Kind::List]);
     let parent = (0..tree.node().len())
         .find(|&index| tree.child(index).any(|child| child == rule))
         .unwrap();
-    assert_eq!(child(&tree, parent), [Kind::Rule, Kind::Group]);
+    assert_eq!(child(&tree, parent), [Kind::Bracket, Kind::Group]);
     assert_eq!(child(&tree, 0), [Kind::List]);
     assert_eq!(tree.child(1).count(), 2);
     let tree = parser::parse("[X] (A.B, C), D.E").unwrap();
@@ -55,15 +55,15 @@ fn ordering() {
     for (source, expected) in [
         (
             "[A] [B] C.D",
-            [Kind::Rule, Kind::Rule, Kind::Concept, Kind::Concept],
+            [Kind::Bracket, Kind::Bracket, Kind::Atom, Kind::Atom],
         ),
         (
             "[A] C.D [B]",
-            [Kind::Rule, Kind::Concept, Kind::Concept, Kind::Rule],
+            [Kind::Bracket, Kind::Atom, Kind::Atom, Kind::Bracket],
         ),
         (
             "C.D [A] [B]",
-            [Kind::Concept, Kind::Concept, Kind::Rule, Kind::Rule],
+            [Kind::Atom, Kind::Atom, Kind::Bracket, Kind::Bracket],
         ),
     ] {
         let tree = parser::parse(source).unwrap();
@@ -73,7 +73,7 @@ fn ordering() {
             .position(|node| node.kind == Kind::Term)
             .unwrap();
         assert_eq!(child(&tree, term), expected, "{source}");
-        assert_eq!(text(&tree, Kind::Rule), ["[A]", "[B]"], "{source}");
+        assert_eq!(text(&tree, Kind::Bracket), ["[A]", "[B]"], "{source}");
     }
     for source in [
         "[A] [B]",
@@ -90,13 +90,20 @@ fn ordering() {
 fn unicode() {
     let source = "人.世界, [人] 🌋";
     let tree = parser::parse(source).unwrap();
-    assert_eq!(text(&tree, Kind::Concept), ["人", "世界", "人", "🌋"]);
+    assert_eq!(text(&tree, Kind::Atom), ["人", "世界", "人", "🌋"]);
     match parser::parse("人]").unwrap_err() {
         Failure::Syntax { span, .. } => {
             assert_eq!(span.offset(), 3);
             assert_eq!(span.len(), 1);
         }
         other => panic!("{other:?}"),
+    }
+}
+
+fn rejected(source: &str) -> (usize, String) {
+    match parser::parse(source) {
+        Err(Failure::Syntax { message, span }) => (span.offset(), message),
+        other => panic!("expected a syntax failure for {source}, found {other:?}"),
     }
 }
 
@@ -129,11 +136,7 @@ fn delimiter() {
         ("人, (人]", 9, "this ] does not close the ( at 1:4"),
         ("A)", 1, "this ) closes nothing that is open"),
         ("A, [B] ]", 7, "this ] closes nothing that is open"),
-        (
-            "(A.",
-            3,
-            "a dot joins two things; put something on each side",
-        ),
+        ("(A.", 0, "this ( is never closed"),
     ] {
         assert_eq!(rejected(source), (offset, message.to_owned()), "{source:?}");
     }
@@ -144,11 +147,12 @@ fn masking() {
     let limit = parser::DEPTH;
     let deep = format!("{}A{}", "[".repeat(limit + 1), "]".repeat(limit + 1));
     assert_eq!(
-        rejected(&format!("A B,\n{deep}")),
-        (
-            2,
-            "put a dot between these to join them, or a comma to separate them".to_owned()
-        )
+        rejected(&format!("A B),\n{deep}")),
+        (3, "this ) closes nothing that is open".to_owned())
+    );
+    assert_eq!(
+        rejected(&format!("A\u{200B}B,\n{deep}")),
+        (1, "U+200B cannot appear in an atom".to_owned())
     );
     assert_eq!(
         rejected(&format!("({deep}")),
@@ -167,73 +171,30 @@ fn masking() {
     }
 }
 
-fn rejected(source: &str) -> (usize, String) {
-    match parser::parse(source) {
-        Err(Failure::Syntax { message, span }) => (span.offset(), message),
-        other => panic!("expected a syntax failure for {source}, found {other:?}"),
-    }
-}
-
 #[test]
-fn dot() {
-    for source in [".A", "A..B", "A.", "A.,B", "(.)"] {
-        rejected(source);
-    }
+fn general() {
     for source in [
-        "A.B",
-        "A . B",
-        "A.(B)",
-        "([A]).B",
-        "X.([A] B)",
-        "[A] [B] C",
-        "B [A]",
+        "A B",
+        "A(B, C)",
+        "(A) (B)",
+        "[A] B C",
+        "C B [A]",
+        "[A] B\n[B] C",
+        "X.[A] B",
+        "[A].B",
+        "[A] [B]",
+        ".A",
+        "A.",
+        "A..B",
+        "(.)",
+        ".",
+        ",",
+        ",A",
+        "A,,B",
+        "(,)",
+        "[A,,]",
     ] {
         assert!(parser::parse(source).is_ok(), "{source}");
-    }
-    for (source, offset) in [("X.[A] B", 2), ("[A].B", 3), ("B.[A]", 2), ("[A] B.[C]", 6)] {
-        let (found, message) = rejected(source);
-        assert_eq!(found, offset, "{source}");
-        assert!(message.contains("parentheses"), "{source}");
-    }
-}
-
-#[test]
-fn space() {
-    for (source, offset) in [
-        ("A B", 2),
-        ("A(B)", 1),
-        ("(A) (B)", 4),
-        ("[A] B C", 6),
-        ("C [A] B", 6),
-        ("C B [A]", 2),
-        ("[A] B [C] D", 10),
-        ("B [A] [C] D", 10),
-        ("(Kettle [Kettle.Tea] Cup)", 21),
-        ("[A] B\n[B] C", 10),
-        ("[A B] C", 3),
-    ] {
-        let (found, message) = rejected(source);
-        assert_eq!(found, offset, "{source}");
-        assert!(
-            message.contains("dot") && message.contains("comma"),
-            "{source}"
-        );
-    }
-}
-
-#[test]
-fn earliest() {
-    for (source, offset) in [
-        ("A..B C", 2),
-        ("A.B.,\n[A] B C", 4),
-        ("(A..B", 3),
-        (".A", 0),
-        ("A.", 2),
-        ("(A.)", 3),
-    ] {
-        let (found, message) = rejected(source);
-        assert_eq!(found, offset, "{source}: {message}");
-        assert!(message.contains("dot"), "{source}: {message}");
     }
 }
 
@@ -255,24 +216,35 @@ fn separator() {
             );
             continue;
         }
-        let single = parser::parse(&source)
-            .is_ok_and(|tree| text(&tree, Kind::Concept) == [source.as_str()]);
-        assert_eq!(single, !character::separator(character), "{character:?}");
+        if matches!(character, '(' | ')' | '[' | ']') {
+            assert!(
+                matches!(parser::parse(&source), Err(Failure::Syntax { .. })),
+                "{character:?}"
+            );
+            continue;
+        }
+        let tree = parser::parse(&source).unwrap();
+        let expected = if character::separator(character) {
+            vec!["A", "B"]
+        } else {
+            vec![source.as_str()]
+        };
+        assert_eq!(text(&tree, Kind::Atom), expected, "{character:?}");
     }
 }
 
 #[test]
 fn whitespace() {
     for space in [
-        '\u{FEFF}', '\u{00A0}', '\u{0085}', '\u{2028}', '\u{3000}', '\u{202F}',
+        '\u{FEFF}', '\u{0085}', '\u{200E}', '\u{200F}', '\u{2028}', '\u{2029}', '\u{000B}',
     ] {
         assert!(character::space(space), "{space:?}");
         let source = format!("{space}A,{space}[A]{space}B{space}");
         let tree = parser::parse(&source).unwrap();
-        assert_eq!(text(&tree, Kind::Concept), ["A", "A", "B"], "{space:?}");
-        let (offset, message) = rejected(&format!("A{space}B"));
-        assert_eq!(offset, 1 + space.len_utf8(), "{space:?}");
-        assert!(message.contains("dot"), "{space:?}: {message}");
+        assert_eq!(text(&tree, Kind::Atom), ["A", "A", "B"], "{space:?}");
+        let joined = format!("A{space}B");
+        let tree = parser::parse(&joined).unwrap();
+        assert_eq!(text(&tree, Kind::Term), [joined.as_str()], "{space:?}");
     }
     for joiner in [
         "\u{1F468}\u{200D}\u{1F469}\u{200D}\u{1F467}",
@@ -281,7 +253,7 @@ fn whitespace() {
         "\u{2764}\u{FE0F}",
     ] {
         let tree = parser::parse(joiner).unwrap();
-        assert_eq!(text(&tree, Kind::Concept), [joiner]);
+        assert_eq!(text(&tree, Kind::Atom), [joiner]);
     }
 }
 
@@ -294,9 +266,12 @@ fn refused() {
         ("\u{202E}A", 0, "U+202E"),
         ("[A] B\u{2066}", 5, "U+2066"),
         ("A, \u{2060}", 3, "U+2060"),
-        ("\u{200F}", 0, "U+200F"),
+        ("\u{061C}", 0, "U+061C"),
         ("A.\u{7F}", 2, "U+007F"),
         ("A\u{9B}", 1, "U+009B"),
+        ("A\u{A0}B", 1, "U+00A0"),
+        ("A,\u{3000}B", 2, "U+3000"),
+        ("[A] \u{202F}", 4, "U+202F"),
     ] {
         assert_eq!(
             rejected(source),
@@ -308,11 +283,16 @@ fn refused() {
 
 #[test]
 fn empty() {
-    for source in ["", " \t\r\n", "()", "[]", "A,", "[A, B,]", "(A,)"] {
+    for source in [
+        "",
+        " \t\r\n\u{85}\u{2028}",
+        "()",
+        "[]",
+        "A,",
+        "[A, B,]",
+        "(A,)",
+    ] {
         assert!(parser::parse(source).is_ok(), "{source}");
-    }
-    for source in [",", ",A", "A,,B", "(,)", "[A,,]"] {
-        assert!(rejected(source).1.contains("comma"), "{source}");
     }
 }
 

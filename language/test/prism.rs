@@ -173,15 +173,14 @@ fn arithmetic() {
 }
 
 #[test]
-fn partition() {
+fn bracket() {
     for (program, target, expected) in [
-        ("A, [A] [B]", "B", Outcome::Reached),
-        ("B, [A] [B]", "A", Outcome::Reached),
-        ("A, [A] [B] C", "C", Outcome::Reached),
-        ("B, [A] [B] C", "C", Outcome::Reached),
-        ("C, [A] [B] C", "A", Outcome::Unreachable),
-        ("A.B, [A] [B] C", "C.C", Outcome::Reached),
-        ("A, [A] [B] C", "D", Outcome::Unreachable),
+        ("A.B, [A] [B] C", "C", Outcome::Reached),
+        ("A.B.X, C [A] [B]", "C.X", Outcome::Reached),
+        ("A, B, [A] [B] C", "C", Outcome::Unreachable),
+        ("A.C, B.C, [A, B] [C] D", "D", Outcome::Reached),
+        ("A(B, C), [A B] D", "D, A.C", Outcome::Reached),
+        ("A, [A] [B] C", "C", Outcome::Unreachable),
     ] {
         assert_eq!(outcome(program, target), expected, "{program} to {target}");
     }

@@ -29,14 +29,6 @@ fn program(output: &Output) -> &Program {
     }
 }
 
-fn syntax(source: &str) -> String {
-    match lowering::parse(source) {
-        Err(Failure::Syntax { message, .. }) => message,
-        Err(failure @ Failure::Input { .. }) => failure.to_string(),
-        other => panic!("expected a syntax failure for {source}, found {other:?}"),
-    }
-}
-
 #[test]
 fn conjunction() {
     let source = lowering::parse(include_str!("../../program/language/conjunction.wave")).unwrap();
@@ -74,33 +66,47 @@ fn partition() {
 }
 
 #[test]
-fn space() {
-    for source in [
-        "A B",
-        "A.B C",
-        "A(B, C)",
-        "[A] B C",
-        "[A] (B) (C)",
-        "C [A] B",
-        "C B [A]",
-        "[A B] C",
-        "(Kettle [Kettle.Tea] Cup)",
-        "[A] B\n[B] C",
+fn join() {
+    for (general, spelled) in [
+        ("A B", "A.B"),
+        ("A . B", "A.B"),
+        ("A(B, C)", "A.B, A.C"),
+        ("A (B, C) D", "A.B.D, A.C.D"),
+        ("[A] B C", "[A] B.C"),
+        ("C [A]", "[A] C"),
+        ("X.[A] B", "[A] X.B"),
+        ("[A].B", "[A] B"),
+        ("[A].", "[A]"),
+        ("A..B", "A.B"),
+        (".A", "A"),
+        ("A.", "A"),
+        (".", ""),
+        ("A,,B", "A, B"),
+        (",A", "A"),
+        ("(,)", "()"),
+        ("[A,,] B", "[A] B"),
+        ("[A] B\n[B] C", "[A.B] B.C"),
     ] {
-        let message = syntax(source);
-        assert!(
-            message.contains("dot") && message.contains("comma"),
-            "{source}: {message}"
-        );
+        same(general, spelled);
     }
-    for source in ["X.[A] B", "[A].B"] {
-        assert!(syntax(source).contains("parentheses"), "{source}");
+}
+
+#[test]
+fn bracket() {
+    for (general, spelled) in [
+        ("[A] [B] C", "[A.B] C"),
+        ("[A, B] [C] D", "[A.C, B.C] D"),
+        ("[A] [B, C]", "[A.B, A.C]"),
+        ("[] [A] B", "[] B"),
+        ("[()] [A] B", "[A] B"),
+        ("[[X] Y] [B]", "[([X] Y).B]"),
+        ("X.([A] [B] C)", "X.([A.B] C)"),
+        ("[([A] B)] C", "[[A] B] C"),
+        ("[(A, [A] B)] C", "[A, [A] B] C"),
+        ("[((X, [X] Y))] Z", "[X, [X] Y] Z"),
+    ] {
+        same(general, spelled);
     }
-    for source in [",A", "A,,B", "(,)", "[,] A", "[A,,]"] {
-        assert!(syntax(source).contains("comma"), "{source}");
-    }
-    same("A . B", "A.B");
-    same("A.(B, C)", "A.B, A.C");
 }
 
 #[test]
@@ -221,7 +227,8 @@ fn alphabet() {
 fn whitespace() {
     same("\u{FEFF}A, [A] B", "A, [A] B");
     same("A,\u{FEFF}[A]\u{FEFF}B\u{FEFF}", "A, [A] B");
-    same("A,\u{00A0}[A]\u{3000}B\u{2028}", "A, [A] B");
+    same("A,\u{0085}[A]\u{2028}B\u{2029}\u{200E}", "A, [A] B");
+    same("A\u{FEFF}B", "A.B");
 }
 
 #[test]
@@ -264,22 +271,34 @@ fn unicode() {
 
 #[test]
 fn malformed() {
-    for source in ["A..B", ".A", "[A] B.", "A,.", "[A] B.,", "(A]", "[A"] {
-        assert!(
-            matches!(lowering::parse(source), Err(Failure::Syntax { .. })),
+    for (source, offset, message) in [
+        ("(A]", 2, "this ] does not close the ( at 1:1"),
+        ("[A", 0, "this [ is never closed"),
+        ("A)", 1, "this ) closes nothing that is open"),
+        ("(", 0, "this ( is never closed"),
+    ] {
+        let Err(Failure::Syntax {
+            message: found,
+            span,
+        }) = lowering::parse(source)
+        else {
+            panic!("expected a syntax failure for {source}");
+        };
+        assert_eq!(
+            (span.offset(), found.as_str()),
+            (offset, message),
             "{source}"
         );
     }
-    assert!(syntax("[([A] B)] C").contains("input"));
 }
 
 #[test]
 fn code() {
     for (source, code) in [
-        ("A B", "photonic::syntax"),
+        ("A B)", "photonic::syntax"),
+        ("A\u{200B}B", "photonic::syntax"),
         (&"[".repeat(frontend::parser::DEPTH + 1), "photonic::depth"),
-        ("[([A] B)] C", "photonic::input"),
-        (&"[A] ".repeat(10_000), "photonic::expansion"),
+        (&"[A, B] ".repeat(40), "photonic::expansion"),
     ] {
         let failure = lowering::parse(source).unwrap_err();
         assert_eq!(
@@ -349,16 +368,15 @@ fn depth() {
         lowering::parse(&nested(limit + 1)),
         Err(Failure::Depth { .. })
     ));
-    for count in [limit, limit + 1] {
-        assert_eq!(
-            lowering::parse(&"[A] ".repeat(count)).unwrap().rule.len(),
-            count * (count - 1)
-        );
+    for count in [limit, limit + 1, 10_000] {
+        let program = lowering::parse(&"[A] ".repeat(count)).unwrap();
+        assert_eq!(program.rule.len(), 1);
+        assert_eq!(program.rule[0].input, [atom(&vec!["A"; count])]);
     }
-    let Err(Failure::Expansion { span, .. }) = lowering::parse(&"[A] ".repeat(10_000)) else {
+    let Err(Failure::Expansion { span, .. }) = lowering::parse(&"[A, B] ".repeat(40)) else {
         panic!("expected an expansion diagnostic");
     };
-    assert_eq!((span.offset(), span.len()), (0, 10_000 * 4 - 1));
+    assert_eq!((span.offset(), span.len()), (0, 40 * 7 - 1));
     let mixed = format!("{}({})", "(".repeat(limit - 1), "[B] ".repeat(2));
     assert!(matches!(
         lowering::parse(&format!("{mixed}{}", ")".repeat(limit - 1))),
@@ -596,6 +614,7 @@ fn spelling() {
         ),
         ("A\u{200B}B", "U+200B cannot appear in an atom"),
         ("X\u{1B}c", "U+001B cannot appear in an atom"),
+        ("A\u{A0}B", "U+00A0 cannot appear in an atom"),
     ] {
         let written = serde_json::to_string(atom).unwrap();
         for text in [
@@ -618,7 +637,7 @@ fn spelling() {
 #[test]
 fn library() {
     let library = lowering::library("[A] [B], [C] D,\n[[E] F] ().([G] H)").unwrap();
-    assert_eq!(library.rule.len(), 4);
+    assert_eq!(library.rule.len(), 3);
     for (source, offset, length) in [
         ("A, [A] B", 0, 1),
         ("[A] B, (X, [X] Y)", 7, 10),
@@ -635,7 +654,7 @@ fn library() {
         "this library lists a coherence or scope; a library holds only rules"
     );
     assert!(matches!(
-        lowering::library("[A] B C"),
+        lowering::library("[A] B)"),
         Err(Failure::Syntax { .. })
     ));
     let rule = r#"{"input":[["A"]],"output":[["B"]]}"#;

@@ -9,7 +9,7 @@ These describe the repository as it is and change with it.
 | Document | Contents |
 | --- | --- |
 | [Compatibility](compatibility.md) | What each release keeps stable under Semantic Versioning, and what it may change. |
-| [Language primer](../spectrum/primer.md) | The grammar, what programs mean and the questions Spectrum answers, in brief; served to agents as `photonic://primer`. |
+| [Language primer](../spectrum/primer.md) | The whole grammar, the five laws that give it meaning, what programs mean and how to ask Spectrum; served to agents as `photonic://primer`. |
 | [Standard library](../library/README.md) | Every package, request and answer, with the chain, vector and sort protocols. |
 | [Runtime rule occurrences](occurrence.md) | Loading, ownership, consumption, matching locations and exact targets. |
 | [Build organization](build.md) | Bazel packages, toolchains, caching and the lint policy. |

@@ -6,20 +6,21 @@ use crate::syntax::{Kind, Node, Tree};
 #[derive(pest_derive::Parser)]
 #[grammar_inline = r#"
 module = { SOI ~ list ~ EOI }
-list = { (term ~ ("," ~ term)* ~ ","?)? }
-term = { rule+ ~ (join ~ rule*)? | join ~ rule* }
-join = _{ factor ~ ("." ~ factor)* }
-factor = _{ concept | group }
+list = { term? ~ ("," ~ term?)* }
+term = { (atom | group | bracket | ".")+ }
 group = { "(" ~ list ~ ")" }
-rule = { "[" ~ list ~ "]" }
-concept = @{ (!("(" | ")" | "[" | "]" | "." | "," | WHITESPACE | CONTROL | BIDI_CONTROL | "\u{200B}" | "\u{2060}") ~ ANY)+ }
-WHITESPACE = _{ WHITE_SPACE | "\u{FEFF}" }
+bracket = { "[" ~ list ~ "]" }
+atom = @{ (!("(" | ")" | "[" | "]" | "." | "," | WHITESPACE | SPACE_SEPARATOR | CONTROL | BIDI_CONTROL | "\u{200B}" | "\u{2060}") ~ ANY)+ }
+WHITESPACE = _{ PATTERN_WHITE_SPACE | "\u{FEFF}" }
 "#]
 struct Grammar;
 
+// Every balanced text without a refused character is a program, so the scan that finds the first
+// unbalanced bracket or refused character decides, before pest runs, whether the text parses.
 pub fn parse(source: &str) -> Result<Tree<'_>, Failure> {
+    let problem = crate::advice::find(source);
     if let Some(position) = depth(source) {
-        return Err(match crate::advice::find(source) {
+        return Err(match problem {
             Some((advised, message)) if advised < position => syntax(source, advised, message),
             _ => Failure::Depth {
                 limit: DEPTH,
@@ -27,14 +28,14 @@ pub fn parse(source: &str) -> Result<Tree<'_>, Failure> {
             },
         });
     }
+    if let Some((position, message)) = problem {
+        return Err(syntax(source, position, message));
+    }
     let parsed = Grammar::parse(Rule::module, source).map_err(|error| {
         let position = match error.location {
             InputLocation::Pos(position) | InputLocation::Span((position, _)) => position,
         };
-        let (position, message) = crate::advice::find(source)
-            .filter(|&(advised, _)| advised <= position)
-            .unwrap_or_else(|| (position, error.variant.message().into_owned()));
-        syntax(source, position, message)
+        syntax(source, position, error.variant.message().into_owned())
     })?;
     let mut node = Vec::new();
     let mut stack = Vec::new();
@@ -52,9 +53,9 @@ pub fn parse(source: &str) -> Result<Tree<'_>, Failure> {
                     Rule::list => Kind::List,
                     Rule::term => Kind::Term,
                     Rule::group => Kind::Group,
-                    Rule::rule => Kind::Rule,
-                    Rule::concept => Kind::Concept,
-                    Rule::join | Rule::factor | Rule::WHITESPACE | Rule::EOI => unreachable!(),
+                    Rule::bracket => Kind::Bracket,
+                    Rule::atom => Kind::Atom,
+                    Rule::WHITESPACE | Rule::EOI => unreachable!(),
                 };
                 stack.push(node.len());
                 node.push(Node {

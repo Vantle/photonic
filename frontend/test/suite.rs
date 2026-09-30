@@ -1,3 +1,3 @@
 mod lowering;
 mod parser;
-mod partition;
+mod term;

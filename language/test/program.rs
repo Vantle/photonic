@@ -206,17 +206,14 @@ fn structure(compiled: &Program) -> impl PartialEq + std::fmt::Debug + use<> {
 #[test]
 fn meaning() {
     for (term, spelled) in [
-        ("[A] [B]", "[A] B, [B] A"),
-        ("[A] [B] C", "[A] B, [A] C, [B] A, [B] C"),
-        ("C [B] [A]", "[B] A, [B] C, [A] B, [A] C"),
-        ("[A, B] [C] D", "[A, B] C, [A, B] D, [C] (A, B), [C] D"),
-        (
-            "[A] [B] (K, [K] C)",
-            "[A] B, [A] (K, [K] C), [B] A, [B] (K, [K] C)",
-        ),
-        ("[[X] Y] [B]", "[[X] Y] B, [B] ().([X] Y)"),
-        ("X.([A] [B] C)", "X.([A] B).([A] C).([B] A).([B] C)"),
-        ("[S] (K, [A] [B] C)", "[S] (K, [A] B, [A] C, [B] A, [B] C)"),
+        ("[A] [B]", "[A.B]"),
+        ("[A] [B] C", "[A.B] C"),
+        ("C [B] [A]", "[B.A] C"),
+        ("[A, B] [C] D", "[A.C, B.C] D"),
+        ("[A] [B] (K, [K] C)", "[A.B] (K, [K] C)"),
+        ("[[X] Y] [B]", "[([X] Y).B]"),
+        ("X.([A] [B] C)", "X.([A.B] C)"),
+        ("[S] (K, [A] [B] C)", "[S] (K, [A.B] C)"),
     ] {
         assert_eq!(
             structure(&program(term)),
@@ -224,19 +221,18 @@ fn meaning() {
             "{term}"
         );
     }
-    let compiled = program("[A] B, [A] [B] C");
-    assert_eq!(compiled.scope[0].rule, [0, 0, 1, 2, 3]);
-    assert_eq!(name(&compiled), ["[A] B", "[A] C", "[B] A", "[B] C"]);
+    let compiled = program("[A] B, B [A], [A] [B] C");
+    assert_eq!(compiled.scope[0].rule, [0, 0, 1]);
+    assert_eq!(name(&compiled), ["[A] B", "[A.B] C"]);
 }
 
 #[test]
 fn breadth() {
-    let source = (0..100)
-        .map(|index| format!("[A{index}]"))
-        .chain(["Z".to_owned()])
+    let source = (0..10_000)
+        .map(|index| format!("[A{index}] Z{index}"))
         .collect::<Vec<_>>()
-        .join(" ");
+        .join(", ");
     let compiled = program(&source);
-    assert_eq!(compiled.scope[0].rule.len(), 100 * 100);
-    assert_eq!(compiled.rule.len(), 100 * 100);
+    assert_eq!(compiled.scope[0].rule.len(), 10_000);
+    assert_eq!(compiled.rule.len(), 10_000);
 }

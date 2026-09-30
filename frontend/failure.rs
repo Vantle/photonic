@@ -17,12 +17,6 @@ pub enum Failure {
         #[label("nesting limit exceeded here")]
         span: SourceSpan,
     },
-    #[error("an input cannot be a scope; match a rule without parentheses, as in [[A] B]")]
-    #[diagnostic(code(photonic::input))]
-    Input {
-        #[label("this input is a scope")]
-        span: SourceSpan,
-    },
     #[error("Photonic expansion exceeds its {limit}-unit frontend budget")]
     #[diagnostic(code(photonic::expansion))]
     Expansion {

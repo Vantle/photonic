@@ -23,36 +23,27 @@ fn permutation(piece: &[&str]) -> Vec<String> {
         .collect()
 }
 
-fn syntax(source: &str) -> String {
-    match lowering::parse(source) {
-        Err(Failure::Syntax { message, .. }) => message,
-        Err(failure @ Failure::Input { .. }) => failure.to_string(),
-        other => panic!("expected a syntax failure for {source}, found {other:?}"),
-    }
-}
-
 #[test]
 fn meaning() {
     for (term, spelled) in [
         ("[A] B", "[A] B"),
         ("[A]", "[A]"),
-        ("[A] [B]", "[A] B, [B] A"),
-        ("[A] [B] C", "[A] B, [A] C, [B] A, [B] C"),
-        ("[A] [B] [C]", "[A] B, [A] C, [B] A, [B] C, [C] A, [C] B"),
-        ("[A, B] [C] D", "[A, B] C, [A, B] D, [C] (A, B), [C] D"),
-        ("[] [A]", "[] A, [A]"),
-        ("[()] [A]", "[()] A, [A] ()"),
-        ("[A] [B] (C, D)", "[A] B, [A] (C, D), [B] A, [B] (C, D)"),
-        (
-            "[A] [B] (K, [K] C)",
-            "[A] B, [A] (K, [K] C), [B] A, [B] (K, [K] C)",
-        ),
-        ("[[X] Y] [B]", "[[X] Y] B, [B] ().([X] Y)"),
-        ("[A.(B, C)] [D]", "[A.B, A.C] D, [D] (A.B, A.C)"),
-        ("[A] [A] B", "[A] A, [A] B, [A] A, [A] B"),
-        ("X.([A] [B] C)", "X.([A] B).([A] C).([B] A).([B] C)"),
-        ("[[A] [B] C] D", "[([A] B).([A] C).([B] A).([B] C)] D"),
-        ("[S] (K, [A] [B] C)", "[S] (K, [A] B, [A] C, [B] A, [B] C)"),
+        ("[A] [B]", "[A.B]"),
+        ("[A] [B] C", "[A.B] C"),
+        ("[A] [B] [C]", "[A.B.C]"),
+        ("[A, B] [C] D", "[A.C, B.C] D"),
+        ("[] [A]", "[]"),
+        ("[()] [A]", "[A]"),
+        ("[A] [B] (C, D)", "[A.B] (C, D)"),
+        ("[A] [B] (K, [K] C)", "[A.B] (K, [K] C)"),
+        ("[[X] Y] [B]", "[([X] Y).B]"),
+        ("[A.(B, C)] [D]", "[A.B.D, A.C.D]"),
+        ("[A] [A] B", "[A.A] B"),
+        ("X.([A] [B] C)", "X.([A.B] C)"),
+        ("[[A] [B] C] D", "[[A.B] C] D"),
+        ("[S] (K, [A] [B] C)", "[S] (K, [A.B] C)"),
+        ("C [A] D", "[A] C.D"),
+        ("(C, D) [A]", "[A] (C, D)"),
     ] {
         assert_eq!(canonical(term), canonical(spelled), "{term}");
     }
@@ -99,18 +90,7 @@ fn name() {
         .iter()
         .map(frontend::text::definition)
         .collect::<Vec<_>>();
-    assert_eq!(
-        name,
-        [
-            "[A] B",
-            "[A] C",
-            "[B] A",
-            "[B] C",
-            "[E] C.D",
-            "[F] G",
-            "[H] (I, [I] J)"
-        ]
-    );
+    assert_eq!(name, ["[A.B] C", "[E] C.D", "[F] G", "[H] (I, [I] J)"]);
     for (source, text) in [
         ("[A.X, ()] (C, D)", "[A.X, ()] (C, D)"),
         ("[A] (K, [K] L)", "[A] (K, [K] L)"),
@@ -120,6 +100,7 @@ fn name() {
         ("[A] ((), (K, [K] L), [M] N)", "[A] ((), [M] N, (K, [K] L))"),
         ("[A] ().([K] L)", "[A] ().([K] L)"),
         ("[[K] L] X.([K] L)", "[[K] L] X.([K] L)"),
+        ("[A] [B] C", "[A.B] C"),
         ("[A]", "[A]"),
     ] {
         let rule = lowering::parse(source).unwrap().rule.remove(0);
@@ -131,35 +112,11 @@ fn name() {
 fn edge() {
     assert_ne!(canonical("[A], [B] C"), canonical("[A] [B] C"));
     let program = lowering::parse("[] []").unwrap();
-    assert_eq!(program.rule.len(), 2);
-    assert!(
-        program
-            .rule
-            .iter()
-            .all(|rule| rule.input.is_empty() && rule.output.is_empty())
-    );
+    assert_eq!(program.rule.len(), 1);
+    assert!(program.rule[0].input.is_empty() && program.rule[0].output.is_empty());
     let program = lowering::parse("X.([A] [B])").unwrap();
     assert_eq!(program.initial.len(), 1);
-    assert_eq!(program.initial[0].len(), 3);
-    for source in [
-        "B [A] C",
-        "[A] B C",
-        "B C [A]",
-        "[A] B [C] D",
-        "B [A] [C] D",
-        "[A] B [C] D.E",
-        "(B) [A] C",
-        "[A] (B) C",
-    ] {
-        let message = syntax(source);
-        assert!(
-            message.contains("dot") && message.contains("comma"),
-            "{source}: {message}"
-        );
-    }
-    for source in ["X.[A] B", "[A].B", "B.[A]", "[A] B.[C]", "[A] [B].C"] {
-        assert!(syntax(source).contains("parentheses"), "{source}");
-    }
+    assert_eq!(program.initial[0].len(), 2);
     let program = lowering::parse("(K, [K] C) [A], (X, [X] Y)").unwrap();
     assert_eq!(program.rule.len(), 1);
     assert_eq!(program.scope.len(), 1);
@@ -167,41 +124,26 @@ fn edge() {
 
 #[test]
 fn limit() {
-    let piece = |count: usize| {
+    let source = |count: usize| {
         (0..count)
-            .map(|index| format!("[A{index}]"))
+            .map(|index| format!("[A{index}, B{index}]"))
             .chain(["Z".to_owned()])
             .collect::<Vec<_>>()
+            .join(" ")
     };
-    for (count, fits) in [
-        (1, true),
-        (6, true),
-        (250, true),
-        (300, false),
-        (10_000, false),
-    ] {
-        let piece = piece(count);
-        let position = if count < 10 {
-            (0..=count).collect::<Vec<_>>()
-        } else {
-            vec![0, count / 2, count]
-        };
-        for position in position {
-            let mut piece = piece.clone();
-            let sink = piece.pop().unwrap();
-            piece.insert(position, sink);
-            let source = piece.join(" ");
-            match lowering::parse(&source) {
-                Ok(program) => {
-                    assert!(fits, "{count} brackets");
-                    assert_eq!(program.rule.len(), count * count);
-                }
-                Err(Failure::Expansion { span, .. }) => {
-                    assert!(!fits, "{count} brackets");
-                    assert_eq!((span.offset(), span.len()), (0, source.len()));
-                }
-                Err(other) => panic!("{count} brackets: {other:?}"),
+    for (count, fits) in [(1, true), (6, true), (12, true), (40, false)] {
+        let source = source(count);
+        match lowering::parse(&source) {
+            Ok(program) => {
+                assert!(fits, "{count} brackets");
+                assert_eq!(program.rule.len(), 1);
+                assert_eq!(program.rule[0].input.len(), 1 << count);
             }
+            Err(Failure::Expansion { span, .. }) => {
+                assert!(!fits, "{count} brackets");
+                assert_eq!((span.offset(), span.len()), (0, source.len()));
+            }
+            Err(other) => panic!("{count} brackets: {other:?}"),
         }
     }
 }

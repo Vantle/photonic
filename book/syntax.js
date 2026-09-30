@@ -1,16 +1,16 @@
 (() => {
     'use strict';
     const book = globalThis.book ??= {};
-    const space = /[\s\u0085]/;
+    const space = new Set(['\t', '\n', '\u000B', '\u000C', '\r', ' ', '\u0085', '\u200E', '\u200F', '\u2028', '\u2029', '\uFEFF']);
     const delimiter = new Set(['(', ')', '[', ']', '.', ',']);
     const scan = text => {
         const piece = [];
         let index = 0;
         while (index < text.length) {
             const character = text[index];
-            if (space.test(character)) {
+            if (space.has(character)) {
                 let end = index;
-                while (end < text.length && space.test(text[end])) end++;
+                while (end < text.length && space.has(text[end])) end++;
                 piece.push({ kind: 'space', text: text.slice(index, end) });
                 index = end;
             } else if (delimiter.has(character)) {
@@ -18,7 +18,7 @@
                 index++;
             } else {
                 let end = index;
-                while (end < text.length && !space.test(text[end]) && !delimiter.has(text[end])) end++;
+                while (end < text.length && !space.has(text[end]) && !delimiter.has(text[end])) end++;
                 piece.push({ kind: 'concept', text: text.slice(index, end) });
                 index = end;
             }

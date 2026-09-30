@@ -22,7 +22,6 @@ rust_library(
         "json.rs",
         "lowering.rs",
         "parser.rs",
-        "partition.rs",
         "size.rs",
         "source.rs",
         "syntax.rs",
@@ -64,8 +63,8 @@ rust_test(
     srcs = [
         "test/lowering.rs",
         "test/parser.rs",
-        "test/partition.rs",
         "test/suite.rs",
+        "test/term.rs",
     ],
     compile_data = ["//program/language:fixture"],
     crate_root = "test/suite.rs",
