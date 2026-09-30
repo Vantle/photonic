@@ -7,7 +7,6 @@ pub(crate) struct Opening<'source, Vacant> {
     pub scope: &'source [Scope],
     pub held: &'source [Token],
     pub base: &'source [&'source Token],
-    pub capture: usize,
     pub vacant: Vacant,
     pub next: usize,
     pub opened: Vec<usize>,
@@ -57,13 +56,9 @@ impl<'source, Vacant: Iterator<Item = usize>> Opening<'source, Vacant> {
             }
             self.opened.push(target);
             for particle in &scope.initial {
-                state.world.push(world(
-                    target,
-                    self.base,
-                    particle,
-                    self.capture,
-                    &mut self.next,
-                ));
+                state
+                    .world
+                    .push(world(target, self.base, particle, target, &mut self.next));
             }
             pending.extend(
                 scope

@@ -4,7 +4,7 @@ Contract authorized September 22, 2026. This supersedes the alternatives in the 
 
 ## Values and ownership
 
-Immutable code and live resources have separate identities. Loading introduces one root context occurrence for every rule the program defines, including repeated equal definitions. Entering an output body introduces that body's rules with captures of the new context. Neither operation introduces atoms mentioned inside rule inputs or outputs. Written and dynamically emitted rules share code interning and occurrence construction. Interning uses normalized definitions as keys while compiling the original definition.
+Immutable code and live resources have separate identities. Loading introduces one root context occurrence for every rule the program defines, including repeated equal definitions. Entering a body, when a rule's output or the program opens it, introduces that body's rules and the rule values written in its coherences with captures of the new context. Neither operation introduces atoms mentioned inside rule inputs or outputs. Written and dynamically emitted rules share code interning and occurrence construction. Interning uses normalized definitions as keys while compiling the original definition.
 
 Every live occurrence belongs to a coherence or a lexical context. Context members are visible in lexical descendants. Visibility exposes the original occurrence; it does not copy it. Held operands are retained evidence, separate from live members. A compiled catalog supplies immutable matching plans and initialization metadata, never executable authority.
 

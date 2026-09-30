@@ -108,7 +108,6 @@ pub(crate) fn apply(request: Request<'_>) -> Result {
         scope,
         held: &reserve,
         base: enclosed,
-        capture: owner,
         vacant: (1..source.frame.len())
             .filter(|index| layout.reach.frame.binary_search(index).is_err()),
         next,

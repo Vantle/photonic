@@ -145,18 +145,17 @@ struct Opening<'program> {
     program: &'program Program,
     held: Vec<Token>,
     remainder: Vec<Token>,
-    owner: usize,
 }
 
 impl Opening<'_> {
-    fn coherence(&self, particle: &[Symbol], next: &mut usize) -> Vec<Token> {
+    fn coherence(&self, particle: &[Symbol], capture: usize, next: &mut usize) -> Vec<Token> {
         self.remainder
             .iter()
             .cloned()
             .chain(
                 particle
                     .iter()
-                    .map(|&value| introduce(value, self.owner, next)),
+                    .map(|&value| introduce(value, capture, next)),
             )
             .collect()
     }
@@ -182,7 +181,7 @@ impl Opening<'_> {
             held: self.held.clone(),
         }));
         for particle in &self.program.scope[scope].initial {
-            let particle = self.coherence(particle, next);
+            let particle = self.coherence(particle, frame, next);
             result.world.push(Arc::new(World { frame, particle }));
         }
         for &scope in &self.program.scope[scope].scope {
@@ -270,12 +269,11 @@ fn apply(
         program,
         held: held.into_values().collect(),
         remainder: remainder.into_values().collect(),
-        owner,
     };
     for output in &program.rule[rule].output {
         match output {
             Output::Particle(particle) => {
-                let particle = opening.coherence(particle, &mut next);
+                let particle = opening.coherence(particle, owner, &mut next);
                 result.world.push(Arc::new(World {
                     frame: parent,
                     particle,
@@ -390,6 +388,13 @@ fn occurrence() {
         "Z, (X, [X] Y), ([Z] W)",
         "Z, (X, (Y, [Y] W), [X] V)",
         "((P.Z.A, [Q.Z] Out), [P] Q.([A] B), [Q.B] Done)",
+        "(Box.([A] B), [Box.([A] B)] Got)",
+        "Seed, [Seed] (Box.([A] B), [Box.([A] B)] Got)",
+        "((Box.([A] B), [Box.([A] B)] Got), [Got] Done)",
+        "(Call.([Call] (A, [Local] Done)), [A] Local, [Done] Finished)",
+        "(Box.([A] B).A, [Z] Z)",
+        "Seed, [Seed] (Box.([A] B), [Box] Out), [Out.([A] B)] Done",
+        "(Box.([A] B), [Z] Z), [Box.([A] B)] Got",
     ] {
         verify(source, 3);
     }
@@ -435,6 +440,7 @@ fn generated() {
                 "(A, [A] B)",
                 "(A, B, [A] B)",
                 "((A, [A] B), [B] C)",
+                "(B.([A] B), [B.([A] B)] C)",
             ] {
                 verify(&format!("[A] B, [{input}] {output}, {data}"), 2);
             }

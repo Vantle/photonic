@@ -1,5 +1,6 @@
 use super::Laser;
 use super::net::{Cycle, Net};
+use crate::prism::Outcome;
 use crate::runtime::{Limit, Runtime};
 use crate::stop::Stop;
 
@@ -58,6 +59,96 @@ fn residence() {
     plain.run(1_000_000, Limit::default());
     assert!(plain.closed());
     assert!(!root(&plain.report().state, "Out"));
+}
+
+// A scope is a program in parentheses: a rule value written in it belongs to the scope as it opens,
+// wherever the scope opens and however deep it sits, so the scope's rules match it, a scope it opens
+// sees the scope's rules, and it fires beside its coherence. It keeps the scope when it leaves, as a
+// value made by the scope's rules does: a rule of the scope that wrote it still matches it, and a
+// pattern of an enclosing scope does not.
+#[test]
+fn scope() {
+    for (source, atom, reached) in [
+        ("Box.([A] B), [Box.([A] B)] Got", "Got", true),
+        ("(Box.([A] B), [Box.([A] B)] Got)", "Got", true),
+        ("Seed, [Seed] (Box.([A] B), [Box.([A] B)] Got)", "Got", true),
+        (
+            "((Box.([A] B), [Box.([A] B)] Got), [Got] Done)",
+            "Done",
+            true,
+        ),
+        (
+            "Seed, [Seed] ((Box.([A] B), [Box.([A] B)] Got), [Got] Done)",
+            "Done",
+            true,
+        ),
+        (
+            "Seed, [Seed] (Go, [Go] (Box.([A] B), [Box.([A] B)] Got))",
+            "Got",
+            true,
+        ),
+        (
+            "(Call.([Call] (A, [Local] Done)), [A] Local, [Done] Finished)",
+            "Finished",
+            true,
+        ),
+        ("(Box.([A] B).A, [Z] Z)", "B", false),
+        (
+            "Key, Seed, [Seed] (Hold.Box.([Seal] ()).([Key, Box.([Seal] ())] Opened), [Hold] Out)",
+            "Opened",
+            true,
+        ),
+        (
+            "Seed, [Seed] (Box.([A] B), [Box] Out), [Out.([A] B)] Done",
+            "Done",
+            false,
+        ),
+        (
+            "Seed, [Seed] (Box, [Box] Out.([A] B)), [Out.([A] B)] Done",
+            "Done",
+            false,
+        ),
+        ("(Box.([A] B), [Z] Z), [Box.([A] B)] Got", "Got", false),
+    ] {
+        agree(source, 1_000_000, Limit::default());
+        let program = frontend::lowering::parse(source).unwrap();
+        let mut runtime = Runtime::new(&program);
+        runtime.run(1_000_000, Limit::default());
+        assert_eq!(root(&runtime.snapshot().state, atom), reached, "{source}");
+        let mut plain = Laser::plain(&program);
+        plain.run(1_000_000, Limit::default());
+        assert!(plain.closed(), "{source}");
+        assert_eq!(root(&plain.report().state, atom), reached, "{source}");
+    }
+}
+
+// Both engines and a direct path reach `Got` whether the rule value and the rule that matches it are
+// written at the root, in a scope the program opens or in a scope a rule opens, and a target opens
+// its scopes as the program does, so it names the rule values they hold.
+#[test]
+fn written() {
+    for (source, target) in [
+        ("Box.([A] B), [Box.([A] B)] Got", "Got"),
+        ("(Box.([A] B), [Box.([A] B)] Got)", "Got"),
+        ("Seed, [Seed] (Box.([A] B), [Box.([A] B)] Got)", "Got"),
+        ("(Box.([A] B).A, [Z] Z)", "(Box.([A] B).A, [Z] Z)"),
+    ] {
+        let program = frontend::lowering::parse(source).unwrap();
+        let target = crate::test::target(&program, target);
+        let mut runtime = Runtime::new(&program);
+        runtime.run(1_000_000, Limit::default());
+        assert_eq!(
+            runtime.verdict(&target).outcome,
+            Outcome::Reached,
+            "{source}"
+        );
+        let mut laser = Laser::new(&program);
+        laser.run(1_000_000, Limit::default());
+        assert_eq!(laser.verdict(&target).outcome, Outcome::Reached, "{source}");
+        let mut path = crate::path::Search::new(program, Some(target));
+        path.run(1_000_000, Limit::default());
+        assert_eq!(path.summary().outcome, Outcome::Reached, "{source}");
+    }
 }
 
 #[test]
@@ -247,6 +338,11 @@ fn net() {
         "A.B, A.B, A, [A, A.B] C",
         "Claim, [Claim] P.Work, [Work] Done, [P] X",
         "((P.Z.A, [Q.Z] Out), [P] Q.([A] B), [Q.B] Done)",
+        "Seed, [Seed] (Box.([A] B), [Box.([A] B)] Got)",
+        "((Box.([A] B), [Box.([A] B)] Got), [Got] Done)",
+        "(Call.([Call] (A, [Local] Done)), [A] Local, [Done] Finished)",
+        "(Box.([A] B).A, [Z] Z)",
+        "Seed, [Seed] (Box.([A] B), [Box] Out), [Out.([A] B)] Done",
     ]) {
         let program = frontend::lowering::parse(source).unwrap();
         let mut plain = Laser::plain(&program);
