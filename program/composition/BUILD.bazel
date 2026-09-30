@@ -52,13 +52,13 @@ photonic_test(
     target = [
         """Left.Bud.([First.Seed] Return.Bud).([Second.Bud] Return.Flower),
 Right.Grove.([First.Seed] (
-    Function.Compose.Sapling.([First.Sapling] Return.Trunk).([Second.Trunk] Return.Tree),
+    Function.Compose.Sapling,
     [Return] Return
 )).([Second.Tree] Return.Grove).([First.Sapling] Return.Trunk).([Second.Trunk] Return.Tree)
 """,
         """Left.Flower.([First.Seed] Return.Bud).([Second.Bud] Return.Flower),
 Right.Tree.([First.Seed] (
-    Function.Compose.Sapling.([First.Sapling] Return.Trunk).([Second.Trunk] Return.Tree),
+    Function.Compose.Sapling,
     [Return] Return
 )).([Second.Tree] Return.Grove).([First.Sapling] Return.Trunk).([Second.Trunk] Return.Tree)
 """,
@@ -77,7 +77,7 @@ photonic_test(
     srcs = ["function.wave"],
     target = ["""Left.Flower.([First.Seed] Return.Bud).([Second.Bud] Return.Flower),
 Right.Grove.([First.Seed] (
-    Function.Compose.Sapling.([First.Sapling] Return.Trunk).([Second.Trunk] Return.Tree),
+    Function.Compose.Sapling,
     [Return] Return
 )).([Second.Tree] Return.Grove).([First.Sapling] Return.Trunk).([Second.Trunk] Return.Tree)
 """],

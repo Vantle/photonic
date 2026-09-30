@@ -196,7 +196,6 @@ impl State {
             scope,
             held: &[],
             base: &[],
-            capture: 0,
             vacant: std::iter::empty(),
             next: 0,
             opened: Vec::new(),

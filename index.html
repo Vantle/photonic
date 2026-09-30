@@ -375,7 +375,7 @@ Add.Unit.Unit.Unit,
 <ul>
 <li>A rule listed in a program or a scope is live there. Anywhere else a rule is a value: <code>[Seed] ().([A] B)</code> produces one, <code>[[A] B] C</code> consumes one, and <code>X.([A] B)</code> carries one. A coherence holding nothing but a rule joins it to the empty coherence: <code>().([A] B)</code>.</li>
 <li>Executing a rule reads it; matching it consumes it.</li>
-<li>A rule value remembers the scope that made it. Equal code made in different scopes gives different values.</li>
+<li>A rule value belongs to the innermost scope written around it, as that scope was opened, or to the program, whether it is written in a coherence or made by a rule, and it keeps that scope wherever it goes. Equal code in different scopes, or in different openings of one scope, gives different values, and a rule's input matches only rule values that belong where the rule does.</li>
 <li>There are no variables, wildcards or quotation. Abstraction comes from rules, as in <a href="#inference">inference</a>.</li>
 </ul>
 <p class="onward"><a href="#field">Next: Fields and shorthand</a></p>
@@ -854,7 +854,7 @@ WHITESPACE = _{ PATTERN_WHITE_SPACE | "\u{FEFF}" }</pre>
 <dt>Remainder</dt><dd>What a match leaves in its coherences; every output receives it.</dd>
 <dt>Scope</dt><dd>A local place written like a program in parentheses: coherences, rules and scopes. A rule's output opens it when the rule fires, and the program opens its own when it starts. Its own rules return to the enclosing scope.</dd>
 <dt>Frame</dt><dd>Where a scope lives in a configuration: its coherences, its rules and what it holds. The root frame is the program's. Answers show a scope's coherences after <code>in f1:</code> and name its frame <code>s10.f1</code>.</dd>
-<dt>Capture</dt><dd>The scope a rule occurrence remembers from where it was made. Equal code made in different scopes gives different values.</dd>
+<dt>Capture</dt><dd>The scope a rule occurrence belongs to: the opening of the innermost scope written around it, or the program. Equal code with different captures gives different values, and a rule's input matches only rule values with its own capture.</dd>
 <dt>Inference</dt><dd>Applying a rule to what a configuration can become, at the configuration itself.</dd>
 <dt>Witness</dt><dd>The concrete occurrences an inferred match reached through evidence.</dd>
 <dt>Deduction</dt><dd>The events that lead from an inferred event's configuration to the one where its rule matched.</dd>
