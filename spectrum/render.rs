@@ -147,6 +147,17 @@ impl Extent {
         }
     }
 
+    // That the events listed at a configuration may not be all that can happen there.
+    pub fn partial(self) -> Option<&'static str> {
+        match self {
+            Self::Closed => None,
+            Self::Open => Some("the exploration is open; more events may happen here"),
+            Self::Path => {
+                Some("a direct path records only the event it took; more may happen here")
+            }
+        }
+    }
+
     // How often a rule fired, in words that claim no more than the exploration settled.
     pub fn firing(self, fired: usize) -> String {
         let time = count(fired, "time");

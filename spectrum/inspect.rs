@@ -432,6 +432,11 @@ impl Answer {
                         render::row("next", true)
                     ));
                 }
+                line.extend(
+                    Extent::new(self.mode, self.closed)
+                        .partial()
+                        .map(|note| format!("{}{note}", render::row("next", next.is_empty()))),
+                );
                 render::table("previous", previous, &mut line);
             }
             View::Coherence {

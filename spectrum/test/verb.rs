@@ -1150,8 +1150,21 @@ fn extent() {
         step.contains("the exploration is open; more events may happen here"),
         "{step}"
     );
+    let configuration = text(
+        format!(r#"{{"verb": "inspect", {open}, "handle": "s0"}}"#),
+        &mut context,
+    );
+    assert!(
+        configuration.contains("the exploration is open; more events may happen here"),
+        "{configuration}"
+    );
     let walked = text(format!(r#"{{"verb": "explore", {path}}}"#), &mut context);
     assert!(walked.contains("not on this path"), "{walked}");
+    let taken = text(format!(r#"{{"verb": "step", {path}}}"#), &mut context);
+    assert!(
+        taken.contains("a direct path records only the event it took"),
+        "{taken}"
+    );
     let inspect = text(
         format!(r#"{{"verb": "inspect", {path}, "handle": "{green}"}}"#),
         &mut context,

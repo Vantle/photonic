@@ -71,9 +71,7 @@ impl Answer {
             line.push(empty.to_owned());
         }
         render::table(label, &self.agenda, &mut line);
-        if extent == Extent::Open {
-            line.push("the exploration is open; more events may happen here".to_owned());
-        }
+        line.extend(extent.partial().map(str::to_owned));
         line.join("\n")
     }
 }
