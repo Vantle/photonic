@@ -11,6 +11,7 @@ filegroup(
         "compare.rs",
         "configuration.rs",
         "context.rs",
+        "embedding.rs",
         "exploration.rs",
         "explore.rs",
         "explored.rs",
@@ -69,6 +70,7 @@ rust_test(
     name = "test",
     size = "small",
     srcs = [
+        "test/embedding.rs",
         "test/exploration.rs",
         "test/store.rs",
         "test/suite.rs",

@@ -861,3 +861,44 @@ fn twin() {
         answer[1]
     );
 }
+
+// Parts listed anywhere in a pattern take different coherences and frames, however deep they sit:
+// no coherence or scope serves two parts, and the order parts are written in never matters.
+#[test]
+fn distinct() {
+    let answer = session(&[
+        r#"{"verb": "check", "program": {"source": "Start, (X, [X] Y)"}, "claim": [{"kind": "reach", "pattern": "X, (X, [X] Y)"}]}"#,
+        r#"{"verb": "select", "program": {"source": "Start, (X, [X] Y)"}, "pattern": "(X, [X] Y), X"}"#,
+        r#"{"verb": "select", "program": {"source": "Start, (A, [A] Z, (B, [B] W))"}, "pattern": "(A, [A] Z, (B, [B] W)), (B, [B] W)"}"#,
+        r#"{"verb": "select", "program": {"source": "Start, X, (X, [X] Y)"}, "pattern": "(X, [X] Y), X"}"#,
+        r#"{"verb": "select", "program": {"source": "Start, (A, [A] Z, (B, [B] W), (B, [B] W))"}, "pattern": "(B, [B] W), (A, [A] Z, (B, [B] W))"}"#,
+        r#"{"verb": "select", "program": {"source": "Start, (X, X.Z, [X] Y)"}, "pattern": "X.Z, (X, [X] Y)"}"#,
+    ]);
+    assert_eq!(
+        answer[0]["answer"]["claim"][0]["answer"], "fails",
+        "{}",
+        answer[0]
+    );
+    for index in [1, 2] {
+        assert_eq!(answer[index]["answer"]["total"], 0, "{}", answer[index]);
+    }
+    for index in [3, 4, 5] {
+        assert_eq!(
+            answer[index]["answer"]["found"][0]["handle"], "s0",
+            "{}",
+            answer[index]
+        );
+    }
+    let frame = answer[4]["answer"]["found"][0]["frame"]
+        .as_array()
+        .expect("the scopes' frames")
+        .iter()
+        .map(|frame| frame.as_str().unwrap_or_default())
+        .collect::<Vec<_>>();
+    assert_eq!(frame.len(), 3, "{}", answer[4]);
+    assert!(
+        (1..frame.len()).all(|index| !frame[..index].contains(&frame[index])),
+        "{}",
+        answer[4]
+    );
+}

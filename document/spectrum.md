@@ -164,7 +164,7 @@ Patterns are Photonic, matched by containment as a rule's input is: whatever els
 | `(K, [K] L)` | A scope holding `K` and that rule; parts listed together match different parts. |
 | `[B, C] D` | The events that apply a rule with that structure; spacing and the order of unordered parts do not matter. |
 
-A pattern is read as a program and matched by containment, as a rule's input is. A pattern of coherences and scopes matches configurations in `select`, `miss` and claims, finding each of its own parts anywhere and a scope's parts inside that scope; a rule pattern matches events in `select`. The webbook's filter runs the same matcher in its WebAssembly engine.
+A pattern is read as a program and matched by containment, as a rule's input is. A pattern of coherences and scopes matches configurations in `select`, `miss` and claims, finding each of its own parts anywhere and a scope's parts inside that scope; a rule pattern matches events in `select`. Parts listed anywhere in a pattern, at any depth, match different coherences and scopes, so `X, (X, [X] Y)` needs two coherences holding `X`, one of them in the scope, and no coherence or scope serves two parts. The webbook's filter runs the same matcher in its WebAssembly engine.
 
 ## Claims
 
@@ -220,7 +220,7 @@ A failure carries a `code`, a `message` and, when it points into text, a `locati
 | `source` | A program does not parse or lower; `check` reports it as a diagnostic instead. |
 | `library` | A library does not parse or holds more than declarations; `check` reports it as a diagnostic instead. |
 | `target` | A goal or an exact target does not parse. |
-| `pattern` | A pattern is empty or does not parse, mixes coherences or scopes with rules, or is the wrong kind for the question. |
+| `pattern` | A pattern is empty or does not parse, mixes coherences or scopes with rules, is the wrong kind for the question, or holds scopes that can be placed in too many ways to search. |
 | `handle` | A handle is malformed, names nothing in the exploration, or names a kind the verb does not explain. |
 | `exploration` | A key is too short, malformed, unknown or ambiguous, or lineage is asked of a direct path. |
 | `engine` | An engine cannot answer: metal refuses a program with no net of parts and every question but `explore` and `check`. |

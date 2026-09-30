@@ -1,3 +1,4 @@
+use crate::embedding;
 use crate::exploration::{self, Exploration};
 use crate::failure::{Code, Failure};
 use crate::handle::Handle;
@@ -217,14 +218,15 @@ fn target(claim: &Claim) -> Result<Program, Failure> {
 fn matched(claim: &Claim, exploration: &Exploration) -> Result<Vec<bool>, Failure> {
     if !claim.exact {
         let body = body(claim)?;
-        return Ok(exploration
+        return exploration
             .configuration
             .iter()
             .map(|configuration| {
-                configuration.supported
-                    && pattern::assign(&body, configuration, exploration.rule.as_slice()).is_some()
+                Ok(configuration.supported
+                    && embedding::assign(&body, configuration, exploration.rule.as_slice())?
+                        .is_some())
             })
-            .collect());
+            .collect();
     }
     if exploration.mode == Mode::Path {
         return Err(Failure::new(
@@ -349,9 +351,9 @@ pub(crate) fn survey(claim: &Claim, survey: &Survey) -> Result<Verdict, Failure>
             .end
             .iter()
             .map(|configuration| {
-                pattern::assign(&body, configuration, survey.rule.as_slice()).is_some()
+                Ok(embedding::assign(&body, configuration, survey.rule.as_slice())?.is_some())
             })
-            .collect()
+            .collect::<Result<_, Failure>>()?
     };
     let word = word(claim);
     let stray = matched.iter().position(|&matched| !matched);

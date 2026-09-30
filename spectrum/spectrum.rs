@@ -7,6 +7,7 @@ pub mod claim;
 pub mod compare;
 pub mod configuration;
 pub mod context;
+pub mod embedding;
 mod exploration;
 pub mod explore;
 mod explored;

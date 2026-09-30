@@ -1,4 +1,6 @@
 use crate::context::Context;
+use crate::embedding::{self, Embedding};
+use crate::exploration::Exploration;
 use crate::failure::Failure;
 use crate::handle::Handle;
 use crate::pattern::{self, Pattern};
@@ -62,6 +64,25 @@ pub struct Answer {
     pub(crate) next: Option<usize>,
 }
 
+fn placed(exploration: &Exploration, index: usize, found: &Embedding) -> Found {
+    Found {
+        handle: Handle::Configuration(index).to_string(),
+        text: render::configuration(exploration, index),
+        occurrence: found
+            .coherence
+            .iter()
+            .flat_map(|entry| &entry.occurrence)
+            .map(|&id| Handle::Occurrence(index, id).to_string())
+            .collect(),
+        frame: found
+            .frame
+            .iter()
+            .map(|&frame| Handle::Frame(index, frame).to_string())
+            .collect(),
+        unsupported: !exploration.configuration[index].supported,
+    }
+}
+
 pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Answer, Failure> {
     let pattern = Pattern::read(&request.pattern)?;
     let exploration = context.exploration(&request.recording)?;
@@ -70,29 +91,15 @@ pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Ans
             Kind::Configuration,
             (0..exploration.configuration.len())
                 .filter_map(|index| {
-                    let found = pattern::assign(
+                    embedding::assign(
                         body,
                         &exploration.configuration[index],
                         exploration.rule.as_slice(),
-                    )?;
-                    Some(Found {
-                        handle: Handle::Configuration(index).to_string(),
-                        text: render::configuration(&exploration, index),
-                        occurrence: found
-                            .coherence
-                            .iter()
-                            .flat_map(|entry| &entry.occurrence)
-                            .map(|&id| Handle::Occurrence(index, id).to_string())
-                            .collect(),
-                        frame: found
-                            .frame
-                            .iter()
-                            .map(|&frame| Handle::Frame(index, frame).to_string())
-                            .collect(),
-                        unsupported: !exploration.configuration[index].supported,
-                    })
+                    )
+                    .map(|found| found.map(|found| placed(&exploration, index, &found)))
+                    .transpose()
                 })
-                .collect::<Vec<_>>(),
+                .collect::<Result<Vec<_>, _>>()?,
         ),
         Pattern::Rule(definition) => {
             let rule = pattern::rule(
