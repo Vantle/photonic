@@ -51,6 +51,8 @@ fn memory() -> Memory {
         ("left.wave", "Seed.A, [Seed] ().([A] B), [B] C"),
         ("right.wave", "[Y] Z, Root.X, [Root] ().([X] Y)"),
         ("fired.wave", "X, (A, [A] B)"),
+        ("rule.particle", "[A] B"),
+        ("seed.wave", "A"),
         ("idle.wave", "X, (B, [A] B)"),
     ]))
 }
@@ -65,6 +67,16 @@ fn file(path: &str) -> Subject {
 fn recording(path: &str) -> Recording {
     Recording {
         program: Some(file(path)),
+        ..Recording::default()
+    }
+}
+
+fn source(text: &str) -> Recording {
+    Recording {
+        program: Some(Subject {
+            source: Some(text.to_owned()),
+            ..Subject::default()
+        }),
         ..Recording::default()
     }
 }
@@ -222,7 +234,8 @@ fn check() {
     })) else {
         panic!("check reports diagnostics as data");
     };
-    assert_eq!(broken.diagnostic[0].code, "syntax");
+    assert_eq!(broken.diagnostic[0].code, Code::Source);
+    assert_eq!(broken.diagnostic[0].diagnostic.as_deref(), Some("syntax"));
     let location = broken.diagnostic[0].location.as_ref().expect("a location");
     assert_eq!((location.line, location.column), (1, 3));
 }
@@ -241,41 +254,63 @@ fn compare() {
         panic!("compare answers");
     };
     assert_eq!((bug.left.configuration, bug.right.configuration), (14, 18));
-    assert!(bug.configuration.lost.is_empty());
     assert!(!bug.passed());
-    let mut gained = bug
+    let scoped = |entry: &crate::compare::Entry| entry.text.starts_with("in f1:");
+    let root = bug
         .configuration
         .gained
         .iter()
+        .filter(|entry| !scoped(entry))
         .map(|entry| (entry.handle.as_str(), entry.text.as_str()))
-        .collect::<Vec<_>>();
-    gained.sort_unstable();
+        .collect::<std::collections::BTreeSet<_>>();
     assert_eq!(
-        gained,
-        vec![
+        root,
+        std::collections::BTreeSet::from([
             ("s14", "False.Boolean.Extra"),
             ("s4", "Boolean.True.Extra"),
             ("s6", "False.True.Extra"),
             ("s7", "Boolean.Boolean.Extra"),
-        ]
+        ])
     );
+    assert!(bug.configuration.lost.iter().all(scoped));
     let Ok(Answer::Compare(fix)) = answer(&request("fix.wave")) else {
         panic!("compare answers");
     };
-    assert!(fix.configuration.same());
-    assert!(!fix.event.same());
-    assert!(!fix.passed());
-    assert_eq!((fix.left.event, fix.right.event), (17, 18));
-    assert_eq!(
-        fix.event
+    assert_eq!((fix.left.configuration, fix.right.configuration), (14, 14));
+    assert!(!fix.configuration.same());
+    assert!(
+        fix.configuration
             .gained
             .iter()
-            .map(|group| group.rule.as_str())
-            .collect::<Vec<_>>(),
-        vec!["[False.Boolean] False", "[False.Boolean] False"]
+            .chain(&fix.configuration.lost)
+            .all(scoped)
     );
-    assert_eq!(fix.event.lost.len(), 1);
-    assert_eq!(fix.event.lost[0].rule, "[True.False] False");
+    assert!(!fix.passed());
+    assert_eq!((fix.left.event, fix.right.event), (17, 18));
+    let rule = |group: &[crate::compare::Group]| {
+        group
+            .iter()
+            .map(|group| group.rule.clone())
+            .collect::<Vec<_>>()
+    };
+    assert!(rule(&fix.event.gained).contains(&"[False.Boolean] False".to_owned()));
+    assert!(rule(&fix.event.lost).contains(&"[True.False] False".to_owned()));
+    let Ok(Answer::Compare(edited)) = answer(&Request::Compare(crate::compare::Request {
+        left: source("A, [A] B, [B] C"),
+        right: source("A, [A] B, [A] C"),
+        claim: Vec::new(),
+        limit: 12,
+    })) else {
+        panic!("compare answers");
+    };
+    assert!(edited.configuration.same(), "{}", edited.text());
+    assert!(!edited.event.same());
+    assert_eq!(rule(&edited.event.gained), vec!["[A] C"]);
+    assert!(
+        rule(&edited.event.lost).iter().all(|rule| rule == "[B] C"),
+        "{}",
+        edited.text()
+    );
     let Ok(Answer::Compare(renamed)) = answer(&request("renamed.wave")) else {
         panic!("compare answers");
     };
@@ -510,12 +545,12 @@ fn scope() {
         .as_array()
         .expect("rules")
         .iter()
-        .find(|rule| rule["text"] == "[A] (…)")
+        .find(|rule| rule["text"] == "[A] (B, [B] C)")
         .map(|rule| rule["handle"].clone())
         .expect("the opening rule is listed");
     assert_eq!(scope("[X] Y"), "program");
     assert_eq!(scope("[B] C"), opener);
-    assert_eq!(scope("[A] (…)"), serde_json::Value::Null);
+    assert_eq!(scope("[A] (B, [B] C)"), serde_json::Value::Null);
     assert_eq!(
         explored[1]["answer"]["scope"]["opener"], "program",
         "{}",
@@ -537,7 +572,7 @@ fn explore() {
     assert_eq!(answer["configuration"], 14);
     assert_eq!(answer["event"], 17);
     assert_eq!(answer["inferred"], 4);
-    assert_eq!(answer["complete"], true);
+    assert_eq!(answer["closed"], true);
     let scope = answer["end"]
         .as_array()
         .expect("end configurations")
@@ -630,7 +665,7 @@ fn shape() {
     };
     let same = group(&["and.particle", "or.particle"], Vec::new());
     assert_eq!(same.class.len(), 1);
-    assert_eq!(same.class[0].renaming, vec!["And → Or (True False)"]);
+    assert_eq!(same.class[0].renaming, vec!["And → Or, (True False)"]);
     assert_eq!(
         group(
             &["and.particle", "or.particle", "equal.particle"],
@@ -841,4 +876,546 @@ fn placement() {
             .to_string(),
     );
     assert_eq!(wide["answer"]["total"], 0);
+}
+
+// These two programs' keys collide under the hash, and each is still answered from its own
+// recording.
+#[test]
+fn twin() {
+    let answer = session(&[
+        r#"{"verb": "explore", "program": {"source": "ZebraZebraZebraZ, [ZebraZebraZebraZ] Done"}}"#,
+        r#"{"verb": "check", "program": {"source": "Z5tMuu2wrQUnJPL7, [Z5tMuu2wrQUnJPL7] Done"}, "claim": [{"kind": "reach", "pattern": "Z5tMuu2wrQUnJPL7"}]}"#,
+    ]);
+    assert_eq!(
+        answer[0]["answer"]["exploration"], answer[1]["answer"]["summary"]["exploration"],
+        "the programs share a key"
+    );
+    assert_eq!(
+        answer[1]["answer"]["claim"][0]["answer"], "holds",
+        "{}",
+        answer[1]
+    );
+}
+
+// Parts listed anywhere in a pattern take different coherences and frames, however deep they sit:
+// no coherence or scope serves two parts, and the order parts are written in never matters.
+#[test]
+fn distinct() {
+    let answer = session(&[
+        r#"{"verb": "check", "program": {"source": "Start, (X, [X] Y)"}, "claim": [{"kind": "reach", "pattern": "X, (X, [X] Y)"}]}"#,
+        r#"{"verb": "select", "program": {"source": "Start, (X, [X] Y)"}, "pattern": "(X, [X] Y), X"}"#,
+        r#"{"verb": "select", "program": {"source": "Start, (A, [A] Z, (B, [B] W))"}, "pattern": "(A, [A] Z, (B, [B] W)), (B, [B] W)"}"#,
+        r#"{"verb": "select", "program": {"source": "Start, X, (X, [X] Y)"}, "pattern": "(X, [X] Y), X"}"#,
+        r#"{"verb": "select", "program": {"source": "Start, (A, [A] Z, (B, [B] W), (B, [B] W))"}, "pattern": "(B, [B] W), (A, [A] Z, (B, [B] W))"}"#,
+        r#"{"verb": "select", "program": {"source": "Start, (X, X.Z, [X] Y)"}, "pattern": "X.Z, (X, [X] Y)"}"#,
+    ]);
+    assert_eq!(
+        answer[0]["answer"]["claim"][0]["answer"], "fails",
+        "{}",
+        answer[0]
+    );
+    for index in [1, 2] {
+        assert_eq!(answer[index]["answer"]["total"], 0, "{}", answer[index]);
+    }
+    for index in [3, 4, 5] {
+        assert_eq!(
+            answer[index]["answer"]["found"][0]["handle"], "s0",
+            "{}",
+            answer[index]
+        );
+    }
+    let frame = answer[4]["answer"]["found"][0]["frame"]
+        .as_array()
+        .expect("the scopes' frames")
+        .iter()
+        .map(|frame| frame.as_str().unwrap_or_default())
+        .collect::<Vec<_>>();
+    assert_eq!(frame.len(), 3, "{}", answer[4]);
+    assert!(
+        (1..frame.len()).all(|index| !frame[..index].contains(&frame[index])),
+        "{}",
+        answer[4]
+    );
+}
+
+// Configurations compare by which scope holds each coherence, how scopes nest and which rules live
+// in each scope, so programs that differ there never compare as identical, and a program compared
+// with itself counts every configuration its exploration holds.
+#[test]
+fn layout() {
+    let compare = |left: &str, right: &str| {
+        let Ok(Answer::Compare(answer)) = answer(&Request::Compare(crate::compare::Request {
+            left: source(left),
+            right: source(right),
+            claim: Vec::new(),
+            limit: 12,
+        })) else {
+            panic!("compare answers");
+        };
+        answer
+    };
+    for (left, right) in [
+        ("(X, Y, [Q] R), (Z, [Q] R)", "(X, [Q] R), (Y, Z, [Q] R)"),
+        ("(X, [Q] R, (Y, [Q] R))", "(X, [Q] R), (Y, [Q] R)"),
+        ("Go, [Go] (X, [Q] R)", "Go, [Go] (X, [X.Q] R)"),
+    ] {
+        let different = compare(left, right);
+        assert!(!different.configuration.same(), "{left} {right}");
+        assert!(!different.passed(), "{left} {right}");
+        let same = compare(left, left);
+        assert!(same.configuration.same() && same.passed(), "{left}");
+    }
+    let two = "Go, [Go] (X, [Q] R), [Go] (X, [Q] S)";
+    let itself = compare(two, two);
+    assert_eq!(
+        (itself.left.configuration, itself.left.event),
+        (3, 2),
+        "{}",
+        itself.text()
+    );
+}
+
+// Claims, and questions that cannot be answered as asked, are refused before the program is read or
+// explored, and preserve means nothing without an exact target.
+#[test]
+fn admission() {
+    let answer = session(&[
+        r#"{"verb": "check", "program": {"file": ["absent.wave"]}, "mode": "plain", "engine": "metal", "claim": [{"kind": "reach", "pattern": "Done"}]}"#,
+        r#"{"verb": "check", "program": {"file": ["absent.wave"]}, "mode": "path", "claim": [{"kind": "reach", "pattern": "Done", "exact": true}]}"#,
+        r#"{"verb": "check", "program": {"file": ["absent.wave"]}, "claim": [{"kind": "reach", "pattern": "Done", "preserve": true}]}"#,
+        r#"{"verb": "compare", "left": {"program": {"file": ["absent.wave"]}, "mode": "plain", "engine": "metal"}, "right": {"program": {"file": ["bug.wave"]}}}"#,
+        r#"{"verb": "compare", "left": {"program": {"file": ["bug.wave"]}}, "right": {"program": {"file": ["bug.wave"]}}, "claim": [{"kind": "reach", "pattern": "False.Extra", "preserve": true}]}"#,
+        r#"{"verb": "miss", "program": {"file": ["absent.wave"]}, "rule": "r3", "preserve": true}"#,
+        r#"{"verb": "miss", "program": {"file": ["absent.wave"]}}"#,
+        r#"{"verb": "check", "program": {"file": ["bug.wave"]}, "claim": [{"kind": "reach", "pattern": "False.Extra", "exact": true, "preserve": true}]}"#,
+    ]);
+    for (index, code) in [
+        "claim", "claim", "request", "engine", "request", "request", "request",
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        assert_eq!(answer[index]["error"]["code"], code, "{}", answer[index]);
+    }
+    assert!(
+        answer[6]["error"]["message"]
+            .as_str()
+            .is_some_and(|message| message.contains("name what to explain")),
+        "{}",
+        answer[6]
+    );
+    assert_eq!(
+        answer[7]["answer"]["claim"][0]["answer"], "holds",
+        "{}",
+        answer[7]
+    );
+}
+
+// Nested and sibling scopes read differently, every scope names the frame it sits in, the root is a
+// frame with a handle like any other, and rules that open different scopes read differently.
+#[test]
+fn nesting() {
+    let answer = session(&[
+        r#"{"verb": "explore", "program": {"source": "Start, (X, [Q] R, (Y, [Q] R))"}}"#,
+        r#"{"verb": "explore", "program": {"source": "Start, (X, [Q] R), (Y, [Q] R)"}}"#,
+        r#"{"verb": "inspect", "program": {"source": "Start, (X, [Q] R, (Y, [Q] R))"}, "handle": "s0"}"#,
+        r#"{"verb": "explore", "program": {"source": "Go, [Go] (X, [Q] R), [Go] (X, [Q] S)"}}"#,
+    ]);
+    let end = |index: usize| answer[index]["answer"]["end"][0]["text"].clone();
+    assert_eq!(end(0), "Start · in f1: X · in f2 in f1: Y", "{}", answer[0]);
+    assert_eq!(end(1), "Start · in f1: X · in f2: Y", "{}", answer[1]);
+    let inspected = &answer[2]["answer"];
+    let frame = inspected["frame"]
+        .as_array()
+        .expect("the configuration's frames")
+        .iter()
+        .map(|scope| (scope["handle"].clone(), scope["parent"].clone()))
+        .collect::<Vec<_>>();
+    assert_eq!(
+        frame,
+        vec![
+            (serde_json::json!("s0.f0"), serde_json::Value::Null),
+            (serde_json::json!("s0.f1"), serde_json::json!("s0.f0")),
+            (serde_json::json!("s0.f2"), serde_json::json!("s0.f1")),
+        ],
+        "{inspected}"
+    );
+    assert!(
+        inspected["coherence"]
+            .as_array()
+            .expect("the configuration's coherences")
+            .iter()
+            .all(|part| part["frame"]
+                .as_str()
+                .is_some_and(|frame| frame.starts_with("s0.f"))),
+        "{inspected}"
+    );
+    let opener = answer[3]["answer"]["rule"]
+        .as_array()
+        .expect("rules")
+        .iter()
+        .filter_map(|rule| rule["text"].as_str())
+        .filter(|text| text.starts_with("[Go]"))
+        .collect::<std::collections::BTreeSet<_>>();
+    assert_eq!(opener.len(), 2, "{}", answer[3]);
+}
+
+// An open exploration and a direct path say what they have not settled: neither is closed, a path
+// that reaches its goal is reached and still not closed, every answer names its state, and none
+// says never of a rule that has not fired.
+#[test]
+fn extent() {
+    let open = r#""program": {"source": "Seed, [Seed] Seed.X, [Done] Stop"}, "budget": {"configuration": 5}"#;
+    let path = r#""program": {"file": ["light.wave"]}, "mode": "path", "goal": {"configuration": "Red", "preserve": true}"#;
+    let explored = session(&[
+        &format!(r#"{{"verb": "explore", {open}}}"#),
+        &format!(r#"{{"verb": "explore", {path}}}"#),
+    ]);
+    let handle = |answer: &serde_json::Value, text: &str| {
+        answer["answer"]["rule"]
+            .as_array()
+            .expect("rules")
+            .iter()
+            .find(|rule| rule["text"] == text)
+            .and_then(|rule| rule["handle"].as_str())
+            .expect("the rule is listed")
+            .to_owned()
+    };
+    let stop = handle(&explored[0], "[Done] Stop");
+    let green = handle(&explored[1], "[Light] Green");
+    let answer = session(&[
+        &format!(r#"{{"verb": "explore", {open}}}"#),
+        &format!(r#"{{"verb": "inspect", {open}, "handle": "{stop}"}}"#),
+        &format!(r#"{{"verb": "select", {open}, "pattern": "Seed"}}"#),
+        &format!(r#"{{"verb": "step", {open}}}"#),
+        &format!(r#"{{"verb": "explore", {path}}}"#),
+        &format!(r#"{{"verb": "inspect", {path}, "handle": "{green}"}}"#),
+        &format!(r#"{{"verb": "step", {path}}}"#),
+        &format!(r#"{{"verb": "miss", {path}, "target": "Blue"}}"#),
+        &format!(r#"{{"verb": "compare", "left": {{{path}}}, "right": {{{path}}}}}"#),
+        &format!(r#"{{"verb": "select", {path}, "pattern": "Red"}}"#),
+    ]);
+    for (index, value) in answer.iter().enumerate() {
+        let body = &value["answer"];
+        let closed = if body.get("left").is_some() {
+            body["left"]["closed"].clone()
+        } else {
+            body["closed"].clone()
+        };
+        assert_eq!(closed, false, "{index}: {value}");
+    }
+    assert_eq!(answer[4]["answer"]["reached"], true, "{}", answer[4]);
+    let reader = memory();
+    let mut store = Store::default();
+    let mut context = Context {
+        reader: &reader,
+        store: &mut store,
+    };
+    let text = |request: String, context: &mut Context<'_>| {
+        let serde_json::Value::Object(mut object) =
+            serde_json::from_str(&request).expect("a JSON object")
+        else {
+            panic!("a request is an object");
+        };
+        let verb = object
+            .remove("verb")
+            .and_then(|verb| verb.as_str().map(str::to_owned))
+            .expect("a verb");
+        Request::read(&verb, serde_json::Value::Object(object))
+            .and_then(|request| request.answer(context))
+            .map(|answer| answer.text())
+            .expect("the question answers")
+    };
+    let explore = text(format!(r#"{{"verb": "explore", {open}}}"#), &mut context);
+    assert!(explore.contains("not yet"), "{explore}");
+    assert!(!explore.contains("never"), "{explore}");
+    let inspect = text(
+        format!(r#"{{"verb": "inspect", {open}, "handle": "{stop}"}}"#),
+        &mut context,
+    );
+    assert!(inspect.contains("has not fired yet"), "{inspect}");
+    let select = text(
+        format!(r#"{{"verb": "select", {open}, "pattern": "Seed"}}"#),
+        &mut context,
+    );
+    assert!(
+        select
+            .lines()
+            .next()
+            .is_some_and(|line| line.contains(" · open · ")),
+        "{select}"
+    );
+    let step = text(format!(r#"{{"verb": "step", {open}}}"#), &mut context);
+    assert!(
+        step.contains("the exploration is open; more events may happen here"),
+        "{step}"
+    );
+    let configuration = text(
+        format!(r#"{{"verb": "inspect", {open}, "handle": "s0"}}"#),
+        &mut context,
+    );
+    assert!(
+        configuration.contains("the exploration is open; more events may happen here"),
+        "{configuration}"
+    );
+    let walked = text(format!(r#"{{"verb": "explore", {path}}}"#), &mut context);
+    assert!(walked.contains("not on this path"), "{walked}");
+    let taken = text(format!(r#"{{"verb": "step", {path}}}"#), &mut context);
+    assert!(
+        taken.contains("a direct path records only the event it took"),
+        "{taken}"
+    );
+    let inspect = text(
+        format!(r#"{{"verb": "inspect", {path}, "handle": "{green}"}}"#),
+        &mut context,
+    );
+    assert!(inspect.contains("does not fire on this path"), "{inspect}");
+    let miss = text(
+        format!(r#"{{"verb": "miss", {path}, "target": "Blue"}}"#),
+        &mut context,
+    );
+    assert!(
+        miss.lines()
+            .next()
+            .is_some_and(|line| line.contains(" · a direct path · ") && !line.contains("closed")),
+        "{miss}"
+    );
+}
+
+// In an open exploration a rule that has not fired is not said never to fire: configurations whose
+// events were not recorded count as unexplored, and a row where its input matches is marked so.
+#[test]
+fn unexplored() {
+    let open = r#""program": {"source": "N, [N] N.N, [N.N.N] Done"}, "budget": {"work": 10}"#;
+    let explored = json(&format!(r#"{{"verb": "explore", {open}}}"#));
+    assert_eq!(explored["answer"]["closed"], false, "{explored}");
+    let done = explored["answer"]["rule"]
+        .as_array()
+        .expect("rules")
+        .iter()
+        .find(|rule| rule["text"] == "[N.N.N] Done")
+        .and_then(|rule| rule["handle"].as_str())
+        .expect("the rule is listed")
+        .to_owned();
+    let miss = json(&format!(r#"{{"verb": "miss", {open}, "rule": "{done}"}}"#));
+    let answer = &miss["answer"];
+    assert_eq!(
+        (answer["visible"].clone(), answer["unexplored"].clone()),
+        (serde_json::json!(2), serde_json::json!(1)),
+        "{miss}"
+    );
+    let matched = answer["near"]
+        .as_array()
+        .expect("rows")
+        .iter()
+        .find(|row| row["missing"] == 0)
+        .expect("a row where the input matches");
+    assert_eq!(matched["unexplored"], true, "{miss}");
+}
+
+// A target's distance is 0 exactly where select finds it, however its parts nest, and a target
+// with more parts than any configuration holds is refused at once.
+#[test]
+fn measure() {
+    let answer = session(&[
+        r#"{"verb": "miss", "program": {"source": "Start, (X, [X] Y)"}, "target": "X, (X, [X] Y)"}"#,
+        r#"{"verb": "miss", "program": {"source": "Start, X, (X, [X] Y)"}, "target": "(X, [X] Y), X"}"#,
+        &serde_json::json!({"verb": "miss", "program": {"source": "A, [A] B"}, "target": vec!["A"; 1000].join(", ")}).to_string(),
+        &serde_json::json!({"verb": "miss", "program": {"source": "A, [A] B"}, "target": vec!["A"; 200].join(", ")}).to_string(),
+    ]);
+    let near = &answer[0]["answer"]["near"][0];
+    assert_ne!(near["distance"], 0, "{}", answer[0]);
+    assert_eq!(near["missing"], serde_json::json!(["X"]), "{}", answer[0]);
+    assert_eq!(
+        answer[1]["answer"]["near"][0]["distance"], 0,
+        "{}",
+        answer[1]
+    );
+    assert_eq!(answer[2]["error"]["code"], "pattern", "{}", answer[2]);
+    assert_eq!(
+        answer[3]["answer"]["near"][0]["distance"], 199,
+        "{}",
+        answer[3]
+    );
+}
+
+// Refusals name what to change on both surfaces: the command line's flag and the request's field.
+#[test]
+fn phrasing() {
+    let answer = session(&[
+        r#"{"verb": "explore", "program": {"file": ["light.wave"]}, "engine": "metal"}"#,
+        r#"{"verb": "explore", "program": {"file": ["light.wave"]}, "goal": {"configuration": "Red"}}"#,
+        r#"{"verb": "explore", "program": {"file": ["light.wave"]}, "mode": "path", "engine": "laser"}"#,
+        r#"{"verb": "explore", "program": {}}"#,
+        r#"{"verb": "cause", "program": {"file": ["light.wave"]}, "mode": "path", "handle": "s0.o0"}"#,
+    ]);
+    for (index, (flag, field)) in [
+        ("--plain", "mode plain"),
+        ("--path", "mode path"),
+        ("--engine", "engine"),
+        ("--source", "source"),
+        ("--path", "mode path"),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let message = answer[index]["error"]["message"]
+            .as_str()
+            .unwrap_or_default();
+        assert!(
+            message.contains(flag) && message.contains(field),
+            "{}",
+            answer[index]
+        );
+    }
+}
+
+// A limit of 0 lists nothing, counts everything and offers no next page, and a rule's events
+// beyond those inspect lists are counted.
+#[test]
+fn limit() {
+    let grow = r#""program": {"file": ["grow.wave"]}, "budget": {"configuration": 20}"#;
+    let answer = session(&[
+        r#"{"verb": "select", "program": {"file": ["light.wave"]}, "pattern": "()", "limit": 0}"#,
+        r#"{"verb": "explore", "program": {"file": ["light.wave"]}, "limit": 0}"#,
+        &format!(r#"{{"verb": "inspect", {grow}, "handle": "r0"}}"#),
+    ]);
+    let select = &answer[0]["answer"];
+    assert_eq!(select["total"], 4, "{select}");
+    assert_eq!(select["found"], serde_json::json!([]), "{select}");
+    assert!(select.get("next").is_none(), "{select}");
+    assert_eq!(answer[1]["answer"]["more"], 3, "{}", answer[1]);
+    let inspect = &answer[2]["answer"];
+    let listed = inspect["event"].as_array().map_or(0, Vec::len);
+    assert_eq!(listed, 8, "{inspect}");
+    assert_eq!(inspect["more"], 11, "{inspect}");
+    let reader = memory();
+    let mut store = Store::default();
+    let mut context = Context {
+        reader: &reader,
+        store: &mut store,
+    };
+    let text = |request: Request, context: &mut Context<'_>| {
+        request
+            .answer(context)
+            .expect("the question answers")
+            .text()
+    };
+    let explore = text(
+        Request::Explore(crate::explore::Request {
+            recording: recording("light.wave"),
+            limit: 0,
+        }),
+        &mut context,
+    );
+    assert!(
+        explore.contains("end    3 configurations not listed"),
+        "{explore}"
+    );
+    assert!(!explore.contains("none"), "{explore}");
+    let inspect = text(
+        Request::Inspect(crate::inspect::Request {
+            recording: Recording {
+                budget: Some(Budget {
+                    configuration: Some(20),
+                    ..Budget::default()
+                }),
+                ..recording("grow.wave")
+            },
+            handle: "r0".to_owned(),
+        }),
+        &mut context,
+    );
+    assert!(inspect.contains("and 11 more events"), "{inspect}");
+}
+
+// Shape lists each piece of a renaming apart, prints no blank lines for an empty program, drops
+// patterns whose copies are identical as the viewers do, and refuses a node budget of 0.
+#[test]
+fn outline() {
+    let shape = |source: &[&str], node: usize| {
+        answer(&Request::Shape(crate::shape::Request {
+            program: source
+                .iter()
+                .map(|source| Subject {
+                    source: Some((*source).to_owned()),
+                    ..Subject::default()
+                })
+                .collect(),
+            target: None,
+            fix: Vec::new(),
+            node,
+        }))
+    };
+    let Ok(Answer::Shape(chain)) = shape(&["A, B, [A] X, [B] Y", "C, D, [C] Z, [D] W"], 1_000_000)
+    else {
+        panic!("shape answers");
+    };
+    assert_eq!(chain.class[0].renaming.len(), 1);
+    assert_eq!(
+        chain.class[0].renaming[0].matches(", ").count(),
+        3,
+        "{}",
+        chain.class[0].renaming[0]
+    );
+    let Ok(Answer::Shape(empty)) = shape(&[""], 1_000_000) else {
+        panic!("shape answers");
+    };
+    assert!(
+        !empty.text().contains("\n\n") && !empty.text().ends_with('\n'),
+        "{:?}",
+        empty.text()
+    );
+    let Ok(Answer::Shape(twice)) = shape(&["[A] B, [A] B"], 1_000_000) else {
+        panic!("shape answers");
+    };
+    assert!(
+        twice
+            .form
+            .as_ref()
+            .is_some_and(|form| form.pattern.is_empty())
+    );
+    assert!(!twice.text().contains("identical"), "{}", twice.text());
+    let Err(refused) = shape(&["[A] B"], 0) else {
+        panic!("a node budget of 0 is refused");
+    };
+    assert_eq!(refused.code, Code::Request);
+}
+
+// A program that does not parse is the same object whether check reports it as a diagnostic or
+// another question fails with it, and names the frontend's error as the diagnostic.
+#[test]
+fn diagnostic() {
+    let answer = session(&[
+        r#"{"verb": "check", "program": {"source": "A B"}}"#,
+        r#"{"verb": "explore", "program": {"source": "A B"}}"#,
+    ]);
+    assert_eq!(
+        answer[0]["answer"]["diagnostic"][0], answer[1]["error"],
+        "{}",
+        answer[0]
+    );
+    assert_eq!(answer[1]["error"]["code"], "source", "{}", answer[1]);
+    assert_eq!(answer[1]["error"]["diagnostic"], "syntax", "{}", answer[1]);
+}
+
+// Each library and program file loads once, however often it is given, as Bazel loads a library
+// that several dependencies share, and a path given both as a library and as a program file is
+// refused.
+#[test]
+fn library() {
+    let answer = session(&[
+        r#"{"verb": "explore", "program": {"file": ["seed.wave"], "library": ["rule.particle", "./rule.particle"]}}"#,
+        r#"{"verb": "explore", "program": {"file": ["seed.wave", "seed.wave"], "library": ["rule.particle"]}}"#,
+        r#"{"verb": "explore", "program": {"file": ["rule.particle"], "library": ["rule.particle"]}}"#,
+        r#"{"verb": "explore", "program": {"file": ["seed.wave"], "library": ["rule.particle", "rule.particle"]}}"#,
+    ]);
+    for index in [0, 3] {
+        let rule = answer[index]["answer"]["rule"]
+            .as_array()
+            .map_or(0, Vec::len);
+        assert_eq!(rule, 1, "{}", answer[index]);
+    }
+    assert_eq!(answer[1]["answer"]["end"][0]["text"], "B", "{}", answer[1]);
+    assert_eq!(answer[2]["error"]["code"], "request", "{}", answer[2]);
 }

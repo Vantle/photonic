@@ -94,8 +94,9 @@ fn frame() {
         token: vec![id],
         position: 0,
     };
-    assert!(super::Binding::select(&state, &[slot(0, 0)], 0, Set::default()).is_some());
-    assert!(super::Binding::select(&state, &[slot(1, 1)], 1, Set::default()).is_some());
-    assert!(super::Binding::select(&state, &[slot(1, 1)], 0, Set::default()).is_none());
-    assert!(super::Binding::select(&state, &[slot(0, 0), slot(1, 1)], 0, Set::default()).is_none());
+    let read = Place::World(0, 0);
+    assert!(super::Binding::select(&state, &[slot(0, 0)], 0, read).is_some());
+    assert!(super::Binding::select(&state, &[slot(1, 1)], 1, read).is_some());
+    assert!(super::Binding::select(&state, &[slot(1, 1)], 0, read).is_none());
+    assert!(super::Binding::select(&state, &[slot(0, 0), slot(1, 1)], 0, read).is_none());
 }

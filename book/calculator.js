@@ -69,7 +69,7 @@
         const evaluate = value => {
             choose(value);
             if (book.engine.state !== 'live') {
-                if (!recorded(value)) message.say('Serve the book to evaluate new expressions: bazel run -c opt //book:serve');
+                if (!recorded(value)) message.say(book.engine.advice);
                 return;
             }
             if (cycle.busy) cycle.cancel();

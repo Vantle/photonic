@@ -48,6 +48,9 @@ pub(crate) fn lineage(program: &Flat, level: &[usize], event: &[Event]) -> (Vec<
 }
 
 pub fn schedule(program: &Flat, initial: State, limit: &Limit) -> Result<Schedule, Overflow> {
+    if !fits(program, &initial, limit) {
+        return Err(Overflow::Size);
+    }
     let mut level = vec![0; initial.coherence().len()];
     let mut state = initial;
     let mut round = Vec::new();

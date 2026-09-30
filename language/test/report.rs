@@ -170,3 +170,38 @@ fn cited() {
     }
     assert!(inferred > 0);
 }
+
+// A report names each configuration within the work its runs were given, and shows one whose
+// search takes more as the engine holds it.
+#[test]
+fn form() {
+    let program = parse("A, A, [A] B").unwrap();
+    let form = |report: serde_json::Value| {
+        report["state"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|node| {
+                node.get("form")
+                    .map(|form| form.as_str().unwrap().to_owned())
+            })
+            .collect::<Vec<_>>()
+    };
+    let mut path = crate::path::Search::new(program.clone(), None);
+    assert_eq!(
+        form(serde_json::to_value(path.report()).unwrap()),
+        [Some("listed".to_owned())]
+    );
+    path.run(1000, Limit::default());
+    let walked = form(serde_json::to_value(path.report()).unwrap());
+    assert!(walked.len() > 1 && walked.iter().all(Option::is_none));
+    let mut laser = crate::laser::Laser::new(&program);
+    assert_eq!(
+        form(serde_json::to_value(laser.report()).unwrap()),
+        [Some("listed".to_owned())]
+    );
+    laser.run(1000, Limit::default());
+    assert!(laser.closed());
+    let explored = form(serde_json::to_value(laser.report()).unwrap());
+    assert!(explored.len() > 1 && explored.iter().all(Option::is_none));
+}

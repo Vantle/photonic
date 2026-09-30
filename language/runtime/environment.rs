@@ -1,3 +1,4 @@
+use crate::canonical::Exhausted;
 use crate::state::State;
 use hashing::Builder;
 use std::collections::HashMap;
@@ -28,19 +29,23 @@ impl Store {
         }
     }
 
-    pub fn resolve(&mut self, request: Request<'_>) -> Arc<State> {
+    pub fn resolve(
+        &mut self,
+        request: Request<'_>,
+        budget: &mut usize,
+    ) -> Result<Arc<State>, Exhausted> {
         let key = (request.target, request.capture);
         if let Some(environment) = self.entry.get(&key).and_then(Weak::upgrade) {
-            return environment;
+            return Ok(environment);
         }
-        let environment = Arc::new(request.state.environment(request.capture).state);
+        let environment = Arc::new(request.state.environment(request.capture, budget)?.state);
         if self.entry.len() == self.capacity {
             self.entry.retain(|_, value| value.strong_count() != 0);
         }
         if self.entry.len() < self.capacity {
             self.entry.insert(key, Arc::downgrade(&environment));
         }
-        environment
+        Ok(environment)
     }
 }
 

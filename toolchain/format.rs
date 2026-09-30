@@ -58,6 +58,17 @@ fn format() -> Result<ExitCode, Failure> {
         "filter('^//.*[.]rs$', kind('source file', deps(kind('rust_.* rule', //...))))",
     )?;
     let starlark = query(&workspace, "kind('source file', deps(//:build))")?;
+    let missing = query(&workspace, "filter('^//', buildfiles(//...))")?
+        .into_iter()
+        .filter(|file| starlark.binary_search(file).is_err())
+        .collect::<Vec<_>>();
+    if !missing.is_empty() {
+        for file in &missing {
+            eprintln!("{} is missing from //:build", file.display());
+        }
+        eprintln!("add each package's build filegroup to //:build so Buildifier checks it");
+        return Ok(ExitCode::FAILURE);
+    }
     let rustfmt = tool(&runfile, rustfmt)?;
     let status = Command::new(&rustfmt)
         .current_dir(&workspace)

@@ -1,15 +1,8 @@
-use crate::archive::{Archive, Record};
-use crate::objective::{Evaluation, Setting, atom, evaluate, general};
+use crate::archive::{Archive, Record, fits};
+use crate::objective::{Evaluation, Setting, evaluate, general};
 use crate::problem::Problem;
 use crate::task::Task;
-use crate::tree::walk;
 use code::program::Program;
-
-fn fits(program: &Program, task: &Task) -> bool {
-    atom(&walk(program))
-        .last()
-        .is_none_or(|atom| atom.index() < task.vocabulary.len())
-}
 
 fn measure(program: &Program, task: &Task, setting: &Setting) -> Option<Evaluation> {
     if !fits(program, task) {

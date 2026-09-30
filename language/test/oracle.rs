@@ -197,6 +197,7 @@ fn apply(
     frame: usize,
     owner: usize,
     rule: usize,
+    read: Place,
     selected: &Selection,
 ) -> State {
     let consumed = selected
@@ -246,7 +247,7 @@ fn apply(
             }
         }
     }
-    let returning = frame == owner && frame != 0;
+    let returning = frame == owner && frame != 0 && matches!(read, Place::Context(..));
     let parent = if returning {
         state.frame[frame].parent.unwrap()
     } else {
@@ -283,7 +284,7 @@ fn apply(
             Output::Scope(scope) => opening.open(&mut result, *scope, parent, owner, &mut next),
         }
     }
-    result.canonical().state
+    crate::test::canonical(&result).state
 }
 
 fn expected(program: &Program, state: &State) -> HashSet<Transition> {
@@ -328,7 +329,7 @@ fn expected(program: &Program, state: &State) -> HashSet<Transition> {
                         .iter()
                         .filter_map(|location| location.world())
                         .collect(),
-                    state: apply(program, state, frame, owner, rule, &selected),
+                    state: apply(program, state, frame, owner, rule, read, &selected),
                     resource: selected.resource,
                 });
             }
@@ -358,7 +359,7 @@ fn actual(program: &Arc<Program>, state: &Arc<State>) -> HashSet<Transition> {
             read: *event.binding.read.first().unwrap(),
             world: event.binding.world.iter().copied().collect(),
             resource: event.binding.exact.iter().copied().collect(),
-            state: event.state.canonical().state,
+            state: crate::test::canonical(&event.state).state,
         });
     }
     panic!("reference comparison did not complete");
@@ -388,6 +389,7 @@ fn occurrence() {
         "A.X, [A] (B, (C, [C] D), [D] E)",
         "Z, (X, [X] Y), ([Z] W)",
         "Z, (X, (Y, [Y] W), [X] V)",
+        "((P.Z.A, [Q.Z] Out), [P] Q.([A] B), [Q.B] Done)",
     ] {
         verify(source, 3);
     }
@@ -474,7 +476,7 @@ fn incremental() {
                     read: *event.binding.read.first().unwrap(),
                     world: event.binding.world.iter().copied().collect(),
                     resource: event.binding.exact.iter().copied().collect(),
-                    state: event.state.canonical().state,
+                    state: crate::test::canonical(&event.state).state,
                 });
                 selected = Some(event);
             }

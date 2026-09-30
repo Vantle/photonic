@@ -37,6 +37,10 @@ release(
 
 notice(
     name = "notice",
+    runtime = select({
+        "@platforms//os:windows": ["//toolchain:mingw.txt"],
+        "//conditions:default": [],
+    }),
     target = ["//command:photonic"],
 )
 
@@ -142,6 +146,12 @@ filegroup(
         "//wave:build",
     ],
     visibility = ["//toolchain:__pkg__"],
+)
+
+filegroup(
+    name = "module",
+    srcs = ["MODULE.bazel"],
+    visibility = ["//command:__pkg__"],
 )
 
 filegroup(

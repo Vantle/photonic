@@ -1,7 +1,12 @@
-use crate::archive::{Archive, Coverage, Proof, Record};
+use super::support::Directory;
+use crate::archive::{Archive, Coverage, Proof, Record, fits};
 use crate::corpus::addition;
+use crate::export;
+use crate::home::Home;
 use crate::objective::{Setting, evaluate};
+use crate::task::Task;
 use code::program::Program;
+use translation::vocabulary::Vocabulary;
 
 fn program(text: &str) -> Program {
     let mut vocabulary = addition(2).vocabulary;
@@ -99,4 +104,26 @@ fn coverage() {
             .map(|proof| proof.coverage),
         Some(Coverage::Whole)
     );
+}
+
+#[test]
+fn stale() {
+    let task = addition(2);
+    let known = program("[Left, Right] ()");
+    let narrow = Task {
+        vocabulary: Vocabulary::alphabet(1).unwrap(),
+        ..task.clone()
+    };
+    assert!(fits(&known, &task));
+    assert!(!fits(&known, &narrow));
+    assert!(!fits(&program("(Left, [Left] Right)"), &task));
+    let mut archive = Archive::default();
+    archive.offer(&task.name, record(known, true));
+    let directory = Directory::new("stale");
+    let home = Home::open(directory.path.clone()).unwrap();
+    let file = home.file(&format!("program/{}.wave", task.name));
+    export::write(&home, &[narrow], &archive).unwrap();
+    assert!(!file.exists());
+    export::write(&home, &[task], &archive).unwrap();
+    assert!(file.exists());
 }

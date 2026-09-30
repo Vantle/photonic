@@ -34,26 +34,46 @@ pub fn coherence(rule: &[Rule], coherence: &Coherence) -> String {
     particle(rule, &coherence.occurrence)
 }
 
-// A configuration's coherences, those of the root first and then each scope's, with the rules its
-// rule values name.
-pub fn text(rule: &[Rule], configuration: &Configuration) -> String {
+// A scope's frame, named with the frames it sits in, innermost first, such as f2 in f1.
+pub fn frame(configuration: &Configuration, index: usize) -> String {
+    std::iter::successors(Some(index), |&current| {
+        configuration.frame.get(current)?.parent
+    })
+    .take_while(|&current| current != 0)
+    .map(|current| format!("f{current}"))
+    .collect::<Vec<_>>()
+    .join(" in ")
+}
+
+// A configuration's coherences, those of the root first and then each scope's after the frames it
+// sits in, with the rules its rule values name; with live, each scope also lists the rules live in
+// it. The root's rules are the program's, so they are never listed.
+fn written(rule: &[Rule], configuration: &Configuration, live: bool) -> String {
     let inside = |frame: usize| {
+        let scoped = configuration
+            .frame
+            .get(frame)
+            .filter(|_| live && frame != 0)
+            .map_or(&[][..], |entry| entry.rule.as_slice());
         configuration
             .coherence
             .iter()
             .filter(|entry| entry.frame == frame)
             .map(|entry| coherence(rule, entry))
+            .chain(scoped.iter().map(|entry| match &entry.value {
+                Value::Rule(index) => rule[*index].text.clone(),
+                Value::Atom(atom) => atom.clone(),
+            }))
             .collect::<Vec<_>>()
             .join(", ")
     };
-    let root = inside(0);
-    let part = std::iter::once(root)
+    let part = std::iter::once(inside(0))
         .filter(|root| !root.is_empty())
         .chain(
             (1..configuration.frame.len())
-                .map(|frame| (frame, inside(frame)))
+                .map(|index| (index, inside(index)))
                 .filter(|(_, text)| !text.is_empty())
-                .map(|(frame, text)| format!("in f{frame}: {text}")),
+                .map(|(index, text)| format!("in {}: {text}", frame(configuration, index))),
         )
         .collect::<Vec<_>>();
     if part.is_empty() {
@@ -62,11 +82,24 @@ pub fn text(rule: &[Rule], configuration: &Configuration) -> String {
     part.join(" · ")
 }
 
+pub fn text(rule: &[Rule], configuration: &Configuration) -> String {
+    written(rule, configuration, false)
+}
+
 pub fn configuration(exploration: &Exploration, index: usize) -> String {
     exploration
         .configuration
         .get(index)
         .map(|configuration| text(&exploration.rule, configuration))
+        .unwrap_or_default()
+}
+
+// A configuration with the rules live in each scope, which compare tells configurations apart by.
+pub fn detail(exploration: &Exploration, index: usize) -> String {
+    exploration
+        .configuration
+        .get(index)
+        .map(|configuration| written(&exploration.rule, configuration, true))
         .unwrap_or_default()
 }
 
@@ -114,7 +147,7 @@ pub fn movement(exploration: &Exploration, event: usize, forward: bool) -> Move 
         rule: format!(
             "{} {}",
             Handle::Rule(entry.rule),
-            brief(exploration, entry.rule)
+            exploration.rule[entry.rule].text
         ),
         configuration: Handle::Configuration(configuration).to_string(),
         text: self::configuration(exploration, configuration),
@@ -160,21 +193,7 @@ pub fn row(label: &str, first: bool) -> String {
 pub fn input(exploration: &Exploration, rule: usize) -> String {
     let definition = &exploration.rule[rule].definition;
     frontend::text::definition(&source::Definition {
-        name: String::new(),
         input: definition.input.clone(),
         output: Vec::new(),
     })
-}
-
-pub fn brief(exploration: &Exploration, rule: usize) -> String {
-    let entry = &exploration.rule[rule];
-    if entry
-        .definition
-        .output
-        .iter()
-        .all(|output| matches!(output, source::Output::Particle(_)))
-    {
-        return entry.text.clone();
-    }
-    format!("{} (…)", input(exploration, rule))
 }

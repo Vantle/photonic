@@ -3,7 +3,7 @@ load("//photonic:defs.bzl", "photonic_library")
 photonic_library(
     name = "successor",
     srcs = ["successor.particle"],
-    visibility = ["//program/ternary:__pkg__"],
+    visibility = ["//visibility:public"],
 )
 
 filegroup(

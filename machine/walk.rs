@@ -7,6 +7,12 @@ use crate::state::State;
 use hashing::Builder;
 use std::collections::HashSet;
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct Refusal {
+    pub index: usize,
+    pub count: usize,
+}
+
 #[derive(Clone, Debug)]
 pub struct Walk {
     pub terminal: Option<State>,
@@ -14,6 +20,7 @@ pub struct Walk {
     pub depth: usize,
     pub cycle: bool,
     pub overflow: bool,
+    pub refusal: Option<Refusal>,
 }
 
 pub fn walk(
@@ -29,7 +36,12 @@ pub fn walk(
         depth: 0,
         cycle: false,
         overflow: false,
+        refusal: None,
     };
+    if !fits(program, &initial, limit) {
+        result.overflow = true;
+        return result;
+    }
     let Ok(key) = initial.key(limit.individualization) else {
         result.overflow = true;
         return result;
@@ -54,7 +66,13 @@ pub fn walk(
             result.overflow = true;
             return result;
         }
-        let chosen = event.swap_remove(choose(event.len()));
+        let count = event.len();
+        let index = choose(count);
+        if index >= count {
+            result.refusal = Some(Refusal { index, count });
+            return result;
+        }
+        let chosen = event.swap_remove(index);
         let (next, deepest) = lineage(program, &level, std::slice::from_ref(&chosen));
         level = next;
         result.depth = result.depth.max(deepest);

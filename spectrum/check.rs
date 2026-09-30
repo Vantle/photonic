@@ -2,7 +2,7 @@ use crate::claim::{self, Claim, Verdict};
 use crate::context::Context;
 use crate::explore::{self, Summary};
 use crate::explored::Explored;
-use crate::failure::{Code, Failure, Location};
+use crate::failure::{Code, Failure};
 use crate::recording::Recording;
 use crate::render;
 use schemars::JsonSchema;
@@ -20,40 +20,28 @@ pub struct Request {
 }
 
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
-pub(crate) struct Diagnostic {
-    pub(crate) code: String,
-    pub(crate) message: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) location: Option<Location>,
-}
-
-#[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 pub struct Answer {
-    pub(crate) diagnostic: Vec<Diagnostic>,
+    #[schemars(
+        description = "Why the program does not assemble, each with a failure's fields: the code source or library, the message, the location and the frontend's name for the error as diagnostic."
+    )]
+    pub(crate) diagnostic: Vec<Failure>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) summary: Option<Summary>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub(crate) claim: Vec<Verdict>,
 }
 
-fn diagnostic(failure: Failure) -> Diagnostic {
-    Diagnostic {
-        code: failure
-            .diagnostic
-            .unwrap_or_else(|| render::name(failure.code)),
-        message: failure.message,
-        location: failure.location,
-    }
-}
-
 // A program that does not assemble is answered with its diagnostic, and only assembling fails with
 // a source or library code; every other failure is the request's.
 pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Answer, Failure> {
+    for claim in &request.claim {
+        claim::admit(claim, &request.recording)?;
+    }
     let explored = match context.explored(&request.recording) {
         Ok(explored) => explored,
         Err(failure) if matches!(failure.code, Code::Source | Code::Library) => {
             return Ok(Answer {
-                diagnostic: vec![diagnostic(failure)],
+                diagnostic: vec![failure],
                 summary: None,
                 claim: Vec::new(),
             });
@@ -93,10 +81,11 @@ impl Answer {
                     format!("{}:{}:{}   ", location.file, location.line, location.column)
                 })
                 .unwrap_or_default();
-            line.push(format!(
-                "{place}error {}   {}",
-                diagnostic.code, diagnostic.message
-            ));
+            let name = diagnostic
+                .diagnostic
+                .clone()
+                .unwrap_or_else(|| render::name(diagnostic.code));
+            line.push(format!("{place}error {name}   {}", diagnostic.message));
         }
         if self.diagnostic.is_empty() {
             line.push("no diagnostics".to_owned());

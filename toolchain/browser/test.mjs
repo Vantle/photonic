@@ -23,7 +23,7 @@ for (const source of [
 ]) {
     const path = join(process.env.TEST_TMPDIR, 'source.wave');
     await writeFile(path, source);
-    const native = spawnSync(command, ['run', path, '--engine', 'interpreter', '--work', '20000', '--configuration', '128', '--occurrence', '128', '--scope', '16', '--coherence', '16', '--record', '100000', '--json'], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+    const native = spawnSync(command, ['run', path, '--engine', 'interpreter', '--work', '20000', '--configuration', '128', '--occurrence', '256', '--scope', '16', '--coherence', '16', '--record', '100000', '--json'], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
     assert.equal(native.status, 0, native.error?.message || native.stderr);
     const response = explore({ source, target: [] });
     assert.equal(response.error, undefined);
@@ -76,10 +76,10 @@ assert.equal(explore({ source: 'A'.repeat(131073) }).error.code, 'size');
 assert.equal(explore({ source: 'A', target: ['A'] }).verdict[0].outcome, 'reached');
 const located = explore({ source: 'A, [B' });
 assert.equal(located.error.code, 'source');
-assert.equal(located.error.span.offset, 5);
-assert.equal(explore({ source: '人, [B' }).error.span.offset, 5);
-assert.equal(explore({ source: '人 [B' }).error.span.offset, 4);
-assert.deepEqual(explore({ source: 'A', target: ['人.人, [B'] }).error.span, { offset: 7, length: 0 });
+assert.equal(located.error.span.offset, 3);
+assert.equal(explore({ source: '人, [B' }).error.span.offset, 3);
+assert.equal(explore({ source: '人 [B' }).error.span.offset, 2);
+assert.deepEqual(explore({ source: 'A', target: ['人.人, [B'] }).error.span, { offset: 5, length: 1 });
 assert.equal(explore({ source: 'A', target: ['A', 'B, ['] }).error.target, 1);
 assert.deepEqual(explore({ source: '⟨x⟩, [⟨x⟩] B' }).execution.state[0].world[0].particle, [{ kind: 'atom', id: 0, label: '⟨x⟩' }]);
 const valued = explore({ source: 'Seed.A, [Seed] ().([A] B)' }).execution;
@@ -123,6 +123,11 @@ const lowered = lower('A.(B, C), [A] (D, E)');
 assert.equal(lowered.version, version);
 assert.deepEqual(lowered.program.initial, [['A', 'B'], ['A', 'C']]);
 assert.equal(lowered.program.rule[0].output.length, 2);
+assert.equal(lowered.program.rule[0].name, '[A] (D, E)');
+const nested = lower('[Seed]\n    ().([A]  (B,\n\t[B] C))').program.rule[0];
+assert.equal(nested.name, '[Seed] ().([A] (B, [B] C))');
+assert.equal(nested.output[0][0].rule.name, '[A] (B, [B] C)');
+assert.equal(nested.output[0][0].rule.output[0].rule[0].name, '[B] C');
 assert.equal(lower('[A] (B').error.code, 'source');
 assert.deepEqual(lower('⟨x⟩ ]').error.span, { offset: 4, length: 1 });
 assert.equal(lower('A'.repeat(131073)).error.code, 'size');
@@ -155,7 +160,7 @@ const refused = path => {
 };
 assert.equal(refused({ version, source: 'A', target: ['A', 'B'] }).code, 'target');
 assert.deepEqual(refused({ version, source: 'A, [B' }), refused({ version, source: 'A, [B', target: ['A'] }));
-assert.equal(refused({ version, source: 'A, [B' }).span.offset, 5);
+assert.equal(refused({ version, source: 'A, [B' }).span.offset, 3);
 assert.equal(refused({ version: version + 1, source: 'A' }).code, 'version');
 console.log('Direct paths reach preserved targets, inspect every transition and locate refusals.');
 
@@ -222,7 +227,7 @@ assert.equal(shape({ version: version + 1, program: ['A'] }).error.code, 'versio
 const broken = shape({ program: ['A', 'B, [C'] });
 assert.equal(broken.error.code, 'source');
 assert.equal(broken.error.program, 1);
-assert.equal(broken.error.span.offset, 5);
+assert.equal(broken.error.span.offset, 3);
 const file = [];
 for (const [index, source] of [parity, exclusive, card].entries()) {
     const path = join(process.env.TEST_TMPDIR, `shape.${index}.wave`);
@@ -233,6 +238,8 @@ const native = spawnSync(command, ['shape', ...file, '--json'], { encoding: 'utf
 assert.equal(native.status, 0, native.stderr);
 assert.deepEqual(JSON.parse(native.stdout).answer.class[0].atom, connected.shape[0].atom.map(row => row.name));
 const deep = Array.from({ length: 3500 }, (_, index) => `[a${index}] b${index},[b${index}] a${index}.b${index}`).join(',\n');
-assert.equal(shape({ program: [deep] }).error.code, 'budget');
+const crowd = shape({ program: [deep] });
+assert.equal(crowd.error, undefined, JSON.stringify(crowd.error));
+assert.equal(crowd.shape.length, 1);
 assert.equal(engine.compare, undefined);
 console.log('The shape export groups programs by shape, names every atom in each program and matches the native command.');

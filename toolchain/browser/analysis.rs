@@ -38,10 +38,8 @@ impl From<symmetry::analysis::Kind> for Kind {
     }
 }
 
-fn visit<'source>(rule: &'source Definition, name: &mut Vec<&'source str>) {
-    if !rule.name.is_empty() {
-        name.push(&rule.name);
-    }
+fn visit(rule: &Definition, name: &mut Vec<String>) {
+    name.push(frontend::text::definition(rule));
     for particle in &rule.input {
         scan(particle, name);
     }
@@ -53,7 +51,7 @@ fn visit<'source>(rule: &'source Definition, name: &mut Vec<&'source str>) {
     }
 }
 
-fn enclose<'source>(program: &'source Program, name: &mut Vec<&'source str>) {
+fn enclose(program: &Program, name: &mut Vec<String>) {
     for particle in &program.initial {
         scan(particle, name);
     }
@@ -65,7 +63,7 @@ fn enclose<'source>(program: &'source Program, name: &mut Vec<&'source str>) {
     }
 }
 
-fn scan<'source>(particle: &'source [Value], name: &mut Vec<&'source str>) {
+fn scan(particle: &[Value], name: &mut Vec<String>) {
     for value in particle {
         if let Value::Rule { rule } = value {
             visit(rule, name);
@@ -73,16 +71,16 @@ fn scan<'source>(particle: &'source [Value], name: &mut Vec<&'source str>) {
     }
 }
 
-fn named<'source>(collect: impl FnOnce(&mut Vec<&'source str>)) -> Vec<&'source str> {
+fn named(collect: impl FnOnce(&mut Vec<String>)) -> Vec<String> {
     let mut name = Vec::new();
     collect(&mut name);
     name
 }
 
-fn translate<'source>(
-    program: &'source Program,
+fn translate(
+    program: &Program,
     vocabulary: &mut Vocabulary,
-) -> Option<(Vec<Statement>, Vec<Vec<&'source str>>)> {
+) -> Option<(Vec<Statement>, Vec<Vec<String>>)> {
     let mut statement = Vec::new();
     let mut name = Vec::new();
     for entry in &program.rule {
@@ -107,7 +105,7 @@ fn translate<'source>(
     Some((statement, name))
 }
 
-fn attribute(class: &[symmetry::analysis::Class], name: &[Vec<&str>]) -> Vec<Vec<String>> {
+fn attribute(class: &[symmetry::analysis::Class], name: &[Vec<String>]) -> Vec<Vec<String>> {
     let mut member = vec![None; name.len()];
     for (index, entry) in class.iter().enumerate() {
         for &position in &entry.statement {
@@ -116,7 +114,7 @@ fn attribute(class: &[symmetry::analysis::Class], name: &[Vec<&str>]) -> Vec<Vec
     }
     let mut owner = BTreeMap::<&str, BTreeSet<Option<usize>>>::new();
     for (position, entry) in name.iter().enumerate() {
-        for &text in entry {
+        for text in entry {
             owner.entry(text).or_default().insert(member[position]);
         }
     }

@@ -31,6 +31,35 @@ pub(crate) fn agree(source: &str, budget: usize, limit: Limit) {
     walk(&laser, source);
 }
 
+// Whether some configuration holds the atom in a coherence of the root frame.
+fn root(state: &[crate::snapshot::Node], atom: &str) -> bool {
+    state.iter().any(|node| {
+        node.world.iter().any(|world| {
+            node.frame[world.frame].parent.is_none()
+                && world
+                    .particle
+                    .iter()
+                    .any(|token| crate::test::atom(token) == Some(atom))
+        })
+    })
+}
+
+// A rule value keeps its output beside its coherence even in the frame it captures: `[A] B` rides
+// `Out` back into the outer scope and fires there, so `Out` never reaches the root.
+#[test]
+fn residence() {
+    let source = "((P.Z.A, [Q.Z] Out), [P] Q.([A] B), [Q.B] Done)";
+    agree(source, 1_000_000, Limit::default());
+    let program = frontend::lowering::parse(source).unwrap();
+    let mut runtime = Runtime::new(&program);
+    runtime.run(1_000_000, Limit::default());
+    assert!(!root(&runtime.snapshot().state, "Out"));
+    let mut plain = Laser::plain(&program);
+    plain.run(1_000_000, Limit::default());
+    assert!(plain.closed());
+    assert!(!root(&plain.report().state, "Out"));
+}
+
 #[test]
 fn agreement() {
     for source in [
@@ -53,6 +82,7 @@ fn agreement() {
         "Go.Y, [Go] (X, [X] ().([Y] Z))",
         "Go.K, [Go] ().([K] A)",
         "A, Key, [A] B, [B, Key] (C, [Q] R)",
+        "((P.Z.A, [Q.Z] Out), [P] Q.([A] B), [Q.B] Done)",
     ] {
         agree(source, 1_000_000, Limit::default());
     }
@@ -89,6 +119,7 @@ fn plain() {
         "Go.Y, K, [K] L, [Go] (X, [X] ().([Y] Z))",
         "Go.Y, [Go] (X, [X] ().([Y] Z))",
         "A, Key, [A] B, [B, Key] (C, [Q] R)",
+        "((P.Z.A, [Q.Z] Out), [P] Q.([A] B), [Q.B] Done)",
     ]) {
         let program = frontend::lowering::parse(source).unwrap();
         let mut full = Laser::new(&program);
@@ -215,6 +246,7 @@ fn net() {
         "A, A, A, [A, A, A] B",
         "A.B, A.B, A, [A, A.B] C",
         "Claim, [Claim] P.Work, [Work] Done, [P] X",
+        "((P.Z.A, [Q.Z] Out), [P] Q.([A] B), [Q.B] Done)",
     ]) {
         let program = frontend::lowering::parse(source).unwrap();
         let mut plain = Laser::plain(&program);
@@ -462,6 +494,133 @@ fn allowance() {
             }
             assert_eq!(stepped.summary(), whole.summary(), "{source} {budget}");
         }
+    }
+}
+
+// An application whose result a round cannot name within what the round has left waits for the
+// next round, so a run too small to name it leaves the exploration open, spending exactly its
+// budget, and a larger run closes it as one run does. Two steps scan the start and pay for one
+// application, which leaves nothing to name its result with.
+#[test]
+fn deferral() {
+    let limit = Limit::default();
+    for source in [
+        "Seed.X, Seed.X, Seed.X, [Seed] (A, A)",
+        "Go, Go, Go, [Go] (X, X, [X] Y)",
+    ] {
+        let program = frontend::lowering::parse(source).unwrap();
+        let mut runtime = Runtime::new(&program);
+        runtime.run(100_000_000, limit);
+        let mut whole = Laser::new(&program);
+        whole.run(100_000_000, limit);
+        let mut laser = Laser::new(&program);
+        laser.run(2, limit);
+        assert!(!laser.round.retry.is_empty(), "{source}");
+        assert!(!laser.closed(), "{source}");
+        assert_eq!(laser.summary().work, 2, "{source}");
+        laser.run(100_000_000, limit);
+        assert!(laser.closed(), "{source}");
+        assert_eq!(laser.agree(&runtime), Ok(()), "{source}");
+        assert_eq!(laser.summary().state, whole.summary().state, "{source}");
+        assert_eq!(laser.summary().event, whole.summary().event, "{source}");
+    }
+}
+
+// Naming results and environments charges each run its steps without taking it past its budget,
+// and runs of every size charge alike for any number of workers, reaching the configurations and
+// events of one run. A run must hold the steps its largest name takes: these programs need three.
+#[test]
+fn charge() {
+    let executor = crate::executor::Executor::new(std::num::NonZeroUsize::new(4).unwrap()).unwrap();
+    let limit = Limit::default();
+    for source in [
+        "Seed.X, Seed.X, Seed.X, [Seed] (A, A)",
+        "Go, Go, Go, [Go] (X, X, [X] Y)",
+        "Go.Y, Go.Y, Go.Y, [Go] (X, [X] ().([Y] Z))",
+    ] {
+        let program = frontend::lowering::parse(source).unwrap();
+        let mut whole = Laser::new(&program);
+        whole.run(100_000_000, limit);
+        assert!(whole.closed(), "{source}");
+        for budget in [3, 5, 9, 50] {
+            let mut sequential = Laser::new(&program);
+            let mut parallel = Laser::new(&program);
+            for _ in 0..10_000 {
+                let before = sequential.summary().work;
+                sequential.run(budget, limit);
+                parallel.parallel(&executor, budget, limit);
+                assert!(sequential.summary().work - before <= budget, "{source}");
+                assert_eq!(
+                    parallel.summary(),
+                    sequential.summary(),
+                    "{source} {budget}"
+                );
+                if sequential.closed() {
+                    break;
+                }
+            }
+            assert!(sequential.closed(), "{source} {budget}");
+            assert_eq!(
+                (sequential.summary().state, sequential.summary().event),
+                (whole.summary().state, whole.summary().event),
+                "{source} {budget}"
+            );
+        }
+    }
+}
+
+// A trace whose environment takes more steps to name than a round has left waits for the next round
+// with every trace after it, spending what the round had left, so every run stays within its
+// budget, and runs of every size reach the configurations and events of one run for any number of
+// workers. Naming these environments takes no steps, so before each run every environment is
+// remembered as taking five.
+#[test]
+fn environment() {
+    let executor = crate::executor::Executor::new(std::num::NonZeroUsize::new(4).unwrap()).unwrap();
+    let limit = Limit::default();
+    let program = frontend::lowering::parse("Go.Y, Go.Y, [Go] (X, [X] ().([Y] Z))").unwrap();
+    let mut whole = Laser::new(&program);
+    whole.run(100_000_000, limit);
+    assert!(whole.closed());
+    let costly = |laser: &mut Laser| {
+        laser.environment = super::memo::Memo::default();
+        for origin in 0..laser.state.len() {
+            for frame in 0..laser.state[origin].frame.len() {
+                laser.environment.get((origin, frame), |_| {
+                    let mut budget = usize::MAX;
+                    let named = laser.state[origin].environment(frame, &mut budget);
+                    super::taxonomy::Name::Found(std::sync::Arc::new(named.unwrap()), 5)
+                });
+            }
+        }
+    };
+    for budget in [7, 10, 16, 25, 60] {
+        let mut sequential = Laser::new(&program);
+        let mut parallel = Laser::new(&program);
+        for _ in 0..10_000 {
+            costly(&mut sequential);
+            costly(&mut parallel);
+            let before = sequential.summary().work;
+            sequential.run(budget, limit);
+            parallel.parallel(&executor, budget, limit);
+            assert!(sequential.summary().work - before <= budget, "{budget}");
+            assert_eq!(parallel.summary(), sequential.summary(), "{budget}");
+            if sequential.closed() {
+                break;
+            }
+        }
+        eprintln!(
+            "WORK {budget} stepped {} whole {}",
+            sequential.summary().work,
+            whole.summary().work
+        );
+        assert!(sequential.closed(), "{budget}");
+        assert!(sequential.summary().work > whole.summary().work, "{budget}");
+        assert_eq!(
+            (sequential.summary().state, sequential.summary().event),
+            (whole.summary().state, whole.summary().event),
+            "{budget}"
+        );
     }
 }
 

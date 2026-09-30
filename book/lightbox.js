@@ -5,7 +5,7 @@
     const storage = 'photonic-lightbox';
     const warning = {
         recorded: 'Write and run your own programs at photonic.vantle.org or in a served checkout. Here the examples show their recorded runs.',
-        failed: 'The engine could not load. Reload the page to write and run your own programs. Here the examples show their recorded runs.',
+        failed: 'This browser could not start the WebAssembly engine. Reload the page to try again; until then the examples show their recorded runs.',
     };
 
     const text = value => typeof value === 'string';
@@ -50,7 +50,7 @@
         const copy = element('button', undefined, 'Copy link');
         copy.type = 'button';
         const run = book.run.button();
-        bar.append(element('span', 'title', 'Program'), badge, fresh, copy, run);
+        bar.append(element('h2', 'title', 'Program'), badge, fresh, copy, run);
         const notice = element('p', 'notice');
         notice.hidden = true;
         const body = element('div', 'body');
@@ -59,27 +59,14 @@
         const editor = book.editor.create('Lightbox program');
         const goal = book.editor.goal('Target configurations, one per line', 2);
         const option = element('div', 'option');
-        option.append(element('span', undefined, 'Libraries'));
-        const toggle = new Map(Object.keys(book.record?.library ?? {}).map(name => {
-            const button = element('button', undefined, name.replace(/^library\//, ''));
-            button.type = 'button';
-            button.title = `${name}.particle`;
-            button.setAttribute('aria-pressed', 'false');
-            button.addEventListener('click', () => {
-                if (button.hasAttribute('aria-disabled')) return;
-                button.setAttribute('aria-pressed', String(button.getAttribute('aria-pressed') !== 'true'));
-                changed();
-            });
-            option.append(button);
-            return [name, button];
-        }));
         const check = element('label', 'check');
         const keep = element('input');
         keep.type = 'checkbox';
         check.append(keep, 'Targets keep the program’s rules');
         option.append(check);
+        const chooser = book.chooser.create({ change: () => changed(), measure: () => book.engine.size(setting()) });
         const message = book.render.message();
-        body.append(choice.element, editor.element, goal.element, option, message.element);
+        body.append(choice.element, editor.element, goal.element, option, chooser.element, message.element);
         card.append(bar, notice, body);
         const result = element('section', 'result');
         const viewer = book.viewer.create();
@@ -89,18 +76,16 @@
         const setting = () => ({
             source: editor.value,
             target: goal.value,
-            library: [...toggle].filter(([, button]) => button.getAttribute('aria-pressed') === 'true').map(([name]) => name),
+            library: chooser.value,
             preserve: keep.checked,
         });
         const fill = value => {
             editor.value = value.source;
             goal.value = value.target;
-            toggle.forEach((button, name) => button.setAttribute('aria-pressed', String(value.library.includes(name))));
             keep.checked = value.preserve;
-            const missing = value.library.filter(name => !toggle.has(name));
-            if (missing.length) message.say(`The Lightbox does not have ${missing.map(name => `${name}.particle`).join(', ')}.`, 'error');
+            chooser.value = value.library;
         };
-        const address = () => history.replaceState(null, '', book.share.link(setting()));
+        const address = value => history.replaceState(null, '', book.share.link(value));
 
         let draft;
         let timer;
@@ -108,10 +93,12 @@
             clearTimeout(timer);
             if (!draft) return;
             remember(draft);
+            address(draft);
             draft = undefined;
         };
         const changed = () => {
             choice.press();
+            chooser.describe();
             draft = setting();
             clearTimeout(timer);
             timer = setTimeout(save, 300);
@@ -121,14 +108,20 @@
 
         const cycle = book.run.create({ trigger: run, message });
         let pending = false;
+        let opening = 0;
         const execute = () => {
             const value = setting();
             const submission = book.editor.submit(root, editor, goal);
             cycle.start(signal => book.engine.explore(value, signal), outcome => {
                 message.say(advice(outcome, value));
                 viewer.show(outcome, value.target);
-                address();
+                address(value);
             }, error => message.say(book.editor.locate(error, submission), 'error'));
+        };
+        const resume = () => {
+            if (!pending || book.engine.state !== 'live') return;
+            pending = false;
+            execute();
         };
 
         const pick = item => {
@@ -137,12 +130,14 @@
                 message.say('This example has no recorded run. Regenerate the records with bazel run -c opt //book:record.', 'error');
                 return;
             }
+            opening++;
+            save();
             cycle.cancel();
             message.say();
             fill(value);
             choice.press(item.name);
             viewer.show(value.result, value.target);
-            address();
+            address(value);
         };
 
         for (const area of [editor.area, goal.area]) {
@@ -152,6 +147,7 @@
         keep.addEventListener('change', changed);
         run.addEventListener('click', execute);
         fresh.addEventListener('click', () => {
+            opening++;
             cycle.cancel();
             message.say();
             fill({ source: '', target: [], library: [], preserve: false });
@@ -159,7 +155,6 @@
             viewer.blank('Write a program, then press Run.');
             draft = setting();
             save();
-            history.replaceState(null, '', 'lightbox.html');
             editor.area.focus();
         });
         copy.addEventListener('click', async () => {
@@ -174,23 +169,42 @@
             setTimeout(() => { copy.textContent = 'Copy link'; }, 1600);
         });
 
-        const begin = () => {
-            const start = book.share.read(location.search) ?? remembered();
-            if (!start) {
-                pick(sample[0]);
+        const open = async start => {
+            const mine = ++opening;
+            save();
+            address(start);
+            cycle.cancel();
+            message.say();
+            pending = false;
+            if (!start.library.every(book.chooser.has)) await book.chooser.load().catch(() => undefined);
+            if (mine !== opening) return;
+            fill(start);
+            const missing = start.library.filter(name => !book.chooser.has(name));
+            if (missing.length) {
+                choice.press();
+                message.say(`The Lightbox does not have ${missing.map(name => `${name}.particle`).join(', ')}, so it has not run this program.`, 'error');
+                viewer.blank('Choose the libraries this program needs, then press Run.');
                 return;
             }
-            fill(start);
             const known = sample.find(item => entry(item) && same(entry(item), start));
             if (known) {
                 choice.press(known.name);
                 viewer.show(entry(known).result, entry(known).target);
                 return;
             }
+            choice.press();
             viewer.blank('Run the program to draw its graph.');
             pending = true;
+            resume();
         };
-        begin();
+
+        const start = book.share.read(location.hash) ?? book.share.legacy(location.search) ?? remembered();
+        if (start) open(start);
+        else pick(sample[0]);
+        addEventListener('hashchange', () => {
+            const shared = book.share.read(location.hash);
+            if (shared) open(shared);
+        });
 
         book.engine.watch(state => {
             const on = state === 'live';
@@ -201,14 +215,9 @@
             editor.area.readOnly = !on;
             goal.area.readOnly = !on;
             keep.disabled = !on;
-            toggle.forEach(button => {
-                if (on) button.removeAttribute('aria-disabled');
-                else button.setAttribute('aria-disabled', 'true');
-            });
+            chooser.enable(on);
             badge.textContent = on ? 'live' : 'recorded runs';
-            if (!on || !pending) return;
-            pending = false;
-            execute();
+            resume();
         });
     };
 

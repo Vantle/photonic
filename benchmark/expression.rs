@@ -1,7 +1,10 @@
 use clap::Parser;
+use std::num::NonZeroUsize;
 
 mod evaluation;
 mod formula;
+mod limit;
+mod warm;
 
 #[global_allocator]
 static ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
@@ -11,8 +14,8 @@ struct Argument {
     input: String,
     #[arg(allow_hyphen_values = true)]
     expected: String,
-    #[arg(long, default_value_t = 5)]
-    sample: usize,
+    #[arg(long, default_value = "5")]
+    sample: NonZeroUsize,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -20,7 +23,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (program, target) =
         formula::program(&formula::source(&argument.input, &argument.expected)?)?;
     evaluation::warm(&program, &target, None)?;
-    let measurement = (0..argument.sample)
+    let measurement = (0..argument.sample.get())
         .map(|_| evaluation::evaluate(program.clone(), target.clone(), None))
         .collect::<Result<Vec<_>, _>>()?;
     serde_json::to_writer_pretty(

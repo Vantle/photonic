@@ -7,12 +7,13 @@ import { dirname, extname, join, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const [chrome, chromedriver, webassembly, javascript] = process.argv.slice(2);
+const [chrome, chromedriver, webassembly, javascript, library] = process.argv.slice(2);
 const missing = [];
-const type = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.wasm': 'application/wasm', '.svg': 'image/svg+xml' };
+const type = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.wasm': 'application/wasm', '.svg': 'image/svg+xml', '.png': 'image/png' };
 const module = new Map([
     [resolve(root, 'toolchain/browser/module/runtime_bg.wasm'), webassembly],
     [resolve(root, 'toolchain/browser/module/runtime.js'), javascript],
+    [resolve(root, 'book/library.js'), library],
 ]);
 const server = createServer(async (request, response) => {
     const path = resolve(root, `.${new URL(request.url, 'http://localhost').pathname}`);
@@ -67,9 +68,15 @@ const capture = async name => {
 };
 const figure = name => `document.querySelector('figure[data-example="${name}"]')`;
 const ready = `return document.querySelectorAll('figure.example').length > 0 && [...document.querySelectorAll('figure.example')].every(value => value.querySelector('.graph, .stepper'))`;
+const outline = `
+    const level = [...document.querySelectorAll('h1, h2, h3, h4, h5, h6')].map(value => Number(value.tagName[1]));
+    return level[0] === 1 && level.filter(value => value === 1).length === 1 && level.every((value, index) => !index || value <= level[index - 1] + 1);
+`;
 const narrow = async () => {
-    await resize(390, 844);
-    assert.ok(await evaluate('return document.documentElement.scrollWidth <= window.innerWidth + 1'));
+    for (const [width, height] of [[375, 812], [390, 844]]) {
+        await resize(width, height);
+        assert.ok(await evaluate('return document.documentElement.scrollWidth <= window.innerWidth'), `${width} pixels wide`);
+    }
     await resize(1440, 1000);
 };
 
@@ -91,6 +98,7 @@ try {
     await open(pathToFileURL(join(root, 'index.html')).href, ready);
     assert.equal(await evaluate("return book.engine.state"), 'recorded');
     assert.equal(await evaluate("return document.getElementById('status').textContent"), 'Recorded runs');
+    assert.equal(await evaluate("return document.getElementById('local').hidden"), false);
     assert.equal(await evaluate(`return ${figure('first')}.querySelector('.run').hidden`), true);
     assert.equal(await evaluate("return document.querySelectorAll('figure.example').length"), await evaluate('return Object.keys(book.record.example).length'));
     assert.deepEqual(await evaluate("return [...document.querySelectorAll('.message')].filter(value => value.hidden || value.textContent).map(value => value.textContent)"), []);
@@ -124,7 +132,17 @@ try {
     assert.match(await evaluate("return document.querySelector('.palette li').textContent"), /Filter the workbench by/);
     await evaluate("document.querySelector('.palette input').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); return true");
     assert.equal(await evaluate("return document.querySelector('.palette').hidden"), true);
-    await evaluate("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true })); const input = document.querySelector('.palette input'); input.value = 'Prism'; input.dispatchEvent(new Event('input')); input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })); input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); return true");
+    const palette = async text => {
+        await evaluate(`const input = document.querySelector('.palette input'); input.value = ${JSON.stringify(text)}; input.dispatchEvent(new Event('input')); return true`);
+        return evaluate("return [...document.querySelectorAll('.palette li')].map(value => value.textContent)");
+    };
+    await evaluate("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true })); return true");
+    assert.deepEqual(await palette('Prism'), ['9 · Prismchapter', 'Filter the workbench byPrismpattern']);
+    assert.match((await palette('zzz'))[0], /^Filter the workbench by/);
+    assert.equal((await palette('Lightbox')).at(-1), 'Filter the workbench byLightboxpattern');
+    assert.match((await palette('B.X'))[0], /^Filter the workbench by/);
+    await evaluate("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return true");
+    await evaluate("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true })); const input = document.querySelector('.palette input'); input.value = 'Prism'; input.dispatchEvent(new Event('input')); input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); return true");
     assert.equal(await evaluate("return document.activeElement === document.querySelector('#prism h2')"), true);
     await until("return document.querySelector('#bench .filter input').value === '[C, D] E'");
     await evaluate("document.querySelector('#bench .filter .tool').click(); return true");
@@ -147,8 +165,8 @@ try {
     assert.deepEqual(await evaluate("return [...document.querySelectorAll('#bench .symmetry .class button')].map(value => value.textContent)"), ['Global A and B; C and D']);
     await evaluate(`${figure('first')}.querySelector('.bar button:not(.run)').click(); return true`);
     await until("return document.querySelector('#bench .editor textarea').value === 'A.X,\\n[A] B'");
-    assert.match(await evaluate("return document.querySelector('#bench .bar a').getAttribute('href')"), /^lightbox\.html\?source=/);
-    assert.equal(await evaluate(`return ${figure('first')}.querySelector('.bar a').getAttribute('href')`), 'lightbox.html?source=A.X%2C%0A%5BA%5D+B');
+    assert.match(await evaluate("return document.querySelector('#bench .bar a').getAttribute('href')"), /^lightbox\.html#1&source=/);
+    assert.equal(await evaluate(`return ${figure('first')}.querySelector('.bar a').getAttribute('href')`), 'lightbox.html#1&source=A.X%2C%0A%5BA%5D+B');
     assert.equal(await evaluate("return document.querySelector('.rail .launch').getAttribute('href')"), 'lightbox.html');
     const connection = "document.querySelector('.connection')";
     assert.equal(await evaluate(`return ${connection}.querySelector('.badge').textContent`), 'recorded run');
@@ -164,6 +182,7 @@ try {
         assert.equal(await evaluate(`return ${connection}.querySelectorAll('.output .panel').length`), await evaluate(`return book.record.connection[${JSON.stringify(name)}].result.shape.length`), name);
     }
     assert.match(await evaluate(`return ${connection}.querySelector('.verdict').textContent`), /^One shape: lattice\.converse and lattice\.order/);
+    assert.equal(await evaluate(outline), true);
     await narrow();
     console.log('The recorded book renders every example, verdict, lens, expression, workbench view, filter and connection from a local file.');
 
@@ -185,13 +204,15 @@ try {
     assert.equal(await evaluate("return document.querySelectorAll('.lightbox [data-tint]').length"), 2);
     await evaluate("[...document.querySelectorAll('.lightbox .preset button')].find(value => value.textContent === 'Negation').click(); return true");
     assert.deepEqual(await evaluate("return [...document.querySelectorAll('.lightbox .symmetry .class button')].map(value => value.textContent)"), ['Local False ⇄ True', 'Block Boolean.Not']);
-    assert.deepEqual(await evaluate("return [...document.querySelectorAll('.lightbox .option button[aria-pressed=\"true\"]')].map(value => value.title)"), ['library/function/invoke.particle', 'library/boolean/not.particle']);
+    assert.equal(await evaluate("return document.querySelector('.lightbox .chooser summary code').textContent"), 'boolean/not, function/invoke');
     assert.deepEqual(await evaluate("return [...document.querySelectorAll('.lightbox .verdict .badge')].map(value => value.textContent)"), ['reached']);
+    assert.equal(await evaluate(outline), true);
     await narrow();
     console.log('The recorded Lightbox shows every example with its libraries, targets and symmetries from a local file.');
 
     await open(`${origin}/index.html`, `${ready} && book.engine.state === 'live'`);
     assert.equal(await evaluate("return document.getElementById('status').textContent"), 'Live engine');
+    assert.equal(await evaluate("return document.getElementById('local').hidden"), true);
     const filter = async text => {
         await evaluate("document.querySelector('#bench .filter .tool').click(); return true");
         await until("return document.querySelector('#bench .filter p').textContent.startsWith('Type a pattern')");
@@ -331,6 +352,7 @@ try {
         return true`);
     await until(`return ${figure('involution')}.querySelector('.message').textContent === 'Stopped.'`);
     assert.equal(await evaluate(`return ${figure('involution')}.querySelector('.run').hasAttribute('aria-disabled')`), false);
+    assert.equal(await evaluate(`return ${figure('involution')}.querySelector('.output').childElementCount`), 0);
     await evaluate(`[...${figure('involution')}.querySelectorAll('.bar button')].find(value => value.textContent === 'Reset').click(); return true`);
     await evaluate(`
         const area = document.querySelector('#bench .editor textarea');
@@ -365,6 +387,7 @@ try {
     console.log('The live book edits and reruns programs, targets, lenses, expressions, proofs, workbench programs and comparisons in WebAssembly.');
 
     await open(`${origin}/lightbox.html`, "return book.engine.state === 'live' && document.querySelectorAll('.lightbox .graph .state').length > 0");
+    assert.equal(await evaluate('return typeof book.library'), 'undefined');
     await evaluate(`
         const area = document.querySelector('.lightbox .editor textarea');
         area.value = 'A, B,\\n[A] C,\\n[B] D';
@@ -374,18 +397,56 @@ try {
     await until("return document.querySelectorAll('.lightbox .graph .state').length === 4 && document.querySelectorAll('.lightbox button.hyperedge').length === 2");
     assert.deepEqual(await evaluate("return [...document.querySelectorAll('.lightbox .symmetry .class button')].map(value => value.textContent)"), ['Global A and B; C and D']);
     assert.equal(await evaluate("return document.querySelectorAll('.lightbox button.hyperedge[data-symmetry=\"global\"]').length"), 2);
-    assert.match(await evaluate('return new URLSearchParams(location.search).get("source")'), /\[B\] D$/);
+    assert.equal(await evaluate('return location.search'), '');
+    assert.match(await evaluate('return book.share.read(location.hash).source'), /\[B\] D$/);
     await open(await evaluate('return location.href'), "return book.engine.state === 'live' && document.querySelectorAll('.lightbox .graph .state').length === 4");
+    await evaluate(`
+        const area = document.querySelector('.lightbox .editor textarea');
+        area.value = 'A, B,\\n[A] C,\\n[B] E';
+        area.dispatchEvent(new Event('input'));
+        return true`);
+    await until("return book.share.read(location.hash).source.endsWith('[B] E')");
+    await open(await evaluate('return location.href'), "return book.engine.state === 'live' && document.querySelector('.lightbox .editor textarea').value.endsWith('[B] E') && document.querySelectorAll('.lightbox .graph .state').length === 4");
     await open(`${origin}/lightbox.html?source=Q`, "return book.engine.state === 'live' && document.querySelectorAll('.lightbox .graph .state').length === 1");
+    assert.deepEqual(await evaluate('return [location.search, location.hash]'), ['', '#1&source=Q']);
+    await evaluate("location.hash = '#1&source=R.S&target=R.S'; return true");
+    await until("return document.querySelector('.lightbox .editor textarea').value === 'R.S' && [...document.querySelectorAll('.lightbox .verdict .badge')].map(value => value.textContent).join() === 'reached'");
+    await open(`${origin}/lightbox.html#1&source=P&library=library/natural/absent`, "return book.engine.state === 'live' && document.querySelector('.lightbox .message').dataset.tone === 'error'");
+    assert.match(await evaluate("return document.querySelector('.lightbox .message').textContent"), /does not have library\/natural\/absent\.particle/);
+    assert.equal(await evaluate("return document.querySelectorAll('.lightbox .blank').length"), 1);
     await evaluate("[...document.querySelectorAll('.lightbox .preset button')].find(value => value.textContent === 'Cycle').click(); return true");
-    assert.match(await evaluate('return location.search'), /^\?source=/);
-    await open(`${origin}/lightbox.html`, "return document.querySelector('.lightbox .editor textarea').value.endsWith('[B] D') && document.querySelectorAll('.lightbox .graph .state').length === 4");
+    assert.equal(await evaluate('return book.share.read(location.hash).source'), await evaluate('return book.record.example.cycle.source'));
+    await open(`${origin}/lightbox.html`, "return document.querySelector('.lightbox .editor textarea').value.endsWith('[B] E') && document.querySelectorAll('.lightbox .graph .state').length === 4");
     await evaluate("[...document.querySelectorAll('.lightbox .bar button')].find(value => value.textContent === 'New').click(); return true");
     assert.equal(await evaluate("return document.querySelector('.lightbox .editor textarea').value"), '');
     assert.equal(await evaluate("return document.querySelectorAll('.lightbox .blank').length"), 1);
     assert.equal(await evaluate("return document.querySelector('.lightbox .symmetry').hidden"), true);
+    assert.equal(await evaluate("return document.querySelector('.lightbox .chooser summary code').textContent"), 'none');
+    await evaluate("document.querySelector('.lightbox .chooser summary').click(); return true");
+    await until("return document.querySelectorAll('.lightbox .chooser .group').length === 15");
+    await evaluate("document.querySelector('.lightbox .chooser button[title=\"library/natural/add.particle\"]').click(); return true");
+    assert.equal(await evaluate("return document.querySelector('.lightbox .chooser summary code').textContent"), 'natural/add');
+    const load = await evaluate("return book.library['library/natural/add'].load");
+    assert.deepEqual(await evaluate("return book.engine.expand(['library/natural/add'])"), load);
+    assert.ok(load.includes('library/natural/column') && load.includes('library/chain/cell') && load.at(-1) === 'library/natural/add', load.join());
+    assert.equal(await evaluate("return document.querySelector('.lightbox .chooser p').textContent.split(':')[0]"), `Loads ${load.length} files, dependencies included`);
+    await evaluate(`
+        const area = document.querySelector('.lightbox .editor textarea');
+        area.value = 'Operand.Left.Zero, Operand.Right.Zero, Function.Natural.Add';
+        area.dispatchEvent(new Event('input'));
+        const goal = document.querySelector('.lightbox .field textarea');
+        goal.value = 'Return.Natural.Add.Zero';
+        goal.dispatchEvent(new Event('input'));
+        document.querySelector('.lightbox .option input').click();
+        document.querySelector('.lightbox .run').click();
+        return true`);
+    await until("return [...document.querySelectorAll('.lightbox .verdict .badge')].map(value => value.textContent).join() === 'reached'");
+    assert.deepEqual(await evaluate('return book.share.read(location.hash).library'), ['library/natural/add']);
+    await evaluate('window.previous = true; location.reload(); return true');
+    await until("return !window.previous && book.engine.state === 'live' && [...document.querySelectorAll('.lightbox .verdict .badge')].map(value => value.textContent).join() === 'reached'");
+    assert.equal(await evaluate("return document.querySelector('.lightbox .chooser summary code').textContent"), 'natural/add');
     await narrow();
-    console.log('The live Lightbox runs new programs, restores shared links, keeps the reader’s draft through links and examples, and starts afresh.');
+    console.log('The live Lightbox runs new programs, restores shared links, keeps the reader’s draft through links and examples, starts afresh, and loads a standard library with its dependencies.');
 
     await evaluate("document.getElementById('theme').click(); return true");
     assert.equal(await evaluate('return document.documentElement.dataset.theme'), 'light');

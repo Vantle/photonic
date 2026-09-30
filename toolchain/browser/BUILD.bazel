@@ -14,6 +14,7 @@ rust_shared_library(
         "expression.rs",
         "failure.rs",
         "limit.rs",
+        "lowering.rs",
         "path.rs",
         "request.rs",
         "response.rs",
@@ -47,6 +48,7 @@ rust_wasm_bindgen(
     name = "module",
     out_name = "runtime",
     target = "web",
+    visibility = ["//book:__pkg__"],
     wasm_file = ":engine",
 )
 

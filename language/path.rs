@@ -4,7 +4,7 @@ use crate::place::Place;
 use crate::prism::Outcome;
 use crate::program::Program;
 use crate::runtime::{Limit, Measure};
-use crate::snapshot::Node;
+use crate::snapshot::{Form, Node};
 use crate::state::{Canonical, State};
 use crate::status::Status;
 use crate::stop::{Blocked, Bound, Stop};
@@ -12,6 +12,7 @@ use frontend::source;
 use hashing::Builder;
 use serde::Serialize;
 use smallvec::{SmallVec, smallvec};
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::sync::{Arc, OnceLock};
 use std::task::Poll;
@@ -97,8 +98,21 @@ impl Record {
                     .get_or_init(|| crate::fingerprint::resolution(&other.state))
     }
 
+    // The canonical form the walk named this record with before comparing it.
     fn canonical(&self) -> &Canonical {
-        self.canonical.get_or_init(|| self.state.canonical())
+        self.canonical
+            .get()
+            .expect("the walk names a record before it compares it")
+    }
+
+    // The record as a report shows it: named as the walk named it, else named now with at most
+    // the budget, else listed.
+    fn show(&self, budget: usize) -> (Cow<'_, Canonical>, Form) {
+        if let Some(named) = self.canonical.get() {
+            return (Cow::Borrowed(named), Form::Canonical);
+        }
+        let (named, form) = self.state.show(budget);
+        (Cow::Owned(named), form)
     }
 
     fn advance(&mut self) {
@@ -153,6 +167,8 @@ pub struct Search {
     halt: Vec<Stop>,
     cursor: usize,
     work: usize,
+    // A report names each configuration the walk did not within the work every run was given.
+    budget: usize,
 }
 
 impl Search {
@@ -188,12 +204,14 @@ impl Search {
             halt: Vec::new(),
             cursor: 0,
             work: 0,
+            budget: 0,
         }
     }
 
     // Walks on from where the path stands, and records why it stopped when it stops short of its
     // goal or a cycle.
     pub fn run(&mut self, budget: usize, limit: Limit) {
+        self.budget = self.budget.saturating_add(budget);
         let mut remaining = budget;
         while remaining > 0 {
             remaining -= 1;
@@ -439,11 +457,13 @@ impl Search {
     }
 
     pub fn inspect(&self, index: usize) -> Option<Node> {
-        self.state.get(index).map(|state| {
+        self.state.get(index).map(|record| {
+            let (named, form) = record.show(self.budget);
             crate::render::Builder::new(&self.compiled).node(
                 index,
-                &state.canonical().state,
+                &named.state,
                 Status::Supported,
+                form,
             )
         })
     }
@@ -451,8 +471,8 @@ impl Search {
     pub fn transition(&self, index: usize) -> Option<&Event> {
         let step = self.event.get(index)?;
         Some(step.event.get_or_init(|| {
-            let canonical = self.state[step.source].canonical();
-            let place = |place: &Place| canonical.renaming.place(*place).unwrap();
+            let (named, _) = self.state[step.source].show(self.budget);
+            let place = |place: &Place| named.renaming.place(*place).unwrap();
             let selection = |value: &crate::basis::Set<Place>| {
                 let mut value = value.iter().map(place).collect::<Vec<_>>();
                 value.sort_unstable();

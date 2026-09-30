@@ -1,36 +1,29 @@
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 use crate::failure::Failure;
 
-// One level of source nesting adds at most five levels of JSON, and lowering refuses sources
-// nested deeper than the parser's limit, so this admits every lowered program; serde_json's
-// default of 128 would refuse programs nested about 32 levels deep.
-const NESTING: usize = 8 * crate::parser::DEPTH;
-
-#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct Program {
-    #[serde(default)]
-    pub initial: Vec<Vec<Value>>,
-    #[serde(default)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct Library {
     pub rule: Vec<Definition>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+}
+
+#[derive(Clone, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+pub struct Program {
+    pub initial: Vec<Vec<Value>>,
+    pub rule: Vec<Definition>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub scope: Vec<Self>,
 }
 
+impl Library {
+    pub fn read(text: &str) -> Result<Self, Failure> {
+        crate::json::library(text)
+    }
+}
+
 impl Program {
-    pub fn read(text: &str) -> Result<Self, serde_json::Error> {
-        if nesting(text) > NESTING {
-            return Err(serde::de::Error::custom(format!(
-                "a program nests at most {NESTING} levels deep"
-            )));
-        }
-        let mut deserializer = serde_json::Deserializer::from_str(text);
-        deserializer.disable_recursion_limit();
-        let program = Self::deserialize(&mut deserializer)?;
-        deserializer.end()?;
-        crate::validation::program(&program).map_err(serde::de::Error::custom)?;
-        Ok(program)
+    pub fn read(text: &str) -> Result<Self, Failure> {
+        crate::json::program(text)
     }
 
     pub fn canonical(&self) -> Self {
@@ -47,14 +40,8 @@ impl Program {
         self.scope.extend(program.scope);
     }
 
-    pub fn declare(&mut self, library: Self, name: impl std::fmt::Display) -> Result<(), Failure> {
-        if !library.initial.is_empty() || !library.scope.is_empty() {
-            return Err(Failure::Library {
-                library: name.to_string(),
-            });
-        }
+    pub fn declare(&mut self, library: Library) {
         self.rule.extend(library.rule);
-        Ok(())
     }
 
     pub fn preserve(&mut self, program: &Self) {
@@ -62,23 +49,20 @@ impl Program {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
-#[serde(untagged, deny_unknown_fields)]
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+#[serde(untagged)]
 pub enum Value {
     Atom(String),
     Rule { rule: Box<Definition> },
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Clone, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct Definition {
-    #[serde(default)]
-    pub name: String,
     pub input: Vec<Vec<Value>>,
     pub output: Vec<Output>,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(untagged)]
 pub enum Output {
     Particle(Vec<Value>),
@@ -88,7 +72,6 @@ pub enum Output {
 impl Definition {
     pub fn canonical(&self) -> Self {
         Self {
-            name: String::new(),
             input: input(&self.input),
             output: sorted(
                 self.output
@@ -124,32 +107,4 @@ fn input(value: &[Vec<Value>]) -> Vec<Vec<Value>> {
 fn sorted<Item: Ord>(mut value: Vec<Item>) -> Vec<Item> {
     value.sort();
     value
-}
-
-fn nesting(text: &str) -> usize {
-    let mut depth = 0_usize;
-    let mut deepest = 0;
-    let mut string = false;
-    let mut escape = false;
-    for byte in text.bytes() {
-        if string {
-            match (escape, byte) {
-                (true, _) => escape = false,
-                (false, b'\\') => escape = true,
-                (false, b'"') => string = false,
-                _ => {}
-            }
-            continue;
-        }
-        match byte {
-            b'"' => string = true,
-            b'[' | b'{' => {
-                depth += 1;
-                deepest = deepest.max(depth);
-            }
-            b']' | b'}' => depth = depth.saturating_sub(1),
-            _ => {}
-        }
-    }
-    deepest
 }

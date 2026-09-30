@@ -36,8 +36,10 @@ struct Named {
     route: Route,
 }
 
+// Where a result lies; a blocked one names the limit that refused it, or none when the round could
+// not name it.
 enum Settled {
-    Blocked(Bound),
+    Blocked(Option<Bound>),
     Existing(usize, Box<Route>),
     Repeat(usize, Box<Route>),
     New(
@@ -149,7 +151,7 @@ impl Laser {
                     .product
                     .as_ref()
                     .map(|product| self.taxonomy.intern(&product.draft)),
-                Outcome::Blocked(_) => None,
+                Outcome::Blocked(_) | Outcome::Deferred => None,
             })
             .collect::<Vec<_>>();
         let taxonomy = &self.taxonomy;
@@ -186,7 +188,7 @@ impl Laser {
                         self.whole.insert(key);
                     }
                 }
-                Outcome::Blocked(_) => {}
+                Outcome::Blocked(_) | Outcome::Deferred => {}
             }
         }
         (learned, fresh)
@@ -212,7 +214,7 @@ impl Laser {
         executor: Option<&Executor>,
         learned: Vec<Learned>,
         pending: &[(Identity, usize)],
-    ) -> Vec<Result<Named, Bound>> {
+    ) -> Vec<Result<Named, Option<Bound>>> {
         let taxonomy = &self.taxonomy;
         let makeup = &self.makeup;
         let limit = self.limit;
@@ -240,7 +242,7 @@ impl Laser {
                         effect.root,
                     );
                     if let Some(bound) = limit.refuse(taxonomy.measure(&makeup)) {
-                        return Err(bound);
+                        return Err(Some(bound));
                     }
                     Ok(Named {
                         hash: space::hash(&makeup),
@@ -253,7 +255,8 @@ impl Laser {
                         },
                     })
                 }
-                Outcome::Blocked(bound) => Err(bound),
+                Outcome::Blocked(bound) => Err(Some(bound)),
+                Outcome::Deferred => Err(None),
             },
         )
     }
@@ -263,7 +266,7 @@ impl Laser {
     fn locate(
         &self,
         executor: Option<&Executor>,
-        named: Vec<Result<Named, Bound>>,
+        named: Vec<Result<Named, Option<Bound>>>,
     ) -> Vec<Settled> {
         let item = named
             .iter()
@@ -304,7 +307,9 @@ impl Laser {
     }
 
     // Adds the new configurations and the events in the batch's order, blocking an identity whose
-    // result the limits refuse; gives each identity's event and the events fired.
+    // result the limits refuse and deferring one whose result the round could not name, which fires
+    // first next round as the rest of a spent round does; gives each identity's event and the events
+    // fired.
     fn commit(
         &mut self,
         executor: Option<&Executor>,
@@ -319,7 +324,10 @@ impl Laser {
         for ((identity, position), settled) in pending.into_iter().zip(settled) {
             let (resolved, route) = match settled {
                 Settled::Blocked(bound) => {
-                    self.blocked.insert(identity, (position, Some(bound)));
+                    self.blocked.insert(identity.clone(), (position, bound));
+                    if bound.is_none() {
+                        next.retry.push((identity, position));
+                    }
                     created.push(None);
                     continue;
                 }

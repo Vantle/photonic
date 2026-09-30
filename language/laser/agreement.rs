@@ -144,7 +144,7 @@ impl Laser {
             .iter()
             .map(AsRef::as_ref)
             .collect::<HashSet<&State>>();
-        let named = self.name();
+        let (named, _) = self.name();
         let observed = named
             .iter()
             .map(|named| &named.state)
@@ -251,7 +251,7 @@ impl Laser {
             });
         }
         let reached = part(full);
-        let (outer, inner) = (full.name(), self.name());
+        let ((outer, _), (inner, _)) = (full.name(), self.name());
         let expected = (0..full.state.len())
             .filter(|&index| reached[index])
             .map(|index| &outer[index].state)
@@ -294,7 +294,7 @@ impl Laser {
                 laser: self.closed(),
             });
         }
-        let (outer, inner) = (plain.name(), self.name());
+        let ((outer, _), (inner, _)) = (plain.name(), self.name());
         let known = outer
             .iter()
             .map(|named| &named.state)
@@ -429,7 +429,7 @@ impl Exploration {
         let mut wanted = ending
             .end
             .iter()
-            .map(|&index| plain.state[index].canonical().state)
+            .map(|&index| plain.state[index].show(plain.budget).0.state)
             .collect::<Vec<_>>();
         let mut found = self
             .end

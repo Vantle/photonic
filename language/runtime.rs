@@ -225,7 +225,11 @@ impl Runtime {
             peak: 0,
             flying: 0,
         };
-        runtime.intern(Arc::new(initial.canonical().state));
+        let mut budget = crate::canonical::UNLIMITED;
+        let named = initial
+            .canonical(&mut budget)
+            .expect("an unlimited search names every configuration");
+        runtime.intern(Arc::new(named.state));
         runtime.support(Atom::State(0), []);
         runtime.peak = runtime.record();
         runtime
@@ -360,7 +364,7 @@ impl Runtime {
             match task {
                 Task::Inspect(view) => self.inspect(view),
                 Task::Deliver(request) => self.deliver(request),
-                Task::Apply(application) => self.apply(application),
+                Task::Apply(application) => self.apply(application, &mut remaining),
                 Task::Compose(previous, event) => self.compose(previous, event),
                 Task::Search(_) | Task::Normalize(_) => unreachable!(),
             }

@@ -38,13 +38,27 @@ impl Drop for Fixture {
     }
 }
 
-fn execute(operation: &str, path: &Path, argument: &[&str]) -> Output {
-    let binary = std::env::var_os("PHOTONIC_COMMAND").expect("Photonic runfile path");
-    let binary = runfiles::Runfiles::create()
+fn runfile(variable: &str) -> PathBuf {
+    let name = std::env::var_os(variable).expect("a runfile path");
+    runfiles::Runfiles::create()
         .expect("Bazel runfiles")
-        .rlocation_from(binary, "")
-        .expect("Photonic executable");
-    Command::new(binary)
+        .rlocation_from(name, "")
+        .expect("a runfile")
+}
+
+fn binary() -> PathBuf {
+    runfile("PHOTONIC_COMMAND")
+}
+
+fn invoke(argument: &[&str]) -> Output {
+    Command::new(binary())
+        .args(argument)
+        .output()
+        .expect("execute Photonic")
+}
+
+fn execute(operation: &str, path: &Path, argument: &[&str]) -> Output {
+    Command::new(binary())
         .arg(operation)
         .arg(path)
         .args(argument)
@@ -59,6 +73,25 @@ fn report(output: &Output) -> serde_json::Value {
         String::from_utf8_lossy(&output.stderr)
     );
     serde_json::from_slice(&output.stdout).expect("JSON execution report")
+}
+
+// A report that exits as it may, for verdicts that are not reached.
+fn verdict(output: &Output, code: i32) -> serde_json::Value {
+    assert_eq!(
+        output.status.code(),
+        Some(code),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    serde_json::from_slice(&output.stdout).expect("JSON execution report")
+}
+
+fn text(output: &Output) -> String {
+    String::from_utf8_lossy(&output.stdout).into_owned()
+}
+
+fn error(output: &Output) -> String {
+    String::from_utf8_lossy(&output.stderr).into_owned()
 }
 
 #[test]
@@ -87,10 +120,18 @@ fn execution() {
     }));
     let output = execute("run", &path, &[]);
     assert!(output.status.success());
-    let text = String::from_utf8(output.stdout).unwrap();
-    assert!(text.starts_with("Closed:"));
-    assert!(text.contains("supported"));
-    assert!(text.contains("@root"));
+    let listing = text(&output);
+    let line = listing.lines().collect::<Vec<_>>();
+    assert!(line[0].contains(" · closed · 4 configurations · 4 events, 1 inferred"));
+    assert_eq!(
+        line[1..],
+        [
+            "s0    Seed.A",
+            "s1    Seed.B",
+            "s2    A.([A] B)",
+            "s3    B.([A] B)"
+        ]
+    );
     let output = execute(
         "run",
         &path,
@@ -137,7 +178,21 @@ fn format() {
     let output = execute("run", &path, &[]);
     assert!(!output.status.success());
     assert!(
-        String::from_utf8_lossy(&output.stderr).contains("broken.json: not an assembled program")
+        String::from_utf8_lossy(&output.stderr)
+            .contains("broken.json:1:1: invalid Photonic program: EOF while parsing an object")
+    );
+    let path = fixture.write(
+        "named.json",
+        "{\"initial\": [[\"A\"]],\n \"rule\": [{\"name\": \"[B] C\", \"input\": [[\"A\"]], \"output\": [[\"X\"]]}]}",
+    );
+    let output = execute("check", &path, &["--json"]);
+    let diagnostic = &serde_json::from_slice::<serde_json::Value>(&output.stdout).unwrap()["answer"]
+        ["diagnostic"][0];
+    assert_eq!(diagnostic["code"], "source");
+    assert_eq!(diagnostic["diagnostic"], "json");
+    assert_eq!(
+        diagnostic["location"],
+        serde_json::json!({"file": path.to_str().unwrap(), "line": 2, "column": 17, "length": 1})
     );
 }
 
@@ -159,6 +214,33 @@ fn diagnostic() {
 }
 
 #[test]
+fn encoding() {
+    let fixture = Fixture::new();
+    let path = fixture.path.join("wide.wave");
+    std::fs::write(
+        &path,
+        [0xFF, 0xFE, b'A', 0, b',', 0, b' ', 0, b'B', 0].as_slice(),
+    )
+    .unwrap();
+    let output = execute("lower", &path, &[]);
+    assert!(!output.status.success());
+    let error = String::from_utf8(output.stderr).unwrap();
+    assert!(error.starts_with("error[file]: "), "{error}");
+    assert!(
+        error.contains("wide.wave is not UTF-8 text; save it as UTF-8"),
+        "{error}"
+    );
+    let path = fixture.write("marked.wave", "\u{FEFF}A, [A] B");
+    let marked = report(&execute("lower", &path, &[]));
+    let plain = report(&execute(
+        "lower",
+        &fixture.write("plain.wave", "A, [A] B"),
+        &[],
+    ));
+    assert_eq!(marked, plain);
+}
+
+#[test]
 fn worker() {
     let fixture = Fixture::new();
     let path = fixture.write("program.wave", "Seed.A, [Seed] ().([A] B)");
@@ -171,6 +253,9 @@ fn worker() {
     let invalid = execute("run", &path, &["--worker", "0"]);
     assert!(!invalid.status.success());
     assert!(String::from_utf8_lossy(&invalid.stderr).contains("--worker"));
+    let listing = execute("run", &path, &["--worker", "4"]);
+    assert_eq!(listing.status.code(), Some(2));
+    assert!(error(&listing).contains("--json"), "{}", error(&listing));
 }
 
 // The flags that explore every plain schedule on metal, then the others.
@@ -194,7 +279,7 @@ fn metal() {
         answer["device"]["kind"].as_str(),
         Some("gpu" | "host")
     ));
-    assert_eq!(answer["complete"], true);
+    assert_eq!(answer["closed"], true);
     assert_eq!(answer["configuration"], 9);
     assert_eq!(answer["event"], 12);
     assert_eq!(answer["endless"], false);
@@ -235,7 +320,7 @@ fn metal() {
     );
     let open = serde_json::from_slice::<serde_json::Value>(&open.stdout).unwrap();
     assert_eq!(open["answer"]["claim"][0]["answer"], "unknown");
-    assert_eq!(open["answer"]["summary"]["complete"], false);
+    assert_eq!(open["answer"]["summary"]["closed"], false);
     let stop = &open["answer"]["summary"]["stop"][0];
     assert_eq!(
         (&stop["kind"], &stop["bound"]),
@@ -250,9 +335,15 @@ fn metal() {
         String::from_utf8_lossy(&step.stderr).contains("metal keeps only counts, ends and cycles")
     );
     let exhaustive = execute("explore", &path, &["--engine", "metal"]);
-    assert!(String::from_utf8_lossy(&exhaustive.stderr).contains("set mode to plain"));
+    assert_eq!(exhaustive.status.code(), Some(2));
+    assert!(
+        error(&exhaustive).contains("--plain"),
+        "{}",
+        error(&exhaustive)
+    );
     let run = execute("run", &path, &["--engine", "metal"]);
-    assert!(!run.status.success());
+    assert_eq!(run.status.code(), Some(1));
+    assert!(error(&run).contains("--plain --engine metal"));
 }
 
 #[test]
@@ -269,62 +360,65 @@ fn prism() {
     assert!(result["witness"].is_u64());
     assert_eq!(result["program"]["initial"][0][0], "A");
     assert_eq!(result["target"]["initial"][0][0], "B");
-    let result = report(&execute(
-        "prism",
-        &path,
-        &[
-            "--target",
-            target.to_str().unwrap(),
-            "--json",
-            "--work",
-            "0",
-        ],
-    ));
+    let result = verdict(
+        &execute(
+            "prism",
+            &path,
+            &[
+                "--target",
+                target.to_str().unwrap(),
+                "--json",
+                "--work",
+                "0",
+            ],
+        ),
+        1,
+    );
     assert_eq!(result["outcome"], "unknown");
     let invalid = fixture.write("invalid.wave", "B, [B] A");
-    assert!(
-        execute("prism", &path, &["--target", invalid.to_str().unwrap()])
-            .status
-            .success()
-    );
+    let output = execute("prism", &path, &["--target", invalid.to_str().unwrap()]);
+    assert_eq!(output.status.code(), Some(1));
+    assert!(text(&output).starts_with("unreachable   "));
     let output = execute("prism", &path, &["--target", target.to_str().unwrap()]);
     assert!(output.status.success());
-    assert!(
-        String::from_utf8(output.stdout)
-            .unwrap()
-            .starts_with("Reached:")
-    );
+    assert!(text(&output).starts_with("reached   s1 by e0   B\n"));
 }
 
+// A listing's configurations by handle, after the summary that names its exploration.
 fn listing(output: &Output) -> Vec<String> {
-    assert!(output.status.success());
-    let mut line = String::from_utf8_lossy(&output.stdout)
-        .lines()
-        .skip(1)
-        .map(|line| line.split_once(' ').unwrap().1.to_owned())
-        .collect::<Vec<_>>();
-    line.sort();
-    line
+    assert!(output.status.success(), "{}", error(output));
+    text(output).lines().skip(1).map(str::to_owned).collect()
 }
 
+// Both engines explore the same configurations, and run numbers them as every question does, so
+// they list the same handles; prism names its witness by the same handle on either.
 #[test]
 fn engine() {
     let fixture = Fixture::new();
     let path = fixture.write("program.wave", "Seed.A, [Seed] ().([A] B)");
     let laser = ["--engine", "laser"];
+    let interpreter = ["--engine", "interpreter"];
+    assert_eq!(
+        listing(&execute("run", &path, &interpreter)),
+        listing(&execute("run", &path, &laser))
+    );
     assert_eq!(
         listing(&execute("run", &path, &laser)),
         listing(&execute("run", &path, &[]))
     );
-    let interpreter = report(&execute("run", &path, &["--json"]));
+    let original = report(&execute(
+        "run",
+        &path,
+        &["--json", "--engine", "interpreter"],
+    ));
     let compiled = report(&execute("run", &path, &["--json", "--engine", "laser"]));
     assert_eq!(compiled["closed"], true);
-    assert_eq!(compiled["definition"], interpreter["definition"]);
-    assert_eq!(compiled["limit"], interpreter["limit"]);
+    assert_eq!(compiled["definition"], original["definition"]);
+    assert_eq!(compiled["limit"], original["limit"]);
     for field in ["state", "event"] {
         assert_eq!(
             compiled[field].as_array().unwrap().len(),
-            interpreter[field].as_array().unwrap().len()
+            original[field].as_array().unwrap().len()
         );
     }
     let parallel = report(&execute(
@@ -343,33 +437,44 @@ fn engine() {
     let path = fixture.write("prism.wave", "A, [A] B");
     let target = fixture.write("target.particle", "B, [A] B");
     let missing = fixture.write("missing.particle", "C, [A] B");
-    for (target, argument, outcome) in [
-        (&target, &[][..], "reached"),
-        (&missing, &[][..], "unreachable"),
-        (&target, &["--work", "0"][..], "unknown"),
+    for (target, argument, outcome, code) in [
+        (&target, &[][..], "reached", 0),
+        (&missing, &[][..], "unreachable", 1),
+        (&target, &["--work", "0"][..], "unknown", 1),
     ] {
         let argument = [
             &["--target", target.to_str().unwrap(), "--json"][..],
             argument,
         ]
         .concat();
-        let interpreter = report(&execute("prism", &path, &argument));
-        let compiled = report(&execute("prism", &path, &[&argument, &laser[..]].concat()));
-        assert_eq!(interpreter["outcome"], outcome);
+        let original = verdict(
+            &execute("prism", &path, &[&argument, &interpreter[..]].concat()),
+            code,
+        );
+        let compiled = verdict(
+            &execute("prism", &path, &[&argument, &laser[..]].concat()),
+            code,
+        );
+        assert_eq!(original["outcome"], outcome);
         assert_eq!(compiled["outcome"], outcome);
         assert_eq!(compiled["witness"].is_u64(), outcome == "reached");
-        assert_eq!(compiled["target"], interpreter["target"]);
+        assert_eq!(compiled["target"], original["target"]);
     }
-    let output = execute(
-        "prism",
-        &path,
-        &["--target", target.to_str().unwrap(), "--engine", "laser"],
-    );
-    assert!(output.status.success());
-    let text = String::from_utf8(output.stdout).unwrap();
-    assert!(text.starts_with("Reached:"));
-    assert!(text.contains("Witness s"));
-    assert!(text.ends_with("exploration closed\n"));
+    let summary = text(&execute("explore", &path, &[]))
+        .lines()
+        .next()
+        .map(str::to_owned);
+    for engine in [&laser, &interpreter] {
+        let output = execute(
+            "prism",
+            &path,
+            &[&["--target", target.to_str().unwrap()][..], &engine[..]].concat(),
+        );
+        assert!(output.status.success());
+        assert!(text(&output).starts_with("reached   s1 by e0   B\n"));
+    }
+    let output = execute("prism", &path, &["--target", target.to_str().unwrap()]);
+    assert_eq!(text(&output).lines().nth(1).map(str::to_owned), summary);
     let conflict = execute(
         "prism",
         &path,
@@ -397,7 +502,7 @@ fn schedule() {
     assert!(schedule["state"].as_array().unwrap().len() < full["state"].as_array().unwrap().len());
     let refused = execute("run", &path, &["--plain", "--engine", "interpreter"]);
     assert!(!refused.status.success());
-    assert!(String::from_utf8_lossy(&refused.stderr).contains("plain mode runs on laser"));
+    assert!(String::from_utf8_lossy(&refused.stderr).contains("--plain runs on laser"));
     let target = fixture.write(
         "done.particle",
         "P.Done, [Claim] P.Work, [Work] Done, [P] X",
@@ -479,19 +584,60 @@ fn path() {
     ));
     assert_eq!(result["outcome"], "reached");
     assert_eq!(result["event"].as_array().unwrap().len(), 2);
-    let result = report(&execute(
+    let result = verdict(
+        &execute(
+            "prism",
+            &source,
+            &[
+                "--target",
+                target.to_str().unwrap(),
+                "--path",
+                "--json",
+                "--work",
+                "0",
+            ],
+        ),
+        1,
+    );
+    assert_eq!(result["outcome"], "unknown");
+    let reached = execute(
+        "prism",
+        &source,
+        &["--target", target.to_str().unwrap(), "--path"],
+    );
+    assert!(reached.status.success());
+    let line = text(&reached)
+        .lines()
+        .map(str::to_owned)
+        .collect::<Vec<_>>();
+    assert_eq!(line[0], "reached   s2 by e0 e1   C");
+    assert!(
+        line[1].contains(" · path reached its goal · 3 configurations · 2 events, 0 inferred"),
+        "{}",
+        line[1]
+    );
+    let goal = execute("explore", &source, &["--path", "--goal", "C, [A] B, [B] C"]);
+    assert_eq!(text(&goal).lines().next(), Some(line[1].as_str()));
+    let step = fixture.write("step.particle", "B, [A] B, [B] C");
+    let single = execute(
+        "prism",
+        &source,
+        &["--target", step.to_str().unwrap(), "--path"],
+    );
+    assert!(text(&single).contains(" · 1 event, "), "{}", text(&single));
+    let stopped = execute(
         "prism",
         &source,
         &[
             "--target",
             target.to_str().unwrap(),
             "--path",
-            "--json",
             "--work",
             "0",
         ],
-    ));
-    assert_eq!(result["outcome"], "unknown");
+    );
+    assert_eq!(stopped.status.code(), Some(1));
+    assert!(text(&stopped).starts_with("unknown   a direct path follows one run of many"));
 }
 
 #[test]
@@ -564,13 +710,16 @@ fn library() {
         &["--library", library.to_str().unwrap(), "--json"],
     );
     assert_eq!(report(&output)["closed"], true);
-    let invalid = fixture.write("invalid.particle", "Unexpected");
+    let invalid = fixture.write("invalid.particle", "[A] B,\n  Unexpected");
     let output = execute("run", &path, &["--library", invalid.to_str().unwrap()]);
     assert!(!output.status.success());
+    let error = String::from_utf8_lossy(&output.stderr);
+    assert!(error.starts_with("error[library]: "), "{error}");
     assert!(
-        String::from_utf8_lossy(&output.stderr).contains("error[library]:"),
-        "{}",
-        String::from_utf8_lossy(&output.stderr)
+        error.contains(
+            "invalid.particle:2:3: this library lists a coherence or scope; a library holds only rules"
+        ),
+        "{error}"
     );
     let malformed = fixture.write("malformed.particle", "[");
     let output = execute("run", &path, &["--library", malformed.to_str().unwrap()]);
@@ -594,7 +743,7 @@ fn serialization() {
     let lowered = report(&execute("lower", &path, &[]));
     assert_eq!(
         lowered["scope"],
-        serde_json::json!([{"initial": [["X"]], "rule": [{"name": "[X] Y", "input": [["X"]], "output": [["Y"]]}]}])
+        serde_json::json!([{"initial": [["X"]], "rule": [{"input": [["X"]], "output": [["Y"]]}]}])
     );
     assert_eq!(
         lowered["rule"][0]["output"][0]["initial"],
@@ -609,23 +758,94 @@ fn context() {
     let declaration = fixture.write("rule.wave", "[A] B");
     let output = execute("run", &declaration, &[]);
     assert!(output.status.success());
-    assert!(
-        String::from_utf8(output.stdout)
-            .unwrap()
-            .contains("{⟨[A] B⟩@f0}@root")
-    );
+    assert_eq!(listing(&output), ["s0    nothing"]);
     let target = fixture.write("target.wave", "B");
     let complete = fixture.write("complete.wave", "B, [A] B");
-    for (target, expected) in [(&target, "unreachable"), (&complete, "reached")] {
+    for (target, expected, code) in [(&target, "unreachable", 1), (&complete, "reached", 0)] {
         assert_eq!(
-            report(&execute(
-                "prism",
-                &source,
-                &["--target", target.to_str().unwrap(), "--json"]
-            ))["outcome"],
+            verdict(
+                &execute(
+                    "prism",
+                    &source,
+                    &["--target", target.to_str().unwrap(), "--json"]
+                ),
+                code
+            )["outcome"],
             expected
         );
     }
+}
+
+// --preserve adds every loaded root rule to prism's target, as photonic_test does, in every mode.
+#[test]
+fn preservation() {
+    let fixture = Fixture::new();
+    let source = fixture.write("source.wave", "A, [A] B");
+    let library = fixture.write("library.particle", "[B] C");
+    let target = fixture.write("target.wave", "C");
+    let argument = |extra: &[&'static str]| {
+        [
+            &[
+                "--target",
+                target.to_str().unwrap(),
+                "--library",
+                library.to_str().unwrap(),
+            ][..],
+            extra,
+        ]
+        .concat()
+    };
+    for mode in [
+        &[][..],
+        &["--plain"],
+        &["--engine", "interpreter"],
+        &["--path"],
+    ] {
+        let bare = execute("prism", &source, &argument(mode));
+        assert_eq!(bare.status.code(), Some(1), "{mode:?}: {}", text(&bare));
+        let preserved = execute(
+            "prism",
+            &source,
+            &argument(&[mode, &["--preserve"]].concat()),
+        );
+        assert!(preserved.status.success(), "{mode:?}: {}", text(&preserved));
+        assert!(text(&preserved).starts_with("reached   "));
+        let report = verdict(
+            &execute(
+                "prism",
+                &source,
+                &argument(&[mode, &["--preserve", "--json"]].concat()),
+            ),
+            0,
+        );
+        assert_eq!(report["outcome"], "reached");
+        assert_eq!(report["target"]["rule"].as_array().map(Vec::len), Some(2));
+    }
+    let check = execute(
+        "check",
+        &source,
+        &[
+            "--reach",
+            "C",
+            "--exact",
+            "--preserve",
+            "--library",
+            library.to_str().unwrap(),
+        ],
+    );
+    let witness = text(&check)
+        .lines()
+        .nth(1)
+        .and_then(|line| line.split("holds   ").nth(1))
+        .and_then(|line| line.split("   ").next())
+        .map(str::to_owned)
+        .expect("a witness");
+    let prism = execute("prism", &source, &argument(&["--preserve"]));
+    assert!(
+        text(&prism).starts_with(&format!("reached   {witness}   C\n")),
+        "{witness}: {}",
+        text(&prism)
+    );
 }
 
 const BUG: &str = "And.True.False.Extra,
@@ -666,7 +886,10 @@ fn check() {
     assert!(!failed.status.success());
     let broken = fixture.write("broken.wave", "A B");
     let diagnostic = envelope(&execute("check", &broken, &["--json"]));
-    assert_eq!(diagnostic["answer"]["diagnostic"][0]["code"], "syntax");
+    assert_eq!(
+        diagnostic["answer"]["diagnostic"][0]["diagnostic"],
+        "syntax"
+    );
 }
 
 #[test]
@@ -706,7 +929,7 @@ fn spectrum() {
     ));
     assert_eq!(interpreter["answer"]["engine"], "interpreter");
     assert_eq!(compiled["answer"]["engine"], "laser");
-    for field in ["complete", "configuration", "event", "inferred", "depth"] {
+    for field in ["closed", "configuration", "event", "inferred", "depth"] {
         assert_eq!(
             compiled["answer"][field], interpreter["answer"][field],
             "{field}"
@@ -800,7 +1023,7 @@ fn shape() {
     );
     let grouped = execute("shape", &and, &[or.to_str().unwrap()]);
     assert!(grouped.status.success());
-    assert!(String::from_utf8_lossy(&grouped.stdout).contains("by And → Or (True False)"));
+    assert!(String::from_utf8_lossy(&grouped.stdout).contains("by And → Or, (True False)"));
     let apart = execute(
         "shape",
         &and,
@@ -818,16 +1041,11 @@ fn shape() {
     );
 }
 
-fn session(fixture: &Fixture, line: &[impl AsRef<[u8]>]) -> Vec<serde_json::Value> {
+fn session(directory: &Path, line: &[impl AsRef<[u8]>]) -> Vec<serde_json::Value> {
     use std::io::Write;
-    let binary = std::env::var_os("PHOTONIC_COMMAND").expect("Photonic runfile path");
-    let binary = runfiles::Runfiles::create()
-        .expect("Bazel runfiles")
-        .rlocation_from(binary, "")
-        .expect("Photonic executable");
-    let mut child = Command::new(binary)
+    let mut child = Command::new(binary())
         .arg("mcp")
-        .env("BUILD_WORKING_DIRECTORY", &fixture.path)
+        .env("BUILD_WORKING_DIRECTORY", directory)
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
         .spawn()
@@ -853,7 +1071,7 @@ fn server() {
     let fixture = Fixture::new();
     fixture.write("bug.wave", BUG);
     let legacy = session(
-        &fixture,
+        &fixture.path,
         &[
             json!({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "test", "version": "1"}}}),
             json!({"jsonrpc": "2.0", "method": "notifications/initialized"}),
@@ -889,11 +1107,17 @@ fn server() {
             .contains("## Grammar")
     );
     assert_eq!(legacy[4]["result"]["isError"], true);
+    assert!(
+        legacy[4]["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap_or_default()
+            .starts_with("error[handle]: s99 names no configuration")
+    );
     assert_eq!(legacy[5]["error"]["code"], -32602);
     assert_eq!(legacy[6]["error"]["code"], -32002);
     let meta = json!({"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}});
     let modern = session(
-        &fixture,
+        &fixture.path,
         &[
             json!({"jsonrpc": "2.0", "id": "a", "method": "server/discover", "params": {"_meta": meta}}),
             json!({"jsonrpc": "2.0", "id": "b", "method": "tools/call", "params": {"_meta": meta, "name": "explore", "arguments": {"program": {"file": ["bug.wave"]}}}}),
@@ -960,7 +1184,7 @@ fn server() {
     assert_eq!(modern[15]["id"], "j");
     assert_eq!(modern[16]["error"]["code"], -32602);
     let broken = session(
-        &fixture,
+        &fixture.path,
         &[
             b"\xff\xfe".to_vec(),
             json!({"jsonrpc": "2.0", "id": 1, "method": "ping"})
@@ -972,4 +1196,492 @@ fn server() {
     assert_eq!(broken[0]["error"]["code"], -32700);
     assert_eq!(broken[1]["id"], 1);
     assert!(broken[1]["result"].is_object());
+}
+
+const LIGHT: &str = "Light, [Light] Red, [Light] Green, [Light] Blue";
+
+fn initialize() -> String {
+    serde_json::json!({"jsonrpc": "2.0", "id": 0, "method": "initialize", "params": {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "test", "version": "1"}}}).to_string()
+}
+
+fn call(id: usize, name: &str, argument: serde_json::Value) -> String {
+    serde_json::json!({"jsonrpc": "2.0", "id": id, "method": "tools/call", "params": {"name": name, "arguments": argument}}).to_string()
+}
+
+// A tool result's text, and whether it is an error.
+fn result(response: &serde_json::Value) -> (bool, String) {
+    let result = &response["result"];
+    (
+        result["isError"] == true,
+        result["content"][0]["text"]
+            .as_str()
+            .unwrap_or_default()
+            .to_owned(),
+    )
+}
+
+// The command and its protocol server report the version MODULE.bazel gives the module.
+#[test]
+fn version() {
+    let module = std::fs::read_to_string(runfile("MODULE")).expect("MODULE.bazel");
+    let declaration = module.split_once("module(").expect("a module call").1;
+    let version = declaration
+        .lines()
+        .find_map(|line| {
+            line.trim()
+                .strip_prefix("version = \"")?
+                .strip_suffix("\",")
+        })
+        .expect("the module's version");
+    let output = invoke(&["--version"]);
+    assert!(output.status.success());
+    assert_eq!(text(&output), format!("photonic {version}\n"));
+    let fixture = Fixture::new();
+    let meta = serde_json::json!({"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}});
+    let answer = session(
+        &fixture.path,
+        &[
+            initialize(),
+            serde_json::json!({"jsonrpc": "2.0", "id": 1, "method": "server/discover", "params": {"_meta": meta}}).to_string(),
+        ],
+    );
+    assert_eq!(answer[0]["result"]["serverInfo"]["version"], version);
+    assert_eq!(
+        answer[1]["result"]["_meta"]["io.modelcontextprotocol/serverInfo"]["version"],
+        version
+    );
+}
+
+// 0 on success; 1 on a failure, or an answer that does not meet what was asked; 2 when the command
+// line is invalid, with or without --json.
+#[test]
+fn status() {
+    let fixture = Fixture::new();
+    let path = fixture.write("light.wave", LIGHT);
+    let path = path.to_str().unwrap();
+    let missing = fixture.path.join("missing.wave");
+    let missing = missing.to_str().unwrap();
+    let target = fixture.write(
+        "target.wave",
+        "Purple, [Light] Red, [Light] Green, [Light] Blue",
+    );
+    let target = target.to_str().unwrap();
+    for (argument, code) in [
+        (vec!["explore", path], 0),
+        (vec!["explore", path, "--json"], 0),
+        (vec!["explore", missing], 1),
+        (vec!["explore", missing, "--json"], 1),
+        (vec!["check", path, "--reach", "Purple"], 1),
+        (vec!["prism", path, "--target", target], 1),
+        (vec!["prism", path, "--target", target, "--json"], 1),
+        (vec!["explore", path, "--bogus"], 2),
+        (vec!["explore", path, "--json", "--bogus"], 2),
+        (vec!["explore", path, "--limit", "many", "--json"], 2),
+        (vec!["nothing"], 2),
+        (vec![], 2),
+        (vec!["--help"], 0),
+        (vec!["--version"], 0),
+    ] {
+        let output = invoke(&argument);
+        assert_eq!(
+            output.status.code(),
+            Some(code),
+            "{argument:?}: {}",
+            error(&output)
+        );
+    }
+    let help = text(&invoke(&["--help"]));
+    assert!(
+        help.contains(
+            "Exit status: 0 on success; 1 on a failure, or when check's claims do not all hold"
+        ),
+        "{help}"
+    );
+    assert!(help.contains("2 when the command line is invalid, with or without --json"));
+}
+
+// A goal reaches every question, --preserve needs an exact target or the goal to complete, and
+// what the command line cannot mean is refused before any work.
+#[test]
+fn flag() {
+    let fixture = Fixture::new();
+    let path = fixture.write("chain.wave", "A, [A] B, [B] C");
+    let other = fixture.write("other.wave", "A, [A] B, [B] C, [C] D");
+    let goal = ["--path", "--goal", "C, [A] B, [B] C"];
+    let inspect = execute("inspect", &path, &[&["s2"][..], &goal].concat());
+    assert!(inspect.status.success(), "{}", error(&inspect));
+    assert!(text(&inspect).starts_with("s2 C"));
+    let cause = execute("cause", &path, &[&["s2"][..], &goal].concat());
+    assert!(cause.status.success(), "{}", error(&cause));
+    assert!(text(&cause).contains("e1"));
+    let step = execute("step", &path, &[&["s1"][..], &goal].concat());
+    assert!(step.status.success(), "{}", error(&step));
+    assert!(text(&step).contains("taken"));
+    let select = execute("select", &path, &[&["--pattern", "C"][..], &goal].concat());
+    assert!(text(&select).contains("s2"));
+    let compare = execute(
+        "compare",
+        &path,
+        &[&[other.to_str().unwrap()][..], &goal].concat(),
+    );
+    let explored = text(&execute("explore", &path, &goal));
+    let key = explored.split(" · ").next().unwrap_or_default();
+    assert!(
+        text(&compare).starts_with(&format!("compare {key} path")),
+        "{}",
+        text(&compare)
+    );
+    let preserved = execute("explore", &path, &["--path", "--goal", "C", "--preserve"]);
+    assert!(text(&preserved).contains("path reached its goal"));
+    for argument in [
+        &["--goal", "C"][..],
+        &["--preserve"],
+        &["--preserve", "--reach", "C"],
+        &["--worker", "2"],
+        &["--engine", "metal"],
+        &["--path", "--plain"],
+    ] {
+        let output = execute("check", &path, argument);
+        assert_eq!(
+            output.status.code(),
+            Some(2),
+            "{argument:?}: {}",
+            error(&output)
+        );
+    }
+    let exact = execute("miss", &path, &["--exact"]);
+    assert_eq!(exact.status.code(), Some(2));
+    let preserve = execute("check", &path, &["--reach", "C", "--exact", "--preserve"]);
+    assert!(preserve.status.success(), "{}", text(&preserve));
+    let help = |verb: &str| text(&invoke(&[verb, "--help"]));
+    assert!(!help("step").contains("r2"));
+    assert!(help("step").contains("s0, the start, by default"));
+    assert!(!help("cause").contains("s10.f1"));
+    assert!(help("inspect").contains("s10.f1"));
+    assert!(!help("run").contains("metal as many"));
+    assert!(!help("prism").contains("metal as many"));
+    assert!(help("explore").contains("metal as many as the GPU holds"));
+    assert!(help("select").contains("Program files: .wave or .particle source"));
+    assert!(help("compare").contains("Photonic source added after the file of each program"));
+    assert!(help("shape").contains("Photonic source added after the file of each program"));
+}
+
+// Answers list claims in the order the command line gives them, whatever their kinds.
+#[test]
+fn order() {
+    let fixture = Fixture::new();
+    let path = fixture.write("light.wave", LIGHT);
+    let claim = [
+        "--avoid",
+        "Purple",
+        "--reach",
+        "Red",
+        "--outcome",
+        "Light",
+        "--reach",
+        "Green",
+    ];
+    let output = execute("check", &path, &claim);
+    let line = text(&output)
+        .lines()
+        .skip(1)
+        .take(4)
+        .map(|line| line.split("   ").next().unwrap_or_default().to_owned())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        line,
+        ["avoid Purple", "reach Red", "outcome Light", "reach Green"]
+    );
+    let answer = envelope(&execute(
+        "check",
+        &path,
+        &[&claim[..], &["--json"]].concat(),
+    ));
+    let kind = answer["answer"]["claim"]
+        .as_array()
+        .expect("verdicts")
+        .iter()
+        .map(|verdict| {
+            verdict["claim"]["kind"]
+                .as_str()
+                .unwrap_or_default()
+                .to_owned()
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(kind, ["avoid", "reach", "outcome", "reach"]);
+    let compared = envelope(&execute(
+        "compare",
+        &path,
+        &[&[path.to_str().unwrap()][..], &claim, &["--json"]].concat(),
+    ));
+    let pattern = compared["answer"]["claim"]
+        .as_array()
+        .expect("pairs")
+        .iter()
+        .map(|pair| {
+            pair["claim"]["pattern"]
+                .as_str()
+                .unwrap_or_default()
+                .to_owned()
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(pattern, ["Purple", "Red", "Light", "Green"]);
+}
+
+// Inline source names a program on its own in every command, and a command that names no program
+// is a failure that says how to name one.
+#[test]
+fn source() {
+    let fixture = Fixture::new();
+    let target = fixture.write("target.wave", "B, [A] B");
+    let target = target.to_str().unwrap();
+    for argument in [
+        &["lower", "--source", "A, [A] B"][..],
+        &["run", "--source", "A, [A] B"],
+        &["prism", "--source", "A, [A] B", "--target", target],
+        &["explore", "--source", "A, [A] B"],
+        &["step", "--source", "A, [A] B"],
+        &["inspect", "--source", "A, [A] B", "s1"],
+        &["shape", "--source", "A, [A] B"],
+    ] {
+        let output = invoke(argument);
+        assert!(output.status.success(), "{argument:?}: {}", error(&output));
+    }
+    for argument in [
+        &["run"][..],
+        &["lower"],
+        &["explore"],
+        &["shape"],
+        &["inspect", "s1"],
+    ] {
+        let output = invoke(argument);
+        assert_eq!(output.status.code(), Some(1), "{argument:?}");
+        assert!(
+            error(&output).starts_with(
+                "error[request]: name the program: give its files, or its text with --source"
+            ),
+            "{argument:?}: {}",
+            error(&output)
+        );
+    }
+    let answer = envelope(&invoke(&["check", "--json"]));
+    assert_eq!(answer["error"]["code"], "request");
+}
+
+// A reader that closes standard output early, as head does, ends the command quietly, and the
+// command still exits with its answer's code.
+#[test]
+fn pipe() {
+    use std::io::Read;
+    let fixture = Fixture::new();
+    let bit = (0..10)
+        .map(|index| format!("Bit.B{index}.Off"))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let path = fixture.write("bit.wave", &format!("{bit}, [Off] On"));
+    let target = fixture.write("target.wave", "Purple");
+    let path = path.to_str().unwrap();
+    for (argument, code) in [
+        (&["run", path][..], 0),
+        (&["run", path, "--json"], 0),
+        (
+            &[
+                "prism",
+                path,
+                "--target",
+                target.to_str().unwrap(),
+                "--json",
+            ],
+            1,
+        ),
+    ] {
+        let mut child = Command::new(binary())
+            .args(argument)
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn()
+            .expect("start Photonic");
+        let mut output = child.stdout.take().expect("standard output");
+        let mut first = [0; 1];
+        output.read_exact(&mut first).expect("the first byte");
+        drop(output);
+        let finished = child.wait_with_output().expect("Photonic exits");
+        assert_eq!(finished.status.code(), Some(code), "{argument:?}");
+        assert!(
+            finished.stderr.is_empty(),
+            "{argument:?}: {}",
+            error(&finished)
+        );
+    }
+    let mut child = Command::new(binary())
+        .arg("mcp")
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .expect("start the server");
+    drop(child.stdout.take());
+    {
+        use std::io::Write;
+        let mut input = child.stdin.take().expect("server input");
+        input
+            .write_all(format!("{}\n", initialize()).as_bytes())
+            .expect("send a message");
+    }
+    let finished = child.wait_with_output().expect("the server exits");
+    assert_eq!(finished.status.code(), Some(0));
+    assert!(finished.stderr.is_empty(), "{}", error(&finished));
+}
+
+// A link inside the server's directory to a file outside it, where the platform makes links without
+// privileges.
+#[cfg(unix)]
+fn escape(root: &Path, secret: &Path) -> Option<String> {
+    std::os::unix::fs::symlink(secret, root.join("link.wave")).unwrap();
+    Some("link.wave".to_owned())
+}
+
+#[cfg(not(unix))]
+fn escape(_: &Path, _: &Path) -> Option<String> {
+    None
+}
+
+// The protocol server reads only files inside the directory it starts in, following links; the
+// command line reads any path.
+#[test]
+fn confinement() {
+    let fixture = Fixture::new();
+    let root = fixture.path.join("root");
+    std::fs::create_dir(&root).unwrap();
+    let secret = fixture.write("secret.wave", "Top.Secret");
+    std::fs::write(root.join("light.wave"), LIGHT).unwrap();
+    let inside = root.join("light.wave");
+    let message = [
+        initialize(),
+        call(
+            1,
+            "explore",
+            serde_json::json!({"program": {"file": ["light.wave"]}}),
+        ),
+        call(
+            2,
+            "explore",
+            serde_json::json!({"program": {"file": [inside.to_str().unwrap()]}}),
+        ),
+        call(
+            3,
+            "explore",
+            serde_json::json!({"program": {"file": ["../secret.wave"]}}),
+        ),
+        call(
+            4,
+            "explore",
+            serde_json::json!({"program": {"file": [secret.to_str().unwrap()]}}),
+        ),
+        call(
+            5,
+            "explore",
+            serde_json::json!({"program": {"file": ["light.wave"], "library": ["../secret.wave"]}}),
+        ),
+    ]
+    .into_iter()
+    .chain(escape(&root, &secret).map(|link| {
+        call(
+            6,
+            "explore",
+            serde_json::json!({"program": {"file": [link]}}),
+        )
+    }))
+    .collect::<Vec<_>>();
+    let answer = session(&root, &message);
+    for response in &answer[1..3] {
+        let (failed, text) = result(response);
+        assert!(!failed, "{text}");
+        assert!(text.contains(" · closed · 4 configurations"), "{text}");
+    }
+    for response in &answer[3..] {
+        let (failed, text) = result(response);
+        assert!(failed, "{text}");
+        assert!(text.starts_with("error[file]: "), "{text}");
+        assert!(
+            text.contains("the server reads no file outside it"),
+            "{text}"
+        );
+        assert!(!text.contains("Secret"), "{text}");
+    }
+    let output = execute("explore", &secret, &[]);
+    assert!(output.status.success());
+    assert!(text(&output).contains("Top.Secret") || text(&output).contains("Secret.Top"));
+}
+
+// A tool that fails says its failure's code as the command line does, and an argument of the wrong
+// type is named by its path.
+#[test]
+fn failure() {
+    let fixture = Fixture::new();
+    fixture.write("light.wave", LIGHT);
+    let program = serde_json::json!({"file": ["light.wave"]});
+    let answer = session(
+        &fixture.path,
+        &[
+            initialize(),
+            call(
+                1,
+                "explore",
+                serde_json::json!({"program": {"file": "light.wave"}}),
+            ),
+            call(
+                2,
+                "check",
+                serde_json::json!({"program": program, "claim": [{"kind": "reach"}]}),
+            ),
+            call(
+                3,
+                "explore",
+                serde_json::json!({"program": program, "mode": "linear"}),
+            ),
+            call(
+                4,
+                "explore",
+                serde_json::json!({"program": program, "limit": -1}),
+            ),
+            call(
+                5,
+                "explore",
+                serde_json::json!({"program": program, "budget": {"work": "many"}}),
+            ),
+            call(6, "inspect", serde_json::json!({"program": program})),
+            call(
+                7,
+                "compare",
+                serde_json::json!({"left": {"program": program}, "right": {"program": {"file": [1]}}}),
+            ),
+            call(
+                8,
+                "inspect",
+                serde_json::json!({"program": program, "handle": "s99"}),
+            ),
+            call(
+                9,
+                "explore",
+                serde_json::json!({"program": program, "colour": 1}),
+            ),
+        ],
+    );
+    let expected = [
+        "error[request]: program.file takes an array, not a string",
+        "error[request]: claim.0.pattern is required",
+        "error[request]: mode takes exhaustive, plain or path, not \"linear\"",
+        "error[request]: limit takes at least 0, not -1",
+        "error[request]: budget.work takes an integer, not a string",
+        "error[request]: handle is required",
+        "error[request]: right.program.file.0 takes a string, not an integer",
+        "error[handle]: s99 names no configuration",
+        "error[request]: colour is not a field here",
+    ];
+    for (response, expected) in answer[1..].iter().zip(expected) {
+        let (failed, text) = result(response);
+        assert!(failed, "{text}");
+        assert!(text.starts_with(expected), "{text}");
+    }
 }

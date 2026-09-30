@@ -3,6 +3,7 @@
 use clap::{Parser, Subcommand};
 use std::num::NonZeroUsize;
 use std::path::PathBuf;
+use std::process::ExitCode;
 
 #[cfg(not(feature = "allocation"))]
 #[global_allocator]
@@ -12,8 +13,11 @@ static ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
 mod allocation;
 mod directory;
 mod engine;
+mod exit;
 mod export;
+mod fingerprint;
 mod formula;
+mod limit;
 mod meter;
 
 #[derive(Parser)]
@@ -46,9 +50,12 @@ enum Case {
     },
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> ExitCode {
+    exit::code(run(&Argument::parse()))
+}
+
+fn run(argument: &Argument) -> Result<(), Box<dyn std::error::Error>> {
     directory::enter()?;
-    let argument = Argument::parse();
     let (program, target) = match &argument.case {
         Case::Expression { input, expected } => {
             let (program, target) = formula::program(&formula::source(input, expected)?)?;
@@ -66,14 +73,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let measure = || match &target {
         Some(target) => evaluate(
             || photonic::path::Search::new(program.clone(), Some(target.clone())),
-            &argument,
+            argument,
         ),
-        None => evaluate(|| photonic::runtime::Runtime::new(&program), &argument),
+        None => evaluate(|| photonic::runtime::Runtime::new(&program), argument),
     };
-    let cold = measure();
+    let cold = measure()?;
     let measurement = (0..argument.sample.get())
         .map(|_| measure())
-        .collect::<Vec<_>>();
+        .collect::<Result<Vec<_>, _>>()?;
     serde_json::to_writer_pretty(
         std::io::stdout().lock(),
         &serde_json::json!({
@@ -96,14 +103,10 @@ enum Record {
 fn evaluate<Value: engine::Engine>(
     initialize: impl FnOnce() -> Value,
     argument: &Argument,
-) -> Record {
+) -> Result<Record, engine::Failure> {
     if let Some(mode) = argument.export {
-        return Record::Export(export::measure(
-            initialize,
-            argument.budget.get(),
-            mode,
-            argument.writer,
-        ));
+        return export::measure(initialize, argument.budget.get(), mode, argument.writer)
+            .map(Record::Export);
     }
-    Record::Lifecycle(engine::measure(initialize, argument.budget.get()))
+    engine::measure(initialize, argument.budget.get()).map(Record::Lifecycle)
 }

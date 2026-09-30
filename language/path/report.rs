@@ -9,14 +9,13 @@ impl Search {
         Builder::new(&self.compiled).definition()
     }
 
+    // Each configuration as the walk named it, or named with at most the walk's budget, or listed;
+    // a name made for the report is not kept, so every report reads alike.
     fn node(&self) -> impl Iterator<Item = Node> + '_ {
-        let mut storage = crate::canonical::storage::Store::default();
         let mut builder = Builder::new(&self.compiled);
         self.state.iter().enumerate().map(move |(index, record)| {
-            let canonical = record
-                .canonical
-                .get_or_init(|| storage.insert(record.state.canonical()));
-            builder.node(index, &canonical.state, Status::Supported)
+            let (named, form) = record.show(self.budget);
+            builder.node(index, &named.state, Status::Supported, form)
         })
     }
 

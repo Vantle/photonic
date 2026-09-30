@@ -2,7 +2,6 @@ use serde::Serialize;
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
-#[derive(Default)]
 pub struct Allocator {
     allocation: AtomicUsize,
     reallocation: AtomicUsize,
@@ -14,7 +13,7 @@ pub struct Allocator {
 }
 
 impl Allocator {
-    pub const fn new() -> Self {
+    const fn new() -> Self {
         Self {
             allocation: AtomicUsize::new(0),
             reallocation: AtomicUsize::new(0),

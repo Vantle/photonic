@@ -26,7 +26,7 @@ enum Step {
         rule: usize,
         frame: usize,
         owner: usize,
-        read: Option<crate::place::Place>,
+        read: crate::place::Place,
         selection: Vec<Selection>,
     },
 }
@@ -89,7 +89,7 @@ pub fn run() -> Vec<Observation> {
                         rule: delivery.rule,
                         frame: delivery.frame,
                         owner: delivery.owner,
-                        read: delivery.read.map(|read| read.place(&index)),
+                        read: delivery.read.place(&index),
                         selection: delivery
                             .selection
                             .into_iter()

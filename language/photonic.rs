@@ -62,6 +62,7 @@ mod refinement;
 mod relation;
 mod render;
 mod replay;
+mod residence;
 mod revision;
 pub mod runtime;
 mod search;

@@ -56,8 +56,8 @@ impl Network {
                             priority: Priority {
                                 depth,
                                 resource: match consumer.read {
-                                    Some(Read::Context(_, resource)) => resource,
-                                    _ => 0,
+                                    Read::Context(_, resource) => resource,
+                                    Read::World(..) => 0,
                                 },
                             },
                             consumer,
@@ -85,7 +85,7 @@ impl Network {
                 consumer: Consumer {
                     rule: reader.rule,
                     owner: reader.owner,
-                    read: Some(reader.read()),
+                    read: reader.read(),
                 },
             });
         }

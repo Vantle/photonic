@@ -3,61 +3,63 @@ load("//photonic:defs.bzl", "photonic_library")
 photonic_library(
     name = "broadcast",
     srcs = ["broadcast.particle"],
+    visibility = ["//visibility:public"],
     deps = ["//library/function:invoke"],
 )
 
 photonic_library(
     name = "choose",
     srcs = ["choose.particle"],
+    visibility = ["//visibility:public"],
     deps = ["//library/function:invoke"],
 )
 
 photonic_library(
     name = "copy",
     srcs = ["copy.particle"],
-    visibility = ["//program/composition:__pkg__"],
+    visibility = ["//visibility:public"],
     deps = [":produce"],
 )
 
 photonic_library(
     name = "gather",
     srcs = ["gather.particle"],
+    visibility = ["//visibility:public"],
     deps = ["//library/function:invoke"],
 )
 
 photonic_library(
     name = "map",
     srcs = ["map.particle"],
-    visibility = ["//program/composition:__pkg__"],
+    visibility = ["//visibility:public"],
     deps = ["//library/function:invoke"],
 )
 
 photonic_library(
     name = "produce",
     srcs = ["produce.particle"],
+    visibility = ["//visibility:public"],
     deps = ["//library/function:invoke"],
 )
 
 photonic_library(
     name = "reduce",
     srcs = ["reduce.particle"],
-    visibility = [
-        "//library/selection:__pkg__",
-        "//program/composition:__pkg__",
-    ],
+    visibility = ["//visibility:public"],
     deps = ["//library/function:invoke"],
 )
 
 photonic_library(
     name = "repeat",
     srcs = ["repeat.particle"],
+    visibility = ["//visibility:public"],
     deps = [":map"],
 )
 
 photonic_library(
     name = "unpack",
     srcs = ["unpack.particle"],
-    visibility = ["//program/composition:__pkg__"],
+    visibility = ["//visibility:public"],
     deps = ["//library/function:invoke"],
 )
 

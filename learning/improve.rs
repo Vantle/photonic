@@ -14,7 +14,9 @@ use std::time::{Duration, Instant};
 pub fn run(argument: Improve) -> miette::Result<()> {
     let home = open(&argument.home)?;
     let setting = setting(&argument.session, false)?;
-    let deadline = setting.duration.map(|duration| Instant::now() + duration);
+    let deadline = setting
+        .duration
+        .and_then(|duration| Instant::now().checked_add(duration));
     let option = attempt::Setting {
         objective: setting.play.objective,
         bound: setting.play.bound,
@@ -23,6 +25,7 @@ pub fn run(argument: Improve) -> miette::Result<()> {
             ..Budget::default()
         },
         guide: Duration::from_secs(argument.guide),
+        placement: setting.placement,
         blind: true,
         deadline,
     };
@@ -30,19 +33,14 @@ pub fn run(argument: Improve) -> miette::Result<()> {
         if deadline.is_some_and(|deadline| Instant::now() >= deadline) {
             break;
         }
-        let known = pool(
-            &home,
-            SYNTHETIC,
-            0,
-            argument.session.seed,
-            &setting.play.objective,
-        )?;
+        let breeding = setting.play.objective.until(deadline);
+        let known = pool(&home, SYNTHETIC, 0, argument.session.seed, &breeding)?;
         let before = known.len();
         let grown = pool::grow(
             known,
             argument.fresh,
             combine(argument.session.seed, round as u64),
-            &setting.play.objective,
+            &breeding,
         )
         .into_diagnostic()?;
         let fresh = grown[before..]
@@ -81,13 +79,16 @@ pub fn run(argument: Improve) -> miette::Result<()> {
             .filter(|task| archive.best(&task.name).is_none())
             .map(|task| task.name.clone())
             .collect::<Vec<_>>();
+        if deadline.is_some_and(|deadline| Instant::now() >= deadline) {
+            break;
+        }
+        if argument.practice == 0 {
+            continue;
+        }
         let practice = deadline.map_or(Duration::from_secs(argument.practice), |deadline| {
             Duration::from_secs(argument.practice)
                 .min(deadline.saturating_duration_since(Instant::now()))
         });
-        if practice.is_zero() {
-            break;
-        }
         line(&format!(
             "round {}: training for {:.0}s, focused on the {} tasks still unsolved",
             round + 1,

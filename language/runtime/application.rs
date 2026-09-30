@@ -1,5 +1,6 @@
 use super::normalization::Status;
 use super::{Application, Event, Identity, Measure, Runtime, Task};
+use crate::application::Owner;
 use crate::flow::Closure;
 use crate::stop::Bound;
 use crate::support::Atom;
@@ -7,15 +8,30 @@ use std::collections::BTreeSet;
 use std::sync::Arc;
 
 impl Runtime {
-    pub(super) fn apply(&mut self, application: Application) {
+    pub(super) fn apply(&mut self, application: Application, budget: &mut usize) {
         let view = self.view[application.view].clone();
-        let owner = application.owner.map(|capture| {
-            self.normalization.environment(super::environment::Request {
-                target: view.target,
-                capture,
-                state: &self.state[view.target],
-            })
-        });
+        let owner = match application.owner {
+            Owner::Frame(frame) => Owner::Frame(frame),
+            Owner::Capture(capture) => {
+                let before = *budget;
+                let found = self.normalization.environment(
+                    super::environment::Request {
+                        target: view.target,
+                        capture,
+                        state: &self.state[view.target],
+                    },
+                    budget,
+                );
+                self.work += before - *budget;
+                let Ok(environment) = found else {
+                    // Naming the environment spent the rest of the budget, so the application
+                    // comes first in the next run.
+                    self.agenda.restore(Task::Apply(application));
+                    return;
+                };
+                Owner::Capture(environment)
+            }
+        };
         let key = Identity {
             source: view.source,
             frame: application.frame,

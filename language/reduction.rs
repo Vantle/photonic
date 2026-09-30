@@ -162,16 +162,12 @@ impl Search {
         };
         self.work += 1;
         let selection = candidate.selection;
-        if let Some(crate::reader::Read::World(site, _)) = candidate.read
+        if let crate::reader::Read::World(site, _) = candidate.read
             && !crate::slot::admits(&selection, self.index.world(site))
         {
             return Poll::Pending;
         }
-        let read = candidate
-            .read
-            .map(|read| read.place(&self.index))
-            .into_iter()
-            .collect();
+        let read = candidate.read.place(&self.index);
         let Some(binding) = Binding::select(&self.state, &selection, candidate.frame, read) else {
             return Poll::Pending;
         };

@@ -1,6 +1,8 @@
 load("@rules_rs//rs:rust_binary.bzl", "rust_binary")
 load("@rules_rs//rs:rust_test.bzl", "rust_test")
 load("//toolchain:defs.bzl", "script_binary", "script_test")
+load("//toolchain:notice.bzl", "notice")
+load(":library.bzl", "library")
 load(":site.bzl", "REPOSITORY", "site")
 
 filegroup(
@@ -9,6 +11,7 @@ filegroup(
         "book.css",
         "book.js",
         "calculator.js",
+        "chooser.js",
         "connection.js",
         "editor.js",
         "engine.js",
@@ -18,6 +21,7 @@ filegroup(
         "icon.svg",
         "lens.js",
         "lightbox.js",
+        "logo/mark.png",
         "numeral.js",
         "palette.js",
         "pattern.js",
@@ -66,15 +70,97 @@ filegroup(
     name = "build",
     srcs = [
         "BUILD.bazel",
+        "library.bzl",
         "site.bzl",
     ],
     visibility = ["//:__pkg__"],
+)
+
+library(
+    name = "library",
+    deps = [
+        "//library/binary:multiply",
+        "//library/binary:sum",
+        "//library/boolean:and",
+        "//library/boolean:equal",
+        "//library/boolean:not",
+        "//library/boolean:or",
+        "//library/carry:combine",
+        "//library/carry:equal",
+        "//library/carry:evaluate",
+        "//library/chain:cell",
+        "//library/chain:erase",
+        "//library/chain:reverse",
+        "//library/collection:broadcast",
+        "//library/collection:choose",
+        "//library/collection:copy",
+        "//library/collection:gather",
+        "//library/collection:map",
+        "//library/collection:produce",
+        "//library/collection:reduce",
+        "//library/collection:repeat",
+        "//library/collection:unpack",
+        "//library/expression:evaluate",
+        "//library/expression:execute",
+        "//library/expression:join",
+        "//library/expression:parse",
+        "//library/expression:split",
+        "//library/expression:token",
+        "//library/field:pack",
+        "//library/field:unpack",
+        "//library/function:compose",
+        "//library/function:identity",
+        "//library/function:invoke",
+        "//library/integer:add",
+        "//library/integer:divide",
+        "//library/integer:multiply",
+        "//library/integer:result",
+        "//library/integer:subtract",
+        "//library/natural:add",
+        "//library/natural:column",
+        "//library/natural:compare",
+        "//library/natural:complement",
+        "//library/natural:copy",
+        "//library/natural:difference",
+        "//library/natural:digit",
+        "//library/natural:divide",
+        "//library/natural:multiply",
+        "//library/natural:normalize",
+        "//library/natural:subtract",
+        "//library/natural:successor",
+        "//library/natural:trim",
+        "//library/selection:check",
+        "//library/selection:count",
+        "//library/selection:filter",
+        "//library/selection:reduce",
+        "//library/stream:successor",
+        "//library/ternary:add",
+        "//library/ternary:compare",
+        "//library/ternary:equal",
+        "//library/ternary:multiply",
+        "//library/ternary:select",
+        "//library/ternary:subtract",
+        "//library/ternary:successor",
+        "//library/ternary:sum",
+        "//library/vector:erase",
+        "//library/vector:merge",
+        "//library/vector:node",
+        "//library/vector:reverse",
+        "//library/vector:sort",
+    ],
+)
+
+notice(
+    name = "notice",
+    target = ["//toolchain/browser:module"],
 )
 
 site(
     name = "site",
     srcs = [
         ":asset",
+        ":library",
+        ":notice",
         "//:lightbox",
         "//:page",
         "//toolchain/browser:javascript",
@@ -91,13 +177,15 @@ rust_binary(
     crate_root = "serve.rs",
     data = [
         ":asset",
+        ":library",
+        ":notice",
         "//:lightbox",
         "//:page",
         "//toolchain/browser:javascript",
         "//toolchain/browser:webassembly",
     ],
     env = {
-        "BOOK": "$(rlocationpaths :asset) $(rlocationpath //:page) $(rlocationpath //:lightbox) $(rlocationpath //toolchain/browser:javascript) $(rlocationpath //toolchain/browser:webassembly)",
+        "BOOK": "$(rlocationpaths :asset) $(rlocationpath :library) $(rlocationpath :notice) $(rlocationpath //:page) $(rlocationpath //:lightbox) $(rlocationpath //toolchain/browser:javascript) $(rlocationpath //toolchain/browser:webassembly)",
     },
     lint_config = "//:lint",
     rustc_env = {"REPOSITORY": REPOSITORY},
@@ -163,6 +251,7 @@ script_test(
         "pattern.js",
         "symmetry.js",
         "share.js",
+        ":library",
     ],
     script = "test.mjs",
 )
@@ -172,6 +261,7 @@ script_test(
     size = "small",
     data = [
         ":asset",
+        ":notice",
         "//:lightbox",
         "//:page",
         "@rules_browsers_chrome_mac_arm//:info",
@@ -182,6 +272,7 @@ script_test(
         "@rules_browsers_chromedriver_mac_arm//:chromedriver-mac-arm64/chromedriver",
         "//toolchain/browser:webassembly",
         "//toolchain/browser:javascript",
+        ":library",
     ],
     script = "check.mjs",
     tags = [

@@ -59,7 +59,7 @@ rust_library(
 # The macOS sandbox denies access to the GPU, so the tests would never reach a Metal device.
 rust_test(
     name = "test",
-    size = "small",
+    size = "medium",
     srcs = [
         "test/engine.rs",
         "test/suite.rs",

@@ -20,6 +20,15 @@ impl<Key, Value> Default for Memo<Key, Value> {
 }
 
 impl<Key: Eq + Hash, Value: Clone> Memo<Key, Value> {
+    // The value remembered for a key, if a worker remembered one.
+    pub fn find(&self, key: &Key) -> Option<Value> {
+        self.shard[shard::slot(hashing::value(key))]
+            .lock()
+            .expect("an unpoisoned memo")
+            .get(key)
+            .cloned()
+    }
+
     pub fn get(&self, key: Key, make: impl FnOnce(&Key) -> Value) -> Value {
         let shard = &self.shard[shard::slot(hashing::value(&key))];
         if let Some(found) = shard.lock().expect("an unpoisoned memo").get(&key) {

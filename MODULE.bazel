@@ -4,6 +4,7 @@ module(
     bazel_compatibility = [">=9.2.0"],
 )
 
+# rules_browsers asks for aspect_bazel_lib 2.14.0, whose zstd toolchain fails to load under Bazel 9.
 bazel_dep(name = "aspect_bazel_lib", version = "2.22.5", dev_dependency = True)
 bazel_dep(name = "buildifier_prebuilt", version = "8.5.1.4", dev_dependency = True)
 

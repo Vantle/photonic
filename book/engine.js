@@ -3,9 +3,20 @@
     const book = globalThis.book ??= {};
     const version = 3;
     const stale = 'This page and its engine come from different versions of the book. Reload the page.';
+    const failure = reason => reason ? `This browser could not start the WebAssembly engine: ${reason}` : 'This browser could not start the WebAssembly engine.';
+    const startup = 60000;
+    // The engine refuses a request past 128 KiB (toolchain/browser/request.rs); the Lightbox measures
+    // a program with its libraries before it runs, to say so first.
+    const capacity = 131072;
     const served = /^https?:$/.test(location.protocol);
     const listener = new Set();
     let state = served ? 'unknown' : 'recorded';
+    const advice = {
+        recorded: 'This copy of the book shows recorded runs. Run your own at photonic.vantle.org, or serve the checkout with bazel run -c opt //book:serve.',
+        unknown: 'The engine is still loading. Try again in a moment.',
+        failed: `${failure()} Reload the page to try again.`,
+        stale,
+    };
 
     const announce = value => {
         if (state === value) return;
@@ -19,6 +30,7 @@
         let flight;
         let serial = 0;
         let watchdog;
+        let loading;
         const pending = new Map();
         const arm = () => {
             const entry = pending.get(flight);
@@ -45,6 +57,7 @@
         };
         const abandon = message => {
             clearTimeout(watchdog);
+            clearTimeout(loading);
             worker?.terminate();
             worker = undefined;
             flight = undefined;
@@ -73,21 +86,28 @@
         const start = () => {
             const current = new Worker('book/worker.js', { type: 'module' });
             ready = false;
+            clearTimeout(loading);
+            loading = setTimeout(() => {
+                if (current !== worker) return;
+                abandon(failure());
+                announce('failed');
+            }, startup);
             current.onmessage = ({ data }) => {
                 if (current !== worker) return;
                 if (data.failure?.code === 'engine') {
-                    abandon(`The WebAssembly engine did not start: ${data.failure.message}`);
+                    abandon(failure(data.failure.message));
                     announce('failed');
                     return;
                 }
                 if (data.ready) {
+                    clearTimeout(loading);
                     ready = true;
                     arm();
                     return;
                 }
                 if (data.serial !== flight) return;
                 if (data.failure?.code === 'crash') {
-                    halt(flight, `The engine stopped with ${data.failure.message}, usually because the program ran out of memory. The next run starts a fresh engine.`);
+                    halt(flight, 'The engine ran out of memory or failed; the next run starts a fresh engine.');
                     return;
                 }
                 if (!data.failure && data.reply?.version !== version) {
@@ -105,13 +125,13 @@
             current.onerror = event => {
                 event.preventDefault();
                 if (current !== worker) return;
-                abandon('The WebAssembly engine did not load. Reload the page.');
+                abandon(failure());
                 announce('failed');
             };
             return current;
         };
         const send = (kind, body, { timeout = 20000, signal } = {}) => {
-            if (!served) return Promise.reject(new Error('Live execution needs the local server: bazel run -c opt //book:serve'));
+            if (!served) return Promise.reject(new Error(advice.recorded));
             if (signal?.aborted) return Promise.reject(new Error('Stopped.'));
             const number = ++serial;
             return new Promise((resolve, reject) => {
@@ -131,16 +151,20 @@
     let shared;
     const send = (kind, body, option) => (shared ??= open()).send(kind, body, option);
 
+    const expand = library => [...new Set(library.flatMap(name => book.library?.[name]?.load ?? [name]))];
+
     const request = program => ({
         source: program.source,
-        library: program.library.map(name => {
-            const text = book.record?.library?.[name];
+        library: expand(program.library).map(name => {
+            const text = book.library?.[name]?.source ?? book.record?.library?.[name];
             if (text === undefined) throw new Error(`${name}.particle is not recorded. Regenerate the records with bazel run -c opt //book:record.`);
             return { name: `${name}.particle`, source: text };
         }),
         target: program.target,
         preserve: program.preserve,
     });
+
+    const size = program => new TextEncoder().encode(JSON.stringify({ version, ...request(program) })).length;
 
     const explore = async (program, signal) => send('explore', request(program), { signal });
 
@@ -160,5 +184,5 @@
         else setTimeout(probe, 1200);
     }
 
-    book.engine = { send, request, explore, path, watch, get state() { return state; } };
+    book.engine = { send, expand, request, size, capacity, explore, path, watch, get state() { return state; }, get advice() { return advice[state]; } };
 })();

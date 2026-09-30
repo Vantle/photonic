@@ -1,4 +1,4 @@
-use crate::archive::Archive;
+use crate::archive::{Archive, fits};
 use crate::home::{self, Home};
 use crate::objective::Setting;
 use crate::task::Task;
@@ -60,7 +60,10 @@ pub fn verify(task: &Task, program: &Program, setting: &Setting, budget: usize) 
 
 pub fn write(home: &Home, pool: &[Task], archive: &Archive) -> Result<(), home::Failure> {
     for task in pool {
-        let Some(record) = archive.best(&task.name) else {
+        let Some(record) = archive
+            .best(&task.name)
+            .filter(|record| fits(&record.program, task))
+        else {
             continue;
         };
         home.write(

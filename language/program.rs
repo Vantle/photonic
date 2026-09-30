@@ -12,7 +12,6 @@ pub enum Symbol {
 
 #[derive(Clone, Debug, Default)]
 pub struct Instruction {
-    pub name: String,
     pub input: Vec<Vec<Symbol>>,
     pub output: Vec<Output>,
 }
@@ -266,24 +265,20 @@ impl Program {
             ),
             source::Value::Rule { rule } => Symbol::Rule(self.find(rule).unwrap_or_else(|| {
                 let index = self.rule.len();
-                self.compile(
-                    rule,
-                    format!("Rule {}", index + 1),
-                    format!("value/{index}"),
-                )
+                self.compile(rule, format!("value/{index}"))
             })),
         }
     }
 
     fn intern(&mut self, value: &source::Definition, path: String) -> usize {
         self.find(value)
-            .unwrap_or_else(|| self.compile(value, path.clone(), path))
+            .unwrap_or_else(|| self.compile(value, path))
     }
 
-    fn compile(&mut self, value: &source::Definition, name: String, path: String) -> usize {
+    fn compile(&mut self, value: &source::Definition, path: String) -> usize {
         let index = self.rule.len();
         self.rule.push(Instruction::default());
-        self.rule[index] = self.instruction(value, name, path, index);
+        self.rule[index] = self.instruction(value, path, index);
         let form = self.shape(&self.rule[index]);
         self.interner.insert(form, index);
         index
@@ -300,15 +295,9 @@ impl Program {
     fn instruction(
         &mut self,
         value: &source::Definition,
-        name: String,
         path: String,
         index: usize,
     ) -> Instruction {
-        let name = if value.name.is_empty() {
-            name
-        } else {
-            value.name.clone()
-        };
         let input = self.input(&value.input);
         let output = value
             .output
@@ -321,11 +310,7 @@ impl Program {
                 }
             })
             .collect();
-        Instruction {
-            name,
-            input,
-            output,
-        }
+        Instruction { input, output }
     }
 
     fn declare(&mut self, value: &source::Program, name: String, opener: Option<usize>) -> usize {
@@ -374,7 +359,6 @@ impl Program {
     pub(crate) fn definition(&self, index: usize) -> source::Definition {
         let instruction = &self.rule[index];
         source::Definition {
-            name: String::new(),
             input: instruction
                 .input
                 .iter()

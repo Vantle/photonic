@@ -1,20 +1,22 @@
 use super::focus::Focus;
 use super::makeup::Makeup;
-use super::taxonomy::Draft;
+use super::taxonomy::{Draft, Name};
 use super::trace::Trace;
 use super::transition::{self, Effect, Key, Local};
 use super::{Identity, Laser, Link, Round, map};
 use crate::application::{self, Owner, Request};
+use crate::canonical::Exhausted;
 use crate::executor::Executor;
 use crate::flow::{Closure, Flow};
 use crate::profile;
 use crate::runtime::Measure;
-use crate::state::Canonical;
+use crate::state::{Canonical, State};
 use crate::stop::Bound;
 use hashing::Builder;
 use indexmap::IndexMap;
 use std::ops::Range;
 use std::sync::Arc;
+use std::sync::atomic::Ordering;
 
 // Applying an event holds its whole result until it is named, so a round applies and names its
 // events a batch at a time, of at most FIRING events whose results hold about RESULT occurrences,
@@ -40,10 +42,13 @@ pub(super) struct Move {
     pub(super) product: Option<Product>,
 }
 
+// An application the limits refuse is blocked until they change; one whose result takes more steps
+// to name than the round allows is deferred to the next round, as the rest of a spent round is.
 pub(super) enum Outcome {
     Product(Box<Product>),
     Move(Box<Move>),
     Blocked(Bound),
+    Deferred,
 }
 
 enum Resolution {
@@ -57,6 +62,14 @@ struct Candidate {
     index: usize,
     pending: Vec<(Identity, usize)>,
     resolution: Vec<Resolution>,
+}
+
+// The configurations whose novel traces a round identified, those left for the next round, and
+// the steps naming their owners' environments took.
+struct Selection {
+    candidate: Vec<Candidate>,
+    rest: Vec<(usize, Range<usize>)>,
+    charge: usize,
 }
 
 impl Laser {
@@ -75,14 +88,15 @@ impl Laser {
             next.retry = retry;
             return 0;
         }
-        let candidate = self.select(executor, novel);
+        let selection = self.select(executor, novel, allowance);
+        next.novel = selection.rest;
         let revisit = retry
             .iter()
             .map(|(identity, position)| (identity.source, *position))
             .collect::<Vec<_>>();
         let mut pending = retry;
-        let mut resolved = Vec::with_capacity(candidate.len());
-        for value in candidate {
+        let mut resolved = Vec::with_capacity(selection.candidate.len());
+        for value in selection.candidate {
             resolved.push((value.index, pending.len(), value.resolution));
             pending.extend(value.pending);
         }
@@ -90,8 +104,9 @@ impl Laser {
         let mut rest = pending.into_iter();
         let average = self.bulk.div_ceil(self.state.len()).max(1);
         let size = FIRING.min(RESULT / average).max(1);
+        let mut used = selection.charge;
         loop {
-            let room = size.min(allowance - created.len());
+            let room = size.min(allowance - used);
             if room == 0 || self.retained() >= self.limit.record {
                 break;
             }
@@ -99,13 +114,13 @@ impl Laser {
             if batch.is_empty() {
                 break;
             }
-            let outcome = self.attempt(executor, &batch);
+            let outcome = self.attempt(executor, &batch, allowance - used - 1);
+            let outcome = spend(outcome, &mut used, allowance);
             created.extend(self.create(executor, batch, outcome, next));
             self.taxonomy.forget(executor);
         }
         // A budget spent within a round defers the identities its batches did not reach: they wait
         // as blocked identities do, so no trace fires one of them twice, and fire first next round.
-        let count = created.len();
         for (identity, position) in rest {
             self.blocked.insert(identity.clone(), (position, None));
             next.retry.push((identity, position));
@@ -130,27 +145,77 @@ impl Laser {
                 self.link[source][position] = Link::Event(event);
             }
         }
-        count
+        used
     }
 
+    // Identifies the novel traces in turn, naming the environments of those a capture owns with
+    // what the allowance leaves after the traces before them. The first trace whose names do not
+    // fit waits for the next round with every trace after it, and spends what was left, as a
+    // search that runs out does; a reduced exploration chooses among a configuration's events all
+    // at once, so there the whole configuration waits. Workers identify configurations at once,
+    // each with the whole allowance, and the trace that does not fit is found afterwards, so what a
+    // round charges never depends on how many workers identified it.
     fn select(
         &self,
         executor: Option<&Executor>,
         novel: Vec<(usize, Range<usize>)>,
-    ) -> Vec<Candidate> {
+        allowance: usize,
+    ) -> Selection {
         let _scope = profile::Scope::new(profile::Phase::Identification);
-        map(executor, novel, |(index, range)| {
-            self.candidate(index, range)
-        })
+        let identified = map(executor, novel, |(index, range)| {
+            let mut budget = allowance;
+            let mut identity = Vec::with_capacity(range.len());
+            let mut spent = Vec::with_capacity(range.len());
+            for position in range.clone() {
+                let Ok(found) = self.identify(index, &self.trace[index][position], &mut budget)
+                else {
+                    break;
+                };
+                identity.push(found);
+                spent.push(allowance - budget);
+            }
+            (index, range, identity, spent)
+        });
+        let mut chosen = Vec::with_capacity(identified.len());
+        let mut rest = Vec::new();
+        let mut charge = 0;
+        for (index, range, mut identity, spent) in identified {
+            if !rest.is_empty() {
+                rest.push((index, range));
+                continue;
+            }
+            let fit = spent.partition_point(|&spent| spent <= allowance - charge);
+            if fit == range.len() {
+                charge += spent.last().copied().unwrap_or(0);
+                chosen.push((index, range, identity));
+                continue;
+            }
+            let fit = if self.independence.is_some() { 0 } else { fit };
+            let split = range.start + fit;
+            identity.truncate(fit);
+            if fit > 0 {
+                chosen.push((index, range.start..split, identity));
+            }
+            charge = allowance;
+            rest.push((index, split..range.end));
+        }
+        Selection {
+            candidate: map(executor, chosen, |(index, range, identity)| {
+                self.candidate(index, range, identity)
+            }),
+            rest,
+            charge,
+        }
     }
 
-    fn candidate(&self, index: usize, range: Range<usize>) -> Candidate {
+    fn candidate(
+        &self,
+        index: usize,
+        range: Range<usize>,
+        identity: Vec<Option<Identity>>,
+    ) -> Candidate {
         let mut seen = IndexMap::<Identity, usize, Builder>::default();
         let mut resolution = Vec::with_capacity(range.len());
-        let identity = range
-            .clone()
-            .map(|position| self.identify(index, &self.trace[index][position]))
-            .collect::<Vec<_>>();
         let chosen = self.independence.as_ref().and_then(|independence| {
             let found = identity.iter().flatten().collect::<Vec<_>>();
             Focus::choose(&self.state[index], &found, independence)
@@ -183,22 +248,43 @@ impl Laser {
         }
     }
 
-    fn attempt(&self, executor: Option<&Executor>, pending: &[(Identity, usize)]) -> Vec<Outcome> {
+    // Applies a batch at once, each application naming its result with at most the allowance, and
+    // gives each outcome with the steps its names took.
+    fn attempt(
+        &self,
+        executor: Option<&Executor>,
+        pending: &[(Identity, usize)],
+        allowance: usize,
+    ) -> Vec<(Outcome, usize)> {
         let _scope = profile::Scope::new(profile::Phase::Firing);
         map(
             executor,
             pending.iter().collect(),
-            |(identity, position)| self.apply(identity, &self.trace[identity.source][*position]),
+            |(identity, position)| {
+                let mut budget = allowance;
+                let outcome = self.apply(
+                    identity,
+                    &self.trace[identity.source][*position],
+                    &mut budget,
+                );
+                (outcome, allowance - budget)
+            },
         )
+    }
+
+    // Names what an application made, spending the budget on its search; none when the budget runs
+    // out, and the application then waits for the next round.
+    fn analyze(&self, state: &State, budget: &mut usize) -> Option<Draft> {
+        self.taxonomy.analyze(state, budget).ok()
     }
 
     // An event over parts applies to the parts it touches alone, once for every key, unless its
     // key made a configuration named whole; then, and for every other event, it applies to its
     // whole source.
-    fn apply(&self, identity: &Identity, trace: &Trace) -> Outcome {
+    fn apply(&self, identity: &Identity, trace: &Trace, budget: &mut usize) -> Outcome {
         let (Some(layout), Owner::Frame(owner)) = (&self.layout[identity.source], &identity.owner)
         else {
-            return self.configuration(identity, trace, None);
+            return self.configuration(identity, trace, None, budget);
         };
         let local = transition::localize(
             &self.taxonomy,
@@ -217,11 +303,13 @@ impl Laser {
             }));
         }
         if self.whole.contains(&local.key) {
-            return self.configuration(identity, trace, None);
+            return self.configuration(identity, trace, None, budget);
         }
-        let product = self.part(&local.key);
+        let Some(product) = self.part(&local.key, budget) else {
+            return Outcome::Deferred;
+        };
         if matches!(product.draft, Draft::Whole(_)) {
-            return self.configuration(identity, trace, Some(local.key));
+            return self.configuration(identity, trace, Some(local.key), budget);
         }
         Outcome::Move(Box::new(Move {
             local,
@@ -230,7 +318,7 @@ impl Laser {
         }))
     }
 
-    fn part(&self, key: &Key) -> Product {
+    fn part(&self, key: &Key, budget: &mut usize) -> Option<Product> {
         let makeup = Makeup {
             root: key.root,
             kind: key.kind.to_vec(),
@@ -244,16 +332,22 @@ impl Laser {
             rule: &self.program.rule[key.rule],
             binding: &key.binding,
         });
-        Product {
-            draft: self.taxonomy.analyze(&result.state),
+        Some(Product {
+            draft: self.analyze(&result.state, budget)?,
             flow: result.flow,
             whole: None,
-        }
+        })
     }
 
     // A rule a detached capture owns applies through the flow back to the configuration where
     // its match was found.
-    fn configuration(&self, identity: &Identity, trace: &Trace, whole: Option<Key>) -> Outcome {
+    fn configuration(
+        &self,
+        identity: &Identity,
+        trace: &Trace,
+        whole: Option<Key>,
+        budget: &mut usize,
+    ) -> Outcome {
         let attached = trace.owner().map(|capture| {
             let origin = &self.state[capture.origin];
             (capture, origin, capture.flow(origin, &self.pool))
@@ -277,32 +371,63 @@ impl Laser {
         if let Some(bound) = self.limit.refuse(Measure::new(&result.state)) {
             return Outcome::Blocked(bound);
         }
+        let Some(draft) = self.analyze(&result.state, budget) else {
+            return Outcome::Deferred;
+        };
         Outcome::Product(Box::new(Product {
-            draft: self.taxonomy.analyze(&result.state),
+            draft,
             flow: result.flow,
             whole,
         }))
     }
 
-    fn canonical(&self, origin: usize, frame: usize) -> Arc<Canonical> {
-        self.environment.get((origin, frame), |&(origin, frame)| {
-            Arc::new(self.state[origin].environment(frame))
-        })
+    // The environment a capture's rules see, spending the budget each time it serves. A
+    // remembered failure is tried again only with a larger budget than it failed with, so whether
+    // it fits never depends on which worker named it first.
+    fn canonical(
+        &self,
+        origin: usize,
+        frame: usize,
+        budget: &mut usize,
+    ) -> Result<Arc<Canonical>, Exhausted> {
+        let allowance = *budget;
+        let search = || {
+            Name::search(allowance, |left| {
+                self.state[origin].environment(frame, left)
+            })
+        };
+        let found = match self.environment.get((origin, frame), |_| search()) {
+            Name::Exhausted(tried) if tried < allowance => search(),
+            found => found,
+        };
+        found.spend(budget)
     }
 
-    fn identify(&self, source: usize, trace: &Trace) -> Option<Identity> {
-        let binding = trace.binding(&self.state[source], &self.pool)?;
-        let owner = trace.owner().map(|capture| {
-            let canonical = self.canonical(capture.origin, capture.frame);
-            Arc::new(capture.environment(&canonical))
-        });
-        Some(Identity {
+    // A trace's identity, or none when it no longer binds, spending the budget on naming the
+    // environment of a capture that owns it.
+    fn identify(
+        &self,
+        source: usize,
+        trace: &Trace,
+        budget: &mut usize,
+    ) -> Result<Option<Identity>, Exhausted> {
+        let Some(binding) = trace.binding(&self.state[source], &self.pool) else {
+            return Ok(None);
+        };
+        let owner = match trace.owner() {
+            Owner::Frame(frame) => Owner::Frame(frame),
+            Owner::Capture(capture) => {
+                let canonical = self.canonical(capture.origin, capture.frame, budget)?;
+                Owner::Capture(Arc::new(capture.environment(&canonical)))
+            }
+        };
+        Ok(Some(Identity {
             source,
             frame: trace.frame,
             owner,
             rule: trace.rule,
             binding,
-        })
+        }))
     }
 
     pub(super) fn identity(&self, event: usize) -> &Identity {
@@ -320,9 +445,41 @@ impl Laser {
             Link::Absent => None,
             Link::Event(event) => Some(*event),
             Link::Unresolved => {
-                let identity = self.identify(state, &self.trace[state][position])?;
-                self.identity[state].get(&identity).copied()
+                let mut budget = self.budget;
+                let Ok(identity) = self.identify(state, &self.trace[state][position], &mut budget)
+                else {
+                    // The event this trace identifies cannot be found again, so the exploration
+                    // never closes.
+                    self.exhausted.store(true, Ordering::Relaxed);
+                    return None;
+                };
+                self.identity[state].get(&identity?).copied()
             }
         }
     }
+}
+
+// Takes a batch's outcomes in turn, each paying a step for itself and the steps its names took,
+// as long as they fit what the allowance leaves; the first that does not fit spends the rest, as a
+// search that runs out does, and waits for the next round with every outcome after it. Each
+// outcome's names were searched with what the allowance left for the batch's first, so an outcome
+// that fits here fits as it would in turn.
+fn spend(outcome: Vec<(Outcome, usize)>, used: &mut usize, allowance: usize) -> Vec<Outcome> {
+    let mut spent = false;
+    outcome
+        .into_iter()
+        .map(|(outcome, cost)| {
+            if spent {
+                return Outcome::Deferred;
+            }
+            *used += 1;
+            if matches!(outcome, Outcome::Deferred) || *used + cost > allowance {
+                *used = allowance;
+                spent = true;
+                return Outcome::Deferred;
+            }
+            *used += cost;
+            outcome
+        })
+        .collect()
 }

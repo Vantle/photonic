@@ -4,6 +4,8 @@ use code::output::Output;
 use code::particle::Particle;
 use code::rule::Rule;
 use code::value::Value;
+use std::path::PathBuf;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 pub const A: u16 = 0;
 pub const B: u16 = 1;
@@ -37,4 +39,29 @@ pub fn rule(input: &[&[u16]], output: &[&[u16]]) -> Rule {
 
 pub fn nested(rule: Rule) -> Value {
     Value::Rule(Box::new(rule))
+}
+
+static NEXT: AtomicUsize = AtomicUsize::new(0);
+
+pub struct Directory {
+    pub path: PathBuf,
+}
+
+impl Directory {
+    pub fn new(name: &str) -> Self {
+        let base = std::env::var_os("TEST_TMPDIR").map_or_else(std::env::temp_dir, PathBuf::from);
+        let path = base.join(format!(
+            "learning-{name}-{}-{}",
+            std::process::id(),
+            NEXT.fetch_add(1, Ordering::Relaxed)
+        ));
+        std::fs::create_dir_all(&path).unwrap();
+        Self { path }
+    }
+}
+
+impl Drop for Directory {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.path);
+    }
 }

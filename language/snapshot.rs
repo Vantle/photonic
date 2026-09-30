@@ -34,6 +34,23 @@ pub struct Node {
     pub world: Vec<World>,
     pub frame: Vec<Frame>,
     pub status: Status,
+    #[serde(skip_serializing_if = "Form::canonical")]
+    pub form: Form,
+}
+
+// How a report names a configuration: in its canonical form, the same for every renaming of it,
+// or, when naming it so takes more steps than the report's budget, listed as the engine holds it.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Form {
+    Canonical,
+    Listed,
+}
+
+impl Form {
+    pub fn canonical(&self) -> bool {
+        *self == Self::Canonical
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]

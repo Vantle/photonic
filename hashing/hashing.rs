@@ -21,18 +21,20 @@ impl BuildHasher for Builder {
 }
 
 impl std::hash::Hasher for Hasher {
+    // The length follows the words, since padding the last word with zeros would otherwise hash
+    // bytes that differ only in trailing zeros alike.
     #[inline]
     fn write(&mut self, byte: &[u8]) {
         let (chunk, rest) = byte.as_chunks::<8>();
         for &word in chunk {
             self.write_u64(u64::from_le_bytes(word));
         }
-        if rest.is_empty() {
-            return;
+        if !rest.is_empty() {
+            let mut word = [0; 8];
+            word[..rest.len()].copy_from_slice(rest);
+            self.write_u64(u64::from_le_bytes(word));
         }
-        let mut word = [0; 8];
-        word[..rest.len()].copy_from_slice(rest);
-        self.write_u64(u64::from_le_bytes(word));
+        self.write_usize(byte.len());
     }
 
     #[inline]

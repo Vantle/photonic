@@ -3,12 +3,7 @@ load("//photonic:defs.bzl", "photonic_library")
 photonic_library(
     name = "evaluate",
     srcs = ["evaluate.particle"],
-    visibility = [
-        "//benchmark:__pkg__",
-        "//program/ternary:__pkg__",
-        "//program/ternary/case:__pkg__",
-        "//toolchain/browser:__pkg__",
-    ],
+    visibility = ["//visibility:public"],
     deps = [
         ":execute",
         ":parse",
@@ -18,10 +13,7 @@ photonic_library(
 photonic_library(
     name = "execute",
     srcs = ["execute.particle"],
-    visibility = [
-        "//program/ternary:__pkg__",
-        "//program/ternary/case:__pkg__",
-    ],
+    visibility = ["//visibility:public"],
     deps = [
         ":join",
         ":split",
@@ -37,6 +29,7 @@ photonic_library(
 photonic_library(
     name = "join",
     srcs = ["join.particle"],
+    visibility = ["//visibility:public"],
     deps = [
         ":token",
         "//library/chain:reverse",
@@ -47,6 +40,7 @@ photonic_library(
 photonic_library(
     name = "parse",
     srcs = ["parse.particle"],
+    visibility = ["//visibility:public"],
     deps = [
         ":token",
         "//library/chain:erase",
@@ -58,6 +52,7 @@ photonic_library(
 photonic_library(
     name = "split",
     srcs = ["split.particle"],
+    visibility = ["//visibility:public"],
     deps = [
         ":token",
         "//library/chain:erase",
@@ -69,6 +64,7 @@ photonic_library(
 photonic_library(
     name = "token",
     srcs = ["token.particle"],
+    visibility = ["//visibility:public"],
     deps = [
         "//library/chain:erase",
         "//library/chain:reverse",

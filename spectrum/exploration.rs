@@ -1,5 +1,6 @@
 use crate::budget::Budget;
 use crate::configuration::{Coherence, Configuration, Frame, Occurrence, Opener, Value};
+use crate::extent::Extent;
 use crate::numbering::Numbering;
 use crate::order::{self, Canonical, Naming};
 use crate::recording::{Engine, Mode, Order};
@@ -79,12 +80,23 @@ pub struct Exploration {
     numbering: Option<Numbering>,
 }
 
-pub struct Plan {
-    pub canonical: Canonical,
+// Everything an exploration depends on: the whole program with its scopes, the naming its handles
+// use, the mode, engine and budget, and the goal of a path. Its key hashes it, and the store
+// compares it whole on every hit, since two identities can share a key.
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub struct Identity {
+    pub program: Program,
+    pub naming: Naming,
     pub mode: Mode,
     pub engine: Engine,
     pub budget: Budget,
     pub goal: Option<Program>,
+}
+
+pub struct Plan {
+    pub order: Order,
+    pub shape: Option<u64>,
+    pub identity: Identity,
     pub key: String,
 }
 
@@ -236,28 +248,6 @@ pub(crate) fn trail(parent: &[Option<usize>], event: &[Event], node: usize) -> V
     trail
 }
 
-// A key names everything an exploration depends on: the whole program with its scopes, the naming
-// its handles use, the mode, engine and budget, and the goal of a path.
-fn key(
-    canonical: &Canonical,
-    mode: Mode,
-    engine: Engine,
-    budget: Budget,
-    goal: Option<&Program>,
-) -> String {
-    format!(
-        "{:016x}",
-        hashing::value(&(
-            &canonical.program,
-            &canonical.naming,
-            mode,
-            engine,
-            budget,
-            goal
-        ))
-    )
-}
-
 impl Plan {
     pub fn new(
         program: &Program,
@@ -266,30 +256,40 @@ impl Plan {
         budget: Budget,
         goal: Option<Program>,
     ) -> Self {
-        let canonical = match mode {
+        let Canonical {
+            order,
+            shape,
+            program,
+            naming,
+        } = match mode {
             Mode::Exhaustive | Mode::Plain => order::exhaustive(program),
             Mode::Path => order::source(program),
         };
         let goal = goal.map(|goal| {
-            let mut hidden = canonical.naming.hide(&goal);
+            let mut hidden = naming.hide(&goal);
             hidden.rule.sort();
             hidden
         });
-        let key = key(&canonical, mode, engine, budget, goal.as_ref());
-        Self {
-            canonical,
+        let identity = Identity {
+            program,
+            naming,
             mode,
             engine,
             budget,
             goal,
-            key,
+        };
+        Self {
+            order,
+            shape,
+            key: format!("{:016x}", hashing::value(&identity)),
+            identity,
         }
     }
 }
 
 impl Exploration {
     pub fn new(plan: Plan) -> Self {
-        match (plan.mode, plan.engine) {
+        match (plan.identity.mode, plan.identity.engine) {
             (Mode::Exhaustive, Engine::Interpreter) => Self::interpret(plan),
             (Mode::Path, _) => Self::walk(plan),
             _ => Self::compile(plan),
@@ -297,10 +297,11 @@ impl Exploration {
     }
 
     fn interpret(plan: Plan) -> Self {
-        let mut runtime = Runtime::new(&plan.canonical.program);
+        let budget = plan.identity.budget;
+        let mut runtime = Runtime::new(&plan.identity.program);
         match executor() {
-            Some(executor) => runtime.parallel(executor, plan.budget.work, plan.budget.limit()),
-            None => runtime.run(plan.budget.work, plan.budget.limit()),
+            Some(executor) => runtime.parallel(executor, budget.work, budget.limit()),
+            None => runtime.run(budget.work, budget.limit()),
         }
         let snapshot = runtime.snapshot();
         let event = snapshot
@@ -340,13 +341,14 @@ impl Exploration {
     }
 
     fn compile(plan: Plan) -> Self {
-        let mut laser = match plan.mode {
-            Mode::Plain => Laser::plain(&plan.canonical.program),
-            Mode::Exhaustive | Mode::Path => Laser::new(&plan.canonical.program),
+        let budget = plan.identity.budget;
+        let mut laser = match plan.identity.mode {
+            Mode::Plain => Laser::plain(&plan.identity.program),
+            Mode::Exhaustive | Mode::Path => Laser::new(&plan.identity.program),
         };
         match executor() {
-            Some(executor) => laser.parallel(executor, plan.budget.work, plan.budget.limit()),
-            None => laser.run(plan.budget.work, plan.budget.limit()),
+            Some(executor) => laser.parallel(executor, budget.work, budget.limit()),
+            None => laser.run(budget.work, budget.limit()),
         }
         let report = laser.report();
         let record = Record {
@@ -375,10 +377,11 @@ impl Exploration {
         Self::assemble(plan, record, Explorer::Laser(Box::new(laser)))
     }
 
-    fn walk(mut plan: Plan) -> Self {
+    fn walk(plan: Plan) -> Self {
+        let budget = plan.identity.budget;
         let mut search =
-            photonic::path::Search::new(plan.canonical.program.clone(), plan.goal.take());
-        search.run(plan.budget.work, plan.budget.limit());
+            photonic::path::Search::new(plan.identity.program.clone(), plan.identity.goal.clone());
+        search.run(budget.work, budget.limit());
         let report = search.report();
         let event = report
             .event
@@ -395,11 +398,12 @@ impl Exploration {
                 deduction: Vec::new(),
             })
             .collect();
-        let reached = report.outcome == Outcome::Reached;
+        // A direct path follows one run, so it never settles what the others do, and reached says
+        // whether that run met its goal.
         let record = Record {
-            closed: reached,
+            closed: false,
             stop: report.stop.clone(),
-            reached,
+            reached: report.outcome == Outcome::Reached,
             work: report.work,
             definition: &report.definition,
             state: &report.state,
@@ -409,14 +413,14 @@ impl Exploration {
     }
 
     fn assemble(plan: Plan, record: Record<'_>, explorer: Explorer) -> Self {
-        let naming = &plan.canonical.naming;
+        let naming = &plan.identity.naming;
         let configuration = record
             .state
             .iter()
             .map(self::configuration)
             .collect::<Vec<_>>();
-        let numbering =
-            (plan.mode != Mode::Path).then(|| Numbering::new(&configuration, &record.event));
+        let numbering = (plan.identity.mode != Mode::Path)
+            .then(|| Numbering::new(&configuration, &record.event));
         let (configuration, event) = match &numbering {
             Some(numbering) => numbering.apply(configuration, record.event),
             None => (configuration, record.event),
@@ -455,12 +459,12 @@ impl Exploration {
         }
         Self {
             key: plan.key,
-            mode: plan.mode,
-            engine: plan.engine,
-            order: plan.canonical.order,
-            shape: plan.canonical.shape,
-            naming: plan.canonical.naming,
-            program: plan.canonical.program,
+            mode: plan.identity.mode,
+            engine: plan.identity.engine,
+            order: plan.order,
+            shape: plan.shape,
+            naming: plan.identity.naming,
+            program: plan.identity.program,
             closed: record.closed,
             stop: record.stop,
             reached: record.reached,
@@ -528,10 +532,6 @@ impl Exploration {
             .filter(move |&event| self.event[event].rule == rule && self.event[event].supported)
     }
 
-    pub fn settled(&self) -> bool {
-        self.closed && self.mode != Mode::Path
-    }
-
     // A cycle of supported events through configurations that avoided marks, found from the
     // start: the configuration where it closes, and the events from the start around it.
     pub fn cycle(&self, avoided: &[bool]) -> Option<(usize, Vec<usize>)> {
@@ -545,12 +545,12 @@ impl Exploration {
     }
 
     // Whether a run can go on forever: yes once a cycle of supported events is found, and no once
-    // the exploration settles without one.
+    // the exploration closes without one.
     pub fn endless(&self) -> Option<bool> {
         if self.cycle(&vec![true; self.configuration.len()]).is_some() {
             return Some(true);
         }
-        self.settled().then_some(false)
+        self.closed.then_some(false)
     }
 
     pub fn find(&self, configuration: usize, id: usize) -> Option<&Occurrence> {
@@ -591,6 +591,13 @@ impl Exploration {
 
     pub fn name(&self) -> String {
         format!("x{}", self.key)
+    }
+
+    pub fn extent(&self) -> Extent {
+        Extent {
+            mode: self.mode,
+            closed: self.closed,
+        }
     }
 
     pub fn inferred(&self, event: usize) -> bool {

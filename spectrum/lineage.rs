@@ -102,7 +102,7 @@ pub fn lineage(
     if exploration.mode == Mode::Path {
         return Err(Failure::new(
             Code::Exploration,
-            "lineage follows each event's place map, which exhaustive explorations record; explore without path mode",
+            "lineage follows each event's place map, which a direct path does not record; explore every future instead (leave out --path, or mode path)",
         ));
     }
     if configuration != 0 && exploration.parent[configuration].is_none() {

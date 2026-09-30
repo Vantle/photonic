@@ -85,6 +85,7 @@
             ? follow('path', book.engine.request(program), { timeout: 60000, signal })
             : book.engine.explore(program, signal);
         const changed = () => editor.value !== original || goal.area.value !== setting.target.join('\n');
+        const pristine = program => program.source === original && program.target.join('\n') === setting.target.join('\n');
         const point = () => {
             lightbox.href = book.share.link({ ...setting, source: editor.element.hidden ? original : editor.value, target: goal.value });
         };
@@ -97,8 +98,10 @@
                 if (!follow) latest = { source: program.source, target: program.target, result };
                 show(output, setting, result, program.target);
             }, error => {
-                if (follow && !error.detail) restore();
                 message.say(book.editor.locate(error, submission), 'error');
+                if (!follow || error.detail) return;
+                if (pristine(program)) restore();
+                else output.replaceChildren();
             });
         };
         book.engine.watch(state => {

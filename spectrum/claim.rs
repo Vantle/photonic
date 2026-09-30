@@ -1,9 +1,10 @@
+use crate::embedding;
 use crate::exploration::{self, Exploration};
 use crate::explore;
 use crate::failure::{Code, Failure};
 use crate::handle::Handle;
 use crate::pattern::{self, Pattern};
-use crate::recording::Mode;
+use crate::recording::{Engine, Mode, Recording};
 use crate::render;
 use crate::survey::Survey;
 use frontend::source::Program;
@@ -36,7 +37,9 @@ pub struct Claim {
     #[schemars(description = "Compare whole configurations, as Prism does.")]
     pub exact: bool,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    #[schemars(description = "With exact, the target also lists every loaded root rule.")]
+    #[schemars(
+        description = "With exact, the target also lists every loaded root rule; without exact it is refused."
+    )]
     pub preserve: bool,
 }
 
@@ -201,9 +204,31 @@ fn end(exploration: &Exploration, matched: &[bool], word: &Word) -> Evidence {
     }
 }
 
-fn body(claim: &Claim) -> Result<pattern::Body, Failure> {
+// What a claim looks for: the configurations a pattern matches, or with exact the one
+// configuration a target names.
+enum Sought {
+    Pattern(pattern::Body),
+    Target(Program),
+}
+
+// Preserve lists the program's root rules in an exact target, so it means nothing without one.
+pub(crate) fn preserve(exact: bool, preserve: bool) -> Result<(), Failure> {
+    if preserve && !exact {
+        return Err(Failure::new(
+            Code::Request,
+            "preserve adds the program's root rules to an exact target; read the target as a whole configuration with exact (--exact, or exact)",
+        ));
+    }
+    Ok(())
+}
+
+fn read(claim: &Claim) -> Result<Sought, Failure> {
+    preserve(claim.exact, claim.preserve)?;
+    if claim.exact {
+        return crate::subject::lower("pattern", &claim.pattern, Code::Target).map(Sought::Target);
+    }
     match Pattern::read(&claim.pattern)? {
-        Pattern::Configuration(body) => Ok(body),
+        Pattern::Configuration(body) => Ok(Sought::Pattern(body)),
         Pattern::Rule(_) => Err(Failure::new(
             Code::Claim,
             "a claim is about configurations; write a pattern of coherences and scopes, such as False.Extra",
@@ -211,31 +236,53 @@ fn body(claim: &Claim) -> Result<pattern::Body, Failure> {
     }
 }
 
-fn target(claim: &Claim) -> Result<Program, Failure> {
-    crate::subject::lower("pattern", &claim.pattern, Code::Target)
+fn metal() -> Failure {
+    Failure::new(
+        Code::Claim,
+        "metal keeps only counts, ends and cycles, so it answers outcome and end; ask reach, avoid, always and inevitable with laser",
+    )
+}
+
+fn path() -> Failure {
+    Failure::new(
+        Code::Claim,
+        "a direct path checks an exact target as its goal; give the target as the goal (--goal, or goal)",
+    )
+}
+
+// A claim is read, and checked against the mode and engine a recording names, before anything is
+// explored, so a claim that cannot be answered costs no exploration. A key names neither, and the
+// exploration it holds is checked when the claim is answered.
+pub(crate) fn admit(claim: &Claim, recording: &Recording) -> Result<(), Failure> {
+    read(claim)?;
+    if recording.engine == Some(Engine::Metal) && !matches!(claim.kind, Kind::Outcome | Kind::End) {
+        return Err(metal());
+    }
+    if recording.mode == Some(Mode::Path) && claim.exact {
+        return Err(path());
+    }
+    Ok(())
 }
 
 // Which configurations a claim's pattern matches, or, when exact, which one is its target.
 fn matched(claim: &Claim, exploration: &Exploration) -> Result<Vec<bool>, Failure> {
-    if !claim.exact {
-        let body = body(claim)?;
-        return Ok(exploration
-            .configuration
-            .iter()
-            .map(|configuration| {
-                configuration.supported
-                    && pattern::assign(&body, configuration, exploration.rule.as_slice()).is_some()
-            })
-            .collect());
-    }
-    if exploration.mode == Mode::Path {
-        return Err(Failure::new(
-            Code::Claim,
-            "a direct path checks an exact target as its goal; explore in path mode with goal",
-        ));
-    }
+    let target = match read(claim)? {
+        Sought::Pattern(body) => {
+            return exploration
+                .configuration
+                .iter()
+                .map(|configuration| {
+                    Ok(configuration.supported
+                        && embedding::assign(&body, configuration, exploration.rule.as_slice())?
+                            .is_some())
+                })
+                .collect();
+        }
+        Sought::Target(_) if exploration.mode == Mode::Path => return Err(path()),
+        Sought::Target(target) => target,
+    };
     let verdict = exploration
-        .verdict(&target(claim)?, claim.preserve)
+        .verdict(&target, claim.preserve)
         .ok_or_else(|| Failure::new(Code::Claim, "this exploration cannot check exact targets"))?;
     let mut matched = vec![false; exploration.configuration.len()];
     if let (Outcome::Reached, Some(witness)) = (verdict.outcome, verdict.witness) {
@@ -255,7 +302,7 @@ fn decide(claim: &Claim, exploration: &Exploration, matched: &[bool]) -> Evidenc
         supported(exploration).filter(|&index| !matched[index]),
     );
     let path = exploration.mode == Mode::Path;
-    let closed = exploration.settled();
+    let closed = exploration.closed;
     match claim.kind {
         Kind::Reach | Kind::Avoid => {
             let (present, absent) = if claim.kind == Kind::Reach {
@@ -340,23 +387,19 @@ pub(crate) fn evaluate(claim: &Claim, exploration: &Exploration) -> Result<Verdi
 // A survey keeps only its ends and whether a run can go on forever, so it answers outcome and end,
 // and names an end by its text, since it numbers nothing.
 pub(crate) fn survey(claim: &Claim, survey: &Survey) -> Result<Verdict, Failure> {
+    let sought = read(claim)?;
     if !matches!(claim.kind, Kind::Outcome | Kind::End) {
-        return Err(Failure::new(
-            Code::Claim,
-            "metal keeps only counts, ends and cycles, so it answers outcome and end; ask reach, avoid, always and inevitable with laser",
-        ));
+        return Err(metal());
     }
-    let matched = if claim.exact {
-        survey.target(&target(claim)?, claim.preserve)
-    } else {
-        let body = body(claim)?;
-        survey
+    let matched = match sought {
+        Sought::Target(target) => survey.target(&target, claim.preserve),
+        Sought::Pattern(body) => survey
             .end
             .iter()
             .map(|configuration| {
-                pattern::assign(&body, configuration, survey.rule.as_slice()).is_some()
+                Ok(embedding::assign(&body, configuration, survey.rule.as_slice())?.is_some())
             })
-            .collect()
+            .collect::<Result<_, Failure>>()?,
     };
     let word = word(claim);
     let stray = matched.iter().position(|&matched| !matched);
@@ -374,7 +417,7 @@ pub(crate) fn survey(claim: &Claim, survey: &Survey) -> Result<Verdict, Failure>
         (_, Some(index)) => Evidence::plain(
             Answer::Fails,
             format!(
-                "a run ends at {} without {}",
+                "a run ends at “{}” without {}",
                 render::text(&survey.rule, &survey.end[index]),
                 word.noun
             ),

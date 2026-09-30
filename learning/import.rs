@@ -14,8 +14,10 @@ pub enum Failure {
     Parse { origin: String, message: String },
     #[error(transparent)]
     Lift(#[from] translation::failure::Failure),
-    #[error("the input {origin} declares rules; inputs hold only initial coherences")]
-    Input { origin: String },
+    #[error("{origin} declares rules or scopes; a test holds only coherences")]
+    Test { origin: String },
+    #[error("{origin} opens a scope at the top level; the learner edits only a program's rules")]
+    Scope { origin: String },
     #[error("the program has no input: pass inputs or give the program initial coherences")]
     Empty,
     #[error("the program does not reach one unique result from input {origin}")]
@@ -48,8 +50,8 @@ fn parse(source: &Source) -> Result<frontend::source::Program, Failure> {
 
 fn configuration(source: &Source, vocabulary: &mut Vocabulary) -> Result<Configuration, Failure> {
     let (lifted, coherence) = lift::program(&parse(source)?, vocabulary)?;
-    if !lifted.rule().is_empty() {
-        return Err(Failure::Input {
+    if !lifted.rule().is_empty() || !lifted.scope().is_empty() {
+        return Err(Failure::Test {
             origin: source.origin.clone(),
         });
     }
@@ -90,12 +92,15 @@ pub fn import(
     validate(name)?;
     let mut vocabulary = Vocabulary::default();
     let mut rule = Vec::new();
-    let mut scope = Vec::new();
     let mut initial: Vec<Particle> = Vec::new();
     for source in program {
         let (lifted, configuration) = lift::program(&parse(source)?, &mut vocabulary)?;
+        if !lifted.scope().is_empty() {
+            return Err(Failure::Scope {
+                origin: source.origin.clone(),
+            });
+        }
         rule.extend(lifted.rule().iter().cloned());
-        scope.extend(lifted.scope().iter().cloned());
         initial.extend(Vec::from(configuration));
     }
     let mut given = Vec::new();
@@ -118,7 +123,7 @@ pub fn import(
             Configuration::from(initial),
         ));
     }
-    let reference = Program::new(rule, scope);
+    let reference = Program::from(rule);
     let example = given
         .into_iter()
         .map(|(origin, input)| {

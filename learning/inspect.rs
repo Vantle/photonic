@@ -2,12 +2,14 @@ use crate::argument::{Status, Verify};
 use crate::output::line;
 use crate::setup::{archive, open};
 use code::program::Program;
-use learning::archive::{Archive, Coverage, Proof};
+use learning::archive::{Archive, Coverage, Proof, fits};
 use learning::export;
 use learning::home;
 use learning::objective;
 use learning::task::{self, Task};
 use miette::IntoDiagnostic;
+
+const STALE: &str = "the recorded best program names atoms outside the task's vocabulary; solve or train the task to renew it";
 
 fn standing(proof: Option<Proof>, verified: bool) -> &'static str {
     match (proof.map(|proof| proof.coverage), verified) {
@@ -94,6 +96,7 @@ fn detail(
         None => line("no reference: the task is defined by its tests alone"),
     }
     match archive.best(name) {
+        Some(record) if !fits(&record.program, task) => line(STALE),
         Some(record) => line(&measure("best", task, &record.program, setting)),
         None => line("no correct program recorded yet"),
     }
@@ -119,6 +122,10 @@ pub fn verify(argument: &Verify) -> miette::Result<()> {
             }
             continue;
         };
+        if !fits(&record.program, task) {
+            line(&format!("{}: {STALE}", task.name));
+            continue;
+        }
         let result = export::verify(task, &record.program, &setting, argument.budget);
         line(&format!(
             "{:<16} kernel {}/{} prism {}/{}",

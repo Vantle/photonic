@@ -123,6 +123,8 @@ pub struct Net {
     slot: Vec<(usize, usize)>,
     surface: HashMap<u32, Surface, Builder>,
     work: usize,
+    // An end is named within the largest allowance grounding was given.
+    budget: usize,
 }
 
 // What a rule joining several coherences can bind of a kind: how many coherences of the root frame
@@ -186,16 +188,22 @@ fn run(kind: &[u32]) -> Vec<(u32, usize)> {
 }
 
 // The makeup that names a configuration, its root and its components' kinds, sorted, numbering the
-// roots and kinds the net meets for the first time; a configuration whose root ties to one of its
-// components has none.
-fn name(taxonomy: &mut Taxonomy, state: &State) -> Result<Makeup, Unsupported> {
-    let draft = taxonomy.analyze(state);
+// roots and kinds the net meets for the first time and spending the budget on naming them; none
+// when the budget runs out, and a configuration whose root ties to one of its components has none.
+fn name(
+    taxonomy: &mut Taxonomy,
+    state: &State,
+    budget: &mut usize,
+) -> Result<Option<Makeup>, Unsupported> {
+    let Ok(draft) = taxonomy.analyze(state, budget) else {
+        return Ok(None);
+    };
     if matches!(draft, Draft::Whole(_)) {
         return Err(Unsupported::Whole);
     }
     let (root, mut kind) = taxonomy.intern(&draft);
     kind.sort_unstable();
-    Ok(Makeup { root, kind })
+    Ok(Some(Makeup { root, kind }))
 }
 
 // Whether some coherence of the root frame holds every value an input binds, so a component with
@@ -228,7 +236,9 @@ impl Net {
     pub fn new(source: &frontend::source::Program) -> Result<Self, Unsupported> {
         let program = Arc::new(Program::new(source));
         let mut taxonomy = Taxonomy::default();
-        let start = name(&mut taxonomy, &State::initial(&program))?;
+        let mut budget = crate::canonical::UNLIMITED;
+        let start = name(&mut taxonomy, &State::initial(&program), &mut budget)?
+            .expect("an unlimited search names every configuration");
         let pattern = program
             .rule
             .iter()
@@ -252,6 +262,7 @@ impl Net {
             slot,
             surface: HashMap::default(),
             work: 0,
+            budget: 0,
         })
     }
 
@@ -262,13 +273,18 @@ impl Net {
     // The marking of an exact target configuration, or none when a part of it is a kind the net
     // has never met, since then no marking it reached is the target.
     pub fn find(&self, target: &frontend::source::Program) -> Option<Makeup> {
-        self.taxonomy.find(&State::target(&self.program, target))
+        let mut budget = crate::canonical::UNLIMITED;
+        self.taxonomy
+            .find(&State::target(&self.program, target), &mut budget)
+            .expect("an unlimited search names every configuration")
     }
 
-    // A marking as the interpreter reports a configuration, in its canonical form, with the
-    // program's rules to name the rule values it holds.
+    // A marking as the interpreter reports a configuration, in its canonical form when that takes
+    // at most the budget the net explores with, else listed, with the program's rules to name the
+    // rule values it holds.
     pub fn node(&self, marking: &Makeup) -> Node {
-        render::Builder::new(&self.program).node(0, &self.state(marking), Status::Supported)
+        let (named, form) = self.taxonomy.materialize(marking).show(self.budget);
+        render::Builder::new(&self.program).node(0, &named.state, Status::Supported, form)
     }
 
     pub fn definition(&self) -> Vec<Definition> {
@@ -276,7 +292,7 @@ impl Net {
     }
 
     pub(crate) fn state(&self, marking: &Makeup) -> State {
-        self.taxonomy.materialize(marking).canonical().state
+        self.taxonomy.materialize(marking).show(self.budget).0.state
     }
 
     // Every distinct plain event of the part holding the root and these kinds that involves every
@@ -324,7 +340,14 @@ impl Net {
                 rule: &self.program.rule[rule],
                 binding: &binding,
             });
-            effect.push(name(&mut self.taxonomy, &applied.state)?);
+            let mut budget = allowance.saturating_sub(self.work);
+            let before = budget;
+            let named = name(&mut self.taxonomy, &applied.state, &mut budget)?;
+            self.work += before - budget;
+            let Some(named) = named else {
+                return Ok(None);
+            };
+            effect.push(named);
         }
         Ok(Some(group(effect)))
     }
@@ -402,6 +425,7 @@ impl Net {
         kind: &[u32],
         allowance: usize,
     ) -> Result<Option<Prepared>, Unsupported> {
+        self.budget = self.budget.max(allowance);
         if !self.lone.contains_key(&root) {
             let Some(entry) = self.ground(root, &[], allowance)? else {
                 return Ok(None);

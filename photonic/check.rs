@@ -1,14 +1,21 @@
-use frontend::source::Program;
+use frontend::source::{self, Program};
 use miette::{IntoDiagnostic, WrapErr};
 use photonic::laser::Laser;
 use photonic::prism::Outcome;
 use photonic::runtime::{Limit, Runtime};
+use photonic::snapshot::{Definition, Node, Value};
+use photonic::status::Status;
 use photonic::stop::Stop;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+use std::fmt::{Display, Formatter};
+use std::path::PathBuf;
 use std::process::ExitCode;
 
 #[global_allocator]
 static ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
+// A failure prints this many of the configurations it found; the undeclared outputs keep them all.
+const SHOWN: usize = 3;
 
 #[derive(Clone, Copy, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -30,7 +37,46 @@ struct Case {
     limit: Limit,
 }
 
-// Why an exploration stopped short of settling the test, and the attributes that let it go on.
+// How far an exploration went, and which budget or limit stopped it short of closing. A failure
+// prints it, so that a budget that stopped the search is told apart from a program that went wrong.
+#[derive(Serialize)]
+struct Extent {
+    closed: bool,
+    configuration: usize,
+    event: usize,
+    work: usize,
+    stop: Vec<Stop>,
+}
+
+impl Display for Extent {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
+        let state = if self.closed { "closed" } else { "open" };
+        write!(
+            formatter,
+            "{state} after {} configurations, {} events and {} work",
+            self.configuration, self.event, self.work
+        )?;
+        if self.stop.is_empty() {
+            return Ok(());
+        }
+        write!(formatter, ": {}", reason(&self.stop))
+    }
+}
+
+impl From<&Laser> for Extent {
+    fn from(laser: &Laser) -> Self {
+        let summary = laser.summary();
+        Self {
+            closed: summary.closed,
+            configuration: summary.state,
+            event: summary.event,
+            work: summary.work,
+            stop: laser.stop(),
+        }
+    }
+}
+
+// What stopped an exploration, and the attributes that let it go on.
 fn reason(stop: &[Stop]) -> String {
     let said = stop
         .iter()
@@ -49,21 +95,147 @@ fn reason(stop: &[Stop]) -> String {
     format!("{said}; raise {}", raise.join(" and "))
 }
 
+// Where a failing test's details go, and the command that asks its question again.
+struct Trail {
+    directory: Option<PathBuf>,
+    program: PathBuf,
+}
+
+impl Trail {
+    fn record(&self, name: &str, report: &impl Serialize) -> miette::Result<()> {
+        let Some(directory) = &self.directory else {
+            return Ok(());
+        };
+        std::fs::write(
+            directory.join(name),
+            serde_json::to_vec_pretty(report).into_diagnostic()?,
+        )
+        .into_diagnostic()
+    }
+
+    // The photonic command that explores the tested program the same way: the assembled program
+    // holds the sources and libraries, and the case adds its literal source and budgets.
+    fn command(&self, case: &Case, verb: &str, question: &[String]) -> String {
+        let source = ["--source".to_owned(), quote(&case.source)];
+        let budget = [
+            ("--work", case.work),
+            ("--configuration", case.limit.configuration),
+            ("--coherence", case.limit.coherence),
+            ("--occurrence", case.limit.occurrence),
+            ("--scope", case.limit.scope),
+            ("--record", case.limit.record),
+        ]
+        .map(|(flag, value)| format!("{flag} {value}"));
+        [
+            "photonic".to_owned(),
+            verb.to_owned(),
+            quote(&self.program.display().to_string()),
+        ]
+        .into_iter()
+        .chain(source.into_iter().filter(|_| !case.source.is_empty()))
+        .chain(question.iter().cloned())
+        .chain(budget)
+        .collect::<Vec<_>>()
+        .join(" ")
+    }
+}
+
+fn quote(text: &str) -> String {
+    format!("'{}'", text.replace('\'', r"'\''"))
+}
+
+// A configuration as Photonic text: the root's coherences, then each scope's, as Spectrum prints
+// them.
+fn configuration(definition: &[Definition], node: &Node) -> String {
+    let value = |value: &Value| match value {
+        Value::Atom(atom) => source::Value::Atom(atom.to_string()),
+        Value::Rule(index) => source::Value::Rule {
+            rule: Box::new(definition[*index].rule.clone()),
+        },
+    };
+    let mut frame = node
+        .world
+        .iter()
+        .map(|world| world.frame)
+        .collect::<Vec<_>>();
+    frame.sort_unstable();
+    frame.dedup();
+    let part = frame
+        .into_iter()
+        .map(|index| {
+            let text = node
+                .world
+                .iter()
+                .filter(|world| world.frame == index)
+                .map(|world| {
+                    frontend::text::coherence(
+                        &world
+                            .particle
+                            .iter()
+                            .map(|token| value(&token.value))
+                            .collect::<Vec<_>>(),
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join(", ");
+            if index == 0 {
+                return text;
+            }
+            format!("in f{index}: {text}")
+        })
+        .collect::<Vec<_>>();
+    if part.is_empty() {
+        return "nothing".to_owned();
+    }
+    part.join(" · ")
+}
+
+fn show(label: &str, text: &[String]) {
+    for text in text.iter().take(SHOWN) {
+        println!("{label}: {text}");
+    }
+    if text.len() > SHOWN {
+        println!(
+            "{label}: {} more in the test's undeclared outputs",
+            text.len() - SHOWN
+        );
+    }
+}
+
 // Every schedule of plain events ends exactly at a target when the plain exploration closes, no run
 // can go on forever, and every configuration a run ends at is one of the targets. The reduced
 // exploration keeps exactly those end configurations and cycles.
-fn every(program: &Program, target: &[Program], limit: Limit) -> bool {
+fn every(
+    case: &Case,
+    program: &Program,
+    target: &[Program],
+    trail: &Trail,
+) -> miette::Result<bool> {
     let mut laser = Laser::reduced(program);
-    laser.run(usize::MAX, limit);
-    let summary = laser.summary();
-    if !summary.closed {
-        println!(
-            "Every schedule: open after {} configurations and {} events: {}",
-            summary.state,
-            summary.event,
-            reason(&laser.stop())
-        );
-        return false;
+    laser.run(case.work, case.limit);
+    let extent = Extent::from(&laser);
+    let (verb, question) = match case.target.as_slice() {
+        [single] => (
+            "check",
+            vec![
+                "--plain".to_owned(),
+                "--end".to_owned(),
+                quote(single),
+                "--exact".to_owned(),
+                "--preserve".to_owned(),
+            ],
+        ),
+        _ => ("explore", vec!["--plain".to_owned()]),
+    };
+    let command = trail.command(case, verb, &question);
+    if !extent.closed {
+        println!("Every schedule: {extent}");
+        println!("Reproduce with: {command}");
+        trail.record(
+            "every.json",
+            &serde_json::json!({"extent": extent, "command": command}),
+        )?;
+        return Ok(false);
     }
     let ending = laser.ending();
     let wanted = target
@@ -73,20 +245,52 @@ fn every(program: &Program, target: &[Program], limit: Limit) -> bool {
     let stray = ending
         .end
         .iter()
+        .copied()
         .filter(|end| !wanted.contains(end))
-        .count();
+        .collect::<Vec<_>>();
     println!(
-        "Every schedule: closed after {} configurations and {} events; {} end configurations, {stray} of them not a target{}",
-        summary.state,
-        summary.event,
+        "Every schedule: {extent}; {} end configurations, {} of them not a target{}",
         ending.end.len(),
+        stray.len(),
         if ending.endless {
             "; a run can go on forever"
         } else {
             ""
         },
     );
-    !ending.endless && stray == 0
+    if !ending.endless && stray.is_empty() {
+        return Ok(true);
+    }
+    let report = laser.report();
+    let text = |index: usize| configuration(&report.definition, &report.state[index]);
+    let end = stray.iter().map(|&index| text(index)).collect::<Vec<_>>();
+    show("End", &end);
+    let mut outgoing = vec![Vec::new(); report.state.len()];
+    for event in report
+        .event
+        .iter()
+        .filter(|event| event.status == Status::Supported)
+    {
+        outgoing[event.source].push(event.target);
+    }
+    let cycle = ending
+        .endless
+        .then(|| {
+            photonic::laser::ending::cycle(report.state.len(), |node| {
+                outgoing[node].iter().map(|&target| ((), target))
+            })
+        })
+        .flatten()
+        .map(|(node, _)| text(node));
+    if let Some(cycle) = &cycle {
+        println!("Forever: a run returns to {cycle}");
+    }
+    println!("Reproduce with: {command}");
+    trail.record(
+        "every.json",
+        &serde_json::json!({"extent": extent, "end": end, "cycle": cycle, "command": command}),
+    )?;
+    Ok(false)
 }
 
 // Each target's outcome against the one expected: the interpreter's, which Laser must agree with
@@ -97,64 +301,85 @@ fn prism(
     program: &Program,
     target: Vec<Program>,
     expected: Outcome,
+    trail: &Trail,
 ) -> miette::Result<bool> {
     let exploration = (!case.path).then(|| {
         let mut runtime = Runtime::new(program);
         runtime.run(case.work, case.limit);
         let mut laser = Laser::new(program);
-        laser.run(usize::MAX, case.limit);
+        laser.run(case.work, case.limit);
         (runtime, laser)
     });
-    let directory = std::env::var_os("TEST_UNDECLARED_OUTPUTS_DIR").map(std::path::PathBuf::from);
     let mut success = true;
     for (index, target) in target.into_iter().enumerate() {
         let name = format!("{index}.json");
-        let result = if let Some((runtime, laser)) = &exploration {
+        let text = &case.target[index];
+        if let Some((runtime, laser)) = &exploration {
             let verdict = runtime.verdict(&target);
             let compiled = laser.verdict(&target).outcome;
             let agree = compiled == verdict.outcome
                 || !runtime.closed()
                     && (compiled == Outcome::Unknown || verdict.outcome == Outcome::Unknown);
+            println!("Prism target {index}: {:?}; {text}", verdict.outcome);
+            if verdict.outcome == expected && agree {
+                continue;
+            }
+            success = false;
+            let snapshot = runtime.snapshot();
+            let interpreted = Extent {
+                closed: snapshot.closed,
+                configuration: snapshot.state.len(),
+                event: snapshot.event.len(),
+                work: snapshot.work,
+                stop: snapshot.stop,
+            };
+            let explored = Extent::from(laser);
+            println!("Interpreter: {:?}, {interpreted}", verdict.outcome);
+            println!("Laser: {compiled:?}, {explored}");
             if !agree {
-                println!(
-                    "Laser answers {compiled:?} where the interpreter answers {:?}",
-                    verdict.outcome
-                );
+                println!("The engines disagree where both settle");
             }
-            success &= agree;
-            if verdict.outcome != expected || !agree {
-                record(
-                    &directory,
-                    &name,
-                    &serde_json::json!({
-                        "target": case.target[index],
-                        "outcome": verdict.outcome,
-                        "witness": verdict.witness,
-                        "laser": compiled,
-                    }),
-                )?;
-            }
-            verdict.outcome
-        } else {
-            let mut search = photonic::path::Search::new(program.clone(), Some(target));
-            search.run(case.work, case.limit);
-            let summary = search.summary();
-            if summary.outcome != expected {
-                record(&directory, &name, &search.report())?;
-                println!("Path stopped: {}", reason(&summary.stop));
-            }
-            summary.outcome
-        };
-        println!("Prism target {index}: {result:?}; {}", case.target[index]);
-        success &= result == expected;
-    }
-    if let (false, Some((runtime, laser))) = (success, &exploration) {
-        for (engine, stop) in [("Interpreter", runtime.stop()), ("Laser", laser.stop())] {
-            if !stop.is_empty() {
-                println!("{engine} stopped: {}", reason(&stop));
-            }
+            let claim = match expected {
+                Outcome::Unreachable => "--avoid",
+                _ => "--reach",
+            };
+            let question = [claim, &quote(text), "--exact", "--preserve"].map(str::to_owned);
+            let command = trail.command(case, "check", &question);
+            println!("Reproduce with: {command}");
+            trail.record(
+                &name,
+                &serde_json::json!({
+                    "target": text,
+                    "interpreter": {"outcome": verdict.outcome, "witness": verdict.witness, "extent": interpreted},
+                    "laser": {"outcome": compiled, "extent": explored},
+                    "command": command,
+                }),
+            )?;
+            continue;
         }
-        record(&directory, "execution.json", &runtime.stream())?;
+        let mut search = photonic::path::Search::new(program.clone(), Some(target));
+        search.run(case.work, case.limit);
+        let summary = search.summary();
+        println!("Prism target {index}: {:?}; {text}", summary.outcome);
+        if summary.outcome == expected {
+            continue;
+        }
+        success = false;
+        let report = search.report();
+        println!(
+            "Path: {} events and {} work, ending at {}",
+            summary.length,
+            summary.work,
+            configuration(&report.definition, &search.current())
+        );
+        println!("Path stopped: {}", reason(&summary.stop));
+        let question = ["--path", "--goal", &quote(text), "--preserve"].map(str::to_owned);
+        let command = trail.command(case, "check", &question);
+        println!("Reproduce with: {command}");
+        trail.record(&name, &report)?;
+    }
+    if let (false, Some((runtime, _))) = (success, &exploration) {
+        trail.record("execution.json", &runtime.stream())?;
     }
     Ok(success)
 }
@@ -191,10 +416,10 @@ fn main() -> miette::Result<ExitCode> {
     if case.target.is_empty() {
         miette::bail!("a test needs at least one target configuration");
     }
-    let mut program =
-        Program::read(&std::fs::read_to_string(resolve(&case.program)?).into_diagnostic()?)
-            .into_diagnostic()
-            .wrap_err("invalid assembled program")?;
+    let path = resolve(&case.program)?;
+    let mut program = Program::read(&std::fs::read_to_string(&path).into_diagnostic()?)
+        .into_diagnostic()
+        .wrap_err("invalid assembled program")?;
     program.append(lower(&case.source)?);
     let target = case
         .target
@@ -205,6 +430,10 @@ fn main() -> miette::Result<ExitCode> {
             Ok(target)
         })
         .collect::<miette::Result<Vec<_>>>()?;
+    let trail = Trail {
+        directory: std::env::var_os("TEST_UNDECLARED_OUTPUTS_DIR").map(PathBuf::from),
+        program: std::fs::canonicalize(&path).unwrap_or(path),
+    };
     if case.every {
         if case.path || matches!(case.expect, Expect::Unreachable) {
             miette::bail!(
@@ -213,7 +442,7 @@ fn main() -> miette::Result<ExitCode> {
         }
         return Ok(finish(
             "Every schedule ends at a target: ",
-            every(&program, &target, case.limit),
+            every(&case, &program, &target, &trail)?,
         ));
     }
     let expected = match (case.expect, case.path) {
@@ -223,21 +452,6 @@ fn main() -> miette::Result<ExitCode> {
             miette::bail!("a direct path can witness reachability but cannot prove unreachability")
         }
     };
-    let success = prism(&case, &program, target, expected)?;
+    let success = prism(&case, &program, target, expected, &trail)?;
     Ok(finish(&format!("Prism: expected {expected:?}; "), success))
-}
-
-fn record(
-    directory: &Option<std::path::PathBuf>,
-    name: &str,
-    report: &impl serde::Serialize,
-) -> miette::Result<()> {
-    let Some(directory) = directory else {
-        return Ok(());
-    };
-    std::fs::write(
-        directory.join(name),
-        serde_json::to_vec_pretty(report).into_diagnostic()?,
-    )
-    .into_diagnostic()
 }

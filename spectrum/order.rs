@@ -7,7 +7,7 @@ use translation::vocabulary::{Vocabulary, letter};
 
 const BUDGET: usize = 100_000;
 
-#[derive(Clone, Debug, Default, Hash)]
+#[derive(Clone, Debug, Default, Eq, Hash, PartialEq)]
 pub struct Naming {
     name: BTreeMap<String, String>,
     atom: BTreeMap<String, String>,
@@ -34,8 +34,7 @@ fn particle(particle: &[Value], map: &mut impl FnMut(&str) -> String) -> Vec<Val
 }
 
 fn definition(definition: &Definition, map: &mut impl FnMut(&str) -> String) -> Definition {
-    let unnamed = Definition {
-        name: String::new(),
+    Definition {
         input: definition
             .input
             .iter()
@@ -49,10 +48,6 @@ fn definition(definition: &Definition, map: &mut impl FnMut(&str) -> String) -> 
                 Output::Scope(value) => Output::Scope(program(value, map)),
             })
             .collect(),
-    };
-    Definition {
-        name: frontend::text::definition(&unnamed),
-        ..unnamed
     }
 }
 
@@ -76,10 +71,6 @@ fn program(program: &Program, map: &mut impl FnMut(&str) -> String) -> Program {
     }
 }
 
-fn named(source: &Program) -> Program {
-    program(source, &mut str::to_owned)
-}
-
 impl Naming {
     fn new(name: Vec<String>) -> Self {
         let pair = name
@@ -101,10 +92,7 @@ impl Naming {
     }
 
     pub fn show(&self, rule: &Definition) -> Definition {
-        Definition {
-            name: String::new(),
-            ..definition(rule, &mut |atom| self.name(atom).to_owned())
-        }
+        definition(rule, &mut |atom| self.name(atom).to_owned())
     }
 
     pub fn hide(&self, source: &Program) -> Program {
@@ -138,11 +126,11 @@ fn text(program: &Program) -> Canonical {
     Canonical {
         order: Order::Text,
         shape: None,
-        program: named(&Program {
+        program: Program {
             initial,
             rule,
             scope,
-        }),
+        },
         naming: Naming::default(),
     }
 }
@@ -207,11 +195,7 @@ fn shape(program: &Program) -> Option<Canonical> {
     Some(Canonical {
         order: Order::Shape,
         shape: Some(symmetry.fingerprint()),
-        program: named(&translation::emit::program(
-            &part.program,
-            &part.configuration,
-            &letter,
-        )),
+        program: translation::emit::program(&part.program, &part.configuration, &letter),
         naming: Naming::new(
             symmetry
                 .atom
@@ -230,7 +214,7 @@ pub fn source(program: &Program) -> Canonical {
     Canonical {
         order: Order::Source,
         shape: None,
-        program: named(program),
+        program: program.clone(),
         naming: Naming::default(),
     }
 }

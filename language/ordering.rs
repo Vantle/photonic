@@ -92,6 +92,30 @@ impl Group {
             used[class] += 1;
         }
     }
+
+    // The orderings a group gives, a multinomial coefficient built one binomial factor at a time so
+    // every division is exact; none once the count passes the largest integer.
+    fn total(&self) -> Option<usize> {
+        let single = if self.member.is_empty() {
+            self.order.len()
+        } else {
+            0
+        };
+        let size = self
+            .member
+            .iter()
+            .map(Vec::len)
+            .chain(std::iter::repeat_n(1, single));
+        let mut total = 1usize;
+        let mut placed = 0usize;
+        for size in size {
+            for taken in 1..=size {
+                placed += 1;
+                total = total.checked_mul(placed)? / taken;
+            }
+        }
+        Some(total)
+    }
 }
 
 pub struct Ordering {
@@ -136,6 +160,13 @@ impl Ordering {
         }
         self.group = group;
         self
+    }
+
+    // The orderings this gives in all, however many it has given; none past the largest integer.
+    pub(crate) fn total(&self) -> Option<usize> {
+        self.group
+            .iter()
+            .try_fold(1usize, |total, group| total.checked_mul(group.total()?))
     }
 
     pub(crate) fn quotient(mut self, representative: impl FnOnce() -> Vec<usize>) -> Self {

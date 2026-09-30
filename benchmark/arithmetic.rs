@@ -1,6 +1,9 @@
 use clap::{Parser, ValueEnum};
+use std::num::NonZeroUsize;
 mod evaluation;
 mod formula;
+mod limit;
+mod warm;
 
 #[global_allocator]
 static ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
@@ -18,8 +21,8 @@ struct Argument {
     right: String,
     #[arg(long, default_value_t = 3)]
     radix: u32,
-    #[arg(long, default_value_t = 3)]
-    sample: usize,
+    #[arg(long, default_value = "3")]
+    sample: NonZeroUsize,
 }
 
 fn numeral(mut value: u128) -> String {
@@ -53,7 +56,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let source = formula::source(&input, &ternary)?;
     let (program, target) = formula::program(&source)?;
     evaluation::warm(&program, &target, None)?;
-    let measurement = (0..argument.sample)
+    let measurement = (0..argument.sample.get())
         .map(|_| evaluation::evaluate(program.clone(), target.clone(), None))
         .collect::<Result<Vec<_>, _>>()?;
     serde_json::to_writer_pretty(

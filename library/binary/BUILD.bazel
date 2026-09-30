@@ -3,12 +3,14 @@ load("//photonic:defs.bzl", "photonic_library", "photonic_test")
 photonic_library(
     name = "multiply",
     srcs = ["multiply.particle"],
+    visibility = ["//visibility:public"],
     deps = ["//library/function:invoke"],
 )
 
 photonic_library(
     name = "sum",
     srcs = ["sum.particle"],
+    visibility = ["//visibility:public"],
     deps = ["//library/function:invoke"],
 )
 

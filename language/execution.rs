@@ -8,6 +8,7 @@ use serde::Serialize;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::task::Poll;
+use std::time::Instant;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 pub struct Bound {
@@ -15,6 +16,8 @@ pub struct Bound {
     pub terminal: usize,
     pub step: usize,
     pub work: usize,
+    #[serde(skip)]
+    pub deadline: Option<Instant>,
 }
 
 impl Default for Bound {
@@ -24,7 +27,15 @@ impl Default for Bound {
             terminal: 4,
             step: 4_096,
             work: 1_000_000,
+            deadline: None,
         }
+    }
+}
+
+impl Bound {
+    fn expired(&self) -> bool {
+        self.deadline
+            .is_some_and(|deadline| Instant::now() >= deadline)
     }
 }
 
@@ -64,6 +75,12 @@ impl<Terminal> Exploration<Terminal> {
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+pub struct Refusal {
+    pub index: usize,
+    pub count: usize,
+}
+
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct Walk<Terminal = Observation> {
     pub terminal: Option<Terminal>,
@@ -71,6 +88,7 @@ pub struct Walk<Terminal = Observation> {
     pub depth: usize,
     pub cycle: bool,
     pub overflow: bool,
+    pub refusal: Option<Refusal>,
 }
 
 impl<Terminal> Walk<Terminal> {
@@ -81,6 +99,7 @@ impl<Terminal> Walk<Terminal> {
             depth: self.depth,
             cycle: self.cycle,
             overflow: self.overflow,
+            refusal: self.refusal,
         }
     }
 }
@@ -117,11 +136,17 @@ fn successor(
         match search.run(limit) {
             Poll::Ready(Some(event)) => result.push(event),
             Poll::Ready(None) => break,
-            Poll::Pending if search.work() > bound.work => return None,
+            Poll::Pending if search.work() > bound.work || bound.expired() => return None,
             Poll::Pending => {}
         }
     }
     (search.deferred() == 0).then_some(result)
+}
+
+// A configuration's canonical form, named with at most a successor search's work.
+fn canonical(state: &State, bound: &Bound) -> Option<State> {
+    let mut budget = bound.work;
+    state.canonical(&mut budget).ok().map(|named| named.state)
 }
 
 #[derive(Clone, Copy, Eq, PartialEq)]
@@ -149,7 +174,11 @@ pub fn explore(
         ..Exploration::default()
     };
     let mut index: HashMap<State, usize, Builder> = HashMap::default();
-    index.insert(initial.canonical().state, 0);
+    let Some(named) = canonical(&initial, &bound) else {
+        exploration.overflow = true;
+        return exploration;
+    };
+    index.insert(named, 0);
     let mut mark = vec![Mark::Open];
     let Some(first) = successor(&program, &initial, limit, &bound) else {
         exploration.overflow = true;
@@ -172,8 +201,11 @@ pub fn explore(
         }
         let state = frame.successor[frame.cursor].state.clone();
         frame.cursor += 1;
-        let canonical = state.canonical().state;
-        if let Some(&known) = index.get(&canonical) {
+        let Some(named) = canonical(&state, &bound) else {
+            exploration.overflow = true;
+            return exploration;
+        };
+        if let Some(&known) = index.get(&named) {
             if mark[known] == Mark::Open {
                 exploration.cycle = true;
                 return exploration;
@@ -189,7 +221,7 @@ pub fn explore(
             return exploration;
         };
         let target = mark.len();
-        index.insert(canonical, target);
+        index.insert(named, target);
         exploration.state += 1;
         if following.is_empty() {
             mark.push(Mark::Closed);
@@ -222,8 +254,12 @@ pub fn walk(
     let mut state = Arc::new(State::initial(&program));
     let mut level = vec![0usize; state.world.len()];
     let mut seen: HashSet<State, Builder> = HashSet::default();
-    seen.insert(state.canonical().state);
     let mut result = Walk::default();
+    let Some(named) = canonical(&state, &bound) else {
+        result.overflow = true;
+        return result;
+    };
+    seen.insert(named);
     loop {
         let Some(mut event) = successor(&program, &state, limit, &bound) else {
             result.overflow = true;
@@ -233,11 +269,17 @@ pub fn walk(
             result.terminal = Some(observation(&program, &state));
             return result;
         }
-        if result.step >= bound.step {
+        if result.step >= bound.step || bound.expired() {
             result.overflow = true;
             return result;
         }
-        let chosen = event.swap_remove(choose(event.len()));
+        let count = event.len();
+        let index = choose(count);
+        if index >= count {
+            result.refusal = Some(Refusal { index, count });
+            return result;
+        }
+        let chosen = event.swap_remove(index);
         let depth = 1 + chosen
             .change
             .world
@@ -255,7 +297,11 @@ pub fn walk(
         result.depth = result.depth.max(depth);
         result.step += 1;
         state = chosen.state;
-        if !seen.insert(state.canonical().state) {
+        let Some(named) = canonical(&state, &bound) else {
+            result.overflow = true;
+            return result;
+        };
+        if !seen.insert(named) {
             result.cycle = true;
             return result;
         }

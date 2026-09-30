@@ -1,8 +1,9 @@
 use crate::context::Context;
+use crate::extent::{Extent, Kind};
 use crate::failure::{Code, Failure};
 use crate::handle::Handle;
 use crate::inspect::Move;
-use crate::recording::{Mode, Recording};
+use crate::recording::Recording;
 use crate::render;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -26,8 +27,8 @@ fn start() -> String {
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 pub struct Answer {
     pub(crate) exploration: String,
-    pub(crate) mode: Mode,
-    pub(crate) complete: bool,
+    #[serde(flatten)]
+    pub(crate) extent: Extent,
     pub(crate) handle: String,
     pub(crate) text: String,
     pub(crate) agenda: Vec<Move>,
@@ -44,8 +45,7 @@ pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Ans
     };
     Ok(Answer {
         exploration: exploration.name(),
-        mode: exploration.mode,
-        complete: exploration.closed,
+        extent: exploration.extent(),
         handle: handle.to_string(),
         text: render::configuration(&exploration, index),
         agenda: exploration.outgoing[index]
@@ -58,20 +58,17 @@ pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Ans
 impl Answer {
     pub(crate) fn text(&self) -> String {
         let mut line = vec![format!("{} {}", self.handle, self.text)];
-        let (label, empty) = match (self.mode, self.complete) {
-            (Mode::Path, _) => ("taken", "the path stops here"),
-            (Mode::Exhaustive | Mode::Plain, true) => {
-                ("agenda", "no event can happen here: an end configuration")
-            }
-            (Mode::Exhaustive | Mode::Plain, false) => (
-                "agenda",
-                "no event is recorded here; the exploration is open, so one may still happen",
-            ),
+        let extent = self.extent;
+        let (label, empty) = match extent.kind() {
+            Kind::Path => ("taken", "the path stops here"),
+            Kind::Closed => ("agenda", "no event can happen here: an end configuration"),
+            Kind::Open => ("agenda", "no event is recorded here"),
         };
         if self.agenda.is_empty() {
             line.push(empty.to_owned());
         }
         render::table(label, &self.agenda, &mut line);
+        line.extend(extent.partial().map(str::to_owned));
         line.join("\n")
     }
 }

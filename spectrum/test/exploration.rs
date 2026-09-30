@@ -480,3 +480,15 @@ fn metal() {
     assert!(stray.witness.is_none());
     assert!(claim::survey(&claim(Kind::Reach, "Done"), &task).is_err());
 }
+
+// Metal names an end by its text, set off in quotes, since the text of an end inside a scope begins
+// with the frame it sits in.
+#[test]
+fn quoted() {
+    let survey = survey("Go, [Go] (Extra, [Q] R)");
+    let verdict = claim::survey(&claim(Kind::Outcome, "Done"), &survey).unwrap();
+    assert_eq!(
+        verdict.reason,
+        "a run ends at “in f1: Extra” without a match"
+    );
+}

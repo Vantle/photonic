@@ -1,7 +1,7 @@
 use crate::corpus::curated;
 use crate::encoding::ATOM;
 use crate::export::verify;
-use crate::objective::{Setting, evaluate};
+use crate::objective::{Setting, TOLERANCE, evaluate};
 use crate::pool::initial;
 use crate::problem::Problem;
 
@@ -17,9 +17,19 @@ fn reference() {
             &setting.aim(task.goal),
         );
         assert!(reference.verified, "{name}");
+        let thorough = evaluate(
+            task.reference.as_ref().unwrap(),
+            &task.example,
+            &task.vocabulary,
+            &setting.aim(task.goal).thorough(),
+        );
         let problem = Problem::new(task, &setting, ATOM)
             .unwrap_or_else(|failure| panic!("{name}: {failure}"));
-        assert!(problem.baseline > 0.0, "{name}");
+        assert!(thorough.correct && thorough.cost > 0.0, "{name}");
+        assert!(
+            (problem.baseline - thorough.cost).abs() < TOLERANCE,
+            "{name}"
+        );
     }
 }
 

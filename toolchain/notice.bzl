@@ -9,20 +9,27 @@ Info = provider(
 
 _PREFIX = ("LICENSE", "LICENCE", "COPYING", "COPYRIGHT", "NOTICE", "UNLICENSE")
 
+# Each crate is fetched into a repository named after its package and version.
+_REPOSITORY = "rules_rs++crate+crate__"
+
 # Build scripts and procedural macros run while compiling and leave no code in the binary, so the
-# walk follows only the libraries a target links.
-_LINKED = ("rust_binary", "rust_library", "rust_test")
+# walk follows only the libraries a target links, and through a WebAssembly binding to its module.
+_LINKED = ("rust_binary", "rust_cdylib_library", "rust_library", "rust_test")
 
 def _visit(target, context):
+    if context.rule.kind == "rust_wasm_bindgen":
+        module = context.rule.attr.wasm_file
+        return [Info(crate = depset(transitive = [value[Info].crate for value in (module if type(module) == "list" else [module]) if Info in value]))]
     if context.rule.kind not in _LINKED:
         return [Info(crate = depset())]
     transitive = [dependency[Info].crate for dependency in getattr(context.rule.attr, "deps", []) if Info in dependency]
-    if not target.label.repo_name.startswith("rules_rs++crate+crate__"):
+    if not target.label.repo_name.startswith(_REPOSITORY):
         return [Info(crate = depset(transitive = transitive))]
     file = context.rule.files.compile_data
+    version = context.rule.attr.version
     entry = struct(
-        name = context.rule.attr.crate_name or target.label.name,
-        version = context.rule.attr.version,
+        name = target.label.repo_name.removeprefix(_REPOSITORY).removesuffix("-" + version),
+        version = version,
         manifest = tuple([value for value in file if value.short_path.endswith("/Cargo.toml") and value.short_path.count("/") == 2]),
         license = tuple([value for value in file if value.basename.upper().startswith(_PREFIX)]),
     )
@@ -30,7 +37,7 @@ def _visit(target, context):
 
 _notice = aspect(
     implementation = _visit,
-    attr_aspects = ["deps"],
+    attr_aspects = ["deps", "wasm_file"],
 )
 
 def _render(context):
@@ -45,6 +52,8 @@ def _render(context):
         argument.add_all(entry.license, before_each = "--license")
         input.extend(entry.manifest)
         input.extend(entry.license)
+    argument.add_all(context.files.runtime, before_each = "--runtime")
+    input.extend(context.files.runtime)
     context.actions.run(
         executable = context.executable._render,
         arguments = [argument],
@@ -60,6 +69,7 @@ notice = rule(
     doc = "Writes the license expression and license texts of every third-party crate the targets link.",
     attrs = {
         "target": attr.label_list(aspects = [_notice], mandatory = True),
+        "runtime": attr.label_list(allow_files = True, doc = "Notices of runtime libraries the toolchain links statically, appended after the crates."),
         "_render": attr.label(default = "//toolchain:notice", executable = True, cfg = "exec"),
     },
 )

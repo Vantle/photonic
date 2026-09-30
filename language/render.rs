@@ -4,7 +4,7 @@ pub(crate) use sequence::Sequence;
 
 use crate::profile;
 use crate::program::{Program, Symbol};
-use crate::snapshot::{Definition, Frame, Node, Token, Value, World};
+use crate::snapshot::{Definition, Form, Frame, Node, Token, Value, World};
 use crate::state::State;
 use crate::status::Status;
 use std::collections::HashMap;
@@ -27,9 +27,12 @@ impl<'program> Builder<'program> {
 
     pub(crate) fn definition(&self) -> Vec<Definition> {
         (0..self.program.rule.len())
-            .map(|index| Definition {
-                name: self.program.rule[index].name.clone(),
-                rule: self.program.definition(index),
+            .map(|index| {
+                let rule = self.program.definition(index);
+                Definition {
+                    name: frontend::text::definition(&rule),
+                    rule,
+                }
             })
             .collect()
     }
@@ -56,7 +59,7 @@ impl<'program> Builder<'program> {
             .collect()
     }
 
-    pub(crate) fn node(&mut self, id: usize, state: &State, status: Status) -> Node {
+    pub(crate) fn node(&mut self, id: usize, state: &State, status: Status, form: Form) -> Node {
         let _scope = profile::Scope::new(profile::Phase::Rendering);
         Node {
             id,
@@ -88,6 +91,7 @@ impl<'program> Builder<'program> {
                 })
                 .collect(),
             status,
+            form,
         }
     }
 }

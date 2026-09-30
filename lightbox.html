@@ -5,9 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Write a Photonic program in your browser and explore every configuration it can reach.">
 <meta name="color-scheme" content="light dark">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Photonic Lightbox">
+<meta property="og:description" content="Write a Photonic program in your browser and explore every configuration it can reach.">
+<meta property="og:url" content="https://photonic.vantle.org/lightbox.html">
+<meta property="og:image" content="https://photonic.vantle.org/book/logo/mark.png">
+<meta property="og:image:width" content="512">
+<meta property="og:image:height" content="512">
+<meta property="og:image:alt" content="The Photonic prism">
 <script>globalThis.book = { storage: { theme: 'photonic-book-theme' } }; try { const choice = localStorage.getItem(book.storage.theme); if (choice === 'light' || choice === 'dark') document.documentElement.dataset.theme = choice; } catch {}</script>
 <title>Photonic Lightbox</title>
 <link rel="icon" href="book/icon.svg">
+<link rel="apple-touch-icon" href="book/logo/mark.png">
 <link rel="stylesheet" href="book/book.css">
 <script defer src="book/record.js"></script>
 <script defer src="book/syntax.js"></script>
@@ -21,6 +30,7 @@
 <script defer src="book/symmetry.js"></script>
 <script defer src="book/viewer.js"></script>
 <script defer src="book/share.js"></script>
+<script defer src="book/chooser.js"></script>
 <script defer src="book/theme.js"></script>
 <script defer src="book/status.js"></script>
 <script defer src="book/lightbox.js"></script>
@@ -28,6 +38,7 @@
 <body>
 <a class="skip" href="#lightbox">Skip to the Lightbox</a>
 <header class="top">
+<h1 class="offscreen">Photonic Lightbox</h1>
 <a class="brand" href="index.html">
 <svg class="prism" viewBox="0 0 40 40" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
 <path d="M3 23.5 15.5 21" stroke-width="2"/>

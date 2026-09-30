@@ -4,7 +4,7 @@ use crate::basis::Set;
 use crate::place::Place;
 use crate::render::Builder;
 use crate::runtime::Limit;
-use crate::snapshot::{Definition, Link, Node};
+use crate::snapshot::{Definition, Form, Link, Node};
 use crate::state::{Canonical, State};
 use crate::status::Status;
 use crate::stop::Stop;
@@ -87,8 +87,13 @@ fn rename(named: &Canonical, set: &Set<Place>) -> Vec<Place> {
 }
 
 impl Laser {
-    pub(super) fn name(&self) -> Vec<Canonical> {
-        self.state.iter().map(|state| state.canonical()).collect()
+    // Every configuration as a report shows it, in its canonical form when that takes at most the
+    // exploration's budget, else listed, with the form each takes.
+    pub(super) fn name(&self) -> (Vec<Canonical>, Vec<Form>) {
+        self.state
+            .iter()
+            .map(|state| state.show(self.budget))
+            .unzip()
     }
 
     pub(super) fn placement(&self, index: usize, named: &[Canonical]) -> Placement {
@@ -162,15 +167,13 @@ impl Laser {
 
     pub fn resource(&self, index: usize) -> Vec<Link> {
         let event = &self.event[index];
-        self.link(
-            index,
-            &self.state[event.source].canonical(),
-            &self.state[event.target].canonical(),
-        )
+        let (source, _) = self.state[event.source].show(self.budget);
+        let (target, _) = self.state[event.target].show(self.budget);
+        self.link(index, &source, &target)
     }
 
     pub fn report(&self) -> Report {
-        let named = self.name();
+        let (named, form) = self.name();
         let (state, event) = self.status();
         let derived = (!self.closed()).then(|| Deduction::derive(self));
         let deduction = derived.as_ref().unwrap_or(&self.deduction);
@@ -185,9 +188,12 @@ impl Laser {
             stop: self.stop(),
             state: named
                 .iter()
+                .zip(form)
                 .zip(state)
                 .enumerate()
-                .map(|(index, (named, status))| builder.node(index, &named.state, status))
+                .map(|(index, ((named, form), status))| {
+                    builder.node(index, &named.state, status, form)
+                })
                 .collect(),
             event: event
                 .into_iter()

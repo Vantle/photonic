@@ -9,7 +9,7 @@ use std::task::Poll;
 pub(super) struct Consumer {
     pub rule: usize,
     pub owner: usize,
-    pub read: Option<crate::reader::Read>,
+    pub read: crate::reader::Read,
 }
 
 pub(super) struct Entry {

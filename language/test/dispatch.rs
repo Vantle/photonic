@@ -182,7 +182,7 @@ fn mutation() {
                     delivery.rule,
                     delivery.frame,
                     delivery.owner,
-                    delivery.read.map(|read| read.place(index)),
+                    delivery.read.place(index),
                     delivery
                         .selection
                         .into_iter()

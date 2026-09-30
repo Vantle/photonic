@@ -2,6 +2,7 @@ use super::component::{decompose, extract};
 use super::makeup::Makeup;
 use super::memo::Memo;
 use super::size::Size;
+use crate::canonical::Exhausted;
 use crate::executor::Executor;
 use crate::link::Link;
 use crate::program::Symbol;
@@ -52,7 +53,44 @@ pub(super) enum Draft {
 pub(super) struct Taxonomy {
     kind: IndexMap<State, Size, Builder>,
     root: IndexMap<Root, usize, Builder>,
-    name: Memo<State, Arc<Canonical>>,
+    name: Memo<State, Name>,
+}
+
+// What naming a configuration found: its canonical form with the steps its search charged, or that
+// the search ran out of the allowance it had. A remembered name charges the same steps each time it
+// serves, so what a run charges does not depend on which worker named it first.
+#[derive(Clone)]
+pub(super) enum Name {
+    Found(Arc<Canonical>, usize),
+    Exhausted(usize),
+}
+
+impl Name {
+    pub fn search(
+        allowance: usize,
+        search: impl FnOnce(&mut usize) -> Result<Canonical, Exhausted>,
+    ) -> Self {
+        let mut left = allowance;
+        match search(&mut left) {
+            Ok(named) => Self::Found(Arc::new(named), allowance - left),
+            Err(Exhausted) => Self::Exhausted(allowance),
+        }
+    }
+
+    // The name, charging its steps to the budget, or none, with the budget spent, when it takes
+    // more than the budget holds.
+    pub fn spend(self, budget: &mut usize) -> Result<Arc<Canonical>, Exhausted> {
+        match self {
+            Self::Found(named, cost) if cost <= *budget => {
+                *budget -= cost;
+                Ok(named)
+            }
+            Self::Found(..) | Self::Exhausted(_) => {
+                *budget = 0;
+                Err(Exhausted)
+            }
+        }
+    }
 }
 
 // Roots and kinds are numbered in 32 bits.
@@ -106,28 +144,45 @@ impl Taxonomy {
         self.name.forget(executor);
     }
 
-    fn name(&self, state: State) -> Arc<Canonical> {
-        self.name.get(state, |state| Arc::new(state.canonical()))
+    // A remembered failure serves only budgets no larger than the one it failed with, and a larger
+    // one searches again, so whether a name fits a budget never depends on which worker searched
+    // for it first.
+    fn name(&self, state: State, budget: &mut usize) -> Result<Arc<Canonical>, Exhausted> {
+        let allowance = *budget;
+        let found = match self.name.find(&state) {
+            Some(Name::Exhausted(tried)) if tried < allowance => {
+                Name::search(allowance, |left| state.canonical(left))
+            }
+            Some(found) => found,
+            None => {
+                let made = Name::search(allowance, |left| state.canonical(left));
+                self.name.get(state, |_| made.clone());
+                made
+            }
+        };
+        found.spend(budget)
     }
 
-    pub fn analyze(&self, state: &State) -> Draft {
+    // A configuration named by its parts, or whole when its root ties to one of them, spending the
+    // budget on every search past the free steps; none when the budget runs out.
+    pub fn analyze(&self, state: &State, budget: &mut usize) -> Result<Draft, Exhausted> {
         let Some(component) = decompose(state) else {
-            return Draft::Whole(state.canonical());
+            return Ok(Draft::Whole(state.canonical(budget)?));
         };
         let (root, rename) = hub(state);
         let piece = component
             .into_iter()
             .map(|value| {
                 let (extracted, normal) = extract(state, &value);
-                Piece {
+                Ok(Piece {
                     world: value.world,
                     frame: value.frame,
                     normal,
-                    named: self.name(extracted),
-                }
+                    named: self.name(extracted, budget)?,
+                })
             })
-            .collect();
-        Draft::Split {
+            .collect::<Result<_, Exhausted>>()?;
+        Ok(Draft::Split {
             root,
             rename,
             piece,
@@ -135,27 +190,34 @@ impl Taxonomy {
                 world: state.world.len(),
                 frame: state.frame.len(),
             },
-        }
+        })
     }
 
-    pub fn find(&self, state: &State) -> Option<Makeup> {
-        match self.analyze(state) {
-            Draft::Whole(canonical) => Some(Makeup {
-                root: number(self.root.get_index_of(&Root::Whole(canonical.state))?),
-                kind: Vec::new(),
-            }),
+    pub fn find(&self, state: &State, budget: &mut usize) -> Result<Option<Makeup>, Exhausted> {
+        Ok(match self.analyze(state, budget)? {
+            Draft::Whole(canonical) => {
+                self.root
+                    .get_index_of(&Root::Whole(canonical.state))
+                    .map(|root| Makeup {
+                        root: number(root),
+                        kind: Vec::new(),
+                    })
+            }
             Draft::Split { root, piece, .. } => {
-                let mut kind = piece
+                let kind = piece
                     .iter()
                     .map(|piece| self.kind.get_index_of(&piece.named.state).map(number))
-                    .collect::<Option<Vec<_>>>()?;
-                kind.sort_unstable();
-                Some(Makeup {
-                    root: number(self.root.get_index_of(&Root::Hub(root))?),
-                    kind,
+                    .collect::<Option<Vec<_>>>();
+                let root = self.root.get_index_of(&Root::Hub(root));
+                kind.zip(root).map(|(mut kind, root)| {
+                    kind.sort_unstable();
+                    Makeup {
+                        root: number(root),
+                        kind,
+                    }
                 })
             }
-        }
+        })
     }
 
     pub fn kind(&self, id: u32) -> &State {

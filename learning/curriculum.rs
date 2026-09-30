@@ -67,15 +67,18 @@ impl Curriculum {
         level: usize,
         seed: u64,
         setting: &Setting,
-    ) -> Result<Task, problem::Failure> {
+    ) -> Result<Option<Task>, problem::Failure> {
         let mut generator = Generator::new(seed ^ (self.bred as u64 + 1).wrapping_mul(0x9e37_79b9));
         let name = format!("{}{}", prefix(level), self.bred);
         self.bred += 1;
-        let task = generate(&mut generator, name, &setting.limit, level);
+        let Some(task) = generate(&mut generator, name, &setting.limit, level) else {
+            return Ok(None);
+        };
         conceal(Task {
             reference: None,
             ..task
         })
+        .map(Some)
     }
 
     pub fn exam(&mut self, level: usize) -> &mut Vec<Exam> {

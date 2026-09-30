@@ -25,6 +25,12 @@ impl<Value> Queue<Value> {
         self.deferred.push_back(value);
     }
 
+    // Puts back a ready value just taken, as if it had not been.
+    pub(crate) fn restore(&mut self, value: Value) {
+        self.ready.push_front(value);
+        self.credit = (self.credit + 1).min(CREDIT);
+    }
+
     pub(crate) fn extend(&mut self, value: impl IntoIterator<Item = Value>) {
         self.ready.extend(value);
     }

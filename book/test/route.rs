@@ -7,9 +7,10 @@ use std::time::Duration;
 
 const REPOSITORY: &str = "https://github.com/Vantle/photonic";
 const WASM: &str = "toolchain/browser/module/runtime_bg.wasm";
+const MARK: &str = "book/logo/mark.png";
 
 fn book() -> HashMap<String, PathBuf> {
-    ["index.html", "lightbox.html", "book/book.css", WASM]
+    ["index.html", "lightbox.html", "book/book.css", MARK, WASM]
         .into_iter()
         .map(|name| (name.to_owned(), PathBuf::from("/runfile").join(name)))
         .collect()
@@ -75,17 +76,15 @@ fn file() {
     );
     assert_eq!(page.status(), "200 OK");
     assert_eq!(page.header(), "");
-    assert_eq!(
-        Route::new(
-            &get("/lightbox.html?source=A%2C+%5BA%5D+B", "localhost:8080"),
-            &book,
-            REPOSITORY
-        ),
-        Route::File {
-            path: &book["lightbox.html"],
-            kind: "text/html; charset=utf-8"
-        }
-    );
+    for target in ["/lightbox.html", "/lightbox.html?source=A%2C+%5BA%5D+B"] {
+        assert_eq!(
+            Route::new(&get(target, "localhost:8080"), &book, REPOSITORY),
+            Route::File {
+                path: &book["lightbox.html"],
+                kind: "text/html; charset=utf-8"
+            }
+        );
+    }
     assert_eq!(
         Route::new(&get("/book/book.css", "localhost:8080"), &book, REPOSITORY),
         Route::File {
@@ -102,6 +101,17 @@ fn file() {
         Route::File {
             path: &book[WASM],
             kind: "application/wasm"
+        }
+    );
+    assert_eq!(
+        Route::new(
+            &get(&format!("/{MARK}"), "127.0.0.1:8080"),
+            &book,
+            REPOSITORY
+        ),
+        Route::File {
+            path: &book[MARK],
+            kind: "image/png"
         }
     );
 }

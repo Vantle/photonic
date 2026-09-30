@@ -5,7 +5,7 @@ Spectrum answers questions about a Photonic program and every configuration it r
 | Package | Responsibility |
 | --- | --- |
 | [`//spectrum`](../spectrum/) | Requests and answers, explorations, handles, patterns, claims, lineage and the store. It reads the interpreter and Laser through read-only accessors and orders programs with the [symmetry](symmetry.md) engine. A `Reader` supplies file contents, so the library touches no file system. |
-| [`//command:photonic`](../command/) | One command for every tool: the engine's `lower`, `run` and `prism`, the verbs with their exit codes, and `mcp`, the protocol server. Every path is read from where `bazel run` started. |
+| [`//command:photonic`](../command/) | One command for every tool: the engine's `lower`, `run` and `prism`, the verbs with their exit codes, and `mcp`, the protocol server. Every path is read from where `bazel run` started, and the protocol server reads only files inside that directory. |
 
 ## A session
 
@@ -16,20 +16,20 @@ bazel run -c opt //command:photonic -- explore program/language/conjunction.wave
 ```
 
 ```
-x79d77fbf7616652f · closed · 14 configurations · 17 events, 4 inferred · depth 3 · work 41 · shape 2a2059d40174b9fb
+x5e349139c90e2a4e · closed · 14 configurations · 17 events, 4 inferred · depth 3 · work 41 · shape 2a2059d40174b9fb
 end    s3    Boolean.Extra
        s11   in f1: Boolean.Boolean.Extra
        s12   in f1: Boolean.Extra
        s13   in f1: Extra
-rule   r0    [And.Boolean.Boolean] (…)   4, 3 inferred
-       r1    [True.True] True            never   in the scope r0 opens
-       r2    [True.False] False          1   in the scope r0 opens
-       r3    [False.False] False         never   in the scope r0 opens
-       r4    [True] Boolean              5
-       r5    [False] Boolean             7, 1 inferred
+rule   r0    [And.Boolean.Boolean] ([True.True] True, [True.False] False, [False.False] False)   4, 3 inferred
+       r1    [True.True] True                                   never   in the scope r0 opens
+       r2    [True.False] False                                 1   in the scope r0 opens
+       r3    [False.False] False                                never   in the scope r0 opens
+       r4    [True] Boolean                                     5
+       r5    [False] Boolean                                    7, 1 inferred
 ```
 
-The first line is the exploration's key, whether it closed, its size and its shape. `in f1:` places a coherence inside the scope that frame 1 holds. A claim asks whether the program reaches exactly `False.Extra` with its rules, and `cause` shows how:
+The first line is the exploration's key, whether it closed, its size and its shape. `never` is said only of a closed exploration: an open one says `not yet`, and a direct path `not on this path`. `in f1:` places a coherence inside the scope that frame 1 holds, and `in f2 in f1:` inside a scope nested in it. A claim asks whether the program reaches exactly `False.Extra` with its rules, and `cause` shows how:
 
 ```sh
 bazel run -c opt //command:photonic -- check program/language/conjunction.wave --reach False.Extra --exact --preserve
@@ -40,11 +40,11 @@ bazel run -c opt //command:photonic -- cause program/language/conjunction.wave s
 ```
 no diagnostics
 reach False.Extra exactly   holds   s6 by e3 e8   s6 is the target
-x79d77fbf7616652f · closed · 14 configurations · 17 events, 4 inferred · depth 3 · work 41 · shape 2a2059d40174b9fb
+x5e349139c90e2a4e · closed · 14 configurations · 17 events, 4 inferred · depth 3 · work 41 · shape 2a2059d40174b9fb
 
 s6 False.Extra
-path       e3    r0 [And.Boolean.Boolean] (…)   s4 in f1: True.False.Extra   inferred
-           e8    r2 [True.False] False          s6 False.Extra
+path       e3    r0 [And.Boolean.Boolean] ([True.True] True, [True.False] False, [False.False] False)   s4 in f1: True.False.Extra   inferred
+           e8    r2 [True.False] False                                                                  s6 False.Extra
 
 False in s6 = False.Extra
   e8    r2 [True.False] False   produces False from s4.o1 True, s4.o2 False, s4.o0 And
@@ -69,39 +69,43 @@ s7    in f1: Boolean.True.Extra   [True.True] lacks True in s7.c0
 s9    in f1: True.Extra           [True.True] lacks True in s9.c0
 ```
 
-Suppose an edit shortens the scope's last two rules to one, `[False] False`, and saves the result as `bug.wave`. `compare` shows what the edit changed, handles on the right naming the edited program:
+Suppose an edit shortens the scope's last two rules to one, `[False] False`, and saves the result as `bug.wave`. `compare` shows what the edit changed, handles on the right naming the edited program, here four differences in each direction:
 
 ```sh
-bazel run -c opt //command:photonic -- compare program/language/conjunction.wave bug.wave
+bazel run -c opt //command:photonic -- compare program/language/conjunction.wave bug.wave --limit 4
 ```
 
 ```
-compare x79d77fbf7616652f xabb1ecb46dec2743
+compare x5e349139c90e2a4e x4ff861b04316a91f
 configurations   14 → 18
-  + Boolean.Boolean.Extra   s7   by e3 e10
-  + False.Boolean.Extra     s14   by e4 e11 e15
-  + Boolean.True.Extra      s4   by e3
-  + False.True.Extra        s6   by e4 e11
+  + Boolean.Boolean.Extra                                                                     s7   by e3 e10
+  + False.True.Extra                                                                          s6   by e4 e11
+  + False.Boolean.Extra                                                                       s14   by e4 e11 e15
+  + Boolean.True.Extra                                                                        s4   by e3
+  − in f1: True.Extra, [True.True] True, [True.False] False, [False.False] False              s9 on the left
+  − in f1: Boolean.Extra, [True.True] True, [True.False] False, [False.False] False           s12 on the left
+  − in f1: False.Extra, [True.True] True, [True.False] False, [False.False] False             s10 on the left
+  − in f1: Boolean.Boolean.Extra, [True.True] True, [True.False] False, [False.False] False   s11 on the left
+  and 12 more configurations
 events           17 → 25
-  + [False] Boolean      False.Boolean.Extra → Boolean.Boolean.Extra
-  + [False] Boolean      False.True.Extra → Boolean.True.Extra
-  + [False] Boolean      False.Boolean.And.Extra → Boolean.Extra   inferred
-  + [False] Boolean      False.And.True.Extra → Boolean.True.Extra   inferred
-  + [False] False        in f1: False.Extra → False.Extra
-  + [False] False        in f1: False.Boolean.Extra → False.Boolean.Extra
-  + [False] False        in f1: False.True.Extra → False.True.Extra
-  + [True] Boolean       Boolean.True.Extra → Boolean.Boolean.Extra
-  + [True] Boolean       False.True.Extra → False.Boolean.Extra
-  − [True.False] False   in f1: True.False.Extra → False.Extra
+  + [And.Boolean.Boolean] ([False] False, [True.True] True)                             Boolean.Boolean.And.Extra → in f1: Extra, [False] False, [True.True] True
+  + [And.Boolean.Boolean] ([False] False, [True.True] True)                             False.Boolean.And.Extra → in f1: False.Extra, [False] False, [True.True] True   inferred
+  + [And.Boolean.Boolean] ([False] False, [True.True] True)                             Boolean.And.True.Extra → in f1: True.Extra, [False] False, [True.True] True   inferred
+  + [And.Boolean.Boolean] ([False] False, [True.True] True)                             False.And.True.Extra → in f1: False.True.Extra, [False] False, [True.True] True   inferred
+  − [And.Boolean.Boolean] ([True.True] True, [True.False] False, [False.False] False)   And.Boolean.Boolean.Extra → in f1: Extra, [True.True] True, [True.False] False, [False.False] False
+  − [And.Boolean.Boolean] ([True.True] True, [True.False] False, [False.False] False)   And.Boolean.False.Extra → in f1: False.Extra, [True.True] True, [True.False] False, [False.False] False   inferred
+  − [And.Boolean.Boolean] ([True.True] True, [True.False] False, [False.False] False)   And.Boolean.True.Extra → in f1: True.Extra, [True.True] True, [True.False] False, [False.False] False   inferred
+  − [And.Boolean.Boolean] ([True.True] True, [True.False] False, [False.False] False)   And.True.False.Extra → in f1: True.False.Extra, [True.True] True, [True.False] False, [False.False] False   inferred
+  and 22 more event differences
 ```
 
-`[False] False` matches `False` alone, so the conjunction's `True` survives it. The lineage of that `True` in `bug.wave` shows where it came from:
+Outside the scope, the edit reaches four configurations the original does not. Inside it, every configuration differs, since the scope holds different rules, and `compare` prints the rules live in each scope for that reason. `[False] False` matches `False` alone, so the conjunction's `True` survives it. The lineage of that `True` in `bug.wave` shows where it came from:
 
 ```
 True in s6 = False.True.Extra
-  s0                                   initial in False.And.True.Extra
-  e4    r1 [And.Boolean.Boolean] (…)   inferred by e2 e8; the scope receives True as witness
-  e11   r2 [False] False               consumes False; True stays in the remainder
+  s0                                                                 initial in False.And.True.Extra
+  e4    r1 [And.Boolean.Boolean] ([False] False, [True.True] True)   inferred by e2 e8; the scope receives True as witness
+  e11   r2 [False] False                                             consumes False; True stays in the remainder
 ```
 
 The claim `--avoid False.True.Extra --exact --preserve` holds on the original and fails on the edit with `s6 by e4 e11`, and `compare` accepts the same claims to report both answers.
@@ -112,7 +116,7 @@ Every question except `shape` is about a recording: a program to explore, or the
 
 | Field | Meaning |
 | --- | --- |
-| `program` | The program: `file`, a list of `.wave` or `.particle` sources or `.json` programs that Bazel assembled, read in order; `source`, Photonic written inline and read after the files; and `library`, files of declarations loaded first. |
+| `program` | The program: `file`, a list of `.wave` or `.particle` sources or `.json` programs that Bazel assembled, read in order; `source`, Photonic written inline and read after the files; and `library`, files of declarations loaded first. Each path loads once, however often it is given, and a path given both as a library and as a file is refused, as Bazel refuses it. |
 | `exploration` | The key of an exploration, such as `x91c7f6619ec81b4b`, instead of `program`. A key already fixes the mode, engine, budget and goal, so it comes alone. |
 | `mode` | `exhaustive`, the default, explores every configuration within the budget; `plain` explores every schedule of plain events, the events a configuration's own matches identify, without inference, on Laser or on metal; `path` follows one direct path, as `photonic_test(path = True)` does. |
 | `engine` | In exhaustive mode, `laser`, the default, which carries matches back along events and names configurations by their components, or `interpreter`. Both explore on every core the machine has, close with the same configurations, events, inferred events and answers, and Spectrum numbers both the same way, so an exploration that closes names the same handles on either. Each counts its own work and gives its own deductions, and their keys differ. In plain mode, `laser`, the default, or `metal`, which explores the program's [net of parts](laser.md#nets-of-parts) on the GPU through Metal where there is one and on the host otherwise. Metal keeps no events, only the counts, the configurations where runs end and whether a run can go on forever, so only `explore` and `check` take its explorations, its ends have no handles, and it answers `end` and `outcome` claims; in exchange it reaches tens of millions of configurations where a recording keeps thousands. A program whose root ties to one of its components has no net of parts, and metal refuses it. A direct path always follows the interpreter's scheduler. |
@@ -128,17 +132,17 @@ Every question except `shape` is about a recording: a program to explore, or the
 | `scope` | 64 | Scopes one configuration has opened; the root is not one. |
 | `record` | 2,000,000 | Records the engine retains. Metal retains none, so it ignores the record budget, which stays out of its key. |
 
-The defaults and the names are `photonic_test`'s, but for metal's configurations; each engine counts work and records its own way. An exploration closes when its search ends within the budget; otherwise it is open, and every answer that depends on what was not explored is unknown. An open exploration says why: its summary's `stop` lists the budget that ran out and each limit that blocked events, with how many, or a start that already holds more than a limit allows, and its text names the flags to raise, as in `open: the occurrence limit (256) blocked 3 events; raise --occurrence`. A direct path says where it stopped: at its goal, back at a configuration it passed, where no event applies, or at a budget or limit. The runtime also records configurations and events that no grounded sequence of events establishes. They keep their handles, and answers mark them unsupported, but claims, paths, lineage, firing counts and comparisons consider only supported ones.
+The defaults and the names are `photonic_test`'s, but for metal's configurations; each engine counts work and records its own way. An exploration closes when its search ends within the budget; otherwise it is open, and every answer that depends on what was not explored is unknown. Every answer about an exploration carries its `mode` and `closed`, which is true once it explored every future, or in plain mode every plain schedule, within the budget, so that what it lacks is absent; a direct path follows one run and never closes, and its summary's `reached` says whether it met its goal. An open exploration says why: its summary's `stop` lists the budget that ran out and each limit that blocked events, with how many, or a start that already holds more than a limit allows, and its text names the flags to raise, as in `open: the occurrence limit (256) blocked 3 events; raise --occurrence`. A direct path says where it stopped: at its goal, back at a configuration it passed, where no event applies, or at a budget or limit. Answers word what an open exploration or a path has not settled that way: a rule that has not fired reads `not yet` in an open exploration and `not on this path` on a path, never `never`, and `step` adds that more events may happen at a configuration of an open exploration. The runtime also records configurations and events that no grounded sequence of events establishes. They keep their handles, and answers mark them unsupported, but claims, paths, lineage, firing counts and comparisons consider only supported ones.
 
 ### Canonical order
 
 Before exploring, Spectrum names the program's atoms A, B, C and so on in the order of its shape, the canonical form the symmetry engine computes, and lists its rules and coherences in that form's order. Answers translate the letters back to the program's own names, and each rule's name is its printed text. Rules are numbered in this canonical program's order. Configurations are numbered by their distance from the start along supported events, then along any events, then by their canonical form in the canonical program's names; events by their source, target, rule and binding. So reordering a program's terms, or the parts of a term, keeps every handle, and so does renaming its atoms, and an exploration that closes names the same handles on both engines. When the symmetry search visits more than 100,000 nodes, Spectrum sorts the program's printed rules and coherences instead, which keeps handles under reordering only. A direct path follows the program as written: each step fires the first event within the limits that its scheduler finds, and which event that is depends on the order of the program's terms, so reordering them can change the path. Each summary's `order` says which of `shape`, `text` and `source` numbered its handles.
 
-Within a particle, answers list occurrences in canonical order, which is the order of their handles; `bug.wave` prints its first configuration as `False.And.True.Extra`. Two programs can order the same particle differently, so `compare` may print one particle two ways.
+Within a particle, answers list occurrences in canonical order, which is the order of their handles; `bug.wave` prints its first configuration as `False.And.True.Extra`. Two programs can order the same particle differently, so `compare` may print one particle two ways. Answers print each rule in full, and `compare` also prints the rules live in each scope, which it tells configurations apart by.
 
 ### Keys and the store
 
-An exploration's key is `x` followed by 16 hexadecimal digits: a hash of the canonical program, the naming from letters to atoms, the mode, the engine, the budget and the goal. In exhaustive mode, programs that differ only in the order of their terms share a key. Programs that differ in their names do not, because their answers name different atoms. The store keeps the most recent explorations while their occurrences and events total at most 2,000,000, and always keeps the newest; it accepts any unambiguous prefix of a key of at least four digits. The command line starts a new store for each command, so keys carry across questions in one protocol session or one library context.
+An exploration's key is `x` followed by 16 hexadecimal digits: a hash of its identity, which is the canonical program, the naming from letters to atoms, the mode, the engine, the budget and the goal. In exhaustive mode, programs that differ only in the order of their terms share a key. Programs that differ in their names do not, because their answers name different atoms. A hash can give two identities one key, so the store compares the whole identity whenever a program's key is one it holds, explores a program whose key another identity holds on its own, and refuses a key that two held explorations share, asking for the program again. The store keeps the most recent explorations while their occurrences and events total at most 2,000,000, and always keeps the newest; it accepts any unambiguous prefix of a key of at least four digits, in either case, with or without its `x`. The command line starts a new store for each command, so keys carry across questions in one protocol session or one library context.
 
 ## Handles
 
@@ -149,7 +153,7 @@ An exploration's key is `x` followed by 16 hexadecimal digits: a hash of the can
 | `e12` | An event: one rule applied to one match, from one configuration to another. |
 | `s11.c0` | A coherence of a configuration. |
 | `s11.o1` | An occurrence in a configuration, in a coherence or held by a scope. |
-| `s10.f1` | A scope frame of a configuration. Frame 0 is the root. |
+| `s10.f1` | A scope frame of a configuration. Frame 0, such as `s10.f0`, is the root. |
 
 ## Patterns
 
@@ -164,7 +168,7 @@ Patterns are Photonic, matched by containment as a rule's input is: whatever els
 | `(K, [K] L)` | A scope holding `K` and that rule; parts listed together match different parts. |
 | `[B, C] D` | The events that apply a rule with that structure; spacing and the order of unordered parts do not matter. |
 
-A pattern is read as a program and matched by containment, as a rule's input is. A pattern of coherences and scopes matches configurations in `select`, `miss` and claims, finding each of its own parts anywhere and a scope's parts inside that scope; a rule pattern matches events in `select`. The webbook's filter runs the same matcher in its WebAssembly engine.
+A pattern is read as a program and matched by containment, as a rule's input is. A pattern of coherences and scopes matches configurations in `select`, `miss` and claims, finding each of its own parts anywhere and a scope's parts inside that scope; a rule pattern matches events in `select`. Parts listed anywhere in a pattern, at any depth, match different coherences and scopes, so `X, (X, [X] Y)` needs two coherences holding `X`, one of them in the scope, and no coherence or scope serves two parts. The webbook's filter runs the same matcher in its WebAssembly engine.
 
 ## Claims
 
@@ -181,7 +185,7 @@ A claim is a pattern with a kind. Its answer is `holds`, `fails` or `unknown`, a
 
 In plain mode a claim speaks of every schedule of plain events instead of every future: `inevitable` holds when every such schedule reaches a match, even where inference lets a rule consume part of a configuration early and strand a run.
 
-`exact` compares whole configurations as Prism does, and `preserve` adds every loaded root rule to the target; every claim takes an exact target, except on a direct path, whose exact target is its goal. `end` with an exact target in plain mode asks what `photonic_test(every = True)` checks: that every schedule of plain events ends exactly at the target. Inference lets a rule apply to what a configuration can become, so a run can skip configurations a longer run passes through. A direct path follows one run of many, so on a path `reach` can hold, `avoid` and `always` can fail, and every other answer is unknown. Unknown means the search could not settle the claim, because a budget or limit stopped it or because a path follows one run, and the reason names which. It is never evidence of absence.
+`exact` compares whole configurations as Prism does, and `preserve` adds every loaded root rule to the target, so `preserve` without `exact` is refused; every claim takes an exact target, except on a direct path, whose exact target is its goal. Every claim is read, and checked against the mode and engine its recording names, before anything is explored, so a claim that cannot be answered costs no exploration. `end` with an exact target in plain mode asks what `photonic_test(every = True)` checks: that every schedule of plain events ends exactly at the target. Inference lets a rule apply to what a configuration can become, so a run can skip configurations a longer run passes through. A direct path follows one run of many, so on a path `reach` can hold, `avoid` and `always` can fail, and every other answer is unknown. Unknown means the search could not settle the claim, because a budget or limit stopped it or because a path follows one run, and the reason names which. It is never evidence of absence.
 
 ## Questions
 
@@ -189,13 +193,15 @@ In plain mode a claim speaks of every schedule of plain events instead of every 
 | --- | --- | --- |
 | `check` | `claim` | Diagnostics, each claim's verdict and the exploration's summary. A program or library that does not parse or lower is a diagnostic with its location, not a failure. Given a key, it checks claims against that exploration. |
 | `explore` | `limit` (12) | The summary, the configurations without supported events up to `limit`, and how often each rule fired and whether by inference. The text calls those configurations ends in a closed exhaustive exploration, leaves in an open one, where some are unexplored, and stops on a path. The summary's `endless` says a run can go on forever once a cycle is found, and that none can once the exploration closes without one, and its `stop` says why an open exploration stopped. On metal, the ends have no handles, there is no rule activity or depth, work counts a step for each match its grounding read and each pick of a host join, and `device` names where it explored, `gpu` or `host`, with the configurations that keeps. |
-| `select` | `pattern`, `limit` (20), `offset` | The matching configurations with the occurrences each match used, or the matching events, marked when unsupported, and the offset of the next page. |
-| `inspect` | `handle` | A rule with its events; a configuration with its coherences, frames and the events into and out of it, and `end` when a closed exhaustive exploration proves no event can happen there; a coherence, occurrence or frame; or an event with its exact part, witness, reads, deduction and the occurrences it produces. |
+| `select` | `pattern`, `limit` (20), `offset` | The matching configurations with the occurrences and frames each match used, or the matching events, marked when unsupported, and the offset of the next page; in an open exploration or on a path, what matches so far. |
+| `inspect` | `handle` | A rule with its events; a configuration with its coherences, its frames, each with the frame it sits in, and the events into and out of it, and `end` when a closed exhaustive exploration proves no event can happen there; a coherence, occurrence or frame; or an event with its exact part, witness, reads, deduction and the occurrences it produces. |
 | `cause` | `handle` | For a configuration, its shortest supported path. For an event, its match and the events of its deduction. For an occurrence, its lineage: back through each event that carried it as remainder, witness or held occurrence, to the start or to the event that produced it, with the places that event consumed. When a match reached an event along several walks, the engines may give different deductions, and where a configuration holds interchangeable occurrences they may trace an occurrence through different ones. |
-| `miss` | `target` with `exact` and `preserve`, or `rule`; `limit` (3) | For a target, the nearest configurations and what each lacks and, when exact, has extra, assigning the target's parts to coherences so that the most occurrences match; an exact target is read as the configuration its program starts in and compares coherences, live rules and scopes, as Prism does. For a rule, how often it fired, how many configurations it was live in without firing, and where its inputs came closest to matching. |
+| `miss` | `target` with `exact` and `preserve`, or `rule`; `limit` (3) | For a target, the nearest configurations and what each lacks and, when exact, has extra, assigning the target's parts to coherences so that the most occurrences match, with no part of a configuration serving two of the target's parts; a configuration the target matches, as `select` finds it, is at distance 0. A target has at most 256 parts. An exact target is read as the configuration its program starts in and compares coherences, live rules and scopes, as Prism does. For a rule, how often it fired, how many configurations it was live in without firing, and where its inputs came closest to matching; in an open exploration a configuration whose events were not recorded counts as unexplored, and its row says so, and on a direct path every configuration does, since the path took one event at each. |
 | `step` | `handle` (`s0`) | Every event that can happen at a configuration and where it leads; on a path, the one event the path took. |
-| `compare` | `left` and `right`, each a recording; `claim`; `limit` (12) | Each side's key and size, marked open when its exploration did not close or follows a path, because what an open side lacks may be unexplored rather than absent; the configurations one reaches and the other does not, compared by their coherences and held occurrences up to occurrence identity; the events that differ by rule, source and target, which is where edited rules show; and each claim's answer on both. Each change lists up to `limit` entries in each direction and counts the rest. |
-| `shape` | `program` (a list of programs), `target`, `fix`, `node` (1,000,000) | For one program, its shape, canonical form, symmetries, orbits and local patterns; for several, the classes that share a shape with the renaming between members, as the [symmetry record](symmetry.md) describes. `node` limits the symmetry search. |
+| `compare` | `left` and `right`, each a recording; `claim`; `limit` (12) | Each side's key, mode, whether it closed and its size, marked open when its exploration did not close and path when it follows a direct path, because what such a side lacks may be unexplored rather than absent; the configurations one reaches and the other does not, compared by their coherences, how their scopes nest, the rules live in each scope and the occurrences each frame holds, however occurrences and scopes are numbered, and leaving out the program's own rules, which an edit changes, so a configuration inside a scope whose rules an edit changed differs; the events that differ by their rule's whole text, source and target, which is where edited rules show; and each claim's answer on both. Each change lists up to `limit` entries in each direction and counts the rest. |
+| `shape` | `program` (a list of programs), `target`, `fix`, `node` (1,000,000) | For one program, its shape, canonical form, symmetries, orbits and local patterns, those whose copies differ by a renaming, as the viewers show them; for several, the classes that share a shape with the renaming between members, its pieces separated by commas, as the [symmetry record](symmetry.md) describes. `node`, at least 1, limits the symmetry search. |
+
+Every `limit` lists at most that many entries and counts the rest, so 0 lists none and still counts them, and `select` then offers no next page; `inspect` lists a rule's first 8 events and counts the rest.
 
 A request names its verb and carries the question's fields as one JSON object, which `Request::read` checks; `envelope` returns the answer with the verb and the envelope's version, beside `answer` or `error`:
 
@@ -204,36 +210,53 @@ A request names its verb and carries the question's fields as one JSON object, w
 ```
 
 ```json
-{"version": 1, "verb": "cause", "answer": {"exploration": "xabb1ecb46dec2743", "handle": "s6.o1", "kind": "occurrence", "text": "True", "configuration": "False.True.Extra", "lineage": [{"configuration": "s6", "occurrence": "s6.o1", "event": "e11", "rule": "r2 [False] False", "role": "remainder", "source": ["s5.o2"], "text": "consumes False; True stays in the remainder"}, …]}}
+{"version": 1, "verb": "cause", "answer": {"exploration": "x4ff861b04316a91f", "mode": "exhaustive", "closed": true, "handle": "s6.o1", "kind": "occurrence", "text": "True", "configuration": "False.True.Extra", "lineage": [{"configuration": "s6", "occurrence": "s6.o1", "event": "e11", "rule": "r2 [False] False", "role": "remainder", "source": ["s5.o2"], "text": "consumes False; True stays in the remainder"}, …]}}
 ```
 
 Every field is checked against the question's schema, so a misspelled field is an error that lists the fields the question takes, never a silent default.
 
 ## Failures
 
-A failure carries a `code`, a `message` and, when it points into text, a `location` with the file, line, column and length.
+A failure carries a `code`, a `message`, when it points into text a `location` with the file, line, column and length, and, for an error in a program's text, the frontend's `diagnostic`, the last part of its diagnostic code, such as `syntax`. A `check` diagnostic is the same object: a program or library that does not assemble is `{"code": "source", "diagnostic": "syntax", …}` in `check`'s `diagnostic` list and as any other question's `error`.
 
 | Code | Meaning |
 | --- | --- |
-| `request` | The request is malformed: not an object, an unknown field, no program, a program and a key together, a key with a mode, engine, budget or goal, a goal outside path mode, `laser` in path mode, `interpreter` in plain mode, or `metal` outside it. |
-| `file` | A file cannot be read. |
+| `request` | The request is malformed: not an object, an unknown field, no program, a program and a key together, a path given both as a library and as a program file, a key with a mode, engine, budget or goal, a goal outside path mode, `laser` in path mode, `interpreter` in plain mode, `metal` outside it, `preserve` without `exact`, or a `miss` with neither or both of a target and a rule, or with `exact` or `preserve` beside a rule. |
+| `file` | A file cannot be read or is not UTF-8 text, or the protocol server was asked for one outside the directory it started in. |
 | `source` | A program does not parse or lower; `check` reports it as a diagnostic instead. |
-| `library` | A library does not parse or holds more than declarations; `check` reports it as a diagnostic instead. |
-| `target` | A goal or an exact target does not parse. |
-| `pattern` | A pattern is empty or does not parse, mixes coherences or scopes with rules, or is the wrong kind for the question. |
+| `library` | A library does not parse, or lists a coherence or scope where a library holds only rules; `check` reports it as a diagnostic instead, located at the first coherence or scope it lists. |
+| `target` | A goal or an exact target does not parse, or as a `miss` target has more than 256 parts. |
+| `pattern` | A pattern is empty or does not parse, mixes coherences or scopes with rules, is the wrong kind for the question, holds scopes that can be placed in too many ways to search, or as a `miss` target has more than 256 parts. |
 | `handle` | A handle is malformed, names nothing in the exploration, or names a kind the verb does not explain. |
-| `exploration` | A key is unknown or ambiguous, or lineage is asked of a direct path. |
-| `engine` | An engine cannot answer: metal refuses a program with no net of parts and every question but `explore` and `check`. |
+| `exploration` | A key is too short, malformed, unknown or ambiguous, or lineage is asked of a direct path. |
+| `engine` | An engine cannot answer: metal refuses a program with no net of parts and, before exploring, every question but `explore` and `check`. |
 | `claim` | A claim cannot be asked this way, such as an exact target on a direct path, a rule pattern as a claim, or on metal a claim other than `end` and `outcome`. |
 | `shape` | The symmetry search exceeded its `node` limit. |
 
-The command prints answers as text, or with `--json` as the envelope, and prints a failure as `error[code]: message`. It exits 1 on any failure; `check` also exits 1 unless there are no diagnostics and every claim holds, `compare` unless both sides settle, reach the same configurations and events, and answer every claim alike and definitely, and `shape` when its programs have more than one shape. The library decides this through `Answer::passed`.
+| Diagnostic | Meaning |
+| --- | --- |
+| `syntax` | The text does not parse, and the message says what to write instead. |
+| `depth` | Parentheses and brackets nest more than 128 levels deep. |
+| `input` | A rule's input is a scope; a rule is matched without parentheses, as in `[[A] B]`. |
+| `expansion` | Distributing joins and partitioning brackets would build more than the frontend's budget of 1,000,000 units and 8 more for each byte of the source. |
+| `library` | A library lists a coherence or scope; a library holds only rules. |
+| `json` | A `.json` program is not a program: an object for each program, scope and rule, an array for each particle, a string for each atom as text spells it, and no deeper than text can nest. The message says what was expected there. |
+| `read` | A file cannot be read. |
+| `encoding` | A file is not UTF-8 text; save it as UTF-8. |
+
+`read` and `encoding` come from the frontend's own reader, which assembles programs for Bazel; Spectrum reads files itself and reports those failures as `file`.
+
+The command prints answers as text, or with `--json` as the envelope, and prints a failure as `error[code]: message`. Every verb but `shape` takes its recording's fields as flags beside its files: `--library` and `--source`, the budget's flags, `--path`, `--plain` and `--engine`, `--goal` with `--path`, and `--preserve`, which completes an exact target or the goal and so needs `--exact` or `--goal`. `--source` alone names a program; `compare` and `shape` add `--source` and every `--library` to each program they read. Claims keep the order the command line gives them, in the text and in the envelope. `run` lists every configuration of an exhaustive or plain exploration by its handle, and `prism` answers reached, unreachable or unknown for the exact target in a file, with `--preserve` adding every loaded root rule as `photonic_test` does, and names its witness and the events that reach it; both explore as a question's recording does, so the same program and flags give the key and handles every answer gives. With `--json`, `run` and `prism` print the engine's own report instead, numbered in the order the engine found each configuration.
+
+The command exits 0 on success and 1 on any failure, including a command that names no program; `check` also exits 1 unless there are no diagnostics and every claim holds, `compare` unless both sides settle, reach the same configurations and events, and answer every claim alike and definitely, `shape` when its programs have more than one shape, and `prism` unless its target is reached. The library decides this for the verbs through `Answer::passed`. The command exits 2 when the command line is invalid, such as an unknown flag, a malformed value, or flags that conflict or lack the flag they need, and prints the usage error as text on standard error, with or without `--json`. When a reader closes standard output early, as `head` does, the command stops writing and still exits with its answer's code.
 
 ## Model Context Protocol
 
 `photonic mcp` serves every question as a tool over standard input and output, one JSON-RPC message or batch per line, and the repository's [.mcp.json](../.mcp.json) starts it with `bazel run`. It speaks the stateless revision 2026-07-28, in which every request carries `io.modelcontextprotocol/protocolVersion` and `io.modelcontextprotocol/clientCapabilities` in its `_meta` and `server/discover` lists the supported versions, and the revisions 2025-11-25, 2025-06-18, 2025-03-26 and 2024-11-05, through `initialize` or by naming one of them in `_meta`.
 
-Each tool's input schema is JSON Schema 2020-12 generated from its request type, with every subschema inlined and no properties beyond those listed. From 2025-06-18 on, each tool also declares an output schema, generated for serialization so that fields an answer leaves out are optional, and a result carries the answer as `structuredContent` beside its text. `//spectrum:test` checks every kind of answer against its declared schema. A question that fails returns a result with `isError` and the failure's text, so an agent can read it and ask again; protocol errors are reserved for the protocol itself.
+Each tool's input schema is JSON Schema 2020-12 generated from its request type, with every subschema inlined and no properties beyond those listed. From 2025-06-18 on, each tool also declares an output schema, generated for serialization so that fields an answer leaves out are optional, and a result carries the answer as `structuredContent` beside its text. `//spectrum:test` checks every kind of answer against its declared schema. A question that fails returns a result with `isError` and the failure as the command prints it, `error[code]: message`, so an agent can read it and ask again; protocol errors are reserved for the protocol itself. Before reading a request, the server checks its arguments' types against the tool's input schema and names the first that does not fit by its path, such as `program.file takes an array, not a string`.
+
+The server reads only files inside the directory it starts in, which is where `bazel run` started: it resolves each program and library path, following every link, and refuses one that leads outside with a `file` failure that says so, so a client cannot read the rest of the machine through it. The command line reads any path it is given. `initialize` and `server/discover` report the server's version, which is the module's version in [MODULE.bazel](../MODULE.bazel), as `photonic --version` prints it.
 
 | Code | Error |
 | --- | --- |
@@ -248,7 +271,7 @@ Two resources describe the language to agents: `photonic://primer`, the grammar,
 
 ## Verification
 
-`//spectrum:test` checks exploration counts and handles on the conjunction and its edits; that every scope is credited to the rule that opens it; every claim kind with its evidence, including an `inevitable` counterexample that avoids every match and an `end` counterexample around a cycle, and every kind with an exact target; occurrence lineage through remainder, witness, held and produced occurrences; that reordering keeps keys and handles while renaming keeps handles and changes the key; every question's answer through the JSON protocol, checked against its declared output schema; that unknown fields, keys with settings and goals outside path mode are refused; `miss` assignments that a greedy choice gets wrong, exact targets with and without their rules, and many parts placed at once; `compare` counts beyond its limit and on open explorations; `shape`, with the pins `fix` keeps and the webbook's recorded pattern; that both engines close with the same configurations, events, handles, paths, claim answers and exact verdicts, with lineage traced on Laser's explorations, and that a renaming which reorders atoms alphabetically keeps every handle; that plain mode answers for every schedule of plain events where an inferred event strands a run; and that metal agrees with Laser's recording of the same plain schedules on counts, ends, cycles and every `end` and `outcome` claim, and refuses what it cannot answer. `//command:test` runs the commands and their exit codes, and sessions of the protocol server in the legacy and stateless revisions, including discovery, batches and each protocol error.
+`//spectrum:test` checks exploration counts and handles on the conjunction and its edits; that every scope is credited to the rule that opens it; every claim kind with its evidence, including an `inevitable` counterexample that avoids every match and an `end` counterexample around a cycle, and every kind with an exact target; occurrence lineage through remainder, witness, held and produced occurrences; that reordering keeps keys and handles while renaming keeps handles and changes the key; every question's answer through the JSON protocol, checked against its declared output schema; that unknown fields, keys with settings and goals outside path mode are refused; `miss` assignments that a greedy choice gets wrong, exact targets with and without their rules, and many parts placed at once; that parts listed anywhere in a pattern take different coherences and frames, however deep, with many scopes written alike placed without searching their orders, and that `miss` finds a matching configuration at distance 0 and refuses a target of too many parts; that the store keeps apart explorations whose keys collide and reads keys in either case; `compare` counts beyond its limit and on open explorations, and configurations that differ only in which scope holds a coherence, how scopes nest or which rules a scope holds; that claims, and questions metal cannot answer, are refused before anything is read or explored, and `preserve` without `exact` everywhere; that an open exploration and a direct path never read as closed or say a rule never fires, and that `miss` counts unexplored configurations; that refusals name both the flag and the field; that a limit of 0 counts without listing; that a `check` diagnostic is the failure itself; that each library loads once; `shape`, with the pins `fix` keeps and the webbook's recorded pattern, a renaming listed piece by piece, identical copies dropped from its patterns and a node budget of 0 refused; that both engines close with the same configurations, events, handles, paths, claim answers and exact verdicts, with lineage traced on Laser's explorations, and that a renaming which reorders atoms alphabetically keeps every handle; that plain mode answers for every schedule of plain events where an inferred event strands a run; and that metal agrees with Laser's recording of the same plain schedules on counts, ends, cycles and every `end` and `outcome` claim, and refuses what it cannot answer. `//command:test` runs the commands and their exit codes, including usage errors and a reader that closes standard output early, that `run` and `prism` name the handles the questions name on both engines, that claims keep their order, the version against MODULE.bazel, and sessions of the protocol server in the legacy and stateless revisions, including discovery, batches, each protocol error, failures with their codes, arguments of the wrong type and paths that lead outside its directory.
 
 ```sh
 bazel test -c opt //spectrum:test //command:test

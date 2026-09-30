@@ -238,7 +238,7 @@ pub(crate) fn apply(request: Request<'_>) -> Applied {
             owner
         }
     };
-    let returning = owner == frame && frame != 0;
+    let returning = binding.returning(frame, owner);
     let crate::evaluation::Result {
         state,
         change,

@@ -1,3 +1,42 @@
+// Each row takes at most one column and each column at most one row, so that the costs of the
+// pairs taken sum to the least, where a row left alone costs nothing. The search runs over the
+// shorter side, so a long list of parts against a few places stays quadratic in the places.
+pub fn pair(cost: &[Vec<i64>]) -> Vec<Option<usize>> {
+    let row = cost.len();
+    let column = cost.first().map_or(0, Vec::len);
+    if row <= column {
+        let padded = cost
+            .iter()
+            .map(|entry| {
+                entry
+                    .iter()
+                    .copied()
+                    .chain(std::iter::repeat_n(0, row))
+                    .collect()
+            })
+            .collect::<Vec<Vec<i64>>>();
+        return cheapest(&padded)
+            .into_iter()
+            .map(|choice| (choice < column).then_some(choice))
+            .collect();
+    }
+    let turned = (0..column)
+        .map(|target| {
+            (0..row)
+                .map(|source| cost[source][target])
+                .chain(std::iter::repeat_n(0, column))
+                .collect()
+        })
+        .collect::<Vec<Vec<i64>>>();
+    let mut pairing = vec![None; row];
+    for (target, choice) in cheapest(&turned).into_iter().enumerate() {
+        if choice < row {
+            pairing[choice] = Some(target);
+        }
+    }
+    pairing
+}
+
 pub fn cheapest(cost: &[Vec<i64>]) -> Vec<usize> {
     let row = cost.len();
     let column = cost.first().map_or(0, Vec::len);

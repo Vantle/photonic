@@ -1,4 +1,5 @@
 use crate::disk::Disk;
+use crate::output;
 use miette::IntoDiagnostic;
 use serde_json::{Map, Value, json};
 use spectrum::context::Context;
@@ -13,7 +14,7 @@ const STRUCTURED: &str = "2025-06-18";
 const VERSION: &str = "io.modelcontextprotocol/protocolVersion";
 const CAPABILITY: &str = "io.modelcontextprotocol/clientCapabilities";
 const SERVER: &str = "io.modelcontextprotocol/serverInfo";
-const INSTRUCTION: &str = "Spectrum answers questions about Photonic programs and every future they can reach. Start with check or explore on the program's files. Answers name rules, configurations, events and occurrences by handles such as r2, s11, e12 and s11.o1; pass them to inspect, cause, miss and step. Every answer about an exploration carries its key, such as x91c7f661; pass it as exploration instead of the program to ask more of the same recording. Plain mode asks about every schedule of plain events, and with engine metal explore and check reach tens of millions of configurations on the GPU. Claims answer holds, fails or unknown; unknown means the search could not settle the claim, because a budget stopped it or a direct path follows one run, and is never evidence of absence. Read photonic://primer for the language.";
+const INSTRUCTION: &str = "Spectrum answers questions about Photonic programs and every future they can reach. Start with check or explore on the program's files. Answers name rules, configurations, events and occurrences by handles such as r2, s11, e12 and s11.o1; pass them to inspect, cause, miss and step. Every answer about an exploration carries its key, such as x91c7f661; pass it as exploration instead of the program to ask more of the same recording. Plain mode asks about every schedule of plain events, and with engine metal explore and check reach tens of millions of configurations on the GPU. Claims answer holds, fails or unknown; unknown means the search could not settle the claim, because a budget stopped it or a direct path follows one run, and is never evidence of absence. Files are read from the directory the server started in, and only from inside it. Read photonic://primer for the language.";
 
 #[derive(Clone, Copy, Eq, PartialEq)]
 enum Era {
@@ -59,9 +60,9 @@ fn structured(era: Era) -> bool {
 }
 
 impl Server {
-    pub fn new() -> Self {
+    pub fn new(reader: Disk) -> Self {
         Self {
-            reader: Disk,
+            reader,
             store: Store::default(),
             legacy: None,
         }
@@ -175,7 +176,9 @@ impl Server {
             reader: &self.reader,
             store: &mut self.store,
         };
-        let answer = Request::read(name, argument).and_then(|request| request.answer(&mut context));
+        let answer = spectrum::conformance::verify(name, &argument)
+            .and_then(|()| Request::read(name, argument))
+            .and_then(|request| request.answer(&mut context));
         let mut result = Map::new();
         match answer {
             Ok(answer) => {
@@ -194,7 +197,7 @@ impl Server {
             Err(failure) => {
                 result.insert(
                     "content".to_owned(),
-                    json!([{ "type": "text", "text": failure.to_string() }]),
+                    json!([{ "type": "text", "text": output::error(&failure) }]),
                 );
                 result.insert("isError".to_owned(), json!(true));
             }
@@ -340,10 +343,13 @@ fn reply(id: Value, result: Result<Value, Value>) -> Value {
     }
 }
 
+// The server answers until its client closes either end: standard input, or standard output, where
+// nothing more it writes could be read.
 pub fn serve() -> miette::Result<ExitCode> {
-    let mut server = Server::new();
+    let directory = std::env::current_dir().into_diagnostic()?;
+    let mut server = Server::new(Disk::within(&directory).into_diagnostic()?);
     let mut input = std::io::stdin().lock();
-    let mut output = std::io::stdout().lock();
+    let mut writer = std::io::stdout().lock();
     let mut line = Vec::new();
     loop {
         line.clear();
@@ -353,9 +359,12 @@ pub fn serve() -> miette::Result<ExitCode> {
         if line.trim_ascii().is_empty() {
             continue;
         }
-        if let Some(response) = server.handle(&line) {
-            writeln!(output, "{response}").into_diagnostic()?;
-            output.flush().into_diagnostic()?;
+        let Some(response) = server.handle(&line) else {
+            continue;
+        };
+        match writeln!(writer, "{response}").and_then(|()| writer.flush()) {
+            Err(error) if output::closed(&error) => return Ok(ExitCode::SUCCESS),
+            written => written.into_diagnostic()?,
         }
     }
 }

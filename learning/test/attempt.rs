@@ -1,3 +1,4 @@
+use super::support::Directory;
 use crate::archive::{Archive, Coverage};
 use crate::attempt::{Event, Setting, run};
 use crate::edit::Bound;
@@ -16,8 +17,8 @@ fn source(text: &str) -> Source {
 
 #[test]
 fn coverage() {
-    let path = std::env::temp_dir().join(format!("learning-attempt-{}", std::process::id()));
-    let home = Home::open(path.clone()).unwrap();
+    let directory = Directory::new("attempt");
+    let home = Home::open(directory.path.clone()).unwrap();
     let pool = vec![define("rename", &[(source("A"), source("B"))]).unwrap()];
     let chosen = ["rename".to_owned()];
     for (depth, expected) in [(1, Coverage::Flat), (0, Coverage::Whole)] {
@@ -29,6 +30,7 @@ fn coverage() {
             },
             budget: Budget::default(),
             guide: Duration::ZERO,
+            placement: crate::placement::Placement::Processor,
             blind: true,
             deadline: None,
         };
@@ -59,5 +61,4 @@ fn coverage() {
         );
     }
     assert!(home.file("program/rename.wave").exists());
-    std::fs::remove_dir_all(path).unwrap();
 }

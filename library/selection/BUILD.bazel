@@ -3,24 +3,28 @@ load("//photonic:defs.bzl", "photonic_library")
 photonic_library(
     name = "check",
     srcs = ["check.particle"],
+    visibility = ["//visibility:public"],
     deps = ["//library/function:invoke"],
 )
 
 photonic_library(
     name = "count",
     srcs = ["count.particle"],
+    visibility = ["//visibility:public"],
     deps = ["//library/function:invoke"],
 )
 
 photonic_library(
     name = "filter",
     srcs = ["filter.particle"],
+    visibility = ["//visibility:public"],
     deps = ["//library/function:invoke"],
 )
 
 photonic_library(
     name = "reduce",
     srcs = ["reduce.particle"],
+    visibility = ["//visibility:public"],
     deps = ["//library/collection:reduce"],
 )
 

@@ -3,13 +3,12 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-const USAGE: &str =
-    "usage: notice --output FILE (--crate 'NAME VERSION' [--manifest FILE] [--license FILE]...)...";
+const USAGE: &str = "usage: notice --output FILE (--crate 'NAME VERSION' [--manifest FILE] [--license FILE]...)... [--runtime FILE]...";
 
 const PREAMBLE: &str =
     "Photonic is licensed under MIT OR Apache-2.0; see LICENSE-MIT and LICENSE-APACHE.
 
-The photonic binary also contains the Rust standard library, licensed under MIT OR Apache-2.0
+This build also contains the Rust standard library, licensed under MIT OR Apache-2.0
 (https://github.com/rust-lang/rust), and the third-party crates below. Each crate is listed with
 the license it declares and the license files it ships, and its source is published at
 https://crates.io/crates/NAME/VERSION. A text that appears earlier is named instead of repeated.
@@ -24,11 +23,13 @@ struct Package {
 struct Request {
     output: PathBuf,
     package: Vec<Package>,
+    runtime: Vec<PathBuf>,
 }
 
 fn read() -> Result<Request, Failure> {
     let mut output = None;
     let mut package: Vec<Package> = Vec::new();
+    let mut runtime = Vec::new();
     let mut argument = std::env::args_os().skip(1);
     while let Some(flag) = argument.next() {
         let value = argument.next().ok_or(Failure::Usage(USAGE))?;
@@ -47,12 +48,14 @@ fn read() -> Result<Request, Failure> {
                 .ok_or(Failure::Usage(USAGE))?
                 .license
                 .push(value.into()),
+            Some("--runtime") => runtime.push(value.into()),
             _ => return Err(Failure::Usage(USAGE)),
         }
     }
     Ok(Request {
         output: output.ok_or(Failure::Usage(USAGE))?,
         package,
+        runtime,
     })
 }
 
@@ -112,6 +115,10 @@ fn render(request: &Request) -> Result<String, Failure> {
             text.push('\n');
             seen.insert(key, format!("{} {file}", package.name));
         }
+    }
+    for path in &request.runtime {
+        let body = std::fs::read_to_string(path).map_err(Failure::access(path))?;
+        text.push_str(&format!("\n{}\n{}\n", "-".repeat(80), body.trim_end()));
     }
     Ok(text)
 }

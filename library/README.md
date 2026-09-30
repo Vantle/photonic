@@ -8,10 +8,10 @@ bazel test -c opt //library/...
 
 ## Principles
 
-1. **One namespace per type.** Every operation is named `<Type>.<Verb>`: `Boolean.Not`, `Ternary.Add`, `Natural.Divide`, `Expression.Evaluate`. The namespace belongs to exactly one package, with two exceptions: each reduce operation declares its own identity as a `Function.Empty.Reduce` row in its package, and `//library/selection:reduce` adds the `Reduce` rows for selections to the stage in `//library/collection:reduce`. The core combinators `Identity` and `Compose` are bare, and so are the pipeline stages `Map`, `Reduce` and `Gather` and the methods of chains and vectors: `Push`, `Read`, `Peek`, `Forget`, `Insert`, `Take`, `Link`, `Lift`, `Unlink`, an alphabet's `Drop`, and the node's internal `Sever` and `Surface`.
+1. **One namespace per type.** Every operation is named `<Type>.<Verb>`: `Boolean.Not`, `Ternary.Add`, `Natural.Divide`, `Expression.Evaluate`. The namespace belongs to exactly one package, with three exceptions: each reduce operation declares its own identity as a `Function.Empty.Reduce` row in its package; `//library/selection:reduce` adds the `Reduce` rows for selections to the stage in `//library/collection:reduce`; and `Empty` also names the empty vector, which no pattern pairs with `Reduce`, so the two never meet. The core combinators `Identity` and `Compose` are bare, and so are the pipeline stages `Map`, `Reduce` and `Gather` and the methods of chains and vectors: `Push`, `Read`, `Peek`, `Forget`, `Insert`, `Take`, `Link`, `Lift`, `Unlink`, an alphabet's `Drop`, and the node's internal `Sever` and `Surface`.
 2. **One calling vocabulary.** A request carries `Function`; its answer carries `Return`. Scoped calls use `Invoke`; linked calls tag each answer with the operation that produced it. Chain and vector methods answer in their own words instead: `Built`, `Yield`, `Seen`, `Clean`, `Stored`, `Linked`, `Taken`, `Lifted`, and `Unlinked`.
-3. **Collision-free by construction.** `//library:test` proves that no root rule can match the input of another root rule and that no working label fits inside an answer, apart from one exemption for the sort's own bookkeeping, then runs checks with every package loaded at once.
-4. **Explicit values.** Roles travel as fields such as `([Digit] 2).([Carry] 1)`. Alternatives are variants of the answer, and failures are `Error.<Kind>`. A role is never also a plain atom, except that `Map` and `Reduce` fire callbacks through a bare `Each` and `Operation`, and `Left` and `Right` name both the ordered operands of scalar tables and the sides of linked operands, as in `Operand.Left`.
+3. **Collision-free by construction.** `//library:test` proves that no root rule can match the input of another root rule, that no working label fits inside an answer or a pending request, and that no request names another, then runs checks with every package loaded at once.
+4. **Explicit values.** Roles travel as fields such as `([Digit] 2).([Carry] 1)`. Alternatives are variants of the answer, and a linked operation answers a failure as `Error.<Kind>`; a scalar table has no failure answer, as [scoped invocation](#scoped-invocation) describes. A role is never also a plain atom, except that `Map` and `Reduce` fire callbacks through a bare `Each` and `Operation`, and `Left` and `Right` name both the ordered operands of scalar tables and the sides of linked operands, as in `Operand.Left`.
 5. **Generic storage, declared alphabets.** A chain stores the symbols of declared alphabets, and each alphabet states how chains drop, reverse, and erase its symbols. A vector stores any value that answers `Forget`, including naturals, chains, and other vectors, by reference and to any depth.
 6. **One responsibility per file, one target per file.** Programs depend on exactly what they use.
 
@@ -23,8 +23,8 @@ bazel test -c opt //library/...
 | [boolean](boolean/) | `Boolean` | `not`, `and`, `or`, `equal` |
 | [ternary](ternary/) | `Ternary` | `add`, `sum`, `multiply`, `successor`, `compare`, `equal`, `subtract`, `select` |
 | [binary](binary/) | `Binary` | `sum`, `multiply` |
-| [carry](carry/) | `Signal` | `combine`, `equal`, `evaluate` |
-| [collection](collection/) | `Pair`, `Empty` | `produce`, `copy`, `repeat`, `broadcast`, `unpack`, `choose`, `map`, `gather`, `reduce` |
+| [carry](carry/) | `Signal`, a block's carry status | `combine`, `equal`, `evaluate` |
+| [collection](collection/) | `Pair`, and `Empty` for the empty reduction | `produce`, `copy`, `repeat`, `broadcast`, `unpack`, `choose`, `map`, `gather`, `reduce` |
 | [selection](selection/) | `Selection` | `filter`, `check`, `count`, `reduce` |
 | [field](field/) | `Field` | `pack`, `unpack` |
 | [stream](stream/) | `Stream` | `successor` |
@@ -46,6 +46,109 @@ vector
 stream
 ```
 
+## Using the library
+
+Every target in the table is public, and so are the three rules in [photonic/defs.bzl](../photonic/defs.bzl): `photonic_library`, `photonic_binary` and `photonic_test`. They are Photonic 1.0's Bazel interface; other targets in the repository may change. A program depends on the operations it calls:
+
+```starlark
+load("//photonic:defs.bzl", "photonic_binary", "photonic_library", "photonic_test")
+
+photonic_library(
+    name = "logic",
+    srcs = ["logic.particle"],
+    deps = ["//library/boolean:not"],
+)
+
+photonic_binary(
+    name = "example",
+    srcs = ["request.wave"],
+    deps = [":logic"],
+)
+
+photonic_test(
+    name = "negation",
+    source = "Invoke.Boolean.Not.True",
+    target = ["False"],
+    deps = ["//library/boolean:not"],
+)
+```
+
+A library's output is the library assembled with everything it depends on, `logic.json`. A binary runs the `photonic` command on its assembled program: `bazel run -c opt //program/language:conjunction` explores its program, and `bazel run -c opt //program/language:conjunction -- check --reach False.Extra` asks any other question the command asks. A binary and its assembled program, `example.program`, are private to their package unless the binary is given a `visibility`.
+
+### Reserved words
+
+A pattern takes every coherence that contains its atoms, so a package's rules can take a value of the caller's that uses their words. The data and labels of a program must avoid every word of the packages it loads, and of the packages those depend on: the items a chain stores, the symbols of an alphabet, the tags a caller guards its answers with and the atoms beside a request. Field keys are words too, since a field such as `([Digit] 2)` is a live rule that turns any `Digit` atom in its coherence into `2`. Numerals are free, because every pattern also names a word. `//library:test` checks that this table lists exactly the words each package's rules use.
+
+Store values of your own in a field keyed by a word no package uses, as the digit alphabet stores `([Digit] d)`. A field is a rule value, which no pattern names, so a chain stores `([Letter] Free)` in every schedule while a bare `Free`, a word of the cell's rules, is lost in some; `chain::item` in `//library:test` checks both for every word of the cell.
+
+| Package | Words its rules use |
+| --- | --- |
+| binary | `Binary` `Carry` `Digit` `Function` `Multiply` `Return` `Sum` |
+| boolean | `And` `Boolean` `Each` `Empty` `Equal` `False` `Function` `Not` `Operation` `Or` `Reduce` `Return` `True` |
+| carry | `Combine` `Equal` `Evaluate` `False` `Function` `Generate` `Kill` `Left` `Propagate` `Return` `Right` `Signal` `True` |
+| chain | `Await` `Begin` `Build` `Built` `Cell` `Chain` `Clean` `Discard` `Drop` `End` `Erase` `Forget` `Free` `Function` `Handle` `Head` `Left` `Peek` `Prepare` `Proceed` `Purge` `Push` `Read` `Request` `Restore` `Return` `Reverse` `Right` `Seal` `Seen` `Shed` `Step` `Wait` `Yield` `Zero` |
+| collection | `Broadcast` `Build` `Choose` `Copy` `Done` `Each` `Empty` `False` `Function` `Gather` `Left` `Map` `Operation` `Pair` `Produce` `Ready` `Reduce` `Repeat` `Return` `Right` `True` `Unpack` `Value` |
+| expression | `Abort` `Add` `After` `Await` `Begin` `Built` `Call` `Chain` `Clean` `Close` `Combine` `Compare` `Complete` `Computed` `Continue` `Deferred` `Digit` `Divide` `Divisor` `Drop` `Emitted` `End` `Enqueue` `Erase` `Error` `Evaluate` `Excess` `Execute` `Expression` `Extra` `Fail` `Failure` `Figure` `Finish` `First` `Flip` `Forget` `Function` `Halt` `Head` `Incoming` `Input` `Integer` `Invalid` `Join` `Launch` `Left` `Literal` `Mark` `Missing` `Mode` `More` `Multiply` `Natural` `Negate` `Negative` `Next` `Normalize` `Number` `Open` `Opened` `Operand` `Operator` `Output` `Parse` `Pending` `Pile` `Plan` `Polarity` `Positive` `Proceed` `Program` `Push` `Put` `Read` `Resolve` `Result` `Return` `Reverse` `Right` `Scan` `Second` `Split` `Stack` `Start` `Step` `Subtract` `Syntax` `Tail` `Term` `Then` `Token` `Top` `Unary` `Wait` `Written` `Yield` `Zero` |
+| field | `Alpha` `Beta` `Delta` `Field` `Function` `Gamma` `Pack` `Position` `Return` `Unpack` `Value` |
+| function | `Compose` `Each` `Enter` `First` `Function` `Identity` `Invoke` `Next` `Return` `Second` |
+| integer | `Action` `Add` `Begin` `Call` `Chain` `Clean` `Difference` `Divide` `Divisor` `Erase` `Error` `Final` `Forget` `Function` `Head` `Integer` `Left` `Multiply` `Natural` `Negative` `Operand` `Operation` `Pending` `Positive` `Quotient` `Remainder` `Result` `Return` `Right` `Route` `Saved` `Sign` `Start` `Subtract` `Swap` `Zero` |
+| natural | `Accept` `Add` `Answer` `Await` `Back` `Backup` `Begin` `Beginning` `Built` `Call` `Carried` `Carry` `Chain` `Check` `Clean` `Close` `Column` `Compare` `Complement` `Complete` `Copy` `Cursor` `Deduct` `Difference` `Digit` `Divide` `Divisor` `Drain` `Drop` `End` `Equal` `Erase` `Error` `Factor` `Failure` `Fetch` `Figure` `Finish` `First` `Forget` `Function` `Go` `Greater` `Guard` `Head` `Hold` `Input` `Last` `Left` `Less` `Minuend` `Mode` `More` `Multiply` `Natural` `Negative` `Next` `Normalize` `Number` `Operand` `Operation` `Output` `Peek` `Pending` `Positive` `Prepare` `Preserve` `Proceed` `Push` `Put` `Quotient` `Read` `Reader` `Remainder` `Repeat` `Residue` `Restore` `Result` `Resume` `Return` `Reverse` `Right` `Second` `Seen` `Settle` `Shift` `Side` `Start` `Step` `Subtract` `Successor` `Trial` `Trim` `Underflow` `Wait` `Written` `Yield` `Zero` |
+| selection | `Check` `Count` `Discard` `Done` `Each` `Empty` `Failure` `False` `Filter` `Function` `Keep` `Left` `Operation` `Reduce` `Return` `Right` `Selection` `Success` `True` `Value` |
+| stream | `Copy` `End` `Finish` `Function` `Next` `Return` `Stream` `Successor` `Write` |
+| ternary | `Add` `Borrow` `Carry` `Choice` `Compare` `Digit` `Each` `Empty` `Equal` `False` `Function` `Greater` `Left` `Less` `Multiply` `Operation` `Reduce` `Return` `Right` `Select` `Subtract` `Successor` `Sum` `Ternary` `True` |
+| vector | `Again` `Alone` `Await` `Backward` `Begin` `Both` `Build` `Carried` `Chain` `Clean` `Closing` `Compare` `Complete` `Deliver` `Discard` `Done` `Down` `Drained` `Draining` `Draw` `Emit` `Empty` `End` `Equal` `Erase` `Extend` `Fall` `Final` `Finished` `Flip` `Flush` `Forget` `Found` `Free` `Fresh` `Front` `Function` `Greater` `Handle` `Head` `Heap` `Hold` `Idle` `Input` `Insert` `Item` `Lane` `Lead` `Left` `Less` `Lift` `Lifted` `Link` `Linked` `Lone` `Loose` `Many` `Merge` `Merged` `Mode` `Natural` `Next` `Nil` `Node` `Operand` `Output` `Partner` `Pick` `Pile` `Placed` `Pop` `Pour` `Prepare` `Primed` `Pull` `Pushed` `Raise` `Raised` `Ready` `Request` `Rest` `Result` `Return` `Reverse` `Right` `Rise` `Round` `Seal` `Segment` `Sever` `Shift` `Slot` `Sole` `Sort` `Source` `Spill` `Stack` `Stacked` `Stacking` `Stale` `Start` `Store` `Stored` `Surface` `Swap` `Tail` `Take` `Taken` `Tally` `Target` `Tie` `Trail` `Trend` `Turn` `Turned` `Unlink` `Unlinked` `Unwind` `Up` `Vector` `Wait` `Wipe` `Zero` |
+
+### Testing
+
+`photonic_test` checks exact configurations: each target is a complete configuration, with every loaded root rule added, and a test fails whenever a target's answer is unknown. It runs in one of three modes:
+
+| Mode | Use it for | It passes when |
+| --- | --- | --- |
+| default | calls to the scalar tables and other small programs | Prism, exploring every future with inference on the interpreter and on Laser, finds each target reached, or unreachable once the search closes |
+| `path = True` | one run of a program over linked data | the direct path, the run the scheduler takes, reaches each target |
+| `every = True` | every run of a program over linked data, when its schedules are few enough to explore | every schedule of plain events ends exactly at a target, and no run goes on forever |
+
+Linked values, such as chains, naturals, integers, vectors, expressions and pipelines, give inference so many ways to rearrange a run that the default search stays open within its budget, so a test written the obvious way fails as unknown. Write those tests with `path = True`, as the [programs](../program/) are, or with `every = True`, as the `.order` tests in `//library/chain` and `//library/natural` are.
+
+| Attribute | Meaning |
+| --- | --- |
+| `source`, `srcs`, `deps` | The program: literal source, files and libraries. |
+| `target` | Complete configurations. `"A, B"` is one target with two coherences; `["A", "B"]` is two targets. |
+| `expect` | `"reached"`, the default, or `"unreachable"`, which only the default mode can prove. |
+| `path` | Follow the direct path for each target. |
+| `every` | Require every schedule of plain events to end exactly at a target. |
+| `work` | The work budget of each engine that runs; each counts work its own way. |
+| `configuration`, `occurrence`, `scope`, `coherence`, `record` | Limits on configurations kept, occurrences, scopes and coherences in one configuration, and records retained. |
+| `size`, `tags` | Bazel's test size and tags; a test that needs more than 2 GiB carries `memory`. |
+
+A syntax error in `source` or `target` fails the build. A failing test prints what the search found, such as the configurations where stray runs end or how far an open search went, and a `photonic check` command that asks the same question; its undeclared outputs keep the details.
+
+### From another module
+
+Until Photonic is published to a registry, depend on it through its repository in `MODULE.bazel`:
+
+```starlark
+bazel_dep(name = "photonic", version = "1.0.0")
+git_override(
+    module_name = "photonic",
+    remote = "https://github.com/Vantle/photonic",
+    commit = "…",
+)
+```
+
+Then load `@photonic//photonic:defs.bzl` and depend on `@photonic//library/boolean:not` and the other targets. Bazel builds the `photonic` command and the test runner from source with Photonic's own toolchains, so the module needs no flags. Photonic's Windows builds patch `rules_rs` and `hermetic_launcher` with overrides, which Bazel applies only in the root module, so a module built on Windows copies those `single_version_override` entries and their patches from [MODULE.bazel](../MODULE.bazel) and [platform](../platform/).
+
+### From the command line
+
+`photonic run program.wave --library …` loads each library file in the order given, and a file must follow every file it builds on. The simplest correct order is Bazel's: give the program a `photonic_library` whose `deps` name what it calls, and pass the library's assembled `.json`, which `--library` accepts as one file:
+
+```sh
+bazel build -c opt //library/natural:add
+bazel run -c opt //command:photonic -- run program.wave --library "$(bazel info -c opt bazel-bin)/library/natural/add.json"
+```
+
+The command reads paths relative to where `bazel run` started. From another module, run `@photonic//command:photonic` and pass the `.json` of a library in that module.
+
 ## Scoped invocation
 
 `Invoke` opens a scope, activates `Function` inside it, and releases whatever follows `Return`:
@@ -62,6 +165,8 @@ Invoke.Identity.Payload                                 → Payload
 An arrow shows where a direct path ends. Exhaustive exploration also reaches an end in which the call's answer is lost, such as `()` for `Invoke.Boolean.And.True.False`, so a check that must hold for every run cannot rely on the answer arriving.
 
 An implementation answers with `[Function.<Type>.<Verb>.<arguments>] Return.<result>`. Unmatched operands follow the ordinary remainder law, so `Return` alone never certifies a complete result; consumers match the payload they require. Extra atoms beside a request travel with it, and what they become depends on the operation: a scalar answer carries them, so `Invoke.Field.Pack.([Position] 0).([Value] 2).Extra` answers `([Alpha] 2).Extra`; `Function.Chain.Erase.X` answers `Return.Chain.Erase.X`; and `Function.Chain.Reverse.Tag` copies `Tag` into every cell it builds.
+
+A scalar table answers only the operands it lists, and it has no failure answer. A request that lacks an operand or names one the table does not list, such as `Invoke.Boolean.And.True` or `Invoke.Ternary.Add.1.3`, matches no row, so it stays unanswered inside its scope and the run ends there. A request with an extra operand matches every row whose operands it contains: `Invoke.Ternary.Add.0.0.1` answers `([Digit] 0).([Carry] 0).1` in one run and `([Digit] 1).([Carry] 0).0` in another. A caller checks operands before calling a table; only the linked operations answer failures, as `Error.<Kind>`.
 
 `Compose` sequences two supplied callables and keeps both:
 
@@ -202,28 +307,33 @@ Seventeen.Function.Stream.Successor,
 [Seventeen] (2, [Next] (2, [Next] (1, [Next] End)))
 ```
 
-The successor writes each output digit as a `([Write] d)` value, acknowledges it with `Next` to advance the stream, and answers `Return.Stream.Successor`. Ancestor bodies keep their `Next` rules visible, so streams rely on the direct path's preference for the nearest body.
+The successor writes each output digit as a `([Write] d)` value, acknowledges it with `Next` to advance the stream, and answers `Return.Stream.Successor`.
+
+The stream package demonstrates the direct path; it is not a data structure. Each `([Write] d)` meets the rule that acknowledges it at once, so the output digits exist only as the events that write them, not as values a caller can read afterwards. Ancestor bodies keep their `Next` rules visible, so only the direct path's preference for the nearest body ends the stream where it should: in other schedules a `Next` opens an ancestor's body and the answer arrives inside a nested body, and even the three-digit stream above has more schedules than the default budget explores. Read the digits from the events of a direct path, as `stream::successor` in `//library:test` does, and keep a number that must stay as data in a natural.
 
 ## Guarantees
 
 `//library:test` holds the library's composition contract:
 
-- `isolation::boundary` parses every package and fails if the inputs of any root rule could match the inputs of another root rule, in the same package or another, or if an input coherence of any rule fits inside an answer that names an answer word the coherence does not, so a caller that still holds one answer never lends it to the next call. The answer words are `Return` and the chain and vector answers of principle 2; answers include those of the methods that handles carry, and each word must appear in some answer. The one exemption is the sort's own bookkeeping: a round takes runs from a lifted stack, `Sort.Pile` or `Sort.Heap`, which fits inside the empty linked form of that stack, `Linked.Sort.Pile.Nil` or `Linked.Sort.Heap.Nil`, but the sort writes that form only while no round takes from the stack. It rejects the collisions this layout removed: natural `[Function.Add]` matching ternary `Function.Add.1.2`, ternary multiplication matching binary requests, `[Invoke]` matching internal states once named `Multiply.Invoke`, and working labels such as `Copy.Left` inside `Return.Natural.Copy.Left`.
+- `isolation::boundary` parses every package and fails if the inputs of any root rule could match the inputs of another root rule, in the same package or another, or if an input coherence of any rule fits inside an answer or a request that names an answer or request word the coherence does not. So a caller that still holds one answer never lends it to the next call, and an engine never takes a request it sent before a handle answers it. The answer words are `Return` and the chain and vector answers of principle 2; the request words are the methods `Push`, `Read`, `Peek`, `Forget`, `Insert`, `Take`, `Link`, `Lift` and `Unlink` and an alphabet's `Drop`. Answers and requests include those of the methods that handles carry, and each word must appear in some rule's output. It also fails if one coherence names two requests, which two handles could both answer, and it lists every collision it finds. It rejects the collisions this layout removed: natural `[Function.Add]` matching ternary `Function.Add.1.2`, ternary multiplication matching binary requests, `[Invoke]` matching internal states once named `Multiply.Invoke`, working labels such as `Copy.Left` inside `Return.Natural.Copy.Left`, and step rules such as `[Reverse.Step, Reverse.Left]` inside the engine's own pending `Forget.Reverse.Step`, which let an engine take its forget before the chain answered it.
 - `isolation::vocabulary` requires single-word concepts everywhere and at most two input and output coherences in the scalar packages.
 - `isolation::role` fails unless the atoms that are both a field role and a plain atom are exactly the callback triggers `Each` and `Operation` and the operand sides `Left` and `Right`.
+- `isolation::reserved` fails unless the [reserved words](#reserved-words) above are exactly the words each package's rules use.
+- `chain::item` pushes and reads an item named after each word of the cell's rules, in every schedule: the fourteen words that meet a pattern of the cell lose the item in some schedule, and every word survives inside a field.
 - `composition` runs scalar checks, the pair pipeline, linked addition, and a sort with all fourteen packages loaded.
+- `integer` adds, subtracts, multiplies and divides every pair from −4 to 4 against Rust's arithmetic, divides by zero, and gives zero operands either sign.
 - `natural` checks every linked natural operation against Rust arithmetic: comparison of every pair below 27 and of wide random pairs, reading both operands back; addition, multiplication, subtraction with underflow, signed difference, and division with remainder and a zero divisor for every pair below 9 and seeded pairs up to six trits; successor, normalization, copying, and zero minus every value below 27, which runs the complement behind a negative difference; and all of them on operands with high zeros.
 - `vector` sorts every permutation of four items, repeated items, sorted, decreasing, and constant inputs, and seeded random vectors of up to twelve items against Rust's stable sort. Equal numerals with different high zeros check stability. It also reverses and erases vectors of naturals and vectors nested three deep.
 - `expression` runs the executor on malformed token tapes, one for each token that is invalid where it is read and a missing operand for every operator, checks that `Expression.Evaluate` rejects the tokens that infix never contains, `Mark`, `Literal`, `Negative` and `Negate`, in each state of its parser, and checks that it forwards each error of the executor.
 - The scalar tables are checked exhaustively against independent Rust oracles, including rejected targets, here and in the `arithmetic` and `language` suites.
 
-Linked arithmetic, comparison, and vectors are verified along direct execution paths by these generated checks, the package checks in `//library/natural` and `//library/vector`, and the programs in `//program/ternary` and `//program/vector`.
+Linked arithmetic, comparison, and vectors are verified along direct execution paths by these generated checks, the package checks in `//library/natural` and `//library/vector`, and the programs in `//program/ternary` and `//program/vector`. The `.order` tests in `//library/chain` and `//library/natural` check every schedule instead: every schedule of plain events of a one-cell reversal, the successor of 2, 1 + 1 and the difference 1 − 2 ends exactly at its answer.
 
-The [theorems](../theorem/README.md#7-counting) prove more than these bounded checks. The digit tables of `Ternary.Add`, `Sum`, `Subtract`, `Multiply` and `Compare` are counting with the successor, and `Ternary.Equal` answers `True` exactly where `Compare` answers `Equal`; `Ternary.Select` has only the bounded checks. A chain cell returns exactly its item and the chain below, for every item. Each step of the column engine and of the trim behind it, `Natural.Compare`, `Chain.Reverse` and `Natural.Successor`, run by the library's own rules, does what the digit tables require. Together these make linked addition, subtraction, comparison and successor correct at every width.
+The [theorems](../theorem/README.md#7-counting) prove more than these bounded checks. The digit tables of `Ternary.Add`, `Sum`, `Subtract`, `Multiply` and `Compare` are counting with the successor, and `Ternary.Equal` answers `True` exactly where `Compare` answers `Equal`; `Ternary.Select` has only the bounded checks. A chain cell returns exactly its item and the chain below, for every item atom its rules do not use. Each step of the column engine and of the trim behind it, `Natural.Compare`, `Chain.Reverse` and `Natural.Successor`, run by the library's own rules, does what the digit tables require, in every schedule. Together these make linked addition, subtraction, comparison and successor correct at every width.
 
 ## Extending
 
-Add an operation as its own file in the package that owns its type, give it a `photonic_library` target with explicit dependencies and visibility, and list it in the package's `source` filegroup; the library suite loads every `source` filegroup, so the isolation and composition checks cover it. A new type gets its own package and namespace: its `source` filegroup joins `SOURCE` in [BUILD.bazel](BUILD.bazel), which `//library:test` loads, and its name joins `PACKAGE` in [test/catalog.rs](test/catalog.rs), because the suite fails unless it loads exactly the packages listed there. A consumer outside the library adds its package to each target's `visibility`. Callbacks register themselves with a dispatch rule such as `[Boolean.Not.([Each] Boolean.Not)] Function.Boolean.Not`, and a new chain alphabet declares its `Drop`, Reverse, and Erase rules without editing the chain package.
+Add an operation as its own file in the package that owns its type, give it a public `photonic_library` target with explicit dependencies, name it in the package table, and list it in the package's `source` filegroup; the library suite loads every `source` filegroup, so the isolation and composition checks cover it. A new type gets its own package and namespace: its `source` filegroup joins `SOURCE` in [BUILD.bazel](BUILD.bazel), which `//library:test` loads, and its name joins `PACKAGE` in [test/catalog.rs](test/catalog.rs), because the suite fails unless it loads exactly the packages listed there. A new word in any rule joins its package's row of [reserved words](#reserved-words). Callbacks register themselves with a dispatch rule such as `[Boolean.Not.([Each] Boolean.Not)] Function.Boolean.Not`, and a new chain alphabet declares its `Drop`, Reverse, and Erase rules without editing the chain package.
 
 ## Limits
 

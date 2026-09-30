@@ -13,7 +13,7 @@ pub(super) struct Match {
     pub rule: usize,
     pub frame: usize,
     pub owner: usize,
-    pub read: Option<Place>,
+    pub read: Place,
     pub selection: Vec<Slot>,
 }
 
@@ -33,7 +33,7 @@ impl Iterator for Scan {
                 Poll::Ready(None) => return None,
                 Poll::Pending => continue,
             };
-            if let Some(Read::World(site, _)) = delivery.read
+            if let Read::World(site, _) = delivery.read
                 && !crate::slot::admits(&delivery.selection, self.index.world(site))
             {
                 continue;
@@ -42,7 +42,7 @@ impl Iterator for Scan {
                 rule: delivery.rule,
                 frame: delivery.frame,
                 owner: delivery.owner,
-                read: delivery.read.map(|read| read.place(&self.index)),
+                read: delivery.read.place(&self.index),
                 selection: delivery.selection,
             });
         }

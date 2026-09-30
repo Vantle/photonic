@@ -1,8 +1,5 @@
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { spawnSync } from 'node:child_process';
 
 const label = (definition, value) => value.atom ?? `⟨${definition[value.rule].name}⟩`;
 const contains = (definition, world, name) => world.particle.some(value => label(definition, value) === name);
@@ -78,22 +75,18 @@ const read = byte => {
 };
 
 export const record = (command, program, target) => {
-    const source = JSON.parse(readFileSync(program, 'utf8'));
-    const value = JSON.parse(execFileSync(command, ['lower', target], { encoding: 'utf8' }));
-    const directory = mkdtempSync(join(tmpdir(), 'photonic-target-'));
-    const configuration = join(directory, 'target.json');
-    writeFileSync(configuration, JSON.stringify({ initial: value.initial, rule: [...value.rule, ...source.rule] }));
-    let report;
-    try {
-        report = read(execFileSync(command, [
-        'prism', program, '--target', configuration, '--path', '--json', '--compact',
+    // --preserve adds the program's rules to the target, as photonic_test does. Prism exits 1 when the
+    // path does not reach the target, and its report still says how far the path got.
+    const prism = spawnSync(command, [
+        'prism', program, '--target', target, '--preserve', '--path', '--json', '--compact',
         '--work', '100000000', '--configuration', '65536', '--occurrence', '16384',
         '--scope', '2048', '--coherence', '1024', '--record', '100000000',
-    ], { maxBuffer: 2 ** 31 }));
-    } finally {
-        rmSync(directory, { recursive: true, force: true });
-    }
+    ], { maxBuffer: 2 ** 31 });
+    assert.equal(prism.error, undefined);
+    assert.ok([0, 1].includes(prism.status), prism.stderr.toString());
+    const report = read(prism.stdout);
     assert.equal(report.outcome, 'reached');
+    assert.equal(prism.status, 0);
     const { definition } = report;
     const rule = event => definition[event.rule].name;
     const begin = report.event.find(event => rule(event).startsWith('[Function.Expression.Evaluate]'));

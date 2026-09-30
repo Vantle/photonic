@@ -5,7 +5,7 @@
     --sunk: #f4f4f1;
     --ink: #1a1b1f;
     --soft: #45474e;
-    --muted: #75777e;
+    --muted: #6b6d74;
     --line: #e7e6e2;
     --edge: #c9c8c3;
     --accent: #3553c1;
@@ -111,8 +111,7 @@ a:hover {
 
 h1,
 h2,
-h3,
-h4 {
+h3 {
     font-family: var(--display);
     font-weight: 400;
     line-height: 1.12;
@@ -188,6 +187,15 @@ button[aria-disabled="true"] {
 
 .skip:focus {
     top: 1rem;
+}
+
+.offscreen {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
 }
 
 .rail {
@@ -291,7 +299,7 @@ button[aria-disabled="true"] {
     gap: 0.05rem;
 }
 
-.outline h2 {
+.outline section > p {
     margin: 0 0 0.3rem 0.55rem;
     font: 500 0.64rem/1.2 var(--body);
     letter-spacing: 0.16em;
@@ -463,7 +471,7 @@ main {
     margin-top: -0.4rem;
 }
 
-.chapter h3 {
+.chapter > h3 {
     font-size: 1.4rem;
     margin-top: 1.6rem;
 }
@@ -554,13 +562,6 @@ main {
     border-radius: 12px;
     background: var(--surface);
     font-size: 0.95rem;
-}
-
-.note strong {
-    font: 500 0.66rem/1.2 var(--body);
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--muted);
 }
 
 .table {
@@ -1253,6 +1254,7 @@ td code {
 
 .preset button,
 .option button,
+.chooser button,
 .connection .summary button {
     padding: 0.26rem 0.7rem;
     border-radius: 999px;
@@ -1265,13 +1267,15 @@ td code {
 
 .preset button:hover,
 .option button:hover:not([aria-disabled="true"]),
+.chooser button:hover:not([aria-disabled="true"]),
 .connection .summary button:hover {
     border-color: var(--edge);
     color: var(--ink);
 }
 
 .preset button[aria-pressed="true"],
-.option button[aria-pressed="true"] {
+.option button[aria-pressed="true"],
+.chooser button[aria-pressed="true"] {
     border-color: var(--ink);
     color: var(--ink);
 }
@@ -1328,7 +1332,7 @@ td code {
     gap: 0.8rem;
 }
 
-.lowered h4 {
+.lowered h3 {
     font: 500 0.64rem/1.2 var(--body);
     letter-spacing: 0.16em;
     text-transform: uppercase;
@@ -1608,6 +1612,52 @@ td code {
     color: var(--muted);
 }
 
+.option > .check {
+    margin-left: 0;
+}
+
+.chooser {
+    display: grid;
+    gap: 0.6rem;
+    font-size: 0.8rem;
+    color: var(--muted);
+}
+
+.chooser summary {
+    cursor: pointer;
+}
+
+.chooser summary code {
+    margin-left: 0.5rem;
+    color: var(--soft);
+}
+
+.chooser .catalog {
+    display: grid;
+    gap: 0.45rem;
+}
+
+.chooser .group {
+    display: grid;
+    grid-template-columns: 6.5rem minmax(0, 1fr);
+    align-items: baseline;
+    gap: 0.4rem;
+}
+
+.chooser .group > span {
+    font-family: var(--code);
+}
+
+.chooser .group > div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.4rem;
+}
+
+.chooser p[data-tone="error"] {
+    color: var(--ink);
+}
+
 .check {
     display: inline-flex;
     align-items: center;
@@ -1677,7 +1727,7 @@ td code {
     color: var(--muted);
 }
 
-.panel > header h4 {
+.panel > header h3 {
     margin-right: auto;
     font: 500 0.66rem/1.2 var(--body);
     letter-spacing: 0.16em;
@@ -2120,6 +2170,13 @@ td code {
 
     .glossary dd {
         margin-bottom: 0.7rem;
+    }
+}
+
+@media (max-width: 30rem) {
+    code {
+        white-space: normal;
+        overflow-wrap: anywhere;
     }
 }
 

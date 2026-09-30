@@ -60,7 +60,7 @@ pub(crate) fn apply(request: Request<'_>) -> Result {
         binding,
         layout,
     } = request;
-    let returning = owner == frame && frame != 0;
+    let returning = binding.returning(frame, owner);
     let parent = if returning {
         source.frame[frame].parent.unwrap()
     } else {

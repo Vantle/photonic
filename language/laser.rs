@@ -36,7 +36,7 @@ use crate::flow::Binding;
 use crate::prism::{Outcome, Verdict};
 use crate::program::Program;
 use crate::runtime::{Limit, Measure};
-use crate::state::{Canonical, State};
+use crate::state::State;
 use crate::status::Status;
 use crate::stop::{Bound, Stop};
 use capture::Environment;
@@ -54,7 +54,8 @@ use std::collections::{HashMap, HashSet};
 use std::num::NonZeroU32;
 use std::ops::Range;
 use std::sync::Arc;
-use taxonomy::Taxonomy;
+use std::sync::atomic::{AtomicBool, Ordering};
+use taxonomy::{Name, Taxonomy};
 use trace::Trace;
 use transition::{Effect, Key};
 
@@ -174,7 +175,7 @@ pub struct Laser {
     passage: Vec<Passage>,
     crossed: Vec<Vec<Option<NonZeroU32>>>,
     capture: capture::Store,
-    environment: Memo<(usize, usize), Arc<Canonical>>,
+    environment: Memo<(usize, usize), Name>,
     pool: Pool,
     blocked: HashMap<Identity, (usize, Option<Bound>), Builder>,
     support: Option<support::Support>,
@@ -183,6 +184,11 @@ pub struct Laser {
     limit: Limit,
     spent: Option<Stop>,
     work: usize,
+    // A report names each configuration within the work every run was given.
+    budget: usize,
+    // A report that cannot name the environment it needs to find a trace's event again within the
+    // work every run was given loses the event, so the exploration can never close.
+    exhausted: AtomicBool,
     traced: usize,
     found: usize,
     bulk: usize,
@@ -298,6 +304,8 @@ impl Laser {
             limit: Limit::default(),
             spent: None,
             work: 0,
+            budget: 0,
+            exhausted: AtomicBool::new(false),
             traced: 0,
             found: 0,
             bulk: 0,
@@ -305,7 +313,11 @@ impl Laser {
             independence: None,
             peak: 0,
         };
-        let draft = laser.taxonomy.analyze(&initial);
+        let mut budget = crate::canonical::UNLIMITED;
+        let draft = laser
+            .taxonomy
+            .analyze(&initial, &mut budget)
+            .expect("an unlimited search names every configuration");
         let (root, mut kind) = laser.taxonomy.intern(&draft);
         kind.sort_unstable();
         let makeup = Makeup { root, kind };
@@ -328,8 +340,10 @@ impl Laser {
         self.execute(Some(executor), budget, limit);
     }
 
+    // An exploration that dropped an event because naming its owner's environment ran out of
+    // budget never closes.
     pub fn closed(&self) -> bool {
-        self.idle() && self.blocked.is_empty()
+        self.idle() && self.blocked.is_empty() && !self.exhausted.load(Ordering::Relaxed)
     }
 
     pub fn summary(&self) -> Summary {
@@ -366,9 +380,11 @@ impl Laser {
 
     pub fn verdict(&self, target: &frontend::source::Program) -> Verdict {
         let state = State::target(&self.program, target);
+        let mut budget = crate::canonical::UNLIMITED;
         let candidate = self
             .taxonomy
-            .find(&state)
+            .find(&state, &mut budget)
+            .expect("an unlimited search names every configuration")
             .and_then(|makeup| self.space.find(&makeup));
         let (status, _) = self.status();
         let outcome = match candidate.map(|index| status[index]) {
@@ -405,6 +421,7 @@ impl Laser {
                 .sort_unstable_by_key(|(identity, position)| (identity.source, *position));
         }
         let open = !self.closed();
+        self.budget = self.budget.saturating_add(budget);
         let mut remaining = budget;
         while remaining > 0 && !self.idle() && self.retained() < self.limit.record {
             let work = self.step(executor, remaining);
@@ -428,8 +445,15 @@ impl Laser {
 
     // Why the exploration stopped short of closing, or nothing once it closed.
     pub fn stop(&self) -> Vec<Stop> {
+        let spent = self.spent.or_else(|| {
+            self.exhausted
+                .load(Ordering::Relaxed)
+                .then_some(Stop::Work {
+                    budget: self.budget,
+                })
+        });
         self.limit.stop(
-            self.spent,
+            spent,
             Measure::new(&self.state[0]),
             self.blocked
                 .values()
