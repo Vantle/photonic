@@ -10,7 +10,6 @@ pub mod conformance;
 pub mod context;
 pub mod embedding;
 mod exploration;
-pub use exploration::Event;
 pub mod explore;
 mod explored;
 pub mod extent;

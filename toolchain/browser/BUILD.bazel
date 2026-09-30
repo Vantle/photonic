@@ -15,7 +15,6 @@ rust_shared_library(
         "failure.rs",
         "limit.rs",
         "lowering.rs",
-        "numbering.rs",
         "path.rs",
         "request.rs",
         "response.rs",

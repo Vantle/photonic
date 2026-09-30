@@ -6,7 +6,6 @@ mod expression;
 mod failure;
 mod limit;
 mod lowering;
-mod numbering;
 mod path;
 mod request;
 mod response;
@@ -21,6 +20,7 @@ use photonic::prism::Verdict;
 use photonic::runtime::Runtime;
 use request::{Request, Text};
 use serde::Serialize;
+use spectrum::numbering::Numbering;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 const VERSION: u32 = 3;
@@ -58,7 +58,7 @@ fn exploration(input: &str) -> Result<Exploration, Failure> {
     let mut runtime = Runtime::new(&canonical.program);
     runtime.run(limit::EXPLORATION.work, limit::EXPLORATION.bound);
     let snapshot = runtime.snapshot();
-    let numbering = numbering::new(&snapshot);
+    let numbering = Numbering::from(&snapshot);
     let definition = Catalog::new(&snapshot.definition, &program, &canonical.naming);
     Ok(Exploration {
         verdict: target
