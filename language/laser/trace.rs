@@ -6,6 +6,7 @@ use crate::basis::Set;
 use crate::flow::Binding;
 use crate::place::Place;
 use crate::program::Symbol;
+use crate::residence::Residence;
 use crate::state::State;
 use smallvec::SmallVec;
 use std::collections::BTreeSet;
@@ -27,6 +28,7 @@ pub(super) struct Trace {
     pub frame: usize,
     pub capture: Option<Arc<Capture>>,
     read: u64,
+    residence: Residence,
     world: u64,
     occurrence: SmallVec<[Occurrence; 4]>,
 }
@@ -64,6 +66,7 @@ impl Trace {
             frame: found.frame,
             capture,
             read: pool.basis(Set::single(found.read)),
+            residence: Residence::of(found.read)?,
             world: pool.world(world.into_iter().collect()),
             occurrence,
         })
@@ -102,6 +105,7 @@ impl Trace {
             frame,
             capture,
             read,
+            residence: self.residence,
             world,
             occurrence,
         }))
@@ -169,6 +173,7 @@ impl Trace {
             footprint: footprint.into_iter().collect(),
             exact: exact.into_iter().collect(),
             read: pool.place(self.read).iter().collect(),
+            residence: self.residence,
         })
     }
 }

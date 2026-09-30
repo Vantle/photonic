@@ -1,5 +1,6 @@
 use crate::basis::Set;
 use crate::place::Place;
+use crate::residence::Residence;
 use crate::state::State;
 use std::collections::BTreeSet;
 
@@ -24,6 +25,7 @@ pub(crate) struct Binding {
     pub footprint: Set<Place>,
     pub exact: Set<Place>,
     pub read: Set<Place>,
+    pub residence: Residence,
 }
 
 pub(crate) struct Closure<'state> {
@@ -75,6 +77,7 @@ impl Flow {
         frame: usize,
         read: Place,
     ) -> Option<Binding> {
+        let residence = Residence::of(read)?;
         let mut footprint = BTreeSet::new();
         let mut exact = BTreeSet::new();
         let mut world = BTreeSet::new();
@@ -123,6 +126,7 @@ impl Flow {
             footprint: footprint.into(),
             exact: exact.into(),
             read: self.resource[&read].clone(),
+            residence,
         })
     }
 }
@@ -156,6 +160,7 @@ impl Binding {
         frame: usize,
         read: Place,
     ) -> Option<Self> {
+        let residence = Residence::of(read)?;
         let place = selection
             .iter()
             .flat_map(|slot| {
@@ -180,6 +185,13 @@ impl Binding {
             exact: footprint.clone(),
             footprint,
             read: Set::single(read),
+            residence,
         })
+    }
+
+    // Only a live rule of the frame where it fires is that frame's own; a rule value that captures
+    // the frame keeps its output beside its coherence, and the root has nothing around it.
+    pub(crate) fn returning(&self, frame: usize, owner: usize) -> bool {
+        frame != 0 && owner == frame && self.residence == Residence::Context
     }
 }

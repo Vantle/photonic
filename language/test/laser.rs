@@ -30,6 +30,35 @@ pub(crate) fn agree(source: &str, budget: usize, limit: Limit) {
     walk(&laser, source);
 }
 
+// Whether some configuration holds the atom in a coherence of the root frame.
+fn root(state: &[crate::snapshot::Node], atom: &str) -> bool {
+    state.iter().any(|node| {
+        node.world.iter().any(|world| {
+            node.frame[world.frame].parent.is_none()
+                && world
+                    .particle
+                    .iter()
+                    .any(|token| crate::test::atom(token) == Some(atom))
+        })
+    })
+}
+
+// A rule value keeps its output beside its coherence even in the frame it captures: `[A] B` rides
+// `Out` back into the outer scope and fires there, so `Out` never reaches the root.
+#[test]
+fn residence() {
+    let source = "((P.Z.A, [Q.Z] Out), [P] Q.([A] B), [Q.B] Done)";
+    agree(source, 1_000_000, Limit::default());
+    let program = frontend::lowering::parse(source).unwrap();
+    let mut runtime = Runtime::new(&program);
+    runtime.run(1_000_000, Limit::default());
+    assert!(!root(&runtime.snapshot().state, "Out"));
+    let mut plain = Laser::plain(&program);
+    plain.run(1_000_000, Limit::default());
+    assert!(plain.closed());
+    assert!(!root(&plain.report().state, "Out"));
+}
+
 #[test]
 fn agreement() {
     for source in [
@@ -52,6 +81,7 @@ fn agreement() {
         "Go.Y, [Go] (X, [X] ().([Y] Z))",
         "Go.K, [Go] ().([K] A)",
         "A, Key, [A] B, [B, Key] (C, [Q] R)",
+        "((P.Z.A, [Q.Z] Out), [P] Q.([A] B), [Q.B] Done)",
     ] {
         agree(source, 1_000_000, Limit::default());
     }
@@ -88,6 +118,7 @@ fn plain() {
         "Go.Y, K, [K] L, [Go] (X, [X] ().([Y] Z))",
         "Go.Y, [Go] (X, [X] ().([Y] Z))",
         "A, Key, [A] B, [B, Key] (C, [Q] R)",
+        "((P.Z.A, [Q.Z] Out), [P] Q.([A] B), [Q.B] Done)",
     ]) {
         let program = frontend::lowering::parse(source).unwrap();
         let mut full = Laser::new(&program);
@@ -214,6 +245,7 @@ fn net() {
         "A, A, A, [A, A, A] B",
         "A.B, A.B, A, [A, A.B] C",
         "Claim, [Claim] P.Work, [Work] Done, [P] X",
+        "((P.Z.A, [Q.Z] Out), [P] Q.([A] B), [Q.B] Done)",
     ]) {
         let program = frontend::lowering::parse(source).unwrap();
         let mut plain = Laser::plain(&program);

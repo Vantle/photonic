@@ -2,6 +2,7 @@ use crate::basis::Set;
 use crate::flow::Flow;
 use crate::place::Place;
 use crate::program::Symbol;
+use crate::residence::Residence;
 use crate::runtime::Limit;
 use crate::state::{Frame, State, Token, World};
 use std::sync::Arc;
@@ -221,6 +222,11 @@ fn consumption() {
             footprint: Set::single(selected),
             exact: Set::single(selected),
             read: Set::single(selected),
+            residence: if context {
+                Residence::Context
+            } else {
+                Residence::World
+            },
         };
         let rule = crate::program::Instruction::default();
         let exhaustive = crate::application::apply(crate::application::Request {
@@ -302,6 +308,7 @@ fn import() {
         footprint: Set::default(),
         exact: Set::default(),
         read: Set::single(Place::Context(0, 7)),
+        residence: Residence::Context,
     };
     let result = crate::application::apply(crate::application::Request {
         scope: &[],
@@ -604,6 +611,7 @@ fn remainder() {
         footprint: selected.clone(),
         exact: selected,
         read: Set::single(Place::World(0, 31)),
+        residence: Residence::World,
     };
     let rule = crate::program::Instruction {
         output: vec![crate::program::Output::Particle(Vec::new())],
