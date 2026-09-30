@@ -9,6 +9,7 @@ impl Reader for Disk {
         if !std::fs::metadata(path).map_err(failure)?.is_file() {
             return Err(Failure::new(Code::File, format!("{path}: not a file")));
         }
-        std::fs::read_to_string(path).map_err(failure)
+        frontend::encoding::decode(path, std::fs::read(path).map_err(failure)?)
+            .map_err(|error| Failure::new(Code::File, error.to_string()))
     }
 }

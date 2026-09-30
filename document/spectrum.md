@@ -216,7 +216,7 @@ A failure carries a `code`, a `message` and, when it points into text, a `locati
 | Code | Meaning |
 | --- | --- |
 | `request` | The request is malformed: not an object, an unknown field, no program, a program and a key together, a key with a mode, engine, budget or goal, a goal outside path mode, `laser` in path mode, `interpreter` in plain mode, or `metal` outside it. |
-| `file` | A file cannot be read. |
+| `file` | A file cannot be read, or is not UTF-8 text. |
 | `source` | A program does not parse or lower; `check` reports it as a diagnostic instead. |
 | `library` | A library does not parse or holds more than declarations; `check` reports it as a diagnostic instead. |
 | `target` | A goal or an exact target does not parse. |
@@ -235,6 +235,7 @@ A failure carries a `code`, a `message` and, when it points into text, a `locati
 | `expansion` | Distributing joins and partitioning brackets would build more than the frontend's budget of 1,000,000 units and 8 more for each byte of the source. |
 | `library` | A library lists a coherence or scope; a library holds only rules. |
 | `read` | A file cannot be read. |
+| `encoding` | A file is not UTF-8 text; save it as UTF-8. |
 
 The command prints answers as text, or with `--json` as the envelope, and prints a failure as `error[code]: message`. It exits 1 on any failure; `check` also exits 1 unless there are no diagnostics and every claim holds, `compare` unless both sides settle, reach the same configurations and events, and answer every claim alike and definitely, and `shape` when its programs have more than one shape. The library decides this through `Answer::passed`.
 

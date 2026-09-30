@@ -221,6 +221,23 @@ fn whitespace() {
 }
 
 #[test]
+fn encoding() {
+    assert_eq!(
+        frontend::encoding::decode("plain.wave", "A, [A] B".into()).unwrap(),
+        "A, [A] B"
+    );
+    let failure = frontend::encoding::decode("wide.wave", vec![0xFF, 0xFE, b'A', 0]).unwrap_err();
+    assert_eq!(
+        failure.to_string(),
+        "wide.wave is not UTF-8 text; save it as UTF-8"
+    );
+    assert_eq!(
+        failure.code().map(|code| code.to_string()).as_deref(),
+        Some("photonic::encoding")
+    );
+}
+
+#[test]
 fn point() {
     let composed = lowering::parse("\u{E9}").unwrap();
     let decomposed = lowering::parse("e\u{301}").unwrap();

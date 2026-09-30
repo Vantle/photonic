@@ -159,6 +159,33 @@ fn diagnostic() {
 }
 
 #[test]
+fn encoding() {
+    let fixture = Fixture::new();
+    let path = fixture.path.join("wide.wave");
+    std::fs::write(
+        &path,
+        [0xFF, 0xFE, b'A', 0, b',', 0, b' ', 0, b'B', 0].as_slice(),
+    )
+    .unwrap();
+    let output = execute("lower", &path, &[]);
+    assert!(!output.status.success());
+    let error = String::from_utf8(output.stderr).unwrap();
+    assert!(error.starts_with("error[file]: "), "{error}");
+    assert!(
+        error.contains("wide.wave is not UTF-8 text; save it as UTF-8"),
+        "{error}"
+    );
+    let path = fixture.write("marked.wave", "\u{FEFF}A, [A] B");
+    let marked = report(&execute("lower", &path, &[]));
+    let plain = report(&execute(
+        "lower",
+        &fixture.write("plain.wave", "A, [A] B"),
+        &[],
+    ));
+    assert_eq!(marked, plain);
+}
+
+#[test]
 fn worker() {
     let fixture = Fixture::new();
     let path = fixture.write("program.wave", "Seed.A, [Seed] ().([A] B)");

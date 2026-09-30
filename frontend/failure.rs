@@ -40,4 +40,7 @@ pub enum Failure {
         #[source]
         error: std::io::Error,
     },
+    #[error("{path} is not UTF-8 text; save it as UTF-8")]
+    #[diagnostic(code(photonic::encoding))]
+    Encoding { path: String },
 }

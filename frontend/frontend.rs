@@ -2,6 +2,7 @@
 
 pub mod atom;
 pub mod character;
+pub mod encoding;
 mod expansion;
 pub mod failure;
 pub mod lowering;

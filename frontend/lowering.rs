@@ -25,13 +25,14 @@ struct Reader<'tree, 'source> {
 }
 
 pub fn read(path: &std::path::Path) -> miette::Result<Program> {
-    let source = std::fs::read_to_string(path).map_err(|error| Failure::Read {
-        path: path.display().to_string(),
+    let name = path.display().to_string();
+    let byte = std::fs::read(path).map_err(|error| Failure::Read {
+        path: name.clone(),
         error,
     })?;
+    let source = crate::encoding::decode(&name, byte)?;
     parse(&source).map_err(|failure| {
-        miette::Report::new(failure)
-            .with_source_code(NamedSource::new(path.display().to_string(), source))
+        miette::Report::new(failure).with_source_code(NamedSource::new(name, source))
     })
 }
 
