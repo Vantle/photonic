@@ -138,7 +138,7 @@ Within a particle, answers list occurrences in canonical order, which is the ord
 
 ### Keys and the store
 
-An exploration's key is `x` followed by 16 hexadecimal digits: a hash of the canonical program, the naming from letters to atoms, the mode, the engine, the budget and the goal. In exhaustive mode, programs that differ only in the order of their terms share a key. Programs that differ in their names do not, because their answers name different atoms. The store keeps the most recent explorations while their occurrences and events total at most 2,000,000, and always keeps the newest; it accepts any unambiguous prefix of a key of at least four digits. The command line starts a new store for each command, so keys carry across questions in one protocol session or one library context.
+An exploration's key is `x` followed by 16 hexadecimal digits: a hash of its identity, which is the canonical program, the naming from letters to atoms, the mode, the engine, the budget and the goal. In exhaustive mode, programs that differ only in the order of their terms share a key. Programs that differ in their names do not, because their answers name different atoms. A hash can give two identities one key, so the store compares the whole identity whenever a program's key is one it holds, explores a program whose key another identity holds on its own, and refuses a key that two held explorations share, asking for the program again. The store keeps the most recent explorations while their occurrences and events total at most 2,000,000, and always keeps the newest; it accepts any unambiguous prefix of a key of at least four digits, in either case, with or without its `x`. The command line starts a new store for each command, so keys carry across questions in one protocol session or one library context.
 
 ## Handles
 
@@ -222,7 +222,7 @@ A failure carries a `code`, a `message` and, when it points into text, a `locati
 | `target` | A goal or an exact target does not parse. |
 | `pattern` | A pattern is empty or does not parse, mixes coherences or scopes with rules, or is the wrong kind for the question. |
 | `handle` | A handle is malformed, names nothing in the exploration, or names a kind the verb does not explain. |
-| `exploration` | A key is unknown or ambiguous, or lineage is asked of a direct path. |
+| `exploration` | A key is too short, malformed, unknown or ambiguous, or lineage is asked of a direct path. |
 | `engine` | An engine cannot answer: metal refuses a program with no net of parts and every question but `explore` and `check`. |
 | `claim` | A claim cannot be asked this way, such as an exact target on a direct path, a rule pattern as a claim, or on metal a claim other than `end` and `outcome`. |
 | `shape` | The symmetry search exceeded its `node` limit. |

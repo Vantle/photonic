@@ -70,6 +70,7 @@ rust_test(
     size = "small",
     srcs = [
         "test/exploration.rs",
+        "test/store.rs",
         "test/suite.rs",
         "test/support.rs",
         "test/verb.rs",

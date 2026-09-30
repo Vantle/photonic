@@ -842,3 +842,22 @@ fn placement() {
     );
     assert_eq!(wide["answer"]["total"], 0);
 }
+
+// These two programs' keys collide under the hash, and each is still answered from its own
+// recording.
+#[test]
+fn twin() {
+    let answer = session(&[
+        r#"{"verb": "explore", "program": {"source": "ZebraZebraZebraZ, [ZebraZebraZebraZ] Done"}}"#,
+        r#"{"verb": "check", "program": {"source": "Z5tMuu2wrQUnJPL7, [Z5tMuu2wrQUnJPL7] Done"}, "claim": [{"kind": "reach", "pattern": "Z5tMuu2wrQUnJPL7"}]}"#,
+    ]);
+    assert_eq!(
+        answer[0]["answer"]["exploration"], answer[1]["answer"]["summary"]["exploration"],
+        "the programs share a key"
+    );
+    assert_eq!(
+        answer[1]["answer"]["claim"][0]["answer"], "holds",
+        "{}",
+        answer[1]
+    );
+}
