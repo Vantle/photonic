@@ -166,11 +166,15 @@ for (const program of [
     { source: '', target: [], library: [], preserve: false },
 ]) {
     const link = share.link(program);
-    assert.match(link, /^lightbox\.html\?source=/);
-    assert.deepEqual(share.read(new URL(link, 'https://photonic.vantle.org/').search), program);
+    assert.match(link, /^lightbox\.html#1&source=/);
+    const address = new URL(link, 'https://photonic.vantle.org/');
+    assert.equal(address.search, '');
+    assert.deepEqual(share.read(address.hash), program);
+    assert.deepEqual(share.legacy(`?${address.hash.slice('#1&'.length)}`), program);
 }
-assert.equal(share.read('?target=A'), undefined);
-console.log('Links carry the source, every target, every library and preserve through commas, newlines, Unicode and URL syntax.');
+for (const hash of ['', '#', '#1', '#1&target=A', '#2&source=A', '#source=A', '#10&source=A']) assert.equal(share.read(hash), undefined, hash);
+assert.equal(share.legacy('?target=A'), undefined);
+console.log('Links carry the source, every target, every library and preserve in a versioned fragment, through commas, newlines, Unicode and URL syntax, and the query form of older links still reads.');
 
 const announced = [];
 engine.watch(state => announced.push(state));

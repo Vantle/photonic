@@ -100,7 +100,7 @@
             const missing = value.library.filter(name => !toggle.has(name));
             if (missing.length) message.say(`The Lightbox does not have ${missing.map(name => `${name}.particle`).join(', ')}.`, 'error');
         };
-        const address = () => history.replaceState(null, '', book.share.link(setting()));
+        const address = value => history.replaceState(null, '', book.share.link(value));
 
         let draft;
         let timer;
@@ -108,6 +108,7 @@
             clearTimeout(timer);
             if (!draft) return;
             remember(draft);
+            address(draft);
             draft = undefined;
         };
         const changed = () => {
@@ -127,8 +128,13 @@
             cycle.start(signal => book.engine.explore(value, signal), outcome => {
                 message.say(advice(outcome, value));
                 viewer.show(outcome, value.target);
-                address();
+                address(value);
             }, error => message.say(book.editor.locate(error, submission), 'error'));
+        };
+        const resume = () => {
+            if (!pending || book.engine.state !== 'live') return;
+            pending = false;
+            execute();
         };
 
         const pick = item => {
@@ -137,12 +143,13 @@
                 message.say('This example has no recorded run. Regenerate the records with bazel run -c opt //book:record.', 'error');
                 return;
             }
+            save();
             cycle.cancel();
             message.say();
             fill(value);
             choice.press(item.name);
             viewer.show(value.result, value.target);
-            address();
+            address(value);
         };
 
         for (const area of [editor.area, goal.area]) {
@@ -159,7 +166,6 @@
             viewer.blank('Write a program, then press Run.');
             draft = setting();
             save();
-            history.replaceState(null, '', 'lightbox.html');
             editor.area.focus();
         });
         copy.addEventListener('click', async () => {
@@ -174,23 +180,32 @@
             setTimeout(() => { copy.textContent = 'Copy link'; }, 1600);
         });
 
-        const begin = () => {
-            const start = book.share.read(location.search) ?? remembered();
-            if (!start) {
-                pick(sample[0]);
-                return;
-            }
+        const open = start => {
+            save();
+            address(start);
+            cycle.cancel();
+            message.say();
             fill(start);
+            pending = false;
             const known = sample.find(item => entry(item) && same(entry(item), start));
             if (known) {
                 choice.press(known.name);
                 viewer.show(entry(known).result, entry(known).target);
                 return;
             }
+            choice.press();
             viewer.blank('Run the program to draw its graph.');
             pending = true;
+            resume();
         };
-        begin();
+
+        const start = book.share.read(location.hash) ?? book.share.legacy(location.search) ?? remembered();
+        if (start) open(start);
+        else pick(sample[0]);
+        addEventListener('hashchange', () => {
+            const shared = book.share.read(location.hash);
+            if (shared) open(shared);
+        });
 
         book.engine.watch(state => {
             const on = state === 'live';
@@ -206,9 +221,7 @@
                 else button.setAttribute('aria-disabled', 'true');
             });
             badge.textContent = on ? 'live' : 'recorded runs';
-            if (!on || !pending) return;
-            pending = false;
-            execute();
+            resume();
         });
     };
 

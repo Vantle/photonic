@@ -147,8 +147,8 @@ try {
     assert.deepEqual(await evaluate("return [...document.querySelectorAll('#bench .symmetry .class button')].map(value => value.textContent)"), ['Global A and B; C and D']);
     await evaluate(`${figure('first')}.querySelector('.bar button:not(.run)').click(); return true`);
     await until("return document.querySelector('#bench .editor textarea').value === 'A.X,\\n[A] B'");
-    assert.match(await evaluate("return document.querySelector('#bench .bar a').getAttribute('href')"), /^lightbox\.html\?source=/);
-    assert.equal(await evaluate(`return ${figure('first')}.querySelector('.bar a').getAttribute('href')`), 'lightbox.html?source=A.X%2C%0A%5BA%5D+B');
+    assert.match(await evaluate("return document.querySelector('#bench .bar a').getAttribute('href')"), /^lightbox\.html#1&source=/);
+    assert.equal(await evaluate(`return ${figure('first')}.querySelector('.bar a').getAttribute('href')`), 'lightbox.html#1&source=A.X%2C%0A%5BA%5D+B');
     assert.equal(await evaluate("return document.querySelector('.rail .launch').getAttribute('href')"), 'lightbox.html');
     const connection = "document.querySelector('.connection')";
     assert.equal(await evaluate(`return ${connection}.querySelector('.badge').textContent`), 'recorded run');
@@ -374,12 +374,23 @@ try {
     await until("return document.querySelectorAll('.lightbox .graph .state').length === 4 && document.querySelectorAll('.lightbox button.hyperedge').length === 2");
     assert.deepEqual(await evaluate("return [...document.querySelectorAll('.lightbox .symmetry .class button')].map(value => value.textContent)"), ['Global A and B; C and D']);
     assert.equal(await evaluate("return document.querySelectorAll('.lightbox button.hyperedge[data-symmetry=\"global\"]').length"), 2);
-    assert.match(await evaluate('return new URLSearchParams(location.search).get("source")'), /\[B\] D$/);
+    assert.equal(await evaluate('return location.search'), '');
+    assert.match(await evaluate('return book.share.read(location.hash).source'), /\[B\] D$/);
     await open(await evaluate('return location.href'), "return book.engine.state === 'live' && document.querySelectorAll('.lightbox .graph .state').length === 4");
+    await evaluate(`
+        const area = document.querySelector('.lightbox .editor textarea');
+        area.value = 'A, B,\\n[A] C,\\n[B] E';
+        area.dispatchEvent(new Event('input'));
+        return true`);
+    await until("return book.share.read(location.hash).source.endsWith('[B] E')");
+    await open(await evaluate('return location.href'), "return book.engine.state === 'live' && document.querySelector('.lightbox .editor textarea').value.endsWith('[B] E') && document.querySelectorAll('.lightbox .graph .state').length === 4");
     await open(`${origin}/lightbox.html?source=Q`, "return book.engine.state === 'live' && document.querySelectorAll('.lightbox .graph .state').length === 1");
+    assert.deepEqual(await evaluate('return [location.search, location.hash]'), ['', '#1&source=Q']);
+    await evaluate("location.hash = '#1&source=R.S&target=R.S'; return true");
+    await until("return document.querySelector('.lightbox .editor textarea').value === 'R.S' && [...document.querySelectorAll('.lightbox .verdict .badge')].map(value => value.textContent).join() === 'reached'");
     await evaluate("[...document.querySelectorAll('.lightbox .preset button')].find(value => value.textContent === 'Cycle').click(); return true");
-    assert.match(await evaluate('return location.search'), /^\?source=/);
-    await open(`${origin}/lightbox.html`, "return document.querySelector('.lightbox .editor textarea').value.endsWith('[B] D') && document.querySelectorAll('.lightbox .graph .state').length === 4");
+    assert.equal(await evaluate('return book.share.read(location.hash).source'), await evaluate('return book.record.example.cycle.source'));
+    await open(`${origin}/lightbox.html`, "return document.querySelector('.lightbox .editor textarea').value.endsWith('[B] E') && document.querySelectorAll('.lightbox .graph .state').length === 4");
     await evaluate("[...document.querySelectorAll('.lightbox .bar button')].find(value => value.textContent === 'New').click(); return true");
     assert.equal(await evaluate("return document.querySelector('.lightbox .editor textarea').value"), '');
     assert.equal(await evaluate("return document.querySelectorAll('.lightbox .blank').length"), 1);

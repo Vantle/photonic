@@ -75,17 +75,15 @@ fn file() {
     );
     assert_eq!(page.status(), "200 OK");
     assert_eq!(page.header(), "");
-    assert_eq!(
-        Route::new(
-            &get("/lightbox.html?source=A%2C+%5BA%5D+B", "localhost:8080"),
-            &book,
-            REPOSITORY
-        ),
-        Route::File {
-            path: &book["lightbox.html"],
-            kind: "text/html; charset=utf-8"
-        }
-    );
+    for target in ["/lightbox.html", "/lightbox.html?source=A%2C+%5BA%5D+B"] {
+        assert_eq!(
+            Route::new(&get(target, "localhost:8080"), &book, REPOSITORY),
+            Route::File {
+                path: &book["lightbox.html"],
+                kind: "text/html; charset=utf-8"
+            }
+        );
+    }
     assert_eq!(
         Route::new(&get("/book/book.css", "localhost:8080"), &book, REPOSITORY),
         Route::File {
