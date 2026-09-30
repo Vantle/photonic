@@ -75,6 +75,31 @@ photonic_test(
 
 A library's output is the library assembled with everything it depends on, `logic.json`. A binary runs the `photonic` command on its assembled program: `bazel run -c opt //pkg:example` explores it, and `bazel run -c opt //pkg:example -- check --reach False` asks any other question the command asks. A binary and its assembled program, `example.program`, are private to their package unless the binary is given a `visibility`.
 
+### Testing
+
+`photonic_test` checks exact configurations: each target is a complete configuration, with every loaded root rule added, and a test fails whenever a target's answer is unknown. It runs in one of three modes:
+
+| Mode | Use it for | It passes when |
+| --- | --- | --- |
+| default | calls to the scalar tables and other small programs | Prism, exploring every future with inference on the interpreter and on Laser, finds each target reached, or unreachable once the search closes |
+| `path = True` | one run of a program over linked data | the direct path, the run the scheduler takes, reaches each target |
+| `every = True` | every run of a program over linked data, when its schedules are few enough to explore | every schedule of plain events ends exactly at a target, and no run goes on forever |
+
+Linked values, such as chains, naturals, integers, vectors, expressions and pipelines, give inference so many ways to rearrange a run that the default search stays open within its budget, so a test written the obvious way fails as unknown. Write those tests with `path = True`, as the programs in [//program](../program/) are, or with `every = True`, as the `.order` tests in `//library/chain` and `//library/natural` are.
+
+| Attribute | Meaning |
+| --- | --- |
+| `source`, `srcs`, `deps` | The program: literal source, files and libraries. |
+| `target` | Complete configurations. `"A, B"` is one target with two coherences; `["A", "B"]` is two targets. |
+| `expect` | `"reached"`, the default, or `"unreachable"`, which only the default mode can prove. |
+| `path` | Follow the direct path for each target. |
+| `every` | Require every schedule of plain events to end exactly at a target. |
+| `work` | The work budget of each engine that runs; each counts work its own way. |
+| `configuration`, `occurrence`, `scope`, `coherence`, `record` | Limits on configurations kept, occurrences, scopes and coherences in one configuration, and records retained. |
+| `size`, `tags` | Bazel's test size and tags; a test that needs more than 2 GiB carries `memory`. |
+
+A syntax error in `source` or `target` fails the build. A failing test prints what the search found, such as the configurations where stray runs end or how far an open search went, and a `photonic check` command that asks the same question; its undeclared outputs keep the details.
+
 ### From another module
 
 Until Photonic is published to a registry, depend on it through its repository in `MODULE.bazel`:

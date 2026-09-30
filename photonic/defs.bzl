@@ -9,16 +9,17 @@ Info = provider(
     },
 )
 
-def _assemble(context, source, library):
+def _assemble(context, source, library, check = []):
     output = context.actions.declare_file(context.label.name + ".json")
     argument = context.actions.args()
     argument.add("--output", output)
     argument.add_all(source, before_each = "--source")
     argument.add_all(library, before_each = "--library")
+    argument.add_all(check, before_each = "--check")
     context.actions.run(
         executable = context.executable._assemble,
         arguments = [argument],
-        inputs = depset(source + library),
+        inputs = depset(source + library + check),
         outputs = [output],
         mnemonic = "Photonic",
         progress_message = "Assembling Photonic %{label}",
@@ -48,13 +49,13 @@ def _runfile(context, file):
         return file.short_path[3:]
     return context.workspace_name + "/" + file.short_path
 
-def _load(context):
+def _load(context, check = []):
     source = depset(context.files.srcs).to_list()
     library = depset(transitive = [dependency[Info].source for dependency in context.attr.deps], order = "postorder").to_list()
     overlap = {file.path: True for file in library}
     if any([file.path in overlap for file in source]):
         fail("a source cannot also be supplied by a library dependency")
-    return _assemble(context, source, library)
+    return _assemble(context, source, library, check)
 
 def _binary(context):
     output = _load(context)
@@ -91,6 +92,13 @@ def photonic_binary(name, srcs, deps = [], visibility = None):
         visibility = visibility,
     )
 
+# Each source and target is written to a file of its own and parsed when the case is assembled, so
+# a syntax error fails the build and names the attribute that holds it.
+def _text(context, name, content):
+    file = context.actions.declare_file("{}.{}.wave".format(context.label.name, name))
+    context.actions.write(file, content)
+    return file
+
 def _check(context):
     if context.attr.path and context.attr.expect != "reached":
         fail("a direct path can witness reachability but cannot prove unreachability")
@@ -98,7 +106,11 @@ def _check(context):
         fail("every schedule ends at a target explores every plain schedule and expects reached")
     if any([getattr(context.attr, name) < 0 for name in ["work", "configuration", "occurrence", "scope", "coherence", "record"]]):
         fail("test execution limits must be nonnegative")
-    program = _load(context)
+    text = [_text(context, "source", context.attr.source)] + [
+        _text(context, "target.{}".format(index), target)
+        for index, target in enumerate(context.attr.target)
+    ]
+    program = _load(context, text)
     output = context.actions.declare_file(context.label.name + ".case.json")
     context.actions.write(output, json.encode({
         "program": _runfile(context, program),
@@ -139,7 +151,15 @@ _case = rule(
 )
 
 def photonic_test(name, target, source = "", srcs = [], deps = [], expect = "reached", path = False, every = False, work = 2000000, configuration = 4096, occurrence = 256, scope = 64, coherence = 64, record = 2000000, size = "small", tags = []):
-    """Check exact configurations with Prism; Unknown always fails.
+    """Check that a program reaches, or never reaches, exact configurations; Unknown always fails.
+
+    A test runs in one of three modes. By default Prism explores every future, with inference, on
+    the interpreter and on Laser, which must agree wherever both settle: this proves reached and
+    unreachable alike, but it finishes only on small programs, such as calls to the scalar tables.
+    Linked data, such as chains, naturals, vectors, expressions and pipelines, needs one of the
+    other modes: path = True follows the one run the scheduler takes, and every = True checks every
+    schedule of plain events. A failing test prints what the search found and how far it went, and
+    a photonic check command that asks the same question; its undeclared outputs keep the details.
 
     Args:
         name: Test target name.
@@ -148,18 +168,21 @@ def photonic_test(name, target, source = "", srcs = [], deps = [], expect = "rea
         srcs: Native source files containing data or declarations.
         deps: Photonic declaration libraries.
         expect: Required reached or unreachable outcome for every target.
-        path: Follow one path to witness a reachable target.
+        path: Follow one direct path per target, the run the scheduler takes, which witnesses a
+            reachable target; it cannot expect unreachable.
         every: Require every schedule of plain events to end exactly at a target, exploring the
             schedules without inference on Laser, one commuting coherence or scope at a time; no run
-            may go on forever.
-        work: Work budget.
+            may go on forever. It expects reached and cannot follow a path.
+        work: Work budget of each engine that runs: the interpreter's steps, the path search's
+            steps, and Laser's scanned configurations, carried traces and tried applications. The
+            engines count work differently, so one budget stops them at different points.
         configuration: Configuration limit.
         occurrence: Occurrence limit.
         scope: Scope limit.
         coherence: Coherence limit.
         record: Event record limit.
         size: Bazel test size.
-        tags: Bazel test tags.
+        tags: Bazel test tags, such as memory for a test that needs more than 2 GiB.
     """
     _case(name = name + ".case", source = source, target = target, srcs = srcs, deps = deps, expect = expect, path = path, every = every, work = work, configuration = configuration, occurrence = occurrence, scope = scope, coherence = coherence, record = record, visibility = ["//visibility:private"], testonly = True)
     hermetic_test(
