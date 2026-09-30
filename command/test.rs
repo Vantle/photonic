@@ -50,6 +50,13 @@ fn binary() -> PathBuf {
     runfile("PHOTONIC_COMMAND")
 }
 
+fn invoke(argument: &[&str]) -> Output {
+    Command::new(binary())
+        .args(argument)
+        .output()
+        .expect("execute Photonic")
+}
+
 fn execute(operation: &str, path: &Path, argument: &[&str]) -> Output {
     Command::new(binary())
         .arg(operation)
@@ -276,7 +283,12 @@ fn metal() {
         String::from_utf8_lossy(&step.stderr).contains("metal keeps only counts, ends and cycles")
     );
     let exhaustive = execute("explore", &path, &["--engine", "metal"]);
-    assert!(String::from_utf8_lossy(&exhaustive.stderr).contains("set mode to plain"));
+    assert_eq!(exhaustive.status.code(), Some(2));
+    assert!(
+        error(&exhaustive).contains("--plain"),
+        "{}",
+        error(&exhaustive)
+    );
     let run = execute("run", &path, &["--engine", "metal"]);
     assert_eq!(run.status.code(), Some(1));
     assert!(error(&run).contains("--plain --engine metal"));
@@ -438,7 +450,7 @@ fn schedule() {
     assert!(schedule["state"].as_array().unwrap().len() < full["state"].as_array().unwrap().len());
     let refused = execute("run", &path, &["--plain", "--engine", "interpreter"]);
     assert!(!refused.status.success());
-    assert!(String::from_utf8_lossy(&refused.stderr).contains("plain mode runs on laser"));
+    assert!(String::from_utf8_lossy(&refused.stderr).contains("--plain runs on laser"));
     let target = fixture.write(
         "done.particle",
         "P.Done, [Claim] P.Work, [Work] Done, [P] X",
@@ -1148,6 +1160,174 @@ fn result(response: &serde_json::Value) -> (bool, String) {
             .unwrap_or_default()
             .to_owned(),
     )
+}
+
+// A goal reaches every question, --preserve needs an exact target or the goal to complete, and
+// what the command line cannot mean is refused before any work.
+#[test]
+fn flag() {
+    let fixture = Fixture::new();
+    let path = fixture.write("chain.wave", "A, [A] B, [B] C");
+    let other = fixture.write("other.wave", "A, [A] B, [B] C, [C] D");
+    let goal = ["--path", "--goal", "C, [A] B, [B] C"];
+    let inspect = execute("inspect", &path, &[&["s2"][..], &goal].concat());
+    assert!(inspect.status.success(), "{}", error(&inspect));
+    assert!(text(&inspect).starts_with("s2 C"));
+    let cause = execute("cause", &path, &[&["s2"][..], &goal].concat());
+    assert!(cause.status.success(), "{}", error(&cause));
+    assert!(text(&cause).contains("e1"));
+    let step = execute("step", &path, &[&["s1"][..], &goal].concat());
+    assert!(step.status.success(), "{}", error(&step));
+    assert!(text(&step).contains("taken"));
+    let select = execute("select", &path, &[&["--pattern", "C"][..], &goal].concat());
+    assert!(text(&select).contains("s2"));
+    let compare = execute(
+        "compare",
+        &path,
+        &[&[other.to_str().unwrap()][..], &goal].concat(),
+    );
+    let explored = text(&execute("explore", &path, &goal));
+    let key = explored.split(" · ").next().unwrap_or_default();
+    assert!(
+        text(&compare).starts_with(&format!("compare {key} open")),
+        "{}",
+        text(&compare)
+    );
+    let preserved = execute("explore", &path, &["--path", "--goal", "C", "--preserve"]);
+    assert!(text(&preserved).contains("path reached its goal"));
+    for argument in [
+        &["--goal", "C"][..],
+        &["--preserve"],
+        &["--preserve", "--reach", "C"],
+        &["--worker", "2"],
+        &["--engine", "metal"],
+        &["--path", "--plain"],
+    ] {
+        let output = execute("check", &path, argument);
+        assert_eq!(
+            output.status.code(),
+            Some(2),
+            "{argument:?}: {}",
+            error(&output)
+        );
+    }
+    let exact = execute("miss", &path, &["--exact"]);
+    assert_eq!(exact.status.code(), Some(2));
+    let preserve = execute("check", &path, &["--reach", "C", "--exact", "--preserve"]);
+    assert!(preserve.status.success(), "{}", text(&preserve));
+    let help = |verb: &str| text(&invoke(&[verb, "--help"]));
+    assert!(!help("step").contains("r2"));
+    assert!(help("step").contains("s0, the start, by default"));
+    assert!(!help("cause").contains("s10.f1"));
+    assert!(help("inspect").contains("s10.f1"));
+    assert!(!help("run").contains("metal as many"));
+    assert!(!help("prism").contains("metal as many"));
+    assert!(help("explore").contains("metal as many as the GPU holds"));
+    assert!(help("select").contains("Program files: .wave or .particle source"));
+    assert!(help("compare").contains("Photonic source added after the file of each program"));
+    assert!(help("shape").contains("Photonic source added after the file of each program"));
+}
+
+// Answers list claims in the order the command line gives them, whatever their kinds.
+#[test]
+fn order() {
+    let fixture = Fixture::new();
+    let path = fixture.write("light.wave", LIGHT);
+    let claim = [
+        "--avoid",
+        "Purple",
+        "--reach",
+        "Red",
+        "--outcome",
+        "Light",
+        "--reach",
+        "Green",
+    ];
+    let output = execute("check", &path, &claim);
+    let line = text(&output)
+        .lines()
+        .skip(1)
+        .take(4)
+        .map(|line| line.split("   ").next().unwrap_or_default().to_owned())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        line,
+        ["avoid Purple", "reach Red", "outcome Light", "reach Green"]
+    );
+    let answer = envelope(&execute(
+        "check",
+        &path,
+        &[&claim[..], &["--json"]].concat(),
+    ));
+    let kind = answer["answer"]["claim"]
+        .as_array()
+        .expect("verdicts")
+        .iter()
+        .map(|verdict| {
+            verdict["claim"]["kind"]
+                .as_str()
+                .unwrap_or_default()
+                .to_owned()
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(kind, ["avoid", "reach", "outcome", "reach"]);
+    let compared = envelope(&execute(
+        "compare",
+        &path,
+        &[&[path.to_str().unwrap()][..], &claim, &["--json"]].concat(),
+    ));
+    let pattern = compared["answer"]["claim"]
+        .as_array()
+        .expect("pairs")
+        .iter()
+        .map(|pair| {
+            pair["claim"]["pattern"]
+                .as_str()
+                .unwrap_or_default()
+                .to_owned()
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(pattern, ["Purple", "Red", "Light", "Green"]);
+}
+
+// Inline source names a program on its own in every command, and a command that names no program
+// is a failure that says how to name one.
+#[test]
+fn source() {
+    let fixture = Fixture::new();
+    let target = fixture.write("target.wave", "B, [A] B");
+    let target = target.to_str().unwrap();
+    for argument in [
+        &["lower", "--source", "A, [A] B"][..],
+        &["run", "--source", "A, [A] B"],
+        &["prism", "--source", "A, [A] B", "--target", target],
+        &["explore", "--source", "A, [A] B"],
+        &["step", "--source", "A, [A] B"],
+        &["inspect", "--source", "A, [A] B", "s1"],
+        &["shape", "--source", "A, [A] B"],
+    ] {
+        let output = invoke(argument);
+        assert!(output.status.success(), "{argument:?}: {}", error(&output));
+    }
+    for argument in [
+        &["run"][..],
+        &["lower"],
+        &["explore"],
+        &["shape"],
+        &["inspect", "s1"],
+    ] {
+        let output = invoke(argument);
+        assert_eq!(output.status.code(), Some(1), "{argument:?}");
+        assert!(
+            error(&output).starts_with(
+                "error[request]: name the program: give its files, or its text with --source"
+            ),
+            "{argument:?}: {}",
+            error(&output)
+        );
+    }
+    let answer = envelope(&invoke(&["check", "--json"]));
+    assert_eq!(answer["error"]["code"], "request");
 }
 
 // A link inside the server's directory to a file outside it, where the platform makes links without

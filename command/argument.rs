@@ -1,8 +1,14 @@
-use clap::{Args, Parser, Subcommand};
+use clap::{
+    Arg, ArgAction, ArgGroup, ArgMatches, Args, Command, FromArgMatches, Parser, Subcommand,
+};
+use spectrum::claim::Kind;
+use spectrum::failure::{Code, Failure};
 use spectrum::recording::Engine;
 use spectrum::subject::Subject;
 use std::num::NonZeroUsize;
 use std::path::{Path, PathBuf};
+
+const FILE: &str = "Program files: .wave or .particle source, or .json programs assembled by Bazel";
 
 #[derive(Parser)]
 #[command(version, about = "Photonic language tools")]
@@ -36,15 +42,15 @@ pub enum Operation {
     #[command(
         about = "Describe a rule, configuration, coherence, occurrence, frame or event by its handle"
     )]
-    Inspect(Pointer),
+    Inspect(Inspect),
     #[command(about = "Explain why a configuration, event or occurrence is here")]
-    Cause(Pointer),
+    Cause(Cause),
     #[command(
         about = "Explain why not: the configurations nearest a target, or why a rule does not fire"
     )]
     Miss(Miss),
     #[command(about = "List the events that can happen at a configuration")]
-    Step(Pointer),
+    Step(Step),
     #[command(
         about = "Compare two programs by the configurations and events they reach; exits 1 unless both close and agree"
     )]
@@ -72,12 +78,19 @@ fn text(path: &Path) -> String {
 }
 
 impl Source {
-    pub fn subject(&self, file: &[PathBuf]) -> Subject {
-        Subject {
+    // The program the files and inline source make; a command that gives neither names no program.
+    pub fn subject(&self, file: &[PathBuf]) -> Result<Subject, Failure> {
+        if file.is_empty() && self.source.is_none() {
+            return Err(Failure::new(
+                Code::Request,
+                "name the program: give its files, or its text with --source",
+            ));
+        }
+        Ok(Subject {
             file: file.iter().map(|path| text(path)).collect(),
             source: self.source.clone(),
             library: self.library.iter().map(|path| text(path)).collect(),
-        }
+        })
     }
 }
 
@@ -131,14 +144,17 @@ pub struct Search {
     #[arg(
         long,
         conflicts_with = "path",
+        requires_if("metal", "plain"),
         help = "The engine: laser, the default, or interpreter records every event of every future; with --plain, laser records every plain schedule, and metal explores them at GPU scale through the program's net of parts, keeping only counts, ends and cycles, so it answers explore and check alone"
     )]
     pub engine: Option<Engine>,
 }
 
 // The flags every question's recording takes beside its files, grouped so that each verb lists
-// them alike and hands them on as one.
+// them alike and hands them on as one. --preserve completes an exact target or the goal, so it
+// needs one of them: the goal here, or --exact where a verb takes exact targets.
 #[derive(Args)]
+#[command(group(ArgGroup::new("aim").multiple(true)))]
 pub struct Recording {
     #[command(flatten)]
     pub source: Source,
@@ -146,6 +162,19 @@ pub struct Recording {
     pub budget: Budget,
     #[command(flatten)]
     pub search: Search,
+    #[arg(
+        long,
+        requires = "path",
+        group = "aim",
+        help = "With --path, the complete configuration the path stops at"
+    )]
+    pub goal: Option<String>,
+    #[arg(
+        long,
+        requires = "aim",
+        help = "Exact targets and the goal also list every loaded root rule"
+    )]
+    pub preserve: bool,
 }
 
 #[derive(Args)]
@@ -154,44 +183,106 @@ pub struct Print {
     pub json: bool,
 }
 
-#[derive(Args)]
+// Each kind of claim with its flag and help, in the order the help lists them.
+const KIND: [(Kind, &str, &str); 6] = [
+    (
+        Kind::Reach,
+        "reach",
+        "Claim that some configuration matches this pattern",
+    ),
+    (
+        Kind::Avoid,
+        "avoid",
+        "Claim that no configuration matches this pattern",
+    ),
+    (
+        Kind::Always,
+        "always",
+        "Claim that every configuration matches this pattern",
+    ),
+    (
+        Kind::Inevitable,
+        "inevitable",
+        "Claim that every run reaches a configuration matching this pattern",
+    ),
+    (
+        Kind::Outcome,
+        "outcome",
+        "Claim that every end configuration matches this pattern",
+    ),
+    (
+        Kind::End,
+        "end",
+        "Claim that every run ends, and ends at a configuration matching this pattern",
+    ),
+];
+
+// Each claim's kind and pattern in the order the command line gives them, which answers keep
+// whatever the kinds.
 pub struct Claim {
-    #[arg(long, help = "Claim that some configuration matches this pattern")]
-    pub reach: Vec<String>,
-    #[arg(long, help = "Claim that no configuration matches this pattern")]
-    pub avoid: Vec<String>,
-    #[arg(long, help = "Claim that every configuration matches this pattern")]
-    pub always: Vec<String>,
-    #[arg(
-        long,
-        help = "Claim that every run reaches a configuration matching this pattern"
-    )]
-    pub inevitable: Vec<String>,
-    #[arg(long, help = "Claim that every end configuration matches this pattern")]
-    pub outcome: Vec<String>,
-    #[arg(
-        long,
-        help = "Claim that every run ends, and ends at a configuration matching this pattern"
-    )]
-    pub end: Vec<String>,
-    #[arg(
-        long,
-        help = "Read every claim's pattern as a complete configuration, as Prism does"
-    )]
+    pub pattern: Vec<(Kind, String)>,
     pub exact: bool,
-    #[arg(
-        long,
-        help = "Exact targets and the goal also list every loaded root rule"
-    )]
-    pub preserve: bool,
+}
+
+impl FromArgMatches for Claim {
+    fn from_arg_matches(matches: &ArgMatches) -> Result<Self, clap::Error> {
+        let mut placed = KIND
+            .iter()
+            .flat_map(|&(kind, name, _)| {
+                matches
+                    .indices_of(name)
+                    .into_iter()
+                    .flatten()
+                    .zip(matches.get_many::<String>(name).into_iter().flatten())
+                    .map(move |(index, pattern)| (index, kind, pattern.clone()))
+            })
+            .collect::<Vec<_>>();
+        placed.sort_by_key(|&(index, ..)| index);
+        Ok(Self {
+            pattern: placed
+                .into_iter()
+                .map(|(_, kind, pattern)| (kind, pattern))
+                .collect(),
+            exact: matches.get_flag("exact"),
+        })
+    }
+
+    fn update_from_arg_matches(&mut self, matches: &ArgMatches) -> Result<(), clap::Error> {
+        *self = Self::from_arg_matches(matches)?;
+        Ok(())
+    }
+}
+
+impl Args for Claim {
+    fn augment_args(command: Command) -> Command {
+        KIND.iter()
+            .fold(command, |command, &(_, name, help)| {
+                command.arg(
+                    Arg::new(name)
+                        .long(name)
+                        .value_name("PATTERN")
+                        .value_parser(clap::value_parser!(String))
+                        .action(ArgAction::Append)
+                        .help(help),
+                )
+            })
+            .arg(
+                Arg::new("exact")
+                    .long("exact")
+                    .action(ArgAction::SetTrue)
+                    .group("aim")
+                    .help("Read every claim's pattern as a complete configuration, as Prism does"),
+            )
+    }
+
+    fn augment_args_for_update(command: Command) -> Command {
+        Self::augment_args(command)
+    }
 }
 
 #[derive(Args)]
 pub struct Lower {
-    #[arg(
-        required = true,
-        help = "Program files: .wave or .particle source, or .json programs assembled by Bazel"
-    )]
+    #[arg(help = FILE)]
     pub file: Vec<PathBuf>,
     #[command(flatten)]
     pub source: Source,
@@ -206,10 +297,7 @@ fn core() -> NonZeroUsize {
 #[derive(Args)]
 #[command(mut_arg("configuration", |argument| argument.help("Configurations kept, 4,096 by default")))]
 pub struct Run {
-    #[arg(
-        required = true,
-        help = "Program files: .wave or .particle source, or .json programs assembled by Bazel"
-    )]
+    #[arg(help = FILE)]
     pub file: Vec<PathBuf>,
     #[command(flatten)]
     pub source: Source,
@@ -262,15 +350,10 @@ pub struct Prism {
 
 #[derive(Args)]
 pub struct Check {
-    #[arg(help = "Program files: .wave or .particle source, or .json programs assembled by Bazel")]
+    #[arg(help = FILE)]
     pub file: Vec<PathBuf>,
     #[command(flatten)]
     pub recording: Recording,
-    #[arg(
-        long,
-        help = "In path mode, the complete configuration the path stops at"
-    )]
-    pub goal: Option<String>,
     #[command(flatten)]
     pub claim: Claim,
     #[command(flatten)]
@@ -279,17 +362,10 @@ pub struct Check {
 
 #[derive(Args)]
 pub struct Explore {
-    #[arg(help = "Program files: .wave or .particle source, or .json programs assembled by Bazel")]
+    #[arg(help = FILE)]
     pub file: Vec<PathBuf>,
     #[command(flatten)]
     pub recording: Recording,
-    #[arg(
-        long,
-        help = "In path mode, the complete configuration the path stops at"
-    )]
-    pub goal: Option<String>,
-    #[arg(long, help = "With the goal, it also lists every loaded root rule")]
-    pub preserve: bool,
     #[arg(long, default_value_t = spectrum::explore::LIMIT, help = "End configurations listed")]
     pub limit: usize,
     #[command(flatten)]
@@ -298,7 +374,7 @@ pub struct Explore {
 
 #[derive(Args)]
 pub struct Select {
-    #[arg(help = "Program files")]
+    #[arg(help = FILE)]
     pub file: Vec<PathBuf>,
     #[arg(
         long,
@@ -316,7 +392,7 @@ pub struct Select {
 }
 
 #[derive(Args)]
-pub struct Pointer {
+pub struct Inspect {
     #[arg(
         required = true,
         help = "Program files, then a handle such as r2, s11, e12, s11.c0, s11.o1 or s10.f1"
@@ -329,11 +405,33 @@ pub struct Pointer {
 }
 
 #[derive(Args)]
-pub struct Miss {
+pub struct Cause {
     #[arg(
         required = true,
-        help = "Program files, then optionally a rule handle such as r3"
+        help = "Program files, then a configuration, event or occurrence handle, such as s11, e12 or s11.o1"
     )]
+    pub argument: Vec<String>,
+    #[command(flatten)]
+    pub recording: Recording,
+    #[command(flatten)]
+    pub print: Print,
+}
+
+#[derive(Args)]
+pub struct Step {
+    #[arg(
+        help = "Program files, then optionally the configuration to step from, such as s11; s0, the start, by default"
+    )]
+    pub argument: Vec<String>,
+    #[command(flatten)]
+    pub recording: Recording,
+    #[command(flatten)]
+    pub print: Print,
+}
+
+#[derive(Args)]
+pub struct Miss {
+    #[arg(help = "Program files, then optionally a rule handle such as r3")]
     pub argument: Vec<String>,
     #[arg(
         long,
@@ -342,14 +440,11 @@ pub struct Miss {
     pub target: Option<String>,
     #[arg(
         long,
+        requires = "target",
+        group = "aim",
         help = "Compare whole configurations as Prism does: coherences, live rules and open scopes"
     )]
     pub exact: bool,
-    #[arg(
-        long,
-        help = "With --exact, the target also lists every loaded root rule"
-    )]
-    pub preserve: bool,
     #[arg(long, default_value_t = spectrum::miss::LIMIT, help = "Configurations listed")]
     pub limit: usize,
     #[command(flatten)]
@@ -358,7 +453,13 @@ pub struct Miss {
     pub print: Print,
 }
 
+// Compare explores both programs alike, so what shapes one recording shapes both.
 #[derive(Args)]
+#[command(
+    mut_arg("source", |argument| argument.help("Photonic source added after the file of each program")),
+    mut_arg("library", |argument| argument.help("Load a declaration-only library file into each program; repeat for each")),
+    mut_arg("goal", |argument| argument.help("With --path, the complete configuration both paths stop at")),
+)]
 pub struct Compare {
     #[arg(help = "The program before")]
     pub left: PathBuf,
@@ -375,11 +476,12 @@ pub struct Compare {
 }
 
 #[derive(Args)]
+#[command(
+    mut_arg("source", |argument| argument.help("Photonic source added after the file of each program, or the one program when no file is given")),
+    mut_arg("library", |argument| argument.help("Load a declaration-only library file into each program; repeat for each")),
+)]
 pub struct Shape {
-    #[arg(
-        required = true,
-        help = "One program to describe, or several to group by shape"
-    )]
+    #[arg(help = "One program to describe, or several to group by shape")]
     pub file: Vec<PathBuf>,
     #[arg(
         long,

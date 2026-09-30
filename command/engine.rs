@@ -28,7 +28,7 @@ struct Report<'program, Execution> {
 }
 
 fn load(file: &[PathBuf], source: &argument::Source) -> Result<Program, Failure> {
-    source.subject(file).assemble(&Disk::default())
+    source.subject(file)?.assemble(&Disk::default())
 }
 
 // The engine a run explores with: laser unless asked otherwise. The interpreter explores with
@@ -43,7 +43,7 @@ fn engine(verb: &str, argument: &argument::Run) -> Result<Engine, Failure> {
         )),
         (true, Some(Engine::Interpreter)) => Err(Failure::new(
             Code::Request,
-            "plain mode runs on laser; the interpreter explores with inference",
+            "--plain runs on laser; the interpreter explores with inference",
         )),
         (_, engine) => Ok(engine.unwrap_or_default()),
     }
