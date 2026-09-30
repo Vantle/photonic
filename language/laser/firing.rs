@@ -17,9 +17,12 @@ use std::ops::Range;
 use std::sync::Arc;
 
 // Applying an event holds its whole result until it is named, so a round applies and names its
-// events a batch at a time; each batch finds the configurations and transitions the batches before
-// it made, and events are numbered in the same order as with one batch.
+// events a batch at a time, of at most FIRING events whose results hold about RESULT occurrences,
+// live rules included, as many as the configurations so far held on average; each batch finds the
+// configurations and transitions the batches before it made, and events are numbered in the same
+// order as with one batch.
 const FIRING: usize = 1 << 14;
+const RESULT: usize = 1 << 22;
 
 // An application is named in two steps: its components are named where it is made, and their
 // numbers are given in a fixed order, so naming never depends on which worker applied first.
@@ -85,8 +88,10 @@ impl Laser {
         }
         let mut created = Vec::with_capacity(pending.len());
         let mut rest = pending.into_iter();
+        let average = self.bulk.div_ceil(self.state.len()).max(1);
+        let size = FIRING.min(RESULT / average).max(1);
         loop {
-            let room = FIRING.min(allowance - created.len());
+            let room = size.min(allowance - created.len());
             if room == 0 || self.retained() >= self.limit.record {
                 break;
             }

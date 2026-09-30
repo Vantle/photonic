@@ -185,6 +185,7 @@ pub struct Laser {
     work: usize,
     traced: usize,
     found: usize,
+    bulk: usize,
     plain: bool,
     independence: Option<Independence>,
     peak: usize,
@@ -299,6 +300,7 @@ impl Laser {
             work: 0,
             traced: 0,
             found: 0,
+            bulk: 0,
             plain,
             independence: None,
             peak: 0,
@@ -469,6 +471,12 @@ impl Laser {
         makeup: Arc<Makeup>,
         layout: Option<Arc<Layout>>,
     ) -> usize {
+        self.bulk += state
+            .world
+            .iter()
+            .map(|world| world.particle.len())
+            .chain(state.frame.iter().map(|frame| frame.size()))
+            .sum::<usize>();
         self.state.push(state);
         self.makeup.push(makeup);
         self.layout.push(layout);
