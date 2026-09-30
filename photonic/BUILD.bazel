@@ -83,6 +83,7 @@ rust_binary(
         "//frontend",
         "//language:photonic",
         "@crate//:miette",
+        "@crate//:mimalloc",
         "@crate//:serde",
         "@crate//:serde_json",
         "@rules_rust//rust/runfiles",

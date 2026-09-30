@@ -4,6 +4,10 @@ use clap::{Parser, Subcommand};
 use std::num::NonZeroUsize;
 use std::path::PathBuf;
 
+#[cfg(not(feature = "allocation"))]
+#[global_allocator]
+static ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 #[cfg(feature = "allocation")]
 mod allocation;
 mod directory;

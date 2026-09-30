@@ -1,6 +1,9 @@
 use clap::Parser;
 use std::num::NonZeroUsize;
 
+#[global_allocator]
+static ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 #[derive(Parser)]
 struct Argument {
     #[arg(long, default_value = "256")]

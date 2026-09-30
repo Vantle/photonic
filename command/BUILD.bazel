@@ -27,6 +27,7 @@ rust_binary(
         "//spectrum",
         "@crate//:clap",
         "@crate//:miette",
+        "@crate//:mimalloc",
         "@crate//:serde",
         "@crate//:serde_json",
     ],

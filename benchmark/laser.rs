@@ -9,6 +9,9 @@ use serde::{Deserialize, Serialize};
 
 mod directory;
 
+#[global_allocator]
+static ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 #[derive(Parser)]
 struct Argument {
     #[arg(long, default_value_t = 3)]

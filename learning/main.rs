@@ -12,6 +12,9 @@ mod solve;
 use argument::{Argument, Command};
 use clap::Parser;
 
+#[global_allocator]
+static ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 fn main() -> miette::Result<()> {
     match Argument::parse().command {
         Command::Train(argument) => practice::train(argument),

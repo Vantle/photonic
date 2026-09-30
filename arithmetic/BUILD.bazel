@@ -36,6 +36,7 @@ rust_binary(
         "//frontend",
         "//language:photonic",
         "@crate//:clap",
+        "@crate//:mimalloc",
         "@crate//:serde_json",
         "@crate//:thiserror",
     ],

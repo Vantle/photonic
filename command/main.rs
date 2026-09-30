@@ -13,6 +13,9 @@ use std::process::ExitCode;
 
 use argument::{Argument, Operation};
 
+#[global_allocator]
+static ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 fn main() -> miette::Result<ExitCode> {
     if let Some(directory) = std::env::var_os("BUILD_WORKING_DIRECTORY") {
         std::env::set_current_dir(directory).into_diagnostic()?;

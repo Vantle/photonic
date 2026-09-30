@@ -2,6 +2,9 @@ use clap::Parser;
 
 mod evaluation;
 
+#[global_allocator]
+static ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 #[derive(Parser)]
 struct Argument {
     #[arg(long, default_value_t = 200)]

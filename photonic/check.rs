@@ -6,6 +6,9 @@ use photonic::runtime::{Limit, Runtime};
 use serde::Deserialize;
 use std::process::ExitCode;
 
+#[global_allocator]
+static ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 #[derive(Clone, Copy, Deserialize)]
 #[serde(rename_all = "lowercase")]
 enum Expect {

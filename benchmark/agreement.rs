@@ -11,6 +11,9 @@ use serde::Serialize;
 mod corpus;
 mod directory;
 
+#[global_allocator]
+static ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 #[derive(Parser)]
 struct Argument {
     #[arg(

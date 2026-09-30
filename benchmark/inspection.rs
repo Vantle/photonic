@@ -4,6 +4,9 @@ use std::hint::black_box;
 use std::num::NonZeroUsize;
 use std::time::{Duration, Instant};
 
+#[global_allocator]
+static ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 #[derive(Parser)]
 struct Argument {
     #[arg(long, default_value = "32")]

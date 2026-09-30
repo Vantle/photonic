@@ -3,6 +3,9 @@ use clap::Parser;
 mod evaluation;
 mod formula;
 
+#[global_allocator]
+static ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 #[derive(Parser)]
 struct Argument {
     input: String,

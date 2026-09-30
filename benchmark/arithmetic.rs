@@ -2,6 +2,9 @@ use clap::{Parser, ValueEnum};
 mod evaluation;
 mod formula;
 
+#[global_allocator]
+static ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 #[derive(Clone, Copy, ValueEnum)]
 enum Operation {
     Add,

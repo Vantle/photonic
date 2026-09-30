@@ -6,6 +6,9 @@ use frontend::lowering::parse;
 use photonic::path::Search;
 use std::time::Instant;
 
+#[global_allocator]
+static ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let argument = argument::Argument::parse();
     let (source, target) = argument.prepare()?;
