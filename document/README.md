@@ -1,6 +1,6 @@
 # Documentation
 
-The [webbook](../index.html) is the guide to the language, its verification, the standard library, proofs, the runtime and the repository. This directory holds its companions: the contracts it summarizes, the current runtime plan, and dated records of runtime work.
+The [webbook](https://photonic.vantle.org) is the guide to the language, its verification, the standard library, proofs, the runtime and the repository. This directory holds its companions: the contracts it summarizes and dated records of runtime work.
 
 ## Contracts and references
 
@@ -8,22 +8,17 @@ These describe the repository as it is and change with it.
 
 | Document | Contents |
 | --- | --- |
+| [Compatibility](compatibility.md) | What each release keeps stable under Semantic Versioning, and what it may change. |
+| [Language primer](../spectrum/primer.md) | The grammar, what programs mean and the questions Spectrum answers, in brief; served to agents as `photonic://primer`. |
 | [Standard library](../library/README.md) | Every package, request and answer, with the chain, vector and sort protocols. |
 | [Runtime rule occurrences](occurrence.md) | Loading, ownership, consumption, matching locations and exact targets. |
 | [Build organization](build.md) | Bazel packages, toolchains, caching and the lint policy. |
 | [Continuous verification](automation.md) | The Buildkite jobs, their agent capacity and the fixtures tagged `memory`. |
 | [Theorems](../theorem/README.md) | The proof contract, how to write a theorem, and the order in which the layers are proved. |
 | [Spectrum](spectrum.md) | Questions about programs and every configuration they reach: explorations, handles, patterns, claims, the verbs, failures and the Model Context Protocol server. |
-| [Laser](laser.md) | The second engine for exploring every future: configurations named by their components, remembered transitions and matches carried back along events; plain schedules through nets of parts on the host and on the GPU through Metal; what it agrees on with the interpreter, its budgets, verification and measurements. |
+| [Laser](laser.md) | The default engine for exploring every future: configurations named by their components, remembered transitions and matches carried back along events; plain schedules through nets of parts on the host and on the GPU through Metal; what it agrees on with the interpreter, its budgets, verification and measurements. |
 | [Program symmetry](symmetry.md) | Shapes, renamings and symmetries of programs: how the engine finds them, how to use it to connect fields, and what it finds in this repository. |
-| [Program optimization learner](learning.md) | Correctness under every schedule, the objective and goals, edits, planning, inferring instead of checking, solving and proving optimality, learning loops and curriculum, training and results. |
-
-## Plan
-
-| Document | Contents |
-| --- | --- |
-| [Runtime performance roadmap](roadmap.md) | Priorities, acceptance gates and the semantic boundary for runtime work. |
-| [Runtime review](review.md) | The latest review of the whole runtime and the changes it made. |
+| [Program optimization learner](learning.md) | Experimental, outside the compatibility contract. Correctness under every schedule, the objective and goals, edits, planning, inferring instead of checking, solving and proving optimality, learning loops and curriculum, training and results. |
 
 ## Records
 
@@ -77,6 +72,8 @@ Each record describes the runtime at its baseline commit. Later records supersed
 | [Persistent occurrence populations](population.md) | 2026-09-22 |
 | [Resource bounds from population changes](identity.md) | 2026-09-22 |
 | [Shared incidence during canonical renaming](incidence.md) | 2026-09-22 |
+| [Runtime performance roadmap](roadmap.md) | 2026-09-23 |
+| [Runtime review](review.md) | 2026-09-25 |
 
 ## Archived and rejected
 

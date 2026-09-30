@@ -1,6 +1,6 @@
 # Initial executable rules
 
-Status: historical design assessment. The user subsequently authorized the context-owned occurrence model and its end-to-end migration. The [runtime occurrence contract](occurrence.md) supersedes the alternatives and unresolved decisions below. The baseline observations remain historical evidence. Neither design constructs, specializes, reconstructs, or replaces rule definitions.
+Status: historical design assessment. The context-owned occurrence model and its end-to-end migration were adopted afterwards. The [runtime occurrence contract](occurrence.md) supersedes the alternatives and unresolved decisions below. The baseline observations remain historical evidence. Neither design constructs, specializes, reconstructs, or replaces rule definitions.
 
 ## Recommendation
 
