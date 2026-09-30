@@ -14,6 +14,7 @@ rust_binary(
     ],
     crate_root = "main.rs",
     lint_config = "//:lint",
+    version = module_version(),
     visibility = [
         "//:__pkg__",
         "//photonic:__pkg__",
