@@ -1,4 +1,6 @@
+use std::num::NonZeroUsize;
 use std::path::PathBuf;
+use std::process::ExitCode;
 use std::time::Instant;
 
 use clap::Parser;
@@ -10,6 +12,7 @@ use serde::Serialize;
 
 mod corpus;
 mod directory;
+mod exit;
 
 #[global_allocator]
 static ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
@@ -41,10 +44,10 @@ struct Argument {
     filter: Option<String>,
     #[arg(
         long,
-        default_value_t = 1,
+        default_value = "1",
         help = "Laser runs per program, for profiling"
     )]
-    repeat: usize,
+    repeat: NonZeroUsize,
     #[arg(
         long,
         help = "Explore only every plain schedule, its reduction and its net, to check them on large programs"
@@ -53,7 +56,7 @@ struct Argument {
 }
 
 #[derive(Serialize)]
-struct Engine {
+struct Timing {
     closed: bool,
     second: f64,
 }
@@ -65,17 +68,14 @@ struct Reduction {
     reduced: usize,
 }
 
-// Laser runs on every program, so the census also finds programs that only Laser finishes; the
-// engines are compared where both close, where Laser closes its plain exploration must be the part
-// of its full one that matched events reach, and where the plain exploration closes the reduced one
-// must keep its end configurations and cycles. Every net the host explores is explored again on
-// Metal, where there is a device, and must agree number for number, limits included.
+// Laser runs on every program, even where the interpreter does not close, so the census also finds
+// the programs that only Laser finishes.
 #[derive(Serialize)]
 struct Outcome {
     name: String,
     group: String,
-    interpreter: Option<Engine>,
-    laser: Option<Engine>,
+    interpreter: Option<Timing>,
+    laser: Option<Timing>,
     verdict: Option<String>,
     plain: Option<String>,
     reduction: Option<Reduction>,
@@ -86,7 +86,6 @@ struct Outcome {
     inferred: usize,
 }
 
-// A program's net explored on the host, the reference every other exploration of it answers to.
 fn host(
     program: &frontend::source::Program,
     work: usize,
@@ -121,10 +120,29 @@ fn metal(
     }
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+impl Outcome {
+    fn agrees(&self) -> bool {
+        let settled = |verdict: &Option<String>, expected: &str| {
+            verdict.as_deref().is_none_or(|verdict| verdict == expected)
+        };
+        settled(&self.verdict, "agree")
+            && settled(&self.plain, "within")
+            && settled(&self.net, "mirrors")
+            && settled(&self.metal, "agrees")
+            && self
+                .reduction
+                .as_ref()
+                .is_none_or(|reduction| reduction.verdict == "preserves")
+    }
+}
+
+fn main() -> ExitCode {
+    exit::code(run(&Argument::parse()))
+}
+
+fn run(argument: &Argument) -> Result<ExitCode, Box<dyn std::error::Error>> {
     directory::enter()?;
-    let argument = Argument::parse();
-    let entry = corpus::gather(&argument.root, &argument.bin)
+    let entry = corpus::gather(&argument.root, &argument.bin)?
         .into_iter()
         .filter(|entry| {
             argument
@@ -192,18 +210,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let start = Instant::now();
             let mut runtime = Runtime::new(&entry.program);
             runtime.run(argument.budget, limit);
-            let interpreter = Engine {
+            let interpreter = Timing {
                 closed: runtime.closed(),
                 second: start.elapsed().as_secs_f64(),
             };
             let start = Instant::now();
             let mut laser = Laser::new(&entry.program);
             laser.run(argument.allowance, limit);
-            for _ in 1..argument.repeat {
+            for _ in 1..argument.repeat.get() {
                 let mut again = Laser::new(&entry.program);
                 again.run(argument.allowance, limit);
             }
-            let second = start.elapsed().as_secs_f64() / argument.repeat as f64;
+            let second = start.elapsed().as_secs_f64() / argument.repeat.get() as f64;
             let summary = laser.summary();
             let verdict =
                 (interpreter.closed && summary.closed).then(|| match laser.agree(&runtime) {
@@ -218,7 +236,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 name: entry.name.clone(),
                 group: entry.group.clone(),
                 interpreter: Some(interpreter),
-                laser: Some(Engine {
+                laser: Some(Timing {
                     closed: summary.closed,
                     second,
                 }),
@@ -246,7 +264,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .iter()
         .filter(|outcome| outcome.verdict.as_deref() == Some("agree"))
         .count();
-    let finished = |engine: &Option<Engine>| engine.as_ref().is_some_and(|engine| engine.closed);
+    let finished = |timing: &Option<Timing>| timing.as_ref().is_some_and(|timing| timing.closed);
     let only = outcome
         .iter()
         .filter(|outcome| finished(&outcome.laser) && !finished(&outcome.interpreter))
@@ -348,5 +366,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
     println!("{}", serde_json::to_string_pretty(&outcome)?);
-    Ok(())
+    if outcome.iter().all(Outcome::agrees) {
+        return Ok(ExitCode::SUCCESS);
+    }
+    Ok(ExitCode::FAILURE)
 }
+
+#[cfg(test)]
+#[path = "test/agreement.rs"]
+mod test;

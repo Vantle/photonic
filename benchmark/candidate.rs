@@ -3,6 +3,8 @@ use photonic::runtime::Limit;
 use std::num::NonZeroUsize;
 
 mod evaluation;
+mod limit;
+mod warm;
 
 #[global_allocator]
 static ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;

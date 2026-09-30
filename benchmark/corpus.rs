@@ -1,7 +1,57 @@
 use frontend::source::Program;
 use serde::Deserialize;
 use std::collections::HashSet;
+use std::fmt;
 use std::path::{Path, PathBuf};
+
+#[derive(Debug)]
+pub enum Failure {
+    Read {
+        path: PathBuf,
+        source: std::io::Error,
+    },
+    Parse {
+        origin: String,
+        message: String,
+    },
+    Empty {
+        bin: PathBuf,
+    },
+}
+
+impl fmt::Display for Failure {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Read { path, source } => {
+                write!(formatter, "could not read {}: {source}", path.display())
+            }
+            Self::Parse { origin, message } => {
+                write!(formatter, "could not parse {origin}: {message}")
+            }
+            Self::Empty { bin } => write!(
+                formatter,
+                "{} holds no assembled programs or cases; build the repository with -c opt first",
+                bin.display()
+            ),
+        }
+    }
+}
+
+impl std::error::Error for Failure {}
+
+fn read(path: &Path) -> Result<String, Failure> {
+    std::fs::read_to_string(path).map_err(|source| Failure::Read {
+        path: path.to_path_buf(),
+        source,
+    })
+}
+
+fn malformed(origin: &Path, message: impl ToString) -> Failure {
+    Failure::Parse {
+        origin: origin.display().to_string(),
+        message: message.to_string(),
+    }
+}
 
 pub struct Entry {
     pub name: String,
@@ -15,21 +65,23 @@ struct Case {
     source: String,
 }
 
-fn parse(text: &str) -> Option<Program> {
-    frontend::lowering::parse(text).ok()
-}
-
-fn book(root: &Path, entry: &mut Vec<Entry>) {
-    let text = std::fs::read_to_string(root.join("book/record.js")).expect("book/record.js");
+fn book(root: &Path, entry: &mut Vec<Entry>) -> Result<(), Failure> {
+    let path = root.join("book/record.js");
+    let text = read(&path)?;
     let marker = "globalThis.book.record = ";
-    let start = text.find(marker).expect("record marker") + marker.len();
-    let body = text[start..].trim_end().trim_end_matches(';');
-    let body = body
+    let start = text
+        .find(marker)
+        .ok_or_else(|| malformed(&path, "no record marker"))?
+        + marker.len();
+    let body = text[start..]
+        .trim_end()
+        .trim_end_matches(';')
         .lines()
         .filter(|line| *line != "__proto__: null,")
         .collect::<Vec<_>>()
         .join("\n");
-    let value: serde_json::Value = serde_json::from_str(&body).expect("record json");
+    let value: serde_json::Value =
+        serde_json::from_str(&body).map_err(|error| malformed(&path, error))?;
     let library = &value["library"];
     for section in ["example", "workbench"] {
         let Some(item) = value[section].as_object() else {
@@ -38,13 +90,25 @@ fn book(root: &Path, entry: &mut Vec<Entry>) {
         for (name, item) in item {
             let mut program = Program::default();
             for dependency in item["library"].as_array().into_iter().flatten() {
-                let dependency = dependency.as_str().unwrap();
-                let source = parse(library[dependency].as_str().unwrap()).unwrap();
-                program.declare(source, dependency).unwrap();
+                let dependency = dependency
+                    .as_str()
+                    .ok_or_else(|| malformed(&path, format!("{name} names a library badly")))?;
+                let source = library[dependency]
+                    .as_str()
+                    .ok_or_else(|| malformed(&path, format!("no library {dependency}")))
+                    .and_then(|text| {
+                        frontend::lowering::parse(text).map_err(|error| malformed(&path, error))
+                    })?;
+                program
+                    .declare(source, dependency)
+                    .map_err(|error| malformed(&path, error))?;
             }
-            let Some(source) = parse(item["source"].as_str().unwrap()) else {
-                continue;
-            };
+            let source = item["source"]
+                .as_str()
+                .ok_or_else(|| malformed(&path, format!("{name} has no source")))
+                .and_then(|text| {
+                    frontend::lowering::parse(text).map_err(|error| malformed(&path, error))
+                })?;
             program.append(source);
             entry.push(Entry {
                 name: format!("book:{section}/{name}"),
@@ -53,16 +117,26 @@ fn book(root: &Path, entry: &mut Vec<Entry>) {
             });
         }
     }
+    Ok(())
 }
 
-fn files(directory: &Path, suffix: &str, result: &mut Vec<PathBuf>) {
-    let Ok(listing) = std::fs::read_dir(directory) else {
-        return;
-    };
+// A package with nothing built has no directory under bin, which the check for an empty bin
+// reports as a whole.
+fn walk(directory: &Path, suffix: &str, result: &mut Vec<PathBuf>) -> Result<(), Failure> {
+    if !directory.exists() {
+        return Ok(());
+    }
+    let listing = std::fs::read_dir(directory).map_err(|source| Failure::Read {
+        path: directory.to_path_buf(),
+        source,
+    })?;
     let mut listing = listing
-        .filter_map(Result::ok)
-        .map(|entry| entry.path())
-        .collect::<Vec<_>>();
+        .map(|entry| entry.map(|entry| entry.path()))
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|source| Failure::Read {
+            path: directory.to_path_buf(),
+            source,
+        })?;
     listing.sort();
     for path in listing {
         if path.is_dir() {
@@ -70,7 +144,7 @@ fn files(directory: &Path, suffix: &str, result: &mut Vec<PathBuf>) {
                 .extension()
                 .is_some_and(|extension| extension == "runfiles")
             {
-                files(&path, suffix, result);
+                walk(&path, suffix, result)?;
             }
         } else if path
             .file_name()
@@ -80,67 +154,62 @@ fn files(directory: &Path, suffix: &str, result: &mut Vec<PathBuf>) {
             result.push(path);
         }
     }
+    Ok(())
 }
 
-fn label(bin: &Path, path: &Path, suffix: &str) -> (String, String) {
-    let relative = path.strip_prefix(bin).unwrap().to_str().unwrap().to_owned();
-    let (package, file) = relative.rsplit_once('/').unwrap();
+fn label(bin: &Path, path: &Path, suffix: &str) -> Result<(String, String), Failure> {
+    let relative = path
+        .strip_prefix(bin)
+        .ok()
+        .and_then(Path::to_str)
+        .ok_or_else(|| malformed(path, "names no package under bin"))?;
+    let (package, file) = relative
+        .rsplit_once('/')
+        .ok_or_else(|| malformed(path, "names no package under bin"))?;
     let target = file.trim_end_matches(suffix);
-    let group = package.split('/').next().unwrap().to_owned();
-    (format!("{package}:{target}"), group)
+    let group = package.split('/').next().unwrap_or(package).to_owned();
+    Ok((format!("{package}:{target}"), group))
 }
 
-fn case(bin: &Path, entry: &mut Vec<Entry>) {
+fn case(bin: &Path, entry: &mut Vec<Entry>) -> Result<(), Failure> {
     let mut path = Vec::new();
     for package in ["program", "theorem", "library"] {
-        files(&bin.join(package), ".case.case.json", &mut path);
+        walk(&bin.join(package), ".case.case.json", &mut path)?;
     }
     for file in path {
-        let Some(case) = std::fs::read_to_string(&file)
-            .ok()
-            .and_then(|text| serde_json::from_str::<Case>(&text).ok())
-        else {
-            continue;
-        };
+        let case =
+            serde_json::from_str::<Case>(&read(&file)?).map_err(|error| malformed(&file, error))?;
         let assembled = bin.join(case.program.trim_start_matches("_main/"));
-        let Some(mut program) = std::fs::read_to_string(assembled)
-            .ok()
-            .and_then(|text| Program::read(&text).ok())
-        else {
-            continue;
-        };
-        let Some(source) = parse(&case.source) else {
-            continue;
-        };
+        let mut program =
+            Program::read(&read(&assembled)?).map_err(|error| malformed(&assembled, error))?;
+        let source =
+            frontend::lowering::parse(&case.source).map_err(|error| malformed(&file, error))?;
         program.append(source);
-        let (name, group) = label(bin, &file, ".case.case.json");
+        let (name, group) = label(bin, &file, ".case.case.json")?;
         entry.push(Entry {
             name,
             group,
             program,
         });
     }
+    Ok(())
 }
 
-fn binary(bin: &Path, entry: &mut Vec<Entry>) {
+fn binary(bin: &Path, entry: &mut Vec<Entry>) -> Result<(), Failure> {
     let mut path = Vec::new();
     for package in ["program", "theorem", "library"] {
-        files(&bin.join(package), ".program.json", &mut path);
+        walk(&bin.join(package), ".program.json", &mut path)?;
     }
     for file in path {
-        let Some(program) = std::fs::read_to_string(&file)
-            .ok()
-            .and_then(|text| Program::read(&text).ok())
-        else {
-            continue;
-        };
-        let (name, group) = label(bin, &file, ".program.json");
+        let program = Program::read(&read(&file)?).map_err(|error| malformed(&file, error))?;
+        let (name, group) = label(bin, &file, ".program.json")?;
         entry.push(Entry {
             name,
             group,
             program,
         });
     }
+    Ok(())
 }
 
 fn escape(text: &str, byte: &[u8], mut cursor: usize, value: &mut Vec<u8>) -> usize {
@@ -254,14 +323,19 @@ fn literal(text: &str) -> Vec<String> {
     result
 }
 
-fn language(root: &Path, entry: &mut Vec<Entry>) {
+fn language(root: &Path, entry: &mut Vec<Entry>) -> Result<(), Failure> {
     let mut path = Vec::new();
-    files(&root.join("language/test"), ".rs", &mut path);
+    walk(&root.join("language/test"), ".rs", &mut path)?;
     for file in path {
-        let text = std::fs::read_to_string(&file).unwrap();
-        let stem = file.file_stem().unwrap().to_str().unwrap().to_owned();
+        let text = read(&file)?;
+        let stem = file
+            .file_stem()
+            .and_then(|stem| stem.to_str())
+            .ok_or_else(|| malformed(&file, "has no name"))?
+            .to_owned();
         for (index, value) in literal(&text).into_iter().enumerate() {
-            let Some(program) = parse(&value) else {
+            // A test's string literals are programs only some of the time.
+            let Ok(program) = frontend::lowering::parse(&value) else {
                 continue;
             };
             if program.rule.is_empty() || (program.initial.is_empty() && program.scope.is_empty()) {
@@ -274,6 +348,7 @@ fn language(root: &Path, entry: &mut Vec<Entry>) {
             });
         }
     }
+    Ok(())
 }
 
 #[derive(Deserialize)]
@@ -282,9 +357,10 @@ struct Reference {
     program: Program,
 }
 
-fn reference(root: &Path, entry: &mut Vec<Entry>) {
-    let text = std::fs::read_to_string(root.join("language/test/reference.json")).unwrap();
-    let case: Vec<Reference> = serde_json::from_str(&text).unwrap();
+fn reference(root: &Path, entry: &mut Vec<Entry>) -> Result<(), Failure> {
+    let path = root.join("language/test/reference.json");
+    let case: Vec<Reference> =
+        serde_json::from_str(&read(&path)?).map_err(|error| malformed(&path, error))?;
     for value in case {
         entry.push(Entry {
             name: format!("language/reference:{}", value.name),
@@ -292,34 +368,59 @@ fn reference(root: &Path, entry: &mut Vec<Entry>) {
             program: value.program,
         });
     }
+    Ok(())
 }
 
-fn synthetic(entry: &mut Vec<Entry>) {
+fn synthetic(entry: &mut Vec<Entry>) -> Result<(), Failure> {
+    let family = |name: &str, text: String| {
+        frontend::lowering::parse(&text).map_err(|error| Failure::Parse {
+            origin: name.to_owned(),
+            message: error.to_string(),
+        })
+    };
     for count in [2, 4, 6, 8] {
+        let name = format!("synthetic:dial.{count}");
         entry.push(Entry {
-            name: format!("synthetic:dial.{count}"),
+            program: family(&name, photonic::family::dial(count))?,
+            name,
             group: "synthetic".into(),
-            program: parse(&photonic::family::dial(count)).unwrap(),
         });
     }
     for count in [2, 3, 4, 5] {
+        let name = format!("synthetic:diner.{count}");
         entry.push(Entry {
-            name: format!("synthetic:diner.{count}"),
+            program: family(&name, photonic::family::diner(count))?,
+            name,
             group: "synthetic".into(),
-            program: parse(&photonic::family::diner(count)).unwrap(),
         });
     }
+    Ok(())
 }
 
-pub fn gather(root: &Path, bin: &Path) -> Vec<Entry> {
+fn assembled(bin: &Path) -> Result<Vec<Entry>, Failure> {
     let mut entry = Vec::new();
-    book(root, &mut entry);
-    case(bin, &mut entry);
-    binary(bin, &mut entry);
-    language(root, &mut entry);
-    reference(root, &mut entry);
-    synthetic(&mut entry);
+    case(bin, &mut entry)?;
+    binary(bin, &mut entry)?;
+    if entry.is_empty() {
+        return Err(Failure::Empty {
+            bin: bin.to_path_buf(),
+        });
+    }
+    Ok(entry)
+}
+
+pub fn gather(root: &Path, bin: &Path) -> Result<Vec<Entry>, Failure> {
+    let mut entry = Vec::new();
+    book(root, &mut entry)?;
+    entry.extend(assembled(bin)?);
+    language(root, &mut entry)?;
+    reference(root, &mut entry)?;
+    synthetic(&mut entry)?;
     let mut seen = HashSet::new();
     entry.retain(|value| seen.insert(value.program.canonical()));
-    entry
+    Ok(entry)
 }
+
+#[cfg(test)]
+#[path = "test/corpus.rs"]
+mod test;
