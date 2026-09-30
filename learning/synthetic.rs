@@ -59,13 +59,20 @@ fn run(program: &Flat, input: &Configuration, limit: &Limit) -> Option<(Observat
     Some((exploration.terminal[0].observation(), work))
 }
 
-pub fn generate(generator: &mut Generator, name: String, limit: &Limit, rule: usize) -> Task {
-    // Past a deadline every exploration overflows, and generation would retry forever.
-    let limit = &Limit {
-        deadline: None,
-        ..*limit
-    };
-    loop {
+// Programs of up to eight rules yielded a behavior within a few hundred candidates in every trial,
+// so a rule count that yields none within this many is treated as barren.
+const CANDIDATE: usize = 1_000;
+
+pub fn generate(
+    generator: &mut Generator,
+    name: String,
+    limit: &Limit,
+    rule: usize,
+) -> Option<Task> {
+    for _ in 0..CANDIDATE {
+        if limit.expired() {
+            return None;
+        }
         let atom = 4 + generator.below(3);
         let candidate = program(generator, atom, rule);
         let compiled = Flat::new(&candidate).expect("synthetic programs are flat");
@@ -95,7 +102,7 @@ pub fn generate(generator: &mut Generator, name: String, limit: &Limit, rule: us
             continue;
         }
         let holdout = example.split_off(10);
-        return Task {
+        return Some(Task {
             name,
             vocabulary: Vocabulary::try_from(
                 NAME[..atom]
@@ -108,6 +115,7 @@ pub fn generate(generator: &mut Generator, name: String, limit: &Limit, rule: us
             holdout,
             reference: Some(candidate),
             goal: None,
-        };
+        });
     }
+    None
 }

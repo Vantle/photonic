@@ -4,7 +4,11 @@ use crate::import::{Source, define, import};
 use crate::objective::Setting;
 use crate::pool::{admit, grow};
 use crate::problem::Failure;
+use crate::synthetic::generate;
 use crate::task::Task;
+use machine::limit::Limit;
+use random::Generator;
+use std::time::Instant;
 use translation::vocabulary::Vocabulary;
 
 fn source(text: &str) -> Source {
@@ -83,4 +87,17 @@ fn fresh() {
         first.last().map(|task| &task.example),
         second.last().map(|task| &task.example)
     );
+}
+
+#[test]
+fn barren() {
+    let limit = Setting::default().limit;
+    let mut generator = Generator::new(3);
+    assert!(generate(&mut generator, "rule.2".to_owned(), &limit, 2).is_some());
+    assert!(generate(&mut generator, "rule.0".to_owned(), &limit, 0).is_none());
+    let passed = Limit {
+        deadline: Some(Instant::now()),
+        ..limit
+    };
+    assert!(generate(&mut generator, "late".to_owned(), &passed, 2).is_none());
 }

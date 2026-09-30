@@ -32,6 +32,7 @@ pub fn run(argument: Course) -> miette::Result<()> {
         .duration
         .and_then(|duration| Instant::now().checked_add(duration));
     let expired = || deadline.is_some_and(|deadline| Instant::now() >= deadline);
+    let breeding = objective.until(deadline);
     let mut state: Curriculum = home
         .load(home::CURRICULUM)
         .into_diagnostic()?
@@ -44,7 +45,15 @@ pub fn run(argument: Course) -> miette::Result<()> {
             && !expired()
         {
             tried += 1;
-            let task = state.breed(level, seed, &objective).into_diagnostic()?;
+            let Some(task) = state.breed(level, seed, &breeding).into_diagnostic()? else {
+                home.save(home::CURRICULUM, &state).into_diagnostic()?;
+                if !expired() {
+                    line(&format!(
+                        "level {level}: random programs of {level} rules yielded no behavior to examine"
+                    ));
+                }
+                return Ok(());
+            };
             let time = remaining(deadline, Duration::from_secs(argument.enumerate));
             if let Some(exam) = grade(task, &objective, time).into_diagnostic()? {
                 state.exam(level).push(exam);
@@ -61,13 +70,13 @@ pub fn run(argument: Course) -> miette::Result<()> {
             ));
             break;
         }
-        let known = pool(&home, SYNTHETIC, 0, seed, &objective)?;
+        let known = pool(&home, SYNTHETIC, 0, seed, &breeding)?;
         let have = known
             .iter()
             .filter(|task| task.name.starts_with(&prefix(level)))
             .count();
         let fresh = (have..argument.fresh)
-            .map(|_| state.breed(level, seed, &objective))
+            .map_while(|_| state.breed(level, seed, &breeding).transpose())
             .collect::<Result<Vec<_>, _>>()
             .into_diagnostic()?;
         let named = fresh

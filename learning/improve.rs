@@ -32,19 +32,14 @@ pub fn run(argument: Improve) -> miette::Result<()> {
         if deadline.is_some_and(|deadline| Instant::now() >= deadline) {
             break;
         }
-        let known = pool(
-            &home,
-            SYNTHETIC,
-            0,
-            argument.session.seed,
-            &setting.play.objective,
-        )?;
+        let breeding = setting.play.objective.until(deadline);
+        let known = pool(&home, SYNTHETIC, 0, argument.session.seed, &breeding)?;
         let before = known.len();
         let grown = pool::grow(
             known,
             argument.fresh,
             combine(argument.session.seed, round as u64),
-            &setting.play.objective,
+            &breeding,
         )
         .into_diagnostic()?;
         let fresh = grown[before..]

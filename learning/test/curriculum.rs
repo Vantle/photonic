@@ -2,19 +2,22 @@ use crate::curriculum::{Curriculum, focus, grade, prefix};
 use crate::objective::Setting;
 use crate::solution::Failure;
 use crate::task::{Goal, Task};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 #[test]
 fn breed() {
     let setting = Setting::default();
     let mut curriculum = Curriculum::default();
-    let first = curriculum.breed(1, 7, &setting).unwrap();
-    let second = curriculum.breed(2, 7, &setting).unwrap();
+    let first = curriculum.breed(1, 7, &setting).unwrap().unwrap();
+    let second = curriculum.breed(2, 7, &setting).unwrap().unwrap();
     assert_eq!(first.name, format!("{}0", prefix(1)));
     assert_eq!(second.name, format!("{}1", prefix(2)));
     assert!(first.reference.is_none() && second.reference.is_none());
     assert_eq!(curriculum.bred, 2);
-    let exam = grade(first.clone(), &setting, Duration::from_secs(30))
+    let passed = setting.until(Some(Instant::now()));
+    assert_eq!(curriculum.breed(1, 7, &passed), Ok(None));
+    assert_eq!(curriculum.bred, 3);
+    let exam = grade(first.clone(), &setting, Duration::MAX)
         .unwrap()
         .unwrap();
     assert!(exam.cost.is_finite() && exam.size > 0);

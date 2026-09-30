@@ -73,7 +73,7 @@ impl Setting {
         }
     }
 
-    pub(crate) fn until(&self, deadline: Option<Instant>) -> Self {
+    pub fn until(&self, deadline: Option<Instant>) -> Self {
         Self {
             limit: Limit {
                 deadline,
