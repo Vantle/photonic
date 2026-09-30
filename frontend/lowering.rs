@@ -40,40 +40,24 @@ pub fn read<Lowered>(
 }
 
 pub fn parse(source: &str) -> Result<Program, Failure> {
-    let tree = crate::parser::parse(source)?;
-    Reader {
-        tree: &tree,
-        budget: allowance(source),
-    }
-    .program()
+    Reader::new(&crate::parser::parse(source)?).program()
 }
 
 pub fn library(source: &str) -> Result<Library, Failure> {
-    let tree = crate::parser::parse(source)?;
-    let mut reader = Reader {
-        tree: &tree,
-        budget: allowance(source),
-    };
-    let mut rule = Vec::new();
-    for term in tree.child(reader.first(0)) {
-        for member in reader.term(term)? {
-            let Member::Rule(definition) = member else {
-                let span = reader.span(term);
-                return Err(Failure::Library {
-                    span: (span.start, span.len()).into(),
-                });
-            };
-            rule.extend(definition);
-        }
-    }
-    Ok(Library { rule })
+    Reader::new(&crate::parser::parse(source)?).library()
 }
 
 fn allowance(source: &str) -> usize {
     BUDGET.saturating_add(source.len().saturating_mul(RATIO))
 }
 
-impl<'tree> Reader<'tree, '_> {
+impl<'tree, 'source> Reader<'tree, 'source> {
+    fn new(tree: &'tree Tree<'source>) -> Self {
+        Self {
+            tree,
+            budget: allowance(tree.source()),
+        }
+    }
     fn child(&self, index: usize) -> Vec<usize> {
         self.tree.child(index).collect()
     }
@@ -108,6 +92,22 @@ impl<'tree> Reader<'tree, '_> {
             }
         }
         Ok(program)
+    }
+
+    fn library(&mut self) -> Result<Library, Failure> {
+        let mut rule = Vec::new();
+        for term in self.tree.child(self.first(0)) {
+            for member in self.term(term)? {
+                let Member::Rule(definition) = member else {
+                    let span = self.span(term);
+                    return Err(Failure::Library {
+                        span: (span.start, span.len()).into(),
+                    });
+                };
+                rule.extend(definition);
+            }
+        }
+        Ok(Library { rule })
     }
 
     fn list(&mut self, index: usize) -> Result<Vec<Member>, Failure> {
