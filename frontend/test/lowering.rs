@@ -1,6 +1,6 @@
 use frontend::failure::Failure;
 use frontend::lowering;
-use frontend::source::{Output, Program, Value};
+use frontend::source::{Library, Output, Program, Value};
 use miette::Diagnostic;
 
 fn atom(value: &[&str]) -> Vec<Value> {
@@ -613,6 +613,56 @@ fn spelling() {
         }
     }
     assert!(Program::read(r#"{"initial":[["\u00e9", "e\u0301", "👨‍👩‍👧"]]}"#).is_ok());
+}
+
+#[test]
+fn library() {
+    let library = lowering::library("[A] [B], [C] D,\n[[E] F] ().([G] H)").unwrap();
+    assert_eq!(library.rule.len(), 4);
+    for (source, offset, length) in [
+        ("A, [A] B", 0, 1),
+        ("[A] B, (X, [X] Y)", 7, 10),
+        ("[A] B,\n  Seed.(C, D), (E)", 9, 11),
+        ("[A] B, ()", 7, 2),
+    ] {
+        let Err(Failure::Library { span }) = lowering::library(source) else {
+            panic!("expected {source} to be refused as a library");
+        };
+        assert_eq!((span.offset(), span.len()), (offset, length), "{source}");
+    }
+    assert_eq!(
+        lowering::library("X").unwrap_err().to_string(),
+        "this library lists a coherence or scope; a library holds only rules"
+    );
+    assert!(matches!(
+        lowering::library("[A] B C"),
+        Err(Failure::Syntax { .. })
+    ));
+    let rule = r#"{"input":[["A"]],"output":[["B"]]}"#;
+    let library =
+        Library::read(&format!(r#"{{"initial":[],"rule":[{rule}],"scope":[]}}"#)).unwrap();
+    assert_eq!(library.rule, lowering::parse("[A] B").unwrap().rule);
+    for (text, offset) in [
+        (format!(r#"{{"rule":[{rule}],"initial":[[],["A"]]}}"#), 57),
+        (
+            format!(
+                r#"{{"rule":[{rule}],"scope":[{{"initial":[[]],"rule":[{rule}]}}],"initial":[["B"]]}}"#
+            ),
+            54,
+        ),
+    ] {
+        let Err(Failure::Library { span }) = Library::read(&text) else {
+            panic!("expected {text} to be refused as a library");
+        };
+        assert_eq!(span.offset(), offset, "{text}");
+    }
+    assert!(matches!(
+        Library::read(r#"{"rule":[{"input":[["A"]]}],"initial":[["B"]]}"#),
+        Err(Failure::Json { .. })
+    ));
+    let mut program = Program::default();
+    program.declare(lowering::library("[A] B").unwrap());
+    assert_eq!(program, lowering::parse("[A] B").unwrap());
 }
 
 #[test]

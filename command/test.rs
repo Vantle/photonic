@@ -593,13 +593,16 @@ fn library() {
         &["--library", library.to_str().unwrap(), "--json"],
     );
     assert_eq!(report(&output)["closed"], true);
-    let invalid = fixture.write("invalid.particle", "Unexpected");
+    let invalid = fixture.write("invalid.particle", "[A] B,\n  Unexpected");
     let output = execute("run", &path, &["--library", invalid.to_str().unwrap()]);
     assert!(!output.status.success());
+    let error = String::from_utf8_lossy(&output.stderr);
+    assert!(error.starts_with("error[library]: "), "{error}");
     assert!(
-        String::from_utf8_lossy(&output.stderr).contains("error[library]:"),
-        "{}",
-        String::from_utf8_lossy(&output.stderr)
+        error.contains(
+            "invalid.particle:2:3: this library lists a coherence or scope; a library holds only rules"
+        ),
+        "{error}"
     );
     let malformed = fixture.write("malformed.particle", "[");
     let output = execute("run", &path, &["--library", malformed.to_str().unwrap()]);

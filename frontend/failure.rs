@@ -30,9 +30,12 @@ pub enum Failure {
         #[label("expanding this exceeds the frontend budget")]
         span: SourceSpan,
     },
-    #[error("library {library} contains initial coherences or scopes; supply declarations only")]
+    #[error("this library lists a coherence or scope; a library holds only rules")]
     #[diagnostic(code(photonic::library))]
-    Library { library: String },
+    Library {
+        #[label("a library holds only rules")]
+        span: SourceSpan,
+    },
     #[error("invalid Photonic program: {message}")]
     #[diagnostic(code(photonic::json))]
     Json {

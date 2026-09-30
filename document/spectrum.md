@@ -218,7 +218,7 @@ A failure carries a `code`, a `message` and, when it points into text, a `locati
 | `request` | The request is malformed: not an object, an unknown field, no program, a program and a key together, a key with a mode, engine, budget or goal, a goal outside path mode, `laser` in path mode, `interpreter` in plain mode, or `metal` outside it. |
 | `file` | A file cannot be read, or is not UTF-8 text. |
 | `source` | A program does not parse or lower; `check` reports it as a diagnostic instead. |
-| `library` | A library does not parse or holds more than declarations; `check` reports it as a diagnostic instead. |
+| `library` | A library does not parse, or lists a coherence or scope where a library holds only rules; `check` reports it as a diagnostic instead, located at the first coherence or scope it lists. |
 | `target` | A goal or an exact target does not parse. |
 | `pattern` | A pattern is empty or does not parse, mixes coherences or scopes with rules, or is the wrong kind for the question. |
 | `handle` | A handle is malformed, names nothing in the exploration, or names a kind the verb does not explain. |

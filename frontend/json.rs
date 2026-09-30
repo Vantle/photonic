@@ -14,6 +14,7 @@ use crate::source;
 #[derive(Clone, Copy, Eq, PartialEq)]
 enum Role {
     Program,
+    Library,
     Scope,
 }
 
@@ -46,23 +47,35 @@ struct Value {
 #[derive(Clone, Copy)]
 struct List<Seed>(Seed);
 
+#[derive(Clone, Copy)]
+struct Refusal;
+
+const LIBRARY: &str = "a library holds only rules";
+
 pub(crate) fn program(text: &str) -> Result<source::Program, Failure> {
-    read(text).map_err(|error| Failure::Json {
+    read(text, Role::Program).map_err(|error| Failure::Json {
         message: message(&error),
         span: span(text, &error),
     })
 }
 
+// A library is read as a program first, so a malformed one is refused as JSON; one that lists a
+// coherence or scope is read again only to find the first it lists.
+pub(crate) fn library(text: &str) -> Result<source::Library, Failure> {
+    let program = program(text)?;
+    if program.initial.is_empty() && program.scope.is_empty() {
+        return Ok(source::Library { rule: program.rule });
+    }
+    let span = read(text, Role::Library).map_or_else(|error| span(text, &error), |_| (0, 0).into());
+    Err(Failure::Library { span })
+}
+
 // Editors on Windows begin a file with a byte order mark, which RFC 8259 lets a reader ignore.
-fn read(text: &str) -> Result<source::Program, serde_json::Error> {
+fn read(text: &str, role: Role) -> Result<source::Program, serde_json::Error> {
     let body = text.strip_prefix('\u{FEFF}').unwrap_or(text);
     let mut deserializer = serde_json::Deserializer::from_str(body);
     deserializer.disable_recursion_limit();
-    let program = Program {
-        depth: 0,
-        role: Role::Program,
-    }
-    .deserialize(&mut deserializer)?;
+    let program = Program { depth: 0, role }.deserialize(&mut deserializer)?;
     deserializer.end()?;
     Ok(program)
 }
@@ -123,7 +136,7 @@ impl<'de> Visitor<'de> for Program {
     fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.role {
             Role::Scope => formatter.write_str("a scope, an object with initial, rule and scope"),
-            Role::Program => {
+            Role::Program | Role::Library => {
                 formatter.write_str("a program, an object with initial, rule and scope")
             }
         }
@@ -146,6 +159,9 @@ impl<'de> Visitor<'de> for Program {
                 }
                 "rule" if rule.is_some() => return Err(de::Error::duplicate_field("rule")),
                 "scope" if scope.is_some() => return Err(de::Error::duplicate_field("scope")),
+                "initial" | "scope" if self.role == Role::Library => {
+                    map.next_value_seed(List(Refusal))?;
+                }
                 "initial" => initial = Some(map.next_value_seed(particle)?),
                 "rule" => {
                     rule = Some(map.next_value_seed(List(Definition { depth: self.depth }))?);
@@ -344,5 +360,29 @@ impl<'de, Seed: DeserializeSeed<'de> + Copy> Visitor<'de> for List<Seed> {
             result.push(item);
         }
         Ok(result)
+    }
+}
+
+impl<'de> DeserializeSeed<'de> for Refusal {
+    type Value = ();
+
+    fn deserialize<D: Deserializer<'de>>(self, deserializer: D) -> Result<Self::Value, D::Error> {
+        deserializer.deserialize_any(self)
+    }
+}
+
+impl<'de> Visitor<'de> for Refusal {
+    type Value = ();
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str(LIBRARY)
+    }
+
+    fn visit_seq<Sequence: SeqAccess<'de>>(self, _: Sequence) -> Result<(), Sequence::Error> {
+        Err(de::Error::custom(LIBRARY))
+    }
+
+    fn visit_map<Map: MapAccess<'de>>(self, _: Map) -> Result<(), Map::Error> {
+        Err(de::Error::custom(LIBRARY))
     }
 }

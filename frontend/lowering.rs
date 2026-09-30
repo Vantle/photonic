@@ -4,7 +4,7 @@ use miette::NamedSource;
 
 use crate::failure::Failure;
 use crate::partition::Partition;
-use crate::source::{Definition, Output, Program, Value};
+use crate::source::{Definition, Library, Output, Program, Value};
 use crate::syntax::{Kind, Tree};
 
 const BUDGET: usize = 1_000_000;
@@ -24,14 +24,17 @@ struct Reader<'tree, 'source> {
     budget: usize,
 }
 
-pub fn read(path: &std::path::Path) -> miette::Result<Program> {
+pub fn read<Lowered>(
+    path: &std::path::Path,
+    lower: fn(&str) -> Result<Lowered, Failure>,
+) -> miette::Result<Lowered> {
     let name = path.display().to_string();
     let byte = std::fs::read(path).map_err(|error| Failure::Read {
         path: name.clone(),
         error,
     })?;
     let source = crate::encoding::decode(&name, byte)?;
-    parse(&source).map_err(|failure| {
+    lower(&source).map_err(|failure| {
         miette::Report::new(failure).with_source_code(NamedSource::new(name, source))
     })
 }
@@ -43,6 +46,27 @@ pub fn parse(source: &str) -> Result<Program, Failure> {
         budget: allowance(source),
     }
     .program()
+}
+
+pub fn library(source: &str) -> Result<Library, Failure> {
+    let tree = crate::parser::parse(source)?;
+    let mut reader = Reader {
+        tree: &tree,
+        budget: allowance(source),
+    };
+    let mut rule = Vec::new();
+    for &term in tree.child(tree.child(0)[0]) {
+        for member in reader.term(term)? {
+            let Member::Rule(definition) = member else {
+                let span = reader.span(term);
+                return Err(Failure::Library {
+                    span: (span.start, span.len()).into(),
+                });
+            };
+            rule.extend(definition);
+        }
+    }
+    Ok(Library { rule })
 }
 
 fn allowance(source: &str) -> usize {

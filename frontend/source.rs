@@ -3,11 +3,22 @@ use serde::Serialize;
 use crate::failure::Failure;
 
 #[derive(Clone, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+pub struct Library {
+    pub rule: Vec<Definition>,
+}
+
+#[derive(Clone, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct Program {
     pub initial: Vec<Vec<Value>>,
     pub rule: Vec<Definition>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub scope: Vec<Self>,
+}
+
+impl Library {
+    pub fn read(text: &str) -> Result<Self, Failure> {
+        crate::json::library(text)
+    }
 }
 
 impl Program {
@@ -29,14 +40,8 @@ impl Program {
         self.scope.extend(program.scope);
     }
 
-    pub fn declare(&mut self, library: Self, name: impl std::fmt::Display) -> Result<(), Failure> {
-        if !library.initial.is_empty() || !library.scope.is_empty() {
-            return Err(Failure::Library {
-                library: name.to_string(),
-            });
-        }
+    pub fn declare(&mut self, library: Library) {
         self.rule.extend(library.rule);
-        Ok(())
     }
 
     pub fn preserve(&mut self, program: &Self) {
