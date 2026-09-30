@@ -137,7 +137,20 @@ fn format() {
     let output = execute("run", &path, &[]);
     assert!(!output.status.success());
     assert!(
-        String::from_utf8_lossy(&output.stderr).contains("broken.json: not an assembled program")
+        String::from_utf8_lossy(&output.stderr)
+            .contains("broken.json:1:1: invalid Photonic program: EOF while parsing an object")
+    );
+    let path = fixture.write(
+        "named.json",
+        "{\"initial\": [[\"A\"]],\n \"rule\": [{\"name\": \"[B] C\", \"input\": [[\"A\"]], \"output\": [[\"X\"]]}]}",
+    );
+    let output = execute("check", &path, &["--json"]);
+    let diagnostic = &serde_json::from_slice::<serde_json::Value>(&output.stdout).unwrap()["answer"]
+        ["diagnostic"][0];
+    assert_eq!(diagnostic["code"], "json");
+    assert_eq!(
+        diagnostic["location"],
+        serde_json::json!({"file": path.to_str().unwrap(), "line": 2, "column": 17, "length": 1})
     );
 }
 

@@ -33,6 +33,13 @@ pub enum Failure {
     #[error("library {library} contains initial coherences or scopes; supply declarations only")]
     #[diagnostic(code(photonic::library))]
     Library { library: String },
+    #[error("invalid Photonic program: {message}")]
+    #[diagnostic(code(photonic::json))]
+    Json {
+        message: String,
+        #[label("{message}")]
+        span: SourceSpan,
+    },
     #[error("could not read {path}")]
     #[diagnostic(code(photonic::read))]
     Read {

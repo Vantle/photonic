@@ -234,6 +234,7 @@ A failure carries a `code`, a `message` and, when it points into text, a `locati
 | `input` | A rule's input is a scope; a rule is matched without parentheses, as in `[[A] B]`. |
 | `expansion` | Distributing joins and partitioning brackets would build more than the frontend's budget of 1,000,000 units and 8 more for each byte of the source. |
 | `library` | A library lists a coherence or scope; a library holds only rules. |
+| `json` | A `.json` program is not a program: an object for each program, scope and rule, an array for each particle, a string for each atom as text spells it, and no deeper than text can nest. The message says what was expected there. |
 | `read` | A file cannot be read. |
 | `encoding` | A file is not UTF-8 text; save it as UTF-8. |
 

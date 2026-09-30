@@ -32,9 +32,7 @@ pub(crate) fn lower(file: &str, text: &str, code: Code) -> Result<Program, Failu
         .extension()
         .is_some_and(|extension| extension.eq_ignore_ascii_case("json"))
     {
-        return Program::read(text).map_err(|error| {
-            Failure::new(code, format!("{file}: not an assembled program: {error}"))
-        });
+        return Program::read(text).map_err(|error| Failure::located(code, &error, file, text));
     }
     frontend::lowering::parse(text).map_err(|error| Failure::located(code, &error, file, text))
 }
