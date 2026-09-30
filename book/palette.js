@@ -165,4 +165,7 @@
         }
     });
     document.getElementById('search')?.addEventListener('click', () => open());
+
+    const apple = /mac|iphone|ipad/i.test(navigator.userAgentData?.platform ?? navigator.platform ?? '');
+    if (!apple) document.querySelectorAll('kbd[data-command]').forEach(key => { key.textContent = key.textContent.replace('⌘', 'Ctrl ').trim(); });
 })();
