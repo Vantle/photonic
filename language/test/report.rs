@@ -138,3 +138,35 @@ fn catalog() {
         }
     }
 }
+
+// The interpreter's report keeps the view each event rests on and the views its derivation passes
+// through, and no other view it derived.
+#[test]
+fn cited() {
+    let mut inferred = 0;
+    for source in [
+        "A, [A] B, [B] C",
+        "A, K, [A] B, [[A] B] C, [C, K] D",
+        "A.X, [A] (B, C), [X, X] X, [X.B.C] Done",
+        "Seed, [Seed] Seed.Seed, [Seed] (A, [A] A.A)",
+    ] {
+        let mut runtime = Runtime::new(&parse(source).unwrap());
+        runtime.run(20_000, Limit::default());
+        let snapshot = runtime.snapshot();
+        let mut cited = std::collections::BTreeSet::new();
+        for (index, event) in snapshot.event.iter().enumerate() {
+            let mut cursor = Some(event.evidence);
+            while let Some(view) = cursor.filter(|&view| cited.insert(view)) {
+                cursor = snapshot.view(view).origin.map(|origin| origin.view);
+            }
+            inferred += usize::from(!snapshot.deduction(index).is_empty());
+        }
+        let kept = snapshot
+            .view
+            .iter()
+            .map(|view| view.id)
+            .collect::<std::collections::BTreeSet<_>>();
+        assert_eq!(kept, cited, "{source}");
+    }
+    assert!(inferred > 0);
+}
