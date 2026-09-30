@@ -34,15 +34,32 @@ Run `bazel run //:format` from any directory to format Rust and Starlark, or app
 
 Starlark files retain the explicit `//:build` inventory: Bazel does not expose BUILD files or transitive `.bzl` loads as source `File` inputs to aspects. Keep each package’s `build` filegroup up to date and add it to `//:build`. These declarations keep Buildifier sandboxed, cacheable, and independent of filesystem scanning. The lint policy applies to repository code; dependency repositories keep their upstream policy.
 
-The browser check runs locally on ARM64 macOS. The [Buildkite pipeline](automation.md) runs build and test jobs on free hosted x86-64 Linux agents, and a GitHub workflow builds and publishes the webbook. Other native platforms remain supported locally but are not exercised by this CI configuration. The platform definitions in `platform/` name each supported target for cross-builds, such as `--platforms=//platform:x86_64-unknown-linux-gnu`.
-
-[Bazel’s disk action cache](https://bazel.build/remote/caching#disk-cache) lives at `~/.cache/photonic/bazel`. Idle garbage collection evicts entries older than 14 days and limits storage to 20 GB; this is an idle cleanup policy, not a hard instantaneous quota. Input-change checking protects cache uploads. Buildkite hooks place the action, repository, and Bazelisk caches outside the checkout at `/tmp/photonic`. Free hosted agents have no persistent cache volume, so each job starts with an empty cache. Fork pull requests remain disabled to conserve the hosted allowance.
+[Bazel’s disk action cache](https://bazel.build/remote/caching#disk-cache) lives at `~/.cache/photonic/bazel`. Idle garbage collection evicts entries older than 14 days and limits storage to 20 GB; this is an idle cleanup policy, not a hard instantaneous quota. Input-change checking protects cache uploads. Buildkite hooks place the action, repository, and Bazelisk caches outside the checkout at `/tmp/photonic`. Free hosted agents have no persistent cache volume, so each job starts with an empty cache. Buildkite skips pull requests from forks to conserve its hosted allowance; the Verify workflow on GitHub checks them.
 
 Bazel already retains its analysis graph, caches test results, schedules parallel actions, and reuses sandbox directories. Explicit Rust pipelining was measured at 36.118 seconds, slower than the 33.270-second comparison build, so it remains disabled. Retain measured defaults rather than adding flags solely because they are experimental. Keep the Bazel server running and avoid `bazel clean` during ordinary editing. A disk cache helps recover previous outputs after reverting an edit or switching branches; it does not make a new compiler invocation free.
 
-`MODULE.bazel.lock` is checked strictly: `.bazelrc` sets `--lockfile_mode=error`, so after changing a module dependency run a command with `--config=refresh` to update the lock file. `bazel run //:update` runs the pinned `cargo update` from the workspace root; after a `Cargo.toml` change, `bazel run //:update -- --workspace` re-locks the manifest's own entries without raising other dependencies. `bazel run //:analyze.rust` writes `rust-project.json` for editors. `bazel run //:install` builds the `photonic` command optimized, whatever the command line's compilation mode, and copies it to `~/.local/bin`, or to `~/bin` or `~/.bin` when one of those is already on `PATH`, or to a directory passed after `--`. It runs the new copy with `--version` before it replaces an installed command.
+`MODULE.bazel.lock` is checked strictly: `.bazelrc` sets `--lockfile_mode=error`, so after changing a module dependency run a command with `--config=refresh` to update the lock file. A build refreshes only the extensions it evaluates, and a change to the module itself, such as its version, changes every extension's recorded usage, so refresh all of them with `bazel mod deps --lockfile_mode=update`. `bazel run //:update` runs the pinned `cargo update` from the workspace root; after a `Cargo.toml` change, `bazel run //:update -- --workspace` re-locks the manifest's own entries without raising other dependencies. `bazel run //:analyze.rust` writes `rust-project.json` for editors. `bazel run //:install` builds the `photonic` command optimized, whatever the command line's compilation mode, and copies it to `~/.local/bin`, or to `~/bin` or `~/.bin` when one of those is already on `PATH`, or to a directory passed after `--`. It runs the new copy with `--version` before it replaces an installed command, moves a running command aside on Windows, which refuses to overwrite it, and names an earlier `photonic` on `PATH` that would still run instead.
 
 Put machine-specific overrides and remote service endpoints in ignored `user.bazelrc`. `--config=remote` enables remote-only execution with minimal output downloads and no local fallback; a configured executor is required. No external service is needed for local caching.
+
+## Platforms
+
+`platform/` defines the six supported targets. Each builds and tests natively, and any host cross-builds the others with `--platforms=//platform:<target>`.
+
+| Target | System | Minimum | Tested on every commit by |
+| --- | --- | --- | --- |
+| `aarch64-apple-darwin` | macOS on Apple silicon | macOS 13 | the Verify workflow, with the browser check |
+| `x86_64-apple-darwin` | macOS on Intel | macOS 13 | the Verify workflow |
+| `aarch64-unknown-linux-gnu` | Linux on ARM64 | glibc 2.28 | the Verify workflow |
+| `x86_64-unknown-linux-gnu` | Linux on x86-64 | glibc 2.28 | Buildkite and the Verify workflow |
+| `aarch64-pc-windows-gnullvm` | Windows on ARM64 | Windows 10 | the Verify workflow |
+| `x86_64-pc-windows-gnullvm` | Windows on x86-64 | Windows 10 | the Verify workflow |
+
+`.bazelrc` sets the macOS minimum; the LLVM toolchain would choose macOS 14 otherwise, and Metal 3 needs only macOS 13. The glibc floor comes from the Linux platform constraints. `--engine metal` and the GPU tests need a Mac with a Metal 3 device; elsewhere `metal` explores the same nets on the CPU and the GPU tests skip. Output directories are named after the host's CPU rather than the target, so builds for different targets in one output base replace each other's outputs; build one target per output base, or copy each result before building the next, and find it with `bazel cquery --output=files`.
+
+## Releases
+
+`//:release` is the `photonic` command built optimized whatever the command line's compilation mode, and `//:notice` writes the license expression and license files of every third-party crate the command links, skipping build scripts and procedural macros, which leave no code in the binary. Tagging a commit `v<version>` runs the [Release workflow](../.github/workflows/release.yml): it refuses a tag that differs from the version in `MODULE.bazel`, builds and runs the command on each platform's own runner, packages it with the licenses, the notices, the README and the changelog, and opens a draft release with checksums, build provenance and the changelog's section for the version. `photonic --version` and the MCP server read their version from `MODULE.bazel`.
 
 ## Measurement
 
