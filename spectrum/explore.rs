@@ -145,7 +145,7 @@ fn activity(exploration: &Exploration) -> Vec<Activity> {
         .enumerate()
         .map(|(index, event)| Activity {
             handle: Handle::Rule(index).to_string(),
-            text: render::brief(exploration, index),
+            text: exploration.rule[index].text.clone(),
             fired: event.len(),
             inferred: event
                 .iter()

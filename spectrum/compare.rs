@@ -272,7 +272,7 @@ fn side(exploration: &Exploration, index: &Index) -> Side {
 fn entry(exploration: &Exploration, configuration: usize) -> Entry {
     Entry {
         handle: Handle::Configuration(configuration).to_string(),
-        text: render::configuration(exploration, configuration),
+        text: render::detail(exploration, configuration),
         path: exploration
             .path(configuration)
             .unwrap_or_default()
@@ -301,8 +301,8 @@ fn beyond(exploration: &Exploration, index: &Index, other: &Index) -> (Vec<Entry
             (count > 0).then(|| Group {
                 rule: key.rule.clone(),
                 inferred: key.inferred,
-                source: render::configuration(exploration, entry.source),
-                target: render::configuration(exploration, entry.target),
+                source: render::detail(exploration, entry.source),
+                target: render::detail(exploration, entry.target),
                 count,
             })
         })

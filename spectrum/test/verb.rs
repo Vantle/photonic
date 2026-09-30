@@ -542,12 +542,12 @@ fn scope() {
         .as_array()
         .expect("rules")
         .iter()
-        .find(|rule| rule["text"] == "[A] (…)")
+        .find(|rule| rule["text"] == "[A] (B, [B] C)")
         .map(|rule| rule["handle"].clone())
         .expect("the opening rule is listed");
     assert_eq!(scope("[X] Y"), "program");
     assert_eq!(scope("[B] C"), opener);
-    assert_eq!(scope("[A] (…)"), serde_json::Value::Null);
+    assert_eq!(scope("[A] (B, [B] C)"), serde_json::Value::Null);
     assert_eq!(
         explored[1]["answer"]["scope"]["opener"], "program",
         "{}",
@@ -1006,4 +1006,53 @@ fn admission() {
         "{}",
         answer[7]
     );
+}
+
+// Nested and sibling scopes read differently, every scope names the frame it sits in, the root is a
+// frame with a handle like any other, and rules that open different scopes read differently.
+#[test]
+fn nesting() {
+    let answer = session(&[
+        r#"{"verb": "explore", "program": {"source": "Start, (X, [Q] R, (Y, [Q] R))"}}"#,
+        r#"{"verb": "explore", "program": {"source": "Start, (X, [Q] R), (Y, [Q] R)"}}"#,
+        r#"{"verb": "inspect", "program": {"source": "Start, (X, [Q] R, (Y, [Q] R))"}, "handle": "s0"}"#,
+        r#"{"verb": "explore", "program": {"source": "Go, [Go] (X, [Q] R), [Go] (X, [Q] S)"}}"#,
+    ]);
+    let end = |index: usize| answer[index]["answer"]["end"][0]["text"].clone();
+    assert_eq!(end(0), "Start · in f1: X · in f2 in f1: Y", "{}", answer[0]);
+    assert_eq!(end(1), "Start · in f1: X · in f2: Y", "{}", answer[1]);
+    let inspected = &answer[2]["answer"];
+    let frame = inspected["frame"]
+        .as_array()
+        .expect("the configuration's frames")
+        .iter()
+        .map(|scope| (scope["handle"].clone(), scope["parent"].clone()))
+        .collect::<Vec<_>>();
+    assert_eq!(
+        frame,
+        vec![
+            (serde_json::json!("s0.f0"), serde_json::Value::Null),
+            (serde_json::json!("s0.f1"), serde_json::json!("s0.f0")),
+            (serde_json::json!("s0.f2"), serde_json::json!("s0.f1")),
+        ],
+        "{inspected}"
+    );
+    assert!(
+        inspected["coherence"]
+            .as_array()
+            .expect("the configuration's coherences")
+            .iter()
+            .all(|part| part["frame"]
+                .as_str()
+                .is_some_and(|frame| frame.starts_with("s0.f"))),
+        "{inspected}"
+    );
+    let opener = answer[3]["answer"]["rule"]
+        .as_array()
+        .expect("rules")
+        .iter()
+        .filter_map(|rule| rule["text"].as_str())
+        .filter(|text| text.starts_with("[Go]"))
+        .collect::<std::collections::BTreeSet<_>>();
+    assert_eq!(opener.len(), 2, "{}", answer[3]);
 }

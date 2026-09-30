@@ -52,6 +52,9 @@ pub(crate) struct Part {
 pub(crate) struct Scope {
     pub(crate) handle: String,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[schemars(description = "The frame this scope sits in; the root sits in none.")]
+    pub(crate) parent: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     #[schemars(
         with = "Option<String>",
         description = "The rule that opened this scope, or program when the program opens it at the start."
@@ -128,9 +131,6 @@ pub struct Answer {
 const EVENT: usize = 8;
 
 fn frame(configuration: usize, index: usize) -> String {
-    if index == 0 {
-        return "root".to_owned();
-    }
     Handle::Frame(configuration, index).to_string()
 }
 
@@ -155,6 +155,7 @@ fn scope(exploration: &Exploration, configuration: usize, index: usize) -> Scope
     };
     Scope {
         handle: frame(configuration, index),
+        parent: entry.parent.map(|parent| frame(configuration, parent)),
         opener: entry.opener,
         rule: entry.rule.iter().map(item).collect(),
         held: entry.held.iter().map(item).collect(),
@@ -321,6 +322,17 @@ fn opened(opener: Opener) -> String {
     }
 }
 
+// Where a scope sits and what opened it, such as in s0.f1 · opened by r2.
+fn place(scope: &Scope) -> String {
+    scope
+        .parent
+        .iter()
+        .map(|parent| format!("in {parent}"))
+        .chain(scope.opener.map(opened))
+        .collect::<Vec<_>>()
+        .join(" · ")
+}
+
 fn list(item: &[Item]) -> String {
     if item.is_empty() {
         return "none".to_owned();
@@ -388,11 +400,11 @@ impl Answer {
                     ));
                 }
                 for (position, scope) in frame.iter().enumerate().skip(1) {
-                    let opener = scope.opener.map(opened).unwrap_or_default();
                     line.push(format!(
-                        "{}{:<8} {opener}   rules {}   holds {}",
+                        "{}{:<8} {}   rules {}   holds {}",
                         render::row("scope", position == 1),
                         scope.handle,
+                        place(scope),
                         list(&scope.rule),
                         list(&scope.held)
                     ));
@@ -436,11 +448,11 @@ impl Answer {
                 scope,
                 coherence,
             } => {
-                let opener = scope
-                    .opener
-                    .map(|opener| format!(" · {}", opened(opener)))
-                    .unwrap_or_default();
-                line.push(format!("{} in {configuration}{opener}", self.handle));
+                let place = match &scope.parent {
+                    Some(_) => place(scope),
+                    None => format!("the root of {configuration}"),
+                };
+                line.push(format!("{} {place}", self.handle));
                 line.push(format!(
                     "{}{}",
                     render::row("rules", true),

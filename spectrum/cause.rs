@@ -166,7 +166,7 @@ fn step(exploration: &Exploration, line: &lineage::Line, atom: &str) -> Step {
         rule: Some(format!(
             "{} {}",
             Handle::Rule(entry.rule),
-            render::brief(exploration, entry.rule)
+            exploration.rule[entry.rule].text
         )),
         role: line.role,
         source: source.into_iter().map(|item| item.handle).collect(),

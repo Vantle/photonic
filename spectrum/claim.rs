@@ -409,7 +409,7 @@ pub(crate) fn survey(claim: &Claim, survey: &Survey) -> Result<Verdict, Failure>
         (_, Some(index)) => Evidence::plain(
             Answer::Fails,
             format!(
-                "a run ends at {} without {}",
+                "a run ends at “{}” without {}",
                 render::text(&survey.rule, &survey.end[index]),
                 word.noun
             ),

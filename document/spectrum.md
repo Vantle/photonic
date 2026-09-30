@@ -29,7 +29,7 @@ rule   r0    [And.Boolean.Boolean] (…)   4, 3 inferred
        r5    [False] Boolean             7, 1 inferred
 ```
 
-The first line is the exploration's key, whether it closed, its size and its shape. `in f1:` places a coherence inside the scope that frame 1 holds. A claim asks whether the program reaches exactly `False.Extra` with its rules, and `cause` shows how:
+The first line is the exploration's key, whether it closed, its size and its shape. `in f1:` places a coherence inside the scope that frame 1 holds, and `in f2 in f1:` inside a scope nested in it. A claim asks whether the program reaches exactly `False.Extra` with its rules, and `cause` shows how:
 
 ```sh
 bazel run -c opt //command:photonic -- check program/language/conjunction.wave --reach False.Extra --exact --preserve
@@ -134,7 +134,7 @@ The defaults and the names are `photonic_test`'s, but for metal's configurations
 
 Before exploring, Spectrum names the program's atoms A, B, C and so on in the order of its shape, the canonical form the symmetry engine computes, and lists its rules and coherences in that form's order. Answers translate the letters back to the program's own names, and each rule's name is its printed text. Rules are numbered in this canonical program's order. Configurations are numbered by their distance from the start along supported events, then along any events, then by their canonical form in the canonical program's names; events by their source, target, rule and binding. So reordering a program's terms, or the parts of a term, keeps every handle, and so does renaming its atoms, and an exploration that closes names the same handles on both engines. When the symmetry search visits more than 100,000 nodes, Spectrum sorts the program's printed rules and coherences instead, which keeps handles under reordering only. A direct path follows the program as written: each step fires the first event within the limits that its scheduler finds, and which event that is depends on the order of the program's terms, so reordering them can change the path. Each summary's `order` says which of `shape`, `text` and `source` numbered its handles.
 
-Within a particle, answers list occurrences in canonical order, which is the order of their handles; `bug.wave` prints its first configuration as `False.And.True.Extra`. Two programs can order the same particle differently, so `compare` may print one particle two ways.
+Within a particle, answers list occurrences in canonical order, which is the order of their handles; `bug.wave` prints its first configuration as `False.And.True.Extra`. Two programs can order the same particle differently, so `compare` may print one particle two ways. Answers print each rule in full, and `compare` also prints the rules live in each scope, which it tells configurations apart by.
 
 ### Keys and the store
 
@@ -149,7 +149,7 @@ An exploration's key is `x` followed by 16 hexadecimal digits: a hash of its ide
 | `e12` | An event: one rule applied to one match, from one configuration to another. |
 | `s11.c0` | A coherence of a configuration. |
 | `s11.o1` | An occurrence in a configuration, in a coherence or held by a scope. |
-| `s10.f1` | A scope frame of a configuration. Frame 0 is the root. |
+| `s10.f1` | A scope frame of a configuration. Frame 0, such as `s10.f0`, is the root. |
 
 ## Patterns
 
@@ -190,7 +190,7 @@ In plain mode a claim speaks of every schedule of plain events instead of every 
 | `check` | `claim` | Diagnostics, each claim's verdict and the exploration's summary. A program or library that does not parse or lower is a diagnostic with its location, not a failure. Given a key, it checks claims against that exploration. |
 | `explore` | `limit` (12) | The summary, the configurations without supported events up to `limit`, and how often each rule fired and whether by inference. The text calls those configurations ends in a closed exhaustive exploration, leaves in an open one, where some are unexplored, and stops on a path. The summary's `endless` says a run can go on forever once a cycle is found, and that none can once the exploration closes without one. On metal, the ends have no handles, there is no rule activity or depth, and work counts a step for each match its grounding read. |
 | `select` | `pattern`, `limit` (20), `offset` | The matching configurations with the occurrences each match used, or the matching events, marked when unsupported, and the offset of the next page. |
-| `inspect` | `handle` | A rule with its events; a configuration with its coherences, frames and the events into and out of it, and `end` when a closed exhaustive exploration proves no event can happen there; a coherence, occurrence or frame; or an event with its exact part, witness, reads, deduction and the occurrences it produces. |
+| `inspect` | `handle` | A rule with its events; a configuration with its coherences, its frames, each with the frame it sits in, and the events into and out of it, and `end` when a closed exhaustive exploration proves no event can happen there; a coherence, occurrence or frame; or an event with its exact part, witness, reads, deduction and the occurrences it produces. |
 | `cause` | `handle` | For a configuration, its shortest supported path. For an event, its match and the events of its deduction. For an occurrence, its lineage: back through each event that carried it as remainder, witness or held occurrence, to the start or to the event that produced it, with the places that event consumed. When a match reached an event along several walks, the engines may give different deductions, and where a configuration holds interchangeable occurrences they may trace an occurrence through different ones. |
 | `miss` | `target` with `exact` and `preserve`, or `rule`; `limit` (3) | For a target, the nearest configurations and what each lacks and, when exact, has extra, assigning the target's parts to coherences so that the most occurrences match; an exact target is read as the configuration its program starts in and compares coherences, live rules and scopes, as Prism does. For a rule, how often it fired, how many configurations it was live in without firing, and where its inputs came closest to matching. |
 | `step` | `handle` (`s0`) | Every event that can happen at a configuration and where it leads; on a path, the one event the path took. |
