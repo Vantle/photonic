@@ -14,9 +14,11 @@ join = _{ factor ~ ("." ~ factor)* }
 factor = _{ concept | group }
 group = { "(" ~ list ~ ")" }
 rule = { "[" ~ list ~ "]" }
-concept = @{ (!("(" | ")" | "[" | "]" | "." | "," | WHITESPACE) ~ ANY)+ }
-WHITESPACE = _{ " " | "\t" | "\r" | "\n" | "\u{000B}" | "\u{000C}" }
+concept = @{ (!("(" | ")" | "[" | "]" | "." | "," | WHITESPACE | CONTROL | BIDI_CONTROL | "\u{200B}" | "\u{2060}") ~ ANY)+ }
+WHITESPACE = _{ WHITE_SPACE | "\u{FEFF}" }
 ```
+
+Whitespace is every Unicode space and U+FEFF, the byte order mark. An atom cannot hold a control character, U+200B, U+2060 or a direction control such as U+202E; joiners such as U+200D are part of it. Atoms compare by code point, without normalization.
 
 Five rules give it meaning.
 

@@ -52,7 +52,16 @@ fn name() {
         Vocabulary::try_from(vec!["A".to_owned(), "A".to_owned()]),
         Err(crate::failure::Failure::Duplicate { .. })
     ));
-    for name in ["", "A.B", "A B", "[A]"] {
+    for name in [
+        "",
+        "A.B",
+        "A B",
+        "[A]",
+        "A\u{A0}B",
+        "\u{FEFF}A",
+        "A\u{200B}B",
+        "A\u{1B}",
+    ] {
         assert!(matches!(
             Vocabulary::try_from(vec![name.to_owned()]),
             Err(crate::failure::Failure::Name { .. })

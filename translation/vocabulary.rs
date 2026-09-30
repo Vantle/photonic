@@ -52,7 +52,7 @@ impl Vocabulary {
         if let Some(atom) = self.find(name) {
             return Ok(atom);
         }
-        if name.is_empty() || name.chars().any(frontend::parser::separator) {
+        if frontend::atom::check(name).is_err() {
             return Err(Failure::Name {
                 name: name.to_owned(),
             });

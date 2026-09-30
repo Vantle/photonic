@@ -1,5 +1,7 @@
 #![forbid(unsafe_code)]
 
+pub mod atom;
+pub mod character;
 mod expansion;
 pub mod failure;
 pub mod lowering;

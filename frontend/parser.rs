@@ -1,5 +1,6 @@
 use pest::{Parser, Token, error::InputLocation};
 
+use crate::character;
 use crate::failure::Failure;
 use crate::syntax::{Kind, Node, Tree};
 
@@ -12,17 +13,10 @@ join = _{ factor ~ ("." ~ factor)* }
 factor = _{ concept | group }
 group = { "(" ~ list ~ ")" }
 rule = { "[" ~ list ~ "]" }
-concept = @{ (!("(" | ")" | "[" | "]" | "." | "," | WHITESPACE) ~ ANY)+ }
-WHITESPACE = _{ " " | "\t" | "\r" | "\n" | "\u{000B}" | "\u{000C}" }
+concept = @{ (!("(" | ")" | "[" | "]" | "." | "," | WHITESPACE | CONTROL | BIDI_CONTROL | "\u{200B}" | "\u{2060}") ~ ANY)+ }
+WHITESPACE = _{ WHITE_SPACE | "\u{FEFF}" }
 "#]
 struct Grammar;
-
-const SPACE: [char; 6] = [' ', '\t', '\r', '\n', '\u{000B}', '\u{000C}'];
-const DELIMITER: [char; 6] = ['(', ')', '[', ']', '.', ','];
-
-pub fn separator(character: char) -> bool {
-    SPACE.contains(&character) || DELIMITER.contains(&character)
-}
 
 pub fn parse(source: &str) -> Result<Tree<'_>, Failure> {
     depth(source)?;
@@ -82,11 +76,17 @@ fn advice(source: &str) -> Option<(usize, String)> {
     let mut previous = None;
     let mut word = false;
     for (position, character) in source.char_indices() {
-        if SPACE.contains(&character) {
+        if character::space(character) {
             word = false;
             continue;
         }
-        let current = if DELIMITER.contains(&character) {
+        if character::refused(character) {
+            return Some((
+                position,
+                format!("{} cannot appear in an atom", character::point(character)),
+            ));
+        }
+        let current = if character::delimiter(character) {
             word = false;
             character
         } else if word {

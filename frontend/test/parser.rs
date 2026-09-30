@@ -1,3 +1,4 @@
+use frontend::character;
 use frontend::failure::Failure;
 use frontend::parser;
 use frontend::syntax::{Kind, Tree};
@@ -187,12 +188,70 @@ fn earliest() {
 
 #[test]
 fn separator() {
-    for character in (0..0x3001).filter_map(char::from_u32) {
+    for character in (0..=0xFFFF)
+        .chain([0x1_F600, 0xE_0001, 0x10_FFFF])
+        .filter_map(char::from_u32)
+    {
         let source = format!("A{character}B");
+        if character::refused(character) {
+            assert_eq!(
+                rejected(&source),
+                (
+                    1,
+                    format!("{} cannot appear in an atom", character::point(character))
+                ),
+                "{character:?}"
+            );
+            continue;
+        }
         let single = parser::parse(&source)
             .is_ok_and(|tree| text(&tree, Kind::Concept) == [source.as_str()]);
-        let separating = parser::separator(character);
-        assert_eq!(single, !separating, "{character:?}");
+        assert_eq!(single, !character::separator(character), "{character:?}");
+    }
+}
+
+#[test]
+fn whitespace() {
+    for space in [
+        '\u{FEFF}', '\u{00A0}', '\u{0085}', '\u{2028}', '\u{3000}', '\u{202F}',
+    ] {
+        assert!(character::space(space), "{space:?}");
+        let source = format!("{space}A,{space}[A]{space}B{space}");
+        let tree = parser::parse(&source).unwrap();
+        assert_eq!(text(&tree, Kind::Concept), ["A", "A", "B"], "{space:?}");
+        let (offset, message) = rejected(&format!("A{space}B"));
+        assert_eq!(offset, 1 + space.len_utf8(), "{space:?}");
+        assert!(message.contains("dot"), "{space:?}: {message}");
+    }
+    for joiner in [
+        "\u{1F468}\u{200D}\u{1F469}\u{200D}\u{1F467}",
+        "\u{0645}\u{06CC}\u{200C}\u{062E}",
+        "\u{1F1F3}\u{1F1F1}",
+        "\u{2764}\u{FE0F}",
+    ] {
+        let tree = parser::parse(joiner).unwrap();
+        assert_eq!(text(&tree, Kind::Concept), [joiner]);
+    }
+}
+
+#[test]
+fn refused() {
+    for (source, offset, point) in [
+        ("A\u{200B}B", 1, "U+200B"),
+        ("X\u{1B}c, [X] Y", 1, "U+001B"),
+        ("A\u{0}", 1, "U+0000"),
+        ("\u{202E}A", 0, "U+202E"),
+        ("[A] B\u{2066}", 5, "U+2066"),
+        ("A, \u{2060}", 3, "U+2060"),
+        ("\u{200F}", 0, "U+200F"),
+        ("A.\u{7F}", 2, "U+007F"),
+        ("A\u{9B}", 1, "U+009B"),
+    ] {
+        assert_eq!(
+            rejected(source),
+            (offset, format!("{point} cannot appear in an atom")),
+            "{source:?}"
+        );
     }
 }
 

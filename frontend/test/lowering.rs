@@ -212,6 +212,22 @@ fn alphabet() {
 }
 
 #[test]
+fn whitespace() {
+    same("\u{FEFF}A, [A] B", "A, [A] B");
+    same("A,\u{FEFF}[A]\u{FEFF}B\u{FEFF}", "A, [A] B");
+    same("A,\u{00A0}[A]\u{3000}B\u{2028}", "A, [A] B");
+}
+
+#[test]
+fn point() {
+    let composed = lowering::parse("\u{E9}").unwrap();
+    let decomposed = lowering::parse("e\u{301}").unwrap();
+    assert_eq!(composed.initial, [atom(&["\u{E9}"])]);
+    assert_eq!(decomposed.initial, [atom(&["e\u{301}"])]);
+    assert_ne!(composed.canonical(), decomposed.canonical());
+}
+
+#[test]
 fn unicode() {
     let source = lowering::parse("人.世界, [人] 🌋").unwrap();
     assert_eq!(source.initial, [atom(&["人", "世界"])]);
