@@ -68,8 +68,10 @@ const capture = async name => {
 const figure = name => `document.querySelector('figure[data-example="${name}"]')`;
 const ready = `return document.querySelectorAll('figure.example').length > 0 && [...document.querySelectorAll('figure.example')].every(value => value.querySelector('.graph, .stepper'))`;
 const narrow = async () => {
-    await resize(390, 844);
-    assert.ok(await evaluate('return document.documentElement.scrollWidth <= window.innerWidth + 1'));
+    for (const [width, height] of [[375, 812], [390, 844]]) {
+        await resize(width, height);
+        assert.ok(await evaluate('return document.documentElement.scrollWidth <= window.innerWidth'), `${width} pixels wide`);
+    }
     await resize(1440, 1000);
 };
 

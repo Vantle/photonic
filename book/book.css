@@ -2123,6 +2123,13 @@ td code {
     }
 }
 
+@media (max-width: 30rem) {
+    code {
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     html,
     .graph {
