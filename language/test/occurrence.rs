@@ -58,7 +58,10 @@ fn identity() {
             token.id = 100 - token.id;
         }
     }
-    assert_eq!(original.canonical().state, renamed.canonical().state);
+    assert_eq!(
+        crate::test::canonical(&original).state,
+        crate::test::canonical(&renamed).state
+    );
     assert_eq!(
         crate::fingerprint::state(&original),
         crate::fingerprint::state(&renamed)
@@ -77,9 +80,12 @@ fn identity() {
         .collect::<Vec<_>>();
     particle[0].capture = Some(1);
     Arc::make_mut(&mut changed.frame[0]).particle = particle.into();
-    assert_ne!(original.canonical().state, changed.canonical().state);
+    assert_ne!(
+        crate::test::canonical(&original).state,
+        crate::test::canonical(&changed).state
+    );
     Arc::make_mut(&mut changed.frame[0]).particle = vec![token(7, 0), token(11, 0)].into();
-    let duplicate = changed.canonical().state;
+    let duplicate = crate::test::canonical(&changed).state;
     let particle = duplicate.frame[0].particle.iter().collect::<Vec<_>>();
     assert_eq!(particle.len(), 2);
     assert_ne!(particle[0].id, particle[1].id);
@@ -138,7 +144,7 @@ fn projection() {
     assert_eq!(binding.world, Set::single(0));
     assert_eq!(binding.footprint, expected);
     assert_eq!(binding.exact, expected);
-    let canonical = state.canonical();
+    let canonical = crate::test::canonical(&state);
     let expected = Flow::identity(&canonical.state);
     let result = flow.rename(canonical);
     assert_eq!(result.flow.resource.len(), expected.resource.len());
@@ -244,8 +250,8 @@ fn consumption() {
             layout: &layout,
         });
         assert_eq!(
-            direct.state.canonical().state,
-            exhaustive.state.canonical().state
+            crate::test::canonical(&direct.state).state,
+            crate::test::canonical(&exhaustive.state).state
         );
         assert_eq!(direct.layout.cell, direct.state.size());
         assert_eq!(
@@ -409,7 +415,7 @@ fn opening() {
             .collect::<Vec<_>>(),
         [(0, atom("Z")), (1, atom("X")), (2, atom("Y"))]
     );
-    assert_eq!(state, state.canonical().state);
+    assert_eq!(state, crate::test::canonical(&state).state);
 }
 
 #[test]
@@ -443,12 +449,9 @@ fn startup() {
                 record: 100_000,
             },
         );
-        assert!(
-            runtime
-                .state
-                .iter()
-                .any(|value| value.canonical().state == state.canonical().state)
-        );
+        assert!(runtime.state.iter().any(
+            |value| crate::test::canonical(value).state == crate::test::canonical(&state).state
+        ));
     }
 }
 
@@ -515,7 +518,7 @@ fn operand() {
         event.state.world[0].particle[0].value,
         Symbol::Atom(program.atom.get_index_of("C").unwrap())
     );
-    let expected = event.state.canonical().state;
+    let expected = crate::test::canonical(&event.state).state;
     direct.advance(event.state, &event.change, event.fingerprint, event.layout);
     assert!(transition(&mut direct).is_none());
     let mut exhaustive = crate::runtime::Runtime::seed(program, &initial);
@@ -525,7 +528,7 @@ fn operand() {
         exhaustive
             .state
             .iter()
-            .any(|state| state.canonical().state == expected)
+            .any(|state| crate::test::canonical(state).state == expected)
     );
     assert_eq!(initial.frame[0].particle.len(), 2);
 }
@@ -572,8 +575,8 @@ fn invalidation() {
         cached.advance(event.state, &event.change, event.fingerprint, event.layout);
         cached.evict();
         assert_eq!(
-            transition(&mut cached).map(|event| event.state.canonical().state),
-            transition(&mut fresh).map(|event| event.state.canonical().state)
+            transition(&mut cached).map(|event| crate::test::canonical(&event.state).state),
+            transition(&mut fresh).map(|event| crate::test::canonical(&event.state).state)
         );
         if remaining == 2 {
             cached = crate::reduction::Search::new(program.clone(), state);

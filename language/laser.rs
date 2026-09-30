@@ -35,7 +35,7 @@ use crate::flow::Binding;
 use crate::prism::{Outcome, Verdict};
 use crate::program::Program;
 use crate::runtime::Limit;
-use crate::state::{Canonical, State};
+use crate::state::State;
 use crate::status::Status;
 use capture::Environment;
 use deduction::Deduction;
@@ -51,7 +51,8 @@ use space::Space;
 use std::collections::{HashMap, HashSet};
 use std::num::NonZeroU32;
 use std::sync::Arc;
-use taxonomy::Taxonomy;
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use taxonomy::{Name, Taxonomy};
 use trace::Trace;
 use transition::{Effect, Key};
 
@@ -146,7 +147,7 @@ pub struct Laser {
     passage: Vec<Passage>,
     crossed: Vec<Vec<Option<NonZeroU32>>>,
     capture: capture::Store,
-    environment: Memo<(usize, usize), Arc<Canonical>>,
+    environment: Memo<(usize, usize), Name>,
     pool: Pool,
     blocked: HashMap<Identity, usize, Builder>,
     support: Option<support::Support>,
@@ -154,6 +155,13 @@ pub struct Laser {
     round: Round,
     limit: Limit,
     work: usize,
+    // A report names each configuration within the work every run was given.
+    budget: usize,
+    // Workers charge the steps their searches take here, so a round's work counts them.
+    charge: AtomicUsize,
+    // A search that ran out of budget while identifying an event loses it, so the exploration
+    // can never close.
+    exhausted: AtomicBool,
     traced: usize,
     plain: bool,
     independence: Option<Independence>,
@@ -252,12 +260,19 @@ impl Laser {
             round: Round::default(),
             limit: Limit::default(),
             work: 0,
+            budget: 0,
+            charge: AtomicUsize::new(0),
+            exhausted: AtomicBool::new(false),
             traced: 0,
             plain,
             independence: None,
             peak: 0,
         };
-        let draft = laser.taxonomy.analyze(&initial);
+        let mut budget = crate::canonical::UNLIMITED;
+        let draft = laser
+            .taxonomy
+            .analyze(&initial, &mut budget)
+            .expect("an unlimited search names every configuration");
         let (root, mut kind) = laser.taxonomy.intern(&draft);
         kind.sort_unstable();
         let makeup = Makeup { root, kind };
@@ -280,8 +295,10 @@ impl Laser {
         self.execute(Some(executor), budget, limit);
     }
 
+    // An exploration that dropped an event because naming its owner's environment ran out of
+    // budget never closes.
     pub fn closed(&self) -> bool {
-        self.idle() && self.blocked.is_empty()
+        self.idle() && self.blocked.is_empty() && !self.exhausted.load(Ordering::Relaxed)
     }
 
     pub fn summary(&self) -> Summary {
@@ -318,9 +335,11 @@ impl Laser {
 
     pub fn verdict(&self, target: &frontend::source::Program) -> Verdict {
         let state = State::target(&self.program, target);
+        let mut budget = crate::canonical::UNLIMITED;
         let candidate = self
             .taxonomy
-            .find(&state)
+            .find(&state, &mut budget)
+            .expect("an unlimited search names every configuration")
             .and_then(|makeup| self.space.find(&makeup));
         let (status, _) = self.status();
         let outcome = match candidate.map(|index| status[index]) {
@@ -353,6 +372,9 @@ impl Laser {
                 .sort_unstable_by_key(|(identity, position)| (identity.source, *position));
         }
         let open = !self.closed();
+        self.budget = self.budget.saturating_add(budget);
+        // A report between runs names environments too; only a round's own searches count.
+        *self.charge.get_mut() = 0;
         let mut remaining = budget;
         while remaining > 0 && !self.idle() && self.retained() < self.limit.record {
             let work = self.step(executor, remaining);
@@ -432,7 +454,7 @@ impl Laser {
             next.changed.clear();
         }
         self.round = next;
-        scanned + carried + fired
+        scanned + carried + fired + std::mem::take(self.charge.get_mut())
     }
 }
 

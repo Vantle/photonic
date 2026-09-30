@@ -34,7 +34,11 @@ pub(crate) fn verdict(
     closed: bool,
     target: &source::Program,
 ) -> Verdict {
-    let candidate = state.get_index_of(&State::target(program, target).canonical().state);
+    let mut budget = crate::canonical::UNLIMITED;
+    let named = State::target(program, target)
+        .canonical(&mut budget)
+        .expect("an unlimited search names every configuration");
+    let candidate = state.get_index_of(&named.state);
     let outcome = match candidate.map(status) {
         Some(Status::Supported) => Outcome::Reached,
         _ if closed => Outcome::Unreachable,

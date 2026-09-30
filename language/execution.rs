@@ -124,6 +124,12 @@ fn successor(
     (search.deferred() == 0).then_some(result)
 }
 
+// A configuration's canonical form, named with at most a successor search's work.
+fn canonical(state: &State, bound: &Bound) -> Option<State> {
+    let mut budget = bound.work;
+    state.canonical(&mut budget).ok().map(|named| named.state)
+}
+
 #[derive(Clone, Copy, Eq, PartialEq)]
 enum Mark {
     Open,
@@ -149,7 +155,11 @@ pub fn explore(
         ..Exploration::default()
     };
     let mut index: HashMap<State, usize, Builder> = HashMap::default();
-    index.insert(initial.canonical().state, 0);
+    let Some(named) = canonical(&initial, &bound) else {
+        exploration.overflow = true;
+        return exploration;
+    };
+    index.insert(named, 0);
     let mut mark = vec![Mark::Open];
     let Some(first) = successor(&program, &initial, limit, &bound) else {
         exploration.overflow = true;
@@ -172,8 +182,11 @@ pub fn explore(
         }
         let state = frame.successor[frame.cursor].state.clone();
         frame.cursor += 1;
-        let canonical = state.canonical().state;
-        if let Some(&known) = index.get(&canonical) {
+        let Some(named) = canonical(&state, &bound) else {
+            exploration.overflow = true;
+            return exploration;
+        };
+        if let Some(&known) = index.get(&named) {
             if mark[known] == Mark::Open {
                 exploration.cycle = true;
                 return exploration;
@@ -189,7 +202,7 @@ pub fn explore(
             return exploration;
         };
         let target = mark.len();
-        index.insert(canonical, target);
+        index.insert(named, target);
         exploration.state += 1;
         if following.is_empty() {
             mark.push(Mark::Closed);
@@ -222,8 +235,12 @@ pub fn walk(
     let mut state = Arc::new(State::initial(&program));
     let mut level = vec![0usize; state.world.len()];
     let mut seen: HashSet<State, Builder> = HashSet::default();
-    seen.insert(state.canonical().state);
     let mut result = Walk::default();
+    let Some(named) = canonical(&state, &bound) else {
+        result.overflow = true;
+        return result;
+    };
+    seen.insert(named);
     loop {
         let Some(mut event) = successor(&program, &state, limit, &bound) else {
             result.overflow = true;
@@ -255,7 +272,11 @@ pub fn walk(
         result.depth = result.depth.max(depth);
         result.step += 1;
         state = chosen.state;
-        if !seen.insert(state.canonical().state) {
+        let Some(named) = canonical(&state, &bound) else {
+            result.overflow = true;
+            return result;
+        };
+        if !seen.insert(named) {
             result.cycle = true;
             return result;
         }

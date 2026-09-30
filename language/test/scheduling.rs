@@ -114,7 +114,7 @@ fn refinement() {
             token.id = 100 - token.id;
         }
     }
-    assert_eq!(state.canonical().state, expected);
+    assert_eq!(crate::test::canonical(&state).state, expected);
 }
 
 #[test]
@@ -259,7 +259,7 @@ fn initialization() {
             scope: Vec::new(),
         });
         let state = State::initial(&program);
-        assert_eq!(state, state.canonical().state);
+        assert_eq!(state, crate::test::canonical(&state).state);
     }
 }
 
@@ -286,7 +286,7 @@ fn symmetry() {
             token.id += 100;
         }
     }
-    assert_eq!(result.state, state.canonical().state);
+    assert_eq!(result.state, crate::test::canonical(&state).state);
     let shared = root(vec![
         World {
             frame: 0,
@@ -315,7 +315,7 @@ fn identity() {
         },
     ]);
     Arc::make_mut(&mut state.frame[0]).held.push(token(2));
-    let expected = state.canonical();
+    let expected = crate::test::canonical(&state);
     for identity in [
         [usize::MAX, 0, usize::MAX / 2],
         [1, usize::MAX, 0],
@@ -330,7 +330,7 @@ fn identity() {
         for token in &mut Arc::make_mut(&mut changed.frame[0]).held {
             token.id = identity[token.id];
         }
-        let actual = changed.canonical();
+        let actual = crate::test::canonical(&changed);
         assert_eq!(actual.state, expected.state);
         assert_eq!(actual.renaming.resource.len(), identity.len());
         for (index, identity) in identity.iter().enumerate() {
@@ -358,7 +358,7 @@ fn incidence() {
                 .collect(),
         );
         state.world.push(state.world[0].clone());
-        let expected = state.canonical().state;
+        let expected = crate::test::canonical(&state).state;
         state.world.reverse();
         for position in 0..state.world.len() {
             let world = Arc::make_mut(&mut state.world[position]);
@@ -368,7 +368,7 @@ fn incidence() {
             }
         }
         assert_eq!(
-            state.canonical().state,
+            crate::test::canonical(&state).state,
             expected,
             "sharing graph {encoding}"
         );
@@ -720,7 +720,7 @@ fn bulk() {
                 })
                 .collect(),
         ));
-        let expected = state.canonical().state;
+        let expected = crate::test::canonical(&state).state;
         let mut batch = (0..2)
             .map(|position| Work::Normalize(position, canonical::Search::new(state.clone())))
             .collect::<Vec<_>>();

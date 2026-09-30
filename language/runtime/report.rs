@@ -2,7 +2,7 @@ use super::Runtime;
 use crate::flow::Flow;
 use crate::prism::{Reach, Verdict};
 use crate::render::{Builder, Sequence};
-use crate::snapshot::{Event, Link, Node, Snapshot, View};
+use crate::snapshot::{Event, Form, Link, Node, Snapshot, View};
 use crate::status::Status;
 use crate::support::Atom;
 use serde::Serialize;
@@ -59,7 +59,12 @@ impl Runtime {
         let support = self.proof.evaluate();
         let mut builder = Builder::new(&self.program);
         self.state.iter().enumerate().map(move |(index, state)| {
-            builder.node(index, state, support.status(Atom::State(index)))
+            builder.node(
+                index,
+                state,
+                support.status(Atom::State(index)),
+                Form::Canonical,
+            )
         })
     }
 

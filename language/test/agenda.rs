@@ -37,3 +37,27 @@ fn order() {
     queue.defer(6);
     assert_eq!(queue.pop(), Some(6));
 }
+
+// A ready value put back just after it was taken leaves the queue as it was, so every later value,
+// deferred ones included, comes in the same order across a refill of credit.
+#[test]
+fn restoration() {
+    let fill = |queue: &mut Queue<usize>| {
+        queue.extend(0..5000);
+        queue.defer(9000);
+        queue.defer(9001);
+    };
+    let mut expected = Queue::new();
+    let mut actual = Queue::new();
+    fill(&mut expected);
+    fill(&mut actual);
+    while let Some(value) = expected.pop() {
+        let taken = actual.pop().unwrap();
+        if taken < 5000 {
+            actual.restore(taken);
+            assert_eq!(actual.pop(), Some(taken));
+        }
+        assert_eq!(taken, value);
+    }
+    assert!(actual.is_empty());
+}

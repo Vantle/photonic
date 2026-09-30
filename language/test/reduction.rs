@@ -8,7 +8,7 @@ use std::sync::Arc;
 use std::task::Poll;
 
 fn binding(state: &State, value: &Binding) -> (Vec<Place>, Vec<Place>, Vec<Place>) {
-    let canonical = state.canonical();
+    let canonical = crate::test::canonical(state);
     let map = |value: &crate::basis::Set<Place>| {
         let mut value = value
             .iter()
@@ -52,7 +52,7 @@ fn reference() {
                 .filter(|event| event.source == 0 && event.evidence.contains(&0))
                 .map(|event| {
                     (
-                        runtime.state[event.target].canonical().state,
+                        crate::test::canonical(&runtime.state[event.target]).state,
                         event.rule,
                         (
                             event.footprint.clone(),
@@ -79,7 +79,7 @@ fn reference() {
                 assert_eq!(event.layout.resource, layout.resource);
                 assert_eq!(event.layout.reach.frame, layout.reach.frame);
                 actual.insert((
-                    event.state.canonical().state,
+                    crate::test::canonical(&event.state).state,
                     event.rule,
                     binding(state, &event.binding),
                 ));
@@ -140,7 +140,7 @@ fn incremental() {
                 };
                 actual.insert((
                     event.rule,
-                    event.state.canonical().state,
+                    crate::test::canonical(&event.state).state,
                     binding(&state, &event.binding),
                 ));
                 if chosen.is_none() {
@@ -157,7 +157,7 @@ fn incremental() {
                 };
                 expected.insert((
                     event.rule,
-                    event.state.canonical().state,
+                    crate::test::canonical(&event.state).state,
                     binding(&state, &event.binding),
                 ));
             }
@@ -169,7 +169,7 @@ fn incremental() {
             assert!(
                 expected.contains(&(
                     event.rule,
-                    event.state.canonical().state,
+                    crate::test::canonical(&event.state).state,
                     binding(&state, &event.binding)
                 )),
                 "{source}"

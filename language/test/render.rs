@@ -59,6 +59,7 @@ fn isolation() {
             0,
             &crate::state::State::initial(program),
             crate::status::Status::Supported,
+            crate::snapshot::Form::Canonical,
         )
     };
     let first = render(&first);

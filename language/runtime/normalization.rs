@@ -34,8 +34,9 @@ impl Store {
     pub fn environment(
         &mut self,
         request: super::environment::Request<'_>,
-    ) -> std::sync::Arc<crate::state::State> {
-        self.environment.resolve(request)
+        budget: &mut usize,
+    ) -> Result<std::sync::Arc<crate::state::State>, crate::canonical::Exhausted> {
+        self.environment.resolve(request, budget)
     }
 
     pub fn find(&self, identity: &Identity) -> Option<Status> {

@@ -101,7 +101,7 @@ fn verify(state: State) {
     if divided {
         while !search.step() {}
         let actual = search.finish().unwrap();
-        assert_eq!(actual.state.canonical().state, actual.state);
+        assert_eq!(crate::test::canonical(&actual.state).state, actual.state);
         assert_eq!(actual.state.world.len(), state.world.len());
         assert_eq!(actual.state.frame.len(), state.reachable().len());
         return;
@@ -562,12 +562,16 @@ fn renumbering() {
     let mut random = Random(7);
     for _ in 0..4096 {
         let state = generate(&mut random);
-        let expected = state.canonical().state;
-        assert_eq!(expected.canonical().state, expected, "{state:?}");
+        let expected = crate::test::canonical(&state).state;
+        assert_eq!(
+            crate::test::canonical(&expected).state,
+            expected,
+            "{state:?}"
+        );
         for _ in 0..4 {
             let renamed = renumber(&state, &mut random);
             assert_eq!(
-                renamed.canonical().state,
+                crate::test::canonical(&renamed).state,
                 expected,
                 "{state:?}\n{renamed:?}"
             );
@@ -575,7 +579,11 @@ fn renumbering() {
         let Some(changed) = perturb(&state) else {
             continue;
         };
-        assert_ne!(changed.canonical().state, expected, "{state:?}");
+        assert_ne!(
+            crate::test::canonical(&changed).state,
+            expected,
+            "{state:?}"
+        );
     }
 }
 
@@ -591,21 +599,29 @@ fn division() {
     let mut split = 0;
     for iteration in 0..1536 {
         let state = replicate(&mut random, 2 + iteration % 7);
-        let named = state.canonical();
+        let named = crate::test::canonical(&state);
         let expected = named.state;
         assert_eq!(expected.world.len(), state.world.len());
         assert_eq!(expected.frame.len(), state.reachable().len());
-        assert_eq!(expected.canonical().state, expected, "{state:?}");
+        assert_eq!(
+            crate::test::canonical(&expected).state,
+            expected,
+            "{state:?}"
+        );
         for _ in 0..3 {
             let renamed = renumber(&state, &mut random);
             assert_eq!(
-                renamed.canonical().state,
+                crate::test::canonical(&renamed).state,
                 expected,
                 "{state:?}\n{renamed:?}"
             );
         }
         if let Some(changed) = perturb(&state) {
-            assert_ne!(changed.canonical().state, expected, "{state:?}");
+            assert_ne!(
+                crate::test::canonical(&changed).state,
+                expected,
+                "{state:?}"
+            );
         }
         let mut search = Search::new(Arc::new(state.clone()));
         search.step();
@@ -720,10 +736,10 @@ fn program() {
         let state = State::initial(&program);
         assert!(steps(&state) <= bound, "{source}: {} steps", steps(&state));
         let mut random = Random(17);
-        let expected = state.canonical().state;
+        let expected = crate::test::canonical(&state).state;
         for _ in 0..4 {
             let renamed = renumber(&state, &mut random);
-            assert_eq!(renamed.canonical().state, expected, "{source}");
+            assert_eq!(crate::test::canonical(&renamed).state, expected, "{source}");
         }
     }
 }
@@ -756,4 +772,55 @@ fn exploration() {
             assert!(steps(state) <= bound, "{source}: {} steps", steps(state));
         }
     }
+}
+
+#[test]
+fn budget() {
+    let ring = State {
+        world: (0..12)
+            .map(|index| {
+                Arc::new(World {
+                    frame: 0,
+                    particle: vec![
+                        Token {
+                            id: index,
+                            value: Symbol::Atom(0),
+                            capture: None,
+                        },
+                        Token {
+                            id: (index + 1) % 12,
+                            value: Symbol::Atom(0),
+                            capture: None,
+                        },
+                    ],
+                })
+            })
+            .collect(),
+        frame: vec![Arc::new(Frame {
+            scope: 0,
+            parent: None,
+            lexical: None,
+            particle: Default::default(),
+            held: Vec::new(),
+        })]
+        .into(),
+    };
+    let mut budget = 1000;
+    assert!(ring.canonical(&mut budget).is_err());
+    assert_eq!(budget, 0);
+    let program = crate::program::Program::new(&frontend::lowering::parse("A, B").unwrap());
+    let state = State::initial(&program);
+    let mut budget = 0;
+    assert!(state.canonical(&mut budget).is_ok());
+    let program = crate::program::Program::new(&frontend::lowering::parse("A, A, B.C").unwrap());
+    let state = State::initial(&program);
+    let taken = steps(&state);
+    let mut budget = taken - 3;
+    assert_eq!(
+        state.canonical(&mut budget).unwrap().state,
+        crate::test::canonical(&state).state
+    );
+    assert_eq!(budget, 0);
+    let mut budget = taken - 4;
+    assert!(state.canonical(&mut budget).is_err());
 }

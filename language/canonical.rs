@@ -2,6 +2,7 @@ use crate::profile;
 use crate::state::{Canonical, State};
 use division::Division;
 use std::sync::Arc;
+use thiserror::Error;
 use whole::Whole;
 
 mod division;
@@ -9,7 +10,15 @@ mod extraction;
 mod renaming;
 mod whole;
 
-pub(crate) mod storage;
+// A search that ran out of budget before it named its configuration.
+#[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
+#[error("naming the configuration takes more steps than its budget allows")]
+pub(crate) struct Exhausted;
+
+// A configuration that shares no token, as every program's initial configuration and every target
+// does, divides down to single scopes and coherences, so its search ends after a number of steps
+// polynomial in its size and it is named with this budget.
+pub(crate) const UNLIMITED: usize = usize::MAX;
 
 // A configuration whose whole search takes at most this many steps keeps the name that search
 // gives it; a larger one with interchangeable parts is named by its parts instead.

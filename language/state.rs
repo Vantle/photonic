@@ -1,7 +1,9 @@
+use crate::canonical::Exhausted;
 use crate::link::Link;
 use crate::opening::Opening;
 use crate::profile;
 use crate::program::{Program, Scope, Symbol};
+use crate::snapshot::Form;
 use hashing::Builder;
 use smallvec::SmallVec;
 use std::collections::HashMap;
@@ -36,6 +38,7 @@ pub struct State {
 }
 
 // A configuration in its canonical form, and where its coherences, frames and token ids went.
+#[derive(Clone)]
 pub struct Canonical {
     pub state: State,
     pub renaming: Renaming,
@@ -43,7 +46,7 @@ pub struct Canonical {
 
 // Where a configuration's coherences, frames and token ids go in another: none for a coherence or
 // frame it drops.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Renaming {
     pub world: Vec<Option<usize>>,
     pub frame: Vec<Option<usize>>,
@@ -259,13 +262,38 @@ impl State {
         chain
     }
 
-    pub fn canonical(&self) -> Canonical {
+    // A search with a single candidate ordering stays open for two steps and finishes on its
+    // third, which the unit of work its caller spends on the configuration pays for; every later
+    // step spends one unit of the budget, and the search gives up once the budget is spent.
+    pub(crate) fn canonical(&self, budget: &mut usize) -> Result<Canonical, Exhausted> {
         let _scope = profile::Scope::new(profile::Phase::Normalization);
-        let mut search = crate::canonical::Search::new(std::sync::Arc::new(self.clone()));
-        while !search.step() {}
-        search
+        let mut search = crate::canonical::Search::new(Arc::new(self.clone()));
+        let mut open = 0;
+        while !search.step() {
+            open += 1;
+            if open > 2 {
+                *budget = budget.checked_sub(1).ok_or(Exhausted)?;
+            }
+        }
+        Ok(search
             .finish()
-            .expect("a finite configuration has a canonical ordering")
+            .expect("a finished search names its configuration"))
+    }
+
+    // The configuration renamed without a search: its coherences and reachable frames in the order
+    // it holds them, and its tokens numbered as a canonical form numbers them.
+    pub(crate) fn listed(&self) -> Canonical {
+        let world = (0..self.world.len()).collect::<Vec<_>>();
+        self.rename(&world, &self.reachable())
+    }
+
+    // The configuration as a report shows it: in its canonical form when that takes at most the
+    // budget, else listed.
+    pub(crate) fn show(&self, mut budget: usize) -> (Canonical, Form) {
+        match self.canonical(&mut budget) {
+            Ok(named) => (named, Form::Canonical),
+            Err(Exhausted) => (self.listed(), Form::Listed),
+        }
     }
 
     pub(crate) fn rename(&self, world: &[usize], frame: &[usize]) -> Canonical {
@@ -391,7 +419,12 @@ impl State {
                 .sum::<usize>()
     }
 
-    pub fn environment(&self, capture: usize) -> Canonical {
+    // The frames a rule owned by a captured frame sees, as one empty coherence in that frame.
+    pub(crate) fn environment(
+        &self,
+        capture: usize,
+        budget: &mut usize,
+    ) -> Result<Canonical, Exhausted> {
         Self {
             world: vec![
                 World {
@@ -403,7 +436,7 @@ impl State {
             .into(),
             frame: self.frame.clone(),
         }
-        .canonical()
+        .canonical(budget)
     }
 }
 

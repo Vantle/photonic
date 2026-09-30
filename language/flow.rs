@@ -130,7 +130,11 @@ impl Flow {
 impl Applied {
     #[cfg(test)]
     pub(crate) fn canonical(self) -> Self {
-        let canonical = self.state.canonical();
+        let mut budget = crate::canonical::UNLIMITED;
+        let canonical = self
+            .state
+            .canonical(&mut budget)
+            .expect("an unlimited search names every configuration");
         self.flow.rename(canonical)
     }
 }

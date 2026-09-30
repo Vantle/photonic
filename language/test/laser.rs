@@ -365,6 +365,33 @@ fn resume() {
     }
 }
 
+// An application whose result a round cannot name within what the round has left waits for the
+// next round, so a run too small to name it leaves the exploration open and a larger run closes it
+// as one run does.
+#[test]
+fn deferral() {
+    let limit = Limit::default();
+    for source in [
+        "Seed.X, Seed.X, Seed.X, [Seed] (A, A)",
+        "Go, Go, Go, [Go] (X, X, [X] Y)",
+    ] {
+        let program = frontend::lowering::parse(source).unwrap();
+        let mut runtime = Runtime::new(&program);
+        runtime.run(100_000_000, limit);
+        let mut whole = Laser::new(&program);
+        whole.run(100_000_000, limit);
+        let mut laser = Laser::new(&program);
+        laser.run(1, limit);
+        assert!(!laser.round.retry.is_empty(), "{source}");
+        assert!(!laser.closed(), "{source}");
+        laser.run(100_000_000, limit);
+        assert!(laser.closed(), "{source}");
+        assert_eq!(laser.agree(&runtime), Ok(()), "{source}");
+        assert_eq!(laser.summary().state, whole.summary().state, "{source}");
+        assert_eq!(laser.summary().event, whole.summary().event, "{source}");
+    }
+}
+
 // Exploring a step at a time under limits that rise retries the identities each limit blocked, while
 // new traces keep arriving; one they identify meanwhile waits for its retry instead of firing twice.
 #[test]
