@@ -47,7 +47,7 @@ impl std::str::FromStr for Engine {
 #[schemars(
     description = "How handles are numbered. shape: by the program's canonical form, so they survive reordering and renaming; text: by the sorted program, so they survive reordering; source: as written, for direct paths."
 )]
-pub(crate) enum Order {
+pub enum Order {
     Shape,
     Text,
     Source,

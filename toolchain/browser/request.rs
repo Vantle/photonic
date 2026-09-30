@@ -3,6 +3,7 @@ use frontend::source::Program;
 use serde::Deserialize;
 use serde::de::DeserializeOwned;
 use serde_json::{Map, Value};
+use spectrum::order::Naming;
 
 const SIZE: usize = 131072;
 const TARGET: usize = 16;
@@ -74,7 +75,9 @@ impl Request {
         Ok(program)
     }
 
-    pub fn target(&self, program: &Program) -> Result<Vec<Program>, Failure> {
+    // Each target in the names of the program explored, which also lists that program's root rules
+    // when preserve asks for them.
+    pub fn target(&self, program: &Program, naming: &Naming) -> Result<Vec<Program>, Failure> {
         if self.target.len() > TARGET {
             return Err(Failure::new(
                 Code::Target,
@@ -85,9 +88,10 @@ impl Request {
             .iter()
             .enumerate()
             .map(|(index, source)| {
-                let mut target = frontend::lowering::parse(source).map_err(|error| {
+                let written = frontend::lowering::parse(source).map_err(|error| {
                     Failure::located(Code::Target, &error, source).within(Item::Target(index))
                 })?;
+                let mut target = naming.hide(&written);
                 if self.preserve {
                     target.preserve(program);
                 }

@@ -11,7 +11,7 @@ use photonic::laser::ending;
 use photonic::place::Place;
 use photonic::prism::{Outcome, Reach, Verdict};
 use photonic::runtime::Runtime;
-use photonic::snapshot::{self, Link, Node};
+use photonic::snapshot::{self, Link, Node, Snapshot};
 use photonic::status::Status;
 use photonic::stop::Stop;
 use std::collections::VecDeque;
@@ -186,6 +186,24 @@ pub(crate) fn configuration(node: &Node) -> Configuration {
     }
 }
 
+pub(crate) fn event(snapshot: &Snapshot) -> Vec<Event> {
+    snapshot
+        .event
+        .iter()
+        .map(|event| Event {
+            source: event.source,
+            target: event.target,
+            rule: event.rule,
+            supported: event.status == Status::Supported,
+            footprint: event.footprint.clone(),
+            exact: event.exact.clone(),
+            read: event.read.clone(),
+            world: event.world.clone(),
+            deduction: snapshot.deduction(event.id),
+        })
+        .collect()
+}
+
 pub(crate) fn rule(definition: &snapshot::Definition, naming: &Naming) -> Rule {
     let plain = naming.show(&definition.rule);
     Rule {
@@ -304,21 +322,7 @@ impl Exploration {
             None => runtime.run(budget.work, budget.limit()),
         }
         let snapshot = runtime.snapshot();
-        let event = snapshot
-            .event
-            .iter()
-            .map(|event| Event {
-                source: event.source,
-                target: event.target,
-                rule: event.rule,
-                supported: event.status == Status::Supported,
-                footprint: event.footprint.clone(),
-                exact: event.exact.clone(),
-                read: event.read.clone(),
-                world: event.world.clone(),
-                deduction: snapshot.deduction(event.id),
-            })
-            .collect();
+        let event = self::event(&snapshot);
         let resource = snapshot
             .event
             .iter()

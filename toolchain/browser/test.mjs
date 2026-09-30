@@ -13,50 +13,80 @@ const explore = body => call(engine.explore, { version, ...body });
 const lower = source => call(engine.lower, { version, source });
 const follow = body => new engine.Path(JSON.stringify({ version, ...body }));
 const expression = source => engine.Path.expression(JSON.stringify({ version, source }));
-for (const source of [
-    'A, [A] B',
-    'A, [A] B.C, [B] D',
-    'Seed.A, [Seed] ().([A] B)',
-    'A.X, B.Y, [A, B] (C, D), [C, D] E',
-    'A, [A] A.A',
-    'And.True.False, [True] Boolean, [False] Boolean, [And.Boolean.Boolean] ([True.False] False)',
+const select = (pattern, execution) => call(engine.select, { version, pattern, execution });
+const budget = ['--engine', 'interpreter', '--work', '20000', '--configuration', '128', '--occurrence', '256', '--scope', '16', '--coherence', '16', '--record', '100000'];
+const ask = (path, verb, ...argument) => {
+    const reply = spawnSync(command, [verb, path, ...argument, ...budget, '--json'], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+    assert.equal(reply.status, 0, reply.error?.message || reply.stderr);
+    return JSON.parse(reply.stdout).answer;
+};
+const number = handle => Number(handle.slice(1));
+const atom = text => text.split(/[\s.,()[\]]+/).filter(Boolean).sort().join(' ');
+const occurrence = handle => Number(handle.split('.o')[1]);
+const place = value => Object.values(value)[0][1];
+const render = (execution, state) => {
+    const particle = world => {
+        const part = world.particle.map(token => token.kind === 'atom' ? token.label : `(${execution.definition[token.rule]})`);
+        if (!part.length) return '()';
+        return world.particle.length === 1 && world.particle[0].kind === 'rule' ? `().${part[0]}` : part.join('.');
+    };
+    const inside = frame => state.world.filter(world => world.frame === frame).map(particle).join(', ');
+    const part = [inside(0), ...state.frame.slice(1).map((_, index) => inside(index + 1) && `in f${index + 1}: ${inside(index + 1)}`)].filter(Boolean);
+    return part.length ? part.join(' · ') : 'nothing';
+};
+for (const [source, pattern] of [
+    ['A, [A] B', ['A', '()', '[A] B']],
+    ['A, [A] B.C, [B] D', ['C', 'D', '[A] B.C', '[B] D']],
+    ['Seed.A, [Seed] ().([A] B)', ['A', 'B', '().([A] B)', '[A] B']],
+    ['A.X, B.Y, [A, B] (C, D), [C, D] E', ['X.Y', 'C, D', '[A, B] (C, D)', '[C, D] E']],
+    ['A, [A] A.A', ['A.A.A', '[A] A.A']],
+    ['Brew.Tea, [Brew] (Kettle, [Kettle.Tea] Cup)', ['Tea', '(Kettle, [Kettle.Tea] Cup)', '[Kettle.Tea] Cup']],
+    ['And.True.False.Extra, [True] Boolean, [False] Boolean, [And.Boolean.Boolean] ([True.True] True, [True.False] False, [False.False] False)', ['Extra', 'False.Extra', 'Boolean.Boolean', '[True] Boolean', '[True.False] False']],
 ]) {
     const path = join(process.env.TEST_TMPDIR, 'source.wave');
     await writeFile(path, source);
-    const native = spawnSync(command, ['run', path, '--engine', 'interpreter', '--work', '20000', '--configuration', '128', '--occurrence', '256', '--scope', '16', '--coherence', '16', '--record', '100000', '--json'], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
-    assert.equal(native.status, 0, native.error?.message || native.stderr);
-    const response = explore({ source, target: [] });
-    assert.equal(response.error, undefined);
-    const report = JSON.parse(native.stdout);
-    const occurrence = token => token.atom === undefined
-        ? { kind: 'rule', id: token.id, rule: token.rule, ...(token.capture === undefined ? {} : { capture: token.capture }) }
-        : { kind: 'atom', id: token.id, label: token.atom };
-    const configuration = node => ({
-        id: node.id,
-        world: node.world.map(world => ({ frame: world.frame, particle: world.particle.map(occurrence) })),
-        frame: node.frame.map(frame => ({ parent: frame.parent, particle: frame.particle.map(token => ({ id: token.id, rule: token.rule })), held: frame.held.map(occurrence) })),
+    const { execution } = explore({ source, target: [] });
+    const summary = ask(path, 'explore', '--limit', '1000');
+    assert.equal(execution.state.length, summary.configuration, source);
+    assert.equal(execution.event.length, summary.event, source);
+    assert.equal(execution.closed, summary.closed, source);
+    assert.deepEqual(execution.state.map(state => state.id), execution.state.map((_, index) => index), source);
+    const leaving = new Set(execution.event.map(event => event.source));
+    assert.deepEqual(execution.state.filter(state => !leaving.has(state.id)).map(state => state.id), summary.end.map(entry => number(entry.handle)), source);
+    for (const entry of summary.end) assert.equal(render(execution, execution.state[number(entry.handle)]), entry.text, source);
+    summary.rule.forEach((rule, index) => {
+        assert.equal(atom(execution.definition[index]), atom(rule.text), `${source} ${rule.handle}`);
+        const first = execution.event.find(event => event.rule === execution.definition[index]);
+        assert.equal(first?.id, rule.first === undefined ? undefined : number(rule.first), `${source} ${rule.handle}`);
     });
-    const definition = report.definition.map(value => value.name);
-    const view = new Map(report.view.map(value => [value.id, value]));
-    const chain = index => {
-        const path = [];
-        for (let origin = view.get(index).origin; origin; origin = view.get(origin.view).origin) path.unshift(origin.event);
-        return path;
-    };
-    const direct = value => view.get(value.evidence).source === view.get(value.evidence).target;
-    const event = report.event.map(value => ({
-        id: value.id,
-        source: value.source,
-        target: value.target,
-        rule: report.definition[value.rule].name,
-        footprint: value.footprint,
-        exact: value.exact,
-        world: value.world,
-        context: value.context,
-        deduction: direct(value) ? [] : chain(value.evidence),
-    }));
-    assert.deepEqual(response.execution, { definition, closed: report.closed, stop: report.stop, work: report.work, state: report.state.map(configuration), event }, source);
+    for (const text of pattern) {
+        const expected = ask(path, 'select', '--pattern', text, '--limit', '100000');
+        const found = select(text, execution);
+        assert.equal(found.kind, expected.kind, `${source} ${text}`);
+        if (found.kind === 'event') {
+            assert.deepEqual(found.event, expected.found.map(entry => number(entry.handle)), `${source} ${text}`);
+            continue;
+        }
+        assert.deepEqual(found.state.map(state => state.id), expected.found.map(entry => number(entry.handle)), `${source} ${text}`);
+        found.state.forEach((state, index) => {
+            assert.deepEqual(state.world.flatMap(entry => entry.token).sort((left, right) => left - right), (expected.found[index].occurrence ?? []).map(occurrence).sort((left, right) => left - right), `${source} ${text} s${state.id}`);
+            assert.equal(render(execution, execution.state[state.id]), expected.found[index].text, `${source} ${text} s${state.id}`);
+        });
+    }
+    if (execution.event.length > 40) continue;
+    for (const event of execution.event) {
+        const expected = ask(path, 'inspect', `e${event.id}`);
+        assert.deepEqual([event.source, event.target, event.deduction], [number(expected.source), number(expected.target), expected.deduction.map(number)], `${source} e${event.id}`);
+        assert.deepEqual(event.exact.map(place).sort(), expected.exact.map(entry => occurrence(entry.handle)).sort(), `${source} e${event.id}`);
+        assert.deepEqual(event.footprint.map(place).filter(id => !event.exact.map(place).includes(id)).sort(), expected.witness.map(entry => occurrence(entry.handle)).sort(), `${source} e${event.id}`);
+    }
 }
+const conjunction = 'And.True.False.Extra, [True] Boolean, [False] Boolean, [And.Boolean.Boolean] ([True.True] True, [True.False] False, [False.False] False)';
+const verdict = explore({ source: conjunction, target: ['False.Extra', 'True.Extra'], preserve: true }).verdict;
+const sample = join(process.env.TEST_TMPDIR, 'conjunction.wave');
+await writeFile(sample, conjunction);
+const reach = ask(sample, 'check', '--reach', 'False.Extra', '--exact', '--preserve').claim[0];
+assert.deepEqual(verdict, [{ outcome: 'reached', witness: number(reach.witness) }, { outcome: 'unreachable', witness: null }]);
 assert.deepEqual(explore({ source: 'A, [A] B', target: ['B, [A] B', 'C, [A] B'] }).verdict.map(value => value.outcome), ['reached', 'unreachable']);
 assert.deepEqual(explore({ source: 'A, [A] B', target: ['B', 'A'], preserve: true }).verdict.map(value => value.outcome), ['reached', 'reached']);
 assert.deepEqual(explore({ source: '[] A', target: ['A.A, [] A'] }).verdict.map(value => value.outcome), ['unknown']);
@@ -83,8 +113,9 @@ assert.deepEqual(explore({ source: 'A', target: ['人.人, [B'] }).error.span, {
 assert.equal(explore({ source: 'A', target: ['A', 'B, ['] }).error.target, 1);
 assert.deepEqual(explore({ source: '⟨x⟩, [⟨x⟩] B' }).execution.state[0].world[0].particle, [{ kind: 'atom', id: 0, label: '⟨x⟩' }]);
 const valued = explore({ source: 'Seed.A, [Seed] ().([A] B)' }).execution;
-assert.deepEqual(valued.state[1].world[0].particle.map(token => token.kind), ['atom', 'rule']);
-const [written] = valued.state[1].world[0].particle.filter(token => token.kind === 'rule');
+const holding = valued.state.find(state => state.world[0]?.particle.some(token => token.kind === 'rule'));
+assert.deepEqual(holding.world[0].particle.map(token => token.kind), ['atom', 'rule']);
+const [written] = holding.world[0].particle.filter(token => token.kind === 'rule');
 assert.deepEqual(Object.keys(written).sort(), ['capture', 'id', 'kind', 'rule']);
 assert.equal(valued.definition[written.rule], '[A] B');
 for (const token of valued.state.flatMap(node => node.frame.flatMap(frame => frame.particle))) {
@@ -98,7 +129,7 @@ const deduced = explore({ source: 'A, [A] B.C, [B] D' }).execution;
 const shortcut = deduced.event.find(value => value.source === 0 && value.rule === '[B] D');
 assert.deepEqual(shortcut.deduction.map(index => deduced.event[index].rule), ['[A] B.C']);
 assert.ok(deduced.event.filter(value => value.rule === '[A] B.C').every(value => !value.deduction.length));
-console.log('WebAssembly exploration matches native Rust reports, including suspended exploration, generated code and deductions.');
+console.log('WebAssembly exploration gives every configuration, event and occurrence the handle the command line gives it, with the same ends, first events, matches, deductions and witnesses, including suspended exploration and generated code.');
 
 const symmetric = explore({ source: 'Light, [Light] Red, [Light] Green, [Light] Blue' });
 assert.equal(symmetric.symmetry.size, '6');

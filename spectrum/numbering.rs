@@ -1,5 +1,6 @@
 use crate::configuration::Configuration;
-use crate::exploration::Event;
+use crate::exploration::{self, Event};
+use photonic::snapshot::Snapshot;
 use std::collections::VecDeque;
 
 // Each engine numbers configurations and events in the order it finds them. An exploration of every
@@ -35,7 +36,7 @@ fn distance(count: usize, event: &[Event], admit: impl Fn(&Event) -> bool) -> Ve
 }
 
 impl Numbering {
-    pub fn new(configuration: &[Configuration], event: &[Event]) -> Self {
+    pub(crate) fn new(configuration: &[Configuration], event: &[Event]) -> Self {
         let count = configuration.len();
         let supported = distance(count, event, |value| value.supported);
         let any = distance(count, event, |_| true);
@@ -67,7 +68,7 @@ impl Numbering {
         Self { rank, origin }
     }
 
-    pub fn apply(
+    pub(crate) fn apply(
         &self,
         configuration: Vec<Configuration>,
         event: Vec<Event>,
@@ -105,5 +106,16 @@ impl Numbering {
 
     pub fn event(&self, index: usize) -> usize {
         self.origin[index]
+    }
+}
+
+impl From<&Snapshot> for Numbering {
+    fn from(snapshot: &Snapshot) -> Self {
+        let configuration = snapshot
+            .state
+            .iter()
+            .map(exploration::configuration)
+            .collect::<Vec<_>>();
+        Self::new(&configuration, &exploration::event(snapshot))
     }
 }

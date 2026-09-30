@@ -9,15 +9,18 @@ mod lowering;
 mod path;
 mod request;
 mod response;
+mod rule;
 mod selection;
 mod shape;
 
+use catalog::Catalog;
 use execution::Execution;
 use failure::{Code, Failure};
 use photonic::prism::Verdict;
 use photonic::runtime::Runtime;
 use request::{Request, Text};
 use serde::Serialize;
+use spectrum::numbering::Numbering;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 const VERSION: u32 = 3;
@@ -44,16 +47,33 @@ fn lowering(input: &str) -> Result<Lowering, Failure> {
     })
 }
 
+// The canonical program runs, as Spectrum's explorations do, so that every configuration and event
+// here takes the handle the command line and every question give it.
 fn exploration(input: &str) -> Result<Exploration, Failure> {
     let query: Request = request::read(input)?;
     let program = query.program()?;
-    let target = query.target(&program)?;
+    let canonical = spectrum::order::exhaustive(&program);
+    let target = query.target(&canonical.program, &canonical.naming)?;
     let symmetry = analysis::analysis(&program);
-    let mut runtime = Runtime::new(&program);
+    let mut runtime = Runtime::new(&canonical.program);
     runtime.run(limit::EXPLORATION.work, limit::EXPLORATION.bound);
+    let snapshot = runtime.snapshot();
+    let numbering = Numbering::from(&snapshot);
+    let definition = Catalog::new(&snapshot.definition, &program, &canonical.naming);
     Ok(Exploration {
-        verdict: target.iter().map(|goal| runtime.verdict(goal)).collect(),
-        execution: Execution::from(runtime.snapshot()),
+        verdict: target
+            .iter()
+            .map(|goal| {
+                let verdict = runtime.verdict(goal);
+                Verdict {
+                    witness: verdict
+                        .witness
+                        .map(|witness| numbering.configuration(witness)),
+                    ..verdict
+                }
+            })
+            .collect(),
+        execution: Execution::new(snapshot, &numbering, &canonical.naming, definition),
         symmetry,
     })
 }

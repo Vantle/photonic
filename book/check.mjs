@@ -156,12 +156,13 @@ try {
     await evaluate("document.querySelector('#bench button.hyperedge.inferred').click(); return true");
     assert.deepEqual(await evaluate("return [...document.querySelectorAll('#bench .chain > code')].map(value => value.textContent)"), ['[True] Boolean', '[False] Boolean']);
     assert.equal(await evaluate("return document.querySelectorAll('#bench .graph .link.deduction').length"), 2);
-    assert.deepEqual(await evaluate("return [...document.querySelectorAll('#bench .graph .state[data-deduction]')].map(value => value.dataset.state)"), ['3']);
-    const inferred = `[...${figure('conjunction')}.querySelectorAll('.departure .event')].find(value => value.querySelector('.deduction'))`;
-    assert.equal(await evaluate(`const row = ${inferred}; row.dispatchEvent(new Event('mouseenter')); return row.querySelector('.deduction').textContent`), 'matches s3 after [True] Boolean, [False] Boolean');
+    assert.deepEqual(await evaluate("return [...document.querySelectorAll('#bench .graph .state[data-deduction]')].map(value => value.dataset.state)"), ['5']);
+    const inferred = `[...${figure('conjunction')}.querySelectorAll('.departure .event')].find(value => value.querySelector('.deduction') && value.querySelector(':scope > code').textContent.startsWith('[And.Boolean.Boolean]'))`;
+    assert.equal(await evaluate(`const row = ${inferred}; row.dispatchEvent(new Event('mouseenter')); return row.querySelector('.deduction').textContent`), 'matches s5 after [True] Boolean, [False] Boolean');
     assert.equal(await evaluate(`return ${figure('conjunction')}.querySelectorAll('.link.deduction, .state[data-deduction]').length`), 3);
     await evaluate(`${inferred}.dispatchEvent(new Event('mouseleave')); return true`);
     assert.equal(await evaluate(`return ${figure('conjunction')}.querySelectorAll('.link.deduction, .state[data-deduction]').length`), 0);
+    assert.equal(await evaluate(`return ${figure('conjunction')}.querySelector('.verdict .tool').textContent`), 'witness s6');
     await evaluate("[...document.querySelectorAll('#bench .preset button')].find(value => value.textContent === 'Parallel').click(); return true");
     assert.deepEqual(await evaluate("return [...document.querySelectorAll('#bench .symmetry .class button')].map(value => value.textContent)"), ['Global A and B; C and D']);
     await evaluate(`${figure('first')}.querySelector('.bar button:not(.run)').click(); return true`);
@@ -221,7 +222,7 @@ try {
     };
     await filter('C');
     await until("return document.querySelectorAll('#bench .graph .state').length === 3");
-    assert.deepEqual(await evaluate("return [...document.querySelectorAll('#bench .graph .state')].map(value => value.dataset.state)"), ['1', '3', '4']);
+    assert.deepEqual(await evaluate("return [...document.querySelectorAll('#bench .graph .state')].map(value => value.dataset.state)"), ['2', '3', '4']);
     assert.equal(await evaluate("return document.querySelectorAll('#bench .graph .state[data-match]').length"), 2);
     assert.equal(await evaluate("return document.querySelectorAll('#bench .capsule').length"), 3);
     await filter('[C, D] E');

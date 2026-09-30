@@ -8,6 +8,7 @@ use photonic::path::{Event, Search};
 use photonic::place::Place;
 use photonic::prism::Outcome;
 use serde::Serialize;
+use spectrum::order::Naming;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 #[derive(Serialize)]
@@ -78,7 +79,7 @@ impl Session {
     fn follow(input: &str) -> Result<Self, Failure> {
         let query: Request = request::read(input)?;
         let program = query.program()?;
-        let mut target = query.target(&program)?;
+        let mut target = query.target(&program, &Naming::default())?;
         if target.len() > 1 {
             return Err(Failure::new(
                 Code::Target,
