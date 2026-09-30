@@ -47,10 +47,3 @@ diff --git a/rs/private/rustc_repository.bzl b/rs/private/rustc_repository.bzl
 +            "lib/rustlib/{target_triple}/bin/*.dll",
              "lib/rustlib/{target_triple}/bin/gcc-ld/*",
          ],
-@@ -113,4 +114,6 @@
-     _add_linux_zlib(rctx, exec_triple)
-     _symlink_rust_objcopy_shared_libraries(rctx, exec_triple)
-+    if rctx.attr.triple.endswith("-windows-gnullvm"):
-+        rctx.symlink("bin/libunwind.dll", "lib/rustlib/{}/bin/libunwind.dll".format(exec_triple.str))
-     build_content = _build_file_tmpl.format(
-         binary_ext = binary_ext,
