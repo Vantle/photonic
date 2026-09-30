@@ -1,8 +1,8 @@
 load("//photonic:defs.bzl", "photonic_binary", "photonic_test")
 
 photonic_binary(
-    name = "rows",
-    srcs = ["rows.wave"],
+    name = "row",
+    srcs = ["row.wave"],
     deps = [
         "//library/natural:digit",
         "//library/vector:node",
@@ -12,8 +12,8 @@ photonic_binary(
 )
 
 photonic_test(
-    name = "rows.check",
-    srcs = ["rows.wave"],
+    name = "row.check",
+    srcs = ["row.wave"],
     coherence = 512,
     occurrence = 4096,
     path = True,
