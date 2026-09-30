@@ -1165,3 +1165,60 @@ fn extent() {
         "{miss}"
     );
 }
+
+// In an open exploration a rule that has not fired is not said never to fire: configurations whose
+// events were not recorded count as unexplored, and a row where its input matches is marked so.
+#[test]
+fn unexplored() {
+    let open = r#""program": {"source": "N, [N] N.N, [N.N.N] Done"}, "budget": {"work": 5}"#;
+    let explored = json(&format!(r#"{{"verb": "explore", {open}}}"#));
+    assert_eq!(explored["answer"]["closed"], false, "{explored}");
+    let done = explored["answer"]["rule"]
+        .as_array()
+        .expect("rules")
+        .iter()
+        .find(|rule| rule["text"] == "[N.N.N] Done")
+        .and_then(|rule| rule["handle"].as_str())
+        .expect("the rule is listed")
+        .to_owned();
+    let miss = json(&format!(r#"{{"verb": "miss", {open}, "rule": "{done}"}}"#));
+    let answer = &miss["answer"];
+    assert_eq!(
+        (answer["visible"].clone(), answer["unexplored"].clone()),
+        (serde_json::json!(2), serde_json::json!(1)),
+        "{miss}"
+    );
+    let matched = answer["near"]
+        .as_array()
+        .expect("rows")
+        .iter()
+        .find(|row| row["missing"] == 0)
+        .expect("a row where the input matches");
+    assert_eq!(matched["unexplored"], true, "{miss}");
+}
+
+// A target's distance is 0 exactly where select finds it, however its parts nest, and a target
+// with more parts than any configuration holds is refused at once.
+#[test]
+fn measure() {
+    let answer = session(&[
+        r#"{"verb": "miss", "program": {"source": "Start, (X, [X] Y)"}, "target": "X, (X, [X] Y)"}"#,
+        r#"{"verb": "miss", "program": {"source": "Start, X, (X, [X] Y)"}, "target": "(X, [X] Y), X"}"#,
+        &serde_json::json!({"verb": "miss", "program": {"source": "A, [A] B"}, "target": vec!["A"; 1000].join(", ")}).to_string(),
+        &serde_json::json!({"verb": "miss", "program": {"source": "A, [A] B"}, "target": vec!["A"; 200].join(", ")}).to_string(),
+    ]);
+    let near = &answer[0]["answer"]["near"][0];
+    assert_ne!(near["distance"], 0, "{}", answer[0]);
+    assert_eq!(near["missing"], serde_json::json!(["X"]), "{}", answer[0]);
+    assert_eq!(
+        answer[1]["answer"]["near"][0]["distance"], 0,
+        "{}",
+        answer[1]
+    );
+    assert_eq!(answer[2]["error"]["code"], "pattern", "{}", answer[2]);
+    assert_eq!(
+        answer[3]["answer"]["near"][0]["distance"], 199,
+        "{}",
+        answer[3]
+    );
+}

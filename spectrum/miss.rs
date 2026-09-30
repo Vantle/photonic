@@ -1,6 +1,7 @@
 use crate::claim;
-use crate::configuration::{Coherence, Occurrence, Value};
+use crate::configuration::{Coherence, Configuration, Occurrence, Value};
 use crate::context::Context;
+use crate::embedding;
 use crate::exploration::Exploration;
 use crate::failure::{Code, Failure};
 use crate::handle::Handle;
@@ -13,6 +14,10 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 pub const LIMIT: usize = 3;
+
+// Measuring a target pairs each of its parts with a place in every configuration, and no
+// configuration holds more places than its budget allows, so a larger target only slows the answer.
+const PART: usize = 256;
 
 fn limit() -> usize {
     LIMIT
@@ -75,6 +80,11 @@ pub(crate) struct Close {
     pub(crate) text: String,
     pub(crate) missing: usize,
     pub(crate) lack: Vec<Lack>,
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    #[schemars(
+        description = "The exploration recorded no events here, or a direct path took another event here, so the rule may still fire here."
+    )]
+    pub(crate) unexplored: bool,
 }
 
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
@@ -88,7 +98,14 @@ pub(crate) enum Miss {
     Rule {
         rule: String,
         fired: usize,
+        #[schemars(
+            description = "Configurations whose events the exploration recorded where the rule is live and did not fire."
+        )]
         visible: usize,
+        #[schemars(
+            description = "Configurations where the rule is live but whose events the exploration did not record, or where a direct path took another event, so it may still fire there."
+        )]
+        unexplored: usize,
         near: Vec<Close>,
     },
 }
@@ -138,25 +155,19 @@ fn assign(
     coherence: &[&Coherence],
     exploration: &Exploration,
 ) -> Vec<Option<usize>> {
-    let width = coherence.len() + particle.len();
     let cost = particle
         .iter()
         .map(|part| {
-            (0..width)
-                .map(|column| {
-                    coherence.get(column).map_or(0, |entry| {
-                        -i64::try_from(fit(part, entry, exploration).matched.len())
-                            .unwrap_or(i64::MAX)
-                            - i64::from(part.is_empty())
-                    })
+            coherence
+                .iter()
+                .map(|entry| {
+                    -i64::try_from(fit(part, entry, exploration).matched.len()).unwrap_or(i64::MAX)
+                        - i64::from(part.is_empty())
                 })
                 .collect()
         })
         .collect::<Vec<Vec<i64>>>();
-    matching::cheapest(&cost)
-        .into_iter()
-        .map(|column| (column < coherence.len()).then_some(column))
-        .collect()
+    matching::pair(&cost)
 }
 
 fn definition(occurrence: &Occurrence, exploration: &Exploration) -> Option<Definition> {
@@ -166,11 +177,15 @@ fn definition(occurrence: &Occurrence, exploration: &Exploration) -> Option<Defi
     Some(exploration.rule[index].canonical.clone())
 }
 
+// What a target lacks and has extra in one configuration, and the frames and coherences its parts
+// took, which no other part may take.
 #[derive(Default)]
 struct Tally {
     distance: usize,
     missing: Vec<String>,
     extra: Vec<String>,
+    frame: Vec<usize>,
+    coherence: Vec<usize>,
 }
 
 impl Tally {
@@ -178,6 +193,8 @@ impl Tally {
         self.distance += other.distance;
         self.missing.extend(other.missing);
         self.extra.extend(other.extra);
+        self.frame.extend(other.frame);
+        self.coherence.extend(other.coherence);
     }
 
     fn lack(&mut self, prefix: &str, particle: &[Item]) {
@@ -193,52 +210,63 @@ impl Tally {
     }
 }
 
-fn prefix(frame: usize) -> String {
+fn prefix(entry: &Configuration, frame: usize) -> String {
     if frame == 0 {
         return String::new();
     }
-    format!("in f{frame}: ")
+    format!("in {}: ", render::frame(entry, frame))
+}
+
+fn size(body: &Body) -> i64 {
+    i64::try_from(body.size()).unwrap_or(i64::MAX)
 }
 
 // Each scope of the pattern takes the frame it fits best, and a scope that fits none is missing
-// whole, so nested scopes are measured the way the configuration's own parts are.
+// whole, so nested scopes are measured the way the configuration's own parts are. A scope found
+// at any depth can take a frame another scope's parts took, and then it is missing whole too, so
+// no frame serves two scopes.
 fn nest(
     body: &Body,
     frame: &[usize],
     prefix: &str,
     inner: impl Fn(&Body, usize) -> Tally,
-) -> (Tally, Vec<usize>) {
+) -> Tally {
     let mut fit = body
         .scope
         .iter()
         .map(|scope| {
             frame
                 .iter()
-                .map(|&frame| inner(scope, frame))
+                .map(|&frame| {
+                    let mut tally = inner(scope, frame);
+                    tally.frame.push(frame);
+                    tally
+                })
                 .collect::<Vec<_>>()
         })
         .collect::<Vec<_>>();
-    let width = frame.len() + body.scope.len();
     let cost = body
         .scope
         .iter()
         .zip(&fit)
         .map(|(scope, fit)| {
-            (0..width)
-                .map(|column| {
-                    let distance = fit.get(column).map_or(scope.size(), |tally| tally.distance);
-                    i64::try_from(distance).unwrap_or(i64::MAX)
+            fit.iter()
+                .map(|tally| {
+                    i64::try_from(tally.distance)
+                        .unwrap_or(i64::MAX)
+                        .saturating_sub(size(scope))
                 })
                 .collect()
         })
         .collect::<Vec<Vec<i64>>>();
     let mut tally = Tally::default();
-    let mut used = Vec::new();
-    for (row, column) in matching::cheapest(&cost).into_iter().enumerate() {
-        if column < frame.len() {
-            tally.absorb(std::mem::take(&mut fit[row][column]));
-            used.push(frame[column]);
-            continue;
+    for (row, column) in matching::pair(&cost).into_iter().enumerate() {
+        if let Some(column) = column {
+            let taken = std::mem::take(&mut fit[row][column]);
+            if !taken.frame.iter().any(|frame| tally.frame.contains(frame)) {
+                tally.absorb(taken);
+                continue;
+            }
         }
         let scope = &body.scope[row];
         tally.distance += scope.size();
@@ -247,7 +275,7 @@ fn nest(
             frontend::text::scope(&scope.program())
         ));
     }
-    (tally, used)
+    tally
 }
 
 fn contain(
@@ -258,34 +286,39 @@ fn contain(
     configuration: usize,
 ) -> Tally {
     let entry = &exploration.configuration[configuration];
-    let mut tally = Tally::default();
+    let nested = nest(body, &region.frame, prefix, |scope, frame| {
+        contain(
+            scope,
+            &Region::frame(entry, frame),
+            &self::prefix(entry, frame),
+            exploration,
+            configuration,
+        )
+    });
     let candidate = region
         .coherence
         .iter()
+        .copied()
+        .filter(|index| !nested.coherence.contains(index))
+        .collect::<Vec<_>>();
+    let reference = candidate
+        .iter()
         .map(|&index| &entry.coherence[index])
         .collect::<Vec<_>>();
-    let choice = assign(&body.coherence, &candidate, exploration);
+    let mut tally = Tally::default();
+    let choice = assign(&body.coherence, &reference, exploration);
     for (particle, choice) in body.coherence.iter().zip(choice) {
         let Some(position) = choice else {
             tally.lack(prefix, particle);
             continue;
         };
-        let missing = fit(particle, candidate[position], exploration).missing;
+        tally.coherence.push(candidate[position]);
+        let missing = fit(particle, reference[position], exploration).missing;
         tally.distance += missing.len();
         tally
             .missing
             .extend(missing.into_iter().map(|item| format!("{prefix}{item}")));
     }
-    let (nested, _) = nest(body, &region.frame, prefix, |scope, frame| {
-        let region = Region::frame(&exploration.configuration[configuration], frame);
-        contain(
-            scope,
-            &region,
-            &self::prefix(frame),
-            exploration,
-            configuration,
-        )
-    });
     tally.absorb(nested);
     let mut live = region.rule.clone();
     for expected in &body.rule {
@@ -325,7 +358,7 @@ fn below(frame: &[usize], exploration: &Exploration, configuration: usize) -> Ve
 fn equal(body: &Body, frame: usize, exploration: &Exploration, configuration: usize) -> Tally {
     let entry = &exploration.configuration[configuration];
     let region = Region::opened(entry, frame);
-    let prefix = prefix(frame);
+    let prefix = prefix(entry, frame);
     let mut tally = Tally::default();
     let candidate = region
         .coherence
@@ -366,13 +399,13 @@ fn equal(body: &Body, frame: usize, exploration: &Exploration, configuration: us
             ));
         }
     }
-    let (nested, used) = nest(body, &region.frame, &prefix, |scope, child| {
+    let nested = nest(body, &region.frame, &prefix, |scope, child| {
         equal(scope, child, exploration, configuration)
     });
-    tally.absorb(nested);
     let unmatched = (0..entry.frame.len())
-        .filter(|&child| entry.frame[child].parent == Some(frame) && !used.contains(&child))
+        .filter(|&child| entry.frame[child].parent == Some(frame) && !nested.frame.contains(&child))
         .collect::<Vec<_>>();
+    tally.absorb(nested);
     let unmatched = below(&unmatched, exploration, configuration);
     for coherence in entry
         .coherence
@@ -381,8 +414,8 @@ fn equal(body: &Body, frame: usize, exploration: &Exploration, configuration: us
     {
         tally.distance += coherence.occurrence.len().max(1);
         tally.extra.push(format!(
-            "in f{}: {}",
-            coherence.frame,
+            "{}{}",
+            self::prefix(entry, coherence.frame),
             render::coherence(&exploration.rule, coherence)
         ));
     }
@@ -415,14 +448,23 @@ fn equal(body: &Body, frame: usize, exploration: &Exploration, configuration: us
     tally
 }
 
-fn measure(body: &Body, exact: bool, exploration: &Exploration, index: usize) -> (Near, usize) {
+// A configuration a pattern matches is at distance 0, as select and claims find it; any other is
+// measured by the nearest assignment, which never uses one of its parts twice.
+fn measure(
+    body: &Body,
+    exact: bool,
+    exploration: &Exploration,
+    index: usize,
+) -> Result<(Near, usize), Failure> {
+    let entry = &exploration.configuration[index];
     let tally = if exact {
         equal(body, 0, exploration, index)
+    } else if embedding::assign(body, entry, exploration.rule.as_slice())?.is_some() {
+        Tally::default()
     } else {
-        let region = Region::configuration(&exploration.configuration[index]);
-        contain(body, &region, "", exploration, index)
+        contain(body, &Region::configuration(entry), "", exploration, index)
     };
-    (
+    Ok((
         Near {
             handle: Handle::Configuration(index).to_string(),
             text: render::configuration(exploration, index),
@@ -431,45 +473,74 @@ fn measure(body: &Body, exact: bool, exploration: &Exploration, index: usize) ->
             extra: tally.extra,
         },
         index,
-    )
+    ))
 }
 
 fn depth(exploration: &Exploration, index: usize) -> usize {
     exploration.depth[index].unwrap_or(usize::MAX)
 }
 
-fn target(request: &Request, text: &str, exploration: &Exploration) -> Result<Miss, Failure> {
-    let body = if request.exact {
+fn parts(body: &Body) -> usize {
+    body.coherence.len()
+        + body.rule.len()
+        + body
+            .scope
+            .iter()
+            .map(|scope| 1 + parts(scope))
+            .sum::<usize>()
+}
+
+// A target read before anything is explored: a pattern, or with exact the configuration a program
+// starts in, of at most PART parts.
+fn read(request: &Request, text: &str) -> Result<Body, Failure> {
+    let (body, code) = if request.exact {
         let target = crate::subject::lower("target", text, Code::Target)?;
-        let mut body = Body::new(&target);
-        if request.preserve {
-            let root = exploration
-                .configuration
-                .first()
-                .and_then(|entry| entry.frame.first())
-                .map(|frame| frame.rule.as_slice())
-                .unwrap_or_default();
-            body.rule.extend(
-                root.iter()
-                    .filter_map(|occurrence| definition(occurrence, exploration)),
-            );
-        }
-        body
+        (Body::new(&target), Code::Target)
     } else {
         match Pattern::read(text)? {
-            Pattern::Configuration(body) => body,
+            Pattern::Configuration(body) => (body, Code::Pattern),
             Pattern::Rule(_) => {
                 return Err(Failure::new(
                     Code::Pattern,
-                    "miss takes a pattern of coherences and scopes as target; give a rule as rule",
+                    "miss takes a pattern of coherences and scopes as its target; give a rule handle, such as r3, as its rule",
                 ));
             }
         }
     };
+    let count = parts(&body);
+    if count > PART {
+        return Err(Failure::new(
+            code,
+            format!(
+                "miss measures targets of at most {PART} parts, and this one has {count}; ask select or check whether it matches, or measure a part of it"
+            ),
+        ));
+    }
+    Ok(body)
+}
+
+fn target(
+    request: &Request,
+    text: &str,
+    mut body: Body,
+    exploration: &Exploration,
+) -> Result<Miss, Failure> {
+    if request.preserve {
+        let root = exploration
+            .configuration
+            .first()
+            .and_then(|entry| entry.frame.first())
+            .map(|frame| frame.rule.as_slice())
+            .unwrap_or_default();
+        body.rule.extend(
+            root.iter()
+                .filter_map(|occurrence| definition(occurrence, exploration)),
+        );
+    }
     let mut near = (0..exploration.configuration.len())
         .filter(|&index| exploration.configuration[index].supported)
         .map(|index| measure(&body, request.exact, exploration, index))
-        .collect::<Vec<_>>();
+        .collect::<Result<Vec<_>, _>>()?;
     near.sort_by_key(|(entry, index)| (entry.distance, depth(exploration, *index), *index));
     Ok(Miss::Target {
         target: text.to_owned(),
@@ -535,6 +606,7 @@ fn close(
         text: render::configuration(exploration, configuration),
         missing: lack.iter().map(|lack| lack.missing.len()).sum(),
         lack,
+        unexplored: false,
     }
 }
 
@@ -543,6 +615,13 @@ fn silent(exploration: &Exploration, configuration: usize, rule: usize) -> bool 
         && !exploration.outgoing[configuration].iter().any(|&event| {
             exploration.event[event].rule == rule && exploration.event[event].supported
         })
+}
+
+// Whether an exploration recorded a configuration's events: every one's once it closed, and while
+// it is open those it recorded any event of; a direct path records only the event it took.
+fn expanded(exploration: &Exploration, configuration: usize) -> bool {
+    exploration.closed
+        || (exploration.mode != Mode::Path && !exploration.outgoing[configuration].is_empty())
 }
 
 fn rule(request: &Request, text: &str, exploration: &Exploration) -> Result<Miss, Failure> {
@@ -565,13 +644,17 @@ fn rule(request: &Request, text: &str, exploration: &Exploration) -> Result<Miss
             let frame = visible(exploration, configuration, index);
             (!frame.is_empty()).then(|| {
                 (
-                    close(&input, &frame, exploration, configuration),
+                    Close {
+                        unexplored: !expanded(exploration, configuration),
+                        ..close(&input, &frame, exploration, configuration)
+                    },
                     configuration,
                 )
             })
         })
         .collect::<Vec<_>>();
-    let live = near.len();
+    let unexplored = near.iter().filter(|(entry, _)| entry.unexplored).count();
+    let live = near.len() - unexplored;
     near.sort_by_key(|(entry, configuration)| {
         (
             entry.missing,
@@ -583,6 +666,7 @@ fn rule(request: &Request, text: &str, exploration: &Exploration) -> Result<Miss
         rule: format!("{handle} {}", exploration.rule[index].text),
         fired: exploration.firing(index).count(),
         visible: live,
+        unexplored,
         near: near
             .into_iter()
             .take(request.limit)
@@ -593,7 +677,7 @@ fn rule(request: &Request, text: &str, exploration: &Exploration) -> Result<Miss
 
 // What a miss explains, checked before anything is explored: a target, or a rule.
 enum Question<'request> {
-    Target(&'request str),
+    Target(&'request str, Body),
     Rule(&'request str),
 }
 
@@ -609,7 +693,7 @@ fn question(request: &Request) -> Result<Question<'_>, Failure> {
         )),
         (Some(text), None) => {
             claim::preserve(request.exact, request.preserve)?;
-            Ok(Question::Target(text))
+            Ok(Question::Target(text, read(request, text)?))
         }
         (None, Some(_)) if request.exact || request.preserve => Err(Failure::new(
             Code::Request,
@@ -623,7 +707,7 @@ pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Ans
     let question = question(request)?;
     let exploration = context.exploration(&request.recording)?;
     let miss = match question {
-        Question::Target(text) => target(request, text, &exploration)?,
+        Question::Target(text, body) => target(request, text, body, &exploration)?,
         Question::Rule(text) => rule(request, text, &exploration)?,
     };
     Ok(Answer {
@@ -683,13 +767,26 @@ impl Answer {
                 rule,
                 fired,
                 visible,
+                unexplored,
                 near,
             } => {
                 let fired = extent.firing(*fired);
-                line.push(format!(
-                    "{rule}   {fired} · {state} · live in {} where it does not fire",
-                    render::count(*visible, "configuration")
-                ));
+                let live = match extent {
+                    Extent::Closed => format!(
+                        "live in {} where it does not fire",
+                        render::count(*visible, "configuration")
+                    ),
+                    Extent::Open => format!(
+                        "live in {} where it has not fired yet, and in {} unexplored",
+                        render::count(*visible, "explored configuration"),
+                        unexplored
+                    ),
+                    Extent::Path => format!(
+                        "live in {} of the path, which did not take it",
+                        render::count(*unexplored, "configuration")
+                    ),
+                };
+                line.push(format!("{rule}   {fired} · {state} · {live}"));
                 for entry in near {
                     let lack = entry
                         .lack
@@ -708,8 +805,13 @@ impl Answer {
                         })
                         .collect::<Vec<_>>()
                         .join("; ");
+                    let note = if entry.unexplored && extent == Extent::Open {
+                        "   unexplored"
+                    } else {
+                        ""
+                    };
                     line.push(format!(
-                        "{:<5} {:<width$}   {lack}",
+                        "{:<5} {:<width$}   {lack}{note}",
                         entry.handle, entry.text
                     ));
                 }
