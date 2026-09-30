@@ -1162,6 +1162,38 @@ fn result(response: &serde_json::Value) -> (bool, String) {
     )
 }
 
+// The command and its protocol server report the version MODULE.bazel gives the module.
+#[test]
+fn version() {
+    let module = std::fs::read_to_string(runfile("MODULE")).expect("MODULE.bazel");
+    let declaration = module.split_once("module(").expect("a module call").1;
+    let version = declaration
+        .lines()
+        .find_map(|line| {
+            line.trim()
+                .strip_prefix("version = \"")?
+                .strip_suffix("\",")
+        })
+        .expect("the module's version");
+    let output = invoke(&["--version"]);
+    assert!(output.status.success());
+    assert_eq!(text(&output), format!("photonic {version}\n"));
+    let fixture = Fixture::new();
+    let meta = serde_json::json!({"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}});
+    let answer = session(
+        &fixture.path,
+        &[
+            initialize(),
+            serde_json::json!({"jsonrpc": "2.0", "id": 1, "method": "server/discover", "params": {"_meta": meta}}).to_string(),
+        ],
+    );
+    assert_eq!(answer[0]["result"]["serverInfo"]["version"], version);
+    assert_eq!(
+        answer[1]["result"]["_meta"]["io.modelcontextprotocol/serverInfo"]["version"],
+        version
+    );
+}
+
 // 0 on success; 1 on a failure, or an answer that does not meet what was asked; 2 when the command
 // line is invalid, with or without --json.
 #[test]

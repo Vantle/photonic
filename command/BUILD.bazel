@@ -38,8 +38,14 @@ rust_test(
     name = "test",
     srcs = ["test.rs"],
     crate_root = "test.rs",
-    data = [":photonic"],
-    env = {"PHOTONIC_COMMAND": "$(rlocationpath :photonic)"},
+    data = [
+        ":photonic",
+        "//:module",
+    ],
+    env = {
+        "MODULE": "$(rlocationpath //:module)",
+        "PHOTONIC_COMMAND": "$(rlocationpath :photonic)",
+    },
     lint_config = "//:lint",
     deps = [
         "@crate//:serde_json",
