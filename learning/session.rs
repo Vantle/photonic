@@ -321,7 +321,7 @@ pub fn run(
             )
         })
         .transpose()?;
-    let origin = trainer
+    let before = trainer
         .as_ref()
         .map_or(0, |trainer| trainer.optimizer().step);
     let progress = Mutex::new(Progress::default());
@@ -435,7 +435,7 @@ pub fn run(
                 .lock()
                 .expect("the progress lock is never poisoned")
                 .step
-                .saturating_sub(origin);
+                .saturating_sub(before);
             if shared.stop.load(Ordering::Relaxed)
                 || setting
                     .duration
