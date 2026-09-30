@@ -30,7 +30,7 @@ Distinct input positions require distinct locations. Multiple operands inside on
 
 These rules generalize to arbitrary arity within explicit resource limits. Zero-input execution does not manufacture an input coherence or impose a one-shot restriction. A context-owned zero-input rule executes at its owning context, not once per visibility path. A coherence-owned zero-input rule reads its occurrence without implicitly selecting the containing coherence as an operand.
 
-Brackets that share a term are separate sources. Each consumes what it names and produces every other part of the term, one rule per part: `[A] [B]` loads `[A] B` and `[B] A`, so A and B become each other, and `[A] [B] C` adds `[A] C` and `[B] C`. Lowering writes these rules out directly. The frontend budget bounds everything it writes, rule names included, to 1,000,000 units plus eight per byte of source, because a rule's name repeats the text of every rule nested inside it. Report notation such as `⟨…⟩`, `§0`, and `@f0` is diagnostic labeling, not additional source grammar; capture and ownership are explicit structured report fields.
+Brackets that share a term join like any parts of it: `[A] [B] C` is one rule that consumes `A.B` and produces `C`. The frontend budget bounds everything lowering writes, rule names included, to 1,000,000 units plus eight per byte of source, because a rule's name repeats the text of every rule nested inside it. Report notation such as `⟨…⟩`, `§0`, and `@f0` is diagnostic labeling, not additional source grammar; capture and ownership are explicit structured report fields.
 
 ## One evaluator
 
@@ -44,7 +44,7 @@ Dispatch resolves indexed eligible plans to live occurrences. Lexically nearer c
 
 Targets specify the complete state, including live rules. `A, [A] B` reaches `B, [A] B`; it does not reach bare `B`. After `[A] B, [[A] B] C` consumes the first occurrence, the complete target is `C, [[A] B] C`. Target compilation resolves rules and atoms by lookup, copies the program only for a target that mentions a symbol the program never interned, and never alters execution.
 
-Textual targets describe root coherences and independently introduced root rule occurrences. They cannot yet encode arbitrary shared occurrence graphs or captured nested contexts. Canonical equality still accounts for those structures; this limitation concerns expressing a target, not ignoring parts of state.
+Textual targets describe root coherences and independently introduced root rule occurrences. Text writes every occurrence independently, so a target never encodes shared occurrences or captured nested contexts; this is a permanent property of the grammar, and lineage answers questions about sharing instead. Canonical equality still accounts for those structures; this limitation concerns expressing a target, not ignoring parts of state.
 
 Every `photonic_test` target also includes the loaded root rules, as Spectrum's exact claims and path goals do with `--preserve`. Existing data fixtures remain useful for arithmetic and protocol assertions, but are not implicitly complete runtime targets; `prism` reads its target file as the complete configuration. Adding the root rules copies unchanged definitions; it does not infer which rules should survive. Consuming programs must specify their surviving rule occurrences themselves.
 

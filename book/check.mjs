@@ -208,7 +208,7 @@ try {
     await filter('[D,C]E');
     await until("return document.querySelector('#bench .filter p').textContent.startsWith('Showing')");
     assert.deepEqual(await evaluate("return [...document.querySelectorAll('#bench .graph .state')].map(value => value.dataset.state).sort()"), matched);
-    await filter('B.');
+    await filter('B)');
     await until("return document.querySelector('#bench .filter p').dataset.tone === 'error'");
     await evaluate("[...document.querySelectorAll('#bench .preset button')].find(value => value.textContent === 'Scope').click(); return true");
     await filter('(Kettle, [Kettle.Tea] Cup)');
@@ -266,7 +266,7 @@ try {
     const submit = (edit = '') => evaluate(`
         [...${figure('check')}.querySelectorAll('.bar button')].find(value => value.textContent === 'Reset').click();
         const goal = ${figure('check')}.querySelector('.field textarea');
-        goal.value = 'B.X, [A] B\\n  C.[';
+        goal.value = 'B.X, [A] B\\n  C.]';
         goal.focus();
         goal.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', metaKey: true, bubbles: true }));
         ${edit}

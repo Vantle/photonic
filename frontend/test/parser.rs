@@ -17,22 +17,22 @@ fn structure() {
     assert_eq!(tree.source(), source);
     assert_eq!(tree.node()[0].kind, Kind::Module);
     assert_eq!(tree.node()[0].span, 0..source.len());
-    assert_eq!(text(&tree, Kind::Rule), ["[A, B]"]);
+    assert_eq!(text(&tree, Kind::Bracket), ["[A, B]"]);
     assert_eq!(text(&tree, Kind::Group), ["(C.D)"]);
     assert_eq!(
         text(&tree, Kind::Term),
         ["A.A", "[A, B] (C.D)", "A", "B", "C.D"]
     );
-    assert_eq!(text(&tree, Kind::Concept), ["A", "A", "A", "B", "C", "D"]);
+    assert_eq!(text(&tree, Kind::Atom), ["A", "A", "A", "B", "C", "D"]);
     let rule = tree
         .node()
         .iter()
-        .position(|node| node.kind == Kind::Rule)
+        .position(|node| node.kind == Kind::Bracket)
         .unwrap();
     assert_eq!(child(&tree, rule), [Kind::List]);
     assert_eq!(
         child(&tree, tree.node()[rule].parent.unwrap()),
-        [Kind::Rule, Kind::Group]
+        [Kind::Bracket, Kind::Group]
     );
     let tree = parser::parse("[X] (A.B, C), D.E").unwrap();
     assert_eq!(
@@ -53,15 +53,15 @@ fn ordering() {
     for (source, expected) in [
         (
             "[A] [B] C.D",
-            [Kind::Rule, Kind::Rule, Kind::Concept, Kind::Concept],
+            [Kind::Bracket, Kind::Bracket, Kind::Atom, Kind::Atom],
         ),
         (
             "[A] C.D [B]",
-            [Kind::Rule, Kind::Concept, Kind::Concept, Kind::Rule],
+            [Kind::Bracket, Kind::Atom, Kind::Atom, Kind::Bracket],
         ),
         (
             "C.D [A] [B]",
-            [Kind::Concept, Kind::Concept, Kind::Rule, Kind::Rule],
+            [Kind::Atom, Kind::Atom, Kind::Bracket, Kind::Bracket],
         ),
     ] {
         let tree = parser::parse(source).unwrap();
@@ -71,7 +71,7 @@ fn ordering() {
             .position(|node| node.kind == Kind::Term)
             .unwrap();
         assert_eq!(child(&tree, term), expected, "{source}");
-        assert_eq!(text(&tree, Kind::Rule), ["[A]", "[B]"], "{source}");
+        assert_eq!(text(&tree, Kind::Bracket), ["[A]", "[B]"], "{source}");
     }
     for source in [
         "[A] [B]",
@@ -88,7 +88,7 @@ fn ordering() {
 fn unicode() {
     let source = "人.世界, [人] 🌋";
     let tree = parser::parse(source).unwrap();
-    assert_eq!(text(&tree, Kind::Concept), ["人", "世界", "人", "🌋"]);
+    assert_eq!(text(&tree, Kind::Atom), ["人", "世界", "人", "🌋"]);
     match parser::parse("人]").unwrap_err() {
         Failure::Syntax { span, .. } => {
             assert_eq!(span.offset(), 3);
@@ -115,73 +115,30 @@ fn delimiter() {
     }
 }
 
-fn rejected(source: &str) -> (usize, String) {
-    match parser::parse(source) {
-        Err(Failure::Syntax { message, span }) => (span.offset(), message),
-        other => panic!("expected a syntax failure for {source}, found {other:?}"),
-    }
-}
-
 #[test]
-fn dot() {
-    for source in [".A", "A..B", "A.", "A.,B", "(.)"] {
-        rejected(source);
-    }
+fn general() {
     for source in [
-        "A.B",
-        "A . B",
-        "A.(B)",
-        "([A]).B",
-        "X.([A] B)",
-        "[A] [B] C",
-        "B [A]",
+        "A B",
+        "A(B, C)",
+        "(A) (B)",
+        "[A] B C",
+        "C B [A]",
+        "[A] B\n[B] C",
+        "X.[A] B",
+        "[A].B",
+        "[A] [B]",
+        ".A",
+        "A.",
+        "A..B",
+        "(.)",
+        ".",
+        ",",
+        ",A",
+        "A,,B",
+        "(,)",
+        "[A,,]",
     ] {
         assert!(parser::parse(source).is_ok(), "{source}");
-    }
-    for (source, offset) in [("X.[A] B", 2), ("[A].B", 3), ("B.[A]", 2), ("[A] B.[C]", 6)] {
-        let (found, message) = rejected(source);
-        assert_eq!(found, offset, "{source}");
-        assert!(message.contains("parentheses"), "{source}");
-    }
-}
-
-#[test]
-fn space() {
-    for (source, offset) in [
-        ("A B", 2),
-        ("A(B)", 1),
-        ("(A) (B)", 4),
-        ("[A] B C", 6),
-        ("C [A] B", 6),
-        ("C B [A]", 2),
-        ("[A] B [C] D", 10),
-        ("B [A] [C] D", 10),
-        ("(Kettle [Kettle.Tea] Cup)", 21),
-        ("[A] B\n[B] C", 10),
-        ("[A B] C", 3),
-    ] {
-        let (found, message) = rejected(source);
-        assert_eq!(found, offset, "{source}");
-        assert!(
-            message.contains("dot") && message.contains("comma"),
-            "{source}"
-        );
-    }
-}
-
-#[test]
-fn earliest() {
-    for (source, offset) in [
-        ("A..B C", 2),
-        ("A.B.,\n[A] B C", 4),
-        ("(A..B", 3),
-        (".A", 0),
-        ("A.", 2),
-        ("(A.)", 3),
-    ] {
-        let (found, message) = rejected(source);
-        assert_eq!(found, offset, "{source}: {message}");
-        assert!(message.contains("dot"), "{source}: {message}");
     }
 }
 
@@ -189,8 +146,8 @@ fn earliest() {
 fn separator() {
     for character in (0..0x3001).filter_map(char::from_u32) {
         let source = format!("A{character}B");
-        let single = parser::parse(&source)
-            .is_ok_and(|tree| text(&tree, Kind::Concept) == [source.as_str()]);
+        let single =
+            parser::parse(&source).is_ok_and(|tree| text(&tree, Kind::Atom) == [source.as_str()]);
         let separating = parser::separator(character);
         assert_eq!(single, !separating, "{character:?}");
     }
@@ -198,11 +155,16 @@ fn separator() {
 
 #[test]
 fn empty() {
-    for source in ["", " \t\r\n", "()", "[]", "A,", "[A, B,]", "(A,)"] {
+    for source in [
+        "",
+        " \t\r\n\u{85}\u{2028}",
+        "()",
+        "[]",
+        "A,",
+        "[A, B,]",
+        "(A,)",
+    ] {
         assert!(parser::parse(source).is_ok(), "{source}");
-    }
-    for source in [",", ",A", "A,,B", "(,)", "[A,,]"] {
-        assert!(rejected(source).1.contains("comma"), "{source}");
     }
 }
 

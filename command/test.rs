@@ -410,7 +410,7 @@ fn depth() {
     let fixture = Fixture::new();
     for (source, code) in [
         ("[".repeat(10_000), "nesting exceeds 128 levels"),
-        ("[A] ".repeat(10_000), "expansion exceeds"),
+        ("[A, B] ".repeat(40), "expansion exceeds"),
     ] {
         let path = fixture.write("deep.wave", &source);
         let output = execute("run", &path, &["--work", "0"]);
@@ -653,7 +653,7 @@ fn check() {
     assert!(String::from_utf8_lossy(&held.stdout).contains("holds   s13 by e0 e7 e19"));
     let failed = execute("check", &path, &["--reach", "Nothing"]);
     assert!(!failed.status.success());
-    let broken = fixture.write("broken.wave", "A B");
+    let broken = fixture.write("broken.wave", "A B)");
     let diagnostic = envelope(&execute("check", &broken, &["--json"]));
     assert_eq!(diagnostic["answer"]["diagnostic"][0]["code"], "syntax");
 }

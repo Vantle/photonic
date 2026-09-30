@@ -213,7 +213,7 @@ fn check() {
     let Ok(Answer::Check(broken)) = answer(&Request::Check(crate::check::Request {
         recording: Recording {
             program: Some(Subject {
-                source: Some("A B".to_owned()),
+                source: Some("A B)".to_owned()),
                 ..Subject::default()
             }),
             ..Recording::default()
@@ -224,7 +224,7 @@ fn check() {
     };
     assert_eq!(broken.diagnostic[0].code, "syntax");
     let location = broken.diagnostic[0].location.as_ref().expect("a location");
-    assert_eq!((location.line, location.column), (1, 3));
+    assert_eq!((location.line, location.column), (1, 4));
 }
 
 #[test]
@@ -366,7 +366,8 @@ fn select() {
     );
     assert_eq!(scope["answer"]["kind"], "configuration");
     assert_eq!(scope["answer"]["total"], 0);
-    let broken = json(r#"{"verb": "select", "program": {"file": ["bug.wave"]}, "pattern": "A B"}"#);
+    let broken =
+        json(r#"{"verb": "select", "program": {"file": ["bug.wave"]}, "pattern": "A B)"}"#);
     assert_eq!(broken["error"]["code"], "pattern");
 }
 
@@ -693,7 +694,7 @@ fn protocol() {
 fn schema() {
     let request = [
         r#"{"verb": "check", "program": {"file": ["bug.wave"]}, "claim": [{"kind": "reach", "pattern": "False.Extra"}]}"#,
-        r#"{"verb": "check", "program": {"source": "A B"}}"#,
+        r#"{"verb": "check", "program": {"source": "A B)"}}"#,
         r#"{"verb": "explore", "program": {"file": ["bug.wave"]}}"#,
         r#"{"verb": "explore", "program": {"file": ["bug.wave"]}, "mode": "path"}"#,
         r#"{"verb": "select", "program": {"file": ["bug.wave"]}, "pattern": "False"}"#,

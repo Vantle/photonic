@@ -17,13 +17,6 @@ pub enum Failure {
         #[label("nesting limit exceeded here")]
         span: SourceSpan,
     },
-    #[error("invalid Photonic expression: {message}")]
-    #[diagnostic(code(frontend::lowering))]
-    Lowering {
-        message: String,
-        #[label("{message}")]
-        span: SourceSpan,
-    },
     #[error("Photonic expansion exceeds its {limit}-unit frontend budget")]
     #[diagnostic(code(photonic::expansion))]
     Expansion {

@@ -1,7 +1,7 @@
 (() => {
     'use strict';
     const book = globalThis.book ??= {};
-    const space = new Set([' ', '\t', '\r', '\n', '\u000B', '\u000C']);
+    const space = new Set(['\t', '\n', '\u000B', '\u000C', '\r', ' ', '\u0085', '\u200E', '\u200F', '\u2028', '\u2029']);
     const delimiter = new Set(['(', ')', '[', ']', '.', ',']);
     const scan = text => {
         const piece = [];

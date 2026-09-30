@@ -291,10 +291,9 @@ fn contain(
             }
             None => {
                 tally.distance += 1;
-                tally.missing.push(format!(
-                    "{prefix}({})",
-                    frontend::text::definition(expected)
-                ));
+                tally
+                    .missing
+                    .push(format!("{prefix}{}", frontend::text::definition(expected)));
             }
         }
     }
@@ -391,10 +390,9 @@ fn equal(body: &Body, frame: usize, exploration: &Exploration, configuration: us
             }
             None => {
                 tally.distance += 1;
-                tally.missing.push(format!(
-                    "{prefix}({})",
-                    frontend::text::definition(expected)
-                ));
+                tally
+                    .missing
+                    .push(format!("{prefix}{}", frontend::text::definition(expected)));
             }
         }
     }
@@ -519,7 +517,11 @@ fn close(
         .map(|(particle, choice)| {
             let chosen = choice.map(|position| candidate[position]);
             Lack {
-                input: particle.iter().map(describe).collect::<Vec<_>>().join("."),
+                input: if particle.is_empty() {
+                    "()".to_owned()
+                } else {
+                    particle.iter().map(describe).collect::<Vec<_>>().join(".")
+                },
                 coherence: chosen
                     .map(|(world, _)| Handle::Coherence(configuration, world).to_string()),
                 missing: chosen.map_or_else(

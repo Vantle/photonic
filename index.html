@@ -129,7 +129,7 @@
 <p class="lead">Photonic has one kind of data: occurrences of atoms, grouped into particles, living in coherences.</p>
 <p>An <strong>atom</strong> is any run of characters other than <code>( ) [ ] . ,</code> and whitespace. <code>True</code>, <code>0</code>, <code>-&gt;</code>, <code>$x</code> and <code>人</code> are atoms. Atoms mean nothing by themselves; rules give them meaning.</p>
 <p>A dot joins occurrences into a <strong>particle</strong>, and only a dot joins. A particle is unordered and counts repeats: <code>A.B</code> and <code>B.A</code> are the same particle, and <code>A.A</code> holds two occurrences of <code>A</code>.</p>
-<p>A comma separates <strong>coherences</strong>, the independent places where particles live. <code>A.B, C</code> is two coherences. A space means nothing, so two particles side by side need a dot or a comma between them. <code>()</code> is one empty coherence; an empty program has none.</p>
+<p>A comma separates <strong>coherences</strong>, the independent places where particles live. <code>A.B, C</code> is two coherences. Particles side by side join as if a dot stood between them: <code>A B</code> is <code>A.B</code>. <code>()</code> is one empty coherence; an empty program has none.</p>
 <p>A <strong>configuration</strong> is everything that exists at one moment: its coherences and the rules that are live.</p>
 <div class="widget lens wide" data-lens='["A.B", "B.A", "A.A", "A.B, C", "()", "$x.-&gt;.人"]'></div>
 <p class="onward"><a href="#rule">Next: Rules consume and produce</a></p>
@@ -182,18 +182,18 @@
 <pre>A.X, B.Y,
 [A],
 [B] ()</pre>
-<figcaption><code>[A]</code> removes <code>A.X</code> entirely; <code>[B] ()</code> leaves <code>Y</code>. The comma after <code>[A]</code> keeps the two rules apart. Without it they would share one term, as the next section shows.</figcaption>
+<figcaption><code>[A]</code> removes <code>A.X</code> entirely; <code>[B] ()</code> leaves <code>Y</code>. The comma after <code>[A]</code> keeps the two rules apart. Without it they would be one term, as the next section shows.</figcaption>
 </figure>
 <h3>Several brackets</h3>
-<p>Everything between two commas is one term: brackets beside at most one particle, in any order. Each bracket consumes what it names and becomes every other part of its term, one rule for each part. <code>[A] [B]</code> is <code>[A] B</code> and <code>[B] A</code>, so <code>A</code> and <code>B</code> become each other. A particle beside the brackets is where they all lead.</p>
+<p>Everything between two commas is one term, and its parts join, in any order. The brackets in a term are what it consumes, joined like any parts, and the rest of the term is what it produces. So <code>C [A]</code> is <code>[A] C</code>, and <code>[A] [B] C</code> is <code>[A.B] C</code>.</p>
 <figure class="example wide" data-example="either">
-<pre>A,
+<pre>A.B.X,
 [A] [B] C</pre>
-<figcaption>Four rules: <code>[A] B</code> and <code>[B] A</code> make <code>A</code> and <code>B</code> interchangeable, and <code>[A] C</code> and <code>[B] C</code> lead both to <code>C</code>.</figcaption>
+<figcaption>One rule: its brackets join into <code>[A.B]</code>, so it consumes <code>A.B</code> and produces <code>C</code> beside the remainder <code>X</code>.</figcaption>
 </figure>
-<p>A bracket is produced exactly as it would be matched, so <code>[A, B] [C]</code> joins two coherences into <code>C</code> and splits <code>C</code> back into <code>A</code> and <code>B</code>.</p>
-<p>The lens shows how each form reads. Compare <code>[A] (B, C)</code> with <code>[A] B.C</code> and <code>[A] B, C</code>, and <code>[A], [B] C</code> with <code>[A] [B] C</code> and <code>C [A] [B]</code>:</p>
-<div class="widget lens wide" data-lens='["[A] (B, C)", "[A] B.C", "[A] B, C", "[A], [B] C", "[A] [B] C", "C [A] [B]", "[] A", "[()] A", "[(), ()] A"]'></div>
+<p>Joining distributes inside brackets too: <code>[A, B] [C]</code> consumes <code>A.C</code> and <code>B.C</code>, two coherences.</p>
+<p>The lens shows how each form reads. Compare <code>[A] (B, C)</code> with <code>[A] B.C</code> and <code>[A] B, C</code>, and <code>[A], [B] C</code> with <code>[A] [B] C</code>, <code>C [A] [B]</code> and <code>[A] B C</code>:</p>
+<div class="widget lens wide" data-lens='["[A] (B, C)", "[A] B.C", "[A] B, C", "[A], [B] C", "[A] [B] C", "C [A] [B]", "[A] B C", "[] A", "[()] A", "[(), ()] A"]'></div>
 <p class="onward"><a href="#identity">Next: Occurrences have identity</a></p>
 </section>
 
@@ -382,8 +382,8 @@ Add.Unit.Unit.Unit,
 <pre>P.([P] True)</pre>
 </figure>
 <h3>Shared prefixes</h3>
-<p>A dot distributes over a group: <code>A.(B, C)</code> means <code>A.B, A.C</code>, and <code>(A, B).(C, D)</code> means four coherences. A joined group builds nothing: <code>Box.(A.B)</code> is exactly <code>Box.A.B</code>, and a rule inside it is a field of the particle, never a scope. The dot is required: side by side, <code>A(B, C)</code> is an error, so a forgotten dot or comma is always reported instead of quietly changing the program.</p>
-<div class="widget lens wide" data-lens='["Digit.0.Carry.1", "([Digit] 0).([Carry] 1)", "().([Digit] 0)", "A.(B, C)", "(A, B).(C, D)", "Box.(A.B)", "A.((), B)"]'></div>
+<p>A dot distributes over a group: <code>A.(B, C)</code> means <code>A.B, A.C</code>, and <code>(A, B).(C, D)</code> means four coherences. A joined group builds nothing: <code>Box.(A.B)</code> is exactly <code>Box.A.B</code>, and a rule inside it is a field of the particle, never a scope. Side by side joins too, so <code>A(B, C)</code> is <code>A.(B, C)</code>.</p>
+<div class="widget lens wide" data-lens='["Digit.0.Carry.1", "([Digit] 0).([Carry] 1)", "().([Digit] 0)", "A.(B, C)", "A(B, C)", "(A, B).(C, D)", "Box.(A.B)", "A.((), B)"]'></div>
 <p class="onward"><a href="#prism">Next: Prism</a></p>
 </section>
 
@@ -704,7 +704,7 @@ bazel run -c opt //command:photonic -- shape library/ternary/compare.particle</p
 <h2>Inside the runtime</h2>
 <p class="lead">The runtime is Rust. One transition kernel applies every rule; two searches decide which rules to apply.</p>
 <div class="pipeline wide">
-<div><strong>Parse</strong>A nine-rule pest grammar builds a lossless syntax tree with byte spans.</div>
+<div><strong>Parse</strong>A seven-rule pest grammar builds a lossless syntax tree with byte spans.</div>
 <div><strong>Lower</strong>Shorthand expands; particles, rules and scopes become a program.</div>
 <div><strong>Compile</strong>Atoms and rules are interned; rules with equal inputs share plans.</div>
 <div><strong>Match</strong>Indexes and incremental joins deliver every binding.</div>
@@ -777,23 +777,21 @@ bazel run -c opt //learning:learning -- solve --input "$PWD/input.wave" --output
 <p class="lead">The whole grammar, every form and every term.</p>
 <h3>Grammar</h3>
 <pre class="listing" data-excerpt="frontend/parser.rs">module = { SOI ~ list ~ EOI }
-list = { (term ~ ("," ~ term)* ~ ","?)? }
-term = { rule+ ~ (join ~ rule*)? | join ~ rule* }
-join = _{ factor ~ ("." ~ factor)* }
-factor = _{ concept | group }
+list = { term? ~ ("," ~ term?)* }
+term = { (atom | group | bracket | ".")+ }
 group = { "(" ~ list ~ ")" }
-rule = { "[" ~ list ~ "]" }
-concept = @{ (!("(" | ")" | "[" | "]" | "." | "," | WHITESPACE) ~ ANY)+ }
-WHITESPACE = _{ " " | "\t" | "\r" | "\n" | "\u{000B}" | "\u{000C}" }</pre>
-<p>This is the whole grammar. Five rules give it meaning:</p>
+bracket = { "[" ~ list ~ "]" }
+atom = @{ (!("(" | ")" | "[" | "]" | "." | "," | WHITESPACE) ~ ANY)+ }
+WHITESPACE = _{ PATTERN_WHITE_SPACE }</pre>
+<p>This is the whole grammar. Every balanced text is a program; only an unclosed or unmatched bracket is an error. Five laws give it meaning, with no exceptions:</p>
 <ul>
-<li>A comma separates, a dot joins, and a space means nothing. Two particles side by side are an error until a dot or a comma says which you mean, so a forgotten comma is reported instead of quietly joining.</li>
-<li>A join multiplies its factors into particles and distributes over a group: <code>A.(B, C)</code> is <code>A.B, A.C</code>. Joined, a group builds nothing, and a rule inside it is a value of the particle, as in <code>X.([A] B)</code>; that is the only way a rule joins a particle. A group that lists neither a coherence nor a scope holds the empty coherence, so <code>()</code> is that coherence.</li>
-<li>A term is brackets beside at most one particle, in any order. Each bracket consumes what it names and becomes every other part of its term, one rule for each: <code>[A] [B]</code> is <code>[A] B</code> and <code>[B] A</code>, and <code>[A] [B] C</code> adds <code>[A] C</code> and <code>[B] C</code>. Several outputs are a group, as in <code>[A] (B, C)</code>.</li>
-<li>A group that lists a rule and is not joined is a scope: a program in parentheses, holding coherences, rules and scopes. A rule's output opens it when the rule fires, and the program opens its own when it starts. Like any group, a scope that lists neither a coherence nor a scope holds <code>()</code>, as <code>([A] B)</code> does.</li>
-<li>A rule listed in a program or scope is live there. Anywhere else it is a value.</li>
+<li>A comma separates members, and a missing member is nothing: <code>A,</code> is <code>A</code> and <code>A,,B</code> is <code>A, B</code>.</li>
+<li>Parts of a term side by side join, and a dot only marks the join: <code>A.B</code> is <code>A B</code>. Joining distributes over groups: <code>A(B, C)</code> is <code>A B, A C</code>.</li>
+<li>A term with brackets is a rule. It consumes what its brackets hold, joined like any parts, and produces the rest of the term, or nothing if nothing is left. Parts are unordered, so <code>C [A]</code> is <code>[A] C</code>, and <code>[A] [B] C</code> is <code>[A B] C</code>.</li>
+<li>A group always holds a place: one that lists neither a particle nor a scope holds the empty particle, so <code>()</code> is the empty particle and <code>A.()</code> is <code>A</code>.</li>
+<li>Brackets aside, a term that is a single group, in the program, in a scope or in what a rule produces, is the group's members, or a scope if it lists a rule. A rule listed in a program or scope is live there. Anywhere else, joined or inside brackets, parentheses only group and a rule is a value: <code>X.([A] B)</code> carries one, <code>[[A] B] C</code> consumes one, and <code>().([A] B)</code> is a coherence holding nothing else.</li>
 </ul>
-<p>There are no keywords, operators or reserved words: <code>Not</code>, <code>-&gt;</code> and <code>unless</code> are ordinary atoms.</p>
+<p>There are no keywords, operators or reserved words: <code>Not</code>, <code>-&gt;</code> and <code>unless</code> are ordinary atoms. Whitespace is Unicode's pattern whitespace, which never changes.</p>
 <h3>Forms</h3>
 <div class="table">
 <table>
@@ -804,7 +802,7 @@ WHITESPACE = _{ " " | "\t" | "\r" | "\n" | "\u{000B}" | "\u{000C}" }</pre>
 <tr><td>Coherences</td><td><code>A, B</code></td><td>Separate coherences</td></tr>
 <tr><td>Empty coherence</td><td><code>()</code></td><td>One coherence with no occurrences</td></tr>
 <tr><td>Rule</td><td><code>[A] B</code></td><td>Consume <code>A</code>, produce <code>B</code> with the remainder</td></tr>
-<tr><td>Brackets sharing a term</td><td><code>[A] [B] C</code></td><td><code>A</code> and <code>B</code> become each other, and both become <code>C</code></td></tr>
+<tr><td>Brackets sharing a term</td><td><code>[A] [B] C</code></td><td>Consume <code>A.B</code>, produce <code>C</code></td></tr>
 <tr><td>Join and split</td><td><code>[A, B] (C, D)</code></td><td>Consume from two coherences, produce two</td></tr>
 <tr><td>Program</td><td><code>A, [A] B, [B] C</code></td><td>Coherences and live rules, in any order</td></tr>
 <tr><td>Rule with no output</td><td><code>[A]</code></td><td>Consume <code>A</code> and produce nothing</td></tr>
@@ -829,7 +827,7 @@ WHITESPACE = _{ " " | "\t" | "\r" | "\n" | "\u{000B}" | "\u{000C}" }</pre>
 <dt>Particle</dt><dd>An unordered multiset of occurrences in one coherence.</dd>
 <dt>Coherence</dt><dd>An independent place where a particle lives.</dd>
 <dt>Configuration</dt><dd>All coherences and live rules at one moment; a node of the graph.</dd>
-<dt>Term</dt><dd>What sits between two commas: brackets beside at most one particle, in any order. Each bracket becomes every other part.</dd>
+<dt>Term</dt><dd>What sits between two commas. Its parts join, in any order; with brackets it is a rule.</dd>
 <dt>Rule</dt><dd>Inputs in brackets and one output; a group gives several outputs. Also a value.</dd>
 <dt>Event</dt><dd>One rule applied to one match; an arrow of the graph.</dd>
 <dt>Remainder</dt><dd>What a match leaves in its coherences; every output receives it.</dd>

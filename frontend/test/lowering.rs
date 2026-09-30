@@ -28,13 +28,6 @@ fn program(output: &Output) -> &Program {
     }
 }
 
-fn syntax(source: &str) -> String {
-    match lowering::parse(source) {
-        Err(Failure::Syntax { message, .. } | Failure::Lowering { message, .. }) => message,
-        other => panic!("expected a syntax failure for {source}, found {other:?}"),
-    }
-}
-
 #[test]
 fn conjunction() {
     let source = lowering::parse(include_str!("../../program/language/conjunction.wave")).unwrap();
@@ -72,33 +65,47 @@ fn partition() {
 }
 
 #[test]
-fn space() {
-    for source in [
-        "A B",
-        "A.B C",
-        "A(B, C)",
-        "[A] B C",
-        "[A] (B) (C)",
-        "C [A] B",
-        "C B [A]",
-        "[A B] C",
-        "(Kettle [Kettle.Tea] Cup)",
-        "[A] B\n[B] C",
+fn join() {
+    for (general, spelled) in [
+        ("A B", "A.B"),
+        ("A . B", "A.B"),
+        ("A(B, C)", "A.B, A.C"),
+        ("A (B, C) D", "A.B.D, A.C.D"),
+        ("[A] B C", "[A] B.C"),
+        ("C [A]", "[A] C"),
+        ("X.[A] B", "[A] X.B"),
+        ("[A].B", "[A] B"),
+        ("[A].", "[A]"),
+        ("A..B", "A.B"),
+        (".A", "A"),
+        ("A.", "A"),
+        (".", ""),
+        ("A,,B", "A, B"),
+        (",A", "A"),
+        ("(,)", "()"),
+        ("[A,,] B", "[A] B"),
+        ("[A] B\n[B] C", "[A.B] B.C"),
     ] {
-        let message = syntax(source);
-        assert!(
-            message.contains("dot") && message.contains("comma"),
-            "{source}: {message}"
-        );
+        same(general, spelled);
     }
-    for source in ["X.[A] B", "[A].B"] {
-        assert!(syntax(source).contains("parentheses"), "{source}");
+}
+
+#[test]
+fn bracket() {
+    for (general, spelled) in [
+        ("[A] [B] C", "[A.B] C"),
+        ("[A, B] [C] D", "[A.C, B.C] D"),
+        ("[A] [B, C]", "[A.B, A.C]"),
+        ("[] [A] B", "[] B"),
+        ("[()] [A] B", "[A] B"),
+        ("[[X] Y] [B]", "[([X] Y).B]"),
+        ("X.([A] [B] C)", "X.([A.B] C)"),
+        ("[([A] B)] C", "[[A] B] C"),
+        ("[(A, [A] B)] C", "[A, [A] B] C"),
+        ("[((X, [X] Y))] Z", "[X, [X] Y] Z"),
+    ] {
+        same(general, spelled);
     }
-    for source in [",A", "A,,B", "(,)", "[,] A", "[A,,]"] {
-        assert!(syntax(source).contains("comma"), "{source}");
-    }
-    same("A . B", "A.B");
-    same("A.(B, C)", "A.B, A.C");
 }
 
 #[test]
@@ -225,13 +232,17 @@ fn unicode() {
 
 #[test]
 fn malformed() {
-    for source in ["A..B", ".A", "[A] B.", "A,.", "[A] B.,", "(A]", "[A"] {
-        assert!(
-            matches!(lowering::parse(source), Err(Failure::Syntax { .. })),
-            "{source}"
-        );
+    for (source, message) in [
+        ("(A]", "closes nothing"),
+        ("[A", "still open"),
+        ("A)", "closes nothing"),
+        ("(", "still open"),
+    ] {
+        let Err(Failure::Syntax { message: found, .. }) = lowering::parse(source) else {
+            panic!("expected a syntax failure for {source}");
+        };
+        assert!(found.contains(message), "{source}: {found}");
     }
-    assert!(syntax("[([A] B)] C").contains("input"));
 }
 
 #[test]
@@ -293,16 +304,15 @@ fn depth() {
         lowering::parse(&nested(limit + 1)),
         Err(Failure::Depth { .. })
     ));
-    for count in [limit, limit + 1] {
-        assert_eq!(
-            lowering::parse(&"[A] ".repeat(count)).unwrap().rule.len(),
-            count * (count - 1)
-        );
+    for count in [limit, limit + 1, 10_000] {
+        let program = lowering::parse(&"[A] ".repeat(count)).unwrap();
+        assert_eq!(program.rule.len(), 1);
+        assert_eq!(program.rule[0].input, [atom(&vec!["A"; count])]);
     }
-    let Err(Failure::Expansion { span, .. }) = lowering::parse(&"[A] ".repeat(10_000)) else {
+    let Err(Failure::Expansion { span, .. }) = lowering::parse(&"[A, B] ".repeat(40)) else {
         panic!("expected an expansion diagnostic");
     };
-    assert_eq!((span.offset(), span.len()), (0, 10_000 * 4 - 1));
+    assert_eq!((span.offset(), span.len()), (0, 40 * 7 - 1));
     let mixed = format!("{}({})", "(".repeat(limit - 1), "[B] ".repeat(2));
     assert!(matches!(
         lowering::parse(&format!("{mixed}{}", ")".repeat(limit - 1))),

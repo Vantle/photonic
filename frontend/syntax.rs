@@ -6,8 +6,8 @@ pub enum Kind {
     List,
     Term,
     Group,
-    Rule,
-    Concept,
+    Bracket,
+    Atom,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

@@ -8,25 +8,23 @@ This is the whole grammar, the one `frontend/parser.rs` compiles:
 
 ```
 module = { SOI ~ list ~ EOI }
-list = { (term ~ ("," ~ term)* ~ ","?)? }
-term = { rule+ ~ (join ~ rule*)? | join ~ rule* }
-join = _{ factor ~ ("." ~ factor)* }
-factor = _{ concept | group }
+list = { term? ~ ("," ~ term?)* }
+term = { (atom | group | bracket | ".")+ }
 group = { "(" ~ list ~ ")" }
-rule = { "[" ~ list ~ "]" }
-concept = @{ (!("(" | ")" | "[" | "]" | "." | "," | WHITESPACE) ~ ANY)+ }
-WHITESPACE = _{ " " | "\t" | "\r" | "\n" | "\u{000B}" | "\u{000C}" }
+bracket = { "[" ~ list ~ "]" }
+atom = @{ (!("(" | ")" | "[" | "]" | "." | "," | WHITESPACE) ~ ANY)+ }
+WHITESPACE = _{ PATTERN_WHITE_SPACE }
 ```
 
-Five rules give it meaning.
+Five laws give it meaning, with no exceptions. Every balanced text is a program; only an unclosed or unmatched bracket is an error.
 
-1. A comma separates, a dot joins, and a space means nothing. Two particles side by side are an error until a dot or a comma says which you mean, so a forgotten comma is reported instead of quietly joining.
-2. A join multiplies its factors into particles and distributes over a group: `A.(B, C)` is `A.B, A.C`. Joined, a group builds nothing, and a rule inside it is a value of the particle, as in `X.([A] B)`; that is the only way a rule joins a particle. A group that lists neither a coherence nor a scope holds the empty coherence, so `()` is that coherence.
-3. A term is brackets beside at most one particle, in any order. Each bracket consumes what it names and becomes every other part of its term, so `[A] [B]` yields the rules `[A] B` and `[B] A`, and `[A] [B] C` adds `[A] C` and `[B] C`. Listed in a program or a scope, those rules are separate terms, as if written with commas; inside a particle, as in `X.([A] [B])` or the input of `[[A] [B]] C`, they are values of that one particle. Several outputs are a group, as in `[A] (B, C)`.
-4. A group that lists a rule and is not joined is a scope: a program in parentheses, holding coherences, rules and scopes. A rule's output opens it when the rule fires, and the program opens its own scopes when it starts. Like any group, a scope that lists neither a coherence nor a scope holds `()`, as `([A] B)` does.
-5. A rule listed in a program or a scope is live there. Anywhere else it is a value.
+1. A comma separates members, and a missing member is nothing: `A,` is `A` and `A,,B` is `A, B`.
+2. Parts of a term side by side join, and a dot only marks the join: `A.B` is `A B`. Joining distributes over groups: `A(B, C)` is `A B, A C`.
+3. A term with brackets is a rule. It consumes what its brackets hold, joined like any parts, and produces the rest of the term, or nothing if nothing is left. Parts are unordered, so `C [A]` is `[A] C`, and `[A] [B] C` is `[A B] C`.
+4. A group always holds a place: one that lists neither a particle nor a scope holds the empty particle, so `()` is the empty particle and `A.()` is `A`.
+5. Brackets aside, a term that is a single group, in the file, in a scope or in what a rule produces, is the group's members, or a scope if it lists a rule. A rule listed in the file or a scope is live there. Anywhere else, joined or inside brackets, parentheses only group and a rule is a value: `X.([A] B)` carries one, `[[A] B] C` consumes one, and `().([A] B)` is a coherence holding nothing else.
 
-There are no keywords, operators or reserved words: `Not`, `->` and `unless` are ordinary atoms.
+There are no keywords, operators or reserved words: `Not`, `->` and `unless` are ordinary atoms. Whitespace is Unicode's pattern whitespace, which never changes.
 
 ## Meaning
 
@@ -37,7 +35,7 @@ There are no keywords, operators or reserved words: `Not`, `->` and `unless` are
 - A rule can apply to what a configuration can become. That event is inferred: it happens at the original configuration, and its deduction is the path to where the rule matched. Occurrences reached that way are the witness; the rest of the match is exact.
 - A scope's own rules send their output to the enclosing scope. Rules of enclosing scopes also apply inside, and their output stays inside. Every coherence a rule introduces receives the remainder, in its scopes as in its other outputs.
 - Configurations that differ only in how occurrences are named are one configuration. Scopes written alike and opened by the same rule, or both by the program, are interchangeable in the same way.
-- Prism asks whether an exact configuration, live rules and scopes included, is reached. A target is written as a program and names the configuration that program starts in, so its scopes are ones the program opens at the start. It answers reached, unreachable after a closed exploration, or unknown when a budget stopped the search.
+- Prism asks whether an exact configuration, live rules and scopes included, is reached. A target is written as a program and names the configuration that program starts in, so its scopes are ones the program opens at the start. It answers reached, unreachable after a closed exploration, or unknown when a budget stopped the search. Text writes every occurrence independently, so a target never says that coherences share one; a configuration whose coherences share an occurrence is found through lineage, not named as a target.
 
 ## Asking Spectrum
 
