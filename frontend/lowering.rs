@@ -133,13 +133,15 @@ impl<'tree> Reader<'tree, '_> {
     }
 
     fn join(&mut self, factor: &[usize]) -> Result<Vec<Vec<Value>>, Failure> {
-        let mut result = vec![Vec::new()];
-        for &factor in factor {
-            let value = self.factor(factor)?;
-            result = crate::expansion::combine(result, value, &mut self.budget)
-                .ok_or_else(|| self.expansion(self.span(factor)))?;
+        let mut choice = Vec::new();
+        for &index in factor {
+            choice.push(self.factor(index)?);
         }
-        Ok(result)
+        crate::expansion::product(choice, &mut self.budget).ok_or_else(|| {
+            let start = factor.first().map_or(0, |&first| self.span(first).start);
+            let end = factor.last().map_or(start, |&last| self.span(last).end);
+            self.expansion(start..end)
+        })
     }
 
     fn factor(&mut self, index: usize) -> Result<Vec<Vec<Value>>, Failure> {

@@ -430,6 +430,28 @@ fn expansion() {
         Err(Failure::Expansion { .. })
     ));
     assert_eq!(lowering::parse("A.(B,C)").unwrap().initial.len(), 2);
+    let unit = vec!["Unit"; 800].join(".");
+    for (left, right) in [
+        (format!("(A, B).{unit}"), format!("{unit}.(A, B)")),
+        (
+            format!("(A, B).{unit}.(C, D)"),
+            format!("{unit}.(A, B).(C, D)"),
+        ),
+    ] {
+        same(&left, &right);
+    }
+    let pair = vec!["(A, B)"; 20].join(".");
+    for source in [
+        format!("{pair}.{unit}"),
+        format!("{unit}.{pair}"),
+        format!("X, [Y] {pair}.{unit}"),
+    ] {
+        let Err(Failure::Expansion { span, .. }) = lowering::parse(&source) else {
+            panic!("expected an expansion diagnostic for {source}");
+        };
+        let join = source.len() - pair.len() - unit.len() - 1;
+        assert_eq!((span.offset(), span.len()), (join, source.len() - join));
+    }
 }
 
 #[test]
