@@ -842,18 +842,28 @@ WHITESPACE = _{ " " | "\t" | "\r" | "\n" | "\u{000B}" | "\u{000C}" }</pre>
 <dt>Term</dt><dd>What sits between two commas: brackets beside at most one particle, in any order. Each bracket becomes every other part.</dd>
 <dt>Rule</dt><dd>Inputs in brackets and one output; a group gives several outputs. Also a value.</dd>
 <dt>Event</dt><dd>One rule applied to one match; an arrow of the graph.</dd>
+<dt>Plain event</dt><dd>An event that a configuration's own match identifies, without inference.</dd>
+<dt>Schedule</dt><dd>One order in which events happen, from the start until the run stops. Plain mode explores every schedule of plain events.</dd>
 <dt>Remainder</dt><dd>What a match leaves in its coherences; every output receives it.</dd>
 <dt>Scope</dt><dd>A local place written like a program in parentheses: coherences, rules and scopes. A rule's output opens it when the rule fires, and the program opens its own when it starts. Its own rules return to the enclosing scope.</dd>
+<dt>Frame</dt><dd>Where a scope lives in a configuration: its coherences, its rules and what it holds. The root frame is the program's. Answers show a scope's coherences after <code>in f1:</code> and name its frame <code>s10.f1</code>.</dd>
+<dt>Capture</dt><dd>The scope a rule occurrence remembers from where it was made. Equal code made in different scopes gives different values.</dd>
 <dt>Inference</dt><dd>Applying a rule to what a configuration can become, at the configuration itself.</dd>
 <dt>Witness</dt><dd>The concrete occurrences an inferred match reached through evidence.</dd>
 <dt>Deduction</dt><dd>The events that lead from an inferred event's configuration to the one where its rule matched.</dd>
+<dt>Support</dt><dd>What justifies a configuration: events and derivations grounded in the start. Only a supported configuration counts as reached, so a cycle cannot justify itself, and answers mark what is unsupported.</dd>
 <dt>Field</dt><dd>A one-rule value such as <code>([Digit] 0)</code> that keeps a role with its value.</dd>
 <dt>Target</dt><dd>A complete configuration, including live rules, that Prism looks for.</dd>
+<dt>Exact target</dt><dd>A target read as a complete configuration, the way Prism reads one. <code>--exact</code> reads a claim's pattern that way, and <code>--preserve</code> adds every loaded root rule.</dd>
 <dt>Verdict</dt><dd>Reached, unreachable or unknown.</dd>
 <dt>Direct path</dt><dd>One execution, followed until it reaches the target or can go no further.</dd>
 <dt>Budget</dt><dd>A limit on exploration. Exhausting it defers work and leaves answers unknown.</dd>
+<dt>Closed, open</dt><dd>An exploration is closed when no work remains. One a budget stopped is open, and what it has not found is unknown; only a closed exploration can prove a target unreachable.</dd>
 <dt>Shape</dt><dd>A program up to the names of its atoms. Programs with one shape differ only in their names.</dd>
 <dt>Symmetry</dt><dd>A renaming of atoms that leaves a program unchanged.</dd>
+<dt>Handle</dt><dd>A short name in Spectrum's answers: <code>r2</code> a rule, <code>s11</code> a configuration, <code>e12</code> an event, <code>s11.c0</code> a coherence, <code>s11.o1</code> an occurrence and <code>s10.f1</code> a frame.</dd>
+<dt>Key</dt><dd>The name of one exploration, such as <code>xf1684d25f90f851b</code>, which heads every answer about it. It hashes what the exploration depends on: the program, the mode, the engine and the budget. Over the Model Context Protocol a question can name the key instead of the program to ask more of the same exploration.</dd>
+<dt>Nesting and expansion</dt><dd>The limits on source. Brackets and parentheses nest at most 128 deep, and lowering writes at most 1,000,000 units plus eight per byte of source, rule names included. The frontend refuses a program past either and says where.</dd>
 </dl>
 <h3>Read next</h3>
 <ul>
