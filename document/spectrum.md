@@ -16,20 +16,20 @@ bazel run -c opt //command:photonic -- explore program/language/conjunction.wave
 ```
 
 ```
-x79d77fbf7616652f · closed · 14 configurations · 17 events, 4 inferred · depth 3 · work 41 · shape 2a2059d40174b9fb
+x5e349139c90e2a4e · closed · 14 configurations · 17 events, 4 inferred · depth 3 · work 41 · shape 2a2059d40174b9fb
 end    s3    Boolean.Extra
        s11   in f1: Boolean.Boolean.Extra
        s12   in f1: Boolean.Extra
        s13   in f1: Extra
-rule   r0    [And.Boolean.Boolean] (…)   4, 3 inferred
-       r1    [True.True] True            never   in the scope r0 opens
-       r2    [True.False] False          1   in the scope r0 opens
-       r3    [False.False] False         never   in the scope r0 opens
-       r4    [True] Boolean              5
-       r5    [False] Boolean             7, 1 inferred
+rule   r0    [And.Boolean.Boolean] ([True.True] True, [True.False] False, [False.False] False)   4, 3 inferred
+       r1    [True.True] True                                   never   in the scope r0 opens
+       r2    [True.False] False                                 1   in the scope r0 opens
+       r3    [False.False] False                                never   in the scope r0 opens
+       r4    [True] Boolean                                     5
+       r5    [False] Boolean                                    7, 1 inferred
 ```
 
-The first line is the exploration's key, whether it closed, its size and its shape. `in f1:` places a coherence inside the scope that frame 1 holds, and `in f2 in f1:` inside a scope nested in it. A claim asks whether the program reaches exactly `False.Extra` with its rules, and `cause` shows how:
+The first line is the exploration's key, whether it closed, its size and its shape. `never` is said only of a closed exploration: an open one says `not yet`, and a direct path `not on this path`. `in f1:` places a coherence inside the scope that frame 1 holds, and `in f2 in f1:` inside a scope nested in it. A claim asks whether the program reaches exactly `False.Extra` with its rules, and `cause` shows how:
 
 ```sh
 bazel run -c opt //command:photonic -- check program/language/conjunction.wave --reach False.Extra --exact --preserve
@@ -40,11 +40,11 @@ bazel run -c opt //command:photonic -- cause program/language/conjunction.wave s
 ```
 no diagnostics
 reach False.Extra exactly   holds   s6 by e3 e8   s6 is the target
-x79d77fbf7616652f · closed · 14 configurations · 17 events, 4 inferred · depth 3 · work 41 · shape 2a2059d40174b9fb
+x5e349139c90e2a4e · closed · 14 configurations · 17 events, 4 inferred · depth 3 · work 41 · shape 2a2059d40174b9fb
 
 s6 False.Extra
-path       e3    r0 [And.Boolean.Boolean] (…)   s4 in f1: True.False.Extra   inferred
-           e8    r2 [True.False] False          s6 False.Extra
+path       e3    r0 [And.Boolean.Boolean] ([True.True] True, [True.False] False, [False.False] False)   s4 in f1: True.False.Extra   inferred
+           e8    r2 [True.False] False                                                                  s6 False.Extra
 
 False in s6 = False.Extra
   e8    r2 [True.False] False   produces False from s4.o1 True, s4.o2 False, s4.o0 And
@@ -69,39 +69,43 @@ s7    in f1: Boolean.True.Extra   [True.True] lacks True in s7.c0
 s9    in f1: True.Extra           [True.True] lacks True in s9.c0
 ```
 
-Suppose an edit shortens the scope's last two rules to one, `[False] False`, and saves the result as `bug.wave`. `compare` shows what the edit changed, handles on the right naming the edited program:
+Suppose an edit shortens the scope's last two rules to one, `[False] False`, and saves the result as `bug.wave`. `compare` shows what the edit changed, handles on the right naming the edited program, here four differences in each direction:
 
 ```sh
-bazel run -c opt //command:photonic -- compare program/language/conjunction.wave bug.wave
+bazel run -c opt //command:photonic -- compare program/language/conjunction.wave bug.wave --limit 4
 ```
 
 ```
-compare x79d77fbf7616652f xabb1ecb46dec2743
+compare x5e349139c90e2a4e x4ff861b04316a91f
 configurations   14 → 18
-  + Boolean.Boolean.Extra   s7   by e3 e10
-  + False.Boolean.Extra     s14   by e4 e11 e15
-  + Boolean.True.Extra      s4   by e3
-  + False.True.Extra        s6   by e4 e11
+  + Boolean.Boolean.Extra                                                                     s7   by e3 e10
+  + False.True.Extra                                                                          s6   by e4 e11
+  + False.Boolean.Extra                                                                       s14   by e4 e11 e15
+  + Boolean.True.Extra                                                                        s4   by e3
+  − in f1: True.Extra, [True.True] True, [True.False] False, [False.False] False              s9 on the left
+  − in f1: Boolean.Extra, [True.True] True, [True.False] False, [False.False] False           s12 on the left
+  − in f1: False.Extra, [True.True] True, [True.False] False, [False.False] False             s10 on the left
+  − in f1: Boolean.Boolean.Extra, [True.True] True, [True.False] False, [False.False] False   s11 on the left
+  and 12 more configurations
 events           17 → 25
-  + [False] Boolean      False.Boolean.Extra → Boolean.Boolean.Extra
-  + [False] Boolean      False.True.Extra → Boolean.True.Extra
-  + [False] Boolean      False.Boolean.And.Extra → Boolean.Extra   inferred
-  + [False] Boolean      False.And.True.Extra → Boolean.True.Extra   inferred
-  + [False] False        in f1: False.Extra → False.Extra
-  + [False] False        in f1: False.Boolean.Extra → False.Boolean.Extra
-  + [False] False        in f1: False.True.Extra → False.True.Extra
-  + [True] Boolean       Boolean.True.Extra → Boolean.Boolean.Extra
-  + [True] Boolean       False.True.Extra → False.Boolean.Extra
-  − [True.False] False   in f1: True.False.Extra → False.Extra
+  + [And.Boolean.Boolean] ([False] False, [True.True] True)                             Boolean.Boolean.And.Extra → in f1: Extra, [False] False, [True.True] True
+  + [And.Boolean.Boolean] ([False] False, [True.True] True)                             False.Boolean.And.Extra → in f1: False.Extra, [False] False, [True.True] True   inferred
+  + [And.Boolean.Boolean] ([False] False, [True.True] True)                             Boolean.And.True.Extra → in f1: True.Extra, [False] False, [True.True] True   inferred
+  + [And.Boolean.Boolean] ([False] False, [True.True] True)                             False.And.True.Extra → in f1: False.True.Extra, [False] False, [True.True] True   inferred
+  − [And.Boolean.Boolean] ([True.True] True, [True.False] False, [False.False] False)   And.Boolean.Boolean.Extra → in f1: Extra, [True.True] True, [True.False] False, [False.False] False
+  − [And.Boolean.Boolean] ([True.True] True, [True.False] False, [False.False] False)   And.Boolean.False.Extra → in f1: False.Extra, [True.True] True, [True.False] False, [False.False] False   inferred
+  − [And.Boolean.Boolean] ([True.True] True, [True.False] False, [False.False] False)   And.Boolean.True.Extra → in f1: True.Extra, [True.True] True, [True.False] False, [False.False] False   inferred
+  − [And.Boolean.Boolean] ([True.True] True, [True.False] False, [False.False] False)   And.True.False.Extra → in f1: True.False.Extra, [True.True] True, [True.False] False, [False.False] False   inferred
+  and 22 more event differences
 ```
 
-`[False] False` matches `False` alone, so the conjunction's `True` survives it. The lineage of that `True` in `bug.wave` shows where it came from:
+Outside the scope, the edit reaches four configurations the original does not. Inside it, every configuration differs, since the scope holds different rules, and `compare` prints the rules live in each scope for that reason. `[False] False` matches `False` alone, so the conjunction's `True` survives it. The lineage of that `True` in `bug.wave` shows where it came from:
 
 ```
 True in s6 = False.True.Extra
-  s0                                   initial in False.And.True.Extra
-  e4    r1 [And.Boolean.Boolean] (…)   inferred by e2 e8; the scope receives True as witness
-  e11   r2 [False] False               consumes False; True stays in the remainder
+  s0                                                                 initial in False.And.True.Extra
+  e4    r1 [And.Boolean.Boolean] ([False] False, [True.True] True)   inferred by e2 e8; the scope receives True as witness
+  e11   r2 [False] False                                             consumes False; True stays in the remainder
 ```
 
 The claim `--avoid False.True.Extra --exact --preserve` holds on the original and fails on the edit with `s6 by e4 e11`, and `compare` accepts the same claims to report both answers.
@@ -206,7 +210,7 @@ A request names its verb and carries the question's fields as one JSON object, w
 ```
 
 ```json
-{"version": 1, "verb": "cause", "answer": {"exploration": "xabb1ecb46dec2743", "handle": "s6.o1", "kind": "occurrence", "text": "True", "configuration": "False.True.Extra", "lineage": [{"configuration": "s6", "occurrence": "s6.o1", "event": "e11", "rule": "r2 [False] False", "role": "remainder", "source": ["s5.o2"], "text": "consumes False; True stays in the remainder"}, …]}}
+{"version": 1, "verb": "cause", "answer": {"exploration": "x4ff861b04316a91f", "mode": "exhaustive", "closed": true, "handle": "s6.o1", "kind": "occurrence", "text": "True", "configuration": "False.True.Extra", "lineage": [{"configuration": "s6", "occurrence": "s6.o1", "event": "e11", "rule": "r2 [False] False", "role": "remainder", "source": ["s5.o2"], "text": "consumes False; True stays in the remainder"}, …]}}
 ```
 
 Every field is checked against the question's schema, so a misspelled field is an error that lists the fields the question takes, never a silent default.
@@ -250,7 +254,7 @@ Two resources describe the language to agents: `photonic://primer`, the grammar,
 
 ## Verification
 
-`//spectrum:test` checks exploration counts and handles on the conjunction and its edits; that every scope is credited to the rule that opens it; every claim kind with its evidence, including an `inevitable` counterexample that avoids every match and an `end` counterexample around a cycle, and every kind with an exact target; occurrence lineage through remainder, witness, held and produced occurrences; that reordering keeps keys and handles while renaming keeps handles and changes the key; every question's answer through the JSON protocol, checked against its declared output schema; that unknown fields, keys with settings and goals outside path mode are refused; `miss` assignments that a greedy choice gets wrong, exact targets with and without their rules, and many parts placed at once; `compare` counts beyond its limit and on open explorations; `shape`, with the pins `fix` keeps and the webbook's recorded pattern; that both engines close with the same configurations, events, handles, paths, claim answers and exact verdicts, with lineage traced on Laser's explorations, and that a renaming which reorders atoms alphabetically keeps every handle; that plain mode answers for every schedule of plain events where an inferred event strands a run; and that metal agrees with Laser's recording of the same plain schedules on counts, ends, cycles and every `end` and `outcome` claim, and refuses what it cannot answer. `//command:test` runs the commands and their exit codes, and sessions of the protocol server in the legacy and stateless revisions, including discovery, batches and each protocol error.
+`//spectrum:test` checks exploration counts and handles on the conjunction and its edits; that every scope is credited to the rule that opens it; every claim kind with its evidence, including an `inevitable` counterexample that avoids every match and an `end` counterexample around a cycle, and every kind with an exact target; occurrence lineage through remainder, witness, held and produced occurrences; that reordering keeps keys and handles while renaming keeps handles and changes the key; every question's answer through the JSON protocol, checked against its declared output schema; that unknown fields, keys with settings and goals outside path mode are refused; `miss` assignments that a greedy choice gets wrong, exact targets with and without their rules, and many parts placed at once; that parts listed anywhere in a pattern take different coherences and frames, however deep, with many scopes written alike placed without searching their orders, and that `miss` finds a matching configuration at distance 0 and refuses a target of too many parts; that the store keeps apart explorations whose keys collide and reads keys in either case; `compare` counts beyond its limit and on open explorations, and configurations that differ only in which scope holds a coherence, how scopes nest or which rules a scope holds; that claims, and questions metal cannot answer, are refused before anything is read or explored, and `preserve` without `exact` everywhere; that an open exploration and a direct path never read as closed or say a rule never fires, and that `miss` counts unexplored configurations; that refusals name both the flag and the field; that a limit of 0 counts without listing; that a `check` diagnostic is the failure itself; that each library loads once; `shape`, with the pins `fix` keeps and the webbook's recorded pattern; that both engines close with the same configurations, events, handles, paths, claim answers and exact verdicts, with lineage traced on Laser's explorations, and that a renaming which reorders atoms alphabetically keeps every handle; that plain mode answers for every schedule of plain events where an inferred event strands a run; and that metal agrees with Laser's recording of the same plain schedules on counts, ends, cycles and every `end` and `outcome` claim, and refuses what it cannot answer. `//command:test` runs the commands and their exit codes, and sessions of the protocol server in the legacy and stateless revisions, including discovery, batches and each protocol error.
 
 ```sh
 bazel test -c opt //spectrum:test //command:test
