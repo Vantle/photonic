@@ -211,7 +211,7 @@ Every field is checked against the question's schema, so a misspelled field is a
 
 ## Failures
 
-A failure carries a `code`, a `message` and, when it points into text, a `location` with the file, line, column and length.
+A failure carries a `code`, a `message` and, when it points into text, a `location` with the file, line, column and length. When the frontend refused a program, a library or a target, it also carries a `diagnostic` naming why, and `check` reports that name as its diagnostic's `code`.
 
 | Code | Meaning |
 | --- | --- |
@@ -226,6 +226,15 @@ A failure carries a `code`, a `message` and, when it points into text, a `locati
 | `engine` | An engine cannot answer: metal refuses a program with no net of parts and every question but `explore` and `check`. |
 | `claim` | A claim cannot be asked this way, such as an exact target on a direct path, a rule pattern as a claim, or on metal a claim other than `end` and `outcome`. |
 | `shape` | The symmetry search exceeded its `node` limit. |
+
+| Diagnostic | Meaning |
+| --- | --- |
+| `syntax` | The text does not parse, and the message says what to write instead. |
+| `depth` | Parentheses and brackets nest more than 128 levels deep. |
+| `input` | A rule's input is a scope; a rule is matched without parentheses, as in `[[A] B]`. |
+| `expansion` | Distributing joins and partitioning brackets would build more than the frontend's budget of 1,000,000 units and 8 more for each byte of the source. |
+| `library` | A library lists a coherence or scope; a library holds only rules. |
+| `read` | A file cannot be read. |
 
 The command prints answers as text, or with `--json` as the envelope, and prints a failure as `error[code]: message`. It exits 1 on any failure; `check` also exits 1 unless there are no diagnostics and every claim holds, `compare` unless both sides settle, reach the same configurations and events, and answer every claim alike and definitely, and `shape` when its programs have more than one shape. The library decides this through `Answer::passed`.
 

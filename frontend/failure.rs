@@ -4,7 +4,7 @@ use thiserror::Error;
 #[derive(Debug, Diagnostic, Error)]
 pub enum Failure {
     #[error("invalid Photonic syntax: {message}")]
-    #[diagnostic(code(frontend::syntax))]
+    #[diagnostic(code(photonic::syntax))]
     Syntax {
         message: String,
         #[label("{message}")]
@@ -17,11 +17,10 @@ pub enum Failure {
         #[label("nesting limit exceeded here")]
         span: SourceSpan,
     },
-    #[error("invalid Photonic expression: {message}")]
-    #[diagnostic(code(frontend::lowering))]
-    Lowering {
-        message: String,
-        #[label("{message}")]
+    #[error("an input cannot be a scope; match a rule without parentheses, as in [[A] B]")]
+    #[diagnostic(code(photonic::input))]
+    Input {
+        #[label("this input is a scope")]
         span: SourceSpan,
     },
     #[error("Photonic expansion exceeds its {limit}-unit frontend budget")]

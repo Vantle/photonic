@@ -70,6 +70,7 @@ rust_test(
     lint_config = "//:lint",
     deps = [
         ":frontend",
+        "@crate//:miette",
         "@crate//:serde_json",
     ],
 )

@@ -1,6 +1,7 @@
 use frontend::failure::Failure;
 use frontend::lowering;
 use frontend::source::{Output, Program, Value};
+use miette::Diagnostic;
 
 fn atom(value: &[&str]) -> Vec<Value> {
     value
@@ -30,7 +31,8 @@ fn program(output: &Output) -> &Program {
 
 fn syntax(source: &str) -> String {
     match lowering::parse(source) {
-        Err(Failure::Syntax { message, .. } | Failure::Lowering { message, .. }) => message,
+        Err(Failure::Syntax { message, .. }) => message,
+        Err(failure @ Failure::Input { .. }) => failure.to_string(),
         other => panic!("expected a syntax failure for {source}, found {other:?}"),
     }
 }
@@ -248,6 +250,23 @@ fn malformed() {
         );
     }
     assert!(syntax("[([A] B)] C").contains("input"));
+}
+
+#[test]
+fn code() {
+    for (source, code) in [
+        ("A B", "photonic::syntax"),
+        (&"[".repeat(frontend::parser::DEPTH + 1), "photonic::depth"),
+        ("[([A] B)] C", "photonic::input"),
+        (&"[A] ".repeat(10_000), "photonic::expansion"),
+    ] {
+        let failure = lowering::parse(source).unwrap_err();
+        assert_eq!(
+            failure.code().map(|code| code.to_string()).as_deref(),
+            Some(code),
+            "{failure}"
+        );
+    }
 }
 
 #[test]

@@ -61,13 +61,6 @@ impl<'tree> Reader<'tree, '_> {
         self.tree.node()[index].kind
     }
 
-    fn failure(span: Range<usize>, message: &str) -> Failure {
-        Failure::Lowering {
-            message: message.into(),
-            span: (span.start, span.len()).into(),
-        }
-    }
-
     fn expansion(&self, span: Range<usize>) -> Failure {
         Failure::Expansion {
             limit: allowance(self.tree.source()),
@@ -205,10 +198,9 @@ impl<'tree> Reader<'tree, '_> {
                 Member::Particle(particle) => particle,
                 Member::Rule(rule) => rule.into_iter().map(value).collect(),
                 Member::Scope(_, span) => {
-                    return Err(Self::failure(
-                        span,
-                        "an input cannot be a scope; match a rule without parentheses, as in [[A] B]",
-                    ));
+                    return Err(Failure::Input {
+                        span: (span.start, span.len()).into(),
+                    });
                 }
             });
         }

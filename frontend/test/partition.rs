@@ -25,7 +25,8 @@ fn permutation(piece: &[&str]) -> Vec<String> {
 
 fn syntax(source: &str) -> String {
     match lowering::parse(source) {
-        Err(Failure::Syntax { message, .. } | Failure::Lowering { message, .. }) => message,
+        Err(Failure::Syntax { message, .. }) => message,
+        Err(failure @ Failure::Input { .. }) => failure.to_string(),
         other => panic!("expected a syntax failure for {source}, found {other:?}"),
     }
 }
