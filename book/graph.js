@@ -4,6 +4,19 @@
     const { element, vector, tally, count } = book.render;
     let serial = 0;
 
+    // Why an exploration stopped short of closing, in the words Spectrum's answers use.
+    const reason = stop => stop.map(value => {
+        switch (value.kind) {
+        case 'work': return `the work budget (${value.budget.toLocaleString()}) ran out`;
+        case 'record': return `the record budget (${value.budget.toLocaleString()}) filled`;
+        case 'limit': return `the ${value.bound} limit (${value.value.toLocaleString()}) blocked ${count(value.blocked, 'event')}`;
+        case 'start': return `s0 holds ${count(value.measure, value.bound)}; the ${value.bound} limit is ${value.value.toLocaleString()}`;
+        case 'reached': return 'it reached its goal';
+        case 'cycle': return 'it came back to a configuration it passed';
+        default: return 'no event applies';
+        }
+    }).join(', and ');
+
     const model = execution => {
         const outgoing = new Map(execution.state.map(value => [value.id, []]));
         execution.event.forEach(value => outgoing.get(value.source)?.push(value));
@@ -365,6 +378,7 @@
         const summary = element('p', 'summary');
         summary.append(tally(data.state.length, 'configuration'), tally(data.event.length, 'event'), tally(data.work ?? 0, 'work step'));
         summary.append(element('span', 'badge', data.closed ? 'explored completely' : 'budget reached'));
+        if (!data.closed && data.stop?.length) summary.append(element('span', undefined, reason(data.stop)));
         if (filter) summary.append(element('span', undefined, `${node.length} shown`));
         const verdict = element('div', 'verdict');
         (option.verdict ?? []).forEach((value, index) => {

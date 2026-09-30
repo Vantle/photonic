@@ -109,6 +109,7 @@ try {
     await evaluate("document.querySelector('#field .lens .preset button:nth-child(4)').click()");
     assert.match(await evaluate("return document.querySelector('#field .lens .lowered').textContent"), /2 coherences/);
     assert.deepEqual(await evaluate(`return [...${figure('forever')}.querySelectorAll('.state .badge')].map(value => value.textContent)`), ['start']);
+    assert.match(await evaluate(`return ${figure('forever')}.querySelector('.summary').textContent`), /budget reachedthe coherence limit \(16\) blocked 1 event$/);
     await evaluate(`${figure('forever')}.querySelector('.state[data-state="16"]').click(); return true`);
     assert.match(await evaluate(`return ${figure('forever')}.querySelector('.departure').textContent`), /no events recorded before the budget ran out/);
     assert.equal(await evaluate(`return ${figure('first')}.querySelector('.state[data-state="1"] .name').textContent`), 's1end');
