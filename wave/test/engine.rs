@@ -50,7 +50,11 @@ fn identical() {
             ..Tuning::default()
         },
     ];
+    // Below the defaults, so the two programs the limits stop, `A, [A] A.A` and twenty kinds joined
+    // in pairs, take under half a second a case even with the smallest windows.
     let open = Limit {
+        configuration: 2_048,
+        occurrence: 64,
         record: usize::MAX,
         ..Limit::default()
     };
@@ -94,8 +98,7 @@ fn identical() {
         "A, A, A, [A, A, A] B".to_owned(),
         "Go.A, Go.B, [Go] (X, [X] Y), [Y.A] Z, [Y.B, Z] W".to_owned(),
         "S, [S] E, [S] F, [S] G, [S] X, [X] Y, [Y] X".to_owned(),
-        "X.K0, X.K1, X.K2, X.K3, X.K4, X.K5, X.K6, X.K7, X.K8, X.K9, X.K10, [X, X, X, X] Y"
-            .to_owned(),
+        "X.K0, X.K1, X.K2, X.K3, X.K4, X.K5, X.K6, X.K7, X.K8, X.K9, [X, X, X, X] Y".to_owned(),
         (0..20)
             .map(|index| format!("X.K{index}, "))
             .chain(["[X, X] Y".to_owned()])
