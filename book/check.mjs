@@ -331,6 +331,7 @@ try {
         return true`);
     await until(`return ${figure('involution')}.querySelector('.message').textContent === 'Stopped.'`);
     assert.equal(await evaluate(`return ${figure('involution')}.querySelector('.run').hasAttribute('aria-disabled')`), false);
+    assert.equal(await evaluate(`return ${figure('involution')}.querySelector('.output').childElementCount`), 0);
     await evaluate(`[...${figure('involution')}.querySelectorAll('.bar button')].find(value => value.textContent === 'Reset').click(); return true`);
     await evaluate(`
         const area = document.querySelector('#bench .editor textarea');

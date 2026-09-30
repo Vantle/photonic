@@ -117,7 +117,7 @@
                 } catch (error) {
                     if (mine !== ticket) return;
                     problem = book.engine.state === 'recorded'
-                        ? 'Filtering by pattern needs the live engine: bazel run -c opt //book:serve'
+                        ? `Filtering by pattern needs the live engine. ${book.engine.advice}`
                         : book.editor.describe(error);
                 }
             }

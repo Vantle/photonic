@@ -95,7 +95,7 @@
             }
             if (book.engine.state !== 'live') {
                 output.replaceChildren();
-                message.say('Serve the book to lower new source: bazel run -c opt //book:serve');
+                message.say(book.engine.advice);
                 return;
             }
             try {

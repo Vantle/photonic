@@ -8,7 +8,7 @@
         live: 'Programs run in the Rust runtime compiled to WebAssembly.',
         unknown: 'Showing runs recorded by the Rust runtime while the engine loads.',
         recorded: 'Showing runs recorded by the Rust runtime. Open photonic.vantle.org or serve a checkout to run your own.',
-        failed: 'The engine could not load. Reload the page to run your own programs.',
+        failed: 'This browser could not start the WebAssembly engine. Reload the page to try again.',
         stale: 'This page and its engine come from different versions of the book. Reload the page to run your own programs.',
     };
 

@@ -5,7 +5,7 @@
     const storage = 'photonic-lightbox';
     const warning = {
         recorded: 'Write and run your own programs at photonic.vantle.org or in a served checkout. Here the examples show their recorded runs.',
-        failed: 'The engine could not load. Reload the page to write and run your own programs. Here the examples show their recorded runs.',
+        failed: 'This browser could not start the WebAssembly engine. Reload the page to try again; until then the examples show their recorded runs.',
     };
 
     const text = value => typeof value === 'string';
