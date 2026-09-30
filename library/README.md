@@ -225,7 +225,7 @@ Numerals store base-three digits least significant first. Arithmetic answers car
 
 ## Chains
 
-A chain handle is `Zero` or a `Head` coherence carrying a private seal and its methods; its cells remain elsewhere in the same frame.
+A chain handle is `Zero` or a `Head` coherence carrying a private seal and its methods: rule values that belong to the scope `Push` opened for that cell, so only rules that belong to that scope match them whole. Its cells remain elsewhere in the same frame.
 
 | Request beside a chain | Answer |
 | --- | --- |
@@ -257,7 +257,7 @@ Push.([Digit] 1).Zero, Stage.1,
 
 ## Vectors
 
-A vector handle is `Empty` or a `Node` coherence carrying a private seal and its methods. Each node's `Slot` holds one item and the rest of the vector in its tail form. Items are any values that answer `Forget` with `Clean`, such as naturals, chains, and vectors, so vectors nest to any depth. A vector holds only handles: inserting, taking, sorting, and reversing move references, never digits.
+A vector handle is `Empty` or a `Node` coherence carrying a private seal and its methods, which belong to the scope `Insert` opened for that node, as a chain cell's belong to its `Push`. Each node's `Slot` holds one item and the rest of the vector in its tail form. Items are any values that answer `Forget` with `Clean`, such as naturals, chains, and vectors, so vectors nest to any depth. A vector holds only handles: inserting, taking, sorting, and reversing move references, never digits.
 
 | Request | Answer |
 | --- | --- |

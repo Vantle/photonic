@@ -25,6 +25,7 @@ Programs, answers and links from builds of `main` before 1.0.0 may need these ch
   - A JSON program is read only in the shapes its text can write: an object for each program, scope and rule, an array for each particle, and atoms spelled as text spells them. Rules carry no `name`; every rule is shown by its printed text.
   - Diagnostics are `syntax`, `depth`, `expansion`, `library`, `json`, `read` and `encoding`. An unclosed or mismatched bracket is reported where it opens.
   - A rule value firing in a coherence keeps its output in place; only a scope's own rules return output to the scope around it.
+  - A rule value belongs to the innermost scope written around it, or to the program, whether it is written in a coherence or made by a rule, and a rule's input matches only rule values that belong where the rule does. A rule value written in a scope's coherences used to belong to whatever opened the scope, so that scope's own rules could not match it.
 - Exploring
   - Configurations with interchangeable parts are named part by part, and every search for a canonical form is charged to the work budget, so programs with many alike scopes, seeds or calls no longer stall.
   - The occurrence limit counts what a configuration's coherences and scopes hold as values, so live rules no longer count, and the scope limit counts only the scopes a run opened.
