@@ -1,5 +1,6 @@
+use crate::rule;
 use code::output::Output;
-use frontend::source::{self, Definition, Program, Value};
+use frontend::source::{Definition, Program};
 use serde::Serialize;
 use std::collections::{BTreeMap, BTreeSet};
 use symmetry::analysis::analyze;
@@ -38,43 +39,8 @@ impl From<symmetry::analysis::Kind> for Kind {
     }
 }
 
-fn visit(rule: &Definition, name: &mut Vec<String>) {
-    name.push(frontend::text::definition(rule));
-    for particle in &rule.input {
-        scan(particle, name);
-    }
-    for output in &rule.output {
-        match output {
-            source::Output::Particle(particle) => scan(particle, name),
-            source::Output::Scope(program) => enclose(program, name),
-        }
-    }
-}
-
-fn enclose(program: &Program, name: &mut Vec<String>) {
-    for particle in &program.initial {
-        scan(particle, name);
-    }
-    for rule in &program.rule {
-        visit(rule, name);
-    }
-    for nested in &program.scope {
-        enclose(nested, name);
-    }
-}
-
-fn scan(particle: &[Value], name: &mut Vec<String>) {
-    for value in particle {
-        if let Value::Rule { rule } = value {
-            visit(rule, name);
-        }
-    }
-}
-
-fn named(collect: impl FnOnce(&mut Vec<String>)) -> Vec<String> {
-    let mut name = Vec::new();
-    collect(&mut name);
-    name
+fn named(rule: Vec<&Definition>) -> Vec<String> {
+    rule.into_iter().map(frontend::text::definition).collect()
 }
 
 fn translate(
@@ -85,13 +51,13 @@ fn translate(
     let mut name = Vec::new();
     for entry in &program.rule {
         statement.push(Statement::Rule(lift::rule(entry, vocabulary).ok()?));
-        name.push(named(|name| visit(entry, name)));
+        name.push(named(rule::definition(entry)));
     }
     for entry in &program.initial {
         statement.push(Statement::Coherence(
             lift::particle(entry, vocabulary).ok()?,
         ));
-        name.push(named(|name| scan(entry, name)));
+        name.push(named(rule::particle(entry)));
     }
     for entry in &program.scope {
         for output in lift::scope(entry, vocabulary).ok()? {
@@ -99,7 +65,7 @@ fn translate(
                 Output::Particle(particle) => Statement::Coherence(particle),
                 Output::Scope(scope) => Statement::Scope(scope),
             });
-            name.push(named(|name| enclose(entry, name)));
+            name.push(named(rule::program(entry)));
         }
     }
     Some((statement, name))

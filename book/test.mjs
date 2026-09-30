@@ -37,7 +37,7 @@ const selected = (text, execution) => {
 };
 const parallel = record.workbench.Parallel.result.execution;
 const shown = (text, execution = parallel) => [...pattern.state(selected(text, execution), graph.model(execution)).state].sort((left, right) => left - right);
-assert.deepEqual(shown('C'), [1, 3, 4]);
+assert.deepEqual(shown('C'), [2, 3, 4]);
 assert.deepEqual(shown('C, D'), [3, 4]);
 assert.deepEqual(shown('C.D'), []);
 assert.deepEqual(shown('C,'), shown('C'));

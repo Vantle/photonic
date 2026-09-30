@@ -1,5 +1,6 @@
 use photonic::snapshot::{Frame, Node, Token, Value};
 use serde::Serialize;
+use spectrum::order::Naming;
 use std::sync::Arc;
 
 #[derive(Serialize)]
@@ -43,56 +44,72 @@ pub struct Configuration {
     frame: Vec<Scope>,
 }
 
-impl From<Token> for Occurrence {
-    fn from(token: Token) -> Self {
-        match token.value {
-            Value::Atom(label) => Self::Atom {
-                id: token.id,
-                label,
-            },
-            Value::Rule(rule) => Self::Rule {
-                id: token.id,
-                rule,
-                capture: token.capture,
-            },
-        }
+fn occurrence(token: Token, naming: &Naming) -> Occurrence {
+    match token.value {
+        Value::Atom(label) => Occurrence::Atom {
+            id: token.id,
+            label: Arc::from(naming.name(&label)),
+        },
+        Value::Rule(rule) => Occurrence::Rule {
+            id: token.id,
+            rule,
+            capture: token.capture,
+        },
     }
 }
 
-fn list(particle: Vec<Token>) -> Vec<Occurrence> {
-    particle.into_iter().map(Occurrence::from).collect()
+fn list(particle: Vec<Token>, naming: &Naming) -> Vec<Occurrence> {
+    particle
+        .into_iter()
+        .map(|token| occurrence(token, naming))
+        .collect()
 }
 
-impl From<Frame> for Scope {
-    fn from(frame: Frame) -> Self {
-        Self {
-            parent: frame.parent,
-            particle: frame
-                .particle
-                .iter()
-                .filter_map(|token| match token.value {
-                    Value::Rule(rule) => Some(Reference { id: token.id, rule }),
-                    Value::Atom(_) => None,
-                })
-                .collect(),
-            held: list(frame.held),
-        }
+fn scope(frame: Frame, naming: &Naming) -> Scope {
+    Scope {
+        parent: frame.parent,
+        particle: frame
+            .particle
+            .iter()
+            .filter_map(|token| match token.value {
+                Value::Rule(rule) => Some(Reference { id: token.id, rule }),
+                Value::Atom(_) => None,
+            })
+            .collect(),
+        held: list(frame.held, naming),
     }
 }
 
-impl From<Node> for Configuration {
-    fn from(node: Node) -> Self {
+impl Configuration {
+    // A configuration of the canonical program's run, under the handle the numbering gives it and in
+    // the source's names.
+    pub fn new(node: Node, id: usize, naming: &Naming) -> Self {
         Self {
-            id: node.id,
+            id,
             world: node
                 .world
                 .into_iter()
                 .map(|world| Coherence {
                     frame: world.frame,
-                    particle: list(world.particle),
+                    particle: list(world.particle, naming),
                 })
                 .collect(),
-            frame: node.frame.into_iter().map(Scope::from).collect(),
+            frame: node
+                .frame
+                .into_iter()
+                .map(|frame| scope(frame, naming))
+                .collect(),
         }
+    }
+
+    pub fn id(&self) -> usize {
+        self.id
+    }
+}
+
+impl From<Node> for Configuration {
+    fn from(node: Node) -> Self {
+        let id = node.id;
+        Self::new(node, id, &Naming::default())
     }
 }
