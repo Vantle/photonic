@@ -5,7 +5,7 @@ use crate::explored::Explored;
 use crate::failure::Failure;
 use crate::handle::Handle;
 use crate::recording::{Engine, Mode, Order, Recording};
-use crate::render;
+use crate::render::{self, Extent};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -62,8 +62,12 @@ pub(crate) struct Summary {
     pub(crate) order: Order,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) shape: Option<String>,
-    pub(crate) complete: bool,
+    #[schemars(
+        description = "Whether the exploration closed: it explored every future, or in plain mode every plain schedule, within its budget, so what it lacks is absent. A direct path follows one run and never closes."
+    )]
+    pub(crate) closed: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[schemars(description = "On a direct path, whether it reached its goal.")]
     pub(crate) reached: Option<bool>,
     #[schemars(
         description = "Work steps the engine took; metal counts a step for each match its grounding read."
@@ -102,7 +106,7 @@ pub(crate) fn brief(explored: &Explored) -> Summary {
             engine: exploration.engine,
             order: exploration.order,
             shape: exploration.shape.map(|shape| format!("{shape:016x}")),
-            complete: exploration.closed,
+            closed: exploration.closed,
             reached: (exploration.mode == Mode::Path).then_some(exploration.reached),
             work: exploration.work,
             configuration: exploration.configuration.len(),
@@ -119,7 +123,7 @@ pub(crate) fn brief(explored: &Explored) -> Summary {
             engine: Engine::Metal,
             order: survey.order,
             shape: survey.shape.map(|shape| format!("{shape:016x}")),
-            complete: survey.closed,
+            closed: survey.closed,
             reached: None,
             work: survey.work,
             configuration: survey.configuration,
@@ -200,7 +204,7 @@ pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Ans
 }
 
 pub(crate) fn state(summary: &Summary) -> String {
-    let status = match (summary.mode, summary.complete, summary.reached) {
+    let status = match (summary.mode, summary.closed, summary.reached) {
         (Mode::Path, _, Some(true)) => "path reached its goal",
         (Mode::Path, _, _) => "path stopped",
         (Mode::Exhaustive | Mode::Plain, true, _) => "closed",
@@ -236,10 +240,11 @@ impl Answer {
         if self.end.is_empty() {
             line.push("end    none".to_owned());
         }
-        let heading = match (self.summary.mode, self.summary.complete) {
-            (Mode::Exhaustive | Mode::Plain, true) => "end",
-            (Mode::Exhaustive | Mode::Plain, false) => "leaf",
-            (Mode::Path, _) => "stop",
+        let extent = Extent::new(self.summary.mode, self.summary.closed);
+        let heading = match extent {
+            Extent::Closed => "end",
+            Extent::Open => "leaf",
+            Extent::Path => "stop",
         };
         for (position, end) in self.end.iter().enumerate() {
             let label = if position == 0 { heading } else { "" };
@@ -261,7 +266,7 @@ impl Answer {
         for (position, rule) in self.rule.iter().enumerate() {
             let label = if position == 0 { "rule" } else { "" };
             let fired = match (rule.fired, rule.inferred) {
-                (0, _) => "never".to_owned(),
+                (0, _) => extent.never().to_owned(),
                 (fired, 0) => fired.to_string(),
                 (fired, inferred) => format!("{fired}, {inferred} inferred"),
             };

@@ -392,10 +392,11 @@ impl Exploration {
                 deduction: Vec::new(),
             })
             .collect();
-        let reached = report.outcome == Outcome::Reached;
+        // A direct path follows one run, so it never settles what the others do, and reached says
+        // whether that run met its goal.
         let record = Record {
-            closed: reached,
-            reached,
+            closed: false,
+            reached: report.outcome == Outcome::Reached,
             work: report.work,
             definition: &report.definition,
             state: &report.state,
@@ -523,10 +524,6 @@ impl Exploration {
             .filter(move |&event| self.event[event].rule == rule && self.event[event].supported)
     }
 
-    pub fn settled(&self) -> bool {
-        self.closed && self.mode != Mode::Path
-    }
-
     // A cycle of supported events through configurations that avoided marks, found from the
     // start: the configuration where it closes, and the events from the start around it.
     pub fn cycle(&self, avoided: &[bool]) -> Option<(usize, Vec<usize>)> {
@@ -540,12 +537,12 @@ impl Exploration {
     }
 
     // Whether a run can go on forever: yes once a cycle of supported events is found, and no once
-    // the exploration settles without one.
+    // the exploration closes without one.
     pub fn endless(&self) -> Option<bool> {
         if self.cycle(&vec![true; self.configuration.len()]).is_some() {
             return Some(true);
         }
-        self.settled().then_some(false)
+        self.closed.then_some(false)
     }
 
     pub fn find(&self, configuration: usize, id: usize) -> Option<&Occurrence> {

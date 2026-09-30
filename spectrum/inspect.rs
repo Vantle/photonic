@@ -6,7 +6,7 @@ use crate::failure::Failure;
 use crate::handle::Handle;
 use crate::lineage;
 use crate::recording::{Mode, Recording};
-use crate::render;
+use crate::render::{self, Extent};
 use photonic::place::Place;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -123,6 +123,11 @@ pub(crate) enum View {
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 pub struct Answer {
     pub(crate) exploration: String,
+    pub(crate) mode: Mode,
+    #[schemars(
+        description = "Whether the exploration closed: it explored every future, or in plain mode every plain schedule, within its budget, so what it lacks is absent. A direct path follows one run and never closes."
+    )]
+    pub(crate) closed: bool,
     pub(crate) handle: String,
     #[serde(flatten)]
     pub(crate) view: View,
@@ -237,7 +242,7 @@ fn view(exploration: &Exploration, handle: Handle) -> View {
             View::Configuration {
                 text: render::configuration(exploration, index),
                 supported: entry.supported,
-                end: exploration.settled() && exploration.stuck(index),
+                end: exploration.closed && exploration.stuck(index),
                 depth: exploration.depth[index],
                 coherence: (0..entry.coherence.len())
                     .map(|world| part(exploration, index, world))
@@ -310,6 +315,8 @@ pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Ans
     let handle = request.handle.parse::<Handle>()?.check(&exploration)?;
     Ok(Answer {
         exploration: exploration.name(),
+        mode: exploration.mode,
+        closed: exploration.closed,
         handle: handle.to_string(),
         view: view(&exploration, handle),
     })
@@ -361,15 +368,10 @@ impl Answer {
                     Some(Opener::Program) => " · local to a scope the program opens".to_owned(),
                     None => String::new(),
                 };
-                let count = match (*fired, *inferred) {
-                    (0, _) => "never fires".to_owned(),
-                    (fired, 0) => format!("fires {}", render::count(fired, "time")),
-                    (fired, inferred) => {
-                        format!(
-                            "fires {}, {inferred} inferred",
-                            render::count(fired, "time")
-                        )
-                    }
+                let firing = Extent::new(self.mode, self.closed).firing(*fired);
+                let count = match *inferred {
+                    0 => firing,
+                    inferred => format!("{firing}, {inferred} inferred"),
                 };
                 line.push(format!("{} {text}{place} · {count}", self.handle));
                 render::table("event", event, &mut line);

@@ -10,9 +10,9 @@ Photonic programs are rules over particles, and the runtime explores every confi
 ## Loop
 
 1. `check` the program with the claims the task implies, such as `--reach`, `--avoid` or `--outcome`. Fix diagnostics first.
-2. `explore` it. Read the end configurations and each rule's activity: a rule that fires `never` is a finding.
+2. `explore` it. Read the end configurations and each rule's activity: a rule that fires `never` in a closed exploration is a finding; an open exploration says `not yet` and a direct path `not on this path`, which are not.
 3. Explain what surprised you. `cause s11` gives the path to a configuration, `cause s11.o1` where an occurrence came from, and `inspect e12` an event's match, witness and deduction.
-4. Explain what is missing. `miss --target False.Extra` lists the nearest configurations and what they lack; `miss r3` shows why a rule never fires.
+4. Explain what is missing. `miss --target False.Extra` lists the nearest configurations and what they lack; `miss r3` shows why a rule does not fire.
 5. After an edit, `compare` the old and new programs with the same claims, and confirm that only the intended configurations and events changed.
 6. Turn the finding into a `photonic_test` so it stays checked.
 

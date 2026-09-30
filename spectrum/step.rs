@@ -3,7 +3,7 @@ use crate::failure::{Code, Failure};
 use crate::handle::Handle;
 use crate::inspect::Move;
 use crate::recording::{Mode, Recording};
-use crate::render;
+use crate::render::{self, Extent};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -27,7 +27,10 @@ fn start() -> String {
 pub struct Answer {
     pub(crate) exploration: String,
     pub(crate) mode: Mode,
-    pub(crate) complete: bool,
+    #[schemars(
+        description = "Whether the exploration closed: it explored every future, or in plain mode every plain schedule, within its budget, so what it lacks is absent. A direct path follows one run and never closes."
+    )]
+    pub(crate) closed: bool,
     pub(crate) handle: String,
     pub(crate) text: String,
     pub(crate) agenda: Vec<Move>,
@@ -45,7 +48,7 @@ pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Ans
     Ok(Answer {
         exploration: exploration.name(),
         mode: exploration.mode,
-        complete: exploration.closed,
+        closed: exploration.closed,
         handle: handle.to_string(),
         text: render::configuration(&exploration, index),
         agenda: exploration.outgoing[index]
@@ -58,20 +61,19 @@ pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Ans
 impl Answer {
     pub(crate) fn text(&self) -> String {
         let mut line = vec![format!("{} {}", self.handle, self.text)];
-        let (label, empty) = match (self.mode, self.complete) {
-            (Mode::Path, _) => ("taken", "the path stops here"),
-            (Mode::Exhaustive | Mode::Plain, true) => {
-                ("agenda", "no event can happen here: an end configuration")
-            }
-            (Mode::Exhaustive | Mode::Plain, false) => (
-                "agenda",
-                "no event is recorded here; the exploration is open, so one may still happen",
-            ),
+        let extent = Extent::new(self.mode, self.closed);
+        let (label, empty) = match extent {
+            Extent::Path => ("taken", "the path stops here"),
+            Extent::Closed => ("agenda", "no event can happen here: an end configuration"),
+            Extent::Open => ("agenda", "no event is recorded here"),
         };
         if self.agenda.is_empty() {
             line.push(empty.to_owned());
         }
         render::table(label, &self.agenda, &mut line);
+        if extent == Extent::Open {
+            line.push("the exploration is open; more events may happen here".to_owned());
+        }
         line.join("\n")
     }
 }

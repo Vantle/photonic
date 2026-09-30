@@ -300,7 +300,7 @@ fn decide(claim: &Claim, exploration: &Exploration, matched: &[bool]) -> Evidenc
         supported(exploration).filter(|&index| !matched[index]),
     );
     let path = exploration.mode == Mode::Path;
-    let closed = exploration.settled();
+    let closed = exploration.closed;
     match claim.kind {
         Kind::Reach | Kind::Avoid => {
             let (present, absent) = if claim.kind == Kind::Reach {

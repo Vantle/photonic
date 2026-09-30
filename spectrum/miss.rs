@@ -6,8 +6,8 @@ use crate::failure::{Code, Failure};
 use crate::handle::Handle;
 use crate::matching;
 use crate::pattern::{self, Body, Item, Pattern, Region};
-use crate::recording::Recording;
-use crate::render;
+use crate::recording::{Mode, Recording};
+use crate::render::{self, Extent};
 use frontend::source::Definition;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -96,7 +96,11 @@ pub(crate) enum Miss {
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 pub struct Answer {
     pub(crate) exploration: String,
-    pub(crate) complete: bool,
+    pub(crate) mode: Mode,
+    #[schemars(
+        description = "Whether the exploration closed: it explored every future, or in plain mode every plain schedule, within its budget, so what it lacks is absent. A direct path follows one run and never closes."
+    )]
+    pub(crate) closed: bool,
     #[serde(flatten)]
     pub(crate) miss: Miss,
 }
@@ -624,7 +628,8 @@ pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Ans
     };
     Ok(Answer {
         exploration: exploration.name(),
-        complete: exploration.closed,
+        mode: exploration.mode,
+        closed: exploration.closed,
         miss,
     })
 }
@@ -632,7 +637,8 @@ pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Ans
 impl Answer {
     pub(crate) fn text(&self) -> String {
         let mut line = Vec::new();
-        let state = if self.complete { "closed" } else { "open" };
+        let extent = Extent::new(self.mode, self.closed);
+        let state = extent.name();
         let width = match &self.miss {
             Miss::Target { near, .. } => near.iter().map(|entry| entry.text.chars().count()).max(),
             Miss::Rule { near, .. } => near.iter().map(|entry| entry.text.chars().count()).max(),
@@ -679,11 +685,7 @@ impl Answer {
                 visible,
                 near,
             } => {
-                let fired = if *fired == 0 {
-                    "never fires".to_owned()
-                } else {
-                    format!("fires {}", render::count(*fired, "time"))
-                };
+                let fired = extent.firing(*fired);
                 line.push(format!(
                     "{rule}   {fired} · {state} · live in {} where it does not fire",
                     render::count(*visible, "configuration")

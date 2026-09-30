@@ -569,7 +569,7 @@ fn explore() {
     assert_eq!(answer["configuration"], 14);
     assert_eq!(answer["event"], 17);
     assert_eq!(answer["inferred"], 4);
-    assert_eq!(answer["complete"], true);
+    assert_eq!(answer["closed"], true);
     let scope = answer["end"]
         .as_array()
         .expect("end configurations")
@@ -1055,4 +1055,113 @@ fn nesting() {
         .filter(|text| text.starts_with("[Go]"))
         .collect::<std::collections::BTreeSet<_>>();
     assert_eq!(opener.len(), 2, "{}", answer[3]);
+}
+
+// An open exploration and a direct path say what they have not settled: neither is closed, a path
+// that reaches its goal is reached and still not closed, every answer names its state, and none
+// says never of a rule that has not fired.
+#[test]
+fn extent() {
+    let open = r#""program": {"source": "Seed, [Seed] Seed.X, [Done] Stop"}, "budget": {"configuration": 5}"#;
+    let path = r#""program": {"file": ["light.wave"]}, "mode": "path", "goal": {"configuration": "Red", "preserve": true}"#;
+    let explored = session(&[
+        &format!(r#"{{"verb": "explore", {open}}}"#),
+        &format!(r#"{{"verb": "explore", {path}}}"#),
+    ]);
+    let handle = |answer: &serde_json::Value, text: &str| {
+        answer["answer"]["rule"]
+            .as_array()
+            .expect("rules")
+            .iter()
+            .find(|rule| rule["text"] == text)
+            .and_then(|rule| rule["handle"].as_str())
+            .expect("the rule is listed")
+            .to_owned()
+    };
+    let stop = handle(&explored[0], "[Done] Stop");
+    let green = handle(&explored[1], "[Light] Green");
+    let answer = session(&[
+        &format!(r#"{{"verb": "explore", {open}}}"#),
+        &format!(r#"{{"verb": "inspect", {open}, "handle": "{stop}"}}"#),
+        &format!(r#"{{"verb": "select", {open}, "pattern": "Seed"}}"#),
+        &format!(r#"{{"verb": "step", {open}}}"#),
+        &format!(r#"{{"verb": "explore", {path}}}"#),
+        &format!(r#"{{"verb": "inspect", {path}, "handle": "{green}"}}"#),
+        &format!(r#"{{"verb": "step", {path}}}"#),
+        &format!(r#"{{"verb": "miss", {path}, "target": "Blue"}}"#),
+        &format!(r#"{{"verb": "compare", "left": {{{path}}}, "right": {{{path}}}}}"#),
+        &format!(r#"{{"verb": "select", {path}, "pattern": "Red"}}"#),
+    ]);
+    for (index, value) in answer.iter().enumerate() {
+        let body = &value["answer"];
+        let closed = if body.get("left").is_some() {
+            body["left"]["closed"].clone()
+        } else {
+            body["closed"].clone()
+        };
+        assert_eq!(closed, false, "{index}: {value}");
+    }
+    assert_eq!(answer[4]["answer"]["reached"], true, "{}", answer[4]);
+    let reader = memory();
+    let mut store = Store::default();
+    let mut context = Context {
+        reader: &reader,
+        store: &mut store,
+    };
+    let text = |request: String, context: &mut Context<'_>| {
+        let serde_json::Value::Object(mut object) =
+            serde_json::from_str(&request).expect("a JSON object")
+        else {
+            panic!("a request is an object");
+        };
+        let verb = object
+            .remove("verb")
+            .and_then(|verb| verb.as_str().map(str::to_owned))
+            .expect("a verb");
+        Request::read(&verb, serde_json::Value::Object(object))
+            .and_then(|request| request.answer(context))
+            .map(|answer| answer.text())
+            .expect("the question answers")
+    };
+    let explore = text(format!(r#"{{"verb": "explore", {open}}}"#), &mut context);
+    assert!(explore.contains("not yet"), "{explore}");
+    assert!(!explore.contains("never"), "{explore}");
+    let inspect = text(
+        format!(r#"{{"verb": "inspect", {open}, "handle": "{stop}"}}"#),
+        &mut context,
+    );
+    assert!(inspect.contains("has not fired yet"), "{inspect}");
+    let select = text(
+        format!(r#"{{"verb": "select", {open}, "pattern": "Seed"}}"#),
+        &mut context,
+    );
+    assert!(
+        select
+            .lines()
+            .next()
+            .is_some_and(|line| line.contains(" · open · ")),
+        "{select}"
+    );
+    let step = text(format!(r#"{{"verb": "step", {open}}}"#), &mut context);
+    assert!(
+        step.contains("the exploration is open; more events may happen here"),
+        "{step}"
+    );
+    let walked = text(format!(r#"{{"verb": "explore", {path}}}"#), &mut context);
+    assert!(walked.contains("not on this path"), "{walked}");
+    let inspect = text(
+        format!(r#"{{"verb": "inspect", {path}, "handle": "{green}"}}"#),
+        &mut context,
+    );
+    assert!(inspect.contains("does not fire on this path"), "{inspect}");
+    let miss = text(
+        format!(r#"{{"verb": "miss", {path}, "target": "Blue"}}"#),
+        &mut context,
+    );
+    assert!(
+        miss.lines()
+            .next()
+            .is_some_and(|line| line.contains(" · a direct path · ") && !line.contains("closed")),
+        "{miss}"
+    );
 }
