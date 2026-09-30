@@ -1,6 +1,6 @@
 use super::support::{A, B, C, D, configuration, program, rule, state};
 use crate::limit::Limit;
-use crate::walk::walk;
+use crate::walk::{Refusal, walk};
 use std::time::Instant;
 
 #[test]
@@ -44,5 +44,24 @@ fn deadline() {
         ..Limit::default()
     };
     let result = walk(&program, state(&[&[A]]), &expired, |_| 0);
+    assert!(result.overflow && result.terminal.is_none());
+}
+
+#[test]
+fn refusal() {
+    let program = program(vec![rule(&[&[A]], &[&[B]]), rule(&[&[A]], &[&[D]])]);
+    let result = walk(&program, state(&[&[A]]), &Limit::default(), |count| count);
+    assert_eq!(result.refusal, Some(Refusal { index: 2, count: 2 }));
+    assert!(result.terminal.is_none() && !result.overflow && result.work == 0);
+}
+
+#[test]
+fn oversize() {
+    let program = program(vec![rule(&[&[A]], &[&[B]])]);
+    let narrow = Limit {
+        coherence: 1,
+        ..Limit::default()
+    };
+    let result = walk(&program, state(&[&[C], &[C]]), &narrow, |_| 0);
     assert!(result.overflow && result.terminal.is_none());
 }
