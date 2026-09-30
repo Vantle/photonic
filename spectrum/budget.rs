@@ -12,14 +12,16 @@ pub struct Budget {
     pub work: usize,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schemars(
-        description = "Configurations kept: photonic_test's 4,096 by default, and for metal as many as the GPU holds, half the memory Metal recommends at 256 bytes a configuration, or 1,048,576 on the host."
+        description = "Configurations kept: photonic_test's 4,096 by default, and for metal as many as the GPU holds, half the memory Metal recommends at 256 bytes a configuration, or 1,048,576 on the host where there is no GPU with Metal 3."
     )]
     pub configuration: Option<usize>,
     #[schemars(description = "Coherences in one configuration.")]
     pub coherence: usize,
-    #[schemars(description = "Occurrences in one configuration.")]
+    #[schemars(
+        description = "Occurrences one configuration's coherences and scopes hold as values; live rules are not among them."
+    )]
     pub occurrence: usize,
-    #[schemars(description = "Scopes in one configuration.")]
+    #[schemars(description = "Scopes one configuration has opened; the root is not one.")]
     pub scope: usize,
     #[schemars(
         description = "Records the engine retains; metal retains none, so it ignores the record budget and leaves it out of its key."

@@ -149,10 +149,11 @@ def photonic_test(name, target, source = "", srcs = [], deps = [], expect = "rea
             may go on forever.
         work: Work budget.
         configuration: Configuration limit.
-        occurrence: Occurrence limit.
-        scope: Scope limit.
+        occurrence: Occurrence limit: the occurrences one configuration's coherences and scopes hold
+            as values, not counting live rules.
+        scope: Scope limit: the scopes one configuration has opened, not counting the root.
         coherence: Coherence limit.
-        record: Event record limit.
+        record: Record budget: the records each engine retains.
         size: Bazel test size.
         tags: Bazel test tags.
     """
