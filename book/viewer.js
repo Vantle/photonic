@@ -29,6 +29,7 @@
         input.placeholder = 'B.X · B, C · (K, [K] L) · [B, C] D';
         field.append(input);
         const clear = tool('Clear', 'Clear the filter');
+        clear.hidden = true;
         const note = element('p');
         filter.append(field, clear, note);
         const out = tool('−', 'Zoom out');
