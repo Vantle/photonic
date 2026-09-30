@@ -1,4 +1,7 @@
 use crate::context::Context;
+use crate::embedding::{self, Embedding};
+use crate::exploration::Exploration;
+use crate::extent::Extent;
 use crate::failure::Failure;
 use crate::handle::Handle;
 use crate::pattern::{self, Pattern};
@@ -25,6 +28,7 @@ pub struct Request {
     )]
     pub pattern: String,
     #[serde(default = "limit")]
+    #[schemars(description = "Matches listed; 0 lists none and still counts them.")]
     pub limit: usize,
     #[serde(default)]
     #[schemars(description = "Matches to skip, to page through a long answer.")]
@@ -54,12 +58,33 @@ pub(crate) struct Found {
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 pub struct Answer {
     pub(crate) exploration: String,
+    #[serde(flatten)]
+    pub(crate) extent: Extent,
     pub(crate) pattern: String,
     pub(crate) kind: Kind,
     pub(crate) total: usize,
     pub(crate) found: Vec<Found>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) next: Option<usize>,
+}
+
+fn placed(exploration: &Exploration, index: usize, found: &Embedding) -> Found {
+    Found {
+        handle: Handle::Configuration(index).to_string(),
+        text: render::configuration(exploration, index),
+        occurrence: found
+            .coherence
+            .iter()
+            .flat_map(|entry| &entry.occurrence)
+            .map(|&id| Handle::Occurrence(index, id).to_string())
+            .collect(),
+        frame: found
+            .frame
+            .iter()
+            .map(|&frame| Handle::Frame(index, frame).to_string())
+            .collect(),
+        unsupported: !exploration.configuration[index].supported,
+    }
 }
 
 pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Answer, Failure> {
@@ -70,29 +95,15 @@ pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Ans
             Kind::Configuration,
             (0..exploration.configuration.len())
                 .filter_map(|index| {
-                    let found = pattern::assign(
+                    embedding::assign(
                         body,
                         &exploration.configuration[index],
                         exploration.rule.as_slice(),
-                    )?;
-                    Some(Found {
-                        handle: Handle::Configuration(index).to_string(),
-                        text: render::configuration(&exploration, index),
-                        occurrence: found
-                            .coherence
-                            .iter()
-                            .flat_map(|entry| &entry.occurrence)
-                            .map(|&id| Handle::Occurrence(index, id).to_string())
-                            .collect(),
-                        frame: found
-                            .frame
-                            .iter()
-                            .map(|&frame| Handle::Frame(index, frame).to_string())
-                            .collect(),
-                        unsupported: !exploration.configuration[index].supported,
-                    })
+                    )
+                    .map(|found| found.map(|found| placed(&exploration, index, &found)))
+                    .transpose()
                 })
-                .collect::<Vec<_>>(),
+                .collect::<Result<Vec<_>, _>>()?,
         ),
         Pattern::Rule(definition) => {
             let rule = pattern::rule(
@@ -129,6 +140,7 @@ pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Ans
     let end = request.offset.saturating_add(request.limit).min(total);
     Ok(Answer {
         exploration: exploration.name(),
+        extent: exploration.extent(),
         pattern: request.pattern.clone(),
         kind,
         total,
@@ -137,7 +149,7 @@ pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Ans
             .skip(request.offset)
             .take(request.limit)
             .collect(),
-        next: (end < total).then_some(end),
+        next: (request.limit > 0 && end < total).then_some(end),
     })
 }
 
@@ -148,8 +160,9 @@ impl Answer {
             Kind::Event => "event",
         };
         let mut line = vec![format!(
-            "{} · {} {}",
+            "{} · {} · {} {}",
             self.exploration,
+            self.extent.name(),
             render::count(self.total, noun),
             if self.total == 0 { "match" } else { "matching" }
         )];

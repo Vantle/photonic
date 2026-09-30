@@ -188,7 +188,8 @@ fn format() {
     let output = execute("check", &path, &["--json"]);
     let diagnostic = &serde_json::from_slice::<serde_json::Value>(&output.stdout).unwrap()["answer"]
         ["diagnostic"][0];
-    assert_eq!(diagnostic["code"], "json");
+    assert_eq!(diagnostic["code"], "source");
+    assert_eq!(diagnostic["diagnostic"], "json");
     assert_eq!(
         diagnostic["location"],
         serde_json::json!({"file": path.to_str().unwrap(), "line": 2, "column": 17, "length": 1})
@@ -274,7 +275,7 @@ fn metal() {
     let explored = report(&execute("explore", &path, &plain(&["--json"])));
     let answer = &explored["answer"];
     assert_eq!(answer["engine"], "metal");
-    assert_eq!(answer["complete"], true);
+    assert_eq!(answer["closed"], true);
     assert_eq!(answer["configuration"], 9);
     assert_eq!(answer["event"], 12);
     assert_eq!(answer["endless"], false);
@@ -314,7 +315,7 @@ fn metal() {
     );
     let open = serde_json::from_slice::<serde_json::Value>(&open.stdout).unwrap();
     assert_eq!(open["answer"]["claim"][0]["answer"], "unknown");
-    assert_eq!(open["answer"]["summary"]["complete"], false);
+    assert_eq!(open["answer"]["summary"]["closed"], false);
     let reach = execute("check", &path, &plain(&["--reach", "Done"]));
     assert!(String::from_utf8_lossy(&reach.stderr).contains("answers outcome and end"));
     let step = execute("step", &path, &plain(&[]));
@@ -874,7 +875,10 @@ fn check() {
     assert!(!failed.status.success());
     let broken = fixture.write("broken.wave", "A B");
     let diagnostic = envelope(&execute("check", &broken, &["--json"]));
-    assert_eq!(diagnostic["answer"]["diagnostic"][0]["code"], "syntax");
+    assert_eq!(
+        diagnostic["answer"]["diagnostic"][0]["diagnostic"],
+        "syntax"
+    );
 }
 
 #[test]
@@ -914,7 +918,7 @@ fn spectrum() {
     ));
     assert_eq!(interpreter["answer"]["engine"], "interpreter");
     assert_eq!(compiled["answer"]["engine"], "laser");
-    for field in ["complete", "configuration", "event", "inferred", "depth"] {
+    for field in ["closed", "configuration", "event", "inferred", "depth"] {
         assert_eq!(
             compiled["answer"][field], interpreter["answer"][field],
             "{field}"
@@ -1008,7 +1012,7 @@ fn shape() {
     );
     let grouped = execute("shape", &and, &[or.to_str().unwrap()]);
     assert!(grouped.status.success());
-    assert!(String::from_utf8_lossy(&grouped.stdout).contains("by And → Or (True False)"));
+    assert!(String::from_utf8_lossy(&grouped.stdout).contains("by And → Or, (True False)"));
     let apart = execute(
         "shape",
         &and,
@@ -1312,7 +1316,7 @@ fn flag() {
     let explored = text(&execute("explore", &path, &goal));
     let key = explored.split(" · ").next().unwrap_or_default();
     assert!(
-        text(&compare).starts_with(&format!("compare {key} open")),
+        text(&compare).starts_with(&format!("compare {key} path")),
         "{}",
         text(&compare)
     );

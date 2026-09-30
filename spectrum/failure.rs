@@ -32,6 +32,9 @@ pub struct Failure {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) location: Option<Location>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[schemars(
+        description = "The frontend's name for an error in a program's text, the last part of its diagnostic code, such as syntax."
+    )]
     pub(crate) diagnostic: Option<String>,
 }
 

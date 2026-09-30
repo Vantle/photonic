@@ -39,7 +39,7 @@ pub struct Request {
     #[schemars(description = "Atoms whose names every renaming must keep.")]
     pub fix: Vec<String>,
     #[serde(default = "node")]
-    #[schemars(description = "Search tree nodes the symmetry engine may visit.")]
+    #[schemars(description = "Search tree nodes the symmetry engine may visit, at least 1.")]
     pub node: usize,
 }
 
@@ -89,9 +89,10 @@ pub struct Answer {
 
 fn exhausted(exhausted: Exhausted) -> Failure {
     let message = match exhausted {
-        Exhausted::Node(node) => {
-            format!("the symmetry search stopped after {node} nodes; raise node")
-        }
+        Exhausted::Node(node) => format!(
+            "the symmetry search stopped after {}; raise its node budget (--node, or node)",
+            render::count(node, "node")
+        ),
         Exhausted::Depth(depth) => format!(
             "the symmetry search stopped at depth {depth}, its limit; the program has too many interchangeable parts to canonicalize"
         ),
@@ -237,7 +238,7 @@ fn describe(pair: &[(Atom, Atom)], vocabulary: &Vocabulary) -> String {
     if piece.is_empty() {
         return "identical".to_owned();
     }
-    piece.join(" ")
+    piece.join(", ")
 }
 
 fn source(part: &Part, vocabulary: &Vocabulary) -> String {
@@ -293,6 +294,7 @@ fn form(structure: &Structure, node: usize, vocabulary: &Vocabulary) -> Result<F
         pattern: result
             .pattern
             .iter()
+            .filter(|entry| !entry.varying().is_empty())
             .map(|entry| pattern(entry, &statement, vocabulary))
             .collect(),
     })
@@ -301,6 +303,12 @@ fn form(structure: &Structure, node: usize, vocabulary: &Vocabulary) -> Result<F
 pub(crate) fn answer(request: &Request, context: &Context<'_>) -> Result<Answer, Failure> {
     if request.program.is_empty() {
         return Err(Failure::new(Code::Request, "give at least one program"));
+    }
+    if request.node == 0 {
+        return Err(Failure::new(
+            Code::Request,
+            "the symmetry search visits at least one node; give a positive node budget (--node, or node)",
+        ));
     }
     let target = request
         .target
@@ -402,13 +410,15 @@ impl Answer {
                 render::count(form.rule, "rule"),
                 form.size
             ));
-            line.push(
-                form.atom
-                    .iter()
-                    .map(|entry| format!("{} {}", entry.letter, entry.name))
-                    .collect::<Vec<_>>()
-                    .join(" · "),
-            );
+            if !form.atom.is_empty() {
+                line.push(
+                    form.atom
+                        .iter()
+                        .map(|entry| format!("{} {}", entry.letter, entry.name))
+                        .collect::<Vec<_>>()
+                        .join(" · "),
+                );
+            }
             for block in &form.block {
                 line.push(format!("block {}", block.join(".")));
             }
@@ -437,21 +447,20 @@ impl Answer {
                     occurrence.len()
                 ));
                 for copy in occurrence {
-                    let label = if copy.atom.is_empty() {
-                        "identical".to_owned()
-                    } else {
-                        copy.atom.join(" ")
-                    };
-                    line.push(format!("  {label}"));
+                    line.push(format!("  {}", copy.atom.join(" ")));
                     for statement in &copy.statement {
                         line.push(format!("    {statement}"));
                     }
                 }
             }
-            line.push(form.text.trim_end().to_owned());
+            let text = form.text.trim_end();
+            if !text.is_empty() {
+                line.push(text.to_owned());
+            }
             if let Some(target) = &form.target {
                 line.push("target".to_owned());
-                line.push(target.trim_end().to_owned());
+                let target = target.trim_end();
+                line.push(if target.is_empty() { "nothing" } else { target }.to_owned());
             }
             return line.join("\n");
         }

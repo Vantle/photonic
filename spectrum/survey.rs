@@ -76,10 +76,10 @@ fn explore(net: &mut Net, budget: &Budget) -> Result<net::Exploration, Failure> 
 
 impl Survey {
     pub(crate) fn new(plan: Plan) -> Result<Self, Failure> {
-        let program = plan.canonical.program;
+        let program = plan.identity.program;
         let mut net = Net::new(&program).map_err(unsupported)?;
-        let explored = explore(&mut net, &plan.budget)?;
-        let naming = plan.canonical.naming;
+        let explored = explore(&mut net, &plan.identity.budget)?;
+        let naming = plan.identity.naming;
         let rule = net
             .definition()
             .iter()
@@ -94,8 +94,8 @@ impl Survey {
             .collect();
         Ok(Self {
             key: plan.key,
-            order: plan.canonical.order,
-            shape: plan.canonical.shape,
+            order: plan.order,
+            shape: plan.shape,
             closed: explored.closed,
             configuration: explored.configuration,
             event: explored.event,

@@ -7,7 +7,7 @@ use translation::vocabulary::{Vocabulary, letter};
 
 const BUDGET: usize = 100_000;
 
-#[derive(Clone, Debug, Default, Hash)]
+#[derive(Clone, Debug, Default, Eq, Hash, PartialEq)]
 pub struct Naming {
     name: BTreeMap<String, String>,
     atom: BTreeMap<String, String>,

@@ -2,6 +2,7 @@ use crate::configuration::Opener;
 use crate::context::Context;
 use crate::exploration::Exploration;
 use crate::explored::Explored;
+use crate::extent::{Extent, Kind};
 use crate::failure::Failure;
 use crate::handle::Handle;
 use crate::recording::{Engine, Mode, Order, Recording};
@@ -57,13 +58,14 @@ pub(crate) struct Activity {
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 pub(crate) struct Summary {
     pub(crate) exploration: String,
-    pub(crate) mode: Mode,
+    #[serde(flatten)]
+    pub(crate) extent: Extent,
     pub(crate) engine: Engine,
     pub(crate) order: Order,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) shape: Option<String>,
-    pub(crate) complete: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[schemars(description = "On a direct path, whether it reached its goal.")]
     pub(crate) reached: Option<bool>,
     #[schemars(
         description = "Work steps the engine took; metal counts a step for each match its grounding read."
@@ -98,11 +100,10 @@ pub(crate) fn brief(explored: &Explored) -> Summary {
     match explored {
         Explored::Exploration(exploration) => Summary {
             exploration: exploration.name(),
-            mode: exploration.mode,
+            extent: exploration.extent(),
             engine: exploration.engine,
             order: exploration.order,
             shape: exploration.shape.map(|shape| format!("{shape:016x}")),
-            complete: exploration.closed,
             reached: (exploration.mode == Mode::Path).then_some(exploration.reached),
             work: exploration.work,
             configuration: exploration.configuration.len(),
@@ -115,11 +116,13 @@ pub(crate) fn brief(explored: &Explored) -> Summary {
         },
         Explored::Survey(survey) => Summary {
             exploration: format!("x{}", survey.key),
-            mode: Mode::Plain,
+            extent: Extent {
+                mode: Mode::Plain,
+                closed: survey.closed,
+            },
             engine: Engine::Metal,
             order: survey.order,
             shape: survey.shape.map(|shape| format!("{shape:016x}")),
-            complete: survey.closed,
             reached: None,
             work: survey.work,
             configuration: survey.configuration,
@@ -145,7 +148,7 @@ fn activity(exploration: &Exploration) -> Vec<Activity> {
         .enumerate()
         .map(|(index, event)| Activity {
             handle: Handle::Rule(index).to_string(),
-            text: render::brief(exploration, index),
+            text: exploration.rule[index].text.clone(),
             fired: event.len(),
             inferred: event
                 .iter()
@@ -200,14 +203,14 @@ pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Ans
 }
 
 pub(crate) fn state(summary: &Summary) -> String {
-    let status = match (summary.mode, summary.complete, summary.reached) {
+    let status = match (summary.extent.mode, summary.extent.closed, summary.reached) {
         (Mode::Path, _, Some(true)) => "path reached its goal",
         (Mode::Path, _, _) => "path stopped",
         (Mode::Exhaustive | Mode::Plain, true, _) => "closed",
         (Mode::Exhaustive | Mode::Plain, false, _) => "open: a budget stopped it",
     };
     let mut part = vec![summary.exploration.clone(), status.to_owned()];
-    match (summary.mode, summary.engine) {
+    match (summary.extent.mode, summary.engine) {
         (Mode::Plain, Engine::Metal) => part.extend(["plain".to_owned(), "metal".to_owned()]),
         (Mode::Plain, _) => part.push("plain".to_owned()),
         (Mode::Exhaustive, Engine::Interpreter) => part.push("interpreter".to_owned()),
@@ -233,14 +236,21 @@ pub(crate) fn state(summary: &Summary) -> String {
 impl Answer {
     pub(crate) fn text(&self) -> String {
         let mut line = vec![state(&self.summary)];
-        if self.end.is_empty() {
-            line.push("end    none".to_owned());
-        }
-        let heading = match (self.summary.mode, self.summary.complete) {
-            (Mode::Exhaustive | Mode::Plain, true) => "end",
-            (Mode::Exhaustive | Mode::Plain, false) => "leaf",
-            (Mode::Path, _) => "stop",
+        let extent = self.summary.extent;
+        let heading = match extent.kind() {
+            Kind::Closed => "end",
+            Kind::Open => "leaf",
+            Kind::Path => "stop",
         };
+        if self.end.is_empty() {
+            line.push(match self.more {
+                0 => format!("{heading:<6} none"),
+                more => format!(
+                    "{heading:<6} {} not listed",
+                    render::count(more, "configuration")
+                ),
+            });
+        }
         for (position, end) in self.end.iter().enumerate() {
             let label = if position == 0 { heading } else { "" };
             line.push(match &end.handle {
@@ -248,7 +258,7 @@ impl Answer {
                 None => format!("{label:<6} {}", end.text),
             });
         }
-        if self.more > 0 {
+        if self.more > 0 && !self.end.is_empty() {
             line.push(format!("       and {} more", self.more));
         }
         let width = self
@@ -261,7 +271,7 @@ impl Answer {
         for (position, rule) in self.rule.iter().enumerate() {
             let label = if position == 0 { "rule" } else { "" };
             let fired = match (rule.fired, rule.inferred) {
-                (0, _) => "never".to_owned(),
+                (0, _) => extent.never().to_owned(),
                 (fired, 0) => fired.to_string(),
                 (fired, inferred) => format!("{fired}, {inferred} inferred"),
             };

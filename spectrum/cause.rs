@@ -1,5 +1,6 @@
 use crate::context::Context;
 use crate::exploration::Exploration;
+use crate::extent::Extent;
 use crate::failure::{Code, Failure};
 use crate::handle::Handle;
 use crate::inspect::{self, Move};
@@ -72,6 +73,8 @@ pub(crate) enum Reason {
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 pub struct Answer {
     pub(crate) exploration: String,
+    #[serde(flatten)]
+    pub(crate) extent: Extent,
     pub(crate) handle: String,
     #[serde(flatten)]
     pub(crate) reason: Reason,
@@ -166,7 +169,7 @@ fn step(exploration: &Exploration, line: &lineage::Line, atom: &str) -> Step {
         rule: Some(format!(
             "{} {}",
             Handle::Rule(entry.rule),
-            render::brief(exploration, entry.rule)
+            exploration.rule[entry.rule].text
         )),
         role: line.role,
         source: source.into_iter().map(|item| item.handle).collect(),
@@ -213,6 +216,7 @@ pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Ans
     };
     Ok(Answer {
         exploration: exploration.name(),
+        extent: exploration.extent(),
         handle: handle.to_string(),
         reason,
     })
@@ -242,6 +246,7 @@ impl Answer {
                 line.push(
                     inspect::Answer {
                         exploration: self.exploration.clone(),
+                        extent: self.extent,
                         handle: self.handle.clone(),
                         view: event.clone(),
                     }

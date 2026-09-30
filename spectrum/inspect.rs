@@ -2,6 +2,7 @@ use crate::cause::Role;
 use crate::configuration::Opener;
 use crate::context::Context;
 use crate::exploration::{self, Exploration};
+use crate::extent::Extent;
 use crate::failure::Failure;
 use crate::handle::Handle;
 use crate::lineage;
@@ -52,6 +53,9 @@ pub(crate) struct Part {
 pub(crate) struct Scope {
     pub(crate) handle: String,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[schemars(description = "The frame this scope sits in; the root sits in none.")]
+    pub(crate) parent: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     #[schemars(
         with = "Option<String>",
         description = "The rule that opened this scope, or program when the program opens it at the start."
@@ -75,6 +79,8 @@ pub(crate) enum View {
         fired: usize,
         inferred: usize,
         event: Vec<Move>,
+        #[schemars(description = "Events of this rule beyond those listed.")]
+        more: usize,
     },
     Configuration {
         text: String,
@@ -120,6 +126,8 @@ pub(crate) enum View {
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 pub struct Answer {
     pub(crate) exploration: String,
+    #[serde(flatten)]
+    pub(crate) extent: Extent,
     pub(crate) handle: String,
     #[serde(flatten)]
     pub(crate) view: View,
@@ -128,9 +136,6 @@ pub struct Answer {
 const EVENT: usize = 8;
 
 fn frame(configuration: usize, index: usize) -> String {
-    if index == 0 {
-        return "root".to_owned();
-    }
     Handle::Frame(configuration, index).to_string()
 }
 
@@ -155,6 +160,7 @@ fn scope(exploration: &Exploration, configuration: usize, index: usize) -> Scope
     };
     Scope {
         handle: frame(configuration, index),
+        parent: entry.parent.map(|parent| frame(configuration, parent)),
         opener: entry.opener,
         rule: entry.rule.iter().map(item).collect(),
         held: entry.held.iter().map(item).collect(),
@@ -216,6 +222,9 @@ fn view(exploration: &Exploration, handle: Handle) -> View {
     match handle {
         Handle::Rule(index) => {
             let fired = exploration.firing(index).collect::<Vec<_>>();
+            let event = (0..exploration.event.len())
+                .filter(|&event| exploration.event[event].rule == index)
+                .collect::<Vec<_>>();
             View::Rule {
                 text: exploration.rule[index].text.clone(),
                 scope: exploration.rule[index].scope,
@@ -224,8 +233,9 @@ fn view(exploration: &Exploration, handle: Handle) -> View {
                     .iter()
                     .filter(|&&event| exploration.inferred(event))
                     .count(),
-                event: (0..exploration.event.len())
-                    .filter(|&event| exploration.event[event].rule == index)
+                more: event.len().saturating_sub(EVENT),
+                event: event
+                    .into_iter()
                     .take(EVENT)
                     .map(|event| render::movement(exploration, event, true))
                     .collect(),
@@ -236,7 +246,7 @@ fn view(exploration: &Exploration, handle: Handle) -> View {
             View::Configuration {
                 text: render::configuration(exploration, index),
                 supported: entry.supported,
-                end: exploration.settled() && exploration.stuck(index),
+                end: exploration.closed && exploration.stuck(index),
                 depth: exploration.depth[index],
                 coherence: (0..entry.coherence.len())
                     .map(|world| part(exploration, index, world))
@@ -309,6 +319,7 @@ pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Ans
     let handle = request.handle.parse::<Handle>()?.check(&exploration)?;
     Ok(Answer {
         exploration: exploration.name(),
+        extent: exploration.extent(),
         handle: handle.to_string(),
         view: view(&exploration, handle),
     })
@@ -319,6 +330,17 @@ fn opened(opener: Opener) -> String {
         Opener::Program => "opened by the program".to_owned(),
         Opener::Rule(rule) => format!("opened by {}", Handle::Rule(rule)),
     }
+}
+
+// Where a scope sits and what opened it, such as in s0.f1 · opened by r2.
+fn place(scope: &Scope) -> String {
+    scope
+        .parent
+        .iter()
+        .map(|parent| format!("in {parent}"))
+        .chain(scope.opener.map(opened))
+        .collect::<Vec<_>>()
+        .join(" · ")
 }
 
 fn list(item: &[Item]) -> String {
@@ -341,6 +363,7 @@ impl Answer {
                 fired,
                 inferred,
                 event,
+                more,
             } => {
                 let place = match scope {
                     Some(Opener::Rule(rule)) => {
@@ -349,18 +372,20 @@ impl Answer {
                     Some(Opener::Program) => " · local to a scope the program opens".to_owned(),
                     None => String::new(),
                 };
-                let count = match (*fired, *inferred) {
-                    (0, _) => "never fires".to_owned(),
-                    (fired, 0) => format!("fires {}", render::count(fired, "time")),
-                    (fired, inferred) => {
-                        format!(
-                            "fires {}, {inferred} inferred",
-                            render::count(fired, "time")
-                        )
-                    }
+                let firing = self.extent.firing(*fired);
+                let count = match *inferred {
+                    0 => firing,
+                    inferred => format!("{firing}, {inferred} inferred"),
                 };
                 line.push(format!("{} {text}{place} · {count}", self.handle));
                 render::table("event", event, &mut line);
+                if *more > 0 {
+                    line.push(format!(
+                        "{}and {}",
+                        render::row("event", event.is_empty()),
+                        render::count(*more, "more event")
+                    ));
+                }
             }
             View::Configuration {
                 text,
@@ -388,11 +413,11 @@ impl Answer {
                     ));
                 }
                 for (position, scope) in frame.iter().enumerate().skip(1) {
-                    let opener = scope.opener.map(opened).unwrap_or_default();
                     line.push(format!(
-                        "{}{:<8} {opener}   rules {}   holds {}",
+                        "{}{:<8} {}   rules {}   holds {}",
                         render::row("scope", position == 1),
                         scope.handle,
+                        place(scope),
                         list(&scope.rule),
                         list(&scope.held)
                     ));
@@ -404,6 +429,11 @@ impl Answer {
                         render::row("next", true)
                     ));
                 }
+                line.extend(
+                    self.extent
+                        .partial()
+                        .map(|note| format!("{}{note}", render::row("next", next.is_empty()))),
+                );
                 render::table("previous", previous, &mut line);
             }
             View::Coherence {
@@ -436,11 +466,11 @@ impl Answer {
                 scope,
                 coherence,
             } => {
-                let opener = scope
-                    .opener
-                    .map(|opener| format!(" · {}", opened(opener)))
-                    .unwrap_or_default();
-                line.push(format!("{} in {configuration}{opener}", self.handle));
+                let place = match &scope.parent {
+                    Some(_) => place(scope),
+                    None => format!("the root of {configuration}"),
+                };
+                line.push(format!("{} {place}", self.handle));
                 line.push(format!(
                     "{}{}",
                     render::row("rules", true),

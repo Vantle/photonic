@@ -3,6 +3,7 @@ use crate::request;
 use frontend::source::Definition;
 use serde::{Deserialize, Serialize};
 use spectrum::configuration::{Coherence, Configuration, Frame, Occurrence, Value};
+use spectrum::embedding;
 use spectrum::pattern::{self, Body, Item, Pattern};
 
 // The book sends back an execution the engine produced, so a selection may be as large as the
@@ -185,7 +186,13 @@ pub fn select(input: &str) -> Result<Selection, Failure> {
     let mut lane = Vec::new();
     for entry in &query.execution.state {
         let view = configuration(entry);
-        if let Some(found) = pattern::assign(&body, &view, canon.as_slice()) {
+        let placed = embedding::assign(&body, &view, canon.as_slice()).map_err(|_| {
+            Failure::new(
+                Code::Pattern,
+                "Write fewer scopes, or tell them apart: this pattern's scopes can be placed in too many ways to search.",
+            )
+        })?;
+        if let Some(found) = placed {
             state.push(Found {
                 id: entry.id,
                 world: found

@@ -14,7 +14,7 @@ pub(crate) enum Explored {
 
 impl Explored {
     pub(crate) fn new(plan: Plan) -> Result<Self, Failure> {
-        if plan.engine == Engine::Metal {
+        if plan.identity.engine == Engine::Metal {
             return Ok(Self::Survey(Arc::new(Survey::new(plan)?)));
         }
         Ok(Self::Exploration(Arc::new(Exploration::new(plan))))
