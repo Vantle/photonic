@@ -68,6 +68,10 @@ fn report(output: &Output) -> serde_json::Value {
     serde_json::from_slice(&output.stdout).expect("JSON execution report")
 }
 
+fn text(output: &Output) -> String {
+    String::from_utf8_lossy(&output.stdout).into_owned()
+}
+
 #[test]
 fn execution() {
     let fixture = Fixture::new();
@@ -991,6 +995,87 @@ fn result(response: &serde_json::Value) -> (bool, String) {
             .unwrap_or_default()
             .to_owned(),
     )
+}
+
+// A link inside the server's directory to a file outside it, where the platform makes links without
+// privileges.
+#[cfg(unix)]
+fn escape(root: &Path, secret: &Path) -> Option<String> {
+    std::os::unix::fs::symlink(secret, root.join("link.wave")).unwrap();
+    Some("link.wave".to_owned())
+}
+
+#[cfg(not(unix))]
+fn escape(_: &Path, _: &Path) -> Option<String> {
+    None
+}
+
+// The protocol server reads only files inside the directory it starts in, following links; the
+// command line reads any path.
+#[test]
+fn confinement() {
+    let fixture = Fixture::new();
+    let root = fixture.path.join("root");
+    std::fs::create_dir(&root).unwrap();
+    let secret = fixture.write("secret.wave", "Top.Secret");
+    std::fs::write(root.join("light.wave"), LIGHT).unwrap();
+    let inside = root.join("light.wave");
+    let message = [
+        initialize(),
+        call(
+            1,
+            "explore",
+            serde_json::json!({"program": {"file": ["light.wave"]}}),
+        ),
+        call(
+            2,
+            "explore",
+            serde_json::json!({"program": {"file": [inside.to_str().unwrap()]}}),
+        ),
+        call(
+            3,
+            "explore",
+            serde_json::json!({"program": {"file": ["../secret.wave"]}}),
+        ),
+        call(
+            4,
+            "explore",
+            serde_json::json!({"program": {"file": [secret.to_str().unwrap()]}}),
+        ),
+        call(
+            5,
+            "explore",
+            serde_json::json!({"program": {"file": ["light.wave"], "library": ["../secret.wave"]}}),
+        ),
+    ]
+    .into_iter()
+    .chain(escape(&root, &secret).map(|link| {
+        call(
+            6,
+            "explore",
+            serde_json::json!({"program": {"file": [link]}}),
+        )
+    }))
+    .collect::<Vec<_>>();
+    let answer = session(&root, &message);
+    for response in &answer[1..3] {
+        let (failed, text) = result(response);
+        assert!(!failed, "{text}");
+        assert!(text.contains(" · closed · 4 configurations"), "{text}");
+    }
+    for response in &answer[3..] {
+        let (failed, text) = result(response);
+        assert!(failed, "{text}");
+        assert!(text.starts_with("error[file]: "), "{text}");
+        assert!(
+            text.contains("the server reads no file outside it"),
+            "{text}"
+        );
+        assert!(!text.contains("Secret"), "{text}");
+    }
+    let output = execute("explore", &secret, &[]);
+    assert!(output.status.success());
+    assert!(text(&output).contains("Top.Secret") || text(&output).contains("Secret.Top"));
 }
 
 // A tool that fails says its failure's code as the command line does, and an argument of the wrong

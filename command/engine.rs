@@ -74,7 +74,7 @@ impl Listing<'_> {
 }
 
 fn load(file: &[PathBuf], source: &argument::Source) -> Result<Program, Failure> {
-    source.subject(file).assemble(&Disk)
+    source.subject(file).assemble(&Disk::default())
 }
 
 // The engine a run explores with: laser unless asked otherwise; the interpreter explores with

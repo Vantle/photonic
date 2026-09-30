@@ -86,9 +86,10 @@ fn report(verb: &str, result: &Result<Answer, Failure>, json: bool) -> miette::R
 }
 
 fn answer(request: &Request, json: bool) -> miette::Result<ExitCode> {
+    let disk = Disk::default();
     let mut store = Store::default();
     let mut context = Context {
-        reader: &Disk,
+        reader: &disk,
         store: &mut store,
     };
     report(request.verb(), &request.answer(&mut context), json)

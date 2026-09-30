@@ -517,7 +517,7 @@ bazel run -c opt //command:photonic -- mcp</pre>
 </tbody>
 </table>
 </div>
-<p>A claim holds, fails or is unknown. Unknown means a budget stopped the search or a direct path followed one run of many; it is never evidence of absence. <code>--json</code> prints each answer as data. <code>mcp</code> serves the same questions to agents over the Model Context Protocol, and the repository's <code>.mcp.json</code> starts it. <a href="document/spectrum.md">Spectrum</a> is the full contract.</p>
+<p>A claim holds, fails or is unknown. Unknown means a budget stopped the search or a direct path followed one run of many; it is never evidence of absence. <code>--json</code> prints each answer as data. <code>mcp</code> serves the same questions to agents over the Model Context Protocol, reading only files inside the directory it starts in, and the repository's <code>.mcp.json</code> starts it. <a href="document/spectrum.md">Spectrum</a> is the full contract.</p>
 <h3>This book</h3>
 <pre class="listing">bazel run -c opt //book:serve
 bazel run -c opt //book:record

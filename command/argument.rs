@@ -52,7 +52,7 @@ pub enum Operation {
     )]
     Shape(Shape),
     #[command(
-        about = "Serve Spectrum to agents over the Model Context Protocol on standard input and output"
+        about = "Serve Spectrum to agents over the Model Context Protocol on standard input and output, reading only files inside the directory it starts in"
     )]
     Mcp,
 }

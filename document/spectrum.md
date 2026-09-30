@@ -5,7 +5,7 @@ Spectrum answers questions about a Photonic program and every configuration it r
 | Package | Responsibility |
 | --- | --- |
 | [`//spectrum`](../spectrum/) | Requests and answers, explorations, handles, patterns, claims, lineage and the store. It reads the interpreter and Laser through read-only accessors and orders programs with the [symmetry](symmetry.md) engine. A `Reader` supplies file contents, so the library touches no file system. |
-| [`//command:photonic`](../command/) | One command for every tool: the engine's `lower`, `run` and `prism`, the verbs with their exit codes, and `mcp`, the protocol server. Every path is read from where `bazel run` started. |
+| [`//command:photonic`](../command/) | One command for every tool: the engine's `lower`, `run` and `prism`, the verbs with their exit codes, and `mcp`, the protocol server. Every path is read from where `bazel run` started, and the protocol server reads only files inside that directory. |
 
 ## A session
 
@@ -216,7 +216,7 @@ A failure carries a `code`, a `message` and, when it points into text, a `locati
 | Code | Meaning |
 | --- | --- |
 | `request` | The request is malformed: not an object, an unknown field, no program, a program and a key together, a key with a mode, engine, budget or goal, a goal outside path mode, `laser` in path mode, `interpreter` in plain mode, or `metal` outside it. |
-| `file` | A file cannot be read. |
+| `file` | A file cannot be read, or the protocol server was asked for one outside the directory it started in. |
 | `source` | A program does not parse or lower; `check` reports it as a diagnostic instead. |
 | `library` | A library does not parse or holds more than declarations; `check` reports it as a diagnostic instead. |
 | `target` | A goal or an exact target does not parse. |
@@ -235,6 +235,8 @@ The command prints answers as text, or with `--json` as the envelope, and prints
 
 Each tool's input schema is JSON Schema 2020-12 generated from its request type, with every subschema inlined and no properties beyond those listed. From 2025-06-18 on, each tool also declares an output schema, generated for serialization so that fields an answer leaves out are optional, and a result carries the answer as `structuredContent` beside its text. `//spectrum:test` checks every kind of answer against its declared schema. A question that fails returns a result with `isError` and the failure as the command prints it, `error[code]: message`, so an agent can read it and ask again; protocol errors are reserved for the protocol itself. Before reading a request, the server checks its arguments' types against the tool's input schema and names the first that does not fit by its path, such as `program.file takes an array, not a string`.
 
+The server reads only files inside the directory it starts in, which is where `bazel run` started: it resolves each program and library path, following every link, and refuses one that leads outside with a `file` failure that says so, so a client cannot read the rest of the machine through it. The command line reads any path it is given.
+
 | Code | Error |
 | --- | --- |
 | -32700 | A line is not JSON. |
@@ -248,7 +250,7 @@ Two resources describe the language to agents: `photonic://primer`, the grammar,
 
 ## Verification
 
-`//spectrum:test` checks exploration counts and handles on the conjunction and its edits; that every scope is credited to the rule that opens it; every claim kind with its evidence, including an `inevitable` counterexample that avoids every match and an `end` counterexample around a cycle, and every kind with an exact target; occurrence lineage through remainder, witness, held and produced occurrences; that reordering keeps keys and handles while renaming keeps handles and changes the key; every question's answer through the JSON protocol, checked against its declared output schema; that unknown fields, keys with settings and goals outside path mode are refused; `miss` assignments that a greedy choice gets wrong, exact targets with and without their rules, and many parts placed at once; `compare` counts beyond its limit and on open explorations; `shape`, with the pins `fix` keeps and the webbook's recorded pattern; that both engines close with the same configurations, events, handles, paths, claim answers and exact verdicts, with lineage traced on Laser's explorations, and that a renaming which reorders atoms alphabetically keeps every handle; that plain mode answers for every schedule of plain events where an inferred event strands a run; and that metal agrees with Laser's recording of the same plain schedules on counts, ends, cycles and every `end` and `outcome` claim, and refuses what it cannot answer. `//command:test` runs the commands and their exit codes, and sessions of the protocol server in the legacy and stateless revisions, including discovery, batches, each protocol error, failures with their codes and arguments of the wrong type.
+`//spectrum:test` checks exploration counts and handles on the conjunction and its edits; that every scope is credited to the rule that opens it; every claim kind with its evidence, including an `inevitable` counterexample that avoids every match and an `end` counterexample around a cycle, and every kind with an exact target; occurrence lineage through remainder, witness, held and produced occurrences; that reordering keeps keys and handles while renaming keeps handles and changes the key; every question's answer through the JSON protocol, checked against its declared output schema; that unknown fields, keys with settings and goals outside path mode are refused; `miss` assignments that a greedy choice gets wrong, exact targets with and without their rules, and many parts placed at once; `compare` counts beyond its limit and on open explorations; `shape`, with the pins `fix` keeps and the webbook's recorded pattern; that both engines close with the same configurations, events, handles, paths, claim answers and exact verdicts, with lineage traced on Laser's explorations, and that a renaming which reorders atoms alphabetically keeps every handle; that plain mode answers for every schedule of plain events where an inferred event strands a run; and that metal agrees with Laser's recording of the same plain schedules on counts, ends, cycles and every `end` and `outcome` claim, and refuses what it cannot answer. `//command:test` runs the commands and their exit codes, and sessions of the protocol server in the legacy and stateless revisions, including discovery, batches, each protocol error, failures with their codes, arguments of the wrong type and paths that lead outside its directory.
 
 ```sh
 bazel test -c opt //spectrum:test //command:test
