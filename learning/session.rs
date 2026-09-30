@@ -3,13 +3,13 @@ use crate::demonstration::Lesson;
 use crate::encoding::Shape;
 use crate::home::{self, Home};
 use crate::judge::Judge;
+use crate::placement::Placement;
 use crate::play::{self, Shared, Statistic, Tally, Worker};
 use crate::problem::Problem;
 use crate::renewal::renew;
 use crate::replay::Replay;
 use crate::server::{Server, serve};
 use crate::train::{self, Device, Progress, Trainer};
-use gpu::engine::Engine;
 use network::checkpoint;
 use network::grow::{self, grow};
 use network::model::Model;
@@ -20,13 +20,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, RwLock};
 use std::time::{Duration, Instant};
 use thiserror::Error;
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum Placement {
-    Automatic,
-    Graphics,
-    Processor,
-}
 
 #[derive(Clone, Copy, Debug)]
 pub struct Setting {
@@ -168,19 +161,11 @@ fn prepare(home: &Home, setting: &Setting) -> Result<(Model, Optimizer, Origin),
     }
 }
 
-fn engine(model: &Model, placement: Placement) -> Result<Option<Engine>, Failure> {
-    match placement {
-        Placement::Processor => Ok(None),
-        Placement::Graphics => Ok(Some(Engine::new(model)?)),
-        Placement::Automatic => Ok(Engine::new(model).ok()),
-    }
-}
-
 fn device(model: &Model, setting: &Setting) -> Result<Option<Device>, Failure> {
     if setting.frozen {
         return Ok(None);
     }
-    if let Some(engine) = engine(model, setting.placement)? {
+    if let Some(engine) = setting.placement.engine(model)? {
         return Ok(Some(Device::Graphics(Box::new(engine))));
     }
     let pool = rayon::ThreadPoolBuilder::new()
@@ -267,7 +252,7 @@ pub fn run(
         return Err(Failure::Empty);
     }
     let (model, optimizer, origin) = prepare(home, setting)?;
-    let engine = engine(&model, setting.placement)?;
+    let engine = setting.placement.engine(&model)?;
     let device = device(&model, setting)?;
     let (reserved, training) = match &device {
         None => (0, None),
@@ -309,7 +294,8 @@ pub fn run(
         stop: AtomicBool::new(false),
         discovery: Mutex::new(Vec::new()),
     });
-    let mut lesson = setting.teach.map(|_| {
+    let teach = setting.teach.filter(|_| !setting.frozen);
+    let mut lesson = teach.map(|_| {
         let archive = shared
             .archive
             .lock()
@@ -406,7 +392,7 @@ pub fn run(
             if let Some(error) = failed {
                 break Err(Failure::from(error));
             }
-            if let (Some(lesson), Some(interval)) = (lesson.as_mut(), setting.teach)
+            if let (Some(lesson), Some(interval)) = (lesson.as_mut(), teach)
                 && taught.is_none_or(|moment| moment.elapsed() >= interval)
             {
                 taught = Some(Instant::now());

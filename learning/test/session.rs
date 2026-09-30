@@ -18,7 +18,7 @@ fn session() {
     let (problem, failure) = prepare(&pool, &objective);
     assert!(failure.is_empty());
     let setting = Setting {
-        placement: crate::session::Placement::Automatic,
+        placement: crate::placement::Placement::Automatic,
         worker: Some(2),
         trainer: 1,
         frozen: false,
@@ -53,12 +53,20 @@ fn session() {
         },
     };
     let mut report = 0;
-    let summary = run(&home, problem.clone(), vec![0], &setting, |event| {
-        if let Event::Report(_) = event {
-            report += 1;
-        }
-    })
+    let mut taught = false;
+    let summary = run(
+        &home,
+        problem.clone(),
+        vec![0],
+        &setting,
+        |event| match event {
+            Event::Report(_) => report += 1,
+            Event::Lesson { .. } => taught = true,
+            _ => {}
+        },
+    )
     .unwrap();
+    assert!(taught);
     assert!(report >= 2);
     assert!(summary.step > 0);
     assert!(home.file(home::CHECKPOINT).exists());
@@ -73,14 +81,13 @@ fn session() {
             frozen: true,
             ..setting
         },
-        |event| {
-            if let Event::Start {
+        |event| match event {
+            Event::Start {
                 origin: Origin::Restored,
                 ..
-            } = event
-            {
-                restored = true;
-            }
+            } => restored = true,
+            Event::Lesson { .. } => panic!("a frozen session builds no lessons"),
+            _ => {}
         },
     )
     .unwrap();

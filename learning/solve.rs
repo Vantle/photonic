@@ -6,11 +6,26 @@ use learning::edit::Bound;
 use learning::home;
 use learning::import;
 use learning::objective;
+use learning::placement::Placement;
 use learning::pool;
 use learning::solution::Budget;
 use learning::task::{self, Goal, Task};
 use miette::{IntoDiagnostic, miette};
 use std::time::{Duration, Instant};
+
+// A goal copy is named after the task it copies, so solving a copy under another goal names the
+// new copy after the same task instead of growing the name.
+fn suffix(goal: Goal) -> String {
+    format!(".p{}.s{}", number(goal.processor()), number(goal.size()))
+}
+
+fn number(value: f64) -> String {
+    let plain = value.to_string();
+    if plain.len() <= 12 {
+        return plain;
+    }
+    format!("{value:e}")
+}
 
 fn aimed(argument: &Solve) -> bool {
     argument.processor.is_some() || argument.size.is_some()
@@ -69,15 +84,22 @@ pub fn run(argument: &Solve) -> miette::Result<()> {
                 "name the tasks to solve under --processor or --size with --task"
             ));
         }
-        let mut variant = Vec::new();
+        let mut variant: Vec<Task> = Vec::new();
         for name in &chosen {
             let task = task::find(&pool, name).into_diagnostic()?;
             let goal = goal(argument, task.goal.unwrap_or_default()).into_diagnostic()?;
-            variant.push(Task {
-                name: format!("{name}.p{}.s{}", goal.processor(), goal.size()),
+            let base = task
+                .goal
+                .and_then(|own| name.strip_suffix(&suffix(own)))
+                .unwrap_or(name);
+            let copy = Task {
+                name: format!("{base}{}", suffix(goal)),
                 goal: Some(goal),
                 ..task.clone()
-            });
+            };
+            if variant.iter().all(|known| known.name != copy.name) {
+                variant.push(copy);
+            }
         }
         chosen = variant.iter().map(|task| task.name.clone()).collect();
         pool.retain(|task| !chosen.contains(&task.name));
@@ -100,6 +122,7 @@ pub fn run(argument: &Solve) -> miette::Result<()> {
                 time: argument.enumerate.map(Duration::from_secs),
             },
             guide: Duration::from_secs(argument.guide),
+            placement: Placement::Automatic,
             blind: argument.blind,
             deadline: None,
         },

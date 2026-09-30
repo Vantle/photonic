@@ -23,6 +23,7 @@ filegroup(
         "judge.rs",
         "learning.rs",
         "objective.rs",
+        "placement.rs",
         "play.rs",
         "pool.rs",
         "problem.rs",

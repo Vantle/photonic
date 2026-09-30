@@ -209,6 +209,24 @@ fn copy() {
         "2",
     ]);
     assert!(report.contains("rename.p2.s0.2: optimal cost"), "{report}");
+    let again = succeed(&[
+        "solve",
+        "--home",
+        &home,
+        "--task",
+        "rename.p2.s0.2",
+        "--task",
+        "rename",
+        "--processor",
+        "3",
+    ]);
+    assert!(again.contains("rename.p3.s0.2: optimal cost"), "{again}");
+    assert!(again.contains("found programs for 1 of 1 tasks"), "{again}");
+    let pool = std::fs::read_to_string(fixture.path.join("home").join(POOL)).unwrap();
+    assert_eq!(pool.matches(r#""name":"rename.p3.s0.2""#).count(), 1);
+    assert!(!pool.contains("rename.p2.s0.2.p3"));
+    let message = fail(&["solve", "--home", &home, "--name", "alone"]);
+    assert!(message.contains("--input"), "{message}");
 }
 
 #[test]

@@ -98,6 +98,7 @@ pub fn run(argument: Course) -> miette::Result<()> {
                     ..Budget::default()
                 },
                 guide: Duration::from_secs(argument.guide),
+                placement: setting.placement,
                 blind: true,
                 deadline,
             },
@@ -130,7 +131,8 @@ pub fn run(argument: Course) -> miette::Result<()> {
                 },
             )?;
         }
-        let mut network = Network::load(&home.file(home::CHECKPOINT)).into_diagnostic()?;
+        let mut network =
+            Network::load(&home.file(home::CHECKPOINT), setting.placement).into_diagnostic()?;
         let mastery = (1..=level)
             .map(|grade| {
                 examine(

@@ -29,6 +29,7 @@ fn coverage() {
             },
             budget: Budget::default(),
             guide: Duration::ZERO,
+            placement: crate::placement::Placement::Processor,
             blind: true,
             deadline: None,
         };

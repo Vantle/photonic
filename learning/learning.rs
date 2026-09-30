@@ -17,6 +17,7 @@ pub mod home;
 pub mod import;
 mod judge;
 pub mod objective;
+pub mod placement;
 pub mod play;
 pub mod pool;
 pub mod problem;

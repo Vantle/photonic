@@ -1,6 +1,7 @@
 use crate::edit::{Action, Bound, apply, legal};
 use crate::encoding::{Permutation, Shape, encode};
 use crate::objective::{Evaluation, Setting, TOLERANCE, evaluate};
+use crate::placement::Placement;
 use crate::task::Task;
 use code::program::Program;
 use gpu::engine::Engine;
@@ -27,6 +28,8 @@ pub enum Failure {
     Checkpoint(#[from] checkpoint::Failure),
     #[error("the saved network cannot read the current encoding: {0}")]
     Interface(grow::Failure),
+    #[error(transparent)]
+    Graphics(#[from] gpu::failure::Failure),
 }
 
 pub struct Network {
@@ -35,7 +38,7 @@ pub struct Network {
 }
 
 impl Network {
-    pub fn load(path: &Path) -> Result<Self, Failure> {
+    pub fn load(path: &Path, placement: Placement) -> Result<Self, Failure> {
         let (saved, _) = checkpoint::load(path)?;
         let current = Shape::default().architecture();
         let target = Configuration {
@@ -50,7 +53,7 @@ impl Network {
         } else {
             grow(&saved, target, &mut Generator::new(0)).map_err(Failure::Interface)?
         };
-        let engine = Engine::new(&model).ok();
+        let engine = placement.engine(&model)?;
         Ok(Self { model, engine })
     }
 

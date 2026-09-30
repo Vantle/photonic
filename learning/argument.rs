@@ -408,7 +408,11 @@ pub struct Solve {
         help = "Photonic source holding the expected result of the --input in the same position"
     )]
     pub output: Vec<PathBuf>,
-    #[arg(long, help = "Name of the task that --input and --output define")]
+    #[arg(
+        long,
+        requires = "input",
+        help = "Name of the task that --input and --output define"
+    )]
     pub name: Option<String>,
     #[arg(
         long,

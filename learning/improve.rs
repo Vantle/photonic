@@ -25,6 +25,7 @@ pub fn run(argument: Improve) -> miette::Result<()> {
             ..Budget::default()
         },
         guide: Duration::from_secs(argument.guide),
+        placement: setting.placement,
         blind: true,
         deadline,
     };

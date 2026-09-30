@@ -4,6 +4,7 @@ use crate::export;
 use crate::guide::{self, Effort, Guidance, Network};
 use crate::home::{self, Home};
 use crate::objective::{self, Evaluation, TOLERANCE};
+use crate::placement::Placement;
 use crate::play;
 use crate::pool;
 use crate::problem::{self, Problem};
@@ -31,6 +32,7 @@ pub struct Setting {
     pub bound: Bound,
     pub budget: Budget,
     pub guide: Duration,
+    pub placement: Placement,
     pub blind: bool,
     pub deadline: Option<Instant>,
 }
@@ -129,10 +131,10 @@ fn incumbent(problem: &Problem, archive: &Archive, setting: &objective::Setting)
 
 fn network(
     home: &Home,
-    guide: Duration,
+    setting: &Setting,
     observe: &mut impl FnMut(Event<'_>),
 ) -> Result<Option<Network>, Failure> {
-    if guide.is_zero() {
+    if setting.guide.is_zero() {
         return Ok(None);
     }
     let checkpoint = home.file(home::CHECKPOINT);
@@ -140,7 +142,7 @@ fn network(
         observe(Event::Unguided(home.path()));
         return Ok(None);
     }
-    Ok(Some(Network::load(&checkpoint)?))
+    Ok(Some(Network::load(&checkpoint, setting.placement)?))
 }
 
 fn exhaust(
@@ -342,7 +344,7 @@ pub fn run(
     if problem.is_empty() {
         return Ok(Count::default());
     }
-    let mut network = network(home, setting.guide, &mut observe)?;
+    let mut network = network(home, setting, &mut observe)?;
     let mut archive: Archive = home.load(home::ARCHIVE)?.unwrap_or_default();
     for entry in &problem {
         renew(&mut archive, entry, &setting.objective);
