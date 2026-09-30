@@ -108,11 +108,61 @@ fn delimiter() {
         );
     }
     match parser::parse("[人").unwrap_err() {
-        Failure::Syntax { span, .. } => {
-            assert_eq!(span.offset(), 4);
-            assert_eq!(span.len(), 0);
+        Failure::Syntax { span, message } => {
+            assert_eq!((span.offset(), span.len()), (0, 1));
+            assert_eq!(message, "this [ is never closed");
         }
         other => panic!("{other:?}"),
+    }
+    for (source, offset, message) in [
+        (
+            "Start,\n[Start] (Kettle,\n    [Kettle] Tea,\n\n[Tea] Cup,\n[Cup] Done,\n",
+            15,
+            "this ( is never closed",
+        ),
+        ("(A, (B", 4, "this ( is never closed"),
+        ("[A] (B, [C", 8, "this [ is never closed"),
+        ("(A]", 2, "this ] does not close the ( at 1:1"),
+        ("([)]", 2, "this ) does not close the [ at 1:2"),
+        ("A,\n  [B, (C]", 11, "this ] does not close the ( at 2:7"),
+        ("人, (人]", 9, "this ] does not close the ( at 1:4"),
+        ("A)", 1, "this ) closes nothing that is open"),
+        ("A, [B] ]", 7, "this ] closes nothing that is open"),
+        (
+            "(A.",
+            3,
+            "a dot joins two things; put something on each side",
+        ),
+    ] {
+        assert_eq!(rejected(source), (offset, message.to_owned()), "{source:?}");
+    }
+}
+
+#[test]
+fn masking() {
+    let limit = parser::DEPTH;
+    let deep = format!("{}A{}", "[".repeat(limit + 1), "]".repeat(limit + 1));
+    assert_eq!(
+        rejected(&format!("A B,\n{deep}")),
+        (
+            2,
+            "put a dot between these to join them, or a comma to separate them".to_owned()
+        )
+    );
+    assert_eq!(
+        rejected(&format!("({deep}")),
+        (0, "this ( is never closed".to_owned())
+    );
+    for (source, offset) in [
+        (deep.clone(), limit),
+        (format!("{deep} B C"), limit),
+        ("[".repeat(limit + 1), limit),
+        (format!("A, {}", "(".repeat(limit + 1)), limit + 3),
+    ] {
+        let Err(Failure::Depth { span, .. }) = parser::parse(&source) else {
+            panic!("expected a depth failure for {source}");
+        };
+        assert_eq!(span.offset(), offset, "{source}");
     }
 }
 

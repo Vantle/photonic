@@ -12,6 +12,7 @@ exports_files(
 rust_library(
     name = "frontend",
     srcs = [
+        "advice.rs",
         "atom.rs",
         "character.rs",
         "encoding.rs",

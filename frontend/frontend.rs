@@ -1,5 +1,6 @@
 #![forbid(unsafe_code)]
 
+mod advice;
 pub mod atom;
 pub mod character;
 pub mod encoding;
