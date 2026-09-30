@@ -124,9 +124,10 @@ impl Engine {
     // Explores every schedule of plain events from the net's start in the order one thread searching
     // breadth first would, a window of markings at a time, until no new marking appears; the limits
     // refuse what they refuse, past the configuration limit only known markings are reached, and
-    // the budget stops it before the first marking whose parts it cannot ground. It agrees with the
-    // net's own exploration number for number, and searches the edges for a cycle only when one
-    // leads to a marking found no later than its source.
+    // the budget stops it before the first marking whose parts it cannot ground or whose host join
+    // it cannot take. It agrees with the net's own exploration number for number, and searches the
+    // edges for a cycle only when one leads to a marking found no later than its source. The start
+    // is visited first to enter its parts, and its host join is taken when its window visits it.
     pub fn explore(
         &self,
         net: &mut Net,
@@ -138,7 +139,7 @@ impl Engine {
         let allowance = work.saturating_add(budget);
         let start = net.start();
         let mut table = Table::new(net);
-        if table.prepare(net, &start, allowance)?.is_none() {
+        let Some(expansion) = table.prepare(net, &start, allowance)? else {
             return Ok(Exploration {
                 closed: false,
                 stop: net.stop(limit, Some(budget), Blocked::default()),
@@ -148,7 +149,8 @@ impl Engine {
                 endless: None,
                 work: net.work() - work,
             });
-        }
+        };
+        net.refund(expansion.work);
         let mut search = Search {
             upload: Upload::new(&self.device, &table)?,
             store: Store::new(&self.device, &start, self.tuning)?,

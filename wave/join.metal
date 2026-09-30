@@ -33,6 +33,55 @@ static ulong choose(uint count, uint taken) {
     return product;
 }
 
+// The multisets of a size drawn from so many options, or PICK and one once there are more than
+// PICK, which is all a marking's picks may come to on the GPU.
+static ulong multiset(uint option, uint size) {
+    ulong count = 1;
+    for (uint index = 0; index < size && count <= PICK; index++) {
+        count = count * ulong(option + index) / ulong(index + 1);
+    }
+    return min(count, ulong(PICK) + 1);
+}
+
+// The next input of a rule after this one with the same offers, or NONE; an input with one offer
+// picks it whatever the others pick, so it has none.
+static uint follow(thread const uint* offer, thread const uint* start, thread const uint* width, uint inputs, uint item) {
+    if (width[item] == 1) {
+        return NONE;
+    }
+    for (uint later = item + 1; later < inputs; later++) {
+        bool same = width[later] == width[item];
+        for (uint option = 0; option < width[item] && same; option++) {
+            same = (offer[start[item] + option] & 0xffffu) == (offer[start[later] + option] & 0xffffu);
+        }
+        if (same) {
+            return later;
+        }
+    }
+    return NONE;
+}
+
+// How many picks a rule's inputs make: for each set of inputs with the same offers, the multisets
+// of its size drawn from its offers, or PICK and one once there are more than PICK.
+static ulong breadth(thread const uint* offer, thread const uint* start, thread const uint* width, uint inputs) {
+    ulong count = 1;
+    for (uint item = 0; item < inputs && count <= PICK; item++) {
+        bool head = width[item] > 1;
+        for (uint earlier = 0; earlier < item && head; earlier++) {
+            head = follow(offer, start, width, inputs, earlier) != item;
+        }
+        if (!head) {
+            continue;
+        }
+        uint size = 0;
+        for (uint member = item; member != NONE; member = follow(offer, start, width, inputs, member)) {
+            size += 1;
+        }
+        count = min(count * multiset(width[item], size), ulong(PICK) + 1);
+    }
+    return count;
+}
+
 // The number of the part of the root and these kinds, each taken so many times, or NONE when no
 // visit grounded it; a slot whose root and digest match is checked kind by kind.
 static uint find(Joint joint, uint slots, uint root, ulong digest, device const uint* kind, thread const uint* chosen, thread const uint* taken, uint distinct) {
@@ -64,12 +113,15 @@ static uint find(Joint joint, uint slots, uint root, ulong digest, device const 
 
 // Finds a marking's joining events as the host's net does. Each run of equal kinds offers itself to
 // the inputs of joining rules its kind reaches; the offers, sorted by input and then by kind, gather
-// each rule's inputs, and a rule whose every input has an offer picks one for each, every way, the
-// first input fastest. The picked kinds, each taken as many times as inputs picked it, or from once
-// when a copy holds several coherences, up to its copies, every way, make a part of the root and
-// two or more components, kept the first time it is found. The sink takes each part with the ways
-// to choose its copies. Tells whether the tables lacked a part (MISSING) or the marking needs more
-// than the GPU keeps (JOIN); then the sink may have taken only some of the parts.
+// each rule's inputs, and a rule whose every input has an offer picks one for each, the first input
+// fastest, where an input picks no earlier offer than the next input with the same offers, so
+// picks that differ only in which of those took which come once. The picked kinds, each taken as
+// many times as inputs picked it, or from once when a copy holds several coherences, up to its
+// copies, every way, make a part of the root and two or more components, kept the first time it is
+// found. The sink takes each part with the ways to choose its copies. Tells whether the tables
+// lacked a part (MISSING) or the marking needs more than the GPU keeps (JOIN), which a marking
+// whose rules make more than PICK picks always does; then the sink may have taken only some of
+// the parts.
 template <typename Sink>
 static uint join(Joint joint, constant Setting& setting, uint root, device const uint* kind, uint length, thread Sink& sink) {
     if (setting.rule == 0) {
@@ -104,6 +156,7 @@ static uint join(Joint joint, constant Setting& setting, uint root, device const
     uint seen[OFFER];
     uint found = 0;
     uint step = 0;
+    ulong pick = 0;
     uint cursor = 0;
     while (cursor < count) {
         uint rule = joint.rule[offer[cursor] >> 16];
@@ -126,6 +179,10 @@ static uint join(Joint joint, constant Setting& setting, uint root, device const
         }
         if (inputs < joint.arity[rule]) {
             continue;
+        }
+        pick += breadth(offer, start, width, inputs);
+        if (pick > PICK) {
+            return JOIN;
         }
         uint digit[ARITY];
         for (uint item = 0; item < inputs; item++) {
@@ -226,8 +283,9 @@ static uint join(Joint joint, constant Setting& setting, uint root, device const
                 break;
             }
             digit[item] += 1;
-            for (uint back = 0; back < item; back++) {
-                digit[back] = 0;
+            for (uint back = item; back > 0; back--) {
+                uint next = follow(offer, start, width, inputs, back - 1);
+                digit[back - 1] = next == NONE ? 0 : digit[next];
             }
         }
     }

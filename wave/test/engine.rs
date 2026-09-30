@@ -7,11 +7,11 @@ use photonic::runtime::Limit;
 use photonic::stop::{BOUND, Stop};
 
 // Every tuning explores exactly as the host's net does, number for number: the same configurations,
-// events, end configurations in the same order, cycles and work, whether it counts a few markings
-// at a time, decides a few candidates at a time or writes markings across many small segments, and
-// under every limit, including a configuration limit reached in the middle of a pass, and every
-// budget, including one that runs out in the middle of a window. Both nets ground parts in the same
-// order, so even their kinds are numbered alike.
+// events, end configurations in the same order, cycles, work and reasons to stop, whether it counts
+// a few markings at a time, decides a few candidates at a time or writes markings across many small
+// segments, and under every limit, including a configuration limit reached in the middle of a pass,
+// and every budget, including one that runs out in the middle of a window. Both nets ground parts
+// in the same order, so even their kinds are numbered alike.
 #[test]
 fn identical() {
     let tuning = [
@@ -85,6 +85,8 @@ fn identical() {
         "A, A, A, [A, A, A] B".to_owned(),
         "Go.A, Go.B, [Go] (X, [X] Y), [Y.A] Z, [Y.B, Z] W".to_owned(),
         "S, [S] E, [S] F, [S] G, [S] X, [X] Y, [Y] X".to_owned(),
+        "X.K0, X.K1, X.K2, X.K3, X.K4, X.K5, X.K6, X.K7, X.K8, X.K9, X.K10, [X, X, X, X] Y"
+            .to_owned(),
     ];
     let mut seen = Vec::new();
     for tuning in tuning {

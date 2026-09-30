@@ -1,6 +1,7 @@
 use super::Laser;
 use super::net::{Cycle, Net};
 use crate::runtime::{Limit, Runtime};
+use crate::stop::Stop;
 
 // A deduction walks from its event's source, each event starting where the one before it ends.
 fn walk(laser: &Laser, source: &str) {
@@ -271,6 +272,52 @@ fn budget() {
     let explored = explore(&program, 100_000, small);
     assert!(!explored.closed);
     assert!(explored.work <= 100_000);
+}
+
+// Picks that differ only in which of several identical inputs took which kind bind the same part,
+// so a rule of seven identical inputs over fourteen kinds makes C(20, 7) picks rather than 14^7.
+// Past PICK picks or OFFER parts a marking's joins are a host join, which takes a step of work for
+// each pick, and a budget too small for it stops the net before the marking.
+#[test]
+fn join() {
+    let wide = |kind: usize, input: usize| {
+        let rule = format!("[{}] Y", vec!["X"; input].join(", "));
+        (0..kind)
+            .map(|index| format!("X.K{index}"))
+            .chain([rule])
+            .collect::<Vec<_>>()
+            .join(", ")
+    };
+    let limit = Limit {
+        configuration: 1,
+        ..Limit::default()
+    };
+    let explore = |source: &str, budget: usize| {
+        let program = frontend::lowering::parse(source).unwrap();
+        Net::new(&program)
+            .unwrap()
+            .explore(budget, limit, Cycle::Find)
+            .unwrap()
+    };
+    let free = explore(&wide(12, 2), usize::MAX);
+    let costly = [(wide(14, 7), 77_520), (wide(60, 2), 1_830)];
+    for (source, pick) in &costly {
+        let explored = explore(source, usize::MAX);
+        assert!(explored.work >= pick + free.work, "{source}");
+        let stopped = explore(source, explored.work - 1);
+        assert_eq!(stopped.configuration, 1, "{source}");
+        assert_eq!(stopped.event, 0, "{source}");
+        assert!(stopped.work < explored.work, "{source}");
+        assert!(matches!(stopped.stop[..], [Stop::Work { .. }]), "{source}");
+    }
+    let program = frontend::lowering::parse(&wide(6, 3)).unwrap();
+    let mut net = Net::new(&program).unwrap();
+    let whole = net
+        .explore(usize::MAX, Limit::default(), Cycle::Find)
+        .unwrap();
+    let mut plain = Laser::plain(&program);
+    plain.run(100_000_000, Limit::default());
+    assert_eq!(whole.mirrors(&net, &plain), Ok(()));
 }
 
 #[test]

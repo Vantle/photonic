@@ -5,9 +5,11 @@ use crate::hash;
 use crate::search::Search;
 use crate::setting::{BARE, FLAGGED, JOIN, MISSING, OFFER, Setting, WINDOW, saturate};
 use crate::work::Work;
+use hashing::Builder;
 use metal::device::{Command, Memory};
 use photonic::laser::net::Successor;
 use photonic::stop::Bound;
+use std::collections::HashMap;
 
 // A successor the host found for a marking whose kinds could join in one event: the marking's place
 // in the window, the successor's place among the marking's, and then among the window's candidates,
@@ -209,9 +211,9 @@ impl Engine {
 
     // Visits every marking of a window that counting flagged, in order, as the host's own net would
     // on expanding it, and gives the visits with the size of the window they cover. When the tables
-    // lacked a part, the visits ground it and the window is counted again, once; a marking whose
-    // parts the budget cannot ground ends the window before it, and the shorter window is counted
-    // again.
+    // lacked a part, the visits ground it and the window is counted again, once, keeping what the
+    // visits found, so no host join is taken twice; a marking whose parts or host join the budget
+    // cannot take ends the window before it, and the shorter window is counted again.
     fn visit(
         &self,
         search: &mut Search<'_>,
@@ -219,6 +221,7 @@ impl Engine {
         mut size: usize,
         mut counted: bool,
     ) -> Result<(Vec<Visit>, usize), Failure> {
+        let mut found = HashMap::<usize, Vec<Successor>, Builder>::default();
         for _ in 0..2 {
             if !counted {
                 self.room(&mut search.work, size)?;
@@ -249,15 +252,21 @@ impl Engine {
                     });
                     continue;
                 }
-                let marking = search.store.marking(first + index);
-                let Some(successor) =
-                    search
-                        .table
-                        .prepare(search.net, &marking, search.allowance)?
-                else {
-                    size = index;
-                    shortened = true;
-                    break;
+                let successor = match found.remove(&index) {
+                    Some(successor) => successor,
+                    None => {
+                        let marking = search.store.marking(first + index);
+                        let Some(expansion) =
+                            search
+                                .table
+                                .prepare(search.net, &marking, search.allowance)?
+                        else {
+                            size = index;
+                            shortened = true;
+                            break;
+                        };
+                        expansion.successor
+                    }
                 };
                 visited.push(Visit {
                     index,
@@ -268,6 +277,11 @@ impl Engine {
             if !shortened && visited.iter().all(|visit| visit.state & MISSING == 0) {
                 return Ok((visited, size));
             }
+            found = visited
+                .into_iter()
+                .filter(|visit| visit.state & (MISSING | JOIN) != 0)
+                .map(|visit| (visit.index, visit.successor))
+                .collect();
         }
         Err(Failure::Missing)
     }

@@ -17,6 +17,7 @@ pub mod makeup;
 mod memo;
 pub mod net;
 mod passage;
+mod pick;
 mod pool;
 pub mod report;
 mod scan;

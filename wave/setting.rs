@@ -1,3 +1,4 @@
+use photonic::laser::net;
 use photonic::stop::Bound;
 
 // Words the kernels and the host share; the kernels read them as constants of the same names.
@@ -21,9 +22,11 @@ pub const PART: usize = 5;
 pub const WIDTH: usize = 8;
 pub const SEGMENT: usize = 1024;
 // The most offers of a marking's kinds to the inputs of joining rules, and of distinct parts they
-// join, the most inputs of a rule and the most choices of kinds and copies a marking's joining
-// events are found from on the GPU; a marking that needs more is joined on the host.
-pub const OFFER: usize = 128;
+// join, the most picks its joining rules make, the most inputs of a rule and the most choices of
+// kinds and copies a marking's joining events are found from on the GPU; a marking that needs more
+// is joined on the host. Past the net's own offers and picks, the host's join takes work.
+pub const OFFER: usize = net::OFFER;
+pub const PICK: usize = net::PICK;
 pub const ARITY: usize = 8;
 pub const STEP: usize = 4096;
 // The most SIMD groups in a threadgroup whose kernel sums them in one SIMD group; its scratch keeps
@@ -75,6 +78,7 @@ pub fn prelude() -> String {
         WIDTH,
         SEGMENT,
         OFFER,
+        PICK,
         ARITY,
         STEP,
         BAND,

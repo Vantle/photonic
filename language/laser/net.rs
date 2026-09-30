@@ -1,6 +1,7 @@
 use super::ending;
 use super::layout::Layout;
 use super::makeup::Makeup;
+use super::pick::Pick;
 use super::pool::Pool;
 use super::scan;
 use super::size::Size;
@@ -48,6 +49,36 @@ pub struct Entry {
 pub struct Successor {
     pub marking: Makeup,
     pub count: u64,
+}
+
+// A marking's joining events cost nothing to find while its kinds offer at most PICK picks and join
+// at most OFFER parts, as many as the GPU finds them from on its own. Past either, finding them is
+// a host join, which takes a step of work for each pick, and the budget stops an exploration
+// before a marking whose host join would take its work past the allowance.
+pub const PICK: usize = 4096;
+pub const OFFER: usize = 128;
+
+// What visiting a marking found: the configurations its joining events lead to, in the order
+// expanding it finds them, and the work its host join took, none when finding them cost nothing.
+pub struct Expansion {
+    pub successor: Vec<Successor>,
+    pub work: usize,
+}
+
+// The parts of two or more components a marking's kinds could join, each with the ways to choose
+// its copies, and the work a host join took to find them.
+struct Prepared {
+    part: Vec<(Makeup, u64)>,
+    work: usize,
+}
+
+// A present kind's offer of itself to an input of a rule joining several coherences: the input,
+// numbered across rules, the kind and its copies.
+#[derive(Clone, Copy)]
+struct Offer {
+    input: usize,
+    kind: u32,
+    count: usize,
 }
 
 // Whether an exploration also looks for a run that goes on forever, which keeps every edge.
@@ -324,34 +355,53 @@ impl Net {
     // Grounds every part a marking holds, and the multisets its kinds could join, as expanding the
     // marking does and in the same order, so a net that visits markings in the order this one
     // expands them numbers kinds as it does; then gives every configuration an event joining
-    // several components leads to from the marking, in the order expanding it finds them. None
-    // when grounding would take the net's work past the allowance, and then the marking is not
-    // expanded.
+    // several components leads to from the marking, with the work its host join took. None when
+    // grounding or its host join would take the net's work past the allowance, and then the
+    // marking is not expanded.
     pub fn visit(
         &mut self,
         marking: &Makeup,
         allowance: usize,
-    ) -> Result<Option<Vec<Successor>>, Unsupported> {
-        let Some(part) = self.prepare(marking.root, &marking.kind, allowance)? else {
+    ) -> Result<Option<Expansion>, Unsupported> {
+        let Some(Prepared { part, work }) = self.prepare(marking.root, &marking.kind, allowance)?
+        else {
             return Ok(None);
         };
-        Ok(Some(
-            self.joined(&marking.kind, &part)
+        Ok(Some(Expansion {
+            successor: self
+                .joined(&marking.kind, &part)
                 .into_iter()
                 .map(|(marking, count)| Successor { marking, count })
                 .collect(),
-        ))
+            work,
+        }))
+    }
+
+    // Gives back the work a visit's host join took when the marking it visited is not expanded
+    // after all, so that visiting it again takes that work once.
+    pub fn refund(&mut self, work: usize) {
+        self.work -= work;
+    }
+
+    // Takes work for a host join when the allowance holds it.
+    fn charge(&mut self, work: usize, allowance: usize) -> bool {
+        if work > allowance.saturating_sub(self.work) {
+            return false;
+        }
+        self.work += work;
+        true
     }
 
     // Grounds every part a makeup of the root and these kinds holds, and gives the parts of two or
-    // more components its kinds could join, each with the number of ways to choose their copies;
-    // none when grounding would take the net's work past the allowance.
+    // more components its kinds could join, each with the number of ways to choose their copies,
+    // with the work a host join took to find them; none when grounding or the host join would take
+    // the net's work past the allowance.
     fn prepare(
         &mut self,
         root: u32,
         kind: &[u32],
         allowance: usize,
-    ) -> Result<Option<Vec<(Makeup, u64)>>, Unsupported> {
+    ) -> Result<Option<Prepared>, Unsupported> {
         if !self.lone.contains_key(&root) {
             let Some(entry) = self.ground(root, &[], allowance)? else {
                 return Ok(None);
@@ -368,7 +418,19 @@ impl Net {
             }
             self.survey(value);
         }
-        let part = self.candidate(root, &run);
+        let offer = self.offer(&run);
+        let (mut part, pick) = self.candidate(root, &offer, PICK);
+        let costly = pick > PICK;
+        if costly {
+            if !self.charge(pick, allowance) {
+                return Ok(None);
+            }
+            part = self.candidate(root, &offer, usize::MAX).0;
+        }
+        let host = costly || part.len() > OFFER;
+        if host && !costly && !self.charge(pick, allowance) {
+            return Ok(None);
+        }
         for (makeup, _) in &part {
             if !self.join.contains_key(makeup) {
                 let Some(entry) = self.ground(root, &makeup.kind, allowance)? else {
@@ -377,7 +439,10 @@ impl Net {
                 self.join.insert(makeup.clone(), entry);
             }
         }
-        Ok(Some(part))
+        Ok(Some(Prepared {
+            part,
+            work: if host { pick } else { 0 },
+        }))
     }
 
     fn survey(&mut self, kind: u32) {
@@ -459,49 +524,72 @@ impl Net {
         }
     }
 
+    // Each present kind offers itself, with its copies, to the inputs of rules joining several
+    // coherences it reaches, in the makeup's order; the offers are sorted by input, then by kind,
+    // so a rule no present kind reaches costs nothing.
+    fn offer(&self, run: &[(u32, usize)]) -> SmallVec<[Offer; 16]> {
+        let mut offer = SmallVec::<[Offer; 16]>::new();
+        for &(kind, count) in run {
+            offer.extend(self.surface[&kind].reach.iter().map(|&input| Offer {
+                input,
+                kind,
+                count,
+            }));
+        }
+        offer.sort_unstable_by_key(|offer| (offer.input, offer.kind));
+        offer
+    }
+
     // The parts, the root and two or more components, that some rule joining several coherences
     // could bind in a makeup of the root and these kinds, each with the number of ways to choose
     // its copies, whichever present kind each input of the rule picks. Every part is kept once,
-    // since its table holds the events of every rule that binds exactly those components. Each
-    // present kind offers itself to the inputs it reaches, in the makeup's order, so a rule no
-    // present kind reaches costs nothing.
-    fn candidate(&self, root: u32, run: &[(u32, usize)]) -> Vec<(Makeup, u64)> {
-        let mut offer = SmallVec::<[(usize, u32, usize); 16]>::new();
-        for &(value, count) in run {
-            offer.extend(
-                self.surface[&value]
-                    .reach
-                    .iter()
-                    .map(|&index| (index, value, count)),
-            );
-        }
-        offer.sort_unstable_by_key(|&(index, value, _)| (index, value));
+    // since its table holds the events of every rule that binds exactly those components.
+    // Each rule's inputs that present kinds offer themselves to pick one offer each, and the rule
+    // is left out unless every input has one; the parts are found from the picks of every rule
+    // until they pass the bound, and the picks of every rule are counted.
+    fn candidate(&self, root: u32, offer: &[Offer], bound: usize) -> (Vec<(Makeup, u64)>, usize) {
         let mut result = IndexMap::<Makeup, u64, Builder>::default();
-        for group in offer.chunk_by(|left, right| self.slot[left.0].0 == self.slot[right.0].0) {
-            let rule = self.slot[group[0].0].0;
+        let mut total = 0usize;
+        for group in
+            offer.chunk_by(|left, right| self.slot[left.input].0 == self.slot[right.input].0)
+        {
+            let rule = self.slot[group[0].input].0;
             let option = group
-                .chunk_by(|left, right| left.0 == right.0)
+                .chunk_by(|left, right| left.input == right.input)
                 .collect::<SmallVec<[_; 4]>>();
             if option.len() < self.pattern[rule].len() {
                 continue;
             }
-            let range = option
-                .iter()
-                .map(|input| 0..input.len())
-                .collect::<SmallVec<[_; 4]>>();
-            let mut index = SmallVec::<[usize; 4]>::from_elem(0, option.len());
+            if option.iter().all(|input| input.len() == 1) {
+                total = total.saturating_add(1);
+                if total <= bound {
+                    let chosen = option.iter().map(|input| (input[0].kind, input[0].count));
+                    self.bind(root, chosen, &mut result);
+                }
+                continue;
+            }
+            let kind = |input: usize| option[input].iter().map(|offer| offer.kind);
+            let pick = Pick::new(
+                option.iter().map(|input| input.len()).collect(),
+                |input, later| kind(input).eq(kind(later)),
+            );
+            total = total.saturating_add(pick.count());
+            if total > bound {
+                continue;
+            }
+            let mut digit = pick.first();
             loop {
-                let pick = index.iter().zip(&option).map(|(&position, input)| {
-                    let (_, value, count) = input[position];
-                    (value, count)
+                let chosen = digit.iter().zip(&option).map(|(&position, input)| {
+                    let offer = input[position];
+                    (offer.kind, offer.count)
                 });
-                self.bind(root, pick, &mut result);
-                if !step(&mut index, &range) {
+                self.bind(root, chosen, &mut result);
+                if !pick.advance(&mut digit) {
                     break;
                 }
             }
         }
-        result.into_iter().collect()
+        (result.into_iter().collect(), total)
     }
 
     // Keeps the parts a rule could bind once each of its inputs has picked a present kind. A rule
@@ -565,7 +653,8 @@ impl Net {
         makeup: &Makeup,
         allowance: usize,
     ) -> Result<Option<Vec<(Makeup, u64)>>, Unsupported> {
-        let Some(part) = self.prepare(makeup.root, &makeup.kind, allowance)? else {
+        let Some(Prepared { part, .. }) = self.prepare(makeup.root, &makeup.kind, allowance)?
+        else {
             return Ok(None);
         };
         let mut result = Vec::new();

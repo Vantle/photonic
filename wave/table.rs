@@ -3,7 +3,7 @@ use crate::hash;
 use crate::setting::{EMPTY, HEADER, PART, saturate};
 use hashing::Builder;
 use photonic::laser::makeup::Makeup;
-use photonic::laser::net::{Entry, Net, Successor};
+use photonic::laser::net::{Entry, Expansion, Net};
 use std::collections::HashMap;
 
 fn mix(mut value: u32) -> u32 {
@@ -182,15 +182,16 @@ impl Table {
     }
 
     // Visits a marking as the host's net does when it expands it, enters the parts it holds and
-    // gives the successors of its events joining several components; none when grounding its parts
-    // would take the net's work past the allowance.
+    // gives the successors of its events joining several components, with the work its host join
+    // took; none when grounding its parts or its host join would take the net's work past the
+    // allowance.
     pub fn prepare(
         &mut self,
         net: &mut Net,
         marking: &Makeup,
         allowance: usize,
-    ) -> Result<Option<Vec<Successor>>, Failure> {
-        let Some(successor) = net.visit(marking, allowance)? else {
+    ) -> Result<Option<Expansion>, Failure> {
+        let Some(expansion) = net.visit(marking, allowance)? else {
             return Ok(None);
         };
         self.lone(net, marking.root)?;
@@ -198,7 +199,7 @@ impl Table {
             self.single(net, marking.root, run[0])?;
         }
         self.join(net);
-        Ok(Some(successor))
+        Ok(Some(expansion))
     }
 
     // The hashed index from a root and a kind to its entries, with its number of slots: four words a
