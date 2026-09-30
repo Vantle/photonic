@@ -583,13 +583,13 @@ fn format() {
 #[test]
 fn spelling() {
     for (atom, message) in [
-        ("A.B", ". separates atoms, so an atom cannot hold it"),
+        ("A.B", "'.' separates atoms, so an atom cannot hold it"),
         ("", "an atom holds at least one character"),
         (
             "A B",
             "U+0020 is a space, which separates atoms, so an atom cannot hold it",
         ),
-        ("(x)", "( separates atoms, so an atom cannot hold it"),
+        ("(x)", "'(' separates atoms, so an atom cannot hold it"),
         (
             "\u{FEFF}A",
             "U+FEFF is a space, which separates atoms, so an atom cannot hold it",

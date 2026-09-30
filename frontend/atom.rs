@@ -22,7 +22,7 @@ impl std::fmt::Display for Refusal {
             Self::Character(character) if character::delimiter(character) => {
                 write!(
                     formatter,
-                    "{character} separates atoms, so an atom cannot hold it"
+                    "'{character}' separates atoms, so an atom cannot hold it"
                 )
             }
             Self::Character(character) if character::space(character) => write!(
