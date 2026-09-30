@@ -153,8 +153,9 @@ impl Laser {
     // fit waits for the next round with every trace after it, and spends what was left, as a
     // search that runs out does; a reduced exploration chooses among a configuration's events all
     // at once, so there the whole configuration waits. Workers identify configurations at once,
-    // each with the whole allowance, and the trace that does not fit is found afterwards, so what a
-    // round charges never depends on how many workers identified it.
+    // each with the whole allowance, and the configuration that does not fit is identified again
+    // afterwards to find the trace that does not, so what a round charges never depends on how
+    // many workers identified it.
     fn select(
         &self,
         executor: Option<&Executor>,
@@ -164,48 +165,59 @@ impl Laser {
         let _scope = profile::Scope::new(profile::Phase::Identification);
         let identified = map(executor, novel, |(index, range)| {
             let mut budget = allowance;
-            let mut identity = Vec::with_capacity(range.len());
-            let mut spent = Vec::with_capacity(range.len());
-            for position in range.clone() {
-                let Ok(found) = self.identify(index, &self.trace[index][position], &mut budget)
-                else {
-                    break;
-                };
-                identity.push(found);
-                spent.push(allowance - budget);
-            }
-            (index, range, identity, spent)
+            let identity = range
+                .clone()
+                .map(|position| self.identify(index, &self.trace[index][position], &mut budget))
+                .collect::<Result<Vec<_>, Exhausted>>();
+            let found = identity.map(|identity| {
+                (
+                    self.candidate(index, range.clone(), identity),
+                    allowance - budget,
+                )
+            });
+            (index, range, found)
         });
-        let mut chosen = Vec::with_capacity(identified.len());
-        let mut rest = Vec::new();
-        let mut charge = 0;
-        for (index, range, mut identity, spent) in identified {
-            if !rest.is_empty() {
-                rest.push((index, range));
+        let mut selection = Selection {
+            candidate: Vec::with_capacity(identified.len()),
+            rest: Vec::new(),
+            charge: 0,
+        };
+        for (index, range, found) in identified {
+            if !selection.rest.is_empty() {
+                selection.rest.push((index, range));
                 continue;
             }
-            let fit = spent.partition_point(|&spent| spent <= allowance - charge);
-            if fit == range.len() {
-                charge += spent.last().copied().unwrap_or(0);
-                chosen.push((index, range, identity));
-                continue;
+            match found {
+                Ok((candidate, cost)) if selection.charge + cost <= allowance => {
+                    selection.charge += cost;
+                    selection.candidate.push(candidate);
+                }
+                _ => {
+                    let mut budget = allowance - selection.charge;
+                    let mut identity = Vec::new();
+                    if self.independence.is_none() {
+                        for position in range.clone() {
+                            let trace = &self.trace[index][position];
+                            let Ok(found) = self.identify(index, trace, &mut budget) else {
+                                break;
+                            };
+                            identity.push(found);
+                        }
+                    }
+                    let split = range.start + identity.len();
+                    if !identity.is_empty() {
+                        selection.candidate.push(self.candidate(
+                            index,
+                            range.start..split,
+                            identity,
+                        ));
+                    }
+                    selection.charge = allowance;
+                    selection.rest.push((index, split..range.end));
+                }
             }
-            let fit = if self.independence.is_some() { 0 } else { fit };
-            let split = range.start + fit;
-            identity.truncate(fit);
-            if fit > 0 {
-                chosen.push((index, range.start..split, identity));
-            }
-            charge = allowance;
-            rest.push((index, split..range.end));
         }
-        Selection {
-            candidate: map(executor, chosen, |(index, range, identity)| {
-                self.candidate(index, range, identity)
-            }),
-            rest,
-            charge,
-        }
+        selection
     }
 
     fn candidate(

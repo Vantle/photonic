@@ -156,7 +156,7 @@ impl Taxonomy {
             Some(found) => found,
             None => {
                 let made = Name::search(allowance, |left| state.canonical(left));
-                self.name.get(state, |_| made.clone());
+                self.name.insert(state, made.clone());
                 made
             }
         };

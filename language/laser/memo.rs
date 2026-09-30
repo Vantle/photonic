@@ -29,6 +29,15 @@ impl<Key: Eq + Hash, Value: Clone> Memo<Key, Value> {
             .cloned()
     }
 
+    // Remembers a value for a key unless a worker remembered one first.
+    pub fn insert(&self, key: Key, value: Value) {
+        self.shard[shard::slot(hashing::value(&key))]
+            .lock()
+            .expect("an unpoisoned memo")
+            .entry(key)
+            .or_insert(value);
+    }
+
     pub fn get(&self, key: Key, make: impl FnOnce(&Key) -> Value) -> Value {
         let shard = &self.shard[shard::slot(hashing::value(&key))];
         if let Some(found) = shard.lock().expect("an unpoisoned memo").get(&key) {
