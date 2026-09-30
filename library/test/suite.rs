@@ -46,7 +46,7 @@ pub fn check(source: &str, target: &str, library: &[&str], expected: Outcome) {
         Limit {
             configuration: 20000,
             record: 2_000_000,
-            occurrence: 128 + program.rule.len(),
+            occurrence: 128,
             coherence: 32,
             scope: 32,
         },
@@ -91,7 +91,6 @@ pub fn answer(
 
 pub fn witness(source: &str, target: &str, library: &[&str]) -> photonic::path::Report {
     let program = program(source, library);
-    let occurrence = 256 + program.rule.len();
     let mut search = {
         let target = self::target(&program, target);
         photonic::path::Search::new(program, Some(target))
@@ -101,7 +100,7 @@ pub fn witness(source: &str, target: &str, library: &[&str]) -> photonic::path::
         Limit {
             configuration: 4096,
             record: 2_000_000,
-            occurrence,
+            occurrence: 256,
             coherence: 64,
             scope: 64,
         },
