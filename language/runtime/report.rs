@@ -77,24 +77,61 @@ impl Runtime {
                 footprint: event.identity.binding.footprint.iter().copied().collect(),
                 exact: event.identity.binding.exact.iter().copied().collect(),
                 read: event.identity.binding.read.iter().copied().collect(),
-                evidence: event.evidence.iter().copied().collect(),
+                evidence: self.evidence(event),
                 world: event.identity.binding.world.iter().copied().collect(),
                 context: context(&event.flow),
             })
     }
 
+    // The view an event rests on: one at its source when a match found there identifies it, which
+    // makes the event direct, and otherwise the first view it was identified through, whose
+    // derivation is the event's deduction. Every other view that identified it again is another
+    // derivation of the same event.
+    fn evidence(&self, event: &super::Event) -> usize {
+        event
+            .evidence
+            .iter()
+            .copied()
+            .find(|&index| self.view[index].source == self.view[index].target)
+            .or_else(|| event.evidence.first().copied())
+            .expect("an event rests on the view that identified it")
+    }
+
+    // The views events rest on and those their derivations pass through; the others are derived
+    // views no event rests on, and a report leaves them out.
     fn projection(&self) -> impl Iterator<Item = View> + '_ {
         let support = self.proof.evaluate();
-        self.view.iter().enumerate().map(move |(index, view)| View {
-            id: index,
-            source: view.source,
-            target: view.target,
-            status: support.status(Atom::View(index)),
-            origin: self.origin[index],
-            resource: link(&view.flow),
-            context: context(&view.flow),
-            frame: view.flow.frame.clone(),
-        })
+        let cited = self.cited();
+        self.view
+            .iter()
+            .enumerate()
+            .filter(move |(index, _)| cited[*index])
+            .map(move |(index, view)| View {
+                id: index,
+                source: view.source,
+                target: view.target,
+                status: support.status(Atom::View(index)),
+                origin: self.origin[index],
+                resource: link(&view.flow),
+                context: context(&view.flow),
+                frame: view.flow.frame.clone(),
+            })
+    }
+
+    fn cited(&self) -> Vec<bool> {
+        let mut cited = vec![false; self.view.len()];
+        let mut pending = self
+            .event
+            .iter()
+            .map(|event| self.evidence(event))
+            .collect::<Vec<_>>();
+        while let Some(index) = pending.pop() {
+            if std::mem::replace(&mut cited[index], true) {
+                continue;
+            }
+            pending.extend(self.origin[index].map(|origin| origin.view));
+        }
+        cited
     }
 
     fn assemble<Configuration, Transition, Projection>(

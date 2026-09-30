@@ -37,12 +37,13 @@ for (const source of [
         frame: node.frame.map(frame => ({ parent: frame.parent, particle: frame.particle.map(token => ({ id: token.id, rule: token.rule })), held: frame.held.map(occurrence) })),
     });
     const definition = report.definition.map(value => value.name);
+    const view = new Map(report.view.map(value => [value.id, value]));
     const chain = index => {
         const path = [];
-        for (let origin = report.view[index].origin; origin; origin = report.view[origin.view].origin) path.unshift(origin.event);
+        for (let origin = view.get(index).origin; origin; origin = view.get(origin.view).origin) path.unshift(origin.event);
         return path;
     };
-    const direct = value => value.evidence.some(index => report.view[index].source === report.view[index].target);
+    const direct = value => view.get(value.evidence).source === view.get(value.evidence).target;
     const event = report.event.map(value => ({
         id: value.id,
         source: value.source,
@@ -52,7 +53,7 @@ for (const source of [
         exact: value.exact,
         world: value.world,
         context: value.context,
-        deduction: direct(value) ? [] : chain(value.evidence[0]),
+        deduction: direct(value) ? [] : chain(value.evidence),
     }));
     assert.deepEqual(response.execution, { definition, closed: report.closed, work: report.work, state: report.state.map(configuration), event }, source);
 }

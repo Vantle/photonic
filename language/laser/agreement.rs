@@ -105,13 +105,10 @@ fn end(wanted: &[State], found: &[State]) -> Result<(), Disagreement> {
 }
 
 // The interpreter's events as keys, with the places its snapshot names.
-fn expected(runtime: &Runtime, snapshot: Snapshot) -> BTreeMap<Key, usize> {
-    let Snapshot { event, view, .. } = snapshot;
-    tally(event.into_iter().map(|event| {
-        let direct = event
-            .evidence
-            .iter()
-            .any(|&index| view[index].source == view[index].target);
+fn expected(runtime: &Runtime, snapshot: &Snapshot) -> BTreeMap<Key, usize> {
+    tally(snapshot.event.iter().map(|event| {
+        let view = snapshot.view(event.evidence);
+        let direct = view.source == view.target;
         let resource = shape(
             &runtime.state[event.source],
             &runtime.state[event.target],
@@ -122,10 +119,10 @@ fn expected(runtime: &Runtime, snapshot: Snapshot) -> BTreeMap<Key, usize> {
             target: event.target,
             rule: event.rule,
             placement: Placement {
-                world: event.world,
-                footprint: event.footprint,
-                exact: event.exact,
-                read: event.read,
+                world: event.world.clone(),
+                footprint: event.footprint.clone(),
+                exact: event.exact.clone(),
+                read: event.read.clone(),
             },
             direct,
             supported: event.status == Status::Supported,
@@ -176,7 +173,7 @@ impl Laser {
                 configuration: differ,
             });
         }
-        let expected = expected(runtime, snapshot);
+        let expected = expected(runtime, &snapshot);
         let compiled = tally(event.iter().enumerate().map(|(index, &status)| {
             let value = &self.event[index];
             let (source, target) = (&named[value.source], &named[value.target]);

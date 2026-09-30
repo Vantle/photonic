@@ -76,7 +76,7 @@ pub struct Event {
     pub footprint: Vec<Place>,
     pub exact: Vec<Place>,
     pub read: Vec<Place>,
-    pub evidence: Vec<usize>,
+    pub evidence: usize,
     pub world: Vec<usize>,
     pub context: Vec<Vec<usize>>,
 }
@@ -106,22 +106,26 @@ pub struct Link {
 }
 
 impl Snapshot {
+    // A view the snapshot keeps, by its id: one an event rests on, or one whose derivation such a
+    // view passes through.
+    pub fn view(&self, id: usize) -> &View {
+        let position = self
+            .view
+            .binary_search_by_key(&id, |view| view.id)
+            .expect("a snapshot keeps every view its events cite and their derivations");
+        &self.view[position]
+    }
+
     pub fn deduction(&self, event: usize) -> Vec<usize> {
-        let evidence = &self.event[event].evidence;
-        if evidence
-            .iter()
-            .any(|&index| self.view[index].source == self.view[index].target)
-        {
+        let view = self.view(self.event[event].evidence);
+        if view.source == view.target {
             return Vec::new();
         }
-        let Some(&first) = evidence.first() else {
-            return Vec::new();
-        };
         let mut chain = Vec::new();
-        let mut cursor = self.view[first].origin;
+        let mut cursor = view.origin;
         while let Some(origin) = cursor {
             chain.push(origin.event);
-            cursor = self.view[origin.view].origin;
+            cursor = self.view(origin.view).origin;
         }
         chain.reverse();
         chain

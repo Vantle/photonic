@@ -49,7 +49,7 @@ fn reference() {
             let expected = snapshot
                 .event
                 .iter()
-                .filter(|event| event.source == 0 && event.evidence.contains(&0))
+                .filter(|event| event.source == 0 && event.evidence == 0)
                 .map(|event| {
                     (
                         runtime.state[event.target].canonical().state,
