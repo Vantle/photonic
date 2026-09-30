@@ -62,12 +62,11 @@ impl Request {
     pub fn program(&self) -> Result<Program, Failure> {
         let mut program = Program::default();
         for library in &self.library {
-            let declaration = frontend::lowering::parse(&library.source).map_err(|error| {
-                Failure::new(Code::Library, format!("{}: {error}", library.name))
-            })?;
-            program
-                .declare(declaration, &library.name)
-                .map_err(|error| Failure::new(Code::Library, error))?;
+            program.declare(
+                frontend::lowering::library(&library.source).map_err(|error| {
+                    Failure::new(Code::Library, format!("{}: {error}", library.name))
+                })?,
+            );
         }
         let source = frontend::lowering::parse(&self.source)
             .map_err(|error| Failure::located(Code::Source, &error, &self.source))?;

@@ -27,7 +27,6 @@ fn particle(particle: &Particle, vocabulary: &Vocabulary) -> Vec<source::Value> 
 
 pub(crate) fn definition(rule: &Rule, vocabulary: &Vocabulary) -> Definition {
     Definition {
-        name: String::new(),
         input: rule
             .input()
             .iter()

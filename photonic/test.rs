@@ -51,10 +51,15 @@ fn assembly() {
         serde_json::from_slice(&std::fs::read(&output).unwrap()).unwrap();
     assert_eq!(program.initial.len(), 2);
     assert_eq!(program.rule.len(), 1);
-    std::fs::write(&library, "Unexpected").unwrap();
+    std::fs::write(&library, "[First] Result,\nUnexpected").unwrap();
     let result = invoke();
     assert!(!result.status.success());
-    assert!(String::from_utf8_lossy(&result.stderr).contains("declarations only"));
+    let error = String::from_utf8_lossy(&result.stderr);
+    assert!(
+        error.contains("this library lists a coherence or scope; a library holds only rules"),
+        "{error}"
+    );
+    assert!(error.contains("library.particle:2:1"), "{error}");
     std::fs::write(&library, "[").unwrap();
     let result = invoke();
     assert!(!result.status.success());

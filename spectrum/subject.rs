@@ -1,5 +1,5 @@
 use crate::failure::{Code, Failure};
-use frontend::source::Program;
+use frontend::source::{Library, Program};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -27,16 +27,26 @@ pub trait Reader {
     fn read(&self, path: &str) -> Result<String, Failure>;
 }
 
-pub(crate) fn lower(file: &str, text: &str, code: Code) -> Result<Program, Failure> {
-    if std::path::Path::new(file)
+fn json(file: &str) -> bool {
+    std::path::Path::new(file)
         .extension()
         .is_some_and(|extension| extension.eq_ignore_ascii_case("json"))
-    {
-        return Program::read(text).map_err(|error| {
-            Failure::new(code, format!("{file}: not an assembled program: {error}"))
-        });
+}
+
+pub(crate) fn lower(file: &str, text: &str, code: Code) -> Result<Program, Failure> {
+    if json(file) {
+        return Program::read(text).map_err(|error| Failure::located(code, &error, file, text));
     }
     frontend::lowering::parse(text).map_err(|error| Failure::located(code, &error, file, text))
+}
+
+fn library(file: &str, text: &str) -> Result<Library, Failure> {
+    let library = if json(file) {
+        Library::read(text)
+    } else {
+        frontend::lowering::library(text)
+    };
+    library.map_err(|error| Failure::located(Code::Library, &error, file, text))
 }
 
 impl Subject {
@@ -49,10 +59,7 @@ impl Subject {
         }
         let mut program = Program::default();
         for path in &self.library {
-            let library = lower(path, &reader.read(path)?, Code::Library)?;
-            program
-                .declare(library, path)
-                .map_err(|error| Failure::new(Code::Library, error.to_string()))?;
+            program.declare(library(path, &reader.read(path)?)?);
         }
         for path in &self.file {
             program.append(lower(path, &reader.read(path)?, Code::Source)?);

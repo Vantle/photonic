@@ -178,7 +178,20 @@ fn format() {
     let output = execute("run", &path, &[]);
     assert!(!output.status.success());
     assert!(
-        String::from_utf8_lossy(&output.stderr).contains("broken.json: not an assembled program")
+        String::from_utf8_lossy(&output.stderr)
+            .contains("broken.json:1:1: invalid Photonic program: EOF while parsing an object")
+    );
+    let path = fixture.write(
+        "named.json",
+        "{\"initial\": [[\"A\"]],\n \"rule\": [{\"name\": \"[B] C\", \"input\": [[\"A\"]], \"output\": [[\"X\"]]}]}",
+    );
+    let output = execute("check", &path, &["--json"]);
+    let diagnostic = &serde_json::from_slice::<serde_json::Value>(&output.stdout).unwrap()["answer"]
+        ["diagnostic"][0];
+    assert_eq!(diagnostic["code"], "json");
+    assert_eq!(
+        diagnostic["location"],
+        serde_json::json!({"file": path.to_str().unwrap(), "line": 2, "column": 17, "length": 1})
     );
 }
 
@@ -197,6 +210,33 @@ fn diagnostic() {
     let output = execute("run", &fixture.path.join("missing.wave"), &[]);
     assert!(!output.status.success());
     assert!(String::from_utf8_lossy(&output.stderr).contains("error[file]:"));
+}
+
+#[test]
+fn encoding() {
+    let fixture = Fixture::new();
+    let path = fixture.path.join("wide.wave");
+    std::fs::write(
+        &path,
+        [0xFF, 0xFE, b'A', 0, b',', 0, b' ', 0, b'B', 0].as_slice(),
+    )
+    .unwrap();
+    let output = execute("lower", &path, &[]);
+    assert!(!output.status.success());
+    let error = String::from_utf8(output.stderr).unwrap();
+    assert!(error.starts_with("error[file]: "), "{error}");
+    assert!(
+        error.contains("wide.wave is not UTF-8 text; save it as UTF-8"),
+        "{error}"
+    );
+    let path = fixture.write("marked.wave", "\u{FEFF}A, [A] B");
+    let marked = report(&execute("lower", &path, &[]));
+    let plain = report(&execute(
+        "lower",
+        &fixture.write("plain.wave", "A, [A] B"),
+        &[],
+    ));
+    assert_eq!(marked, plain);
 }
 
 #[test]
@@ -658,13 +698,16 @@ fn library() {
         &["--library", library.to_str().unwrap(), "--json"],
     );
     assert_eq!(report(&output)["closed"], true);
-    let invalid = fixture.write("invalid.particle", "Unexpected");
+    let invalid = fixture.write("invalid.particle", "[A] B,\n  Unexpected");
     let output = execute("run", &path, &["--library", invalid.to_str().unwrap()]);
     assert!(!output.status.success());
+    let error = String::from_utf8_lossy(&output.stderr);
+    assert!(error.starts_with("error[library]: "), "{error}");
     assert!(
-        String::from_utf8_lossy(&output.stderr).contains("error[library]:"),
-        "{}",
-        String::from_utf8_lossy(&output.stderr)
+        error.contains(
+            "invalid.particle:2:3: this library lists a coherence or scope; a library holds only rules"
+        ),
+        "{error}"
     );
     let malformed = fixture.write("malformed.particle", "[");
     let output = execute("run", &path, &["--library", malformed.to_str().unwrap()]);
@@ -688,7 +731,7 @@ fn serialization() {
     let lowered = report(&execute("lower", &path, &[]));
     assert_eq!(
         lowered["scope"],
-        serde_json::json!([{"initial": [["X"]], "rule": [{"name": "[X] Y", "input": [["X"]], "output": [["Y"]]}]}])
+        serde_json::json!([{"initial": [["X"]], "rule": [{"input": [["X"]], "output": [["Y"]]}]}])
     );
     assert_eq!(
         lowered["rule"][0]["output"][0]["initial"],

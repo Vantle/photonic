@@ -1,7 +1,7 @@
 use crate::source::{Definition, Output, Program, Value};
 
 pub(crate) fn definition(value: &Definition) -> usize {
-    1 + value.name.len() + input(&value.input) + output(&value.output)
+    1 + input(&value.input) + output(&value.output)
 }
 
 pub(crate) fn input(value: &[Vec<Value>]) -> usize {

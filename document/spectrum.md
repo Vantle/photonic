@@ -211,14 +211,14 @@ Every field is checked against the question's schema, so a misspelled field is a
 
 ## Failures
 
-A failure carries a `code`, a `message` and, when it points into text, a `location` with the file, line, column and length.
+A failure carries a `code`, a `message` and, when it points into text, a `location` with the file, line, column and length. When the frontend refused a program, a library or a target, it also carries a `diagnostic` naming why, and `check` reports that name as its diagnostic's `code`.
 
 | Code | Meaning |
 | --- | --- |
 | `request` | The request is malformed: not an object, an unknown field, no program, a program and a key together, a key with a mode, engine, budget or goal, a goal outside path mode, `laser` in path mode, `interpreter` in plain mode, or `metal` outside it. |
-| `file` | A file cannot be read, or the protocol server was asked for one outside the directory it started in. |
+| `file` | A file cannot be read or is not UTF-8 text, or the protocol server was asked for one outside the directory it started in. |
 | `source` | A program does not parse or lower; `check` reports it as a diagnostic instead. |
-| `library` | A library does not parse or holds more than declarations; `check` reports it as a diagnostic instead. |
+| `library` | A library does not parse, or lists a coherence or scope where a library holds only rules; `check` reports it as a diagnostic instead, located at the first coherence or scope it lists. |
 | `target` | A goal or an exact target does not parse. |
 | `pattern` | A pattern is empty or does not parse, mixes coherences or scopes with rules, or is the wrong kind for the question. |
 | `handle` | A handle is malformed, names nothing in the exploration, or names a kind the verb does not explain. |
@@ -226,6 +226,19 @@ A failure carries a `code`, a `message` and, when it points into text, a `locati
 | `engine` | An engine cannot answer: metal refuses a program with no net of parts and every question but `explore` and `check`. |
 | `claim` | A claim cannot be asked this way, such as an exact target on a direct path, a rule pattern as a claim, or on metal a claim other than `end` and `outcome`. |
 | `shape` | The symmetry search exceeded its `node` limit. |
+
+| Diagnostic | Meaning |
+| --- | --- |
+| `syntax` | The text does not parse, and the message says what to write instead. |
+| `depth` | Parentheses and brackets nest more than 128 levels deep. |
+| `input` | A rule's input is a scope; a rule is matched without parentheses, as in `[[A] B]`. |
+| `expansion` | Distributing joins and partitioning brackets would build more than the frontend's budget of 1,000,000 units and 8 more for each byte of the source. |
+| `library` | A library lists a coherence or scope; a library holds only rules. |
+| `json` | A `.json` program is not a program: an object for each program, scope and rule, an array for each particle, a string for each atom as text spells it, and no deeper than text can nest. The message says what was expected there. |
+| `read` | A file cannot be read. |
+| `encoding` | A file is not UTF-8 text; save it as UTF-8. |
+
+`read` and `encoding` come from the frontend's own reader, which assembles programs for Bazel; Spectrum reads files itself and reports those failures as `file`.
 
 The command prints answers as text, or with `--json` as the envelope, and prints a failure as `error[code]: message`. Every verb but `shape` takes its recording's fields as flags beside its files: `--library` and `--source`, the budget's flags, `--path`, `--plain` and `--engine`, `--goal` with `--path`, and `--preserve`, which completes an exact target or the goal and so needs `--exact` or `--goal`. `--source` alone names a program; `compare` and `shape` add `--source` and every `--library` to each program they read. Claims keep the order the command line gives them, in the text and in the envelope. `run` lists every configuration of an exhaustive or plain exploration by its handle, and `prism` answers reached, unreachable or unknown for the exact target in a file, with `--preserve` adding every loaded root rule as `photonic_test` does, and names its witness and the events that reach it; both explore as a question's recording does, so the same program and flags give the key and handles every answer gives. With `--json`, `run` and `prism` print the engine's own report instead, numbered in the order the engine found each configuration.
 

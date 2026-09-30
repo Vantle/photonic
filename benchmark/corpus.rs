@@ -39,8 +39,9 @@ fn book(root: &Path, entry: &mut Vec<Entry>) {
             let mut program = Program::default();
             for dependency in item["library"].as_array().into_iter().flatten() {
                 let dependency = dependency.as_str().unwrap();
-                let source = parse(library[dependency].as_str().unwrap()).unwrap();
-                program.declare(source, dependency).unwrap();
+                program.declare(
+                    frontend::lowering::library(library[dependency].as_str().unwrap()).unwrap(),
+                );
             }
             let Some(source) = parse(item["source"].as_str().unwrap()) else {
                 continue;

@@ -236,8 +236,16 @@ fn spelling(value: &Value) {
 
 fn declaration(rule: &Definition, bounded: bool) {
     if bounded {
-        assert!(rule.input.len() <= 2, "{}", rule.name);
-        assert!(rule.output.len() <= 2, "{}", rule.name);
+        assert!(
+            rule.input.len() <= 2,
+            "{}",
+            frontend::text::definition(rule)
+        );
+        assert!(
+            rule.output.len() <= 2,
+            "{}",
+            frontend::text::definition(rule)
+        );
     }
     for value in rule.input.iter().flatten() {
         spelling(value);

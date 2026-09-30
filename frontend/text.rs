@@ -1,17 +1,10 @@
 use crate::source::{Definition, Output, Program, Value};
 
-pub(crate) fn rule(input: &[Vec<Value>], output: &[Output]) -> String {
-    std::iter::once(pattern(input))
-        .chain(product(output))
+pub fn definition(value: &Definition) -> String {
+    std::iter::once(pattern(&value.input))
+        .chain(product(&value.output))
         .collect::<Vec<_>>()
         .join(" ")
-}
-
-pub fn definition(value: &Definition) -> String {
-    if !value.name.is_empty() {
-        return value.name.clone();
-    }
-    rule(&value.input, &value.output)
 }
 
 fn pattern(input: &[Vec<Value>]) -> String {

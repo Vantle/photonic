@@ -136,7 +136,7 @@ photonic check light.wave --reach Red</pre>
 <p class="eyebrow">Language · 1</p>
 <h2>Atoms, particles and coherences</h2>
 <p class="lead">Photonic has one kind of data: occurrences of atoms, grouped into particles, living in coherences.</p>
-<p>An <strong>atom</strong> is any run of characters other than <code>( ) [ ] . ,</code> and whitespace. <code>True</code>, <code>0</code>, <code>-&gt;</code>, <code>$x</code> and <code>人</code> are atoms. Atoms mean nothing by themselves; rules give them meaning.</p>
+<p>An <strong>atom</strong> is any run of characters other than <code>( ) [ ] . ,</code> and whitespace, which is every Unicode space and the byte order mark. <code>True</code>, <code>0</code>, <code>-&gt;</code>, <code>$x</code> and <code>人</code> are atoms. An atom cannot hold a control character or an invisible character that hides or reorders text, such as U+200B or U+202E; the joiners that emoji and some scripts need are part of it. Atoms compare by code point, without normalization, so <code>é</code> typed as one character and as <code>e</code> with a combining accent are two atoms. Atoms mean nothing by themselves; rules give them meaning.</p>
 <p>A dot joins occurrences into a <strong>particle</strong>, and only a dot joins. A particle is unordered and counts repeats: <code>A.B</code> and <code>B.A</code> are the same particle, and <code>A.A</code> holds two occurrences of <code>A</code>.</p>
 <p>A comma separates <strong>coherences</strong>, the independent places where particles live. <code>A.B, C</code> is two coherences. A space means nothing, so two particles side by side need a dot or a comma between them. <code>()</code> is one empty coherence; an empty program has none.</p>
 <p>A <strong>configuration</strong> is everything that exists at one moment: its coherences and the rules that are live.</p>
@@ -802,8 +802,8 @@ join = _{ factor ~ ("." ~ factor)* }
 factor = _{ concept | group }
 group = { "(" ~ list ~ ")" }
 rule = { "[" ~ list ~ "]" }
-concept = @{ (!("(" | ")" | "[" | "]" | "." | "," | WHITESPACE) ~ ANY)+ }
-WHITESPACE = _{ " " | "\t" | "\r" | "\n" | "\u{000B}" | "\u{000C}" }</pre>
+concept = @{ (!("(" | ")" | "[" | "]" | "." | "," | WHITESPACE | CONTROL | BIDI_CONTROL | "\u{200B}" | "\u{2060}") ~ ANY)+ }
+WHITESPACE = _{ WHITE_SPACE | "\u{FEFF}" }</pre>
 <p>This is the whole grammar. Five rules give it meaning:</p>
 <ul>
 <li>A comma separates, a dot joins, and a space means nothing. Two particles side by side are an error until a dot or a comma says which you mean, so a forgotten comma is reported instead of quietly joining.</li>

@@ -1,6 +1,7 @@
 use frontend::failure::Failure;
 use frontend::lowering;
-use frontend::source::{Output, Program, Value};
+use frontend::source::{Library, Output, Program, Value};
+use miette::Diagnostic;
 
 fn atom(value: &[&str]) -> Vec<Value> {
     value
@@ -30,7 +31,8 @@ fn program(output: &Output) -> &Program {
 
 fn syntax(source: &str) -> String {
     match lowering::parse(source) {
-        Err(Failure::Syntax { message, .. } | Failure::Lowering { message, .. }) => message,
+        Err(Failure::Syntax { message, .. }) => message,
+        Err(failure @ Failure::Input { .. }) => failure.to_string(),
         other => panic!("expected a syntax failure for {source}, found {other:?}"),
     }
 }
@@ -207,8 +209,45 @@ fn alphabet() {
     let source = lowering::parse("[Box.(A)] Box.(B)").unwrap();
     assert_eq!(source.rule[0].input, [atom(&["Box", "A"])]);
     assert_eq!(particle(&source.rule[0].output[0]), atom(&["Box", "B"]));
-    assert!(serde_json::from_str::<Value>(r#"{"variable":"x"}"#).is_err());
-    assert!(serde_json::from_str::<Value>(r#"{"structure":"Box","particle":["A"]}"#).is_err());
+    for value in [
+        r#"{"variable":"x"}"#,
+        r#"{"structure":"Box","particle":["A"]}"#,
+    ] {
+        assert!(Program::read(&format!(r#"{{"initial":[[{value}]]}}"#)).is_err());
+    }
+}
+
+#[test]
+fn whitespace() {
+    same("\u{FEFF}A, [A] B", "A, [A] B");
+    same("A,\u{FEFF}[A]\u{FEFF}B\u{FEFF}", "A, [A] B");
+    same("A,\u{00A0}[A]\u{3000}B\u{2028}", "A, [A] B");
+}
+
+#[test]
+fn encoding() {
+    assert_eq!(
+        frontend::encoding::decode("plain.wave", "A, [A] B".into()).unwrap(),
+        "A, [A] B"
+    );
+    let failure = frontend::encoding::decode("wide.wave", vec![0xFF, 0xFE, b'A', 0]).unwrap_err();
+    assert_eq!(
+        failure.to_string(),
+        "wide.wave is not UTF-8 text; save it as UTF-8"
+    );
+    assert_eq!(
+        failure.code().map(|code| code.to_string()).as_deref(),
+        Some("photonic::encoding")
+    );
+}
+
+#[test]
+fn point() {
+    let composed = lowering::parse("\u{E9}").unwrap();
+    let decomposed = lowering::parse("e\u{301}").unwrap();
+    assert_eq!(composed.initial, [atom(&["\u{E9}"])]);
+    assert_eq!(decomposed.initial, [atom(&["e\u{301}"])]);
+    assert_ne!(composed.canonical(), decomposed.canonical());
 }
 
 #[test]
@@ -232,6 +271,23 @@ fn malformed() {
         );
     }
     assert!(syntax("[([A] B)] C").contains("input"));
+}
+
+#[test]
+fn code() {
+    for (source, code) in [
+        ("A B", "photonic::syntax"),
+        (&"[".repeat(frontend::parser::DEPTH + 1), "photonic::depth"),
+        ("[([A] B)] C", "photonic::input"),
+        (&"[A] ".repeat(10_000), "photonic::expansion"),
+    ] {
+        let failure = lowering::parse(source).unwrap_err();
+        assert_eq!(
+            failure.code().map(|code| code.to_string()).as_deref(),
+            Some(code),
+            "{failure}"
+        );
+    }
 }
 
 #[test]
@@ -310,21 +366,32 @@ fn depth() {
     ));
     assert!(lowering::parse(&"[A] B, ".repeat(10_000)).is_ok());
     let atom = "A".repeat(20_000);
-    let named = format!("{}{atom}{}", "[".repeat(100), "]".repeat(100));
-    assert!(matches!(
-        lowering::parse(&named),
-        Err(Failure::Expansion {
-            limit: 1_161_600,
-            ..
-        })
-    ));
-    let shallow = format!("{}{atom}{}", "[".repeat(8), "]".repeat(8));
-    assert!(lowering::parse(&shallow).is_ok());
+    for count in [8, 100, limit] {
+        let nested = format!("{}{atom}{}", "[".repeat(count), "]".repeat(count));
+        assert!(lowering::parse(&nested).is_ok(), "{count}");
+    }
     assert!(matches!(
         lowering::parse(&"[".repeat(limit + 1)),
         Err(Failure::Depth { .. })
     ));
     assert!(lowering::parse(&format!("{}A{}", "(".repeat(limit), ")".repeat(limit))).is_ok());
+}
+
+#[test]
+fn nesting() {
+    let inner = (0..3000)
+        .map(|index| format!("[R{index}] S{index}"))
+        .collect::<Vec<_>>()
+        .join(", ");
+    for count in [1, 40, frontend::parser::DEPTH - 1] {
+        let mut source = format!("[Enter0] (Seed, {inner})");
+        for level in 1..count {
+            source = format!("[Enter{level}] (Seed, {source})");
+        }
+        let program = lowering::parse(&format!("Enter{}, {source}", count - 1)).unwrap();
+        let written = serde_json::to_string(&program).unwrap();
+        assert!(written.len() < 4 * source.len(), "{count}");
+    }
 }
 
 #[test]
@@ -378,6 +445,28 @@ fn expansion() {
         Err(Failure::Expansion { .. })
     ));
     assert_eq!(lowering::parse("A.(B,C)").unwrap().initial.len(), 2);
+    let unit = vec!["Unit"; 800].join(".");
+    for (left, right) in [
+        (format!("(A, B).{unit}"), format!("{unit}.(A, B)")),
+        (
+            format!("(A, B).{unit}.(C, D)"),
+            format!("{unit}.(A, B).(C, D)"),
+        ),
+    ] {
+        same(&left, &right);
+    }
+    let pair = vec!["(A, B)"; 20].join(".");
+    for source in [
+        format!("{pair}.{unit}"),
+        format!("{unit}.{pair}"),
+        format!("X, [Y] {pair}.{unit}"),
+    ] {
+        let Err(Failure::Expansion { span, .. }) = lowering::parse(&source) else {
+            panic!("expected an expansion diagnostic for {source}");
+        };
+        let join = source.len() - pair.len() - unit.len() - 1;
+        assert_eq!((span.offset(), span.len()), (join, source.len() - join));
+    }
 }
 
 #[test]
@@ -402,7 +491,210 @@ fn read() {
     let text = serde_json::to_string(&program).unwrap();
     let read = Program::read(&text).unwrap();
     assert_eq!(serde_json::to_string(&read).unwrap(), text);
-    let error = Program::read(&"[".repeat(100_000)).unwrap_err();
-    assert!(error.to_string().contains("levels deep"), "{error}");
-    assert!(Program::read(r#"{"initial": [["[{\""]]}"#).is_ok());
+    assert!(Program::read(&"[".repeat(100_000)).is_err());
+    assert!(Program::read(&"{\"rule\":[".repeat(100_000)).is_err());
+    assert!(Program::read(r#"{"initial": [["[{\""]]}"#).is_err());
+}
+
+fn refused(text: &str) -> (String, usize) {
+    match Program::read(text) {
+        Err(Failure::Json { message, span }) => (message, span.offset()),
+        other => panic!("expected a refusal of {text}, found {other:?}"),
+    }
+}
+
+#[test]
+fn format() {
+    for (text, message, offset) in [
+        (
+            r#"{"rule":[{"input":[["A"]],"output":[[["X"]],[{"input":[["B"]],"output":[]}],[]]}]}"#,
+            "invalid type: sequence, expected a value: an atom, written as a string, or a rule, written as {\"rule\": …}",
+            37,
+        ),
+        (
+            "[]",
+            "invalid type: sequence, expected a program, an object with initial, rule and scope",
+            1,
+        ),
+        (
+            r#"[[["A"]],[["",[["A"]],[["B"]]]]]"#,
+            "invalid type: sequence, expected a program, an object with initial, rule and scope",
+            0,
+        ),
+        (
+            r#"{"rule":[["[Z] W", [["A"]], [["B"]]]], "initial":[["A"]]}"#,
+            "invalid type: sequence, expected a rule, an object with input and output",
+            9,
+        ),
+        (
+            r#"{"initial":[["A", [["", [["X"]], [["Y"]]]]]]}"#,
+            "invalid type: sequence, expected a value: an atom, written as a string, or a rule, written as {\"rule\": …}",
+            18,
+        ),
+        (
+            r#"{"rule":[{"input":[["A"]],"output":["B"]}]}"#,
+            "invalid type: string \"B\", expected an output: a particle, written as an array, or a scope, written as an object",
+            38,
+        ),
+        (
+            r#"{"rule":[{"name":"[B] C","input":[["A"]],"output":[["X"]]}]}"#,
+            "unknown field `name`, expected `input` or `output`",
+            15,
+        ),
+        (
+            r#"{"rule":[{"input":[["A"]]}]}"#,
+            "missing field `output`",
+            25,
+        ),
+        (
+            r#"{"initial":[["A"]],"initial":[]}"#,
+            "duplicate field `initial`",
+            27,
+        ),
+        (
+            r#"{"initial":[[{"rule":{"input":[],"output":[]},"name":"A"}]]}"#,
+            "unknown field `name`, there are no fields",
+            51,
+        ),
+        (r#"{"initial":[["A"]]} B"#, "trailing characters", 20),
+        (
+            "{\n  \"initial\": [[\"A\"]],\n  \"rule\": [\n",
+            "EOF while parsing a list",
+            36,
+        ),
+    ] {
+        assert_eq!(refused(text), (message.to_owned(), offset), "{text}");
+    }
+    let program = Program::read("\u{FEFF}{\"initial\":[[\"A\"]]}").unwrap();
+    assert_eq!(program.initial, [atom(&["A"])]);
+    assert_eq!(
+        Program::read("\u{FEFF}{\"initial\":[[\"A\"]],}")
+            .unwrap_err()
+            .to_string(),
+        "invalid Photonic program: trailing comma"
+    );
+    let failure = Program::read("[]").unwrap_err();
+    assert_eq!(
+        failure.code().map(|code| code.to_string()).as_deref(),
+        Some("photonic::json")
+    );
+}
+
+#[test]
+fn spelling() {
+    for (atom, message) in [
+        ("A.B", "'.' separates atoms, so an atom cannot hold it"),
+        ("", "an atom holds at least one character"),
+        (
+            "A B",
+            "U+0020 is a space, which separates atoms, so an atom cannot hold it",
+        ),
+        ("(x)", "'(' separates atoms, so an atom cannot hold it"),
+        (
+            "\u{FEFF}A",
+            "U+FEFF is a space, which separates atoms, so an atom cannot hold it",
+        ),
+        ("A\u{200B}B", "U+200B cannot appear in an atom"),
+        ("X\u{1B}c", "U+001B cannot appear in an atom"),
+    ] {
+        let written = serde_json::to_string(atom).unwrap();
+        for text in [
+            format!(r#"{{"initial":[[{written}]]}}"#),
+            format!(r#"{{"rule":[{{"input":[[{written}]],"output":[]}}]}}"#),
+            format!(r#"{{"rule":[{{"input":[],"output":[["A",{written}]]}}]}}"#),
+        ] {
+            let (found, offset) = refused(&text);
+            assert_eq!(found, message, "{text}");
+            assert_eq!(
+                offset,
+                text.find(&written).unwrap() + written.len() - 1,
+                "{text}"
+            );
+        }
+    }
+    assert!(Program::read(r#"{"initial":[["\u00e9", "e\u0301", "👨‍👩‍👧"]]}"#).is_ok());
+}
+
+#[test]
+fn library() {
+    let library = lowering::library("[A] [B], [C] D,\n[[E] F] ().([G] H)").unwrap();
+    assert_eq!(library.rule.len(), 4);
+    for (source, offset, length) in [
+        ("A, [A] B", 0, 1),
+        ("[A] B, (X, [X] Y)", 7, 10),
+        ("[A] B,\n  Seed.(C, D), (E)", 9, 11),
+        ("[A] B, ()", 7, 2),
+    ] {
+        let Err(Failure::Library { span }) = lowering::library(source) else {
+            panic!("expected {source} to be refused as a library");
+        };
+        assert_eq!((span.offset(), span.len()), (offset, length), "{source}");
+    }
+    assert_eq!(
+        lowering::library("X").unwrap_err().to_string(),
+        "this library lists a coherence or scope; a library holds only rules"
+    );
+    assert!(matches!(
+        lowering::library("[A] B C"),
+        Err(Failure::Syntax { .. })
+    ));
+    let rule = r#"{"input":[["A"]],"output":[["B"]]}"#;
+    let library =
+        Library::read(&format!(r#"{{"initial":[],"rule":[{rule}],"scope":[]}}"#)).unwrap();
+    assert_eq!(library.rule, lowering::parse("[A] B").unwrap().rule);
+    for (text, offset) in [
+        (format!(r#"{{"rule":[{rule}],"initial":[[],["A"]]}}"#), 57),
+        (
+            format!(
+                r#"{{"rule":[{rule}],"scope":[{{"initial":[[]],"rule":[{rule}]}}],"initial":[["B"]]}}"#
+            ),
+            54,
+        ),
+    ] {
+        let Err(Failure::Library { span }) = Library::read(&text) else {
+            panic!("expected {text} to be refused as a library");
+        };
+        assert_eq!(span.offset(), offset, "{text}");
+    }
+    assert!(matches!(
+        Library::read(r#"{"rule":[{"input":[["A"]]}],"initial":[["B"]]}"#),
+        Err(Failure::Json { .. })
+    ));
+    let mut program = Program::default();
+    program.declare(lowering::library("[A] B").unwrap());
+    assert_eq!(program, lowering::parse("[A] B").unwrap());
+}
+
+#[test]
+fn level() {
+    let nested = |count: usize| {
+        let mut value = r#""A""#.to_owned();
+        for _ in 0..count {
+            value = format!(r#"{{"rule":{{"input":[],"output":[[{value}]]}}}}"#);
+        }
+        format!(r#"{{"initial":[[{value}]]}}"#)
+    };
+    let limit = frontend::parser::DEPTH;
+    assert!(Program::read(&nested(limit - 1)).is_ok());
+    let (message, _) = refused(&nested(limit));
+    assert_eq!(
+        message,
+        "this nests deeper than the 128 levels text can write"
+    );
+    let text = format!("{}A{}", "().([] ".repeat(limit - 1), ")".repeat(limit - 1));
+    let lowered = lowering::parse(&text).unwrap();
+    assert_eq!(
+        Program::read(&serde_json::to_string(&lowered).unwrap()).unwrap(),
+        lowered
+    );
+    let scope = |count: usize| {
+        let mut value = r#"{"initial":[[]],"rule":[{"input":[],"output":[]}]}"#.to_owned();
+        for _ in 1..count {
+            value = format!(r#"{{"rule":[{{"input":[],"output":[]}}],"scope":[{value}]}}"#);
+        }
+        format!(r#"{{"scope":[{value}]}}"#)
+    };
+    assert!(Program::read(&scope(limit - 1)).is_ok());
+    assert!(refused(&scope(limit + 1)).0.contains("128 levels"));
+    assert!(Program::read(&"{\"scope\":[".repeat(1_000_000)).is_err());
 }

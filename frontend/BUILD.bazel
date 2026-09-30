@@ -12,9 +12,14 @@ exports_files(
 rust_library(
     name = "frontend",
     srcs = [
+        "advice.rs",
+        "atom.rs",
+        "character.rs",
+        "encoding.rs",
         "expansion.rs",
         "failure.rs",
         "frontend.rs",
+        "json.rs",
         "lowering.rs",
         "parser.rs",
         "partition.rs",
@@ -22,7 +27,6 @@ rust_library(
         "source.rs",
         "syntax.rs",
         "text.rs",
-        "validation.rs",
     ],
     crate_root = "frontend.rs",
     lint_config = "//:lint",
@@ -68,6 +72,17 @@ rust_test(
     lint_config = "//:lint",
     deps = [
         ":frontend",
+        "@crate//:miette",
         "@crate//:serde_json",
     ],
+)
+
+rust_test(
+    name = "memory",
+    size = "small",
+    srcs = ["test/memory.rs"],
+    crate_root = "test/memory.rs",
+    lint_config = "//:lint",
+    tags = ["memory"],
+    deps = [":frontend"],
 )
