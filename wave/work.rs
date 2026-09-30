@@ -1,5 +1,6 @@
 use crate::failure::Failure;
 use crate::grow::Grow;
+use crate::setting::SUMMARY;
 use metal::device::{Device, Memory};
 
 // The memory one exploration reuses from window to window and pass to pass: the counts and running
@@ -42,7 +43,7 @@ impl Work {
             event: Grow::new(device, 0)?,
             block: Grow::new(device, 0)?,
             level: Vec::new(),
-            summary: device.memory::<u32>(4)?,
+            summary: device.memory::<u32>(SUMMARY)?,
             total: device.memory::<u64>(3)?,
         })
     }

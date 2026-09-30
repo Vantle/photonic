@@ -1,4 +1,5 @@
 use crate::exploration::{self, Exploration};
+use crate::explore;
 use crate::failure::{Code, Failure};
 use crate::handle::Handle;
 use crate::pattern::{self, Pattern};
@@ -97,8 +98,9 @@ const PATH: &str = "a direct path follows one run of many, so it cannot settle t
 
 fn open(exploration: &Exploration) -> String {
     format!(
-        "the exploration stopped at its budget after {}",
-        render::count(exploration.configuration.len(), "configuration")
+        "the exploration stopped after {}: {}",
+        render::count(exploration.configuration.len(), "configuration"),
+        explore::reason(&exploration.stop)
     )
 }
 
@@ -290,7 +292,10 @@ fn decide(claim: &Claim, exploration: &Exploration, matched: &[bool]) -> Evidenc
         Kind::Inevitable => inevitable(exploration, matched, &word),
         Kind::Outcome if !exploration.closed => Evidence::plain(
             Answer::Unknown,
-            "end configurations are known once the exploration closes",
+            format!(
+                "end configurations are known once the exploration closes, and {}",
+                explore::reason(&exploration.stop)
+            ),
         ),
         Kind::Outcome => {
             let stray = exploration.leaf().filter(|&index| !matched[index]);
@@ -361,7 +366,10 @@ pub(crate) fn survey(claim: &Claim, survey: &Survey) -> Result<Verdict, Failure>
         }
         _ if !survey.closed => Evidence::plain(
             Answer::Unknown,
-            "end configurations are known once the exploration closes",
+            format!(
+                "end configurations are known once the exploration closes, and {}",
+                explore::reason(&survey.stop)
+            ),
         ),
         (_, Some(index)) => Evidence::plain(
             Answer::Fails,

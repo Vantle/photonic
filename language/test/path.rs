@@ -47,10 +47,12 @@ fn batching() {
         for _ in 0..budget {
             expected.run(1, limit);
         }
-        assert_eq!(
-            serde_json::to_value(actual.report()).unwrap(),
-            serde_json::to_value(expected.report()).unwrap()
-        );
+        let report = |search: &Search| {
+            let mut report = serde_json::to_value(search.report()).unwrap();
+            report.as_object_mut().unwrap().remove("stop");
+            report
+        };
+        assert_eq!(report(&actual), report(&expected));
         assert_eq!(
             serde_json::to_value(actual.statistic()).unwrap(),
             serde_json::to_value(expected.statistic()).unwrap()

@@ -12,6 +12,7 @@ use photonic::prism::{Outcome, Reach, Verdict};
 use photonic::runtime::Runtime;
 use photonic::snapshot::{self, Link, Node};
 use photonic::status::Status;
+use photonic::stop::Stop;
 use std::collections::VecDeque;
 use std::sync::OnceLock;
 
@@ -64,6 +65,7 @@ pub struct Exploration {
     pub naming: Naming,
     pub program: Program,
     pub closed: bool,
+    pub stop: Vec<Stop>,
     pub reached: bool,
     pub work: usize,
     pub rule: Vec<Rule>,
@@ -88,6 +90,7 @@ pub struct Plan {
 
 struct Record<'report> {
     closed: bool,
+    stop: Vec<Stop>,
     reached: bool,
     work: usize,
     definition: &'report [snapshot::Definition],
@@ -322,6 +325,7 @@ impl Exploration {
             .collect();
         let record = Record {
             closed: snapshot.closed,
+            stop: snapshot.stop.clone(),
             reached: false,
             work: snapshot.work,
             definition: &snapshot.definition,
@@ -347,6 +351,7 @@ impl Exploration {
         let report = laser.report();
         let record = Record {
             closed: report.closed,
+            stop: report.stop.clone(),
             reached: false,
             work: report.work,
             definition: &report.definition,
@@ -393,6 +398,7 @@ impl Exploration {
         let reached = report.outcome == Outcome::Reached;
         let record = Record {
             closed: reached,
+            stop: report.stop.clone(),
             reached,
             work: report.work,
             definition: &report.definition,
@@ -456,6 +462,7 @@ impl Exploration {
             naming: plan.canonical.naming,
             program: plan.canonical.program,
             closed: record.closed,
+            stop: record.stop,
             reached: record.reached,
             work: record.work,
             rule,

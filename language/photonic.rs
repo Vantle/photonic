@@ -71,6 +71,7 @@ mod slot;
 pub mod snapshot;
 mod state;
 pub mod status;
+pub mod stop;
 mod structure;
 mod support;
 mod symmetry;

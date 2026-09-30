@@ -4,6 +4,7 @@ use photonic::family;
 use photonic::laser::Laser;
 use photonic::laser::net::{Cycle, Net};
 use photonic::runtime::Limit;
+use photonic::stop::{BOUND, Stop};
 
 // Every tuning explores exactly as the host's net does, number for number: the same configurations,
 // events, end configurations in the same order, cycles and work, whether it counts a few markings
@@ -85,6 +86,7 @@ fn identical() {
         "Go.A, Go.B, [Go] (X, [X] Y), [Y.A] Z, [Y.B, Z] W".to_owned(),
         "S, [S] E, [S] F, [S] G, [S] X, [X] Y, [Y] X".to_owned(),
     ];
+    let mut seen = Vec::new();
     for tuning in tuning {
         let Some(engine) = Engine::tuned(tuning).unwrap() else {
             return;
@@ -108,9 +110,20 @@ fn identical() {
                 let name = format!("{source} {tuning:?} {budget} {limit:?}");
                 assert_eq!(explored.agrees(&net, &expected, &theirs), Ok(()), "{name}");
                 assert_eq!(explored.end, expected.end, "{name}");
+                seen.extend(explored.stop);
             }
         }
     }
+    for bound in BOUND {
+        assert!(
+            seen.iter().any(|stop| matches!(
+                *stop,
+                Stop::Limit { bound: found, .. } | Stop::Start { bound: found, .. } if found == bound
+            )),
+            "{bound:?}"
+        );
+    }
+    assert!(seen.iter().any(|stop| matches!(stop, Stop::Work { .. })));
 }
 
 // The GPU explores every schedule of plain events from the net's tables and closes with the plain

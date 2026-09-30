@@ -6,6 +6,7 @@ use crate::failure::Failure;
 use crate::handle::Handle;
 use crate::recording::{Engine, Mode, Order, Recording};
 use crate::render;
+use photonic::stop::Stop;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -63,6 +64,11 @@ pub(crate) struct Summary {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) shape: Option<String>,
     pub(crate) complete: bool,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[schemars(
+        description = "Why the exploration stopped short of closing: each budget that ran out and each limit that blocked events, with how many; on a direct path, why the path stopped. Empty once the exploration closes."
+    )]
+    pub(crate) stop: Vec<Stop>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) reached: Option<bool>,
     #[schemars(
@@ -103,6 +109,7 @@ pub(crate) fn brief(explored: &Explored) -> Summary {
             order: exploration.order,
             shape: exploration.shape.map(|shape| format!("{shape:016x}")),
             complete: exploration.closed,
+            stop: exploration.stop.clone(),
             reached: (exploration.mode == Mode::Path).then_some(exploration.reached),
             work: exploration.work,
             configuration: exploration.configuration.len(),
@@ -120,6 +127,7 @@ pub(crate) fn brief(explored: &Explored) -> Summary {
             order: survey.order,
             shape: survey.shape.map(|shape| format!("{shape:016x}")),
             complete: survey.closed,
+            stop: survey.stop.clone(),
             reached: None,
             work: survey.work,
             configuration: survey.configuration,
@@ -199,14 +207,46 @@ pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Ans
     Ok(summary(&explored, request.limit))
 }
 
+// The words a list uses: one, two joined by and, or more with commas before the last and.
+fn list(item: &[String]) -> String {
+    match item {
+        [] => String::new(),
+        [only] => only.clone(),
+        [first @ .., last] => format!("{} and {last}", first.join(", ")),
+    }
+}
+
+// Why an exploration stopped, as its answers say it: each reason, then the budgets and limits to
+// raise so it goes on.
+pub(crate) fn reason(stop: &[Stop]) -> String {
+    let said = stop
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+        .join(", and ");
+    let mut raise = Vec::new();
+    for flag in stop.iter().filter_map(|stop| stop.raise()) {
+        let flag = format!("--{flag}");
+        if !raise.contains(&flag) {
+            raise.push(flag);
+        }
+    }
+    if raise.is_empty() {
+        return said;
+    }
+    format!("{said}; raise {}", list(&raise))
+}
+
 pub(crate) fn state(summary: &Summary) -> String {
     let status = match (summary.mode, summary.complete, summary.reached) {
-        (Mode::Path, _, Some(true)) => "path reached its goal",
-        (Mode::Path, _, _) => "path stopped",
-        (Mode::Exhaustive | Mode::Plain, true, _) => "closed",
-        (Mode::Exhaustive | Mode::Plain, false, _) => "open: a budget stopped it",
+        (Mode::Path, _, Some(true)) => "path reached its goal".to_owned(),
+        (Mode::Path, _, _) => format!("path stopped: {}", reason(&summary.stop)),
+        (Mode::Exhaustive | Mode::Plain, true, _) => "closed".to_owned(),
+        (Mode::Exhaustive | Mode::Plain, false, _) => {
+            format!("open: {}", reason(&summary.stop))
+        }
     };
-    let mut part = vec![summary.exploration.clone(), status.to_owned()];
+    let mut part = vec![summary.exploration.clone(), status];
     match (summary.mode, summary.engine) {
         (Mode::Plain, Engine::Metal) => part.extend(["plain".to_owned(), "metal".to_owned()]),
         (Mode::Plain, _) => part.push("plain".to_owned()),

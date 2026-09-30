@@ -1,6 +1,7 @@
 use crate::place::Place;
 use crate::runtime::Limit;
 use crate::status::Status;
+use crate::stop::Stop;
 use frontend::source;
 use serde::Serialize;
 use std::sync::Arc;
@@ -15,6 +16,7 @@ pub struct Snapshot<Configuration = Vec<Node>, Transition = Vec<Event>, Projecti
     pub deferred: usize,
     pub work: usize,
     pub limit: Limit,
+    pub stop: Vec<Stop>,
     pub state: Configuration,
     pub event: Transition,
     pub view: Projection,

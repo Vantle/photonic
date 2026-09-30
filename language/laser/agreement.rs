@@ -337,15 +337,22 @@ impl Laser {
 }
 
 impl Exploration {
-    // Two explorations of one program's net agree number for number when they close alike, find
-    // as many configurations and events, take the same work, find the same end configurations in
-    // the same order and, where both looked for one, a cycle in both or neither; each net numbers
-    // kinds in the order it grounded its parts, so ends are compared by their canonical states.
+    // Two explorations of one program's net agree number for number when they close alike, stop
+    // for the same reasons, find as many configurations and events, take the same work, find the
+    // same end configurations in the same order and, where both looked for one, a cycle in both or
+    // neither; each net numbers kinds in the order it grounded its parts, so ends are compared by
+    // their canonical states.
     pub fn agrees(&self, net: &Net, reference: &Self, theirs: &Net) -> Result<(), Disagreement> {
         if self.closed != reference.closed {
             return Err(Disagreement::Closed {
                 reference: reference.closed,
                 laser: self.closed,
+            });
+        }
+        if self.stop != reference.stop {
+            return Err(Disagreement::Stop {
+                reference: reference.stop.clone(),
+                laser: self.stop.clone(),
             });
         }
         if let (Some(endless), Some(expected)) = (self.endless, reference.endless)

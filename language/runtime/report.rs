@@ -149,6 +149,7 @@ impl Runtime {
             deferred: self.pending.len(),
             work: self.work,
             limit: self.limit,
+            stop: self.stop(),
             state,
             event,
             view,

@@ -3,7 +3,7 @@ use crate::dispatch::whole;
 use crate::failure::Failure;
 use crate::scan::Scan;
 use crate::search::Search;
-use crate::setting::{BACKWARD, REFUSED, TAG, prelude};
+use crate::setting::{BACKWARD, REFUSAL, TAG, prelude};
 use crate::store::Store;
 use crate::table::Table;
 use crate::tally::Tally;
@@ -13,6 +13,7 @@ use crate::work::Work;
 use metal::device::{Command, Device, Kernel};
 use photonic::laser::net::{Cycle, Exploration, Net};
 use photonic::runtime::Limit;
+use photonic::stop::{BOUND, Blocked};
 
 // The bytes a configuration takes at most: its marking's words, its table slots and offset, and
 // the edges its successors leave when cycles matter, which come to 130 to 160 bytes for tasks and
@@ -140,6 +141,7 @@ impl Engine {
         if table.prepare(net, &start, allowance)?.is_none() {
             return Ok(Exploration {
                 closed: false,
+                stop: net.stop(limit, Some(budget), Blocked::default()),
                 configuration: 1,
                 event: 0,
                 end: Vec::new(),
@@ -181,10 +183,19 @@ impl Engine {
             cursor += window.size;
         }
         let summary = search.work.summary.view::<u32>();
-        let (refused, backward) = (summary[REFUSED] != 0, summary[BACKWARD] != 0);
+        let backward = summary[BACKWARD] != 0;
+        let mut blocked = search.tally.blocked;
+        for bound in BOUND {
+            let word = REFUSAL + 2 * bound as usize;
+            let refused = u64::from(summary[word]) | u64::from(summary[word + 1]) << 32;
+            blocked.add(bound, usize::try_from(refused).unwrap_or(usize::MAX));
+        }
+        let stop = search.net.stop(limit, spent.then_some(budget), blocked);
+        let closed = stop.is_empty();
         let count = search.store.count;
         Ok(Exploration {
-            closed: !refused && !spent,
+            closed,
+            stop,
             configuration: count,
             event: search.tally.event,
             end: end.into_iter().map(|id| search.store.marking(id)).collect(),

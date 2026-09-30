@@ -9,6 +9,7 @@ use super::{Event, Identity, Laser, Round, build, map, update};
 use crate::executor::Executor;
 use crate::profile;
 use crate::state::State;
+use crate::stop::Bound;
 use smallvec::SmallVec;
 use std::collections::hash_map::Entry;
 use std::sync::Arc;
@@ -36,7 +37,7 @@ struct Named {
 }
 
 enum Settled {
-    Blocked,
+    Blocked(Bound),
     Existing(usize, Box<Route>),
     Repeat(usize, Box<Route>),
     New(
@@ -148,7 +149,7 @@ impl Laser {
                     .product
                     .as_ref()
                     .map(|product| self.taxonomy.intern(&product.draft)),
-                Outcome::Blocked => None,
+                Outcome::Blocked(_) => None,
             })
             .collect::<Vec<_>>();
         let taxonomy = &self.taxonomy;
@@ -185,7 +186,7 @@ impl Laser {
                         self.whole.insert(key);
                     }
                 }
-                Outcome::Blocked => {}
+                Outcome::Blocked(_) => {}
             }
         }
         (learned, fresh)
@@ -205,14 +206,13 @@ impl Laser {
         }
     }
 
-    // Each result's makeup, hash and passage back to its source; a move's result the limits
-    // refuse has none.
+    // Each result's makeup, hash and passage back to its source, or the limit that refuses it.
     fn label(
         &self,
         executor: Option<&Executor>,
         learned: Vec<Learned>,
         pending: &[(Identity, usize)],
-    ) -> Vec<Option<Named>> {
+    ) -> Vec<Result<Named, Bound>> {
         let taxonomy = &self.taxonomy;
         let makeup = &self.makeup;
         let limit = self.limit;
@@ -224,7 +224,7 @@ impl Laser {
                 Outcome::Product(product) => {
                     let (root, kind) = number.expect("a product is numbered");
                     let (makeup, passage) = realize(taxonomy, *product, root, &kind);
-                    Some(Named {
+                    Ok(Named {
                         hash: space::hash(&makeup),
                         makeup,
                         route: Route::Flat(Box::new(passage)),
@@ -239,10 +239,10 @@ impl Laser {
                         &effect.produced,
                         effect.root,
                     );
-                    if !limit.admits(taxonomy.measure(&makeup)) {
-                        return None;
+                    if let Some(bound) = limit.refuse(taxonomy.measure(&makeup)) {
+                        return Err(bound);
                     }
-                    Some(Named {
+                    Ok(Named {
                         hash: space::hash(&makeup),
                         makeup,
                         route: Route::Composed {
@@ -253,14 +253,18 @@ impl Laser {
                         },
                     })
                 }
-                Outcome::Blocked => None,
+                Outcome::Blocked(bound) => Err(bound),
             },
         )
     }
 
     // Where each result lies: a configuration already known, one an earlier result of the batch
     // makes, or a new one, materialized here in parallel.
-    fn locate(&self, executor: Option<&Executor>, named: Vec<Option<Named>>) -> Vec<Settled> {
+    fn locate(
+        &self,
+        executor: Option<&Executor>,
+        named: Vec<Result<Named, Bound>>,
+    ) -> Vec<Settled> {
         let item = named
             .iter()
             .flatten()
@@ -271,20 +275,21 @@ impl Laser {
             .into_iter()
             .map(|named| {
                 let found = named
-                    .is_some()
+                    .is_ok()
                     .then(|| found.next().expect("one answer for each applied event"));
                 (named, found)
             })
             .collect::<Vec<_>>();
         let taxonomy = &self.taxonomy;
         map(executor, paired, |(named, found)| match (named, found) {
-            (Some(named), Some(Found::Existing(index))) => {
+            (Err(bound), _) => Settled::Blocked(bound),
+            (Ok(named), Some(Found::Existing(index))) => {
                 Settled::Existing(index, Box::new(named.route))
             }
-            (Some(named), Some(Found::Repeat(earlier))) => {
+            (Ok(named), Some(Found::Repeat(earlier))) => {
                 Settled::Repeat(earlier, Box::new(named.route))
             }
-            (Some(named), Some(Found::New)) => {
+            (Ok(named), Some(Found::New)) => {
                 let (state, layout) = build(taxonomy, &named.makeup);
                 Settled::New(
                     named.hash,
@@ -294,7 +299,7 @@ impl Laser {
                     Box::new(named.route),
                 )
             }
-            _ => Settled::Blocked,
+            (Ok(_), None) => unreachable!("one answer for each applied event"),
         })
     }
 
@@ -313,8 +318,8 @@ impl Laser {
         let mut fired = Vec::new();
         for ((identity, position), settled) in pending.into_iter().zip(settled) {
             let (resolved, route) = match settled {
-                Settled::Blocked => {
-                    self.blocked.insert(identity, position);
+                Settled::Blocked(bound) => {
+                    self.blocked.insert(identity, (position, Some(bound)));
                     created.push(None);
                     continue;
                 }
@@ -332,7 +337,8 @@ impl Laser {
             };
             target.push(resolved);
             let Some(resolved) = resolved else {
-                self.blocked.insert(identity, position);
+                self.blocked
+                    .insert(identity, (position, Some(Bound::Configuration)));
                 created.push(None);
                 continue;
             };

@@ -231,6 +231,12 @@ fn metal() {
     let open = serde_json::from_slice::<serde_json::Value>(&open.stdout).unwrap();
     assert_eq!(open["answer"]["claim"][0]["answer"], "unknown");
     assert_eq!(open["answer"]["summary"]["complete"], false);
+    let stop = &open["answer"]["summary"]["stop"][0];
+    assert_eq!(
+        (&stop["kind"], &stop["bound"]),
+        (&"limit".into(), &"configuration".into())
+    );
+    assert_eq!(stop["value"], 2);
     let reach = execute("check", &path, &plain(&["--reach", "Done"]));
     assert!(String::from_utf8_lossy(&reach.stderr).contains("answers outcome and end"));
     let step = execute("step", &path, &plain(&[]));

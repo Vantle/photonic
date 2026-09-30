@@ -1,13 +1,15 @@
 use crate::setting::BLOCKED;
 use crate::window::Range;
 use photonic::laser::ending;
+use photonic::stop::Blocked;
 
-// What the passes of an exploration add up to: its events and, when cycles matter, every
-// candidate's target, the targets of each marking's candidates lying from its first position to
-// the next marking's.
+// What the passes of an exploration add up to: its events, the events each limit refused of the
+// successors the host found, and, when cycles matter, every candidate's target, the targets of
+// each marking's candidates lying from its first position to the next marking's.
 #[derive(Default)]
 pub struct Tally {
     pub event: u64,
+    pub blocked: Blocked,
     first: Vec<u64>,
     edge: Vec<u32>,
 }

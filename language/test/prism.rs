@@ -20,8 +20,12 @@ impl Case {
         self.runtime.verdict(&self.target)
     }
 
+    // The verdict and the snapshot, without the budget the last run spent, which names that run's
+    // own budget.
     fn report(&self) -> serde_json::Value {
-        serde_json::to_value((self.verdict(), self.runtime.snapshot())).unwrap()
+        let mut snapshot = serde_json::to_value(self.runtime.snapshot()).unwrap();
+        snapshot.as_object_mut().unwrap().remove("stop");
+        serde_json::to_value((self.verdict(), snapshot)).unwrap()
     }
 }
 

@@ -11,9 +11,11 @@ use crate::flow::{Binding, Flow};
 use crate::program::Program;
 use crate::snapshot::Origin;
 use crate::state::State;
+use crate::stop::{BOUND, Blocked, Bound, Stop};
 use crate::support::{Atom, Clause};
 use frontend::source;
-use indexmap::IndexSet;
+use hashing::Builder;
+use indexmap::{IndexMap, IndexSet};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use std::sync::Arc;
@@ -68,13 +70,60 @@ impl Measure {
             scope: reachable.len() - 1,
         }
     }
+
+    // What one limit weighs.
+    pub fn get(self, bound: Bound) -> usize {
+        match bound {
+            Bound::Configuration => 1,
+            Bound::Coherence => self.coherence,
+            Bound::Occurrence => self.occurrence,
+            Bound::Scope => self.scope,
+        }
+    }
 }
 
 impl Limit {
-    pub(crate) fn admits(&self, measure: Measure) -> bool {
-        measure.coherence <= self.coherence
-            && measure.occurrence <= self.occurrence
-            && measure.scope <= self.scope
+    // The first limit a configuration of this measure passes, if any.
+    pub fn refuse(&self, measure: Measure) -> Option<Bound> {
+        [Bound::Coherence, Bound::Occurrence, Bound::Scope]
+            .into_iter()
+            .find(|&bound| measure.get(bound) > self.get(bound))
+    }
+
+    pub fn get(&self, bound: Bound) -> usize {
+        match bound {
+            Bound::Configuration => self.configuration,
+            Bound::Coherence => self.coherence,
+            Bound::Occurrence => self.occurrence,
+            Bound::Scope => self.scope,
+        }
+    }
+
+    // Why an exploration from a start of this measure stopped short of closing: the budget it
+    // spent, if one did, then each limit that blocked events, with how many. A limit the start
+    // already passes is named with what the start holds.
+    pub fn stop(&self, spent: Option<Stop>, start: Measure, blocked: Blocked) -> Vec<Stop> {
+        let limit = BOUND.into_iter().filter_map(|bound| {
+            let count = blocked.get(bound);
+            if count == 0 {
+                return None;
+            }
+            let value = self.get(bound);
+            let measure = start.get(bound);
+            if bound != Bound::Configuration && measure > value {
+                return Some(Stop::Start {
+                    bound,
+                    value,
+                    measure,
+                });
+            }
+            Some(Stop::Limit {
+                bound,
+                value,
+                blocked: count,
+            })
+        });
+        spent.into_iter().chain(limit).collect()
     }
 }
 
@@ -138,8 +187,9 @@ pub struct Runtime {
     outgoing: Vec<Vec<usize>>,
     incoming: Vec<Vec<usize>>,
     agenda: crate::agenda::Queue<Task>,
-    pending: IndexSet<Application, hashing::Builder>,
+    pending: IndexMap<Application, Bound, Builder>,
     limit: Limit,
+    spent: Option<Stop>,
     pub(crate) work: usize,
     peak: usize,
     flying: usize,
@@ -168,8 +218,9 @@ impl Runtime {
             outgoing: Vec::new(),
             incoming: Vec::new(),
             agenda: crate::agenda::Queue::new(),
-            pending: IndexSet::default(),
+            pending: IndexMap::default(),
             limit: Limit::default(),
+            spent: None,
             work: 0,
             peak: 0,
             flying: 0,
@@ -244,14 +295,20 @@ impl Runtime {
     ) {
         if limit != self.limit {
             self.limit = limit;
-            self.agenda.extend(self.pending.drain(..).map(Task::Apply));
+            self.agenda.extend(
+                self.pending
+                    .drain(..)
+                    .map(|(application, _)| Task::Apply(application)),
+            );
         }
         let mut remaining = budget;
+        let mut full = false;
         while remaining > 0 {
             if self.record() >= self.limit.record {
                 self.matching.evict();
                 self.composition.evict();
                 if self.record() >= self.limit.record {
+                    full = true;
                     break;
                 }
             }
@@ -309,6 +366,13 @@ impl Runtime {
             }
             self.peak = self.peak.max(self.record());
         }
+        self.spent = (!self.agenda.is_empty()).then_some(if full {
+            Stop::Record {
+                budget: self.limit.record,
+            }
+        } else {
+            Stop::Work { budget }
+        });
     }
 
     pub(crate) fn record(&self) -> usize {
@@ -328,5 +392,14 @@ impl Runtime {
 
     pub fn closed(&self) -> bool {
         self.agenda.is_empty() && self.pending.is_empty()
+    }
+
+    // Why the exploration stopped short of closing, or nothing once it closed.
+    pub fn stop(&self) -> Vec<Stop> {
+        self.limit.stop(
+            self.spent,
+            Measure::new(&self.state[0]),
+            self.pending.values().copied().collect(),
+        )
     }
 }

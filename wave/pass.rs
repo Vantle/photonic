@@ -2,13 +2,14 @@ use crate::engine::Engine;
 use crate::failure::Failure;
 use crate::search::Search;
 use crate::setting::{
-    BLOCKED, BOUND, CANDIDATE, FLAGGED, JOINED, LIMITED, REFUSED, SHIFT, Setting, TAG, WIDTH,
-    WINNER, WORD, saturate,
+    BLOCKED, BOUND, CANDIDATE, FLAGGED, JOINED, LIMITED, SHIFT, Setting, TAG, WIDTH, WINNER, WORD,
+    saturate,
 };
 use crate::window::{Joined, Range, Window};
 use crate::work::Work;
 use metal::device::{Command, Memory};
 use photonic::laser::net::Cycle;
+use photonic::stop::Bound;
 
 // Writes the successors the host found for the pass's markings where the running sum places them,
 // marked when the limits refuse them, as expanding records the successors the tables give.
@@ -16,19 +17,15 @@ fn host(work: &mut Work, joined: &[Joined], first: usize, begin: u64) {
     let record = work.record.memory.edit::<u32>();
     for item in joined {
         let candidate = (item.position - begin) as usize;
-        let flag = if item.admitted {
-            JOINED
-        } else {
-            JOINED | LIMITED
+        let flag = match item.refused {
+            Some(_) => JOINED | LIMITED,
+            None => JOINED,
         };
         record[3 * candidate..3 * candidate + 3].copy_from_slice(&[
             saturate(first + item.index),
             item.extra,
             flag,
         ]);
-    }
-    if joined.iter().any(|item| !item.admitted) {
-        work.summary.edit::<u32>()[REFUSED] = 1;
     }
 }
 
@@ -326,7 +323,6 @@ impl Engine {
                 &work.target.memory,
                 &store.table,
                 &work.slot.memory,
-                &work.summary,
                 &work.total,
             ],
             &decide.byte(),
@@ -341,6 +337,7 @@ impl Engine {
                     &work.record.memory,
                     &work.target.memory,
                     &work.event.memory,
+                    &work.summary,
                     &work.total,
                 ],
                 &decide.byte(),
@@ -392,8 +389,9 @@ impl Engine {
     }
 
     // Adds up what a decided pass found: its events, those the kernels summed a threadgroup at a
-    // time and those of the successors the host found that reached a marking, every candidate's
-    // target when cycles matter, and the new markings the configuration limit admits.
+    // time and those of the successors the host found that reached a marking, the events of the
+    // host's successors the limits refused, every candidate's target when cycles matter, and the
+    // new markings the configuration limit admits.
     fn account(&self, search: &mut Search<'_>, joined: &[Joined], range: &Range, allowed: usize) {
         let count = range.count();
         let weighed = if allowed < count {
@@ -405,11 +403,17 @@ impl Engine {
             .iter()
             .sum::<u64>();
         let target = search.work.target.memory.view::<u32>();
-        let found = joined
-            .iter()
-            .filter(|item| target[(item.position - range.begin) as usize] != BLOCKED)
-            .map(|item| item.weight)
-            .sum::<u64>();
+        let mut found = 0;
+        for item in joined {
+            let weight = usize::try_from(item.weight).unwrap_or(usize::MAX);
+            match item.refused {
+                Some(bound) => search.tally.blocked.add(bound, weight),
+                None if target[(item.position - range.begin) as usize] == BLOCKED => {
+                    search.tally.blocked.add(Bound::Configuration, weight);
+                }
+                None => found += item.weight,
+            }
+        }
         search.tally.event += summed + found;
         if search.cycle == Cycle::Find {
             search.tally.link(&target[..count]);

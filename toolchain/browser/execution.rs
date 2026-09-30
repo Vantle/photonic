@@ -2,6 +2,7 @@ use crate::catalog::Catalog;
 use crate::configuration::Configuration;
 use photonic::place::Place;
 use photonic::snapshot::Snapshot;
+use photonic::stop::Stop;
 use serde::Serialize;
 
 #[derive(Serialize)]
@@ -17,10 +18,13 @@ struct Transition {
     deduction: Vec<usize>,
 }
 
+// An exploration as the page shows it; stop says why it stopped short of closing, and is empty once
+// it closes.
 #[derive(Serialize)]
 pub struct Execution {
     definition: Catalog,
     closed: bool,
+    stop: Vec<Stop>,
     work: usize,
     state: Vec<Configuration>,
     event: Vec<Transition>,
@@ -45,6 +49,7 @@ impl From<Snapshot> for Execution {
             .collect();
         Self {
             closed: snapshot.closed,
+            stop: snapshot.stop.clone(),
             work: snapshot.work,
             state: snapshot
                 .state

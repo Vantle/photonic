@@ -7,18 +7,19 @@ use crate::setting::{BARE, FLAGGED, JOIN, MISSING, OFFER, Setting, WINDOW, satur
 use crate::work::Work;
 use metal::device::{Command, Memory};
 use photonic::laser::net::Successor;
+use photonic::stop::Bound;
 
 // A successor the host found for a marking whose kinds could join in one event: the marking's place
 // in the window, the successor's place among the marking's, and then among the window's candidates,
 // where its words start in the extra memory, after the two halves of its hash, how many events lead
-// there and whether the limits admit it.
+// there and the limit that refuses it, if any.
 pub struct Joined {
     pub index: usize,
     pub order: u64,
     pub position: u64,
     pub extra: u32,
     pub weight: u64,
-    pub admitted: bool,
+    pub refused: Option<Bound>,
 }
 
 // A run of markings whose successors are counted together: the first marking's id, how many, how
@@ -298,7 +299,7 @@ impl Engine {
                     position: 0,
                     extra: saturate(extra.len()),
                     weight: count,
-                    admitted: search.net.admits(&marking, search.limit),
+                    refused: search.net.refuse(&marking, search.limit),
                 });
                 extra.extend(arena::word(&marking));
             }

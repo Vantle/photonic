@@ -10,6 +10,7 @@ use crate::flow::{Closure, Flow};
 use crate::profile;
 use crate::runtime::Measure;
 use crate::state::Canonical;
+use crate::stop::Bound;
 use hashing::Builder;
 use indexmap::IndexMap;
 use std::ops::Range;
@@ -39,7 +40,7 @@ pub(super) struct Move {
 pub(super) enum Outcome {
     Product(Box<Product>),
     Move(Box<Move>),
-    Blocked,
+    Blocked(Bound),
 }
 
 enum Resolution {
@@ -94,7 +95,7 @@ impl Laser {
         // as blocked identities do, so no trace fires one of them twice, and fire first next round.
         let count = created.len();
         for (identity, position) in rest {
-            self.blocked.insert(identity.clone(), position);
+            self.blocked.insert(identity.clone(), (position, None));
             next.retry.push((identity, position));
             created.push(None);
         }
@@ -261,8 +262,8 @@ impl Laser {
             rule: &self.program.rule[identity.rule],
             binding: &identity.binding,
         });
-        if !self.limit.admits(Measure::new(&result.state)) {
-            return Outcome::Blocked;
+        if let Some(bound) = self.limit.refuse(Measure::new(&result.state)) {
+            return Outcome::Blocked(bound);
         }
         Outcome::Product(Box::new(Product {
             draft: self.taxonomy.analyze(&result.state),

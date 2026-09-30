@@ -3,6 +3,7 @@ use crate::layout::Layout;
 use crate::program::Program;
 use crate::runtime::{Limit, Measure};
 use crate::state::State;
+use crate::stop::{Blocked, Bound};
 use std::sync::Arc;
 use std::task::Poll;
 
@@ -16,10 +17,10 @@ pub(crate) struct Event {
 }
 
 impl Event {
-    // Whether the limits admit the event's result: the layout counts its occurrences, and every
+    // The limit the event's result passes, if any; the layout counts its occurrences, and every
     // reachable frame but the root is a scope it opened.
-    fn admitted(&self, limit: Limit) -> bool {
-        limit.admits(Measure {
+    fn refuse(&self, limit: Limit) -> Option<Bound> {
+        limit.refuse(Measure {
             coherence: self.state.world.len(),
             occurrence: self.layout.cell,
             scope: self.layout.reach.frame.len() - 1,
@@ -84,6 +85,15 @@ impl Search {
         self.pending.len()
     }
 
+    // How many events the limits blocked at the current configuration, by the limit that blocked
+    // each.
+    pub(crate) fn blocked(&self, limit: Limit) -> Blocked {
+        self.pending
+            .iter()
+            .filter_map(|event| event.refuse(limit))
+            .collect()
+    }
+
     pub(crate) fn preparation(&self) -> usize {
         self.network.preparation()
     }
@@ -130,7 +140,11 @@ impl Search {
     }
 
     pub(crate) fn run(&mut self, limit: Limit) -> Poll<Option<Event>> {
-        if let Some(index) = self.pending.iter().position(|event| event.admitted(limit)) {
+        if let Some(index) = self
+            .pending
+            .iter()
+            .position(|event| event.refuse(limit).is_none())
+        {
             return Poll::Ready(Some(self.pending.remove(index)));
         }
         if !self.initialized {
@@ -184,7 +198,7 @@ impl Search {
             rule: candidate.rule,
             binding,
         };
-        if !event.admitted(limit) {
+        if event.refuse(limit).is_some() {
             self.pending.push(event);
             return Poll::Pending;
         }

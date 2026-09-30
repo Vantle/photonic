@@ -7,6 +7,7 @@ use crate::runtime::Limit;
 use crate::snapshot::{Definition, Link, Node};
 use crate::state::{Canonical, State};
 use crate::status::Status;
+use crate::stop::Stop;
 use serde::Serialize;
 
 // Laser names configurations by their components, so a report renames each configuration to the
@@ -20,6 +21,7 @@ pub struct Report {
     pub peak: usize,
     pub work: usize,
     pub limit: Limit,
+    pub stop: Vec<Stop>,
     pub state: Vec<Node>,
     pub event: Vec<Transition>,
 }
@@ -180,6 +182,7 @@ impl Laser {
             peak: self.peak,
             work: self.work,
             limit: self.limit,
+            stop: self.stop(),
             state: named
                 .iter()
                 .zip(state)

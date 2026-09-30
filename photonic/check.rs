@@ -3,6 +3,7 @@ use miette::{IntoDiagnostic, WrapErr};
 use photonic::laser::Laser;
 use photonic::prism::Outcome;
 use photonic::runtime::{Limit, Runtime};
+use photonic::stop::Stop;
 use serde::Deserialize;
 use std::process::ExitCode;
 
@@ -29,6 +30,25 @@ struct Case {
     limit: Limit,
 }
 
+// Why an exploration stopped short of settling the test, and the attributes that let it go on.
+fn reason(stop: &[Stop]) -> String {
+    let said = stop
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+        .join(", and ");
+    let mut raise = Vec::new();
+    for name in stop.iter().filter_map(|stop| stop.raise()) {
+        if !raise.contains(&name) {
+            raise.push(name);
+        }
+    }
+    if raise.is_empty() {
+        return said;
+    }
+    format!("{said}; raise {}", raise.join(" and "))
+}
+
 // Every schedule of plain events ends exactly at a target when the plain exploration closes, no run
 // can go on forever, and every configuration a run ends at is one of the targets. The reduced
 // exploration keeps exactly those end configurations and cycles.
@@ -38,8 +58,10 @@ fn every(program: &Program, target: &[Program], limit: Limit) -> bool {
     let summary = laser.summary();
     if !summary.closed {
         println!(
-            "Every schedule: open after {} configurations and {} events",
-            summary.state, summary.event
+            "Every schedule: open after {} configurations and {} events: {}",
+            summary.state,
+            summary.event,
+            reason(&laser.stop())
         );
         return false;
     }
@@ -116,16 +138,22 @@ fn prism(
         } else {
             let mut search = photonic::path::Search::new(program.clone(), Some(target));
             search.run(case.work, case.limit);
-            let outcome = search.summary().outcome;
-            if outcome != expected {
+            let summary = search.summary();
+            if summary.outcome != expected {
                 record(&directory, &name, &search.report())?;
+                println!("Path stopped: {}", reason(&summary.stop));
             }
-            outcome
+            summary.outcome
         };
         println!("Prism target {index}: {result:?}; {}", case.target[index]);
         success &= result == expected;
     }
-    if let (false, Some((runtime, _))) = (success, &exploration) {
+    if let (false, Some((runtime, laser))) = (success, &exploration) {
+        for (engine, stop) in [("Interpreter", runtime.stop()), ("Laser", laser.stop())] {
+            if !stop.is_empty() {
+                println!("{engine} stopped: {}", reason(&stop));
+            }
+        }
         record(&directory, "execution.json", &runtime.stream())?;
     }
     Ok(success)

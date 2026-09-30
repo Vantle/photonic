@@ -1,6 +1,7 @@
 use super::normalization::Status;
 use super::{Application, Event, Identity, Measure, Runtime, Task};
 use crate::flow::Closure;
+use crate::stop::Bound;
 use crate::support::Atom;
 use std::collections::BTreeSet;
 use std::sync::Arc;
@@ -45,8 +46,8 @@ impl Runtime {
             rule: &self.program.rule[application.rule],
             binding: &application.binding,
         });
-        if !self.limit.admits(Measure::new(&result.state)) {
-            self.pending.insert(application);
+        if let Some(bound) = self.limit.refuse(Measure::new(&result.state)) {
+            self.pending.insert(application, bound);
             return;
         }
         let index = self.normalization.insert(key, application, result);
@@ -65,7 +66,12 @@ impl Runtime {
         };
         let result = normalization.result;
         if self.state.len() >= self.limit.configuration && !self.state.contains(&result.state) {
-            self.pending.extend(normalization.application);
+            self.pending.extend(
+                normalization
+                    .application
+                    .into_iter()
+                    .map(|application| (application, Bound::Configuration)),
+            );
             return;
         }
         let source = normalization.identity.source;

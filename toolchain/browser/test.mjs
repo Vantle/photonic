@@ -55,7 +55,7 @@ for (const source of [
         context: value.context,
         deduction: direct(value) ? [] : chain(value.evidence),
     }));
-    assert.deepEqual(response.execution, { definition, closed: report.closed, work: report.work, state: report.state.map(configuration), event }, source);
+    assert.deepEqual(response.execution, { definition, closed: report.closed, stop: report.stop, work: report.work, state: report.state.map(configuration), event }, source);
 }
 assert.deepEqual(explore({ source: 'A, [A] B', target: ['B, [A] B', 'C, [A] B'] }).verdict.map(value => value.outcome), ['reached', 'unreachable']);
 assert.deepEqual(explore({ source: 'A, [A] B', target: ['B', 'A'], preserve: true }).verdict.map(value => value.outcome), ['reached', 'reached']);

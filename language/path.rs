@@ -3,10 +3,11 @@ mod report;
 use crate::place::Place;
 use crate::prism::Outcome;
 use crate::program::Program;
-use crate::runtime::Limit;
+use crate::runtime::{Limit, Measure};
 use crate::snapshot::Node;
 use crate::state::{Canonical, State};
 use crate::status::Status;
+use crate::stop::{Blocked, Bound, Stop};
 use frontend::source;
 use hashing::Builder;
 use serde::Serialize;
@@ -35,6 +36,7 @@ pub struct Report<
     pub definition: Vec<crate::snapshot::Definition>,
     pub outcome: Outcome,
     pub witness: Option<usize>,
+    pub stop: Vec<Stop>,
     pub work: usize,
     pub program: Source,
     pub target: Target,
@@ -45,6 +47,7 @@ pub struct Report<
 pub struct Summary {
     pub outcome: Outcome,
     pub witness: Option<Node>,
+    pub stop: Vec<Stop>,
     pub length: usize,
     pub work: usize,
 }
@@ -147,6 +150,7 @@ pub struct Search {
     event: Vec<Step>,
     pending: Option<Pending>,
     stage: Stage,
+    halt: Vec<Stop>,
     cursor: usize,
     work: usize,
 }
@@ -181,17 +185,26 @@ impl Search {
             event: Vec::new(),
             pending: None,
             stage,
+            halt: Vec::new(),
             cursor: 0,
             work: 0,
         }
     }
 
+    // Walks on from where the path stands, and records why it stopped when it stops short of its
+    // goal or a cycle.
     pub fn run(&mut self, budget: usize, limit: Limit) {
         let mut remaining = budget;
         while remaining > 0 {
             remaining -= 1;
             let start = self.work;
-            if matches!(self.stage, Stage::Reached | Stage::Cycle) || !self.fits(limit.record) {
+            if matches!(self.stage, Stage::Reached | Stage::Cycle) {
+                return;
+            }
+            if !self.fits(limit.record) {
+                self.halt = vec![Stop::Record {
+                    budget: limit.record,
+                }];
                 return;
             }
             if self.stage == Stage::Initial {
@@ -212,7 +225,10 @@ impl Search {
                 self.work += self.runtime.work() - before;
                 let event = match event {
                     Poll::Ready(Some(event)) => event,
-                    Poll::Ready(None) => return,
+                    Poll::Ready(None) => {
+                        self.halt = self.end(limit);
+                        return;
+                    }
                     Poll::Pending => continue,
                 };
                 let record = Record::new(event.state.clone());
@@ -244,6 +260,9 @@ impl Search {
             let known = self.known(&record, fingerprint);
             if known.is_none() && self.state.len() >= limit.configuration {
                 self.pending = Some(Pending { event, record });
+                let mut blocked = Blocked::default();
+                blocked.add(Bound::Configuration, 1);
+                self.halt = limit.stop(None, self.start(), blocked);
                 return;
             }
             let target = known.unwrap_or(self.state.len());
@@ -273,6 +292,34 @@ impl Search {
             } else {
                 Stage::Walk
             };
+        }
+        if budget > 0 || self.halt.is_empty() {
+            self.halt = vec![Stop::Work { budget }];
+        }
+    }
+
+    fn start(&self) -> Measure {
+        Measure::new(&self.state[0].state)
+    }
+
+    // Why the path stopped where no event is left to take: none applies, or the limits blocked
+    // those that do.
+    fn end(&self, limit: Limit) -> Vec<Stop> {
+        let blocked = self.runtime.blocked(limit);
+        let stop = limit.stop(None, self.start(), blocked);
+        if stop.is_empty() {
+            return vec![Stop::End];
+        }
+        stop
+    }
+
+    // Why the path stopped: at its goal, back at a configuration it passed, where no event
+    // applies, or at a budget or limit.
+    pub fn stop(&self) -> Vec<Stop> {
+        match self.stage {
+            Stage::Reached => vec![Stop::Reached],
+            Stage::Cycle => vec![Stop::Cycle],
+            Stage::Initial | Stage::Walk => self.halt.clone(),
         }
     }
 
@@ -438,6 +485,7 @@ impl Search {
         Summary {
             outcome: self.outcome(),
             witness: self.reached().then(|| self.current()),
+            stop: self.stop(),
             length: self.event.len(),
             work: self.work,
         }

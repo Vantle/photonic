@@ -1,3 +1,5 @@
+use photonic::stop::Bound;
+
 // Words the kernels and the host share; the kernels read them as constants of the same names.
 pub const EMPTY: u32 = u32::MAX;
 pub const NONE: u32 = u32::MAX;
@@ -27,11 +29,18 @@ pub const STEP: usize = 4096;
 // The most SIMD groups in a threadgroup whose kernel sums them in one SIMD group; its scratch keeps
 // a sum for each and the group's whole sum after them.
 pub const BAND: usize = 32;
-// The summary's words: how many markings a count flagged, and whether a limit refused a candidate
-// or a candidate found a marking no later than its source.
+// The summary's words: how many markings a count flagged, whether a candidate found a marking no
+// later than its source, and from REFUSAL on the events each limit refused, as two words, low then
+// high, for the configuration, coherence, occurrence and scope limits in turn, the order the host
+// numbers them in.
 pub const FLAGGED: usize = 0;
-pub const REFUSED: usize = 1;
-pub const BACKWARD: usize = 2;
+pub const BACKWARD: usize = 1;
+pub const REFUSAL: usize = 2;
+pub const SUMMARY: usize = REFUSAL + 2 * photonic::stop::BOUND.len();
+pub const CONFIGURATION: u32 = Bound::Configuration as u32;
+pub const COHERENCE: u32 = Bound::Coherence as u32;
+pub const OCCURRENCE: u32 = Bound::Occurrence as u32;
+pub const SCOPE: u32 = Bound::Scope as u32;
 // The totals' slots: a pass's winners and their words, a window's candidates, and, when the
 // configuration limit can cut a pass short, the words of its admitted winners at most.
 pub const WINNER: usize = 0;
@@ -48,9 +57,37 @@ macro_rules! declare {
 // The constants every kernel can read, declared ahead of the kernels' source.
 pub fn prelude() -> String {
     declare!(
-        "uint", EMPTY, NONE, BLOCKED, TAG, LIMITED, JOINED, COPY, SHIFT, CANDIDATE, MISSING, JOIN,
-        BARE, HEADER, PART, WIDTH, SEGMENT, OFFER, ARITY, STEP, BAND, FLAGGED, REFUSED, BACKWARD,
-        WINNER, WINDOW, BOUND
+        "uint",
+        EMPTY,
+        NONE,
+        BLOCKED,
+        TAG,
+        LIMITED,
+        JOINED,
+        COPY,
+        SHIFT,
+        CANDIDATE,
+        MISSING,
+        JOIN,
+        BARE,
+        HEADER,
+        PART,
+        WIDTH,
+        SEGMENT,
+        OFFER,
+        ARITY,
+        STEP,
+        BAND,
+        FLAGGED,
+        BACKWARD,
+        REFUSAL,
+        CONFIGURATION,
+        COHERENCE,
+        OCCURRENCE,
+        SCOPE,
+        WINNER,
+        WINDOW,
+        BOUND
     ) + &declare!("ulong", WORD)
 }
 

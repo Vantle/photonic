@@ -6,9 +6,41 @@
 // marking takes share one running sum, the rank above SHIFT bits and the words below: a pass holds
 // fewer than CANDIDATE candidates, and no device holds 2^40 words.
 
+// The limit a successor passes, as the host's limits find it, given the root's own occurrences:
+// the coherence, occurrence or scope limit, in that order, or NONE.
+static uint refuse(uint3 grown, uint base, constant Setting& setting) {
+    if (grown.x > setting.coherence) {
+        return COHERENCE;
+    }
+    if (base + grown.y > setting.occurrence) {
+        return OCCURRENCE;
+    }
+    return grown.z > setting.scope ? SCOPE : NONE;
+}
+
+// Adds each lane's events to a count the summary keeps as two words, low then high: one lane adds
+// its SIMD group's sum and carries into the high word, and a group with nothing to add touches no
+// memory. Every lane of the group calls it.
+static void tell(ulong value, device atomic_uint* word, uint lane, uint width) {
+    if (!simd_any(value != 0)) {
+        return;
+    }
+    ulong sum = climb(value, lane, width);
+    if (lane != width - 1) {
+        return;
+    }
+    uint low = uint(sum);
+    uint before = atomic_fetch_add_explicit(word, low, memory_order_relaxed);
+    uint high = uint(sum >> 32) + (before + low < before ? 1u : 0u);
+    if (high != 0) {
+        atomic_fetch_add_explicit(word + 1, high, memory_order_relaxed);
+    }
+}
+
 // Records one successor: its source, its entry and the ways to choose the copies its entry
 // consumes, marked when the limits refuse it, given what the source holds without them; returns how
-// many events it stands for when the limits admit it.
+// many events it stands for when the limits admit it, and adds them to what the limit refused
+// otherwise.
 static ulong emit(
     device const uint* entry,
     uint cursor,
@@ -18,17 +50,17 @@ static ulong emit(
     uint candidate,
     device const uint* base,
     device packed_uint3* record,
-    device atomic_uint* summary,
+    thread ulong* refused,
     constant Setting& setting) {
     device const Header* item = header(entry, cursor);
-    uint3 grown = rest + uint3(item->size);
-    bool admitted = grown.x <= setting.coherence && base[item->root] + grown.y <= setting.occurrence && grown.z <= setting.scope;
-    record[candidate] = packed_uint3(source, cursor, admitted ? copy : copy | LIMITED);
-    if (!admitted) {
-        atomic_store_explicit(&summary[REFUSED], 1u, memory_order_relaxed);
+    uint bound = refuse(rest + uint3(item->size), base[item->root], setting);
+    ulong weight = ulong(copy) * ulong(item->count);
+    record[candidate] = packed_uint3(source, cursor, bound == NONE ? copy : copy | LIMITED);
+    if (bound != NONE) {
+        refused[bound] += weight;
         return 0;
     }
-    return ulong(copy) * ulong(item->count);
+    return weight;
 }
 
 // Records the successors of a marking's joining events after those the tables give it, as the
@@ -39,7 +71,7 @@ struct Emitter {
     device const uint* size;
     device const uint* base;
     device packed_uint3* record;
-    device atomic_uint* summary;
+    thread ulong* refused;
     uint source;
     uint3 total;
     uint candidate;
@@ -54,7 +86,7 @@ struct Emitter {
         }
         uint cursor = part[3];
         for (uint item = 0; item < part[4]; item++) {
-            weight += emit(entry, cursor, source, choice, rest, candidate, base, record, summary, setting);
+            weight += emit(entry, cursor, source, choice, rest, candidate, base, record, refused, setting);
             candidate += 1;
             cursor += extent(header(entry, cursor));
         }
@@ -64,9 +96,9 @@ struct Emitter {
 // Records every successor the tables give a marking, in the order the host's net expands it: the
 // events binding only the root, then each run of equal kinds in order, then the joining events,
 // unless counting found their parts need more than the GPU keeps and the host writes them after
-// the others. It
-// keeps each marking's sum of kind terms, from which its successors' hashes follow, and sums the
-// events the admitted successors stand for a threadgroup at a time.
+// the others. It keeps each marking's sum of kind terms, from which its successors' hashes follow,
+// sums the events the admitted successors stand for a threadgroup at a time, and adds the events
+// each limit refused to the summary.
 kernel void expand(
     device const Arena& arena [[buffer(0)]],
     device const ulong* offset [[buffer(1)]],
@@ -99,6 +131,7 @@ kernel void expand(
     uint height [[simdgroups_per_threadgroup]]) {
     threadgroup ulong shared[BAND + 1];
     ulong weight = 0;
+    ulong refused[4] = {0, 0, 0, 0};
     if (index < setting.count) {
         uint source = setting.first + index;
         device const uint* marking = locate(arena, offset[source]);
@@ -117,7 +150,7 @@ kernel void expand(
         uint cursor = lone[2 * root];
         uint number = lone[2 * root + 1];
         for (uint item = 0; item < number; item++) {
-            weight += emit(entry, cursor, source, 1, total, candidate, base, record, summary, setting);
+            weight += emit(entry, cursor, source, 1, total, candidate, base, record, refused, setting);
             candidate += 1;
             cursor += extent(header(entry, cursor));
         }
@@ -131,7 +164,7 @@ kernel void expand(
             uint3 rest = total - uint3(size[3 * value], size[3 * value + 1], size[3 * value + 2]);
             cursor = first;
             for (uint item = 0; item < found; item++) {
-                weight += emit(entry, cursor, source, copies, rest, candidate, base, record, summary, setting);
+                weight += emit(entry, cursor, source, copies, rest, candidate, base, record, refused, setting);
                 candidate += 1;
                 cursor += extent(header(entry, cursor));
             }
@@ -139,7 +172,7 @@ kernel void expand(
         }
         if (route[setting.shift + index] == 0) {
             Joint joint = {catalog, part, constituent, coherence, span, reach, rule, arity};
-            Emitter emitter = {entry, size, base, record, summary, source, total, candidate, 0};
+            Emitter emitter = {entry, size, base, record, refused, source, total, candidate, 0};
             join(joint, setting, root, kind, length, emitter);
             weight += emitter.weight;
         }
@@ -148,6 +181,9 @@ kernel void expand(
     ladder(weight, shared, lane, band, width, height, whole);
     if (member == 0) {
         partial[group] = whole;
+    }
+    for (uint bound = COHERENCE; bound <= SCOPE; bound++) {
+        tell(refused[bound], summary + REFUSAL + 2 * bound, lane, width);
     }
 }
 
@@ -209,7 +245,6 @@ kernel void insert(
             if (setting.allowed == 0) {
                 target[index] = BLOCKED;
                 slot[index] = NONE;
-                atomic_store_explicit(&summary[REFUSED], 1u, memory_order_relaxed);
                 return;
             }
             uint expected = 0;
@@ -373,9 +408,8 @@ kernel void point(
     device uint* target [[buffer(0)]],
     device atomic_uint* table [[buffer(1)]],
     device const uint* slot [[buffer(2)]],
-    device atomic_uint* summary [[buffer(3)]],
-    device const ulong* total [[buffer(4)]],
-    constant Setting& setting [[buffer(5)]],
+    device const ulong* total [[buffer(3)]],
+    constant Setting& setting [[buffer(4)]],
     uint index [[thread_position_in_grid]]) {
     if (index >= setting.count || used(total) > setting.room) {
         return;
@@ -390,20 +424,21 @@ kernel void point(
         return;
     }
     target[index] = BLOCKED;
-    atomic_store_explicit(&summary[REFUSED], 1u, memory_order_relaxed);
 }
 
 // Sums the events the candidates stand for once every candidate points at its marking, a
-// threadgroup of candidates at a time and four a thread, leaving out candidates the limits refused;
-// a pass the configuration limit may cut short counts its events so, and the host sums the joined
-// candidates' events.
+// threadgroup of candidates at a time and four a thread, leaving out candidates the limits refused,
+// and adds the events of those the configuration limit refused to the summary; a pass the
+// configuration limit may cut short counts its events so, and the host sums the joined candidates'
+// events.
 kernel void weigh(
     device const uint* entry [[buffer(0)]],
     device const packed_uint3* record [[buffer(1)]],
     device const uint* target [[buffer(2)]],
     device ulong* partial [[buffer(3)]],
-    device const ulong* total [[buffer(4)]],
-    constant Setting& setting [[buffer(5)]],
+    device atomic_uint* summary [[buffer(4)]],
+    device const ulong* total [[buffer(5)]],
+    constant Setting& setting [[buffer(6)]],
     uint index [[thread_position_in_grid]],
     uint member [[thread_index_in_threadgroup]],
     uint group [[threadgroup_position_in_grid]],
@@ -416,14 +451,21 @@ kernel void weigh(
         return;
     }
     ulong weight = 0;
+    ulong refused = 0;
     for (uint item = 0; item < 4; item++) {
         uint candidate = 4 * index + item;
-        if (candidate >= setting.count || target[candidate] == BLOCKED) {
+        if (candidate >= setting.count) {
             continue;
         }
         uint3 own = uint3(record[candidate]);
-        if ((own.z & JOINED) == 0) {
-            weight += ulong(own.z & COPY) * ulong(header(entry, own.y)->count);
+        if ((own.z & JOINED) != 0) {
+            continue;
+        }
+        ulong events = ulong(own.z & COPY) * ulong(header(entry, own.y)->count);
+        if (target[candidate] != BLOCKED) {
+            weight += events;
+        } else if ((own.z & LIMITED) == 0) {
+            refused += events;
         }
     }
     ulong whole = 0;
@@ -431,4 +473,5 @@ kernel void weigh(
     if (member == 0) {
         partial[group] = whole;
     }
+    tell(refused, summary + REFUSAL + 2 * CONFIGURATION, lane, width);
 }

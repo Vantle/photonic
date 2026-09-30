@@ -16,6 +16,7 @@ use crate::runtime::{Limit, Measure};
 use crate::snapshot::{Definition, Node};
 use crate::state::State;
 use crate::status::Status;
+use crate::stop::{Blocked, Bound, Stop};
 use hashing::Builder;
 use indexmap::{IndexMap, IndexSet};
 use smallvec::SmallVec;
@@ -56,11 +57,12 @@ pub enum Cycle {
     Ignore,
 }
 
-// Where exploring a net ends: whether it closed, how many configurations and events it found, the
-// configurations where runs end, in the order they were found, whether a run can go on forever,
-// when asked, and the work its grounding took.
+// Where exploring a net ends: whether it closed, and else why it stopped, how many configurations
+// and events it found, the configurations where runs end, in the order they were found, whether a
+// run can go on forever, when asked, and the work its grounding took.
 pub struct Exploration {
     pub closed: bool,
+    pub stop: Vec<Stop>,
     pub configuration: usize,
     pub event: u64,
     pub end: Vec<Makeup>,
@@ -402,9 +404,16 @@ impl Net {
         result
     }
 
-    // Whether the limits admit a marking's coherences, occurrences and scopes.
-    pub fn admits(&self, marking: &Makeup, limit: Limit) -> bool {
-        limit.admits(self.taxonomy.measure(marking))
+    // The first limit a marking's coherences, occurrences and scopes pass, if any.
+    pub fn refuse(&self, marking: &Makeup, limit: Limit) -> Option<Bound> {
+        limit.refuse(self.taxonomy.measure(marking))
+    }
+
+    // Why an exploration from the start stopped short of closing: the work budget, when it ran
+    // out, then each limit that blocked events, with how many.
+    pub fn stop(&self, limit: Limit, spent: Option<usize>, blocked: Blocked) -> Vec<Stop> {
+        let spent = spent.map(|budget| Stop::Work { budget });
+        limit.stop(spent, self.taxonomy.measure(&self.start), blocked)
     }
 
     pub fn size(&self, kind: u32) -> Size {
@@ -604,7 +613,7 @@ impl Net {
         let mut backward = false;
         let mut event = 0;
         let mut end = Vec::new();
-        let mut blocked = false;
+        let mut blocked = Blocked::default();
         let mut spent = false;
         let mut next = 0;
         while next < space.len() {
@@ -619,14 +628,15 @@ impl Net {
                 first.push(edge.len());
             }
             for (makeup, count) in successor {
-                if !limit.admits(self.taxonomy.measure(&makeup)) {
-                    blocked = true;
+                let weight = usize::try_from(count).unwrap_or(usize::MAX);
+                if let Some(bound) = limit.refuse(self.taxonomy.measure(&makeup)) {
+                    blocked.add(bound, weight);
                     continue;
                 }
                 let index = match space.get_index_of(&makeup) {
                     Some(index) => index,
                     None if space.len() >= limit.configuration => {
-                        blocked = true;
+                        blocked.add(Bound::Configuration, weight);
                         continue;
                     }
                     None => space.insert_full(makeup).0,
@@ -639,6 +649,8 @@ impl Net {
             }
             next += 1;
         }
+        let stop = self.stop(limit, spent.then_some(budget), blocked);
+        let closed = stop.is_empty();
         let endless = (cycle == Cycle::Find).then(|| {
             first.resize(space.len() + 1, edge.len());
             backward
@@ -647,7 +659,8 @@ impl Net {
                 })
         });
         Ok(Exploration {
-            closed: !blocked && !spent,
+            closed,
+            stop,
             configuration: space.len(),
             event,
             end: end.into_iter().map(|index| space[index].clone()).collect(),

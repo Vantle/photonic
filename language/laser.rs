@@ -34,9 +34,10 @@ use crate::executor::Executor;
 use crate::flow::Binding;
 use crate::prism::{Outcome, Verdict};
 use crate::program::Program;
-use crate::runtime::Limit;
+use crate::runtime::{Limit, Measure};
 use crate::state::{Canonical, State};
 use crate::status::Status;
+use crate::stop::{Bound, Stop};
 use capture::Environment;
 use deduction::Deduction;
 use hashing::Builder;
@@ -108,12 +109,33 @@ enum Link {
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum Disagreement {
-    Closed { reference: bool, laser: bool },
-    Endless { reference: bool, laser: bool },
-    Configuration { missing: usize, extra: usize },
-    Event { missing: usize, extra: usize },
-    Support { configuration: usize },
-    Work { reference: usize, laser: usize },
+    Closed {
+        reference: bool,
+        laser: bool,
+    },
+    Stop {
+        reference: Vec<Stop>,
+        laser: Vec<Stop>,
+    },
+    Endless {
+        reference: bool,
+        laser: bool,
+    },
+    Configuration {
+        missing: usize,
+        extra: usize,
+    },
+    Event {
+        missing: usize,
+        extra: usize,
+    },
+    Support {
+        configuration: usize,
+    },
+    Work {
+        reference: usize,
+        laser: usize,
+    },
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -151,11 +173,12 @@ pub struct Laser {
     capture: capture::Store,
     environment: Memo<(usize, usize), Arc<Canonical>>,
     pool: Pool,
-    blocked: HashMap<Identity, usize, Builder>,
+    blocked: HashMap<Identity, (usize, Option<Bound>), Builder>,
     support: Option<support::Support>,
     deduction: Deduction,
     round: Round,
     limit: Limit,
+    spent: Option<Stop>,
     work: usize,
     traced: usize,
     plain: bool,
@@ -254,6 +277,7 @@ impl Laser {
             deduction: Deduction::default(),
             round: Round::default(),
             limit: Limit::default(),
+            spent: None,
             work: 0,
             traced: 0,
             plain,
@@ -352,7 +376,7 @@ impl Laser {
             self.round.retry = self
                 .blocked
                 .iter()
-                .map(|(identity, &position)| (identity.clone(), position))
+                .map(|(identity, &(position, _))| (identity.clone(), position))
                 .collect();
             self.round
                 .retry
@@ -366,9 +390,30 @@ impl Laser {
             self.peak = self.peak.max(self.retained());
             remaining = remaining.saturating_sub(work.max(1));
         }
+        self.spent = if self.idle() {
+            None
+        } else if self.retained() >= self.limit.record {
+            Some(Stop::Record {
+                budget: self.limit.record,
+            })
+        } else {
+            Some(Stop::Work { budget })
+        };
         if open && self.closed() {
             self.close(executor);
         }
+    }
+
+    // Why the exploration stopped short of closing, or nothing once it closed.
+    pub fn stop(&self) -> Vec<Stop> {
+        self.limit.stop(
+            self.spent,
+            Measure::new(&self.state[0]),
+            self.blocked
+                .values()
+                .filter_map(|&(_, bound)| bound)
+                .collect(),
+        )
     }
 
     // Closing settles which events are direct, what is supported and the deductions, then keeps

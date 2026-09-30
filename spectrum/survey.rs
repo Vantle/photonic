@@ -7,17 +7,19 @@ use crate::recording::Order;
 use frontend::source::Program;
 use photonic::laser::makeup::Makeup;
 use photonic::laser::net::{self, Cycle, Net};
+use photonic::stop::Stop;
 use std::sync::OnceLock;
 
 // Every schedule of plain events of a program, explored through its net of parts on the GPU through
 // Metal where there is one and on the host otherwise: counts, the configurations where runs end,
-// whether a run can go on forever and the work grounding took, one step for each match it read.
-// It keeps no events, so it names nothing by a handle.
+// whether a run can go on forever, why it stopped short of closing and the work grounding took,
+// one step for each match it read. It keeps no events, so it names nothing by a handle.
 pub struct Survey {
     pub(crate) key: String,
     pub(crate) order: Order,
     pub(crate) shape: Option<u64>,
     pub(crate) closed: bool,
+    pub(crate) stop: Vec<Stop>,
     pub(crate) configuration: usize,
     pub(crate) event: u64,
     pub(crate) endless: Option<bool>,
@@ -97,6 +99,7 @@ impl Survey {
             order: plan.canonical.order,
             shape: plan.canonical.shape,
             closed: explored.closed,
+            stop: explored.stop,
             configuration: explored.configuration,
             event: explored.event,
             endless: explored
