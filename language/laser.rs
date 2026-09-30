@@ -51,6 +51,7 @@ use pool::Pool;
 use space::Space;
 use std::collections::{HashMap, HashSet};
 use std::num::NonZeroU32;
+use std::ops::Range;
 use std::sync::Arc;
 use taxonomy::Taxonomy;
 use trace::Trace;
@@ -88,13 +89,14 @@ struct Progress {
 // Each round scans new configurations, carries traces back across the events they have not
 // crossed, and fires new identities. The pure parts run in parallel and every merge happens in a
 // fixed order, so the exploration is the same for any number of workers. A budget can end a round
-// early; the configurations it did not scan, the crossings it did not carry and the identities it
-// did not fire come first in the next.
+// early; the configurations it did not scan, the crossings it did not carry, the traces no firing
+// has identified yet and the identities it did not fire come first in the next.
 #[derive(Default)]
 struct Round {
     fresh: Vec<usize>,
     changed: Vec<usize>,
     crossing: Vec<carriage::Crossing>,
+    novel: Vec<(usize, Range<usize>)>,
     retry: Vec<(Identity, usize)>,
 }
 
@@ -181,6 +183,7 @@ pub struct Laser {
     spent: Option<Stop>,
     work: usize,
     traced: usize,
+    found: usize,
     plain: bool,
     independence: Option<Independence>,
     peak: usize,
@@ -214,6 +217,20 @@ fn update<Table: Default + Send, Input: Send>(
     for (index, value) in changed {
         table[index] = value;
     }
+}
+
+// The traces waiting to be identified, one range for each configuration, in the order their
+// configurations first wait: a configuration's traces waiting from an earlier round and those it
+// gained since lie next to each other, and identifying them together fires each identity once.
+fn join(novel: Vec<(usize, Range<usize>)>) -> Vec<(usize, Range<usize>)> {
+    let mut joined = IndexMap::<usize, Range<usize>, Builder>::default();
+    for (index, range) in novel {
+        joined
+            .entry(index)
+            .and_modify(|known| known.end = range.end)
+            .or_insert(range);
+    }
+    joined.into_iter().collect()
 }
 
 fn map<Input: Send, Output: Send>(
@@ -280,6 +297,7 @@ impl Laser {
             spent: None,
             work: 0,
             traced: 0,
+            found: 0,
             plain,
             independence: None,
             peak: 0,
@@ -365,6 +383,7 @@ impl Laser {
         self.round.fresh.is_empty()
             && self.round.changed.is_empty()
             && self.round.crossing.is_empty()
+            && self.round.novel.is_empty()
             && self.round.retry.is_empty()
     }
 
@@ -466,14 +485,16 @@ impl Laser {
     // left, and stops once it has taken its share or the retained records reach the record limit.
     fn step(&mut self, executor: Option<&Executor>, allowance: usize) -> usize {
         let round = std::mem::take(&mut self.round);
-        let (mut novel, fresh) = self.discover(executor, round.fresh, allowance);
+        let (discovered, fresh) = self.discover(executor, round.fresh, allowance);
         let mut next = Round {
             fresh,
             ..Round::default()
         };
-        let scanned = novel.len();
+        let scanned = discovered.len();
         let mut changed = round.changed;
-        changed.extend(novel.iter().map(|(index, _)| *index));
+        changed.extend(discovered.iter().map(|(index, _)| *index));
+        let mut novel = round.novel;
+        novel.extend(discovered);
         let carried = if self.plain {
             0
         } else {
@@ -485,7 +506,7 @@ impl Laser {
             carriage.count
         };
         let rest = allowance - scanned - carried;
-        let fired = self.fire(executor, novel, round.retry, &mut next, rest);
+        let fired = self.fire(executor, join(novel), round.retry, &mut next, rest);
         if self.plain {
             next.changed.clear();
         }

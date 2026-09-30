@@ -7,9 +7,11 @@ use std::collections::VecDeque;
 use std::ops::Range;
 use std::sync::Arc;
 
-// Scanning keeps every match a configuration holds, so configurations are scanned a group at a time
-// and scanning stops between them once the retained records reach the record limit.
-const SCANNING: usize = 1 << 10;
+// A group of scans holds every match its configurations hold until they become traces, so
+// configurations are scanned a group of about this many matches at a time, as many as the
+// configurations scanned so far held on average, and scanning stops between groups once the
+// retained records reach the record limit.
+const SCANNING: usize = 1 << 16;
 
 impl Laser {
     // Scans at most the allowance of the fresh configurations, in order, and gives each one's own
@@ -21,17 +23,23 @@ impl Laser {
         allowance: usize,
     ) -> (Vec<(usize, Range<usize>)>, Vec<usize>) {
         let _scope = profile::Scope::new(profile::Phase::Discovery);
+        let mut scanned = self.state.len() - fresh.len();
         let mut queue = VecDeque::from(fresh);
         let mut novel = Vec::new();
         while !queue.is_empty() && novel.len() < allowance && self.retained() < self.limit.record {
-            let size = SCANNING.min(allowance - novel.len()).min(queue.len());
+            let average = self.found.div_ceil(scanned.max(1)).max(1);
+            let size = (SCANNING / average)
+                .max(1)
+                .min(allowance - novel.len())
+                .min(queue.len());
+            scanned += size;
             let group = queue.drain(..size).collect::<Vec<_>>();
-            let scanned = map(executor, group, |index| {
+            let result = map(executor, group, |index| {
                 let found = scan::scan(&self.catalog, &self.state[index]).collect::<Vec<_>>();
                 (index, found)
             });
             let mut unseeded = Vec::new();
-            for (index, found) in scanned {
+            for (index, found) in result {
                 if !unseeded.is_empty() || self.retained() >= self.limit.record {
                     unseeded.push(index);
                     continue;
@@ -39,6 +47,7 @@ impl Laser {
                 self.seed(index, &found);
                 novel.push((index, 0..self.origin[index]));
             }
+            scanned -= unseeded.len();
             for index in unseeded.into_iter().rev() {
                 queue.push_front(index);
             }
@@ -57,5 +66,6 @@ impl Laser {
         }
         self.origin[index] = self.trace[index].len();
         self.traced += self.origin[index];
+        self.found += self.origin[index];
     }
 }

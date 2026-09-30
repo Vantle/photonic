@@ -65,6 +65,13 @@ impl Laser {
         next: &mut Round,
         allowance: usize,
     ) -> usize {
+        // Identifying a trace holds its identity until it fires, so traces wait unidentified, and
+        // identities blocked, while nothing can fire.
+        if allowance == 0 || self.retained() >= self.limit.record {
+            next.novel = novel;
+            next.retry = retry;
+            return 0;
+        }
         let candidate = self.select(executor, novel);
         let revisit = retry
             .iter()
