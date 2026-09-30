@@ -564,13 +564,6 @@ main {
     font-size: 0.95rem;
 }
 
-.note strong {
-    font: 500 0.66rem/1.2 var(--body);
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--muted);
-}
-
 .table {
     overflow-x: auto;
 }

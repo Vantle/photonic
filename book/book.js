@@ -56,6 +56,9 @@
         pre.append(button);
     });
 
+    const local = document.getElementById('local');
+    book.engine.watch(state => { local.hidden = state !== 'recorded'; });
+
     document.querySelectorAll('pre.code').forEach(pre => {
         if (!pre.firstElementChild && !pre.closest('figure.example')) book.syntax.highlight(pre);
     });

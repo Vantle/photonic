@@ -97,6 +97,7 @@ try {
     await open(pathToFileURL(join(root, 'index.html')).href, ready);
     assert.equal(await evaluate("return book.engine.state"), 'recorded');
     assert.equal(await evaluate("return document.getElementById('status').textContent"), 'Recorded runs');
+    assert.equal(await evaluate("return document.getElementById('local').hidden"), false);
     assert.equal(await evaluate(`return ${figure('first')}.querySelector('.run').hidden`), true);
     assert.equal(await evaluate("return document.querySelectorAll('figure.example').length"), await evaluate('return Object.keys(book.record.example).length'));
     assert.deepEqual(await evaluate("return [...document.querySelectorAll('.message')].filter(value => value.hidden || value.textContent).map(value => value.textContent)"), []);
@@ -210,6 +211,7 @@ try {
 
     await open(`${origin}/index.html`, `${ready} && book.engine.state === 'live'`);
     assert.equal(await evaluate("return document.getElementById('status').textContent"), 'Live engine');
+    assert.equal(await evaluate("return document.getElementById('local').hidden"), true);
     const filter = async text => {
         await evaluate("document.querySelector('#bench .filter .tool').click(); return true");
         await until("return document.querySelector('#bench .filter p').textContent.startsWith('Type a pattern')");

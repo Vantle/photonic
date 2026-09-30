@@ -109,12 +109,12 @@
 [Light] Blue</pre>
 <figcaption>Three rules can consume <code>Light</code>. Each is a possible event, so the runtime explores three futures. Select a configuration to see the events that leave it.</figcaption>
 </figure>
-<div class="note">
-<strong>Every example runs</strong>
-<p>Each program in this book was executed by the Rust runtime compiled to WebAssembly, and each graph is its real output. At <a href="https://photonic.vantle.org">photonic.vantle.org</a>, or in a checkout served with the command below, you can edit any example and run it again.</p>
-<pre class="listing">bazel run -c opt //book:serve</pre>
-<p>A served checkout opens at <a href="http://127.0.0.1:8080">127.0.0.1:8080</a>. Opened as a local file, the book shows the recorded runs.</p>
-</div>
+<p>Each program in this book ran in the Rust runtime compiled to WebAssembly, and each graph is its real output. While the engine is live, you can edit any example and run it again.</p>
+<p id="local" hidden>This copy of the book shows the recorded runs. To run your own, open <a href="https://photonic.vantle.org">photonic.vantle.org</a>, or serve the checkout with <code>bazel run -c opt //book:serve</code> and open <a href="http://127.0.0.1:8080">127.0.0.1:8080</a>.</p>
+<p>To run Photonic on your own machine, download <code>photonic</code> for macOS, Linux or Windows from the <a href="https://github.com/Vantle/photonic/releases">releases page</a>, or run <code>bazel run -c opt //:install</code> in a checkout. Save the program above as <code>light.wave</code>, then list where its runs end and check that one reaches <code>Red</code>:</p>
+<pre class="listing">photonic explore light.wave
+photonic check light.wave --reach Red</pre>
+<p><a href="#tool">Chapter 11</a> covers the command line, the Bazel rules and the questions Spectrum answers.</p>
 <div class="action"><a class="button primary" href="#value">Start reading</a><a class="button accent" href="lightbox.html">Open the Lightbox</a><a class="button" href="#reference">Grammar and glossary</a></div>
 </header>
 
@@ -453,7 +453,7 @@ Add.Unit.Unit.Unit,
 <section class="chapter" id="tool">
 <p class="eyebrow">Verification · 11</p>
 <h2>Tests and tools</h2>
-<p class="lead">Bazel builds, runs and tests Photonic. It is the only tool to install; it downloads everything else.</p>
+<p class="lead">Bazel builds, runs and tests Photonic from source. It is the only tool a checkout needs; it downloads everything else.</p>
 <pre class="listing">load("//photonic:defs.bzl", "photonic_binary", "photonic_library", "photonic_test")
 
 photonic_library(
@@ -475,6 +475,7 @@ photonic_test(
     deps = ["//library/boolean:not"],
 )</pre>
 <p>A library holds only rules. A binary combines the coherences of its sources and loads each library file once. <code>.particle</code> and <code>.wave</code> share one grammar; by convention <code>.particle</code> holds reusable definitions and <code>.wave</code> runnable programs.</p>
+<p>These labels name packages of this repository, so the file builds inside a checkout. Another Bazel module adds <code>bazel_dep(name = "photonic")</code> with a <code>git_override</code> that names this repository and a commit, then writes the same labels from <code>@photonic</code>, as in <code>@photonic//photonic:defs.bzl</code> and <code>@photonic//library/boolean:not</code>. The <a href="library/README.md">library reference</a> lists every target.</p>
 <div class="table">
 <table>
 <thead><tr><th>Test attribute</th><th>Meaning</th></tr></thead>
