@@ -16,6 +16,8 @@
   &nbsp;·&nbsp;
   <a href="https://photonic.vantle.org/lightbox.html"><b>Open the Lightbox</b></a>
   &nbsp;·&nbsp;
+  <a href="https://github.com/Vantle/photonic/releases/latest"><b>Download</b></a>
+  &nbsp;·&nbsp;
   <a href="library/README.md">Standard library</a>
   &nbsp;·&nbsp;
   <a href="theorem/README.md">Theorems</a>
@@ -38,34 +40,39 @@ Three rules can consume `Light`, so this program has three futures. The runtime 
 
 The standard library is written in Photonic, and its theorems are proved by running them in every case. The runtime is Rust, and it also runs in the browser: every example in the webbook is live.
 
-## Try it
+## Install
 
-The [Lightbox](https://photonic.vantle.org/lightbox.html) runs Photonic in your browser: write a program, run it, and explore every configuration it reaches, with nothing to install. Its links carry the whole program, so you can share what you write.
+Download `photonic` for macOS, Linux or Windows from the [latest release](https://github.com/Vantle/photonic/releases/latest), check the archive against `SHA256SUMS`, and put the command on your `PATH`. Releases run on macOS 13 or later, on Linux with glibc 2.28 or later, and on Windows 10 or later, each on ARM64 and x86-64. macOS quarantines a binary downloaded in a browser; `xattr -d com.apple.quarantine photonic` releases it.
 
-To work from a checkout, Bazel is the only thing to install. It fetches the pinned compilers and dependencies, and `//:install` puts an optimized `photonic` command in `~/.local/bin`:
+To build from a checkout instead, install [Bazelisk](https://github.com/bazelbuild/bazelisk), the only tool you need. It runs the pinned Bazel, which downloads the compilers and every dependency. Then:
 
 ```sh
 bazel run //:install
 ```
 
-Save the program above as `light.wave`, then run it and ask Spectrum what it does, and why:
+This puts an optimized `photonic` in `~/.local/bin`, or in `~/bin` or `~/.bin` when one of those is on your `PATH`, and tells you how to add the directory if it is not. Name another directory after `--`. Delete the file to uninstall.
+
+## Try it
+
+The [Lightbox](https://photonic.vantle.org/lightbox.html) runs Photonic in your browser with nothing to install: write a program, run it, and explore every configuration it reaches. Its links carry the whole program, so you can share what you write.
+
+With the command installed, save the program above as `light.wave` and ask what it does:
 
 ```sh
-photonic run light.wave
 photonic explore light.wave
 photonic check light.wave --reach Red --avoid Red.Green
-photonic check light.wave --plain --engine metal --end Red
+photonic check light.wave --plain --end Red
 ```
 
-`--plain` follows every order in which the rules can fire, without inference, and `--engine metal` explores those orders on the GPU through Metal where there is one, so programs whose orders reach millions of configurations finish in seconds. The last command claims that every run ends at `Red`; it fails, because a run can end at `Green` instead.
+`explore` summarizes every future: four configurations, three of them ends, and how often each rule fires. `check` answers claims with holds, fails or unknown, and exits 1 unless every claim holds. The first check holds; the second claims that every run ends at `Red` and fails, because a run can end at `Green` instead. `--plain` follows every order in which the rules can fire, without inference, and `--engine metal` explores those orders on the GPU of a Mac with Metal 3, so programs whose orders reach millions of configurations finish in seconds.
 
-Every command also runs from the checkout without installing, as `bazel run -c opt //command:photonic -- explore light.wave`. Agents ask the same questions over the Model Context Protocol; the repository's `.mcp.json` starts the server, and [the Spectrum contract](document/spectrum.md) describes every question and answer.
+Agents ask the same questions over the Model Context Protocol. Add the server to a client's configuration:
 
-Serve the webbook from a checkout, then open http://127.0.0.1:8080:
-
-```sh
-bazel run -c opt //book:serve
+```json
+{ "mcpServers": { "photonic": { "command": "photonic", "args": ["mcp"] } } }
 ```
+
+[The Spectrum contract](document/spectrum.md) describes every question and answer. From a checkout, every command also runs as `bazel run -c opt //command:photonic -- explore light.wave`, and the repository's `.mcp.json` starts the server that way once the first build finishes.
 
 ## Develop
 
@@ -77,4 +84,10 @@ bazel run -c opt //:format
 bazel run -c opt //:link
 ```
 
-After changing an example in the webbook, record its runs again with `bazel run -c opt //book:record`; `//book:record.check` fails until the record matches the page.
+Serve the webbook from a checkout with `bazel run -c opt //book:serve`, then open http://127.0.0.1:8080. After changing an example in the webbook, record its runs again with `bazel run -c opt //book:record`; `//book:record.check` fails until the record matches the page. [CONTRIBUTING.md](CONTRIBUTING.md) describes how to contribute, and [SECURITY.md](SECURITY.md) how to report a vulnerability. Report bugs in the [issues](https://github.com/Vantle/photonic/issues).
+
+## Versions and license
+
+Photonic follows [Semantic Versioning](https://semver.org): [the compatibility contract](document/compatibility.md) says what each release keeps stable, and [the changelog](CHANGELOG.md) what each one changes.
+
+Photonic is licensed under either the [Apache License, Version 2.0](LICENSE-APACHE) or the [MIT license](LICENSE-MIT), at your option. Release archives also carry the notices of the third-party crates the command contains.
