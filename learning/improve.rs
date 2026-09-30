@@ -14,7 +14,9 @@ use std::time::{Duration, Instant};
 pub fn run(argument: Improve) -> miette::Result<()> {
     let home = open(&argument.home)?;
     let setting = setting(&argument.session, false)?;
-    let deadline = setting.duration.map(|duration| Instant::now() + duration);
+    let deadline = setting
+        .duration
+        .and_then(|duration| Instant::now().checked_add(duration));
     let option = attempt::Setting {
         objective: setting.play.objective,
         bound: setting.play.bound,

@@ -1,5 +1,5 @@
 use learning::encoding::{DIMENSION, Shape};
-use learning::home::{CHECKPOINT, POOL};
+use learning::home::{ARCHIVE, CHECKPOINT, POOL};
 use network::checkpoint;
 use network::model::Model;
 use network::optimizer::{self, Optimizer};
@@ -258,6 +258,98 @@ fn deadline() {
     ]);
     assert!(
         report.contains("found programs for 0 of 1 tasks"),
+        "{report}"
+    );
+}
+
+const TASK: &str = r#"{"name":"NAME","vocabulary":["A","B"],"example":[{"input":[[{"Atom":0}]],"output":[[{"id":0,"value":{"Atom":1}}]]}],"holdout":[],"reference":null,"goal":null}"#;
+
+const RECORD: &str = r#"{"program":{"rule":[{"input":[[{"Atom":5}]],"output":[{"Particle":[{"Atom":1}]}]}]},"cost":1.0,"correctness":1.0,"time":0.0,"work":0.0,"span":0.0,"size":4,"verified":true,"general":true,"proof":null,"moment":0}"#;
+
+#[test]
+fn stale() {
+    let fixture = Fixture::new();
+    let home = fixture.home();
+    let task = |name: &str| TASK.replace("NAME", name);
+    fixture.write(
+        &format!("home/{POOL}"),
+        &format!("[{},{}]", task("stale"), task("fresh")),
+    );
+    fixture.write(
+        &format!("home/{ARCHIVE}"),
+        &format!(r#"{{"stale":{{"best":{RECORD},"partial":null,"baseline":2.0}}}}"#),
+    );
+    let message = "names atoms outside the task's vocabulary";
+    let status = succeed(&["status", "--home", &home, "--task", "stale"]);
+    assert!(status.contains(message), "{status}");
+    let verify = succeed(&["verify", "--home", &home, "--task", "stale"]);
+    assert!(verify.contains(message), "{verify}");
+    let report = succeed(&["solve", "--home", &home, "--task", "fresh"]);
+    assert!(
+        report.contains("found programs for 1 of 1 tasks"),
+        "{report}"
+    );
+    assert!(fixture.path.join("home/program/fresh.wave").exists());
+    assert!(!fixture.path.join("home/program/stale.wave").exists());
+}
+
+#[test]
+fn malformed() {
+    let fixture = Fixture::new();
+    fixture.write(
+        &format!("home/{POOL}"),
+        &format!(
+            "[{}]",
+            TASK.replace("NAME", "wide")
+                .replace(r#"{"Atom":1}"#, r#"{"Atom":7}"#)
+        ),
+    );
+    let message = fail(&["verify", "--home", &fixture.home()]);
+    assert!(message.contains("pool.json is malformed"), "{message}");
+    assert!(
+        message.contains("wide names an atom outside its vocabulary of 2"),
+        "{message}"
+    );
+}
+
+#[test]
+fn forever() {
+    let fixture = Fixture::new();
+    let home = fixture.home();
+    let input = fixture.write("input.wave", "A");
+    let output = fixture.write("output.wave", "B");
+    let maximum = u64::MAX.to_string();
+    succeed(&[
+        "curriculum",
+        "--home",
+        &home,
+        "--duration",
+        &maximum,
+        "--level",
+        "0",
+    ]);
+    succeed(&[
+        "improve",
+        "--home",
+        &home,
+        "--duration",
+        &maximum,
+        "--round",
+        "0",
+    ]);
+    let report = succeed(&[
+        "solve",
+        "--home",
+        &home,
+        "--input",
+        &input,
+        "--output",
+        &output,
+        "--enumerate",
+        &maximum,
+    ]);
+    assert!(
+        report.contains("found programs for 1 of 1 tasks"),
         "{report}"
     );
 }

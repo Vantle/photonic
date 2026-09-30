@@ -339,10 +339,11 @@ pub fn run(
     let path = home.file(home::CHECKPOINT);
     let start = Instant::now();
     let play = play::Setting {
-        objective: setting
-            .play
-            .objective
-            .until(setting.duration.map(|duration| start + duration)),
+        objective: setting.play.objective.until(
+            setting
+                .duration
+                .and_then(|duration| start.checked_add(duration)),
+        ),
         ..setting.play
     };
     let outcome = std::thread::scope(|scope| -> Result<Report, Failure> {

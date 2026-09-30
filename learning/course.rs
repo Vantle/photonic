@@ -22,7 +22,9 @@ pub fn run(argument: Course) -> miette::Result<()> {
     let setting = setting(&argument.session, false)?;
     let objective = setting.play.objective;
     let seed = argument.session.seed;
-    let deadline = setting.duration.map(|duration| Instant::now() + duration);
+    let deadline = setting
+        .duration
+        .and_then(|duration| Instant::now().checked_add(duration));
     let expired = || deadline.is_some_and(|deadline| Instant::now() >= deadline);
     let mut state: Curriculum = home
         .load(home::CURRICULUM)
@@ -31,7 +33,10 @@ pub fn run(argument: Course) -> miette::Result<()> {
     while !expired() && state.level <= argument.level {
         let level = state.level;
         let mut tried = 0;
-        while state.exam(level).len() < argument.exam && tried < 20 * argument.exam && !expired() {
+        while state.exam(level).len() < argument.exam
+            && tried < argument.exam.saturating_mul(20)
+            && !expired()
+        {
             tried += 1;
             let task = state.breed(level, seed, &objective).into_diagnostic()?;
             let time = remaining(deadline, Duration::from_secs(argument.enumerate));

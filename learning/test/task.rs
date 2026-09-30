@@ -57,3 +57,24 @@ fn name() {
         }
     );
 }
+
+#[test]
+fn atom() {
+    let task = addition(2);
+    let text = serde_json::to_string(&task).unwrap();
+    assert_eq!(serde_json::from_str::<Task>(&text).unwrap(), task);
+    let narrow = Task {
+        vocabulary: Vocabulary::alphabet(1).unwrap(),
+        ..task
+    };
+    let failure =
+        serde_json::from_str::<Task>(&serde_json::to_string(&narrow).unwrap()).unwrap_err();
+    assert!(
+        failure
+            .to_string()
+            .contains("names an atom outside its vocabulary of 1"),
+        "{failure}"
+    );
+    let extra = text.replacen('{', r#"{"extra":1,"#, 1);
+    assert!(serde_json::from_str::<Task>(&extra).is_err());
+}

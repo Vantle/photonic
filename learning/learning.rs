@@ -20,6 +20,7 @@ pub mod objective;
 pub mod play;
 pub mod pool;
 pub mod problem;
+mod reach;
 mod renewal;
 mod replay;
 pub mod search;

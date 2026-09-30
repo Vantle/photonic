@@ -130,12 +130,13 @@ pub(crate) fn search(
     goal: f64,
     network: &mut Network,
 ) -> Guidance {
-    let limit = Instant::now() + effort.time;
-    let deadline = setting
-        .limit
-        .deadline
-        .map_or(limit, |deadline| deadline.min(limit));
-    let setting = &setting.aim(task.goal).until(Some(deadline));
+    let deadline = Instant::now()
+        .checked_add(effort.time)
+        .into_iter()
+        .chain(setting.limit.deadline)
+        .min();
+    let expired = || deadline.is_some_and(|deadline| Instant::now() >= deadline);
+    let setting = &setting.aim(task.goal).until(deadline);
     let task = &Task {
         goal: Some(setting.goal),
         ..task.clone()
@@ -156,7 +157,7 @@ pub(crate) fn search(
         first: None,
         best: None,
     };
-    while Instant::now() < deadline
+    while !expired()
         && guidance.expanded < effort.expansion
         && guidance
             .best
@@ -198,7 +199,7 @@ pub(crate) fn search(
                 guidance.best = Some((node.program.clone(), evaluation.clone()));
             }
         }
-        if Instant::now() >= deadline {
+        if expired() {
             break;
         }
         let action = batch

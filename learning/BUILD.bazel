@@ -26,6 +26,7 @@ filegroup(
         "play.rs",
         "pool.rs",
         "problem.rs",
+        "reach.rs",
         "renewal.rs",
         "replay.rs",
         "search.rs",
