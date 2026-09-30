@@ -12,7 +12,7 @@
     const input = element('input');
     input.spellcheck = false;
     input.autocomplete = 'off';
-    input.placeholder = 'Filter by a pattern such as B.X, or jump to a chapter';
+    input.placeholder = 'Jump to a chapter, or filter by a pattern such as [C, D] E';
     input.setAttribute('role', 'combobox');
     input.setAttribute('aria-expanded', 'true');
     input.setAttribute('aria-controls', 'palette');
@@ -49,21 +49,19 @@
     const collect = () => {
         const query = input.value.trim();
         const lower = query.toLowerCase();
-        const result = [];
-        if (query && book.workbench) {
-            result.push({ label: 'Filter the workbench by', code: query, hint: 'pattern', run: () => { close(); book.workbench.filter(query); } });
-        }
-        outline().filter(item => !lower || item.title.toLowerCase().includes(lower)).forEach(item => {
-            result.push({ label: `${item.number} · ${item.title}`, hint: 'chapter', run: () => go(item.anchor) });
-        });
+        const chapter = outline()
+            .filter(item => !lower || item.number === lower || item.title.toLowerCase().includes(lower))
+            .map(item => ({ label: `${item.number} · ${item.title}`, hint: 'chapter', run: () => go(item.anchor) }));
         const command = [
             { label: 'Open the workbench', hint: 'command', run: () => { close(); book.workbench?.reveal(); } },
             { label: 'Open the Lightbox', hint: 'command', run: () => { close(); location.href = 'lightbox.html'; } },
             { label: 'Clear the workbench filter', hint: 'command', run: () => { close(); book.workbench?.filter(''); } },
             { label: 'Switch theme', hint: 'command', run: () => { close(); document.getElementById('theme')?.click(); } },
-        ];
-        command.filter(item => !lower || item.label.toLowerCase().includes(lower)).forEach(item => result.push(item));
-        return result;
+        ].filter(item => !lower || item.label.toLowerCase().includes(lower));
+        const found = [...chapter, ...command];
+        if (!query || !book.workbench) return found;
+        const filter = { label: 'Filter the workbench by', code: query, hint: 'pattern', run: () => { close(); book.workbench.filter(query); } };
+        return /[.,[(]/.test(query) || !found.length ? [filter, ...found] : [...found, filter];
     };
 
     const paint = () => {

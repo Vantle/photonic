@@ -124,7 +124,17 @@ try {
     assert.match(await evaluate("return document.querySelector('.palette li').textContent"), /Filter the workbench by/);
     await evaluate("document.querySelector('.palette input').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); return true");
     assert.equal(await evaluate("return document.querySelector('.palette').hidden"), true);
-    await evaluate("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true })); const input = document.querySelector('.palette input'); input.value = 'Prism'; input.dispatchEvent(new Event('input')); input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })); input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); return true");
+    const palette = async text => {
+        await evaluate(`const input = document.querySelector('.palette input'); input.value = ${JSON.stringify(text)}; input.dispatchEvent(new Event('input')); return true`);
+        return evaluate("return [...document.querySelectorAll('.palette li')].map(value => value.textContent)");
+    };
+    await evaluate("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true })); return true");
+    assert.deepEqual(await palette('Prism'), ['9 · Prismchapter', 'Filter the workbench byPrismpattern']);
+    assert.match((await palette('zzz'))[0], /^Filter the workbench by/);
+    assert.equal((await palette('Lightbox')).at(-1), 'Filter the workbench byLightboxpattern');
+    assert.match((await palette('B.X'))[0], /^Filter the workbench by/);
+    await evaluate("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return true");
+    await evaluate("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true })); const input = document.querySelector('.palette input'); input.value = 'Prism'; input.dispatchEvent(new Event('input')); input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); return true");
     assert.equal(await evaluate("return document.activeElement === document.querySelector('#prism h2')"), true);
     await until("return document.querySelector('#bench .filter input').value === '[C, D] E'");
     await evaluate("document.querySelector('#bench .filter .tool').click(); return true");
