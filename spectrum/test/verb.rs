@@ -232,7 +232,8 @@ fn check() {
     })) else {
         panic!("check reports diagnostics as data");
     };
-    assert_eq!(broken.diagnostic[0].code, "syntax");
+    assert_eq!(broken.diagnostic[0].code, Code::Source);
+    assert_eq!(broken.diagnostic[0].diagnostic.as_deref(), Some("syntax"));
     let location = broken.diagnostic[0].location.as_ref().expect("a location");
     assert_eq!((location.line, location.column), (1, 3));
 }
@@ -1364,4 +1365,21 @@ fn outline() {
         panic!("a node budget of 0 is refused");
     };
     assert_eq!(refused.code, Code::Request);
+}
+
+// A program that does not parse is the same object whether check reports it as a diagnostic or
+// another question fails with it, and names the frontend's error as the diagnostic.
+#[test]
+fn diagnostic() {
+    let answer = session(&[
+        r#"{"verb": "check", "program": {"source": "A B"}}"#,
+        r#"{"verb": "explore", "program": {"source": "A B"}}"#,
+    ]);
+    assert_eq!(
+        answer[0]["answer"]["diagnostic"][0], answer[1]["error"],
+        "{}",
+        answer[0]
+    );
+    assert_eq!(answer[1]["error"]["code"], "source", "{}", answer[1]);
+    assert_eq!(answer[1]["error"]["diagnostic"], "syntax", "{}", answer[1]);
 }

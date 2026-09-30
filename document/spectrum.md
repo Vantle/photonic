@@ -213,7 +213,7 @@ Every field is checked against the question's schema, so a misspelled field is a
 
 ## Failures
 
-A failure carries a `code`, a `message` and, when it points into text, a `location` with the file, line, column and length.
+A failure carries a `code`, a `message`, when it points into text a `location` with the file, line, column and length, and, for an error in a program's text, the frontend's `diagnostic`, the last part of its diagnostic code, such as `syntax`. A `check` diagnostic is the same object: a program or library that does not assemble is `{"code": "source", "diagnostic": "syntax", …}` in `check`'s `diagnostic` list and as any other question's `error`.
 
 | Code | Meaning |
 | --- | --- |
