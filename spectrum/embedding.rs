@@ -175,7 +175,7 @@ impl<'body, 'entry> Search<'body, 'entry> {
                 .filter(|&other| scope[other].parent == Some(index))
                 .collect::<Vec<_>>();
             for place in 1..frame {
-                let fits = live(scope[index].body, entry, place, canon)
+                let fitted = live(scope[index].body, entry, place, canon)
                     && perfect(own.len(), entry.coherence.len(), |row, coherence| {
                         entry.coherence[coherence].frame == place
                             && cover[own[row]][coherence].is_some()
@@ -183,7 +183,7 @@ impl<'body, 'entry> Search<'body, 'entry> {
                     && perfect(child.len(), frame, |row, inner| {
                         entry.frame[inner].parent == Some(place) && fit[child[row]][inner]
                     });
-                fit[index][place] = fits;
+                fit[index][place] = fitted;
             }
         }
         Self {
