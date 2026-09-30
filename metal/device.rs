@@ -199,6 +199,11 @@ impl Device {
         &self.name
     }
 
+    // The bytes the device can hold while it keeps its speed, as Metal recommends.
+    pub fn room(&self) -> u64 {
+        send!(self.handle.0, c"recommendedMaxWorkingSetSize"; u64)
+    }
+
     // Whether kernels on the device can reach memory through device addresses.
     pub fn addressing(&self) -> bool {
         send!(self.handle.0, c"supportsFamily:", FAMILY => i64; i8) != 0

@@ -10,8 +10,11 @@ use serde::{Deserialize, Serialize};
 pub struct Budget {
     #[schemars(description = "Work steps before the search stops.")]
     pub work: usize,
-    #[schemars(description = "Configurations kept.")]
-    pub configuration: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schemars(
+        description = "Configurations kept: photonic_test's 4,096 by default, and for metal as many as the GPU holds, half the memory Metal recommends at 256 bytes a configuration, or 1,048,576 on the host."
+    )]
+    pub configuration: Option<usize>,
     #[schemars(description = "Coherences in one configuration.")]
     pub coherence: usize,
     #[schemars(description = "Occurrences in one configuration.")]
@@ -27,7 +30,7 @@ impl Default for Budget {
         let limit = Limit::default();
         Self {
             work: 2_000_000,
-            configuration: limit.configuration,
+            configuration: None,
             coherence: limit.coherence,
             occurrence: limit.occurrence,
             scope: limit.scope,
@@ -37,9 +40,10 @@ impl Default for Budget {
 }
 
 impl Budget {
+    // The limits an engine explores under, keeping photonic_test's configurations unless told.
     pub fn limit(self) -> Limit {
         Limit {
-            configuration: self.configuration,
+            configuration: self.configuration.unwrap_or(Limit::default().configuration),
             record: self.record,
             coherence: self.coherence,
             occurrence: self.occurrence,

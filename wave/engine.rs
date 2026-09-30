@@ -3,7 +3,7 @@ use crate::dispatch::whole;
 use crate::failure::Failure;
 use crate::scan::Scan;
 use crate::search::Search;
-use crate::setting::{BACKWARD, REFUSED, prelude};
+use crate::setting::{BACKWARD, REFUSED, TAG, prelude};
 use crate::store::Store;
 use crate::table::Table;
 use crate::tally::Tally;
@@ -13,6 +13,11 @@ use crate::work::Work;
 use metal::device::{Command, Device, Kernel};
 use photonic::laser::net::{Cycle, Exploration, Net};
 use photonic::runtime::Limit;
+
+// The bytes a configuration takes at most: its marking's words, its table slots and offset, and
+// the edges its successors leave when cycles matter, which come to 130 to 160 bytes for tasks and
+// dials with 11 to 16 successors each.
+const WEIGHT: usize = 256;
 
 // The kernels' sources, each beside the host code it serves, in the order they declare what later
 // ones use.
@@ -96,6 +101,13 @@ impl Engine {
     // The GPU the engine explores on.
     pub fn name(&self) -> &str {
         self.device.name()
+    }
+
+    // The configurations an exploration can keep on the device: half the memory Metal recommends it
+    // work within, at WEIGHT bytes a configuration, and fewer than a table numbers.
+    pub fn capacity(&self) -> usize {
+        let room = usize::try_from(self.device.room()).unwrap_or(usize::MAX);
+        (room / 2 / WEIGHT).min(TAG as usize / 2)
     }
 
     // A command whose kernels can reach every segment of the arena.

@@ -300,7 +300,7 @@ fn compare() {
     assert_eq!((scoped.left.event, scoped.right.event), (1, 0));
     let open = Recording {
         budget: Some(Budget {
-            configuration: 5,
+            configuration: Some(5),
             ..Budget::default()
         }),
         ..recording("grow.wave")

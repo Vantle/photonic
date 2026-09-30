@@ -1,3 +1,4 @@
+use crate::budget::Budget;
 use crate::exploration::{Exploration, Plan};
 use crate::explored::Explored;
 use crate::failure::{Code, Failure};
@@ -98,11 +99,19 @@ impl Context<'_> {
                 Ok::<_, Failure>(target)
             })
             .transpose()?;
+        let budget = recording.budget.unwrap_or_default();
+        let keep = match engine {
+            Engine::Metal => crate::survey::capacity()?,
+            Engine::Interpreter | Engine::Laser => budget.limit().configuration,
+        };
         self.store.explore(Plan::new(
             source,
             mode,
             engine,
-            recording.budget.unwrap_or_default(),
+            Budget {
+                configuration: Some(budget.configuration.unwrap_or(keep)),
+                ..budget
+            },
             goal,
         ))
     }

@@ -83,8 +83,11 @@ impl Source {
 pub struct Budget {
     #[arg(long, default_value_t = spectrum::budget::Budget::default().work, help = "Work steps before the search stops")]
     pub work: usize,
-    #[arg(long, default_value_t = spectrum::budget::Budget::default().configuration, help = "Configurations kept")]
-    pub configuration: usize,
+    #[arg(
+        long,
+        help = "Configurations kept: 4,096 by default, and with --engine metal as many as the GPU holds"
+    )]
+    pub configuration: Option<usize>,
     #[arg(long, default_value_t = spectrum::budget::Budget::default().coherence, help = "Coherences in one configuration")]
     pub coherence: usize,
     #[arg(long, default_value_t = spectrum::budget::Budget::default().occurrence, help = "Occurrences in one configuration")]

@@ -43,6 +43,14 @@ fn device() -> Result<Option<&'static wave::engine::Engine>, Failure> {
     }
 }
 
+// The configurations metal keeps unless a question keeps fewer: as many as the GPU holds, or HOST
+// where the host explores alone, one thread finding about a million a second.
+pub(crate) fn capacity() -> Result<usize, Failure> {
+    Ok(device()?.map_or(HOST, wave::engine::Engine::capacity))
+}
+
+const HOST: usize = 1 << 20;
+
 // A net meets a configuration whose root ties to one of its components at the start or while it
 // explores, on the host or the GPU, and each time it has no net of parts for metal.
 fn unsupported(reason: net::Unsupported) -> Failure {

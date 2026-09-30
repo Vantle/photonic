@@ -14,6 +14,10 @@ impl Engine {
         match *self {}
     }
 
+    pub fn capacity(&self) -> usize {
+        match *self {}
+    }
+
     pub fn explore(
         &self,
         _: &mut Net,

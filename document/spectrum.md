@@ -122,13 +122,13 @@ Every question except `shape` is about a recording: a program to explore, or the
 | Budget field | Default | Limits |
 | --- | --- | --- |
 | `work` | 2,000,000 | Work steps before the search stops. |
-| `configuration` | 4,096 | Configurations kept. |
+| `configuration` | 4,096; for metal, as many as the GPU holds | Configurations kept. Metal keeps half the memory Metal recommends the GPU work within, at 256 bytes a configuration, or 1,048,576 configurations on the host. |
 | `coherence` | 64 | Coherences in one configuration. |
 | `occurrence` | 256 | Occurrences in one configuration. |
 | `scope` | 64 | Scopes in one configuration. |
 | `record` | 2,000,000 | Records the engine retains. |
 
-The defaults and the names are `photonic_test`'s; each engine counts work and records its own way. An exploration closes when its search ends within the budget; otherwise it is open, and every answer that depends on what was not explored is unknown. The runtime also records configurations and events that no grounded sequence of events establishes. They keep their handles, and answers mark them unsupported, but claims, paths, lineage, firing counts and comparisons consider only supported ones.
+The defaults and the names are `photonic_test`'s, but for metal's configurations; each engine counts work and records its own way. An exploration closes when its search ends within the budget; otherwise it is open, and every answer that depends on what was not explored is unknown. The runtime also records configurations and events that no grounded sequence of events establishes. They keep their handles, and answers mark them unsupported, but claims, paths, lineage, firing counts and comparisons consider only supported ones.
 
 ### Canonical order
 
