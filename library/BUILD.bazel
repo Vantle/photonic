@@ -35,6 +35,7 @@ rust_test(
         "test/field.rs",
         "test/fixture.rs",
         "test/function.rs",
+        "test/integer.rs",
         "test/isolation.rs",
         "test/natural.rs",
         "test/selection.rs",

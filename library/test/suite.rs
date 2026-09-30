@@ -8,6 +8,7 @@ mod expression;
 mod field;
 mod fixture;
 mod function;
+mod integer;
 mod isolation;
 mod natural;
 mod selection;
