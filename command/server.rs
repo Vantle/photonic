@@ -1,4 +1,5 @@
 use crate::disk::Disk;
+use crate::output;
 use miette::IntoDiagnostic;
 use serde_json::{Map, Value, json};
 use spectrum::context::Context;
@@ -175,7 +176,9 @@ impl Server {
             reader: &self.reader,
             store: &mut self.store,
         };
-        let answer = Request::read(name, argument).and_then(|request| request.answer(&mut context));
+        let answer = spectrum::conformance::verify(name, &argument)
+            .and_then(|()| Request::read(name, argument))
+            .and_then(|request| request.answer(&mut context));
         let mut result = Map::new();
         match answer {
             Ok(answer) => {
@@ -194,7 +197,7 @@ impl Server {
             Err(failure) => {
                 result.insert(
                     "content".to_owned(),
-                    json!([{ "type": "text", "text": failure.to_string() }]),
+                    json!([{ "type": "text", "text": output::error(&failure) }]),
                 );
                 result.insert("isError".to_owned(), json!(true));
             }

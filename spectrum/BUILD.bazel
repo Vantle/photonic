@@ -10,6 +10,7 @@ filegroup(
         "claim.rs",
         "compare.rs",
         "configuration.rs",
+        "conformance.rs",
         "context.rs",
         "exploration.rs",
         "explore.rs",

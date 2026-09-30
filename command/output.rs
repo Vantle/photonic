@@ -14,12 +14,12 @@ pub fn write(value: &impl serde::Serialize, compact: bool) -> miette::Result<()>
     output.flush().into_diagnostic()
 }
 
+// A failure as the command prints it and the protocol server returns it: its code, then its text.
+pub fn error(failure: &Failure) -> String {
+    format!("error[{}]: {failure}", failure.code)
+}
+
 pub fn fail(failure: &Failure) -> miette::Result<ExitCode> {
-    writeln!(
-        std::io::stderr().lock(),
-        "error[{}]: {failure}",
-        failure.code
-    )
-    .into_diagnostic()?;
+    writeln!(std::io::stderr().lock(), "{}", error(failure)).into_diagnostic()?;
     Ok(ExitCode::FAILURE)
 }

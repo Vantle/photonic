@@ -6,6 +6,7 @@ pub mod check;
 pub mod claim;
 pub mod compare;
 pub mod configuration;
+pub mod conformance;
 pub mod context;
 mod exploration;
 pub mod explore;

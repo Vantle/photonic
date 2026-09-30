@@ -38,13 +38,20 @@ impl Drop for Fixture {
     }
 }
 
-fn execute(operation: &str, path: &Path, argument: &[&str]) -> Output {
-    let binary = std::env::var_os("PHOTONIC_COMMAND").expect("Photonic runfile path");
-    let binary = runfiles::Runfiles::create()
+fn runfile(variable: &str) -> PathBuf {
+    let name = std::env::var_os(variable).expect("a runfile path");
+    runfiles::Runfiles::create()
         .expect("Bazel runfiles")
-        .rlocation_from(binary, "")
-        .expect("Photonic executable");
-    Command::new(binary)
+        .rlocation_from(name, "")
+        .expect("a runfile")
+}
+
+fn binary() -> PathBuf {
+    runfile("PHOTONIC_COMMAND")
+}
+
+fn execute(operation: &str, path: &Path, argument: &[&str]) -> Output {
+    Command::new(binary())
         .arg(operation)
         .arg(path)
         .args(argument)
@@ -807,16 +814,11 @@ fn shape() {
     );
 }
 
-fn session(fixture: &Fixture, line: &[impl AsRef<[u8]>]) -> Vec<serde_json::Value> {
+fn session(directory: &Path, line: &[impl AsRef<[u8]>]) -> Vec<serde_json::Value> {
     use std::io::Write;
-    let binary = std::env::var_os("PHOTONIC_COMMAND").expect("Photonic runfile path");
-    let binary = runfiles::Runfiles::create()
-        .expect("Bazel runfiles")
-        .rlocation_from(binary, "")
-        .expect("Photonic executable");
-    let mut child = Command::new(binary)
+    let mut child = Command::new(binary())
         .arg("mcp")
-        .env("BUILD_WORKING_DIRECTORY", &fixture.path)
+        .env("BUILD_WORKING_DIRECTORY", directory)
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
         .spawn()
@@ -842,7 +844,7 @@ fn server() {
     let fixture = Fixture::new();
     fixture.write("bug.wave", BUG);
     let legacy = session(
-        &fixture,
+        &fixture.path,
         &[
             json!({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "test", "version": "1"}}}),
             json!({"jsonrpc": "2.0", "method": "notifications/initialized"}),
@@ -878,11 +880,17 @@ fn server() {
             .contains("## Grammar")
     );
     assert_eq!(legacy[4]["result"]["isError"], true);
+    assert!(
+        legacy[4]["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap_or_default()
+            .starts_with("error[handle]: s99 names no configuration")
+    );
     assert_eq!(legacy[5]["error"]["code"], -32602);
     assert_eq!(legacy[6]["error"]["code"], -32002);
     let meta = json!({"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}});
     let modern = session(
-        &fixture,
+        &fixture.path,
         &[
             json!({"jsonrpc": "2.0", "id": "a", "method": "server/discover", "params": {"_meta": meta}}),
             json!({"jsonrpc": "2.0", "id": "b", "method": "tools/call", "params": {"_meta": meta, "name": "explore", "arguments": {"program": {"file": ["bug.wave"]}}}}),
@@ -949,7 +957,7 @@ fn server() {
     assert_eq!(modern[15]["id"], "j");
     assert_eq!(modern[16]["error"]["code"], -32602);
     let broken = session(
-        &fixture,
+        &fixture.path,
         &[
             b"\xff\xfe".to_vec(),
             json!({"jsonrpc": "2.0", "id": 1, "method": "ping"})
@@ -961,4 +969,98 @@ fn server() {
     assert_eq!(broken[0]["error"]["code"], -32700);
     assert_eq!(broken[1]["id"], 1);
     assert!(broken[1]["result"].is_object());
+}
+
+const LIGHT: &str = "Light, [Light] Red, [Light] Green, [Light] Blue";
+
+fn initialize() -> String {
+    serde_json::json!({"jsonrpc": "2.0", "id": 0, "method": "initialize", "params": {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "test", "version": "1"}}}).to_string()
+}
+
+fn call(id: usize, name: &str, argument: serde_json::Value) -> String {
+    serde_json::json!({"jsonrpc": "2.0", "id": id, "method": "tools/call", "params": {"name": name, "arguments": argument}}).to_string()
+}
+
+// A tool result's text, and whether it is an error.
+fn result(response: &serde_json::Value) -> (bool, String) {
+    let result = &response["result"];
+    (
+        result["isError"] == true,
+        result["content"][0]["text"]
+            .as_str()
+            .unwrap_or_default()
+            .to_owned(),
+    )
+}
+
+// A tool that fails says its failure's code as the command line does, and an argument of the wrong
+// type is named by its path.
+#[test]
+fn failure() {
+    let fixture = Fixture::new();
+    fixture.write("light.wave", LIGHT);
+    let program = serde_json::json!({"file": ["light.wave"]});
+    let answer = session(
+        &fixture.path,
+        &[
+            initialize(),
+            call(
+                1,
+                "explore",
+                serde_json::json!({"program": {"file": "light.wave"}}),
+            ),
+            call(
+                2,
+                "check",
+                serde_json::json!({"program": program, "claim": [{"kind": "reach"}]}),
+            ),
+            call(
+                3,
+                "explore",
+                serde_json::json!({"program": program, "mode": "linear"}),
+            ),
+            call(
+                4,
+                "explore",
+                serde_json::json!({"program": program, "limit": -1}),
+            ),
+            call(
+                5,
+                "explore",
+                serde_json::json!({"program": program, "budget": {"work": "many"}}),
+            ),
+            call(6, "inspect", serde_json::json!({"program": program})),
+            call(
+                7,
+                "compare",
+                serde_json::json!({"left": {"program": program}, "right": {"program": {"file": [1]}}}),
+            ),
+            call(
+                8,
+                "inspect",
+                serde_json::json!({"program": program, "handle": "s99"}),
+            ),
+            call(
+                9,
+                "explore",
+                serde_json::json!({"program": program, "colour": 1}),
+            ),
+        ],
+    );
+    let expected = [
+        "error[request]: program.file takes an array, not a string",
+        "error[request]: claim.0.pattern is required",
+        "error[request]: mode takes exhaustive, plain or path, not \"linear\"",
+        "error[request]: limit takes at least 0, not -1",
+        "error[request]: budget.work takes an integer, not a string",
+        "error[request]: handle is required",
+        "error[request]: right.program.file.0 takes a string, not an integer",
+        "error[handle]: s99 names no configuration",
+        "error[request]: colour is not a field here",
+    ];
+    for (response, expected) in answer[1..].iter().zip(expected) {
+        let (failed, text) = result(response);
+        assert!(failed, "{text}");
+        assert!(text.starts_with(expected), "{text}");
+    }
 }
