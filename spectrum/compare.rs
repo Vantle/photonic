@@ -1,5 +1,5 @@
 use crate::claim::{self, Claim};
-use crate::configuration::{Occurrence, Opener};
+use crate::configuration::{Frame, Occurrence, Opener};
 use crate::context::Context;
 use crate::exploration::Exploration;
 use crate::failure::{Code, Failure};
@@ -21,7 +21,7 @@ fn limit() -> usize {
 
 #[derive(Clone, Debug, Deserialize, JsonSchema, Serialize)]
 #[schemars(
-    description = "Compare two programs or explorations by behavior: the configurations each reaches, compared by their coherences and held occurrences up to occurrence identity; the events, compared by rule, so edited rules show there; and each claim's answer on both."
+    description = "Compare two programs or explorations by behavior: the configurations each reaches, compared by their coherences, how their scopes nest, the rules live in each scope and the occurrences each frame holds, however occurrences and scopes are numbered, leaving out the program's own rules, which an edit changes; the events, compared by their rule's whole text, source and target, so edited rules show there; and each claim's answer on both."
 )]
 pub struct Request {
     pub left: Recording,
@@ -89,10 +89,20 @@ pub struct Answer {
     pub(crate) claim: Vec<Pair>,
 }
 
+// What a configuration's key is built from. Each coherence is a group of its occurrences linked to
+// its frame; each frame is a group marked by what opened it and linked to the frames around it,
+// with further groups for the rules live in a scope and the occurrences a frame holds. Groups link by
+// number, and the key forgets the numbers, so occurrences and frames compare by what they are and how
+// they sit, not by how they are numbered.
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-struct Element {
-    place: String,
-    text: String,
+enum Element {
+    Occurrence(String),
+    Frame(String),
+    Rule,
+    Held,
+    Member,
+    Nest,
+    Lexical,
 }
 
 #[derive(Clone, Eq, Ord, PartialEq, PartialOrd)]
@@ -108,55 +118,121 @@ struct Index {
     event: BTreeMap<Transition, Vec<usize>>,
 }
 
-fn label(exploration: &Exploration, configuration: usize, frame: usize) -> String {
-    match exploration.configuration[configuration].frame[frame].opener {
+fn opener(exploration: &Exploration, frame: &Frame) -> String {
+    match frame.opener {
         Some(Opener::Rule(rule)) => render::input(exploration, rule),
-        Some(Opener::Program) => "scope".to_owned(),
+        Some(Opener::Program) => "program".to_owned(),
         None => "root".to_owned(),
     }
 }
 
-fn group(exploration: &Exploration, place: &str, occurrence: &[Occurrence]) -> Vec<(u32, Element)> {
-    occurrence
-        .iter()
-        .map(|occurrence| {
-            (
-                u32::try_from(occurrence.id).unwrap_or(u32::MAX),
-                Element {
-                    place: place.to_owned(),
-                    text: render::occurrence(&exploration.rule, occurrence),
-                },
-            )
-        })
-        .collect()
-}
-
-fn key(exploration: &Exploration, configuration: usize) -> Result<Key<Element>, Exhausted> {
+// A frame links its coherences, rules and held occurrences by one number, the frames inside it by
+// another, and the frames that see its rules by a third; each marked group takes a number of its
+// own. The root's rules are the program's, which an edit changes, so they stay out of the key and
+// configurations compare by what the program does, not by how it is written.
+fn key(exploration: &Exploration, configuration: usize) -> Result<Key<Element>, Failure> {
     let entry = &exploration.configuration[configuration];
-    let world = entry.coherence.iter().map(|coherence| {
-        group(
-            exploration,
-            &label(exploration, configuration, coherence.frame),
-            &coherence.occurrence,
+    let base = entry
+        .coherence
+        .iter()
+        .flat_map(|coherence| &coherence.occurrence)
+        .chain(
+            entry
+                .frame
+                .iter()
+                .flat_map(|frame| frame.rule.iter().chain(&frame.held)),
         )
-    });
-    let held = entry.frame.iter().enumerate().map(|(position, frame)| {
-        let place = label(exploration, configuration, position);
-        group(exploration, &format!("{place} holds"), &frame.held)
-    });
-    code::canonical::key(&world.chain(held).collect::<Vec<_>>(), BUDGET)
+        .map(|occurrence| occurrence.id + 1)
+        .max()
+        .unwrap_or(0);
+    let count = entry.frame.len();
+    let member = |frame: usize| base + frame;
+    let nest = |frame: usize| base + count + frame;
+    let lexical = |frame: usize| base + 2 * count + frame;
+    let occurrence = |value: &Occurrence| {
+        (
+            value.id,
+            Element::Occurrence(render::occurrence(&exploration.rule, value)),
+        )
+    };
+    let mut group = entry
+        .coherence
+        .iter()
+        .map(|coherence| {
+            coherence
+                .occurrence
+                .iter()
+                .map(occurrence)
+                .chain([(member(coherence.frame), Element::Member)])
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>();
+    for (index, frame) in entry.frame.iter().enumerate() {
+        let mark = base + 3 * count + group.len();
+        group.push(
+            [
+                (mark, Element::Frame(opener(exploration, frame))),
+                (member(index), Element::Member),
+                (nest(index), Element::Nest),
+                (lexical(index), Element::Lexical),
+            ]
+            .into_iter()
+            .chain(frame.parent.map(|parent| (nest(parent), Element::Nest)))
+            .chain(
+                frame
+                    .lexical
+                    .map(|parent| (lexical(parent), Element::Lexical)),
+            )
+            .collect(),
+        );
+        let live = if index == 0 {
+            &[][..]
+        } else {
+            frame.rule.as_slice()
+        };
+        for (marker, part) in [
+            (Element::Rule, live),
+            (Element::Held, frame.held.as_slice()),
+        ] {
+            if part.is_empty() {
+                continue;
+            }
+            let mark = base + 3 * count + group.len();
+            group.push(
+                [(mark, marker), (member(index), Element::Member)]
+                    .into_iter()
+                    .chain(part.iter().map(occurrence))
+                    .collect(),
+            );
+        }
+    }
+    let group = group
+        .into_iter()
+        .map(|group| {
+            group
+                .into_iter()
+                .map(|(id, element)| u32::try_from(id).map(|id| (id, element)))
+                .collect::<Result<Vec<_>, _>>()
+        })
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|_| {
+            Failure::new(
+                Code::Exploration,
+                "a configuration numbers its occurrences too high to compare",
+            )
+        })?;
+    code::canonical::key(&group, BUDGET).map_err(|Exhausted| {
+        Failure::new(
+            Code::Exploration,
+            "a configuration is too symmetric to compare within the budget",
+        )
+    })
 }
 
 fn index(exploration: &Exploration) -> Result<Index, Failure> {
     let key = (0..exploration.configuration.len())
         .map(|configuration| key(exploration, configuration))
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|_| {
-            Failure::new(
-                Code::Exploration,
-                "a configuration is too symmetric to compare within the budget",
-            )
-        })?;
+        .collect::<Result<Vec<_>, _>>()?;
     let mut configuration = BTreeMap::new();
     for (position, entry) in key.iter().enumerate() {
         if exploration.configuration[position].supported {
@@ -170,7 +246,7 @@ fn index(exploration: &Exploration) -> Result<Index, Failure> {
         }
         event
             .entry(Transition {
-                rule: render::brief(exploration, entry.rule),
+                rule: exploration.rule[entry.rule].text.clone(),
                 inferred: exploration.inferred(position),
                 source: key[entry.source].clone(),
                 target: key[entry.target].clone(),

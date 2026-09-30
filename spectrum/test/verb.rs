@@ -69,6 +69,16 @@ fn recording(path: &str) -> Recording {
     }
 }
 
+fn source(text: &str) -> Recording {
+    Recording {
+        program: Some(Subject {
+            source: Some(text.to_owned()),
+            ..Subject::default()
+        }),
+        ..Recording::default()
+    }
+}
+
 fn answer(request: &Request) -> Result<Answer, Failure> {
     let reader = memory();
     let mut store = Store::default();
@@ -241,41 +251,63 @@ fn compare() {
         panic!("compare answers");
     };
     assert_eq!((bug.left.configuration, bug.right.configuration), (14, 18));
-    assert!(bug.configuration.lost.is_empty());
     assert!(!bug.passed());
-    let mut gained = bug
+    let scoped = |entry: &crate::compare::Entry| entry.text.starts_with("in f1:");
+    let root = bug
         .configuration
         .gained
         .iter()
+        .filter(|entry| !scoped(entry))
         .map(|entry| (entry.handle.as_str(), entry.text.as_str()))
-        .collect::<Vec<_>>();
-    gained.sort_unstable();
+        .collect::<std::collections::BTreeSet<_>>();
     assert_eq!(
-        gained,
-        vec![
+        root,
+        std::collections::BTreeSet::from([
             ("s14", "False.Boolean.Extra"),
             ("s4", "Boolean.True.Extra"),
             ("s6", "False.True.Extra"),
             ("s7", "Boolean.Boolean.Extra"),
-        ]
+        ])
     );
+    assert!(bug.configuration.lost.iter().all(scoped));
     let Ok(Answer::Compare(fix)) = answer(&request("fix.wave")) else {
         panic!("compare answers");
     };
-    assert!(fix.configuration.same());
-    assert!(!fix.event.same());
-    assert!(!fix.passed());
-    assert_eq!((fix.left.event, fix.right.event), (17, 18));
-    assert_eq!(
-        fix.event
+    assert_eq!((fix.left.configuration, fix.right.configuration), (14, 14));
+    assert!(!fix.configuration.same());
+    assert!(
+        fix.configuration
             .gained
             .iter()
-            .map(|group| group.rule.as_str())
-            .collect::<Vec<_>>(),
-        vec!["[False.Boolean] False", "[False.Boolean] False"]
+            .chain(&fix.configuration.lost)
+            .all(scoped)
     );
-    assert_eq!(fix.event.lost.len(), 1);
-    assert_eq!(fix.event.lost[0].rule, "[True.False] False");
+    assert!(!fix.passed());
+    assert_eq!((fix.left.event, fix.right.event), (17, 18));
+    let rule = |group: &[crate::compare::Group]| {
+        group
+            .iter()
+            .map(|group| group.rule.clone())
+            .collect::<Vec<_>>()
+    };
+    assert!(rule(&fix.event.gained).contains(&"[False.Boolean] False".to_owned()));
+    assert!(rule(&fix.event.lost).contains(&"[True.False] False".to_owned()));
+    let Ok(Answer::Compare(edited)) = answer(&Request::Compare(crate::compare::Request {
+        left: source("A, [A] B, [B] C"),
+        right: source("A, [A] B, [A] C"),
+        claim: Vec::new(),
+        limit: 12,
+    })) else {
+        panic!("compare answers");
+    };
+    assert!(edited.configuration.same(), "{}", edited.text());
+    assert!(!edited.event.same());
+    assert_eq!(rule(&edited.event.gained), vec!["[A] C"]);
+    assert!(
+        rule(&edited.event.lost).iter().all(|rule| rule == "[B] C"),
+        "{}",
+        edited.text()
+    );
     let Ok(Answer::Compare(renamed)) = answer(&request("renamed.wave")) else {
         panic!("compare answers");
     };
@@ -900,5 +932,42 @@ fn distinct() {
         (1..frame.len()).all(|index| !frame[..index].contains(&frame[index])),
         "{}",
         answer[4]
+    );
+}
+
+// Configurations compare by which scope holds each coherence, how scopes nest and which rules live
+// in each scope, so programs that differ there never compare as identical, and a program compared
+// with itself counts every configuration its exploration holds.
+#[test]
+fn layout() {
+    let compare = |left: &str, right: &str| {
+        let Ok(Answer::Compare(answer)) = answer(&Request::Compare(crate::compare::Request {
+            left: source(left),
+            right: source(right),
+            claim: Vec::new(),
+            limit: 12,
+        })) else {
+            panic!("compare answers");
+        };
+        answer
+    };
+    for (left, right) in [
+        ("(X, Y, [Q] R), (Z, [Q] R)", "(X, [Q] R), (Y, Z, [Q] R)"),
+        ("(X, [Q] R, (Y, [Q] R))", "(X, [Q] R), (Y, [Q] R)"),
+        ("Go, [Go] (X, [Q] R)", "Go, [Go] (X, [X.Q] R)"),
+    ] {
+        let different = compare(left, right);
+        assert!(!different.configuration.same(), "{left} {right}");
+        assert!(!different.passed(), "{left} {right}");
+        let same = compare(left, left);
+        assert!(same.configuration.same() && same.passed(), "{left}");
+    }
+    let two = "Go, [Go] (X, [Q] R), [Go] (X, [Q] S)";
+    let itself = compare(two, two);
+    assert_eq!(
+        (itself.left.configuration, itself.left.event),
+        (3, 2),
+        "{}",
+        itself.text()
     );
 }
