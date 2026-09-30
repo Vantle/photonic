@@ -49,6 +49,9 @@ fn diagnostic(failure: Failure) -> Diagnostic {
 // A program that does not assemble is answered with its diagnostic, and only assembling fails with
 // a source or library code; every other failure is the request's.
 pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Answer, Failure> {
+    for claim in &request.claim {
+        claim::admit(claim, &request.recording)?;
+    }
     let explored = match context.explored(&request.recording) {
         Ok(explored) => explored,
         Err(failure) if matches!(failure.code, Code::Source | Code::Library) => {

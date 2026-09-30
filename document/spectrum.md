@@ -181,7 +181,7 @@ A claim is a pattern with a kind. Its answer is `holds`, `fails` or `unknown`, a
 
 In plain mode a claim speaks of every schedule of plain events instead of every future: `inevitable` holds when every such schedule reaches a match, even where inference lets a rule consume part of a configuration early and strand a run.
 
-`exact` compares whole configurations as Prism does, and `preserve` adds every loaded root rule to the target; every claim takes an exact target, except on a direct path, whose exact target is its goal. `end` with an exact target in plain mode asks what `photonic_test(every = True)` checks: that every schedule of plain events ends exactly at the target. Inference lets a rule apply to what a configuration can become, so a run can skip configurations a longer run passes through. A direct path follows one run of many, so on a path `reach` can hold, `avoid` and `always` can fail, and every other answer is unknown. Unknown means the search could not settle the claim, because a budget stopped it or because a path follows one run. It is never evidence of absence.
+`exact` compares whole configurations as Prism does, and `preserve` adds every loaded root rule to the target, so `preserve` without `exact` is refused; every claim takes an exact target, except on a direct path, whose exact target is its goal. Every claim is read, and checked against the mode and engine its recording names, before anything is explored, so a claim that cannot be answered costs no exploration. `end` with an exact target in plain mode asks what `photonic_test(every = True)` checks: that every schedule of plain events ends exactly at the target. Inference lets a rule apply to what a configuration can become, so a run can skip configurations a longer run passes through. A direct path follows one run of many, so on a path `reach` can hold, `avoid` and `always` can fail, and every other answer is unknown. Unknown means the search could not settle the claim, because a budget stopped it or because a path follows one run. It is never evidence of absence.
 
 ## Questions
 
@@ -215,7 +215,7 @@ A failure carries a `code`, a `message` and, when it points into text, a `locati
 
 | Code | Meaning |
 | --- | --- |
-| `request` | The request is malformed: not an object, an unknown field, no program, a program and a key together, a key with a mode, engine, budget or goal, a goal outside path mode, `laser` in path mode, `interpreter` in plain mode, or `metal` outside it. |
+| `request` | The request is malformed: not an object, an unknown field, no program, a program and a key together, a key with a mode, engine, budget or goal, a goal outside path mode, `laser` in path mode, `interpreter` in plain mode, `metal` outside it, `preserve` without `exact`, or a `miss` with neither or both of a target and a rule, or with `exact` or `preserve` beside a rule. |
 | `file` | A file cannot be read. |
 | `source` | A program does not parse or lower; `check` reports it as a diagnostic instead. |
 | `library` | A library does not parse or holds more than declarations; `check` reports it as a diagnostic instead. |
@@ -223,7 +223,7 @@ A failure carries a `code`, a `message` and, when it points into text, a `locati
 | `pattern` | A pattern is empty or does not parse, mixes coherences or scopes with rules, is the wrong kind for the question, or holds scopes that can be placed in too many ways to search. |
 | `handle` | A handle is malformed, names nothing in the exploration, or names a kind the verb does not explain. |
 | `exploration` | A key is too short, malformed, unknown or ambiguous, or lineage is asked of a direct path. |
-| `engine` | An engine cannot answer: metal refuses a program with no net of parts and every question but `explore` and `check`. |
+| `engine` | An engine cannot answer: metal refuses a program with no net of parts and, before exploring, every question but `explore` and `check`. |
 | `claim` | A claim cannot be asked this way, such as an exact target on a direct path, a rule pattern as a claim, or on metal a claim other than `end` and `outcome`. |
 | `shape` | The symmetry search exceeded its `node` limit. |
 

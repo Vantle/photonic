@@ -320,6 +320,10 @@ fn change<Item>(gained: Vec<Item>, lost: Vec<Item>, limit: usize) -> Change<Item
 }
 
 pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Answer, Failure> {
+    for claim in &request.claim {
+        claim::admit(claim, &request.left)?;
+        claim::admit(claim, &request.right)?;
+    }
     let left = context.exploration(&request.left)?;
     let right = context.exploration(&request.right)?;
     let (before, after) = (index(&left)?, index(&right)?);

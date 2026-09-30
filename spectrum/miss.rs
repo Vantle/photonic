@@ -1,3 +1,4 @@
+use crate::claim;
 use crate::configuration::{Coherence, Occurrence, Value};
 use crate::context::Context;
 use crate::exploration::Exploration;
@@ -35,7 +36,9 @@ pub struct Request {
     )]
     pub exact: bool,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    #[schemars(description = "With exact, the target also lists every loaded root rule.")]
+    #[schemars(
+        description = "With exact, the target also lists every loaded root rule; without exact it is refused."
+    )]
     pub preserve: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(description = "A rule handle, such as r3, to explain why it does not fire.")]
@@ -449,12 +452,6 @@ fn target(request: &Request, text: &str, exploration: &Exploration) -> Result<Mi
         }
         body
     } else {
-        if request.preserve {
-            return Err(Failure::new(
-                Code::Request,
-                "preserve adds rules to an exact target; set exact",
-            ));
-        }
         match Pattern::read(text)? {
             Pattern::Configuration(body) => body,
             Pattern::Rule(_) => {
@@ -590,14 +587,40 @@ fn rule(request: &Request, text: &str, exploration: &Exploration) -> Result<Miss
     })
 }
 
-pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Answer, Failure> {
-    let exploration = context.exploration(&request.recording)?;
-    let miss = match (&request.target, &request.rule) {
-        (Some(text), None) => target(request, text, &exploration)?,
-        (None, Some(text)) => rule(request, text, &exploration)?,
-        _ => {
-            return Err(Failure::new(Code::Request, "give target or rule, not both"));
+// What a miss explains, checked before anything is explored: a target, or a rule.
+enum Question<'request> {
+    Target(&'request str),
+    Rule(&'request str),
+}
+
+fn question(request: &Request) -> Result<Question<'_>, Failure> {
+    match (&request.target, &request.rule) {
+        (Some(_), Some(_)) => Err(Failure::new(
+            Code::Request,
+            "explain a target or a rule, not both",
+        )),
+        (None, None) => Err(Failure::new(
+            Code::Request,
+            "name what to explain: a target (--target, or target), or a rule handle such as r3 (after the files, or rule)",
+        )),
+        (Some(text), None) => {
+            claim::preserve(request.exact, request.preserve)?;
+            Ok(Question::Target(text))
         }
+        (None, Some(_)) if request.exact || request.preserve => Err(Failure::new(
+            Code::Request,
+            "exact and preserve read a target, and a rule takes neither",
+        )),
+        (None, Some(text)) => Ok(Question::Rule(text)),
+    }
+}
+
+pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Answer, Failure> {
+    let question = question(request)?;
+    let exploration = context.exploration(&request.recording)?;
+    let miss = match question {
+        Question::Target(text) => target(request, text, &exploration)?,
+        Question::Rule(text) => rule(request, text, &exploration)?,
     };
     Ok(Answer {
         exploration: exploration.name(),

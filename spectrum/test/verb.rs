@@ -971,3 +971,39 @@ fn layout() {
         itself.text()
     );
 }
+
+// Claims, and questions that cannot be answered as asked, are refused before the program is read or
+// explored, and preserve means nothing without an exact target.
+#[test]
+fn admission() {
+    let answer = session(&[
+        r#"{"verb": "check", "program": {"file": ["absent.wave"]}, "mode": "plain", "engine": "metal", "claim": [{"kind": "reach", "pattern": "Done"}]}"#,
+        r#"{"verb": "check", "program": {"file": ["absent.wave"]}, "mode": "path", "claim": [{"kind": "reach", "pattern": "Done", "exact": true}]}"#,
+        r#"{"verb": "check", "program": {"file": ["absent.wave"]}, "claim": [{"kind": "reach", "pattern": "Done", "preserve": true}]}"#,
+        r#"{"verb": "compare", "left": {"program": {"file": ["absent.wave"]}, "mode": "plain", "engine": "metal"}, "right": {"program": {"file": ["bug.wave"]}}}"#,
+        r#"{"verb": "compare", "left": {"program": {"file": ["bug.wave"]}}, "right": {"program": {"file": ["bug.wave"]}}, "claim": [{"kind": "reach", "pattern": "False.Extra", "preserve": true}]}"#,
+        r#"{"verb": "miss", "program": {"file": ["absent.wave"]}, "rule": "r3", "preserve": true}"#,
+        r#"{"verb": "miss", "program": {"file": ["absent.wave"]}}"#,
+        r#"{"verb": "check", "program": {"file": ["bug.wave"]}, "claim": [{"kind": "reach", "pattern": "False.Extra", "exact": true, "preserve": true}]}"#,
+    ]);
+    for (index, code) in [
+        "claim", "claim", "request", "engine", "request", "request", "request",
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        assert_eq!(answer[index]["error"]["code"], code, "{}", answer[index]);
+    }
+    assert!(
+        answer[6]["error"]["message"]
+            .as_str()
+            .is_some_and(|message| message.contains("name what to explain")),
+        "{}",
+        answer[6]
+    );
+    assert_eq!(
+        answer[7]["answer"]["claim"][0]["answer"], "holds",
+        "{}",
+        answer[7]
+    );
+}
