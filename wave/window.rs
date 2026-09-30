@@ -26,7 +26,9 @@ pub struct Joined {
 
 // A run of markings whose successors are counted together: the first marking's id, how many, how
 // many successors they have, the successors the host found, sorted by marking, the markings with
-// no successor at all, and whether the budget stopped the exploration at the marking after them.
+// no successor at all, and whether the budget stopped the exploration at the marking after them;
+// a window the host's successors filled ends before the marking after them as well, and the next
+// window starts there.
 pub struct Window {
     pub first: usize,
     pub size: usize,
@@ -58,6 +60,15 @@ impl Range {
     pub fn count(&self) -> usize {
         (self.end - self.begin) as usize
     }
+}
+
+// The words the successors the host found take in the extra memory: each one's hash, root, length
+// and kinds.
+fn weigh(successor: &[Successor]) -> usize {
+    successor
+        .iter()
+        .map(|found| 4 + found.marking.kind.len())
+        .sum()
 }
 
 impl Window {
@@ -201,7 +212,7 @@ impl Engine {
         size: usize,
         counted: bool,
     ) -> Result<Window, Failure> {
-        let (visited, kept) = self.visit(search, first, size, counted)?;
+        let (visited, kept, spent) = self.visit(search, first, size, counted)?;
         let end = visited
             .iter()
             .filter(|visit| visit.state & BARE != 0 && visit.successor.is_empty())
@@ -214,22 +225,26 @@ impl Engine {
             total: search.work.total.view::<u64>()[WINDOW],
             joined,
             end,
-            spent: kept < size,
+            spent,
         })
     }
 
     // Visits every marking of a window that counting flagged, in order, as the host's own net would
-    // on expanding it, and gives the visits with the size of the window they cover. When the tables
-    // lacked a part, the visits ground it and the window is counted again, once, keeping what the
-    // visits found, so no host join is taken twice; a marking whose parts or host join the budget
-    // cannot take ends the window before it, and the shorter window is counted again.
+    // on expanding it, and gives the visits with the size of the window they cover and whether the
+    // budget stopped it. When the tables lacked a part, the visits ground it and the window is
+    // counted again, once, keeping what the visits found; a marking whose parts or host join the
+    // budget cannot take, or whose joined successors would take the window's words past what it
+    // holds, ends the window before it, and the shorter window is counted again. The first marking
+    // of a window stays in it whatever its successors take, and a marking a full window leaves out
+    // gives back its host join's work, which it takes again when the next window visits it.
     fn visit(
         &self,
         search: &mut Search<'_>,
         first: usize,
         mut size: usize,
         mut counted: bool,
-    ) -> Result<(Vec<Visit>, usize), Failure> {
+    ) -> Result<(Vec<Visit>, usize, bool), Failure> {
+        let mut spent = false;
         let mut found = HashMap::<usize, Vec<Successor>, Builder>::default();
         for _ in 0..2 {
             if !counted {
@@ -252,6 +267,7 @@ impl Engine {
             flagged.sort_unstable();
             let mut visited = Vec::with_capacity(flagged.len());
             let mut shortened = false;
+            let mut word = 0;
             for (index, state) in flagged {
                 if state & (MISSING | JOIN) == 0 {
                     visited.push(Visit {
@@ -272,11 +288,19 @@ impl Engine {
                         else {
                             size = index;
                             shortened = true;
+                            spent = true;
                             break;
                         };
+                        if index > 0 && word + weigh(&expansion.successor) > self.tuning.word {
+                            search.net.refund(expansion.work);
+                            size = index;
+                            shortened = true;
+                            break;
+                        }
                         expansion.successor
                     }
                 };
+                word += weigh(&successor);
                 visited.push(Visit {
                     index,
                     state,
@@ -284,7 +308,7 @@ impl Engine {
                 });
             }
             if !shortened && visited.iter().all(|visit| visit.state & MISSING == 0) {
-                return Ok((visited, size));
+                return Ok((visited, size, spent));
             }
             found = visited
                 .into_iter()
