@@ -26,6 +26,9 @@ Programs, answers and links from builds of `main` before 1.0.0 may need these ch
   - A rule value firing in a coherence keeps its output in place; only a scope's own rules return output to the scope around it.
 - Exploring
   - Configurations with interchangeable parts are named part by part, and every search for a canonical form is charged to the work budget, so programs with many alike scopes, seeds or calls no longer stall.
+  - The occurrence limit counts what a configuration's coherences and scopes hold as values, so live rules no longer count, and the scope limit counts only the scopes a run opened.
+  - Every open answer names the budget or limit that stopped it and the flag to raise.
+  - Laser keeps its work and record budgets inside a round, `--engine metal` bounds the memory of the successors it joins on the host and says whether it ran on the GPU or on the host, and the interpreter's `run --json` keeps only the views its events rest on.
 - Spectrum and the command
   - A pattern places each of its parts in a different coherence or scope, `compare` tells apart configurations that differ in their scopes, nesting or live rules, and an exploration is reused only for the same program, naming, mode, engine, budget and goal.
   - Answers name every exploration `closed` or open; `complete` is gone. An open exploration or a direct path never says a rule never fires, and `miss` counts configurations it has not explored.
