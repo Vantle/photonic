@@ -153,6 +153,22 @@ photonic_test(
 )
 
 photonic_test(
+    name = "add.order",
+    configuration = 8192,
+    every = True,
+    occurrence = 1024,
+    source = """Push.([Digit] 1).Zero, Stage.1,
+[Built, Stage.1] (Operand.Left, Forget.Stage.2),
+[Clean.Stage.2] (Push.([Digit] 1).Zero, Stage.3),
+[Built, Stage.3] (Operand.Right, Forget.Stage.4),
+[Clean.Stage.4] Function.Natural.Add,
+[Return.Natural.Add] Read.Probe,
+[Yield.([Digit] 2).Probe.Zero] Done""",
+    target = ["Done"],
+    deps = [":add"],
+)
+
+photonic_test(
     name = "column.fork",
     source = "Column.Step",
     target = ["Column.Fetch.([Side] Left), Column.Fetch.([Side] Right)"],
@@ -283,6 +299,22 @@ photonic_test(
 )
 
 photonic_test(
+    name = "difference.order",
+    configuration = 32768,
+    every = True,
+    occurrence = 1024,
+    source = """Push.([Digit] 1).Zero, Stage.1,
+[Built, Stage.1] (Operand.Left, Forget.Stage.2),
+[Clean.Stage.2] (Push.([Digit] 2).Zero, Stage.3),
+[Built, Stage.3] (Operand.Right, Forget.Stage.4),
+[Clean.Stage.4] Function.Natural.Difference,
+[Return.Natural.Difference.Negative] Read.Probe,
+[Yield.([Digit] 1).Probe.Zero] Done""",
+    target = ["Done"],
+    deps = [":difference"],
+)
+
+photonic_test(
     name = "divide.hold",
     coherence = 256,
     configuration = 8192,
@@ -316,6 +348,19 @@ photonic_test(
 [One, Two] Done""",
     target = ["Done"],
     deps = [":divide"],
+)
+
+photonic_test(
+    name = "successor.order",
+    every = True,
+    occurrence = 1024,
+    source = """Push.([Digit] 2).Zero, Stage.1,
+[Built, Stage.1] Function.Natural.Successor,
+[Return.Natural.Successor] Read.Probe.1,
+[Yield.([Digit] 0).Probe.1] Read.Probe.2,
+[Yield.([Digit] 1).Probe.2.Zero] Done""",
+    target = ["Done"],
+    deps = [":successor"],
 )
 
 filegroup(

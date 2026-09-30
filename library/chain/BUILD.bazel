@@ -53,6 +53,20 @@ photonic_test(
 )
 
 photonic_test(
+    name = "reverse.order",
+    every = True,
+    source = """Push.Item.Zero, Stage.1,
+[Drop.Item] Forget,
+[Yield.Item.Reverse.Wait] (Reverse.Left, Forget.Reverse.Put.Item),
+[Clean.Reverse.Put.Item, Reverse.Right] (Push.Item, Forget.Reverse.Await),
+[Built, Stage.1] (Function.Chain.Reverse, Forget.Stage.2),
+[Return.Chain.Reverse, Clean.Stage.2] Read.Probe,
+[Yield.Item.Probe.Zero] Done""",
+    target = ["Done"],
+    deps = [":reverse"],
+)
+
+photonic_test(
     name = "reverse.zero",
     path = True,
     source = "Function.Chain.Reverse.Zero",

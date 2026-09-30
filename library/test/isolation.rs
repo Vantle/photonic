@@ -1,6 +1,7 @@
 use crate::catalog::LIBRARY;
 use frontend::lowering::parse;
 use frontend::source::{Definition, Output, Program, Value};
+use frontend::text;
 use std::collections::BTreeSet;
 
 const BOUNDED: [&str; 9] = [
@@ -146,11 +147,12 @@ const ANSWER: [&str; 10] = [
     "Built", "Clean", "Lifted", "Linked", "Return", "Seen", "Stored", "Taken", "Unlinked", "Yield",
 ];
 
-// A round of the sort takes runs from a lifted stack, Sort.Pile or Sort.Heap, and the sort writes a
-// stack's empty linked form, Linked.Sort.Pile.Nil or Linked.Sort.Heap.Nil, only while no round takes
-// from that stack, so those labels never meet the linked stacks they fit inside.
-const BOOKKEEPING: (&str, &str, &str) = ("vector", "sort", "Linked");
+const REQUEST: [&str; 10] = [
+    "Drop", "Forget", "Insert", "Lift", "Link", "Peek", "Push", "Read", "Take", "Unlink",
+];
 
+// A request stays in its frame until a handle answers it, so a label that fits inside a pending
+// request could take the request in place of the value it waits for.
 #[test]
 fn boundary() {
     let rule = root();
@@ -172,33 +174,50 @@ fn boundary() {
             rule.output
                 .iter()
                 .flat_map(coherence)
-                .map(|value| (package, name, particle(value)))
+                .map(|value| (package, name, text::coherence(value), particle(value)))
                 .collect::<Vec<_>>()
         })
         .collect::<Vec<_>>();
-    for word in ANSWER {
+    let mut collision = Vec::new();
+    for word in ANSWER.into_iter().chain(REQUEST) {
         let atom = Value::Atom(word.to_owned());
         let reply = produced
             .iter()
-            .filter(|(_, _, value)| value.contains(&atom))
+            .filter(|(_, _, _, value)| value.contains(&atom))
             .collect::<Vec<_>>();
-        assert!(!reply.is_empty(), "no rule answers {word}");
+        assert!(!reply.is_empty(), "no rule produces {word}");
         for (package, name, rule) in &definition {
-            for pattern in rule.input.iter().map(|value| particle(value)) {
+            for input in &rule.input {
+                let pattern = particle(input);
                 if pattern.is_empty() || pattern.contains(&atom) {
                     continue;
                 }
-                for (owner, file, value) in &reply {
-                    let exempt = (*package, *name, word) == BOOKKEEPING
-                        && (*owner, *file, word) == BOOKKEEPING;
-                    assert!(
-                        exempt || !contains(value, &pattern),
-                        "{package}/{name} {pattern:?} can take the answer {value:?} of {owner}/{file}"
-                    );
+                for (owner, file, written, value) in &reply {
+                    if contains(value, &pattern) {
+                        collision.push(format!(
+                            "{package}/{name} [{}] can take {written} of {owner}/{file}",
+                            text::coherence(input)
+                        ));
+                    }
                 }
             }
         }
     }
+    for (package, name, written, value) in &produced {
+        let request = REQUEST
+            .into_iter()
+            .filter(|word| value.contains(&Value::Atom((*word).to_owned())))
+            .collect::<Vec<_>>();
+        if request.len() > 1 {
+            collision.push(format!(
+                "{package}/{name} {written} names the requests {}",
+                request.join(" and ")
+            ));
+        }
+    }
+    collision.sort();
+    collision.dedup();
+    assert!(collision.is_empty(), "{}", collision.join("\n"));
 }
 
 fn spelling(value: &Value) {
