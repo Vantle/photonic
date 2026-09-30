@@ -77,16 +77,17 @@ impl Laser {
         let mut created = Vec::with_capacity(pending.len());
         let mut rest = pending.into_iter();
         loop {
-            let batch = rest.by_ref().take(FIRING).collect::<Vec<_>>();
+            let room = FIRING.min(allowance - created.len());
+            if room == 0 || self.retained() >= self.limit.record {
+                break;
+            }
+            let batch = rest.by_ref().take(room).collect::<Vec<_>>();
             if batch.is_empty() {
                 break;
             }
             let outcome = self.attempt(executor, &batch);
             created.extend(self.create(executor, batch, outcome, next));
             self.taxonomy.forget(executor);
-            if created.len() >= allowance {
-                break;
-            }
         }
         // A budget spent within a round defers the identities its batches did not reach: they wait
         // as blocked identities do, so no trace fires one of them twice, and fire first next round.

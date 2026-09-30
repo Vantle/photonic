@@ -6,18 +6,29 @@ use crate::executor::Executor;
 use crate::profile;
 use hashing::Builder;
 use indexmap::IndexSet;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, VecDeque};
 use std::num::NonZeroU32;
 use std::ops::Range;
 
 // A round can carry millions of traces. Carrying and inserting them a batch at a time keeps only
 // one batch of new traces waiting, and every trace a batch inserts is known to the batches after
 // it, so the traces, their positions and their landings are the ones a single batch would give.
+// The same holds when a budget ends the round between batches and the next round carries the rest
+// first.
 const BATCH: usize = 1 << 20;
 
-struct Crossing {
+// The traces of an event's target, by position, that cross the event back to its source.
+pub(super) struct Crossing {
     event: usize,
     range: Range<usize>,
+}
+
+// What carrying took: the traces carried, the new traces each source holds, in position order, and
+// the crossings a budget left for the next round.
+pub(super) struct Carriage {
+    pub count: usize,
+    pub grown: Vec<(usize, Range<usize>)>,
+    pub rest: Vec<Crossing>,
 }
 
 // Where each trace of a crossing lands: nowhere when its frame did not exist before the event,
@@ -44,28 +55,29 @@ struct Carried {
     demand: Demand,
 }
 
-fn batch(crossing: Vec<Crossing>) -> Vec<Vec<Crossing>> {
+// The crossings at the front of the queue that hold at most size traces, splitting the crossing
+// that does not fit.
+fn batch(queue: &mut VecDeque<Crossing>, size: usize) -> Vec<Crossing> {
     let mut batch = Vec::new();
-    let mut current = Vec::new();
-    let mut size = 0;
-    for crossing in crossing {
-        let mut start = crossing.range.start;
-        while start < crossing.range.end {
-            let end = crossing.range.end.min(start + BATCH - size);
-            current.push(Crossing {
-                event: crossing.event,
-                range: start..end,
-            });
-            size += end - start;
-            start = end;
-            if size == BATCH {
-                batch.push(std::mem::take(&mut current));
-                size = 0;
-            }
+    let mut room = size;
+    while room > 0
+        && let Some(crossing) = queue.pop_front()
+    {
+        if crossing.range.len() <= room {
+            room -= crossing.range.len();
+            batch.push(crossing);
+            continue;
         }
-    }
-    if !current.is_empty() {
-        batch.push(current);
+        let split = crossing.range.start + room;
+        batch.push(Crossing {
+            event: crossing.event,
+            range: crossing.range.start..split,
+        });
+        queue.push_front(Crossing {
+            event: crossing.event,
+            range: split..crossing.range.end,
+        });
+        room = 0;
     }
     batch
 }
@@ -117,27 +129,40 @@ impl Laser {
         Some(found.get() as usize - 1)
     }
 
+    // Carries the crossings an earlier round left, then those of the changed configurations, a
+    // batch at a time, and stops between batches once it has carried the allowance or the retained
+    // records reach the record limit.
     pub(super) fn propagate(
         &mut self,
         executor: Option<&Executor>,
+        left: Vec<Crossing>,
         changed: Vec<usize>,
-    ) -> (usize, Vec<(usize, Range<usize>)>) {
+        allowance: usize,
+    ) -> Carriage {
+        let mut queue = VecDeque::from(left);
+        queue.extend(self.plan(changed));
         let mut count = 0;
         let mut grown = BTreeMap::<usize, Range<usize>>::new();
-        for crossing in batch(self.plan(changed)) {
+        while !queue.is_empty() && count < allowance && self.retained() < self.limit.record {
+            let crossing = batch(&mut queue, BATCH.min(allowance - count));
             let carried = self.carry(executor, crossing);
             let carried = self.complete(executor, carried);
             let (value, range) = self.insert(executor, carried);
             self.capture.forget(executor);
             count += value;
             for (index, range) in range {
+                self.traced += range.len();
                 grown
                     .entry(index)
                     .and_modify(|known| known.end = range.end)
                     .or_insert(range);
             }
         }
-        (count, grown.into_iter().collect())
+        Carriage {
+            count,
+            grown: grown.into_iter().collect(),
+            rest: queue.into(),
+        }
     }
 
     fn plan(&mut self, mut changed: Vec<usize>) -> Vec<Crossing> {

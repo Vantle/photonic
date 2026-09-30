@@ -86,11 +86,14 @@ struct Progress {
 
 // Each round scans new configurations, carries traces back across the events they have not
 // crossed, and fires new identities. The pure parts run in parallel and every merge happens in a
-// fixed order, so the exploration is the same for any number of workers.
+// fixed order, so the exploration is the same for any number of workers. A budget can end a round
+// early; the configurations it did not scan, the crossings it did not carry and the identities it
+// did not fire come first in the next.
 #[derive(Default)]
 struct Round {
     fresh: Vec<usize>,
     changed: Vec<usize>,
+    crossing: Vec<carriage::Crossing>,
     retry: Vec<(Identity, usize)>,
 }
 
@@ -335,7 +338,10 @@ impl Laser {
     }
 
     fn idle(&self) -> bool {
-        self.round.fresh.is_empty() && self.round.changed.is_empty() && self.round.retry.is_empty()
+        self.round.fresh.is_empty()
+            && self.round.changed.is_empty()
+            && self.round.crossing.is_empty()
+            && self.round.retry.is_empty()
     }
 
     fn execute(&mut self, executor: Option<&Executor>, budget: usize, limit: Limit) {
@@ -411,22 +417,29 @@ impl Laser {
         self.state.len() - 1
     }
 
+    // A round that takes at most the allowance of work: each phase takes what the phases before it
+    // left, and stops once it has taken its share or the retained records reach the record limit.
     fn step(&mut self, executor: Option<&Executor>, allowance: usize) -> usize {
         let round = std::mem::take(&mut self.round);
-        let mut next = Round::default();
-        let scanned = round.fresh.len();
-        let mut novel = self.discover(executor, round.fresh);
+        let (mut novel, fresh) = self.discover(executor, round.fresh, allowance);
+        let mut next = Round {
+            fresh,
+            ..Round::default()
+        };
+        let scanned = novel.len();
         let mut changed = round.changed;
         changed.extend(novel.iter().map(|(index, _)| *index));
-        let (carried, grown) = if self.plain {
-            (0, Vec::new())
+        let carried = if self.plain {
+            0
         } else {
-            self.propagate(executor, changed)
+            let carriage = self.propagate(executor, round.crossing, changed, allowance - scanned);
+            next.changed
+                .extend(carriage.grown.iter().map(|(index, _)| *index));
+            next.crossing = carriage.rest;
+            novel.extend(carriage.grown);
+            carriage.count
         };
-        next.changed.extend(grown.iter().map(|(index, _)| *index));
-        novel.extend(grown);
-        self.traced += novel.iter().map(|(_, range)| range.len()).sum::<usize>();
-        let rest = allowance.saturating_sub(scanned + carried);
+        let rest = allowance - scanned - carried;
         let fired = self.fire(executor, novel, round.retry, &mut next, rest);
         if self.plain {
             next.changed.clear();

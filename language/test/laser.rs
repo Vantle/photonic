@@ -365,6 +365,59 @@ fn resume() {
     }
 }
 
+// A work budget bounds a run exactly and a record budget within the matches of one configuration,
+// even where one round would scan, carry and fire far more; running on resumes where a budget
+// stopped, so a run in small steps reaches the configurations, events and work of one run.
+#[test]
+fn allowance() {
+    let limit = Limit {
+        record: usize::MAX,
+        ..Limit::default()
+    };
+    let many = (0..30)
+        .map(|index| format!("A.K{index}"))
+        .chain(["[A, A] B".to_owned()])
+        .collect::<Vec<_>>()
+        .join(", ");
+    let program = frontend::lowering::parse(&many).unwrap();
+    for record in [1_000, 10_000, 100_000] {
+        let mut laser = Laser::new(&program);
+        laser.run(usize::MAX, Limit { record, ..limit });
+        assert!(!laser.closed(), "{record}");
+        assert!(laser.report().record < record + 900, "{record}");
+    }
+    for source in [
+        many.as_str(),
+        "S, [T.S, Z.C.T, T.Z.C.S], [()] (T.S, T.Z.C.S, T.Z.S.S, T.Z.A.S)",
+    ] {
+        let program = frontend::lowering::parse(source).unwrap();
+        for budget in [1, 7, 100, 2_000] {
+            let mut laser = Laser::new(&program);
+            laser.run(budget, limit);
+            assert!(laser.summary().work <= budget, "{source} {budget}");
+        }
+    }
+    for source in [
+        crate::family::dial(3),
+        crate::family::diner(3),
+        "A, K, [A] B, [[A] B] C, [C, K] D".to_owned(),
+        "Go.Y, K, [K] L, [Go] (X, [X] ().([Y] Z))".to_owned(),
+    ] {
+        let program = frontend::lowering::parse(&source).unwrap();
+        let mut whole = Laser::new(&program);
+        whole.run(usize::MAX, limit);
+        assert!(whole.closed(), "{source}");
+        for budget in [3, 40, 700] {
+            let mut stepped = Laser::new(&program);
+            while !stepped.closed() {
+                stepped.run(budget, limit);
+                assert!(stepped.summary().work <= whole.summary().work, "{source}");
+            }
+            assert_eq!(stepped.summary(), whole.summary(), "{source} {budget}");
+        }
+    }
+}
+
 // Exploring a step at a time under limits that rise retries the identities each limit blocked, while
 // new traces keep arriving; one they identify meanwhile waits for its retry instead of firing twice.
 #[test]
