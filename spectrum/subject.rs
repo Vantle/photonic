@@ -2,6 +2,7 @@ use crate::failure::{Code, Failure};
 use frontend::source::Program;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use std::path::{Component, Path};
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, Hash, JsonSchema, PartialEq, Serialize)]
 #[schemars(
@@ -28,7 +29,7 @@ pub trait Reader {
 }
 
 pub(crate) fn lower(file: &str, text: &str, code: Code) -> Result<Program, Failure> {
-    if std::path::Path::new(file)
+    if Path::new(file)
         .extension()
         .is_some_and(|extension| extension.eq_ignore_ascii_case("json"))
     {
@@ -39,6 +40,26 @@ pub(crate) fn lower(file: &str, text: &str, code: Code) -> Result<Program, Failu
     frontend::lowering::parse(text).map_err(|error| Failure::located(code, &error, file, text))
 }
 
+fn component(path: &str) -> impl Iterator<Item = Component<'_>> {
+    Path::new(path)
+        .components()
+        .filter(|part| *part != Component::CurDir)
+}
+
+// Two spellings of one path, read without the file system: ./rule.particle and rule.particle.
+fn same(left: &str, right: &str) -> bool {
+    component(left).eq(component(right))
+}
+
+// Each path in the order it is first given, as Bazel loads a library that several dependencies
+// share once.
+fn distinct(path: &[String]) -> impl Iterator<Item = &String> {
+    path.iter()
+        .enumerate()
+        .filter(|&(position, entry)| !path[..position].iter().any(|earlier| same(earlier, entry)))
+        .map(|(_, entry)| entry)
+}
+
 impl Subject {
     pub fn assemble(&self, reader: &dyn Reader) -> Result<Program, Failure> {
         if self.file.is_empty() && self.source.is_none() {
@@ -47,14 +68,24 @@ impl Subject {
                 "name the program: list its files (file), or give it inline (--source, or source)",
             ));
         }
+        if let Some(path) = self
+            .library
+            .iter()
+            .find(|library| self.file.iter().any(|file| same(file, library)))
+        {
+            return Err(Failure::new(
+                Code::Request,
+                format!("{path} is given both as a library and as a program file; give it once"),
+            ));
+        }
         let mut program = Program::default();
-        for path in &self.library {
+        for path in distinct(&self.library) {
             let library = lower(path, &reader.read(path)?, Code::Library)?;
             program
                 .declare(library, path)
                 .map_err(|error| Failure::new(Code::Library, error.to_string()))?;
         }
-        for path in &self.file {
+        for path in distinct(&self.file) {
             program.append(lower(path, &reader.read(path)?, Code::Source)?);
         }
         if let Some(source) = &self.source {

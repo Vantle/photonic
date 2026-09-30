@@ -112,7 +112,7 @@ Every question except `shape` is about a recording: a program to explore, or the
 
 | Field | Meaning |
 | --- | --- |
-| `program` | The program: `file`, a list of `.wave` or `.particle` sources or `.json` programs that Bazel assembled, read in order; `source`, Photonic written inline and read after the files; and `library`, files of declarations loaded first. |
+| `program` | The program: `file`, a list of `.wave` or `.particle` sources or `.json` programs that Bazel assembled, read in order; `source`, Photonic written inline and read after the files; and `library`, files of declarations loaded first. Each path loads once, however often it is given, and a path given both as a library and as a file is refused, as Bazel refuses it. |
 | `exploration` | The key of an exploration, such as `x91c7f6619ec81b4b`, instead of `program`. A key already fixes the mode, engine, budget and goal, so it comes alone. |
 | `mode` | `exhaustive`, the default, explores every configuration within the budget; `plain` explores every schedule of plain events, the events a configuration's own matches identify, without inference, on Laser or on metal; `path` follows one direct path, as `photonic_test(path = True)` does. |
 | `engine` | In exhaustive mode, `laser`, the default, which carries matches back along events and names configurations by their components, or `interpreter`. Both explore on every core the machine has, close with the same configurations, events, inferred events and answers, and Spectrum numbers both the same way, so an exploration that closes names the same handles on either. Each counts its own work and gives its own deductions, and their keys differ. In plain mode, `laser`, the default, or `metal`, which explores the program's [net of parts](laser.md#nets-of-parts) on the GPU through Metal where there is one and on the host otherwise. Metal keeps no events, only the counts, the configurations where runs end and whether a run can go on forever, so only `explore` and `check` take its explorations, its ends have no handles, and it answers `end` and `outcome` claims; in exchange it reaches tens of millions of configurations where a recording keeps thousands. A program whose root ties to one of its components has no net of parts, and metal refuses it. A direct path always follows the interpreter's scheduler. |
@@ -217,7 +217,7 @@ A failure carries a `code`, a `message`, when it points into text a `location` w
 
 | Code | Meaning |
 | --- | --- |
-| `request` | The request is malformed: not an object, an unknown field, no program, a program and a key together, a key with a mode, engine, budget or goal, a goal outside path mode, `laser` in path mode, `interpreter` in plain mode, `metal` outside it, `preserve` without `exact`, or a `miss` with neither or both of a target and a rule, or with `exact` or `preserve` beside a rule. |
+| `request` | The request is malformed: not an object, an unknown field, no program, a program and a key together, a path given both as a library and as a program file, a key with a mode, engine, budget or goal, a goal outside path mode, `laser` in path mode, `interpreter` in plain mode, `metal` outside it, `preserve` without `exact`, or a `miss` with neither or both of a target and a rule, or with `exact` or `preserve` beside a rule. |
 | `file` | A file cannot be read. |
 | `source` | A program does not parse or lower; `check` reports it as a diagnostic instead. |
 | `library` | A library does not parse or holds more than declarations; `check` reports it as a diagnostic instead. |

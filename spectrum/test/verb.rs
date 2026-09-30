@@ -51,6 +51,8 @@ fn memory() -> Memory {
         ("left.wave", "Seed.A, [Seed] ().([A] B), [B] C"),
         ("right.wave", "[Y] Z, Root.X, [Root] ().([X] Y)"),
         ("fired.wave", "X, (A, [A] B)"),
+        ("rule.particle", "[A] B"),
+        ("seed.wave", "A"),
         ("idle.wave", "X, (B, [A] B)"),
     ]))
 }
@@ -1382,4 +1384,25 @@ fn diagnostic() {
     );
     assert_eq!(answer[1]["error"]["code"], "source", "{}", answer[1]);
     assert_eq!(answer[1]["error"]["diagnostic"], "syntax", "{}", answer[1]);
+}
+
+// Each library and program file loads once, however often it is given, as Bazel loads a library
+// that several dependencies share, and a path given both as a library and as a program file is
+// refused.
+#[test]
+fn library() {
+    let answer = session(&[
+        r#"{"verb": "explore", "program": {"file": ["seed.wave"], "library": ["rule.particle", "./rule.particle"]}}"#,
+        r#"{"verb": "explore", "program": {"file": ["seed.wave", "seed.wave"], "library": ["rule.particle"]}}"#,
+        r#"{"verb": "explore", "program": {"file": ["rule.particle"], "library": ["rule.particle"]}}"#,
+        r#"{"verb": "explore", "program": {"file": ["seed.wave"], "library": ["rule.particle", "rule.particle"]}}"#,
+    ]);
+    for index in [0, 3] {
+        let rule = answer[index]["answer"]["rule"]
+            .as_array()
+            .map_or(0, Vec::len);
+        assert_eq!(rule, 1, "{}", answer[index]);
+    }
+    assert_eq!(answer[1]["answer"]["end"][0]["text"], "B", "{}", answer[1]);
+    assert_eq!(answer[2]["error"]["code"], "request", "{}", answer[2]);
 }
