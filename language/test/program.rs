@@ -4,6 +4,12 @@ fn program(source: &str) -> Program {
     Program::new(&frontend::lowering::parse(source).unwrap())
 }
 
+fn name(program: &Program) -> Vec<String> {
+    (0..program.rule.len())
+        .map(|index| frontend::text::definition(&program.definition(index)))
+        .collect()
+}
+
 #[test]
 fn identity() {
     for (left, right) in [
@@ -51,11 +57,7 @@ fn numbering() {
     assert_eq!(compiled.scope[0].rule, [0, 2, 0]);
     assert_eq!(compiled.scope[0].initial, [[Symbol::Rule(3)]]);
     assert_eq!(
-        compiled
-            .rule
-            .iter()
-            .map(|rule| rule.name.as_str())
-            .collect::<Vec<_>>(),
+        name(&compiled),
         ["[A] (X, [X] Y)", "[X] Y", "[C] D", "[Seed] Value"]
     );
     let unnamed = Program::new(
@@ -68,12 +70,8 @@ fn numbering() {
         .unwrap(),
     );
     assert_eq!(
-        unnamed
-            .rule
-            .iter()
-            .map(|rule| rule.name.as_str())
-            .collect::<Vec<_>>(),
-        ["root/0", "Rule 2", "root/1", "root/1/0/0"]
+        name(&unnamed),
+        ["[A] ().([B] C)", "[B] C", "[D] ([E])", "[E]"]
     );
     assert_eq!(
         compiled
@@ -228,14 +226,7 @@ fn meaning() {
     }
     let compiled = program("[A] B, [A] [B] C");
     assert_eq!(compiled.scope[0].rule, [0, 0, 1, 2, 3]);
-    assert_eq!(
-        compiled
-            .rule
-            .iter()
-            .map(|rule| rule.name.as_str())
-            .collect::<Vec<_>>(),
-        ["[A] B", "[A] C", "[B] A", "[B] C"]
-    );
+    assert_eq!(name(&compiled), ["[A] B", "[A] C", "[B] A", "[B] C"]);
 }
 
 #[test]

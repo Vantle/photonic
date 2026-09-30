@@ -362,21 +362,32 @@ fn depth() {
     ));
     assert!(lowering::parse(&"[A] B, ".repeat(10_000)).is_ok());
     let atom = "A".repeat(20_000);
-    let named = format!("{}{atom}{}", "[".repeat(100), "]".repeat(100));
-    assert!(matches!(
-        lowering::parse(&named),
-        Err(Failure::Expansion {
-            limit: 1_161_600,
-            ..
-        })
-    ));
-    let shallow = format!("{}{atom}{}", "[".repeat(8), "]".repeat(8));
-    assert!(lowering::parse(&shallow).is_ok());
+    for count in [8, 100, limit] {
+        let nested = format!("{}{atom}{}", "[".repeat(count), "]".repeat(count));
+        assert!(lowering::parse(&nested).is_ok(), "{count}");
+    }
     assert!(matches!(
         lowering::parse(&"[".repeat(limit + 1)),
         Err(Failure::Depth { .. })
     ));
     assert!(lowering::parse(&format!("{}A{}", "(".repeat(limit), ")".repeat(limit))).is_ok());
+}
+
+#[test]
+fn nesting() {
+    let inner = (0..3000)
+        .map(|index| format!("[R{index}] S{index}"))
+        .collect::<Vec<_>>()
+        .join(", ");
+    for count in [1, 40, frontend::parser::DEPTH - 1] {
+        let mut source = format!("[Enter0] (Seed, {inner})");
+        for level in 1..count {
+            source = format!("[Enter{level}] (Seed, {source})");
+        }
+        let program = lowering::parse(&format!("Enter{}, {source}", count - 1)).unwrap();
+        let written = serde_json::to_string(&program).unwrap();
+        assert!(written.len() < 4 * source.len(), "{count}");
+    }
 }
 
 #[test]

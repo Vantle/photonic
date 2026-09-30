@@ -8,9 +8,9 @@ use crate::source::{Definition, Output, Program, Value};
 use crate::syntax::{Kind, Tree};
 
 const BUDGET: usize = 1_000_000;
-// A rule's name repeats the text of every rule nested inside it, so names alone can cost the
-// nesting depth times the source; the library's deepest programs spend about four times their
-// source on names, and this keeps any program within a constant multiple of what it reads.
+// A large program distributes many small joins and partitions many small terms, each into a few
+// times its text, so the budget grows with the source and only a term that multiplies itself runs
+// out of it.
 const RATIO: usize = 8;
 
 enum Member {
@@ -183,15 +183,11 @@ impl<'tree> Reader<'tree, '_> {
                 Member::Rule(_) => unreachable!("a group that lists a rule is a scope"),
             });
         }
-        let span = self.span(child[0]).start..self.span(child[child.len() - 1]).end;
-        Partition {
-            source: self.tree.source(),
-            span: span.clone(),
-            pattern,
-            output,
-        }
-        .rule(&mut self.budget)
-        .ok_or_else(|| self.expansion(span))
+        Partition { pattern, output }
+            .rule(&mut self.budget)
+            .ok_or_else(|| {
+                self.expansion(self.span(child[0]).start..self.span(child[child.len() - 1]).end)
+            })
     }
 
     fn input(&mut self, index: usize) -> Result<Vec<Vec<Value>>, Failure> {

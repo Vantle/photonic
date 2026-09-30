@@ -160,7 +160,6 @@ pub fn row(label: &str, first: bool) -> String {
 pub fn input(exploration: &Exploration, rule: usize) -> String {
     let definition = &exploration.rule[rule].definition;
     frontend::text::definition(&source::Definition {
-        name: String::new(),
         input: definition.input.clone(),
         output: Vec::new(),
     })

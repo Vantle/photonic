@@ -1,22 +1,15 @@
-use std::ops::Range;
-
 use crate::source::{Definition, Output, Value};
 
-pub(crate) struct Partition<'source> {
-    pub source: &'source str,
-    pub span: Range<usize>,
+pub(crate) struct Partition {
     pub pattern: Vec<Vec<Vec<Value>>>,
     pub output: Vec<Output>,
 }
 
-impl Partition<'_> {
+impl Partition {
     pub(crate) fn rule(self, budget: &mut usize) -> Option<Vec<Definition>> {
         if self.pattern.len() == 1 {
-            let name = self.source[self.span.clone()].to_owned();
-            *budget = budget.checked_sub(name.len())?;
             let input = self.pattern.into_iter().next()?;
             return Some(vec![Definition {
-                name,
                 input,
                 output: self.output,
             }]);
@@ -25,7 +18,6 @@ impl Partition<'_> {
         for (index, input) in self.pattern.iter().enumerate() {
             for output in self.target(index) {
                 let definition = Definition {
-                    name: crate::text::rule(input, &output),
                     input: input.clone(),
                     output,
                 };

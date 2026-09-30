@@ -27,9 +27,12 @@ impl<'program> Builder<'program> {
 
     pub(crate) fn definition(&self) -> Vec<Definition> {
         (0..self.program.rule.len())
-            .map(|index| Definition {
-                name: self.program.rule[index].name.clone(),
-                rule: self.program.definition(index),
+            .map(|index| {
+                let rule = self.program.definition(index);
+                Definition {
+                    name: frontend::text::definition(&rule),
+                    rule,
+                }
             })
             .collect()
     }

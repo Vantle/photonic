@@ -93,15 +93,23 @@ fn ordering() {
 
 #[test]
 fn name() {
-    let program = lowering::parse("[A] [B] C, C.D [E], [F]  G").unwrap();
+    let program = lowering::parse("[A] [B] C, C.D [E], [F]  G,\r\n[H]\n\t(I,\n  [I] J)").unwrap();
     let name = program
         .rule
         .iter()
-        .map(|rule| rule.name.as_str())
+        .map(frontend::text::definition)
         .collect::<Vec<_>>();
     assert_eq!(
         name,
-        ["[A] B", "[A] C", "[B] A", "[B] C", "C.D [E]", "[F]  G"]
+        [
+            "[A] B",
+            "[A] C",
+            "[B] A",
+            "[B] C",
+            "[E] C.D",
+            "[F] G",
+            "[H] (I, [I] J)"
+        ]
     );
     for (source, text) in [
         ("[A.X, ()] (C, D)", "[A.X, ()] (C, D)"),
@@ -114,8 +122,7 @@ fn name() {
         ("[[K] L] X.([K] L)", "[[K] L] X.([K] L)"),
         ("[A]", "[A]"),
     ] {
-        let mut rule = lowering::parse(source).unwrap().rule.remove(0);
-        rule.name.clear();
+        let rule = lowering::parse(source).unwrap().rule.remove(0);
         assert_eq!(frontend::text::definition(&rule), text, "{source}");
     }
 }
@@ -169,8 +176,8 @@ fn limit() {
     for (count, fits) in [
         (1, true),
         (6, true),
-        (200, true),
-        (240, false),
+        (250, true),
+        (300, false),
         (10_000, false),
     ] {
         let piece = piece(count);

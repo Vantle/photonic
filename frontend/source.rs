@@ -72,8 +72,6 @@ pub enum Value {
 #[derive(Clone, Debug, Default, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Definition {
-    #[serde(default)]
-    pub name: String,
     pub input: Vec<Vec<Value>>,
     pub output: Vec<Output>,
 }
@@ -88,7 +86,6 @@ pub enum Output {
 impl Definition {
     pub fn canonical(&self) -> Self {
         Self {
-            name: String::new(),
             input: input(&self.input),
             output: sorted(
                 self.output

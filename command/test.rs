@@ -610,7 +610,7 @@ fn serialization() {
     let lowered = report(&execute("lower", &path, &[]));
     assert_eq!(
         lowered["scope"],
-        serde_json::json!([{"initial": [["X"]], "rule": [{"name": "[X] Y", "input": [["X"]], "output": [["Y"]]}]}])
+        serde_json::json!([{"initial": [["X"]], "rule": [{"input": [["X"]], "output": [["Y"]]}]}])
     );
     assert_eq!(
         lowered["rule"][0]["output"][0]["initial"],

@@ -5,6 +5,7 @@ mod execution;
 mod expression;
 mod failure;
 mod limit;
+mod lowering;
 mod path;
 mod request;
 mod response;
@@ -13,7 +14,6 @@ mod shape;
 
 use execution::Execution;
 use failure::{Code, Failure};
-use frontend::source::Program;
 use photonic::prism::Verdict;
 use photonic::runtime::Runtime;
 use request::{Request, Text};
@@ -24,7 +24,7 @@ const VERSION: u32 = 3;
 
 #[derive(Serialize)]
 struct Lowering {
-    program: Program,
+    program: lowering::Lowered,
 }
 
 #[derive(Serialize)]
@@ -39,7 +39,9 @@ fn lowering(input: &str) -> Result<Lowering, Failure> {
     let text: Text = request::read(input)?;
     let program = frontend::lowering::parse(&text.source)
         .map_err(|error| Failure::located(Code::Source, &error, &text.source))?;
-    Ok(Lowering { program })
+    Ok(Lowering {
+        program: lowering::Lowered::from(&program),
+    })
 }
 
 fn exploration(input: &str) -> Result<Exploration, Failure> {
