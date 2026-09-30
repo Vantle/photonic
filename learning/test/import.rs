@@ -74,7 +74,7 @@ fn rejection() {
     ));
     assert!(matches!(
         import("rules", &[source("[A] B")], &[source("A, [C] D")], &setting),
-        Err(Failure::Input { .. })
+        Err(Failure::Test { .. })
     ));
     assert!(matches!(
         import(
@@ -118,6 +118,37 @@ fn defined() {
     ));
     assert!(matches!(
         define("ruled", &[(source("[A] B"), source("B"))]),
-        Err(Failure::Input { .. })
+        Err(Failure::Test { .. })
     ));
+}
+
+#[test]
+fn scope() {
+    let setting = Setting::default();
+    assert!(matches!(
+        import(
+            "scoped",
+            &[source("[A] B, (X, [X] Y)")],
+            &[source("A")],
+            &setting
+        ),
+        Err(Failure::Scope { .. })
+    ));
+    assert!(matches!(
+        define("enclosed", &[(source("(X, [X] Y)"), source("Y"))]),
+        Err(Failure::Test { .. })
+    ));
+    let output = Source {
+        origin: "output.wave".to_owned(),
+        text: "[A] B".to_owned(),
+    };
+    let Err(failure) = define("ruled", &[(source("A"), output)]) else {
+        panic!("an output declaring rules was accepted");
+    };
+    assert!(
+        failure
+            .to_string()
+            .starts_with("output.wave declares rules"),
+        "{failure}"
+    );
 }

@@ -6,9 +6,10 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 // A task redefined under a known name can shrink its vocabulary, which leaves programs archived
-// for the old definition naming atoms the task no longer has.
+// for the old definition naming atoms the task no longer has; and the learner edits only rules, so
+// a program opening scopes at the top level is not one it can hold either.
 pub fn fits(program: &Program, task: &Task) -> bool {
-    reach::program(program) <= task.vocabulary.len()
+    program.scope().is_empty() && reach::program(program) <= task.vocabulary.len()
 }
 
 pub(crate) fn moment() -> u64 {

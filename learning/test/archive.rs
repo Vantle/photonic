@@ -116,6 +116,7 @@ fn stale() {
     };
     assert!(fits(&known, &task));
     assert!(!fits(&known, &narrow));
+    assert!(!fits(&program("(Left, [Left] Right)"), &task));
     let mut archive = Archive::default();
     archive.offer(&task.name, record(known, true));
     let directory = Directory::new("stale");

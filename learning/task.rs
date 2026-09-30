@@ -20,6 +20,10 @@ pub enum Failure {
     Missing { name: String },
     #[error("{name} names an atom outside its vocabulary of {count}")]
     Atom { name: String, count: usize },
+    #[error(
+        "the reference program of {name} opens a scope at the top level, which the learner cannot edit"
+    )]
+    Scope { name: String },
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -148,6 +152,13 @@ impl TryFrom<Draft> for Task {
                 name: draft.name,
                 count,
             });
+        }
+        if draft
+            .reference
+            .as_ref()
+            .is_some_and(|program| !program.scope().is_empty())
+        {
+            return Err(Failure::Scope { name: draft.name });
         }
         Ok(Self {
             name: draft.name,

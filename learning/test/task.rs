@@ -78,3 +78,21 @@ fn atom() {
     let extra = text.replacen('{', r#"{"extra":1,"#, 1);
     assert!(serde_json::from_str::<Task>(&extra).is_err());
 }
+
+#[test]
+fn scope() {
+    let text = serde_json::to_string(&addition(2)).unwrap();
+    let scoped = text.replacen(
+        r#""reference":{"rule":["#,
+        r#""reference":{"scope":[{"coherence":[[{"Atom":0}]],"rule":[{"input":[[{"Atom":0}]],"output":[]}]}],"rule":["#,
+        1,
+    );
+    assert_ne!(scoped, text);
+    let failure = serde_json::from_str::<Task>(&scoped).unwrap_err();
+    assert!(
+        failure
+            .to_string()
+            .contains("opens a scope at the top level"),
+        "{failure}"
+    );
+}
