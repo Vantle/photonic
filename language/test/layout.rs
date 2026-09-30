@@ -42,7 +42,7 @@ fn verify(layout: &Layout, source: &State, state: &State, change: &Change) -> La
     );
     assert_eq!(actual.resource, expected.resource);
     assert_eq!(actual.cell, expected.cell);
-    assert_eq!(actual.cell, state.size());
+    assert_eq!(actual.cell, crate::runtime::Measure::new(state).occurrence);
     assert_eq!(actual.reach.frame, expected.reach.frame);
     actual
 }

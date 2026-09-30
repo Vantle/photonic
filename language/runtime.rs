@@ -40,9 +40,41 @@ impl Default for Limit {
     }
 }
 
+// What the limits weigh in a configuration: its coherences, the occurrences its coherences hold and
+// its scopes hold as values, and the scopes it opened. A scope's live rules are not values it
+// holds, and the scope limit bounds them.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct Measure {
+    pub coherence: usize,
+    pub occurrence: usize,
+    pub scope: usize,
+}
+
+impl Measure {
+    pub(crate) fn new(state: &State) -> Self {
+        let reachable = state.reachable();
+        let held = reachable
+            .iter()
+            .map(|&index| state.frame[index].held.len())
+            .sum::<usize>();
+        Self {
+            coherence: state.world.len(),
+            occurrence: state
+                .world
+                .iter()
+                .map(|world| world.particle.len())
+                .sum::<usize>()
+                + held,
+            scope: reachable.len() - 1,
+        }
+    }
+}
+
 impl Limit {
-    pub(crate) fn admits(&self, coherence: usize, occurrence: usize, scope: usize) -> bool {
-        coherence <= self.coherence && occurrence <= self.occurrence && scope <= self.scope
+    pub(crate) fn admits(&self, measure: Measure) -> bool {
+        measure.coherence <= self.coherence
+            && measure.occurrence <= self.occurrence
+            && measure.scope <= self.scope
     }
 }
 

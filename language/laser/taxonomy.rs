@@ -5,6 +5,7 @@ use super::size::Size;
 use crate::executor::Executor;
 use crate::link::Link;
 use crate::program::Symbol;
+use crate::runtime::Measure;
 use crate::state::{Canonical, Frame, Renaming, State, Token, World};
 use hashing::Builder;
 use indexmap::IndexMap;
@@ -243,21 +244,24 @@ impl Taxonomy {
         matches!(self.root(makeup.root), Root::Hub(_))
     }
 
-    pub fn measure(&self, makeup: &Makeup) -> (usize, usize, usize) {
-        match self.root(makeup.root) {
-            Root::Whole(state) => (state.world.len(), state.size(), state.reachable().len()),
-            Root::Hub(frame) => makeup.kind.iter().fold(
-                (0, frame.size(), 1),
-                |(world, occurrence, scope), &kind| {
-                    let size = self.size(kind);
-                    (
-                        world + size.world,
-                        occurrence + size.occurrence,
-                        scope + size.frame,
-                    )
-                },
-            ),
-        }
+    pub fn measure(&self, makeup: &Makeup) -> Measure {
+        let frame = match self.root(makeup.root) {
+            Root::Whole(state) => return Measure::new(state),
+            Root::Hub(frame) => frame,
+        };
+        let start = Measure {
+            coherence: 0,
+            occurrence: frame.held.len(),
+            scope: 0,
+        };
+        makeup.kind.iter().fold(start, |measure, &kind| {
+            let size = self.size(kind);
+            Measure {
+                coherence: measure.coherence + size.world,
+                occurrence: measure.occurrence + size.occurrence,
+                scope: measure.scope + size.frame,
+            }
+        })
     }
 
     pub fn assemble(&self, draft: Draft, root: u32, kind: &[u32]) -> (Makeup, Renaming) {

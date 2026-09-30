@@ -422,7 +422,10 @@ fn capture() {
         let renamed = state.rename(&[1, 0], &[0, 1]);
         assert_eq!(renamed.renaming.resource.len(), 1);
         assert_eq!(renamed.renaming.resource[&42], 0);
-        assert_eq!(renamed.state.size(), 2 * count + 2);
+        assert_eq!(
+            crate::runtime::Measure::new(&renamed.state).occurrence,
+            2 * count + 2
+        );
         for token in renamed
             .state
             .world

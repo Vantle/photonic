@@ -22,7 +22,7 @@ static ulong emit(
     constant Setting& setting) {
     device const Header* item = header(entry, cursor);
     uint3 grown = rest + uint3(item->size);
-    bool admitted = grown.x <= setting.coherence && base[item->root] + grown.y <= setting.occurrence && 1 + grown.z <= setting.scope;
+    bool admitted = grown.x <= setting.coherence && base[item->root] + grown.y <= setting.occurrence && grown.z <= setting.scope;
     record[candidate] = packed_uint3(source, cursor, admitted ? copy : copy | LIMITED);
     if (!admitted) {
         atomic_store_explicit(&summary[REFUSED], 1u, memory_order_relaxed);

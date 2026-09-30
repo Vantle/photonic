@@ -197,19 +197,13 @@ fn capture() {
                 let target = crate::test::target(&program, "Missing");
                 Search::new(program, Some(target))
             };
-            paused.run(1_000_000, limit());
+            let pause = Limit {
+                scope: 16,
+                ..limit()
+            };
+            paused.run(1_000_000, pause);
             let current = paused.current();
-            let cell = current
-                .world
-                .iter()
-                .map(|world| world.particle.len())
-                .sum::<usize>()
-                + current
-                    .frame
-                    .iter()
-                    .map(|frame| frame.particle.len() + frame.held.len())
-                    .sum::<usize>();
-            assert!(cell <= limit().occurrence);
+            assert!(current.frame.len() - 1 <= pause.scope);
             assert!(
                 !current
                     .world

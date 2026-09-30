@@ -1,5 +1,5 @@
 use super::normalization::Status;
-use super::{Application, Event, Identity, Runtime, Task};
+use super::{Application, Event, Identity, Measure, Runtime, Task};
 use crate::flow::Closure;
 use crate::support::Atom;
 use std::collections::BTreeSet;
@@ -45,11 +45,7 @@ impl Runtime {
             rule: &self.program.rule[application.rule],
             binding: &application.binding,
         });
-        if !self.limit.admits(
-            result.state.world.len(),
-            result.state.size(),
-            result.state.reachable().len(),
-        ) {
+        if !self.limit.admits(Measure::new(&result.state)) {
             self.pending.insert(application);
             return;
         }

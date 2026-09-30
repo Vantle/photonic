@@ -1,7 +1,8 @@
+use crate::runtime::Measure;
 use crate::state::State;
 
-// What a component of a kind holds beside the root: its coherences, frames, token ids and
-// occurrences.
+// What a component of a kind holds beside the root: its coherences, frames, token ids and the
+// occurrences the occurrence limit weighs.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Size {
     pub world: usize,
@@ -26,7 +27,7 @@ impl Size {
             world: state.world.len(),
             frame: state.frame.len() - 1,
             token: token.len(),
-            occurrence: state.size(),
+            occurrence: Measure::new(state).occurrence,
         }
     }
 }

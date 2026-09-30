@@ -239,8 +239,7 @@ impl Laser {
                         &effect.produced,
                         effect.root,
                     );
-                    let (coherence, occurrence, scope) = taxonomy.measure(&makeup);
-                    if !limit.admits(coherence, occurrence, scope) {
+                    if !limit.admits(taxonomy.measure(&makeup)) {
                         return None;
                     }
                     Some(Named {

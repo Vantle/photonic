@@ -2,6 +2,9 @@ use crate::state::State;
 
 mod resource;
 
+// What a direct path keeps of its configuration: the frames it reaches, the occurrences the
+// occurrence limit weighs, those of its coherences and those its reachable frames hold, and the
+// next free token id.
 pub(crate) struct Layout {
     pub reach: crate::reachability::Index,
     pub cell: usize,
@@ -25,7 +28,7 @@ impl Layout {
                 .frame
                 .iter()
                 .filter(|frame| self.reach.frame.binary_search(frame).is_ok())
-                .map(|&frame| source.frame[frame].size())
+                .map(|&frame| source.frame[frame].held.len())
                 .sum::<usize>();
         let inserted = state
             .world
@@ -36,7 +39,7 @@ impl Layout {
                 .frame
                 .iter()
                 .filter(|frame| reach.frame.binary_search(frame).is_ok())
-                .map(|&frame| state.frame[frame].size())
+                .map(|&frame| state.frame[frame].held.len())
                 .sum::<usize>();
         let newest = state
             .world
@@ -86,7 +89,7 @@ impl Layout {
             + reach
                 .frame
                 .iter()
-                .map(|&index| state.frame[index].size())
+                .map(|&index| state.frame[index].held.len())
                 .sum::<usize>();
         let resource = state
             .world

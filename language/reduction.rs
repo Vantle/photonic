@@ -1,7 +1,7 @@
 use crate::flow::Binding;
 use crate::layout::Layout;
 use crate::program::Program;
-use crate::runtime::Limit;
+use crate::runtime::{Limit, Measure};
 use crate::state::State;
 use std::sync::Arc;
 use std::task::Poll;
@@ -16,12 +16,14 @@ pub(crate) struct Event {
 }
 
 impl Event {
+    // Whether the limits admit the event's result: the layout counts its occurrences, and every
+    // reachable frame but the root is a scope it opened.
     fn admitted(&self, limit: Limit) -> bool {
-        limit.admits(
-            self.state.world.len(),
-            self.layout.cell,
-            self.layout.reach.frame.len(),
-        )
+        limit.admits(Measure {
+            coherence: self.state.world.len(),
+            occurrence: self.layout.cell,
+            scope: self.layout.reach.frame.len() - 1,
+        })
     }
 
     #[inline]

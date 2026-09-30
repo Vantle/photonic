@@ -12,7 +12,7 @@ use crate::catalog::Catalog;
 use crate::flow::Binding;
 use crate::program::{Program, Symbol};
 use crate::render;
-use crate::runtime::Limit;
+use crate::runtime::{Limit, Measure};
 use crate::snapshot::{Definition, Node};
 use crate::state::State;
 use crate::status::Status;
@@ -404,19 +404,18 @@ impl Net {
 
     // Whether the limits admit a marking's coherences, occurrences and scopes.
     pub fn admits(&self, marking: &Makeup, limit: Limit) -> bool {
-        let (coherence, occurrence, scope) = self.taxonomy.measure(marking);
-        limit.admits(coherence, occurrence, scope)
+        limit.admits(self.taxonomy.measure(marking))
     }
 
     pub fn size(&self, kind: u32) -> Size {
         self.taxonomy.size(kind)
     }
 
-    // The occurrences a root's frame holds.
+    // The occurrences a root's frame holds as values, which the occurrence limit weighs.
     pub fn occurrence(&self, root: u32) -> usize {
         match self.taxonomy.root(root) {
-            super::taxonomy::Root::Hub(frame) => frame.size(),
-            super::taxonomy::Root::Whole(state) => state.size(),
+            super::taxonomy::Root::Hub(frame) => frame.held.len(),
+            super::taxonomy::Root::Whole(state) => Measure::new(state).occurrence,
         }
     }
 
@@ -620,8 +619,7 @@ impl Net {
                 first.push(edge.len());
             }
             for (makeup, count) in successor {
-                let (coherence, occurrence, scope) = self.taxonomy.measure(&makeup);
-                if !limit.admits(coherence, occurrence, scope) {
+                if !limit.admits(self.taxonomy.measure(&makeup)) {
                     blocked = true;
                     continue;
                 }

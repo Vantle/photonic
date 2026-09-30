@@ -8,6 +8,7 @@ use crate::application::{self, Owner, Request};
 use crate::executor::Executor;
 use crate::flow::{Closure, Flow};
 use crate::profile;
+use crate::runtime::Measure;
 use crate::state::Canonical;
 use hashing::Builder;
 use indexmap::IndexMap;
@@ -260,11 +261,7 @@ impl Laser {
             rule: &self.program.rule[identity.rule],
             binding: &identity.binding,
         });
-        if !self.limit.admits(
-            result.state.world.len(),
-            result.state.size(),
-            result.state.reachable().len(),
-        ) {
+        if !self.limit.admits(Measure::new(&result.state)) {
             return Outcome::Blocked;
         }
         Outcome::Product(Box::new(Product {

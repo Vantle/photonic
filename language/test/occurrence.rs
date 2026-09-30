@@ -2,10 +2,24 @@ use crate::basis::Set;
 use crate::flow::Flow;
 use crate::place::Place;
 use crate::program::Symbol;
-use crate::runtime::Limit;
+use crate::runtime::{Limit, Measure};
 use crate::state::{Frame, State, Token, World};
 use std::sync::Arc;
 use std::task::Poll;
+
+// Every occurrence a configuration's coherences and reachable frames hold, live rules included.
+fn total(state: &State) -> usize {
+    state
+        .world
+        .iter()
+        .map(|world| world.particle.len())
+        .sum::<usize>()
+        + state
+            .reachable()
+            .into_iter()
+            .map(|index| state.frame[index].token().count())
+            .sum::<usize>()
+}
 
 fn token(id: usize, capture: usize) -> Token {
     Token {
@@ -164,16 +178,16 @@ fn retirement() {
     assert_eq!(changed.reachable(), vec![0]);
     let changed = changed.reclaim(&[0]);
     assert_eq!(changed.frame.len(), 1);
-    assert_eq!(changed.size(), 1);
+    assert_eq!(total(&changed), 1);
     assert_eq!(original.frame[0].particle.len(), 2);
-    assert_eq!(original.size(), 4);
+    assert_eq!(total(&original), 4);
 }
 
 #[test]
 fn allocation() {
     let original = state();
     let layout = crate::layout::Layout::new(&original);
-    assert_eq!(layout.cell, 4);
+    assert_eq!(layout.cell, 1);
     assert_eq!(layout.resource, 24);
     let mut changed = original.clone();
     Arc::make_mut(&mut changed.frame[1]).particle = original.frame[1]
@@ -190,7 +204,7 @@ fn allocation() {
     let reach = layout.reach.advance(&original, &changed, &change);
     let advanced = layout.advance(&original, &changed, &change, reach);
     assert_eq!(advanced.resource, 42);
-    assert_eq!(advanced.cell, changed.size());
+    assert_eq!(advanced.cell, Measure::new(&changed).occurrence);
     let fingerprint = crate::fingerprint::Index::new(Arc::new(original), &layout.reach.frame);
     let advanced = fingerprint.advance(Arc::new(changed.clone()), &change, &advanced.reach.frame);
     assert_eq!(advanced.value(), crate::fingerprint::state(&changed));
@@ -247,7 +261,7 @@ fn consumption() {
             direct.state.canonical().state,
             exhaustive.state.canonical().state
         );
-        assert_eq!(direct.layout.cell, direct.state.size());
+        assert_eq!(direct.layout.cell, Measure::new(&direct.state).occurrence);
         assert_eq!(
             direct.layout.resource,
             crate::layout::Layout::new(&direct.state).resource
@@ -328,7 +342,7 @@ fn import() {
     );
     assert_eq!(result.state.reachable(), vec![0, 1, 2]);
     let canonical = result.canonical();
-    assert_eq!(canonical.state.size(), 6);
+    assert_eq!(total(&canonical.state), 6);
     assert_eq!(canonical.flow.resource.len(), 6);
     assert_eq!(source.frame.len(), 2);
 }

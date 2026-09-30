@@ -70,7 +70,7 @@ fn identical() {
             occurrence: 12,
             ..open
         },
-        Limit { scope: 2, ..open },
+        Limit { scope: 1, ..open },
     ];
     let program = [
         family::dial(5),

@@ -379,18 +379,6 @@ impl State {
         }
     }
 
-    pub fn size(&self) -> usize {
-        self.world
-            .iter()
-            .map(|world| world.particle.len())
-            .sum::<usize>()
-            + self
-                .reachable()
-                .into_iter()
-                .map(|index| self.frame[index].size())
-                .sum::<usize>()
-    }
-
     pub fn environment(&self, capture: usize) -> Canonical {
         Self {
             world: vec![
