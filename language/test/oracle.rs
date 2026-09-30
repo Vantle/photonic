@@ -284,7 +284,7 @@ fn apply(
             Output::Scope(scope) => opening.open(&mut result, *scope, parent, owner, &mut next),
         }
     }
-    result.canonical().state
+    crate::test::canonical(&result).state
 }
 
 fn expected(program: &Program, state: &State) -> HashSet<Transition> {
@@ -359,7 +359,7 @@ fn actual(program: &Arc<Program>, state: &Arc<State>) -> HashSet<Transition> {
             read: *event.binding.read.first().unwrap(),
             world: event.binding.world.iter().copied().collect(),
             resource: event.binding.exact.iter().copied().collect(),
-            state: event.state.canonical().state,
+            state: crate::test::canonical(&event.state).state,
         });
     }
     panic!("reference comparison did not complete");
@@ -476,7 +476,7 @@ fn incremental() {
                     read: *event.binding.read.first().unwrap(),
                     world: event.binding.world.iter().copied().collect(),
                     resource: event.binding.exact.iter().copied().collect(),
-                    state: event.state.canonical().state,
+                    state: crate::test::canonical(&event.state).state,
                 });
                 selected = Some(event);
             }

@@ -123,10 +123,14 @@ impl Laser {
         next: &mut Round,
     ) -> Vec<Option<usize>> {
         let _scope = profile::Scope::new(profile::Phase::Creation);
+        let deferred = outcome
+            .iter()
+            .map(|outcome| matches!(outcome, Outcome::Deferred))
+            .collect();
         let (learned, fresh) = self.learn(executor, outcome);
         let named = self.label(executor, learned, &pending);
         let settled = self.locate(executor, named);
-        let (created, fired) = self.commit(executor, pending, settled, next);
+        let (created, fired) = self.commit(executor, pending, settled, deferred, next);
         self.register(executor, fired);
         self.prune(fresh);
         created
@@ -148,7 +152,7 @@ impl Laser {
                     .product
                     .as_ref()
                     .map(|product| self.taxonomy.intern(&product.draft)),
-                Outcome::Blocked => None,
+                Outcome::Blocked | Outcome::Deferred => None,
             })
             .collect::<Vec<_>>();
         let taxonomy = &self.taxonomy;
@@ -185,7 +189,7 @@ impl Laser {
                         self.whole.insert(key);
                     }
                 }
-                Outcome::Blocked => {}
+                Outcome::Blocked | Outcome::Deferred => {}
             }
         }
         (learned, fresh)
@@ -254,7 +258,7 @@ impl Laser {
                         },
                     })
                 }
-                Outcome::Blocked => None,
+                Outcome::Blocked | Outcome::Deferred => None,
             },
         )
     }
@@ -300,20 +304,30 @@ impl Laser {
     }
 
     // Adds the new configurations and the events in the batch's order, blocking an identity whose
-    // result the limits refuse; gives each identity's event and the events fired.
+    // result the limits refuse and deferring one whose result the round could not name; gives each
+    // identity's event and the events fired.
     fn commit(
         &mut self,
         executor: Option<&Executor>,
         pending: Vec<(Identity, usize)>,
         settled: Vec<Settled>,
+        deferred: Vec<bool>,
         next: &mut Round,
     ) -> (Vec<Option<usize>>, Vec<(usize, Identity)>) {
         let mut target = Vec::<Option<usize>>::new();
         let mut admitted = Vec::new();
         let mut created = Vec::with_capacity(pending.len());
         let mut fired = Vec::new();
-        for ((identity, position), settled) in pending.into_iter().zip(settled) {
+        for (((identity, position), settled), deferred) in
+            pending.into_iter().zip(settled).zip(deferred)
+        {
             let (resolved, route) = match settled {
+                Settled::Blocked if deferred => {
+                    self.blocked.insert(identity.clone(), position);
+                    next.retry.push((identity, position));
+                    created.push(None);
+                    continue;
+                }
                 Settled::Blocked => {
                     self.blocked.insert(identity, position);
                     created.push(None);

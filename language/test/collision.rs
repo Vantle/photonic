@@ -95,7 +95,10 @@ fn fallback() {
         crate::fingerprint::signature(&ring),
         crate::fingerprint::signature(&triangle)
     );
-    assert_ne!(ring.canonical().state, triangle.canonical().state);
+    assert_ne!(
+        crate::test::canonical(&ring).state,
+        crate::test::canonical(&triangle).state
+    );
     let source = frontend::lowering::parse("A").unwrap();
     let mut search = Search::new(
         source.clone(),
@@ -169,7 +172,10 @@ fn capture() {
         crate::fingerprint::signature(&left),
         crate::fingerprint::signature(&right)
     );
-    assert_ne!(left.canonical().state, right.canonical().state);
+    assert_ne!(
+        crate::test::canonical(&left).state,
+        crate::test::canonical(&right).state
+    );
 }
 
 #[test]
@@ -214,9 +220,7 @@ fn reporting() {
             }
             actual.run(budget, limit);
             expected.run(budget, limit);
-            for record in &expected.state {
-                record.canonical();
-            }
+            expected.report();
             assert_eq!(
                 serde_json::to_value(actual.report()).unwrap(),
                 serde_json::to_value(expected.report()).unwrap()

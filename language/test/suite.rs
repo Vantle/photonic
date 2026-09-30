@@ -35,6 +35,14 @@ pub(crate) fn atom(token: &crate::snapshot::Token) -> Option<&str> {
     }
 }
 
+// A configuration's canonical form, however many steps its search takes.
+pub(crate) fn canonical(state: &crate::state::State) -> crate::state::Canonical {
+    let mut budget = crate::canonical::UNLIMITED;
+    state
+        .canonical(&mut budget)
+        .expect("an unlimited search names every configuration")
+}
+
 pub(crate) fn executor(worker: usize) -> crate::executor::Executor {
     crate::executor::Executor::new(std::num::NonZeroUsize::new(worker).unwrap()).unwrap()
 }

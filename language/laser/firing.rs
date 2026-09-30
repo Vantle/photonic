@@ -1,6 +1,6 @@
 use super::focus::Focus;
 use super::makeup::Makeup;
-use super::taxonomy::Draft;
+use super::taxonomy::{Draft, Name};
 use super::trace::Trace;
 use super::transition::{self, Effect, Key, Local};
 use super::{Identity, Laser, Link, Round, map};
@@ -8,11 +8,12 @@ use crate::application::{self, Owner, Request};
 use crate::executor::Executor;
 use crate::flow::{Closure, Flow};
 use crate::profile;
-use crate::state::Canonical;
+use crate::state::{Canonical, State};
 use hashing::Builder;
 use indexmap::IndexMap;
 use std::ops::Range;
 use std::sync::Arc;
+use std::sync::atomic::Ordering;
 
 // Applying an event holds its whole result until it is named, so a round applies and names its
 // events a batch at a time; each batch finds the configurations and transitions the batches before
@@ -35,10 +36,13 @@ pub(super) struct Move {
     pub(super) product: Option<Product>,
 }
 
+// An application the limits refuse is blocked until they change; one whose result takes more steps
+// to name than the round allows is deferred to the next round, as the rest of a spent round is.
 pub(super) enum Outcome {
     Product(Box<Product>),
     Move(Box<Move>),
     Blocked,
+    Deferred,
 }
 
 enum Resolution {
@@ -63,7 +67,7 @@ impl Laser {
         next: &mut Round,
         allowance: usize,
     ) -> usize {
-        let candidate = self.select(executor, novel);
+        let candidate = self.select(executor, novel, allowance);
         let revisit = retry
             .iter()
             .map(|(identity, position)| (identity.source, *position))
@@ -81,10 +85,10 @@ impl Laser {
             if batch.is_empty() {
                 break;
             }
-            let outcome = self.attempt(executor, &batch);
+            let outcome = self.attempt(executor, &batch, allowance);
             created.extend(self.create(executor, batch, outcome, next));
             self.taxonomy.forget(executor);
-            if created.len() >= allowance {
+            if created.len() + *self.charge.get_mut() >= allowance {
                 break;
             }
         }
@@ -122,19 +126,20 @@ impl Laser {
         &self,
         executor: Option<&Executor>,
         novel: Vec<(usize, Range<usize>)>,
+        allowance: usize,
     ) -> Vec<Candidate> {
         let _scope = profile::Scope::new(profile::Phase::Identification);
         map(executor, novel, |(index, range)| {
-            self.candidate(index, range)
+            self.candidate(index, range, allowance)
         })
     }
 
-    fn candidate(&self, index: usize, range: Range<usize>) -> Candidate {
+    fn candidate(&self, index: usize, range: Range<usize>, allowance: usize) -> Candidate {
         let mut seen = IndexMap::<Identity, usize, Builder>::default();
         let mut resolution = Vec::with_capacity(range.len());
         let identity = range
             .clone()
-            .map(|position| self.identify(index, &self.trace[index][position]))
+            .map(|position| self.identify(index, &self.trace[index][position], allowance))
             .collect::<Vec<_>>();
         let chosen = self.independence.as_ref().and_then(|independence| {
             let found = identity.iter().flatten().collect::<Vec<_>>();
@@ -168,22 +173,38 @@ impl Laser {
         }
     }
 
-    fn attempt(&self, executor: Option<&Executor>, pending: &[(Identity, usize)]) -> Vec<Outcome> {
+    fn attempt(
+        &self,
+        executor: Option<&Executor>,
+        pending: &[(Identity, usize)],
+        allowance: usize,
+    ) -> Vec<Outcome> {
         let _scope = profile::Scope::new(profile::Phase::Firing);
         map(
             executor,
             pending.iter().collect(),
-            |(identity, position)| self.apply(identity, &self.trace[identity.source][*position]),
+            |(identity, position)| {
+                self.apply(identity, &self.trace[identity.source][*position], allowance)
+            },
         )
+    }
+
+    // Names what an application made with at most the allowance and charges the round for it; an
+    // application whose result cannot be named within it charges the allowance and waits.
+    fn analyze(&self, state: &State, allowance: usize) -> Option<Draft> {
+        let mut budget = allowance;
+        let draft = self.taxonomy.analyze(state, &mut budget).ok();
+        self.charge.fetch_add(allowance - budget, Ordering::Relaxed);
+        draft
     }
 
     // An event over parts applies to the parts it touches alone, once for every key, unless its
     // key made a configuration named whole; then, and for every other event, it applies to its
     // whole source.
-    fn apply(&self, identity: &Identity, trace: &Trace) -> Outcome {
+    fn apply(&self, identity: &Identity, trace: &Trace, allowance: usize) -> Outcome {
         let (Some(layout), Owner::Frame(owner)) = (&self.layout[identity.source], &identity.owner)
         else {
-            return self.configuration(identity, trace, None);
+            return self.configuration(identity, trace, None, allowance);
         };
         let local = transition::localize(
             &self.taxonomy,
@@ -202,11 +223,13 @@ impl Laser {
             }));
         }
         if self.whole.contains(&local.key) {
-            return self.configuration(identity, trace, None);
+            return self.configuration(identity, trace, None, allowance);
         }
-        let product = self.part(&local.key);
+        let Some(product) = self.part(&local.key, allowance) else {
+            return Outcome::Deferred;
+        };
         if matches!(product.draft, Draft::Whole(_)) {
-            return self.configuration(identity, trace, Some(local.key));
+            return self.configuration(identity, trace, Some(local.key), allowance);
         }
         Outcome::Move(Box::new(Move {
             local,
@@ -215,7 +238,7 @@ impl Laser {
         }))
     }
 
-    fn part(&self, key: &Key) -> Product {
+    fn part(&self, key: &Key, allowance: usize) -> Option<Product> {
         let makeup = Makeup {
             root: key.root,
             kind: key.kind.to_vec(),
@@ -229,16 +252,22 @@ impl Laser {
             rule: &self.program.rule[key.rule],
             binding: &key.binding,
         });
-        Product {
-            draft: self.taxonomy.analyze(&result.state),
+        Some(Product {
+            draft: self.analyze(&result.state, allowance)?,
             flow: result.flow,
             whole: None,
-        }
+        })
     }
 
     // A rule a detached capture owns applies through the flow back to the configuration where
     // its match was found.
-    fn configuration(&self, identity: &Identity, trace: &Trace, whole: Option<Key>) -> Outcome {
+    fn configuration(
+        &self,
+        identity: &Identity,
+        trace: &Trace,
+        whole: Option<Key>,
+        allowance: usize,
+    ) -> Outcome {
         let attached = trace.owner().map(|capture| {
             let origin = &self.state[capture.origin];
             (capture, origin, capture.flow(origin, &self.pool))
@@ -266,25 +295,49 @@ impl Laser {
         ) {
             return Outcome::Blocked;
         }
+        let Some(draft) = self.analyze(&result.state, allowance) else {
+            return Outcome::Deferred;
+        };
         Outcome::Product(Box::new(Product {
-            draft: self.taxonomy.analyze(&result.state),
+            draft,
             flow: result.flow,
             whole,
         }))
     }
 
-    fn canonical(&self, origin: usize, frame: usize) -> Arc<Canonical> {
-        self.environment.get((origin, frame), |&(origin, frame)| {
-            Arc::new(self.state[origin].environment(frame))
-        })
+    // The environment a capture's rules see, named with at most the allowance and charged each
+    // time it serves; an environment that cannot be named within it leaves the exploration unable
+    // to close, since the event it would identify is lost. A remembered failure is tried again
+    // only with a larger allowance than it failed with.
+    fn canonical(&self, origin: usize, frame: usize, allowance: usize) -> Option<Arc<Canonical>> {
+        let search = || {
+            Name::search(allowance, |left| {
+                self.state[origin].environment(frame, left)
+            })
+        };
+        let found = match self.environment.get((origin, frame), |_| search()) {
+            Name::Exhausted(tried) if tried < allowance => search(),
+            found => found,
+        };
+        let mut budget = allowance;
+        let named = found.spend(&mut budget);
+        self.charge.fetch_add(allowance - budget, Ordering::Relaxed);
+        let Ok(named) = named else {
+            self.exhausted.store(true, Ordering::Relaxed);
+            return None;
+        };
+        Some(named)
     }
 
-    fn identify(&self, source: usize, trace: &Trace) -> Option<Identity> {
+    fn identify(&self, source: usize, trace: &Trace, allowance: usize) -> Option<Identity> {
         let binding = trace.binding(&self.state[source], &self.pool)?;
-        let owner = trace.owner().map(|capture| {
-            let canonical = self.canonical(capture.origin, capture.frame);
-            Arc::new(capture.environment(&canonical))
-        });
+        let owner = match trace.owner() {
+            Owner::Frame(frame) => Owner::Frame(frame),
+            Owner::Capture(capture) => {
+                let canonical = self.canonical(capture.origin, capture.frame, allowance)?;
+                Owner::Capture(Arc::new(capture.environment(&canonical)))
+            }
+        };
         Some(Identity {
             source,
             frame: trace.frame,
@@ -309,7 +362,7 @@ impl Laser {
             Link::Absent => None,
             Link::Event(event) => Some(*event),
             Link::Unresolved => {
-                let identity = self.identify(state, &self.trace[state][position])?;
+                let identity = self.identify(state, &self.trace[state][position], self.budget)?;
                 self.identity[state].get(&identity).copied()
             }
         }

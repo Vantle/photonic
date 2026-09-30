@@ -42,7 +42,9 @@ The engines differ in what depends on the order of work. Each numbers configurat
 
 **Closing.** When no work remains, three passes finish the exploration. The first marks as direct every inferred event that a match found at its own source still derives through a cycle of crossings. The second establishes support in parallel rounds, the least set closed under the interpreter's rules: the start, a configuration's own matches, a trace carried across a supported event from a supported trace, an event identified at a supported source by a supported trace, and a configuration a supported event reaches. The third records each inferred event's deduction. The traces are then released; each event keeps its passage, the map from the places after it to the places before it, so place maps are answered later.
 
-**Reports.** Laser renames each configuration it reports into the interpreter's canonical form, and every event's places with it, so reports, targets and Spectrum answers read alike on both engines.
+**Canonical forms and work.** A canonical search with a single candidate ordering takes three steps; every further step is charged to the round's work, a name remembered for a component charges its steps again each time it serves, so the charge is the same for any number of workers, and an application whose result cannot be named within what the round has left waits for the next round. A configuration whose ordering search would take more than 64 steps is named by its interchangeable parts, so copies of a scope or of a group of coherences cost a name each and a sort.
+
+**Reports.** Laser renames each configuration it reports into the interpreter's canonical form, and every event's places with it, so reports, targets and Spectrum answers read alike on both engines. A report names each configuration with at most the work its runs were given; one that takes more is shown as Laser holds it and marked `"form": "listed"`.
 
 ## Plain exploration
 

@@ -50,7 +50,7 @@ fn normalize(
             })
             .collect()
     };
-    State {
+    let state = State {
         world: node["world"]
             .as_array()
             .unwrap()
@@ -78,9 +78,8 @@ fn normalize(
                 .into()
             })
             .collect(),
-    }
-    .canonical()
-    .state
+    };
+    crate::test::canonical(&state).state
 }
 
 #[test]
@@ -392,9 +391,14 @@ fn capture() {
             .unwrap()
             .capture
             .unwrap();
+        let mut budget = usize::MAX;
         assert_eq!(
-            output.state.environment(capture).state,
-            witness.environment(2).state
+            output
+                .state
+                .environment(capture, &mut budget)
+                .unwrap()
+                .state,
+            witness.environment(2, &mut budget).unwrap().state
         );
         assert_eq!(
             output
@@ -455,10 +459,13 @@ fn permutation() {
                 token.id = 17 - token.id;
             }
         }
-        assert_eq!(state.canonical().state, changed.canonical().state);
         assert_eq!(
-            state.canonical().state.canonical().state,
-            state.canonical().state
+            crate::test::canonical(&state).state,
+            crate::test::canonical(&changed).state
+        );
+        assert_eq!(
+            crate::test::canonical(&crate::test::canonical(&state).state).state,
+            crate::test::canonical(&state).state
         );
     }
 }

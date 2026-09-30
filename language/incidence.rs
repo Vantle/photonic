@@ -12,9 +12,12 @@ pub(crate) enum Label {
     Resource(Symbol),
 }
 
+// Coherences come first, then the reachable frames in the order retained lists them, then one
+// vertex for each token id.
 pub(crate) struct Incidence {
     pub label: Vec<Label>,
     pub frame: Vec<usize>,
+    pub retained: Vec<usize>,
     pub edge: crate::graph::Graph,
     pub resource: Vec<usize>,
 }
@@ -100,6 +103,7 @@ impl Incidence {
         Self {
             label,
             frame,
+            retained,
             edge,
             resource: identity,
         }
