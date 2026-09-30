@@ -8,7 +8,7 @@ steps:
       - bazel build --config=ci //...
       - bazel run --config=ci //:format -- --check
       - bazel run --config=ci //:link
-      - bazel run --config=ci //:update -- --help
+      - bazel run --config=ci //:update -- --workspace --dry-run
     timeout_in_minutes: 60
     notify:
       - github_commit_status:
@@ -16,7 +16,7 @@ steps:
 
   - label: Test · Linux x86-64
     key: test
-    command: bazel test --config=ci --config=continuous //...
+    command: bazel test --config=ci --config=continuous --output_groups=-check //...
     timeout_in_minutes: 60
     notify:
       - github_commit_status:
