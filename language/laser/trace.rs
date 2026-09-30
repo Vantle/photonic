@@ -63,7 +63,7 @@ impl Trace {
             rule: found.rule,
             frame: found.frame,
             capture,
-            read: pool.basis(found.read.map_or_else(Set::default, Set::single)),
+            read: pool.basis(Set::single(found.read)),
             world: pool.world(world.into_iter().collect()),
             occurrence,
         })

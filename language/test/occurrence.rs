@@ -129,7 +129,7 @@ fn projection() {
                 position: 0,
             }],
             1,
-            None,
+            Place::Context(1, 19),
         )
         .unwrap();
     let expected = [Place::Context(0, 7), Place::Context(1, 19)]

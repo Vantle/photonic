@@ -31,7 +31,7 @@ fn verify(membership: &mut Index, index: &crate::index::Index, catalog: &Catalog
                 .collect::<Vec<_>>();
             let mut actual = membership
                 .select(catalog, index, frame, input)
-                .map(|consumer| (consumer.rule, consumer.owner, consumer.read.unwrap()))
+                .map(|consumer| (consumer.rule, consumer.owner, consumer.read))
                 .collect::<Vec<_>>();
             let order = |(rule, owner, read)| {
                 let Read::Context(frame, resource) = read else {
