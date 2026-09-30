@@ -102,16 +102,16 @@ pub struct Budget {
     pub work: usize,
     #[arg(
         long,
-        help = "Configurations kept: 4,096 by default, and with --engine metal as many as the GPU holds"
+        help = "Configurations kept: 4,096 by default; with --engine metal as many as the GPU holds, or 1,048,576 on the host where there is no GPU with Metal 3"
     )]
     pub configuration: Option<usize>,
     #[arg(long, default_value_t = spectrum::budget::Budget::default().coherence, help = "Coherences in one configuration")]
     pub coherence: usize,
-    #[arg(long, default_value_t = spectrum::budget::Budget::default().occurrence, help = "Occurrences in one configuration")]
+    #[arg(long, default_value_t = spectrum::budget::Budget::default().occurrence, help = "Occurrences one configuration's coherences and scopes hold as values; live rules do not count")]
     pub occurrence: usize,
-    #[arg(long, default_value_t = spectrum::budget::Budget::default().scope, help = "Scopes in one configuration")]
+    #[arg(long, default_value_t = spectrum::budget::Budget::default().scope, help = "Scopes one configuration has opened; the root does not count")]
     pub scope: usize,
-    #[arg(long, default_value_t = spectrum::budget::Budget::default().record, help = "Records the engine retains")]
+    #[arg(long, default_value_t = spectrum::budget::Budget::default().record, help = "Records the engine retains; metal retains none and ignores it")]
     pub record: usize,
 }
 
@@ -147,7 +147,7 @@ pub struct Search {
         long,
         conflicts_with = "path",
         requires_if("metal", "plain"),
-        help = "The engine: laser, the default, or interpreter records every event of every future; with --plain, laser records every plain schedule, and metal explores them at GPU scale through the program's net of parts, keeping only counts, ends and cycles, so it answers explore and check alone"
+        help = "The engine: laser, the default, or interpreter records every event of every future; with --plain, laser records every plain schedule, and metal explores them through the program's net of parts, on the GPU where there is one with Metal 3 and on the host otherwise, keeping only counts, ends and cycles, so it answers explore and check alone"
     )]
     pub engine: Option<Engine>,
 }

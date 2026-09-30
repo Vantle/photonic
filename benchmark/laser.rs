@@ -51,7 +51,7 @@ struct Argument {
         help = "Records each engine retains"
     )]
     record: usize,
-    #[arg(long, default_value_t = Limit::default().occurrence, help = "Occurrences in one configuration")]
+    #[arg(long, default_value_t = Limit::default().occurrence, help = "Occurrences one configuration's coherences and scopes hold as values")]
     occurrence: usize,
     #[arg(
         long,

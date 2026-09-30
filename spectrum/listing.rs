@@ -131,10 +131,10 @@ impl Listing {
             Outcome::Unknown if self.exploration.mode == Mode::Path => {
                 "unknown   a direct path follows one run of many, so it cannot show the target unreachable".to_owned()
             }
-            Outcome::Unknown => {
-                "unknown   the exploration stopped at its budget before it found the target"
-                    .to_owned()
-            }
+            Outcome::Unknown => format!(
+                "unknown   the exploration stopped before it found the target: {}",
+                explore::reason(&self.exploration.stop, None)
+            ),
         };
         format!("{line}\n{}", self.summary)
     }

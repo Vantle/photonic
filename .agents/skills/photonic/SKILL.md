@@ -20,7 +20,7 @@ Over MCP the verbs are tools with the same fields. Pass the `exploration` key fr
 
 ## Honesty
 
-- `unknown` means the search could not settle the claim: a budget stopped it, or a direct path follows one run of many. It is never evidence that a configuration is unreachable. Raise the budgets, explore exhaustively, or change the question.
+- `unknown` means the search could not settle the claim: a budget or limit stopped it, and the answer names which and the flag to raise, or a direct path follows one run of many. It is never evidence that a configuration is unreachable. Raise what the answer names, explore exhaustively, or change the question.
 - Patterns match by containment, as a rule's input does. Use `--exact`, with `--preserve` when the target must list the root rules, to compare whole configurations as Prism and `photonic_test` do.
 - Reaching a target shows that some order of events gets there. `photonic_test(every = True)` requires every schedule of plain events to end exactly at a target, and `check --plain --end Target --exact --preserve` asks the same interactively; add `--engine metal` when the schedules reach millions of configurations.
 - A handle belongs to one exploration. Quote it with its key, and explore again after an edit before reusing any handle.

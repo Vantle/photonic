@@ -39,7 +39,7 @@ struct Argument {
     count: Option<usize>,
     #[arg(long, default_value_t = usize::MAX, help = "Configurations kept")]
     configuration: usize,
-    #[arg(long, default_value_t = Limit::default().occurrence, help = "Occurrences in one configuration")]
+    #[arg(long, default_value_t = Limit::default().occurrence, help = "Occurrences one configuration's coherences and scopes hold as values")]
     occurrence: usize,
     #[arg(long, default_value = "3", help = "Runs of each engine")]
     sample: NonZeroUsize,
