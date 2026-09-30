@@ -8,7 +8,7 @@ bazel test -c opt //library/...
 
 ## Principles
 
-1. **One namespace per type.** Every operation is named `<Type>.<Verb>`: `Boolean.Not`, `Ternary.Add`, `Natural.Divide`, `Expression.Evaluate`. The namespace belongs to exactly one package, with two exceptions: each reduce operation declares its own identity as a `Function.Empty.Reduce` row in its package, and `//library/selection:reduce` adds the `Reduce` rows for selections to the stage in `//library/collection:reduce`. The core combinators `Identity` and `Compose` are bare, and so are the pipeline stages `Map`, `Reduce` and `Gather` and the methods of chains and vectors: `Push`, `Read`, `Peek`, `Forget`, `Insert`, `Take`, `Link`, `Lift`, `Unlink`, an alphabet's `Drop`, and the node's internal `Sever` and `Surface`.
+1. **One namespace per type.** Every operation is named `<Type>.<Verb>`: `Boolean.Not`, `Ternary.Add`, `Natural.Divide`, `Expression.Evaluate`. The namespace belongs to exactly one package, with three exceptions: each reduce operation declares its own identity as a `Function.Empty.Reduce` row in its package; `//library/selection:reduce` adds the `Reduce` rows for selections to the stage in `//library/collection:reduce`; and `Empty` also names the empty vector, which no pattern pairs with `Reduce`, so the two never meet. The core combinators `Identity` and `Compose` are bare, and so are the pipeline stages `Map`, `Reduce` and `Gather` and the methods of chains and vectors: `Push`, `Read`, `Peek`, `Forget`, `Insert`, `Take`, `Link`, `Lift`, `Unlink`, an alphabet's `Drop`, and the node's internal `Sever` and `Surface`.
 2. **One calling vocabulary.** A request carries `Function`; its answer carries `Return`. Scoped calls use `Invoke`; linked calls tag each answer with the operation that produced it. Chain and vector methods answer in their own words instead: `Built`, `Yield`, `Seen`, `Clean`, `Stored`, `Linked`, `Taken`, `Lifted`, and `Unlinked`.
 3. **Collision-free by construction.** `//library:test` proves that no root rule can match the input of another root rule, that no working label fits inside an answer or a pending request, and that no request names another, then runs checks with every package loaded at once.
 4. **Explicit values.** Roles travel as fields such as `([Digit] 2).([Carry] 1)`. Alternatives are variants of the answer, and a linked operation answers a failure as `Error.<Kind>`; a scalar table has no failure answer, as [scoped invocation](#scoped-invocation) describes. A role is never also a plain atom, except that `Map` and `Reduce` fire callbacks through a bare `Each` and `Operation`, and `Left` and `Right` name both the ordered operands of scalar tables and the sides of linked operands, as in `Operand.Left`.
@@ -23,8 +23,8 @@ bazel test -c opt //library/...
 | [boolean](boolean/) | `Boolean` | `not`, `and`, `or`, `equal` |
 | [ternary](ternary/) | `Ternary` | `add`, `sum`, `multiply`, `successor`, `compare`, `equal`, `subtract`, `select` |
 | [binary](binary/) | `Binary` | `sum`, `multiply` |
-| [carry](carry/) | `Signal` | `combine`, `equal`, `evaluate` |
-| [collection](collection/) | `Pair`, `Empty` | `produce`, `copy`, `repeat`, `broadcast`, `unpack`, `choose`, `map`, `gather`, `reduce` |
+| [carry](carry/) | `Signal`, a block's carry status | `combine`, `equal`, `evaluate` |
+| [collection](collection/) | `Pair`, and `Empty` for the empty reduction | `produce`, `copy`, `repeat`, `broadcast`, `unpack`, `choose`, `map`, `gather`, `reduce` |
 | [selection](selection/) | `Selection` | `filter`, `check`, `count`, `reduce` |
 | [field](field/) | `Field` | `pack`, `unpack` |
 | [stream](stream/) | `Stream` | `successor` |
