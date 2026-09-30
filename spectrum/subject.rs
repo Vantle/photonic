@@ -44,7 +44,7 @@ impl Subject {
         if self.file.is_empty() && self.source.is_none() {
             return Err(Failure::new(
                 Code::Request,
-                "name the program with file or source",
+                "name the program: list its files (file), or give it inline (--source, or source)",
             ));
         }
         let mut program = Program::default();

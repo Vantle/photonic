@@ -1222,3 +1222,34 @@ fn measure() {
         answer[3]
     );
 }
+
+// Refusals name what to change on both surfaces: the command line's flag and the request's field.
+#[test]
+fn phrasing() {
+    let answer = session(&[
+        r#"{"verb": "explore", "program": {"file": ["light.wave"]}, "engine": "metal"}"#,
+        r#"{"verb": "explore", "program": {"file": ["light.wave"]}, "goal": {"configuration": "Red"}}"#,
+        r#"{"verb": "explore", "program": {"file": ["light.wave"]}, "mode": "path", "engine": "laser"}"#,
+        r#"{"verb": "explore", "program": {}}"#,
+        r#"{"verb": "cause", "program": {"file": ["light.wave"]}, "mode": "path", "handle": "s0.o0"}"#,
+    ]);
+    for (index, (flag, field)) in [
+        ("--plain", "mode plain"),
+        ("--path", "mode path"),
+        ("--engine", "engine"),
+        ("--source", "source"),
+        ("--path", "mode path"),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let message = answer[index]["error"]["message"]
+            .as_str()
+            .unwrap_or_default();
+        assert!(
+            message.contains(flag) && message.contains(field),
+            "{}",
+            answer[index]
+        );
+    }
+}

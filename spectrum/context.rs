@@ -77,13 +77,13 @@ impl Context<'_> {
             (_, Some(Engine::Metal)) if mode != Mode::Plain => {
                 return Err(Failure::new(
                     Code::Request,
-                    "metal explores every schedule of plain events; set mode to plain",
+                    "metal explores every schedule of plain events; explore them in plain mode (--plain, or mode plain)",
                 ));
             }
             (Mode::Path, Some(Engine::Laser)) => {
                 return Err(Failure::new(
                     Code::Request,
-                    "a direct path follows the interpreter's scheduler; laser explores every future, so leave engine out in path mode",
+                    "a direct path follows the interpreter's scheduler, and laser explores every future; leave the engine out (--engine, or engine) to follow a direct path",
                 ));
             }
             (Mode::Path, _) => Engine::Interpreter,
@@ -92,7 +92,7 @@ impl Context<'_> {
         if mode != Mode::Path && recording.goal.is_some() {
             return Err(Failure::new(
                 Code::Request,
-                "goal is the configuration a direct path stops at; set mode to path",
+                "a goal is the configuration a direct path stops at; follow a direct path (--path, or mode path)",
             ));
         }
         let goal = recording
