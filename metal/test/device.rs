@@ -144,6 +144,9 @@ fn reach() {
     let Ok(device) = Device::open() else {
         return;
     };
+    if !device.addressing() {
+        return;
+    }
     let source = "
         #include <metal_stdlib>
         using namespace metal;
