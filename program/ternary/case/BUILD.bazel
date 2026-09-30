@@ -1,633 +1,274 @@
 load("//photonic:defs.bzl", "photonic_test")
+load(":defs.bzl", "evaluation")
 
-photonic_test(
+evaluation(
     name = "precedence",
-    srcs = ["precedence.wave"],
-    coherence = 1024,
-    configuration = 65536,
-    occurrence = 16384,
-    path = True,
-    record = 100000000,
-    scope = 2048,
     target = ["Done.Zero"],
-    work = 100000000,
     deps = ["//library/expression:evaluate"],
 )
 
-photonic_test(
+evaluation(
     name = "association",
-    srcs = ["association.wave"],
-    coherence = 1024,
-    configuration = 65536,
-    occurrence = 16384,
-    path = True,
-    record = 100000000,
-    scope = 2048,
     target = ["Done.Zero"],
-    work = 100000000,
     deps = ["//library/expression:evaluate"],
 )
 
-photonic_test(
+evaluation(
     name = "borrow",
-    srcs = ["borrow.wave"],
-    coherence = 1024,
-    configuration = 65536,
-    occurrence = 16384,
-    path = True,
-    record = 100000000,
-    scope = 2048,
     target = ["Done.Zero"],
-    work = 100000000,
     deps = ["//library/expression:evaluate"],
 )
 
-photonic_test(
+evaluation(
     name = "product",
-    srcs = ["product.wave"],
-    coherence = 1024,
-    configuration = 65536,
-    occurrence = 16384,
-    path = True,
-    record = 100000000,
-    scope = 2048,
     target = ["Done.Zero"],
-    work = 100000000,
     deps = ["//library/expression:evaluate"],
 )
 
-photonic_test(
+evaluation(
     name = "remainder",
-    srcs = ["remainder.wave"],
-    coherence = 1024,
-    configuration = 65536,
-    occurrence = 16384,
-    path = True,
-    record = 100000000,
-    scope = 2048,
     target = ["Done.Zero"],
-    work = 100000000,
     deps = ["//library/expression:evaluate"],
 )
 
-photonic_test(
+evaluation(
     name = "equal",
-    srcs = ["equal.wave"],
-    coherence = 1024,
-    configuration = 65536,
-    occurrence = 16384,
-    path = True,
-    record = 100000000,
-    scope = 2048,
     target = ["Done.Zero"],
-    work = 100000000,
     deps = ["//library/expression:evaluate"],
 )
 
-photonic_test(
+evaluation(
     name = "empty",
-    srcs = ["empty.wave"],
-    coherence = 1024,
-    configuration = 65536,
-    occurrence = 16384,
-    path = True,
-    record = 100000000,
-    scope = 2048,
     target = ["Done.Zero"],
-    work = 100000000,
     deps = ["//library/expression:evaluate"],
 )
 
-photonic_test(
+evaluation(
     name = "leading",
-    srcs = ["leading.wave"],
-    coherence = 1024,
-    configuration = 65536,
-    occurrence = 16384,
-    path = True,
-    record = 100000000,
-    scope = 2048,
     target = ["Done.Zero"],
-    work = 100000000,
     deps = ["//library/expression:evaluate"],
 )
 
-photonic_test(
+evaluation(
     name = "short",
-    srcs = ["short.wave"],
-    coherence = 1024,
-    configuration = 65536,
-    occurrence = 16384,
-    path = True,
-    record = 100000000,
-    scope = 2048,
     target = ["Done.Zero"],
-    work = 100000000,
     deps = ["//library/expression:evaluate"],
 )
 
-photonic_test(
+evaluation(
     name = "depth",
-    srcs = ["depth.wave"],
-    coherence = 1024,
-    configuration = 65536,
-    occurrence = 16384,
-    path = True,
-    record = 100000000,
-    scope = 2048,
     target = ["Done.Zero"],
-    work = 100000000,
     deps = ["//library/expression:evaluate"],
 )
 
-photonic_test(
+evaluation(
     name = "width",
-    srcs = ["width.wave"],
-    coherence = 1024,
-    configuration = 65536,
-    occurrence = 16384,
-    path = True,
-    record = 100000000,
-    scope = 2048,
     tags = ["memory"],
     target = ["Done.Zero"],
-    work = 100000000,
     deps = ["//library/expression:evaluate"],
 )
 
-photonic_test(
+evaluation(
     name = "divisor",
-    srcs = ["divisor.wave"],
-    coherence = 1024,
-    configuration = 65536,
-    occurrence = 16384,
-    path = True,
-    record = 100000000,
-    scope = 2048,
     target = ["Return.Expression.Evaluate.Error.Divisor"],
-    work = 100000000,
     deps = ["//library/expression:evaluate"],
 )
 
-photonic_test(
+evaluation(
     name = "opening",
-    srcs = ["opening.wave"],
-    coherence = 1024,
-    configuration = 65536,
-    occurrence = 16384,
-    path = True,
-    record = 100000000,
-    scope = 2048,
     target = ["Return.Expression.Evaluate.Error.Syntax"],
-    work = 100000000,
     deps = ["//library/expression:evaluate"],
 )
 
-photonic_test(
+evaluation(
     name = "closing",
-    srcs = ["closing.wave"],
-    coherence = 1024,
-    configuration = 65536,
-    occurrence = 16384,
-    path = True,
-    record = 100000000,
-    scope = 2048,
     target = ["Return.Expression.Evaluate.Error.Syntax"],
-    work = 100000000,
     deps = ["//library/expression:evaluate"],
 )
 
-photonic_test(
+evaluation(
     name = "trailing",
-    srcs = ["trailing.wave"],
-    coherence = 1024,
-    configuration = 65536,
-    occurrence = 16384,
-    path = True,
-    record = 100000000,
-    scope = 2048,
     target = ["Return.Expression.Evaluate.Error.Syntax"],
-    work = 100000000,
     deps = ["//library/expression:evaluate"],
 )
 
-photonic_test(
+evaluation(
     name = "consecutive",
-    srcs = ["consecutive.wave"],
-    coherence = 1024,
-    configuration = 65536,
-    occurrence = 16384,
-    path = True,
-    record = 100000000,
-    scope = 2048,
     target = ["Return.Expression.Evaluate.Error.Syntax"],
-    work = 100000000,
     deps = ["//library/expression:evaluate"],
 )
 
-photonic_test(
+evaluation(
     name = "missing",
-    srcs = ["missing.wave"],
-    coherence = 1024,
-    configuration = 65536,
-    occurrence = 16384,
-    path = True,
-    record = 100000000,
-    scope = 2048,
     target = ["Return.Expression.Evaluate.Error.Syntax"],
-    work = 100000000,
     deps = ["//library/expression:evaluate"],
 )
 
-photonic_test(
+evaluation(
     name = "stack",
-    srcs = ["stack.wave"],
-    coherence = 1024,
-    configuration = 65536,
-    occurrence = 16384,
-    path = True,
-    record = 100000000,
-    scope = 2048,
     target = ["Return.Expression.Execute.Error.Stack"],
-    work = 100000000,
     deps = ["//library/expression:execute"],
 )
 
-photonic_test(
+evaluation(
     name = "extra",
-    srcs = ["extra.wave"],
-    coherence = 1024,
-    configuration = 65536,
-    occurrence = 16384,
-    path = True,
-    record = 100000000,
-    scope = 2048,
     target = ["Return.Expression.Execute.Error.Stack"],
-    work = 100000000,
     deps = ["//library/expression:execute"],
 )
 
-photonic_test(
+evaluation(
     name = "operand",
-    srcs = ["operand.wave"],
-    coherence = 1024,
-    configuration = 65536,
-    occurrence = 16384,
-    path = True,
-    record = 100000000,
-    scope = 2048,
     target = ["Return.Expression.Execute.Error.Stack"],
-    work = 100000000,
     deps = ["//library/expression:execute"],
 )
 
-photonic_test(
+evaluation(
     name = "negative",
-    srcs = ["negative.wave"],
-    coherence = 1024,
-    configuration = 65536,
-    occurrence = 16384,
-    path = True,
-    record = 100000000,
-    scope = 2048,
     target = ["Done.Zero"],
-    work = 100000000,
     deps = ["//library/expression:evaluate"],
 )
 
-photonic_test(
+evaluation(
     name = "unary",
-    srcs = ["unary.wave"],
-    coherence = 1024,
-    configuration = 65536,
-    occurrence = 16384,
-    path = True,
-    record = 100000000,
-    scope = 2048,
     target = ["Done.Zero"],
-    work = 100000000,
     deps = ["//library/expression:evaluate"],
 )
 
-photonic_test(
+evaluation(
     name = "difference",
-    srcs = ["difference.wave"],
-    coherence = 1024,
-    configuration = 65536,
-    occurrence = 16384,
-    path = True,
-    record = 100000000,
-    scope = 2048,
     target = ["Done.Zero"],
-    work = 100000000,
     deps = ["//library/expression:evaluate"],
 )
 
-photonic_test(
+evaluation(
     name = "quotient",
-    srcs = ["quotient.wave"],
-    coherence = 1024,
-    configuration = 65536,
-    occurrence = 16384,
-    path = True,
-    record = 100000000,
-    scope = 2048,
     target = ["Done.Zero"],
-    work = 100000000,
     deps = ["//library/expression:evaluate"],
 )
 
-photonic_test(
+evaluation(
     name = "double",
-    srcs = ["double.wave"],
-    coherence = 1024,
-    configuration = 65536,
-    occurrence = 16384,
-    path = True,
-    record = 100000000,
-    scope = 2048,
     target = ["Done.Zero"],
-    work = 100000000,
     deps = ["//library/expression:evaluate"],
 )
 
-photonic_test(
+evaluation(
     name = "cancel",
-    srcs = ["cancel.wave"],
-    coherence = 1024,
-    configuration = 65536,
-    occurrence = 16384,
-    path = True,
-    record = 100000000,
-    scope = 2048,
     target = ["Done.Zero"],
-    work = 100000000,
     deps = ["//library/expression:evaluate"],
 )
 
-photonic_test(
+evaluation(
     name = "polarity.0",
-    srcs = ["polarity.0.wave"],
-    coherence = 1024,
-    configuration = 65536,
-    occurrence = 16384,
-    path = True,
-    record = 100000000,
-    scope = 2048,
     target = ["Done.Zero"],
-    work = 100000000,
     deps = ["//library/expression:evaluate"],
 )
 
-photonic_test(
+evaluation(
     name = "polarity.1",
-    srcs = ["polarity.1.wave"],
-    coherence = 1024,
-    configuration = 65536,
-    occurrence = 16384,
-    path = True,
-    record = 100000000,
-    scope = 2048,
     target = ["Done.Zero"],
-    work = 100000000,
     deps = ["//library/expression:evaluate"],
 )
 
-photonic_test(
+evaluation(
     name = "polarity.2",
-    srcs = ["polarity.2.wave"],
-    coherence = 1024,
-    configuration = 65536,
-    occurrence = 16384,
-    path = True,
-    record = 100000000,
-    scope = 2048,
     target = ["Done.Zero"],
-    work = 100000000,
     deps = ["//library/expression:evaluate"],
 )
 
-photonic_test(
+evaluation(
     name = "polarity.3",
-    srcs = ["polarity.3.wave"],
-    coherence = 1024,
-    configuration = 65536,
-    occurrence = 16384,
-    path = True,
-    record = 100000000,
-    scope = 2048,
     target = ["Done.Zero"],
-    work = 100000000,
     deps = ["//library/expression:evaluate"],
 )
 
-photonic_test(
+evaluation(
     name = "polarity.4",
-    srcs = ["polarity.4.wave"],
-    coherence = 1024,
-    configuration = 65536,
-    occurrence = 16384,
-    path = True,
-    record = 100000000,
-    scope = 2048,
     target = ["Done.Zero"],
-    work = 100000000,
     deps = ["//library/expression:evaluate"],
 )
 
-photonic_test(
+evaluation(
     name = "polarity.5",
-    srcs = ["polarity.5.wave"],
-    coherence = 1024,
-    configuration = 65536,
-    occurrence = 16384,
-    path = True,
-    record = 100000000,
-    scope = 2048,
     target = ["Done.Zero"],
-    work = 100000000,
     deps = ["//library/expression:evaluate"],
 )
 
-photonic_test(
+evaluation(
     name = "polarity.6",
-    srcs = ["polarity.6.wave"],
-    coherence = 1024,
-    configuration = 65536,
-    occurrence = 16384,
-    path = True,
-    record = 100000000,
-    scope = 2048,
     target = ["Done.Zero"],
-    work = 100000000,
     deps = ["//library/expression:evaluate"],
 )
 
-photonic_test(
+evaluation(
     name = "polarity.7",
-    srcs = ["polarity.7.wave"],
-    coherence = 1024,
-    configuration = 65536,
-    occurrence = 16384,
-    path = True,
-    record = 100000000,
-    scope = 2048,
     target = ["Done.Zero"],
-    work = 100000000,
     deps = ["//library/expression:evaluate"],
 )
 
-photonic_test(
+evaluation(
     name = "polarity.8",
-    srcs = ["polarity.8.wave"],
-    coherence = 1024,
-    configuration = 65536,
-    occurrence = 16384,
-    path = True,
-    record = 100000000,
-    scope = 2048,
     target = ["Done.Zero"],
-    work = 100000000,
     deps = ["//library/expression:evaluate"],
 )
 
-photonic_test(
+evaluation(
     name = "polarity.9",
-    srcs = ["polarity.9.wave"],
-    coherence = 1024,
-    configuration = 65536,
-    occurrence = 16384,
-    path = True,
-    record = 100000000,
-    scope = 2048,
     target = ["Done.Zero"],
-    work = 100000000,
     deps = ["//library/expression:evaluate"],
 )
 
-photonic_test(
+evaluation(
     name = "polarity.10",
-    srcs = ["polarity.10.wave"],
-    coherence = 1024,
-    configuration = 65536,
-    occurrence = 16384,
-    path = True,
-    record = 100000000,
-    scope = 2048,
     target = ["Done.Zero"],
-    work = 100000000,
     deps = ["//library/expression:evaluate"],
 )
 
-photonic_test(
+evaluation(
     name = "polarity.11",
-    srcs = ["polarity.11.wave"],
-    coherence = 1024,
-    configuration = 65536,
-    occurrence = 16384,
-    path = True,
-    record = 100000000,
-    scope = 2048,
     target = ["Done.Zero"],
-    work = 100000000,
     deps = ["//library/expression:evaluate"],
 )
 
-photonic_test(
+evaluation(
     name = "polarity.12",
-    srcs = ["polarity.12.wave"],
-    coherence = 1024,
-    configuration = 65536,
-    occurrence = 16384,
-    path = True,
-    record = 100000000,
-    scope = 2048,
     target = ["Done.Zero"],
-    work = 100000000,
     deps = ["//library/expression:evaluate"],
 )
 
-photonic_test(
+evaluation(
     name = "polarity.13",
-    srcs = ["polarity.13.wave"],
-    coherence = 1024,
-    configuration = 65536,
-    occurrence = 16384,
-    path = True,
-    record = 100000000,
-    scope = 2048,
     target = ["Done.Zero"],
-    work = 100000000,
     deps = ["//library/expression:evaluate"],
 )
 
-photonic_test(
+evaluation(
     name = "polarity.14",
-    srcs = ["polarity.14.wave"],
-    coherence = 1024,
-    configuration = 65536,
-    occurrence = 16384,
-    path = True,
-    record = 100000000,
-    scope = 2048,
     target = ["Done.Zero"],
-    work = 100000000,
     deps = ["//library/expression:evaluate"],
 )
 
-photonic_test(
+evaluation(
     name = "polarity.15",
-    srcs = ["polarity.15.wave"],
-    coherence = 1024,
-    configuration = 65536,
-    occurrence = 16384,
-    path = True,
-    record = 100000000,
-    scope = 2048,
     target = ["Done.Zero"],
-    work = 100000000,
     deps = ["//library/expression:evaluate"],
 )
 
-photonic_test(
+evaluation(
     name = "complement",
-    srcs = ["complement.wave"],
-    coherence = 1024,
-    configuration = 65536,
-    occurrence = 16384,
-    path = True,
-    record = 100000000,
-    scope = 2048,
     target = ["Done.Zero"],
-    work = 100000000,
     deps = ["//library/expression:evaluate"],
 )
 
-photonic_test(
+evaluation(
     name = "padding",
-    srcs = ["padding.wave"],
-    coherence = 1024,
-    configuration = 65536,
-    occurrence = 16384,
-    path = True,
-    record = 100000000,
-    scope = 2048,
     target = ["Done.Zero"],
-    work = 100000000,
     deps = ["//library/expression:evaluate"],
 )
 
-photonic_test(
+evaluation(
     name = "opposite",
-    srcs = ["opposite.wave"],
-    coherence = 1024,
-    configuration = 65536,
-    occurrence = 16384,
-    path = True,
-    record = 100000000,
-    scope = 2048,
     target = ["Done.Zero"],
-    work = 100000000,
     deps = ["//library/expression:evaluate"],
 )
 
@@ -648,6 +289,9 @@ photonic_test(
 
 filegroup(
     name = "build",
-    srcs = ["BUILD.bazel"],
+    srcs = [
+        "BUILD.bazel",
+        "defs.bzl",
+    ],
     visibility = ["//:__pkg__"],
 )
