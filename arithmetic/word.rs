@@ -4,12 +4,14 @@ mod search;
 use clap::Parser;
 use frontend::lowering::parse;
 use photonic::path::Search;
+use photonic::prism::Outcome;
+use std::process::ExitCode;
 use std::time::Instant;
 
 #[global_allocator]
 static ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<ExitCode, Box<dyn std::error::Error>> {
     let argument = argument::Argument::parse();
     let (source, target) = argument.prepare()?;
     println!(
@@ -54,5 +56,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         start.elapsed().as_millis()
     );
     println!("The proposed result is a proof target; this runner does not calculate the answer.");
-    Ok(())
+    if report.outcome != Outcome::Reached {
+        return Ok(ExitCode::FAILURE);
+    }
+    Ok(ExitCode::SUCCESS)
 }

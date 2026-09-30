@@ -14,8 +14,8 @@
 [Clean.Copy.First.2, Copy.Output.Left] (Push.([Digit] 2), Forget.Copy.Await.2),
 [Built, Clean.Copy.Await.2] (Copy.Output.Left, Forget.Copy.Second.2),
 [Clean.Copy.Second.2, Copy.Output.Right] (Push.([Digit] 2), Forget.Copy.Finish),
-[Built, Clean.Copy.Finish] (Copy.Output.Right, Forget.Copy.Step),
-[Clean.Copy.Step] Copy.Step,
+[Built, Clean.Copy.Finish] (Copy.Output.Right, Forget.Copy.Proceed),
+[Clean.Copy.Proceed] Copy.Step,
 [Yield.End.Copy.Wait.Zero] (Copy.End.([Side] Left), Copy.End.([Side] Right)),
 [Copy.End.([Side] Left), Copy.Output.Left] Return.Natural.Copy.Left,
 [Copy.End.([Side] Right), Copy.Output.Right] Return.Natural.Copy.Right

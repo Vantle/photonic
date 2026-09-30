@@ -3,7 +3,6 @@ load("//photonic:defs.bzl", "photonic_binary", "photonic_test")
 photonic_binary(
     name = "pipeline",
     srcs = ["pipeline.wave"],
-    visibility = ["//photonic:__pkg__"],
     deps = [
         "//library/boolean:and",
         "//library/boolean:equal",

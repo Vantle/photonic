@@ -3,6 +3,7 @@ load("//photonic:defs.bzl", "photonic_library", "photonic_test")
 photonic_library(
     name = "erase",
     srcs = ["erase.particle"],
+    visibility = ["//visibility:public"],
     deps = [
         ":node",
         "//library/chain:erase",
@@ -12,6 +13,7 @@ photonic_library(
 photonic_library(
     name = "merge",
     srcs = ["merge.particle"],
+    visibility = ["//visibility:public"],
     deps = [
         ":reverse",
         "//library/natural:compare",
@@ -21,20 +23,20 @@ photonic_library(
 photonic_library(
     name = "node",
     srcs = ["node.particle"],
-    visibility = ["//program/vector:__pkg__"],
+    visibility = ["//visibility:public"],
 )
 
 photonic_library(
     name = "reverse",
     srcs = ["reverse.particle"],
-    visibility = ["//program/vector:__pkg__"],
+    visibility = ["//visibility:public"],
     deps = [":node"],
 )
 
 photonic_library(
     name = "sort",
     srcs = ["sort.particle"],
-    visibility = ["//program/vector:__pkg__"],
+    visibility = ["//visibility:public"],
     deps = [
         ":merge",
         ":reverse",

@@ -4,6 +4,8 @@ load("//theorem:defs.bzl", "theorem")
 theorem(
     name = "addition",
     srcs = ["addition.wave"],
+    configuration = 16384,
+    every = True,
     occurrence = 512,
     deps = [
         ":feed",
@@ -32,7 +34,9 @@ theorem(
 theorem(
     name = "ending",
     srcs = ["ending.wave"],
+    every = True,
     deps = [
+        ":feed",
         "//library/natural:column",
         "//theorem:case",
     ],
@@ -46,6 +50,7 @@ photonic_library(
 theorem(
     name = "opening",
     srcs = ["opening.wave"],
+    every = True,
     occurrence = 1024,
     deps = [
         ":feed",
@@ -70,6 +75,7 @@ theorem(
 theorem(
     name = "reversal",
     srcs = ["reversal.wave"],
+    every = True,
     deps = [
         ":feed",
         "//library/chain:reverse",
@@ -81,6 +87,8 @@ theorem(
 theorem(
     name = "subtraction",
     srcs = ["subtraction.wave"],
+    configuration = 8192,
+    every = True,
     occurrence = 512,
     deps = [
         ":feed",
@@ -95,6 +103,7 @@ theorem(
 theorem(
     name = "successor",
     srcs = ["successor.wave"],
+    every = True,
     deps = [
         ":feed",
         "//library/natural:successor",
@@ -107,6 +116,7 @@ theorem(
 theorem(
     name = "trim",
     srcs = ["trim.wave"],
+    every = True,
     deps = [
         ":feed",
         "//library/natural:trim",

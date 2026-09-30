@@ -3,35 +3,28 @@ load("//photonic:defs.bzl", "photonic_library", "photonic_test")
 photonic_library(
     name = "add",
     srcs = ["add.particle"],
-    visibility = [
-        "//library/integer:__pkg__",
-        "//program/ternary:__pkg__",
-        "//theorem/natural:__pkg__",
-    ],
+    visibility = ["//visibility:public"],
     deps = [":column"],
 )
 
 photonic_library(
     name = "column",
     srcs = ["column.particle"],
-    visibility = ["//theorem/natural:__pkg__"],
+    visibility = ["//visibility:public"],
     deps = [":trim"],
 )
 
 photonic_library(
     name = "compare",
     srcs = ["compare.particle"],
-    visibility = [
-        "//library/vector:__pkg__",
-        "//program/ternary:__pkg__",
-        "//theorem/natural:__pkg__",
-    ],
+    visibility = ["//visibility:public"],
     deps = [":digit"],
 )
 
 photonic_library(
     name = "complement",
     srcs = ["complement.particle"],
+    visibility = ["//visibility:public"],
     deps = [
         ":normalize",
         ":successor",
@@ -41,6 +34,7 @@ photonic_library(
 photonic_library(
     name = "copy",
     srcs = ["copy.particle"],
+    visibility = ["//visibility:public"],
     deps = [
         ":digit",
         "//library/chain:reverse",
@@ -50,7 +44,7 @@ photonic_library(
 photonic_library(
     name = "difference",
     srcs = ["difference.particle"],
-    visibility = ["//library/integer:__pkg__"],
+    visibility = ["//visibility:public"],
     deps = [
         ":column",
         ":complement",
@@ -60,12 +54,7 @@ photonic_library(
 photonic_library(
     name = "digit",
     srcs = ["digit.particle"],
-    visibility = [
-        "//library/expression:__pkg__",
-        "//program/ternary:__pkg__",
-        "//program/vector:__pkg__",
-        "//theorem/natural:__pkg__",
-    ],
+    visibility = ["//visibility:public"],
     deps = [
         "//library/chain:erase",
         "//library/chain:reverse",
@@ -75,10 +64,7 @@ photonic_library(
 photonic_library(
     name = "divide",
     srcs = ["divide.particle"],
-    visibility = [
-        "//library/integer:__pkg__",
-        "//program/ternary:__pkg__",
-    ],
+    visibility = ["//visibility:public"],
     deps = [
         ":copy",
         ":normalize",
@@ -91,10 +77,7 @@ photonic_library(
 photonic_library(
     name = "multiply",
     srcs = ["multiply.particle"],
-    visibility = [
-        "//library/integer:__pkg__",
-        "//program/ternary:__pkg__",
-    ],
+    visibility = ["//visibility:public"],
     deps = [
         ":add",
         ":copy",
@@ -107,7 +90,7 @@ photonic_library(
 photonic_library(
     name = "normalize",
     srcs = ["normalize.particle"],
-    visibility = ["//library/expression:__pkg__"],
+    visibility = ["//visibility:public"],
     deps = [
         ":trim",
         "//library/chain:reverse",
@@ -117,7 +100,7 @@ photonic_library(
 photonic_library(
     name = "subtract",
     srcs = ["subtract.particle"],
-    visibility = ["//program/ternary:__pkg__"],
+    visibility = ["//visibility:public"],
     deps = [
         ":column",
         "//library/chain:erase",
@@ -127,17 +110,14 @@ photonic_library(
 photonic_library(
     name = "successor",
     srcs = ["successor.particle"],
-    visibility = [
-        "//program/ternary:__pkg__",
-        "//theorem/natural:__pkg__",
-    ],
+    visibility = ["//visibility:public"],
     deps = [":digit"],
 )
 
 photonic_library(
     name = "trim",
     srcs = ["trim.particle"],
-    visibility = ["//theorem/natural:__pkg__"],
+    visibility = ["//visibility:public"],
     deps = [
         ":digit",
         "//library/chain:reverse",
@@ -149,6 +129,22 @@ photonic_test(
     expect = "unreachable",
     source = "Column.Result.Positive.Zero, Execute.Pending.Add",
     target = ["Return.Natural.Add.Execute.Pending.Zero"],
+    deps = [":add"],
+)
+
+photonic_test(
+    name = "add.order",
+    configuration = 8192,
+    every = True,
+    occurrence = 1024,
+    source = """Push.([Digit] 1).Zero, Stage.1,
+[Built, Stage.1] (Operand.Left, Forget.Stage.2),
+[Clean.Stage.2] (Push.([Digit] 1).Zero, Stage.3),
+[Built, Stage.3] (Operand.Right, Forget.Stage.4),
+[Clean.Stage.4] Function.Natural.Add,
+[Return.Natural.Add] Read.Probe,
+[Yield.([Digit] 2).Probe.Zero] Done""",
+    target = ["Done"],
     deps = [":add"],
 )
 
@@ -283,6 +279,22 @@ photonic_test(
 )
 
 photonic_test(
+    name = "difference.order",
+    configuration = 32768,
+    every = True,
+    occurrence = 1024,
+    source = """Push.([Digit] 1).Zero, Stage.1,
+[Built, Stage.1] (Operand.Left, Forget.Stage.2),
+[Clean.Stage.2] (Push.([Digit] 2).Zero, Stage.3),
+[Built, Stage.3] (Operand.Right, Forget.Stage.4),
+[Clean.Stage.4] Function.Natural.Difference,
+[Return.Natural.Difference.Negative] Read.Probe,
+[Yield.([Digit] 1).Probe.Zero] Done""",
+    target = ["Done"],
+    deps = [":difference"],
+)
+
+photonic_test(
     name = "divide.hold",
     coherence = 256,
     configuration = 8192,
@@ -316,6 +328,19 @@ photonic_test(
 [One, Two] Done""",
     target = ["Done"],
     deps = [":divide"],
+)
+
+photonic_test(
+    name = "successor.order",
+    every = True,
+    occurrence = 1024,
+    source = """Push.([Digit] 2).Zero, Stage.1,
+[Built, Stage.1] Function.Natural.Successor,
+[Return.Natural.Successor] Read.Probe.1,
+[Yield.([Digit] 0).Probe.1] Read.Probe.2,
+[Yield.([Digit] 1).Probe.2.Zero] Done""",
+    target = ["Done"],
+    deps = [":successor"],
 )
 
 filegroup(

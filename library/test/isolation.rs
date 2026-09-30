@@ -1,7 +1,8 @@
 use crate::catalog::LIBRARY;
 use frontend::lowering::parse;
 use frontend::source::{Definition, Output, Program, Value};
-use std::collections::BTreeSet;
+use frontend::text;
+use std::collections::{BTreeMap, BTreeSet};
 
 const BOUNDED: [&str; 9] = [
     "binary",
@@ -146,11 +147,12 @@ const ANSWER: [&str; 10] = [
     "Built", "Clean", "Lifted", "Linked", "Return", "Seen", "Stored", "Taken", "Unlinked", "Yield",
 ];
 
-// A round of the sort takes runs from a lifted stack, Sort.Pile or Sort.Heap, and the sort writes a
-// stack's empty linked form, Linked.Sort.Pile.Nil or Linked.Sort.Heap.Nil, only while no round takes
-// from that stack, so those labels never meet the linked stacks they fit inside.
-const BOOKKEEPING: (&str, &str, &str) = ("vector", "sort", "Linked");
+const REQUEST: [&str; 10] = [
+    "Drop", "Forget", "Insert", "Lift", "Link", "Peek", "Push", "Read", "Take", "Unlink",
+];
 
+// A request stays in its frame until a handle answers it, so a label that fits inside a pending
+// request could take the request in place of the value it waits for.
 #[test]
 fn boundary() {
     let rule = root();
@@ -172,33 +174,50 @@ fn boundary() {
             rule.output
                 .iter()
                 .flat_map(coherence)
-                .map(|value| (package, name, particle(value)))
+                .map(|value| (package, name, text::coherence(value), particle(value)))
                 .collect::<Vec<_>>()
         })
         .collect::<Vec<_>>();
-    for word in ANSWER {
+    let mut collision = Vec::new();
+    for word in ANSWER.into_iter().chain(REQUEST) {
         let atom = Value::Atom(word.to_owned());
         let reply = produced
             .iter()
-            .filter(|(_, _, value)| value.contains(&atom))
+            .filter(|(_, _, _, value)| value.contains(&atom))
             .collect::<Vec<_>>();
-        assert!(!reply.is_empty(), "no rule answers {word}");
+        assert!(!reply.is_empty(), "no rule produces {word}");
         for (package, name, rule) in &definition {
-            for pattern in rule.input.iter().map(|value| particle(value)) {
+            for input in &rule.input {
+                let pattern = particle(input);
                 if pattern.is_empty() || pattern.contains(&atom) {
                     continue;
                 }
-                for (owner, file, value) in &reply {
-                    let exempt = (*package, *name, word) == BOOKKEEPING
-                        && (*owner, *file, word) == BOOKKEEPING;
-                    assert!(
-                        exempt || !contains(value, &pattern),
-                        "{package}/{name} {pattern:?} can take the answer {value:?} of {owner}/{file}"
-                    );
+                for (owner, file, written, value) in &reply {
+                    if contains(value, &pattern) {
+                        collision.push(format!(
+                            "{package}/{name} [{}] can take {written} of {owner}/{file}",
+                            text::coherence(input)
+                        ));
+                    }
                 }
             }
         }
     }
+    for (package, name, written, value) in &produced {
+        let request = REQUEST
+            .into_iter()
+            .filter(|word| value.contains(&Value::Atom((*word).to_owned())))
+            .collect::<Vec<_>>();
+        if request.len() > 1 {
+            collision.push(format!(
+                "{package}/{name} {written} names the requests {}",
+                request.join(" and ")
+            ));
+        }
+    }
+    collision.sort();
+    collision.dedup();
+    assert!(collision.is_empty(), "{}", collision.join("\n"));
 }
 
 fn spelling(value: &Value) {
@@ -291,6 +310,74 @@ fn walk(rule: &Definition, role: &mut BTreeSet<String>, plain: &mut BTreeSet<Str
         gather(value, role, plain);
     }
     produce(rule, role, plain);
+}
+
+// The words a library source's rules use, field keys included. Numerals are left out: every pattern
+// also names a word, so a caller that avoids the words never meets a pattern.
+pub fn atom(source: &str) -> BTreeSet<String> {
+    let mut role = BTreeSet::new();
+    let mut plain = BTreeSet::new();
+    for rule in &parse(source).unwrap().rule {
+        walk(rule, &mut role, &mut plain);
+    }
+    role.into_iter()
+        .chain(plain)
+        .filter(|atom| !atom.chars().all(|character| character.is_ascii_digit()))
+        .collect()
+}
+
+const GUIDE: &str = include_str!("../README.md");
+
+// The guide publishes the words each package's rules use, which a caller's data must avoid; they
+// must be exactly those words, or a caller trusts a list that misses one.
+#[test]
+fn reserved() {
+    let published = GUIDE
+        .split("### Reserved words")
+        .nth(1)
+        .unwrap()
+        .lines()
+        .skip_while(|line| !line.starts_with("| ---"))
+        .skip(1)
+        .take_while(|line| line.starts_with('|'))
+        .map(|line| {
+            let mut cell = line
+                .split('|')
+                .map(str::trim)
+                .filter(|cell| !cell.is_empty());
+            let package = cell.next().unwrap().to_owned();
+            let word = cell
+                .next()
+                .unwrap()
+                .split('`')
+                .skip(1)
+                .step_by(2)
+                .map(str::to_owned)
+                .collect::<BTreeSet<_>>();
+            (package, word)
+        })
+        .collect::<BTreeMap<_, _>>();
+    let mut word = BTreeMap::<String, BTreeSet<String>>::new();
+    for entry in LIBRARY.iter() {
+        word.entry(entry.package.clone())
+            .or_default()
+            .extend(atom(&entry.source));
+    }
+    let table = word
+        .iter()
+        .map(|(package, word)| {
+            let word = word
+                .iter()
+                .map(|word| format!("`{word}`"))
+                .collect::<Vec<_>>();
+            format!("| {package} | {} |", word.join(" "))
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(
+        published == word,
+        "the guide's reserved words should read:\n{table}"
+    );
 }
 
 #[test]

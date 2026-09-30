@@ -326,16 +326,21 @@ fn addition() {
     }
 }
 
+fn word() -> std::process::Command {
+    let path = std::env::var_os("PHOTONIC_WORD").expect("Arithmetic runfile path");
+    std::process::Command::new(
+        runfiles::Runfiles::create()
+            .expect("Bazel runfiles")
+            .rlocation_from(path, "")
+            .expect("Arithmetic executable"),
+    )
+}
+
 #[test]
 fn command() {
-    let path = std::env::var_os("PHOTONIC_WORD").expect("Arithmetic runfile path");
-    let command = runfiles::Runfiles::create()
-        .expect("Bazel runfiles")
-        .rlocation_from(path, "")
-        .expect("Arithmetic executable");
     let directory =
         std::path::PathBuf::from(std::env::var_os("TEST_TMPDIR").unwrap()).join("arithmetic");
-    let output = std::process::Command::new(command)
+    let output = word()
         .args([
             "--operation",
             "add",
@@ -372,6 +377,26 @@ fn command() {
     );
     assert_eq!(search.summary().outcome, Outcome::Reached);
     assert_eq!(argument::Operation::Add.symbol(), "+");
+}
+
+#[test]
+fn refusal() {
+    let output = word()
+        .args([
+            "--operation",
+            "add",
+            "--left",
+            "3",
+            "--right",
+            "7",
+            "--expected",
+            "11",
+        ])
+        .output()
+        .unwrap();
+    let text = String::from_utf8(output.stdout).unwrap();
+    assert!(!output.status.success(), "{text}");
+    assert!(text.contains("Unknown:"), "{text}");
 }
 
 mod ternary;
