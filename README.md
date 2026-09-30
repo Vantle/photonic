@@ -36,6 +36,8 @@ Light,
 
 Three rules can consume `Light`, so this program has three futures. The runtime follows all of them and finds four configurations: `Light`, then `Red`, `Green` or `Blue`.
 
+The whole grammar is six characters and five laws, with no keywords. A comma separates, parts side by side join (`A.B` and `A B` are one particle, and `A(B, C)` is `A B, A C`), and a term with brackets is a rule that consumes what they hold and produces the rest. Parentheses group: standing alone, a group that lists a rule is a scope, and joined to a particle, a rule is a value. Every balanced text is a program; the [primer](spectrum/primer.md) states the laws.
+
 The standard library is written in Photonic, and its theorems are proved by running them in every case. The runtime is Rust, and it also runs in the browser: every example in the webbook is live.
 
 ## Try it

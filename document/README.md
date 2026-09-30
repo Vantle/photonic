@@ -8,6 +8,7 @@ These describe the repository as it is and change with it.
 
 | Document | Contents |
 | --- | --- |
+| [Language primer](../spectrum/primer.md) | The whole grammar, the five laws that give it meaning, what programs mean and how to ask Spectrum. |
 | [Standard library](../library/README.md) | Every package, request and answer, with the chain, vector and sort protocols. |
 | [Runtime rule occurrences](occurrence.md) | Loading, ownership, consumption, matching locations and exact targets. |
 | [Build organization](build.md) | Bazel packages, toolchains, caching and the lint policy. |

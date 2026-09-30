@@ -22,7 +22,7 @@ Five laws give it meaning, with no exceptions. Every balanced text is a program;
 2. Parts of a term side by side join, and a dot only marks the join: `A.B` is `A B`. Joining distributes over groups: `A(B, C)` is `A B, A C`.
 3. A term with brackets is a rule. It consumes what its brackets hold, joined like any parts, and produces the rest of the term, or nothing if nothing is left. Parts are unordered, so `C [A]` is `[A] C`, and `[A] [B] C` is `[A B] C`.
 4. A group always holds a place: one that lists neither a particle nor a scope holds the empty particle, so `()` is the empty particle and `A.()` is `A`.
-5. Brackets aside, a term that is a single group, in the file, in a scope or in what a rule produces, is the group's members, or a scope if it lists a rule. A rule listed in the file or a scope is live there. Anywhere else, joined or inside brackets, parentheses only group and a rule is a value: `X.([A] B)` carries one, `[[A] B] C` consumes one, and `().([A] B)` is a coherence holding nothing else.
+5. Brackets aside, a term that is a single group, in the program, in a scope or in what a rule produces, is the group's members, or a scope if it lists a rule. A rule listed in the program or a scope is live there. Anywhere else, joined or inside brackets, parentheses only group and a rule is a value: `X.([A] B)` carries one, `[[A] B] C` consumes one, and `().([A] B)` is a coherence holding nothing else.
 
 There are no keywords, operators or reserved words: `Not`, `->` and `unless` are ordinary atoms. Whitespace is Unicode's pattern whitespace, which never changes.
 
