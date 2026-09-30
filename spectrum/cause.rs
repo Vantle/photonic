@@ -1,10 +1,11 @@
 use crate::context::Context;
 use crate::exploration::Exploration;
+use crate::extent::Extent;
 use crate::failure::{Code, Failure};
 use crate::handle::Handle;
 use crate::inspect::{self, Move};
 use crate::lineage;
-use crate::recording::{Mode, Recording};
+use crate::recording::Recording;
 use crate::render;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -72,11 +73,8 @@ pub(crate) enum Reason {
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 pub struct Answer {
     pub(crate) exploration: String,
-    pub(crate) mode: Mode,
-    #[schemars(
-        description = "Whether the exploration closed: it explored every future, or in plain mode every plain schedule, within its budget, so what it lacks is absent. A direct path follows one run and never closes."
-    )]
-    pub(crate) closed: bool,
+    #[serde(flatten)]
+    pub(crate) extent: Extent,
     pub(crate) handle: String,
     #[serde(flatten)]
     pub(crate) reason: Reason,
@@ -218,8 +216,7 @@ pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Ans
     };
     Ok(Answer {
         exploration: exploration.name(),
-        mode: exploration.mode,
-        closed: exploration.closed,
+        extent: exploration.extent(),
         handle: handle.to_string(),
         reason,
     })
@@ -249,8 +246,7 @@ impl Answer {
                 line.push(
                     inspect::Answer {
                         exploration: self.exploration.clone(),
-                        mode: self.mode,
-                        closed: self.closed,
+                        extent: self.extent,
                         handle: self.handle.clone(),
                         view: event.clone(),
                     }

@@ -1,5 +1,6 @@
 use crate::budget::Budget;
 use crate::configuration::{Coherence, Configuration, Frame, Occurrence, Opener, Value};
+use crate::extent::Extent;
 use crate::numbering::Numbering;
 use crate::order::{self, Canonical, Naming};
 use crate::recording::{Engine, Mode, Order};
@@ -583,6 +584,13 @@ impl Exploration {
 
     pub fn name(&self) -> String {
         format!("x{}", self.key)
+    }
+
+    pub fn extent(&self) -> Extent {
+        Extent {
+            mode: self.mode,
+            closed: self.closed,
+        }
     }
 
     pub fn inferred(&self, event: usize) -> bool {

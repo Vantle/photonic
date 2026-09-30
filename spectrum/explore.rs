@@ -2,10 +2,11 @@ use crate::configuration::Opener;
 use crate::context::Context;
 use crate::exploration::Exploration;
 use crate::explored::Explored;
+use crate::extent::{Extent, Kind};
 use crate::failure::Failure;
 use crate::handle::Handle;
 use crate::recording::{Engine, Mode, Order, Recording};
-use crate::render::{self, Extent};
+use crate::render;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -57,15 +58,12 @@ pub(crate) struct Activity {
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 pub(crate) struct Summary {
     pub(crate) exploration: String,
-    pub(crate) mode: Mode,
+    #[serde(flatten)]
+    pub(crate) extent: Extent,
     pub(crate) engine: Engine,
     pub(crate) order: Order,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) shape: Option<String>,
-    #[schemars(
-        description = "Whether the exploration closed: it explored every future, or in plain mode every plain schedule, within its budget, so what it lacks is absent. A direct path follows one run and never closes."
-    )]
-    pub(crate) closed: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schemars(description = "On a direct path, whether it reached its goal.")]
     pub(crate) reached: Option<bool>,
@@ -102,11 +100,10 @@ pub(crate) fn brief(explored: &Explored) -> Summary {
     match explored {
         Explored::Exploration(exploration) => Summary {
             exploration: exploration.name(),
-            mode: exploration.mode,
+            extent: exploration.extent(),
             engine: exploration.engine,
             order: exploration.order,
             shape: exploration.shape.map(|shape| format!("{shape:016x}")),
-            closed: exploration.closed,
             reached: (exploration.mode == Mode::Path).then_some(exploration.reached),
             work: exploration.work,
             configuration: exploration.configuration.len(),
@@ -119,11 +116,13 @@ pub(crate) fn brief(explored: &Explored) -> Summary {
         },
         Explored::Survey(survey) => Summary {
             exploration: format!("x{}", survey.key),
-            mode: Mode::Plain,
+            extent: Extent {
+                mode: Mode::Plain,
+                closed: survey.closed,
+            },
             engine: Engine::Metal,
             order: survey.order,
             shape: survey.shape.map(|shape| format!("{shape:016x}")),
-            closed: survey.closed,
             reached: None,
             work: survey.work,
             configuration: survey.configuration,
@@ -204,14 +203,14 @@ pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Ans
 }
 
 pub(crate) fn state(summary: &Summary) -> String {
-    let status = match (summary.mode, summary.closed, summary.reached) {
+    let status = match (summary.extent.mode, summary.extent.closed, summary.reached) {
         (Mode::Path, _, Some(true)) => "path reached its goal",
         (Mode::Path, _, _) => "path stopped",
         (Mode::Exhaustive | Mode::Plain, true, _) => "closed",
         (Mode::Exhaustive | Mode::Plain, false, _) => "open: a budget stopped it",
     };
     let mut part = vec![summary.exploration.clone(), status.to_owned()];
-    match (summary.mode, summary.engine) {
+    match (summary.extent.mode, summary.engine) {
         (Mode::Plain, Engine::Metal) => part.extend(["plain".to_owned(), "metal".to_owned()]),
         (Mode::Plain, _) => part.push("plain".to_owned()),
         (Mode::Exhaustive, Engine::Interpreter) => part.push("interpreter".to_owned()),
@@ -237,11 +236,11 @@ pub(crate) fn state(summary: &Summary) -> String {
 impl Answer {
     pub(crate) fn text(&self) -> String {
         let mut line = vec![state(&self.summary)];
-        let extent = Extent::new(self.summary.mode, self.summary.closed);
-        let heading = match extent {
-            Extent::Closed => "end",
-            Extent::Open => "leaf",
-            Extent::Path => "stop",
+        let extent = self.summary.extent;
+        let heading = match extent.kind() {
+            Kind::Closed => "end",
+            Kind::Open => "leaf",
+            Kind::Path => "stop",
         };
         if self.end.is_empty() {
             line.push(match self.more {

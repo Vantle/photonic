@@ -1,9 +1,10 @@
 use crate::context::Context;
+use crate::extent::{Extent, Kind};
 use crate::failure::{Code, Failure};
 use crate::handle::Handle;
 use crate::inspect::Move;
-use crate::recording::{Mode, Recording};
-use crate::render::{self, Extent};
+use crate::recording::Recording;
+use crate::render;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -26,11 +27,8 @@ fn start() -> String {
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 pub struct Answer {
     pub(crate) exploration: String,
-    pub(crate) mode: Mode,
-    #[schemars(
-        description = "Whether the exploration closed: it explored every future, or in plain mode every plain schedule, within its budget, so what it lacks is absent. A direct path follows one run and never closes."
-    )]
-    pub(crate) closed: bool,
+    #[serde(flatten)]
+    pub(crate) extent: Extent,
     pub(crate) handle: String,
     pub(crate) text: String,
     pub(crate) agenda: Vec<Move>,
@@ -47,8 +45,7 @@ pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Ans
     };
     Ok(Answer {
         exploration: exploration.name(),
-        mode: exploration.mode,
-        closed: exploration.closed,
+        extent: exploration.extent(),
         handle: handle.to_string(),
         text: render::configuration(&exploration, index),
         agenda: exploration.outgoing[index]
@@ -61,11 +58,11 @@ pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Ans
 impl Answer {
     pub(crate) fn text(&self) -> String {
         let mut line = vec![format!("{} {}", self.handle, self.text)];
-        let extent = Extent::new(self.mode, self.closed);
-        let (label, empty) = match extent {
-            Extent::Path => ("taken", "the path stops here"),
-            Extent::Closed => ("agenda", "no event can happen here: an end configuration"),
-            Extent::Open => ("agenda", "no event is recorded here"),
+        let extent = self.extent;
+        let (label, empty) = match extent.kind() {
+            Kind::Path => ("taken", "the path stops here"),
+            Kind::Closed => ("agenda", "no event can happen here: an end configuration"),
+            Kind::Open => ("agenda", "no event is recorded here"),
         };
         if self.agenda.is_empty() {
             line.push(empty.to_owned());

@@ -11,6 +11,7 @@ pub mod embedding;
 mod exploration;
 pub mod explore;
 mod explored;
+pub mod extent;
 pub mod failure;
 pub mod handle;
 pub mod inspect;

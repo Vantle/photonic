@@ -1,11 +1,12 @@
 use crate::context::Context;
 use crate::embedding::{self, Embedding};
 use crate::exploration::Exploration;
+use crate::extent::Extent;
 use crate::failure::Failure;
 use crate::handle::Handle;
 use crate::pattern::{self, Pattern};
-use crate::recording::{Mode, Recording};
-use crate::render::{self, Extent};
+use crate::recording::Recording;
+use crate::render;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -57,11 +58,8 @@ pub(crate) struct Found {
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 pub struct Answer {
     pub(crate) exploration: String,
-    pub(crate) mode: Mode,
-    #[schemars(
-        description = "Whether the exploration closed: it explored every future, or in plain mode every plain schedule, within its budget, so what it lacks is absent. A direct path follows one run and never closes."
-    )]
-    pub(crate) closed: bool,
+    #[serde(flatten)]
+    pub(crate) extent: Extent,
     pub(crate) pattern: String,
     pub(crate) kind: Kind,
     pub(crate) total: usize,
@@ -142,8 +140,7 @@ pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Ans
     let end = request.offset.saturating_add(request.limit).min(total);
     Ok(Answer {
         exploration: exploration.name(),
-        mode: exploration.mode,
-        closed: exploration.closed,
+        extent: exploration.extent(),
         pattern: request.pattern.clone(),
         kind,
         total,
@@ -165,7 +162,7 @@ impl Answer {
         let mut line = vec![format!(
             "{} · {} · {} {}",
             self.exploration,
-            Extent::new(self.mode, self.closed).name(),
+            self.extent.name(),
             render::count(self.total, noun),
             if self.total == 0 { "match" } else { "matching" }
         )];

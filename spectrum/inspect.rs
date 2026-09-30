@@ -2,11 +2,12 @@ use crate::cause::Role;
 use crate::configuration::Opener;
 use crate::context::Context;
 use crate::exploration::{self, Exploration};
+use crate::extent::Extent;
 use crate::failure::Failure;
 use crate::handle::Handle;
 use crate::lineage;
 use crate::recording::{Mode, Recording};
-use crate::render::{self, Extent};
+use crate::render;
 use photonic::place::Place;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -125,11 +126,8 @@ pub(crate) enum View {
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 pub struct Answer {
     pub(crate) exploration: String,
-    pub(crate) mode: Mode,
-    #[schemars(
-        description = "Whether the exploration closed: it explored every future, or in plain mode every plain schedule, within its budget, so what it lacks is absent. A direct path follows one run and never closes."
-    )]
-    pub(crate) closed: bool,
+    #[serde(flatten)]
+    pub(crate) extent: Extent,
     pub(crate) handle: String,
     #[serde(flatten)]
     pub(crate) view: View,
@@ -321,8 +319,7 @@ pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Ans
     let handle = request.handle.parse::<Handle>()?.check(&exploration)?;
     Ok(Answer {
         exploration: exploration.name(),
-        mode: exploration.mode,
-        closed: exploration.closed,
+        extent: exploration.extent(),
         handle: handle.to_string(),
         view: view(&exploration, handle),
     })
@@ -375,7 +372,7 @@ impl Answer {
                     Some(Opener::Program) => " · local to a scope the program opens".to_owned(),
                     None => String::new(),
                 };
-                let firing = Extent::new(self.mode, self.closed).firing(*fired);
+                let firing = self.extent.firing(*fired);
                 let count = match *inferred {
                     0 => firing,
                     inferred => format!("{firing}, {inferred} inferred"),
@@ -433,7 +430,7 @@ impl Answer {
                     ));
                 }
                 line.extend(
-                    Extent::new(self.mode, self.closed)
+                    self.extent
                         .partial()
                         .map(|note| format!("{}{note}", render::row("next", next.is_empty()))),
                 );

@@ -15,6 +15,7 @@ filegroup(
         "exploration.rs",
         "explore.rs",
         "explored.rs",
+        "extent.rs",
         "failure.rs",
         "handle.rs",
         "inspect.rs",

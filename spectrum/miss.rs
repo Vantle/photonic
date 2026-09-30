@@ -3,12 +3,13 @@ use crate::configuration::{Coherence, Configuration, Occurrence, Value};
 use crate::context::Context;
 use crate::embedding;
 use crate::exploration::Exploration;
+use crate::extent::{Extent, Kind};
 use crate::failure::{Code, Failure};
 use crate::handle::Handle;
 use crate::matching;
 use crate::pattern::{self, Body, Item, Pattern, Region};
 use crate::recording::{Mode, Recording};
-use crate::render::{self, Extent};
+use crate::render;
 use frontend::source::Definition;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -113,11 +114,8 @@ pub(crate) enum Miss {
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 pub struct Answer {
     pub(crate) exploration: String,
-    pub(crate) mode: Mode,
-    #[schemars(
-        description = "Whether the exploration closed: it explored every future, or in plain mode every plain schedule, within its budget, so what it lacks is absent. A direct path follows one run and never closes."
-    )]
-    pub(crate) closed: bool,
+    #[serde(flatten)]
+    pub(crate) extent: Extent,
     #[serde(flatten)]
     pub(crate) miss: Miss,
 }
@@ -712,8 +710,7 @@ pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Ans
     };
     Ok(Answer {
         exploration: exploration.name(),
-        mode: exploration.mode,
-        closed: exploration.closed,
+        extent: exploration.extent(),
         miss,
     })
 }
@@ -721,7 +718,7 @@ pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Ans
 impl Answer {
     pub(crate) fn text(&self) -> String {
         let mut line = Vec::new();
-        let extent = Extent::new(self.mode, self.closed);
+        let extent = self.extent;
         let state = extent.name();
         let width = match &self.miss {
             Miss::Target { near, .. } => near.iter().map(|entry| entry.text.chars().count()).max(),
@@ -771,17 +768,17 @@ impl Answer {
                 near,
             } => {
                 let fired = extent.firing(*fired);
-                let live = match extent {
-                    Extent::Closed => format!(
+                let live = match extent.kind() {
+                    Kind::Closed => format!(
                         "live in {} where it does not fire",
                         render::count(*visible, "configuration")
                     ),
-                    Extent::Open => format!(
+                    Kind::Open => format!(
                         "live in {} where it has not fired yet, and in {} unexplored",
                         render::count(*visible, "explored configuration"),
                         unexplored
                     ),
-                    Extent::Path => format!(
+                    Kind::Path => format!(
                         "live in {} of the path, which did not take it",
                         render::count(*unexplored, "configuration")
                     ),
@@ -805,7 +802,7 @@ impl Answer {
                         })
                         .collect::<Vec<_>>()
                         .join("; ");
-                    let note = if entry.unexplored && extent == Extent::Open {
+                    let note = if entry.unexplored && extent.kind() == Kind::Open {
                         "   unexplored"
                     } else {
                         ""

@@ -2,10 +2,11 @@ use crate::claim::{self, Claim};
 use crate::configuration::{Frame, Occurrence, Opener};
 use crate::context::Context;
 use crate::exploration::Exploration;
+use crate::extent::{Extent, Kind};
 use crate::failure::{Code, Failure};
 use crate::handle::Handle;
-use crate::recording::{Mode, Recording};
-use crate::render::{self, Extent};
+use crate::recording::Recording;
+use crate::render;
 use code::canonical::{Exhausted, Key};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -36,11 +37,8 @@ pub struct Request {
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 pub(crate) struct Side {
     pub(crate) exploration: String,
-    pub(crate) mode: Mode,
-    #[schemars(
-        description = "Whether the exploration closed: it explored every future, or in plain mode every plain schedule, within its budget, so what it lacks is absent. A direct path follows one run and never closes."
-    )]
-    pub(crate) closed: bool,
+    #[serde(flatten)]
+    pub(crate) extent: Extent,
     pub(crate) configuration: usize,
     pub(crate) event: usize,
 }
@@ -267,8 +265,7 @@ fn index(exploration: &Exploration) -> Result<Index, Failure> {
 fn side(exploration: &Exploration, index: &Index) -> Side {
     Side {
         exploration: exploration.name(),
-        mode: exploration.mode,
-        closed: exploration.closed,
+        extent: exploration.extent(),
         configuration: index.configuration.len(),
         event: index.event.values().map(Vec::len).sum(),
     }
@@ -356,10 +353,10 @@ pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Ans
 
 impl Side {
     fn name(&self) -> String {
-        match Extent::new(self.mode, self.closed) {
-            Extent::Closed => self.exploration.clone(),
-            Extent::Open => format!("{} open", self.exploration),
-            Extent::Path => format!("{} path", self.exploration),
+        match self.extent.kind() {
+            Kind::Closed => self.exploration.clone(),
+            Kind::Open => format!("{} open", self.exploration),
+            Kind::Path => format!("{} path", self.exploration),
         }
     }
 }
@@ -372,8 +369,8 @@ impl<Item> Change<Item> {
 
 impl Answer {
     pub(crate) fn passed(&self) -> bool {
-        self.left.closed
-            && self.right.closed
+        self.left.extent.closed
+            && self.right.extent.closed
             && self.configuration.same()
             && self.event.same()
             && self

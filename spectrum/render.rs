@@ -2,7 +2,6 @@ use crate::configuration::{Coherence, Configuration, Occurrence, Value};
 use crate::exploration::{self, Exploration, Rule};
 use crate::handle::Handle;
 use crate::inspect::{Item, Move};
-use crate::recording::Mode;
 use frontend::source;
 use photonic::place::Place;
 use serde::Serialize;
@@ -110,66 +109,6 @@ pub fn scope(configuration: &Configuration) -> bool {
         .coherence
         .iter()
         .any(|coherence| coherence.frame != 0)
-}
-
-// How far an exploration's answers reach: every future, or every plain schedule, once it closed;
-// what it explored so far while it is open; or the one run a direct path follows.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum Extent {
-    Closed,
-    Open,
-    Path,
-}
-
-impl Extent {
-    pub fn new(mode: Mode, closed: bool) -> Self {
-        match (mode, closed) {
-            (Mode::Path, _) => Self::Path,
-            (Mode::Exhaustive | Mode::Plain, true) => Self::Closed,
-            (Mode::Exhaustive | Mode::Plain, false) => Self::Open,
-        }
-    }
-
-    pub fn name(self) -> &'static str {
-        match self {
-            Self::Closed => "closed",
-            Self::Open => "open",
-            Self::Path => "a direct path",
-        }
-    }
-
-    // That a rule did not fire, in words that claim no more than the exploration settled.
-    pub fn never(self) -> &'static str {
-        match self {
-            Self::Closed => "never",
-            Self::Open => "not yet",
-            Self::Path => "not on this path",
-        }
-    }
-
-    // That the events listed at a configuration may not be all that can happen there.
-    pub fn partial(self) -> Option<&'static str> {
-        match self {
-            Self::Closed => None,
-            Self::Open => Some("the exploration is open; more events may happen here"),
-            Self::Path => {
-                Some("a direct path records only the event it took; more may happen here")
-            }
-        }
-    }
-
-    // How often a rule fired, in words that claim no more than the exploration settled.
-    pub fn firing(self, fired: usize) -> String {
-        let time = count(fired, "time");
-        match (self, fired) {
-            (Self::Closed, 0) => "never fires".to_owned(),
-            (Self::Open, 0) => "has not fired yet".to_owned(),
-            (Self::Path, 0) => "does not fire on this path".to_owned(),
-            (Self::Closed, _) => format!("fires {time}"),
-            (Self::Open, _) => format!("has fired {time} so far"),
-            (Self::Path, _) => format!("fires {time} on this path"),
-        }
-    }
 }
 
 pub fn name(value: impl Serialize) -> String {
