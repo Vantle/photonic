@@ -1253,3 +1253,62 @@ fn phrasing() {
         );
     }
 }
+
+// A limit of 0 lists nothing, counts everything and offers no next page, and a rule's events
+// beyond those inspect lists are counted.
+#[test]
+fn limit() {
+    let grow = r#""program": {"file": ["grow.wave"]}, "budget": {"configuration": 20}"#;
+    let answer = session(&[
+        r#"{"verb": "select", "program": {"file": ["light.wave"]}, "pattern": "()", "limit": 0}"#,
+        r#"{"verb": "explore", "program": {"file": ["light.wave"]}, "limit": 0}"#,
+        &format!(r#"{{"verb": "inspect", {grow}, "handle": "r0"}}"#),
+    ]);
+    let select = &answer[0]["answer"];
+    assert_eq!(select["total"], 4, "{select}");
+    assert_eq!(select["found"], serde_json::json!([]), "{select}");
+    assert!(select.get("next").is_none(), "{select}");
+    assert_eq!(answer[1]["answer"]["more"], 3, "{}", answer[1]);
+    let inspect = &answer[2]["answer"];
+    let listed = inspect["event"].as_array().map_or(0, Vec::len);
+    assert_eq!(listed, 8, "{inspect}");
+    assert_eq!(inspect["more"], 11, "{inspect}");
+    let reader = memory();
+    let mut store = Store::default();
+    let mut context = Context {
+        reader: &reader,
+        store: &mut store,
+    };
+    let text = |request: Request, context: &mut Context<'_>| {
+        request
+            .answer(context)
+            .expect("the question answers")
+            .text()
+    };
+    let explore = text(
+        Request::Explore(crate::explore::Request {
+            recording: recording("light.wave"),
+            limit: 0,
+        }),
+        &mut context,
+    );
+    assert!(
+        explore.contains("end    3 configurations not listed"),
+        "{explore}"
+    );
+    assert!(!explore.contains("none"), "{explore}");
+    let inspect = text(
+        Request::Inspect(crate::inspect::Request {
+            recording: Recording {
+                budget: Some(Budget {
+                    configuration: Some(20),
+                    ..Budget::default()
+                }),
+                ..recording("grow.wave")
+            },
+            handle: "r0".to_owned(),
+        }),
+        &mut context,
+    );
+    assert!(inspect.contains("and 11 more events"), "{inspect}");
+}

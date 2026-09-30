@@ -237,15 +237,21 @@ pub(crate) fn state(summary: &Summary) -> String {
 impl Answer {
     pub(crate) fn text(&self) -> String {
         let mut line = vec![state(&self.summary)];
-        if self.end.is_empty() {
-            line.push("end    none".to_owned());
-        }
         let extent = Extent::new(self.summary.mode, self.summary.closed);
         let heading = match extent {
             Extent::Closed => "end",
             Extent::Open => "leaf",
             Extent::Path => "stop",
         };
+        if self.end.is_empty() {
+            line.push(match self.more {
+                0 => format!("{heading:<6} none"),
+                more => format!(
+                    "{heading:<6} {} not listed",
+                    render::count(more, "configuration")
+                ),
+            });
+        }
         for (position, end) in self.end.iter().enumerate() {
             let label = if position == 0 { heading } else { "" };
             line.push(match &end.handle {
@@ -253,7 +259,7 @@ impl Answer {
                 None => format!("{label:<6} {}", end.text),
             });
         }
-        if self.more > 0 {
+        if self.more > 0 && !self.end.is_empty() {
             line.push(format!("       and {} more", self.more));
         }
         let width = self

@@ -27,6 +27,7 @@ pub struct Request {
     )]
     pub pattern: String,
     #[serde(default = "limit")]
+    #[schemars(description = "Matches listed; 0 lists none and still counts them.")]
     pub limit: usize,
     #[serde(default)]
     #[schemars(description = "Matches to skip, to page through a long answer.")]
@@ -151,7 +152,7 @@ pub(crate) fn answer(request: &Request, context: &mut Context<'_>) -> Result<Ans
             .skip(request.offset)
             .take(request.limit)
             .collect(),
-        next: (end < total).then_some(end),
+        next: (request.limit > 0 && end < total).then_some(end),
     })
 }
 

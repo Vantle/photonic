@@ -78,6 +78,8 @@ pub(crate) enum View {
         fired: usize,
         inferred: usize,
         event: Vec<Move>,
+        #[schemars(description = "Events of this rule beyond those listed.")]
+        more: usize,
     },
     Configuration {
         text: String,
@@ -222,6 +224,9 @@ fn view(exploration: &Exploration, handle: Handle) -> View {
     match handle {
         Handle::Rule(index) => {
             let fired = exploration.firing(index).collect::<Vec<_>>();
+            let event = (0..exploration.event.len())
+                .filter(|&event| exploration.event[event].rule == index)
+                .collect::<Vec<_>>();
             View::Rule {
                 text: exploration.rule[index].text.clone(),
                 scope: exploration.rule[index].scope,
@@ -230,8 +235,9 @@ fn view(exploration: &Exploration, handle: Handle) -> View {
                     .iter()
                     .filter(|&&event| exploration.inferred(event))
                     .count(),
-                event: (0..exploration.event.len())
-                    .filter(|&event| exploration.event[event].rule == index)
+                more: event.len().saturating_sub(EVENT),
+                event: event
+                    .into_iter()
                     .take(EVENT)
                     .map(|event| render::movement(exploration, event, true))
                     .collect(),
@@ -360,6 +366,7 @@ impl Answer {
                 fired,
                 inferred,
                 event,
+                more,
             } => {
                 let place = match scope {
                     Some(Opener::Rule(rule)) => {
@@ -375,6 +382,13 @@ impl Answer {
                 };
                 line.push(format!("{} {text}{place} · {count}", self.handle));
                 render::table("event", event, &mut line);
+                if *more > 0 {
+                    line.push(format!(
+                        "{}and {}",
+                        render::row("event", event.is_empty()),
+                        render::count(*more, "more event")
+                    ));
+                }
             }
             View::Configuration {
                 text,

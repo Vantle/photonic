@@ -197,6 +197,8 @@ In plain mode a claim speaks of every schedule of plain events instead of every 
 | `compare` | `left` and `right`, each a recording; `claim`; `limit` (12) | Each side's key, mode, whether it closed and its size, marked open when its exploration did not close and path when it follows a direct path, because what such a side lacks may be unexplored rather than absent; the configurations one reaches and the other does not, compared by their coherences, how their scopes nest, the rules live in each scope and the occurrences each frame holds, however occurrences and scopes are numbered, and leaving out the program's own rules, which an edit changes, so a configuration inside a scope whose rules an edit changed differs; the events that differ by their rule's whole text, source and target, which is where edited rules show; and each claim's answer on both. Each change lists up to `limit` entries in each direction and counts the rest. |
 | `shape` | `program` (a list of programs), `target`, `fix`, `node` (1,000,000) | For one program, its shape, canonical form, symmetries, orbits and local patterns; for several, the classes that share a shape with the renaming between members, as the [symmetry record](symmetry.md) describes. `node` limits the symmetry search. |
 
+Every `limit` lists at most that many entries and counts the rest, so 0 lists none and still counts them, and `select` then offers no next page; `inspect` lists a rule's first 8 events and counts the rest.
+
 A request names its verb and carries the question's fields as one JSON object, which `Request::read` checks; `envelope` returns the answer with the verb and the envelope's version, beside `answer` or `error`:
 
 ```json
