@@ -45,7 +45,7 @@ The native sweep runs three successive normalization steps for 32 independent st
 
 ## Historical differential verification
 
-`bazel test -c opt //benchmark:differential.test` builds both the current kernel and public revision `8c68ad69196f77c2601d294ac5c23b13505f2175` in one hermetic test. The archive is checksum-pinned and a development dependency; production targets do not depend on it. The patch only adds a separately named reference library. The historical frontend remains part of the reference build.
+The [differential test](https://github.com/Vantle/photonic/blob/51f888f65f25ffd45dd1a217c3d6a2fd8e0eadf1/benchmark/differential.rs) built both the current kernel and public revision `8c68ad69196f77c2601d294ac5c23b13505f2175` in one hermetic test. The archive is checksum-pinned and a development dependency; production targets do not depend on it. The patch only adds a separately named reference library. The historical frontend remains part of the reference build.
 
 Generated cases cover nested rule production and rule matching through depth 32, capture, recursion, multiplicity, competing histories, 513-input exhaustive queries, nonidentity compositions, suspension and resumption. Full serialized direct reports and exhaustive snapshots are compared at multiple work budgets, excluding only exhaustive `record` and `peak`, whose cache footprint is intentionally different. Work, queues, states, token identities, captures, flows, evidence, support and outcomes remain compared. Cache-pressure cases force eviction before resuming.
 

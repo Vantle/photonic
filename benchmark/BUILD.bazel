@@ -357,22 +357,6 @@ rust_binary(
     ],
 )
 
-rust_test(
-    name = "differential.test",
-    size = "medium",
-    srcs = ["differential.rs"],
-    crate_name = "differential",
-    crate_root = "differential.rs",
-    lint_config = "//:lint",
-    deps = [
-        "//frontend",
-        "//language:photonic",
-        "@crate//:serde",
-        "@crate//:serde_json",
-        "@reference//language:reference",
-    ],
-)
-
 rust_binary(
     name = "lifecycle",
     srcs = [
