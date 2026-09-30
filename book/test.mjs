@@ -27,7 +27,7 @@ globalThis.Worker = class {
     }
 };
 for (const file of script) runInThisContext(await readFile(file, 'utf8'), { filename: file });
-const { editor, engine, graph, pattern, record, render, share, symmetry } = globalThis.book;
+const { editor, engine, graph, library, pattern, record, render, share, symmetry } = globalThis.book;
 
 const select = (text, execution) => JSON.parse(runtime.select(JSON.stringify({ version, pattern: text, execution })));
 const selected = (text, execution) => {
@@ -175,6 +175,22 @@ for (const program of [
 for (const hash of ['', '#', '#1', '#1&target=A', '#2&source=A', '#source=A', '#10&source=A']) assert.equal(share.read(hash), undefined, hash);
 assert.equal(share.legacy('?target=A'), undefined);
 console.log('Links carry the source, every target, every library and preserve in a versioned fragment, through commas, newlines, Unicode and URL syntax, and the query form of older links still reads.');
+
+const standard = Object.keys(library);
+assert.equal(standard.length, 68);
+for (const [name, entry] of Object.entries(library)) {
+    assert.equal(entry.load.at(-1), name, name);
+    assert.equal(entry.package, name.split('/').at(-2), name);
+    assert.equal(entry.load.length, new Set(entry.load).size, name);
+}
+const addition = { source: 'Operand.Left.Zero, Operand.Right.Zero, Function.Natural.Add', target: ['Return.Natural.Add.Zero'], library: ['library/natural/add'], preserve: true };
+assert.deepEqual(engine.expand(addition.library), library['library/natural/add'].load);
+assert.deepEqual(engine.expand(['library/function/invoke', 'library/boolean/not']), ['library/function/invoke', 'library/boolean/not']);
+assert.deepEqual(engine.request(addition).library.map(entry => entry.name), library['library/natural/add'].load.map(name => `${name}.particle`));
+const whole = engine.size({ source: '', target: [], library: standard, preserve: false });
+assert.ok(whole < engine.capacity, `the whole library takes ${whole} bytes`);
+assert.deepEqual(JSON.parse(runtime.explore(JSON.stringify({ version, ...engine.request(addition) }))).verdict.map(value => value.outcome), ['reached']);
+console.log(`The standard library loads each library after the libraries it needs, all ${standard.length} files fit in one request of ${whole} bytes, and natural addition runs in the engine.`);
 
 const announced = [];
 engine.watch(state => announced.push(state));

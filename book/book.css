@@ -1254,6 +1254,7 @@ td code {
 
 .preset button,
 .option button,
+.chooser button,
 .connection .summary button {
     padding: 0.26rem 0.7rem;
     border-radius: 999px;
@@ -1266,13 +1267,15 @@ td code {
 
 .preset button:hover,
 .option button:hover:not([aria-disabled="true"]),
+.chooser button:hover:not([aria-disabled="true"]),
 .connection .summary button:hover {
     border-color: var(--edge);
     color: var(--ink);
 }
 
 .preset button[aria-pressed="true"],
-.option button[aria-pressed="true"] {
+.option button[aria-pressed="true"],
+.chooser button[aria-pressed="true"] {
     border-color: var(--ink);
     color: var(--ink);
 }
@@ -1607,6 +1610,52 @@ td code {
     gap: 0.4rem 0.5rem;
     font-size: 0.8rem;
     color: var(--muted);
+}
+
+.option > .check {
+    margin-left: 0;
+}
+
+.chooser {
+    display: grid;
+    gap: 0.6rem;
+    font-size: 0.8rem;
+    color: var(--muted);
+}
+
+.chooser summary {
+    cursor: pointer;
+}
+
+.chooser summary code {
+    margin-left: 0.5rem;
+    color: var(--soft);
+}
+
+.chooser .catalog {
+    display: grid;
+    gap: 0.45rem;
+}
+
+.chooser .group {
+    display: grid;
+    grid-template-columns: 6.5rem minmax(0, 1fr);
+    align-items: baseline;
+    gap: 0.4rem;
+}
+
+.chooser .group > span {
+    font-family: var(--code);
+}
+
+.chooser .group > div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.4rem;
+}
+
+.chooser p[data-tone="error"] {
+    color: var(--ink);
 }
 
 .check {

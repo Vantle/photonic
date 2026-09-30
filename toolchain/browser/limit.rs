@@ -9,7 +9,7 @@ pub const EXPLORATION: Budget = Budget {
     work: 20_000,
     bound: Limit {
         configuration: 128,
-        occurrence: 128,
+        occurrence: 256,
         scope: 16,
         coherence: 16,
         record: 100_000,
