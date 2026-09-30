@@ -120,6 +120,19 @@ fn range() {
     for argument in [["improve", "--frozen"], ["curriculum", "--frozen"]] {
         assert!(fail(&argument).contains("--frozen"), "{argument:?}");
     }
+    let fixture = Fixture::new();
+    let frozen = fail(&[
+        "train",
+        "--home",
+        &fixture.home(),
+        "--frozen",
+        "--update",
+        "3",
+    ]);
+    assert!(
+        frozen.contains("--update counts training steps"),
+        "{frozen}"
+    );
     let help = succeed(&["--help"]);
     for text in [
         "Train the network by self-play",

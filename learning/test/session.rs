@@ -1,3 +1,4 @@
+use super::support::Directory;
 use crate::corpus::{addition, boolean};
 use crate::encoding::Shape;
 use crate::home::{self, Home};
@@ -8,8 +9,8 @@ use std::time::Duration;
 
 #[test]
 fn session() {
-    let path = std::env::temp_dir().join(format!("learning-session-{}", std::process::id()));
-    let home = Home::open(path.clone()).unwrap();
+    let directory = Directory::new("session");
+    let home = Home::open(directory.path.clone()).unwrap();
     let pool = vec![
         addition(2).conceal(2).unwrap(),
         boolean().remove(0).conceal(2).unwrap(),
@@ -22,7 +23,8 @@ fn session() {
         worker: Some(2),
         trainer: 1,
         frozen: false,
-        duration: Some(Duration::from_secs(4)),
+        duration: Some(Duration::MAX),
+        update: Some(4),
         report: Duration::from_secs(1),
         seed: 3,
         shape: Shape {
@@ -52,22 +54,15 @@ fn session() {
             ..train::Setting::default()
         },
     };
-    let mut report = 0;
     let mut taught = false;
-    let summary = run(
-        &home,
-        problem.clone(),
-        vec![0],
-        &setting,
-        |event| match event {
-            Event::Report(_) => report += 1,
-            Event::Lesson { .. } => taught = true,
-            _ => {}
-        },
-    )
+    let summary = run(&home, problem.clone(), vec![0], &setting, |event| {
+        if let Event::Lesson { .. } = event {
+            taught = true;
+        }
+    })
     .unwrap();
     assert!(taught);
-    assert!(report >= 2);
+    assert!(summary.train >= 4);
     assert!(summary.step > 0);
     assert!(home.file(home::CHECKPOINT).exists());
     assert!(home.file(home::ARCHIVE).exists());
@@ -77,7 +72,8 @@ fn session() {
         problem,
         Vec::new(),
         &Setting {
-            duration: Some(Duration::from_secs(1)),
+            duration: Some(Duration::ZERO),
+            update: None,
             frozen: true,
             ..setting
         },
@@ -92,5 +88,4 @@ fn session() {
     )
     .unwrap();
     assert!(restored);
-    std::fs::remove_dir_all(path).unwrap();
 }

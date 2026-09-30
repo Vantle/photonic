@@ -28,6 +28,7 @@ pub struct Setting {
     pub trainer: usize,
     pub frozen: bool,
     pub duration: Option<Duration>,
+    pub update: Option<u64>,
     pub report: Duration,
     pub seed: u64,
     pub shape: Shape,
@@ -320,6 +321,9 @@ pub fn run(
             )
         })
         .transpose()?;
+    let origin = trainer
+        .as_ref()
+        .map_or(0, |trainer| trainer.optimizer().step);
     let progress = Mutex::new(Progress::default());
     let failure: Mutex<Option<Failure>> = Mutex::new(None);
     let path = home.file(home::CHECKPOINT);
@@ -427,10 +431,16 @@ pub fn run(
                 }
                 observe(Event::Report(line));
             }
+            let trained = progress
+                .lock()
+                .expect("the progress lock is never poisoned")
+                .step
+                .saturating_sub(origin);
             if shared.stop.load(Ordering::Relaxed)
                 || setting
                     .duration
                     .is_some_and(|duration| start.elapsed() >= duration)
+                || setting.update.is_some_and(|update| trained >= update)
             {
                 break Ok(report(&shared, &progress, start, &mut previous));
             }

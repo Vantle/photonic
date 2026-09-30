@@ -1,8 +1,22 @@
 use super::support::{configuration, input};
 use crate::configuration::Configuration;
 use crate::grow::{Failure, grow};
+use crate::input::Output;
 use crate::model::Model;
 use random::Generator;
+
+fn same(expected: &Output, actual: &Output) {
+    assert!((expected.value - actual.value).abs() < 1e-4);
+    assert_eq!(expected.logit.len(), actual.logit.len());
+    for (left, right) in expected.logit.iter().zip(&actual.logit) {
+        assert!((left - right).abs() < 1e-4, "{left} {right}");
+    }
+    assert_eq!(expected.judge.len(), 2);
+    assert_eq!(expected.judge.len(), actual.judge.len());
+    for (left, right) in expected.judge.iter().zip(&actual.judge) {
+        assert!((left - right).abs() < 1e-4, "{left} {right}");
+    }
+}
 
 #[test]
 fn preserve() {
@@ -28,10 +42,7 @@ fn preserve() {
         .collect::<Vec<_>>();
     let reference = input.iter().collect::<Vec<_>>();
     for (expected, actual) in model.infer(&reference).iter().zip(grown.infer(&reference)) {
-        assert!((expected.value - actual.value).abs() < 1e-4);
-        for (left, right) in expected.logit.iter().zip(&actual.logit) {
-            assert!((left - right).abs() < 1e-4, "{left} {right}");
-        }
+        same(expected, &actual);
     }
     let project = grown.block()[0].attention.project.weight;
     let row = |index: usize| {
@@ -76,10 +87,7 @@ fn widen() {
     let narrow = input.iter().collect::<Vec<_>>();
     let widened = wide.iter().collect::<Vec<_>>();
     for (expected, actual) in model.infer(&narrow).iter().zip(grown.infer(&widened)) {
-        assert!((expected.value - actual.value).abs() < 1e-4);
-        for (left, right) in expected.logit.iter().zip(&actual.logit) {
-            assert!((left - right).abs() < 1e-4, "{left} {right}");
-        }
+        same(expected, &actual);
     }
 }
 

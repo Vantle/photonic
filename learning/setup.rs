@@ -49,6 +49,11 @@ pub fn read(path: &Path) -> miette::Result<import::Source> {
 }
 
 pub fn setting(session: &argument::Session, frozen: bool) -> miette::Result<session::Setting> {
+    if frozen && session.update.is_some() {
+        return Err(miette!(
+            "--update counts training steps, and a frozen session takes none"
+        ));
+    }
     Ok(session::Setting {
         placement: match session.device {
             argument::Device::Auto => Placement::Automatic,
@@ -59,6 +64,7 @@ pub fn setting(session: &argument::Session, frozen: bool) -> miette::Result<sess
         trainer: session.trainer,
         frozen,
         duration: session.duration.map(Duration::from_secs),
+        update: session.update,
         report: Duration::from_secs(session.report.max(1)),
         seed: session.seed,
         shape: Shape {

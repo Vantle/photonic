@@ -128,6 +128,11 @@ pub struct Session {
     pub duration: Option<u64>,
     #[arg(
         long,
+        help = "Training steps after which a session stops; a frozen session takes none"
+    )]
+    pub update: Option<u64>,
+    #[arg(
+        long,
         value_parser = count,
         help = "Self-play threads; defaults to the cores left after training, doubled while the GPU serves inference"
     )]
