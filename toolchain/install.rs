@@ -13,15 +13,16 @@ fn search() -> Vec<PathBuf> {
         .unwrap_or_default()
 }
 
-// Windows compares paths without regard to case or a trailing separator; other systems compare
-// them exactly.
+// Paths compare by their components, so separators and a trailing one do not matter, and on
+// Windows without regard to case.
 fn same(left: &Path, right: &Path) -> bool {
     if !cfg!(windows) {
         return left == right;
     }
     let normal = |path: &Path| {
-        path.to_string_lossy()
-            .trim_end_matches(['\\', '/'])
+        path.components()
+            .collect::<PathBuf>()
+            .to_string_lossy()
             .to_lowercase()
     };
     normal(left) == normal(right)
@@ -150,7 +151,9 @@ fn install() -> Result<ExitCode, Failure> {
         runfiles::Runfiles::create().map_err(|error| Failure::Runfile(error.to_string()))?;
     let source = runfiles::rlocation!(runfile, &name).ok_or(Failure::Runfile(name))?;
     let search = search();
-    let directory = directory(explicit, &search)?;
+    let directory = directory(explicit, &search)?
+        .components()
+        .collect::<PathBuf>();
     let (target, version) = place(&source, &directory)?;
     println!("installed {version} at {}", target.display());
     if !listed(&search, &directory) {

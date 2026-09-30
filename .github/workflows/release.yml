@@ -37,6 +37,8 @@ jobs:
     env:
       TARGET: ${{ matrix.target }}
       WINDOWS: ${{ matrix.windows }}
+      MSYS_NO_PATHCONV: "1"
+      MSYS2_ARG_CONV_EXCL: "*"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

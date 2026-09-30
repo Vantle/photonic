@@ -155,18 +155,24 @@ fn walk(directory: &Path, suffix: &str, result: &mut Vec<PathBuf>) -> Result<(),
     Ok(())
 }
 
+// A Bazel label joins a package's directories with slashes whatever separator the host's paths use.
 fn label(bin: &Path, path: &Path, suffix: &str) -> Result<(String, String), Failure> {
-    let relative = path
-        .strip_prefix(bin)
-        .ok()
-        .and_then(Path::to_str)
-        .ok_or_else(|| malformed(path, "names no package under bin"))?;
-    let (package, file) = relative
-        .rsplit_once('/')
-        .ok_or_else(|| malformed(path, "names no package under bin"))?;
+    let missing = || malformed(path, "names no package under bin");
+    let relative = path.strip_prefix(bin).map_err(|_| missing())?;
+    let file = relative
+        .file_name()
+        .and_then(|name| name.to_str())
+        .ok_or_else(missing)?;
+    let directory = relative
+        .parent()
+        .into_iter()
+        .flat_map(Path::components)
+        .map(|part| part.as_os_str().to_str())
+        .collect::<Option<Vec<_>>>()
+        .ok_or_else(missing)?;
+    let group = (*directory.first().ok_or_else(missing)?).to_owned();
     let target = file.trim_end_matches(suffix);
-    let group = package.split('/').next().unwrap_or(package).to_owned();
-    Ok((format!("{package}:{target}"), group))
+    Ok((format!("{}:{target}", directory.join("/")), group))
 }
 
 fn case(bin: &Path, entry: &mut Vec<Entry>) -> Result<(), Failure> {
