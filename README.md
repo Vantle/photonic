@@ -90,6 +90,6 @@ Serve the webbook from a checkout with `bazel run -c opt //book:serve`, then ope
 
 ## Versions and license
 
-Photonic follows [Semantic Versioning](https://semver.org): [the compatibility contract](document/compatibility.md) says what each release keeps stable, and [the changelog](CHANGELOG.md) what each one changes.
+Photonic is in alpha and follows [Semantic Versioning](https://semver.org), so any release before 1.0.0 may change the language and its tools. [The compatibility contract](document/compatibility.md) says what 1.0.0 will keep stable, and [the changelog](CHANGELOG.md) what each release changes.
 
 Photonic is licensed under either the [Apache License, Version 2.0](LICENSE-APACHE) or the [MIT license](LICENSE-MIT), at your option. Release archives also carry the notices of the third-party crates the command contains.

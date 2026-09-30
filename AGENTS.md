@@ -24,7 +24,7 @@ Prefer early returns.
 
 Separate concerns. Compose behavior; do not pollute layers.
 
-Prefer clean breaks over legacy compatibility. The stable interfaces that document/compatibility.md lists change only in a major release, recorded in CHANGELOG.md.
+Prefer clean breaks over legacy compatibility. Record every change to an interface that document/compatibility.md covers in CHANGELOG.md.
 
 Test code when an interface commitment is stable.
 

@@ -48,7 +48,7 @@ stream
 
 ## Using the library
 
-Every target in the table is public, and so are the three rules in [photonic/defs.bzl](../photonic/defs.bzl): `photonic_library`, `photonic_binary` and `photonic_test`. They are Photonic 1.0's Bazel interface; other targets in the repository may change. A program depends on the operations it calls:
+Every target in the table is public, and so are the three rules in [photonic/defs.bzl](../photonic/defs.bzl): `photonic_library`, `photonic_binary` and `photonic_test`. They are Photonic's Bazel interface; other targets in the repository may change. A program depends on the operations it calls:
 
 ```starlark
 load("//photonic:defs.bzl", "photonic_binary", "photonic_library", "photonic_test")
@@ -128,7 +128,7 @@ A syntax error in `source` or `target` fails the build. A failing test prints wh
 Until Photonic is published to a registry, depend on it through its repository in `MODULE.bazel`:
 
 ```starlark
-bazel_dep(name = "photonic", version = "1.0.0")
+bazel_dep(name = "photonic", version = "0.0.0")
 git_override(
     module_name = "photonic",
     remote = "https://github.com/Vantle/photonic",

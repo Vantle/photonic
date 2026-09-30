@@ -8,7 +8,7 @@ These describe the repository as it is and change with it.
 
 | Document | Contents |
 | --- | --- |
-| [Compatibility](compatibility.md) | What each release keeps stable under Semantic Versioning, and what it may change. |
+| [Compatibility](compatibility.md) | The interfaces 1.0.0 will keep stable under Semantic Versioning, which alpha releases may still change. |
 | [Language primer](../spectrum/primer.md) | The whole grammar, the five laws that give it meaning, what programs mean and how to ask Spectrum; served to agents as `photonic://primer`. |
 | [Standard library](../library/README.md) | Every package, request and answer, with the chain, vector and sort protocols. |
 | [Runtime rule occurrences](occurrence.md) | Loading, ownership, consumption, matching locations and exact targets. |

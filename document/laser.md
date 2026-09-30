@@ -123,7 +123,7 @@ bazel run -c opt //benchmark:fuzz -- --count 2000
 
 ## Measurements
 
-Two families in [language/family.rs](../language/family.rs) grow as large as wanted: `dial(n)` turns n dials through Zero, One and Two, and `diner(n)` seats n diners around a table, each needing the forks on either side to eat. Both infer: six dials reach 13,122 events, 8,748 of them inferred. Timings are medians of three runs of `//benchmark:laser` built with `-c opt` on an Apple M5 Max with 18 cores and 128 GB, taken during September 2026 before the 1.0.0 release, and memory is the process's peak resident size. They show the engines' proportions; later changes move exact figures by a few percent.
+Two families in [language/family.rs](../language/family.rs) grow as large as wanted: `dial(n)` turns n dials through Zero, One and Two, and `diner(n)` seats n diners around a table, each needing the forks on either side to eat. Both infer: six dials reach 13,122 events, 8,748 of them inferred. Timings are medians of three runs of `//benchmark:laser` built with `-c opt` on an Apple M5 Max with 18 cores and 128 GB, taken during September 2026 before the first release, and memory is the process's peak resident size. They show the engines' proportions; later changes move exact figures by a few percent.
 
 | Program | Configurations | Events | Interpreter | Laser |
 | --- | ---: | ---: | ---: | ---: |

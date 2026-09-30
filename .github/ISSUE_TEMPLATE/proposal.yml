@@ -4,7 +4,7 @@ labels: ["enhancement"]
 body:
   - type: markdown
     attributes:
-      value: The stable interfaces that [the compatibility contract](https://github.com/Vantle/photonic/blob/main/document/compatibility.md) lists change incompatibly only in a major release.
+      value: Photonic is in alpha, so a release may still change the interfaces that [the compatibility contract](https://github.com/Vantle/photonic/blob/main/document/compatibility.md) covers. 1.0.0 will make them stable.
   - type: textarea
     id: problem
     attributes:

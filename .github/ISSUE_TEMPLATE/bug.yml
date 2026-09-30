@@ -10,7 +10,7 @@ body:
     attributes:
       label: Version
       description: The output of `photonic --version`, or the commit you built.
-      placeholder: photonic 1.0.0
+      placeholder: photonic 0.0.0
     validations:
       required: true
   - type: dropdown

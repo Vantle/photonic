@@ -1,10 +1,10 @@
 # Changelog
 
-Photonic follows [Semantic Versioning](https://semver.org). [The compatibility contract](document/compatibility.md) says what each release keeps stable.
+Photonic follows [Semantic Versioning](https://semver.org). [The compatibility contract](document/compatibility.md) says which interfaces this changelog follows; until 1.0.0, any release may change them.
 
-## 1.0.0
+## 0.0.0
 
-The first stable release.
+The first release, an alpha.
 
 - The language: atoms, particles and coherences; rules that consume and produce, with every output receiving the remainder; scopes; rules as values and fields; inference. One grammar reads `.wave` programs and `.particle` libraries.
 - Exploration: `photonic` explores every future of a program with Laser, the default engine, or with the interpreter, follows one direct path, or explores every schedule of plain events on Laser or on the GPU through Metal.
@@ -17,7 +17,7 @@ The first stable release.
 
 ### Changes since the pre-release builds
 
-Programs, answers and links from builds of `main` before 1.0.0 may need these changes.
+Programs, answers and links from earlier builds of `main` may need these changes.
 
 - The language
   - Every balanced text is a program. A comma separates members and a missing member is nothing; parts of a term side by side join, so a dot only marks the join and `A(B, C)` is `A.B, A.C`; and a term with brackets is one rule that consumes what its brackets hold, joined, and produces the rest, so `[A] [B] C` consumes `A.B` and `C [A]` is `[A] C`. Parentheses only group inside brackets and particles.

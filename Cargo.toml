@@ -1,6 +1,6 @@
 [package]
 name = "photonic"
-version = "1.0.0"
+version = "0.0.0"
 edition = "2024"
 description = "A language of rules whose runtime explores every configuration they reach"
 license = "MIT OR Apache-2.0"

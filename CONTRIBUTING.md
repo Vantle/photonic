@@ -20,7 +20,7 @@ After changing an example or a listing in the webbook, run `bazel run -c opt //b
 
 A commit message is one sentence in the imperative that says what the change does, such as "Explore with Laser on every core by default". Test what users rely on, and keep each document that describes the repository as it is in step with the change. The records under `document/` describe the runtime at their baseline commits and are not updated afterwards.
 
-Changes to a stable interface, as [the compatibility contract](document/compatibility.md) defines it, need an entry in [CHANGELOG.md](CHANGELOG.md).
+Changes to an interface that [the compatibility contract](document/compatibility.md) covers need an entry in [CHANGELOG.md](CHANGELOG.md).
 
 ## Pull requests
 
