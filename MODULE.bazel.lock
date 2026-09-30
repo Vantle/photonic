@@ -429,7 +429,7 @@
     "@@rules_browsers+//browsers:extensions.bzl%browsers": {
       "general": {
         "bzlTransitiveDigest": "Bm6fiKpWy96aLohOlLCP36ARVxRLZm/R+smhsb2HzmI=",
-        "usagesDigest": "7W90xig4agsPgsYkytZCKr//9eicbs6LY+8aJw2mb+E=",
+        "usagesDigest": "08XhOB+8mcVJ/sLQrfaX+007uFU95Wz8WcvzyToIjPM=",
         "recordedInputs": [],
         "generatedRepoSpecs": {
           "rules_browsers_chrome_linux": {
