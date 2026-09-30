@@ -75,6 +75,12 @@ impl<Terminal> Exploration<Terminal> {
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+pub struct Refusal {
+    pub index: usize,
+    pub count: usize,
+}
+
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct Walk<Terminal = Observation> {
     pub terminal: Option<Terminal>,
@@ -82,6 +88,7 @@ pub struct Walk<Terminal = Observation> {
     pub depth: usize,
     pub cycle: bool,
     pub overflow: bool,
+    pub refusal: Option<Refusal>,
 }
 
 impl<Terminal> Walk<Terminal> {
@@ -92,6 +99,7 @@ impl<Terminal> Walk<Terminal> {
             depth: self.depth,
             cycle: self.cycle,
             overflow: self.overflow,
+            refusal: self.refusal,
         }
     }
 }
@@ -272,7 +280,13 @@ pub fn walk(
             result.overflow = true;
             return result;
         }
-        let chosen = event.swap_remove(choose(event.len()));
+        let count = event.len();
+        let index = choose(count);
+        if index >= count {
+            result.refusal = Some(Refusal { index, count });
+            return result;
+        }
+        let chosen = event.swap_remove(index);
         let depth = 1 + chosen
             .change
             .world

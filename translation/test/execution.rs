@@ -3,7 +3,7 @@ use crate::lift;
 use crate::vocabulary::Vocabulary;
 use code::configuration::Configuration;
 use code::program::Program;
-use photonic::execution::Bound;
+use photonic::execution::{Bound, Refusal};
 use photonic::runtime::Limit;
 use std::time::Instant;
 
@@ -69,4 +69,31 @@ fn deadline() {
     );
     assert!(interrupted.overflow);
     assert_eq!(interrupted.step, 0);
+}
+
+#[test]
+fn refusal() {
+    let mut vocabulary = Vocabulary::default();
+    let (program, initial) = lift::program(
+        &frontend::lowering::parse("A, [A] B, [A] C, [B] D").unwrap(),
+        &mut vocabulary,
+    )
+    .unwrap();
+    let walked = |choice: usize| {
+        walk(
+            &program,
+            &initial,
+            &vocabulary,
+            Limit::default(),
+            Bound::default(),
+            |_| choice,
+        )
+    };
+    let chosen = walked(1);
+    assert!(chosen.terminal.is_some());
+    assert_eq!(chosen.refusal, None);
+    let refused = walked(2);
+    assert_eq!(refused.refusal, Some(Refusal { index: 2, count: 2 }));
+    assert!(refused.terminal.is_none() && !refused.overflow && !refused.cycle);
+    assert_eq!(refused.step, 0);
 }

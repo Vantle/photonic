@@ -301,7 +301,7 @@ impl Context<'_> {
             self.setting.bound,
             choose,
         );
-        if result.cycle || result.overflow {
+        if result.cycle || result.overflow || result.refusal.is_some() {
             return None;
         }
         Some(Run {
