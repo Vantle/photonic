@@ -37,6 +37,10 @@ release(
 
 notice(
     name = "notice",
+    runtime = select({
+        "@platforms//os:windows": ["//toolchain:mingw.txt"],
+        "//conditions:default": [],
+    }),
     target = ["//command:photonic"],
 )
 

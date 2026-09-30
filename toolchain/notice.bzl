@@ -45,6 +45,8 @@ def _render(context):
         argument.add_all(entry.license, before_each = "--license")
         input.extend(entry.manifest)
         input.extend(entry.license)
+    argument.add_all(context.files.runtime, before_each = "--runtime")
+    input.extend(context.files.runtime)
     context.actions.run(
         executable = context.executable._render,
         arguments = [argument],
@@ -60,6 +62,7 @@ notice = rule(
     doc = "Writes the license expression and license texts of every third-party crate the targets link.",
     attrs = {
         "target": attr.label_list(aspects = [_notice], mandatory = True),
+        "runtime": attr.label_list(allow_files = True, doc = "Notices of runtime libraries the toolchain links statically, appended after the crates."),
         "_render": attr.label(default = "//toolchain:notice", executable = True, cfg = "exec"),
     },
 )
