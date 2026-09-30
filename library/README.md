@@ -305,7 +305,9 @@ Seventeen.Function.Stream.Successor,
 [Seventeen] (2, [Next] (2, [Next] (1, [Next] End)))
 ```
 
-The successor writes each output digit as a `([Write] d)` value, acknowledges it with `Next` to advance the stream, and answers `Return.Stream.Successor`. Ancestor bodies keep their `Next` rules visible, so streams rely on the direct path's preference for the nearest body.
+The successor writes each output digit as a `([Write] d)` value, acknowledges it with `Next` to advance the stream, and answers `Return.Stream.Successor`.
+
+The stream package demonstrates the direct path; it is not a data structure. Each `([Write] d)` meets the rule that acknowledges it at once, so the output digits exist only as the events that write them, not as values a caller can read afterwards. Ancestor bodies keep their `Next` rules visible, so only the direct path's preference for the nearest body ends the stream where it should: in other schedules a `Next` opens an ancestor's body and the answer arrives inside a nested body, and even the three-digit stream above has more schedules than the default budget explores. Read the digits from the events of a direct path, as `stream::successor` in `//library:test` does, and keep a number that must stay as data in a natural.
 
 ## Guarantees
 
