@@ -1,0 +1,26 @@
+name: Proposal
+description: Propose a change to the language, the tools or the documents.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: The stable interfaces that [the compatibility contract](https://github.com/Vantle/photonic/blob/main/document/compatibility.md) lists change incompatibly only in a major release.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What you want to write or find out, and what stands in the way today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: The change you have in mind, with a program or command that shows it.
+    validations:
+      required: true
+  - type: textarea
+    id: alternative
+    attributes:
+      label: Alternatives
+      description: Other ways to reach the same end, including what works today.

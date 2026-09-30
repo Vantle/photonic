@@ -1,0 +1,60 @@
+name: Bug
+description: Report a program, command or page that behaves wrongly.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: Report vulnerabilities privately, as [SECURITY.md](https://github.com/Vantle/photonic/blob/main/SECURITY.md) describes, rather than here.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The output of `photonic --version`, or the commit you built.
+      placeholder: photonic 1.0.0
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - macOS on Apple silicon (aarch64-apple-darwin)
+        - macOS on Intel (x86_64-apple-darwin)
+        - Linux on ARM64 (aarch64-unknown-linux-gnu)
+        - Linux on x86-64 (x86_64-unknown-linux-gnu)
+        - Windows on ARM64 (aarch64-pc-windows-gnullvm)
+        - Windows on x86-64 (x86_64-pc-windows-gnullvm)
+        - The webbook or Lightbox in a browser
+    validations:
+      required: true
+  - type: textarea
+    id: program
+    attributes:
+      label: Program
+      description: The smallest program that shows the problem, with any files it reads.
+      render: text
+    validations:
+      required: true
+  - type: input
+    id: command
+    attributes:
+      label: Command
+      description: The command you ran, the Spectrum call your client made, or the page and what you did there.
+      placeholder: photonic check light.wave --reach Red
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Output
+      description: What the command printed, and its exit code.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: expectation
+    attributes:
+      label: Expected
+      description: What you expected instead, and why.
+    validations:
+      required: true

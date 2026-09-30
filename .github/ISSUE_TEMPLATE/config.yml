@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Vulnerability
+    url: https://github.com/Vantle/photonic/security/advisories/new
+    about: Report vulnerabilities privately, as SECURITY.md describes.
+  - name: Webbook
+    url: https://photonic.vantle.org/
+    about: Learn the language, Spectrum and the command line.
