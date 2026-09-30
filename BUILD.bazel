@@ -149,6 +149,12 @@ filegroup(
 )
 
 filegroup(
+    name = "module",
+    srcs = ["MODULE.bazel"],
+    visibility = ["//command:__pkg__"],
+)
+
+filegroup(
     name = "page",
     srcs = ["index.html"],
     visibility = ["//book:__pkg__"],

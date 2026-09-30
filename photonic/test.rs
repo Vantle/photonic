@@ -106,6 +106,16 @@ fn binary() {
     assert_eq!(report["outcome"], "reached");
     let output = Command::new(executable("LOCAL"))
         .current_dir(&root)
+        .args(["prism", "--target"])
+        .arg(&target)
+        .args(["--json", "--path", "--work", "0"])
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(1));
+    let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["outcome"], "unknown");
+    let output = Command::new(executable("LOCAL"))
+        .current_dir(&root)
         .args(["--json", "--work", "0"])
         .output()
         .unwrap();

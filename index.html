@@ -491,7 +491,7 @@ photonic_test(
 <pre class="listing">bazel run -c opt //command:photonic -- lower program/language/inference.wave
 bazel run -c opt //command:photonic -- run program/language/inference.wave
 bazel run -c opt //command:photonic -- prism program/language/inference.wave --target target.wave</pre>
-<p><code>lower</code> prints the program as JSON, <code>run</code> the explored configurations, and <code>prism</code> a verdict for the complete configuration in a target file. <code>--library</code> loads a rules-only file; <code>--path</code> follows a direct path; <code>--engine laser</code> explores with Laser, the second engine, and <code>--plain</code> explores every schedule of plain events on it. Every command reads paths relative to where <code>bazel run</code> started.</p>
+<p><code>lower</code> prints the program as JSON, <code>run</code> every configuration the program reaches by the handles the questions below use, and <code>prism</code> a verdict for the complete configuration in a target file, exiting 1 unless it is reached; <code>--preserve</code> adds every loaded root rule to the target, as <code>photonic_test</code> does. <code>--library</code> loads a rules-only file; <code>--path</code> follows a direct path; <code>--engine laser</code> explores with Laser, the second engine, and <code>--plain</code> explores every schedule of plain events on it. Every command reads paths relative to where <code>bazel run</code> started.</p>
 <pre class="listing">bazel test -c opt //...
 bazel run -c opt //program/language:inference
 bazel test -c opt //program/language:conjunction.check</pre>
@@ -517,7 +517,7 @@ bazel run -c opt //command:photonic -- mcp</pre>
 </tbody>
 </table>
 </div>
-<p>A claim holds, fails or is unknown. Unknown means a budget stopped the search or a direct path followed one run of many; it is never evidence of absence. <code>--json</code> prints each answer as data. <code>mcp</code> serves the same questions to agents over the Model Context Protocol, and the repository's <code>.mcp.json</code> starts it. <a href="document/spectrum.md">Spectrum</a> is the full contract.</p>
+<p>A claim holds, fails or is unknown. Unknown means a budget stopped the search or a direct path followed one run of many; it is never evidence of absence. <code>--json</code> prints each answer as data. <code>mcp</code> serves the same questions to agents over the Model Context Protocol, reading only files inside the directory it starts in, and the repository's <code>.mcp.json</code> starts it. <a href="document/spectrum.md">Spectrum</a> is the full contract.</p>
 <h3>This book</h3>
 <pre class="listing">bazel run -c opt //book:serve
 bazel run -c opt //book:record
