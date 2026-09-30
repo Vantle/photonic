@@ -36,6 +36,7 @@ theorem(
     srcs = ["ending.wave"],
     every = True,
     deps = [
+        ":feed",
         "//library/natural:column",
         "//theorem:case",
     ],

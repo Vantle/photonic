@@ -380,7 +380,7 @@ The probe fires only once the output holds a new cell and the engine has begun t
 | [opening](natural/opening.wave) | the first column of `Natural.Add`, run from the call itself, pushes the digit of `Ternary.Sum` of the two digits and no carry onto an empty output and passes on Sum's carry; 0 + 0 answers zero | 16 |
 | [addition](natural/addition.wave) | a column of `Natural.Add` pushes the digit of `Ternary.Sum` of the two digits read and the carry, and passes on Sum's carry | 30 |
 | [subtraction](natural/subtraction.wave) | a column in the `Deduct` mode behind `Natural.Subtract` and `Natural.Difference` pushes the digit of `Ternary.Subtract` and passes on its borrow | 30 |
-| [ending](natural/ending.wave) | once both operands have ended, a final carry becomes the leading digit and a final borrow reports a negative difference | 4 |
+| [ending](natural/ending.wave) | once both operands have ended, a final carry becomes the leading digit above the output built so far, which otherwise goes to the trim unchanged, and a final borrow reports a negative difference with that output | 4 |
 | [comparison](natural/comparison.wave) | a position of `Natural.Compare` carries on the verdict of the layer 3 scheme, or answers it once one operand has ended and the other shows a nonzero digit, or both have ended | 48 |
 | [trim](natural/trim.wave) | the trim behind the column engine and `Natural.Normalize` skips a leading zero, answers zero once only zeros remain, and otherwise keeps the leading digit and reverses the chain | 4 |
 | [reversal](natural/reversal.wave) | each step of `Chain.Reverse` moves one digit onto its result, which it returns at the end | 4 |
