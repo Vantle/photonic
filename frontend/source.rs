@@ -2,7 +2,7 @@ use serde::Serialize;
 
 use crate::failure::Failure;
 
-#[derive(Clone, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct Library {
     pub rule: Vec<Definition>,
 }

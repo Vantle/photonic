@@ -58,6 +58,7 @@ impl<'tree, 'source> Reader<'tree, 'source> {
             budget: allowance(tree.source()),
         }
     }
+
     fn child(&self, index: usize) -> Vec<usize> {
         self.tree.child(index).collect()
     }
