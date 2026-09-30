@@ -140,9 +140,7 @@ impl Survey {
             device,
             configuration: explored.configuration,
             event: explored.event,
-            endless: explored
-                .endless
-                .filter(|&endless| endless || explored.closed),
+            endless: explored.endless,
             work: explored.work,
             rule,
             end,

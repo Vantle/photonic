@@ -100,19 +100,14 @@ impl Context<'_> {
             })
             .transpose()?;
         let budget = recording.budget.unwrap_or_default();
-        let keep = match engine {
-            Engine::Metal => crate::survey::device()?.capacity(),
-            Engine::Interpreter | Engine::Laser => budget.limit().configuration,
-        };
-        self.store.explore(Plan::new(
-            source,
-            mode,
-            engine,
-            Budget {
-                configuration: Some(budget.configuration.unwrap_or(keep)),
+        let settled = match engine {
+            Engine::Metal => budget.metal(crate::survey::device()?.capacity()),
+            Engine::Interpreter | Engine::Laser => Budget {
+                configuration: Some(budget.limit().configuration),
                 ..budget
             },
-            goal,
-        ))
+        };
+        self.store
+            .explore(Plan::new(source, mode, engine, settled, goal))
     }
 }

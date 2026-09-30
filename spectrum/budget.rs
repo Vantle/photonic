@@ -21,7 +21,9 @@ pub struct Budget {
     pub occurrence: usize,
     #[schemars(description = "Scopes in one configuration.")]
     pub scope: usize,
-    #[schemars(description = "Records the engine retains.")]
+    #[schemars(
+        description = "Records the engine retains; metal retains none, so it ignores the record budget and leaves it out of its key."
+    )]
     pub record: usize,
 }
 
@@ -40,6 +42,17 @@ impl Default for Budget {
 }
 
 impl Budget {
+    // The budget metal explores under: as many configurations as its device keeps unless told, and
+    // the default record budget, since metal retains no records and the record budget must not
+    // tell two of its explorations apart.
+    pub(crate) fn metal(self, capacity: usize) -> Self {
+        Self {
+            configuration: Some(self.configuration.unwrap_or(capacity)),
+            record: Self::default().record,
+            ..self
+        }
+    }
+
     // The limits an engine explores under, keeping photonic_test's configurations unless told.
     pub fn limit(self) -> Limit {
         Limit {

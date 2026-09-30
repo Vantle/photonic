@@ -59,7 +59,9 @@ pub enum Cycle {
 
 // Where exploring a net ends: whether it closed, and else why it stopped, how many configurations
 // and events it found, the configurations where runs end, in the order they were found, whether a
-// run can go on forever, when asked, and the work its grounding took.
+// run can go on forever, when asked and known, and the work its grounding took. A run goes on
+// forever once a cycle is found, and never once an exploration closes without one; an open
+// exploration without one leaves it unknown, since what it did not explore could close one.
 pub struct Exploration {
     pub closed: bool,
     pub stop: Vec<Stop>,
@@ -651,13 +653,15 @@ impl Net {
         }
         let stop = self.stop(limit, spent.then_some(budget), blocked);
         let closed = stop.is_empty();
-        let endless = (cycle == Cycle::Find).then(|| {
-            first.resize(space.len() + 1, edge.len());
-            backward
-                && ending::cyclic(space.len(), |node| {
-                    edge[first[node]..first[node + 1]].iter().copied()
-                })
-        });
+        let endless = (cycle == Cycle::Find)
+            .then(|| {
+                first.resize(space.len() + 1, edge.len());
+                backward
+                    && ending::cyclic(space.len(), |node| {
+                        edge[first[node]..first[node + 1]].iter().copied()
+                    })
+            })
+            .filter(|&endless| endless || closed);
         Ok(Exploration {
             closed,
             stop,

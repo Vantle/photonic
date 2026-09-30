@@ -145,7 +145,7 @@ impl Engine {
                 configuration: 1,
                 event: 0,
                 end: Vec::new(),
-                endless: (cycle == Cycle::Find).then_some(false),
+                endless: None,
                 work: net.work() - work,
             });
         }
@@ -199,7 +199,9 @@ impl Engine {
             configuration: count,
             event: search.tally.event,
             end: end.into_iter().map(|id| search.store.marking(id)).collect(),
-            endless: (cycle == Cycle::Find).then(|| backward && search.tally.cyclic(count)),
+            endless: (cycle == Cycle::Find)
+                .then(|| backward && search.tally.cyclic(count))
+                .filter(|&endless| endless || closed),
             work: search.net.work() - work,
         })
     }

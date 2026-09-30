@@ -280,3 +280,41 @@ fn net() {
         assert_eq!(explored.closed, expected.is_empty(), "{source}");
     }
 }
+
+// A run goes on forever once a cycle is found, never once an exploration closes without one, and an
+// open exploration without one cannot tell, since what it left unexplored could close one.
+#[test]
+fn endless() {
+    let open = Limit {
+        record: usize::MAX,
+        ..Limit::default()
+    };
+    for (source, limit, expected) in [
+        ("A, [A] B", open, Some(false)),
+        (&crate::family::dial(2), open, Some(true)),
+        (
+            &crate::family::dial(2),
+            Limit {
+                configuration: 2,
+                ..open
+            },
+            None,
+        ),
+        (
+            "A, [A] A.A",
+            Limit {
+                occurrence: 3,
+                ..open
+            },
+            None,
+        ),
+        ("B, [B] C, [C] B, [C] A.A", open, Some(true)),
+    ] {
+        let program = parse(source);
+        let explored = Net::new(&program)
+            .unwrap()
+            .explore(usize::MAX, limit, Cycle::Find)
+            .unwrap();
+        assert_eq!(explored.endless, expected, "{source}");
+    }
+}
