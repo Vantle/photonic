@@ -6,7 +6,8 @@ use crate::failure::Failure;
 use crate::handle::Handle;
 use crate::recording::{Engine, Mode, Order, Recording};
 use crate::render;
-use photonic::stop::Stop;
+use crate::survey::Device;
+use photonic::stop::{Bound, Stop};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -60,6 +61,8 @@ pub(crate) struct Summary {
     pub(crate) exploration: String,
     pub(crate) mode: Mode,
     pub(crate) engine: Engine,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) device: Option<Device>,
     pub(crate) order: Order,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) shape: Option<String>,
@@ -106,6 +109,7 @@ pub(crate) fn brief(explored: &Explored) -> Summary {
             exploration: exploration.name(),
             mode: exploration.mode,
             engine: exploration.engine,
+            device: None,
             order: exploration.order,
             shape: exploration.shape.map(|shape| format!("{shape:016x}")),
             complete: exploration.closed,
@@ -124,6 +128,7 @@ pub(crate) fn brief(explored: &Explored) -> Summary {
             exploration: format!("x{}", survey.key),
             mode: Mode::Plain,
             engine: Engine::Metal,
+            device: Some(survey.device),
             order: survey.order,
             shape: survey.shape.map(|shape| format!("{shape:016x}")),
             complete: survey.closed,
@@ -216,12 +221,32 @@ fn list(item: &[String]) -> String {
     }
 }
 
+fn plural(count: usize, noun: &str) -> String {
+    format!("{count} {noun}{}", if count == 1 { "" } else { "s" })
+}
+
 // Why an exploration stopped, as its answers say it: each reason, then the budgets and limits to
-// raise so it goes on.
-pub(crate) fn reason(stop: &[Stop]) -> String {
+// raise so it goes on. Metal's configuration limit is its device's capacity unless a question kept
+// fewer, and then says so.
+pub(crate) fn reason(stop: &[Stop], device: Option<Device>) -> String {
     let said = stop
         .iter()
-        .map(ToString::to_string)
+        .map(|&stop| match (stop, device) {
+            (
+                Stop::Limit {
+                    bound: Bound::Configuration,
+                    value,
+                    blocked,
+                },
+                Some(device),
+            ) if value == device.capacity() => format!(
+                "the capacity of {} ({}) blocked {}",
+                device.name(),
+                plural(value, "configuration"),
+                plural(blocked, "event")
+            ),
+            (stop, _) => stop.to_string(),
+        })
         .collect::<Vec<_>>()
         .join(", and ");
     let mut raise = Vec::new();
@@ -240,17 +265,19 @@ pub(crate) fn reason(stop: &[Stop]) -> String {
 pub(crate) fn state(summary: &Summary) -> String {
     let status = match (summary.mode, summary.complete, summary.reached) {
         (Mode::Path, _, Some(true)) => "path reached its goal".to_owned(),
-        (Mode::Path, _, _) => format!("path stopped: {}", reason(&summary.stop)),
+        (Mode::Path, _, _) => format!("path stopped: {}", reason(&summary.stop, None)),
         (Mode::Exhaustive | Mode::Plain, true, _) => "closed".to_owned(),
         (Mode::Exhaustive | Mode::Plain, false, _) => {
-            format!("open: {}", reason(&summary.stop))
+            format!("open: {}", reason(&summary.stop, summary.device))
         }
     };
     let mut part = vec![summary.exploration.clone(), status];
-    match (summary.mode, summary.engine) {
-        (Mode::Plain, Engine::Metal) => part.extend(["plain".to_owned(), "metal".to_owned()]),
-        (Mode::Plain, _) => part.push("plain".to_owned()),
-        (Mode::Exhaustive, Engine::Interpreter) => part.push("interpreter".to_owned()),
+    match (summary.mode, summary.engine, summary.device) {
+        (Mode::Plain, Engine::Metal, Some(device)) => {
+            part.extend(["plain".to_owned(), format!("metal on {}", device.name())]);
+        }
+        (Mode::Plain, _, _) => part.push("plain".to_owned()),
+        (Mode::Exhaustive, Engine::Interpreter, _) => part.push("interpreter".to_owned()),
         _ => {}
     }
     part.extend([

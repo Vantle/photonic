@@ -8,6 +8,8 @@ use frontend::source::Program;
 use photonic::laser::makeup::Makeup;
 use photonic::laser::net::{self, Cycle, Net};
 use photonic::stop::Stop;
+use schemars::JsonSchema;
+use serde::Serialize;
 use std::sync::OnceLock;
 
 // Every schedule of plain events of a program, explored through its net of parts on the GPU through
@@ -20,6 +22,7 @@ pub struct Survey {
     pub(crate) shape: Option<u64>,
     pub(crate) closed: bool,
     pub(crate) stop: Vec<Stop>,
+    pub(crate) device: Device,
     pub(crate) configuration: usize,
     pub(crate) event: u64,
     pub(crate) endless: Option<bool>,
@@ -36,19 +39,52 @@ fn failure(message: impl ToString) -> Failure {
     Failure::new(Code::Engine, message.to_string())
 }
 
+// Where metal explored: on the GPU, or on the host's net where there is no GPU with Metal 3, with
+// the configurations each keeps unless a question keeps fewer.
+#[derive(Clone, Copy, Debug, Eq, JsonSchema, PartialEq, Serialize)]
+#[serde(tag = "kind", rename_all = "lowercase")]
+#[schemars(
+    description = "Where metal explored: the GPU, or the host's net where there is no GPU with Metal 3, and the configurations it keeps unless a question keeps fewer."
+)]
+pub(crate) enum Device {
+    Gpu { capacity: usize },
+    Host { capacity: usize },
+}
+
+impl Device {
+    pub(crate) fn capacity(self) -> usize {
+        match self {
+            Self::Gpu { capacity } | Self::Host { capacity } => capacity,
+        }
+    }
+
+    pub(crate) fn name(self) -> &'static str {
+        match self {
+            Self::Gpu { .. } => "the GPU",
+            Self::Host { .. } => "the host",
+        }
+    }
+}
+
 // The GPU's engine, its kernels compiled once for every survey, or none where there is no GPU.
-fn device() -> Result<Option<&'static wave::engine::Engine>, Failure> {
-    static DEVICE: OnceLock<Result<Option<wave::engine::Engine>, String>> = OnceLock::new();
-    match DEVICE.get_or_init(|| wave::engine::Engine::new().map_err(|error| error.to_string())) {
+fn engine() -> Result<Option<&'static wave::engine::Engine>, Failure> {
+    static ENGINE: OnceLock<Result<Option<wave::engine::Engine>, String>> = OnceLock::new();
+    match ENGINE.get_or_init(|| wave::engine::Engine::new().map_err(|error| error.to_string())) {
         Ok(engine) => Ok(engine.as_ref()),
         Err(message) => Err(failure(message)),
     }
 }
 
-// The configurations metal keeps unless a question keeps fewer: as many as the GPU holds, or HOST
-// where the host explores alone, one thread finding about a million a second.
-pub(crate) fn capacity() -> Result<usize, Failure> {
-    Ok(device()?.map_or(HOST, wave::engine::Engine::capacity))
+// Where metal explores and the configurations it keeps unless a question keeps fewer: as many as
+// the GPU holds, or HOST where the host explores alone, one thread finding about a million a
+// second.
+pub(crate) fn device() -> Result<Device, Failure> {
+    Ok(match engine()? {
+        Some(engine) => Device::Gpu {
+            capacity: engine.capacity(),
+        },
+        None => Device::Host { capacity: HOST },
+    })
 }
 
 const HOST: usize = 1 << 20;
@@ -63,7 +99,7 @@ fn unsupported(reason: net::Unsupported) -> Failure {
 
 fn explore(net: &mut Net, budget: &Budget) -> Result<net::Exploration, Failure> {
     let limit = budget.limit();
-    match device()? {
+    match engine()? {
         Some(engine) => engine
             .explore(net, budget.work, limit, Cycle::Find)
             .map_err(|error| match error {
@@ -81,6 +117,7 @@ impl Survey {
         let program = plan.canonical.program;
         let mut net = Net::new(&program).map_err(unsupported)?;
         let explored = explore(&mut net, &plan.budget)?;
+        let device = device()?;
         let naming = plan.canonical.naming;
         let rule = net
             .definition()
@@ -100,6 +137,7 @@ impl Survey {
             shape: plan.canonical.shape,
             closed: explored.closed,
             stop: explored.stop,
+            device,
             configuration: explored.configuration,
             event: explored.event,
             endless: explored

@@ -100,7 +100,7 @@ fn open(exploration: &Exploration) -> String {
     format!(
         "the exploration stopped after {}: {}",
         render::count(exploration.configuration.len(), "configuration"),
-        explore::reason(&exploration.stop)
+        explore::reason(&exploration.stop, None)
     )
 }
 
@@ -294,7 +294,7 @@ fn decide(claim: &Claim, exploration: &Exploration, matched: &[bool]) -> Evidenc
             Answer::Unknown,
             format!(
                 "end configurations are known once the exploration closes, and {}",
-                explore::reason(&exploration.stop)
+                explore::reason(&exploration.stop, None)
             ),
         ),
         Kind::Outcome => {
@@ -368,7 +368,7 @@ pub(crate) fn survey(claim: &Claim, survey: &Survey) -> Result<Verdict, Failure>
             Answer::Unknown,
             format!(
                 "end configurations are known once the exploration closes, and {}",
-                explore::reason(&survey.stop)
+                explore::reason(&survey.stop, Some(survey.device))
             ),
         ),
         (_, Some(index)) => Evidence::plain(

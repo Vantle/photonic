@@ -101,7 +101,7 @@ impl Context<'_> {
             .transpose()?;
         let budget = recording.budget.unwrap_or_default();
         let keep = match engine {
-            Engine::Metal => crate::survey::capacity()?,
+            Engine::Metal => crate::survey::device()?.capacity(),
             Engine::Interpreter | Engine::Laser => budget.limit().configuration,
         };
         self.store.explore(Plan::new(

@@ -190,6 +190,10 @@ fn metal() {
     let explored = report(&execute("explore", &path, &plain(&["--json"])));
     let answer = &explored["answer"];
     assert_eq!(answer["engine"], "metal");
+    assert!(matches!(
+        answer["device"]["kind"].as_str(),
+        Some("gpu" | "host")
+    ));
     assert_eq!(answer["complete"], true);
     assert_eq!(answer["configuration"], 9);
     assert_eq!(answer["event"], 12);
@@ -206,7 +210,8 @@ fn metal() {
     assert!(passed.status.success());
     let text = String::from_utf8_lossy(&passed.stdout);
     assert!(text.contains("end Task.T1.Done, Task.T2.Done exactly   holds"));
-    assert!(text.contains(" · plain · metal · 9 configurations"));
+    assert!(text.contains(" · plain · metal on the "));
+    assert!(text.contains(" · 9 configurations"));
     let stray = [
         "--end",
         "Task.T1.Done, Task.T2.Running",
