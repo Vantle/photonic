@@ -6,6 +6,7 @@ filegroup(
     srcs = [
         "analysis.rs",
         "comparison.rs",
+        "component.rs",
         "graph.rs",
         "group.rs",
         "measure.rs",

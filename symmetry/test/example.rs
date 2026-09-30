@@ -1,6 +1,8 @@
-use super::support::{Written, named, single};
+use super::support::{Written, named, rename, shuffle, single};
+use crate::group::Size;
 use crate::structure::Structure;
 use code::atom::Atom;
+use random::Generator;
 
 const BUDGET: usize = 100_000;
 
@@ -217,4 +219,59 @@ fn transitive() {
         .flat_map(|from| (from + 1..9).map(move |to| (from, to)))
         .collect::<Vec<_>>();
     assert_eq!(size(&graph(&complete)), "362880");
+}
+
+fn copy(count: usize, back: bool) -> Structure {
+    let name = (0..count)
+        .flat_map(|index| [format!("A{index}"), format!("B{index}")])
+        .collect::<Vec<_>>();
+    let rule = (0..count)
+        .flat_map(|index| {
+            let (from, to) = (name[2 * index].as_str(), name[2 * index + 1].as_str());
+            let forth = Written(vec![vec![from]], vec![vec![to]]);
+            let backward = back.then(|| Written(vec![vec![to]], vec![vec![from]]));
+            std::iter::once(forth).chain(backward)
+        })
+        .collect::<Vec<_>>();
+    single(named(&rule, &mut Vec::new()))
+}
+
+fn factorial(count: usize) -> Vec<u64> {
+    (2..=count as u64).collect()
+}
+
+#[test]
+fn crowd() {
+    let count = 1_100;
+    let structure = copy(count, false);
+    let symmetry = structure
+        .symmetry(BUDGET)
+        .expect("interchangeable rules fit the budget");
+    assert_eq!(symmetry.size, Size::new(factorial(count)));
+    assert!(symmetry.node <= 3 * count, "{} nodes", symmetry.node);
+    let shuffled = shuffle(&mut Generator::new(5), &structure);
+    assert_ne!(shuffled, structure);
+    let other = shuffled
+        .symmetry(BUDGET)
+        .expect("interchangeable rules fit the budget");
+    assert_eq!(other.key, symmetry.key);
+    assert_eq!(other.form, symmetry.form);
+}
+
+#[test]
+fn wreath() {
+    let count = 60;
+    let structure = copy(count, true);
+    let symmetry = structure
+        .symmetry(BUDGET)
+        .expect("interchangeable rules fit the budget");
+    let mut factor = factorial(count);
+    factor.extend(std::iter::repeat_n(2, count));
+    assert_eq!(symmetry.size, Size::new(factor));
+    for permutation in super::support::generator(&symmetry) {
+        assert_eq!(
+            rename(&structure, |atom| permutation.image(atom)),
+            structure
+        );
+    }
 }

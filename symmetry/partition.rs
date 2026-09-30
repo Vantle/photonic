@@ -81,6 +81,11 @@ impl Partition {
         &self.element[start as usize..self.end[start as usize] as usize]
     }
 
+    pub fn alone(&self, vertex: u32) -> bool {
+        let first = self.start[vertex as usize];
+        self.end[first as usize] == first + 1
+    }
+
     pub fn target(&self, atom: usize) -> Option<u32> {
         self.smallest(0, atom)
             .or_else(|| self.smallest(0, self.element.len()))

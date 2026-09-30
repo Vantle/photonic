@@ -85,10 +85,11 @@ impl Structure {
         let generator = labeling
             .generator
             .iter()
-            .map(|map| {
+            .map(|pair| {
                 Permutation::new(
-                    (0..quotient.class.len() as u32)
-                        .flat_map(|class| member(class).zip(member(map[class as usize]))),
+                    pair.iter()
+                        .filter(|&&(class, _)| (class as usize) < quotient.class.len())
+                        .flat_map(|&(class, image)| member(class).zip(member(image))),
                 )
             })
             .filter(|permutation| !permutation.identity())

@@ -2,6 +2,7 @@
 
 pub mod analysis;
 pub mod comparison;
+mod component;
 mod graph;
 pub mod group;
 mod measure;
