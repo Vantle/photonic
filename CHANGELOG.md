@@ -20,9 +20,10 @@ The first stable release.
 Programs, answers and links from builds of `main` before 1.0.0 may need these changes.
 
 - The language
-  - Every Unicode space and a byte order mark separate atoms. Control characters and invisible or direction-changing format characters are refused inside an atom, and atoms compare by code point.
+  - Every balanced text is a program. A comma separates members and a missing member is nothing; parts of a term side by side join, so a dot only marks the join and `A(B, C)` is `A.B, A.C`; and a term with brackets is one rule that consumes what its brackets hold, joined, and produces the rest, so `[A] [B] C` consumes `A.B` and `C [A]` is `[A] C`. Parentheses only group inside brackets and particles.
+  - Whitespace is Unicode's pattern whitespace and a byte order mark. Control characters, invisible or direction-changing format characters and spaces that are not whitespace are refused inside an atom, and atoms compare by code point. The only other error is an unclosed or unmatched bracket.
   - A JSON program is read only in the shapes its text can write: an object for each program, scope and rule, an array for each particle, and atoms spelled as text spells them. Rules carry no `name`; every rule is shown by its printed text.
-  - Diagnostics are `syntax`, `depth`, `input` (formerly `lowering`), `expansion`, `library`, `json`, `read` and `encoding`. An unclosed or mismatched delimiter is reported where it opens.
+  - Diagnostics are `syntax`, `depth`, `expansion`, `library`, `json`, `read` and `encoding`. An unclosed or mismatched bracket is reported where it opens.
   - A rule value firing in a coherence keeps its output in place; only a scope's own rules return output to the scope around it.
 - Exploring
   - Configurations with interchangeable parts are named part by part, and every search for a canonical form is charged to the work budget, so programs with many alike scopes, seeds or calls no longer stall.
