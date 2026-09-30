@@ -662,7 +662,7 @@ fn shape() {
     };
     let same = group(&["and.particle", "or.particle"], Vec::new());
     assert_eq!(same.class.len(), 1);
-    assert_eq!(same.class[0].renaming, vec!["And → Or (True False)"]);
+    assert_eq!(same.class[0].renaming, vec!["And → Or, (True False)"]);
     assert_eq!(
         group(
             &["and.particle", "or.particle", "equal.particle"],
@@ -1311,4 +1311,57 @@ fn limit() {
         &mut context,
     );
     assert!(inspect.contains("and 11 more events"), "{inspect}");
+}
+
+// Shape lists each piece of a renaming apart, prints no blank lines for an empty program, drops
+// patterns whose copies are identical as the viewers do, and refuses a node budget of 0.
+#[test]
+fn outline() {
+    let shape = |source: &[&str], node: usize| {
+        answer(&Request::Shape(crate::shape::Request {
+            program: source
+                .iter()
+                .map(|source| Subject {
+                    source: Some((*source).to_owned()),
+                    ..Subject::default()
+                })
+                .collect(),
+            target: None,
+            fix: Vec::new(),
+            node,
+        }))
+    };
+    let Ok(Answer::Shape(chain)) = shape(&["A, B, [A] X, [B] Y", "C, D, [C] Z, [D] W"], 1_000_000)
+    else {
+        panic!("shape answers");
+    };
+    assert_eq!(chain.class[0].renaming.len(), 1);
+    assert_eq!(
+        chain.class[0].renaming[0].matches(", ").count(),
+        3,
+        "{}",
+        chain.class[0].renaming[0]
+    );
+    let Ok(Answer::Shape(empty)) = shape(&[""], 1_000_000) else {
+        panic!("shape answers");
+    };
+    assert!(
+        !empty.text().contains("\n\n") && !empty.text().ends_with('\n'),
+        "{:?}",
+        empty.text()
+    );
+    let Ok(Answer::Shape(twice)) = shape(&["[A] B, [A] B"], 1_000_000) else {
+        panic!("shape answers");
+    };
+    assert!(
+        twice
+            .form
+            .as_ref()
+            .is_some_and(|form| form.pattern.is_empty())
+    );
+    assert!(!twice.text().contains("identical"), "{}", twice.text());
+    let Err(refused) = shape(&["[A] B"], 0) else {
+        panic!("a node budget of 0 is refused");
+    };
+    assert_eq!(refused.code, Code::Request);
 }
