@@ -66,21 +66,21 @@ impl Context<'_> {
                     "plain mode runs on laser or metal; the interpreter explores with inference",
                 ));
             }
-            (Mode::Plain, engine) => engine.unwrap_or(Engine::Laser),
-            (_, Some(Engine::Metal)) => {
+            (_, Some(Engine::Metal)) if mode != Mode::Plain => {
                 return Err(Failure::new(
                     Code::Request,
                     "metal explores every schedule of plain events; set mode to plain",
                 ));
             }
+            (Mode::Path, Some(Engine::Laser)) => {
+                return Err(Failure::new(
+                    Code::Request,
+                    "a direct path follows the interpreter's scheduler; laser explores every future, so leave engine out in path mode",
+                ));
+            }
+            (Mode::Path, _) => Engine::Interpreter,
             (_, engine) => engine.unwrap_or_default(),
         };
-        if mode == Mode::Path && engine == Engine::Laser {
-            return Err(Failure::new(
-                Code::Request,
-                "a direct path follows the interpreter's scheduler; laser explores every future, so leave engine out in path mode",
-            ));
-        }
         if mode != Mode::Path && recording.goal.is_some() {
             return Err(Failure::new(
                 Code::Request,

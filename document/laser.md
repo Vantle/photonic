@@ -6,14 +6,14 @@ Laser is Photonic's second engine for exploring every future of a program, besid
 
 | Where | How |
 | --- | --- |
-| `photonic run` | `--engine laser` lists the configurations Laser reaches, and `--plain` those of every schedule of plain events; `--worker` sets its threads and `--json` prints its report. |
-| `photonic prism` | `--engine laser` answers reached, unreachable or unknown for an exact target from Laser's exploration, and `--plain` from every schedule of plain events. `--path` follows the interpreter's scheduler, so it refuses an engine and plain mode. |
-| Spectrum | Every question takes `engine: laser` in exhaustive mode, and every verb takes `--engine laser`; see [Spectrum](spectrum.md#recordings). `mode: plain`, or `--plain`, explores every schedule of plain events on Laser, and with `engine: metal`, or `--engine metal`, through the program's [net of parts](#nets-of-parts) on the GPU through [Metal](#the-metal-backend), for `explore` and `check`. `check --plain --engine metal --end` with `--exact` and `--preserve` asks what `photonic_test(every = True)` checks. |
+| `photonic run` | Lists the configurations Laser reaches, `--engine interpreter` those the interpreter reaches, and `--plain` those of every schedule of plain events; `--worker` sets its threads, every core by default, and `--json` prints its report. |
+| `photonic prism` | Answers reached, unreachable or unknown for an exact target from Laser's exploration, `--engine interpreter` from the interpreter's, and `--plain` from every schedule of plain events. `--path` follows the interpreter's scheduler, so it refuses an engine and plain mode. |
+| Spectrum | Every question explores with Laser on every core in exhaustive mode unless it takes `engine: interpreter`, as every verb takes `--engine interpreter`; see [Spectrum](spectrum.md#recordings). `mode: plain`, or `--plain`, explores every schedule of plain events on Laser, and with `engine: metal`, or `--engine metal`, through the program's [net of parts](#nets-of-parts) on the GPU through [Metal](#the-metal-backend), for `explore` and `check`. `check --plain --engine metal --end` with `--exact` and `--preserve` asks what `photonic_test(every = True)` checks. |
 | `photonic_test` | Every exhaustive case also runs on Laser and fails unless Laser gives the interpreter's answer, or the interpreter's exploration stayed open and one of the two answers is unknown. `every = True` runs Laser alone and requires every schedule of plain events to end exactly at a target; see [every schedule](#every-schedule). |
 
 ```sh
-bazel run -c opt //command:photonic -- run program/language/inference.wave --engine laser
-bazel run -c opt //command:photonic -- explore program/language/conjunction.wave --engine laser
+bazel run -c opt //command:photonic -- run program/language/inference.wave
+bazel run -c opt //command:photonic -- explore program/language/conjunction.wave --engine interpreter
 ```
 
 ## The contract

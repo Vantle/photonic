@@ -210,7 +210,7 @@ pub(crate) fn state(summary: &Summary) -> String {
     match (summary.mode, summary.engine) {
         (Mode::Plain, Engine::Metal) => part.extend(["plain".to_owned(), "metal".to_owned()]),
         (Mode::Plain, _) => part.push("plain".to_owned()),
-        (_, Engine::Laser) => part.push("laser".to_owned()),
+        (Mode::Exhaustive, Engine::Interpreter) => part.push("interpreter".to_owned()),
         _ => {}
     }
     part.extend([

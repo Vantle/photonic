@@ -126,7 +126,7 @@ pub struct Search {
     #[arg(
         long,
         conflicts_with = "path",
-        help = "The engine: interpreter or laser record every event of every future; with --plain, laser records every plain schedule, and metal explores them at GPU scale through the program's net of parts, keeping only counts, ends and cycles, so it answers explore and check alone"
+        help = "The engine: laser, the default, or interpreter records every event of every future; with --plain, laser records every plain schedule, and metal explores them at GPU scale through the program's net of parts, keeping only counts, ends and cycles, so it answers explore and check alone"
     )]
     pub engine: Option<Engine>,
 }
@@ -192,6 +192,11 @@ pub struct Lower {
     pub source: Source,
 }
 
+// The cores the machine has, or one where it cannot tell.
+fn core() -> NonZeroUsize {
+    std::thread::available_parallelism().unwrap_or(NonZeroUsize::MIN)
+}
+
 #[derive(Args)]
 pub struct Run {
     #[arg(
@@ -203,7 +208,11 @@ pub struct Run {
     pub source: Source,
     #[command(flatten)]
     pub budget: Budget,
-    #[arg(long, default_value_t = NonZeroUsize::MIN, help = "Threads that explore in parallel")]
+    #[arg(
+        long,
+        default_value_t = core(),
+        help = "Threads that explore in parallel, every core by default"
+    )]
     pub worker: NonZeroUsize,
     #[arg(
         long,
@@ -212,7 +221,7 @@ pub struct Run {
     pub plain: bool,
     #[arg(
         long,
-        help = "The engine that explores: interpreter, the default, or laser, which carries matches back along events and names configurations by their components; both close with the same answers, and plain mode runs on laser"
+        help = "The engine that explores: laser, the default, which carries matches back along events and names configurations by their components, or interpreter; both close with the same answers, and plain mode runs on laser"
     )]
     pub engine: Option<Engine>,
     #[arg(long, help = "Print the complete execution report as JSON")]

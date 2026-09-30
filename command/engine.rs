@@ -77,16 +77,15 @@ fn load(file: &[PathBuf], source: &argument::Source) -> Result<Program, Failure>
     source.subject(file).assemble(&Disk)
 }
 
-// The engine a run explores with: the interpreter unless asked otherwise, and laser in plain mode,
-// since the interpreter explores with inference.
+// The engine a run explores with: laser unless asked otherwise; the interpreter explores with
+// inference, so plain mode refuses it.
 fn engine(argument: &argument::Run) -> Result<Engine, Failure> {
     match (argument.plain, argument.engine) {
         (true, Some(Engine::Interpreter)) => Err(Failure::new(
             Code::Request,
             "plain mode runs on laser; the interpreter explores with inference",
         )),
-        (true, engine) => Ok(engine.unwrap_or(Engine::Laser)),
-        (false, engine) => Ok(engine.unwrap_or_default()),
+        (_, engine) => Ok(engine.unwrap_or_default()),
     }
 }
 

@@ -4,6 +4,7 @@ use crate::numbering::Numbering;
 use crate::order::{self, Canonical, Naming};
 use crate::recording::{Engine, Mode, Order};
 use frontend::source::{Definition, Program};
+use photonic::executor::Executor;
 use photonic::laser::Laser;
 use photonic::laser::ending;
 use photonic::place::Place;
@@ -12,6 +13,15 @@ use photonic::runtime::Runtime;
 use photonic::snapshot::{self, Link, Node};
 use photonic::status::Status;
 use std::collections::VecDeque;
+use std::sync::OnceLock;
+
+// Explorations run on every core the machine has, through one pool the process keeps; both engines
+// explore identically on any number of threads, so no answer depends on it.
+fn executor() -> Option<&'static Executor> {
+    static POOL: OnceLock<Option<Executor>> = OnceLock::new();
+    POOL.get_or_init(|| Executor::new(std::thread::available_parallelism().ok()?).ok())
+        .as_ref()
+}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Rule {
@@ -285,7 +295,10 @@ impl Exploration {
 
     fn interpret(plan: Plan) -> Self {
         let mut runtime = Runtime::new(&plan.canonical.program);
-        runtime.run(plan.budget.work, plan.budget.limit());
+        match executor() {
+            Some(executor) => runtime.parallel(executor, plan.budget.work, plan.budget.limit()),
+            None => runtime.run(plan.budget.work, plan.budget.limit()),
+        }
         let snapshot = runtime.snapshot();
         let event = snapshot
             .event
@@ -327,7 +340,10 @@ impl Exploration {
             Mode::Plain => Laser::plain(&plan.canonical.program),
             Mode::Exhaustive | Mode::Path => Laser::new(&plan.canonical.program),
         };
-        laser.run(plan.budget.work, plan.budget.limit());
+        match executor() {
+            Some(executor) => laser.parallel(executor, plan.budget.work, plan.budget.limit()),
+            None => laser.run(plan.budget.work, plan.budget.limit()),
+        }
         let report = laser.report();
         let record = Record {
             closed: report.closed,

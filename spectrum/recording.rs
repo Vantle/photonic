@@ -18,11 +18,11 @@ pub enum Mode {
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Hash, JsonSchema, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
 #[schemars(
-    description = "The engine that explores: the interpreter, or laser, which carries matches back along events and names configurations by their components, explore every future and record every event, and both close with the same configurations, events and answers, each numbering handles in its own order. Plain mode runs on laser, or on metal, which explores the program's net of parts on the GPU through Metal where there is one and on the host otherwise; it keeps only counts, the configurations where runs end and whether a run can go on forever, so it answers explore and check alone, at a scale no recording reaches. Direct paths always follow the interpreter's scheduler."
+    description = "The engine that explores: laser, the default, which carries matches back along events and names configurations by their components, or the interpreter. Both explore every future on every core and record every event, close with the same configurations, events and answers, and name the same handles; each counts its own work and gives its own deductions. Plain mode runs on laser, or on metal, which explores the program's net of parts on the GPU through Metal where there is one and on the host otherwise; it keeps only counts, the configurations where runs end and whether a run can go on forever, so it answers explore and check alone, at a scale no recording reaches. Direct paths always follow the interpreter's scheduler."
 )]
 pub enum Engine {
-    #[default]
     Interpreter,
+    #[default]
     Laser,
     Metal,
 }

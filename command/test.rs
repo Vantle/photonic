@@ -687,9 +687,12 @@ fn question() {
 fn spectrum() {
     let fixture = Fixture::new();
     let path = fixture.write("bug.wave", BUG);
-    let laser = ["--engine", "laser"];
-    let interpreter = envelope(&execute("explore", &path, &["--json"]));
-    let compiled = envelope(&execute("explore", &path, &["--json", "--engine", "laser"]));
+    let compiled = envelope(&execute("explore", &path, &["--json"]));
+    let interpreter = envelope(&execute(
+        "explore",
+        &path,
+        &["--json", "--engine", "interpreter"],
+    ));
     assert_eq!(interpreter["answer"]["engine"], "interpreter");
     assert_eq!(compiled["answer"]["engine"], "laser");
     for field in ["complete", "configuration", "event", "inferred", "depth"] {
@@ -702,8 +705,10 @@ fn spectrum() {
         compiled["answer"]["exploration"],
         interpreter["answer"]["exploration"]
     );
-    let text = execute("explore", &path, &laser);
-    assert!(String::from_utf8_lossy(&text.stdout).contains(" · laser · "));
+    let text = execute("explore", &path, &["--engine", "interpreter"]);
+    assert!(String::from_utf8_lossy(&text.stdout).contains(" · interpreter · "));
+    let default = execute("explore", &path, &[]);
+    assert!(!String::from_utf8_lossy(&default.stdout).contains(" · interpreter · "));
     let held = execute(
         "check",
         &path,

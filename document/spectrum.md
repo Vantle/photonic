@@ -16,7 +16,7 @@ bazel run -c opt //command:photonic -- explore program/language/conjunction.wave
 ```
 
 ```
-x4cb3e60ff1794f1b · closed · 14 configurations · 17 events, 4 inferred · depth 3 · work 240 · shape 2a2059d40174b9fb
+x79d77fbf7616652f · closed · 14 configurations · 17 events, 4 inferred · depth 3 · work 41 · shape 2a2059d40174b9fb
 end    s3    Boolean.Extra
        s11   in f1: Boolean.Boolean.Extra
        s12   in f1: Boolean.Extra
@@ -40,7 +40,7 @@ bazel run -c opt //command:photonic -- cause program/language/conjunction.wave s
 ```
 no diagnostics
 reach False.Extra exactly   holds   s6 by e3 e8   s6 is the target
-x4cb3e60ff1794f1b · closed · 14 configurations · 17 events, 4 inferred · depth 3 · work 240 · shape 2a2059d40174b9fb
+x79d77fbf7616652f · closed · 14 configurations · 17 events, 4 inferred · depth 3 · work 41 · shape 2a2059d40174b9fb
 
 s6 False.Extra
 path       e3    r0 [And.Boolean.Boolean] (…)   s4 in f1: True.False.Extra   inferred
@@ -76,7 +76,7 @@ bazel run -c opt //command:photonic -- compare program/language/conjunction.wave
 ```
 
 ```
-compare x4cb3e60ff1794f1b x7e8e5304e94f112f
+compare x79d77fbf7616652f xabb1ecb46dec2743
 configurations   14 → 18
   + Boolean.Boolean.Extra   s7   by e3 e10
   + False.Boolean.Extra     s14   by e4 e11 e15
@@ -115,7 +115,7 @@ Every question except `shape` is about a recording: a program to explore, or the
 | `program` | The program: `file`, a list of `.wave` or `.particle` sources or `.json` programs that Bazel assembled, read in order; `source`, Photonic written inline and read after the files; and `library`, files of declarations loaded first. |
 | `exploration` | The key of an exploration, such as `x91c7f6619ec81b4b`, instead of `program`. A key already fixes the mode, engine, budget and goal, so it comes alone. |
 | `mode` | `exhaustive`, the default, explores every configuration within the budget; `plain` explores every schedule of plain events, the events a configuration's own matches identify, without inference, on Laser or on metal; `path` follows one direct path, as `photonic_test(path = True)` does. |
-| `engine` | In exhaustive mode, `interpreter`, the default, or `laser`, which carries matches back along events and names configurations by their components. Both close with the same configurations, events, inferred events and answers, and Spectrum numbers both the same way, so an exploration that closes names the same handles on either. Each counts its own work and gives its own deductions, and their keys differ. In plain mode, `laser`, the default, or `metal`, which explores the program's [net of parts](laser.md#nets-of-parts) on the GPU through Metal where there is one and on the host otherwise. Metal keeps no events, only the counts, the configurations where runs end and whether a run can go on forever, so only `explore` and `check` take its explorations, its ends have no handles, and it answers `end` and `outcome` claims; in exchange it reaches tens of millions of configurations where a recording keeps thousands. A program whose root ties to one of its components has no net of parts, and metal refuses it. A direct path always follows the interpreter's scheduler. |
+| `engine` | In exhaustive mode, `laser`, the default, which carries matches back along events and names configurations by their components, or `interpreter`. Both explore on every core the machine has, close with the same configurations, events, inferred events and answers, and Spectrum numbers both the same way, so an exploration that closes names the same handles on either. Each counts its own work and gives its own deductions, and their keys differ. In plain mode, `laser`, the default, or `metal`, which explores the program's [net of parts](laser.md#nets-of-parts) on the GPU through Metal where there is one and on the host otherwise. Metal keeps no events, only the counts, the configurations where runs end and whether a run can go on forever, so only `explore` and `check` take its explorations, its ends have no handles, and it answers `end` and `outcome` claims; in exchange it reaches tens of millions of configurations where a recording keeps thousands. A program whose root ties to one of its components has no net of parts, and metal refuses it. A direct path always follows the interpreter's scheduler. |
 | `budget` | The limits below. |
 | `goal` | In path mode only, the configuration the path stops at: `{"configuration": "False.Extra", "preserve": true}`, where `preserve` adds every loaded root rule, as Prism reads targets. |
 
@@ -204,7 +204,7 @@ A request names its verb and carries the question's fields as one JSON object, w
 ```
 
 ```json
-{"version": 1, "verb": "cause", "answer": {"exploration": "x7e8e5304e94f112f", "handle": "s6.o1", "kind": "occurrence", "text": "True", "configuration": "False.True.Extra", "lineage": [{"configuration": "s6", "occurrence": "s6.o1", "event": "e11", "rule": "r2 [False] False", "role": "remainder", "source": ["s5.o2"], "text": "consumes False; True stays in the remainder"}, …]}}
+{"version": 1, "verb": "cause", "answer": {"exploration": "xabb1ecb46dec2743", "handle": "s6.o1", "kind": "occurrence", "text": "True", "configuration": "False.True.Extra", "lineage": [{"configuration": "s6", "occurrence": "s6.o1", "event": "e11", "rule": "r2 [False] False", "role": "remainder", "source": ["s5.o2"], "text": "consumes False; True stays in the remainder"}, …]}}
 ```
 
 Every field is checked against the question's schema, so a misspelled field is an error that lists the fields the question takes, never a silent default.

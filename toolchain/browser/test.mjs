@@ -23,7 +23,7 @@ for (const source of [
 ]) {
     const path = join(process.env.TEST_TMPDIR, 'source.wave');
     await writeFile(path, source);
-    const native = spawnSync(command, ['run', path, '--work', '20000', '--configuration', '128', '--occurrence', '128', '--scope', '16', '--coherence', '16', '--record', '100000', '--json'], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+    const native = spawnSync(command, ['run', path, '--engine', 'interpreter', '--work', '20000', '--configuration', '128', '--occurrence', '128', '--scope', '16', '--coherence', '16', '--record', '100000', '--json'], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
     assert.equal(native.status, 0, native.error?.message || native.stderr);
     const response = explore({ source, target: [] });
     assert.equal(response.error, undefined);
