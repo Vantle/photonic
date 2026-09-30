@@ -1,13 +1,19 @@
+use std::fmt;
 use std::hint::black_box;
 use std::num::NonZeroUsize;
-use std::time::{Duration, Instant};
+use std::process::ExitCode;
+use std::time::Instant;
 
 use clap::Parser;
 use photonic::executor::Executor;
 use photonic::runtime::{Limit, Runtime};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 mod directory;
+mod exit;
+mod reference;
+mod statistic;
+mod warm;
 
 #[global_allocator]
 static ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
@@ -18,81 +24,97 @@ struct Argument {
     worker: NonZeroUsize,
     #[arg(long)]
     source: Option<std::path::PathBuf>,
+    #[arg(long, default_value_t = 12_000, help = "Interpreter work steps")]
+    budget: usize,
+    #[arg(long, default_value = "25", help = "Measured runs of each program")]
+    sample: NonZeroUsize,
 }
 
-#[derive(Deserialize)]
-struct Case {
+#[derive(Debug)]
+struct Open {
     name: String,
-    program: frontend::source::Program,
-    closed: bool,
 }
+
+impl fmt::Display for Open {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            formatter,
+            "{} did not close within the budget; raise --budget",
+            self.name
+        )
+    }
+}
+
+impl std::error::Error for Open {}
 
 #[derive(Serialize)]
 struct Measurement {
     name: String,
-    sample: usize,
     worker: usize,
     record: usize,
     peak: usize,
     work: usize,
     state: usize,
     event: usize,
-    minimum: f64,
-    median: f64,
-    maximum: f64,
+    second: statistic::Spread,
 }
 
 fn evaluate(
-    program: frontend::source::Program,
+    name: &str,
+    program: &frontend::source::Program,
     executor: &Executor,
-) -> photonic::snapshot::Snapshot {
+    budget: usize,
+) -> Result<(photonic::snapshot::Snapshot, f64), Open> {
+    let program = program.clone();
+    let start = Instant::now();
     let mut runtime = Runtime::new(&black_box(program));
-    runtime.parallel(executor, 12_000, Limit::default());
-    black_box(runtime.snapshot())
+    runtime.parallel(executor, budget, Limit::default());
+    let snapshot = black_box(runtime.snapshot());
+    let second = start.elapsed().as_secs_f64();
+    if !snapshot.closed {
+        return Err(Open {
+            name: name.to_owned(),
+        });
+    }
+    Ok((snapshot, second))
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> ExitCode {
+    exit::code(run(&Argument::parse()))
+}
+
+fn run(argument: &Argument) -> Result<(), Box<dyn std::error::Error>> {
     directory::enter()?;
-    let argument = Argument::parse();
     let executor = Executor::new(argument.worker)?;
     let fixture = if let Some(path) = &argument.source {
-        vec![Case {
+        vec![reference::Case {
             name: path.display().to_string(),
             program: frontend::lowering::parse(&std::fs::read_to_string(path)?)?,
             closed: true,
         }]
     } else {
-        serde_json::from_str::<Vec<Case>>(include_str!("../language/test/reference.json"))?
+        reference::load()?
     };
     let mut report = Vec::new();
     for case in fixture.into_iter().filter(|case| case.closed) {
-        let result = evaluate(case.program.clone(), &executor);
-        assert!(result.closed, "{} did not close", case.name);
-        let warm = Instant::now();
-        while warm.elapsed() < Duration::from_millis(100) {
-            assert!(evaluate(case.program.clone(), &executor).closed);
+        let run = || evaluate(&case.name, &case.program, &executor, argument.budget);
+        let (result, _) = run()?;
+        warm::warm(|| run().map(drop))?;
+        let (_, first) = run()?;
+        let mut sample = statistic::Sample::new(first);
+        for _ in 1..argument.sample.get() {
+            let (_, second) = run()?;
+            sample.push(second);
         }
-        let mut duration = Vec::new();
-        for _ in 0..25 {
-            let program = case.program.clone();
-            let start = Instant::now();
-            let result = evaluate(program, &executor);
-            duration.push(start.elapsed().as_secs_f64() * 1_000_000.0);
-            assert!(result.closed);
-        }
-        duration.sort_by(f64::total_cmp);
         report.push(Measurement {
             name: case.name,
-            sample: duration.len(),
             worker: argument.worker.get(),
             record: result.record,
             peak: result.peak,
             work: result.work,
             state: result.state.len(),
             event: result.event.len(),
-            minimum: duration[0],
-            median: duration[duration.len() / 2],
-            maximum: duration[duration.len() - 1],
+            second: sample.spread(),
         });
     }
     serde_json::to_writer_pretty(std::io::stdout().lock(), &report)?;

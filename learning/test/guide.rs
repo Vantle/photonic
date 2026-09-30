@@ -1,7 +1,9 @@
+use super::support::Directory;
 use crate::edit::Bound;
 use crate::encoding::{DIMENSION, Shape};
 use crate::guide::{Effort, Network, search};
 use crate::objective::{Setting, TOLERANCE};
+use crate::placement::Placement;
 use crate::task::{Example, Task};
 use code::observation::Observation;
 use network::checkpoint;
@@ -34,7 +36,7 @@ fn task() -> Task {
     }
 }
 
-fn untrained(name: &str) -> Network {
+fn untrained() -> Network {
     let shape = Shape {
         width: DIMENSION,
         depth: 1,
@@ -44,23 +46,37 @@ fn untrained(name: &str) -> Network {
     };
     let model = Model::new(shape.architecture(), &mut Generator::new(1));
     let optimizer = Optimizer::new(model.size(), network::optimizer::Setting::default());
-    let path =
-        std::env::temp_dir().join(format!("learning-{name}-{}.checkpoint", std::process::id()));
+    let directory = Directory::new("guide");
+    let path = directory.path.join("model.checkpoint");
     checkpoint::save(&path, &model, &optimizer).unwrap();
-    let network = Network::load(&path).unwrap();
-    std::fs::remove_file(&path).unwrap();
-    network
+    Network::load(&path, Placement::Automatic).unwrap()
+}
+
+#[test]
+fn placement() {
+    let model = Model::new(
+        Shape {
+            width: DIMENSION,
+            depth: 1,
+            head: 1,
+            hidden: 32,
+            key: DIMENSION,
+        }
+        .architecture(),
+        &mut Generator::new(1),
+    );
+    assert!(Placement::Processor.engine(&model).unwrap().is_none());
 }
 
 #[test]
 fn rename() {
-    let mut network = untrained("rename");
+    let mut network = untrained();
     let guidance = search(
         &task(),
         &Bound::default(),
         &Setting::default(),
         Effort {
-            time: Duration::from_secs(60),
+            time: Duration::MAX,
             expansion: 100_000,
         },
         1.6,
@@ -77,13 +93,13 @@ fn rename() {
 
 #[test]
 fn limit() {
-    let mut network = untrained("limit");
+    let mut network = untrained();
     let guidance = search(
         &task(),
         &Bound::default(),
         &Setting::default(),
         Effort {
-            time: Duration::from_secs(60),
+            time: Duration::MAX,
             expansion: 10,
         },
         0.0,

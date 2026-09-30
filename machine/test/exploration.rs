@@ -175,3 +175,14 @@ fn deadline() {
     };
     assert!(explore(&program, state(&[&[A], &[A]]), &later, |_| false).complete());
 }
+
+#[test]
+fn oversize() {
+    let program = program(vec![rule(&[&[A]], &[&[B]])]);
+    let narrow = Limit {
+        coherence: 1,
+        ..Limit::default()
+    };
+    let exploration = explore(&program, state(&[&[C], &[C]]), &narrow, |_| false);
+    assert!(exploration.overflow && exploration.terminal.is_empty());
+}

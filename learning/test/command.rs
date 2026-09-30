@@ -1,5 +1,5 @@
 use learning::encoding::{DIMENSION, Shape};
-use learning::home::{CHECKPOINT, POOL};
+use learning::home::{ARCHIVE, CHECKPOINT, POOL};
 use network::checkpoint;
 use network::model::Model;
 use network::optimizer::{self, Optimizer};
@@ -104,12 +104,35 @@ fn range() {
     ] {
         assert!(fail(&argument).contains("a share must be"), "{argument:?}");
     }
-    for argument in [["train", "--game=0"], ["improve", "--worker=0"]] {
+    for argument in [
+        ["train", "--game=0"],
+        ["improve", "--worker=0"],
+        ["train", "--trainer=0"],
+        ["train", "--simulation=0"],
+        ["train", "--considered=0"],
+        ["train", "--step=0"],
+        ["train", "--depth=0"],
+        ["train", "--hidden=0"],
+        ["curriculum", "--exam=0"],
+    ] {
         assert!(fail(&argument).contains("at least 1"), "{argument:?}");
     }
     for argument in [["improve", "--frozen"], ["curriculum", "--frozen"]] {
         assert!(fail(&argument).contains("--frozen"), "{argument:?}");
     }
+    let fixture = Fixture::new();
+    let frozen = fail(&[
+        "train",
+        "--home",
+        &fixture.home(),
+        "--frozen",
+        "--update",
+        "3",
+    ]);
+    assert!(
+        frozen.contains("--update counts training steps"),
+        "{frozen}"
+    );
     let help = succeed(&["--help"]);
     for text in [
         "Train the network by self-play",
@@ -199,27 +222,31 @@ fn copy() {
         "2",
     ]);
     assert!(report.contains("rename.p2.s0.2: optimal cost"), "{report}");
+    let again = succeed(&[
+        "solve",
+        "--home",
+        &home,
+        "--task",
+        "rename.p2.s0.2",
+        "--task",
+        "rename",
+        "--processor",
+        "3",
+    ]);
+    assert!(again.contains("rename.p3.s0.2: optimal cost"), "{again}");
+    assert!(again.contains("found programs for 1 of 1 tasks"), "{again}");
+    let pool = std::fs::read_to_string(fixture.path.join("home").join(POOL)).unwrap();
+    assert_eq!(pool.matches(r#""name":"rename.p3.s0.2""#).count(), 1);
+    assert!(!pool.contains("rename.p2.s0.2.p3"));
+    let message = fail(&["solve", "--home", &home, "--name", "alone"]);
+    assert!(message.contains("--input"), "{message}");
 }
 
 #[test]
 fn guided() {
     let fixture = Fixture::new();
     let home = fixture.home();
-    let shape = Shape {
-        width: DIMENSION,
-        depth: 1,
-        head: 1,
-        hidden: 32,
-        key: DIMENSION,
-    };
-    let model = Model::new(shape.architecture(), &mut Generator::new(1));
-    let optimizer = Optimizer::new(model.size(), optimizer::Setting::default());
-    checkpoint::save(
-        &fixture.path.join("home").join(CHECKPOINT),
-        &model,
-        &optimizer,
-    )
-    .unwrap();
+    untrained(&fixture);
     let input = fixture.write("input.wave", "A");
     let output = fixture.write("output.wave", "B");
     let report = succeed(&[
@@ -238,4 +265,202 @@ fn guided() {
         report.contains("rename: optimal, because every correct program costs at least 1.250"),
         "{report}"
     );
+}
+
+#[test]
+fn deadline() {
+    let fixture = Fixture::new();
+    let input = fixture.write("input.wave", "X.([A] B)");
+    let output = fixture.write("output.wave", "C");
+    let report = succeed(&[
+        "solve",
+        "--home",
+        &fixture.home(),
+        "--input",
+        &input,
+        "--output",
+        &output,
+        "--enumerate",
+        "1",
+    ]);
+    assert!(
+        report.contains("found programs for 0 of 1 tasks"),
+        "{report}"
+    );
+}
+
+const TASK: &str = r#"{"name":"NAME","vocabulary":["A","B"],"example":[{"input":[[{"Atom":0}]],"output":[[{"id":0,"value":{"Atom":1}}]]}],"holdout":[],"reference":null,"goal":null}"#;
+
+const RECORD: &str = r#"{"program":{"rule":[{"input":[[{"Atom":5}]],"output":[{"Particle":[{"Atom":1}]}]}]},"cost":1.0,"correctness":1.0,"time":0.0,"work":0.0,"span":0.0,"size":4,"verified":true,"general":true,"proof":null,"moment":0}"#;
+
+#[test]
+fn stale() {
+    let fixture = Fixture::new();
+    let home = fixture.home();
+    let task = |name: &str| TASK.replace("NAME", name);
+    fixture.write(
+        &format!("home/{POOL}"),
+        &format!("[{},{}]", task("stale"), task("fresh")),
+    );
+    fixture.write(
+        &format!("home/{ARCHIVE}"),
+        &format!(r#"{{"stale":{{"best":{RECORD},"partial":null,"baseline":2.0}}}}"#),
+    );
+    let message = "names atoms outside the task's vocabulary";
+    let status = succeed(&["status", "--home", &home, "--task", "stale"]);
+    assert!(status.contains(message), "{status}");
+    let verify = succeed(&["verify", "--home", &home, "--task", "stale"]);
+    assert!(verify.contains(message), "{verify}");
+    let report = succeed(&["solve", "--home", &home, "--task", "fresh"]);
+    assert!(
+        report.contains("found programs for 1 of 1 tasks"),
+        "{report}"
+    );
+    assert!(fixture.path.join("home/program/fresh.wave").exists());
+    assert!(!fixture.path.join("home/program/stale.wave").exists());
+}
+
+#[test]
+fn malformed() {
+    let fixture = Fixture::new();
+    fixture.write(
+        &format!("home/{POOL}"),
+        &format!(
+            "[{}]",
+            TASK.replace("NAME", "wide")
+                .replace(r#"{"Atom":1}"#, r#"{"Atom":7}"#)
+        ),
+    );
+    let message = fail(&["verify", "--home", &fixture.home()]);
+    assert!(message.contains("pool.json is malformed"), "{message}");
+    assert!(
+        message.contains("wide names an atom outside its vocabulary of 2"),
+        "{message}"
+    );
+}
+
+#[test]
+fn forever() {
+    let fixture = Fixture::new();
+    let home = fixture.home();
+    let input = fixture.write("input.wave", "A");
+    let output = fixture.write("output.wave", "B");
+    let maximum = u64::MAX.to_string();
+    succeed(&[
+        "curriculum",
+        "--home",
+        &home,
+        "--duration",
+        &maximum,
+        "--level",
+        "0",
+    ]);
+    succeed(&[
+        "improve",
+        "--home",
+        &home,
+        "--duration",
+        &maximum,
+        "--round",
+        "0",
+    ]);
+    let report = succeed(&[
+        "solve",
+        "--home",
+        &home,
+        "--input",
+        &input,
+        "--output",
+        &output,
+        "--enumerate",
+        &maximum,
+    ]);
+    assert!(
+        report.contains("found programs for 1 of 1 tasks"),
+        "{report}"
+    );
+}
+
+fn untrained(fixture: &Fixture) {
+    let shape = Shape {
+        width: DIMENSION,
+        depth: 1,
+        head: 1,
+        hidden: 32,
+        key: DIMENSION,
+    };
+    let model = Model::new(shape.architecture(), &mut Generator::new(1));
+    let optimizer = Optimizer::new(model.size(), optimizer::Setting::default());
+    checkpoint::save(
+        &fixture.path.join("home").join(CHECKPOINT),
+        &model,
+        &optimizer,
+    )
+    .unwrap();
+}
+
+#[test]
+fn rest() {
+    let fixture = Fixture::new();
+    let home = fixture.home();
+    let rounds = succeed(&[
+        "improve",
+        "--home",
+        &home,
+        "--round",
+        "2",
+        "--practice",
+        "0",
+        "--fresh",
+        "1",
+        "--guide",
+        "0",
+        "--device",
+        "cpu",
+    ]);
+    assert!(rounds.contains("round 2: solved"), "{rounds}");
+    let blank = Fixture::new();
+    let message = fail(&["curriculum", "--home", &blank.home(), "--practice", "0"]);
+    assert!(message.contains("holds none"), "{message}");
+    untrained(&fixture);
+    let exam = succeed(&[
+        "curriculum",
+        "--home",
+        &home,
+        "--practice",
+        "0",
+        "--level",
+        "1",
+        "--exam",
+        "1",
+        "--fresh",
+        "0",
+        "--mastery",
+        "0",
+        "--expansion",
+        "8",
+        "--enumerate",
+        "60",
+        "--device",
+        "cpu",
+    ]);
+    assert!(exam.contains("round 1: level 1"), "{exam}");
+    assert!(exam.contains("level 1 mastered"), "{exam}");
+}
+
+#[test]
+fn builtin() {
+    let fixture = Fixture::new();
+    let report = succeed(&[
+        "solve",
+        "--home",
+        &fixture.home(),
+        "--task",
+        "boolean.and",
+        "--limit",
+        "2",
+    ]);
+    assert!(report.contains("of 1 tasks"), "{report}");
+    let pool = std::fs::read_to_string(fixture.path.join("home").join(POOL)).unwrap();
+    assert!(pool.contains("boolean.and"));
 }

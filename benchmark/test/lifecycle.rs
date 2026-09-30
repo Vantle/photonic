@@ -41,6 +41,7 @@ fn verify(argument: &[&str]) {
         let mut released = 0;
         let mut retained = 0;
         let mut peak = 0;
+        let mut duration = 0.0;
         for phase in [
             "initialization",
             "execution",
@@ -49,7 +50,7 @@ fn verify(argument: &[&str]) {
             "release",
         ] {
             assert!(plain[phase].get("allocation").is_none());
-            assert!(plain[phase]["duration"].as_f64().unwrap() >= 0.0);
+            duration += plain[phase]["duration"].as_f64().unwrap();
             let allocation = &counted[phase]["allocation"];
             allocated += allocation["allocated"].as_i64().unwrap();
             released += allocation["released"].as_i64().unwrap();
@@ -59,6 +60,7 @@ fn verify(argument: &[&str]) {
             assert!(retained >= 0);
             assert!(peak >= retained);
         }
+        assert!((plain["duration"].as_f64().unwrap() - duration).abs() < 1e-9);
         assert_eq!(retained, 0);
         assert_eq!(counted["footprint"]["allocated"], allocated);
         assert_eq!(counted["footprint"]["released"], released);
@@ -88,15 +90,56 @@ fn lifecycle() {
     verify(&["exhaustive", source, "--sample", "2"]);
     verify(&["expression", "2+2", "11", "--sample", "2"]);
     for name in ["LIFECYCLE", "ALLOCATION"] {
-        for argument in [
-            vec!["direct", source, "C, [A] B, [B] C", "--sample", "0"],
-            vec!["direct", source, "C, [A] B, [B] C", "--budget", "0"],
-            vec!["direct", source, "C, [A] B, [B] C", "--budget", "1"],
-            vec!["direct", source, "Missing"],
-            vec!["expression", "3+1", "11"],
-            vec!["expression", "2+2", "3"],
+        for (argument, code, message) in [
+            (
+                vec!["direct", source, "C, [A] B, [B] C", "--sample", "0"],
+                2,
+                "--sample",
+            ),
+            (
+                vec!["direct", source, "C, [A] B, [B] C", "--budget", "0"],
+                2,
+                "--budget",
+            ),
+            (
+                vec!["direct", source, "C, [A] B, [B] C", "--budget", "1"],
+                1,
+                "instead of reaching the target",
+            ),
+            (
+                vec![
+                    "direct",
+                    source,
+                    "C, [A] B, [B] C",
+                    "--budget",
+                    "1",
+                    "--export",
+                    "view",
+                ],
+                1,
+                "instead of reaching the target",
+            ),
+            (
+                vec!["exhaustive", source, "--budget", "1"],
+                1,
+                "did not close within the budget",
+            ),
+            (
+                vec!["direct", source, "Missing"],
+                1,
+                "instead of reaching the target",
+            ),
+            (vec!["expression", "3+1", "11"], 1, ""),
+            (
+                vec!["expression", "2+2", "3"],
+                1,
+                "use a ternary expected result",
+            ),
         ] {
-            assert!(!execute(name, &argument).status.success());
+            let output = execute(name, &argument);
+            let error = String::from_utf8_lossy(&output.stderr);
+            assert_eq!(output.status.code(), Some(code), "{argument:?} {error}");
+            assert!(error.contains(message), "{argument:?} {error}");
         }
     }
 }
@@ -111,7 +154,12 @@ fn export() {
         vec!["direct", source, "C, [A] B, [B] C"],
         vec!["exhaustive", source],
     ] {
-        let mut expected = None;
+        let lifecycle = report("LIFECYCLE", &case);
+        let observation = &lifecycle["cold"]["observation"];
+        let mut expected = Some((
+            observation["byte"].clone(),
+            observation["fingerprint"].clone(),
+        ));
         for name in ["LIFECYCLE", "ALLOCATION"] {
             for mode in ["owned", "view"] {
                 for writer in [false, true] {

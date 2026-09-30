@@ -2,6 +2,8 @@ use clap::Parser;
 use photonic::runtime::Limit;
 
 mod evaluation;
+mod limit;
+mod warm;
 
 #[global_allocator]
 static ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;

@@ -1,13 +1,39 @@
+use crate::fingerprint::Fingerprint;
 use crate::meter::{self, Measurement};
+use photonic::prism::Outcome;
 use photonic::runtime::Limit;
 use serde::Serialize;
-use std::hash::{Hash, Hasher};
+use std::fmt;
 use std::hint::black_box;
+
+#[derive(Debug)]
+pub enum Failure {
+    Target(Outcome),
+    Open,
+    Encoding(serde_json::Error),
+}
+
+impl fmt::Display for Failure {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Target(outcome) => write!(
+                formatter,
+                "the search ended {outcome:?} instead of reaching the target; raise --budget"
+            ),
+            Self::Open => formatter
+                .write_str("the exploration did not close within the budget; raise --budget"),
+            Self::Encoding(error) => write!(formatter, "the report could not be encoded: {error}"),
+        }
+    }
+}
+
+impl std::error::Error for Failure {}
 
 pub trait Engine {
     type Report: Serialize;
 
     fn execute(&mut self, budget: usize, limit: Limit);
+    fn finish(&self) -> Result<(), Failure>;
     fn report(&self) -> Self::Report;
     fn stream(&self) -> impl Serialize + '_;
     fn observe(report: &Self::Report) -> Observation;
@@ -29,6 +55,14 @@ impl Engine for photonic::path::Search {
         self.run(budget, limit);
     }
 
+    fn finish(&self) -> Result<(), Failure> {
+        let outcome = self.summary().outcome;
+        if outcome == Outcome::Reached {
+            return Ok(());
+        }
+        Err(Failure::Target(outcome))
+    }
+
     fn report(&self) -> Self::Report {
         self.report()
     }
@@ -38,7 +72,6 @@ impl Engine for photonic::path::Search {
     }
 
     fn observe(report: &Self::Report) -> Observation {
-        assert_eq!(report.outcome, photonic::prism::Outcome::Reached);
         Observation {
             state: report.state.len(),
             event: report.event.len(),
@@ -56,6 +89,13 @@ impl Engine for photonic::runtime::Runtime {
         self.run(budget, limit);
     }
 
+    fn finish(&self) -> Result<(), Failure> {
+        if self.closed() {
+            return Ok(());
+        }
+        Err(Failure::Open)
+    }
+
     fn report(&self) -> Self::Report {
         self.snapshot()
     }
@@ -65,7 +105,6 @@ impl Engine for photonic::runtime::Runtime {
     }
 
     fn observe(report: &Self::Report) -> Observation {
-        assert!(report.closed);
         Observation {
             state: report.state.len(),
             event: report.event.len(),
@@ -94,9 +133,9 @@ pub struct Record {
 #[cfg(feature = "allocation")]
 #[derive(Serialize)]
 struct Retention {
-    engine: usize,
-    report: usize,
-    encoded: usize,
+    engine: i128,
+    report: i128,
+    encoded: i128,
 }
 
 #[cfg(feature = "allocation")]
@@ -108,29 +147,35 @@ pub struct Footprint {
     peak: i128,
 }
 
-pub fn measure<Value: Engine>(initialize: impl FnOnce() -> Value, budget: usize) -> Record {
+pub fn measure<Value: Engine>(
+    initialize: impl FnOnce() -> Value,
+    budget: usize,
+) -> Result<Record, Failure> {
     let (mut engine, initialization) = meter::measure(initialize);
     let ((), execution) = meter::measure(|| {
-        engine.execute(budget, limit());
+        engine.execute(budget, crate::limit::LARGE);
     });
+    engine.finish()?;
     let (report, reporting) = meter::measure(|| black_box(engine.report()));
     let mut observation = Value::observe(&report);
-    let (encoded, serialization) = meter::measure(|| serde_json::to_vec(&report).unwrap());
+    let (encoded, serialization) = meter::measure(|| serde_json::to_vec(&report));
+    let encoded = encoded.map_err(Failure::Encoding)?;
     observation.byte = encoded.len();
-    let mut fingerprint = std::collections::hash_map::DefaultHasher::new();
-    encoded.hash(&mut fingerprint);
-    observation.fingerprint = fingerprint.finish();
+    let mut fingerprint = Fingerprint::default();
+    fingerprint.update(&encoded);
+    observation.fingerprint = fingerprint.value();
     #[cfg(not(feature = "allocation"))]
     let ((), release) = meter::measure(|| drop((engine, report, encoded)));
     #[cfg(feature = "allocation")]
     let (retention, release) = meter::measure(|| {
-        let before = crate::allocation::retained();
+        let retained = || crate::allocation::retained() as i128;
+        let before = retained();
         drop(engine);
-        let engine = crate::allocation::retained();
+        let engine = retained();
         drop(report);
-        let report = crate::allocation::retained();
+        let report = retained();
         drop(encoded);
-        let encoded = crate::allocation::retained();
+        let encoded = retained();
         Retention {
             engine: before - engine,
             report: engine - report,
@@ -150,7 +195,7 @@ pub fn measure<Value: Engine>(initialize: impl FnOnce() -> Value, budget: usize)
         + reporting.duration
         + serialization.duration
         + release.duration;
-    Record {
+    Ok(Record {
         initialization,
         execution,
         reporting,
@@ -162,17 +207,7 @@ pub fn measure<Value: Engine>(initialize: impl FnOnce() -> Value, budget: usize)
         footprint,
         #[cfg(feature = "allocation")]
         retention,
-    }
-}
-
-pub fn limit() -> Limit {
-    Limit {
-        configuration: 262_144,
-        record: 100_000_000,
-        coherence: 1024,
-        occurrence: 16_384,
-        scope: 2048,
-    }
+    })
 }
 
 #[cfg(feature = "allocation")]

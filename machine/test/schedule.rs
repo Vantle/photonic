@@ -49,3 +49,16 @@ fn divergence() {
         Overflow::Round
     );
 }
+
+#[test]
+fn oversize() {
+    let program = program(vec![rule(&[&[A]], &[&[B]])]);
+    let narrow = Limit {
+        coherence: 1,
+        ..Limit::default()
+    };
+    assert_eq!(
+        schedule(&program, state(&[&[C], &[C]]), &narrow).unwrap_err(),
+        Overflow::Size
+    );
+}

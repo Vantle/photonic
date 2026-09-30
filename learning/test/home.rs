@@ -1,15 +1,12 @@
+use super::support::Directory;
 use crate::home::Home;
 use crate::objective::Setting;
 use crate::pool::{grow, initial};
 
-fn directory(name: &str) -> std::path::PathBuf {
-    std::env::temp_dir().join(format!("learning-{name}-{}", std::process::id()))
-}
-
 #[test]
 fn persistence() {
-    let path = directory("home");
-    let home = Home::open(path.clone()).unwrap();
+    let directory = Directory::new("home");
+    let home = Home::open(directory.path.clone()).unwrap();
     assert_eq!(home.load::<Vec<u32>>("value.json").unwrap(), None);
     home.save("value.json", &vec![1u32, 2, 3]).unwrap();
     assert_eq!(
@@ -24,7 +21,6 @@ fn persistence() {
     );
     std::fs::write(home.file("broken.json"), "{").unwrap();
     assert!(home.load::<Vec<u32>>("broken.json").is_err());
-    std::fs::remove_dir_all(path).unwrap();
 }
 
 #[test]

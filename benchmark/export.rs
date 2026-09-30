@@ -1,8 +1,8 @@
-use crate::engine::Engine;
+use crate::engine::{Engine, Failure};
+use crate::fingerprint::Fingerprint;
 use crate::meter::{self, Measurement};
 use clap::ValueEnum;
 use serde::Serialize;
-use std::hash::Hasher;
 use std::io::Write;
 
 #[derive(Clone, Copy, Serialize, ValueEnum)]
@@ -15,7 +15,7 @@ pub enum Mode {
 struct Output {
     buffer: Option<Vec<u8>>,
     length: usize,
-    fingerprint: std::collections::hash_map::DefaultHasher,
+    fingerprint: Fingerprint,
 }
 
 impl Write for Output {
@@ -24,7 +24,7 @@ impl Write for Output {
             buffer.extend_from_slice(value);
         }
         self.length += value.len();
-        self.fingerprint.write(value);
+        self.fingerprint.update(value);
         Ok(value.len())
     }
 
@@ -53,27 +53,29 @@ pub fn measure<Value: Engine>(
     budget: usize,
     mode: Mode,
     writer: bool,
-) -> Record {
+) -> Result<Record, Failure> {
     let (mut engine, initialization) = meter::measure(initialize);
-    let ((), execution) = meter::measure(|| engine.execute(budget, crate::engine::limit()));
+    let ((), execution) = meter::measure(|| engine.execute(budget, crate::limit::LARGE));
+    engine.finish()?;
     let (output, export) = meter::measure(|| {
         let mut output = Output {
             buffer: (!writer).then(Vec::new),
             length: 0,
-            fingerprint: Default::default(),
+            fingerprint: Fingerprint::default(),
         };
-        match mode {
-            Mode::Owned => serde_json::to_writer(&mut output, &engine.report()).unwrap(),
-            Mode::View => serde_json::to_writer(&mut output, &engine.stream()).unwrap(),
-        }
-        output
+        let written = match mode {
+            Mode::Owned => serde_json::to_writer(&mut output, &engine.report()),
+            Mode::View => serde_json::to_writer(&mut output, &engine.stream()),
+        };
+        written.map(|()| output)
     });
+    let output = output.map_err(Failure::Encoding)?;
     let byte = output.length;
-    let fingerprint = output.fingerprint.finish();
+    let fingerprint = output.fingerprint.value();
     let ((), release) = meter::measure(|| drop((engine, output)));
     let duration =
         initialization.duration + execution.duration + export.duration + release.duration;
-    Record {
+    Ok(Record {
         mode,
         writer,
         #[cfg(feature = "allocation")]
@@ -85,5 +87,5 @@ pub fn measure<Value: Engine>(
         duration,
         byte,
         fingerprint,
-    }
+    })
 }

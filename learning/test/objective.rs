@@ -1,5 +1,5 @@
 use crate::corpus::{addition, boolean, maximum, sort};
-use crate::objective::{Outcome, Setting, Size, TOLERANCE, evaluate, potential};
+use crate::objective::{Outcome, Setting, Size, TOLERANCE, behavior, evaluate, potential};
 use crate::task::Example;
 use code::atom::Atom;
 use code::observation::Observation;
@@ -8,6 +8,7 @@ use code::particle::Particle;
 use code::program::Program;
 use code::rule::Rule;
 use code::value::Value;
+use std::time::Instant;
 use translation::lift;
 use translation::vocabulary::Vocabulary;
 
@@ -170,4 +171,19 @@ fn schedule() {
     let result = evaluate(&program, &[example], &vocabulary, &Setting::default());
     assert!(result.correct && result.verified);
     assert!(result.span > 256.0);
+}
+
+#[test]
+fn deadline() {
+    let (program, example, vocabulary) = single("[Q] R", "Q, X.([A] B)", "R, X.([A] B)");
+    let setting = Setting::default();
+    let observed = behavior(&program, &example.input, &vocabulary, &setting);
+    assert!(observed.is_some_and(|observed| {
+        observed.same(&example.output, setting.limit.individualization)
+    }));
+    let passed = setting.until(Some(Instant::now()));
+    assert_eq!(
+        behavior(&program, &example.input, &vocabulary, &passed),
+        None
+    );
 }

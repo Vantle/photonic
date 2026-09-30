@@ -7,6 +7,7 @@ use learning::export;
 use learning::home::{self, Home};
 use learning::import;
 use learning::objective;
+use learning::placement::Placement;
 use learning::play;
 use learning::pool;
 use learning::search;
@@ -48,16 +49,22 @@ pub fn read(path: &Path) -> miette::Result<import::Source> {
 }
 
 pub fn setting(session: &argument::Session, frozen: bool) -> miette::Result<session::Setting> {
+    if frozen && session.update.is_some() {
+        return Err(miette!(
+            "--update counts training steps, and a frozen session takes none"
+        ));
+    }
     Ok(session::Setting {
         placement: match session.device {
-            argument::Device::Auto => session::Placement::Automatic,
-            argument::Device::Gpu => session::Placement::Graphics,
-            argument::Device::Cpu => session::Placement::Processor,
+            argument::Device::Auto => Placement::Automatic,
+            argument::Device::Gpu => Placement::Graphics,
+            argument::Device::Cpu => Placement::Processor,
         },
         worker: session.worker,
         trainer: session.trainer,
         frozen,
         duration: session.duration.map(Duration::from_secs),
+        update: session.update,
         report: Duration::from_secs(session.report.max(1)),
         seed: session.seed,
         shape: Shape {

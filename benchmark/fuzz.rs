@@ -12,6 +12,7 @@ use rayon::prelude::*;
 use serde::Serialize;
 
 mod directory;
+mod exit;
 
 #[global_allocator]
 static ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
@@ -48,10 +49,7 @@ const ATOM: [&str; 4] = ["A", "B", "C", "D"];
 // Comparing two whole reports holds both in memory at once, so the reports compared stay small.
 const EVENT: usize = 10_000;
 
-// Writes programs from the language's own forms: coherences of dotted atoms, rules with one to
-// three inputs, empty inputs and inputs that hold a rule value, empty, single, grouped and scoped
-// outputs, outputs that carry rules in an empty particle or in scopes of their own, rule values
-// held as fields and scopes the program opens, over few atoms so that rules meet what others make.
+// Few atoms make rules meet what other rules make, which is where the engines can disagree.
 struct Writer {
     generator: Generator,
 }
@@ -142,7 +140,6 @@ struct Finding {
     source: String,
 }
 
-// The checks one program took and the disagreements they found.
 #[derive(Default)]
 struct Outcome {
     check: Vec<&'static str>,
@@ -163,25 +160,27 @@ impl Outcome {
     }
 }
 
-// Every check the census makes, on one written program: Laser against the interpreter where both
-// close, also after resuming under raised limits, Laser on several workers against Laser on one
-// when asked, the plain exploration within the full one, the reduced exploration against the
-// plain one, the net against the plain exploration, and the GPU against the host's net.
 fn check(
     seed: u64,
     argument: &Argument,
     executor: Option<&Executor>,
     device: Option<&wave::engine::Engine>,
-) -> Option<Outcome> {
+) -> Outcome {
     let source = write(seed);
-    let program = frontend::lowering::parse(&source).ok()?;
+    let mut outcome = Outcome::default();
+    let program = match frontend::lowering::parse(&source) {
+        Ok(program) => program,
+        Err(error) => {
+            outcome.record("parse", Err(error.to_string()), seed, &source);
+            return outcome;
+        }
+    };
     let limit = Limit {
         configuration: argument.configuration,
         record: argument.record,
         ..Limit::default()
     };
     let text = |disagreement| format!("{disagreement:?}");
-    let mut outcome = Outcome::default();
     let mut runtime = Runtime::new(&program);
     runtime.run(argument.budget, limit);
     let mut laser = Laser::new(&program);
@@ -221,10 +220,10 @@ fn check(
         );
     }
     let Ok(mut net) = Net::new(&program) else {
-        return Some(outcome);
+        return outcome;
     };
     let Ok(explored) = net.explore(argument.allowance, limit, Cycle::Find) else {
-        return Some(outcome);
+        return outcome;
     };
     if plain.closed() {
         outcome.record(
@@ -245,11 +244,11 @@ fn check(
             });
         outcome.record("metal", result, seed, &source);
     }
-    Some(outcome)
+    outcome
 }
 
-// Laser explored a step at a time under limits that block events and then rise, so identities
-// wait to be retried while new traces arrive, and then to the end.
+// Limits that block events and then rise make identities wait to be retried while new traces
+// arrive, a path no single run takes.
 fn resume(program: &frontend::source::Program, allowance: usize, limit: Limit) -> Laser {
     let mut laser = Laser::new(program);
     for configuration in [2, 4, 8, 16] {
@@ -267,7 +266,6 @@ fn resume(program: &frontend::source::Program, allowance: usize, limit: Limit) -
     laser
 }
 
-// Laser's report is the same for any number of workers, open or closed.
 fn same(sequential: &Laser, parallel: &Laser) -> Result<(), String> {
     let text =
         |laser: &Laser| serde_json::to_string(&laser.report()).map_err(|error| error.to_string());
@@ -287,7 +285,7 @@ fn guard(
     argument: &Argument,
     executor: Option<&Executor>,
     device: Option<&wave::engine::Engine>,
-) -> Option<Outcome> {
+) -> Outcome {
     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         check(seed, argument, executor, device)
     }));
@@ -303,7 +301,7 @@ fn guard(
             .unwrap_or_default();
         let mut outcome = Outcome::default();
         outcome.record("panic", Err(detail), seed, &write(seed));
-        Some(outcome)
+        outcome
     })
 }
 
@@ -315,24 +313,34 @@ struct Report {
     finding: Vec<Finding>,
 }
 
-fn main() -> Result<ExitCode, Box<dyn std::error::Error>> {
+fn main() -> ExitCode {
+    exit::code(run(&Argument::parse()))
+}
+
+fn run(argument: &Argument) -> Result<ExitCode, Box<dyn std::error::Error>> {
     directory::enter()?;
-    let argument = Argument::parse();
+    let end = argument
+        .seed
+        .checked_add(argument.count)
+        .ok_or("--seed and --count pass the last seed")?;
     if argument.write {
-        for seed in argument.seed..argument.seed + argument.count {
+        for seed in argument.seed..end {
             println!("{seed}: {}", write(seed));
         }
         return Ok(ExitCode::SUCCESS);
     }
     let device = wave::engine::Engine::new()?;
     let executor = argument.worker.map(Executor::new).transpose()?;
-    let outcome = (argument.seed..argument.seed + argument.count)
+    let outcome = (argument.seed..end)
         .into_par_iter()
-        .filter_map(|seed| guard(seed, &argument, executor.as_ref(), device.as_ref()))
+        .map(|seed| guard(seed, argument, executor.as_ref(), device.as_ref()))
         .collect::<Vec<_>>();
     let mut report = Report {
         written: argument.count,
-        parsed: outcome.len(),
+        parsed: outcome
+            .iter()
+            .filter(|value| !value.check.contains(&"parse"))
+            .count(),
         check: BTreeMap::new(),
         finding: Vec::new(),
     };
@@ -343,7 +351,8 @@ fn main() -> Result<ExitCode, Box<dyn std::error::Error>> {
         report.finding.extend(value.finding);
     }
     report.finding.sort_by_key(|finding| finding.seed);
-    let passed = report.finding.is_empty();
+    let checked = report.check.values().sum::<usize>() > 0;
+    let passed = checked && report.finding.is_empty();
     println!("{}", serde_json::to_string_pretty(&report)?);
     Ok(if passed {
         ExitCode::SUCCESS

@@ -1,8 +1,16 @@
 use crate::objective::{Evaluation, Size, TOLERANCE};
-use crate::task::Goal;
+use crate::reach;
+use crate::task::{Goal, Task};
 use code::program::Program;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+
+// A task redefined under a known name can shrink its vocabulary, which leaves programs archived
+// for the old definition naming atoms the task no longer has; and the learner edits only rules, so
+// a program opening scopes at the top level is not one it can hold either.
+pub fn fits(program: &Program, task: &Task) -> bool {
+    program.scope().is_empty() && reach::program(program) <= task.vocabulary.len()
+}
 
 pub(crate) fn moment() -> u64 {
     std::time::SystemTime::now()

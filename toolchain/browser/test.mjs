@@ -237,6 +237,8 @@ const native = spawnSync(command, ['shape', ...file, '--json'], { encoding: 'utf
 assert.equal(native.status, 0, native.stderr);
 assert.deepEqual(JSON.parse(native.stdout).answer.class[0].atom, connected.shape[0].atom.map(row => row.name));
 const deep = Array.from({ length: 3500 }, (_, index) => `[a${index}] b${index},[b${index}] a${index}.b${index}`).join(',\n');
-assert.equal(shape({ program: [deep] }).error.code, 'budget');
+const crowd = shape({ program: [deep] });
+assert.equal(crowd.error, undefined, JSON.stringify(crowd.error));
+assert.equal(crowd.shape.length, 1);
 assert.equal(engine.compare, undefined);
 console.log('The shape export groups programs by shape, names every atom in each program and matches the native command.');

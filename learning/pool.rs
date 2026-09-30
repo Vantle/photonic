@@ -30,6 +30,17 @@ pub(crate) fn conceal(task: Task) -> Result<Task, problem::Failure> {
         .map_err(|source| problem::Failure::Hidden { task: name, source })
 }
 
+fn fresh(generator: &mut Generator, index: usize, setting: &Setting) -> Option<Task> {
+    let rule = 2 + generator.below(3);
+    let task = generate(
+        generator,
+        format!("synthetic.{index}"),
+        &setting.limit,
+        rule,
+    )?;
+    Some(vary(task, generator))
+}
+
 pub fn initial(
     synthetic: usize,
     seed: u64,
@@ -38,16 +49,11 @@ pub fn initial(
     let mut generator = Generator::new(seed);
     curated()
         .into_iter()
-        .chain((0..synthetic).map(|index| {
-            let rule = 2 + generator.below(3);
-            let task = generate(
-                &mut generator,
-                format!("synthetic.{index}"),
-                &setting.limit,
-                rule,
-            );
-            vary(task, &mut generator)
-        }))
+        .chain(
+            (0..synthetic)
+                .take_while(|_| !setting.limit.expired())
+                .filter_map(|index| fresh(&mut generator, index, setting)),
+        )
         .map(conceal)
         .collect()
 }
@@ -74,15 +80,10 @@ pub fn grow(
         .filter_map(|suffix| suffix.parse::<usize>().ok())
         .max()
         .map_or(0, |maximum| maximum + 1);
-    for index in start..start + count {
-        let rule = 2 + generator.below(3);
-        let task = generate(
-            &mut generator,
-            format!("synthetic.{index}"),
-            &setting.limit,
-            rule,
-        );
-        pool.push(conceal(vary(task, &mut generator))?);
+    for index in (start..start.saturating_add(count)).take_while(|_| !setting.limit.expired()) {
+        if let Some(task) = fresh(&mut generator, index, setting) {
+            pool.push(conceal(task)?);
+        }
     }
     Ok(pool)
 }

@@ -1,3 +1,4 @@
+use crate::reach;
 use code::configuration::Configuration;
 use code::observation::Observation;
 use code::program::Program;
@@ -17,6 +18,12 @@ pub enum Failure {
     Name { name: String },
     #[error("no task is named {name}")]
     Missing { name: String },
+    #[error("{name} names an atom outside its vocabulary of {count}")]
+    Atom { name: String, count: usize },
+    #[error(
+        "the reference program of {name} opens a scope at the top level, which the learner cannot edit"
+    )]
+    Scope { name: String },
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -100,15 +107,68 @@ fn named<'de, Source: Deserializer<'de>>(source: Source) -> Result<String, Sourc
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
-#[serde(deny_unknown_fields)]
+#[serde(try_from = "Draft")]
 pub struct Task {
-    #[serde(deserialize_with = "named")]
     pub name: String,
     pub vocabulary: Vocabulary,
     pub example: Vec<Example>,
     pub holdout: Vec<Example>,
     pub reference: Option<Program>,
     pub goal: Option<Goal>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Draft {
+    #[serde(deserialize_with = "named")]
+    name: String,
+    vocabulary: Vocabulary,
+    example: Vec<Example>,
+    holdout: Vec<Example>,
+    reference: Option<Program>,
+    goal: Option<Goal>,
+}
+
+impl TryFrom<Draft> for Task {
+    type Error = Failure;
+
+    fn try_from(draft: Draft) -> Result<Self, Failure> {
+        let count = draft.vocabulary.len();
+        let reach = draft
+            .example
+            .iter()
+            .chain(&draft.holdout)
+            .flat_map(|example| {
+                [
+                    reach::configuration(&example.input),
+                    reach::configuration(&example.output.configuration()),
+                ]
+            })
+            .chain(draft.reference.iter().map(reach::program))
+            .max()
+            .unwrap_or(0);
+        if reach > count {
+            return Err(Failure::Atom {
+                name: draft.name,
+                count,
+            });
+        }
+        if draft
+            .reference
+            .as_ref()
+            .is_some_and(|program| !program.scope().is_empty())
+        {
+            return Err(Failure::Scope { name: draft.name });
+        }
+        Ok(Self {
+            name: draft.name,
+            vocabulary: draft.vocabulary,
+            example: draft.example,
+            holdout: draft.holdout,
+            reference: draft.reference,
+            goal: draft.goal,
+        })
+    }
 }
 
 pub fn find<'pool>(pool: &'pool [Task], name: &str) -> Result<&'pool Task, Failure> {

@@ -76,6 +76,10 @@ pub fn explore(
         overflow: false,
         truncated: false,
     };
+    if !fits(program, &initial, limit) {
+        exploration.overflow = true;
+        return exploration;
+    }
     let mut mark = vec![Mark::Open];
     let Ok(key) = initial.key(limit.individualization) else {
         exploration.overflow = true;

@@ -105,30 +105,132 @@ fn partner(generator: &mut Generator, left: &Structure) -> Structure {
     }
 }
 
+// Disjoint copies of one small component, six atoms in all at most so that every bijection can
+// still be tried, and then maybe a pin, a target naming one copy, or a rule joining two copies.
+fn crowd(generator: &mut Generator) -> Structure {
+    let shape = Shape {
+        atom: 1 + generator.below(2),
+        rule: 1 + generator.below(2),
+        depth: generator.below(2),
+    };
+    let base = structure(generator, &shape);
+    let own = base.atom();
+    let count = 2 + generator.below(6 / own.len().max(1) - 1);
+    let copy = (0..count)
+        .map(|index| {
+            let map = own
+                .iter()
+                .enumerate()
+                .map(|(position, &atom)| (atom, Atom((index * own.len() + position) as u16)))
+                .collect::<BTreeMap<_, _>>();
+            rename(&base, |atom| map[&atom])
+        })
+        .collect::<Vec<_>>();
+    let join = |part: &[&Part]| Part {
+        program: code::program::Program::new(
+            part.iter()
+                .flat_map(|part| part.program.rule().iter().cloned())
+                .collect(),
+            part.iter()
+                .flat_map(|part| part.program.scope().iter().cloned())
+                .collect(),
+        ),
+        configuration: code::configuration::Configuration::from(
+            part.iter()
+                .flat_map(|part| part.configuration.coherence().iter().cloned())
+                .collect::<Vec<_>>(),
+        ),
+    };
+    let program = join(&copy.iter().map(|copy| &copy.program).collect::<Vec<_>>());
+    let atom = (count * own.len()).max(1);
+    match generator.below(4) {
+        0 => Structure {
+            program,
+            target: None,
+            pin: vec![Atom(generator.below(atom) as u16)],
+        },
+        1 => Structure {
+            program,
+            target: Some(copy[generator.below(count)].program.clone()),
+            pin: Vec::new(),
+        },
+        2 => {
+            let bridge = super::support::rule(
+                generator,
+                &Shape {
+                    atom,
+                    rule: 1,
+                    depth: 0,
+                },
+                0,
+            );
+            let extra = Part {
+                program: code::program::Program::from(vec![bridge]),
+                configuration: code::configuration::Configuration::default(),
+            };
+            Structure {
+                program: join(&[&program, &extra]),
+                target: None,
+                pin: Vec::new(),
+            }
+        }
+        _ => Structure {
+            program,
+            target: None,
+            pin: Vec::new(),
+        },
+    }
+}
+
+fn order(structure: &Structure) -> usize {
+    let symmetry = structure
+        .symmetry(BUDGET)
+        .expect("small structures fit the budget");
+    let count = automorphism(structure);
+    assert_eq!(
+        symmetry.size.to_string(),
+        count.to_string(),
+        "{structure:?}"
+    );
+    let atom = structure.atom();
+    for permutation in super::support::generator(&symmetry) {
+        let map = atom
+            .iter()
+            .map(|&atom| (atom, permutation.image(atom)))
+            .collect();
+        assert!(renaming(structure, structure, &map), "{structure:?}");
+    }
+    count
+}
+
+fn decision(left: &Structure, right: &Structure) -> bool {
+    let expected = isomorphic(left, right);
+    let (first, second) = (
+        left.symmetry(BUDGET)
+            .expect("small structures fit the budget"),
+        right
+            .symmetry(BUDGET)
+            .expect("small structures fit the budget"),
+    );
+    assert_eq!(first.key == second.key, expected, "{left:?}\n{right:?}");
+    let map = first.isomorphism(&second);
+    assert_eq!(map.is_some(), expected, "{left:?}\n{right:?}");
+    let Some(map) = map else {
+        return false;
+    };
+    assert!(renaming(left, right, &map), "{left:?}\n{right:?}");
+    assert_eq!(first.form, second.form, "{left:?}\n{right:?}");
+    true
+}
+
 #[test]
-fn order() {
+fn group() {
     let mut generator = Generator::new(7);
     let mut symmetric = 0;
     let mut pinned = 0;
     for _ in 0..1000 {
         let structure = sample(&mut generator);
-        let symmetry = structure
-            .symmetry(BUDGET)
-            .expect("small structures fit the budget");
-        let count = automorphism(&structure);
-        assert_eq!(
-            symmetry.size.to_string(),
-            count.to_string(),
-            "{structure:?}"
-        );
-        let atom = structure.atom();
-        for permutation in super::support::generator(&symmetry) {
-            let map = atom
-                .iter()
-                .map(|&atom| (atom, permutation.image(atom)))
-                .collect();
-            assert!(renaming(&structure, &structure, &map), "{structure:?}");
-        }
+        let count = order(&structure);
         symmetric += usize::from(count > 1);
         pinned += usize::from(automorphism(&bare(&structure)) > count);
     }
@@ -137,32 +239,37 @@ fn order() {
 }
 
 #[test]
-fn decision() {
+fn isomorphism() {
     let mut generator = Generator::new(11);
     let mut equal = 0;
     let mut decided = 0;
     for _ in 0..600 {
         let left = sample(&mut generator);
         let right = partner(&mut generator, &left);
-        let expected = isomorphic(&left, &right);
-        let (first, second) = (
-            left.symmetry(BUDGET)
-                .expect("small structures fit the budget"),
-            right
-                .symmetry(BUDGET)
-                .expect("small structures fit the budget"),
-        );
-        assert_eq!(first.key == second.key, expected, "{left:?}\n{right:?}");
-        let map = first.isomorphism(&second);
-        assert_eq!(map.is_some(), expected, "{left:?}\n{right:?}");
-        let Some(map) = map else {
-            decided += usize::from(isomorphic(&bare(&left), &bare(&right)));
+        if decision(&left, &right) {
+            equal += 1;
             continue;
-        };
-        assert!(renaming(&left, &right, &map), "{left:?}\n{right:?}");
-        assert_eq!(first.form, second.form, "{left:?}\n{right:?}");
-        equal += 1;
+        }
+        decided += usize::from(isomorphic(&bare(&left), &bare(&right)));
     }
     assert!(equal > 100, "only {equal} pairs were isomorphic");
     assert!(decided > 30, "pins decided only {decided} pairs");
+}
+
+#[test]
+fn component() {
+    let mut generator = Generator::new(13);
+    let mut large = 0;
+    let mut equal = 0;
+    for _ in 0..400 {
+        let structure = crowd(&mut generator);
+        large += usize::from(order(&structure) >= 24);
+        let right = partner(&mut generator, &structure);
+        equal += usize::from(decision(&structure, &right));
+    }
+    assert!(
+        large > 60,
+        "only {large} samples had 24 automorphisms or more"
+    );
+    assert!(equal > 100, "only {equal} pairs were isomorphic");
 }

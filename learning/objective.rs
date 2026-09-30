@@ -73,11 +73,15 @@ impl Setting {
         }
     }
 
-    pub(crate) fn until(&self, deadline: Option<Instant>) -> Self {
+    pub fn until(&self, deadline: Option<Instant>) -> Self {
         Self {
             limit: Limit {
                 deadline,
                 ..self.limit
+            },
+            bound: photonic::execution::Bound {
+                deadline,
+                ..self.bound
             },
             ..*self
         }
@@ -280,7 +284,7 @@ impl Context<'_> {
     fn run(&self, input: &Configuration, choose: impl FnMut(usize) -> usize) -> Option<Run> {
         if let (Some(flat), Some(initial)) = (&self.flat, State::new(input)) {
             let result = machine::walk::walk(flat, initial, &self.setting.limit, choose);
-            if result.cycle || result.overflow {
+            if result.cycle || result.overflow || result.refusal.is_some() {
                 return None;
             }
             return Some(Run {
@@ -297,7 +301,7 @@ impl Context<'_> {
             self.setting.bound,
             choose,
         );
-        if result.cycle || result.overflow {
+        if result.cycle || result.overflow || result.refusal.is_some() {
             return None;
         }
         Some(Run {

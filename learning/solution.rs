@@ -413,7 +413,7 @@ pub(crate) fn solve(
     let floor = floor(&task.example, &task.vocabulary, &setting.until(None));
     let deadline = budget
         .time
-        .map(|time| Instant::now() + time)
+        .and_then(|time| Instant::now().checked_add(time))
         .into_iter()
         .chain(setting.limit.deadline)
         .min();
