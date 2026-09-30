@@ -7,9 +7,10 @@ use std::time::Duration;
 
 const REPOSITORY: &str = "https://github.com/Vantle/photonic";
 const WASM: &str = "toolchain/browser/module/runtime_bg.wasm";
+const MARK: &str = "book/logo/mark.png";
 
 fn book() -> HashMap<String, PathBuf> {
-    ["index.html", "lightbox.html", "book/book.css", WASM]
+    ["index.html", "lightbox.html", "book/book.css", MARK, WASM]
         .into_iter()
         .map(|name| (name.to_owned(), PathBuf::from("/runfile").join(name)))
         .collect()
@@ -100,6 +101,17 @@ fn file() {
         Route::File {
             path: &book[WASM],
             kind: "application/wasm"
+        }
+    );
+    assert_eq!(
+        Route::new(
+            &get(&format!("/{MARK}"), "127.0.0.1:8080"),
+            &book,
+            REPOSITORY
+        ),
+        Route::File {
+            path: &book[MARK],
+            kind: "image/png"
         }
     );
 }

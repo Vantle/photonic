@@ -9,7 +9,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const [chrome, chromedriver, webassembly, javascript] = process.argv.slice(2);
 const missing = [];
-const type = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.wasm': 'application/wasm', '.svg': 'image/svg+xml' };
+const type = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.wasm': 'application/wasm', '.svg': 'image/svg+xml', '.png': 'image/png' };
 const module = new Map([
     [resolve(root, 'toolchain/browser/module/runtime_bg.wasm'), webassembly],
     [resolve(root, 'toolchain/browser/module/runtime.js'), javascript],

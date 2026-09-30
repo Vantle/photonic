@@ -32,6 +32,7 @@ fn media(name: &str) -> &'static str {
         Some("css") => "text/css; charset=utf-8",
         Some("wasm") => "application/wasm",
         Some("svg") => "image/svg+xml",
+        Some("png") => "image/png",
         _ => TEXT,
     }
 }
