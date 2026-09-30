@@ -1,128 +1,93 @@
-use crate::ordering::Ordering;
 use crate::profile;
-use crate::refinement::Refinement;
 use crate::state::{Canonical, State};
-use smallvec::SmallVec;
-use std::sync::{Arc, OnceLock};
+use division::Division;
+use std::sync::Arc;
+use whole::Whole;
 
+mod division;
+mod extraction;
 mod renaming;
+mod whole;
 
 pub(crate) mod storage;
 
+// A configuration whose whole search takes at most this many steps keeps the name that search
+// gives it; a larger one with interchangeable parts is named by its parts instead.
+const LIMIT: usize = 64;
+
+// A configuration's canonical form, found a step at a time. A step renames one candidate
+// ordering, orders the coherences for the frame orderings under them, divides the configuration
+// into parts, or names it from its named parts, so every step is polynomial in its size.
 pub(crate) struct Search {
-    state: Arc<State>,
-    refinement: OnceLock<Box<Refinement>>,
-    world: Ordering,
-    frame: Option<Ordering>,
-    selected: Vec<usize>,
-    best: Option<Canonical>,
-    complete: bool,
+    size: usize,
+    stage: Stage,
+}
+
+enum Stage {
+    Whole(Whole),
+    Division(Box<Division>),
+    Complete(Option<Canonical>),
 }
 
 impl Search {
     pub fn new(state: Arc<State>) -> Self {
-        let refinement = OnceLock::new();
-        let chain = (0..state.frame.len())
-            .map(|_| OnceLock::new())
-            .collect::<Vec<OnceLock<_>>>();
-        let key = |index: usize| {
-            let world = &state.world[index];
-            let mut particle = world
-                .particle
-                .iter()
-                .map(|token| token.value)
-                .collect::<SmallVec<[_; 4]>>();
-            particle.sort();
-            (
-                chain[world.frame].get_or_init(|| state.chain(world.frame)),
-                particle,
-            )
-        };
-        let world = Ordering::new(0..state.world.len(), key).refine(|index| {
-            refinement
-                .get_or_init(|| Box::new(Refinement::new(&state)))
-                .world[index]
-        });
-        let world = if state.world.len() >= 4 {
-            world.quotient(|| crate::symmetry::world(&state))
-        } else {
-            world
-        };
         Self {
-            state,
-            refinement,
-            world,
-            frame: None,
-            selected: Vec::new(),
-            best: None,
-            complete: false,
+            size: state.world.len(),
+            stage: Stage::Whole(Whole::new(state)),
         }
     }
 
     pub(crate) fn cost(&self) -> usize {
-        self.state.world.len()
+        self.size
     }
 
     pub fn step(&mut self) -> bool {
         let _scope = profile::Scope::new(profile::Phase::Canonicalization);
-        if self.complete {
-            return true;
-        }
-        if let Some(frame) = self.frame.as_mut().and_then(Iterator::next) {
-            let mut order = vec![0];
-            order.extend(frame);
-            let value = if let Some(refinement) = self.refinement.get() {
-                renaming::rename(&self.state, &refinement.incidence, &self.selected, &order)
-            } else {
-                self.state.rename(&self.selected, &order)
-            };
-            if self
-                .best
-                .as_ref()
-                .is_none_or(|best| value.state < best.state)
-            {
-                self.best = Some(value);
-            }
-            return false;
-        }
-        let Some(world) = self.world.next() else {
-            self.complete = true;
-            return true;
-        };
-        let mut occupied = vec![Vec::new(); self.state.frame.len()];
-        let mut capture = vec![Vec::new(); self.state.frame.len()];
-        for (position, &source) in world.iter().enumerate() {
-            let value = &self.state.world[source];
-            occupied[value.frame].push(position);
-            for token in &value.particle {
-                if let Some(frame) = token.capture {
-                    capture[frame].push((position, token.value));
+        self.advance()
+    }
+
+    // A step, timed by the caller's scope, so the searches of parts do not count twice.
+    fn advance(&mut self) -> bool {
+        let named = match &mut self.stage {
+            Stage::Complete(_) => return true,
+            Stage::Division(division) => division.step(),
+            Stage::Whole(whole) => {
+                let fresh = whole.fresh();
+                if !whole.step() {
+                    if fresh && whole.cost().is_some_and(|cost| cost > LIMIT) {
+                        self.divide();
+                    }
+                    return false;
                 }
+                let Stage::Whole(whole) = std::mem::replace(&mut self.stage, Stage::Complete(None))
+                else {
+                    unreachable!("the search was whole")
+                };
+                whole.finish()
             }
+        };
+        let Some(named) = named else {
+            return false;
+        };
+        self.stage = Stage::Complete(Some(named));
+        true
+    }
+
+    // Names the configuration by its parts from the next step on, when it has two or more.
+    fn divide(&mut self) {
+        let Stage::Whole(whole) = &self.stage else {
+            return;
+        };
+        if let Some(division) = Division::new(whole.state.clone(), whole.refinement()) {
+            self.stage = Stage::Division(Box::new(division));
         }
-        for capture in &mut capture {
-            capture.sort_unstable();
-        }
-        self.frame = Some(
-            Ordering::new(
-                self.state
-                    .reachable()
-                    .into_iter()
-                    .filter(|&index| index != 0),
-                |index| (self.state.chain(index), &occupied[index], &capture[index]),
-            )
-            .refine(|index| {
-                self.refinement
-                    .get_or_init(|| Box::new(Refinement::new(&self.state)))
-                    .frame[index]
-            }),
-        );
-        self.selected = world;
-        false
     }
 
     pub fn finish(self) -> Option<Canonical> {
-        if self.complete { self.best } else { None }
+        match self.stage {
+            Stage::Complete(named) => named,
+            Stage::Whole(_) | Stage::Division(_) => None,
+        }
     }
 }
 

@@ -1,9 +1,10 @@
 use crate::profile;
 use crate::state::State;
 
+// The coarsest equitable coloring of a configuration's incidence graph, numbered the same way for
+// every renaming of the configuration.
 pub struct Refinement {
-    pub world: Vec<usize>,
-    pub frame: Vec<usize>,
+    pub color: Vec<usize>,
     pub incidence: crate::incidence::Incidence,
 }
 
@@ -15,10 +16,16 @@ impl Refinement {
             &incidence.edge,
             crate::partition::classify(&incidence.label),
         );
-        Self {
-            world: color[..state.world.len()].to_vec(),
-            frame: incidence.frame.iter().map(|&index| color[index]).collect(),
-            incidence,
-        }
+        Self { color, incidence }
+    }
+
+    #[inline]
+    pub fn world(&self, index: usize) -> usize {
+        self.color[index]
+    }
+
+    #[inline]
+    pub fn frame(&self, index: usize) -> usize {
+        self.color[self.incidence.frame[index]]
     }
 }
