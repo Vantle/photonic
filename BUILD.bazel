@@ -1,6 +1,7 @@
 load("@crate//:defs.bzl", "lint_config")
 load("@default_rust_toolchains//rustc:component_labels.bzl", "rust_toolchain_component_label")
 load("//toolchain:defs.bzl", "hermetic_binary")
+load("//toolchain:notice.bzl", "notice")
 load("//toolchain:release.bzl", "release")
 
 hermetic_binary(
@@ -32,6 +33,11 @@ release(
     name = "release",
     actual = "//command:photonic",
     visibility = ["//toolchain:__pkg__"],
+)
+
+notice(
+    name = "notice",
+    target = ["//command:photonic"],
 )
 
 hermetic_binary(

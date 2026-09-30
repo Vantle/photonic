@@ -22,6 +22,7 @@ filegroup(
         "check.bzl",
         "defs.bzl",
         "node.bzl",
+        "notice.bzl",
         "release.bzl",
         "starlark.bzl",
     ],
@@ -183,6 +184,14 @@ rust_binary(
         ":relay",
         "@rules_rust//rust/runfiles",
     ],
+)
+
+rust_binary(
+    name = "notice",
+    srcs = ["notice.rs"],
+    crate_root = "notice.rs",
+    lint_config = "//:lint",
+    deps = [":relay"],
 )
 
 rust_binary(
