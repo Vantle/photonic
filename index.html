@@ -276,7 +276,7 @@ Add.Unit.Unit.Unit,
 <figure class="example wide" data-example="brew">
 <pre>Brew.Tea,
 [Brew] (Kettle, [Kettle.Tea] Cup)</pre>
-<figcaption>Consuming <code>Brew</code> opens a scope holding <code>Kettle</code> and the remainder <code>Tea</code>. The scope's own rule <code>[Kettle.Tea] Cup</code> fires, and because the rule belongs to the scope, its output returns to the enclosing scope: <code>Cup</code>.</figcaption>
+<figcaption>Consuming <code>Brew</code> opens a scope holding <code>Kettle</code> and the remainder <code>Tea</code>. The rule <code>[Kettle.Tea] Cup</code> fires, and because it is one of the scope's own rules, its output returns to the enclosing scope: <code>Cup</code>.</figcaption>
 </figure>
 <ul>
 <li>A scope's own rules send their output to the enclosing scope. That is how a scope returns.</li>
