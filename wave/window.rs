@@ -3,7 +3,7 @@ use crate::engine::Engine;
 use crate::failure::Failure;
 use crate::hash;
 use crate::search::Search;
-use crate::setting::{BARE, FLAGGED, JOIN, MISSING, Setting, WINDOW, saturate};
+use crate::setting::{BARE, FLAGGED, JOIN, MISSING, OFFER, Setting, WINDOW, saturate};
 use crate::work::Work;
 use metal::device::{Command, Memory};
 use photonic::laser::net::Successor;
@@ -130,10 +130,16 @@ impl Engine {
             &[
                 &search.store.arena.address,
                 &search.store.offset.memory,
-                &search.upload.key.memory,
+                search.upload.key.memory(),
                 &search.upload.lone.memory,
-                &search.upload.mask.memory,
-                &search.upload.need.memory,
+                search.upload.catalog.memory(),
+                &search.upload.part.memory,
+                &search.upload.member.memory,
+                &search.upload.coherence.memory,
+                &search.upload.span.memory,
+                &search.upload.reach.memory,
+                &search.upload.rule.memory,
+                &search.upload.arity.memory,
                 &search.work.number.memory,
                 &search.work.flagged.memory,
                 &search.work.summary,
@@ -146,18 +152,27 @@ impl Engine {
         self.sum(command, &search.work, size)
     }
 
+    // The values that find the tables: the slots of the component index and of the part catalog, the
+    // roots, the joining rules, and the offers and parts a marking's joins may take on the GPU.
+    pub(crate) fn table(&self, search: &Search<'_>) -> Setting {
+        Setting {
+            key: search.upload.key.slot,
+            catalog: search.upload.catalog.slot,
+            root: search.upload.root,
+            rule: saturate(search.table.arity.len()),
+            join: saturate(self.tuning.join.min(OFFER)),
+            ..Setting::default()
+        }
+    }
+
     // The values that count a window of markings on its own.
-    pub(crate) fn alone(search: &Search<'_>, first: usize, size: usize) -> Setting {
+    pub(crate) fn alone(&self, search: &Search<'_>, first: usize, size: usize) -> Setting {
         Setting {
             first: saturate(first),
             count: saturate(size),
-            key: search.upload.slot,
-            root: search.upload.root,
-            rule: saturate(search.table.need.len()),
-            wide: u32::from(search.table.wide),
             next: saturate(first + size),
             room: u64::MAX,
-            ..Setting::default()
+            ..self.table(search)
         }
     }
 
@@ -206,7 +221,7 @@ impl Engine {
                 self.room(&mut search.work, size)?;
                 search.upload.refresh(&self.device, &mut search.table)?;
                 search.work.summary.edit::<u32>()[FLAGGED] = 0;
-                let setting = Self::alone(search, first, size);
+                let setting = self.alone(search, first, size);
                 let mut command = self.command(&search.store.arena)?;
                 self.census(&mut command, search, &setting)?;
                 command.run()?;

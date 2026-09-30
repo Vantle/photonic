@@ -1,6 +1,5 @@
 // Words the kernels and the host share; the kernels read them as constants of the same names.
 pub const EMPTY: u32 = u32::MAX;
-pub const LONE: u32 = u32::MAX;
 pub const NONE: u32 = u32::MAX;
 pub const BLOCKED: u32 = u32::MAX - 1;
 pub const TAG: u32 = 1 << 31;
@@ -14,8 +13,17 @@ pub const MISSING: u32 = 1;
 pub const JOIN: u32 = 2;
 pub const BARE: u32 = 4;
 pub const HEADER: usize = 9;
+// The words that describe a part of several components: its root, where its kinds start among the
+// members and how many, and where its entries start and how many.
+pub const PART: usize = 5;
 pub const WIDTH: usize = 8;
 pub const SEGMENT: usize = 1024;
+// The most offers of a marking's kinds to the inputs of joining rules, and of distinct parts they
+// join, the most inputs of a rule and the most choices of kinds and copies a marking's joining
+// events are found from on the GPU; a marking that needs more is joined on the host.
+pub const OFFER: usize = 128;
+pub const ARITY: usize = 8;
+pub const STEP: usize = 4096;
 // The most SIMD groups in a threadgroup whose kernel sums them in one SIMD group; its scratch keeps
 // a sum for each and the group's whole sum after them.
 pub const BAND: usize = 32;
@@ -40,9 +48,9 @@ macro_rules! declare {
 // The constants every kernel can read, declared ahead of the kernels' source.
 pub fn prelude() -> String {
     declare!(
-        "uint", EMPTY, LONE, NONE, BLOCKED, TAG, LIMITED, JOINED, COPY, SHIFT, CANDIDATE, MISSING,
-        JOIN, BARE, HEADER, WIDTH, SEGMENT, BAND, FLAGGED, REFUSED, BACKWARD, WINNER, WINDOW,
-        BOUND
+        "uint", EMPTY, NONE, BLOCKED, TAG, LIMITED, JOINED, COPY, SHIFT, CANDIDATE, MISSING, JOIN,
+        BARE, HEADER, PART, WIDTH, SEGMENT, OFFER, ARITY, STEP, BAND, FLAGGED, REFUSED, BACKWARD,
+        WINNER, WINDOW, BOUND
     ) + &declare!("ulong", WORD)
 }
 
@@ -59,8 +67,9 @@ pub struct Setting {
     pub shift: u32,
     pub key: u32,
     pub root: u32,
+    pub catalog: u32,
     pub rule: u32,
-    pub wide: u32,
+    pub join: u32,
     pub coherence: u32,
     pub occurrence: u32,
     pub scope: u32,
@@ -82,8 +91,9 @@ impl Setting {
             self.shift,
             self.key,
             self.root,
+            self.catalog,
             self.rule,
-            self.wide,
+            self.join,
             self.coherence,
             self.occurrence,
             self.scope,

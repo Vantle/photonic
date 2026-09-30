@@ -1,20 +1,26 @@
 // An entry's header, as the host's table lays it out: its root, its count, the number of produced
-// kinds, the two halves of the sum its root and produced kinds add to a marking's hash, the
-// coherences, occurrences and frames its produced kinds hold and the kind it consumes or LONE; the
-// produced kinds follow it.
+// kinds, the two halves of what it adds to a marking's sum of kind terms once the terms of the kinds
+// it consumes are taken away, the coherences, occurrences and frames its produced kinds hold and the
+// number of kinds it consumes; the produced kinds follow it, and the consumed kinds follow them from
+// the largest down.
 struct Header {
     uint root;
     uint count;
     uint length;
     packed_uint2 gain;
     packed_uint3 size;
-    uint consumed;
+    uint taken;
 };
 
 static_assert(sizeof(Header) == HEADER * sizeof(uint), "the host lays an entry's header out in HEADER words");
 
 static device const Header* header(device const uint* entry, uint cursor) {
     return (device const Header*)(entry + cursor);
+}
+
+// The words an entry takes, so the next one starts after them.
+static uint extent(device const Header* item) {
+    return HEADER + item->length + item->taken;
 }
 
 // The hashed index from a part's root and kind to its entries, as the host's table lays it out.

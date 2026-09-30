@@ -83,7 +83,7 @@ pub struct Net {
     start: Makeup,
     lone: HashMap<u32, Vec<Entry>, Builder>,
     single: HashMap<(u32, u32), Vec<Entry>, Builder>,
-    join: HashMap<Makeup, Vec<Entry>, Builder>,
+    join: IndexMap<Makeup, Vec<Entry>, Builder>,
     pattern: Vec<Vec<Vec<Symbol>>>,
     slot: Vec<(usize, usize)>,
     surface: HashMap<u32, Surface, Builder>,
@@ -92,9 +92,9 @@ pub struct Net {
 
 // What a rule joining several coherences can bind of a kind: how many coherences of the root frame
 // a component of it holds, and the inputs, numbered across rules in order, that one could fill.
-struct Surface {
-    coherence: usize,
-    reach: Vec<usize>,
+pub struct Surface {
+    pub coherence: usize,
+    pub reach: Vec<usize>,
 }
 
 fn group(effect: impl IntoIterator<Item = Makeup>) -> Vec<Entry> {
@@ -212,7 +212,7 @@ impl Net {
             start,
             lone: HashMap::default(),
             single: HashMap::default(),
-            join: HashMap::default(),
+            join: IndexMap::default(),
             pattern,
             slot,
             surface: HashMap::default(),
@@ -307,6 +307,14 @@ impl Net {
     // The events of one component of a kind, with the root's rules, once a visit grounded them.
     pub fn single(&self, root: u32, kind: u32) -> Option<&[Entry]> {
         self.single.get(&(root, kind)).map(Vec::as_slice)
+    }
+
+    // A part of the root and two or more components that visits grounded, numbered in the order
+    // they grounded them, with its events; none past the last.
+    pub fn part(&self, id: usize) -> Option<(&Makeup, &[Entry])> {
+        self.join
+            .get_index(id)
+            .map(|(makeup, entry)| (makeup, entry.as_slice()))
     }
 
     // Grounds every part a marking holds, and the multisets its kinds could join, as expanding the
@@ -417,15 +425,9 @@ impl Net {
         self.pattern.iter().map(Vec::len).collect()
     }
 
-    // The inputs of the joining rules, numbered across rules in order, that a coherence of the root
-    // frame in a component of this kind could fill.
-    pub fn reach(&self, kind: u32) -> Vec<usize> {
-        self.shape(kind).reach
-    }
-
-    // The values held by each coherence of the root frame in a kind are all a rule joining several
-    // coherences can bind of it.
-    fn shape(&self, kind: u32) -> Surface {
+    // What a rule joining several coherences can bind of a kind, which is all the values held by
+    // each coherence of the root frame in it.
+    pub fn shape(&self, kind: u32) -> Surface {
         let world = self
             .taxonomy
             .kind(kind)

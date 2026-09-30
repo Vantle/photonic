@@ -6,22 +6,22 @@
 // marking takes share one running sum, the rank above SHIFT bits and the words below: a pass holds
 // fewer than CANDIDATE candidates, and no device holds 2^40 words.
 
-// Records one successor: its source, its entry and how many copies of the consumed kind could be
-// consumed, marked when the limits refuse it; returns how many events it stands for when the limits
-// admit it.
+// Records one successor: its source, its entry and the ways to choose the copies its entry
+// consumes, marked when the limits refuse it, given what the source holds without them; returns how
+// many events it stands for when the limits admit it.
 static ulong emit(
     device const uint* entry,
     uint cursor,
     uint source,
     uint copy,
-    uint3 total,
+    uint3 rest,
     uint candidate,
     device const uint* base,
     device packed_uint3* record,
     device atomic_uint* summary,
     constant Setting& setting) {
     device const Header* item = header(entry, cursor);
-    uint3 grown = total + uint3(item->size);
+    uint3 grown = rest + uint3(item->size);
     bool admitted = grown.x <= setting.coherence && base[item->root] + grown.y <= setting.occurrence && 1 + grown.z <= setting.scope;
     record[candidate] = packed_uint3(source, cursor, admitted ? copy : copy | LIMITED);
     if (!admitted) {
@@ -31,11 +31,41 @@ static ulong emit(
     return ulong(copy) * ulong(item->count);
 }
 
+// Records the successors of a marking's joining events after those the tables give it, as the
+// host's net expands them: every entry of every part, the parts in the order they are found, each
+// standing for its events times the ways to choose the part's copies.
+struct Emitter {
+    device const uint* entry;
+    device const uint* size;
+    device const uint* base;
+    device packed_uint3* record;
+    device atomic_uint* summary;
+    uint source;
+    uint3 total;
+    uint candidate;
+    ulong weight;
+
+    void take(Joint joint, uint id, uint choice, constant Setting& setting) {
+        device const uint* part = joint.part + PART * id;
+        uint3 rest = total;
+        for (uint item = 0; item < part[2]; item++) {
+            uint value = joint.member[part[1] + item];
+            rest -= uint3(size[3 * value], size[3 * value + 1], size[3 * value + 2]);
+        }
+        uint cursor = part[3];
+        for (uint item = 0; item < part[4]; item++) {
+            weight += emit(entry, cursor, source, choice, rest, candidate, base, record, summary, setting);
+            candidate += 1;
+            cursor += extent(header(entry, cursor));
+        }
+    }
+};
+
 // Records every successor the tables give a marking, in the order the host's net expands it: the
-// events binding only the root, then each run of equal kinds in order; the host writes the
-// successors of events joining several components after them. It keeps each marking's sum of kind
-// terms, from which its successors' hashes follow, and sums the events the admitted successors
-// stand for a threadgroup at a time.
+// events binding only the root, then each run of equal kinds in order, then the joining events,
+// unless their parts need more than the GPU keeps and the host writes them after the others. It
+// keeps each marking's sum of kind terms, from which its successors' hashes follow, and sums the
+// events the admitted successors stand for a threadgroup at a time.
 kernel void expand(
     device const Arena& arena [[buffer(0)]],
     device const ulong* offset [[buffer(1)]],
@@ -49,7 +79,15 @@ kernel void expand(
     device ulong* sum [[buffer(9)]],
     device ulong* partial [[buffer(10)]],
     device atomic_uint* summary [[buffer(11)]],
-    constant Setting& setting [[buffer(12)]],
+    device const uint* catalog [[buffer(12)]],
+    device const uint* part [[buffer(13)]],
+    device const uint* constituent [[buffer(14)]],
+    device const uint* coherence [[buffer(15)]],
+    device const uint* span [[buffer(16)]],
+    device const uint* reach [[buffer(17)]],
+    device const uint* rule [[buffer(18)]],
+    device const uint* arity [[buffer(19)]],
+    constant Setting& setting [[buffer(20)]],
     uint index [[thread_position_in_grid]],
     uint member [[thread_index_in_threadgroup]],
     uint group [[threadgroup_position_in_grid]],
@@ -79,26 +117,30 @@ kernel void expand(
         for (uint item = 0; item < number; item++) {
             weight += emit(entry, cursor, source, 1, total, candidate, base, record, summary, setting);
             candidate += 1;
-            cursor += HEADER + header(entry, cursor)->length;
+            cursor += extent(header(entry, cursor));
         }
         uint position = 0;
         while (position < length) {
             uint value = kind[position];
-            uint end = position + 1;
-            while (end < length && kind[end] == value) {
-                end += 1;
-            }
+            uint copies = run(kind, length, position);
             uint first = 0;
             uint found = 0;
             lookup(key, setting.key - 1, root, value, first, found);
             uint3 rest = total - uint3(size[3 * value], size[3 * value + 1], size[3 * value + 2]);
             cursor = first;
             for (uint item = 0; item < found; item++) {
-                weight += emit(entry, cursor, source, end - position, rest, candidate, base, record, summary, setting);
+                weight += emit(entry, cursor, source, copies, rest, candidate, base, record, summary, setting);
                 candidate += 1;
-                cursor += HEADER + header(entry, cursor)->length;
+                cursor += extent(header(entry, cursor));
             }
-            position = end;
+            position += copies;
+        }
+        Joint joint = {catalog, part, constituent, coherence, span, reach, rule, arity};
+        Counter check = {0};
+        if (join(joint, setting, root, kind, length, check) == 0) {
+            Emitter emitter = {entry, size, base, record, summary, source, total, candidate, 0};
+            join(joint, setting, root, kind, length, emitter);
+            weight += emitter.weight;
         }
     }
     ulong whole = 0;

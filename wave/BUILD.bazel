@@ -33,6 +33,7 @@ rust_library(
     compile_data = [
         "arena.metal",
         "hash.metal",
+        "join.metal",
         "pass.metal",
         "scan.metal",
         "setting.metal",
@@ -67,6 +68,7 @@ rust_test(
     compile_data = [
         "arena.metal",
         "hash.metal",
+        "join.metal",
         "pass.metal",
         "scan.metal",
         "setting.metal",

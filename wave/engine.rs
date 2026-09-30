@@ -16,12 +16,13 @@ use photonic::runtime::Limit;
 
 // The kernels' sources, each beside the host code it serves, in the order they declare what later
 // ones use.
-const SOURCE: [&str; 9] = [
+const SOURCE: [&str; 10] = [
     include_str!("setting.metal"),
     include_str!("arena.metal"),
     include_str!("table.metal"),
     include_str!("hash.metal"),
     include_str!("stream.metal"),
+    include_str!("join.metal"),
     include_str!("scan.metal"),
     include_str!("window.metal"),
     include_str!("pass.metal"),

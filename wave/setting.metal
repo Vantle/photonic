@@ -15,8 +15,9 @@ struct Setting {
     uint shift;
     uint key;
     uint root;
+    uint catalog;
     uint rule;
-    uint wide;
+    uint join;
     uint coherence;
     uint occurrence;
     uint scope;

@@ -100,14 +100,13 @@ impl Engine {
             first: saturate(window.first + range.from),
             count: saturate(range.to - range.from),
             shift: saturate(range.from),
-            key: search.upload.slot,
             coherence: saturate(search.limit.coherence),
             occurrence: saturate(search.limit.occurrence),
             scope: saturate(search.limit.scope),
             bucket: saturate(search.store.slot / WIDTH),
             next: saturate(search.store.count),
             allowed: saturate(allowed),
-            ..Setting::default()
+            ..self.table(search)
         };
         let decide = Setting {
             count: saturate(count),
@@ -116,7 +115,7 @@ impl Engine {
         let later = next.map(|(first, size)| Setting {
             next: saturate(search.store.count),
             allowed: saturate(allowed),
-            ..Self::alone(search, first, size)
+            ..self.alone(search, first, size)
         });
         let mut command = self.command(&search.store.arena)?;
         if let Some(old) = &offset {
@@ -204,7 +203,7 @@ impl Engine {
                 &store.arena.address,
                 &store.offset.memory,
                 &upload.entry.memory,
-                &upload.key.memory,
+                upload.key.memory(),
                 &upload.lone.memory,
                 &upload.size.memory,
                 &upload.base.memory,
@@ -213,6 +212,14 @@ impl Engine {
                 &work.sum.memory,
                 &work.event.memory,
                 &work.summary,
+                upload.catalog.memory(),
+                &upload.part.memory,
+                &upload.member.memory,
+                &upload.coherence.memory,
+                &upload.span.memory,
+                &upload.reach.memory,
+                &upload.rule.memory,
+                &upload.arity.memory,
             ],
             &setting.byte(),
             [self.group(setting.count as usize) * self.width, 1, 1],

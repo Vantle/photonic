@@ -21,6 +21,7 @@ fn identical() {
             first: 16,
             largest: 64,
             initial: 1,
+            join: 1,
         },
         Tuning {
             window: 17,
@@ -28,6 +29,15 @@ fn identical() {
             first: 40,
             largest: 300,
             initial: 5,
+            join: 3,
+        },
+        Tuning {
+            window: 5,
+            pass: 11,
+            first: 32,
+            largest: 128,
+            initial: 2,
+            ..Tuning::default()
         },
     ];
     let open = Limit {
