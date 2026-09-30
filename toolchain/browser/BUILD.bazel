@@ -47,6 +47,7 @@ rust_wasm_bindgen(
     name = "module",
     out_name = "runtime",
     target = "web",
+    visibility = ["//book:__pkg__"],
     wasm_file = ":engine",
 )
 

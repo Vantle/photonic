@@ -8,7 +8,7 @@ const USAGE: &str = "usage: notice --output FILE (--crate 'NAME VERSION' [--mani
 const PREAMBLE: &str =
     "Photonic is licensed under MIT OR Apache-2.0; see LICENSE-MIT and LICENSE-APACHE.
 
-The photonic binary also contains the Rust standard library, licensed under MIT OR Apache-2.0
+This build also contains the Rust standard library, licensed under MIT OR Apache-2.0
 (https://github.com/rust-lang/rust), and the third-party crates below. Each crate is listed with
 the license it declares and the license files it ships, and its source is published at
 https://crates.io/crates/NAME/VERSION. A text that appears earlier is named instead of repeated.
