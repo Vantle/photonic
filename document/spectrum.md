@@ -238,6 +238,8 @@ A failure carries a `code`, a `message` and, when it points into text, a `locati
 | `read` | A file cannot be read. |
 | `encoding` | A file is not UTF-8 text; save it as UTF-8. |
 
+`read` and `encoding` come from the frontend's own reader, which assembles programs for Bazel; Spectrum reads files itself and reports those failures as `file`.
+
 The command prints answers as text, or with `--json` as the envelope, and prints a failure as `error[code]: message`. It exits 1 on any failure; `check` also exits 1 unless there are no diagnostics and every claim holds, `compare` unless both sides settle, reach the same configurations and events, and answer every claim alike and definitely, and `shape` when its programs have more than one shape. The library decides this through `Answer::passed`.
 
 ## Model Context Protocol
