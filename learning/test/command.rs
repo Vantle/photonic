@@ -104,7 +104,17 @@ fn range() {
     ] {
         assert!(fail(&argument).contains("a share must be"), "{argument:?}");
     }
-    for argument in [["train", "--game=0"], ["improve", "--worker=0"]] {
+    for argument in [
+        ["train", "--game=0"],
+        ["improve", "--worker=0"],
+        ["train", "--trainer=0"],
+        ["train", "--simulation=0"],
+        ["train", "--considered=0"],
+        ["train", "--step=0"],
+        ["train", "--depth=0"],
+        ["train", "--hidden=0"],
+        ["curriculum", "--exam=0"],
+    ] {
         assert!(fail(&argument).contains("at least 1"), "{argument:?}");
     }
     for argument in [["improve", "--frozen"], ["curriculum", "--frozen"]] {
@@ -205,21 +215,7 @@ fn copy() {
 fn guided() {
     let fixture = Fixture::new();
     let home = fixture.home();
-    let shape = Shape {
-        width: DIMENSION,
-        depth: 1,
-        head: 1,
-        hidden: 32,
-        key: DIMENSION,
-    };
-    let model = Model::new(shape.architecture(), &mut Generator::new(1));
-    let optimizer = Optimizer::new(model.size(), optimizer::Setting::default());
-    checkpoint::save(
-        &fixture.path.join("home").join(CHECKPOINT),
-        &model,
-        &optimizer,
-    )
-    .unwrap();
+    untrained(&fixture);
     let input = fixture.write("input.wave", "A");
     let output = fixture.write("output.wave", "B");
     let report = succeed(&[
@@ -352,4 +348,71 @@ fn forever() {
         report.contains("found programs for 1 of 1 tasks"),
         "{report}"
     );
+}
+
+fn untrained(fixture: &Fixture) {
+    let shape = Shape {
+        width: DIMENSION,
+        depth: 1,
+        head: 1,
+        hidden: 32,
+        key: DIMENSION,
+    };
+    let model = Model::new(shape.architecture(), &mut Generator::new(1));
+    let optimizer = Optimizer::new(model.size(), optimizer::Setting::default());
+    checkpoint::save(
+        &fixture.path.join("home").join(CHECKPOINT),
+        &model,
+        &optimizer,
+    )
+    .unwrap();
+}
+
+#[test]
+fn rest() {
+    let fixture = Fixture::new();
+    let home = fixture.home();
+    let rounds = succeed(&[
+        "improve",
+        "--home",
+        &home,
+        "--round",
+        "2",
+        "--practice",
+        "0",
+        "--fresh",
+        "1",
+        "--guide",
+        "0",
+        "--device",
+        "cpu",
+    ]);
+    assert!(rounds.contains("round 2: solved"), "{rounds}");
+    let blank = Fixture::new();
+    let message = fail(&["curriculum", "--home", &blank.home(), "--practice", "0"]);
+    assert!(message.contains("holds none"), "{message}");
+    untrained(&fixture);
+    let exam = succeed(&[
+        "curriculum",
+        "--home",
+        &home,
+        "--practice",
+        "0",
+        "--level",
+        "1",
+        "--exam",
+        "1",
+        "--fresh",
+        "0",
+        "--mastery",
+        "0",
+        "--expansion",
+        "8",
+        "--enumerate",
+        "60",
+        "--device",
+        "cpu",
+    ]);
+    assert!(exam.contains("round 1: level 1"), "{exam}");
+    assert!(exam.contains("level 1 mastered"), "{exam}");
 }

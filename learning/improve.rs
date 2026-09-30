@@ -83,13 +83,16 @@ pub fn run(argument: Improve) -> miette::Result<()> {
             .filter(|task| archive.best(&task.name).is_none())
             .map(|task| task.name.clone())
             .collect::<Vec<_>>();
+        if deadline.is_some_and(|deadline| Instant::now() >= deadline) {
+            break;
+        }
+        if argument.practice == 0 {
+            continue;
+        }
         let practice = deadline.map_or(Duration::from_secs(argument.practice), |deadline| {
             Duration::from_secs(argument.practice)
                 .min(deadline.saturating_duration_since(Instant::now()))
         });
-        if practice.is_zero() {
-            break;
-        }
         line(&format!(
             "round {}: training for {:.0}s, focused on the {} tasks still unsolved",
             round + 1,

@@ -8,7 +8,7 @@ use learning::home;
 use learning::pool::SYNTHETIC;
 use learning::session;
 use learning::solution::Budget;
-use miette::IntoDiagnostic;
+use miette::{IntoDiagnostic, miette};
 use std::time::{Duration, Instant};
 
 fn remaining(deadline: Option<Instant>, time: Duration) -> Duration {
@@ -19,6 +19,12 @@ fn remaining(deadline: Option<Instant>, time: Duration) -> Duration {
 
 pub fn run(argument: Course) -> miette::Result<()> {
     let home = open(&argument.home)?;
+    if argument.practice == 0 && !home.file(home::CHECKPOINT).exists() {
+        return Err(miette!(
+            "--practice 0 examines the saved network, and {} holds none",
+            home.path().display()
+        ));
+    }
     let setting = setting(&argument.session, false)?;
     let objective = setting.play.objective;
     let seed = argument.session.seed;
@@ -89,30 +95,32 @@ pub fn run(argument: Course) -> miette::Result<()> {
             |event| report(event, 0),
         )
         .into_diagnostic()?;
-        let practice = remaining(deadline, Duration::from_secs(argument.practice));
-        if practice.is_zero() {
+        if expired() {
             break;
         }
-        let (count, focus) = focus(
-            &pool,
-            level,
-            argument.rehearse,
-            seed ^ state.mark.len() as u64,
-        );
-        line(&format!(
-            "level {level}: training {:.0}s on {count} behaviors of this level and {} from earlier levels",
-            practice.as_secs_f64(),
-            focus.len() - count
-        ));
-        session(
-            &home,
-            &pool,
-            &focus,
-            &session::Setting {
-                duration: Some(practice),
-                ..setting
-            },
-        )?;
+        if argument.practice > 0 {
+            let practice = remaining(deadline, Duration::from_secs(argument.practice));
+            let (count, focus) = focus(
+                &pool,
+                level,
+                argument.rehearse,
+                seed ^ state.mark.len() as u64,
+            );
+            line(&format!(
+                "level {level}: training {:.0}s on {count} behaviors of this level and {} from earlier levels",
+                practice.as_secs_f64(),
+                focus.len() - count
+            ));
+            session(
+                &home,
+                &pool,
+                &focus,
+                &session::Setting {
+                    duration: Some(practice),
+                    ..setting
+                },
+            )?;
+        }
         let mut network = Network::load(&home.file(home::CHECKPOINT)).into_diagnostic()?;
         let mastery = (1..=level)
             .map(|grade| {

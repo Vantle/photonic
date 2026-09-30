@@ -134,6 +134,7 @@ pub struct Session {
     pub worker: Option<usize>,
     #[arg(
         long,
+        value_parser = count,
         default_value_t = 4,
         help = "Training threads when training runs on the CPU"
     )]
@@ -147,18 +148,21 @@ pub struct Session {
     pub game: usize,
     #[arg(
         long,
+        value_parser = count,
         default_value_t = search::Setting::default().simulation,
         help = "Search simulations per decision"
     )]
     pub simulation: usize,
     #[arg(
         long,
+        value_parser = count,
         default_value_t = search::Setting::default().considered,
         help = "Root actions considered by sequential halving"
     )]
     pub considered: usize,
     #[arg(
         long,
+        value_parser = count,
         default_value_t = search::Setting::default().step,
         help = "Edits per episode"
     )]
@@ -210,12 +214,14 @@ pub struct Session {
     pub width: usize,
     #[arg(
         long,
+        value_parser = count,
         default_value_t = Shape::default().depth,
         help = "Transformer blocks; a saved shallower network grows to it"
     )]
     pub depth: usize,
     #[arg(
         long,
+        value_parser = count,
         default_value_t = Shape::default().hidden,
         help = "Feed-forward width; a saved narrower network grows to it"
     )]
@@ -294,6 +300,7 @@ pub struct Course {
     pub level: usize,
     #[arg(
         long,
+        value_parser = count,
         default_value_t = 20,
         help = "Held-out behaviors with proven optima in each level's exam"
     )]
@@ -304,7 +311,11 @@ pub struct Course {
         help = "New behaviors generated to train on in each level"
     )]
     pub fresh: usize,
-    #[arg(long, default_value_t = 300, help = "Seconds of training per round")]
+    #[arg(
+        long,
+        default_value_t = 300,
+        help = "Seconds of training per round; 0 examines the saved network without training it"
+    )]
     pub practice: u64,
     #[arg(
         long,
@@ -361,7 +372,7 @@ pub struct Improve {
     #[arg(
         long,
         default_value_t = 600,
-        help = "Seconds of training with lessons in each round"
+        help = "Seconds of training with lessons in each round; 0 only generates and solves"
     )]
     pub practice: u64,
     #[arg(
