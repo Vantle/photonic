@@ -388,6 +388,9 @@ try {
     assert.deepEqual(await evaluate('return [location.search, location.hash]'), ['', '#1&source=Q']);
     await evaluate("location.hash = '#1&source=R.S&target=R.S'; return true");
     await until("return document.querySelector('.lightbox .editor textarea').value === 'R.S' && [...document.querySelectorAll('.lightbox .verdict .badge')].map(value => value.textContent).join() === 'reached'");
+    await open(`${origin}/lightbox.html#1&source=P&library=library/natural/add`, "return book.engine.state === 'live' && document.querySelector('.lightbox .message').dataset.tone === 'error'");
+    assert.match(await evaluate("return document.querySelector('.lightbox .message').textContent"), /does not have library\/natural\/add\.particle/);
+    assert.equal(await evaluate("return document.querySelectorAll('.lightbox .blank').length"), 1);
     await evaluate("[...document.querySelectorAll('.lightbox .preset button')].find(value => value.textContent === 'Cycle').click(); return true");
     assert.equal(await evaluate('return book.share.read(location.hash).source'), await evaluate('return book.record.example.cycle.source'));
     await open(`${origin}/lightbox.html`, "return document.querySelector('.lightbox .editor textarea').value.endsWith('[B] E') && document.querySelectorAll('.lightbox .graph .state').length === 4");

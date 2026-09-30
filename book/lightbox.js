@@ -97,8 +97,6 @@
             goal.value = value.target;
             toggle.forEach((button, name) => button.setAttribute('aria-pressed', String(value.library.includes(name))));
             keep.checked = value.preserve;
-            const missing = value.library.filter(name => !toggle.has(name));
-            if (missing.length) message.say(`The Lightbox does not have ${missing.map(name => `${name}.particle`).join(', ')}.`, 'error');
         };
         const address = value => history.replaceState(null, '', book.share.link(value));
 
@@ -187,6 +185,13 @@
             message.say();
             fill(start);
             pending = false;
+            const missing = start.library.filter(name => !toggle.has(name));
+            if (missing.length) {
+                choice.press();
+                message.say(`The Lightbox does not have ${missing.map(name => `${name}.particle`).join(', ')}, so it has not run this program.`, 'error');
+                viewer.blank('Choose the libraries this program needs, then press Run.');
+                return;
+            }
             const known = sample.find(item => entry(item) && same(entry(item), start));
             if (known) {
                 choice.press(known.name);
