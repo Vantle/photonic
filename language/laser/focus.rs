@@ -95,7 +95,10 @@ fn isolated(
         .iter()
         .filter(|identity| identity.binding.world.contains(&world))
         .all(|identity| {
-            let returning = identity.frame != 0 && identity.owner == Owner::Frame(identity.frame);
+            let returning = match identity.owner {
+                Owner::Frame(owner) => identity.binding.returning(identity.frame, owner),
+                Owner::Capture(_) => false,
+            };
             let within = identity
                 .binding
                 .footprint

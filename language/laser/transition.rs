@@ -111,6 +111,7 @@ pub(super) fn localize(
         footprint: set(&binding.footprint),
         exact: set(&binding.exact),
         read: set(&binding.read),
+        residence: binding.residence,
     };
     Local {
         key: Key {

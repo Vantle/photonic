@@ -23,7 +23,7 @@ pub(super) struct Consumer {
     pub frame: usize,
     pub owner: Owner<usize>,
     pub rule: usize,
-    pub read: Option<Place>,
+    pub read: Place,
 }
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]

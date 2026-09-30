@@ -76,6 +76,7 @@ fn coalescence() {
         footprint: Set::single(Place::World(0, 1)),
         exact: Set::single(Place::World(0, 1)),
         read: Set::default(),
+        residence: crate::residence::Residence::World,
     };
     let result = application::apply(Request {
         scope: &[],

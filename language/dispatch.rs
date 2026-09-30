@@ -24,7 +24,7 @@ pub(crate) struct Delivery {
     pub rule: usize,
     pub frame: usize,
     pub owner: usize,
-    pub read: Option<crate::reader::Read>,
+    pub read: crate::reader::Read,
     pub selection: Vec<Slot>,
 }
 

@@ -197,6 +197,7 @@ fn apply(
     frame: usize,
     owner: usize,
     rule: usize,
+    read: Place,
     selected: &Selection,
 ) -> State {
     let consumed = selected
@@ -246,7 +247,7 @@ fn apply(
             }
         }
     }
-    let returning = frame == owner && frame != 0;
+    let returning = frame == owner && frame != 0 && matches!(read, Place::Context(..));
     let parent = if returning {
         state.frame[frame].parent.unwrap()
     } else {
@@ -328,7 +329,7 @@ fn expected(program: &Program, state: &State) -> HashSet<Transition> {
                         .iter()
                         .filter_map(|location| location.world())
                         .collect(),
-                    state: apply(program, state, frame, owner, rule, &selected),
+                    state: apply(program, state, frame, owner, rule, read, &selected),
                     resource: selected.resource,
                 });
             }
@@ -388,6 +389,7 @@ fn occurrence() {
         "A.X, [A] (B, (C, [C] D), [D] E)",
         "Z, (X, [X] Y), ([Z] W)",
         "Z, (X, (Y, [Y] W), [X] V)",
+        "((P.Z.A, [Q.Z] Out), [P] Q.([A] B), [Q.B] Done)",
     ] {
         verify(source, 3);
     }

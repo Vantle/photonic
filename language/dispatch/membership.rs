@@ -14,7 +14,7 @@ fn consumer(frame: usize, token: &Token) -> Option<Consumer> {
     Some(Consumer {
         rule,
         owner: token.capture.unwrap(),
-        read: Some(Read::Context(frame, token.id)),
+        read: Read::Context(frame, token.id),
     })
 }
 

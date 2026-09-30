@@ -54,7 +54,7 @@ impl Runtime {
         let consumer = delivery.consumer;
         let selection = delivery.selection;
         let view = self.view[consumer.view].clone();
-        if let Some(Place::World(world, _)) = consumer.read
+        if let Place::World(world, _) = consumer.read
             && !crate::slot::admits(&selection, world)
         {
             return;
@@ -113,7 +113,7 @@ impl Runtime {
                         frame: source,
                         owner: locate(token.capture, &view.flow),
                         rule,
-                        read: Some(place),
+                        read: place,
                     },
                 );
             }
@@ -146,7 +146,7 @@ impl Runtime {
                         frame,
                         owner: locate(token.capture, &view.flow),
                         rule,
-                        read: Some(Place::World(site, token.id)),
+                        read: Place::World(site, token.id),
                     },
                 );
             }

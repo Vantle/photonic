@@ -288,6 +288,7 @@ filegroup(
         "render.rs",
         "render/sequence.rs",
         "replay.rs",
+        "residence.rs",
         "revision.rs",
         "runtime.rs",
         "runtime/application.rs",

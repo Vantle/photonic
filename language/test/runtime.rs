@@ -370,6 +370,7 @@ fn capture() {
             footprint: BTreeSet::new().into(),
             exact: BTreeSet::new().into(),
             read: BTreeSet::from([basis]).into(),
+            residence: crate::residence::Residence::World,
         };
         let output = crate::application::apply(crate::application::Request {
             scope: &[],
@@ -616,6 +617,7 @@ fn inheritance() {
                     footprint: BTreeSet::new().into(),
                     exact: BTreeSet::new().into(),
                     read: BTreeSet::from([basis]).into(),
+                    residence: crate::residence::Residence::World,
                 };
                 let result = crate::application::apply(crate::application::Request {
                     scope: &[],
