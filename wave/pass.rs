@@ -220,6 +220,7 @@ impl Engine {
                 &upload.reach.memory,
                 &upload.rule.memory,
                 &upload.arity.memory,
+                &work.route.memory,
             ],
             &setting.byte(),
             [self.group(setting.count as usize) * self.width, 1, 1],

@@ -63,7 +63,8 @@ struct Emitter {
 
 // Records every successor the tables give a marking, in the order the host's net expands it: the
 // events binding only the root, then each run of equal kinds in order, then the joining events,
-// unless their parts need more than the GPU keeps and the host writes them after the others. It
+// unless counting found their parts need more than the GPU keeps and the host writes them after
+// the others. It
 // keeps each marking's sum of kind terms, from which its successors' hashes follow, and sums the
 // events the admitted successors stand for a threadgroup at a time.
 kernel void expand(
@@ -87,7 +88,8 @@ kernel void expand(
     device const uint* reach [[buffer(17)]],
     device const uint* rule [[buffer(18)]],
     device const uint* arity [[buffer(19)]],
-    constant Setting& setting [[buffer(20)]],
+    device const uint* route [[buffer(20)]],
+    constant Setting& setting [[buffer(21)]],
     uint index [[thread_position_in_grid]],
     uint member [[thread_index_in_threadgroup]],
     uint group [[threadgroup_position_in_grid]],
@@ -135,9 +137,8 @@ kernel void expand(
             }
             position += copies;
         }
-        Joint joint = {catalog, part, constituent, coherence, span, reach, rule, arity};
-        Counter check = {0};
-        if (join(joint, setting, root, kind, length, check) == 0) {
+        if (route[setting.shift + index] == 0) {
+            Joint joint = {catalog, part, constituent, coherence, span, reach, rule, arity};
             Emitter emitter = {entry, size, base, record, summary, source, total, candidate, 0};
             join(joint, setting, root, kind, length, emitter);
             weight += emitter.weight;

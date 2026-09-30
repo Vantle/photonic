@@ -93,6 +93,7 @@ impl Engine {
     // memory, hands back the memory they leave, whose sums a pass that still reads them copies over.
     pub(crate) fn room(&self, work: &mut Work, size: usize) -> Result<Option<Memory>, Failure> {
         work.number.fit(&self.device, size)?;
+        work.route.fit(&self.device, size)?;
         work.flagged.fit(&self.device, 2 * size)?;
         self.scan.prepare(&self.device, &mut work.level, size)?;
         work.start.swap(&self.device, size)
@@ -144,6 +145,7 @@ impl Engine {
                 &search.work.flagged.memory,
                 &search.work.summary,
                 &search.work.total,
+                &search.work.route.memory,
             ],
             &setting.byte(),
             [size, 1, 1],
