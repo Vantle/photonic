@@ -70,7 +70,7 @@
             const box = element('section', 'panel');
             const head = element('header');
             const option = element('div', 'option');
-            head.append(element('h4', undefined, `The shape of ${series(member)}`), option);
+            head.append(element('h3', undefined, `The shape of ${series(member)}`), option);
             const heading = element('tr');
             ['Shape', ...member].forEach(text => heading.append(element('th', undefined, text)));
             const header = element('thead');
@@ -169,7 +169,7 @@
             program.replaceChildren(...editor.map((pane, position) => {
                 const box = element('section', 'panel');
                 const head = element('header');
-                head.append(element('h4', undefined, field[position]));
+                head.append(element('h3', undefined, field[position]));
                 box.append(head, pane.element);
                 return box;
             }));

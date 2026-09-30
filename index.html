@@ -5,9 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="The Photonic webbook: the rule language, its runtime, standard library and proofs, with every example executed by the Rust runtime.">
 <meta name="color-scheme" content="light dark">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Photonic Webbook">
+<meta property="og:description" content="The Photonic webbook: the rule language, its runtime, standard library and proofs, with every example executed by the Rust runtime.">
+<meta property="og:url" content="https://photonic.vantle.org/">
+<meta property="og:image" content="https://photonic.vantle.org/book/logo/mark.png">
+<meta property="og:image:width" content="512">
+<meta property="og:image:height" content="512">
+<meta property="og:image:alt" content="The Photonic prism">
 <script>globalThis.book = { storage: { theme: 'photonic-book-theme' } }; try { const choice = localStorage.getItem(book.storage.theme); if (choice === 'light' || choice === 'dark') document.documentElement.dataset.theme = choice; } catch {}</script>
 <title>Photonic Webbook</title>
 <link rel="icon" href="book/icon.svg">
+<link rel="apple-touch-icon" href="book/logo/mark.png">
 <link rel="stylesheet" href="book/book.css">
 <script defer src="book/record.js"></script>
 <script defer src="book/syntax.js"></script>
@@ -46,11 +55,11 @@
 <span><strong>Photonic</strong><small>The Webbook</small></span>
 </a>
 <button class="pill menu" id="menu" type="button" aria-expanded="false" aria-controls="outline">Contents</button>
-<button class="search" id="search" type="button"><span>Search and filter</span><kbd>⌘K</kbd></button>
+<button class="search" id="search" type="button"><span>Search and filter</span><kbd data-command>⌘K</kbd></button>
 <a class="launch" href="lightbox.html">Open the Lightbox<small>Write and run your own programs</small></a>
 <nav class="outline" id="outline" aria-label="Chapters">
 <section>
-<h2>Language</h2>
+<p>Language</p>
 <a href="#value"><span>1</span>Atoms, particles, coherences</a>
 <a href="#rule"><span>2</span>Rules</a>
 <a href="#identity"><span>3</span>Identity</a>
@@ -61,29 +70,29 @@
 <a href="#field"><span>8</span>Fields and shorthand</a>
 </section>
 <section>
-<h2>Verification</h2>
+<p>Verification</p>
 <a href="#prism"><span>9</span>Prism</a>
 <a href="#workbench"><span>10</span>The workbench</a>
 <a href="#tool"><span>11</span>Tests and tools</a>
 </section>
 <section>
-<h2>Library</h2>
+<p>Library</p>
 <a href="#library"><span>12</span>The standard library</a>
 <a href="#linked"><span>13</span>Linked data</a>
 <a href="#arithmetic"><span>14</span>Arithmetic</a>
 </section>
 <section>
-<h2>Proof</h2>
+<p>Proof</p>
 <a href="#proof"><span>15</span>Proof by execution</a>
 <a href="#connection"><span>16</span>Connections</a>
 </section>
 <section>
-<h2>System</h2>
+<p>System</p>
 <a href="#runtime"><span>17</span>Inside the runtime</a>
 <a href="#repository"><span>18</span>The repository</a>
 </section>
 <section>
-<h2>Reference</h2>
+<p>Reference</p>
 <a href="#reference"><span>19</span>Grammar and glossary</a>
 </section>
 </nav>
@@ -109,12 +118,12 @@
 [Light] Blue</pre>
 <figcaption>Three rules can consume <code>Light</code>. Each is a possible event, so the runtime explores three futures. Select a configuration to see the events that leave it.</figcaption>
 </figure>
-<div class="note">
-<strong>Every example runs</strong>
-<p>Each program in this book was executed by the Rust runtime compiled to WebAssembly, and each graph is its real output. At <a href="https://photonic.vantle.org">photonic.vantle.org</a>, or in a checkout served with the command below, you can edit any example and run it again.</p>
-<pre class="listing">bazel run -c opt //book:serve</pre>
-<p>A served checkout opens at <a href="http://127.0.0.1:8080">127.0.0.1:8080</a>. Opened as a local file, the book shows the recorded runs.</p>
-</div>
+<p>Each program in this book ran in the Rust runtime compiled to WebAssembly, and each graph is its real output. While the engine is live, you can edit any example and run it again.</p>
+<p id="local" hidden>This copy of the book shows the recorded runs. To run your own, open <a href="https://photonic.vantle.org">photonic.vantle.org</a>, or serve the checkout with <code>bazel run -c opt //book:serve</code> and open <a href="http://127.0.0.1:8080">127.0.0.1:8080</a>.</p>
+<p>To run Photonic on your own machine, download <code>photonic</code> for macOS, Linux or Windows from the <a href="https://github.com/Vantle/photonic/releases">releases page</a>, or run <code>bazel run //:install</code> in a checkout. Save the program above as <code>light.wave</code>, then list where its runs end and check that one reaches <code>Red</code>:</p>
+<pre class="listing">photonic explore light.wave
+photonic check light.wave --reach Red</pre>
+<p><a href="#tool">Chapter 11</a> covers the command line, the Bazel rules and the questions Spectrum answers.</p>
 <div class="action"><a class="button primary" href="#value">Start reading</a><a class="button accent" href="lightbox.html">Open the Lightbox</a><a class="button" href="#reference">Grammar and glossary</a></div>
 </header>
 
@@ -400,7 +409,7 @@ Add.Unit.Unit.Unit,
 <figure class="example wide" data-example="check" data-target='["B.X, [A] B", "B.X", "A.X, [A] B"]' data-expect='["reached", "unreachable", "reached"]'>
 <pre>A.X,
 [A] B</pre>
-<figcaption>The start counts: every configuration reaches itself. When the book is served, edit the targets and run again.</figcaption>
+<figcaption>The start counts: every configuration reaches itself. While the engine is live, edit the targets and run again.</figcaption>
 </figure>
 <div class="table">
 <table>
@@ -429,7 +438,7 @@ Add.Unit.Unit.Unit,
 <div class="widget workbench wide" id="bench" data-preset='[{"name": "Parallel", "source": "A, B,\n[A] C,\n[B] D,\n[C, D] E"}, {"name": "Split and join", "source": "A.X,\n[A] (B, C),\n[B, C] D"}, {"name": "Scope", "example": "brew"}, {"name": "Inference", "example": "inference"}, {"name": "Conjunction", "example": "conjunction"}, {"name": "Counting", "example": "addition"}, {"name": "Rules as values", "example": "dynamic"}]'></div>
 <p>Every explored example in this book has a <strong>Workbench</strong> button that opens it here. For your own programs, the <a href="lightbox.html">Lightbox</a> gives the same views a full page, keeps your draft, and makes links that carry the whole program.</p>
 <h3>Filter by pattern</h3>
-<p>Type a pattern in the filter field, or press <kbd>⌘</kbd> <kbd>K</kbd> or <kbd>/</kbd> anywhere in the book. The workbench keeps what matches and everything computed after it, and hides the rest. The engine reads the pattern, the same way <code>photonic select</code> does, so filtering needs the served book.</p>
+<p>Type a pattern in the filter field, or press <kbd data-command>⌘</kbd> <kbd>K</kbd> or <kbd>/</kbd> anywhere in the book. The workbench keeps what matches and everything computed after it, and hides the rest. The engine reads the pattern, the same way <code>photonic select</code> does, so filtering needs the live engine.</p>
 <div class="table">
 <table>
 <thead><tr><th>Pattern</th><th>Matches</th></tr></thead>
@@ -453,7 +462,7 @@ Add.Unit.Unit.Unit,
 <section class="chapter" id="tool">
 <p class="eyebrow">Verification · 11</p>
 <h2>Tests and tools</h2>
-<p class="lead">Bazel builds, runs and tests Photonic. It is the only tool to install; it downloads everything else.</p>
+<p class="lead">Bazel builds, runs and tests Photonic from source. It is the only tool a checkout needs; it downloads everything else.</p>
 <pre class="listing">load("//photonic:defs.bzl", "photonic_binary", "photonic_library", "photonic_test")
 
 photonic_library(
@@ -475,6 +484,7 @@ photonic_test(
     deps = ["//library/boolean:not"],
 )</pre>
 <p>A library holds only rules. A binary combines the coherences of its sources and loads each library file once. <code>.particle</code> and <code>.wave</code> share one grammar; by convention <code>.particle</code> holds reusable definitions and <code>.wave</code> runnable programs.</p>
+<p>These labels name packages of this repository, so the file builds inside a checkout. Another Bazel module adds <code>bazel_dep(name = "photonic")</code> with a <code>git_override</code> that names this repository and a commit, then writes the same labels from <code>@photonic</code>, as in <code>@photonic//photonic:defs.bzl</code> and <code>@photonic//library/boolean:not</code>. The <a href="library/README.md">library reference</a> lists every target.</p>
 <div class="table">
 <table>
 <thead><tr><th>Test attribute</th><th>Meaning</th></tr></thead>
@@ -483,7 +493,9 @@ photonic_test(
 <tr><td><code>target</code></td><td>Complete configurations, each with every loaded root rule added. <code>"A, B"</code> is one target with two coherences; <code>["A", "B"]</code> is two targets.</td></tr>
 <tr><td><code>expect</code></td><td><code>"reached"</code>, the default, or <code>"unreachable"</code>; every target must meet it.</td></tr>
 <tr><td><code>path</code></td><td><code>True</code> follows a direct path per target, which can only expect reached.</td></tr>
+<tr><td><code>every</code></td><td><code>True</code> requires every schedule of plain events to end exactly at a target, and no run to go on forever; Laser explores the schedules without inference. It can only expect reached.</td></tr>
 <tr><td><code>work</code>, <code>configuration</code>, <code>occurrence</code>, <code>scope</code>, <code>coherence</code>, <code>record</code></td><td>Budgets for work, configurations, occurrences, scopes, coherences and records.</td></tr>
+<tr><td><code>size</code>, <code>tags</code></td><td>Bazel's test size, <code>small</code> by default, and tags. A test that needs more than 2 GiB carries <code>memory</code>, which continuous verification skips.</td></tr>
 </tbody>
 </table>
 </div>
@@ -491,16 +503,16 @@ photonic_test(
 <pre class="listing">bazel run -c opt //command:photonic -- lower program/language/inference.wave
 bazel run -c opt //command:photonic -- run program/language/inference.wave
 bazel run -c opt //command:photonic -- prism program/language/inference.wave --target target.wave</pre>
-<p><code>lower</code> prints the program as JSON, <code>run</code> every configuration the program reaches by the handles the questions below use, and <code>prism</code> a verdict for the complete configuration in a target file, exiting 1 unless it is reached; <code>--preserve</code> adds every loaded root rule to the target, as <code>photonic_test</code> does. <code>--library</code> loads a rules-only file; <code>--path</code> follows a direct path; <code>--engine laser</code> explores with Laser, the second engine, and <code>--plain</code> explores every schedule of plain events on it. Every command reads paths relative to where <code>bazel run</code> started.</p>
+<p><code>lower</code> prints the program as JSON, <code>run</code> every configuration the program reaches by the handles the questions below use, and <code>prism</code> a verdict for the complete configuration in a target file, exiting 1 unless it is reached; <code>--preserve</code> adds every loaded root rule to the target, as <code>photonic_test</code> does. They explore with Laser, the default engine; <code>--engine interpreter</code> explores with the interpreter instead, which closes with the same answers. <code>--library</code> loads a rules-only file, <code>--path</code> follows a direct path, and <code>--plain</code> explores every schedule of plain events. Every command reads paths relative to where <code>bazel run</code> started.</p>
 <pre class="listing">bazel test -c opt //...
 bazel run -c opt //program/language:inference
 bazel test -c opt //program/language:conjunction.check</pre>
 <h3>Asking questions</h3>
 <pre class="listing">bazel run -c opt //command:photonic -- check program/language/conjunction.wave --reach False.Extra --exact --preserve
 bazel run -c opt //command:photonic -- explore program/language/conjunction.wave
-bazel run -c opt //command:photonic -- cause program/language/conjunction.wave s9
+bazel run -c opt //command:photonic -- cause program/language/conjunction.wave s6
 bazel run -c opt //command:photonic -- mcp</pre>
-<p>Spectrum answers questions about a program and every configuration it reaches. Answers name things by handle: <code>r2</code> is a rule, <code>s9</code> a configuration, <code>e10</code> an event and <code>s9.o0</code> an occurrence. The first command claims that the conjunction reaches exactly <code>False.Extra</code> with its rules, and the third shows the two events that get there.</p>
+<p>Spectrum answers questions about a program and every configuration it reaches. Answers name things by handle: <code>r2</code> is a rule, <code>s6</code> a configuration, <code>e3</code> an event and <code>s6.o0</code> an occurrence. The first command claims that the conjunction reaches exactly <code>False.Extra</code> with its rules, and the third shows the two events that get there.</p>
 <div class="table">
 <table>
 <thead><tr><th>Command</th><th>Answer</th></tr></thead>
@@ -534,7 +546,7 @@ bazel test -c opt //book:record.check</pre>
 <section class="chapter" id="library">
 <p class="eyebrow">Library · 12</p>
 <h2>The standard library</h2>
-<p class="lead">The standard library is written in Photonic: 69 rule files in 14 packages. Rust only loads and checks it.</p>
+<p class="lead">The standard library is written in Photonic: 68 rule files in 14 packages. Rust only loads and checks it.</p>
 <p>Every operation is named <code>Type.Verb</code>, and each type belongs to one package. A request carries <code>Function</code>; its answer carries <code>Return</code>. Scalar requests run inside <code>Invoke</code>, which is the whole of <a href="library/function/invoke.particle">invoke.particle</a>:</p>
 <pre class="code" data-source="library/function/invoke.particle">[Invoke] (
     Function,
@@ -601,7 +613,7 @@ bazel test -c opt //book:record.check</pre>
 </tbody>
 </table>
 </div>
-<p>Every output of an event receives the remainder, so a rule with two outputs duplicates a handle. Programs therefore move a chain by sending it on and forgetting the other copy, then continue on <code>Clean</code>. This program pushes 2, 0 and 1, reverses the chain and reads back 2, 0, 1:</p>
+<p>Every output of an event receives the remainder, so a rule with two outputs duplicates a handle. Programs therefore move a chain by sending it on and forgetting the other copy, then continue on <code>Clean</code>. This program pushes 2, 0 and 1, reverses the chain and reads back 2, 0, 1. It ends at <code>Zero.Done</code>: the last read leaves the empty chain <code>Zero</code> beside the answer.</p>
 <pre class="code" data-source="program/ternary/reversal.wave">Push.([Digit] 2).Zero, Stage.1,
 [Built, Stage.1] (Push.([Digit] 0), Forget.Stage.2),
 [Built, Clean.Stage.2] (Push.([Digit] 1), Forget.Stage.3),
@@ -623,7 +635,7 @@ bazel test -c opt //program/vector:sort.check</pre>
 <p><code>Function.Natural.Add</code> sits beside <code>Operand.Left</code> and <code>Operand.Right</code> and answers <code>Return.Natural.Add</code>. Subtraction answers a number or <code>Error.Underflow</code>; division answers a quotient and a remainder, or <code>Error.Divisor</code>; comparison answers <code>Less</code>, <code>Equal</code> or <code>Greater</code> and leaves both operands intact. Integers add a sign: zero is <code>Positive</code>, and division truncates toward zero.</p>
 <p>The expression package parses and evaluates infix expressions with precedence, left association, parentheses and unary minus, and answers <code>Error.Syntax</code>, <code>Error.Stack</code> or <code>Error.Divisor</code> for bad input. Below, the host only turns your characters into a token tape. Parsing and every digit of arithmetic are Photonic rules.</p>
 <div class="widget calculator wide" id="calculator" data-preset='["12 + 2", "12 * 2", "21 / 2 - 1", "-(12 + 2) * 10", "1 / 0", "1212 * 10 / 2 + 11 - 1"]'></div>
-<p>The panel shows the program your expression becomes. When the book is served, step through every event of its path.</p>
+<p>The panel shows the program your expression becomes. While the engine is live, step through every event of its path.</p>
 <p class="onward"><a href="#proof">Next: Proof by execution</a></p>
 </section>
 
@@ -687,10 +699,12 @@ bazel test -c opt //program/vector:sort.check</pre>
 <p>The renamings that leave a shape unchanged are its symmetries, and each gives another dictionary: any of <code>Across</code>, <code>Along</code> and <code>Turn</code> can stand for 3 modulo 8. Within one field, a dictionary shows a duality. <code>Boolean.Or</code> is <code>Boolean.And</code> with <code>True</code> and <code>False</code> exchanged, which is De Morgan's law. The lattice theorem that x ∨ y = y implies x ∧ y = x, with meet and join exchanged and x and y exchanged, is the theorem that x ∧ y = x implies x ∨ y = y.</p>
 <h3>How it works</h3>
 <p>Each program becomes a graph in which only the atoms are unnamed. Identical parts share one vertex, so only atoms can be interchangeable. Refinement splits the atoms by how they are used until no split remains, and a search tries each remaining choice. Whenever it finds a symmetry, it skips every choice that symmetry makes redundant, as the graph isomorphism programs nauty, bliss and Traces do. The least labeling it reaches names the atoms A, B, C and so on. That renamed program is the shape, and two programs are connected exactly when their shapes are equal. The dictionaries above come from the same search, run in this page.</p>
-<p>A connection can also run inside one program. A group of rules may recur under other names although the program as a whole has no symmetry: the addition library moves its digits through the same rules that borrowing uses, with <code>Add</code> renamed <code>Deduct</code>, and the sorting library merges upward and downward with the same 61 rules. <code>photonic shape</code> finds these local symmetries by growing groups one rule at a time from rules of equal shape and extending every copy the same way, as the frequent subgraph miners gSpan and GraMi grow patterns, and keeps the groups that account for the most of the program, as the compression heuristics of SUBDUE and Stitch do. The <a href="#workbench">workbench</a> and the <a href="lightbox.html">Lightbox</a> run the same analysis on every program and color the global symmetries, the local ones and the atoms that always travel together in both graphs.</p>
+<p>A connection can also run inside one program. A group of rules may recur under other names although the program as a whole has no symmetry. Loaded with the libraries they need, the addition library moves its digits through the same ten rules that borrowing uses, with <code>Add</code> renamed <code>Deduct</code>, and the sorting library merges in both directions with the same 61 rules, <code>Up</code> and <code>Down</code> and <code>Less</code> and <code>Greater</code> among the names exchanged. <code>photonic shape</code> finds these local symmetries by growing groups one rule at a time from rules of equal shape and extending every copy the same way, as the frequent subgraph miners gSpan and GraMi grow patterns, and keeps the groups that account for the most of the program, as the compression heuristics of SUBDUE and Stitch do. The <a href="#workbench">workbench</a> and the <a href="lightbox.html">Lightbox</a> run the same analysis on every program and color the global symmetries, the local ones and the atoms that always travel together in both graphs.</p>
 <pre class="listing">bazel run -c opt //command:photonic -- shape library/boolean/and.particle library/boolean/or.particle
-bazel run -c opt //command:photonic -- shape library/ternary/compare.particle</pre>
-<p>Given several programs, <code>shape</code> groups them by shape and prints each renaming. Given one, it prints the program's shape and canonical form, its symmetries, the rules they exchange, and the groups of rules that repeat under other names. <code>--library</code> loads rules, <code>--target</code> adds a configuration every renaming must keep, and <code>--fix</code> keeps the name of an atom that something outside the program relies on. The <a href="document/symmetry.md">symmetry record</a> describes the algorithm and what it finds in this repository.</p>
+bazel run -c opt //command:photonic -- shape library/ternary/compare.particle
+bazel build -c opt //library/vector:sort
+bazel run -c opt //command:photonic -- shape "$(bazel info -c opt bazel-bin)/library/vector/sort.json"</pre>
+<p>Given several programs, <code>shape</code> groups them by shape and prints each renaming. Given one, it prints the program's shape and canonical form, its symmetries, the rules they exchange, and the groups of rules that repeat under other names. Bazel assembles each library with its dependencies into a <code>.json</code> program, which <code>shape</code> reads like source. <code>--library</code> loads rules, <code>--target</code> adds a configuration every renaming must keep, and <code>--fix</code> keeps the name of an atom that something outside the program relies on. The <a href="document/symmetry.md">symmetry record</a> describes the algorithm and what it finds in this repository.</p>
 <p class="onward"><a href="#runtime">Next: Inside the runtime</a></p>
 </section>
 
@@ -702,19 +716,20 @@ bazel run -c opt //command:photonic -- shape library/ternary/compare.particle</p
 <section class="chapter" id="runtime">
 <p class="eyebrow">System · 17</p>
 <h2>Inside the runtime</h2>
-<p class="lead">The runtime is Rust. One transition kernel applies every rule; two searches decide which rules to apply.</p>
+<p class="lead">The runtime is Rust. One transition kernel applies every rule; two engines explore every future with it, and a direct path follows one.</p>
 <div class="pipeline wide">
 <div><strong>Parse</strong>A nine-rule pest grammar builds a lossless syntax tree with byte spans.</div>
 <div><strong>Lower</strong>Shorthand expands; particles, rules and scopes become a program.</div>
 <div><strong>Compile</strong>Atoms and rules are interned; rules with equal inputs share plans.</div>
 <div><strong>Match</strong>Indexes and incremental joins deliver every binding.</div>
 <div><strong>Apply</strong>One kernel consumes, carries the remainder, introduces outputs and opens scopes.</div>
-<div><strong>Canonicalize</strong>Configurations equal up to renaming become one state.</div>
-<div><strong>Explore</strong>Exhaustive search takes every event; a direct path follows one.</div>
+<div><strong>Canonicalize</strong>Configurations equal up to renaming become one state; Laser names each by its parts.</div>
+<div><strong>Explore</strong>Laser or the interpreter takes every event, plain mode every schedule without inference, and a direct path one run.</div>
 <div><strong>Verify</strong>Prism compares the exact target and reports its verdict.</div>
 </div>
-<p>The kernel is <a href="language/evaluation.rs">language/evaluation.rs</a>. Exhaustive search in <a href="language/runtime.rs">language/runtime.rs</a> also performs inference and records <strong>support</strong>: the events and derivations that justify each configuration. A configuration counts as reached only with support grounded in the start, so a cycle cannot justify itself. Direct paths live in <a href="language/path.rs">language/path.rs</a>, and Prism in <a href="language/prism.rs">language/prism.rs</a>.</p>
-<p><strong>Laser</strong>, in <a href="language/laser.rs">language/laser.rs</a>, is a second engine for exhaustive search. It names each configuration by its components instead of searching for the canonical form of the whole, remembers what each rule does to the components it touches, and carries matches back along events in rounds that run in parallel. A closed exploration reaches the same configurations, events, support and verdicts on both engines, and every exhaustive <code>photonic_test</code> case runs on both. Laser is far faster once explorations grow: on six dials, 729 configurations and 13,122 events, it finishes about three hundred times sooner than the interpreter. <code>--engine laser</code> selects it on the command line and in every question, and <code>--plain</code> explores every schedule of plain events, without inference, to ask whether every order of rule applications reaches a result. <a href="document/laser.md">Laser</a> is its contract.</p>
+<p>The kernel is <a href="language/evaluation.rs">language/evaluation.rs</a>. The interpreter, in <a href="language/runtime.rs">language/runtime.rs</a>, explores every future, performs inference and records <strong>support</strong>: the events and derivations that justify each configuration. A configuration counts as reached only with support grounded in the start, so a cycle cannot justify itself. Direct paths live in <a href="language/path.rs">language/path.rs</a>, and Prism in <a href="language/prism.rs">language/prism.rs</a>.</p>
+<p><strong>Laser</strong>, in <a href="language/laser.rs">language/laser.rs</a>, is the engine the command line and every question explore with unless <code>--engine interpreter</code> asks for the interpreter. It names each configuration by its components instead of searching for the canonical form of the whole, remembers what each rule does to the components it touches, and carries matches back along events in rounds that run in parallel on every core. A closed exploration reaches the same configurations, events, support and verdicts on both engines, and Spectrum's answers name the same handles on either; every exhaustive <code>photonic_test</code> case runs on both and requires Laser to give the interpreter's answer whenever the interpreter closes. Laser is far faster once explorations grow: on six dials, 729 configurations and 13,122 events, one thread of Laser finishes more than four hundred times sooner than the interpreter. This book runs the interpreter, compiled to WebAssembly, in your browser; both engines close with the same answers. <a href="document/laser.md">Laser</a> is its contract.</p>
+<p><code>--plain</code> explores every schedule of plain events, those a configuration's own matches identify, without inference, to ask whether every order of rule applications reaches a result. Laser explores them, and so does <code>--engine metal</code> on the program's net of parts: on the GPU through Metal with the <a href="wave/">wave</a> crate, or on the host where no GPU can. The metal engine keeps only counts, the configurations where runs end and whether a run can go on forever, so it answers <code>explore</code> and <code>check</code> alone. <code>photonic_test(every = True)</code> requires every plain schedule to end at a target.</p>
 <p>Reports are identical with one, two or four workers; the tests check it. A budget defers work instead of dropping it, so a larger budget resumes. The command line and <code>photonic_test</code> share one set of default budgets.</p>
 <div class="table wide">
 <table>
@@ -739,7 +754,7 @@ bazel run -c opt //command:photonic -- shape library/ternary/compare.particle</p
 <thead><tr><th>Directory</th><th>Responsibility</th></tr></thead>
 <tbody>
 <tr><td><a href="frontend/">frontend</a></td><td>Grammar, parsing and lowering</td></tr>
-<tr><td><a href="language/">language</a></td><td>Execution, exploration, canonical states and Prism</td></tr>
+<tr><td><a href="language/">language</a></td><td>Execution, the interpreter, Laser and its nets, canonical states and Prism</td></tr>
 <tr><td><a href="command/">command</a></td><td>The <code>photonic</code> command</td></tr>
 <tr><td><a href="spectrum/">spectrum</a></td><td>Spectrum, the analyzer and debugger behind the command's questions and its MCP server, documented in <a href="document/spectrum.md">document/spectrum.md</a></td></tr>
 <tr><td><a href="library/">library</a></td><td>The standard library, in Photonic</td></tr>
@@ -752,14 +767,18 @@ bazel run -c opt //command:photonic -- shape library/ternary/compare.particle</p
 <tr><td><a href="benchmark/">benchmark</a></td><td>Runtime measurements</td></tr>
 <tr><td><a href="code/">code</a>, <a href="machine/">machine</a>, <a href="translation/">translation</a></td><td>Label-free programs, exact flat execution and conversion to Photonic text</td></tr>
 <tr><td><a href="symmetry/">symmetry</a></td><td>Shapes, renamings and symmetries of programs</td></tr>
-<tr><td><a href="network/">network</a>, <a href="gpu/">gpu</a>, <a href="learning/">learning</a>, <a href="random/">random</a></td><td>The program optimization learner</td></tr>
+<tr><td><a href="wave/">wave</a></td><td>Exploration of plain schedules on the GPU</td></tr>
+<tr><td><a href="metal/">metal</a></td><td>The Metal runtime binding that wave and gpu share</td></tr>
+<tr><td><a href="hashing/">hashing</a></td><td>The shared hasher</td></tr>
+<tr><td><a href="random/">random</a></td><td>Seeded randomness</td></tr>
+<tr><td><a href="network/">network</a>, <a href="gpu/">gpu</a>, <a href="learning/">learning</a></td><td>The program optimization learner, which is experimental</td></tr>
 <tr><td><a href="platform/">platform</a></td><td>Supported platforms</td></tr>
 <tr><td><a href="document/">document</a></td><td>Contracts, the roadmap and dated runtime records</td></tr>
 </tbody>
 </table>
 </div>
 <h3>The learner</h3>
-<p><code>//learning:learning</code> optimizes Photonic programs. It edits rules with a planner guided by a label-free transformer, keeps every example correct under every schedule, and minimizes parallel time and program size. <code>solve</code> finds the cheapest small flat program for a task, even one defined only by tests, and proves it optimal by exhausting every program that could beat it.</p>
+<p>The learner is experimental. <code>//learning:learning</code> optimizes Photonic programs. It edits rules with a planner guided by a label-free transformer, keeps every example correct under every schedule, and minimizes parallel time and program size. <code>solve</code> finds the cheapest small flat program for a task, even one defined only by tests, and proves it optimal by exhausting every program that could beat it.</p>
 <pre class="listing">bazel run -c opt //learning:learning -- train --duration 3600
 bazel run -c opt //learning:learning -- solve --input "$PWD/input.wave" --output "$PWD/output.wave"</pre>
 <p>The <a href="document/learning.md">learner guide</a> describes the objective, the search and the results. <a href="document/build.md">Build organization</a> and <a href="document/automation.md">continuous verification</a> describe the build and the Buildkite pipeline.</p>
@@ -832,18 +851,28 @@ WHITESPACE = _{ " " | "\t" | "\r" | "\n" | "\u{000B}" | "\u{000C}" }</pre>
 <dt>Term</dt><dd>What sits between two commas: brackets beside at most one particle, in any order. Each bracket becomes every other part.</dd>
 <dt>Rule</dt><dd>Inputs in brackets and one output; a group gives several outputs. Also a value.</dd>
 <dt>Event</dt><dd>One rule applied to one match; an arrow of the graph.</dd>
+<dt>Plain event</dt><dd>An event that a configuration's own match identifies, without inference.</dd>
+<dt>Schedule</dt><dd>One order in which events happen, from the start until the run stops. Plain mode explores every schedule of plain events.</dd>
 <dt>Remainder</dt><dd>What a match leaves in its coherences; every output receives it.</dd>
 <dt>Scope</dt><dd>A local place written like a program in parentheses: coherences, rules and scopes. A rule's output opens it when the rule fires, and the program opens its own when it starts. Its own rules return to the enclosing scope.</dd>
+<dt>Frame</dt><dd>Where a scope lives in a configuration: its coherences, its rules and what it holds. The root frame is the program's. Answers show a scope's coherences after <code>in f1:</code> and name its frame <code>s10.f1</code>.</dd>
+<dt>Capture</dt><dd>The scope a rule occurrence remembers from where it was made. Equal code made in different scopes gives different values.</dd>
 <dt>Inference</dt><dd>Applying a rule to what a configuration can become, at the configuration itself.</dd>
 <dt>Witness</dt><dd>The concrete occurrences an inferred match reached through evidence.</dd>
 <dt>Deduction</dt><dd>The events that lead from an inferred event's configuration to the one where its rule matched.</dd>
+<dt>Support</dt><dd>What justifies a configuration: events and derivations grounded in the start. Only a supported configuration counts as reached, so a cycle cannot justify itself, and answers mark what is unsupported.</dd>
 <dt>Field</dt><dd>A one-rule value such as <code>([Digit] 0)</code> that keeps a role with its value.</dd>
 <dt>Target</dt><dd>A complete configuration, including live rules, that Prism looks for.</dd>
+<dt>Exact target</dt><dd>A target read as a complete configuration, the way Prism reads one. <code>--exact</code> reads a claim's pattern that way, and <code>--preserve</code> adds every loaded root rule.</dd>
 <dt>Verdict</dt><dd>Reached, unreachable or unknown.</dd>
 <dt>Direct path</dt><dd>One execution, followed until it reaches the target or can go no further.</dd>
 <dt>Budget</dt><dd>A limit on exploration. Exhausting it defers work and leaves answers unknown.</dd>
+<dt>Closed, open</dt><dd>An exploration is closed when no work remains. One a budget stopped is open, and what it has not found is unknown; only a closed exploration can prove a target unreachable.</dd>
 <dt>Shape</dt><dd>A program up to the names of its atoms. Programs with one shape differ only in their names.</dd>
 <dt>Symmetry</dt><dd>A renaming of atoms that leaves a program unchanged.</dd>
+<dt>Handle</dt><dd>A short name in Spectrum's answers: <code>r2</code> a rule, <code>s11</code> a configuration, <code>e12</code> an event, <code>s11.c0</code> a coherence, <code>s11.o1</code> an occurrence and <code>s10.f1</code> a frame.</dd>
+<dt>Key</dt><dd>The name of one exploration, such as <code>xf1684d25f90f851b</code>, which heads every answer about it. It hashes what the exploration depends on: the program, the mode, the engine and the budget. Over the Model Context Protocol a question can name the key instead of the program to ask more of the same exploration.</dd>
+<dt>Nesting and expansion</dt><dd>The limits on source. Brackets and parentheses nest at most 128 deep, and lowering writes at most 1,000,000 units plus eight per byte of source, rule names included. The frontend refuses a program past either and says where.</dd>
 </dl>
 <h3>Read next</h3>
 <ul>

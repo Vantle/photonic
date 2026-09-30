@@ -166,11 +166,15 @@ for (const program of [
     { source: '', target: [], library: [], preserve: false },
 ]) {
     const link = share.link(program);
-    assert.match(link, /^lightbox\.html\?source=/);
-    assert.deepEqual(share.read(new URL(link, 'https://photonic.vantle.org/').search), program);
+    assert.match(link, /^lightbox\.html#1&source=/);
+    const address = new URL(link, 'https://photonic.vantle.org/');
+    assert.equal(address.search, '');
+    assert.deepEqual(share.read(address.hash), program);
+    assert.deepEqual(share.legacy(`?${address.hash.slice('#1&'.length)}`), program);
 }
-assert.equal(share.read('?target=A'), undefined);
-console.log('Links carry the source, every target, every library and preserve through commas, newlines, Unicode and URL syntax.');
+for (const hash of ['', '#', '#1', '#1&target=A', '#2&source=A', '#source=A', '#10&source=A']) assert.equal(share.read(hash), undefined, hash);
+assert.equal(share.legacy('?target=A'), undefined);
+console.log('Links carry the source, every target, every library and preserve in a versioned fragment, through commas, newlines, Unicode and URL syntax, and the query form of older links still reads.');
 
 const announced = [];
 engine.watch(state => announced.push(state));
@@ -185,6 +189,7 @@ const answer = (fake, body) => {
 };
 const crash = fake => fake.onmessage({ data: { serial: fake.message.at(-1).serial, failure: { code: 'crash', message: 'unreachable' } } });
 
+assert.equal(engine.advice, 'The engine is still loading. Try again in a moment.');
 probe();
 assert.deepEqual(worker[0].message.map(value => [value.kind, value.request]), [['lower', { version, source: 'A' }]]);
 ready(worker[0]);
@@ -244,7 +249,7 @@ assert.deepEqual(posted(worker[4]), ['F']);
 ready(worker[4]);
 crash(worker[4]);
 await pause(0);
-assert.deepEqual(settled.slice(5).map(([name, message]) => [name, message.split(',')[0]]), [['slow', 'Stopped after 0.005 seconds without a result.'], ['patient', 'The engine stopped with unreachable']]);
+assert.deepEqual(settled.slice(5), [['slow', 'Stopped after 0.005 seconds without a result.'], ['patient', 'The engine ran out of memory or failed; the next run starts a fresh engine.']]);
 assert.equal(worker[4].terminated, true);
 console.log('Stopping, timing out or crashing the running request restarts the engine and resends the rest.');
 
@@ -269,7 +274,7 @@ console.log('A direct path owns its engine, and inspecting the path asks that en
 track('unloaded', engine.send('lower', { source: 'U' }));
 worker[6].onerror({ preventDefault: () => {} });
 await pause(0);
-assert.deepEqual(settled.at(-1), ['unloaded', 'The WebAssembly engine did not load. Reload the page.']);
+assert.deepEqual(settled.at(-1), ['unloaded', 'This browser could not start the WebAssembly engine.']);
 assert.equal(worker[6].terminated, true);
 assert.equal(engine.state, 'failed');
 track('recovered', engine.send('lower', { source: 'R' }));
@@ -281,7 +286,7 @@ track('broken', engine.send('lower', { source: 'G' }));
 track('behind', engine.send('lower', { source: 'H' }));
 worker[7].onmessage({ data: { failure: { code: 'engine', message: 'no memory' } } });
 await pause(0);
-assert.deepEqual(settled.slice(-2), [['broken', 'The WebAssembly engine did not start: no memory'], ['behind', 'The WebAssembly engine did not start: no memory']]);
+assert.deepEqual(settled.slice(-2), [['broken', 'This browser could not start the WebAssembly engine: no memory'], ['behind', 'This browser could not start the WebAssembly engine: no memory']]);
 assert.equal(worker[7].terminated, true);
 assert.equal(engine.state, 'failed');
 console.log('An engine that cannot load or start rejects every waiting request and asks for a reload.');
@@ -298,6 +303,26 @@ track('legacy', engine.send('lower', { source: 'K' }));
 worker[9].onmessage({ data: { serial: worker[9].message[0].serial, version, program: {} } });
 await pause(0);
 assert.match(settled.at(-1)[1], /Reload the page/);
-assert.deepEqual(announced, ['unknown', 'failed', 'live', 'failed', 'live', 'failed', 'stale']);
-assert.deepEqual(settled.map(([name]) => name).sort(), ['behind', 'broken', 'first', 'fourth', 'legacy', 'loading', 'patient', 'recovered', 'second', 'shared', 'slow', 'stale', 'third', 'unloaded', 'waiting']);
-console.log('A reply from another engine version rejects every waiting request and asks for a reload, and each request settles once.');
+console.log('A reply from another engine version rejects every waiting request and asks for a reload.');
+
+const clock = globalThis.setTimeout;
+let expire;
+globalThis.setTimeout = (callback, delay) => {
+    if (delay !== 60000) return clock(callback, delay);
+    expire = callback;
+    return 0;
+};
+track('stalled', engine.send('lower', { source: 'M' }));
+globalThis.setTimeout = clock;
+assert.deepEqual(posted(worker[10]), ['M']);
+await pause(40);
+assert.deepEqual(settled.at(-1)[0], 'legacy');
+expire();
+await pause(0);
+assert.deepEqual(settled.at(-1), ['stalled', 'This browser could not start the WebAssembly engine.']);
+assert.equal(worker[10].terminated, true);
+assert.equal(engine.state, 'failed');
+assert.equal(engine.advice, 'This browser could not start the WebAssembly engine. Reload the page to try again.');
+assert.deepEqual(announced, ['unknown', 'failed', 'live', 'failed', 'live', 'failed', 'stale', 'failed']);
+assert.deepEqual(settled.map(([name]) => name).sort(), ['behind', 'broken', 'first', 'fourth', 'legacy', 'loading', 'patient', 'recovered', 'second', 'shared', 'slow', 'stale', 'stalled', 'third', 'unloaded', 'waiting']);
+console.log('An engine that has not loaded after a minute fails every waiting request, and each request settles once.');

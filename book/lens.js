@@ -46,17 +46,17 @@
 
     const draw = (host, program) => {
         const result = element('div', 'lowered');
-        result.append(element('h4', undefined, count(program.initial.length, 'coherence')));
+        result.append(element('h3', undefined, count(program.initial.length, 'coherence')));
         const row = element('div', 'row');
         program.initial.forEach(content => row.append(particle(content)));
         if (!program.initial.length) row.append(element('span', 'summary', 'none'));
         result.append(row);
-        result.append(element('h4', undefined, count(program.rule.length, 'rule')));
+        result.append(element('h3', undefined, count(program.rule.length, 'rule')));
         program.rule.forEach(definition => result.append(rule(definition)));
         if (!program.rule.length) result.append(element('span', 'summary', 'none'));
         const opened = program.scope ?? [];
         if (opened.length) {
-            result.append(element('h4', undefined, count(opened.length, 'scope')));
+            result.append(element('h3', undefined, count(opened.length, 'scope')));
             opened.forEach(inner => {
                 const box = element('div', 'shape');
                 box.append(scope(inner));
@@ -95,7 +95,7 @@
             }
             if (book.engine.state !== 'live') {
                 output.replaceChildren();
-                message.say('Serve the book to lower new source: bazel run -c opt //book:serve');
+                message.say(book.engine.advice);
                 return;
             }
             try {

@@ -6,7 +6,7 @@
     const panel = (title, extra) => {
         const box = element('section', 'panel');
         const header = element('header');
-        header.append(element('h4', undefined, title), ...extra);
+        header.append(element('h3', undefined, title), ...extra);
         const host = element('div');
         box.append(header, host);
         return { box, host };
@@ -29,6 +29,7 @@
         input.placeholder = 'B.X · B, C · (K, [K] L) · [B, C] D';
         field.append(input);
         const clear = tool('Clear', 'Clear the filter');
+        clear.hidden = true;
         const note = element('p');
         filter.append(field, clear, note);
         const out = tool('−', 'Zoom out');
@@ -117,7 +118,7 @@
                 } catch (error) {
                     if (mine !== ticket) return;
                     problem = book.engine.state === 'recorded'
-                        ? 'Filtering by pattern needs the live engine: bazel run -c opt //book:serve'
+                        ? `Filtering by pattern needs the live engine. ${book.engine.advice}`
                         : book.editor.describe(error);
                 }
             }

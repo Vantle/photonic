@@ -18,6 +18,7 @@ filegroup(
         "icon.svg",
         "lens.js",
         "lightbox.js",
+        "logo/mark.png",
         "numeral.js",
         "palette.js",
         "pattern.js",
