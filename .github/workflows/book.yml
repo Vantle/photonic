@@ -7,18 +7,19 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: book
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Bazelisk
         run: |
@@ -31,12 +32,15 @@ jobs:
           chmod +x "$directory/bazel"
           echo "$directory" >> "$GITHUB_PATH"
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             ~/.cache/photonic/bazel
             ~/.cache/bazel/_bazel_runner/cache/repos
           key: book-${{ hashFiles('.bazelversion', 'MODULE.bazel.lock', 'Cargo.lock') }}
+
+      - name: Test
+        run: bazel test --config=ci //book:record.check //book:route //book:test //toolchain/browser:test
 
       - name: Build
         run: bazel build --config=ci //book:site
@@ -45,18 +49,22 @@ jobs:
         id: site
         run: echo "path=$(bazel info --config=ci bazel-bin)/book/site" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/configure-pages@v5
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: ${{ steps.site.outputs.path }}
 
   deploy:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
