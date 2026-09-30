@@ -311,7 +311,7 @@ Add.Unit.Unit.Unit,
 <pre>A,
 [A] B.C,
 [B] D</pre>
-<figcaption>In order, the rules give <code>B.C</code> and then <code>C.D</code>. But <code>A</code> can become <code>B</code>, so <code>[B] D</code> also applies to <code>A</code> directly: it consumes <code>A</code> and produces <code>D</code>. <code>C</code> existed only along the way, so it is not part of that result. The dashed arrow is the inferred event.</figcaption>
+<figcaption>In order, the rules give <code>B.C</code> and then <code>C.D</code>. But <code>A</code> can become <code>B</code>, so <code>[B] D</code> also applies to <code>A</code> directly: it consumes <code>A</code> and produces <code>D</code>. <code>C</code> existed only along the way, so it is not part of that result. The dashed arrow is the inferred event. No run of events one at a time ends at <code>D</code>: inference reaches configurations that such runs do not, and <code>--plain</code> explores only the runs.</figcaption>
 </figure>
 <h3>Abstraction through rules</h3>
 <p>Inference makes abstraction ordinary. Here two ordinary rules make <code>True</code> and <code>False</code> count as <code>Boolean</code>:</p>
@@ -558,7 +558,7 @@ bazel test -c opt //book:record.check</pre>
 [Boolean.Not.([Each] Boolean.Not)] Function.Boolean.Not</pre>
 <figure class="example wide" data-example="negation" data-library="library/function/invoke library/boolean/not" data-target='["False"]' data-preserve data-expect='["reached"]'>
 <pre>Invoke.Boolean.Not.True</pre>
-<figcaption>Enter the scope, rewrite <code>Function.Boolean.Not.True</code> to <code>Return.False</code>, return <code>False</code>. The third rule lets collections name <code>Boolean.Not</code> as a callback.</figcaption>
+<figcaption>Enter the scope, rewrite <code>Function.Boolean.Not.True</code> to <code>Return.False</code>, return <code>False</code>. The third rule lets collections name <code>Boolean.Not</code> as a callback. With inference, <code>[Return] ()</code> can also apply at the start to the <code>Return.False</code> the table will write, and its literal output consumes that answer, so one future ends at <code>()</code>; every plain schedule ends at <code>False</code>.</figcaption>
 </figure>
 <figure class="example wide" data-example="digit" data-library="library/function/invoke library/ternary/add" data-target='["([Digit] 1).([Carry] 1)"]' data-preserve data-expect='["reached"]'>
 <pre>Invoke.Ternary.Add.2.2</pre>
