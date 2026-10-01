@@ -19,6 +19,7 @@
 <link rel="apple-touch-icon" href="book/logo/mark.png">
 <link rel="stylesheet" href="book/book.css">
 <script defer src="book/record.js"></script>
+<script defer src="book/euclid.js"></script>
 <script defer src="book/syntax.js"></script>
 <script defer src="book/render.js"></script>
 <script defer src="book/engine.js"></script>
@@ -35,6 +36,10 @@
 <script defer src="book/lens.js"></script>
 <script defer src="book/calculator.js"></script>
 <script defer src="book/connection.js"></script>
+<script defer src="book/figure.js"></script>
+<script defer src="book/notation.js"></script>
+<script defer src="book/citation.js"></script>
+<script defer src="book/geometry.js"></script>
 <script defer src="book/workbench.js"></script>
 <script defer src="book/palette.js"></script>
 <script defer src="book/theme.js"></script>
@@ -84,16 +89,17 @@
 <section>
 <p>Proof</p>
 <a href="#proof"><span>15</span>Proof by execution</a>
-<a href="#connection"><span>16</span>Connections</a>
+<a href="#euclid"><span>16</span>Euclid's first book</a>
+<a href="#connection"><span>17</span>Connections</a>
 </section>
 <section>
 <p>System</p>
-<a href="#runtime"><span>17</span>Inside the runtime</a>
-<a href="#repository"><span>18</span>The repository</a>
+<a href="#runtime"><span>18</span>Inside the runtime</a>
+<a href="#repository"><span>19</span>The repository</a>
 </section>
 <section>
 <p>Reference</p>
-<a href="#reference"><span>19</span>Grammar and glossary</a>
+<a href="#reference"><span>20</span>Grammar and glossary</a>
 </section>
 </nav>
 <div class="foot">
@@ -455,7 +461,7 @@ Add.Unit.Unit.Unit,
 </div>
 <p>A pattern is read as a program and matches the way a rule's input does: a coherence matches when it contains every occurrence the pattern names, and a scope when it holds every coherence, rule and scope the pattern names, whatever else it holds. Parts listed together match different parts, in any order. In the hypergraph, each coherence of a pattern selects lanes on its own.</p>
 <h3>Symmetry</h3>
-<p>The symmetry panel colors both graphs by the ways a program repeats itself under other names. A <em>global</em> symmetry renames the whole program into itself: in Parallel, exchanging <code>A</code> with <code>B</code> and <code>C</code> with <code>D</code> leaves every rule in place, so those atoms and the events of <code>[A] C</code> and <code>[B] D</code> share one color. A <em>local</em> symmetry is a group of rules that recurs under other names while the rest of the program tells the copies apart, like <code>[True] Boolean</code> and <code>[False] Boolean</code> in Conjunction. A <em>block</em> is a set of atoms that always appear together. Hover or select a symmetry to light what it relates, and clear the Color box for the plain graphs. <a href="#connection">Chapter 16</a> explains how they are found.</p>
+<p>The symmetry panel colors both graphs by the ways a program repeats itself under other names. A <em>global</em> symmetry renames the whole program into itself: in Parallel, exchanging <code>A</code> with <code>B</code> and <code>C</code> with <code>D</code> leaves every rule in place, so those atoms and the events of <code>[A] C</code> and <code>[B] D</code> share one color. A <em>local</em> symmetry is a group of rules that recurs under other names while the rest of the program tells the copies apart, like <code>[True] Boolean</code> and <code>[False] Boolean</code> in Conjunction. A <em>block</em> is a set of atoms that always appear together. Hover or select a symmetry to light what it relates, and clear the Color box for the plain graphs. <a href="#connection">Chapter 17</a> explains how they are found.</p>
 <p class="onward"><a href="#tool">Next: Tests and tools</a></p>
 </section>
 
@@ -525,7 +531,7 @@ bazel run -c opt //command:photonic -- mcp</pre>
 <tr><td><code>miss</code></td><td>Why a target is not reached, or why a rule never fires.</td></tr>
 <tr><td><code>step</code></td><td>The events that can happen at a configuration.</td></tr>
 <tr><td><code>compare</code></td><td>The configurations and events one program reaches and another does not.</td></tr>
-<tr><td><code>shape</code></td><td>Programs grouped by shape, or one program's symmetries, as <a href="#connection">chapter 16</a> shows.</td></tr>
+<tr><td><code>shape</code></td><td>Programs grouped by shape, or one program's symmetries, as <a href="#connection">chapter 17</a> shows.</td></tr>
 </tbody>
 </table>
 </div>
@@ -687,11 +693,39 @@ bazel test -c opt //program/vector:sort.check</pre>
 </div>
 <p>134 claims: 129 proofs and 5 refutations. Layers 7 to 9 prove the standard library itself, so linked addition, subtraction, comparison and successor are correct at every width. The <a href="theorem/README.md">theorem guide</a> explains how to write one.</p>
 <pre class="listing">bazel test -c opt //theorem/...</pre>
+<p class="onward"><a href="#euclid">Next: Euclid's first book</a></p>
+</section>
+
+<section class="chapter" id="euclid">
+<p class="eyebrow">Proof · 16</p>
+<h2>Euclid's first book</h2>
+<p class="lead">The first book of Euclid's <em>Elements</em> proves 48 propositions, from the equilateral triangle to the theorem of Pythagoras and its converse, on five postulates and five common notions. Each proposition here is a Photonic program that reaches exactly <code>Theorem</code>, and later propositions cite earlier ones as single rules.</p>
+<div class="widget geometry wide" data-source="theorem/euclid"></div>
+<p>Choose a proposition and step through its proof. The figure grows as the proof names its points and lines; each step outlines what it uses and highlights what it gives. The panel beside the figure reads the same facts in the usual notation of geometry and names the postulate, common notion or earlier proposition behind each step. The arcs above join every proposition to the earlier ones it cites.</p>
+<h3>Magnitudes and facts</h3>
+<p>A magnitude is a field that names its points: <code>([Line] A.B)</code> is the straight line AB, <code>([Angle.B] A.C)</code> the angle ABC, <code>([Area] A.B.C)</code> the triangle ABC and <code>([Square] A.B)</code> the square on AB. A fact says that two magnitudes are equal, as <code>Equal.([Line] A.C).([Line] A.B)</code> does, and a sum is a field of its parts. There is no order on magnitudes, so a greater one is a whole with a part: <code>Equal.([Line] A.C).([Sum] ([Line] A.B).Excess)</code> says that AC is AB and something more.</p>
+<pre class="code" data-source="theorem/euclid/1.wave">C,
+Equal.([Sum] ([Line] A.B).([Line] A.B)).([Sum] ([Line] A.B).([Line] A.B)),
+
+[Equal.([Sum] ([Line] A.B).([Line] A.B)).([Sum] ([Line] A.B).([Line] A.B))] (Equal.([Sum] ([Line] A.B).([Line] A.B)).([Sum] ([Line] A.B).Excess), Equal.([Sum] ([Line] A.B).([Line] A.B)).([Sum] ([Line] A.B).Excess), Equal.([Sum] ([Line] A.B).([Line] A.B)).([Sum] ([Line] A.B).Excess)),
+[C, Equal.([Sum] ([Line] A.B).([Line] A.B)).([Sum] ([Line] A.B).Excess), Equal.([Sum] ([Line] A.B).([Line] A.B)).([Sum] ([Line] A.B).Excess), Equal.([Sum] ([Line] A.B).([Line] A.B)).([Sum] ([Line] A.B).Excess)] (Equal.([Line] A.C).([Line] A.B), Equal.([Line] B.C).([Line] A.B)),
+
+[Equal.([Line] A.C).([Line] A.B), Equal.([Line] B.C).([Line] A.B)] Theorem</pre>
+<p>Proposition 1 is three rules. The atom <code>C</code> is the point to construct, and only the rule that constructs it consumes it. The first rule is Common notion 5, the whole is greater than the part: AB and AB together exceed AB. The second is Postulate 3 with a fact Euclid reads from his figure: circles about A and B meet when each radius, and the distance AB, is less than the other two together, so the rule takes those three facts, consumes <code>C</code> and places it on both circles. The last rule turns AC = AB and BC = AB into <code>Theorem</code>.</p>
+<h3>Axioms and propositions are rules</h3>
+<p>Each postulate and common notion is a rule schema, written out wherever a proof uses it. Common notion 1 turns <code>Equal.x.y</code> and <code>Equal.y.z</code> into <code>Equal.x.z</code>, and Common notion 5 turns a magnitude equal to itself and something more into <code>Absurd</code>. Rules consume their premises, so a proof states a fact as often as it uses it, and reaching exactly <code>Theorem</code> shows that every fact was used.</p>
+<p>A proposition, once proved, is a rule of the same kind. Proposition 5 applies proposition 4 in one event instead of repeating its proof, and 47 applies six earlier propositions the same way. The summary above the figure counts both: the events a proof takes, and the events it would take with every citation replaced by the proof it cites, down to the postulates. Proposition 48 takes 12 events; unfolded, it would take more than five million.</p>
+<h3>Every arrangement</h3>
+<p>A proof by contradiction opens a scope for its supposition. <code>(Suppose.Short, [Absurd] Refuted.Short)</code> closes as <code>Refuted.Short</code> only when its case reaches <code>Absurd</code>, and nothing inside the scope reaches the rest of the proof. Euclid often draws one arrangement of a figure and leaves the others to the reader. The programs list every one: proposition 4 refutes the four places other than F where the moved point could fall, proposition 7 both places where a second meeting point could lie, and proposition 35 proves its claim whether the parallelograms stand apart, overlap or touch. Stepping into a case redraws the figure in that arrangement.</p>
+<p>Each proof also has an <code>.order</code> test, which runs every schedule of its events and passes only when each one ends at <code>Theorem</code>.</p>
+<h3>What Euclid assumes</h3>
+<p>Where Euclid reads a fact from his figure, the program states it: that two circles meet, where two lines cross, how a figure divides into triangles. The list of arrangements a case analysis covers comes from the figure too. The book's tests check every fact stated outside a refuted case against the coordinates of its drawing, and check that every citation is an instance of the proposition it cites. Euclid proves propositions 4 and 8 by moving one triangle onto another, and places a figure where he needs it in 44; superposition is one more rule, and the moved triangle keeps its sides, angles and area. He names parallelograms without defining them; here a parallelogram is a quadrilateral whose opposite sides are parallel. Proposition 48 relies on a lemma Euclid assumes, that squares on equal straight lines are equal and conversely, proved here from propositions 3, 4, 34 and 46.</p>
+<pre class="listing">bazel test -c opt //theorem/euclid/...</pre>
 <p class="onward"><a href="#connection">Next: Connections between fields</a></p>
 </section>
 
 <section class="chapter" id="connection">
-<p class="eyebrow">Proof · 16</p>
+<p class="eyebrow">Proof · 17</p>
 <h2>Connections between fields</h2>
 <p class="lead">An atom is a name and nothing more. Programs that differ only in their names are one program, and Photonic finds them even when they come from different fields.</p>
 <p>Rules compare atoms only for equality, so renaming the atoms of a program, one name for another, renames every configuration it reaches and every event between them. What a program means is the pattern its names form: its shape. <code>photonic shape</code> finds programs that share a shape, and the renaming between two of them is a dictionary from one vocabulary to the other. Hover a row of a dictionary to see its atom in every program.</p>
@@ -715,7 +749,7 @@ bazel run -c opt //command:photonic -- shape "$(bazel info -c opt bazel-bin)/lib
 </div>
 
 <section class="chapter" id="runtime">
-<p class="eyebrow">System · 17</p>
+<p class="eyebrow">System · 18</p>
 <h2>Inside the runtime</h2>
 <p class="lead">The runtime is Rust. One transition kernel applies every rule; two engines explore every future with it, and a direct path follows one.</p>
 <div class="pipeline wide">
@@ -747,7 +781,7 @@ bazel run -c opt //command:photonic -- shape "$(bazel info -c opt bazel-bin)/lib
 </section>
 
 <section class="chapter" id="repository">
-<p class="eyebrow">System · 18</p>
+<p class="eyebrow">System · 19</p>
 <h2>The repository</h2>
 <p class="lead">Bazel is the only dependency. It downloads pinned Rust, LLVM, Node and every crate, and it checks formatting and lints on every build.</p>
 <div class="table">
@@ -792,7 +826,7 @@ bazel run -c opt //learning:learning -- solve --input "$PWD/input.wave" --output
 </div>
 
 <section class="chapter" id="reference">
-<p class="eyebrow">Reference · 19</p>
+<p class="eyebrow">Reference · 20</p>
 <h2>Grammar and glossary</h2>
 <p class="lead">The whole grammar, every form and every term.</p>
 <h3>Grammar</h3>

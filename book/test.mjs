@@ -27,7 +27,7 @@ globalThis.Worker = class {
     }
 };
 for (const file of script) runInThisContext(await readFile(file, 'utf8'), { filename: file });
-const { editor, engine, graph, library, pattern, record, render, share, symmetry } = globalThis.book;
+const { editor, engine, euclid, figure, graph, library, notation, pattern, record, render, share, symmetry } = globalThis.book;
 
 const select = (text, execution) => JSON.parse(runtime.select(JSON.stringify({ version, pattern: text, execution })));
 const selected = (text, execution) => {
@@ -341,3 +341,242 @@ assert.equal(engine.advice, 'This browser could not start the WebAssembly engine
 assert.deepEqual(announced, ['unknown', 'failed', 'live', 'failed', 'live', 'failed', 'stale', 'failed']);
 assert.deepEqual(settled.map(([name]) => name).sort(), ['behind', 'broken', 'first', 'fourth', 'legacy', 'loading', 'patient', 'recovered', 'second', 'shared', 'slow', 'stale', 'stalled', 'third', 'unloaded', 'waiting']);
 console.log('An engine that has not loaded after a minute fails every waiting request, and each request settles once.');
+
+const tolerance = 1e-3;
+const measure = (part, point) => {
+    if (part.atom === 'Right') return [Math.PI / 2, false];
+    if (part.atom === 'Excess') return [0, true];
+    const [kind, vertex] = part.head.map(value => value.atom);
+    if (kind === 'Sum') return part.body.map(value => measure(value, point)).reduce(([sum, more], [value, excess]) => [sum + value, more || excess], [0, false]);
+    const letter = part.body.map(value => value.atom);
+    const [start, end] = letter.map(name => point[name]);
+    if (kind === 'Line') return [Math.hypot(end[0] - start[0], end[1] - start[1]), false];
+    if (kind === 'Square') return [Math.hypot(end[0] - start[0], end[1] - start[1]) ** 2, false];
+    if (kind === 'Angle') {
+        const at = point[vertex];
+        const [outward, inward] = [[start[0] - at[0], start[1] - at[1]], [end[0] - at[0], end[1] - at[1]]];
+        return [Math.acos(Math.max(-1, Math.min(1, (outward[0] * inward[0] + outward[1] * inward[1]) / Math.hypot(...outward) / Math.hypot(...inward)))), false];
+    }
+    assert.equal(kind, 'Area');
+    const ring = figure.ring(letter, point).map(name => point[name]);
+    return [Math.abs(ring.reduce((sum, value, index) => sum + value[0] * ring[(index + 1) % ring.length][1] - ring[(index + 1) % ring.length][0] * value[1], 0)) / 2, false];
+};
+const side = (line, name, point) => {
+    const [start, end] = line.map(value => point[value]);
+    const place = point[name];
+    return Math.sign((end[0] - start[0]) * (place[1] - start[1]) - (end[1] - start[1]) * (place[0] - start[0]));
+};
+const letter = part => part.body.map(value => value.atom);
+const holds = (fact, point) => {
+    const [head, first, second] = notation.term(fact);
+    if (head.atom === 'Parallel') {
+        const [one, other] = [first, second].map(line => {
+            const [start, end] = letter(line).map(name => point[name]);
+            return [end[0] - start[0], end[1] - start[1]];
+        });
+        return Math.abs(one[0] * other[1] - one[1] * other[0]) < tolerance * Math.hypot(...one) * Math.hypot(...other);
+    }
+    if (head.atom === 'Across' || head.atom === 'Same') {
+        const product = letter(second).map(name => side(letter(first), name, point)).reduce((sum, value) => sum * value, 1);
+        return head.atom === 'Across' ? product < 0 : product > 0;
+    }
+    if (head.atom === 'Parallelogram') {
+        const [[one, three], [two, four]] = [letter(first), letter(second)];
+        const crossing = side([two, four], one, point) * side([two, four], three, point) < 0 && side([one, three], two, point) * side([one, three], four, point) < 0;
+        return crossing && figure.parallelogram([one, two, three, four].map(name => point[name]));
+    }
+    if (head.atom !== 'Equal') return undefined;
+    const [[left, over], [right, under]] = [measure(first, point), measure(second, point)];
+    assert.ok(!(over && under), `${fact} has an excess on both sides`);
+    if (over) return right > left + tolerance;
+    if (under) return left > right + tolerance;
+    return Math.abs(left - right) < tolerance * Math.max(1, Math.abs(left));
+};
+const proposition = euclid.map(entry => entry.name);
+const reading = new Map(euclid.map(entry => {
+    const { source, event } = record.euclid[entry.name];
+    const line = source.split('\n');
+    const first = line.findIndex(text => text.startsWith('['));
+    const head = line.slice(0, first).flatMap(text => notation.split(text.replace(/,$/, '')));
+    const shown = new Set(head.filter(text => text.startsWith('(Suppose.') && text.includes('] Proved.')).map(text => /^\(Suppose\.(\w+),/.exec(text)[1]));
+    const step = event.map(([at, world]) => {
+        const text = line[at].replace(/,$/, '');
+        const closing = text.startsWith('(');
+        return { at, world, closing, ...notation.rule(closing ? text.slice(text.indexOf('['), text.lastIndexOf(')')) : text) };
+    });
+    const rule = line.map((text, at) => [text, at]).filter(([text]) => text.startsWith('[')).map(([text, at]) => ({ at, ...notation.rule(text.replace(/,$/, '')) }));
+    return [entry.name, { entry, head, shown, step, rule }];
+}));
+
+let checked = 0;
+for (const { entry, head, shown, step, rule } of reading.values()) {
+    const world = new Map(rule.map(value => [value.at, new Set()]));
+    step.filter(value => !value.closing).forEach(value => world.get(value.at).add(value.world));
+    const fact = head.filter(text => !text.startsWith('(')).map(text => [text, undefined]);
+    for (const value of rule) {
+        for (const text of [...value.input, ...value.output]) assert.ok(notation.gloss(text, entry.point), `${entry.name}: ${text} reads as nothing`);
+        for (const place of world.get(value.at)) {
+            if (place === undefined || shown.has(place)) fact.push(...[...value.input, ...value.output].map(text => [text, place]));
+        }
+    }
+    for (const [text, place] of fact) {
+        const verdict = holds(text, { ...entry.point, ...entry.arrangement?.[place] });
+        if (verdict === undefined) continue;
+        assert.ok(verdict, `proposition ${entry.name}: ${text} is false in its figure${place ? ` in case ${place}` : ''}`);
+        checked++;
+    }
+}
+assert.ok(checked > 1000);
+console.log(`Every one of the ${checked} facts that Euclid's proofs state outside a refuted case holds in the coordinates of its figure, and every fact has a reading.`);
+
+for (const [position, { entry, rule }] of [...reading.values()].entries()) {
+    assert.equal(entry.rule.length, rule.length, `book/euclid.js must describe each rule of proposition ${entry.name}`);
+    assert.equal(entry.rule.at(-1).why, 'theorem', `proposition ${entry.name} must end with its conclusion`);
+    entry.rule.forEach((detail, index) => {
+        const { input, output } = rule[index];
+        const where = `proposition ${entry.name}, rule ${index + 1}`;
+        const cited = notation.cite(detail.why);
+        if (cited) assert.ok(proposition.includes(cited) && (cited === entry.name || proposition.indexOf(cited) < position), `${where} cites ${cited}, which is not a proposition before it`);
+        else assert.ok(detail.why === 'theorem' || Object.hasOwn(notation.basis, detail.why), `${where} is justified by ${detail.why}, which the book does not name`);
+        assert.equal(detail.why === 'theorem', output.length === 1 && output[0] === 'Theorem', `${where} must conclude Theorem exactly when it is the conclusion`);
+        assert.equal(detail.why === 'suppose', input.length === 1 && input[0].startsWith('Suppose.'), `${where} must open a case exactly when it is a supposition`);
+        if (detail.why === 'circle' || detail.why === 'produce') assert.ok(input.some(figure.token), `${where} draws a circle, so it must construct a point`);
+        for (const at of detail.figure ?? []) assert.ok(at < output.length && !['Shown', 'Absurd'].includes(output[at]), `${where} reads output ${at + 1} from its figure, which it does not give`);
+    });
+}
+console.log('Every rule names the postulate, common notion, definition or earlier proposition that justifies it, and its shape fits that justification.');
+
+const key = chain => chain.map(part => part.atom ?? `(${key(part.head)}|${key(part.body)})`).sort().join('.');
+const canonical = text => key(notation.term(text));
+const reflexive = text => {
+    const [head, first, second] = notation.term(text);
+    return head.atom === 'Equal' && key([first]) === key([second]);
+};
+function* unify(pattern, target, binding) {
+    if (pattern.length !== target.length) return;
+    if (!pattern.length) {
+        yield binding;
+        return;
+    }
+    const [first, ...rest] = pattern;
+    for (const [index, other] of target.entries()) {
+        for (const extended of match(first, other, binding)) yield* unify(rest, target.toSpliced(index, 1), extended);
+    }
+}
+function* match(pattern, target, binding) {
+    if (pattern.atom !== undefined) {
+        if (target.atom === undefined) return;
+        if (!figure.token(pattern.atom)) {
+            if (pattern.atom === target.atom) yield binding;
+            return;
+        }
+        if (!figure.token(target.atom)) return;
+        const bound = binding.get(pattern.atom);
+        if (bound === undefined) yield new Map(binding).set(pattern.atom, target.atom);
+        else if (bound === target.atom) yield binding;
+        return;
+    }
+    if (target.atom !== undefined) return;
+    for (const extended of unify(pattern.head, target.head, binding)) yield* unify(pattern.body, target.body, extended);
+}
+const mention = text => new Set(text.match(/\b[A-Z]\b/g));
+// A hypothesis that only puts a point the conclusion does not name on a straight line produced holds
+// for a point that Postulate 2 constructs, so a citation need not supply it.
+const production = /^Equal\.\(\[Line\] ([A-Z])\.([A-Z])\)\.\(\[Sum\] \(\[Line\] ([A-Z])\.([A-Z])\)\.\(\[Line\] ([A-Z])\.([A-Z])\)\)$/;
+const discharge = (hypothesis, named) => hypothesis.filter(fact => {
+    const [, first, second, ...part] = production.exec(fact) ?? [];
+    if (!first) return true;
+    const free = [first, second].find(name => !named.has(name) && part.filter(value => value === name).length === 1);
+    return !free || hypothesis.some(other => other !== fact && mention(other).has(free));
+});
+const statement = new Map([...reading.values()].map(({ entry, head, step, rule }) => {
+    const given = new Set(head.filter(text => !text.startsWith('(') && !figure.token(text)).map(canonical));
+    const producer = new Map();
+    const place = (world, text) => `${world ?? ''}|${canonical(text)}`;
+    step.forEach((value, index) => value.output.forEach(text => {
+        const name = place(value.closing ? undefined : value.world, text);
+        producer.set(name, [...producer.get(name) ?? [], index]);
+    }));
+    // The hypotheses a conclusion rests on are the given facts its derivation consumes at the root;
+    // a case draws its facts from its supposition, never from the root.
+    const slice = conclusion => {
+        const hypothesis = new Set();
+        const construction = new Set();
+        const seen = new Set();
+        const visit = (fact, world) => {
+            if (figure.token(fact)) {
+                construction.add(fact);
+                return;
+            }
+            const name = place(world, fact);
+            if (fact.startsWith('Suppose.') || seen.has(name)) return;
+            seen.add(name);
+            if (world === undefined && given.has(canonical(fact)) && !reflexive(fact)) hypothesis.add(fact);
+            for (const index of producer.get(name) ?? []) step[index].input.forEach(input => visit(input, step[index].world));
+        };
+        visit(conclusion, undefined);
+        return { hypothesis: [...hypothesis], construction: [...construction] };
+    };
+    const conclusion = rule.at(-1).input;
+    const suppose = new Map(rule.filter(value => value.input.length === 1 && value.input[0].startsWith('Suppose.')).map(value => [value.input[0].slice('Suppose.'.length), value.output.filter(fact => !figure.token(fact))]));
+    return [entry.name, { conclusion, slice, suppose }];
+}));
+function* satisfy(hypothesis, input, binding) {
+    if (!hypothesis.length) {
+        yield binding;
+        return;
+    }
+    const [first, ...rest] = hypothesis;
+    for (const text of input) {
+        for (const extended of unify(notation.term(first), notation.term(text), binding)) yield* satisfy(rest, input, extended);
+    }
+}
+const instance = (cited, detail, { input, output }) => {
+    const theorem = statement.get(cited);
+    const read = new Set(input.map(canonical));
+    const figured = new Set(detail.figure ?? []);
+    const claim = output.filter((value, at) => !figured.has(at) && !figure.token(value) && !read.has(canonical(value)));
+    const constructed = new Set(input.filter(figure.token));
+    function* search(remaining, binding, need) {
+        if (!remaining.length) {
+            yield { binding, need };
+            return;
+        }
+        const [first, ...rest] = remaining;
+        // A citation reports Absurd when its facts describe an arrangement the cited proposition refutes,
+        // and Shown when the conclusion it reaches is the claim of the case it runs in.
+        if (first === 'Absurd') {
+            for (const [name, fact] of theorem.suppose) {
+                if (theorem.conclusion.includes(`Refuted.${name}`)) yield* search(rest, binding, [...need, { hypothesis: fact, construction: [], conclusion: [] }]);
+            }
+            return;
+        }
+        for (const conclusion of theorem.conclusion.filter(value => !/^(Refuted|Proved)\./.test(value))) {
+            if (first === 'Shown') {
+                yield* search(rest, binding, [...need, { ...theorem.slice(conclusion), conclusion: [conclusion] }]);
+                continue;
+            }
+            for (const extended of unify(notation.term(conclusion), notation.term(first), binding)) yield* search(rest, extended, [...need, { ...theorem.slice(conclusion), conclusion: [conclusion] }]);
+        }
+    }
+    for (const { binding, need } of search(claim, new Map(), [])) {
+        const named = new Set(need.flatMap(value => value.conclusion.flatMap(conclusion => [...mention(conclusion)])));
+        const hypothesis = discharge([...new Set(need.flatMap(value => value.hypothesis))], named);
+        const construction = [...new Set(need.flatMap(value => value.construction))].filter(name => named.has(name));
+        for (const complete of satisfy(hypothesis, input, binding)) {
+            if (construction.every(name => constructed.has(complete.get(name)))) return true;
+        }
+    }
+    return false;
+};
+let citation = 0;
+for (const { entry, rule } of reading.values()) {
+    entry.rule.forEach((detail, index) => {
+        const cited = notation.cite(detail.why);
+        if (!cited || cited === entry.name) return;
+        assert.ok(instance(cited, detail, rule[index]), `proposition ${entry.name}, rule ${index + 1}, is not an instance of proposition ${cited}`);
+        citation++;
+    });
+}
+assert.ok(citation > 150);
+console.log(`Every one of the ${citation} citations between propositions is an instance of the proposition it cites.`);

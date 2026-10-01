@@ -4,7 +4,7 @@ import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { runInNewContext } from 'node:vm';
 
-const [javascript, webassembly, numeral, index, lightbox, output, mode] = process.argv.slice(2);
+const [javascript, webassembly, numeral, index, lightbox, output, euclid, mode] = process.argv.slice(2);
 const version = 3;
 assert.ok(mode === 'write' || mode === 'check', 'record.mjs runs in write or check mode');
 const workspace = process.env.BUILD_WORKSPACE_DIRECTORY;
@@ -160,6 +160,78 @@ for (const item of tag.filter(value => style(value, 'connection') && value.attri
     }
 }
 
+// Particles are multisets and the engine prints each field as it first met it, so an event names
+// its rule in an order the source line need not share; the key sorts every join.
+const unordered = text => {
+    const token = text.match(/[()[\].,]|[^\s()[\].,]+/g) ?? [];
+    let at = 0;
+    const unit = () => {
+        const open = token[at++];
+        if (open !== '(' && open !== '[') return open;
+        const close = open === '(' ? ')' : ']';
+        const inner = list(close);
+        at++;
+        return `${open}${inner}${close}`;
+    };
+    const particle = close => {
+        const part = [];
+        while (at < token.length && token[at] !== ',' && token[at] !== close) {
+            if (token[at] === '.') at++;
+            else part.push(unit());
+        }
+        return part.sort().join('.');
+    };
+    const list = close => {
+        const item = [particle(close)];
+        while (token[at] === ',') {
+            at++;
+            item.push(particle(close));
+        }
+        return item.sort().join(',');
+    };
+    return list();
+};
+
+const proposition = Object.create(null);
+const loaded = {};
+runInNewContext(await readFile(mode === 'write' ? join(workspace, 'book', 'euclid.js') : euclid, 'utf8'), loaded);
+for (const item of tag.filter(value => style(value, 'geometry'))) {
+    const directory = item.attribute.get('data-source');
+    assert.ok(directory, 'the geometry widget must name its data-source directory');
+    for (const entry of loaded.book.euclid) {
+        const name = entry.name;
+        assert.ok(!(name in proposition), `book/euclid.js describes proposition ${name} twice`);
+        const source = await file(`${directory}/${name}.wave`);
+        const line = source.split('\n');
+        const rule = new Map();
+        line.forEach((text, position) => {
+            if (!text.startsWith('[')) return;
+            const key = unordered(text.replace(/,$/, ''));
+            assert.ok(!rule.has(key), `${directory}/${name}.wave states the rule on line ${position + 1} twice`);
+            rule.set(key, position);
+        });
+        assert.equal(rule.size, entry.rule.length, `book/euclid.js must describe each of the ${rule.size} rules of ${directory}/${name}.wave`);
+        const path = new engine.Path(request({ library: [], target: ['Theorem'], preserve: true }, source));
+        const progress = invoke(`proposition ${name}`, path.run());
+        assert.equal(progress.outcome, 'reached', `proposition ${name} must reach Theorem`);
+        const event = [];
+        for (let position = 0; position < progress.event; position++) {
+            const inspection = invoke(`proposition ${name}`, path.inspect(position));
+            const text = inspection.event.rule;
+            const { frame } = inspection.before.world[inspection.event.footprint[0].world[0]];
+            const closing = frame ? progress.definition[inspection.before.frame[frame].particle[0].rule] : '';
+            const world = /^\[\w+\] (?:Refuted|Proved)\.(\w+)$/.exec(closing)?.[1];
+            const at = frame && unordered(text) === unordered(closing)
+                ? line.findIndex(value => value.startsWith(`(Suppose.${world},`))
+                : rule.get(unordered(text)) ?? -1;
+            assert.ok(at >= 0, `proposition ${name}: event ${position} applies ${text}, which is not a line of the source`);
+            event.push(world ? [at, world] : [at]);
+        }
+        path.free();
+        proposition[name] = { source, work: progress.work, event };
+    }
+}
+
 const companion = plain(await readFile(mode === 'write' ? join(workspace, 'lightbox.html') : lightbox, 'utf8'), 'lightbox.html');
 const theme = text => /<script>([^<]*)<\/script>/.exec(text)?.[1] ?? '';
 assert.equal(theme(companion), theme(page), 'index.html and lightbox.html must set the theme with the same inline script');
@@ -185,8 +257,9 @@ const record = `globalThis.book ??= {};\nglobalThis.book.record = {\n${[
     section('expression', expression),
     section('workbench', workbench),
     section('connection', connection),
+    section('euclid', proposition),
 ].join(',\n')}\n};\n`;
-const summary = `${Object.keys(example).length} examples, ${Object.keys(lower).length} lowerings, ${Object.keys(expression).length} expressions, ${Object.keys(workbench).length} workbench programs and ${Object.keys(connection).length} comparisons`;
+const summary = `${Object.keys(example).length} examples, ${Object.keys(lower).length} lowerings, ${Object.keys(expression).length} expressions, ${Object.keys(workbench).length} workbench programs, ${Object.keys(connection).length} comparisons and ${Object.keys(proposition).length} propositions`;
 
 if (mode === 'write') {
     await writeFile(join(workspace, 'book', 'record.js'), record);
