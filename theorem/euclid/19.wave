@@ -1,0 +1,16 @@
+Equal.([Angle.B] A.C).([Sum] ([Angle.C] A.B).Excess),
+(Suppose.Equal, [Absurd] Refuted.Equal),
+(Suppose.Less, [Absurd] Refuted.Less),
+
+[Suppose.Equal] (Equal.([Angle.B] A.C).([Sum] ([Angle.C] A.B).Excess), Equal.([Line] A.B).([Line] A.C)),
+[Equal.([Line] A.B).([Line] A.C)] Equal.([Angle.B] A.C).([Angle.C] A.B),
+[Equal.([Angle.B] A.C).([Sum] ([Angle.C] A.B).Excess), Equal.([Angle.B] A.C).([Angle.C] A.B)] Equal.([Angle.C] A.B).([Sum] ([Angle.C] A.B).Excess),
+[Equal.([Angle.C] A.B).([Sum] ([Angle.C] A.B).Excess)] Absurd,
+[Suppose.Less] (Equal.([Angle.B] A.C).([Sum] ([Angle.C] A.B).Excess), Equal.([Line] A.B).([Sum] ([Line] A.C).Excess)),
+[Equal.([Line] A.B).([Sum] ([Line] A.C).Excess)] Equal.([Angle.C] A.B).([Sum] ([Angle.B] A.C).Excess),
+[Equal.([Angle.B] A.C).([Sum] ([Angle.C] A.B).Excess), Equal.([Angle.C] A.B).([Sum] ([Angle.B] A.C).Excess)] Equal.([Angle.B] A.C).([Sum] ([Angle.B] A.C).Excess.Excess),
+[Equal.([Angle.B] A.C).([Sum] ([Angle.B] A.C).Excess.Excess)] Equal.([Angle.B] A.C).([Sum] ([Angle.B] A.C).Excess),
+[Equal.([Angle.B] A.C).([Sum] ([Angle.B] A.C).Excess)] Absurd,
+[Equal.([Angle.B] A.C).([Sum] ([Angle.C] A.B).Excess), Refuted.Equal, Refuted.Less] Equal.([Line] A.C).([Sum] ([Line] A.B).Excess),
+
+[Equal.([Line] A.C).([Sum] ([Line] A.B).Excess)] Theorem

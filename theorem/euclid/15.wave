@@ -1,0 +1,18 @@
+Equal.([Line] A.B).([Sum] ([Line] A.E).([Line] B.E)),
+Equal.([Line] A.B).([Sum] ([Line] A.E).([Line] B.E)),
+Equal.([Line] C.D).([Sum] ([Line] C.E).([Line] D.E)),
+Equal.([Line] C.D).([Sum] ([Line] C.E).([Line] D.E)),
+Equal.([Sum] ([Angle.E] A.C).([Angle.E] A.D)).([Sum] ([Angle.E] A.C).([Angle.E] A.D)),
+Equal.([Sum] ([Angle.E] A.C).([Angle.E] A.D)).([Sum] ([Angle.E] A.C).([Angle.E] A.D)),
+Equal.([Sum] ([Angle.E] A.D).([Angle.E] B.D)).([Sum] ([Angle.E] A.D).([Angle.E] B.D)),
+Equal.([Sum] ([Angle.E] A.C).([Angle.E] B.C)).([Sum] ([Angle.E] A.C).([Angle.E] B.C)),
+
+[Equal.([Line] C.D).([Sum] ([Line] C.E).([Line] D.E)), Equal.([Sum] ([Angle.E] A.C).([Angle.E] A.D)).([Sum] ([Angle.E] A.C).([Angle.E] A.D))] Equal.([Sum] ([Angle.E] A.C).([Angle.E] A.D)).([Sum] Right.Right),
+[Equal.([Line] A.B).([Sum] ([Line] A.E).([Line] B.E)), Equal.([Sum] ([Angle.E] A.D).([Angle.E] B.D)).([Sum] ([Angle.E] A.D).([Angle.E] B.D))] Equal.([Sum] ([Angle.E] A.D).([Angle.E] B.D)).([Sum] Right.Right),
+[Equal.([Sum] ([Angle.E] A.C).([Angle.E] A.D)).([Sum] Right.Right), Equal.([Sum] ([Angle.E] A.D).([Angle.E] B.D)).([Sum] Right.Right)] Equal.([Sum] ([Angle.E] A.C).([Angle.E] A.D)).([Sum] ([Angle.E] A.D).([Angle.E] B.D)),
+[Equal.([Sum] ([Angle.E] A.C).([Angle.E] A.D)).([Sum] ([Angle.E] A.D).([Angle.E] B.D))] Equal.([Angle.E] A.C).([Angle.E] B.D),
+[Equal.([Line] A.B).([Sum] ([Line] A.E).([Line] B.E)), Equal.([Sum] ([Angle.E] A.C).([Angle.E] B.C)).([Sum] ([Angle.E] A.C).([Angle.E] B.C))] Equal.([Sum] ([Angle.E] A.C).([Angle.E] B.C)).([Sum] Right.Right),
+[Equal.([Sum] ([Angle.E] A.C).([Angle.E] B.C)).([Sum] Right.Right), Equal.([Sum] ([Angle.E] A.C).([Angle.E] A.D)).([Sum] Right.Right)] Equal.([Sum] ([Angle.E] A.C).([Angle.E] B.C)).([Sum] ([Angle.E] A.C).([Angle.E] A.D)),
+[Equal.([Sum] ([Angle.E] A.C).([Angle.E] B.C)).([Sum] ([Angle.E] A.C).([Angle.E] A.D))] Equal.([Angle.E] B.C).([Angle.E] A.D),
+
+[Equal.([Angle.E] A.C).([Angle.E] B.D), Equal.([Angle.E] B.C).([Angle.E] A.D)] Theorem

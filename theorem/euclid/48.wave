@@ -1,0 +1,19 @@
+X, W, D,
+Equal.([Square] B.C).([Sum] ([Square] A.B).([Square] A.C)),
+Equal.([Line] A.C).([Line] A.C),
+Equal.([Square] C.D).([Square] C.D),
+Equal.([Square] A.D).([Square] A.D),
+
+[X] Equal.([Line] C.X).([Sum] ([Line] A.C).([Line] A.X)),
+[W, Equal.([Line] C.X).([Sum] ([Line] A.C).([Line] A.X))] Equal.([Angle.A] C.W).Right,
+[D] (Equal.([Line] A.D).([Line] A.B), Equal.([Line] A.D).([Line] A.B), Equal.([Angle.A] C.D).([Angle.A] C.W)),
+[Equal.([Angle.A] C.D).([Angle.A] C.W), Equal.([Angle.A] C.W).Right] (Equal.([Angle.A] C.D).Right, Equal.([Angle.A] C.D).Right),
+[Equal.([Angle.A] C.D).Right, Equal.([Square] C.D).([Square] C.D)] Equal.([Square] C.D).([Sum] ([Square] A.D).([Square] A.C)),
+[Equal.([Line] A.D).([Line] A.B), Equal.([Square] A.D).([Square] A.D)] Equal.([Square] A.D).([Square] A.B),
+[Equal.([Square] C.D).([Sum] ([Square] A.D).([Square] A.C)), Equal.([Square] A.D).([Square] A.B)] Equal.([Square] C.D).([Sum] ([Square] A.B).([Square] A.C)),
+[Equal.([Square] C.D).([Sum] ([Square] A.B).([Square] A.C)), Equal.([Square] B.C).([Sum] ([Square] A.B).([Square] A.C))] Equal.([Square] C.D).([Square] B.C),
+[Equal.([Square] C.D).([Square] B.C)] Equal.([Line] C.D).([Line] B.C),
+[Equal.([Line] A.D).([Line] A.B), Equal.([Line] A.C).([Line] A.C), Equal.([Line] C.D).([Line] B.C)] Equal.([Angle.A] C.D).([Angle.A] B.C),
+[Equal.([Angle.A] C.D).([Angle.A] B.C), Equal.([Angle.A] C.D).Right] Equal.([Angle.A] B.C).Right,
+
+[Equal.([Angle.A] B.C).Right] Theorem

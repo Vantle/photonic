@@ -1,0 +1,21 @@
+B, L,
+Same.([Line] G.H).([Point] A.D),
+Equal.([Line] E.H).([Sum] ([Line] G.H).([Line] E.G)),
+Equal.([Angle.G] A.E).([Angle.H] D.G),
+Same.([Line] M.Q).([Point] K.P),
+Equal.([Sum] ([Angle.M] K.Q).([Angle.Q] M.P)).([Sum] Right.Right),
+Equal.([Sum] ([Angle.M] K.Q).([Angle.M] L.Q)).([Sum] ([Angle.M] K.Q).([Angle.M] L.Q)),
+
+[B, Same.([Line] G.H).([Point] A.D)] (Equal.([Line] A.B).([Sum] ([Line] A.G).([Line] B.G)), Equal.([Line] A.B).([Sum] ([Line] A.G).([Line] B.G)), Across.([Line] G.H).([Point] B.D)),
+[Equal.([Line] A.B).([Sum] ([Line] A.G).([Line] B.G)), Equal.([Line] E.H).([Sum] ([Line] E.G).([Line] G.H))] Equal.([Angle.G] A.E).([Angle.G] B.H),
+[Equal.([Angle.G] A.E).([Angle.G] B.H), Equal.([Angle.G] A.E).([Angle.H] D.G)] Equal.([Angle.G] B.H).([Angle.H] D.G),
+[Across.([Line] G.H).([Point] B.D), Equal.([Angle.G] B.H).([Angle.H] D.G)] Parallel.([Line] B.G).([Line] D.H),
+[Parallel.([Line] B.G).([Line] D.H), Equal.([Line] A.B).([Sum] ([Line] B.G).([Line] A.G))] Parallel.([Line] A.G).([Line] D.H),
+[L, Same.([Line] M.Q).([Point] K.P)] (Equal.([Line] K.L).([Sum] ([Line] K.M).([Line] L.M)), Equal.([Line] K.L).([Sum] ([Line] K.M).([Line] L.M)), Across.([Line] M.Q).([Point] L.P)),
+[Equal.([Line] K.L).([Sum] ([Line] K.M).([Line] L.M)), Equal.([Sum] ([Angle.M] K.Q).([Angle.M] L.Q)).([Sum] ([Angle.M] K.Q).([Angle.M] L.Q))] Equal.([Sum] ([Angle.M] K.Q).([Angle.M] L.Q)).([Sum] Right.Right),
+[Equal.([Sum] ([Angle.M] K.Q).([Angle.M] L.Q)).([Sum] Right.Right), Equal.([Sum] ([Angle.M] K.Q).([Angle.Q] M.P)).([Sum] Right.Right)] Equal.([Sum] ([Angle.M] K.Q).([Angle.Q] M.P)).([Sum] ([Angle.M] K.Q).([Angle.M] L.Q)),
+[Equal.([Sum] ([Angle.M] K.Q).([Angle.Q] M.P)).([Sum] ([Angle.M] K.Q).([Angle.M] L.Q))] Equal.([Angle.M] L.Q).([Angle.Q] M.P),
+[Across.([Line] M.Q).([Point] L.P), Equal.([Angle.M] L.Q).([Angle.Q] M.P)] Parallel.([Line] L.M).([Line] P.Q),
+[Parallel.([Line] L.M).([Line] P.Q), Equal.([Line] K.L).([Sum] ([Line] L.M).([Line] K.M))] Parallel.([Line] K.M).([Line] P.Q),
+
+[Parallel.([Line] A.G).([Line] D.H), Parallel.([Line] K.M).([Line] P.Q)] Theorem

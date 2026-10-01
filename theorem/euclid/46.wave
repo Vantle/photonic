@@ -1,0 +1,23 @@
+X, C, D, W, E,
+Equal.([Line] B.D).([Line] B.D),
+Equal.([Line] A.E).([Line] A.E),
+Equal.([Area] A.B.D.E).([Area] A.B.D.E),
+
+[X] Equal.([Line] B.X).([Sum] ([Line] A.X).([Line] A.B)),
+[C, Equal.([Line] B.X).([Sum] ([Line] A.X).([Line] A.B))] Equal.([Angle.A] B.C).Right,
+[D] (Equal.([Line] A.D).([Line] A.B), Equal.([Line] A.D).([Line] A.B), Equal.([Angle.A] B.D).([Angle.A] B.C)),
+[W] Parallel.([Line] A.B).([Line] D.W),
+[E, Parallel.([Line] A.B).([Line] D.W)] (Parallel.([Line] A.D).([Line] B.E), Parallel.([Line] A.B).([Line] D.E), Across.([Line] B.D).([Point] A.E)),
+[Parallel.([Line] A.D).([Line] B.E), Parallel.([Line] A.B).([Line] D.E), Across.([Line] B.D).([Point] A.E)] (Parallelogram.([Diameter] A.E).([Diameter] B.D), Parallelogram.([Diameter] A.E).([Diameter] B.D), Parallelogram.([Diameter] A.E).([Diameter] B.D)),
+[Parallelogram.([Diameter] A.E).([Diameter] B.D), Equal.([Line] B.D).([Line] B.D)] (Equal.([Line] A.D).([Line] B.E), Equal.([Line] A.B).([Line] D.E), Equal.([Angle.A] B.D).([Angle.E] B.D), Parallel.([Line] A.B).([Line] D.E), Same.([Line] A.D).([Point] B.E)),
+[Parallelogram.([Diameter] A.E).([Diameter] B.D), Equal.([Line] A.E).([Line] A.E)] Equal.([Angle.D] A.E).([Angle.B] A.E),
+[Equal.([Angle.A] B.D).([Angle.A] B.C), Equal.([Angle.A] B.C).Right] (Equal.([Angle.A] B.D).Right, Equal.([Angle.A] B.D).Right, Equal.([Angle.A] B.D).Right),
+[Equal.([Line] A.D).([Line] B.E), Equal.([Line] A.D).([Line] A.B)] Equal.([Line] A.B).([Line] B.E),
+[Parallel.([Line] A.B).([Line] D.E), Same.([Line] A.D).([Point] B.E)] Equal.([Sum] ([Angle.A] B.D).([Angle.D] A.E)).([Sum] Right.Right),
+[Equal.([Sum] ([Angle.A] B.D).([Angle.D] A.E)).([Sum] Right.Right), Equal.([Angle.A] B.D).Right] Equal.([Sum] Right.([Angle.D] A.E)).([Sum] Right.Right),
+[Equal.([Sum] Right.([Angle.D] A.E)).([Sum] Right.Right)] (Equal.([Angle.D] A.E).Right, Equal.([Angle.D] A.E).Right),
+[Equal.([Angle.D] A.E).([Angle.B] A.E), Equal.([Angle.D] A.E).Right] Equal.([Angle.B] A.E).Right,
+[Equal.([Angle.A] B.D).([Angle.E] B.D), Equal.([Angle.A] B.D).Right] Equal.([Angle.E] B.D).Right,
+[Equal.([Line] A.B).([Line] A.D), Equal.([Line] A.B).([Line] D.E), Equal.([Line] A.B).([Line] B.E), Equal.([Angle.A] B.D).Right, Equal.([Angle.D] A.E).Right, Equal.([Angle.E] B.D).Right, Equal.([Angle.B] A.E).Right, Equal.([Area] A.B.D.E).([Area] A.B.D.E)] (Equal.([Area] A.B.D.E).([Square] A.B), Equal.([Line] A.B).([Line] A.D), Equal.([Line] A.B).([Line] D.E), Equal.([Line] A.B).([Line] B.E), Equal.([Angle.A] B.D).Right, Equal.([Angle.D] A.E).Right, Equal.([Angle.E] B.D).Right, Equal.([Angle.B] A.E).Right),
+
+[Parallelogram.([Diameter] A.E).([Diameter] B.D), Equal.([Line] A.B).([Line] A.D), Equal.([Line] A.B).([Line] D.E), Equal.([Line] A.B).([Line] B.E), Equal.([Angle.A] B.D).Right, Equal.([Angle.D] A.E).Right, Equal.([Angle.E] B.D).Right, Equal.([Angle.B] A.E).Right, Equal.([Area] A.B.D.E).([Square] A.B)] Theorem

@@ -1,0 +1,8 @@
+D, E,
+
+[D] Equal.([Line] B.C).([Sum] ([Line] B.D).([Line] C.D)),
+[E] (Equal.([Angle.A] D.E).([Angle.D] A.C), Across.([Line] A.D).([Point] C.E)),
+[Across.([Line] A.D).([Point] C.E), Equal.([Angle.A] D.E).([Angle.D] A.C)] Parallel.([Line] A.E).([Line] C.D),
+[Parallel.([Line] A.E).([Line] C.D), Equal.([Line] B.C).([Sum] ([Line] B.D).([Line] C.D))] Parallel.([Line] A.E).([Line] B.C),
+
+[Parallel.([Line] A.E).([Line] B.C)] Theorem

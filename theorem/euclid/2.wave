@@ -1,0 +1,13 @@
+D, G, L,
+
+[D] (Equal.([Line] A.D).([Line] A.B), Equal.([Line] B.D).([Line] A.B)),
+[Equal.([Line] A.D).([Line] A.B), Equal.([Line] B.D).([Line] A.B)] Equal.([Line] A.D).([Line] B.D),
+[G] (Equal.([Line] B.G).([Line] B.C), Equal.([Line] D.G).([Sum] ([Line] B.D).([Line] B.G))),
+[Equal.([Line] D.G).([Sum] ([Line] B.D).([Line] B.G)), Equal.([Line] A.D).([Line] B.D)] (Equal.([Line] D.G).([Sum] ([Line] A.D).([Line] B.G)), Equal.([Line] D.G).([Sum] ([Line] A.D).([Line] B.G))),
+[L, Equal.([Line] D.G).([Sum] ([Line] A.D).([Line] B.G))] (Equal.([Line] D.L).([Line] D.G), Equal.([Line] D.L).([Sum] ([Line] A.D).([Line] A.L))),
+[Equal.([Line] D.L).([Line] D.G), Equal.([Line] D.L).([Sum] ([Line] A.D).([Line] A.L))] Equal.([Line] D.G).([Sum] ([Line] A.D).([Line] A.L)),
+[Equal.([Line] D.G).([Sum] ([Line] A.D).([Line] A.L)), Equal.([Line] D.G).([Sum] ([Line] A.D).([Line] B.G))] Equal.([Sum] ([Line] A.D).([Line] A.L)).([Sum] ([Line] A.D).([Line] B.G)),
+[Equal.([Sum] ([Line] A.D).([Line] A.L)).([Sum] ([Line] A.D).([Line] B.G))] Equal.([Line] A.L).([Line] B.G),
+[Equal.([Line] A.L).([Line] B.G), Equal.([Line] B.G).([Line] B.C)] Equal.([Line] A.L).([Line] B.C),
+
+[Equal.([Line] A.L).([Line] B.C)] Theorem

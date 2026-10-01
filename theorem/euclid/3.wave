@@ -1,0 +1,9 @@
+F, E,
+Equal.([Line] A.B).([Sum] ([Line] C.D).Excess),
+
+[F] (Equal.([Line] A.F).([Line] C.D), Equal.([Line] A.F).([Line] C.D)),
+[Equal.([Line] A.B).([Sum] ([Line] C.D).Excess), Equal.([Line] A.F).([Line] C.D)] Equal.([Line] A.B).([Sum] ([Line] A.F).Excess),
+[E, Equal.([Line] A.B).([Sum] ([Line] A.F).Excess)] (Equal.([Line] A.E).([Line] A.F), Equal.([Line] A.B).([Sum] ([Line] A.E).([Line] B.E))),
+[Equal.([Line] A.E).([Line] A.F), Equal.([Line] A.F).([Line] C.D)] Equal.([Line] A.E).([Line] C.D),
+
+[Equal.([Line] A.E).([Line] C.D), Equal.([Line] A.B).([Sum] ([Line] A.E).([Line] B.E))] Theorem

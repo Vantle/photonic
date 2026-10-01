@@ -1,0 +1,17 @@
+Equal.([Line] A.B).([Line] D.E),
+Equal.([Line] A.C).([Line] D.F),
+Equal.([Line] B.C).([Sum] ([Line] E.F).Excess),
+(Suppose.Equal, [Absurd] Refuted.Equal),
+(Suppose.Less, [Absurd] Refuted.Less),
+
+[Suppose.Equal] (Equal.([Line] A.B).([Line] D.E), Equal.([Line] A.C).([Line] D.F), Equal.([Angle.A] B.C).([Angle.D] E.F), Equal.([Line] B.C).([Sum] ([Line] E.F).Excess)),
+[Equal.([Line] A.B).([Line] D.E), Equal.([Line] A.C).([Line] D.F), Equal.([Angle.A] B.C).([Angle.D] E.F)] Equal.([Line] B.C).([Line] E.F),
+[Equal.([Line] B.C).([Sum] ([Line] E.F).Excess), Equal.([Line] B.C).([Line] E.F)] Equal.([Line] E.F).([Sum] ([Line] E.F).Excess),
+[Equal.([Line] E.F).([Sum] ([Line] E.F).Excess)] Absurd,
+[Suppose.Less] (Equal.([Line] A.B).([Line] D.E), Equal.([Line] A.C).([Line] D.F), Equal.([Angle.D] E.F).([Sum] ([Angle.A] B.C).Excess), Equal.([Line] B.C).([Sum] ([Line] E.F).Excess)),
+[Equal.([Line] D.E).([Line] A.B), Equal.([Line] D.F).([Line] A.C), Equal.([Angle.D] E.F).([Sum] ([Angle.A] B.C).Excess)] Equal.([Line] E.F).([Sum] ([Line] B.C).Excess),
+[Equal.([Line] E.F).([Sum] ([Line] B.C).Excess), Equal.([Line] B.C).([Sum] ([Line] E.F).Excess)] Equal.([Line] E.F).([Sum] ([Line] E.F).Excess.Excess),
+[Equal.([Line] E.F).([Sum] ([Line] E.F).Excess.Excess)] Equal.([Line] E.F).([Sum] ([Line] E.F).Excess),
+[Equal.([Line] A.B).([Line] D.E), Equal.([Line] A.C).([Line] D.F), Equal.([Line] B.C).([Sum] ([Line] E.F).Excess), Refuted.Equal, Refuted.Less] Equal.([Angle.A] B.C).([Sum] ([Angle.D] E.F).Excess),
+
+[Equal.([Angle.A] B.C).([Sum] ([Angle.D] E.F).Excess)] Theorem

@@ -1,0 +1,18 @@
+H, G, M, N, K,
+Equal.([Sum] ([Line] P.Q).([Line] R.S)).([Sum] ([Line] T.U).Excess),
+Equal.([Sum] ([Line] P.Q).([Line] T.U)).([Sum] ([Line] R.S).Excess),
+Equal.([Sum] ([Line] R.S).([Line] T.U)).([Sum] ([Line] P.Q).Excess),
+
+[H] Equal.([Line] F.H).([Line] R.S),
+[G] Equal.([Line] F.G).([Line] F.H),
+[Equal.([Line] F.G).([Line] F.H), Equal.([Line] F.H).([Line] R.S)] (Equal.([Line] F.G).([Line] R.S), Equal.([Line] F.G).([Line] R.S), Equal.([Line] F.G).([Line] R.S), Equal.([Line] F.G).([Line] R.S)),
+[M] (Equal.([Line] G.M).([Line] T.U), Equal.([Line] G.M).([Line] T.U), Equal.([Line] G.M).([Line] T.U), Equal.([Line] G.M).([Line] T.U)),
+[N] (Equal.([Line] F.N).([Line] P.Q), Equal.([Line] F.N).([Line] P.Q), Equal.([Line] F.N).([Line] P.Q), Equal.([Line] F.N).([Line] P.Q)),
+[Equal.([Sum] ([Line] P.Q).([Line] R.S)).([Sum] ([Line] T.U).Excess), Equal.([Line] F.N).([Line] P.Q), Equal.([Line] F.G).([Line] R.S), Equal.([Line] G.M).([Line] T.U)] Equal.([Sum] ([Line] F.N).([Line] F.G)).([Sum] ([Line] G.M).Excess),
+[Equal.([Sum] ([Line] P.Q).([Line] T.U)).([Sum] ([Line] R.S).Excess), Equal.([Line] F.N).([Line] P.Q), Equal.([Line] F.G).([Line] R.S), Equal.([Line] G.M).([Line] T.U)] Equal.([Sum] ([Line] F.N).([Line] G.M)).([Sum] ([Line] F.G).Excess),
+[Equal.([Sum] ([Line] R.S).([Line] T.U)).([Sum] ([Line] P.Q).Excess), Equal.([Line] F.N).([Line] P.Q), Equal.([Line] F.G).([Line] R.S), Equal.([Line] G.M).([Line] T.U)] Equal.([Sum] ([Line] F.G).([Line] G.M)).([Sum] ([Line] F.N).Excess),
+[K, Equal.([Sum] ([Line] F.N).([Line] G.M)).([Sum] ([Line] F.G).Excess), Equal.([Sum] ([Line] F.N).([Line] F.G)).([Sum] ([Line] G.M).Excess), Equal.([Sum] ([Line] G.M).([Line] F.G)).([Sum] ([Line] F.N).Excess)] (Equal.([Line] F.K).([Line] F.N), Equal.([Line] G.K).([Line] G.M)),
+[Equal.([Line] F.K).([Line] F.N), Equal.([Line] F.N).([Line] P.Q)] Equal.([Line] F.K).([Line] P.Q),
+[Equal.([Line] G.K).([Line] G.M), Equal.([Line] G.M).([Line] T.U)] Equal.([Line] G.K).([Line] T.U),
+
+[Equal.([Line] F.G).([Line] R.S), Equal.([Line] F.K).([Line] P.Q), Equal.([Line] G.K).([Line] T.U)] Theorem

@@ -1,0 +1,20 @@
+Equal.([Angle.B] A.C).([Angle.C] A.B),
+(Suppose.Greater, [Absurd] Refuted.Greater),
+(Suppose.Less, [Absurd] Refuted.Less),
+
+[Suppose.Greater] (D, Equal.([Angle.B] A.C).([Angle.C] A.B), Equal.([Line] A.B).([Sum] ([Line] A.C).Excess), Equal.([Line] B.C).([Line] B.C)),
+[D, Equal.([Line] A.B).([Sum] ([Line] A.C).Excess)] (Equal.([Line] B.D).([Line] A.C), Equal.([Angle.B] C.D).([Angle.B] A.C), Equal.([Area] A.B.C).([Sum] ([Area] B.C.D).([Area] A.C.D))),
+[Equal.([Angle.B] C.D).([Angle.B] A.C), Equal.([Angle.B] A.C).([Angle.C] A.B)] Equal.([Angle.B] C.D).([Angle.C] A.B),
+[Equal.([Line] B.D).([Line] A.C), Equal.([Line] B.C).([Line] B.C), Equal.([Angle.B] C.D).([Angle.C] A.B)] Equal.([Area] B.C.D).([Area] A.B.C),
+[Equal.([Area] A.B.C).([Sum] ([Area] B.C.D).([Area] A.C.D))] Equal.([Area] A.B.C).([Sum] ([Area] B.C.D).Excess),
+[Equal.([Area] A.B.C).([Sum] ([Area] B.C.D).Excess), Equal.([Area] B.C.D).([Area] A.B.C)] Equal.([Area] A.B.C).([Sum] ([Area] A.B.C).Excess),
+[Equal.([Area] A.B.C).([Sum] ([Area] A.B.C).Excess)] Absurd,
+[Suppose.Less] (E, Equal.([Angle.B] A.C).([Angle.C] A.B), Equal.([Line] A.C).([Sum] ([Line] A.B).Excess), Equal.([Line] B.C).([Line] B.C)),
+[E, Equal.([Line] A.C).([Sum] ([Line] A.B).Excess)] (Equal.([Line] C.E).([Line] A.B), Equal.([Angle.C] B.E).([Angle.C] A.B), Equal.([Area] A.B.C).([Sum] ([Area] B.C.E).([Area] A.B.E))),
+[Equal.([Angle.C] B.E).([Angle.C] A.B), Equal.([Angle.B] A.C).([Angle.C] A.B)] Equal.([Angle.C] B.E).([Angle.B] A.C),
+[Equal.([Line] C.E).([Line] A.B), Equal.([Line] B.C).([Line] B.C), Equal.([Angle.C] B.E).([Angle.B] A.C)] Equal.([Area] B.C.E).([Area] A.B.C),
+[Equal.([Area] A.B.C).([Sum] ([Area] B.C.E).([Area] A.B.E))] Equal.([Area] A.B.C).([Sum] ([Area] B.C.E).Excess),
+[Equal.([Area] A.B.C).([Sum] ([Area] B.C.E).Excess), Equal.([Area] B.C.E).([Area] A.B.C)] Equal.([Area] A.B.C).([Sum] ([Area] A.B.C).Excess),
+[Equal.([Angle.B] A.C).([Angle.C] A.B), Refuted.Greater, Refuted.Less] Equal.([Line] A.B).([Line] A.C),
+
+[Equal.([Line] A.B).([Line] A.C)] Theorem

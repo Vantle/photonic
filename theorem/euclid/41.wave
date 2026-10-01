@@ -1,0 +1,12 @@
+Parallelogram.([Diameter] A.C).([Diameter] B.D),
+Parallel.([Line] A.E).([Line] B.C),
+Parallel.([Line] A.E).([Line] B.C),
+Equal.([Line] A.C).([Line] A.C),
+
+[Parallelogram.([Diameter] A.C).([Diameter] B.D), Equal.([Line] A.C).([Line] A.C)] (Equal.([Area] A.B.C).([Area] A.C.D), Equal.([Area] A.B.C.D).([Sum] ([Area] A.B.C).([Area] A.C.D))),
+[Parallel.([Line] A.E).([Line] B.C), Parallel.([Line] A.E).([Line] B.C)] (Equal.([Area] A.B.C).([Area] B.C.E), Equal.([Area] A.B.C).([Area] B.C.E)),
+[Equal.([Area] A.B.C.D).([Sum] ([Area] A.B.C).([Area] A.C.D)), Equal.([Area] A.B.C).([Area] A.C.D)] Equal.([Area] A.B.C.D).([Sum] ([Area] A.B.C).([Area] A.B.C)),
+[Equal.([Area] A.B.C.D).([Sum] ([Area] A.B.C).([Area] A.B.C)), Equal.([Area] A.B.C).([Area] B.C.E)] Equal.([Area] A.B.C.D).([Sum] ([Area] B.C.E).([Area] A.B.C)),
+[Equal.([Area] A.B.C.D).([Sum] ([Area] B.C.E).([Area] A.B.C)), Equal.([Area] A.B.C).([Area] B.C.E)] Equal.([Area] A.B.C.D).([Sum] ([Area] B.C.E).([Area] B.C.E)),
+
+[Equal.([Area] A.B.C.D).([Sum] ([Area] B.C.E).([Area] B.C.E))] Theorem

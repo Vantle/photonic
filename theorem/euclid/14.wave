@@ -1,0 +1,22 @@
+E,
+Equal.([Sum] ([Angle.B] A.C).([Angle.B] A.D)).([Sum] Right.Right),
+Across.([Line] A.B).([Point] C.D),
+Equal.([Sum] ([Angle.B] A.C).([Angle.B] A.E)).([Sum] ([Angle.B] A.C).([Angle.B] A.E)),
+(Suppose.Inside, [Absurd] Refuted.Inside),
+(Suppose.Outside, [Absurd] Refuted.Outside),
+
+[E] (Equal.([Line] C.E).([Sum] ([Line] B.C).([Line] B.E)), Equal.([Line] C.E).([Sum] ([Line] B.C).([Line] B.E))),
+[Equal.([Line] C.E).([Sum] ([Line] B.C).([Line] B.E)), Equal.([Sum] ([Angle.B] A.C).([Angle.B] A.E)).([Sum] ([Angle.B] A.C).([Angle.B] A.E))] Equal.([Sum] ([Angle.B] A.C).([Angle.B] A.E)).([Sum] Right.Right),
+[Equal.([Sum] ([Angle.B] A.C).([Angle.B] A.E)).([Sum] Right.Right), Equal.([Sum] ([Angle.B] A.C).([Angle.B] A.D)).([Sum] Right.Right)] Equal.([Sum] ([Angle.B] A.C).([Angle.B] A.D)).([Sum] ([Angle.B] A.C).([Angle.B] A.E)),
+[Equal.([Sum] ([Angle.B] A.C).([Angle.B] A.D)).([Sum] ([Angle.B] A.C).([Angle.B] A.E))] Equal.([Angle.B] A.D).([Angle.B] A.E),
+[Suppose.Inside] (Equal.([Angle.B] A.D).([Angle.B] A.E), Equal.([Angle.B] A.E).([Sum] ([Angle.B] A.D).([Angle.B] D.E))),
+[Equal.([Angle.B] A.E).([Sum] ([Angle.B] A.D).([Angle.B] D.E)), Equal.([Angle.B] A.D).([Angle.B] A.E)] Equal.([Angle.B] A.E).([Sum] ([Angle.B] A.E).([Angle.B] D.E)),
+[Equal.([Angle.B] A.E).([Sum] ([Angle.B] A.E).([Angle.B] D.E))] Equal.([Angle.B] A.E).([Sum] ([Angle.B] A.E).Excess),
+[Equal.([Angle.B] A.E).([Sum] ([Angle.B] A.E).Excess)] Absurd,
+[Suppose.Outside] (Equal.([Angle.B] A.D).([Angle.B] A.E), Equal.([Angle.B] A.D).([Sum] ([Angle.B] A.E).([Angle.B] D.E))),
+[Equal.([Angle.B] A.D).([Sum] ([Angle.B] A.E).([Angle.B] D.E)), Equal.([Angle.B] A.D).([Angle.B] A.E)] Equal.([Angle.B] A.D).([Sum] ([Angle.B] A.D).([Angle.B] D.E)),
+[Equal.([Angle.B] A.D).([Sum] ([Angle.B] A.D).([Angle.B] D.E))] Equal.([Angle.B] A.D).([Sum] ([Angle.B] A.D).Excess),
+[Equal.([Angle.B] A.D).([Sum] ([Angle.B] A.D).Excess)] Absurd,
+[Equal.([Angle.B] A.D).([Angle.B] A.E), Across.([Line] A.B).([Point] C.D), Equal.([Line] C.E).([Sum] ([Line] B.C).([Line] B.E)), Refuted.Inside, Refuted.Outside] Equal.([Line] C.D).([Sum] ([Line] B.C).([Line] B.D)),
+
+[Equal.([Line] C.D).([Sum] ([Line] B.C).([Line] B.D))] Theorem

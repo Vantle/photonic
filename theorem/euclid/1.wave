@@ -1,0 +1,7 @@
+C,
+Equal.([Sum] ([Line] A.B).([Line] A.B)).([Sum] ([Line] A.B).([Line] A.B)),
+
+[Equal.([Sum] ([Line] A.B).([Line] A.B)).([Sum] ([Line] A.B).([Line] A.B))] (Equal.([Sum] ([Line] A.B).([Line] A.B)).([Sum] ([Line] A.B).Excess), Equal.([Sum] ([Line] A.B).([Line] A.B)).([Sum] ([Line] A.B).Excess), Equal.([Sum] ([Line] A.B).([Line] A.B)).([Sum] ([Line] A.B).Excess)),
+[C, Equal.([Sum] ([Line] A.B).([Line] A.B)).([Sum] ([Line] A.B).Excess), Equal.([Sum] ([Line] A.B).([Line] A.B)).([Sum] ([Line] A.B).Excess), Equal.([Sum] ([Line] A.B).([Line] A.B)).([Sum] ([Line] A.B).Excess)] (Equal.([Line] A.C).([Line] A.B), Equal.([Line] B.C).([Line] A.B)),
+
+[Equal.([Line] A.C).([Line] A.B), Equal.([Line] B.C).([Line] A.B)] Theorem

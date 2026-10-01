@@ -1,0 +1,407 @@
+load("//theorem:defs.bzl", "theorem")
+
+exports_files(
+    [
+        "1.wave",
+        "10.wave",
+        "11.wave",
+        "12.wave",
+        "13.wave",
+        "14.wave",
+        "15.wave",
+        "16.wave",
+        "17.wave",
+        "18.wave",
+        "19.wave",
+        "2.wave",
+        "20.wave",
+        "21.wave",
+        "22.wave",
+        "23.wave",
+        "24.wave",
+        "25.wave",
+        "26.wave",
+        "27.wave",
+        "28.wave",
+        "29.wave",
+        "3.wave",
+        "30.wave",
+        "31.wave",
+        "32.wave",
+        "33.wave",
+        "34.wave",
+        "35.wave",
+        "36.wave",
+        "37.wave",
+        "38.wave",
+        "39.wave",
+        "4.wave",
+        "40.wave",
+        "41.wave",
+        "42.wave",
+        "43.wave",
+        "44.wave",
+        "45.wave",
+        "46.wave",
+        "47.wave",
+        "48.wave",
+        "5.wave",
+        "6.wave",
+        "7.wave",
+        "8.wave",
+        "9.wave",
+        "square.wave",
+    ],
+    visibility = ["//book:__pkg__"],
+)
+
+theorem(
+    name = "1",
+    srcs = ["1.wave"],
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "2",
+    srcs = ["2.wave"],
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "3",
+    srcs = ["3.wave"],
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "4",
+    srcs = ["4.wave"],
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "5",
+    srcs = ["5.wave"],
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "6",
+    srcs = ["6.wave"],
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "7",
+    srcs = ["7.wave"],
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "8",
+    srcs = ["8.wave"],
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "9",
+    srcs = ["9.wave"],
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "10",
+    srcs = ["10.wave"],
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "11",
+    srcs = ["11.wave"],
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "12",
+    srcs = ["12.wave"],
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "13",
+    srcs = ["13.wave"],
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "14",
+    srcs = ["14.wave"],
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "15",
+    srcs = ["15.wave"],
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "16",
+    srcs = ["16.wave"],
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "17",
+    srcs = ["17.wave"],
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "18",
+    srcs = ["18.wave"],
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "19",
+    srcs = ["19.wave"],
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "20",
+    srcs = ["20.wave"],
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "21",
+    srcs = ["21.wave"],
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "22",
+    srcs = ["22.wave"],
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "23",
+    srcs = ["23.wave"],
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "24",
+    srcs = ["24.wave"],
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "25",
+    srcs = ["25.wave"],
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "26",
+    srcs = ["26.wave"],
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "27",
+    srcs = ["27.wave"],
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "28",
+    srcs = ["28.wave"],
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "29",
+    srcs = ["29.wave"],
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "30",
+    srcs = ["30.wave"],
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "31",
+    srcs = ["31.wave"],
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "32",
+    srcs = ["32.wave"],
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "33",
+    srcs = ["33.wave"],
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "34",
+    srcs = ["34.wave"],
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "35",
+    srcs = ["35.wave"],
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "36",
+    srcs = ["36.wave"],
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "37",
+    srcs = ["37.wave"],
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "38",
+    srcs = ["38.wave"],
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "39",
+    srcs = ["39.wave"],
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "40",
+    srcs = ["40.wave"],
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "41",
+    srcs = ["41.wave"],
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "42",
+    srcs = ["42.wave"],
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "43",
+    srcs = ["43.wave"],
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "44",
+    srcs = ["44.wave"],
+    configuration = 65536,
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "45",
+    srcs = ["45.wave"],
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "46",
+    srcs = ["46.wave"],
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "47",
+    srcs = ["47.wave"],
+    configuration = 65536,
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "square",
+    srcs = ["square.wave"],
+    every = True,
+    deps = [],
+)
+
+theorem(
+    name = "48",
+    srcs = ["48.wave"],
+    every = True,
+    deps = [],
+)
+
+filegroup(
+    name = "build",
+    srcs = ["BUILD.bazel"],
+    visibility = ["//:__pkg__"],
+)

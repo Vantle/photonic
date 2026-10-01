@@ -4,7 +4,7 @@ Photonic proves a claim by executing it. A theorem program states its claim in P
 
 Theorems are stated as generally as a finite check allows. The Boolean laws hold in every Boolean algebra; the relation and type theorems hold for every domain, every relation satisfying their hypotheses and every choice of component types; the group, lattice and ring laws hold in every group, lattice and ring; and the arithmetic laws hold at every width. Only the coloring theorems are specific numbers.
 
-The last three layers prove the standard library itself. They ground its digit tables in counting, prove its chain cells for every item that is not one of the cell's words, and check its linked arithmetic one step at a time by running the library's own rules.
+Layers 7 to 9 prove the standard library itself. They ground its digit tables in counting, prove its chain cells for every item that is not one of the cell's words, and check its linked arithmetic one step at a time by running the library's own rules. Layer 10 proves the first book of Euclid's *Elements* from its postulates and common notions.
 
 ```sh
 bazel test -c opt //theorem/...
@@ -167,7 +167,7 @@ A false claim whose verdict can be false reaches `Counterexample` instead, and a
 
 ## Order
 
-Layers 1 to 6 climb from propositional logic to algebraic structures. Each is more abstract than the definitions below it, or lifts laws proved below it to every size. Layers 7 to 9 turn to the standard library itself. They ground its digit tables in counting and build up to its linked arithmetic.
+Layers 1 to 6 climb from propositional logic to algebraic structures. Each is more abstract than the definitions below it, or lifts laws proved below it to every size. Layers 7 to 9 turn to the standard library itself. They ground its digit tables in counting and build up to its linked arithmetic. Layer 10 builds plane geometry from Euclid's axioms, each proposition on the ones before it.
 
 | Layer | Packages | Theorems |
 | --- | --- | ---: |
@@ -180,6 +180,7 @@ Layers 1 to 6 climb from propositional logic to algebraic structures. Each is mo
 | 7. Counting | [counting](counting/) | 6 |
 | 8. Linked storage | [chain](chain/) | 3 |
 | 9. Linked arithmetic | [natural](natural/) | 9 |
+| 10. Plane geometry | [euclid](euclid/) | 49 |
 
 ### 1. Propositional logic
 
@@ -390,3 +391,29 @@ The probe fires only once the output holds a new cell and the engine has begun t
 Each of them also carries an `.order` test, so the step reaches its verdict in every schedule of plain events, not only in the scheduler's. With layer 7 these give the library's linked arithmetic at every width, by induction on the steps. `opening` shows that `Natural.Add` starts with carry 0 and an empty output. After each column, `addition` and `sum` keep the output equal to the low digits of a + b, most significant on top, with the carry owed to the next column. `ending` pushes the last carry, and `trim` and `reversal` return the numeral least significant first with no leading zeros. The same argument with `subtraction` and `subtract` gives a − b, and `ending` reports a negative difference exactly when b > a. `comparison` shows that `Natural.Compare` follows the scheme that layer 3 proved orders the naturals, and `compare` orders its digits by the sign of their difference. Its early answers are final. Once the left operand has ended, every later position compares 0 with a digit, which can turn Equal into Less but never undoes Less, and symmetrically for Greater. `successor`, `restoration` and `cycle` give n + 1.
 
 `comparison` pins down the engine's exact stopping rule. Consider an engine that answers Less one position earlier, where the left operand has ended and the right shows 0 after an earlier Less. It would still be correct, but it fails this theorem.
+
+### 10. Plane geometry
+
+The first book of Euclid's *Elements*: its 48 propositions, from the equilateral triangle to the theorem of Pythagoras and its converse, and a lemma on squares that proposition 48 uses. Each proposition is proved from Euclid's postulates and common notions, and cites the propositions before it as single rules, as Euclid does.
+
+A magnitude is a field that names its points in alphabetical order, so that it has one spelling: `([Line] A.B)`, `([Angle.B] A.C)` for the angle ABC, `([Area] A.B.C)` and `([Square] A.B)`. A fact is `Equal.x.y`, a sum is `([Sum] x.y)`, and `Right` is the right angle. There is no order on magnitudes, so x is greater than y when `Equal.x.([Sum] y.Excess)`. Relations are particles as well: `Parallel.([Line] A.B).([Line] C.D)`, `Across.([Line] G.H).([Point] A.D)` and `Same.([Line] G.H).([Point] A.D)` for two points on opposite sides or on one side of a line, and `Parallelogram.([Diameter] A.C).([Diameter] B.D)`.
+
+| Rule | Schema |
+| --- | --- |
+| Postulate 1 | two points of a straight line name it: a parallel to GA is a parallel to GB when B lies on GA produced |
+| Postulates 2 and 3 and the figure | produce AB beyond B to a new point C, with BC equal to a given line |
+| Postulate 3 and the figure | a circle meets a ray from its centre, a straight line through its inside, and a second circle when each radius, and the distance between the centres, is less than the other two together |
+| Postulate 5 | straight lines making the interior angles on one side less than two right angles meet on that side, so they are not parallel |
+| Common notion 1 | `Equal.x.y` and `Equal.y.z` give `Equal.x.z` |
+| Common notions 1 and 2 | equals replace equals inside a sum |
+| Common notion 2 | equals added to equals give equal wholes |
+| Common notion 3 | equals taken from equals leave equal remainders |
+| Common notion 4 | an angle is the same whichever point of its arm names it |
+| Common notion 5 | `Equal.x.([Sum] x.Excess)` gives `Absurd`, and a whole is greater than a part |
+| Superposition | a triangle moved so that a side falls on an equal straight line keeps its sides, angles and area |
+| Definitions 10, 22 and 23 | right angles, the square, and parallels as straight lines that meet on neither side |
+
+A construction consumes a point token, listed in the program's first line or among the facts of a case, so each point is made once. A proof by contradiction is a scope `(Suppose.X, [Absurd] Refuted.X)` whose root rule `[Suppose.X] (…)` states the case; a positive case closes with `[Shown] Proved.X`. Trichotomy, the coincidence of a figure with the one Euclid draws, and a claim shown in every arrangement are rules that consume those reports. Euclid often draws one arrangement and leaves the others to the reader; these proofs list every one, and the list itself is read from the figure.
+
+Where Euclid reads a fact from his figure, such as where two lines cross or how a figure divides into triangles, the program states it. A rule that would compete with another for a fact gets a premise of its own, often a reflexive fact such as `Equal.([Line] B.C).([Line] B.C)`, and a rule that only reads a fact gives it back. Every proof therefore carries an `.order` test: every schedule of plain events ends at `Theorem`.
+

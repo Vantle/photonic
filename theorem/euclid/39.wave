@@ -1,0 +1,22 @@
+E,
+Equal.([Area] A.B.C).([Area] B.C.D),
+Same.([Line] B.C).([Point] A.D),
+(Suppose.Short, [Absurd] Refuted.Short),
+(Suppose.Long, [Absurd] Refuted.Long),
+
+[E] Parallel.([Line] A.E).([Line] B.C),
+[Suppose.Short] (Equal.([Area] A.B.C).([Area] B.C.D), Parallel.([Line] A.K).([Line] B.C), Parallel.([Line] A.K).([Line] B.C), Equal.([Area] B.C.D).([Sum] ([Area] B.C.K).([Area] C.D.K))),
+[Parallel.([Line] A.K).([Line] B.C), Parallel.([Line] A.K).([Line] B.C)] Equal.([Area] A.B.C).([Area] B.C.K),
+[Equal.([Area] A.B.C).([Area] B.C.D), Equal.([Area] A.B.C).([Area] B.C.K)] Equal.([Area] B.C.K).([Area] B.C.D),
+[Equal.([Area] B.C.K).([Area] B.C.D), Equal.([Area] B.C.D).([Sum] ([Area] B.C.K).([Area] C.D.K))] Equal.([Area] B.C.K).([Sum] ([Area] B.C.K).([Area] C.D.K)),
+[Equal.([Area] B.C.K).([Sum] ([Area] B.C.K).([Area] C.D.K))] Equal.([Area] B.C.K).([Sum] ([Area] B.C.K).Excess),
+[Equal.([Area] B.C.K).([Sum] ([Area] B.C.K).Excess)] Absurd,
+[Suppose.Long] (Equal.([Area] A.B.C).([Area] B.C.D), Parallel.([Line] A.L).([Line] B.C), Parallel.([Line] A.L).([Line] B.C), Equal.([Area] B.C.L).([Sum] ([Area] B.C.D).([Area] C.D.L))),
+[Parallel.([Line] A.L).([Line] B.C), Parallel.([Line] A.L).([Line] B.C)] Equal.([Area] A.B.C).([Area] B.C.L),
+[Equal.([Area] A.B.C).([Area] B.C.D), Equal.([Area] A.B.C).([Area] B.C.L)] Equal.([Area] B.C.L).([Area] B.C.D),
+[Equal.([Area] B.C.L).([Area] B.C.D), Equal.([Area] B.C.L).([Sum] ([Area] B.C.D).([Area] C.D.L))] Equal.([Area] B.C.D).([Sum] ([Area] B.C.D).([Area] C.D.L)),
+[Equal.([Area] B.C.D).([Sum] ([Area] B.C.D).([Area] C.D.L))] Equal.([Area] B.C.D).([Sum] ([Area] B.C.D).Excess),
+[Equal.([Area] B.C.D).([Sum] ([Area] B.C.D).Excess)] Absurd,
+[Equal.([Area] A.B.C).([Area] B.C.D), Same.([Line] B.C).([Point] A.D), Parallel.([Line] A.E).([Line] B.C), Refuted.Short, Refuted.Long] Parallel.([Line] A.D).([Line] B.C),
+
+[Parallel.([Line] A.D).([Line] B.C)] Theorem

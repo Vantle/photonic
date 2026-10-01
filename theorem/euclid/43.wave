@@ -1,0 +1,19 @@
+Parallelogram.([Diameter] A.C).([Diameter] B.D),
+Parallelogram.([Diameter] A.K).([Diameter] E.H),
+Parallelogram.([Diameter] C.K).([Diameter] F.G),
+Equal.([Area] A.B.C).([Sum] ([Area] A.E.K).([Area] B.E.G.K).([Area] C.G.K)),
+Equal.([Area] A.C.D).([Sum] ([Area] A.H.K).([Area] D.F.H.K).([Area] C.F.K)),
+Equal.([Line] A.C).([Line] A.C),
+Equal.([Line] A.K).([Line] A.K),
+Equal.([Line] C.K).([Line] C.K),
+
+[Parallelogram.([Diameter] A.C).([Diameter] B.D), Equal.([Line] A.C).([Line] A.C)] Equal.([Area] A.B.C).([Area] A.C.D),
+[Parallelogram.([Diameter] A.K).([Diameter] E.H), Equal.([Line] A.K).([Line] A.K)] Equal.([Area] A.E.K).([Area] A.H.K),
+[Parallelogram.([Diameter] C.K).([Diameter] F.G), Equal.([Line] C.K).([Line] C.K)] Equal.([Area] C.G.K).([Area] C.F.K),
+[Equal.([Area] A.B.C).([Sum] ([Area] A.E.K).([Area] B.E.G.K).([Area] C.G.K)), Equal.([Area] A.B.C).([Area] A.C.D)] Equal.([Area] A.C.D).([Sum] ([Area] A.E.K).([Area] B.E.G.K).([Area] C.G.K)),
+[Equal.([Area] A.C.D).([Sum] ([Area] A.E.K).([Area] B.E.G.K).([Area] C.G.K)), Equal.([Area] A.C.D).([Sum] ([Area] A.H.K).([Area] D.F.H.K).([Area] C.F.K))] Equal.([Sum] ([Area] A.E.K).([Area] B.E.G.K).([Area] C.G.K)).([Sum] ([Area] A.H.K).([Area] D.F.H.K).([Area] C.F.K)),
+[Equal.([Sum] ([Area] A.E.K).([Area] B.E.G.K).([Area] C.G.K)).([Sum] ([Area] A.H.K).([Area] D.F.H.K).([Area] C.F.K)), Equal.([Area] A.E.K).([Area] A.H.K)] Equal.([Sum] ([Area] A.H.K).([Area] B.E.G.K).([Area] C.G.K)).([Sum] ([Area] A.H.K).([Area] D.F.H.K).([Area] C.F.K)),
+[Equal.([Sum] ([Area] A.H.K).([Area] B.E.G.K).([Area] C.G.K)).([Sum] ([Area] A.H.K).([Area] D.F.H.K).([Area] C.F.K)), Equal.([Area] C.G.K).([Area] C.F.K)] Equal.([Sum] ([Area] A.H.K).([Area] B.E.G.K).([Area] C.F.K)).([Sum] ([Area] A.H.K).([Area] D.F.H.K).([Area] C.F.K)),
+[Equal.([Sum] ([Area] A.H.K).([Area] B.E.G.K).([Area] C.F.K)).([Sum] ([Area] A.H.K).([Area] D.F.H.K).([Area] C.F.K))] Equal.([Area] B.E.G.K).([Area] D.F.H.K),
+
+[Equal.([Area] B.E.G.K).([Area] D.F.H.K)] Theorem

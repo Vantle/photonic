@@ -1,0 +1,13 @@
+Parallelogram.([Diameter] A.D).([Diameter] B.C),
+Equal.([Line] B.C).([Line] B.C),
+Equal.([Line] B.C).([Line] B.C),
+Equal.([Angle.B] A.C).([Angle.B] A.C),
+Equal.([Angle.C] A.B).([Angle.C] A.B),
+
+[Parallelogram.([Diameter] A.D).([Diameter] B.C)] (Parallel.([Line] A.B).([Line] C.D), Parallel.([Line] A.C).([Line] B.D), Across.([Line] B.C).([Point] A.D), Across.([Line] A.D).([Point] B.C), Same.([Line] A.B).([Point] C.D), Same.([Line] B.D).([Point] A.C), Same.([Line] C.D).([Point] A.B), Same.([Line] A.C).([Point] B.D), Equal.([Area] A.B.C.D).([Sum] ([Area] A.B.D).([Area] A.C.D)), Equal.([Area] A.B.C.D).([Sum] ([Area] A.B.C).([Area] B.C.D)), Parallel.([Line] A.B).([Line] C.D), Parallel.([Line] A.C).([Line] B.D), Across.([Line] B.C).([Point] A.D), Across.([Line] B.C).([Point] A.D)),
+[Parallel.([Line] A.B).([Line] C.D), Across.([Line] B.C).([Point] A.D), Equal.([Angle.B] A.C).([Angle.B] A.C)] (Equal.([Angle.B] A.C).([Angle.C] B.D), Equal.([Angle.B] A.C).([Angle.C] B.D)),
+[Parallel.([Line] A.C).([Line] B.D), Across.([Line] B.C).([Point] A.D), Equal.([Angle.C] A.B).([Angle.C] A.B)] Equal.([Angle.C] A.B).([Angle.B] C.D),
+[Equal.([Angle.B] A.C).([Angle.C] B.D), Equal.([Angle.C] A.B).([Angle.B] C.D), Equal.([Line] B.C).([Line] B.C)] (Equal.([Line] A.B).([Line] C.D), Equal.([Line] A.B).([Line] C.D), Equal.([Line] A.C).([Line] B.D), Equal.([Angle.A] B.C).([Angle.D] B.C)),
+[Equal.([Line] A.B).([Line] C.D), Equal.([Line] B.C).([Line] B.C), Equal.([Angle.B] A.C).([Angle.C] B.D)] Equal.([Area] A.B.C).([Area] B.C.D),
+
+[Equal.([Line] A.B).([Line] C.D), Equal.([Line] A.C).([Line] B.D), Equal.([Angle.A] B.C).([Angle.D] B.C), Equal.([Area] A.B.C).([Area] B.C.D), Parallel.([Line] A.B).([Line] C.D), Parallel.([Line] A.C).([Line] B.D), Across.([Line] B.C).([Point] A.D), Across.([Line] A.D).([Point] B.C), Same.([Line] A.B).([Point] C.D), Same.([Line] B.D).([Point] A.C), Same.([Line] C.D).([Point] A.B), Same.([Line] A.C).([Point] B.D), Equal.([Area] A.B.C.D).([Sum] ([Area] A.B.D).([Area] A.C.D)), Equal.([Area] A.B.C.D).([Sum] ([Area] A.B.C).([Area] B.C.D))] Theorem

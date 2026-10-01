@@ -1,0 +1,17 @@
+Parallel.([Line] A.G).([Line] F.H),
+Parallel.([Line] D.K).([Line] F.H),
+Across.([Line] G.H).([Point] A.F),
+Same.([Line] H.K).([Point] D.F),
+Equal.([Line] G.K).([Sum] ([Line] H.K).([Line] G.H)),
+Across.([Line] G.K).([Point] A.D),
+Equal.([Line] G.K).([Sum] ([Line] H.K).([Line] G.H)),
+Equal.([Line] G.K).([Sum] ([Line] H.K).([Line] G.H)),
+
+[Parallel.([Line] A.G).([Line] F.H), Across.([Line] G.H).([Point] A.F)] Equal.([Angle.G] A.H).([Angle.H] F.G),
+[Parallel.([Line] D.K).([Line] F.H), Same.([Line] H.K).([Point] D.F), Equal.([Line] G.K).([Sum] ([Line] H.K).([Line] G.H))] Equal.([Angle.H] F.G).([Angle.K] D.H),
+[Equal.([Angle.G] A.H).([Angle.H] F.G), Equal.([Angle.H] F.G).([Angle.K] D.H)] Equal.([Angle.G] A.H).([Angle.K] D.H),
+[Equal.([Angle.G] A.H).([Angle.K] D.H), Equal.([Line] G.K).([Sum] ([Line] H.K).([Line] G.H))] Equal.([Angle.G] A.K).([Angle.K] D.H),
+[Equal.([Angle.G] A.K).([Angle.K] D.H), Equal.([Line] G.K).([Sum] ([Line] H.K).([Line] G.H))] Equal.([Angle.G] A.K).([Angle.K] D.G),
+[Across.([Line] G.K).([Point] A.D), Equal.([Angle.G] A.K).([Angle.K] D.G)] Parallel.([Line] A.G).([Line] D.K),
+
+[Parallel.([Line] A.G).([Line] D.K)] Theorem

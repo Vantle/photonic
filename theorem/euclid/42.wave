@@ -1,0 +1,17 @@
+E, W, X, F, G,
+
+[E] (Equal.([Line] B.E).([Line] C.E), Equal.([Line] B.C).([Sum] ([Line] B.E).([Line] C.E))),
+[W] Equal.([Angle.E] C.W).([Angle.D] P.Q),
+[X] (Parallel.([Line] A.X).([Line] B.C), Parallel.([Line] A.X).([Line] B.E), Parallel.([Line] A.X).([Line] B.E), Parallel.([Line] A.X).([Line] B.E), Parallel.([Line] A.X).([Line] C.E), Parallel.([Line] A.X).([Line] C.E), Parallel.([Line] A.X).([Line] C.E), Across.([Line] B.X).([Point] A.E), Equal.([Angle.B] E.X).([Angle.B] E.X), Equal.([Area] A.B.C).([Sum] ([Area] A.B.E).([Area] A.C.E))),
+[F, Parallel.([Line] A.X).([Line] B.C)] (Parallel.([Line] A.F).([Line] C.E), Parallel.([Line] A.F).([Line] C.E), Equal.([Angle.E] C.F).([Angle.E] C.W)),
+[G] (Parallel.([Line] C.G).([Line] E.F), Parallel.([Line] C.E).([Line] F.G), Across.([Line] E.G).([Point] C.F)),
+[Parallel.([Line] C.G).([Line] E.F), Parallel.([Line] C.E).([Line] F.G), Across.([Line] E.G).([Point] C.F)] (Parallelogram.([Diameter] C.F).([Diameter] E.G), Parallelogram.([Diameter] C.F).([Diameter] E.G)),
+[Parallel.([Line] A.X).([Line] B.E), Parallel.([Line] A.X).([Line] B.E), Parallel.([Line] A.X).([Line] B.E), Parallel.([Line] A.X).([Line] C.E), Equal.([Line] B.E).([Line] C.E), Across.([Line] B.X).([Point] A.E), Equal.([Line] B.C).([Sum] ([Line] B.E).([Line] C.E)), Equal.([Angle.B] E.X).([Angle.B] E.X)] Equal.([Area] A.B.E).([Area] C.E.X),
+[Parallel.([Line] A.X).([Line] C.E), Parallel.([Line] A.X).([Line] C.E)] Equal.([Area] C.E.X).([Area] A.C.E),
+[Equal.([Area] A.B.E).([Area] C.E.X), Equal.([Area] C.E.X).([Area] A.C.E)] Equal.([Area] A.B.E).([Area] A.C.E),
+[Equal.([Area] A.B.C).([Sum] ([Area] A.B.E).([Area] A.C.E)), Equal.([Area] A.B.E).([Area] A.C.E)] Equal.([Area] A.B.C).([Sum] ([Area] A.C.E).([Area] A.C.E)),
+[Parallelogram.([Diameter] C.F).([Diameter] E.G), Parallel.([Line] A.F).([Line] C.E), Parallel.([Line] A.F).([Line] C.E)] Equal.([Area] C.E.F.G).([Sum] ([Area] A.C.E).([Area] A.C.E)),
+[Equal.([Area] C.E.F.G).([Sum] ([Area] A.C.E).([Area] A.C.E)), Equal.([Area] A.B.C).([Sum] ([Area] A.C.E).([Area] A.C.E))] Equal.([Area] C.E.F.G).([Area] A.B.C),
+[Equal.([Angle.E] C.F).([Angle.E] C.W), Equal.([Angle.E] C.W).([Angle.D] P.Q)] Equal.([Angle.E] C.F).([Angle.D] P.Q),
+
+[Parallelogram.([Diameter] C.F).([Diameter] E.G), Equal.([Area] C.E.F.G).([Area] A.B.C), Equal.([Angle.E] C.F).([Angle.D] P.Q)] Theorem

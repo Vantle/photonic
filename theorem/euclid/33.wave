@@ -1,0 +1,11 @@
+Parallel.([Line] A.B).([Line] C.D),
+Across.([Line] B.C).([Point] A.D),
+Across.([Line] B.C).([Point] A.D),
+Equal.([Line] A.B).([Line] C.D),
+Equal.([Line] B.C).([Line] B.C),
+
+[Parallel.([Line] A.B).([Line] C.D), Across.([Line] B.C).([Point] A.D)] Equal.([Angle.B] A.C).([Angle.C] B.D),
+[Equal.([Line] A.B).([Line] C.D), Equal.([Line] B.C).([Line] B.C), Equal.([Angle.B] A.C).([Angle.C] B.D)] (Equal.([Line] A.C).([Line] B.D), Equal.([Angle.C] A.B).([Angle.B] C.D)),
+[Across.([Line] B.C).([Point] A.D), Equal.([Angle.C] A.B).([Angle.B] C.D)] Parallel.([Line] A.C).([Line] B.D),
+
+[Equal.([Line] A.C).([Line] B.D), Parallel.([Line] A.C).([Line] B.D)] Theorem

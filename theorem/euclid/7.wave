@@ -1,0 +1,23 @@
+(Suppose.Convex, [Absurd] Refuted.Convex),
+(Suppose.Nested, [Absurd] Refuted.Nested),
+
+[Suppose.Convex] (Equal.([Line] A.C).([Line] A.D), Equal.([Line] B.C).([Line] B.D), Equal.([Angle.C] A.D).([Sum] ([Angle.C] A.B).([Angle.C] B.D)), Equal.([Angle.D] B.C).([Sum] ([Angle.D] A.B).([Angle.D] A.C))),
+[Equal.([Line] A.C).([Line] A.D)] Equal.([Angle.C] A.D).([Angle.D] A.C),
+[Equal.([Line] B.C).([Line] B.D)] Equal.([Angle.C] B.D).([Angle.D] B.C),
+[Equal.([Angle.D] B.C).([Sum] ([Angle.D] A.B).([Angle.D] A.C)), Equal.([Angle.C] A.D).([Angle.D] A.C)] Equal.([Angle.D] B.C).([Sum] ([Angle.D] A.B).([Angle.C] A.D)),
+[Equal.([Angle.D] B.C).([Sum] ([Angle.D] A.B).([Angle.C] A.D)), Equal.([Angle.C] A.D).([Sum] ([Angle.C] A.B).([Angle.C] B.D))] Equal.([Angle.D] B.C).([Sum] ([Angle.D] A.B).([Angle.C] A.B).([Angle.C] B.D)),
+[Equal.([Angle.D] B.C).([Sum] ([Angle.D] A.B).([Angle.C] A.B).([Angle.C] B.D)), Equal.([Angle.C] B.D).([Angle.D] B.C)] Equal.([Angle.D] B.C).([Sum] ([Angle.D] A.B).([Angle.C] A.B).([Angle.D] B.C)),
+[Equal.([Angle.D] B.C).([Sum] ([Angle.D] A.B).([Angle.C] A.B).([Angle.D] B.C))] Equal.([Angle.D] B.C).([Sum] ([Angle.D] B.C).Excess),
+[Equal.([Angle.D] B.C).([Sum] ([Angle.D] B.C).Excess)] Absurd,
+[Suppose.Nested] (Equal.([Line] E.G).([Line] E.H), Equal.([Line] F.G).([Line] F.H), Equal.([Area] E.F.G).([Sum] ([Area] E.F.H).([Area] F.G.H).([Area] E.G.H)), K, M),
+[K] Equal.([Line] E.K).([Sum] ([Line] E.G).([Line] G.K)),
+[M, Equal.([Area] E.F.G).([Sum] ([Area] E.F.H).([Area] F.G.H).([Area] E.G.H))] (Equal.([Line] E.M).([Sum] ([Line] E.H).([Line] H.M)), Equal.([Angle.G] H.K).([Sum] ([Angle.G] F.K).([Angle.G] F.H)), Equal.([Angle.H] F.G).([Sum] ([Angle.H] F.M).([Angle.H] G.M))),
+[Equal.([Line] E.G).([Line] E.H), Equal.([Line] E.K).([Sum] ([Line] E.G).([Line] G.K)), Equal.([Line] E.M).([Sum] ([Line] E.H).([Line] H.M))] Equal.([Angle.G] H.K).([Angle.H] G.M),
+[Equal.([Line] F.G).([Line] F.H)] Equal.([Angle.G] F.H).([Angle.H] F.G),
+[Equal.([Angle.H] F.G).([Sum] ([Angle.H] F.M).([Angle.H] G.M)), Equal.([Angle.G] H.K).([Angle.H] G.M)] Equal.([Angle.H] F.G).([Sum] ([Angle.H] F.M).([Angle.G] H.K)),
+[Equal.([Angle.H] F.G).([Sum] ([Angle.H] F.M).([Angle.G] H.K)), Equal.([Angle.G] H.K).([Sum] ([Angle.G] F.K).([Angle.G] F.H))] Equal.([Angle.H] F.G).([Sum] ([Angle.H] F.M).([Angle.G] F.K).([Angle.G] F.H)),
+[Equal.([Angle.H] F.G).([Sum] ([Angle.H] F.M).([Angle.G] F.K).([Angle.G] F.H)), Equal.([Angle.G] F.H).([Angle.H] F.G)] Equal.([Angle.H] F.G).([Sum] ([Angle.H] F.M).([Angle.G] F.K).([Angle.H] F.G)),
+[Equal.([Angle.H] F.G).([Sum] ([Angle.H] F.M).([Angle.G] F.K).([Angle.H] F.G))] Equal.([Angle.H] F.G).([Sum] ([Angle.H] F.G).Excess),
+[Equal.([Angle.H] F.G).([Sum] ([Angle.H] F.G).Excess)] Absurd,
+
+[Refuted.Convex, Refuted.Nested] Theorem

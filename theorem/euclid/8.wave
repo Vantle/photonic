@@ -1,0 +1,23 @@
+G,
+Equal.([Line] A.B).([Line] D.E),
+Equal.([Line] A.C).([Line] D.F),
+Equal.([Line] B.C).([Line] E.F),
+(Suppose.Across, [Absurd] Refuted.Across),
+(Suppose.Beside, [Absurd] Refuted.Beside),
+(Suppose.Within, [Absurd] Refuted.Within),
+(Suppose.Around, [Absurd] Refuted.Around),
+
+[G, Equal.([Line] E.F).([Line] B.C)] (Equal.([Line] B.G).([Line] D.E), Equal.([Line] C.G).([Line] D.F), Equal.([Angle.G] B.C).([Angle.D] E.F)),
+[Equal.([Line] B.G).([Line] D.E), Equal.([Line] A.B).([Line] D.E)] Equal.([Line] B.G).([Line] A.B),
+[Equal.([Line] C.G).([Line] D.F), Equal.([Line] A.C).([Line] D.F)] Equal.([Line] C.G).([Line] A.C),
+[Suppose.Across] (Equal.([Line] A.B).([Line] B.G), Equal.([Line] A.C).([Line] C.G), Equal.([Angle.A] B.G).([Sum] ([Angle.A] B.C).([Angle.A] C.G)), Equal.([Angle.G] A.C).([Sum] ([Angle.G] B.C).([Angle.G] A.B))),
+[Equal.([Line] A.B).([Line] B.G), Equal.([Line] A.C).([Line] C.G), Equal.([Angle.A] B.G).([Sum] ([Angle.A] B.C).([Angle.A] C.G)), Equal.([Angle.G] A.C).([Sum] ([Angle.G] B.C).([Angle.G] A.B))] Absurd,
+[Suppose.Beside] (Equal.([Line] A.C).([Line] C.G), Equal.([Line] A.B).([Line] B.G), Equal.([Angle.A] C.G).([Sum] ([Angle.A] B.C).([Angle.A] B.G)), Equal.([Angle.G] A.B).([Sum] ([Angle.G] B.C).([Angle.G] A.C))),
+[Equal.([Line] A.C).([Line] C.G), Equal.([Line] A.B).([Line] B.G), Equal.([Angle.A] C.G).([Sum] ([Angle.A] B.C).([Angle.A] B.G)), Equal.([Angle.G] A.B).([Sum] ([Angle.G] B.C).([Angle.G] A.C))] Absurd,
+[Suppose.Within] (Equal.([Line] A.B).([Line] B.G), Equal.([Line] A.C).([Line] C.G), Equal.([Area] A.B.C).([Sum] ([Area] B.C.G).([Area] A.C.G).([Area] A.B.G))),
+[Equal.([Line] A.B).([Line] B.G), Equal.([Line] A.C).([Line] C.G), Equal.([Area] A.B.C).([Sum] ([Area] B.C.G).([Area] A.C.G).([Area] A.B.G))] Absurd,
+[Suppose.Around] (Equal.([Line] B.G).([Line] A.B), Equal.([Line] C.G).([Line] A.C), Equal.([Area] B.C.G).([Sum] ([Area] A.B.C).([Area] A.C.G).([Area] A.B.G))),
+[Equal.([Line] B.G).([Line] A.B), Equal.([Line] C.G).([Line] A.C), Equal.([Area] B.C.G).([Sum] ([Area] A.B.C).([Area] A.C.G).([Area] A.B.G))] Absurd,
+[Equal.([Line] B.G).([Line] A.B), Equal.([Line] C.G).([Line] A.C), Equal.([Angle.G] B.C).([Angle.D] E.F), Refuted.Across, Refuted.Beside, Refuted.Within, Refuted.Around] Equal.([Angle.A] B.C).([Angle.D] E.F),
+
+[Equal.([Angle.A] B.C).([Angle.D] E.F)] Theorem

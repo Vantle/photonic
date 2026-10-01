@@ -1,0 +1,12 @@
+E, F,
+Equal.([Line] A.B).([Sum] ([Line] A.C).([Line] B.C)),
+Equal.([Line] C.F).([Line] C.F),
+
+[E] (Equal.([Line] C.E).([Line] A.C), Equal.([Line] A.E).([Sum] ([Line] A.C).([Line] C.E))),
+[F, Equal.([Line] A.B).([Sum] ([Line] A.C).([Line] B.C))] (Equal.([Line] A.F).([Line] A.E), Equal.([Line] E.F).([Line] A.E), Equal.([Angle.C] B.F).([Angle.C] E.F)),
+[Equal.([Line] A.F).([Line] A.E), Equal.([Line] E.F).([Line] A.E)] Equal.([Line] A.F).([Line] E.F),
+[Equal.([Line] A.C).([Line] C.E), Equal.([Line] C.F).([Line] C.F), Equal.([Line] A.F).([Line] E.F)] Equal.([Angle.C] A.F).([Angle.C] E.F),
+[Equal.([Line] A.E).([Sum] ([Line] A.C).([Line] C.E)), Equal.([Angle.C] A.F).([Angle.C] E.F)] (Equal.([Angle.C] A.F).Right, Equal.([Angle.C] E.F).Right),
+[Equal.([Angle.C] E.F).Right, Equal.([Angle.C] B.F).([Angle.C] E.F)] Equal.([Angle.C] B.F).Right,
+
+[Equal.([Angle.C] A.F).Right, Equal.([Angle.C] B.F).Right] Theorem
